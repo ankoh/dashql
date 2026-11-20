@@ -6,8 +6,8 @@ use std::fmt;
 use serde_json::{Map, Value};
 
 use super::error_info::{from_http_error_response, HyperErrorInfo};
-use crate::http::HttpResponse;
 use crate::connections::DetailedError;
+use crate::http::HttpResponse;
 
 /// The log context of the HTTP client, the target of its errors
 pub const HTTP_CLIENT_LOG_CONTEXT: &str = "hyperdb_http_client";

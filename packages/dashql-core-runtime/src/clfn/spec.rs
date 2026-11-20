@@ -289,7 +289,8 @@ pub struct ClientFunctionCallDescription {
 impl ClientFunctionCallDescription {
     /// Read the description of the core
     pub fn from_value(value: Value) -> Result<Self, ClientFunctionError> {
-        serde_json::from_value(value).map_err(|e| ClientFunctionError::new(format!("invalid client function call: {e}")))
+        serde_json::from_value(value)
+            .map_err(|e| ClientFunctionError::new(format!("invalid client function call: {e}")))
     }
 
     /// A plan puts the values of its inputs in a description and the shell has none, so a description here has them.

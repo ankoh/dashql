@@ -67,10 +67,7 @@ impl Rect {
     /// The rectangle between two corners, in any order.
     pub fn from_corners(a: impl Into<Point>, b: impl Into<Point>) -> Rect {
         let (a, b) = (a.into(), b.into());
-        Rect {
-            min: Point::new(a.x.min(b.x), a.y.min(b.y)),
-            max: Point::new(a.x.max(b.x), a.y.max(b.y)),
-        }
+        Rect { min: Point::new(a.x.min(b.x), a.y.min(b.y)), max: Point::new(a.x.max(b.x), a.y.max(b.y)) }
     }
 
     /// The rectangle at `min` of this width and height.
@@ -91,18 +88,12 @@ impl Rect {
 
     /// Whether its corners are finite and in order.
     pub fn is_valid(&self) -> bool {
-        self.min.is_finite()
-            && self.max.is_finite()
-            && self.min.x <= self.max.x
-            && self.min.y <= self.max.y
+        self.min.is_finite() && self.max.is_finite() && self.min.x <= self.max.x && self.min.y <= self.max.y
     }
 
     /// The rectangle grown by `d` on every side.
     pub fn expand(&self, d: f32) -> Rect {
-        Rect {
-            min: Point::new(self.min.x - d, self.min.y - d),
-            max: Point::new(self.max.x + d, self.max.y + d),
-        }
+        Rect { min: Point::new(self.min.x - d, self.min.y - d), max: Point::new(self.max.x + d, self.max.y + d) }
     }
 }
 

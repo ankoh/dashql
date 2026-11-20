@@ -261,10 +261,21 @@ mod tests {
     #[test]
     fn lists_the_scripts_of_a_native_folder() {
         let entry = |name: &str, is_directory| FolderEntry { name: name.into(), is_directory };
-        assert_eq!(native_script_files(&[entry("10_last.sql", false), entry("2_first.sql", false), entry("x.txt", false)]).unwrap(), ["2_first.sql", "10_last.sql"]);
+        assert_eq!(
+            native_script_files(&[entry("10_last.sql", false), entry("2_first.sql", false), entry("x.txt", false)])
+                .unwrap(),
+            ["2_first.sql", "10_last.sql"]
+        );
         assert!(native_script_files(&[entry("page", true)]).unwrap_err().message.contains("nested scripts directory"));
-        assert!(native_script_files(&[entry("dashql-draft.sql", false)]).unwrap_err().message.contains("dashql-draft.sql is not supported"));
-        assert_eq!(native_attachment_files(&[entry("10.parquet", false), entry("2.parquet", false), entry("n.csv", false)]).unwrap(), ["2.parquet", "10.parquet"]);
+        assert!(native_script_files(&[entry("dashql-draft.sql", false)])
+            .unwrap_err()
+            .message
+            .contains("dashql-draft.sql is not supported"));
+        assert_eq!(
+            native_attachment_files(&[entry("10.parquet", false), entry("2.parquet", false), entry("n.csv", false)])
+                .unwrap(),
+            ["2.parquet", "10.parquet"]
+        );
     }
 
     #[test]
@@ -279,7 +290,11 @@ mod tests {
         stamps.wrote("c.sql", stamp(3));
         stamps.renamed("b.sql", "d.sql");
         assert_eq!(
-            stamps.external_changes(&[("a.sql".into(), stamp(2)), ("c.sql".into(), stamp(3)), ("d.sql".into(), stamp(1))]),
+            stamps.external_changes(&[
+                ("a.sql".into(), stamp(2)),
+                ("c.sql".into(), stamp(3)),
+                ("d.sql".into(), stamp(1))
+            ]),
             ["a.sql"]
         );
     }

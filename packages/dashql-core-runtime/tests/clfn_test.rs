@@ -6,8 +6,8 @@ use std::rc::Rc;
 
 use arrow_array::cast::AsArray;
 use arrow_array::types::{Date32Type, Int32Type, Int64Type, TimestampMillisecondType};
-use dashql_core_runtime::http::Url;
 use dashql_core_runtime::clfn::*;
+use dashql_core_runtime::http::Url;
 use serde_json::{json, Value};
 
 const BASE: &str = "https://svc.example.com";
@@ -79,7 +79,11 @@ impl Host {
     }
 
     /// Run a call to its end
-    fn run(&mut self, spec: &Rc<ClientFunctionSpec>, description: &ClientFunctionCallDescription) -> Result<ClientFunctionResult, ClientFunctionError> {
+    fn run(
+        &mut self,
+        spec: &Rc<ClientFunctionSpec>,
+        description: &ClientFunctionCallDescription,
+    ) -> Result<ClientFunctionResult, ClientFunctionError> {
         let variables = ClientFunctionVariables::from([("version".to_string(), "2".to_string())]);
         let (mut run, mut step) = ClientFunctionCallRun::start(spec.clone(), description, variables, self.now)?;
         // The rows come page by page
@@ -115,14 +119,22 @@ impl Host {
 }
 
 /// Run a call that must succeed
-fn run(spec: &Rc<ClientFunctionSpec>, description: ClientFunctionCallDescription, responses: Vec<HttpResponse>) -> (ClientFunctionResult, Host) {
+fn run(
+    spec: &Rc<ClientFunctionSpec>,
+    description: ClientFunctionCallDescription,
+    responses: Vec<HttpResponse>,
+) -> (ClientFunctionResult, Host) {
     let mut host = Host::new(responses);
     let result = host.run(spec, &description).unwrap();
     (result, host)
 }
 
 /// Run a call that must fail, and nothing else must be asked
-fn fail(spec: &Rc<ClientFunctionSpec>, description: ClientFunctionCallDescription, responses: Vec<HttpResponse>) -> (ClientFunctionError, Host) {
+fn fail(
+    spec: &Rc<ClientFunctionSpec>,
+    description: ClientFunctionCallDescription,
+    responses: Vec<HttpResponse>,
+) -> (ClientFunctionError, Host) {
     let mut host = Host::new(responses);
     let error = host.run(spec, &description).unwrap_err();
     (error, host)
@@ -188,8 +200,13 @@ fn path(url: &str) -> String {
 fn keeps_the_keys_of_a_map_and_spells_its_values_like_the_api() {
     let owner = json!({ "Owner": { "attributes": [{ "name": "first_name", "api_name": "firstName" }] } });
     let options = json!([{ "name": "owners", "api_name": "ownerMap", "in": "body", "schema": "Owner", "map": true }]);
-    let s = spec_with(vec![json!({ "name": "create", "method": "POST", "options": options })], json!({ "schemas": owner }));
-    let (_, host) = run(&s, call("create", json!({ "owners": { "first_name": { "first_name": "A" } } })), vec![json_response(json!({}))]);
+    let s =
+        spec_with(vec![json!({ "name": "create", "method": "POST", "options": options })], json!({ "schemas": owner }));
+    let (_, host) = run(
+        &s,
+        call("create", json!({ "owners": { "first_name": { "first_name": "A" } } })),
+        vec![json_response(json!({}))],
+    );
     assert_eq!(host.body(0), json!({ "ownerMap": { "first_name": { "firstName": "A" } } }));
     let (_, host) = run(
         &s,
@@ -203,7 +220,9 @@ fn keeps_the_keys_of_a_map_and_spells_its_values_like_the_api() {
 
 #[test]
 fn does_not_send_a_write_again_for_a_poll_value_that_only_a_repeated_request_has() {
-    let s = spec(vec![json!({ "name": "create", "method": "POST", "effect": "write", "pending": { "status": 202, "poll": { "header": "Location" } } })]);
+    let s = spec(vec![
+        json!({ "name": "create", "method": "POST", "effect": "write", "pending": { "status": 202, "poll": { "header": "Location" } } }),
+    ]);
     let (error, host) = fail(&s, call("create", json!({ "_poll": "same" })), vec![]);
     assert!(error.message.contains("polls a URL"), "{error}");
     assert!(host.sent.is_empty());
@@ -225,7 +244,8 @@ fn keeps_everything_but_the_rows_in_meta() {
 #[test]
 fn leaves_out_the_objects_that_only_held_the_rows() {
     let nested = spec(vec![json!({ "name": "list", "rows": "/a/b/rows" })]);
-    let (result, _) = run(&nested, call("list", json!({})), vec![json_response(json!({ "a": { "b": { "rows": [{}] } }, "c": 1 }))]);
+    let (result, _) =
+        run(&nested, call("list", json!({})), vec![json_response(json!({ "a": { "b": { "rows": [{}] } }, "c": 1 }))]);
     assert_eq!(text(&result, 0, "_meta").as_deref(), Some("{\"c\":1}"));
     let nothing = spec(vec![json!({ "name": "list", "rows": "/a/rows" })]);
     let (result, _) = run(&nothing, call("list", json!({})), vec![json_response(json!({ "a": { "rows": [{}] } }))]);
@@ -238,7 +258,10 @@ fn does_not_change_the_fields_that_it_keeps_for_paging() {
         "name": "list", "rows": "/collection/items", "options": [{ "name": "token", "in": "query" }],
         "paging": { "kind": "token", "from": { "body": "/collection/next" }, "option": "token" },
     })]);
-    let pages = vec![json_response(json!({ "collection": { "items": [{}], "next": "a" } })), json_response(json!({ "collection": { "items": [] } }))];
+    let pages = vec![
+        json_response(json!({ "collection": { "items": [{}], "next": "a" } })),
+        json_response(json!({ "collection": { "items": [] } })),
+    ];
     let (result, host) = run(&s, call("list", json!({ "_pages": 2 })), pages);
     assert_eq!(param(host.url(1), "token").as_deref(), Some("a"));
     assert_eq!(text(&result, 0, "_meta").as_deref(), Some("{\"collection\":{\"next\":\"a\"}}"));
@@ -323,8 +346,15 @@ fn sends_the_api_names_of_the_variants_of_a_union() {
     );
     let assign = json!({ "name": "assign", "method": "POST", "effect": "read", "path": "/assign", "options": [{ "name": "to", "api_name": "assignTo", "in": "body", "schema": "Assignee" }] });
     let s = spec_with(vec![assign], json!({ "schemas": schemas }));
-    let (_, host) = run(&s, call("assign", json!({ "to": { "team_name": "T", "lead": { "first_name": "A" }, "other_key": 1 } })), vec![json_response(json!({}))]);
-    assert_eq!(host.body(0), json!({ "assignTo": { "teamName": "T", "teamLead": { "firstName": "A" }, "other_key": 1 } }));
+    let (_, host) = run(
+        &s,
+        call("assign", json!({ "to": { "team_name": "T", "lead": { "first_name": "A" }, "other_key": 1 } })),
+        vec![json_response(json!({}))],
+    );
+    assert_eq!(
+        host.body(0),
+        json!({ "assignTo": { "teamName": "T", "teamLead": { "firstName": "A" }, "other_key": 1 } })
+    );
 }
 
 #[test]
@@ -357,13 +387,19 @@ fn sends_a_name_the_spec_does_not_list_as_written() {
     let s = spec(vec![create_fn()]);
     let (_, host) = run(&s, call("create", json!({ "project": "a", "new_Field": 1 })), vec![json_response(json!({}))]);
     assert_eq!(host.body(0), json!({ "new_Field": 1 }));
-    let (_, host) = run(&spec(vec![json!({ "name": "list" })]), call("list", json!({ "new_Field": 1 })), vec![json_response(json!({}))]);
+    let (_, host) = run(
+        &spec(vec![json!({ "name": "list" })]),
+        call("list", json!({ "new_Field": 1 })),
+        vec![json_response(json!({}))],
+    );
     assert_eq!(param(host.url(0), "new_Field").as_deref(), Some("1"));
 }
 
 #[test]
 fn keeps_path_values_on_their_endpoint() {
-    let s = spec(vec![json!({ "name": "read", "path": "/files/{path}", "options": [{ "name": "path", "in": "path", "multi_segment": true }] })]);
+    let s = spec(vec![
+        json!({ "name": "read", "path": "/files/{path}", "options": [{ "name": "path", "in": "path", "multi_segment": true }] }),
+    ]);
     let (_, host) = run(&s, call("read", json!({ "path": "a b/c" })), vec![json_response(json!({}))]);
     assert_eq!(path(host.url(0)), "/v2/files/a%20b/c");
     let (error, _) = fail(&s, call("read", json!({ "path": "../admin" })), vec![]);
@@ -372,7 +408,9 @@ fn keeps_path_values_on_their_endpoint() {
 
 #[test]
 fn never_turns_a_value_into_another_endpoint() {
-    let s = spec(vec![json!({ "name": "remove", "method": "DELETE", "path": "/connections/{id}/actions/run", "options": [{ "name": "id", "in": "path" }] })]);
+    let s = spec(vec![
+        json!({ "name": "remove", "method": "DELETE", "path": "/connections/{id}/actions/run", "options": [{ "name": "id", "in": "path" }] }),
+    ]);
     for id in [json!(".."), json!("."), json!(""), json!(null), json!({ "a": 1 }), json!(["a", "b"])] {
         let (_, host) = fail(&s, call("remove", json!({ "id": id })), vec![]);
         assert!(host.sent.is_empty());
@@ -388,22 +426,29 @@ fn encodes_what_only_looks_like_a_relative_segment() {
 
 #[test]
 fn leaves_a_header_out_when_its_value_is_null() {
-    let s = spec(vec![json!({ "name": "read", "options": [{ "name": "trace", "api_name": "X-Trace", "in": "header" }] })]);
+    let s =
+        spec(vec![json!({ "name": "read", "options": [{ "name": "trace", "api_name": "X-Trace", "in": "header" }] })]);
     let (_, host) = run(&s, call("read", json!({ "trace": null })), vec![json_response(json!({}))]);
     assert_eq!(host.sent[0].header("X-Trace"), None);
 }
 
 #[test]
 fn encodes_form_and_whole_bodies() {
-    let form = spec(vec![json!({ "name": "f", "method": "POST", "effect": "read", "body": "form", "options": [{ "name": "meta", "in": "body" }] })]);
+    let form = spec(vec![
+        json!({ "name": "f", "method": "POST", "effect": "read", "body": "form", "options": [{ "name": "meta", "in": "body" }] }),
+    ]);
     let (_, host) = run(&form, call("f", json!({ "meta": { "a": 1, "b": [2] } })), vec![json_response(json!({}))]);
     assert_eq!(host.sent[0].header("Content-Type"), Some("application/x-www-form-urlencoded"));
     let body = format!("?{}", host.sent[0].body.as_deref().unwrap());
     assert_eq!(param(&body, "meta[b][0]").as_deref(), Some("2"));
-    let root = spec(vec![json!({ "name": "r", "method": "POST", "effect": "read", "options": [{ "name": "tags", "in": "body_root" }] })]);
+    let root = spec(vec![
+        json!({ "name": "r", "method": "POST", "effect": "read", "options": [{ "name": "tags", "in": "body_root" }] }),
+    ]);
     let (_, host) = run(&root, call("r", json!({ "tags": [{ "a": 1 }] })), vec![json_response(json!({}))]);
     assert_eq!(host.body(0), json!([{ "a": 1 }]));
-    let csv = spec(vec![json!({ "name": "c", "method": "POST", "effect": "read", "body": "text/csv", "options": [{ "name": "csv", "in": "body" }] })]);
+    let csv = spec(vec![
+        json!({ "name": "c", "method": "POST", "effect": "read", "body": "text/csv", "options": [{ "name": "csv", "in": "body" }] }),
+    ]);
     let (_, host) = run(&csv, call("c", json!({ "csv": "id,name" })), vec![json_response(json!({}))]);
     assert_eq!(host.sent[0].body.as_deref(), Some("id,name"));
 }
@@ -412,7 +457,8 @@ fn encodes_form_and_whole_bodies() {
 fn keeps_the_path_of_the_escape_hatch_below_the_base_path_of_its_host() {
     let raw = spec(vec![json!({ "name": "request", "raw": true })]);
     for path in ["/%2e%2e/x", "/a/%2E%2e/x", "/%2e/x", "/a\\..\\x", "/x?a=1", "/x#a"] {
-        let (error, host) = fail(&raw, call("request", json!({ "method": "GET", "path": path, "host": "api" })), vec![]);
+        let (error, host) =
+            fail(&raw, call("request", json!({ "method": "GET", "path": path, "host": "api" })), vec![]);
         assert!(error.message.contains("relative to its host"), "{path}: {error}");
         assert!(host.sent.is_empty());
     }
@@ -422,7 +468,8 @@ fn keeps_the_path_of_the_escape_hatch_below_the_base_path_of_its_host() {
 fn sends_nothing_for_a_parameter_without_a_value() {
     let s = spec(vec![json!({ "name": "p", "options": [{ "name": "a", "in": "query" }] })]);
     let mut description = call("p", json!({ "a": null }));
-    description.bindings = vec![dashql_core_runtime::clfn::spec::ClientFunctionCallBinding { pointer: "/a".into(), param: "x".into() }];
+    description.bindings =
+        vec![dashql_core_runtime::clfn::spec::ClientFunctionCallBinding { pointer: "/a".into(), param: "x".into() }];
     let (error, host) = fail(&s, description.clone(), vec![]);
     assert!(error.message.contains(":x has no value"));
     assert!(host.sent.is_empty());
@@ -437,7 +484,8 @@ fn sends_writes_like_any_other_call() {
         json!({ "name": "d", "method": "DELETE", "path": "/items/{id}", "options": [{ "name": "id", "in": "path" }] }),
         json!({ "name": "r", "raw": true }),
     ]);
-    let write = |name: &str, options: Value| ClientFunctionCallDescription { effect: "write".into(), ..call(name, options) };
+    let write =
+        |name: &str, options: Value| ClientFunctionCallDescription { effect: "write".into(), ..call(name, options) };
     let (created, host) = run(&s, write("w", json!({ "label": "x" })), vec![status(201, json!({ "id": "a1" }))]);
     assert_eq!(host.sent[0].method, "POST");
     assert_eq!(host.body(0), json!({ "label": "x" }));
@@ -446,14 +494,22 @@ fn sends_writes_like_any_other_call() {
     let (removed, host) = run(&s, write("d", json!({ "id": 7 })), vec![HttpResponse::new(204, "")]);
     assert_eq!((host.sent[0].method.as_str(), host.url(0)), ("DELETE", format!("{BASE}/v2/items/7").as_str()));
     assert_eq!((removed.rows.len(), status_of(&removed, 0)), (1, Cell::Int32(204)));
-    let (_, host) = run(&s, write("r", json!({ "method": "PATCH", "path": "/x", "host": "api" })), vec![json_response(json!({ "ok": true }))]);
+    let (_, host) = run(
+        &s,
+        write("r", json!({ "method": "PATCH", "path": "/x", "host": "api" })),
+        vec![json_response(json!({ "ok": true }))],
+    );
     assert_eq!(host.sent[0].method, "PATCH");
 }
 
 #[test]
 fn keeps_the_escape_hatch_on_its_hosts() {
     let raw = spec(vec![json!({ "name": "request", "raw": true })]);
-    let (result, host) = run(&raw, call("request", json!({ "method": "get", "path": "/new", "host": "api", "someParam": 1 })), vec![json_response(json!({ "a": 1 }))]);
+    let (result, host) = run(
+        &raw,
+        call("request", json!({ "method": "get", "path": "/new", "host": "api", "someParam": 1 })),
+        vec![json_response(json!({ "a": 1 }))],
+    );
     assert_eq!(host.url(0), format!("{BASE}/v2/new?someParam=1"));
     assert_eq!(text(&result, 0, "_raw").as_deref(), Some("{\"a\":1}"));
     for path in ["https://evil.example.com/x", "//evil.example.com/x", "/a/../b", "x"] {
@@ -481,7 +537,11 @@ fn ids(result: &ClientFunctionResult) -> Vec<Cell> {
 
 #[test]
 fn returns_one_page_with_the_value_for_the_next_one_in_meta() {
-    let (result, host) = run(&token_paging(), call("list", json!({ "size": 2 })), vec![json_response(json!({ "items": [{ "id": 1 }, { "id": 2 }], "next": "abc", "total": 9 }))]);
+    let (result, host) = run(
+        &token_paging(),
+        call("list", json!({ "size": 2 })),
+        vec![json_response(json!({ "items": [{ "id": 1 }, { "id": 2 }], "next": "abc", "total": 9 }))],
+    );
     assert_eq!(host.sent.len(), 1);
     assert_eq!(ids(&result), [Cell::Int64(1), Cell::Int64(2)]);
     assert_eq!(json_cell(&result, 0, "_meta"), json!({ "next": "abc", "total": 9 }));
@@ -489,7 +549,11 @@ fn returns_one_page_with_the_value_for_the_next_one_in_meta() {
 
 #[test]
 fn applies_next_to_the_option_of_the_function() {
-    let (result, host) = run(&token_paging(), call("list", json!({ "size": 2, "_next": "abc" })), vec![json_response(json!({ "items": [{ "id": 3 }] }))]);
+    let (result, host) = run(
+        &token_paging(),
+        call("list", json!({ "size": 2, "_next": "abc" })),
+        vec![json_response(json!({ "items": [{ "id": 3 }] }))],
+    );
     assert_eq!(param(host.url(0), "pageToken").as_deref(), Some("abc"));
     assert_eq!(param(host.url(0), "size").as_deref(), Some("2"));
     assert_eq!(param(host.url(0), "_next"), None);
@@ -501,7 +565,10 @@ fn concatenates_up_to_pages_and_next_continues_after_them() {
     let (result, host) = run(
         &token_paging(),
         call("list", json!({ "_pages": 2 })),
-        vec![json_response(json!({ "items": [{ "id": 1 }], "next": "a" })), json_response(json!({ "items": [{ "id": 2 }], "next": "b" }))],
+        vec![
+            json_response(json!({ "items": [{ "id": 1 }], "next": "a" })),
+            json_response(json!({ "items": [{ "id": 2 }], "next": "b" })),
+        ],
     );
     assert_eq!(host.sent.len(), 2);
     assert_eq!(ids(&result), [Cell::Int64(1), Cell::Int64(2)]);
@@ -514,7 +581,10 @@ fn stops_when_the_list_ends_and_fails_as_a_whole() {
     let (_, host) = run(
         &token_paging(),
         call("list", json!({ "_pages": 10 })),
-        vec![json_response(json!({ "items": [{ "id": 1 }], "next": "a" })), json_response(json!({ "items": [{ "id": 2 }] }))],
+        vec![
+            json_response(json!({ "items": [{ "id": 1 }], "next": "a" })),
+            json_response(json!({ "items": [{ "id": 2 }] })),
+        ],
     );
     assert_eq!(host.sent.len(), 2);
     let (error, _) = fail(
@@ -536,7 +606,8 @@ fn fails_on_a_token_that_comes_back_unchanged() {
 
 #[test]
 fn returns_no_rows_for_an_empty_page_of_a_paged_function() {
-    let (result, _) = run(&token_paging(), call("list", json!({})), vec![json_response(json!({ "items": [], "next": "a" }))]);
+    let (result, _) =
+        run(&token_paging(), call("list", json!({})), vec![json_response(json!({ "items": [], "next": "a" }))]);
     assert!(result.rows.is_empty());
     let (last, _) = run(&token_paging(), call("list", json!({})), vec![json_response(json!({ "items": [] }))]);
     assert!(last.rows.is_empty());
@@ -544,11 +615,17 @@ fn returns_no_rows_for_an_empty_page_of_a_paged_function() {
 
 #[test]
 fn reads_a_value_by_the_rel_of_a_link_header_and_fails_on_a_source_it_does_not_know() {
-    let list = |from: Value| spec(vec![json!({ "name": "list", "rows": "", "paging": { "kind": "url", "from": from } })]);
+    let list =
+        |from: Value| spec(vec![json!({ "name": "list", "rows": "", "paging": { "kind": "url", "from": from } })]);
     let links = json_response(json!([{ "a": 1 }])).with_header("Link", "</a>; rel=\"first\", </b>; rel=\"last\"");
-    let (_, host) = run(&list(json!({ "link": "last" })), call("list", json!({ "_pages": 2 })), vec![links, json_response(json!([]))]);
+    let (_, host) = run(
+        &list(json!({ "link": "last" })),
+        call("list", json!({ "_pages": 2 })),
+        vec![links, json_response(json!([]))],
+    );
     assert_eq!(host.url(1), format!("{BASE}/b"));
-    let (error, _) = fail(&list(json!({ "nope": "x" })), call("list", json!({})), vec![json_response(json!([{ "a": 1 }]))]);
+    let (error, _) =
+        fail(&list(json!({ "nope": "x" })), call("list", json!({})), vec![json_response(json!([{ "a": 1 }]))]);
     assert!(error.message.contains("unknown source"), "{error}");
 }
 
@@ -559,8 +636,13 @@ fn follows_a_next_url_with_get_and_no_body() {
         "options": [{ "name": "q", "in": "body" }, { "name": "trace", "api_name": "X-Trace", "in": "header" }],
         "paging": { "kind": "url", "from": { "link": "next" } },
     })]);
-    let first = json_response(json!([{ "a": 1 }])).with_header("Link", "</results/1?page=0>; rel=\"first\", </results/1?page=1>; rel=\"next\"");
-    let (result, host) = run(&s, call("search", json!({ "q": "x", "trace": "t", "_pages": 2 })), vec![first, json_response(json!([{ "a": 2 }]))]);
+    let first = json_response(json!([{ "a": 1 }]))
+        .with_header("Link", "</results/1?page=0>; rel=\"first\", </results/1?page=1>; rel=\"next\"");
+    let (result, host) = run(
+        &s,
+        call("search", json!({ "q": "x", "trace": "t", "_pages": 2 })),
+        vec![first, json_response(json!([{ "a": 2 }]))],
+    );
     assert_eq!(host.sent[0].method, "POST");
     assert_eq!(host.url(1), format!("{BASE}/results/1?page=1"));
     assert_eq!(host.sent[1].method, "GET");
@@ -573,11 +655,17 @@ fn follows_a_next_url_with_get_and_no_body() {
 
 #[test]
 fn never_sends_the_token_to_another_origin() {
-    let s = spec(vec![json!({ "name": "feed", "rows": "/items", "options": [{ "name": "required", "api_name": "r", "in": "path" }], "path": "/{r}", "paging": { "kind": "url", "from": { "body": "/next" } } })]);
+    let s = spec(vec![
+        json!({ "name": "feed", "rows": "/items", "options": [{ "name": "required", "api_name": "r", "in": "path" }], "path": "/{r}", "paging": { "kind": "url", "from": { "body": "/next" } } }),
+    ]);
     let (error, host) = fail(&s, call("feed", json!({ "_next": "https://evil.example.com/x" })), vec![]);
     assert!(error.message.contains("another origin"), "{error}");
     assert!(host.sent.is_empty());
-    let (error, host) = fail(&s, call("feed", json!({ "required": "a", "_pages": 2 })), vec![json_response(json!({ "items": [{}], "next": "https://evil.example.com/x" }))]);
+    let (error, host) = fail(
+        &s,
+        call("feed", json!({ "required": "a", "_pages": 2 })),
+        vec![json_response(json!({ "items": [{}], "next": "https://evil.example.com/x" }))],
+    );
     assert!(error.message.contains("another origin"), "{error}");
     assert_eq!(host.sent.len(), 1);
 }
@@ -591,7 +679,10 @@ fn takes_a_cursor_from_the_last_row_and_ends_with_has_more() {
     let (result, host) = run(
         &s,
         call("charges", json!({ "_pages": 5 })),
-        vec![json_response(json!({ "data": [{ "id": "a" }, { "id": "b" }], "has_more": true })), json_response(json!({ "data": [{ "id": "c" }], "has_more": false }))],
+        vec![
+            json_response(json!({ "data": [{ "id": "a" }, { "id": "b" }], "has_more": true })),
+            json_response(json!({ "data": [{ "id": "c" }], "has_more": false })),
+        ],
     );
     assert_eq!(param(host.url(1), "starting_after").as_deref(), Some("b"));
     assert_eq!(host.sent.len(), 2);
@@ -601,13 +692,20 @@ fn takes_a_cursor_from_the_last_row_and_ends_with_has_more() {
 #[test]
 fn advances_offsets_by_the_rows_that_arrived() {
     let with_paging = |paging: Value| {
-        spec(vec![json!({ "name": "o", "rows": "/items", "options": [{ "name": "offset", "in": "query" }, { "name": "limit", "in": "query" }], "paging": paging })])
+        spec(vec![
+            json!({ "name": "o", "rows": "/items", "options": [{ "name": "offset", "in": "query" }, { "name": "limit", "in": "query" }], "paging": paging }),
+        ])
     };
     let paging = json!({ "kind": "offset", "option": "offset", "size": "limit", "start": 0 });
     let pages = vec![json_response(json!({ "items": [{}, {}] })), json_response(json!({ "items": [] }))];
-    let (_, host) = run(&with_paging(paging.clone()), call("o", json!({ "limit": 100, "offset": 10, "_pages": 2 })), pages);
+    let (_, host) =
+        run(&with_paging(paging.clone()), call("o", json!({ "limit": 100, "offset": 10, "_pages": 2 })), pages);
     assert_eq!(param(host.url(1), "offset").as_deref(), Some("12"));
-    let (_, short) = run(&with_paging(merge(paging.clone(), json!({ "end": "short_page" }))), call("o", json!({ "limit": 100, "_pages": 2 })), vec![json_response(json!({ "items": [{}, {}] }))]);
+    let (_, short) = run(
+        &with_paging(merge(paging.clone(), json!({ "end": "short_page" }))),
+        call("o", json!({ "limit": 100, "_pages": 2 })),
+        vec![json_response(json!({ "items": [{}, {}] }))],
+    );
     assert_eq!(short.sent.len(), 1);
     let (_, total) = run(
         &with_paging(merge(paging.clone(), json!({ "end": { "total": "/totalSize" } }))),
@@ -615,14 +713,21 @@ fn advances_offsets_by_the_rows_that_arrived() {
         vec![json_response(json!({ "items": [{}, {}], "totalSize": 10 }))],
     );
     assert_eq!(total.sent.len(), 1);
-    let (_, host) = run(&with_paging(paging), call("o", json!({ "_next": "12" })), vec![json_response(json!({ "items": [{}] }))]);
+    let (_, host) =
+        run(&with_paging(paging), call("o", json!({ "_next": "12" })), vec![json_response(json!({ "items": [{}] }))]);
     assert_eq!(param(host.url(0), "offset").as_deref(), Some("12"));
 }
 
 #[test]
 fn counts_page_numbers() {
-    let s = spec(vec![json!({ "name": "p", "rows": "", "options": [{ "name": "page", "in": "query" }], "paging": { "kind": "page", "option": "page", "start": 1 } })]);
-    let (result, host) = run(&s, call("p", json!({ "_pages": 9 })), vec![json_response(json!([{}])), json_response(json!([{}])), json_response(json!([]))]);
+    let s = spec(vec![
+        json!({ "name": "p", "rows": "", "options": [{ "name": "page", "in": "query" }], "paging": { "kind": "page", "option": "page", "start": 1 } }),
+    ]);
+    let (result, host) = run(
+        &s,
+        call("p", json!({ "_pages": 9 })),
+        vec![json_response(json!([{}])), json_response(json!([{}])), json_response(json!([]))],
+    );
     assert_eq!(host.sent.len(), 3);
     assert_eq!(param(host.url(2), "page").as_deref(), Some("3"));
     assert_eq!(result.rows.len(), 2);
@@ -652,7 +757,13 @@ fn typed_columns() -> Value {
 #[test]
 fn keeps_what_a_column_can_not_hold_in_raw() {
     let s = spec(vec![json!({ "name": "one", "columns": typed_columns() })]);
-    let (result, _) = run(&s, call("one", json!({})), vec![json_response(json!({ "apiName": "a", "count": "many", "size": 5, "ratio": 0.5, "active": true, "status": { "queryId": "q" }, "extra": 1 }))]);
+    let (result, _) = run(
+        &s,
+        call("one", json!({})),
+        vec![json_response(
+            json!({ "apiName": "a", "count": "many", "size": 5, "ratio": 0.5, "active": true, "status": { "queryId": "q" }, "extra": 1 }),
+        )],
+    );
     assert_eq!(text(&result, 0, "api_name").as_deref(), Some("a"));
     assert_eq!(result.cell(0, "count"), Some(&Cell::Null));
     assert_eq!(text(&result, 0, "status").as_deref(), Some("{\"queryId\":\"q\"}"));
@@ -672,14 +783,26 @@ fn returns_one_row_without_a_body() {
 #[test]
 fn reports_errors_from_the_pointers_of_the_spec() {
     let with_errors = |errors: Value| spec(vec![json!({ "name": "e", "errors": errors })]);
-    let (failure, _) = fail(&with_errors(json!(null)), call("e", json!({})), vec![status(403, json!({ "error": { "message": "nope" } }))]);
+    let (failure, _) = fail(
+        &with_errors(json!(null)),
+        call("e", json!({})),
+        vec![status(403, json!({ "error": { "message": "nope" } }))],
+    );
     assert_eq!((failure.message.as_str(), failure.status), ("nope", Some(403)));
     let (failure, _) = fail(&with_errors(json!(null)), call("e", json!({})), vec![HttpResponse::new(500, "")]);
     assert!(failure.message.contains("status 500"), "{failure}");
     let nested = status(400, json!([{ "message": json!({ "message": "inner" }).to_string() }]));
-    let (failure, _) = fail(&with_errors(json!({ "message": ["/0/message"], "message_is_json": true })), call("e", json!({})), vec![nested]);
+    let (failure, _) = fail(
+        &with_errors(json!({ "message": ["/0/message"], "message_is_json": true })),
+        call("e", json!({})),
+        vec![nested],
+    );
     assert_eq!(failure.message, "inner");
-    let (failure, _) = fail(&with_errors(json!({ "error_if": "/errors", "message": ["/errors/0"] })), call("e", json!({})), vec![json_response(json!({ "errors": ["bad"] }))]);
+    let (failure, _) = fail(
+        &with_errors(json!({ "error_if": "/errors", "message": ["/errors/0"] })),
+        call("e", json!({})),
+        vec![json_response(json!({ "errors": ["bad"] }))],
+    );
     assert_eq!(failure.message, "bad");
     let empty = spec(vec![json!({ "name": "e", "rows": "/items", "errors": { "empty_on": [404] } })]);
     let (result, _) = run(&empty, call("e", json!({})), vec![status(404, json!({}))]);
@@ -689,8 +812,11 @@ fn reports_errors_from_the_pointers_of_the_spec() {
 
 #[test]
 fn keeps_a_timestamp_or_a_date_that_the_column_cant_hold_in_raw() {
-    let s = spec(vec![json!({ "name": "one", "columns": [{ "name": "at", "type": "TIMESTAMPTZ" }, { "name": "day", "type": "DATE" }] })]);
-    let read = |value: Value| run(&s, call("one", json!({})), vec![json_response(json!({ "at": value, "day": value }))]).0;
+    let s = spec(vec![
+        json!({ "name": "one", "columns": [{ "name": "at", "type": "TIMESTAMPTZ" }, { "name": "day", "type": "DATE" }] }),
+    ]);
+    let read =
+        |value: Value| run(&s, call("one", json!({})), vec![json_response(json!({ "at": value, "day": value }))]).0;
     let instant = 1_710_147_682_000_i64; // 2024-03-11T09:01:22Z
     let midnight = 19_793; // 2024-03-11
     for text_value in ["2024-03-11T09:01:22Z", "2024-03-11T09:01:22.000+0000", "2024-03-11T09:01:22+00:00"] {
@@ -738,9 +864,11 @@ fn produces_arrow_batches() {
 #[test]
 fn hands_the_rows_over_page_by_page() {
     let variables = ClientFunctionVariables::from([("version".to_string(), "2".to_string())]);
-    let (mut run, step) = ClientFunctionCallRun::start(token_paging(), &call("list", json!({ "_pages": 3 })), variables, 0.0).unwrap();
+    let (mut run, step) =
+        ClientFunctionCallRun::start(token_paging(), &call("list", json!({ "_pages": 3 })), variables, 0.0).unwrap();
     assert!(matches!(step, CallStep::Send(_)));
-    let step = run.on_response(json_response(json!({ "items": [{ "id": 1 }, { "id": 2 }], "next": "a" })), 0.0).unwrap();
+    let step =
+        run.on_response(json_response(json!({ "items": [{ "id": 1 }, { "id": 2 }], "next": "a" })), 0.0).unwrap();
     assert!(matches!(step, CallStep::Send(_)));
     // The rows of a page are ready once it arrived, the run keeps none
     let first = run.take_rows().unwrap();
@@ -757,7 +885,9 @@ fn hands_the_rows_over_page_by_page() {
 // The pending results
 
 fn slow(pending: Value) -> Rc<ClientFunctionSpec> {
-    spec(vec![json!({ "name": "slow", "rows": "", "columns": [{ "name": "id", "type": "BIGINT" }], "pending": pending, "options": [{ "name": "required", "in": "query" }] })])
+    spec(vec![
+        json!({ "name": "slow", "rows": "", "columns": [{ "name": "id", "type": "BIGINT" }], "pending": pending, "options": [{ "name": "required", "in": "query" }] }),
+    ])
 }
 
 fn location() -> Value {
@@ -779,7 +909,11 @@ fn reports_a_call_that_is_not_finished_as_pending() {
 
 #[test]
 fn polls_with_poll_with_get_and_without_other_options() {
-    let (result, host) = run(&slow(location()), call("slow", json!({ "_poll": "/results/1" })), vec![json_response(json!([{ "id": 1 }]))]);
+    let (result, host) = run(
+        &slow(location()),
+        call("slow", json!({ "_poll": "/results/1" })),
+        vec![json_response(json!([{ "id": 1 }]))],
+    );
     assert_eq!(host.url(0), format!("{BASE}/results/1"));
     assert_eq!(host.sent[0].method, "GET");
     assert_eq!(text(&result, 0, "_poll"), None);
@@ -801,7 +935,11 @@ fn waits_up_to_wait_and_honors_retry_after() {
 
 #[test]
 fn returns_the_pending_row_when_the_time_runs_out() {
-    let (result, host) = run(&slow(location()), call("slow", json!({ "required": 1, "_wait": 3 })), vec![accepted(), accepted(), accepted()]);
+    let (result, host) = run(
+        &slow(location()),
+        call("slow", json!({ "required": 1, "_wait": 3 })),
+        vec![accepted(), accepted(), accepted()],
+    );
     assert_eq!(status_of(&result, 0), Cell::Int32(202));
     assert_eq!(host.sleeps, [1000.0, 2000.0]);
 }
@@ -809,7 +947,11 @@ fn returns_the_pending_row_when_the_time_runs_out() {
 #[test]
 fn repeats_the_request_for_poll_rule_same() {
     let repeat = slow(json!({ "status": 202, "poll": { "repeat": true } }));
-    let (_, host) = run(&repeat, call("slow", json!({ "required": 1, "_wait": 5 })), vec![HttpResponse::new(202, "{}"), json_response(json!([{ "id": 1 }]))]);
+    let (_, host) = run(
+        &repeat,
+        call("slow", json!({ "required": 1, "_wait": 5 })),
+        vec![HttpResponse::new(202, "{}"), json_response(json!([{ "id": 1 }]))],
+    );
     assert_eq!(host.sent.len(), 2);
     assert_eq!(host.url(1), host.url(0));
     let (pending, _) = run(&repeat, call("slow", json!({ "required": 1 })), vec![HttpResponse::new(202, "{}")]);
@@ -818,7 +960,8 @@ fn repeats_the_request_for_poll_rule_same() {
 
 #[test]
 fn fails_without_the_header_it_polls_and_on_another_origin() {
-    let (error, _) = fail(&slow(location()), call("slow", json!({ "required": 1 })), vec![HttpResponse::new(202, "{}")]);
+    let (error, _) =
+        fail(&slow(location()), call("slow", json!({ "required": 1 })), vec![HttpResponse::new(202, "{}")]);
     assert!(error.message.contains("without a Location header"), "{error}");
     let (error, _) = fail(&slow(location()), call("slow", json!({ "_poll": "https://evil.example.com/x" })), vec![]);
     assert!(error.message.contains("another origin"), "{error}");
@@ -826,7 +969,8 @@ fn fails_without_the_header_it_polls_and_on_another_origin() {
 
 #[test]
 fn treats_the_status_as_success_without_a_pending_rule() {
-    let (result, _) = run(&spec(vec![json!({ "name": "done" })]), call("done", json!({})), vec![HttpResponse::new(202, "{\"a\":1}")]);
+    let (result, _) =
+        run(&spec(vec![json!({ "name": "done" })]), call("done", json!({})), vec![HttpResponse::new(202, "{\"a\":1}")]);
     assert!(result.column("_poll").is_none());
     assert_eq!(status_of(&result, 0), Cell::Int32(202));
 }
@@ -835,7 +979,13 @@ fn treats_the_status_as_success_without_a_pending_rule() {
 fn stops_polling_when_the_statement_is_canceled() {
     // Canceling drops the run: while it waits, it sends nothing on its own and takes no response
     let variables = ClientFunctionVariables::from([("version".to_string(), "2".to_string())]);
-    let (mut run, step) = ClientFunctionCallRun::start(slow(location()), &call("slow", json!({ "required": 1, "_wait": 60 })), variables, 0.0).unwrap();
+    let (mut run, step) = ClientFunctionCallRun::start(
+        slow(location()),
+        &call("slow", json!({ "required": 1, "_wait": 60 })),
+        variables,
+        0.0,
+    )
+    .unwrap();
     assert!(matches!(step, CallStep::Send(_)));
     assert!(matches!(run.on_response(accepted(), 0.0).unwrap(), CallStep::Sleep { ms } if ms == 1000.0));
     assert!(run.on_response(accepted(), 0.0).is_err());
@@ -881,14 +1031,20 @@ fn explain_prints_the_request_with_api_names_and_sends_nothing_even_for_a_write(
 
 #[test]
 fn explain_works_without_a_binding() {
-    let result = explain_client_function_call(&spec(vec![explain_fn()]), &call("create", json!({ "project": "a" })), &ClientFunctionVariables::new()).unwrap();
+    let result = explain_client_function_call(
+        &spec(vec![explain_fn()]),
+        &call("create", json!({ "project": "a" })),
+        &ClientFunctionVariables::new(),
+    )
+    .unwrap();
     assert_eq!(text(&result, 0, "path").as_deref(), Some("/v{version}/projects/a"));
 }
 
 #[test]
 fn explain_prints_the_first_request_that_a_run_sends() {
     let feed = json!({ "name": "feed", "options": [{ "name": "trace", "api_name": "X-Trace", "in": "header" }, { "name": "offset", "in": "query" }], "rows": "/items", "paging": { "kind": "offset", "option": "offset" } });
-    let follow = merge(feed.clone(), json!({ "name": "follow", "paging": { "kind": "url", "from": { "body": "/next" } } }));
+    let follow =
+        merge(feed.clone(), json!({ "name": "follow", "paging": { "kind": "url", "from": { "body": "/next" } } }));
     for (function, options, path_text, query_text) in [
         (follow, json!({ "trace": "a", "_next": "/feed?page=2" }), "/feed?page=2", None),
         (feed, json!({ "trace": "a", "_next": "20" }), "/v2/items", Some("offset=20")),
@@ -908,15 +1064,24 @@ fn explain_prints_the_first_request_that_a_run_sends() {
 
 #[test]
 fn explain_refuses_what_a_run_refuses() {
-    let s = spec(vec![json!({ "name": "create", "method": "POST", "pending": { "status": 202, "poll": { "header": "Location" } } })]);
-    let error = explain_client_function_call(&s, &call("create", json!({ "_poll": "same" })), &ClientFunctionVariables::new()).unwrap_err();
+    let s = spec(vec![
+        json!({ "name": "create", "method": "POST", "pending": { "status": 202, "poll": { "header": "Location" } } }),
+    ]);
+    let error =
+        explain_client_function_call(&s, &call("create", json!({ "_poll": "same" })), &ClientFunctionVariables::new())
+            .unwrap_err();
     assert!(error.message.contains("polls a URL"));
 }
 
 #[test]
 fn explain_shows_a_followed_url_and_what_the_runtime_applies_itself() {
     let s = spec(vec![json!({ "name": "feed", "paging": { "kind": "url", "from": { "body": "/next" } } })]);
-    let result = explain_client_function_call(&s, &call("feed", json!({ "_next": "/feed?page=2", "_pages": 3 })), &ClientFunctionVariables::new()).unwrap();
+    let result = explain_client_function_call(
+        &s,
+        &call("feed", json!({ "_next": "/feed?page=2", "_pages": 3 })),
+        &ClientFunctionVariables::new(),
+    )
+    .unwrap();
     assert_eq!(text(&result, 0, "method").as_deref(), Some("GET"));
     assert_eq!(text(&result, 0, "path").as_deref(), Some("/feed?page=2"));
     assert_eq!(json_cell(&result, 0, "standard_options"), json!({ "_next": "/feed?page=2", "_pages": 3 }));

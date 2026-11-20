@@ -9,7 +9,8 @@
 
 use dashql_buffers::execution::ExecutionGraphT;
 use dashql_snapshots::encode::planner::{
-    plan_fixture, Fixture, FixtureAttachment, FixtureConnection, FixtureScript, PlannedFixture, PLANNER_ATTACHMENT_PREFIX, PLANNER_MOUNT_PREFIX,
+    plan_fixture, Fixture, FixtureAttachment, FixtureConnection, FixtureScript, PlannedFixture,
+    PLANNER_ATTACHMENT_PREFIX, PLANNER_MOUNT_PREFIX,
 };
 use dashql_snapshots::{load_category, run, Arguments, Failed, Trial};
 use hyper_ffi::{hyper_process, HyperConnection, HyperProcess, TemporaryDatabase};
@@ -21,7 +22,11 @@ fn has_references(graph: &ExecutionGraphT) -> bool {
 }
 
 /// Run the nodes of a plan in node order and write their materializations
-fn run_nodes(connections: &mut [HyperConnection], planned: &PlannedFixture, mount: &dyn Fn(&str) -> String) -> Result<(), String> {
+fn run_nodes(
+    connections: &mut [HyperConnection],
+    planned: &PlannedFixture,
+    mount: &dyn Fn(&str) -> String,
+) -> Result<(), String> {
     let materializations = planned.graph.materializations.as_deref().unwrap_or_default();
     for (i, node) in planned.graph.nodes.iter().flatten().enumerate() {
         let sql = mount(node.sql.as_deref().unwrap_or(""));
@@ -46,28 +51,70 @@ fn write(connections: &mut [HyperConnection], connection: u32, query: &str, path
 }
 
 /// Provide the result of a script the way the host does: run a plan of the script as target and write its result
-fn provide(connections: &mut [HyperConnection], fixture: &Fixture, planned: &PlannedFixture, script: u32, path: &str, mount: &dyn Fn(&str) -> String) -> Result<(), String> {
+fn provide(
+    connections: &mut [HyperConnection],
+    fixture: &Fixture,
+    planned: &PlannedFixture,
+    script: u32,
+    path: &str,
+    mount: &dyn Fn(&str) -> String,
+) -> Result<(), String> {
     let name = planned.names[script as usize].clone();
     let target = Fixture {
         catalog: fixture.catalog.clone(),
         client_functions: fixture.client_functions,
-        connections: fixture.connections.iter().map(|c| FixtureConnection { name: c.name.clone(), local: c.local, catalog: c.catalog.clone(), trino: c.trino, default_database: c.default_database.clone(), default_schema: c.default_schema.clone() }).collect(),
-        scripts: fixture.scripts.iter().map(|s| FixtureScript { name: s.name.clone(), input: s.input.clone(), stale_prepend: None, connection: s.connection.clone() }).collect(),
+        connections: fixture
+            .connections
+            .iter()
+            .map(|c| FixtureConnection {
+                name: c.name.clone(),
+                local: c.local,
+                catalog: c.catalog.clone(),
+                trino: c.trino,
+                default_database: c.default_database.clone(),
+                default_schema: c.default_schema.clone(),
+            })
+            .collect(),
+        scripts: fixture
+            .scripts
+            .iter()
+            .map(|s| FixtureScript {
+                name: s.name.clone(),
+                input: s.input.clone(),
+                stale_prepend: None,
+                connection: s.connection.clone(),
+            })
+            .collect(),
         targets: Some(vec![name.clone()]),
         materialized: Vec::new(),
         tolerant: false,
-        attachments: fixture.attachments.iter().map(|a| FixtureAttachment { file: a.file.clone(), stamp: a.stamp.clone(), query: a.query.clone() }).collect(),
+        attachments: fixture
+            .attachments
+            .iter()
+            .map(|a| FixtureAttachment { file: a.file.clone(), stamp: a.stamp.clone(), query: a.query.clone() })
+            .collect(),
     };
     let sub = plan_fixture(&target).map_err(|e| format!("plan of the provided result of {name}: {e}"))?;
     if !sub.graph.valid {
         return Err(format!("the plan of the provided result of {name} is invalid"));
     }
     run_nodes(connections, &sub, mount)?;
-    let result = sub.graph.nodes.iter().flatten().find(|n| n.script == script && n.script_result).ok_or(format!("{name} has no result"))?;
+    let result = sub
+        .graph
+        .nodes
+        .iter()
+        .flatten()
+        .find(|n| n.script == script && n.script_result)
+        .ok_or(format!("{name} has no result"))?;
     write(connections, result.connection, &mount(result.sql.as_deref().unwrap_or("")), path)
 }
 
-fn check(process: &OnceLock<HyperProcess>, name: &str, fixture: &Fixture, planned: &PlannedFixture) -> Result<(), String> {
+fn check(
+    process: &OnceLock<HyperProcess>,
+    name: &str,
+    fixture: &Fixture,
+    planned: &PlannedFixture,
+) -> Result<(), String> {
     let graph = &planned.graph;
     let directory = TemporaryDatabase::new(&format!("{name}.files"));
     let files = directory.path.parent().unwrap().to_string_lossy().into_owned();
@@ -116,7 +163,9 @@ fn main() {
         }
         let process = process.clone();
         let name = case.trial_name().replace(['/', ' ', ':'], "_");
-        trials.push(Trial::test(case.trial_name(), move || check(&process, &name, &fixture, &planned).map_err(Failed::from)));
+        trials.push(Trial::test(case.trial_name(), move || {
+            check(&process, &name, &fixture, &planned).map_err(Failed::from)
+        }));
     }
     println!("{} planner cases with script references", trials.len());
     let conclusion = run(&args, trials);

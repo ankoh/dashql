@@ -147,7 +147,10 @@ mod tests {
         assert_eq!(connection_file_key("c", "f.sql"), "@connections/c/f.sql");
         assert!(is_reloaded_key(&script_key(id, "a.sql"), id) && !is_reloaded_key(&workbook_creation_key(id), id));
         assert_eq!(script_file(id, "Query.SQL"), "w/scripts/query.sql");
-        assert!(is_reloaded_key(&workbook_script_list_key(id), id) && is_reloaded_key(&script_deletion_key(id, "a.sql"), id));
+        assert!(
+            is_reloaded_key(&workbook_script_list_key(id), id)
+                && is_reloaded_key(&script_deletion_key(id, "a.sql"), id)
+        );
         assert!(!is_reloaded_key(&workbook_file_key(id), id) && !is_reloaded_key("w/scriptsx", id));
         assert_eq!(key_within_workbook(&script_key(id, "a.sql"), id), "scripts/a.sql");
         assert_eq!(key_within_workbook("@manifest/connections/c", id), "@manifest/connections/c");

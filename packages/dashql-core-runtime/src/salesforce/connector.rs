@@ -9,8 +9,8 @@ use crate::catalog_loader::{CatalogEntries, ConnectorCatalogUpdate};
 use crate::clfn::ClientFunctionBinding;
 use crate::connections::connector::Connector;
 use crate::connections::{
-    Timestamp, RelationName, object, CatalogNameDefaults, ConnectionDetails, ConnectorFeatures, ConnectorType, JsonObject, HYPER_CLOUD_DEFAULT_DATABASE_NAME,
-    SALESFORCE_CATALOG_DATABASE, SALESFORCE_CATALOG_SCHEMA,
+    object, CatalogNameDefaults, ConnectionDetails, ConnectorFeatures, ConnectorType, JsonObject, RelationName,
+    Timestamp, HYPER_CLOUD_DEFAULT_DATABASE_NAME, SALESFORCE_CATALOG_DATABASE, SALESFORCE_CATALOG_SCHEMA,
 };
 
 /// A Salesforce connector
@@ -19,7 +19,8 @@ pub struct SalesforceConnector {
 }
 
 /// The Salesforce Data Cloud connector of the runtime
-pub static SALESFORCE_DATA_CLOUD: SalesforceConnector = SalesforceConnector { connector_type: ConnectorType::SalesforceDataCloud };
+pub static SALESFORCE_DATA_CLOUD: SalesforceConnector =
+    SalesforceConnector { connector_type: ConnectorType::SalesforceDataCloud };
 
 /// The Database.com connector of the runtime
 pub static DBCOM: SalesforceConnector = SalesforceConnector { connector_type: ConnectorType::Dbcom };
@@ -57,7 +58,8 @@ impl Connector for SalesforceConnector {
     }
 
     fn default_params(&self) -> JsonObject {
-        let mut params = object(json!({ "instanceUrl": "", "appConsumerKey": "", "appConsumerSecret": "", "login": "" }));
+        let mut params =
+            object(json!({ "instanceUrl": "", "appConsumerKey": "", "appConsumerSecret": "", "login": "" }));
         if self.is_dbcom() {
             params.insert("databaseName".to_string(), json!(HYPER_CLOUD_DEFAULT_DATABASE_NAME));
         }
@@ -83,7 +85,10 @@ impl Connector for SalesforceConnector {
     }
 
     fn catalog_name_defaults(&self, _setup_params: Option<&JsonObject>) -> CatalogNameDefaults {
-        CatalogNameDefaults { database_name: SALESFORCE_CATALOG_DATABASE.to_string(), schema_name: SALESFORCE_CATALOG_SCHEMA.to_string() }
+        CatalogNameDefaults {
+            database_name: SALESFORCE_CATALOG_DATABASE.to_string(),
+            schema_name: SALESFORCE_CATALOG_SCHEMA.to_string(),
+        }
     }
 
     /// Data Cloud reads its metadata over the API and refreshes in full, Database.com queries the Hyper of its Hyper
@@ -105,7 +110,8 @@ impl Connector for SalesforceConnector {
 
     /// Data Cloud has the Data 360 API. It isn't known whether Database.com has it.
     fn client_functions(&self) -> Option<&'static dyn ClientFunctionBinding> {
-        (!self.is_dbcom()).then_some(&crate::salesforce::client_functions::DATA_360 as &'static dyn ClientFunctionBinding)
+        (!self.is_dbcom())
+            .then_some(&crate::salesforce::client_functions::DATA_360 as &'static dyn ClientFunctionBinding)
     }
 
     fn cache_signature(&self, params: &JsonObject) -> Value {

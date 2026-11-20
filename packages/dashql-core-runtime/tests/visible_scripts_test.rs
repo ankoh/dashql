@@ -8,8 +8,8 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::task::{Context, Poll, Wake, Waker};
 
-use dashql_core_runtime::settings::RuntimeSettings;
 use dashql_core_runtime::host::{Host, LocalTask, LogLevel};
+use dashql_core_runtime::settings::RuntimeSettings;
 use dashql_core_runtime::visible_scripts::{ScriptAnalyses, VisibleScripts, BACKGROUND_ANALYSIS_DELAY_MS};
 
 // The executor

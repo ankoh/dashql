@@ -15,14 +15,20 @@ use serde_json::{Map, Value};
 
 use dashql_core::error::{Error, Result};
 
-use dashql_core_runtime::connections::{ConnectionParams, ConnectorType};
-use crate::workbook_format::data::{ConnectionEntry, WorkbookConnection, WorkbookData, WorkbookMetadata, WorkbookScript};
+use crate::workbook_format::data::{
+    ConnectionEntry, WorkbookConnection, WorkbookData, WorkbookMetadata, WorkbookScript,
+};
 use crate::workbook_format::files::{sanitize_workbook_files, workbook_connection_ids_of};
 use crate::workbook_format::script_connections::{
-    resolve_workbook_scripts, workbook_scripts_resolution_changed, ConnectionResolver, ResolvedConnection, ResolvedWorkbookScript,
+    resolve_workbook_scripts, workbook_scripts_resolution_changed, ConnectionResolver, ResolvedConnection,
+    ResolvedWorkbookScript,
+};
+use crate::workbook_format::validation::{
+    describe_invalid_workbook, is_local_hyper_wasm_params, is_valid_uuid, validate_workbook_json, InvalidWorkbook,
+    WorkbookValidationError,
 };
 use dashql_core_runtime::connections::sharing::connection_params_equal;
-use crate::workbook_format::validation::{describe_invalid_workbook, is_local_hyper_wasm_params, is_valid_uuid, validate_workbook_json, InvalidWorkbook, WorkbookValidationError};
+use dashql_core_runtime::connections::{ConnectionParams, ConnectorType};
 
 /// A connection that the restore knows
 #[derive(Debug, Clone, PartialEq)]
@@ -197,7 +203,11 @@ impl RestorePlanner {
     /// Resolve the reference of a workbook to a connection. The app manifest wins over the copy in the workbook, an
     /// unknown connection is registered from the copy. The app holds a single connection to the embedded database, an
     /// unknown one resolves to it.
-    fn resolve_workbook_connection(&mut self, workbook_id: &str, copy: &WorkbookConnection) -> Result<RestoreConnection> {
+    fn resolve_workbook_connection(
+        &mut self,
+        workbook_id: &str,
+        copy: &WorkbookConnection,
+    ) -> Result<RestoreConnection> {
         let connection_id = &copy.connection_id;
         let known = self
             .connection(connection_id)
@@ -205,7 +215,9 @@ impl RestorePlanner {
             .cloned();
         if let Some(known) = known {
             if known.connection_id == *connection_id
-                && (copy.params_draft.is_some() || copy.name.is_some() || !connection_params_equal(&copy.params, &known.params))
+                && (copy.params_draft.is_some()
+                    || copy.name.is_some()
+                    || !connection_params_equal(&copy.params, &known.params))
             {
                 self.add_copy_write(workbook_id, connection_id);
             }
@@ -235,7 +247,11 @@ impl RestorePlanner {
     }
 
     /// The connection to the embedded database, registered from a copy of the workbook or anew when the app has none
-    fn resolve_embedded_connection(&mut self, workbook_id: &str, copies: &[WorkbookConnection]) -> Result<RestoreConnection> {
+    fn resolve_embedded_connection(
+        &mut self,
+        workbook_id: &str,
+        copies: &[WorkbookConnection],
+    ) -> Result<RestoreConnection> {
         if let Some(embedded) = self.find_embedded() {
             return Ok(embedded.clone());
         }
@@ -246,7 +262,8 @@ impl RestorePlanner {
                 let hyper = ConnectorType::Hyper.connector();
                 params.insert(hyper.params_key().into(), Value::Object(hyper.default_params()));
                 // A connection without an id would be no connection, the restore of the workbook fails instead
-                let id = (self.new_uuid)().ok_or_else(|| Error::invalid_argument("no fresh id for the embedded database"))?;
+                let id = (self.new_uuid)()
+                    .ok_or_else(|| Error::invalid_argument("no fresh id for the embedded database"))?;
                 WorkbookConnection::new(id, Value::Object(params))
             }
         };
@@ -255,13 +272,21 @@ impl RestorePlanner {
 
     /// Load a workbook of the workbook tree: check its id and its file (None if it couldn't be read) and resolve the
     /// connections it uses. A workbook that fails is invalid, the workbench shows it and the user can delete it.
-    pub fn begin_workbook(&mut self, entry_path: &str, text: Option<&str>) -> std::result::Result<WorkbookRestore, InvalidWorkbook> {
+    pub fn begin_workbook(
+        &mut self,
+        entry_path: &str,
+        text: Option<&str>,
+    ) -> std::result::Result<WorkbookRestore, InvalidWorkbook> {
         let json = text.and_then(|text| serde_json::from_str::<Value>(text).ok());
         self.begin_workbook_json(entry_path, json.as_ref())
     }
 
     /// Load a workbook of the workbook tree from its file as JSON, see `begin_workbook`
-    pub fn begin_workbook_json(&mut self, entry_path: &str, json: Option<&Value>) -> std::result::Result<WorkbookRestore, InvalidWorkbook> {
+    pub fn begin_workbook_json(
+        &mut self,
+        entry_path: &str,
+        json: Option<&Value>,
+    ) -> std::result::Result<WorkbookRestore, InvalidWorkbook> {
         let workbook_id = entry_path;
         if !is_valid_uuid(workbook_id) {
             return Err(describe_invalid_workbook(entry_path, WorkbookValidationError::InvalidWorkbookId, None));
@@ -277,13 +302,15 @@ impl RestorePlanner {
         // registered
         let first = data.connections.first().map(|copy| copy.connection_id.as_str());
         let used = workbook_connection_ids_of(&sanitize_workbook_files(&data).scripts, first);
-        let used_copies: Vec<WorkbookConnection> = data.connections.iter().filter(|copy| used.contains(&copy.connection_id)).cloned().collect();
+        let used_copies: Vec<WorkbookConnection> =
+            data.connections.iter().filter(|copy| used.contains(&copy.connection_id)).cloned().collect();
         let resolved: Result<Vec<RestoreConnection>> = if used_copies.is_empty() {
             self.resolve_embedded_connection(workbook_id, &data.connections).map(|connection| vec![connection])
         } else {
             used_copies.iter().map(|copy| self.resolve_workbook_connection(workbook_id, copy)).collect()
         };
-        let connections = resolved.map_err(|_| describe_invalid_workbook(entry_path, WorkbookValidationError::WorkbookNotRestored, None))?;
+        let connections = resolved
+            .map_err(|_| describe_invalid_workbook(entry_path, WorkbookValidationError::WorkbookNotRestored, None))?;
         let mut catalogs_to_restore = Vec::new();
         for connection in &connections {
             if self.catalogs_restored.insert(connection.connection_id.clone()) {
@@ -299,14 +326,22 @@ impl RestorePlanner {
     }
 
     /// Resolve the scripts of a workbook with the names of its script files, None if they couldn't be listed
-    pub fn finish_workbook(&mut self, restore: WorkbookRestore, script_files: Option<&[String]>) -> std::result::Result<RestoredWorkbookPlan, InvalidWorkbook> {
-        let invalid = |data: &WorkbookData| describe_invalid_workbook(&restore.workbook_id, WorkbookValidationError::WorkbookNotRestored, Some(data));
+    pub fn finish_workbook(
+        &mut self,
+        restore: WorkbookRestore,
+        script_files: Option<&[String]>,
+    ) -> std::result::Result<RestoredWorkbookPlan, InvalidWorkbook> {
+        let invalid = |data: &WorkbookData| {
+            describe_invalid_workbook(&restore.workbook_id, WorkbookValidationError::WorkbookNotRestored, Some(data))
+        };
         let Some(script_files) = script_files else {
             return Err(invalid(&restore.data));
         };
         let workbook_id = restore.workbook_id.clone();
-        let mut resolver = PlannerResolver { planner: self, workbook_id: &workbook_id, copies: &restore.data.connections };
-        let resolved = resolve_workbook_scripts(&restore.data, script_files, &mut resolver).map_err(|_| invalid(&restore.data))?;
+        let mut resolver =
+            PlannerResolver { planner: self, workbook_id: &workbook_id, copies: &restore.data.connections };
+        let resolved =
+            resolve_workbook_scripts(&restore.data, script_files, &mut resolver).map_err(|_| invalid(&restore.data))?;
         let mut metadata = restore.data.metadata.clone();
         let promoted = metadata.is_ephemeral() && !resolved.scripts.is_empty();
         if promoted {
@@ -347,9 +382,16 @@ struct PlannerResolver<'a> {
 }
 
 impl ConnectionResolver for PlannerResolver<'_> {
-    fn resolve(&mut self, connection_id: &str, copy: Option<&WorkbookConnection>) -> Result<Option<ResolvedConnection>> {
+    fn resolve(
+        &mut self,
+        connection_id: &str,
+        copy: Option<&WorkbookConnection>,
+    ) -> Result<Option<ResolvedConnection>> {
         match copy {
-            Some(copy) => self.planner.resolve_workbook_connection(self.workbook_id, copy).map(|connection| Some(connection.resolved())),
+            Some(copy) => self
+                .planner
+                .resolve_workbook_connection(self.workbook_id, copy)
+                .map(|connection| Some(connection.resolved())),
             None => Ok(self.planner.connection(connection_id).map(RestoreConnection::resolved)),
         }
     }

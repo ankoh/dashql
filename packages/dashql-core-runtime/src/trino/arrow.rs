@@ -20,8 +20,8 @@ use arrow_schema::{DataType, Field, Schema, SchemaRef, TimeUnit};
 use serde_json::Value;
 
 use super::error::{TrinoError, TrinoResult};
-use crate::http::base64::base64_decode;
 use super::protocol::TrinoColumn;
+use crate::http::base64::base64_decode;
 use crate::time::{utc_ms, Millis, DAY_MS, MAX_DATE_MS};
 
 /// The offsets of named time zones, e.g. `Europe/Berlin`
@@ -117,14 +117,20 @@ pub fn parse_trino_type(type_name: &str) -> DataType {
 
 /// The Arrow schema of the result columns, every field is nullable
 pub fn trino_schema(columns: &[TrinoColumn]) -> SchemaRef {
-    let fields: Vec<Field> =
-        columns.iter().map(|column| Field::new(column.name.clone(), parse_trino_type(&column.type_name), true)).collect();
+    let fields: Vec<Field> = columns
+        .iter()
+        .map(|column| Field::new(column.name.clone(), parse_trino_type(&column.type_name), true))
+        .collect();
     Arc::new(Schema::new(fields))
 }
 
 /// Translate the rows of a result page to a record batch of a schema. A row that is no array or lacks a column has
 /// nulls there.
-pub fn rows_to_record_batch(schema: &SchemaRef, rows: &[Value], zones: &dyn TimeZoneOffsets) -> TrinoResult<RecordBatch> {
+pub fn rows_to_record_batch(
+    schema: &SchemaRef,
+    rows: &[Value],
+    zones: &dyn TimeZoneOffsets,
+) -> TrinoResult<RecordBatch> {
     let mut cache = ZoneOffsetCache::default();
     let mut columns: Vec<ArrayRef> = Vec::with_capacity(schema.fields().len());
     for (index, field) in schema.fields().iter().enumerate() {
@@ -142,7 +148,8 @@ pub fn rows_to_record_batch(schema: &SchemaRef, rows: &[Value], zones: &dyn Time
             .fields()
             .iter()
             .map(|field| {
-                let data_type = if is_translated(field.data_type()) { field.data_type().clone() } else { DataType::Utf8 };
+                let data_type =
+                    if is_translated(field.data_type()) { field.data_type().clone() } else { DataType::Utf8 };
                 Field::new(field.name().clone(), data_type, true)
             })
             .collect();
@@ -183,11 +190,15 @@ fn column_array<'a>(
 ) -> TrinoResult<ArrayRef> {
     let array: ArrayRef = match data_type {
         DataType::Boolean => Arc::new(values.map(|v| v.map(js_truthy)).collect::<BooleanArray>()),
-        DataType::Int8 => Arc::new(values.map(|v| v.and_then(js_number).map(|n| js_to_int32(n) as i8)).collect::<PrimitiveArray<Int8Type>>()),
-        DataType::Int16 => {
-            Arc::new(values.map(|v| v.and_then(js_number).map(|n| js_to_int32(n) as i16)).collect::<PrimitiveArray<Int16Type>>())
+        DataType::Int8 => Arc::new(
+            values.map(|v| v.and_then(js_number).map(|n| js_to_int32(n) as i8)).collect::<PrimitiveArray<Int8Type>>(),
+        ),
+        DataType::Int16 => Arc::new(
+            values.map(|v| v.and_then(js_number).map(|n| js_to_int32(n) as i16)).collect::<PrimitiveArray<Int16Type>>(),
+        ),
+        DataType::Int32 => {
+            Arc::new(values.map(|v| v.and_then(js_number).map(js_to_int32)).collect::<PrimitiveArray<Int32Type>>())
         }
-        DataType::Int32 => Arc::new(values.map(|v| v.and_then(js_number).map(js_to_int32)).collect::<PrimitiveArray<Int32Type>>()),
         DataType::Int64 => Arc::new(values.map(|v| v.and_then(big_int)).collect::<PrimitiveArray<Int64Type>>()),
         DataType::Float32 => {
             Arc::new(values.map(|v| v.and_then(js_number).map(|n| n as f32)).collect::<PrimitiveArray<Float32Type>>())
@@ -295,7 +306,9 @@ fn js_string_to_number(text: &str) -> f64 {
             if digits.is_empty() || !digits.chars().all(|c| c.is_digit(radix)) {
                 return f64::NAN;
             }
-            return digits.chars().fold(0.0, |acc, c| acc * f64::from(radix) + f64::from(c.to_digit(radix).unwrap_or(0)));
+            return digits
+                .chars()
+                .fold(0.0, |acc, c| acc * f64::from(radix) + f64::from(c.to_digit(radix).unwrap_or(0)));
         }
     }
     // Rust also reads `inf` and `nan`, JavaScript doesn't
@@ -565,7 +578,11 @@ pub fn parse_trino_timestamp_ms(text: &str, zones: &dyn TimeZoneOffsets) -> Opti
 }
 
 /// Parse a Trino timestamp with a cache of the offsets of named zones
-fn parse_trino_timestamp_ms_cached(text: &str, zones: &dyn TimeZoneOffsets, cache: &mut ZoneOffsetCache) -> Option<Millis> {
+fn parse_trino_timestamp_ms_cached(
+    text: &str,
+    zones: &dyn TimeZoneOffsets,
+    cache: &mut ZoneOffsetCache,
+) -> Option<Millis> {
     let parts = timestamp_parts(text)?;
     let wall = utc_ms(parts.year, parts.month, parts.day, parts.hours, parts.minutes, parts.seconds, parts.millis)?;
     let Some(zone) = parts.zone else {

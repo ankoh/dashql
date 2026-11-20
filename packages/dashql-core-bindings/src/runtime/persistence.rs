@@ -18,7 +18,9 @@ use dashql_core_runtime::host::HostError;
 use dashql_core_runtime::workbook::WorkbookEffect;
 use dashql_core_storage::storage::keys::workbook_connection_copy_key;
 use dashql_core_storage::storage::{FailedWrite, HoldReason, WriteResult, WriteTask};
-use dashql_core_storage::workbook_format::data::{WorkbookCloudLink as StoredCloudLink, WorkbookConnection, WorkbookScript};
+use dashql_core_storage::workbook_format::data::{
+    WorkbookCloudLink as StoredCloudLink, WorkbookConnection, WorkbookScript,
+};
 use js_sys::{Array, Object, Reflect};
 use serde_json::Value;
 use wasm_bindgen::JsValue;
@@ -237,21 +239,40 @@ impl Persistence {
         for effect in effects {
             // A task names its key (`storage::keys`)
             let task = match effect {
-                WorkbookEffect::WriteScript { file_name, text } => WriteTask::WriteScript { workbook_id: workbook_id.to_string(), file_name, text },
-                WorkbookEffect::DeleteScript { file_name } => WriteTask::DeleteScript { workbook_id: workbook_id.to_string(), file_name },
-                WorkbookEffect::RenameScript { from, to } => WriteTask::RenameScript { workbook_id: workbook_id.to_string(), from, to },
+                WorkbookEffect::WriteScript { file_name, text } => {
+                    WriteTask::WriteScript { workbook_id: workbook_id.to_string(), file_name, text }
+                }
+                WorkbookEffect::DeleteScript { file_name } => {
+                    WriteTask::DeleteScript { workbook_id: workbook_id.to_string(), file_name }
+                }
+                WorkbookEffect::RenameScript { from, to } => {
+                    WriteTask::RenameScript { workbook_id: workbook_id.to_string(), from, to }
+                }
                 WorkbookEffect::RenameDataFile { from, to } => {
                     drop(self.rename_data_file(workbook_id, from, to));
                     continue;
                 }
                 WorkbookEffect::WriteScriptList(list) => WriteTask::WriteWorkbookScripts {
                     workbook_id: workbook_id.to_string(),
-                    scripts: list.scripts.iter().map(|s| WorkbookScript::new(s.name.clone(), s.connection_id.clone())).collect(),
-                    connections: list.connections.iter().map(|c| connection_copy(&c.connection_id, Some(&c.params))).collect(),
+                    scripts: list
+                        .scripts
+                        .iter()
+                        .map(|s| WorkbookScript::new(s.name.clone(), s.connection_id.clone()))
+                        .collect(),
+                    connections: list
+                        .connections
+                        .iter()
+                        .map(|c| connection_copy(&c.connection_id, Some(&c.params)))
+                        .collect(),
                 },
                 WorkbookEffect::WriteProperties { name, ephemeral, origin } => {
                     let link = cloud.and_then(StoredCloudLink::from_json);
-                    WriteTask::WriteWorkbookProperties { workbook_id: workbook_id.to_string(), name, ephemeral, cloud: origin.and(link) }
+                    WriteTask::WriteWorkbookProperties {
+                        workbook_id: workbook_id.to_string(),
+                        name,
+                        ephemeral,
+                        cloud: origin.and(link),
+                    }
                 }
                 WorkbookEffect::PatchConnection { connection_id, params, replaces } => {
                     for from in replaces {

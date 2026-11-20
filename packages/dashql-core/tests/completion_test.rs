@@ -3,10 +3,10 @@
 // Bison names some symbol kinds in mixed case (S_Op)
 #![allow(non_upper_case_globals)]
 
-use dashql_core::catalog::CatalogLayer;
 use dashql_buffers::analyzer::NameTag;
 use dashql_buffers::completion::CandidateTag;
 use dashql_core::catalog::Catalog;
+use dashql_core::catalog::CatalogLayer;
 use dashql_core::completion::{is_symbol_kind_completable, Candidate, CandidateField, CandidateInfo, Completion};
 use dashql_core::pack::pack_completion;
 use dashql_core::script::Script;
@@ -108,7 +108,8 @@ fn tpch_q2() {
             None => candidate.completion_text.to_string(),
         })
         .collect();
-    let expected_names = ["s_co", "s_comment", "ps_comment", "from", "where", "group by", "order by", "by", "case", "cast"];
+    let expected_names =
+        ["s_co", "s_comment", "ps_comment", "from", "where", "group by", "order by", "by", "case", "cast"];
     assert_eq!(names, expected_names);
 }
 
@@ -138,7 +139,8 @@ fn dot_completion_before_later_cte_lines() {
 #[test]
 fn completes_qualified_columns_in_explicit_join() {
     let mut catalog = Catalog::new();
-    let _schema = load_schema(&mut catalog, "CREATE TABLE test1(a int, a_value int); CREATE TABLE test2(b int, b_value int);");
+    let _schema =
+        load_schema(&mut catalog, "CREATE TABLE test1(a int, a_value int); CREATE TABLE test2(b int, b_value int);");
 
     for (qualifier, expected_column) in [("a.", "a_value"), ("b.", "b_value")] {
         let text = format!("select * from test1 a left outer join test2 b on {qualifier}");
@@ -183,7 +185,8 @@ fn insert_returning_columns_are_in_scope() {
 #[test]
 fn insert_source_does_not_see_write_target_columns() {
     let mut catalog = Catalog::new();
-    let _schema = load_schema(&mut catalog, "CREATE TABLE target(id int, label text); CREATE TABLE source(source_id int);");
+    let _schema =
+        load_schema(&mut catalog, "CREATE TABLE target(id int, label text); CREATE TABLE source(source_id int);");
 
     let text = "insert into target select la from source";
     complete_at(&catalog, text, text.find("la from").unwrap() + 2, DEFAULT_LIMIT, |completion| {
@@ -475,7 +478,10 @@ fn identity_candidate_reproduces_quoted_input_verbatim() {
             if has_tag(candidate, CandidateTag::IDENTITY) {
                 found_identity = true;
                 // The identity candidate must equal the typed text, quotes and all.
-                assert_eq!(&*candidate.completion_text, typed, "Identity candidate must reproduce the typed text verbatim");
+                assert_eq!(
+                    &*candidate.completion_text, typed,
+                    "Identity candidate must reproduce the typed text verbatim"
+                );
             }
         }
         assert!(found_identity, "Expected an identity candidate for {typed}");

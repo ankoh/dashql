@@ -6,8 +6,8 @@ use serde_json::Value;
 
 use crate::workbook_format::data::{ConnectionEntry, WorkbookConnection, WorkbookData, WorkbookScript};
 use crate::workbook_format::files::dedupe_connections;
-use dashql_core_runtime::connections::sharing::connection_params_share_equal;
 use crate::workbook_format::validation::is_local_hyper_wasm_params;
+use dashql_core_runtime::connections::sharing::connection_params_share_equal;
 
 /// A connection that a workbook brings along
 #[derive(Debug, Clone, PartialEq)]
@@ -85,7 +85,11 @@ pub fn plan_connection_import(workbook: &WorkbookData, entries: &[ConnectionEntr
                                 .filter(|entry| connection_params_share_equal(&entry.params, &reference.params))
                                 .cloned(),
                         );
-                        if candidates.is_empty() { ConnectionImportDecision::Register } else { ConnectionImportDecision::Ask { candidates } }
+                        if candidates.is_empty() {
+                            ConnectionImportDecision::Register
+                        } else {
+                            ConnectionImportDecision::Ask { candidates }
+                        }
                     }
                 }
             };
@@ -141,12 +145,26 @@ pub fn apply_connection_import_plan(
         .iter()
         .map(|connection| match resolve(&connection.connection_id) {
             (connection_id, Some(entry)) => WorkbookConnection::new(connection_id, entry.params),
-            (connection_id, None) => WorkbookConnection { name: connection.name.clone(), ..WorkbookConnection::new(connection_id, connection.params.clone()) },
+            (connection_id, None) => WorkbookConnection {
+                name: connection.name.clone(),
+                ..WorkbookConnection::new(connection_id, connection.params.clone())
+            },
         })
         .collect();
-    let scripts = workbook.scripts.iter().map(|script| WorkbookScript::new(script.name.clone(), resolve(&script.connection_id).0)).collect();
-    let connection_ids = workbook.connections.iter().map(|connection| (connection.connection_id.clone(), resolve(&connection.connection_id).0)).collect();
-    ConnectionImport { workbook: WorkbookData { connections: dedupe_connections(connections), scripts, ..workbook.clone() }, connection_ids }
+    let scripts = workbook
+        .scripts
+        .iter()
+        .map(|script| WorkbookScript::new(script.name.clone(), resolve(&script.connection_id).0))
+        .collect();
+    let connection_ids = workbook
+        .connections
+        .iter()
+        .map(|connection| (connection.connection_id.clone(), resolve(&connection.connection_id).0))
+        .collect();
+    ConnectionImport {
+        workbook: WorkbookData { connections: dedupe_connections(connections), scripts, ..workbook.clone() },
+        connection_ids,
+    }
 }
 
 /// Did resolving the connections change the references of the workbook?

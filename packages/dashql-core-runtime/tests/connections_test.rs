@@ -57,11 +57,16 @@ fn function_entry_id(connection: &ConnectionState) -> CatalogEntryId {
 
 #[test]
 fn stopping_aborts_the_pending_publishers_and_clears_the_running_tasks() {
-    for (stop, reason) in [(ConnectionAction::Reset, "Connection was reset"), (ConnectionAction::Delete, "Connection was deleted")] {
+    for (stop, reason) in
+        [(ConnectionAction::Reset, "Connection was reset"), (ConnectionAction::Delete, "Connection was deleted")]
+    {
         let mut database = hyper();
         publish_descriptor(&database, database.relation_entry_id(), "CREATE TABLE stored(id int);");
         for task_id in [0, 1, 2] {
-            apply(&mut database, ConnectionAction::UpdateCatalog(task(task_id, CatalogUpdateVariant::FullCatalogRefresh, &[])));
+            apply(
+                &mut database,
+                ConnectionAction::UpdateCatalog(task(task_id, CatalogUpdateVariant::FullCatalogRefresh, &[])),
+            );
         }
         apply(&mut database, ConnectionAction::CatalogUpdateSucceeded { task_id: 2 });
         let revision = database.revision();
@@ -226,7 +231,9 @@ fn touched_relations_come_back_without_a_failure_when_the_update_is_cancelled() 
 fn touched_relations_take_the_first_attached_database_of_hyper() {
     let params = ConnectionParams::new(
         ConnectorType::Hyper,
-        object(json!({ "protocol": "V3_HTTP", "endpoint": "http://localhost:7484", "attachedDatabases": [{ "path": "/a.hyper", "alias": "a" }] })),
+        object(
+            json!({ "protocol": "V3_HTTP", "endpoint": "http://localhost:7484", "attachedDatabases": [{ "path": "/a.hyper", "alias": "a" }] }),
+        ),
     );
     let mut database = connection(params);
     touch(&mut database, vec![name(None, "t")]);
@@ -235,7 +242,8 @@ fn touched_relations_take_the_first_attached_database_of_hyper() {
 
 #[test]
 fn touched_relations_take_the_default_catalog_of_trino() {
-    let params = ConnectionParams::new(ConnectorType::Trino, object(json!({ "endpoint": "e", "catalogName": " hive " })));
+    let params =
+        ConnectionParams::new(ConnectorType::Trino, object(json!({ "endpoint": "e", "catalogName": " hive " })));
     let mut database = connection(params);
     touch(&mut database, vec![name(Some("s"), "t")]);
     assert_eq!(database.catalog_updates().touched_relations, vec![RelationName::new("hive", "s", "t")]);
@@ -259,11 +267,9 @@ fn rename_trims_keeps_the_same_name_and_clears_a_blank_name() {
 
 #[test]
 fn caches_query_results_by_default_of_the_connector() {
-    for (connector, caching) in [
-        (ConnectorType::Hyper, false),
-        (ConnectorType::Trino, true),
-        (ConnectorType::SalesforceDataCloud, true),
-    ] {
+    for (connector, caching) in
+        [(ConnectorType::Hyper, false), (ConnectorType::Trino, true), (ConnectorType::SalesforceDataCloud, true)]
+    {
         let connection = connection(ConnectionParams::default_for(connector));
         assert_eq!(connection.cache_query_results(), None);
         assert_eq!(connection.caches_query_results(), caching, "{connector:?}");
@@ -332,7 +338,10 @@ fn a_catalog_can_be_refreshed_only_online_without_a_running_full_refresh() {
     assert!(!connection.can_refresh_catalog(), "not online yet");
     let params = hyper_params("a").params;
     apply(&mut connection, ConnectionAction::Hyper(HyperAction::ChannelSetupStarted { params: params.clone() }));
-    apply(&mut connection, ConnectionAction::Hyper(HyperAction::ChannelReady { channel: ConnectionChannel::Host(1), params }));
+    apply(
+        &mut connection,
+        ConnectionAction::Hyper(HyperAction::ChannelReady { channel: ConnectionChannel::Host(1), params }),
+    );
     assert_eq!(connection.health(), ConnectionHealth::Online);
     assert!(connection.can_refresh_catalog());
     apply(&mut connection, ConnectionAction::UpdateCatalog(task(7, CatalogUpdateVariant::FullCatalogRefresh, &[])));
@@ -352,8 +361,14 @@ fn a_finished_refresh_keeps_a_superseding_refresh() {
     for terminal in terminals {
         for newer_finished_first in [false, true] {
             let mut connection = hyper();
-            apply(&mut connection, ConnectionAction::UpdateCatalog(task(7, CatalogUpdateVariant::FullCatalogRefresh, &[])));
-            apply(&mut connection, ConnectionAction::UpdateCatalog(task(8, CatalogUpdateVariant::FullCatalogRefresh, &[])));
+            apply(
+                &mut connection,
+                ConnectionAction::UpdateCatalog(task(7, CatalogUpdateVariant::FullCatalogRefresh, &[])),
+            );
+            apply(
+                &mut connection,
+                ConnectionAction::UpdateCatalog(task(8, CatalogUpdateVariant::FullCatalogRefresh, &[])),
+            );
             if newer_finished_first {
                 apply(&mut connection, ConnectionAction::CatalogUpdateSucceeded { task_id: 8 });
             }
@@ -396,7 +411,8 @@ fn registers_the_queries_of_running_updates_only() {
     apply(&mut connection, ConnectionAction::UpdateCatalog(task(7, CatalogUpdateVariant::FullCatalogRefresh, &[])));
     apply(&mut connection, ConnectionAction::CatalogUpdateRegisterQuery { task_id: 7, query_id: 3 });
     assert_eq!(connection.catalog_updates().tasks_running[&7].queries, vec![3]);
-    let outcome = connection.apply(ConnectionAction::CatalogUpdateRegisterQuery { task_id: 9, query_id: 4 }, NOW).unwrap();
+    let outcome =
+        connection.apply(ConnectionAction::CatalogUpdateRegisterQuery { task_id: 9, query_id: 4 }, NOW).unwrap();
     assert!(!outcome.changed);
     assert!(!connection.apply(ConnectionAction::CatalogUpdateSucceeded { task_id: 9 }, NOW).unwrap().changed);
 }
@@ -417,7 +433,12 @@ fn with_draft_rows(mut params: ConnectionParams) -> ConnectionParams {
 #[test]
 fn sets_a_draft_of_the_same_connector_only() {
     let mut connection = hyper();
-    assert!(!connection.apply(ConnectionAction::SetDraft(ConnectionParams::default_for(ConnectorType::Trino)), NOW).unwrap().changed);
+    assert!(
+        !connection
+            .apply(ConnectionAction::SetDraft(ConnectionParams::default_for(ConnectorType::Trino)), NOW)
+            .unwrap()
+            .changed
+    );
     apply(&mut connection, ConnectionAction::SetDraft(hyper_params("a")));
     assert_eq!(connection.params_draft(), Some(&hyper_params("a")));
     assert!(!connection.apply(ConnectionAction::SetDraft(hyper_params("a")), NOW).unwrap().changed);
@@ -452,7 +473,13 @@ fn an_embedded_hyper_is_online_with_its_channel_and_commits_the_params_of_the_se
     assert_eq!(connection.setup_attempt_draft(), Some(&draft));
     assert_eq!(connection.health(), ConnectionHealth::Connecting);
 
-    apply(&mut connection, ConnectionAction::Hyper(HyperAction::ChannelReady { channel: ConnectionChannel::Host(1), params: draft.params.clone() }));
+    apply(
+        &mut connection,
+        ConnectionAction::Hyper(HyperAction::ChannelReady {
+            channel: ConnectionChannel::Host(1),
+            params: draft.params.clone(),
+        }),
+    );
     assert_eq!(connection.status(), ConnectionStatus::ChannelReady);
     assert_eq!(connection.health(), ConnectionHealth::Online);
     assert!(connection.active());
@@ -471,7 +498,13 @@ fn a_hyper_server_waits_for_the_health_check() {
     let mut params = hyper_params("http://localhost:7484");
     params.params.insert("protocol".into(), json!("V3_HTTP"));
     apply(&mut connection, ConnectionAction::Hyper(HyperAction::ChannelSetupStarted { params: params.params.clone() }));
-    apply(&mut connection, ConnectionAction::Hyper(HyperAction::ChannelReady { channel: ConnectionChannel::Host(1), params: params.params.clone() }));
+    apply(
+        &mut connection,
+        ConnectionAction::Hyper(HyperAction::ChannelReady {
+            channel: ConnectionChannel::Host(1),
+            params: params.params.clone(),
+        }),
+    );
     assert_eq!(connection.health(), ConnectionHealth::Connecting);
     assert!(!connection.active());
     assert_eq!(connection.params(), &ConnectionParams::default_for(ConnectorType::Hyper));
@@ -489,9 +522,18 @@ fn a_hyper_server_waits_for_the_health_check() {
 fn a_draft_that_changed_during_the_setup_stays() {
     let mut connection = hyper();
     apply(&mut connection, ConnectionAction::SetDraft(hyper_params("a")));
-    apply(&mut connection, ConnectionAction::Hyper(HyperAction::ChannelSetupStarted { params: hyper_params("a").params }));
+    apply(
+        &mut connection,
+        ConnectionAction::Hyper(HyperAction::ChannelSetupStarted { params: hyper_params("a").params }),
+    );
     apply(&mut connection, ConnectionAction::SetDraft(hyper_params("b")));
-    apply(&mut connection, ConnectionAction::Hyper(HyperAction::ChannelReady { channel: ConnectionChannel::Host(1), params: hyper_params("a").params }));
+    apply(
+        &mut connection,
+        ConnectionAction::Hyper(HyperAction::ChannelReady {
+            channel: ConnectionChannel::Host(1),
+            params: hyper_params("a").params,
+        }),
+    );
     assert_eq!(connection.params(), &hyper_params("a"));
     assert_eq!(connection.params_draft(), Some(&hyper_params("b")));
 }
@@ -500,7 +542,10 @@ fn a_draft_that_changed_during_the_setup_stays() {
 fn a_failed_setup_forgets_its_params() {
     let mut connection = hyper();
     let initial = connection.params().clone();
-    apply(&mut connection, ConnectionAction::Hyper(HyperAction::ChannelSetupStarted { params: hyper_params("a").params }));
+    apply(
+        &mut connection,
+        ConnectionAction::Hyper(HyperAction::ChannelSetupStarted { params: hyper_params("a").params }),
+    );
     apply(&mut connection, ConnectionAction::Hyper(HyperAction::ChannelSetupFailed(error("refused"))));
     assert_eq!(connection.health(), ConnectionHealth::Failed);
     assert_eq!(connection.details().channel_error, Some(error("refused")));
@@ -512,7 +557,10 @@ fn a_failed_setup_forgets_its_params() {
 #[test]
 fn a_hyper_channel_setup_that_is_cancelled_keeps_the_error() {
     let mut connection = hyper();
-    apply(&mut connection, ConnectionAction::Hyper(HyperAction::ChannelSetupStarted { params: hyper_params("a").params }));
+    apply(
+        &mut connection,
+        ConnectionAction::Hyper(HyperAction::ChannelSetupStarted { params: hyper_params("a").params }),
+    );
     apply(&mut connection, ConnectionAction::Hyper(HyperAction::ChannelSetupCancelled(error("cancelled"))));
     assert_eq!(connection.status(), ConnectionStatus::ChannelSetupCancelled);
     assert_eq!(connection.health(), ConnectionHealth::Cancelled);
@@ -545,7 +593,13 @@ fn discarding_the_draft_drops_the_errors_unless_the_connection_is_connecting() {
 #[test]
 fn reset_closes_the_channel_and_keeps_the_setup_params() {
     let mut connection = hyper();
-    apply(&mut connection, ConnectionAction::Hyper(HyperAction::ChannelReady { channel: ConnectionChannel::Host(5), params: hyper_params("a").params }));
+    apply(
+        &mut connection,
+        ConnectionAction::Hyper(HyperAction::ChannelReady {
+            channel: ConnectionChannel::Host(5),
+            params: hyper_params("a").params,
+        }),
+    );
     let effects = apply(&mut connection, ConnectionAction::Reset);
     assert_eq!(effects.last(), Some(&ConnectionEffect::Close { handle: 5 }));
     assert!(connection.details().channel.is_none());
@@ -560,7 +614,10 @@ fn an_update_that_replaces_one_of_the_same_id_releases_its_handle() {
     let mut database = hyper();
     apply(&mut database, ConnectionAction::UpdateCatalog(task(0, CatalogUpdateVariant::FullCatalogRefresh, &[])));
     let again = CatalogUpdateTask { handle: Some(200), ..task(0, CatalogUpdateVariant::FullCatalogRefresh, &[]) };
-    assert_eq!(apply(&mut database, ConnectionAction::UpdateCatalog(again)), vec![ConnectionEffect::Release { handle: 100 }]);
+    assert_eq!(
+        apply(&mut database, ConnectionAction::UpdateCatalog(again)),
+        vec![ConnectionEffect::Release { handle: 100 }]
+    );
     assert_eq!(database.catalog_updates().tasks_running[&0].handle, Some(200));
 }
 
@@ -568,17 +625,44 @@ fn an_update_that_replaces_one_of_the_same_id_releases_its_handle() {
 fn a_new_setup_closes_the_channel_that_it_replaces() {
     // The connection owns its channels of the host, e.g. the session of the embedded Hyper of a shell that mounts again
     let mut connection = hyper();
-    apply(&mut connection, ConnectionAction::Hyper(HyperAction::ChannelReady { channel: ConnectionChannel::Host(1), params: hyper_params("a").params }));
-    let effects = apply(&mut connection, ConnectionAction::Hyper(HyperAction::ChannelSetupStarted { params: hyper_params("a").params }));
+    apply(
+        &mut connection,
+        ConnectionAction::Hyper(HyperAction::ChannelReady {
+            channel: ConnectionChannel::Host(1),
+            params: hyper_params("a").params,
+        }),
+    );
+    let effects = apply(
+        &mut connection,
+        ConnectionAction::Hyper(HyperAction::ChannelSetupStarted { params: hyper_params("a").params }),
+    );
     assert_eq!(effects, vec![ConnectionEffect::Close { handle: 1 }]);
     assert!(connection.details().channel.is_none());
     // A channel that replaces another one closes it as well
-    apply(&mut connection, ConnectionAction::Hyper(HyperAction::ChannelReady { channel: ConnectionChannel::Host(2), params: hyper_params("a").params }));
-    let effects = apply(&mut connection, ConnectionAction::Hyper(HyperAction::ChannelReady { channel: ConnectionChannel::Host(3), params: hyper_params("a").params }));
+    apply(
+        &mut connection,
+        ConnectionAction::Hyper(HyperAction::ChannelReady {
+            channel: ConnectionChannel::Host(2),
+            params: hyper_params("a").params,
+        }),
+    );
+    let effects = apply(
+        &mut connection,
+        ConnectionAction::Hyper(HyperAction::ChannelReady {
+            channel: ConnectionChannel::Host(3),
+            params: hyper_params("a").params,
+        }),
+    );
     assert_eq!(effects, vec![ConnectionEffect::Close { handle: 2 }]);
     // A salesforce connection that sets up again closes the channel of the host as well, a switch of the connector too
     let mut connection = hyper();
-    apply(&mut connection, ConnectionAction::Hyper(HyperAction::ChannelReady { channel: ConnectionChannel::Host(4), params: hyper_params("a").params }));
+    apply(
+        &mut connection,
+        ConnectionAction::Hyper(HyperAction::ChannelReady {
+            channel: ConnectionChannel::Host(4),
+            params: hyper_params("a").params,
+        }),
+    );
     let effects = apply(&mut connection, ConnectionAction::Hyper(HyperAction::ChannelSetupFailed(error("boom"))));
     assert_eq!(effects, vec![ConnectionEffect::Close { handle: 4 }]);
 }
@@ -587,10 +671,12 @@ fn a_new_setup_closes_the_channel_that_it_replaces() {
 
 #[test]
 fn reads_and_writes_connection_params_as_json() {
-    let params = ConnectionParams::from_json(r#"{"trino": {"endpoint": "e", "auth": {"authType": "AUTH_BASIC"}}}"#).unwrap();
+    let params =
+        ConnectionParams::from_json(r#"{"trino": {"endpoint": "e", "auth": {"authType": "AUTH_BASIC"}}}"#).unwrap();
     assert_eq!(params.connector, ConnectorType::Trino);
     // The order of the keys doesn't matter
-    let reordered = ConnectionParams::from_json(r#"{"trino": {"auth": {"authType": "AUTH_BASIC"}, "endpoint": "e"}}"#).unwrap();
+    let reordered =
+        ConnectionParams::from_json(r#"{"trino": {"auth": {"authType": "AUTH_BASIC"}, "endpoint": "e"}}"#).unwrap();
     assert_eq!(params, reordered);
     assert_eq!(ConnectionParams::from_json(&params.to_json()).unwrap(), params);
     assert!(ConnectionParams::from_json(r#"{"other": {}}"#).is_err());
@@ -624,12 +710,16 @@ fn timing(timing: Timing) -> Timing {
 
 /// The ready step of a Trino setup with a channel of the params
 fn trino_ready() -> TrinoAction {
-    let trino = dashql_core_runtime::trino::SharedTrinoChannel::new(dashql_core_runtime::trino::TrinoChannel::from_params(&trino_params()));
+    let trino = dashql_core_runtime::trino::SharedTrinoChannel::new(
+        dashql_core_runtime::trino::TrinoChannel::from_params(&trino_params()),
+    );
     TrinoAction::ChannelReady(trino)
 }
 
 fn trino_params() -> JsonObject {
-    object(json!({ "endpoint": "https://trino.example.com", "auth": { "authType": "AUTH_OAUTH" }, "catalogName": "hive" }))
+    object(
+        json!({ "endpoint": "https://trino.example.com", "auth": { "authType": "AUTH_OAUTH" }, "catalogName": "hive" }),
+    )
 }
 
 fn trino() -> ConnectionState {
@@ -648,14 +738,39 @@ fn trino_actions_set_the_status_health_and_timing() {
     use ConnectionHealth as H;
     use ConnectionStatus as S;
     let cases: Vec<(TrinoAction, S, H, Timing)> = vec![
-        (TrinoAction::OAuthStarted { params: trino_params() }, S::AuthStarted, H::Connecting, timing(|t| t.oauth_started_at)),
+        (
+            TrinoAction::OAuthStarted { params: trino_params() },
+            S::AuthStarted,
+            H::Connecting,
+            timing(|t| t.oauth_started_at),
+        ),
         (TrinoAction::OAuthCancelled(error("boom")), S::AuthCancelled, H::Cancelled, timing(|t| t.oauth_cancelled_at)),
         (TrinoAction::OAuthFailed(error("boom")), S::AuthFailed, H::Failed, timing(|t| t.oauth_failed_at)),
-        (TrinoAction::GeneratingPkceChallenge, S::PkceGenerationStarted, H::Connecting, timing(|t| t.pkce_gen_started_at)),
+        (
+            TrinoAction::GeneratingPkceChallenge,
+            S::PkceGenerationStarted,
+            H::Connecting,
+            timing(|t| t.pkce_gen_started_at),
+        ),
         (TrinoAction::GeneratedPkceChallenge, S::PkceGenerated, H::Connecting, timing(|t| t.pkce_gen_finished_at)),
-        (TrinoAction::OAuthBrowserOpened, S::WaitingForOAuthCodeViaLink, H::Connecting, timing(|t| t.oauth_browser_opened_at)),
-        (TrinoAction::ReceivedOAuthCode { created_at: CODE_RECEIVED_AT.into() }, S::OAuthCodeReceived, H::Connecting, timing(|t| t.oauth_code_received_at)),
-        (TrinoAction::RequestingAccessToken, S::AccessTokenRequested, H::Connecting, timing(|t| t.access_token_requested_at)),
+        (
+            TrinoAction::OAuthBrowserOpened,
+            S::WaitingForOAuthCodeViaLink,
+            H::Connecting,
+            timing(|t| t.oauth_browser_opened_at),
+        ),
+        (
+            TrinoAction::ReceivedOAuthCode { created_at: CODE_RECEIVED_AT.into() },
+            S::OAuthCodeReceived,
+            H::Connecting,
+            timing(|t| t.oauth_code_received_at),
+        ),
+        (
+            TrinoAction::RequestingAccessToken,
+            S::AccessTokenRequested,
+            H::Connecting,
+            timing(|t| t.access_token_requested_at),
+        ),
         (
             TrinoAction::ReceivedAccessToken,
             S::AccessTokenReceived,
@@ -674,7 +789,12 @@ fn trino_actions_set_the_status_health_and_timing() {
             H::Cancelled,
             timing(|t| t.channel_setup_cancelled_at),
         ),
-        (TrinoAction::ChannelSetupFailed(error("boom")), S::ChannelSetupFailed, H::Failed, timing(|t| t.channel_setup_failed_at)),
+        (
+            TrinoAction::ChannelSetupFailed(error("boom")),
+            S::ChannelSetupFailed,
+            H::Failed,
+            timing(|t| t.channel_setup_failed_at),
+        ),
         (trino_ready(), S::ChannelReady, H::Connecting, timing(|t| t.channel_ready_at)),
     ];
     for (action, status, health, timing) in cases {
@@ -698,7 +818,10 @@ fn trino_collects_the_oauth_state_of_the_steps() {
         apply(&mut connection, ConnectionAction::Trino(action));
     }
     // The verifier, the code and the token never reach the connection
-    assert_eq!(trino_oauth(&connection), Some(&TrinoOAuthState { pkce_generated: true, auth_code_received_at: Some(CODE_RECEIVED_AT.into()) }));
+    assert_eq!(
+        trino_oauth(&connection),
+        Some(&TrinoOAuthState { pkce_generated: true, auth_code_received_at: Some(CODE_RECEIVED_AT.into()) })
+    );
 }
 
 #[test]
@@ -737,8 +860,14 @@ fn a_setup_ignores_the_steps_of_the_attempt_that_it_replaced() {
     let mut connection = hyper();
     let params = hyper_params("a").params;
     let started = || ConnectionAction::Hyper(HyperAction::ChannelSetupStarted { params: params.clone() });
-    let ready = |handle| ConnectionAction::Hyper(HyperAction::ChannelReady { channel: ConnectionChannel::Host(handle), params: params.clone() });
-    let handle = |connection: &ConnectionState| connection.details().channel.as_ref().and_then(ConnectionChannel::host_handle);
+    let ready = |handle| {
+        ConnectionAction::Hyper(HyperAction::ChannelReady {
+            channel: ConnectionChannel::Host(handle),
+            params: params.clone(),
+        })
+    };
+    let handle =
+        |connection: &ConnectionState| connection.details().channel.as_ref().and_then(ConnectionChannel::host_handle);
     // The first setup is stuck connecting, a second one replaces it and succeeds
     let first = connection.begin_setup();
     apply(&mut connection, step(first, started()));
@@ -750,7 +879,10 @@ fn a_setup_ignores_the_steps_of_the_attempt_that_it_replaced() {
     let revision = connection.revision();
 
     // The first setup ends late: its cancellation changes nothing, its channel belongs to no connection and is closed
-    let effects = apply(&mut connection, step(first, ConnectionAction::Hyper(HyperAction::ChannelSetupCancelled(error("cancelled")))));
+    let effects = apply(
+        &mut connection,
+        step(first, ConnectionAction::Hyper(HyperAction::ChannelSetupCancelled(error("cancelled")))),
+    );
     assert!(effects.is_empty());
     let effects = apply(&mut connection, step(first, ready(6)));
     assert_eq!(effects, [ConnectionEffect::Close { handle: 6 }]);
@@ -769,15 +901,24 @@ fn a_reset_or_delete_ignores_the_late_steps_of_the_setup() {
     for stop in [ConnectionAction::Reset, ConnectionAction::Delete] {
         let mut connection = trino();
         let attempt = connection.begin_setup();
-        apply(&mut connection, step(attempt, ConnectionAction::Trino(TrinoAction::ChannelSetupStarted { params: trino_params() })));
+        apply(
+            &mut connection,
+            step(attempt, ConnectionAction::Trino(TrinoAction::ChannelSetupStarted { params: trino_params() })),
+        );
         apply(&mut connection, step(attempt, ConnectionAction::Trino(trino_ready())));
         apply(&mut connection, step(attempt, ConnectionAction::HealthCheckStarted));
         let effects = apply(&mut connection, stop.clone());
         assert!(effects.contains(&ConnectionEffect::CancelSetup));
         // The probe of the health check ends after the stop, the setup reports its cancellation
         apply(&mut connection, step(attempt, ConnectionAction::HealthCheckCancelled));
-        apply(&mut connection, step(attempt, ConnectionAction::Trino(TrinoAction::ChannelSetupCancelled(error("cancelled")))));
-        assert_eq!((connection.status(), connection.health()), (ConnectionStatus::NotStarted, ConnectionHealth::NotStarted));
+        apply(
+            &mut connection,
+            step(attempt, ConnectionAction::Trino(TrinoAction::ChannelSetupCancelled(error("cancelled")))),
+        );
+        assert_eq!(
+            (connection.status(), connection.health()),
+            (ConnectionStatus::NotStarted, ConnectionHealth::NotStarted)
+        );
         assert_eq!(connection.details().setup_timings, SetupTimings::default());
     }
 }
@@ -789,7 +930,10 @@ fn a_failed_token_refresh_fails_the_connection_that_is_online() {
     apply(&mut connection, ConnectionAction::HealthCheckSucceeded);
     assert_eq!(connection.health(), ConnectionHealth::Online);
     let epoch = connection.setup_epoch();
-    apply(&mut connection, ConnectionAction::TokenRefreshFailed { epoch, error: error("The refresh of the access token timed out") });
+    apply(
+        &mut connection,
+        ConnectionAction::TokenRefreshFailed { epoch, error: error("The refresh of the access token timed out") },
+    );
     assert_eq!((connection.status(), connection.health()), (ConnectionStatus::AuthFailed, ConnectionHealth::Failed));
     assert_eq!(connection.details().channel_error, Some(error("The refresh of the access token timed out")));
     assert!(!connection.can_refresh_catalog());
@@ -797,7 +941,9 @@ fn a_failed_token_refresh_fails_the_connection_that_is_online() {
     let mut connection = trino();
     let revision = connection.revision();
     let epoch = connection.setup_epoch();
-    assert!(!connection.apply(ConnectionAction::TokenRefreshFailed { epoch, error: error("late") }, NOW).unwrap().changed);
+    assert!(
+        !connection.apply(ConnectionAction::TokenRefreshFailed { epoch, error: error("late") }, NOW).unwrap().changed
+    );
     assert_eq!((connection.health(), connection.revision()), (ConnectionHealth::NotStarted, revision));
 }
 
@@ -805,19 +951,28 @@ fn a_failed_token_refresh_fails_the_connection_that_is_online() {
 fn a_failed_token_refresh_of_a_replaced_channel_changes_nothing() {
     let mut connection = trino();
     let first = connection.begin_setup();
-    apply(&mut connection, step(first, ConnectionAction::Trino(TrinoAction::ChannelSetupStarted { params: trino_params() })));
+    apply(
+        &mut connection,
+        step(first, ConnectionAction::Trino(TrinoAction::ChannelSetupStarted { params: trino_params() })),
+    );
     apply(&mut connection, step(first, ConnectionAction::Trino(trino_ready())));
     apply(&mut connection, step(first, ConnectionAction::HealthCheckSucceeded));
     assert_eq!(connection.health(), ConnectionHealth::Online);
     // A query on the first channel starts a refresh, the user sets the connection up again meanwhile
     let second = connection.begin_setup();
-    apply(&mut connection, step(second, ConnectionAction::Trino(TrinoAction::ChannelSetupStarted { params: trino_params() })));
+    apply(
+        &mut connection,
+        step(second, ConnectionAction::Trino(TrinoAction::ChannelSetupStarted { params: trino_params() })),
+    );
     apply(&mut connection, step(second, ConnectionAction::Trino(trino_ready())));
     apply(&mut connection, step(second, ConnectionAction::HealthCheckSucceeded));
     assert_eq!(connection.health(), ConnectionHealth::Online);
     let revision = connection.revision();
     // The refresh on the first channel fails late, the new channel stays online
-    let late = ConnectionAction::TokenRefreshFailed { epoch: first, error: error("The refresh of the access token timed out") };
+    let late = ConnectionAction::TokenRefreshFailed {
+        epoch: first,
+        error: error("The refresh of the access token timed out"),
+    };
     assert!(!connection.apply(late, NOW).unwrap().changed);
     assert_eq!((connection.health(), connection.revision()), (ConnectionHealth::Online, revision));
     assert_eq!(connection.details().channel_error, None);
@@ -851,7 +1006,10 @@ fn trino_refuses_other_actions_and_other_connections_have_no_trino_details() {
     let mut connection = trino();
     let details = connection.details().clone();
     let revision = connection.revision();
-    let action = ConnectionAction::Hyper(HyperAction::ChannelReady { channel: ConnectionChannel::Host(1), params: hyper_params("a").params });
+    let action = ConnectionAction::Hyper(HyperAction::ChannelReady {
+        channel: ConnectionChannel::Host(1),
+        params: hyper_params("a").params,
+    });
     assert!(connection.apply(action, NOW).is_err());
     assert!(connection.apply(ConnectionAction::Salesforce(SalesforceAction::GeneratingPkceChallenge), NOW).is_err());
     assert_eq!(connection.details(), &details);
@@ -893,7 +1051,8 @@ fn user_info(preferred_username: Option<&str>, email: Option<&str>) -> Connectio
 /// The channel of a Salesforce login with its tokens
 fn salesforce_channel() -> dashql_core_runtime::salesforce::SharedSalesforceChannel {
     use dashql_core_runtime::salesforce::{
-        SalesforceConnectionParams, SalesforceCoreAccessToken, SalesforceDataCloudAccessToken, SalesforceTokens, SharedSalesforceChannel,
+        SalesforceConnectionParams, SalesforceCoreAccessToken, SalesforceDataCloudAccessToken, SalesforceTokens,
+        SharedSalesforceChannel,
     };
     let core = SalesforceCoreAccessToken {
         access_token: "core".into(),
@@ -901,9 +1060,13 @@ fn salesforce_channel() -> dashql_core_runtime::salesforce::SharedSalesforceChan
         instance_url: Some("https://example.my.salesforce.com".into()),
         ..Default::default()
     };
-    let data_cloud = SalesforceDataCloudAccessToken { instance_url: "https://tenant.c360a.salesforce.com/".into(), ..Default::default() };
+    let data_cloud = SalesforceDataCloudAccessToken {
+        instance_url: "https://tenant.c360a.salesforce.com/".into(),
+        ..Default::default()
+    };
     let params = SalesforceConnectionParams::default();
-    SharedSalesforceChannel::new(ConnectorType::SalesforceDataCloud, &params, SalesforceTokens { core, data_cloud }).unwrap()
+    SharedSalesforceChannel::new(ConnectorType::SalesforceDataCloud, &params, SalesforceTokens { core, data_cloud })
+        .unwrap()
 }
 
 #[test]
@@ -917,11 +1080,31 @@ fn salesforce_actions_set_the_status_health_and_timing() {
         (A::SetupFailed(error("boom")), S::AuthFailed, H::Failed, timing(|t| t.auth_failed_at)),
         (A::GeneratingPkceChallenge, S::PkceGenerationStarted, H::Connecting, timing(|t| t.pkce_gen_started_at)),
         (A::GeneratedPkceChallenge, S::PkceGenerated, H::Connecting, timing(|t| t.pkce_gen_finished_at)),
-        (A::OAuthNativeLinkOpened, S::WaitingForOAuthCodeViaLink, H::Connecting, timing(|t| t.opened_native_auth_link_at)),
-        (A::OAuthWebWindowOpened, S::WaitingForOAuthCodeViaWindow, H::Connecting, timing(|t| t.opened_web_auth_window_at)),
+        (
+            A::OAuthNativeLinkOpened,
+            S::WaitingForOAuthCodeViaLink,
+            H::Connecting,
+            timing(|t| t.opened_native_auth_link_at),
+        ),
+        (
+            A::OAuthWebWindowOpened,
+            S::WaitingForOAuthCodeViaWindow,
+            H::Connecting,
+            timing(|t| t.opened_web_auth_window_at),
+        ),
         (A::OAuthWebWindowClosed, S::NotStarted, H::NotStarted, timing(|t| t.closed_web_auth_window_at)),
-        (A::ReceivedCoreAuthCode { created_at: CODE_RECEIVED_AT.into() }, S::OAuthCodeReceived, H::Connecting, timing(|t| t.oauth_code_received_at)),
-        (A::RequestingCoreAuthToken, S::AccessTokenRequested, H::Connecting, timing(|t| t.core_access_token_requested_at)),
+        (
+            A::ReceivedCoreAuthCode { created_at: CODE_RECEIVED_AT.into() },
+            S::OAuthCodeReceived,
+            H::Connecting,
+            timing(|t| t.oauth_code_received_at),
+        ),
+        (
+            A::RequestingCoreAuthToken,
+            S::AccessTokenRequested,
+            H::Connecting,
+            timing(|t| t.core_access_token_requested_at),
+        ),
         (
             A::ReceivedCoreAuthToken,
             S::CoreAccessTokenReceived,
@@ -941,7 +1124,12 @@ fn salesforce_actions_set_the_status_health_and_timing() {
             timing(|t| t.data_cloud_access_token_received_at),
         ),
         (A::ChannelSetupStarted, S::ChannelSetupStarted, H::Connecting, timing(|t| t.channel_setup_started_at)),
-        (A::ChannelSetupCancelled(error("boom")), S::ChannelSetupCancelled, H::Cancelled, timing(|t| t.channel_setup_cancelled_at)),
+        (
+            A::ChannelSetupCancelled(error("boom")),
+            S::ChannelSetupCancelled,
+            H::Cancelled,
+            timing(|t| t.channel_setup_cancelled_at),
+        ),
         (A::ChannelSetupFailed(error("boom")), S::ChannelSetupFailed, H::Failed, timing(|t| t.channel_setup_failed_at)),
         (A::ChannelReady(salesforce_channel()), S::ChannelReady, H::Connecting, timing(|t| t.channel_ready_at)),
     ];
@@ -957,8 +1145,12 @@ fn salesforce_actions_set_the_status_health_and_timing() {
 #[test]
 fn salesforce_collects_the_oauth_state_of_the_steps() {
     let mut connection = salesforce();
-    apply(&mut connection, ConnectionAction::Salesforce(SalesforceAction::SetupStarted { params: salesforce_params() }));
-    let oauth_params = connection.details().salesforce().unwrap().oauth_state.as_ref().unwrap().oauth_params.clone().unwrap();
+    apply(
+        &mut connection,
+        ConnectionAction::Salesforce(SalesforceAction::SetupStarted { params: salesforce_params() }),
+    );
+    let oauth_params =
+        connection.details().salesforce().unwrap().oauth_state.as_ref().unwrap().oauth_params.clone().unwrap();
     assert_eq!(oauth_params.instance_url, "https://example.my.salesforce.com");
     assert_eq!(oauth_params.app_consumer_key, "consumer-key");
     assert_eq!(oauth_params.expires_at - oauth_params.requested_at, 2.0 * 60.0 * 60.0 * 1000.0);
@@ -1002,7 +1194,10 @@ fn salesforce_stores_the_login_of_the_user_info_the_username_before_the_email() 
 #[test]
 fn salesforce_keeps_the_details_type_of_database_com_connections() {
     let mut connection = salesforce_of(ConnectorType::Dbcom);
-    apply(&mut connection, ConnectionAction::Salesforce(SalesforceAction::SetupStarted { params: salesforce_params() }));
+    apply(
+        &mut connection,
+        ConnectionAction::Salesforce(SalesforceAction::SetupStarted { params: salesforce_params() }),
+    );
     assert_eq!(connection.connector_type(), ConnectorType::Dbcom);
     assert!(matches!(connection.details().connector, ConnectorDetails::Dbcom(_)));
     assert_eq!(connection.setup_attempt_params().map(|params| params.connector), Some(ConnectorType::Dbcom));
@@ -1012,9 +1207,17 @@ fn salesforce_keeps_the_details_type_of_database_com_connections() {
 fn salesforce_reset_and_delete_close_the_channel_and_clear_the_setup() {
     for stop in [ConnectionAction::Reset, ConnectionAction::Delete] {
         let mut connection = salesforce();
-        apply(&mut connection, ConnectionAction::Salesforce(SalesforceAction::SetupStarted { params: salesforce_params() }));
+        apply(
+            &mut connection,
+            ConnectionAction::Salesforce(SalesforceAction::SetupStarted { params: salesforce_params() }),
+        );
         apply(&mut connection, ConnectionAction::Salesforce(SalesforceAction::GeneratedPkceChallenge));
-        apply(&mut connection, ConnectionAction::Salesforce(SalesforceAction::ReceivedCoreAuthCode { created_at: CODE_RECEIVED_AT.into() }));
+        apply(
+            &mut connection,
+            ConnectionAction::Salesforce(SalesforceAction::ReceivedCoreAuthCode {
+                created_at: CODE_RECEIVED_AT.into(),
+            }),
+        );
         apply(&mut connection, user_info(Some("user@example.com"), None));
         apply(&mut connection, ConnectionAction::Salesforce(SalesforceAction::SetupFailed(error("boom"))));
         apply(&mut connection, ConnectionAction::Salesforce(SalesforceAction::ChannelReady(salesforce_channel())));
@@ -1034,7 +1237,10 @@ fn salesforce_reset_and_delete_close_the_channel_and_clear_the_setup() {
 #[test]
 fn salesforce_online_keeps_the_login_that_the_user_info_resolved() {
     let mut connection = salesforce();
-    apply(&mut connection, ConnectionAction::Salesforce(SalesforceAction::SetupStarted { params: salesforce_params() }));
+    apply(
+        &mut connection,
+        ConnectionAction::Salesforce(SalesforceAction::SetupStarted { params: salesforce_params() }),
+    );
     apply(&mut connection, user_info(Some("user@example.com"), None));
     apply(&mut connection, ConnectionAction::Salesforce(SalesforceAction::ChannelReady(salesforce_channel())));
     apply(&mut connection, ConnectionAction::HealthCheckSucceeded);
@@ -1233,7 +1439,10 @@ mod open_setup {
     fn online(mut connection: ConnectionState) -> ConnectionState {
         let params = connection.params().params.clone();
         apply(&mut connection, ConnectionAction::Hyper(HyperAction::ChannelSetupStarted { params: params.clone() }));
-        apply(&mut connection, ConnectionAction::Hyper(HyperAction::ChannelReady { channel: ConnectionChannel::Host(1), params }));
+        apply(
+            &mut connection,
+            ConnectionAction::Hyper(HyperAction::ChannelReady { channel: ConnectionChannel::Host(1), params }),
+        );
         // A remote Hyper is online once its health check succeeded
         if connection.health() != ConnectionHealth::Online {
             apply(&mut connection, ConnectionAction::HealthCheckStarted);
@@ -1336,8 +1545,11 @@ mod cache_signatures {
         let params = object(json!({ "endpoint": "https://trino.example.com", "auth": { "authType": "AUTH_OAUTH" } }));
         assert_eq!(connection_cache_signature(&connection(ConnectionParams::new(ConnectorType::Trino, params))), None);
         // Basic auth keys by its user, also without a channel
-        let basic = object(json!({ "endpoint": "https://trino.example.com", "auth": { "authType": "AUTH_BASIC", "basic": { "username": "u" } } }));
-        let signature = connection_cache_signature(&connection(ConnectionParams::new(ConnectorType::Trino, basic))).unwrap();
+        let basic = object(
+            json!({ "endpoint": "https://trino.example.com", "auth": { "authType": "AUTH_BASIC", "basic": { "username": "u" } } }),
+        );
+        let signature =
+            connection_cache_signature(&connection(ConnectionParams::new(ConnectorType::Trino, basic))).unwrap();
         assert_eq!(signature["auth"]["user"], "u");
     }
 
@@ -1365,7 +1577,10 @@ mod cache_signatures {
         if let Some(token) = token {
             let channel = HyperHttpChannel::connect(&params.params, HyperChannelContext::default(), None).unwrap();
             let auth = Headers::from_pairs([("authorization", format!("Bearer {token}"))]);
-            let ready = HyperAction::ChannelReady { channel: ConnectionChannel::HyperHttp { channel, auth }, params: params.params.clone() };
+            let ready = HyperAction::ChannelReady {
+                channel: ConnectionChannel::HyperHttp { channel, auth },
+                params: params.params.clone(),
+            };
             apply(&mut connection, ConnectionAction::Hyper(ready));
         }
         connection

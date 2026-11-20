@@ -10,25 +10,30 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use dashql_buffers::diff::ScriptDiffT;
-use dashql_buffers::execution::{CompiledVisualizationT, ExecutionGraphT, ScriptCompilationStatementKind};
 use dashql_buffers::editor::{
-    EditorAnalysisVersionT, EditorEventOrigin, EditorEventT, EditorOffsetUnit, EditorProcessingStatisticsT, EditorUpdateStatus, EditorUpdateT,
+    EditorAnalysisVersionT, EditorEventOrigin, EditorEventT, EditorOffsetUnit, EditorProcessingStatisticsT,
+    EditorUpdateStatus, EditorUpdateT,
 };
+use dashql_buffers::execution::{CompiledVisualizationT, ExecutionGraphT, ScriptCompilationStatementKind};
 use dashql_buffers::formatting::{FormattingConfigT, FormattingDialect, FormattingMode};
+use dashql_core::analyzer::AnalyzedScript;
 use dashql_core::catalog::{Catalog, CatalogEntryId, CatalogLayer, CatalogVersion, EntryIdSource};
 use dashql_core::error::{Error, Result};
-use dashql_core::analyzer::AnalyzedScript;
 use dashql_core::script::Script;
+use dashql_core::script_session::ScriptSession;
 use dashql_core::table_parameters::{TableParameterAttachment, TableParameters};
 use dashql_core::utils::quote_identifier;
 use dashql_core::vis_rewrite::VisRenderer;
-use dashql_core::script_session::ScriptSession;
 
-use crate::attachments::{attachment_parameter_name, read_workbook_attachments, renamed_attachment_file_name, DataFile, WorkbookAttachment};
+use crate::attachments::{
+    attachment_parameter_name, read_workbook_attachments, renamed_attachment_file_name, DataFile, WorkbookAttachment,
+};
 use crate::names::{free_workbook_name, script_display_name, script_file_name, unique_script_base};
 use crate::planner::dataflow::{derive_session_dataflow, Dataflow};
-use crate::planner::{plan_session, ConnectionKind, PlanScope, PlannerAttachment, PlannerConnection, PlannerScript, SessionPlanRequest};
 use crate::planner::script_references::check_script_references;
+use crate::planner::{
+    plan_session, ConnectionKind, PlanScope, PlannerAttachment, PlannerConnection, PlannerScript, SessionPlanRequest,
+};
 
 /// The key of a script, its entry in the catalog of its connection. A script keeps its key when it moves to another
 /// connection. Keys are unique across the catalogs of the runtime because all of them take their entry ids from one
@@ -201,7 +206,8 @@ pub fn text_change(from: &str, to: &str, unit: EditorOffsetUnit) -> TextChange {
     while !from.is_char_boundary(from.len() - suffix) || !to.is_char_boundary(to.len() - suffix) {
         suffix -= 1;
     }
-    let (Some(head), Some(removed), Some(inserted)) = (from.get(..prefix), from.get(prefix..from.len() - suffix), to.get(prefix..to.len() - suffix))
+    let (Some(head), Some(removed), Some(inserted)) =
+        (from.get(..prefix), from.get(prefix..from.len() - suffix), to.get(prefix..to.len() - suffix))
     else {
         // The prefix and the suffix end on character boundaries of both texts, a change of the whole text is the
         // fallback
@@ -469,7 +475,9 @@ impl WorkbookScript {
     /// Publish the analysis of the script into the catalog of its connection, returns whether the catalog changed.
     /// An analysis that was current before its own publish stays current with the catalog after it.
     fn publish(&mut self) -> bool {
-        let (Ok(mut session), Ok(mut catalog)) = (self.session.try_borrow_mut(), self.connection.catalog.try_borrow_mut()) else {
+        let (Ok(mut session), Ok(mut catalog)) =
+            (self.session.try_borrow_mut(), self.connection.catalog.try_borrow_mut())
+        else {
             return false;
         };
         let version = catalog.version();
@@ -485,7 +493,8 @@ impl WorkbookScript {
     /// of either marks the script outdated. Returns whether the script analyzed, a busy session or catalog doesn't.
     fn analyze(&mut self) -> bool {
         let update = {
-            let (Ok(mut session), Ok(catalog)) = (self.session.try_borrow_mut(), self.connection.catalog.try_borrow()) else {
+            let (Ok(mut session), Ok(catalog)) = (self.session.try_borrow_mut(), self.connection.catalog.try_borrow())
+            else {
                 return false;
             };
             session.analyze(&catalog)
@@ -504,8 +513,10 @@ impl WorkbookScript {
         let available = self.editor_update.as_ref().is_some_and(|update| update.analysis_available);
         let visualization = if available {
             let config = execution_compilation_config(self.connection.dialect());
-            let compiled = self.session.borrow_mut().compile_query(&self.connection.catalog.borrow(), &config, true, true);
-            let valid = compiled.errors.as_ref().is_none_or(Vec::is_empty) && compiled.kind == ScriptCompilationStatementKind::VISUALIZE;
+            let compiled =
+                self.session.borrow_mut().compile_query(&self.connection.catalog.borrow(), &config, true, true);
+            let valid = compiled.errors.as_ref().is_none_or(Vec::is_empty)
+                && compiled.kind == ScriptCompilationStatementKind::VISUALIZE;
             match (valid, compiled.sql, compiled.visualization) {
                 (true, Some(sql), Some(visualization)) if !sql.is_empty() => Some(ScriptVisualization {
                     sql,
@@ -531,7 +542,6 @@ impl WorkbookScript {
         }
         Ok(())
     }
-
 }
 
 /// A session of a text in a catalog of its own, it never reaches the catalogs of the workbook. An action computes the
@@ -713,7 +723,9 @@ impl WorkbookAction {
             | WorkbookAction::RenameAttachment { .. }
             | WorkbookAction::SetWorkbookInput { .. }
             | WorkbookAction::SetScriptConnection { .. } => true,
-            WorkbookAction::ApplyEditorEvent { event, .. } => event.changes.as_ref().is_some_and(|changes| !changes.is_empty()),
+            WorkbookAction::ApplyEditorEvent { event, .. } => {
+                event.changes.as_ref().is_some_and(|changes| !changes.is_empty())
+            }
             _ => false,
         }
     }
@@ -795,7 +807,12 @@ pub struct Workbook {
 
 impl Workbook {
     /// An empty workbook. A workbook without scripts has a pending connection, its first script runs on it.
-    pub fn new(id: &str, name: Option<String>, pending_connection: Option<Rc<ScriptConnection>>, offset_unit: EditorOffsetUnit) -> Self {
+    pub fn new(
+        id: &str,
+        name: Option<String>,
+        pending_connection: Option<Rc<ScriptConnection>>,
+        offset_unit: EditorOffsetUnit,
+    ) -> Self {
         Self {
             id: id.to_string(),
             name,
@@ -854,7 +871,8 @@ impl Workbook {
             && self.scripts.iter().zip(stored).all(|(script, stored)| {
                 script.file_name == stored.name
                     && script.connection.connection_id == stored.connection.connection_id
-                    && script.persisted_connection_id() == stored.unresolved_connection_id.as_deref().unwrap_or(&stored.connection.connection_id)
+                    && script.persisted_connection_id()
+                        == stored.unresolved_connection_id.as_deref().unwrap_or(&stored.connection.connection_id)
                     && script.text() == stored.sql
             })
     }
@@ -893,12 +911,16 @@ impl Workbook {
             created.push(script);
         }
         // Keep the scripts that stay, drop the replaced and removed ones from their catalogs
-        let mut previous: Vec<Option<WorkbookScript>> = std::mem::take(&mut self.scripts).into_iter().map(Some).collect();
+        let mut previous: Vec<Option<WorkbookScript>> =
+            std::mem::take(&mut self.scripts).into_iter().map(Some).collect();
         let mut changed = false;
         // A failure from here on is reported once the workbook is whole again
         let mut failure = None;
         for (entry, created) in unique.into_iter().zip(created) {
-            let existing = previous.iter_mut().find(|script| script.as_ref().is_some_and(|script| script.file_name == entry.name)).and_then(Option::take);
+            let existing = previous
+                .iter_mut()
+                .find(|script| script.as_ref().is_some_and(|script| script.file_name == entry.name))
+                .and_then(Option::take);
             let mut script = match (created, existing) {
                 (Some(created), existing) => {
                     // A replaced script leaves its catalog when it drops
@@ -975,7 +997,11 @@ impl Workbook {
     }
 
     /// Run a function with a plan request for a run and the sessions of the scripts
-    fn with_run_planner<R>(&self, run: &RunPlanRequest, f: impl FnOnce(&SessionPlanRequest, &[Ref<ScriptSession>]) -> R) -> R {
+    fn with_run_planner<R>(
+        &self,
+        run: &RunPlanRequest,
+        f: impl FnOnce(&SessionPlanRequest, &[Ref<ScriptSession>]) -> R,
+    ) -> R {
         let mut connections: Vec<&ScriptConnection> = Vec::new();
         let mut script_connections: Vec<u32> = Vec::with_capacity(self.scripts.len());
         for script in &self.scripts {
@@ -989,7 +1015,8 @@ impl Workbook {
             script_connections.push(index as u32);
         }
         let catalogs: Vec<Ref<Catalog>> = connections.iter().map(|connection| connection.catalog.borrow()).collect();
-        let profiles: Vec<Ref<ScriptConnectionProfile>> = connections.iter().map(|connection| connection.profile()).collect();
+        let profiles: Vec<Ref<ScriptConnectionProfile>> =
+            connections.iter().map(|connection| connection.profile()).collect();
         let planner_connections: Vec<PlannerConnection> = connections
             .iter()
             .zip(&catalogs)
@@ -1014,7 +1041,9 @@ impl Workbook {
                 script: session.script(),
                 name: script_display_name(&script.file_name),
                 connection: *connection,
-                current_by_own_publish: catalogs.get(*connection as usize).is_some_and(|catalog| script.current_by_own_publish(session, catalog)),
+                current_by_own_publish: catalogs
+                    .get(*connection as usize)
+                    .is_some_and(|catalog| script.current_by_own_publish(session, catalog)),
                 materialization_file: run
                     .materialization_files
                     .iter()
@@ -1063,7 +1092,8 @@ impl Workbook {
         for script in &self.scripts {
             let update = script.editor_update.as_ref();
             if !update.is_some_and(|update| update.status == EditorUpdateStatus::OK && update.analysis_available) {
-                let message = update.and_then(|update| update.status_message.clone()).filter(|message| !message.is_empty());
+                let message =
+                    update.and_then(|update| update.status_message.clone()).filter(|message| !message.is_empty());
                 return Err(message.unwrap_or_else(|| format!("Failed to analyze {}", script.file_name)));
             }
         }
@@ -1112,7 +1142,10 @@ impl Workbook {
                 .attachments
                 .iter()
                 .flatten()
-                .map(|attachment| TableParameterAttachment { name: &attachment.name, columns: attachment.columns.as_deref() })
+                .map(|attachment| TableParameterAttachment {
+                    name: &attachment.name,
+                    columns: attachment.columns.as_deref(),
+                })
                 .collect();
             TableParameters::derive(&scripts, &attachments, previous.as_deref())
         };
@@ -1153,7 +1186,12 @@ impl Workbook {
     /// Rewrite the table parameters that read a renamed script or attachment to read `name`. The references are those
     /// of a plan with the names before the rename, scripts are analyzed first if their analysis lags behind their
     /// text. The script `keep` keeps its text. Returns the keys of the rewritten scripts.
-    fn rewrite_renamed_references(&mut self, target: ReferenceTarget, name: &str, keep: Option<ScriptKey>) -> Result<Vec<ScriptKey>> {
+    fn rewrite_renamed_references(
+        &mut self,
+        target: ReferenceTarget,
+        name: &str,
+        keep: Option<ScriptKey>,
+    ) -> Result<Vec<ScriptKey>> {
         // A script that analyzes here changes for the views also when the rewrite fails below
         for index in 0..self.scripts.len() {
             let lags = self.scripts.get(index).is_some_and(|script| {
@@ -1166,7 +1204,9 @@ impl Workbook {
         }
         let target_index = match target {
             ReferenceTarget::Script(file) => self.scripts.iter().position(|script| script.file_name == file),
-            ReferenceTarget::Attachment(file) => self.attachments.iter().flatten().position(|attachment| attachment.file_name == file),
+            ReferenceTarget::Attachment(file) => {
+                self.attachments.iter().flatten().position(|attachment| attachment.file_name == file)
+            }
         };
         let Some(target_index) = target_index.map(|index| index as u32) else {
             return Ok(Vec::new());
@@ -1204,7 +1244,8 @@ impl Workbook {
             let mut text = from_text.clone();
             let mut changes = Vec::with_capacity(spans.len());
             for (begin, end) in spans.iter().rev() {
-                if *begin > *end || *end > text.len() || !text.is_char_boundary(*begin) || !text.is_char_boundary(*end) {
+                if *begin > *end || *end > text.len() || !text.is_char_boundary(*begin) || !text.is_char_boundary(*end)
+                {
                     return Err(Error::invalid_argument("a reference outside of the text of its script"));
                 }
                 text.replace_range(*begin..*end, &reference);
@@ -1218,7 +1259,9 @@ impl Workbook {
             }
             rewrites.push((index, text, ExternalChanges { from_text, changes }));
         }
-        self.commit_texts(rewrites.iter().map(|(index, text, external)| (*index, text.as_str(), external.from_text.as_str())))?;
+        self.commit_texts(
+            rewrites.iter().map(|(index, text, external)| (*index, text.as_str(), external.from_text.as_str())),
+        )?;
         let mut rewritten = Vec::with_capacity(rewrites.len());
         for (index, _, external) in rewrites {
             let Some(script) = self.scripts.get_mut(index) else { continue };
@@ -1332,7 +1375,9 @@ impl Workbook {
                 let neighbor = index.min(self.scripts.len()).saturating_sub(1);
                 self.scripts.get(neighbor).map(|script| script.connection.clone())
             }
-            _ => self.pending_connection.clone().or_else(|| self.scripts.last().map(|script| script.connection.clone())),
+            _ => {
+                self.pending_connection.clone().or_else(|| self.scripts.last().map(|script| script.connection.clone()))
+            }
         }
     }
 
@@ -1342,7 +1387,10 @@ impl Workbook {
         let scripts = self
             .scripts
             .iter()
-            .map(|script| ScriptListEntry { name: script.file_name.clone(), connection_id: script.persisted_connection_id().to_string() })
+            .map(|script| ScriptListEntry {
+                name: script.file_name.clone(),
+                connection_id: script.persisted_connection_id().to_string(),
+            })
             .collect();
         let mut connections: Vec<ConnectionCopy> = Vec::new();
         let pending = self.pending_connection.iter().filter(|_| self.scripts.is_empty());
@@ -1378,7 +1426,9 @@ impl Workbook {
             WorkbookAction::DeleteScript { file_name } => self.delete(&file_name, &mut outcome),
             WorkbookAction::RenameScript { file_name, new_name } => self.rename(&file_name, &new_name, &mut outcome)?,
             WorkbookAction::ReorderScripts { order } => self.reorder(&order, &mut outcome),
-            WorkbookAction::SetScriptText { key, text, with_diff } => self.set_text(key, &text, with_diff, &mut outcome)?,
+            WorkbookAction::SetScriptText { key, text, with_diff } => {
+                self.set_text(key, &text, with_diff, &mut outcome)?
+            }
             WorkbookAction::AcceptPendingDiff { key } => {
                 if let Some(script) = self.script_mut(key).filter(|script| script.pending_diff.is_some()) {
                     // The script holds the new text already
@@ -1388,18 +1438,28 @@ impl Workbook {
                 }
             }
             WorkbookAction::RejectPendingDiff { key } => {
-                let prior = self.script(key).and_then(|script| script.pending_diff.as_ref()).map(|diff| diff.prior_text.clone());
+                let prior = self
+                    .script(key)
+                    .and_then(|script| script.pending_diff.as_ref())
+                    .map(|diff| diff.prior_text.clone());
                 if let Some(prior) = prior {
                     self.set_text(key, &prior, false, &mut outcome)?;
                 }
             }
             WorkbookAction::SetScriptVisSpec { key, spec } => self.set_vis_spec(key, &spec, &mut outcome)?,
-            WorkbookAction::SetWorkbookInput { name, literal, keys } => self.set_input(&name, &literal, &keys, &mut outcome)?,
-            WorkbookAction::ApplyEditorEvent { key, event, known } => self.apply_editor_event(key, event, known, &mut outcome)?,
-            WorkbookAction::ConnectionProfileChanged { connection_id } => self.connection_profile_changed(&connection_id, &mut outcome),
+            WorkbookAction::SetWorkbookInput { name, literal, keys } => {
+                self.set_input(&name, &literal, &keys, &mut outcome)?
+            }
+            WorkbookAction::ApplyEditorEvent { key, event, known } => {
+                self.apply_editor_event(key, event, known, &mut outcome)?
+            }
+            WorkbookAction::ConnectionProfileChanged { connection_id } => {
+                self.connection_profile_changed(&connection_id, &mut outcome)
+            }
             WorkbookAction::AnalyzeOutdatedScript { key } => self.analyze_outdated(key, &mut outcome),
             WorkbookAction::CatalogDidUpdate { connection_id } => {
-                for script in self.scripts.iter_mut().filter(|script| script.connection.connection_id == connection_id) {
+                for script in self.scripts.iter_mut().filter(|script| script.connection.connection_id == connection_id)
+                {
                     if !script.analysis_outdated {
                         script.analysis_outdated = true;
                         script.revision = next_revision();
@@ -1441,7 +1501,9 @@ impl Workbook {
             WorkbookAction::SetScriptConnection { file_name, connection } => {
                 self.set_script_connection(&file_name, connection, &mut outcome)?
             }
-            WorkbookAction::SetPendingConnection { connection } => self.set_pending_connection(connection, &mut outcome),
+            WorkbookAction::SetPendingConnection { connection } => {
+                self.set_pending_connection(connection, &mut outcome)
+            }
             WorkbookAction::ReplaceConnection { from, into } => self.replace_connection(&from, into, &mut outcome),
             WorkbookAction::DetachConnection { from, into } => {
                 let detaches = self.pending_connection.as_ref().is_some_and(|pending| pending.connection_id == from)
@@ -1462,13 +1524,17 @@ impl Workbook {
                 }
             }
             WorkbookAction::SetAttachmentColumns { file_name, stamp, columns } => {
-                let attachment = self.attachments.iter_mut().flatten().find(|a| a.file_name == file_name && a.stamp() == stamp);
-                if let Some(attachment) = attachment.filter(|attachment| attachment.columns.as_ref() != Some(&columns)) {
+                let attachment =
+                    self.attachments.iter_mut().flatten().find(|a| a.file_name == file_name && a.stamp() == stamp);
+                if let Some(attachment) = attachment.filter(|attachment| attachment.columns.as_ref() != Some(&columns))
+                {
                     attachment.columns = Some(columns);
                     outcome.changed = true;
                 }
             }
-            WorkbookAction::RenameAttachment { file_name, name } => self.rename_attachment(&file_name, &name, &mut outcome)?,
+            WorkbookAction::RenameAttachment { file_name, name } => {
+                self.rename_attachment(&file_name, &name, &mut outcome)?
+            }
             WorkbookAction::RenameWorkbook { name } => {
                 let name = name.map(|name| name.trim().to_string()).filter(|name| !name.is_empty());
                 if name != self.name {
@@ -1490,11 +1556,14 @@ impl Workbook {
     }
 
     fn rename_attachment(&mut self, file_name: &str, requested: &str, outcome: &mut WorkbookOutcome) -> Result<()> {
-        let Some(attachments) = self.attachments.as_deref().filter(|attachments| attachments.iter().any(|a| a.file_name == file_name)) else {
+        let Some(attachments) =
+            self.attachments.as_deref().filter(|attachments| attachments.iter().any(|a| a.file_name == file_name))
+        else {
             return Ok(());
         };
         // The name takes no name of a script or another attachment
-        let script_names: Vec<&str> = self.scripts.iter().map(|script| script_display_name(&script.file_name)).collect();
+        let script_names: Vec<&str> =
+            self.scripts.iter().map(|script| script_display_name(&script.file_name)).collect();
         let Some(new_file_name) = renamed_attachment_file_name(file_name, requested, script_names, attachments) else {
             return Ok(());
         };
@@ -1507,7 +1576,9 @@ impl Workbook {
         // The scripts that read the attachment read the new name, a failed rewrite renames nothing
         let rewritten = self.rewrite_renamed_references(ReferenceTarget::Attachment(file_name), &name, None)?;
         self.after_rewrite(&rewritten, outcome);
-        if let Some(attachment) = self.attachments.iter_mut().flatten().find(|attachment| attachment.file_name == file_name) {
+        if let Some(attachment) =
+            self.attachments.iter_mut().flatten().find(|attachment| attachment.file_name == file_name)
+        {
             attachment.file_name = new_file_name.clone();
             attachment.name = name;
         }
@@ -1533,11 +1604,20 @@ impl Workbook {
     }
 
     fn properties_write(&self) -> WorkbookEffect {
-        WorkbookEffect::WriteProperties { name: self.name.clone(), ephemeral: self.ephemeral, origin: self.origin.clone() }
+        WorkbookEffect::WriteProperties {
+            name: self.name.clone(),
+            ephemeral: self.ephemeral,
+            origin: self.origin.clone(),
+        }
     }
 
     /// Create the session of a script on a connection. A script that moves to another connection keeps its key.
-    fn create_script(&self, file_name: &str, connection: Rc<ScriptConnection>, key: Option<ScriptKey>) -> Result<WorkbookScript> {
+    fn create_script(
+        &self,
+        file_name: &str,
+        connection: Rc<ScriptConnection>,
+        key: Option<ScriptKey>,
+    ) -> Result<WorkbookScript> {
         let session = {
             let catalog = connection.catalog.borrow();
             match key {
@@ -1574,7 +1654,10 @@ impl Workbook {
     /// host marks their scripts outdated with the connections that `take_published` returns.
     fn mark_others_outdated(&mut self, changed: ScriptKey, connection: &ScriptConnection) {
         for script in self.scripts.iter_mut() {
-            if script.key != changed && !script.analysis_outdated && Rc::ptr_eq(&script.connection.catalog, &connection.catalog) {
+            if script.key != changed
+                && !script.analysis_outdated
+                && Rc::ptr_eq(&script.connection.catalog, &connection.catalog)
+            {
                 script.analysis_outdated = true;
                 script.revision = next_revision();
             }
@@ -1623,7 +1706,11 @@ impl Workbook {
             return Err(Error::invalid_argument("a new script needs a connection"));
         };
         // A script takes no name of an attachment, the table parameter would be ambiguous
-        let file_name = script_file_name(base, self.scripts.iter().map(|script| script.file_name.as_str()), self.attachment_names());
+        let file_name = script_file_name(
+            base,
+            self.scripts.iter().map(|script| script.file_name.as_str()),
+            self.attachment_names(),
+        );
         let mut script = self.create_script(&file_name, connection.clone(), None)?;
         let text = text.filter(|text| !text.is_empty());
         if let Some(text) = &text {
@@ -1724,7 +1811,8 @@ impl Workbook {
         if ordered.iter().enumerate().all(|(i, index)| i == *index) {
             return;
         }
-        let mut scripts: Vec<Option<WorkbookScript>> = std::mem::take(&mut self.scripts).into_iter().map(Some).collect();
+        let mut scripts: Vec<Option<WorkbookScript>> =
+            std::mem::take(&mut self.scripts).into_iter().map(Some).collect();
         self.scripts = ordered.into_iter().filter_map(|index| scripts.get_mut(index).and_then(Option::take)).collect();
         outcome.changed = true;
         // The order lives in the workbook file, the script files stay untouched
@@ -1753,7 +1841,8 @@ impl Workbook {
         script.analyze();
         script.pending_diff = pending_diff;
         // A mounted editor applies the change and keeps its cursor and its history
-        script.external_changes = Some(ExternalChanges { changes: vec![text_change(&current, text, unit)], from_text: current });
+        script.external_changes =
+            Some(ExternalChanges { changes: vec![text_change(&current, text, unit)], from_text: current });
         script.revision = next_revision();
         let (connection, effect) = (script.connection.clone(), Self::write_script(script));
         // The text was published into the catalog, the other scripts resolve against it again
@@ -1787,7 +1876,13 @@ impl Workbook {
         }
     }
 
-    fn set_input(&mut self, name: &str, literal: &str, keys: &[ScriptKey], outcome: &mut WorkbookOutcome) -> Result<()> {
+    fn set_input(
+        &mut self,
+        name: &str,
+        literal: &str,
+        keys: &[ScriptKey],
+        outcome: &mut WorkbookOutcome,
+    ) -> Result<()> {
         let unit = self.offset_unit;
         // The new texts of all scripts first, then the scripts: all of them change or none
         let mut rewrites: Vec<(usize, String, String)> = Vec::new();
@@ -1816,7 +1911,8 @@ impl Workbook {
             script.analyze();
             script.pending_diff = None;
             // A mounted editor applies the change and keeps its cursor
-            script.external_changes = Some(ExternalChanges { changes: vec![text_change(&from_text, &text, unit)], from_text });
+            script.external_changes =
+                Some(ExternalChanges { changes: vec![text_change(&from_text, &text, unit)], from_text });
             script.revision = next_revision();
             outcome.effects.push(Self::write_script(script));
             rewritten.push((script.key, script.connection.clone()));
@@ -1828,14 +1924,22 @@ impl Workbook {
         Ok(())
     }
 
-    fn apply_editor_event(&mut self, key: ScriptKey, mut event: EditorEventT, known: Option<EditorUpdateId>, outcome: &mut WorkbookOutcome) -> Result<()> {
+    fn apply_editor_event(
+        &mut self,
+        key: ScriptKey,
+        mut event: EditorEventT,
+        known: Option<EditorUpdateId>,
+        outcome: &mut WorkbookOutcome,
+    ) -> Result<()> {
         let Some(script) = self.script_mut(key) else {
             return Err(Error::invalid_argument("an editor event of an unknown script"));
         };
         // The editor fills an analysis that the update leaves out with the one of the update that it holds, the script
         // with the one that it holds: the update leaves out only an analysis that both hold. The editor holds the
         // analysis of the script if it holds an update of the session that came with the analysis or after it.
-        let editor_holds = known.is_some_and(|known| known.session_generation == script.session_generation && known.serial >= script.analysis_serial);
+        let editor_holds = known.is_some_and(|known| {
+            known.session_generation == script.session_generation && known.serial >= script.analysis_serial
+        });
         let held = script.editor_update.as_ref().filter(|held| held.analysis_available && editor_holds);
         event.known_analysis = held.map(|held| {
             let mut version = EditorAnalysisVersionT::default();
@@ -1844,7 +1948,9 @@ impl Workbook {
             Box::new(version)
         });
         let update = {
-            let (Ok(mut session), Ok(catalog)) = (script.session.try_borrow_mut(), script.connection.catalog.try_borrow()) else {
+            let (Ok(mut session), Ok(catalog)) =
+                (script.session.try_borrow_mut(), script.connection.catalog.try_borrow())
+            else {
                 return Err(Error::invalid_argument("the session of the script is busy"));
             };
             session.apply(&catalog, &event)
@@ -1863,13 +1969,20 @@ impl Workbook {
 
     /// Take the update of an editor event. The text is published into the catalog and written, a changed text with
     /// `accepts_diff` accepts a staged rewrite.
-    fn take_editor_update(&mut self, key: ScriptKey, mut update: EditorUpdateT, accepts_diff: bool, outcome: &mut WorkbookOutcome) -> Result<()> {
+    fn take_editor_update(
+        &mut self,
+        key: ScriptKey,
+        mut update: EditorUpdateT,
+        accepts_diff: bool,
+        outcome: &mut WorkbookOutcome,
+    ) -> Result<()> {
         let Some(script) = self.script_mut(key) else {
             return Err(Error::invalid_argument("an editor update of an unknown script"));
         };
         let previous = script.editor_update.as_ref();
         // The update that the script holds may lag behind its session, e.g. after a reload from disk
-        let text_changed = update.text_changed || previous.map(|previous| previous.text_version) != Some(update.text_version);
+        let text_changed =
+            update.text_changed || previous.map(|previous| previous.text_version) != Some(update.text_version);
         let state_changed = previous.map(|previous| previous.state_revision) != Some(update.state_revision);
         let analysis_refreshed = update.analysis_updated;
         // Publishing declarations equal to the published ones keeps the catalog revision
@@ -1957,8 +2070,15 @@ impl Workbook {
         Ok(previous)
     }
 
-    fn set_script_connection(&mut self, file_name: &str, connection: Rc<ScriptConnection>, outcome: &mut WorkbookOutcome) -> Result<()> {
-        let Some((position, script)) = self.scripts.iter_mut().enumerate().find(|(_, script)| script.file_name == file_name) else {
+    fn set_script_connection(
+        &mut self,
+        file_name: &str,
+        connection: Rc<ScriptConnection>,
+        outcome: &mut WorkbookOutcome,
+    ) -> Result<()> {
+        let Some((position, script)) =
+            self.scripts.iter_mut().enumerate().find(|(_, script)| script.file_name == file_name)
+        else {
             return Ok(());
         };
         if script.connection.connection_id == connection.connection_id {
@@ -1988,7 +2108,8 @@ impl Workbook {
     }
 
     fn set_pending_connection(&mut self, connection: Rc<ScriptConnection>, outcome: &mut WorkbookOutcome) {
-        let same = self.pending_connection.as_ref().is_some_and(|pending| pending.connection_id == connection.connection_id);
+        let same =
+            self.pending_connection.as_ref().is_some_and(|pending| pending.connection_id == connection.connection_id);
         if same || !connection.has_params() {
             return;
         }
@@ -2055,7 +2176,8 @@ impl Workbook {
     fn connection_profile_changed(&mut self, connection_id: &str, outcome: &mut WorkbookOutcome) {
         for script in self.scripts.iter_mut().filter(|script| script.connection.connection_id == connection_id) {
             // A visualization that a run captured stays until the script analyzes again
-            let compiled = script.editor_update.as_ref().is_some_and(|update| update.analysis_available) && !script.is_analysis_outdated();
+            let compiled = script.editor_update.as_ref().is_some_and(|update| update.analysis_available)
+                && !script.is_analysis_outdated();
             if compiled {
                 let revision = script.visualization_revision;
                 script.compile_visualization();

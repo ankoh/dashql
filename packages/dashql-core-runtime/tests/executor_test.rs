@@ -14,7 +14,7 @@ use arrow_array::{Int32Array, RecordBatch};
 use arrow_schema::{DataType, Field, Schema, SchemaRef};
 use serde_json::{json, Value};
 
-use dashql_core_runtime::settings::RuntimeSettings;
+use dashql_buffers::profile as fb;
 use dashql_core_runtime::clfn::{ClientFunctionCallDescription, ClientFunctionSpec};
 use dashql_core_runtime::connections::{ConnectorType, DetailedError, TrinoSessionDefaults};
 use dashql_core_runtime::executor::connectors::{BACKEND_CANCEL_TIMEOUT_MS, TRINO_TOKEN_REFRESH_TIMEOUT_MS};
@@ -23,16 +23,16 @@ use dashql_core_runtime::executor::{
     CacheEntry, CacheRequest, ChannelMessage, ClientFunctionTarget, ExecutorHost, ExecutorRun, FailureKind, HostTable,
     QueryControls, QueryEvent, QueryExecutor, QueryId, QueryOutcome, QueryRequest, QueryTarget,
 };
+use dashql_core_runtime::host::signal::{oneshot, Receiver};
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
 use dashql_core_runtime::http::{
     Body, CancellationToken, Headers, HostBytes, HttpHost, HttpMethod, HttpRequest, HttpResponse,
 };
 use dashql_core_runtime::hyper::{HyperChannelContext, HyperHttpChannel};
-use dashql_buffers::profile as fb;
 use dashql_core_runtime::query::progress::{EngineProgressPayload, HyperQueryStatus};
 use dashql_core_runtime::query::{QueryExecutionMetrics, QueryExecutionProgress};
 use dashql_core_runtime::salesforce::SalesforceTokens;
-use dashql_core_runtime::host::signal::{oneshot, Receiver};
+use dashql_core_runtime::settings::RuntimeSettings;
 use dashql_core_runtime::trino::{
     SharedTrinoChannel, TrinoAccessToken, TrinoAuthParams, TrinoAuthType, TrinoChannel, TrinoOAuthParams,
 };
@@ -277,7 +277,11 @@ impl Host for FakeHost {
 }
 
 impl HttpHost for FakeHost {
-    fn fetch(&self, request: HttpRequest, cancellation: &CancellationToken) -> impl Future<Output = Result<HttpResponse, HostError>> + 'static {
+    fn fetch(
+        &self,
+        request: HttpRequest,
+        cancellation: &CancellationToken,
+    ) -> impl Future<Output = Result<HttpResponse, HostError>> + 'static {
         self.state.borrow_mut().sent.push(request.clone());
         let answer = match self.server.borrow_mut().as_mut() {
             Some(server) => server(&request),
@@ -397,7 +401,11 @@ impl ExecutorHost for FakeHost {
             Body::Bytes(bytes) => bytes,
             Body::Host(bytes) => {
                 state.host_parts += 1;
-                bytes.value().downcast_ref::<Vec<u8>>().cloned().ok_or_else(|| HostError::new("no bytes of the host"))?
+                bytes
+                    .value()
+                    .downcast_ref::<Vec<u8>>()
+                    .cloned()
+                    .ok_or_else(|| HostError::new("no bytes of the host"))?
             }
         };
         state.parts.entry(run.query_id).or_default().push(part);
@@ -427,7 +435,11 @@ impl ExecutorHost for FakeHost {
         }
     }
 
-    fn cache_read(&self, run: &Rc<FakeRun>, entry: &CacheEntry) -> impl Future<Output = Result<HostTable, HostError>> + 'static {
+    fn cache_read(
+        &self,
+        run: &Rc<FakeRun>,
+        entry: &CacheEntry,
+    ) -> impl Future<Output = Result<HostTable, HostError>> + 'static {
         let mut state = self.state.borrow_mut();
         state.cache_calls.push(format!("read:{}", entry.name));
         let fails = state.cache_read_fails;
@@ -455,7 +467,11 @@ impl ExecutorHost for FakeHost {
     fn cache_write(&self, _run: &Rc<FakeRun>, key: &str) -> impl Future<Output = Result<bool, HostError>> + 'static {
         let mut state = self.state.borrow_mut();
         state.cache_calls.push(format!("write:{key}"));
-        let outcome = if state.cache_write_fails { Err(HostError::new("quota exceeded")) } else { Ok(!state.cache_write_evicted) };
+        let outcome = if state.cache_write_fails {
+            Err(HostError::new("quota exceeded"))
+        } else {
+            Ok(!state.cache_write_evicted)
+        };
         std::future::ready(outcome)
     }
 
@@ -476,7 +492,11 @@ impl ExecutorHost for FakeHost {
         }
     }
 
-    fn fetch_result(&self, request: HttpRequest, cancellation: &CancellationToken) -> impl Future<Output = Result<HttpResponse, HostError>> + 'static {
+    fn fetch_result(
+        &self,
+        request: HttpRequest,
+        cancellation: &CancellationToken,
+    ) -> impl Future<Output = Result<HttpResponse, HostError>> + 'static {
         let keep = self.state.borrow().keep_bodies;
         let fetch = self.fetch(request, cancellation);
         async move {
@@ -585,7 +605,11 @@ fn request(query_id: QueryId, target: QueryTarget) -> TestQuery {
 }
 
 /// Start a query, the outcome arrives in the cell
-fn start(host: &Rc<FakeHost>, executor: &QueryExecutor<FakeHost>, query: TestQuery) -> Rc<RefCell<Option<QueryOutcome>>> {
+fn start(
+    host: &Rc<FakeHost>,
+    executor: &QueryExecutor<FakeHost>,
+    query: TestQuery,
+) -> Rc<RefCell<Option<QueryOutcome>>> {
     let outcome = Rc::new(RefCell::new(None));
     let slot = outcome.clone();
     let future = executor.execute(query.request, query.run);
@@ -628,7 +652,12 @@ fn json_response(value: Value) -> Answer {
 }
 
 fn trino_channel() -> SharedTrinoChannel {
-    let auth = TrinoAuthParams { auth_type: TrinoAuthType::Basic, username: "user".into(), secret: "secret".into(), oauth: None };
+    let auth = TrinoAuthParams {
+        auth_type: TrinoAuthType::Basic,
+        username: "user".into(),
+        secret: "secret".into(),
+        oauth: None,
+    };
     SharedTrinoChannel::new(TrinoChannel::new(TRINO, auth, TrinoSessionDefaults::default()))
 }
 
@@ -653,7 +682,11 @@ fn oauth_trino_channel(expires_at: i64) -> SharedTrinoChannel {
 
 /// The answer of the token endpoint with a new access token and a rotated refresh token
 fn token_answer(token: &str) -> HttpResponse {
-    HttpResponse::new(200, json!({ "access_token": token, "refresh_token": format!("refresh-of-{token}"), "expires_in": 3600 }).to_string())
+    HttpResponse::new(
+        200,
+        json!({ "access_token": token, "refresh_token": format!("refresh-of-{token}"), "expires_in": 3600 })
+            .to_string(),
+    )
 }
 
 fn next_uri(page: u32) -> String {
@@ -668,7 +701,9 @@ fn trino_server(host: &FakeHost, pages: Vec<Answer>) {
             return Answer::Now(Ok(HttpResponse::new(204, "")));
         }
         if request.url.ends_with("/v1/statement") {
-            return json_response(json!({ "id": "q1", "nextUri": next_uri(1), "stats": { "state": "QUEUED", "queued": true } }));
+            return json_response(
+                json!({ "id": "q1", "nextUri": next_uri(1), "stats": { "state": "QUEUED", "queued": true } }),
+            );
         }
         pages.pop_front().unwrap_or(Answer::Hold)
     });
@@ -690,15 +725,27 @@ fn trino_page(next: Option<u32>, rows: Option<Value>, state: &str) -> Answer {
 #[test]
 fn trino_streams_the_pages_of_a_query() {
     let host = FakeHost::new();
-    trino_server(&host, vec![trino_page(Some(2), Some(json!([[1], [2]])), "RUNNING"), trino_page(None, Some(json!([[3]])), "FINISHED")]);
+    trino_server(
+        &host,
+        vec![trino_page(Some(2), Some(json!([[1], [2]])), "RUNNING"), trino_page(None, Some(json!([[3]])), "FINISHED")],
+    );
     let executor = QueryExecutor::new(host.clone());
     let outcome = run(&host, &executor, request(1, QueryTarget::Trino(trino_channel())));
     assert_eq!(resolved(&outcome), Some(true));
     assert_eq!(
         host.events(),
         [
-            "sending", "running", "progress:QUEUED", "progress:RUNNING", "batch:2", "progress:FINISHED", "batch:3",
-            "timing:Results", "all:3", "ready", "succeeded"
+            "sending",
+            "running",
+            "progress:QUEUED",
+            "progress:RUNNING",
+            "batch:2",
+            "progress:FINISHED",
+            "batch:3",
+            "timing:Results",
+            "all:3",
+            "ready",
+            "succeeded"
         ]
     );
     assert_eq!(host.state.borrow().results.get(&1), Some(&3));
@@ -772,7 +819,9 @@ fn trino_gives_up_a_cancellation_at_the_server_that_hangs() {
     let host = FakeHost::new();
     host.serve(|request| {
         if request.url.ends_with("/v1/statement") {
-            return json_response(json!({ "id": "q1", "nextUri": next_uri(1), "stats": { "state": "QUEUED", "queued": true } }));
+            return json_response(
+                json!({ "id": "q1", "nextUri": next_uri(1), "stats": { "state": "QUEUED", "queued": true } }),
+            );
         }
         // The network is gone: neither the next page nor the cancellation answers
         Answer::Hold
@@ -792,7 +841,11 @@ fn trino_gives_up_a_cancellation_at_the_server_that_hangs() {
     assert_eq!(resolved(outcome.borrow().as_ref().unwrap()), Some(false));
     assert_eq!(host.events().last().map(String::as_str), Some("cancelled"));
     assert_eq!(host.aborted.borrow().get(aborted..), Some(&[next_uri(1)][..]), "the cancellation is aborted");
-    assert!(host.log_messages().iter().any(|m| m == "Failed to cancel query at the backend"), "{:?}", host.log_messages());
+    assert!(
+        host.log_messages().iter().any(|m| m == "Failed to cancel query at the backend"),
+        "{:?}",
+        host.log_messages()
+    );
 }
 
 #[test]
@@ -946,7 +999,9 @@ fn trino_cancels_the_query_at_the_server_during_a_token_refresh() {
             return Answer::Hold;
         }
         if request.url.ends_with("/v1/statement") {
-            return json_response(json!({ "id": "q1", "nextUri": next_uri(1), "stats": { "state": "QUEUED", "queued": true } }));
+            return json_response(
+                json!({ "id": "q1", "nextUri": next_uri(1), "stats": { "state": "QUEUED", "queued": true } }),
+            );
         }
         // The first page is retried after a delay
         if std::mem::take(&mut busy) {
@@ -976,7 +1031,12 @@ fn trino_cancels_the_query_at_the_server_during_a_token_refresh() {
 fn trino_cancels_a_query_at_the_server_that_failed_in_the_protocol() {
     let host = FakeHost::new();
     // A page with rows but without columns breaks the protocol while Trino still runs the query
-    trino_server(&host, vec![json_response(json!({ "id": "q1", "nextUri": next_uri(2), "data": [[1]], "stats": { "state": "RUNNING" } }))]);
+    trino_server(
+        &host,
+        vec![json_response(
+            json!({ "id": "q1", "nextUri": next_uri(2), "data": [[1]], "stats": { "state": "RUNNING" } }),
+        )],
+    );
     let executor = QueryExecutor::new(host.clone());
     let mut query = request(1, QueryTarget::Trino(trino_channel()));
     query.throw_on_error = true;
@@ -1012,14 +1072,24 @@ fn hyper_reads_the_result_of_a_query_over_http() {
         assert_eq!(request.url, format!("{HYPER}/api/v3/query"));
         assert_eq!(request.header("authorization"), Some("Bearer token"));
         let status = json!({ "queryId": "h1", "completionStatus": "RESULTS_PRODUCED", "chunkCount": 1, "rowCount": 3 });
-        Answer::Now(Ok(HttpResponse::new(200, batch_ipc(&[1, 2, 3])).with_header("x-hyperdb-status", &status.to_string())))
+        Answer::Now(Ok(
+            HttpResponse::new(200, batch_ipc(&[1, 2, 3])).with_header("x-hyperdb-status", &status.to_string())
+        ))
     });
-    let channel = HyperHttpChannel::connect(json!({ "endpoint": HYPER }).as_object().unwrap(), HyperChannelContext::default(), None).unwrap();
+    let channel = HyperHttpChannel::connect(
+        json!({ "endpoint": HYPER }).as_object().unwrap(),
+        HyperChannelContext::default(),
+        None,
+    )
+    .unwrap();
     let auth = Headers::from_pairs([("Authorization", "Bearer token")]);
     let executor = QueryExecutor::new(host.clone());
     let outcome = run(&host, &executor, request(1, QueryTarget::HyperHttp { channel, auth }));
     assert_eq!(resolved(&outcome), Some(true));
-    assert_eq!(host.events(), ["sending", "running", "progress:", "batch:0", "timing:Results", "all:3", "ready", "succeeded"]);
+    assert_eq!(
+        host.events(),
+        ["sending", "running", "progress:", "batch:0", "timing:Results", "all:3", "ready", "succeeded"]
+    );
     // The status of the query is the progress of the whole query
     let progress = host.state.borrow().progress.clone();
     let profile = progress[0].profile_progress.clone().unwrap();
@@ -1036,9 +1106,16 @@ fn hyper_passes_the_chunks_to_the_host_unread() {
     host.serve(move |request| {
         let status = json!({ "queryId": "h1", "completionStatus": "RESULTS_PRODUCED", "chunkCount": 1, "rowCount": 3 });
         assert_eq!(request.method, HttpMethod::Post);
-        Answer::Now(Ok(HttpResponse::new(200, batch_ipc(&[1, 2, 3])).with_header("x-hyperdb-status", &status.to_string())))
+        Answer::Now(Ok(
+            HttpResponse::new(200, batch_ipc(&[1, 2, 3])).with_header("x-hyperdb-status", &status.to_string())
+        ))
     });
-    let channel = HyperHttpChannel::connect(json!({ "endpoint": HYPER }).as_object().unwrap(), HyperChannelContext::default(), None).unwrap();
+    let channel = HyperHttpChannel::connect(
+        json!({ "endpoint": HYPER }).as_object().unwrap(),
+        HyperChannelContext::default(),
+        None,
+    )
+    .unwrap();
     let executor = QueryExecutor::new(host.clone());
     let outcome = run(&host, &executor, request(1, QueryTarget::HyperHttp { channel, auth: Headers::new() }));
     assert_eq!(resolved(&outcome), Some(true));
@@ -1060,7 +1137,10 @@ fn the_progress_of_a_channel_of_the_host_goes_into_the_progress_model_with_the_l
         let mut state = host.state.borrow_mut();
         for (at, fraction) in [(1, 0.25), (2, 0.5)] {
             let progress = QueryExecutionProgress {
-                engine_progress: Some(EngineProgressPayload::HyperQueryStatus { status: status(fraction), received_at: at }),
+                engine_progress: Some(EngineProgressPayload::HyperQueryStatus {
+                    status: status(fraction),
+                    received_at: at,
+                }),
                 ..Default::default()
             };
             state.channel.push_back(Ok(ChannelMessage::Progress(Box::new(progress))));
@@ -1101,11 +1181,18 @@ fn hyper_asks_for_the_auth_headers_again_and_cancels_a_result_that_breaks_off() 
             return Answer::Now(Err(HostError::new("connection reset")));
         }
         let status = json!({ "queryId": "h1", "completionStatus": "RESULTS_PRODUCED", "chunkCount": 2, "rowCount": 6 });
-        Answer::Now(Ok(HttpResponse::new(200, batch_ipc(&[1, 2, 3])).with_header("x-hyperdb-status", &status.to_string())))
+        Answer::Now(Ok(
+            HttpResponse::new(200, batch_ipc(&[1, 2, 3])).with_header("x-hyperdb-status", &status.to_string())
+        ))
     });
     // The token of the channel changed after the query started
     host.state.borrow_mut().hyper_auth = Some(Headers::from_pairs([("Authorization", "Bearer token-2")]));
-    let channel = HyperHttpChannel::connect(json!({ "endpoint": HYPER }).as_object().unwrap(), HyperChannelContext::default(), None).unwrap();
+    let channel = HyperHttpChannel::connect(
+        json!({ "endpoint": HYPER }).as_object().unwrap(),
+        HyperChannelContext::default(),
+        None,
+    )
+    .unwrap();
     let auth = Headers::from_pairs([("Authorization", "Bearer token-1")]);
     let executor = QueryExecutor::new(host.clone());
     let outcome = run(&host, &executor, request(1, QueryTarget::HyperHttp { channel, auth }));
@@ -1127,7 +1214,12 @@ fn hyper_fails_with_the_error_of_the_server() {
         let body = json!({ "code": 3, "message": "syntax error at end of input" });
         Answer::Now(Ok(HttpResponse::new(400, body.to_string()).with_header("Content-Type", "application/json")))
     });
-    let channel = HyperHttpChannel::connect(json!({ "endpoint": HYPER }).as_object().unwrap(), HyperChannelContext::default(), None).unwrap();
+    let channel = HyperHttpChannel::connect(
+        json!({ "endpoint": HYPER }).as_object().unwrap(),
+        HyperChannelContext::default(),
+        None,
+    )
+    .unwrap();
     let executor = QueryExecutor::new(host.clone());
     let outcome = run(&host, &executor, request(1, QueryTarget::HyperHttp { channel, auth: Headers::new() }));
     assert_eq!(resolved(&outcome), Some(false));
@@ -1159,7 +1251,18 @@ fn a_channel_of_the_host_keeps_its_batches() {
     assert_eq!(resolved(&outcome), Some(true));
     assert_eq!(
         host.events(),
-        ["sending", "running", "progress:host", "batch:2", "batch:3", "timing:Results", "all:3", "touch", "ready", "succeeded"]
+        [
+            "sending",
+            "running",
+            "progress:host",
+            "batch:2",
+            "batch:3",
+            "timing:Results",
+            "all:3",
+            "touch",
+            "ready",
+            "succeeded"
+        ]
     );
     assert_eq!(host.state.borrow().channel_calls, ["open", "profile:false"]);
     // Nothing of the result crossed
@@ -1213,7 +1316,10 @@ fn a_channel_is_cancelled_at_the_backend_and_follows_the_profile() {
     run.token.cancel();
     host.advance(0);
     assert_eq!(resolved(outcome.borrow().as_ref().unwrap()), Some(false));
-    assert_eq!(host.state.borrow().channel_calls, ["open", "profile:false", "profile:true", "profile:true", "profile:false", "cancel"]);
+    assert_eq!(
+        host.state.borrow().channel_calls,
+        ["open", "profile:false", "profile:true", "profile:true", "profile:false", "cancel"]
+    );
     assert!(host.log_messages().contains(&"Failed to cancel query at the backend".to_string()));
     assert_eq!(host.events(), ["sending", "running", "cancelled"]);
     // A query that ended ignores a view
@@ -1230,7 +1336,9 @@ fn a_cancelled_query_does_not_reach_the_backend() {
     query.run.token.cancel();
     let outcome = start(&host, &executor, query);
     host.advance(0);
-    assert!(matches!(outcome.borrow().as_ref(), Some(QueryOutcome::Rejected(failure)) if failure.kind == FailureKind::Cancelled));
+    assert!(
+        matches!(outcome.borrow().as_ref(), Some(QueryOutcome::Rejected(failure)) if failure.kind == FailureKind::Cancelled)
+    );
     assert!(host.state.borrow().channel_calls.is_empty());
     assert_eq!(host.events(), ["cancelled"]);
 }
@@ -1295,7 +1403,9 @@ fn a_cancel_that_races_the_end_of_a_query_ends_it_once() {
     answer.send(true);
     run.token.cancel();
     host.advance(0);
-    assert!(matches!(outcome.borrow().as_ref(), Some(QueryOutcome::Rejected(failure)) if failure.kind == FailureKind::Cancelled));
+    assert!(
+        matches!(outcome.borrow().as_ref(), Some(QueryOutcome::Rejected(failure)) if failure.kind == FailureKind::Cancelled)
+    );
     let events = host.events();
     let ends = events.iter().filter(|e| *e == "succeeded" || *e == "cancelled" || e.starts_with("failed:")).count();
     assert_eq!(ends, 1, "{events:?}");
@@ -1336,8 +1446,16 @@ fn a_failed_analysis_fails_the_query_and_rejects() {
     assert_eq!(
         host.events(),
         [
-            "sending", "running", "batch:1", "timing:Results", "all:1", "ready", "processing", "timing:Postprocess",
-            "failed:no compute", "cache:k:false"
+            "sending",
+            "running",
+            "batch:1",
+            "timing:Results",
+            "all:1",
+            "ready",
+            "processing",
+            "timing:Postprocess",
+            "failed:no compute",
+            "cache:k:false"
         ]
     );
     assert_eq!(host.state.borrow().cache_calls, ["lookup:k", "write:k"]);
@@ -1533,14 +1651,24 @@ fn a_cancel_during_the_read_of_the_cache_waits_for_the_table_of_the_run() {
 /// The channel of a Salesforce connection with the tokens
 fn salesforce_channel() -> dashql_core_runtime::connections::ConnectionChannel {
     let params = dashql_core_runtime::salesforce::SalesforceConnectionParams::default();
-    let channel = dashql_core_runtime::salesforce::SharedSalesforceChannel::new(ConnectorType::SalesforceDataCloud, &params, salesforce_tokens());
+    let channel = dashql_core_runtime::salesforce::SharedSalesforceChannel::new(
+        ConnectorType::SalesforceDataCloud,
+        &params,
+        salesforce_tokens(),
+    );
     dashql_core_runtime::connections::ConnectionChannel::Salesforce(channel.unwrap())
 }
 
 fn salesforce_tokens() -> SalesforceTokens {
     SalesforceTokens {
-        core: serde_json::from_value(json!({ "accessToken": "core-token", "instanceUrl": "https://org.my.salesforce.com" })).unwrap(),
-        data_cloud: serde_json::from_value(json!({ "instanceUrl": "https://tenant.c360a.salesforce.com/", "jwt": { "raw": "tenant-jwt" } })).unwrap(),
+        core: serde_json::from_value(
+            json!({ "accessToken": "core-token", "instanceUrl": "https://org.my.salesforce.com" }),
+        )
+        .unwrap(),
+        data_cloud: serde_json::from_value(
+            json!({ "instanceUrl": "https://tenant.c360a.salesforce.com/", "jwt": { "raw": "tenant-jwt" } }),
+        )
+        .unwrap(),
     }
 }
 

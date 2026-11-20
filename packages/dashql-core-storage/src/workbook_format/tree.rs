@@ -141,7 +141,8 @@ pub fn parse_folder_file(text: &str, path: &[String]) -> Result<Vec<WorkbookEntr
         parts.push(STORAGE_FOLDER_FILE.to_string());
         parts.join("/")
     };
-    let data: Value = serde_json::from_str(text).map_err(|e| Error::invalid_argument(format!("Invalid {}: {e}", file_path())))?;
+    let data: Value =
+        serde_json::from_str(text).map_err(|e| Error::invalid_argument(format!("Invalid {}: {e}", file_path())))?;
     let Some(workbooks) = data.get("workbooks").and_then(Value::as_array) else {
         return Err(Error::invalid_argument(format!("Invalid {}: workbooks must be an array", file_path())));
     };
@@ -299,12 +300,19 @@ impl WorkbookTreeFolder {
     /// A tree of its JSON, the empty tree for anything else
     pub fn from_json(value: &Value) -> Self {
         let strings = |value: Option<&Value>| -> Vec<String> {
-            value.and_then(Value::as_array).map(|items| items.iter().filter_map(Value::as_str).map(str::to_string).collect()).unwrap_or_default()
+            value
+                .and_then(Value::as_array)
+                .map(|items| items.iter().filter_map(Value::as_str).map(str::to_string).collect())
+                .unwrap_or_default()
         };
         WorkbookTreeFolder {
             name: value.get("name").and_then(Value::as_str).unwrap_or_default().to_string(),
             path: strings(value.get("path")),
-            folders: value.get("folders").and_then(Value::as_array).map(|folders| folders.iter().map(Self::from_json).collect()).unwrap_or_default(),
+            folders: value
+                .get("folders")
+                .and_then(Value::as_array)
+                .map(|folders| folders.iter().map(Self::from_json).collect())
+                .unwrap_or_default(),
             workbooks: value
                 .get("workbooks")
                 .and_then(Value::as_array)
@@ -375,13 +383,16 @@ pub fn change_workbook_tree(
         .into_iter()
         .filter(|folder| before_of(&folder.path) != Some(&folder.workbooks))
         .map(|folder| {
-            let gained = folder.workbooks.len() as i64 - before_of(&folder.path).map_or(0, |workbooks| workbooks.len() as i64);
+            let gained =
+                folder.workbooks.len() as i64 - before_of(&folder.path).map_or(0, |workbooks| workbooks.len() as i64);
             (folder, gained)
         })
         .collect();
     changed.sort_by(|left, right| right.1.cmp(&left.1));
-    let writes =
-        changed.into_iter().map(|(folder, _)| FolderFileWrite { path: folder.path.clone(), text: folder_file_text(&folder.workbooks) }).collect();
+    let writes = changed
+        .into_iter()
+        .map(|(folder, _)| FolderFileWrite { path: folder.path.clone(), text: folder_file_text(&folder.workbooks) })
+        .collect();
     Ok((next, writes))
 }
 
@@ -397,8 +408,13 @@ mod tests {
     fn reads_and_edits_a_tree() {
         let root = dir(
             "",
-            Some(r#"{"workbooks":[{"path":"a"},{"path":""},{"nope":1},{"path":"b","storageType":"native","nativePath":"/x"}]}"#),
-            vec![dir("q10", Some(r#"{"workbooks":[{"path":"c"}]}"#), vec![]), dir("q2", Some(r#"{"workbooks":[{"path":"a"}]}"#), vec![])],
+            Some(
+                r#"{"workbooks":[{"path":"a"},{"path":""},{"nope":1},{"path":"b","storageType":"native","nativePath":"/x"}]}"#,
+            ),
+            vec![
+                dir("q10", Some(r#"{"workbooks":[{"path":"c"}]}"#), vec![]),
+                dir("q2", Some(r#"{"workbooks":[{"path":"a"}]}"#), vec![]),
+            ],
         );
         let mut tree = read_workbook_tree(Some(&root)).unwrap();
         assert_eq!(tree.folders.iter().map(|f| f.name.as_str()).collect::<Vec<_>>(), ["q2", "q10"]);
@@ -406,12 +422,18 @@ mod tests {
         assert_eq!(tree.flatten().iter().map(|e| e.path.as_str()).collect::<Vec<_>>(), ["a", "c", "b"]);
         assert_eq!(tree.find_workbook_folder("c"), Some(vec!["q10".to_string()]));
         assert!(tree.move_workbook("b", &["q10".into()], 0));
-        assert_eq!(tree.folder_at(&["q10".into()]).unwrap().workbooks.iter().map(|e| e.path.as_str()).collect::<Vec<_>>(), ["b", "c"]);
+        assert_eq!(
+            tree.folder_at(&["q10".into()]).unwrap().workbooks.iter().map(|e| e.path.as_str()).collect::<Vec<_>>(),
+            ["b", "c"]
+        );
         assert_eq!(tree.folder_at(&["q10".into()]).unwrap().workbooks[0].native_path.as_deref(), Some("/x"));
         assert!(!tree.move_workbook("b", &["missing".into()], 0));
         tree.upsert_workbook(WorkbookEntry::new("d"), &["missing".into()]);
         assert_eq!(tree.workbooks.last().unwrap().path, "d");
-        assert!(read_workbook_tree(Some(&dir("", Some("{}"), vec![]))).unwrap_err().message.contains("workbooks must be an array"));
+        assert!(read_workbook_tree(Some(&dir("", Some("{}"), vec![])))
+            .unwrap_err()
+            .message
+            .contains("workbooks must be an array"));
         assert_eq!(read_workbook_tree(None).unwrap(), WorkbookTreeFolder::default());
     }
 
@@ -425,23 +447,38 @@ mod tests {
     }
     #[test]
     fn writes_the_folders_that_gain_workbooks_first() {
-        let root = dir("", Some(r#"{"workbooks":[{"path":"a"},{"path":"b"}]}"#), vec![dir("q1", Some(r#"{"workbooks":[]}"#), vec![])]);
+        let root = dir(
+            "",
+            Some(r#"{"workbooks":[{"path":"a"},{"path":"b"}]}"#),
+            vec![dir("q1", Some(r#"{"workbooks":[]}"#), vec![])],
+        );
         let stored = read_workbook_tree(Some(&root)).unwrap();
         let q1 = vec!["q1".to_string()];
         // A move writes the folder that gains the workbook before the one that loses it
-        let (tree, writes) =
-            change_workbook_tree(&stored, WorkbookTreeChange::Move { workbook_id: "a".into(), folder_path: q1.clone(), index: 0 }).unwrap();
-        assert_eq!(writes.iter().map(|write| write.path.clone()).collect::<Vec<_>>(), vec![q1.clone(), Vec::<String>::new()]);
+        let (tree, writes) = change_workbook_tree(
+            &stored,
+            WorkbookTreeChange::Move { workbook_id: "a".into(), folder_path: q1.clone(), index: 0 },
+        )
+        .unwrap();
+        assert_eq!(
+            writes.iter().map(|write| write.path.clone()).collect::<Vec<_>>(),
+            vec![q1.clone(), Vec::<String>::new()]
+        );
         assert_eq!(writes[0].text, folder_file_text(&[WorkbookEntry::new("a")]));
         assert_eq!(tree.flatten().iter().map(|entry| entry.path.as_str()).collect::<Vec<_>>(), ["a", "b"]);
         // A change that changes nothing writes nothing, a move into a missing folder fails
-        let (_, writes) = change_workbook_tree(&stored, WorkbookTreeChange::Upsert { entry: WorkbookEntry::new("a"), folder_path: q1 }).unwrap();
+        let (_, writes) = change_workbook_tree(
+            &stored,
+            WorkbookTreeChange::Upsert { entry: WorkbookEntry::new("a"), folder_path: q1 },
+        )
+        .unwrap();
         assert!(writes.is_empty());
         let missing = WorkbookTreeChange::Move { workbook_id: "a".into(), folder_path: vec!["x".into()], index: 0 };
         assert!(change_workbook_tree(&stored, missing).unwrap_err().message.contains("There is no folder x"));
         // The tree round-trips through its JSON
         assert_eq!(WorkbookTreeFolder::from_json(&tree.to_json()), tree);
-        let (_, writes) = change_workbook_tree(&stored, WorkbookTreeChange::Remove { workbook_id: "b".into() }).unwrap();
+        let (_, writes) =
+            change_workbook_tree(&stored, WorkbookTreeChange::Remove { workbook_id: "b".into() }).unwrap();
         assert_eq!(writes.len(), 1);
     }
 }

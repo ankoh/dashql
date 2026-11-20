@@ -5,8 +5,8 @@
 //! registries of other entries.
 
 use super::ids::*;
-use dashql_parser::span::TextSpan;
 use crate::hash::HashMap;
+use dashql_parser::span::TextSpan;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
@@ -354,11 +354,7 @@ pub struct CatalogEntryData {
 
 impl CatalogEntryData {
     pub fn new(catalog_entry_id: CatalogEntryId, catalog_version: CatalogVersion) -> Self {
-        Self {
-            catalog_entry_id,
-            catalog_version,
-            ..Default::default()
-        }
+        Self { catalog_entry_id, catalog_version, ..Default::default() }
     }
 
     /// Does another version of the entry declare the same objects?
@@ -410,10 +406,7 @@ impl CatalogEntryData {
 
     /// The location of a table of this entry
     pub fn table_loc(&self, index: usize) -> TableLoc {
-        TableLoc {
-            entry: self.catalog_entry_id,
-            index: index as u32,
-        }
+        TableLoc { entry: self.catalog_entry_id, index: index as u32 }
     }
 
     /// The id of an object of this entry, the default id for an object outside of it
@@ -505,13 +498,19 @@ impl CatalogEntryData {
             let name = &table.table_name;
             // A later declaration of a name replaces an earlier one, a script has one table of a name
             let earlier = self.tables_by_qualified_name.insert(name.key(), i);
-            let declare = |tables: &mut Vec<usize>| match earlier.and_then(|earlier| tables.iter_mut().find(|t| **t == earlier)) {
+            let declare = |tables: &mut Vec<usize>| match earlier
+                .and_then(|earlier| tables.iter_mut().find(|t| **t == earlier))
+            {
                 Some(table) => *table = i,
                 None => tables.push(i),
             };
             declare(self.tables_by_unqualified_name.entry(name.table_name.text.clone()).or_default());
             if !name.schema_name.text.is_empty() {
-                declare(self.tables_by_unqualified_schema.entry((name.schema_name.text.clone(), name.database_name.text.clone())).or_default());
+                declare(
+                    self.tables_by_unqualified_schema
+                        .entry((name.schema_name.text.clone(), name.database_name.text.clone()))
+                        .or_default(),
+                );
             }
         }
         for (i, function) in self.function_declarations.iter().enumerate() {
@@ -526,10 +525,7 @@ impl CatalogEntryData {
         for (ti, table) in self.table_declarations.iter().enumerate() {
             for (ci, column) in table.table_columns.iter().enumerate() {
                 self.table_columns_by_name.entry(column.column_name.text.clone()).or_default().push(ColumnLoc {
-                    table: TableLoc {
-                        entry: self.catalog_entry_id,
-                        index: ti as u32,
-                    },
+                    table: TableLoc { entry: self.catalog_entry_id, index: ti as u32 },
                     column: ci as u32,
                 });
             }

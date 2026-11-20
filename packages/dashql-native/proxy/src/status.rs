@@ -1,11 +1,10 @@
-use std::{collections::HashMap, fmt::Error};
 use base64::Engine;
-use serde::Serialize;
 use http::{header::CONTENT_TYPE, Response, StatusCode};
+use serde::Serialize;
+use std::{collections::HashMap, fmt::Error};
 
 use crate::proxy_headers::{
-    HEADER_NAME_ERROR, HEADER_NAME_GRPC_MESSAGE, HEADER_NAME_GRPC_STATUS,
-    HEADER_NAME_GRPC_STATUS_DETAILS,
+    HEADER_NAME_ERROR, HEADER_NAME_GRPC_MESSAGE, HEADER_NAME_GRPC_STATUS, HEADER_NAME_GRPC_STATUS_DETAILS,
 };
 
 #[derive(Debug)]
@@ -16,29 +15,29 @@ pub enum GrpcStreamElement {
 
 #[derive(Debug)]
 pub enum Status {
-    GrpcCallFailed{ status: tonic::Status },
-    GrpcChannelIdIsUnknown{ channel_id: usize },
-    GrpcEndpointConnectFailed{ message: String },
+    GrpcCallFailed { status: tonic::Status },
+    GrpcChannelIdIsUnknown { channel_id: usize },
+    GrpcEndpointConnectFailed { message: String },
     GrpcTlsConfigInvalid { message: String },
     GrpcStreamClosed { channel_id: usize, stream_id: usize },
     GrpcStreamIsUnknown { channel_id: usize, stream_id: usize },
     GrpcStreamReadFailed { channel_id: usize, stream_id: usize, element: GrpcStreamElement, status: tonic::Status },
     GrpcStreamReadTimedOut { channel_id: usize, stream_id: usize },
-    HeaderHasInvalidEncoding{ header: &'static str, message: String },
-    HeaderIsNotAValidEndpoint{ header: &'static str, message: String },
-    HeaderIsNotAnUsize{ header: &'static str, message: String },
-    HeaderPathIsInvalid{ header: &'static str, path: String, message: String },
-    HeaderRequiredButMissing{ header: &'static str },
-    HttpClientConfigInvalid{ message: String },
-    HttpEndpointIsInvalid{ header: &'static str, endpoint: String, message: String },
-    HttpMethodIsInvalid{ header: &'static str, method: String, message: String },
+    HeaderHasInvalidEncoding { header: &'static str, message: String },
+    HeaderIsNotAValidEndpoint { header: &'static str, message: String },
+    HeaderIsNotAnUsize { header: &'static str, message: String },
+    HeaderPathIsInvalid { header: &'static str, path: String, message: String },
+    HeaderRequiredButMissing { header: &'static str },
+    HttpClientConfigInvalid { message: String },
+    HttpEndpointIsInvalid { header: &'static str, endpoint: String, message: String },
+    HttpMethodIsInvalid { header: &'static str, method: String, message: String },
     HttpRequestFailed { stream_id: usize, error: String },
     HttpStreamClosed { stream_id: usize },
     HttpStreamFailed { stream_id: usize, error: String },
     HttpStreamIsUnknown { stream_id: usize },
     HttpStreamReadFailed { stream_id: usize, error: String },
     HttpStreamReadTimedOut { stream_id: usize },
-    HttpUrlIsInvalid{ message: String },
+    HttpUrlIsInvalid { message: String },
 }
 
 /// The JSON error body sent for a failed proxy request
@@ -57,37 +56,26 @@ impl TryFrom<&Status> for StatusMessage {
         match s {
             Status::HeaderHasInvalidEncoding { header, message } => Ok(StatusMessage {
                 message: "header has an invalid encoding".to_string(),
-                details: HashMap::from_iter([
-                    ("header", header.to_string()),
-                    ("error", message.to_string())
-                ]),
+                details: HashMap::from_iter([("header", header.to_string()), ("error", message.to_string())]),
             }),
             Status::HeaderIsNotAValidEndpoint { header, message } => Ok(StatusMessage {
                 message: "header is not a valid endpoint".to_string(),
-                details: HashMap::from_iter([
-                    ("header", header.to_string()),
-                    ("error", message.to_string())
-                ]),
+                details: HashMap::from_iter([("header", header.to_string()), ("error", message.to_string())]),
             }),
             Status::HeaderRequiredButMissing { header } => Ok(StatusMessage {
                 message: "header is missing".to_string(),
-                details: HashMap::from_iter([
-                    ("header", header.to_string())
-                ]),
+                details: HashMap::from_iter([("header", header.to_string())]),
             }),
             Status::HeaderIsNotAnUsize { header, message } => Ok(StatusMessage {
                 message: "header is not an unsigned integer".to_string(),
-                details: HashMap::from_iter([
-                    ("header", header.to_string()),
-                    ("error", message.to_string())
-                ]),
+                details: HashMap::from_iter([("header", header.to_string()), ("error", message.to_string())]),
             }),
             Status::HeaderPathIsInvalid { header, path, message } => Ok(StatusMessage {
                 message: "header stores invalid path".to_string(),
                 details: HashMap::from_iter([
                     ("header", header.to_string()),
                     ("path", path.to_string()),
-                    ("error", message.to_string())
+                    ("error", message.to_string()),
                 ]),
             }),
             Status::HttpEndpointIsInvalid { header, endpoint, message } => Ok(StatusMessage {
@@ -95,7 +83,7 @@ impl TryFrom<&Status> for StatusMessage {
                 details: HashMap::from_iter([
                     ("header", header.to_string()),
                     ("endpoint", endpoint.to_string()),
-                    ("error", message.to_string())
+                    ("error", message.to_string()),
                 ]),
             }),
             Status::HttpMethodIsInvalid { header, method, message } => Ok(StatusMessage {
@@ -103,38 +91,36 @@ impl TryFrom<&Status> for StatusMessage {
                 details: HashMap::from_iter([
                     ("header", header.to_string()),
                     ("method", method.to_string()),
-                    ("error", message.to_string())
+                    ("error", message.to_string()),
                 ]),
             }),
             Status::GrpcChannelIdIsUnknown { channel_id } => Ok(StatusMessage {
                 message: "gRPC channel id is unknown".to_string(),
-                details: HashMap::from_iter([
-                    ("channel", channel_id.to_string()),
-                ]),
+                details: HashMap::from_iter([("channel", channel_id.to_string())]),
             }),
             Status::GrpcEndpointConnectFailed { message } => Ok(StatusMessage {
                 message: format!("connecting to gRPC endpoint failed"),
-                details: HashMap::from_iter([
-                    ("error", message.to_string()),
-                ]),
+                details: HashMap::from_iter([("error", message.to_string())]),
             }),
             Status::GrpcTlsConfigInvalid { message } => Ok(StatusMessage {
                 message: "gRPC tls config is invalid".to_string(),
-                details: HashMap::from_iter([
-                    ("error", message.to_string()),
-                ]),
+                details: HashMap::from_iter([("error", message.to_string())]),
             }),
             Status::GrpcCallFailed { status } => Ok(StatusMessage {
                 message: "gRPC call failed".to_string(),
-                details: HashMap::from_iter([
-                    ("code", status.code().to_string()),
-                    ("error", status.to_string()),
-                ]),
+                details: HashMap::from_iter([("code", status.code().to_string()), ("error", status.to_string())]),
             }),
-            Status::GrpcStreamReadFailed {  channel_id, stream_id, element, status  } => Ok(StatusMessage {
+            Status::GrpcStreamReadFailed { channel_id, stream_id, element, status } => Ok(StatusMessage {
                 message: "reading from gRPC stream failed".to_string(),
                 details: HashMap::from_iter([
-                    ("target", match element { GrpcStreamElement::Trailers => "trailers", GrpcStreamElement::Message => "message" }.to_string()),
+                    (
+                        "target",
+                        match element {
+                            GrpcStreamElement::Trailers => "trailers",
+                            GrpcStreamElement::Message => "message",
+                        }
+                        .to_string(),
+                    ),
                     ("stream", stream_id.to_string()),
                     ("channel", channel_id.to_string()),
                     ("code", status.code().to_string()),
@@ -143,75 +129,47 @@ impl TryFrom<&Status> for StatusMessage {
             }),
             Status::GrpcStreamReadTimedOut { channel_id, stream_id } => Ok(StatusMessage {
                 message: "reading from gRPC stream timed out".to_string(),
-                details: HashMap::from_iter([
-                    ("stream", stream_id.to_string()),
-                    ("channel", channel_id.to_string()),
-                ]),
+                details: HashMap::from_iter([("stream", stream_id.to_string()), ("channel", channel_id.to_string())]),
             }),
             Status::GrpcStreamIsUnknown { channel_id, stream_id } => Ok(StatusMessage {
                 message: "gRPC stream is unknown".to_string(),
-                details: HashMap::from_iter([
-                    ("stream", stream_id.to_string()),
-                    ("channel", channel_id.to_string()),
-                ]),
+                details: HashMap::from_iter([("stream", stream_id.to_string()), ("channel", channel_id.to_string())]),
             }),
             Status::GrpcStreamClosed { channel_id, stream_id } => Ok(StatusMessage {
                 message: "gRPC stream is closed".to_string(),
-                details: HashMap::from_iter([
-                    ("stream", stream_id.to_string()),
-                    ("channel", channel_id.to_string()),
-                ]),
+                details: HashMap::from_iter([("stream", stream_id.to_string()), ("channel", channel_id.to_string())]),
             }),
             Status::HttpRequestFailed { stream_id, error } => Ok(StatusMessage {
                 message: "http request failed".to_string(),
-                details: HashMap::from_iter([
-                    ("stream", stream_id.to_string()),
-                    ("error", error.to_string()),
-                ]),
+                details: HashMap::from_iter([("stream", stream_id.to_string()), ("error", error.to_string())]),
             }),
             Status::HttpStreamReadFailed { stream_id, error } => Ok(StatusMessage {
                 message: "reading chunk from http stream failed".to_string(),
-                details: HashMap::from_iter([
-                    ("stream", stream_id.to_string()),
-                    ("error", error.to_string()),
-                ]),
+                details: HashMap::from_iter([("stream", stream_id.to_string()), ("error", error.to_string())]),
             }),
             Status::HttpStreamReadTimedOut { stream_id } => Ok(StatusMessage {
                 message: "reading from http stream timed out".to_string(),
-                details: HashMap::from_iter([
-                    ("stream", stream_id.to_string()),
-                ]),
+                details: HashMap::from_iter([("stream", stream_id.to_string())]),
             }),
             Status::HttpStreamIsUnknown { stream_id } => Ok(StatusMessage {
                 message: "http stream is unknown".to_string(),
-                details: HashMap::from_iter([
-                    ("stream", stream_id.to_string()),
-                ]),
+                details: HashMap::from_iter([("stream", stream_id.to_string())]),
             }),
             Status::HttpStreamClosed { stream_id } => Ok(StatusMessage {
                 message: "http stream is closed".to_string(),
-                details: HashMap::from_iter([
-                    ("stream", stream_id.to_string()),
-                ]),
+                details: HashMap::from_iter([("stream", stream_id.to_string())]),
             }),
             Status::HttpStreamFailed { stream_id, error } => Ok(StatusMessage {
                 message: "http stream failed".to_string(),
-                details: HashMap::from_iter([
-                    ("stream", stream_id.to_string()),
-                    ("error", error.to_string()),
-                ]),
+                details: HashMap::from_iter([("stream", stream_id.to_string()), ("error", error.to_string())]),
             }),
-            Status::HttpClientConfigInvalid {  message } => Ok(StatusMessage {
+            Status::HttpClientConfigInvalid { message } => Ok(StatusMessage {
                 message: format!("http client config is invalid"),
-                details: HashMap::from_iter([
-                    ("error", message.to_string()),
-                ]),
+                details: HashMap::from_iter([("error", message.to_string())]),
             }),
             Status::HttpUrlIsInvalid { message } => Ok(StatusMessage {
                 message: format!("http url is invalid"),
-                details: HashMap::from_iter([
-                    ("error", message.to_string()),
-                ]),
+                details: HashMap::from_iter([("error", message.to_string())]),
             }),
         }
     }
@@ -226,7 +184,9 @@ impl From<&Status> for StatusCode {
             Status::GrpcTlsConfigInvalid { message: _ } => StatusCode::BAD_REQUEST,
             Status::GrpcStreamClosed { channel_id: _, stream_id: _ } => StatusCode::BAD_REQUEST,
             Status::GrpcStreamIsUnknown { channel_id: _, stream_id: _ } => StatusCode::NOT_FOUND,
-            Status::GrpcStreamReadFailed { channel_id: _, stream_id: _, element: _, status: _ } => StatusCode::BAD_REQUEST,
+            Status::GrpcStreamReadFailed { channel_id: _, stream_id: _, element: _, status: _ } => {
+                StatusCode::BAD_REQUEST
+            }
             Status::GrpcStreamReadTimedOut { channel_id: _, stream_id: _ } => StatusCode::BAD_REQUEST,
             Status::HeaderHasInvalidEncoding { header: _, message: _ } => StatusCode::BAD_REQUEST,
             Status::HeaderIsNotAValidEndpoint { header: _, message: _ } => StatusCode::BAD_REQUEST,
@@ -234,7 +194,7 @@ impl From<&Status> for StatusCode {
             Status::HeaderPathIsInvalid { header: _, path: _, message: _ } => StatusCode::BAD_REQUEST,
             Status::HeaderRequiredButMissing { header: _ } => StatusCode::BAD_REQUEST,
             Status::HttpClientConfigInvalid { message: _ } => StatusCode::BAD_REQUEST,
-            Status::HttpEndpointIsInvalid { header: _, endpoint: _ , message: _ } => StatusCode::BAD_REQUEST,
+            Status::HttpEndpointIsInvalid { header: _, endpoint: _, message: _ } => StatusCode::BAD_REQUEST,
             Status::HttpMethodIsInvalid { header: _, method: _, message: _ } => StatusCode::BAD_REQUEST,
             Status::HttpRequestFailed { stream_id: _, error: _ } => StatusCode::BAD_REQUEST,
             Status::HttpStreamClosed { stream_id: _ } => StatusCode::BAD_REQUEST,
@@ -296,15 +256,13 @@ impl From<&Status> for Response<Vec<u8>> {
             Status::GrpcCallFailed { ref status }
             | Status::GrpcStreamReadFailed { channel_id: _, stream_id: _, element: _, ref status } => {
                 grpc_error_response(s, status, body)
-            },
-            _ => {
-                Response::builder()
-                    .status(StatusCode::from(s).as_u16())
-                    .header(HEADER_NAME_ERROR, "true")
-                    .header(CONTENT_TYPE, mime::APPLICATION_JSON.essence_str())
-                    .body(body)
-                    .unwrap()
             }
+            _ => Response::builder()
+                .status(StatusCode::from(s).as_u16())
+                .header(HEADER_NAME_ERROR, "true")
+                .header(CONTENT_TYPE, mime::APPLICATION_JSON.essence_str())
+                .body(body)
+                .unwrap(),
         }
     }
 }
@@ -327,28 +285,123 @@ mod test {
         let grpc = || tonic::Status::internal("boom");
         let cases: Vec<(Status, u16, &str, &[(&str, &str)])> = vec![
             (Status::GrpcChannelIdIsUnknown { channel_id: 1 }, 404, "gRPC channel id is unknown", &[("channel", "1")]),
-            (Status::GrpcEndpointConnectFailed { message: text() }, 400, "connecting to gRPC endpoint failed", &[("error", "text")]),
+            (
+                Status::GrpcEndpointConnectFailed { message: text() },
+                400,
+                "connecting to gRPC endpoint failed",
+                &[("error", "text")],
+            ),
             (Status::GrpcTlsConfigInvalid { message: text() }, 400, "gRPC tls config is invalid", &[("error", "text")]),
-            (Status::GrpcStreamClosed { channel_id: 1, stream_id: 2 }, 400, "gRPC stream is closed", &[("channel", "1"), ("stream", "2")]),
-            (Status::GrpcStreamIsUnknown { channel_id: 1, stream_id: 2 }, 404, "gRPC stream is unknown", &[("channel", "1"), ("stream", "2")]),
-            (Status::GrpcStreamReadTimedOut { channel_id: 1, stream_id: 2 }, 400, "reading from gRPC stream timed out", &[("channel", "1"), ("stream", "2")]),
+            (
+                Status::GrpcStreamClosed { channel_id: 1, stream_id: 2 },
+                400,
+                "gRPC stream is closed",
+                &[("channel", "1"), ("stream", "2")],
+            ),
+            (
+                Status::GrpcStreamIsUnknown { channel_id: 1, stream_id: 2 },
+                404,
+                "gRPC stream is unknown",
+                &[("channel", "1"), ("stream", "2")],
+            ),
+            (
+                Status::GrpcStreamReadTimedOut { channel_id: 1, stream_id: 2 },
+                400,
+                "reading from gRPC stream timed out",
+                &[("channel", "1"), ("stream", "2")],
+            ),
             (Status::GrpcCallFailed { status: grpc() }, 400, "gRPC call failed", &[]),
-            (Status::GrpcStreamReadFailed { channel_id: 1, stream_id: 2, element: GrpcStreamElement::Message, status: grpc() }, 400, "reading from gRPC stream failed", &[("target", "message")]),
-            (Status::GrpcStreamReadFailed { channel_id: 1, stream_id: 2, element: GrpcStreamElement::Trailers, status: grpc() }, 400, "reading from gRPC stream failed", &[("target", "trailers")]),
-            (Status::HeaderHasInvalidEncoding { header: "h", message: text() }, 400, "header has an invalid encoding", &[("header", "h"), ("error", "text")]),
-            (Status::HeaderIsNotAValidEndpoint { header: "h", message: text() }, 400, "header is not a valid endpoint", &[("header", "h"), ("error", "text")]),
-            (Status::HeaderIsNotAnUsize { header: "h", message: text() }, 400, "header is not an unsigned integer", &[("header", "h"), ("error", "text")]),
-            (Status::HeaderPathIsInvalid { header: "h", path: "p".to_string(), message: text() }, 400, "header stores invalid path", &[("header", "h"), ("path", "p")]),
+            (
+                Status::GrpcStreamReadFailed {
+                    channel_id: 1,
+                    stream_id: 2,
+                    element: GrpcStreamElement::Message,
+                    status: grpc(),
+                },
+                400,
+                "reading from gRPC stream failed",
+                &[("target", "message")],
+            ),
+            (
+                Status::GrpcStreamReadFailed {
+                    channel_id: 1,
+                    stream_id: 2,
+                    element: GrpcStreamElement::Trailers,
+                    status: grpc(),
+                },
+                400,
+                "reading from gRPC stream failed",
+                &[("target", "trailers")],
+            ),
+            (
+                Status::HeaderHasInvalidEncoding { header: "h", message: text() },
+                400,
+                "header has an invalid encoding",
+                &[("header", "h"), ("error", "text")],
+            ),
+            (
+                Status::HeaderIsNotAValidEndpoint { header: "h", message: text() },
+                400,
+                "header is not a valid endpoint",
+                &[("header", "h"), ("error", "text")],
+            ),
+            (
+                Status::HeaderIsNotAnUsize { header: "h", message: text() },
+                400,
+                "header is not an unsigned integer",
+                &[("header", "h"), ("error", "text")],
+            ),
+            (
+                Status::HeaderPathIsInvalid { header: "h", path: "p".to_string(), message: text() },
+                400,
+                "header stores invalid path",
+                &[("header", "h"), ("path", "p")],
+            ),
             (Status::HeaderRequiredButMissing { header: "h" }, 400, "header is missing", &[("header", "h")]),
-            (Status::HttpClientConfigInvalid { message: text() }, 400, "http client config is invalid", &[("error", "text")]),
-            (Status::HttpEndpointIsInvalid { header: "h", endpoint: "e".to_string(), message: text() }, 400, "header stores invalid endpoint", &[("endpoint", "e")]),
-            (Status::HttpMethodIsInvalid { header: "h", method: "m".to_string(), message: text() }, 400, "header stores invalid method", &[("method", "m")]),
-            (Status::HttpRequestFailed { stream_id: 2, error: text() }, 400, "http request failed", &[("stream", "2"), ("error", "text")]),
+            (
+                Status::HttpClientConfigInvalid { message: text() },
+                400,
+                "http client config is invalid",
+                &[("error", "text")],
+            ),
+            (
+                Status::HttpEndpointIsInvalid { header: "h", endpoint: "e".to_string(), message: text() },
+                400,
+                "header stores invalid endpoint",
+                &[("endpoint", "e")],
+            ),
+            (
+                Status::HttpMethodIsInvalid { header: "h", method: "m".to_string(), message: text() },
+                400,
+                "header stores invalid method",
+                &[("method", "m")],
+            ),
+            (
+                Status::HttpRequestFailed { stream_id: 2, error: text() },
+                400,
+                "http request failed",
+                &[("stream", "2"), ("error", "text")],
+            ),
             (Status::HttpStreamClosed { stream_id: 2 }, 400, "http stream is closed", &[("stream", "2")]),
-            (Status::HttpStreamFailed { stream_id: 2, error: text() }, 400, "http stream failed", &[("stream", "2"), ("error", "text")]),
+            (
+                Status::HttpStreamFailed { stream_id: 2, error: text() },
+                400,
+                "http stream failed",
+                &[("stream", "2"), ("error", "text")],
+            ),
             (Status::HttpStreamIsUnknown { stream_id: 2 }, 404, "http stream is unknown", &[("stream", "2")]),
-            (Status::HttpStreamReadFailed { stream_id: 2, error: text() }, 400, "reading chunk from http stream failed", &[("stream", "2"), ("error", "text")]),
-            (Status::HttpStreamReadTimedOut { stream_id: 2 }, 400, "reading from http stream timed out", &[("stream", "2")]),
+            (
+                Status::HttpStreamReadFailed { stream_id: 2, error: text() },
+                400,
+                "reading chunk from http stream failed",
+                &[("stream", "2"), ("error", "text")],
+            ),
+            (
+                Status::HttpStreamReadTimedOut { stream_id: 2 },
+                400,
+                "reading from http stream timed out",
+                &[("stream", "2")],
+            ),
             (Status::HttpUrlIsInvalid { message: text() }, 400, "http url is invalid", &[("error", "text")]),
         ];
         for (status, code, message, details) in cases {

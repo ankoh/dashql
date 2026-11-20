@@ -110,11 +110,18 @@ pub enum WorkbookAction {
         #[tsify(optional)]
         connection_id: Option<String>,
     },
-    DeleteScript { file_name: String },
+    DeleteScript {
+        file_name: String,
+    },
     /// Rename a script, the name is a display name
-    RenameScript { file_name: String, new_name: String },
+    RenameScript {
+        file_name: String,
+        new_name: String,
+    },
     /// Order the scripts by their file names
-    ReorderScripts { order: Vec<String> },
+    ReorderScripts {
+        order: Vec<String>,
+    },
     /// Replace the text of a script, with a diff the rewrite is staged to accept or reject unless the script is blank
     SetScriptText {
         script_key: u32,
@@ -123,19 +130,38 @@ pub enum WorkbookAction {
         #[tsify(optional)]
         with_diff: Option<bool>,
     },
-    AcceptPendingDiff { script_key: u32 },
-    RejectPendingDiff { script_key: u32 },
+    AcceptPendingDiff {
+        script_key: u32,
+    },
+    RejectPendingDiff {
+        script_key: u32,
+    },
     /// Set the Vega-Lite spec of the chart of a script
-    SetScriptVisSpec { script_key: u32, spec: String },
+    SetScriptVisSpec {
+        script_key: u32,
+        spec: String,
+    },
     /// Set the value of an input in the scripts that use it
-    SetWorkbookInput { name: String, literal: String, script_keys: Vec<u32> },
+    SetWorkbookInput {
+        name: String,
+        literal: String,
+        script_keys: Vec<u32>,
+    },
     /// Analyze a script if its analysis is outdated
-    AnalyzeOutdatedScript { script_key: u32 },
+    AnalyzeOutdatedScript {
+        script_key: u32,
+    },
     /// An editor shows a script, the selected one or not: its outdated analysis runs right away when it is selected,
     /// once the changes pause otherwise
-    ShowScript { script_key: u32, selected: bool },
+    ShowScript {
+        script_key: u32,
+        selected: bool,
+    },
     /// An editor no longer shows a script, with the selection of its `showScript`
-    HideScript { script_key: u32, selected: bool },
+    HideScript {
+        script_key: u32,
+        selected: bool,
+    },
     /// Rename the workbook, null removes the name
     RenameWorkbook {
         #[serde(default)]
@@ -143,15 +169,28 @@ pub enum WorkbookAction {
         name: Option<String>,
     },
     /// Move a script to another connection
-    SetScriptConnection { file_name: String, connection_id: String },
+    SetScriptConnection {
+        file_name: String,
+        connection_id: String,
+    },
     /// Pick the connection of the next appended script
-    SetPendingConnection { connection_id: String },
+    SetPendingConnection {
+        connection_id: String,
+    },
     /// Move the scripts and the pending connection on one connection to another
-    ReplaceConnection { from: String, into: String },
+    ReplaceConnection {
+        from: String,
+        into: String,
+    },
     /// Let go of a connection that only the next script would use
-    DetachConnection { from: String, into: String },
+    DetachConnection {
+        from: String,
+        into: String,
+    },
     /// The data files of the workbook as storage lists them
-    SetWorkbookAttachments { files: Vec<WorkbookDataFile> },
+    SetWorkbookAttachments {
+        files: Vec<WorkbookDataFile>,
+    },
 
     /// Link the workbook to a published workbook, the whole link is written into the workbook file, null removes it
     SetCloudLink {

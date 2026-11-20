@@ -6,8 +6,8 @@
 
 use serde_json::{json, Value};
 
-use crate::http::Url;
 use crate::connections::{ConnectionParams, ConnectionState, ConnectorType, JsonObject};
+use crate::http::Url;
 
 /// The hosts of this machine
 const LOOPBACK_HOSTS: [&str; 3] = ["127.0.0.1", "localhost", "[::1]"];
@@ -138,6 +138,8 @@ pub fn bind_hyper_link<'a>(
 /// A fingerprint of the token of a link: the keys of the opened connections and the signatures of cached results tell
 /// links apart with it and never keep the token. FNV-1a over the bytes, as 16 hex digits.
 pub fn hyper_link_token_fingerprint(token: &str) -> String {
-    let hash = token.bytes().fold(0xcbf2_9ce4_8422_2325_u64, |hash, byte| (hash ^ u64::from(byte)).wrapping_mul(0x0100_0000_01b3));
+    let hash = token
+        .bytes()
+        .fold(0xcbf2_9ce4_8422_2325_u64, |hash, byte| (hash ^ u64::from(byte)).wrapping_mul(0x0100_0000_01b3));
     format!("{hash:016x}")
 }

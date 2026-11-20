@@ -3,14 +3,16 @@
 
 use dashql_core::catalog::Catalog;
 use dashql_core_shell::vt100;
+use dashql_core_shell::{
+    EffectCompletionStatus, PromptInputAction, PromptInputKey as Key, ShellStatus, TerminalOutput,
+};
 use dashql_core_shell::{EffectType, ShellSession};
-use dashql_core_shell::{EffectCompletionStatus, PromptInputAction, PromptInputKey as Key, ShellStatus, TerminalOutput};
 
 #[path = "support/test_shell.rs"]
 mod support;
-use support::{SharedCatalog, TestShell as Shell};
 use std::cell::RefCell;
 use std::rc::Rc;
+use support::{SharedCatalog, TestShell as Shell};
 
 const EFFECT_SUCCESS: EffectCompletionStatus = EffectCompletionStatus::Success;
 const EFFECT_ERROR: EffectCompletionStatus = EffectCompletionStatus::Error;
@@ -684,11 +686,7 @@ fn converts_query_errors_to_output() {
     let mut session = ShellSession::new(&catalog, 80, false);
     let pending = session.start_query(b"SELECT * FROM missing_table", &catalog);
     assert_eq!(pending.status, ShellStatus::Pending);
-    let complete = session.complete_effect(
-        effect_id(&pending.data),
-        EffectCompletionStatus::Error,
-        b"syntax error",
-    );
+    let complete = session.complete_effect(effect_id(&pending.data), EffectCompletionStatus::Error, b"syntax error");
     assert_eq!(complete.status, ShellStatus::Ok);
     assert_eq!(complete.data, b"syntax error");
 }
@@ -714,10 +712,7 @@ fn applies_readline_bindings_to_multiline_prompt() {
     let mut session = ShellSession::new(&catalog, 80, false);
 
     session.set_prompt(b"SELECT one\nFROM table");
-    assert_eq!(
-        session.consume_prompt_input(Key::LineStart, b"").cursor_byte_offset as usize,
-        "SELECT one\n".len()
-    );
+    assert_eq!(session.consume_prompt_input(Key::LineStart, b"").cursor_byte_offset as usize, "SELECT one\n".len());
     assert_eq!(session.consume_prompt_input(Key::KillWord, b"").text, "SELECT one\n table");
     assert_eq!(session.consume_prompt_input(Key::Yank, b"").text, "SELECT one\nFROM table");
     assert_eq!(

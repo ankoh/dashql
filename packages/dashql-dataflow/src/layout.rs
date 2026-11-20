@@ -167,7 +167,11 @@ fn box_geometry(b: &DataflowLayoutBox, config: &DataflowLayoutConfig) -> Dataflo
 
 /// The edges between different boxes
 fn box_edges(edges: &[DataflowLayoutEdge], count: usize) -> Vec<DataflowLayoutEdge> {
-    edges.iter().filter(|e| e.from_box != e.to_box && (e.from_box as usize) < count && (e.to_box as usize) < count).copied().collect()
+    edges
+        .iter()
+        .filter(|e| e.from_box != e.to_box && (e.from_box as usize) < count && (e.to_box as usize) < count)
+        .copied()
+        .collect()
 }
 
 /// The connected parts of the graph, by their first box. Boxes without edges are left out.
@@ -202,7 +206,12 @@ fn components(count: usize, edges: &[DataflowLayoutEdge]) -> Vec<Vec<usize>> {
 }
 
 /// Put boxes into rows of `isolated_per_row` from a top left corner, returns the bottom of the rows with a gap
-fn place_in_rows(boxes: &[usize], (left, mut top): (f64, f64), config: &DataflowLayoutConfig, geometry: &mut [DataflowBoxGeometry]) -> f64 {
+fn place_in_rows(
+    boxes: &[usize],
+    (left, mut top): (f64, f64),
+    config: &DataflowLayoutConfig,
+    geometry: &mut [DataflowBoxGeometry],
+) -> f64 {
     for row in boxes.chunks(config.isolated_per_row.max(1)) {
         let mut x = left;
         let mut height: f64 = 0.0;
@@ -218,7 +227,11 @@ fn place_in_rows(boxes: &[usize], (left, mut top): (f64, f64), config: &Dataflow
 }
 
 /// Lay out the boxes
-pub fn compute_dataflow_layout(boxes: &[DataflowLayoutBox], edges: &[DataflowLayoutEdge], config: &DataflowLayoutConfig) -> Vec<DataflowBoxGeometry> {
+pub fn compute_dataflow_layout(
+    boxes: &[DataflowLayoutBox],
+    edges: &[DataflowLayoutEdge],
+    config: &DataflowLayoutConfig,
+) -> Vec<DataflowBoxGeometry> {
     compute_dataflow_layout_with_routes(boxes, edges, config).0
 }
 
@@ -234,8 +247,11 @@ pub fn compute_dataflow_layout_with_routes(
     // the canvas shows what a reload shows
     let routes = if boxes.iter().any(|b| b.dropped) {
         arrange(boxes, &edges, config, &mut geometry);
-        let settled: Vec<DataflowLayoutBox> =
-            boxes.iter().zip(geometry.iter()).map(|(b, g)| DataflowLayoutBox { hint: Some((g.x, g.y)), dropped: false, ..b.clone() }).collect();
+        let settled: Vec<DataflowLayoutBox> = boxes
+            .iter()
+            .zip(geometry.iter())
+            .map(|(b, g)| DataflowLayoutBox { hint: Some((g.x, g.y)), dropped: false, ..b.clone() })
+            .collect();
         arrange(&settled, &edges, config, &mut geometry)
     } else {
         arrange(boxes, &edges, config, &mut geometry)
@@ -261,13 +277,22 @@ fn column_of(columns: &[(f64, f64)], center: f64) -> f64 {
 }
 
 /// Arrange the boxes once, from their hints if they have any
-fn arrange(boxes: &[DataflowLayoutBox], edges: &[DataflowLayoutEdge], config: &DataflowLayoutConfig, geometry: &mut [DataflowBoxGeometry]) -> Vec<DataflowEdgeRoute> {
+fn arrange(
+    boxes: &[DataflowLayoutBox],
+    edges: &[DataflowLayoutEdge],
+    config: &DataflowLayoutConfig,
+    geometry: &mut [DataflowBoxGeometry],
+) -> Vec<DataflowEdgeRoute> {
     let count = geometry.len();
     let linked: BTreeSet<usize> = edges.iter().flat_map(|e| [e.from_box as usize, e.to_box as usize]).collect();
     if !boxes.iter().any(|b| b.hint.is_some()) {
         // ELK packs the connected boxes, the boxes without edges go into rows below them
         let connected: Vec<usize> = (0..count).filter(|b| linked.contains(b)).collect();
-        let routes = if connected.is_empty() { Vec::new() } else { elk(boxes, edges, config, geometry, &connected, &vec![None; count], false) };
+        let routes = if connected.is_empty() {
+            Vec::new()
+        } else {
+            elk(boxes, edges, config, geometry, &connected, &vec![None; count], false)
+        };
         let left = connected.iter().map(|&b| geometry[b].x).fold(f64::INFINITY, f64::min);
         let bottom = connected.iter().map(|&b| geometry[b].y + geometry[b].height).fold(f64::NEG_INFINITY, f64::max);
         let corner = if left.is_finite() { (left, bottom + config.box_gap * 2.0) } else { (0.0, 0.0) };
@@ -295,7 +320,9 @@ fn arrange(boxes: &[DataflowLayoutBox], edges: &[DataflowLayoutEdge], config: &D
                 .filter(|e| e.to_box as usize == b)
                 .filter_map(|e| {
                     let p = &geometry[e.from_box as usize];
-                    boxes[e.from_box as usize].hint.map(|(x, y)| (x + p.width, y + p.port(e.from_statement, config) - geometry[b].port(e.to_statement, config)))
+                    boxes[e.from_box as usize].hint.map(|(x, y)| {
+                        (x + p.width, y + p.port(e.from_statement, config) - geometry[b].port(e.to_statement, config))
+                    })
                 })
                 .collect();
             let consumers: Vec<(f64, f64)> = edges
@@ -303,13 +330,18 @@ fn arrange(boxes: &[DataflowLayoutBox], edges: &[DataflowLayoutEdge], config: &D
                 .filter(|e| e.from_box as usize == b)
                 .filter_map(|e| {
                     let c = &geometry[e.to_box as usize];
-                    boxes[e.to_box as usize].hint.map(|(x, y)| (x, y + c.port(e.to_statement, config) - geometry[b].port(e.from_statement, config)))
+                    boxes[e.to_box as usize].hint.map(|(x, y)| {
+                        (x, y + c.port(e.to_statement, config) - geometry[b].port(e.from_statement, config))
+                    })
                 })
                 .collect();
             seeds[b] = if let Some(&(x, y)) = producers.iter().max_by(|a, b| a.0.total_cmp(&b.0)) {
                 Some((x + config.layer_gap, y))
             } else {
-                consumers.iter().min_by(|a, b| a.0.total_cmp(&b.0)).map(|&(x, y)| (x - config.layer_gap - geometry[b].width, y))
+                consumers
+                    .iter()
+                    .min_by(|a, b| a.0.total_cmp(&b.0))
+                    .map(|&(x, y)| (x - config.layer_gap - geometry[b].width, y))
             };
         }
         // A dropped box that almost lines up a row with a connected row of a box that stays lines it up
@@ -324,16 +356,24 @@ fn arrange(boxes: &[DataflowLayoutBox], edges: &[DataflowLayoutEdge], config: &D
                     return None;
                 };
                 let (_, other_y) = boxes[other].hint.filter(|_| !boxes[other].dropped)?;
-                Some(other_y + geometry[other].port(other_statement, config) - (y + geometry[this].port(this_statement, config)))
+                Some(
+                    other_y + geometry[other].port(other_statement, config)
+                        - (y + geometry[this].port(this_statement, config)),
+                )
             });
-            if let Some(delta) = deltas.filter(|d| d.abs() <= config.align_snap).min_by(|a, b| a.abs().total_cmp(&b.abs())) {
+            if let Some(delta) =
+                deltas.filter(|d| d.abs() <= config.align_snap).min_by(|a, b| a.abs().total_cmp(&b.abs()))
+            {
                 seeds[b] = Some((x, y + delta));
             }
         }
         // ELK forms its columns from overlapping x ranges, a wide or dropped box would merge two columns. The seeds put
         // every box at the column of its center instead, far apart: the boxes that stay form the columns.
-        let mut ranges: Vec<(f64, f64)> =
-            part.iter().filter(|&&b| !boxes[b].dropped).filter_map(|&b| boxes[b].hint.map(|(x, _)| (x, x + geometry[b].width))).collect();
+        let mut ranges: Vec<(f64, f64)> = part
+            .iter()
+            .filter(|&&b| !boxes[b].dropped)
+            .filter_map(|&b| boxes[b].hint.map(|(x, _)| (x, x + geometry[b].width)))
+            .collect();
         ranges.sort_by(|a, b| a.0.total_cmp(&b.0));
         let mut columns: Vec<(f64, f64)> = Vec::new();
         for (x0, x1) in ranges {
@@ -350,7 +390,8 @@ fn arrange(boxes: &[DataflowLayoutBox], edges: &[DataflowLayoutEdge], config: &D
         routes.extend(elk(boxes, edges, config, geometry, &part, &seeds, true));
     }
     // Boxes without edges keep their hints, the others and the parts without any hint go below everything
-    let mut placed: Vec<usize> = (0..count).filter(|&b| linked.contains(&b) && !fresh.iter().any(|p| p.contains(&b))).collect();
+    let mut placed: Vec<usize> =
+        (0..count).filter(|&b| linked.contains(&b) && !fresh.iter().any(|p| p.contains(&b))).collect();
     let mut loose: Vec<usize> = Vec::new();
     for b in (0..count).filter(|b| !linked.contains(b)) {
         match boxes[b].hint {
@@ -368,14 +409,17 @@ fn arrange(boxes: &[DataflowLayoutBox], edges: &[DataflowLayoutEdge], config: &D
     let mut top = if bottom.is_finite() { bottom + config.box_gap * 2.0 } else { 0.0 };
     for part in fresh {
         let part_routes = elk(boxes, edges, config, geometry, &part, &vec![None; count], false);
-        let (x0, y0) = part.iter().fold((f64::INFINITY, f64::INFINITY), |(x, y), &b| (x.min(geometry[b].x), y.min(geometry[b].y)));
+        let (x0, y0) =
+            part.iter().fold((f64::INFINITY, f64::INFINITY), |(x, y), &b| (x.min(geometry[b].x), y.min(geometry[b].y)));
         let (dx, dy) = (left - x0, top - y0);
         for &b in &part {
             geometry[b].x += dx;
             geometry[b].y += dy;
         }
         top = part.iter().map(|&b| geometry[b].y + geometry[b].height).fold(top, f64::max) + config.box_gap * 2.0;
-        routes.extend(part_routes.into_iter().map(|(k, points)| (k, points.into_iter().map(|(x, y)| (x + dx, y + dy)).collect())));
+        routes.extend(
+            part_routes.into_iter().map(|(k, points)| (k, points.into_iter().map(|(x, y)| (x + dx, y + dy)).collect())),
+        );
     }
     place_in_rows(&loose, (left, top), config, geometry);
     routes
@@ -399,7 +443,9 @@ fn elk(
     };
     use org_eclipse_elk_alg_layered::org::eclipse::elk::alg::layered::plain_java_initialization::initialize_plain_java_layout;
     use org_eclipse_elk_core::org::eclipse::elk::core::math::ElkPadding;
-    use org_eclipse_elk_core::org::eclipse::elk::core::options::{CoreOptions, Direction, EdgeRouting, PortConstraints, PortSide, SizeConstraint};
+    use org_eclipse_elk_core::org::eclipse::elk::core::options::{
+        CoreOptions, Direction, EdgeRouting, PortConstraints, PortSide, SizeConstraint,
+    };
     use org_eclipse_elk_core::org::eclipse::elk::core::util::BasicProgressMonitor;
     use org_eclipse_elk_core::org::eclipse::elk::core::IGraphLayoutEngine;
     use org_eclipse_elk_graph::org::eclipse::elk::graph::properties::Property;
@@ -447,7 +493,8 @@ fn elk(
     for &b in subset {
         in_subset[b] = true;
     }
-    let edges: Vec<DataflowLayoutEdge> = edges.iter().filter(|e| in_subset[e.from_box as usize] && in_subset[e.to_box as usize]).copied().collect();
+    let edges: Vec<DataflowLayoutEdge> =
+        edges.iter().filter(|e| in_subset[e.from_box as usize] && in_subset[e.to_box as usize]).copied().collect();
     let mut connected: Vec<(BTreeSet<u32>, BTreeSet<u32>)> = vec![Default::default(); geometry.len()];
     let mut unique: BTreeSet<(u32, u32, u32, u32)> = BTreeSet::new();
     for e in &edges {
@@ -469,7 +516,10 @@ fn elk(
         for (output, statements) in [(false, ins), (true, outs)] {
             for &statement in statements {
                 let port = ElkGraphUtil::create_port(Some(node.clone()));
-                port.borrow_mut().connectable().shape().set_location(if output { g.width } else { 0.0 }, g.port(statement, config));
+                port.borrow_mut()
+                    .connectable()
+                    .shape()
+                    .set_location(if output { g.width } else { 0.0 }, g.port(statement, config));
                 set_port(&port, CoreOptions::PORT_SIDE, if output { PortSide::East } else { PortSide::West });
                 ports.insert((b as u32, output, statement), port);
             }
@@ -478,8 +528,13 @@ fn elk(
     }
     let mut elk_edges = Vec::new();
     for (from, fs, to, ts) in unique {
-        let (Some(source), Some(target)) = (ports.get(&(from, true, fs)), ports.get(&(to, false, ts))) else { continue };
-        let edge = ElkGraphUtil::create_simple_edge(ElkConnectableShapeRef::Port(source.clone()), ElkConnectableShapeRef::Port(target.clone()));
+        let (Some(source), Some(target)) = (ports.get(&(from, true, fs)), ports.get(&(to, false, ts))) else {
+            continue;
+        };
+        let edge = ElkGraphUtil::create_simple_edge(
+            ElkConnectableShapeRef::Port(source.clone()),
+            ElkConnectableShapeRef::Port(target.clone()),
+        );
         elk_edges.push(((from, fs, to, ts), edge));
     }
     LayeredLayoutProvider::new().layout(&graph, &mut BasicProgressMonitor::new());
@@ -505,7 +560,13 @@ fn elk(
             }
         }
         // The most frequent offset, the first one among equals
-        if let Some(((dx, dy), _)) = counts.iter().fold(None::<&((i64, i64), usize)>, |best, c| if best.is_none_or(|b| c.1 > b.1) { Some(c) } else { best }) {
+        if let Some(((dx, dy), _)) = counts.iter().fold(None::<&((i64, i64), usize)>, |best, c| {
+            if best.is_none_or(|b| c.1 > b.1) {
+                Some(c)
+            } else {
+                best
+            }
+        }) {
             offset = (*dx as f64, *dy as f64);
         }
         for &b in subset {
@@ -521,7 +582,9 @@ fn elk(
             for section in edge.sections().iter() {
                 let mut section = section.borrow_mut();
                 points.push((section.start_x() + offset.0, section.start_y() + offset.1));
-                points.extend(section.bend_points().iter().map(|p| (p.borrow().x() + offset.0, p.borrow().y() + offset.1)));
+                points.extend(
+                    section.bend_points().iter().map(|p| (p.borrow().x() + offset.0, p.borrow().y() + offset.1)),
+                );
                 points.push((section.end_x() + offset.0, section.end_y() + offset.1));
             }
             (key, points)
@@ -535,7 +598,8 @@ fn elk(
 /// instead: away from the boxes on both sides. The segments of a gap move together, so their order and the space
 /// between them stay.
 fn center_rails(routes: &mut [DataflowEdgeRoute], subset: &[usize], geometry: &[DataflowBoxGeometry]) {
-    let mut ranges: Vec<(f64, f64)> = subset.iter().map(|&b| (geometry[b].x, geometry[b].x + geometry[b].width)).collect();
+    let mut ranges: Vec<(f64, f64)> =
+        subset.iter().map(|&b| (geometry[b].x, geometry[b].x + geometry[b].width)).collect();
     ranges.sort_by(|a, b| a.0.total_cmp(&b.0));
     let mut columns: Vec<(f64, f64)> = Vec::new();
     for (x0, x1) in ranges {
@@ -546,9 +610,14 @@ fn center_rails(routes: &mut [DataflowEdgeRoute], subset: &[usize], geometry: &[
     }
     for gap in columns.windows(2).map(|w| (w[0].1, w[1].0)) {
         let inside = |x: f64| x > gap.0 && x < gap.1;
-        let rails: Vec<f64> =
-            routes.iter().flat_map(|(_, points)| points.windows(2).filter(|w| w[0].0 == w[1].0 && inside(w[0].0)).map(|w| w[0].0)).collect();
-        let (Some(lo), Some(hi)) = (rails.iter().copied().reduce(f64::min), rails.iter().copied().reduce(f64::max)) else { continue };
+        let rails: Vec<f64> = routes
+            .iter()
+            .flat_map(|(_, points)| points.windows(2).filter(|w| w[0].0 == w[1].0 && inside(w[0].0)).map(|w| w[0].0))
+            .collect();
+        let (Some(lo), Some(hi)) = (rails.iter().copied().reduce(f64::min), rails.iter().copied().reduce(f64::max))
+        else {
+            continue;
+        };
         let shift = ((gap.0 + gap.1) / 2.0 - (lo + hi) / 2.0).round();
         for (_, points) in routes.iter_mut() {
             for p in points.iter_mut().filter(|p| inside(p.0)) {
@@ -589,7 +658,8 @@ mod tests {
     fn assert_no_overlaps(geometry: &[DataflowBoxGeometry]) {
         for (i, a) in geometry.iter().enumerate() {
             for b in &geometry[i + 1..] {
-                let overlap = a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+                let overlap =
+                    a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
                 assert!(!overlap, "{a:?} overlaps {b:?}");
             }
         }
@@ -598,18 +668,29 @@ mod tests {
     #[test]
     fn box_geometry_stacks_rows_and_charts() {
         let config = DataflowLayoutConfig::default();
-        let g = box_geometry(&DataflowLayoutBox { statements: 2, chart_statement: Some(0), ..Default::default() }, &config);
+        let g =
+            box_geometry(&DataflowLayoutBox { statements: 2, chart_statement: Some(0), ..Default::default() }, &config);
         assert_eq!(g.rows, vec![40.0, 40.0 + 32.0 + 8.0 + 200.0]);
         assert_eq!(g.height, 40.0 + 32.0 + 8.0 + 200.0 + 32.0 + 8.0);
         // A box with a chart is wider than a box without one
         assert_eq!(g.width, config.chart_box_width);
-        assert_eq!(box_geometry(&DataflowLayoutBox { statements: 2, ..Default::default() }, &config).width, config.box_width);
+        assert_eq!(
+            box_geometry(&DataflowLayoutBox { statements: 2, ..Default::default() }, &config).width,
+            config.box_width
+        );
         // A box with its own size, e.g. from a resized `@flow` tag
-        let sized = DataflowLayoutBox { statements: 2, chart_statement: Some(0), width: Some(400.0), chart_height: Some(96.0), ..Default::default() };
+        let sized = DataflowLayoutBox {
+            statements: 2,
+            chart_statement: Some(0),
+            width: Some(400.0),
+            chart_height: Some(96.0),
+            ..Default::default()
+        };
         let sized = box_geometry(&sized, &config);
         assert_eq!(sized.width, 400.0);
         assert_eq!(sized.rows, vec![40.0, 40.0 + 32.0 + 8.0 + 96.0]);
-        let collapsed = box_geometry(&DataflowLayoutBox { statements: 2, collapsed: true, ..Default::default() }, &config);
+        let collapsed =
+            box_geometry(&DataflowLayoutBox { statements: 2, collapsed: true, ..Default::default() }, &config);
         assert_eq!(collapsed.height, 32.0);
         assert_eq!(collapsed.port(1, &config), 16.0);
     }

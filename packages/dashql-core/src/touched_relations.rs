@@ -4,14 +4,14 @@
 //! asks the connection about the relations that the statement touched, the parser names them. A text
 //! that doesn't parse touches nothing that we know of.
 
-use dashql_buffers::analyzer::QualifiedTableNameT;
-use dashql_buffers::catalog::TouchedRelationsT;
-use dashql_buffers::parser::{AttributeKey, Node, NodeType, StatementType};
 use crate::catalog::Catalog;
 use crate::pack::{pack_parsed_statement, read_name_path};
 use crate::script::Script;
-use dashql_parser::parser::ParsedScript;
+use dashql_buffers::analyzer::QualifiedTableNameT;
+use dashql_buffers::catalog::TouchedRelationsT;
+use dashql_buffers::parser::{AttributeKey, Node, NodeType, StatementType};
 use dashql_parser::parser::context::resolve_text_span;
+use dashql_parser::parser::ParsedScript;
 
 /// A relation name from its parts, an empty part is not named
 fn relation_name(database: Option<String>, schema: Option<String>, table: String) -> QualifiedTableNameT {
@@ -28,7 +28,11 @@ pub fn explain_executes(parsed: &ParsedScript, options: Option<&Node>) -> bool {
     let option_text = |n: Option<&Node>| -> String {
         let Some(n) = n.filter(|n| n.node_type() != NodeType::NONE) else { return String::new() };
         let span = resolve_text_span(&scanned.text, &scanned.symbols, *n.symbol_span());
-        let text = scanned.text.get(span.offset as usize..(span.offset + span.length) as usize).unwrap_or("").to_ascii_lowercase();
+        let text = scanned
+            .text
+            .get(span.offset as usize..(span.offset + span.length) as usize)
+            .unwrap_or("")
+            .to_ascii_lowercase();
         for quote in ['\'', '"'] {
             if let Some(inner) = text.strip_prefix(quote).and_then(|t| t.strip_suffix(quote)) {
                 return inner.to_string();
@@ -63,7 +67,9 @@ fn name_of_path(path: &[String], database: &Option<String>, schema: &Option<Stri
     match path {
         [name] => Some(relation_name(database.clone(), schema.clone(), name.clone())),
         [new_schema, name] => Some(relation_name(database.clone(), Some(new_schema.clone()), name.clone())),
-        [new_database, new_schema, name] => Some(relation_name(Some(new_database.clone()), Some(new_schema.clone()), name.clone())),
+        [new_database, new_schema, name] => {
+            Some(relation_name(Some(new_database.clone()), Some(new_schema.clone()), name.clone()))
+        }
         _ => None,
     }
 }
@@ -102,7 +108,11 @@ pub fn touched_relations_of_statement(parsed: &ParsedScript, statement_id: usize
         StatementType::EXPLAIN => {
             let options = attribute(root, AttributeKey::EXT_EXPLAIN_OPTIONS);
             let body = attribute(root, AttributeKey::EXT_EXPLAIN_STATEMENT);
-            let Some(body) = body.filter(|b| b.node_type() == NodeType::OBJECT_SQL_CREATE_AS && explain_executes(parsed, options)) else { return Vec::new() };
+            let Some(body) =
+                body.filter(|b| b.node_type() == NodeType::OBJECT_SQL_CREATE_AS && explain_executes(parsed, options))
+            else {
+                return Vec::new();
+            };
             let Some(path) = attribute(body, AttributeKey::SQL_CREATE_AS_NAME).map(read) else { return Vec::new() };
             return name_of_path(&path, &None, &None).into_iter().collect();
         }
@@ -123,7 +133,9 @@ pub fn touched_relations_of_statement(parsed: &ParsedScript, statement_id: usize
                     }
                 }
                 NodeType::OBJECT_SQL_ALTER_SET_SCHEMA => {
-                    if let Some([new_schema]) = attribute(action, AttributeKey::SQL_ALTER_ACTION_NEW_NAME).map(read).as_deref() {
+                    if let Some([new_schema]) =
+                        attribute(action, AttributeKey::SQL_ALTER_ACTION_NEW_NAME).map(read).as_deref()
+                    {
                         out.push(relation_name(database.clone(), Some(new_schema.clone()), table.clone()));
                     }
                 }
@@ -143,6 +155,7 @@ pub fn touched_relations(text: &str) -> TouchedRelationsT {
     let Some(parsed) = script.parsed.as_ref() else {
         return touched;
     };
-    touched.relations = Some((0..parsed.statements.len()).flat_map(|id| touched_relations_of_statement(parsed, id)).collect());
+    touched.relations =
+        Some((0..parsed.statements.len()).flat_map(|id| touched_relations_of_statement(parsed, id)).collect());
     touched
 }

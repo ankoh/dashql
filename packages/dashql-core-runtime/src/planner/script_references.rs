@@ -21,12 +21,14 @@
 //! in the context of the statement, every script appears once, after the scripts it references. They go into
 //! the outermost SELECT around the references, before the common table expressions the statement already has.
 
-use dashql_core::compiler::read_executable_text_with;
 use crate::planner::{has_manual_tag, script_label, ConnectionKind, Prepared, SessionPlanRequest};
 use dashql_buffers::execution::ExecutionGraphMaterializationT;
 use dashql_buffers::parser::{AttributeKey as Key, NodeType, StatementType};
 use dashql_core::analyzer::ParameterKind;
-use dashql_core::table_parameters::{colliding_names, find_table_parameter, TableParameterLookup, TableParameterSource};
+use dashql_core::compiler::read_executable_text_with;
+use dashql_core::table_parameters::{
+    colliding_names, find_table_parameter, TableParameterLookup, TableParameterSource,
+};
 use dashql_core::utils::quote_identifier;
 use dashql_parser::attrs;
 use dashql_parser::keywords::Keyword;
@@ -150,7 +152,13 @@ impl ScriptReferences {
     }
 
     /// Resolve the table parameters of a script to the scripts and attachments they reference
-    pub(crate) fn resolve(&mut self, reporter: &mut dyn ReferenceErrors, request: &SessionPlanRequest, script: u32, prepared: &Prepared) {
+    pub(crate) fn resolve(
+        &mut self,
+        reporter: &mut dyn ReferenceErrors,
+        request: &SessionPlanRequest,
+        script: u32,
+        prepared: &Prepared,
+    ) {
         let (scanned, parsed, analyzed) = (prepared.scanned, prepared.parsed, prepared.analyzed);
         // A script or a connection that the request doesn't know has no references, the plan reports it
         let Some(consumer) = request.scripts.get(script as usize) else { return };
@@ -164,7 +172,11 @@ impl ScriptReferences {
             let name = match (&parameter.name, named) {
                 (Some(name), true) => name.to_string(),
                 _ => {
-                    reporter.error(script, Some(text_span), format!("the positional table parameter {label} cannot reference a script or an attachment"));
+                    reporter.error(
+                        script,
+                        Some(text_span),
+                        format!("the positional table parameter {label} cannot reference a script or an attachment"),
+                    );
                     continue;
                 }
             };
@@ -178,8 +190,13 @@ impl ScriptReferences {
                 kind: ReferenceKind::Invalid,
             };
             // The table reference of the parameter, a table parameter cannot be the target of a write
-            let tableref = parsed.nodes.get(parameter.ast_node_id as usize).and_then(|node| parsed.nodes.get(node.parent() as usize));
-            if tableref.is_some_and(|tableref| matches!(tableref.attribute_key(), Key::SQL_INSERT_TARGET | Key::SQL_DELETE_TARGET)) {
+            let tableref = parsed
+                .nodes
+                .get(parameter.ast_node_id as usize)
+                .and_then(|node| parsed.nodes.get(node.parent() as usize));
+            if tableref.is_some_and(|tableref| {
+                matches!(tableref.attribute_key(), Key::SQL_INSERT_TARGET | Key::SQL_DELETE_TARGET)
+            }) {
                 reporter.error(script, Some(text_span), format!("the table parameter {label} cannot be written"));
                 out.push(reference);
                 continue;
@@ -215,8 +232,13 @@ impl ScriptReferences {
                     continue;
                 }
                 TableParameterLookup::Ambiguous(matches) => {
-                    let labels: Vec<String> = matches.iter().map(|&i| source_label(request, source_of(request, i))).collect();
-                    reporter.error(script, Some(text_span), format!("the table parameter {label} matches {}", labels.join(" and ")));
+                    let labels: Vec<String> =
+                        matches.iter().map(|&i| source_label(request, source_of(request, i))).collect();
+                    reporter.error(
+                        script,
+                        Some(text_span),
+                        format!("the table parameter {label} matches {}", labels.join(" and ")),
+                    );
                     out.push(reference);
                     continue;
                 }
@@ -270,8 +292,18 @@ impl ScriptReferences {
 
     /// The scripts that references read, every script after the scripts it references, with what reads them: the
     /// producer of a reference and, through the terminal query of an inlined script, the producers of its references
-    fn closure<'r>(&self, prepared: &[Option<Prepared>], roots: impl IntoIterator<Item = &'r Reference>) -> Vec<(u32, ReferenceKind)> {
-        fn visit(this: &ScriptReferences, prepared: &[Option<Prepared>], r: &Reference, visited: &mut BTreeSet<u32>, out: &mut Vec<(u32, ReferenceKind)>) {
+    fn closure<'r>(
+        &self,
+        prepared: &[Option<Prepared>],
+        roots: impl IntoIterator<Item = &'r Reference>,
+    ) -> Vec<(u32, ReferenceKind)> {
+        fn visit(
+            this: &ScriptReferences,
+            prepared: &[Option<Prepared>],
+            r: &Reference,
+            visited: &mut BTreeSet<u32>,
+            out: &mut Vec<(u32, ReferenceKind)>,
+        ) {
             let Some(producer) = r.producer else { return };
             if r.kind == ReferenceKind::Invalid || !visited.insert(producer) {
                 return;
@@ -294,7 +326,12 @@ impl ScriptReferences {
     /// Check the referenced scripts: they are a single query, references form no cycle, and a view does not scan a
     /// materialized result, neither directly nor through the queries it inlines. A reference with errors becomes
     /// invalid.
-    pub(crate) fn check(&mut self, reporter: &mut dyn ReferenceErrors, request: &SessionPlanRequest, prepared: &[Option<Prepared>]) {
+    pub(crate) fn check(
+        &mut self,
+        reporter: &mut dyn ReferenceErrors,
+        request: &SessionPlanRequest,
+        prepared: &[Option<Prepared>],
+    ) {
         // The references with errors: (script, index)
         let mut failed: BTreeSet<(u32, usize)> = BTreeSet::new();
         let mut reporter = FailedReferences { reporter, failed: &mut failed, current: (0, 0) };
@@ -317,7 +354,11 @@ impl ScriptReferences {
                 };
                 let anchor = anchor_of(consumer.parsed, r.ast_node_id);
                 if anchor.is_none() {
-                    reporter.error(script as u32, Some(r.text_span), "a table parameter must be part of a query".into());
+                    reporter.error(
+                        script as u32,
+                        Some(r.text_span),
+                        "a table parameter must be part of a query".into(),
+                    );
                 }
                 let Some(producer) = producer else { continue };
                 // The scripts that the reference reads, the nearest first
@@ -325,15 +366,19 @@ impl ScriptReferences {
                 // A relation of an inlined query must not resolve to a common table expression of the statement
                 if let (Some(anchor), ReferenceKind::Inline) = (anchor, r.kind) {
                     let visible = visible_ctes(consumer, r.statement_id, anchor);
-                    let conflict = closure.iter().filter(|(_, kind)| *kind == ReferenceKind::Inline).find_map(|&(inlined, _)| {
-                        let p = prepared.get(inlined as usize)?.as_ref()?;
-                        let terminal = p.terminal()?;
-                        // The query reads its own common table expressions
-                        let (mut own, mut relations) = (BTreeSet::new(), BTreeSet::new());
-                        cte_names(p, terminal, &mut own);
-                        relation_names(p, terminal, &mut relations);
-                        relations.difference(&own).find(|name| visible.contains(*name)).map(|name| (inlined, name.clone()))
-                    });
+                    let conflict =
+                        closure.iter().filter(|(_, kind)| *kind == ReferenceKind::Inline).find_map(|&(inlined, _)| {
+                            let p = prepared.get(inlined as usize)?.as_ref()?;
+                            let terminal = p.terminal()?;
+                            // The query reads its own common table expressions
+                            let (mut own, mut relations) = (BTreeSet::new(), BTreeSet::new());
+                            cte_names(p, terminal, &mut own);
+                            relation_names(p, terminal, &mut relations);
+                            relations
+                                .difference(&own)
+                                .find(|name| visible.contains(*name))
+                                .map(|name| (inlined, name.clone()))
+                        });
                     if let Some((inlined, relation)) = conflict {
                         reporter.error(
                             script as u32,
@@ -349,16 +394,25 @@ impl ScriptReferences {
                 let statement_type = consumer.parsed.statements.get(r.statement_id as usize).map(|s| s.statement_type);
                 if statement_type == Some(StatementType::CREATE_VIEW) {
                     // The view scans what the queries it inlines scan
-                    let message = |materialized: u32| format!("a view cannot read {} of another connection", script_label(request, materialized));
+                    let message = |materialized: u32| {
+                        format!("a view cannot read {} of another connection", script_label(request, materialized))
+                    };
                     let lifetime = "its result exists only while the statement runs";
-                    let scanned = closure.iter().find(|(_, kind)| *kind == ReferenceKind::Scan).map(|&(materialized, _)| materialized);
+                    let scanned = closure
+                        .iter()
+                        .find(|(_, kind)| *kind == ReferenceKind::Scan)
+                        .map(|&(materialized, _)| materialized);
                     if r.kind == ReferenceKind::Scan {
                         reporter.error(script as u32, Some(r.text_span), format!("{}, {lifetime}", message(producer)));
                     } else if let Some(materialized) = scanned {
                         reporter.error(
                             script as u32,
                             Some(r.text_span),
-                            format!("{} through {}, {lifetime}", message(materialized), script_label(request, producer)),
+                            format!(
+                                "{} through {}, {lifetime}",
+                                message(materialized),
+                                script_label(request, producer)
+                            ),
                         );
                     }
                 }
@@ -373,7 +427,14 @@ impl ScriptReferences {
         }
         let mut colors = vec![Color::White; self.by_script.len()];
         let mut path: Vec<u32> = Vec::new();
-        fn visit(this: &ScriptReferences, reporter: &mut FailedReferences, request: &SessionPlanRequest, script: u32, colors: &mut [Color], path: &mut Vec<u32>) {
+        fn visit(
+            this: &ScriptReferences,
+            reporter: &mut FailedReferences,
+            request: &SessionPlanRequest,
+            script: u32,
+            colors: &mut [Color],
+            path: &mut Vec<u32>,
+        ) {
             if let Some(color) = colors.get_mut(script as usize) {
                 *color = Color::Gray;
             }
@@ -385,9 +446,17 @@ impl ScriptReferences {
                         // A gray script is on the path
                         let Some(begin) = path.iter().position(|&s| s == producer) else { continue };
                         let on_path = path.get(begin..).unwrap_or_default();
-                        let cycle: Vec<String> = on_path.iter().chain(std::iter::once(&producer)).map(|&s| script_label(request, s)).collect();
+                        let cycle: Vec<String> = on_path
+                            .iter()
+                            .chain(std::iter::once(&producer))
+                            .map(|&s| script_label(request, s))
+                            .collect();
                         reporter.current = (script, index);
-                        reporter.error(script, Some(r.text_span), format!("cyclic script reference: {}", cycle.join(" -> ")));
+                        reporter.error(
+                            script,
+                            Some(r.text_span),
+                            format!("cyclic script reference: {}", cycle.join(" -> ")),
+                        );
                     }
                     Some(Color::White) => visit(this, reporter, request, producer, colors, path),
                     Some(Color::Black) | None => {}
@@ -414,7 +483,13 @@ impl ScriptReferences {
 /// Why a script cannot read the result of a script it references, None if it can. A referenced script is a single
 /// SELECT, or a single call of a client function that reads. A call runs in the host and not in a database, so no query
 /// can inline it: only a scan reads its result, which the host materializes.
-fn unreadable(request: &SessionPlanRequest, p: &Prepared, producer: u32, consumer: u32, kind: ReferenceKind) -> Option<String> {
+fn unreadable(
+    request: &SessionPlanRequest,
+    p: &Prepared,
+    producer: u32,
+    consumer: u32,
+    kind: ReferenceKind,
+) -> Option<String> {
     let (producer_label, consumer_label) = (script_label(request, producer), script_label(request, consumer));
     if !p.parses() {
         return Some(format!("{producer_label} is no single SELECT that {consumer_label} could read"));
@@ -430,12 +505,20 @@ fn unreadable(request: &SessionPlanRequest, p: &Prepared, producer: u32, consume
         None => format!("an unknown function of {}", call.namespace),
     };
     if call.explain {
-        Some(format!("{producer_label} explains a call of {function} and sends nothing, {consumer_label} cannot read it"))
+        Some(format!(
+            "{producer_label} explains a call of {function} and sends nothing, {consumer_label} cannot read it"
+        ))
     } else if !call.readable() {
-        Some(format!("{producer_label} calls {function}, which writes, {consumer_label} can only read a call that reads"))
+        Some(format!(
+            "{producer_label} calls {function}, which writes, {consumer_label} can only read a call that reads"
+        ))
     } else if kind == ReferenceKind::Inline {
-        let connection =
-            request.scripts.get(consumer as usize).and_then(|s| request.connections.get(s.connection as usize)).map(|c| c.id).unwrap_or_default();
+        let connection = request
+            .scripts
+            .get(consumer as usize)
+            .and_then(|s| request.connections.get(s.connection as usize))
+            .map(|c| c.id)
+            .unwrap_or_default();
         Some(format!(
             "{producer_label} calls {function}, which no query of the connection {connection} can inline, only the scripts of the embedded Hyper read its result"
         ))
@@ -528,16 +611,14 @@ pub fn check_script_references(request: &SessionPlanRequest) -> Vec<CheckedScrip
         let mut checked: Vec<CheckedReference> = references
             .of(i as u32)
             .iter()
-            .map(|r| {
-                CheckedReference {
-                    statement_id: Some(r.statement_id),
-                    text_span: r.text_span,
-                    parameter: r.name.clone(),
-                    script: r.producer,
-                    attachment: r.attachment,
-                    kind: r.kind,
-                    errors: errors.errors.remove(&(i as u32, r.text_span.offset, r.text_span.length)).unwrap_or_default(),
-                }
+            .map(|r| CheckedReference {
+                statement_id: Some(r.statement_id),
+                text_span: r.text_span,
+                parameter: r.name.clone(),
+                script: r.producer,
+                attachment: r.attachment,
+                kind: r.kind,
+                errors: errors.errors.remove(&(i as u32, r.text_span.offset, r.text_span.length)).unwrap_or_default(),
             })
             .collect();
         // Errors of parameters that reference no script, e.g. positional ones
@@ -580,7 +661,8 @@ pub fn table_parameter_collisions(request: &SessionPlanRequest) -> Vec<TablePara
         .map(|group| {
             // A group of colliding names is never empty
             let name = group.first().and_then(|&i| names.get(i)).copied().unwrap_or_default();
-            let mut collision = TableParameterCollision { name: name.to_string(), scripts: Vec::new(), attachments: Vec::new() };
+            let mut collision =
+                TableParameterCollision { name: name.to_string(), scripts: Vec::new(), attachments: Vec::new() };
             for i in group {
                 match source_of(request, i) {
                     TableParameterSource::Script(s) => collision.scripts.push(s),
@@ -636,7 +718,12 @@ fn identifier(name: &str) -> String {
 
 /// The relation names that a statement uses unqualified, lower-cased
 fn relation_names(prepared: &Prepared, statement_id: u32, out: &mut BTreeSet<String>) {
-    for table_ref in prepared.analyzed.table_references.iter().filter(|t| t.ast_statement_id == Some(statement_id) && !t.reads_table_parameter()) {
+    for table_ref in prepared
+        .analyzed
+        .table_references
+        .iter()
+        .filter(|t| t.ast_statement_id == Some(statement_id) && !t.reads_table_parameter())
+    {
         let Some(relation) = &table_ref.inner else { continue };
         let name = &relation.table_name;
         if name.database_name.text.is_empty() && name.schema_name.text.is_empty() {
@@ -648,7 +735,8 @@ fn relation_names(prepared: &Prepared, statement_id: u32, out: &mut BTreeSet<Str
 /// The common table expressions of a statement: the node, its name lower-cased
 fn ctes<'a>(prepared: &'a Prepared, statement_id: u32) -> impl Iterator<Item = (u32, String)> + 'a {
     let (scanned, parsed) = (prepared.scanned, prepared.parsed);
-    let nodes = parsed.statements.get(statement_id as usize).map_or(0..0, |s| s.nodes_begin..s.nodes_begin + s.node_count);
+    let nodes =
+        parsed.statements.get(statement_id as usize).map_or(0..0, |s| s.nodes_begin..s.nodes_begin + s.node_count);
     nodes.filter_map(move |ni| {
         let node = parsed.nodes.get(ni as usize)?;
         if node.node_type() != NodeType::OBJECT_SQL_CTE {
@@ -694,7 +782,11 @@ fn visible_ctes(prepared: &Prepared, statement_id: u32, anchor: u32) -> BTreeSet
     let mut out = BTreeSet::new();
     for (cte, name) in ctes(prepared, statement_id) {
         // The common table expression is an element of the WITH array of its owner
-        let Some(owner) = nodes.get(cte as usize).and_then(|cte| nodes.get(cte.parent() as usize)).map(|with| with.parent()) else { continue };
+        let Some(owner) =
+            nodes.get(cte as usize).and_then(|cte| nodes.get(cte.parent() as usize)).map(|with| with.parent())
+        else {
+            continue;
+        };
         let visible = if owner == anchor {
             let children = nodes.get(owner as usize).map(|owner| prepared.parsed.children(owner)).unwrap_or_default();
             let [recursive] = attrs!(children, [Key::SQL_SELECT_WITH_RECURSIVE]);
@@ -801,7 +893,11 @@ pub(crate) fn splice_statement(
     inputs: &crate::planner::session_inputs::SessionInputs,
 ) -> SplicedStatement {
     let mut out = SplicedStatement::default();
-    let direct: Vec<&Reference> = references.of(script).iter().filter(|r| r.statement_id == statement_id && r.kind != ReferenceKind::Invalid).collect();
+    let direct: Vec<&Reference> = references
+        .of(script)
+        .iter()
+        .filter(|r| r.statement_id == statement_id && r.kind != ReferenceKind::Invalid)
+        .collect();
     if direct.is_empty() {
         return out;
     }
@@ -810,7 +906,12 @@ pub(crate) fn splice_statement(
     };
     let (scanned, parsed) = (consumer.scanned, consumer.parsed);
     // The inlined queries bind their inputs in the dialect of the connection of the statement
-    let Some(dialect) = request.scripts.get(script as usize).and_then(|s| request.connections.get(s.connection as usize)).map(|c| c.dialect) else {
+    let Some(dialect) = request
+        .scripts
+        .get(script as usize)
+        .and_then(|s| request.connections.get(s.connection as usize))
+        .map(|c| c.dialect)
+    else {
         return out;
     };
 
@@ -848,11 +949,18 @@ pub(crate) fn splice_statement(
     }
     // What the common table expressions stand for: the attachments first, the inlined queries may read them, then the
     // scripts, every script after the scripts it references
-    let sources: Vec<TableParameterSource> =
-        attachments.iter().map(|&a| TableParameterSource::Attachment(a)).chain(order.iter().map(|&(p, _)| TableParameterSource::Script(p))).collect();
+    let sources: Vec<TableParameterSource> = attachments
+        .iter()
+        .map(|&a| TableParameterSource::Attachment(a))
+        .chain(order.iter().map(|&(p, _)| TableParameterSource::Script(p)))
+        .collect();
     let name_of = |source: TableParameterSource| match source {
-        TableParameterSource::Script(script) => request.scripts.get(script as usize).map(|s| s.name).unwrap_or_default(),
-        TableParameterSource::Attachment(attachment) => request.attachments.get(attachment as usize).map(|a| a.name).unwrap_or_default(),
+        TableParameterSource::Script(script) => {
+            request.scripts.get(script as usize).map(|s| s.name).unwrap_or_default()
+        }
+        TableParameterSource::Attachment(attachment) => {
+            request.attachments.get(attachment as usize).map(|a| a.name).unwrap_or_default()
+        }
     };
 
     // A table parameter is no relation of the statement, a relation of the same name as a script would be shadowed
@@ -883,14 +991,24 @@ pub(crate) fn splice_statement(
         let mut relations = BTreeSet::new();
         relation_names(p, statement, &mut relations);
         for r in refs.iter().filter(|r| r.statement_id == statement && r.kind != ReferenceKind::Invalid) {
-            let Some(cte) = r.source().and_then(|source| cte_names.get(&source).map(|cte| (source, cte))) else { continue };
+            let Some(cte) = r.source().and_then(|source| cte_names.get(&source).map(|cte| (source, cte))) else {
+                continue;
+            };
             let (source, cte) = cte;
-            let tableref = p.parsed.nodes.get(r.ast_node_id as usize).and_then(|node| p.parsed.nodes.get(node.parent() as usize));
-            let [alias] = attrs!(tableref.map(|tableref| p.parsed.children(tableref)).unwrap_or_default(), [Key::SQL_TABLEREF_ALIAS]);
+            let tableref =
+                p.parsed.nodes.get(r.ast_node_id as usize).and_then(|node| p.parsed.nodes.get(node.parent() as usize));
+            let [alias] = attrs!(
+                tableref.map(|tableref| p.parsed.children(tableref)).unwrap_or_default(),
+                [Key::SQL_TABLEREF_ALIAS]
+            );
             let has_alias = alias.is_some_and(|a| a.node_type() != NodeType::NONE);
             let script_name = name_of(source);
             let keeps_name = has_alias || cte == script_name || relations.contains(&script_name.to_lowercase());
-            let text = if keeps_name { identifier(cte) } else { format!("{} as {}", identifier(cte), identifier(script_name)) };
+            let text = if keeps_name {
+                identifier(cte)
+            } else {
+                format!("{} as {}", identifier(cte), identifier(script_name))
+            };
             edits.push((r.text_span, text));
         }
         edits
@@ -899,19 +1017,26 @@ pub(crate) fn splice_statement(
     // The common table expressions in order
     let mut ctes: Vec<String> = Vec::new();
     for &attachment in &attachments {
-        let Some(cte) = cte_names.get(&TableParameterSource::Attachment(attachment)).map(|cte| identifier(cte)) else { continue };
+        let Some(cte) = cte_names.get(&TableParameterSource::Attachment(attachment)).map(|cte| identifier(cte)) else {
+            continue;
+        };
         let path = attachment_path(request, attachment);
         ctes.push(format!("{cte} as (select * from external('{}', format => 'parquet'))", path.replace('\'', "''")));
     }
     out.attachments = attachments;
     for &(producer, kind) in &order {
-        let Some(cte) = cte_names.get(&TableParameterSource::Script(producer)).map(|cte| identifier(cte)) else { continue };
+        let Some(cte) = cte_names.get(&TableParameterSource::Script(producer)).map(|cte| identifier(cte)) else {
+            continue;
+        };
         match kind {
             ReferenceKind::Inline => {
                 let Some(p) = prepared.get(producer as usize).and_then(Option::as_ref) else { continue };
                 let Some(terminal) = p.terminal() else { continue };
                 // The parser describes every statement
-                let Some(span) = p.parsed.associate_descriptions().get(terminal as usize).map(|d| d.statement_span) else { continue };
+                let Some(span) = p.parsed.associate_descriptions().get(terminal as usize).map(|d| d.statement_span)
+                else {
+                    continue;
+                };
                 let mut edits = reference_edits(p, terminal, references.of(producer));
                 // The inlined query binds the inputs of its script
                 let bindings = crate::planner::session_inputs::bind_inputs(inputs, p, Some(terminal), dialect);
@@ -924,7 +1049,10 @@ pub(crate) fn splice_statement(
             _ => {
                 let Some(&m) = materialization_of.get(&producer) else { continue };
                 let path = materializations.get(m as usize).and_then(|m| m.path.as_deref()).unwrap_or("");
-                ctes.push(format!("{cte} as (select * from external('{}', format => 'parquet'))", path.replace('\'', "''")));
+                ctes.push(format!(
+                    "{cte} as (select * from external('{}', format => 'parquet'))",
+                    path.replace('\'', "''")
+                ));
                 if !out.inputs.contains(&m) {
                     out.inputs.push(m);
                 }

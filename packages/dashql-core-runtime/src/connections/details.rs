@@ -359,7 +359,9 @@ pub(crate) fn replace_channel(
 ) {
     let previous = std::mem::replace(slot, channel);
     let kept = slot.as_ref().and_then(ConnectionChannel::host_handle);
-    if let Some(handle) = previous.as_ref().and_then(ConnectionChannel::host_handle).filter(|handle| Some(*handle) != kept) {
+    if let Some(handle) =
+        previous.as_ref().and_then(ConnectionChannel::host_handle).filter(|handle| Some(*handle) != kept)
+    {
         effects.push(ConnectionEffect::Close { handle });
     }
 }

@@ -13,9 +13,9 @@ use std::rc::Rc;
 
 use super::error::{TrinoError, TrinoErrorKind, TrinoResult};
 use super::protocol::{TokenRefresh, TrinoAccessToken, TrinoChannel, TrinoRequest};
-use crate::time::Millis;
 use crate::host::signal::{oneshot, Receiver, Sender};
 use crate::http::{FetchOutcome, HttpRequest};
+use crate::time::Millis;
 
 /// How a request may proceed with the access token of a shared channel
 pub enum TokenCheck {
@@ -86,7 +86,11 @@ impl SharedTrinoChannel {
         let (result, waiters) = {
             let mut state = self.state.borrow_mut();
             let result = state.channel.finish_token_refresh(outcome, now).and_then(|()| {
-                state.channel.access_token.clone().ok_or_else(|| TrinoError::protocol("The refresh left no access token"))
+                state
+                    .channel
+                    .access_token
+                    .clone()
+                    .ok_or_else(|| TrinoError::protocol("The refresh left no access token"))
             });
             (result, std::mem::take(&mut state.waiters))
         };
@@ -104,7 +108,9 @@ impl SharedTrinoChannel {
 
 /// The outcome of waiting for a refresh, a refresh whose sender went away failed
 pub fn refresh_outcome(received: Option<TrinoResult<()>>) -> TrinoResult<()> {
-    received.unwrap_or_else(|| Err(TrinoError::new(TrinoErrorKind::OAuth, "The refresh of the access token ended without an outcome")))
+    received.unwrap_or_else(|| {
+        Err(TrinoError::new(TrinoErrorKind::OAuth, "The refresh of the access token ended without an outcome"))
+    })
 }
 
 impl PartialEq for SharedTrinoChannel {

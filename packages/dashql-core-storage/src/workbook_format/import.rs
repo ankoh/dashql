@@ -10,13 +10,18 @@ use std::collections::HashSet;
 use dashql_core::error::{Error, Result};
 
 use crate::workbook_format::bundle::{
-    assemble_workbook_bundle, check_workbook_bundle, is_bundle_catalog_path, read_workbook_bundle_head, DataFileData, ScriptData, WorkbookBundle, WorkbookBundleResult,
+    assemble_workbook_bundle, check_workbook_bundle, is_bundle_catalog_path, read_workbook_bundle_head, DataFileData,
+    ScriptData, WorkbookBundle, WorkbookBundleResult,
 };
-use crate::workbook_format::layout::{validate_data_file_name, DRAFT_SCRIPT_FILE, STORAGE_ATTACHMENTS_FOLDER, STORAGE_SCRIPTS_FOLDER};
+use crate::workbook_format::layout::{
+    validate_data_file_name, DRAFT_SCRIPT_FILE, STORAGE_ATTACHMENTS_FOLDER, STORAGE_SCRIPTS_FOLDER,
+};
 use crate::workbook_format::migration::MigrationFolder;
-use dashql_core_runtime::natural::sort_naturally;
 use crate::workbook_format::query_results::{workbook_result_key, WORKBOOK_RESULTS_FOLDER};
-use crate::workbook_format::tables::{is_data_table_name, WorkbookTableName, WorkbookTables, RESULT_TABLE_PREFIX, TABLE_FILE_EXTENSION};
+use crate::workbook_format::tables::{
+    is_data_table_name, WorkbookTableName, WorkbookTables, RESULT_TABLE_PREFIX, TABLE_FILE_EXTENSION,
+};
+use dashql_core_runtime::natural::sort_naturally;
 
 /// The error prefix of archives
 pub const ARCHIVE_ERROR_PREFIX: &str = "Invalid ZIP";
@@ -154,7 +159,8 @@ fn plan_table_archive(entries: &[ArchiveEntry]) -> Result<Vec<(usize, TableArchi
         if entry.directory || path.contains('/') || !destination_key(&path).ends_with(TABLE_FILE_EXTENSION) {
             continue;
         }
-        let Some(table_name) = path.len().checked_sub(TABLE_FILE_EXTENSION.len()).and_then(|end| path.get(..end)) else {
+        let Some(table_name) = path.len().checked_sub(TABLE_FILE_EXTENSION.len()).and_then(|end| path.get(..end))
+        else {
             continue;
         };
         if !seen.insert(destination_key(table_name)) {
@@ -163,7 +169,13 @@ fn plan_table_archive(entries: &[ArchiveEntry]) -> Result<Vec<(usize, TableArchi
         if let Some(table) = WorkbookTableName::parse(table_name) {
             plan.push((index, TableArchiveEntry::Table(table)));
         } else if is_data_table_name(table_name) {
-            plan.push((index, TableArchiveEntry::Data { table_name: table_name.to_string(), stored_slice: table_name.starts_with(RESULT_TABLE_PREFIX) }));
+            plan.push((
+                index,
+                TableArchiveEntry::Data {
+                    table_name: table_name.to_string(),
+                    stored_slice: table_name.starts_with(RESULT_TABLE_PREFIX),
+                },
+            ));
         }
     }
     Ok(plan)
@@ -201,11 +213,14 @@ fn plan_folder_archive(entries: &[ArchiveEntry]) -> Result<FolderArchivePlan> {
         }
         let parts: Vec<&str> = path.split('/').collect();
         let [_, name] = parts.as_slice() else {
-            plan.script_error.get_or_insert_with(|| format!("{ARCHIVE_ERROR_PREFIX}: SQL scripts must be directly inside scripts/: {path}"));
+            plan.script_error.get_or_insert_with(|| {
+                format!("{ARCHIVE_ERROR_PREFIX}: SQL scripts must be directly inside scripts/: {path}")
+            });
             continue;
         };
         if destination_key(name) == DRAFT_SCRIPT_FILE {
-            plan.script_error.get_or_insert_with(|| format!("{ARCHIVE_ERROR_PREFIX}: draft scripts are not supported: {path}"));
+            plan.script_error
+                .get_or_insert_with(|| format!("{ARCHIVE_ERROR_PREFIX}: draft scripts are not supported: {path}"));
             continue;
         }
         scripts.push((*index, name.to_string()));
@@ -213,8 +228,11 @@ fn plan_folder_archive(entries: &[ArchiveEntry]) -> Result<FolderArchivePlan> {
     sort_naturally(&mut scripts, |(_, name)| name.as_str());
     plan.entries.extend(scripts.into_iter().map(|(index, name)| (index, FolderArchiveEntry::Script { name })));
     let attachments_prefix = format!("{STORAGE_ATTACHMENTS_FOLDER}/");
-    let mut attachments: Vec<(usize, &str)> =
-        destinations.iter().filter(|(key, _, _)| key.starts_with(&attachments_prefix)).map(|(_, path, index)| (*index, path.as_str())).collect();
+    let mut attachments: Vec<(usize, &str)> = destinations
+        .iter()
+        .filter(|(key, _, _)| key.starts_with(&attachments_prefix))
+        .map(|(_, path, index)| (*index, path.as_str()))
+        .collect();
     sort_naturally(&mut attachments, |(_, path)| *path);
     for (index, path) in attachments {
         let name = path.split('/').nth(1).unwrap_or("").to_string();

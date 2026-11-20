@@ -7,8 +7,8 @@
 
 mod harness;
 
-use dashql_core::catalog::CatalogLayer;
 use dashql_core::catalog::Catalog;
+use dashql_core::catalog::CatalogLayer;
 use dashql_core::script::Script;
 use harness::bench;
 use std::hint::black_box;

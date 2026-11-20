@@ -13,7 +13,6 @@ use std::task::{Context, Poll, Wake, Waker};
 use arrow_array::{ArrayRef, Int32Array, RecordBatch, StringArray};
 use serde_json::{json, Value};
 
-use dashql_core_runtime::settings::RuntimeSettings;
 use dashql_core_runtime::catalog_loader::tables::relations_file_of_entry;
 use dashql_core_runtime::catalog_loader::{
     CatalogLoaderHost, CatalogLoaderService, CatalogQuery, CatalogUpdateOutcome, FollowedConnection,
@@ -22,7 +21,10 @@ use dashql_core_runtime::connections::*;
 use dashql_core_runtime::host::signal::{oneshot, Sender};
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
 use dashql_core_runtime::http::{CancellationToken, HttpHost, HttpRequest, HttpResponse};
-use dashql_core_runtime::query::{QueryExecutionAction, QueryExecutionHistory, QueryExecutionState, QueryMetadata, QueryType};
+use dashql_core_runtime::query::{
+    QueryExecutionAction, QueryExecutionHistory, QueryExecutionState, QueryMetadata, QueryType,
+};
+use dashql_core_runtime::settings::RuntimeSettings;
 
 /// 2026-01-01T00:00:00.000Z
 const NOW: Timestamp = 1_767_225_600_000.0;
@@ -275,7 +277,11 @@ impl Host for FakeHost {
 }
 
 impl HttpHost for FakeHost {
-    fn fetch(&self, request: HttpRequest, cancellation: &CancellationToken) -> impl Future<Output = Result<HttpResponse, HostError>> + 'static {
+    fn fetch(
+        &self,
+        request: HttpRequest,
+        cancellation: &CancellationToken,
+    ) -> impl Future<Output = Result<HttpResponse, HostError>> + 'static {
         let mut state = self.state.borrow_mut();
         state.sent.push(request);
         let response = state.responses.pop_front().ok_or_else(|| HostError::new("no response"));
@@ -333,7 +339,12 @@ impl CatalogLoaderHost for FakeHost {
 
     fn load_spec(&self, extension: &str) -> impl Future<Output = Result<String, HostError>> + 'static {
         self.event(format!("load spec {extension}"));
-        let spec = self.state.borrow().spec.clone().unwrap_or_else(|| std::fs::read_to_string(SPEC).map_err(|e| e.to_string()));
+        let spec = self
+            .state
+            .borrow()
+            .spec
+            .clone()
+            .unwrap_or_else(|| std::fs::read_to_string(SPEC).map_err(|e| e.to_string()));
         async move { spec.map_err(HostError::new) }
     }
 
@@ -378,7 +389,10 @@ fn http() -> Value {
 fn go_online(host: &FakeHost, params: Value) {
     let params = object(params);
     host.apply("database", ConnectionAction::Hyper(HyperAction::ChannelSetupStarted { params: params.clone() }));
-    host.apply("database", ConnectionAction::Hyper(HyperAction::ChannelReady { channel: ConnectionChannel::Host(1), params }));
+    host.apply(
+        "database",
+        ConnectionAction::Hyper(HyperAction::ChannelReady { channel: ConnectionChannel::Host(1), params }),
+    );
     host.apply("database", ConnectionAction::HealthCheckSucceeded);
 }
 
@@ -455,7 +469,10 @@ fn a_forced_refresh_aborts_the_running_update_once_and_runs_after_it() {
     assert!(events.contains(&"finished 1 Cancelled".to_string()), "{events:?}");
     assert_eq!(host.query_count(), 2);
     assert!(!host.query_cancelled(1));
-    assert_eq!(host.updates("database").tasks_finished.get(&1).unwrap().error.as_ref().unwrap().message, "Superseded by forced catalog refresh");
+    assert_eq!(
+        host.updates("database").tasks_finished.get(&1).unwrap().error.as_ref().unwrap().message,
+        "Superseded by forced catalog refresh"
+    );
 
     host.observe();
     assert_eq!(host.query_count(), 2);
@@ -464,7 +481,14 @@ fn a_forced_refresh_aborts_the_running_update_once_and_runs_after_it() {
     assert!(host.events().contains(&"announced database".to_string()));
     assert!(relations_text(&host).contains("orders"));
     // The bundled functions of Hyper came with the refresh
-    assert!(host.connection("database").state.borrow().function_script().unwrap().to_text().contains("CREATE FUNCTION"));
+    assert!(host
+        .connection("database")
+        .state
+        .borrow()
+        .function_script()
+        .unwrap()
+        .to_text()
+        .contains("CREATE FUNCTION"));
     // The host hears that the loader changed the connection
     assert!(host.events().contains(&"connection database".to_string()), "{:?}", host.events());
     host.observe();
@@ -581,7 +605,11 @@ fn touch(host: &FakeHost) {
 fn add_query(host: &FakeHost, query_id: u64) {
     let metadata = QueryMetadata::new(QueryType::UserProvided);
     let state = QueryExecutionState::new(query_id, 0, "select 1", metadata, NOW as i64);
-    host.connection("database").queries.borrow_mut().apply(QueryExecutionAction::ExecuteQuery { state: Box::new(state) }).unwrap();
+    host.connection("database")
+        .queries
+        .borrow_mut()
+        .apply(QueryExecutionAction::ExecuteQuery { state: Box::new(state) })
+        .unwrap();
 }
 
 #[test]
@@ -643,7 +671,10 @@ fn the_relations_are_not_asked_about_once_the_attempts_are_used_up() {
     let host = setup(ConnectorType::Hyper, http());
     touch(&host);
     for task_id in 101..101 + MAX_TOUCHED_ATTEMPTS {
-        let task = CatalogUpdateTask { touched_relations: vec![orders()], ..CatalogUpdateTask::new(task_id, CatalogUpdateVariant::RelationRefresh, NOW) };
+        let task = CatalogUpdateTask {
+            touched_relations: vec![orders()],
+            ..CatalogUpdateTask::new(task_id, CatalogUpdateVariant::RelationRefresh, NOW)
+        };
         host.apply("database", ConnectionAction::UpdateCatalog(task));
         host.apply("database", ConnectionAction::CatalogUpdateFailed { task_id, error: DetailedError::new("down") });
     }
@@ -708,20 +739,24 @@ fn a_running_update_logs_that_it_still_runs() {
 
 // Salesforce
 
-
 /// The channel of a Salesforce login with its tokens, as the setup hands it to the connection
 fn salesforce_channel() -> dashql_core_runtime::salesforce::SharedSalesforceChannel {
     use dashql_core_runtime::salesforce::{
-        SalesforceConnectionParams, SalesforceCoreAccessToken, SalesforceDataCloudAccessToken, SalesforceTokens, SharedSalesforceChannel,
+        SalesforceConnectionParams, SalesforceCoreAccessToken, SalesforceDataCloudAccessToken, SalesforceTokens,
+        SharedSalesforceChannel,
     };
     let core = SalesforceCoreAccessToken {
         access_token: "core-token".into(),
         instance_url: Some("https://example.my.salesforce.com".into()),
         ..Default::default()
     };
-    let data_cloud = SalesforceDataCloudAccessToken { instance_url: "https://tenant.c360a.salesforce.com/".into(), ..Default::default() };
+    let data_cloud = SalesforceDataCloudAccessToken {
+        instance_url: "https://tenant.c360a.salesforce.com/".into(),
+        ..Default::default()
+    };
     let params = SalesforceConnectionParams::default();
-    SharedSalesforceChannel::new(ConnectorType::SalesforceDataCloud, &params, SalesforceTokens { core, data_cloud }).unwrap()
+    SharedSalesforceChannel::new(ConnectorType::SalesforceDataCloud, &params, SalesforceTokens { core, data_cloud })
+        .unwrap()
 }
 
 fn salesforce(host: &FakeHost) {
@@ -753,7 +788,11 @@ fn salesforce_fetches_its_metadata_from_the_instance() {
     assert!(sent[0].starts_with("https://example.my.salesforce.com/services/data/"), "{}", sent[0]);
     assert!(sent[0].contains("entityType=DataModelObject"));
     let logs = host.state.borrow().logs.clone();
-    assert!(logs.iter().any(|(_, logged)| logged.starts_with("Salesforce metadata request failed") && logged.contains("500")), "{logs:?}");
+    assert!(
+        logs.iter()
+            .any(|(_, logged)| logged.starts_with("Salesforce metadata request failed") && logged.contains("500")),
+        "{logs:?}"
+    );
     assert!(relations_text(&host).contains("\"Account__dlm\""));
     assert_eq!(host.query_count(), 0);
 }

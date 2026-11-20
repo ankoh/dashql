@@ -63,7 +63,11 @@ enum TokenCheck {
 impl SharedSalesforceChannel {
     /// The channel of a connection with the tokens of its login: the Hyper of the Data Cloud tenant, the Hyper Cloud
     /// database of a Database.com connection
-    pub fn new(connector: ConnectorType, params: &SalesforceConnectionParams, tokens: SalesforceTokens) -> Result<Self, String> {
+    pub fn new(
+        connector: ConnectorType,
+        params: &SalesforceConnectionParams,
+        tokens: SalesforceTokens,
+    ) -> Result<Self, String> {
         let attached_databases = if connector == ConnectorType::Dbcom {
             vec![AttachedDatabase {
                 path: format!("hyper.cloud:{}", params.hyper_cloud_database()),
@@ -102,7 +106,8 @@ impl SharedSalesforceChannel {
     /// Does the Data Cloud token expire soon? A token without a readable expiry never does.
     fn expires_soon(&self, now: f64) -> bool {
         let state = self.state.borrow();
-        parse_iso_timestamp(&state.tokens.data_cloud.expires_at).is_some_and(|expires_at| expires_at as f64 - now <= TOKEN_REFRESH_MARGIN_MS)
+        parse_iso_timestamp(&state.tokens.data_cloud.expires_at)
+            .is_some_and(|expires_at| expires_at as f64 - now <= TOKEN_REFRESH_MARGIN_MS)
     }
 
     /// Check the tokens at a time: a token about to expire with a refresh token is refreshed once for every caller
@@ -134,29 +139,45 @@ impl SharedSalesforceChannel {
                 let channel = self.clone();
                 let task_host = host.clone();
                 host.spawn(Box::pin(async move {
-                    let outcome = timeout(&*task_host, TOKEN_REFRESH_TIMEOUT_MS, channel.refresh(&task_host, core)).await;
-                    let outcome = outcome.unwrap_or_else(|| Err("The refresh of the Salesforce tokens timed out".to_string()));
+                    let outcome =
+                        timeout(&*task_host, TOKEN_REFRESH_TIMEOUT_MS, channel.refresh(&task_host, core)).await;
+                    let outcome =
+                        outcome.unwrap_or_else(|| Err("The refresh of the Salesforce tokens timed out".to_string()));
                     channel.finish(outcome);
                 }));
                 refreshed
             }
         };
-        refreshed.await.unwrap_or_else(|| Err("The refresh of the Salesforce tokens ended without an outcome".to_string()))
+        refreshed
+            .await
+            .unwrap_or_else(|| Err("The refresh of the Salesforce tokens ended without an outcome".to_string()))
     }
 
     /// Refresh the core token and exchange it for a new Data Cloud token
-    async fn refresh<H: HttpHost>(&self, host: &Rc<H>, core: SalesforceCoreAccessToken) -> Result<SalesforceTokens, String> {
+    async fn refresh<H: HttpHost>(
+        &self,
+        host: &Rc<H>,
+        core: SalesforceCoreAccessToken,
+    ) -> Result<SalesforceTokens, String> {
         let params = self.state.borrow().params.clone();
         let request = core_refresh_request(&params, &core);
-        let response = host.fetch(request.clone(), &CancellationToken::new()).await.map_err(|error| error.message().to_string())?;
-        let mut refreshed = read_core_access_token_response(&request, &response, host.now()).map_err(|error| error.message)?;
+        let response = host
+            .fetch(request.clone(), &CancellationToken::new())
+            .await
+            .map_err(|error| error.message().to_string())?;
+        let mut refreshed =
+            read_core_access_token_response(&request, &response, host.now()).map_err(|error| error.message)?;
         // A server that doesn't rotate refresh tokens keeps the one of the login
         if refreshed.refresh_token.is_none() {
             refreshed.refresh_token = core.refresh_token;
         }
         let request = data_cloud_access_token_request(&refreshed);
-        let response = host.fetch(request.clone(), &CancellationToken::new()).await.map_err(|error| error.message().to_string())?;
-        let data_cloud = read_data_cloud_access_token_response(&request, &response, host.now()).map_err(|error| error.message)?;
+        let response = host
+            .fetch(request.clone(), &CancellationToken::new())
+            .await
+            .map_err(|error| error.message().to_string())?;
+        let data_cloud =
+            read_data_cloud_access_token_response(&request, &response, host.now()).map_err(|error| error.message)?;
         Ok(SalesforceTokens { core: refreshed, data_cloud })
     }
 
@@ -207,7 +228,8 @@ impl PartialEq for SharedSalesforceChannel {
 /// Names the endpoint only, never the tokens
 impl fmt::Debug for SharedSalesforceChannel {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let endpoint = self.state.try_borrow().map(|state| state.tokens.data_cloud.instance_url.clone()).unwrap_or_default();
+        let endpoint =
+            self.state.try_borrow().map(|state| state.tokens.data_cloud.instance_url.clone()).unwrap_or_default();
         f.debug_struct("SharedSalesforceChannel").field("endpoint", &endpoint).finish()
     }
 }

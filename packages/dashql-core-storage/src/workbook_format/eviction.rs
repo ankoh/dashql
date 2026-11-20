@@ -130,7 +130,10 @@ mod tests {
     #[test]
     fn evicts_the_least_recently_accessed_files() {
         assert!(evict(vec![stat("a", 10, 1), stat("b", 10, 2)], 20, 2, &[]).is_empty());
-        assert_eq!(evict(vec![stat("old", 40, 1), stat("mid", 40, 2), stat("new", 40, 3)], 50, 100, &[]), ["old", "mid"]);
+        assert_eq!(
+            evict(vec![stat("old", 40, 1), stat("mid", 40, 2), stat("new", 40, 3)], 50, 100, &[]),
+            ["old", "mid"]
+        );
         let lru = vec![
             CacheFileStat { name: "old".into(), size: 40, mtime_ms: 1, last_access_ms: 99 },
             CacheFileStat { name: "mid".into(), size: 40, mtime_ms: 2, last_access_ms: 50 },
@@ -185,7 +188,10 @@ mod tests {
     fn evicts_over_a_host() {
         // 120 bytes, at most 50: the oldest two go
         let host = cache(vec![], vec![]);
-        assert_eq!(block_on(evict_to_fit(&host, 50, 100)).ok(), Some(vec!["old.parquet".to_string(), "mid.parquet".to_string()]));
+        assert_eq!(
+            block_on(evict_to_fit(&host, 50, 100)).ok(),
+            Some(vec!["old.parquet".to_string(), "mid.parquet".to_string()])
+        );
         assert_eq!(*host.removed.borrow(), ["old.parquet", "mid.parquet"]);
 
         // A file that is read stays, the next one goes instead

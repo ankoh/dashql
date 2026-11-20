@@ -90,7 +90,11 @@ impl CrossFilters {
         };
         let mut filters = Vec::new();
         if let Some(bin_field_name) = &group.bin_field_name {
-            filters.push(ScalarFilter { field_name: bin_field_name.clone(), op: FilterOp::GreaterEqual, value: brush.0 });
+            filters.push(ScalarFilter {
+                field_name: bin_field_name.clone(),
+                op: FilterOp::GreaterEqual,
+                value: brush.0,
+            });
             filters.push(ScalarFilter { field_name: bin_field_name.clone(), op: FilterOp::LessEqual, value: brush.1 });
         }
         self.column_filters.insert(column_group, CrossFilterPredicate::Histogram { selection: brush, filters });
@@ -109,7 +113,12 @@ impl CrossFilters {
 
     /// Select a frequent value of a column, none removes the selection of the column. A column without value ids
     /// can't select a value.
-    pub fn add_most_frequent_value_filter(&mut self, column_group: u32, group: &StringColumnGroup, value_id: Option<i64>) {
+    pub fn add_most_frequent_value_filter(
+        &mut self,
+        column_group: u32,
+        group: &StringColumnGroup,
+        value_id: Option<i64>,
+    ) {
         let Some(value_id) = value_id else {
             self.column_filters.remove(&column_group);
             return;

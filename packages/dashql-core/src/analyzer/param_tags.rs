@@ -82,7 +82,11 @@ pub(super) fn analyze(state: &mut AnalysisState) {
     let descriptions = parsed.associate_descriptions();
     for (statement_id, description) in descriptions.iter().enumerate() {
         for (block, _) in super::vis_tags::statement_tags(parsed, description, &[PARAM_TAG]) {
-            let Some(lines) = blocks.lines.get(block.lines_begin as usize..(block.lines_begin + block.lines_count) as usize) else { continue };
+            let Some(lines) =
+                blocks.lines.get(block.lines_begin as usize..(block.lines_begin + block.lines_count) as usize)
+            else {
+                continue;
+            };
             let tag = TagText::new(script, lines, block.text_span);
             // A Javadoc `@param x ...` is a comment, not a value
             if !tag.text.trim_start().starts_with(':') {
@@ -97,7 +101,11 @@ pub(super) fn analyze(state: &mut AnalysisState) {
             };
             let name_span = tag.span(parts.name_range.start, parts.name_range.end);
             if state.out.param_values.iter().any(|i| &*i.name == parts.name) {
-                warn(state, name_span, format!("the script already has a value for @param :{}, this tag is ignored", parts.name));
+                warn(
+                    state,
+                    name_span,
+                    format!("the script already has a value for @param :{}, this tag is ignored", parts.name),
+                );
                 continue;
             }
             let literal = match parts.literal.clone() {

@@ -47,7 +47,11 @@ pub struct VisibleScripts<H: Host + Clone> {
 
 impl<H: Host + Clone> VisibleScripts<H> {
     pub fn new(host: H, delay_ms: f64) -> Self {
-        Self { host, delay_ms, inner: Rc::new(RefCell::new(Inner { shown: BTreeMap::new(), generation: 0, scripts: None })) }
+        Self {
+            host,
+            delay_ms,
+            inner: Rc::new(RefCell::new(Inner { shown: BTreeMap::new(), generation: 0, scripts: None })),
+        }
     }
 
     /// Set the scripts to analyze, held weakly

@@ -8,10 +8,10 @@
 use serde_json::{json, Map, Value};
 
 use super::error::{check_response, HyperError};
-use crate::http::{Headers, HttpMethod, HttpRequest, HttpResponse};
 use super::status::QueryStatus;
 use crate::http::url::encode_uri_component;
 use crate::http::Url;
+use crate::http::{Headers, HttpMethod, HttpRequest, HttpResponse};
 
 /// The media type of Arrow IPC streams
 pub const ARROW_STREAM_CONTENT_TYPE: &str = "application/vnd.apache.arrow.stream";
@@ -245,7 +245,6 @@ impl HyperHttpClient {
             sensitive: false,
         }
     }
-
 }
 
 /// Read the status header of a response, none without one

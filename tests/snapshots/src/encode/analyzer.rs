@@ -5,8 +5,8 @@ use crate::ryml::Node;
 use dashql_buffers::algebra::LiteralType;
 use dashql_buffers::parser::{Node as AstNode, SymbolSpan};
 use dashql_core::analyzer::*;
-use dashql_core::touched_relations::touched_relations_of_statement;
 use dashql_core::catalog::{Catalog, CatalogLayer, ColumnLoc, QualifiedCatalogObjectId, TableDeclaration};
+use dashql_core::touched_relations::touched_relations_of_statement;
 use dashql_parser::parser::context::resolve_text_span;
 use dashql_parser::span::TextSpan;
 use yaml_rust2::Yaml;
@@ -79,7 +79,11 @@ fn encode_touched_relations(script: &AnalyzedScript) -> Option<Node> {
     let items: Vec<Node> = (0..script.parsed.statements.len())
         .flat_map(|statement_id| {
             touched_relations_of_statement(&script.parsed, statement_id).into_iter().map(move |relation| {
-                let name: Vec<&str> = [&relation.database_name, &relation.schema_name, &relation.table_name].into_iter().flatten().map(String::as_str).collect();
+                let name: Vec<&str> = [&relation.database_name, &relation.schema_name, &relation.table_name]
+                    .into_iter()
+                    .flatten()
+                    .map(String::as_str)
+                    .collect();
                 let mut m = Map::new();
                 m.int("statement-id", statement_id as i64);
                 m.plain("name", &name.join("."));
@@ -99,7 +103,11 @@ pub fn format_double(value: f64) -> String {
     if value.is_nan() {
         ".nan".into()
     } else if value.is_infinite() {
-        if value > 0.0 { ".inf".into() } else { "-.inf".into() }
+        if value > 0.0 {
+            ".inf".into()
+        } else {
+            "-.inf".into()
+        }
     } else {
         format!("{value:?}")
     }
@@ -347,10 +355,13 @@ pub fn encode_script(script: &AnalyzedScript, is_main: bool, scope_catalog: Scop
             .iter()
             .map(|parameter| {
                 let mut m = Map::new();
-                m.plain("kind", match parameter.kind {
-                    ParameterKind::Scalar => "scalar",
-                    ParameterKind::Table => "table",
-                });
+                m.plain(
+                    "kind",
+                    match parameter.kind {
+                        ParameterKind::Scalar => "scalar",
+                        ParameterKind::Table => "table",
+                    },
+                );
                 if let Some(name) = &parameter.name {
                     m.plain("name", name);
                 }
@@ -603,7 +614,6 @@ fn encode_visualization(e: &Encoder, spec: &VisualizationSpec) -> Node {
     m.into_node()
 }
 
-
 /// The keys the analyzer snapshot test compares
 pub const COMPARED_KEYS: [&str; 12] = [
     "errors",
@@ -622,7 +632,11 @@ pub const COMPARED_KEYS: [&str; 12] = [
 
 /// Analyze the scripts of an analyzer snapshot case: the catalog script is analyzed and loaded into the connection layer, then the main script is analyzed.
 /// Returns the encoded catalog script (if any) and the encoded main script.
-pub fn analyze_case(client_functions: Option<&str>, catalog_input: Option<&str>, main_input: &str) -> Result<(Option<Yaml>, Yaml), String> {
+pub fn analyze_case(
+    client_functions: Option<&str>,
+    catalog_input: Option<&str>,
+    main_input: &str,
+) -> Result<(Option<Yaml>, Yaml), String> {
     use dashql_core::catalog::Catalog;
     use dashql_parser::parser::parse;
     use dashql_parser::scanner::scan;

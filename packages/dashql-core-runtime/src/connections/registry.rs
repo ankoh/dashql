@@ -15,7 +15,10 @@ use super::label::is_hyper_wasm_connection;
 use super::{ConnectionAction, ConnectionEffect, ConnectionState, ConnectorType, Timestamp};
 use crate::catalog_loader::FollowedConnection;
 use crate::handles::Handle;
-use crate::query::{QueryExecutionAction, QueryExecutionEffect, QueryExecutionHistory, QueryExecutionOutcome, QueryId, INTERNAL_QUERY_HISTORY_LIMIT};
+use crate::query::{
+    QueryExecutionAction, QueryExecutionEffect, QueryExecutionHistory, QueryExecutionOutcome, QueryId,
+    INTERNAL_QUERY_HISTORY_LIMIT,
+};
 
 /// What the host does after an action of the registry, in order
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -143,17 +146,24 @@ impl ConnectionRegistry {
 
     /// The workbooks that use a connection
     pub fn workbooks_of(&self, connection_id: &str) -> &[String] {
-        self.references.iter().find(|(id, _)| id == connection_id).map(|(_, workbooks)| workbooks.as_slice()).unwrap_or_default()
+        self.references
+            .iter()
+            .find(|(id, _)| id == connection_id)
+            .map(|(_, workbooks)| workbooks.as_slice())
+            .unwrap_or_default()
     }
 
     /// Set the workbooks that use the connections, returns the connections whose workbooks changed
     pub fn set_references(&mut self, references: Vec<(String, Vec<String>)>) -> Vec<String> {
-        let mut references: Vec<(String, Vec<String>)> = references.into_iter().filter(|(_, workbooks)| !workbooks.is_empty()).collect();
+        let mut references: Vec<(String, Vec<String>)> =
+            references.into_iter().filter(|(_, workbooks)| !workbooks.is_empty()).collect();
         references.sort_by(|left, right| left.0.cmp(&right.0));
         if references == self.references {
             return Vec::new();
         }
-        let of = |references: &[(String, Vec<String>)], id: &str| references.iter().find(|(held, _)| held == id).map(|(_, workbooks)| workbooks.clone());
+        let of = |references: &[(String, Vec<String>)], id: &str| {
+            references.iter().find(|(held, _)| held == id).map(|(_, workbooks)| workbooks.clone())
+        };
         let mut changed: Vec<String> = Vec::new();
         for (id, _) in references.iter().chain(self.references.iter()) {
             if !changed.contains(id) && of(&references, id) != of(&self.references, id) {
@@ -175,7 +185,10 @@ impl ConnectionRegistry {
                     active: state.active(),
                     used: !self.workbooks_of(id).is_empty(),
                     name: state.name().map(str::to_string),
-                    label_detail: state.connector_type().connector().label_detail(state.details().setup_params.as_ref()),
+                    label_detail: state
+                        .connector_type()
+                        .connector()
+                        .label_detail(state.details().setup_params.as_ref()),
                 })
             })
             .collect()
@@ -203,7 +216,8 @@ impl ConnectionRegistry {
         }
         let deleted = matches!(action, ConnectionAction::Delete);
         // The history is taken before the state changes: an action that stops the queries fails as a whole
-        let mut queries = connection.queries.try_borrow_mut().map_err(|_| Error::invalid_argument("the queries are in use"))?;
+        let mut queries =
+            connection.queries.try_borrow_mut().map_err(|_| Error::invalid_argument("the queries are in use"))?;
         let applied = connection
             .state
             .try_borrow_mut()
@@ -215,7 +229,9 @@ impl ConnectionRegistry {
                 ConnectionEffect::CancelSetup => outcome.effects.push(RegistryEffect::CancelSetup),
                 // The catalog loader publishes only for a connection that runs its update, the updates are aborted
                 ConnectionEffect::InvalidateCatalogBatch => {}
-                ConnectionEffect::Abort { handle, reason } => outcome.effects.push(RegistryEffect::Abort { handle, reason }),
+                ConnectionEffect::Abort { handle, reason } => {
+                    outcome.effects.push(RegistryEffect::Abort { handle, reason })
+                }
                 ConnectionEffect::CancelCatalogUpdate { task_id, reason } => {
                     outcome.effects.push(RegistryEffect::CancelCatalogUpdate { task_id, reason })
                 }
@@ -257,15 +273,20 @@ impl ConnectionRegistry {
 
     /// The history that holds a query and its connection, none for a query that left its history
     pub fn query_history(&self, query_id: QueryId) -> Option<(String, Rc<RefCell<QueryExecutionHistory>>)> {
-        let holds = |history: &Rc<RefCell<QueryExecutionHistory>>| history.try_borrow().is_ok_and(|history| history.query(query_id).is_some());
+        let holds = |history: &Rc<RefCell<QueryExecutionHistory>>| {
+            history.try_borrow().is_ok_and(|history| history.query(query_id).is_some())
+        };
         let connection = self.connections.iter().find(|(_, connection)| holds(&connection.queries));
         connection.map(|(id, connection)| (id.clone(), connection.queries.clone()))
     }
 
     /// Apply an action to a query of the history of a connection. The id of a new query comes from `next_query_id`.
     pub fn apply_query(&mut self, connection_id: &str, action: QueryExecutionAction) -> Result<RegistryOutcome> {
-        let history = self.history(connection_id).ok_or_else(|| Error::invalid_argument(format!("no connection {connection_id}")))?;
-        let outcome = history.try_borrow_mut().map_err(|_| Error::invalid_argument("the queries are in use"))?.apply(action)?;
+        let history = self
+            .history(connection_id)
+            .ok_or_else(|| Error::invalid_argument(format!("no connection {connection_id}")))?;
+        let outcome =
+            history.try_borrow_mut().map_err(|_| Error::invalid_argument("the queries are in use"))?.apply(action)?;
         Ok(RegistryOutcome::of_queries(outcome))
     }
 }
@@ -295,7 +316,10 @@ mod tests {
         assert!(registry.insert(connection("a", ConnectorType::Trino, false)).is_err());
         assert_eq!(registry.ids(), ["a", "b", "c"]);
         let list = registry.list().unwrap();
-        assert_eq!(list.iter().map(|c| (c.active, c.used)).collect::<Vec<_>>(), [(true, false), (false, false), (false, false)]);
+        assert_eq!(
+            list.iter().map(|c| (c.active, c.used)).collect::<Vec<_>>(),
+            [(true, false), (false, false), (false, false)]
+        );
         assert_eq!(registry.set_references(vec![("c".to_string(), vec!["w".to_string()])]), ["c"]);
         assert!(registry.set_references(vec![("c".to_string(), vec!["w".to_string()])]).is_empty());
         let list = registry.list().unwrap();
@@ -327,7 +351,8 @@ mod tests {
         let second = registry.next_query_id();
         assert_eq!(second, first + 1);
         for (query_id, handle) in [(first, None), (second, Some(7))] {
-            let mut state = QueryExecutionState::new(query_id, 1, "select 1", QueryMetadata::new(QueryType::UserProvided), 0);
+            let mut state =
+                QueryExecutionState::new(query_id, 1, "select 1", QueryMetadata::new(QueryType::UserProvided), 0);
             state.handle = handle;
             registry.apply_query(owner, QueryExecutionAction::ExecuteQuery { state: Box::new(state) }).unwrap();
         }

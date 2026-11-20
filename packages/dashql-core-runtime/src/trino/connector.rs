@@ -8,7 +8,8 @@ use crate::connections::connector::Connector;
 use crate::connections::is_truthy;
 use crate::connections::sharing::without;
 use crate::connections::{
-    Timestamp, RelationName, object, trino_session_defaults, CatalogNameDefaults, ConnectionChannel, ConnectionDetails, ConnectorFeatures, ConnectorType, JsonObject,
+    object, trino_session_defaults, CatalogNameDefaults, ConnectionChannel, ConnectionDetails, ConnectorFeatures,
+    ConnectorType, JsonObject, RelationName, Timestamp,
 };
 
 /// The Trino connector
@@ -73,7 +74,10 @@ impl Connector for TrinoConnector {
     /// The relations of statements get the defaults of the requests
     fn catalog_name_defaults(&self, setup_params: Option<&JsonObject>) -> CatalogNameDefaults {
         let defaults = setup_params.map(trino_session_defaults).unwrap_or_default();
-        CatalogNameDefaults { database_name: defaults.catalog.unwrap_or_default(), schema_name: defaults.schema.unwrap_or_default() }
+        CatalogNameDefaults {
+            database_name: defaults.catalog.unwrap_or_default(),
+            schema_name: defaults.schema.unwrap_or_default(),
+        }
     }
 
     fn catalog_update(
@@ -93,9 +97,11 @@ impl Connector for TrinoConnector {
 
     /// A login with OAuth keys its results by the account of its token
     fn sign_login(&self, signature: &mut Value, setup_params: &JsonObject, details: &ConnectionDetails) -> Option<()> {
-        let oauth = setup_params.get("auth").and_then(|auth| auth.get("authType")).and_then(Value::as_str) == Some("AUTH_OAUTH");
+        let oauth = setup_params.get("auth").and_then(|auth| auth.get("authType")).and_then(Value::as_str)
+            == Some("AUTH_OAUTH");
         if oauth {
-            let token = details.channel.as_ref().and_then(ConnectionChannel::trino).and_then(|trino| trino.access_token());
+            let token =
+                details.channel.as_ref().and_then(ConnectionChannel::trino).and_then(|trino| trino.access_token());
             let principal = token.and_then(|token| token.principal)?;
             let auth = signature.get_mut("auth").and_then(Value::as_object_mut)?;
             auth.insert("principal".to_string(), Value::String(principal));

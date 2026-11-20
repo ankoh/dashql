@@ -2,8 +2,8 @@ use http::header::CONTENT_TYPE;
 use http::{Method, Request, Response};
 
 use crate::grpc_proxy_globals::{
-    call_grpc_unary, create_grpc_channel, delete_grpc_channel, delete_grpc_server_stream,
-    read_grpc_server_stream, start_grpc_server_stream,
+    call_grpc_unary, create_grpc_channel, delete_grpc_channel, delete_grpc_server_stream, read_grpc_server_stream,
+    start_grpc_server_stream,
 };
 use crate::grpc_proxy_routes::{parse_grpc_proxy_path, GrpcProxyRoute};
 use crate::http_proxy_globals::{delete_http_server_stream, read_http_server_stream, start_http_server_stream};
@@ -35,7 +35,11 @@ pub async fn route_proxy_request(mut request: Request<Vec<u8>>) -> Response<Vec<
             (Method::DELETE, HttpProxyRoute::Stream { stream_id }) => {
                 delete_http_server_stream(stream_id, std::mem::take(&mut request)).await
             }
-            _ => not_found(format!("cannot find handler for http proxy route={:?}, method={:?}", request.uri().path(), request.method())),
+            _ => not_found(format!(
+                "cannot find handler for http proxy route={:?}, method={:?}",
+                request.uri().path(),
+                request.method()
+            )),
         };
     }
 
@@ -55,7 +59,11 @@ pub async fn route_proxy_request(mut request: Request<Vec<u8>>) -> Response<Vec<
             (Method::DELETE, GrpcProxyRoute::ChannelStream { channel_id, stream_id }) => {
                 delete_grpc_server_stream(channel_id, stream_id, std::mem::take(&mut request)).await
             }
-            _ => not_found(format!("cannot find handler for grpc proxy route={:?}, method={:?}", request.uri().path(), request.method())),
+            _ => not_found(format!(
+                "cannot find handler for grpc proxy route={:?}, method={:?}",
+                request.uri().path(),
+                request.method()
+            )),
         };
     }
 

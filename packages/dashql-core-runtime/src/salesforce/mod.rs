@@ -41,7 +41,10 @@ pub fn cache_signature(connector: ConnectorType, params: &JsonObject) -> Value {
         signature.insert("login".into(), json!(login));
     }
     if connector == ConnectorType::Dbcom {
-        signature.insert("databaseName".into(), json!(SalesforceConnectionParams::from_object(params).hyper_cloud_database()));
+        signature.insert(
+            "databaseName".into(),
+            json!(SalesforceConnectionParams::from_object(params).hyper_cloud_database()),
+        );
     }
     Value::Object(signature)
 }

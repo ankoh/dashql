@@ -9,12 +9,12 @@
 //! drops the script from the catalog explicitly (`Catalog::drop_script`).
 
 use crate::analyzer::{analyze_with, AnalyzedScript};
-use crate::table_parameters::TableParameters;
 use crate::catalog::{Catalog, CatalogEntryId};
 use crate::completion::Completion;
 use crate::cursor::{ScriptCursor, ScriptView};
 use crate::error::{Error, Result};
 use crate::formatter::Formatter;
+use crate::table_parameters::TableParameters;
 use crate::vis_rewrite::{VisBoard, VisFlow, VisRenderer};
 use dashql_buffers::formatting::FormattingConfigT;
 use dashql_buffers::parser::{Node, StatementType};
@@ -250,7 +250,9 @@ impl Script {
     /// analyzed with
     pub fn current_analysis(&self) -> Option<(&Arc<ScannedScript>, &Arc<ParsedScript>, &Arc<AnalyzedScript>)> {
         let (scanned, parsed, analyzed) = (self.scanned.as_ref()?, self.parsed.as_ref()?, self.analyzed.as_ref()?);
-        let current = Arc::ptr_eq(&analyzed.parsed, parsed) && Arc::ptr_eq(&parsed.scanned, scanned) && scanned.text_version == self.text_version;
+        let current = Arc::ptr_eq(&analyzed.parsed, parsed)
+            && Arc::ptr_eq(&parsed.scanned, scanned)
+            && scanned.text_version == self.text_version;
         current.then_some((scanned, parsed, analyzed))
     }
 
@@ -340,7 +342,11 @@ impl Script {
     }
 
     /// The annotation of a statement: the comment tags in front of it (see `annotation`)
-    pub fn read_annotation(&mut self, statement_id: usize, parse_if_outdated: bool) -> Result<crate::annotation::Annotation> {
+    pub fn read_annotation(
+        &mut self,
+        statement_id: usize,
+        parse_if_outdated: bool,
+    ) -> Result<crate::annotation::Annotation> {
         let parsed = self.parsed_for_rewrite(parse_if_outdated)?;
         crate::annotation::read_annotation(&parsed, statement_id)
     }
@@ -377,7 +383,12 @@ impl Script {
 
     /// Set or remove the dashboard placement of a statement, its `@board` tag. Returns the new text like
     /// `rewrite_vis_renderer`.
-    pub fn rewrite_vis_board(&mut self, statement_id: usize, board: Option<&VisBoard>, parse_if_outdated: bool) -> Result<String> {
+    pub fn rewrite_vis_board(
+        &mut self,
+        statement_id: usize,
+        board: Option<&VisBoard>,
+        parse_if_outdated: bool,
+    ) -> Result<String> {
         let parsed = self.parsed_for_rewrite(parse_if_outdated)?;
         crate::vis_rewrite::rewrite_vis_board(&self.text.to_string(), &parsed, statement_id, board)
     }
@@ -410,7 +421,12 @@ impl Script {
     /// Select the columns of the result of the terminal query below it, `with base as (<query>) select a, b from
     /// base`, the new statement formatted with the config (see `result_projection`). Returns the new text like
     /// `rewrite_vis_renderer`, or an error that says why the script cannot get the projection.
-    pub fn rewrite_result_projection(&mut self, columns: &[String], config: &FormattingConfigT, parse_if_outdated: bool) -> Result<String> {
+    pub fn rewrite_result_projection(
+        &mut self,
+        columns: &[String],
+        config: &FormattingConfigT,
+        parse_if_outdated: bool,
+    ) -> Result<String> {
         let parsed = self.parsed_for_rewrite(parse_if_outdated)?;
         crate::result_projection::rewrite_result_projection(&self.text.to_string(), &parsed, columns, config)
     }
@@ -443,7 +459,12 @@ impl Script {
             Err(e) => return Err(Error::invalid_argument(format!("the Vega-Lite spec is no valid JSON: {e}"))),
         };
         let renderer = VisRenderer::VegaLite(spec);
-        let (text, span) = crate::vis_rewrite::rewrite_vis_renderer_tag(&self.text.to_string(), &parsed, statement_id, Some(&renderer))?;
+        let (text, span) = crate::vis_rewrite::rewrite_vis_renderer_tag(
+            &self.text.to_string(),
+            &parsed,
+            statement_id,
+            Some(&renderer),
+        )?;
         let span = span.ok_or_else(|| Error::invalid_argument("the Vega-Lite tag was not written"))?;
         Ok((text, span))
     }
@@ -536,11 +557,8 @@ impl Script {
         let scanned = &parsed.scanned;
         latest.scanner_input_bytes = scanned.text.len() as u32;
         latest.scanner_symbol_bytes = (scanned.symbols.len() * size_of::<dashql_parser::scanner::Symbol>()) as u32;
-        let name_bytes: usize = scanned
-            .names
-            .iter()
-            .map(|n| n.text.len() + size_of::<dashql_parser::names::RegisteredName>())
-            .sum();
+        let name_bytes: usize =
+            scanned.names.iter().map(|n| n.text.len() + size_of::<dashql_parser::names::RegisteredName>()).sum();
         latest.scanner_name_dictionary_bytes = name_bytes as u32;
         memory
     }

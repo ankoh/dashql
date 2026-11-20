@@ -104,7 +104,11 @@ fn collect_fields<'v>(value: &'v Value, fields: &mut Vec<&'v str>, defined: &mut
     }
 }
 
-fn collect_object_fields<'v>(object: &'v Map<String, Value>, fields: &mut Vec<&'v str>, defined: &mut HashSet<&'v str>) {
+fn collect_object_fields<'v>(
+    object: &'v Map<String, Value>,
+    fields: &mut Vec<&'v str>,
+    defined: &mut HashSet<&'v str>,
+) {
     for (key, value) in object {
         match (key.as_str(), value) {
             ("field", Value::String(field)) => fields.push(field),
@@ -121,7 +125,9 @@ fn collect_object_fields<'v>(object: &'v Map<String, Value>, fields: &mut Vec<&'
 fn find_field(json: &str, field: &str) -> Option<(usize, usize)> {
     let text = json.as_bytes();
     JsonScanner::new(text)
-        .find(|t| matches!(&t.slot, Some(JsonSlot::Value(key)) if key == "field") && t.string(text).as_deref() == Some(field))
+        .find(|t| {
+            matches!(&t.slot, Some(JsonSlot::Value(key)) if key == "field") && t.string(text).as_deref() == Some(field)
+        })
         .map(|t| (t.begin, t.end))
 }
 
@@ -148,7 +154,14 @@ impl StatementTags {
         true
     }
 
-    fn read_vegalite(&mut self, state: &mut AnalysisState, tag: &TagText, body: usize, kind: TextSpan, columns: Option<&HashSet<String>>) {
+    fn read_vegalite(
+        &mut self,
+        state: &mut AnalysisState,
+        tag: &TagText,
+        body: usize,
+        kind: TextSpan,
+        columns: Option<&HashSet<String>>,
+    ) {
         let json = tag.text.get(body..).unwrap_or("");
         if json.trim().is_empty() {
             warn(state, kind, "@vis vegalite needs a Vega-Lite spec as JSON object".into());
@@ -157,7 +170,11 @@ impl StatementTags {
         let mut spec = match serde_json::from_str::<Value>(json) {
             Ok(Value::Object(spec)) => spec,
             Ok(_) => {
-                warn(state, tag.span(body, tag.text.len().min(body + 1)), "the Vega-Lite spec must be a JSON object".into());
+                warn(
+                    state,
+                    tag.span(body, tag.text.len().min(body + 1)),
+                    "the Vega-Lite spec must be a JSON object".into(),
+                );
                 return;
             }
             Err(e) => {
@@ -187,7 +204,8 @@ impl StatementTags {
                 listed.sort_unstable();
                 let more = listed.len().saturating_sub(LISTED_COLUMNS);
                 listed.truncate(LISTED_COLUMNS);
-                let mut message = format!("unknown field \"{field}\", the statement has the columns {}", listed.join(", "));
+                let mut message =
+                    format!("unknown field \"{field}\", the statement has the columns {}", listed.join(", "));
                 if more > 0 {
                     message.push_str(&format!(" and {more} more"));
                 }
@@ -387,7 +405,8 @@ pub(super) fn statement_tags<'p>(
 /// The kind of a `@vis` tag, the first word of its content
 fn tag_kind<'p>(parsed: &'p dashql_parser::parser::ParsedScript, block: &CommentBlock) -> &'p str {
     let script = parsed.scanned.text.as_str();
-    let Some(line) = parsed.comment_blocks.lines.get(block.lines_begin as usize).filter(|_| block.lines_count > 0) else {
+    let Some(line) = parsed.comment_blocks.lines.get(block.lines_begin as usize).filter(|_| block.lines_count > 0)
+    else {
         return "";
     };
     let text = script.get(line.offset as usize..line.end() as usize).unwrap_or("");
@@ -400,7 +419,8 @@ fn tag_kind<'p>(parsed: &'p dashql_parser::parser::ParsedScript, block: &Comment
 pub fn has_vis_tags(parsed: &dashql_parser::parser::ParsedScript, statement_id: usize) -> bool {
     let descriptions = parsed.associate_descriptions();
     descriptions.get(statement_id).is_some_and(|d| {
-        statement_tags(parsed, d, &[VIS_TAG]).any(|(block, _)| !matches!(tag_kind(parsed, block), "flow" | "board" | "card"))
+        statement_tags(parsed, d, &[VIS_TAG])
+            .any(|(block, _)| !matches!(tag_kind(parsed, block), "flow" | "board" | "card"))
     })
 }
 
@@ -410,7 +430,9 @@ pub fn statement_output_columns(analyzed: &AnalyzedScript, statement_id: usize) 
     let Some(&scope) = analyzed.name_scopes_by_root_node.get(&statement.root) else { return Vec::new() };
     let Some(mut scope) = analyzed.scope(scope) else { return Vec::new() };
     // Set operations expose the columns of their left input
-    if let (true, Some(left)) = (scope.output_columns.is_empty(), scope.child_scopes.first().and_then(|&c| analyzed.scope(c))) {
+    if let (true, Some(left)) =
+        (scope.output_columns.is_empty(), scope.child_scopes.first().and_then(|&c| analyzed.scope(c)))
+    {
         scope = left;
     }
     let mut columns: Vec<std::sync::Arc<str>> = Vec::new();
@@ -439,7 +461,11 @@ pub(super) fn analyze(state: &mut AnalysisState) {
         let columns = if query { statement_columns(state, statement.root) } else { None };
         let mut out = StatementTags::default();
         for (block, name) in tags {
-            let Some(lines) = blocks.lines.get(block.lines_begin as usize..(block.lines_begin + block.lines_count) as usize) else { continue };
+            let Some(lines) =
+                blocks.lines.get(block.lines_begin as usize..(block.lines_begin + block.lines_count) as usize)
+            else {
+                continue;
+            };
             let tag = TagText::new(script, lines, block.text_span);
             // `@board` and `@flow` take their args right away, `@vis` starts with its kind
             let (kind, kind_span, rest) = if name == VIS_TAG {
@@ -479,11 +505,19 @@ pub(super) fn analyze(state: &mut AnalysisState) {
                 }
                 "table" => {
                     if out.set_renderer(state, "table", kind_span) && !body.is_empty() {
-                        warn(state, tag.span(rest, tag.text.len()), "@vis table takes no args, they are ignored".into());
+                        warn(
+                            state,
+                            tag.span(rest, tag.text.len()),
+                            "@vis table takes no args, they are ignored".into(),
+                        );
                     }
                 }
                 "" => warn(state, block.tag_span, "@vis needs a kind: vegalite, markdown or table".into()),
-                _ => warn(state, kind_span, format!("unknown @vis kind \"{kind}\", expected vegalite, markdown or table")),
+                _ => warn(
+                    state,
+                    kind_span,
+                    format!("unknown @vis kind \"{kind}\", expected vegalite, markdown or table"),
+                ),
             }
         }
         // The board places the script by its last statement, a statement without a renderer is a collapsed card

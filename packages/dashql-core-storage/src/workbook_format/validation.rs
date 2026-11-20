@@ -4,10 +4,10 @@ use std::collections::HashSet;
 
 use serde_json::Value;
 
-use dashql_core_runtime::connections::ConnectorType;
 use crate::workbook_format::data::{WorkbookData, WORKBOOK_FORMAT_VERSION};
 use crate::workbook_format::json::is_truthy;
 use crate::workbook_format::layout::HYPER_CLOUDS_DIRECTORY;
+use dashql_core_runtime::connections::ConnectorType;
 
 /// Is a string a UUID of any version, in the canonical 8-4-4-4-12 hex shape? Case doesn't matter.
 pub fn is_valid_uuid(value: &str) -> bool {
@@ -192,12 +192,22 @@ pub struct InvalidWorkbook {
 }
 
 /// Describe an invalid workbook of an entry of the workbook tree, with the workbook file if it could be read
-pub fn describe_invalid_workbook(entry_path: &str, error: WorkbookValidationError, data: Option<&WorkbookData>) -> InvalidWorkbook {
+pub fn describe_invalid_workbook(
+    entry_path: &str,
+    error: WorkbookValidationError,
+    data: Option<&WorkbookData>,
+) -> InvalidWorkbook {
     let title = data
-        .and_then(|data| data.name.as_deref().filter(|name| !name.is_empty()).or(data.workbook_path.as_deref().filter(|p| !p.is_empty())))
+        .and_then(|data| {
+            data.name
+                .as_deref()
+                .filter(|name| !name.is_empty())
+                .or(data.workbook_path.as_deref().filter(|p| !p.is_empty()))
+        })
         .unwrap_or(entry_path)
         .to_string();
-    let connector_type = data.and_then(|data| data.connections.first()).and_then(|connection| connector_of_params(&connection.params));
+    let connector_type =
+        data.and_then(|data| data.connections.first()).and_then(|connection| connector_of_params(&connection.params));
     InvalidWorkbook { workbook_id: entry_path.to_string(), title, connector_type, error }
 }
 

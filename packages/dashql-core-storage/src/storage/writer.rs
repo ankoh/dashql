@@ -39,18 +39,21 @@ use std::task::{Context, Poll};
 use serde_json::Value;
 
 use super::keys::{
-    attachment_file, attachment_key, attachment_rename_key, belongs_to_workbook, chain_key, connection_entry_key, connection_file_key,
-    connection_file_prefix, script_deletion_key, script_file, script_key, script_rename_key, workbook_attachment_list_key,
-    workbook_connection_copy_key, workbook_creation_key, workbook_file_key, workbook_script_list_key,
+    attachment_file, attachment_key, attachment_rename_key, belongs_to_workbook, chain_key, connection_entry_key,
+    connection_file_key, connection_file_prefix, script_deletion_key, script_file, script_key, script_rename_key,
+    workbook_attachment_list_key, workbook_connection_copy_key, workbook_creation_key, workbook_file_key,
+    workbook_script_list_key,
 };
 use super::stamps::{Expect, FolderStamps};
-use super::workbook_file::{attachments_patch, created_workbook_file, properties_patch, same_file, upsert_connection_entry, CreatedWorkbook};
+use super::workbook_file::{
+    attachments_patch, created_workbook_file, properties_patch, same_file, upsert_connection_entry, CreatedWorkbook,
+};
 use super::StorageHost;
+use crate::workbook_format::data::{WorkbookCloudLink, WorkbookConnection, WorkbookData, WorkbookScript};
+use crate::workbook_format::files::{file_name_key, patch_workbook_connection, with_workbook_scripts};
 use dashql_core_runtime::host::signal::{cancellable, oneshot, CancelHandle, Receiver, Sender};
 use dashql_core_runtime::host::{HostError, LogLevel};
 use dashql_core_runtime::http::HostBytes;
-use crate::workbook_format::data::{WorkbookCloudLink, WorkbookConnection, WorkbookData, WorkbookScript};
-use crate::workbook_format::files::{file_name_key, patch_workbook_connection, with_workbook_scripts};
 use dashql_core_runtime::time::iso_timestamp_f64;
 
 /// A text that is written, or how to read it when the write runs
@@ -82,26 +85,68 @@ pub enum WriteTask {
     },
     /// Patch the properties that the user owns into the workbook file. A write without `ephemeral` promotes the
     /// workbook, one without `cloud` removes the link to the cloud.
-    WriteWorkbookProperties { workbook_id: String, name: Option<String>, ephemeral: bool, cloud: Option<WorkbookCloudLink> },
+    WriteWorkbookProperties {
+        workbook_id: String,
+        name: Option<String>,
+        ephemeral: bool,
+        cloud: Option<WorkbookCloudLink>,
+    },
     /// Insert or replace a connection entry of the app manifest
-    WriteConnectionEntry { entry: Value },
+    WriteConnectionEntry {
+        entry: Value,
+    },
     /// Remove a connection entry of the app manifest and the files of the connection
-    DeleteConnectionEntry { connection_id: String },
+    DeleteConnectionEntry {
+        connection_id: String,
+    },
     /// Write a file of a connection
-    WriteConnectionFile { connection_id: String, file_name: String, text: TextSource },
+    WriteConnectionFile {
+        connection_id: String,
+        file_name: String,
+        text: TextSource,
+    },
     /// Patch the copies of a connection into an existing workbook file, see `files::patch_workbook_connection`
-    PatchWorkbookConnection { workbook_id: String, copy: WorkbookConnection, replaced: Vec<String> },
-    WriteScript { workbook_id: String, file_name: String, text: String },
-    DeleteScript { workbook_id: String, file_name: String },
-    RenameScript { workbook_id: String, from: String, to: String },
+    PatchWorkbookConnection {
+        workbook_id: String,
+        copy: WorkbookConnection,
+        replaced: Vec<String>,
+    },
+    WriteScript {
+        workbook_id: String,
+        file_name: String,
+        text: String,
+    },
+    DeleteScript {
+        workbook_id: String,
+        file_name: String,
+    },
+    RenameScript {
+        workbook_id: String,
+        from: String,
+        to: String,
+    },
     /// Patch the script list and the copies of the connections it uses into the workbook file
-    WriteWorkbookScripts { workbook_id: String, scripts: Vec<WorkbookScript>, connections: Vec<WorkbookConnection> },
+    WriteWorkbookScripts {
+        workbook_id: String,
+        scripts: Vec<WorkbookScript>,
+        connections: Vec<WorkbookConnection>,
+    },
     /// Patch the attachment list of the workbook file from the attachments on disk
-    RefreshWorkbookAttachments { workbook_id: String },
+    RefreshWorkbookAttachments {
+        workbook_id: String,
+    },
     /// Save an attachment of a workbook, a file that stays with the host
-    SaveDataFile { workbook_id: String, file_name: String, file: HostBytes },
+    SaveDataFile {
+        workbook_id: String,
+        file_name: String,
+        file: HostBytes,
+    },
     /// Rename an attachment of a workbook, its contents are unchanged
-    RenameDataFile { workbook_id: String, from: String, to: String },
+    RenameDataFile {
+        workbook_id: String,
+        from: String,
+        to: String,
+    },
 }
 
 impl WriteTask {
@@ -111,9 +156,13 @@ impl WriteTask {
         match self {
             WriteTask::CreateWorkbook { workbook_id, .. } => workbook_creation_key(workbook_id),
             WriteTask::WriteWorkbookProperties { workbook_id, .. } => workbook_file_key(workbook_id),
-            WriteTask::WriteConnectionEntry { entry } => connection_entry_key(entry.get("id").and_then(Value::as_str).unwrap_or_default()),
+            WriteTask::WriteConnectionEntry { entry } => {
+                connection_entry_key(entry.get("id").and_then(Value::as_str).unwrap_or_default())
+            }
             WriteTask::DeleteConnectionEntry { connection_id } => connection_entry_key(connection_id),
-            WriteTask::WriteConnectionFile { connection_id, file_name, .. } => connection_file_key(connection_id, file_name),
+            WriteTask::WriteConnectionFile { connection_id, file_name, .. } => {
+                connection_file_key(connection_id, file_name)
+            }
             WriteTask::PatchWorkbookConnection { workbook_id, copy, replaced } => {
                 workbook_connection_copy_key(workbook_id, replaced.first().unwrap_or(&copy.connection_id))
             }
@@ -136,7 +185,8 @@ impl WriteTask {
             | WriteTask::PatchWorkbookConnection { workbook_id, .. }
             | WriteTask::WriteWorkbookScripts { workbook_id, .. }
             | WriteTask::RefreshWorkbookAttachments { workbook_id } => vec![workbook_file_key(workbook_id)],
-            WriteTask::WriteScript { workbook_id, file_name, .. } | WriteTask::DeleteScript { workbook_id, file_name } => {
+            WriteTask::WriteScript { workbook_id, file_name, .. }
+            | WriteTask::DeleteScript { workbook_id, file_name } => {
                 vec![script_file(workbook_id, file_name)]
             }
             WriteTask::RenameScript { workbook_id, from, to } => {
@@ -157,7 +207,9 @@ impl WriteTask {
                 }
             }
             WriteTask::WriteConnectionEntry { .. } | WriteTask::DeleteConnectionEntry { .. } => vec![self.key()],
-            WriteTask::WriteConnectionFile { connection_id, file_name, .. } => vec![connection_file_key(connection_id, file_name)],
+            WriteTask::WriteConnectionFile { connection_id, file_name, .. } => {
+                vec![connection_file_key(connection_id, file_name)]
+            }
         }
     }
 }
@@ -212,7 +264,10 @@ pub struct WriterStatus {
 impl WriterStatus {
     /// The workbooks that a change outside the app holds
     pub fn externally_changed(&self) -> impl Iterator<Item = &str> {
-        self.holds.iter().filter(|hold| hold.reason == HoldReason::ExternalChange).filter_map(|hold| hold.workbook_id.as_deref())
+        self.holds
+            .iter()
+            .filter(|hold| hold.reason == HoldReason::ExternalChange)
+            .filter_map(|hold| hold.workbook_id.as_deref())
     }
 }
 
@@ -244,7 +299,10 @@ pub enum WriteError {
     Host(HostError),
     /// The workbook file of a workbook is not available, e.g. its native folder was moved or deleted. A patch never
     /// creates a workbook file.
-    WorkbookUnavailable { workbook_id: String, cause: HostError },
+    WorkbookUnavailable {
+        workbook_id: String,
+        cause: HostError,
+    },
 }
 
 impl From<HostError> for WriteError {
@@ -405,7 +463,9 @@ impl State {
     fn is_held(&self, key: &str, force: bool, passes: Option<HoldReason>) -> bool {
         let blocks = |reason: &HoldReason| Some(*reason) != passes;
         let writer = self.holds.keys().any(|reason| blocks(reason) && !(force && *reason == HoldReason::Pause));
-        let workbook = workbook_of_key(key).and_then(|id| self.workbook_holds.get(id)).is_some_and(|holds| holds.keys().any(blocks));
+        let workbook = workbook_of_key(key)
+            .and_then(|id| self.workbook_holds.get(id))
+            .is_some_and(|holds| holds.keys().any(blocks));
         writer || workbook
     }
 
@@ -469,18 +529,26 @@ impl State {
 
     /// What the writer holds and what failed
     fn status(&self) -> WriterStatus {
-        let mut holds: Vec<WriteHold> =
-            self.holds.iter().map(|(reason, count)| WriteHold { workbook_id: None, reason: *reason, count: *count }).collect();
+        let mut holds: Vec<WriteHold> = self
+            .holds
+            .iter()
+            .map(|(reason, count)| WriteHold { workbook_id: None, reason: *reason, count: *count })
+            .collect();
         let mut workbooks: Vec<(&String, &BTreeMap<HoldReason, u32>)> = self.workbook_holds.iter().collect();
         workbooks.sort_by(|a, b| a.0.cmp(b.0));
         for (id, reasons) in workbooks {
-            holds.extend(reasons.iter().map(|(reason, count)| WriteHold { workbook_id: Some(id.clone()), reason: *reason, count: *count }));
+            holds.extend(reasons.iter().map(|(reason, count)| WriteHold {
+                workbook_id: Some(id.clone()),
+                reason: *reason,
+                count: *count,
+            }));
         }
         let mut failed: Vec<(u64, FailedWrite)> = self
             .failures
             .iter()
             .map(|(key, failure)| {
-                let seq = self.pending.iter().find(|(_, pending)| pending.key == *key).map_or(u64::MAX, |(seq, _)| *seq);
+                let seq =
+                    self.pending.iter().find(|(_, pending)| pending.key == *key).map_or(u64::MAX, |(seq, _)| *seq);
                 let write = FailedWrite {
                     key: key.clone(),
                     workbook_id: workbook_of_key(key).map(str::to_string),
@@ -516,7 +584,11 @@ impl State {
     /// The pending keys in the order they were scheduled, each once
     fn pending_keys(&self) -> Vec<String> {
         let mut seen = HashSet::new();
-        self.pending.values().filter(|pending| seen.insert(pending.key.as_str())).map(|pending| pending.key.clone()).collect()
+        self.pending
+            .values()
+            .filter(|pending| seen.insert(pending.key.as_str()))
+            .map(|pending| pending.key.clone())
+            .collect()
     }
 
     /// The pending tasks of a key, by their places
@@ -527,14 +599,17 @@ impl State {
     /// Does an earlier pending task share a file with the task at a place? A task that passes a hold doesn't wait for
     /// the tasks that the hold keeps, e.g. the writes of an import for the edits of the version it replaces.
     fn is_blocked(&self, seq: u64, files: &[String], passes: Option<HoldReason>) -> bool {
-        self.pending
-            .range(..seq)
-            .any(|(_, earlier)| earlier.shares_file(files) && !(passes.is_some() && self.is_held(&earlier.key, false, earlier.passes)))
+        self.pending.range(..seq).any(|(_, earlier)| {
+            earlier.shares_file(files) && !(passes.is_some() && self.is_held(&earlier.key, false, earlier.passes))
+        })
     }
 
     /// Is the first later pending task of the files of a task one of its key? Then that task replaces it.
     fn is_subsumed(&self, seq: u64, key: &str, files: &[String]) -> bool {
-        self.pending.range(seq + 1..).find(|(_, later)| later.shares_file(files)).is_some_and(|(_, later)| later.key == key)
+        self.pending
+            .range(seq + 1..)
+            .find(|(_, later)| later.shares_file(files))
+            .is_some_and(|(_, later)| later.key == key)
     }
 
     fn remove_pending(&mut self, seq: u64) -> Option<PendingTask> {
@@ -583,14 +658,25 @@ impl State {
 
     /// Wait for the debounce duration again, a stopped task waits for a newer one
     fn rearm_timers_where(&mut self, select: impl Fn(&str) -> bool) {
-        let seqs: Vec<u64> = self.pending.iter().filter(|(_, pending)| !pending.stopped && select(&pending.key)).map(|(seq, _)| *seq).collect();
+        let seqs: Vec<u64> = self
+            .pending
+            .iter()
+            .filter(|(_, pending)| !pending.stopped && select(&pending.key))
+            .map(|(seq, _)| *seq)
+            .collect();
         for seq in seqs {
             self.arm_timer(seq);
         }
     }
 
     /// Schedule a task, returns its place
-    fn schedule(&mut self, key: &str, task: WriteTask, debounce_ms: f64, passes: Option<HoldReason>) -> (WriteResult, Option<u64>) {
+    fn schedule(
+        &mut self,
+        key: &str,
+        task: WriteTask,
+        debounce_ms: f64,
+        passes: Option<HoldReason>,
+    ) -> (WriteResult, Option<u64>) {
         let (sender, receiver) = oneshot();
         // Writes that were queued while a workbook was deleted must not recreate its files
         if self.is_deleted(key) {
@@ -683,8 +769,12 @@ impl State {
             Some(pending) => pending.files.clone(),
             None => return,
         };
-        let earlier: Vec<u64> =
-            self.pending.range(..seq).filter(|(_, earlier)| !earlier.stopped && earlier.shares_file(&files)).map(|(seq, _)| *seq).collect();
+        let earlier: Vec<u64> = self
+            .pending
+            .range(..seq)
+            .filter(|(_, earlier)| !earlier.stopped && earlier.shares_file(&files))
+            .map(|(seq, _)| *seq)
+            .collect();
         for earlier in earlier {
             self.process(earlier, force);
         }
@@ -694,7 +784,12 @@ impl State {
     /// Start the due tasks that nothing keeps waiting any more
     fn run_due(&mut self) {
         loop {
-            let due: Vec<u64> = self.pending.iter().filter(|(_, pending)| pending.due && !pending.stopped).map(|(seq, _)| *seq).collect();
+            let due: Vec<u64> = self
+                .pending
+                .iter()
+                .filter(|(_, pending)| pending.due && !pending.stopped)
+                .map(|(seq, _)| *seq)
+                .collect();
             let started = due.into_iter().filter(|seq| self.process(*seq, false).is_some()).count();
             if started == 0 {
                 return;
@@ -761,7 +856,8 @@ impl State {
                 let attempts = self.failures.get(&key).map_or(0, |failure| failure.attempts) + 1;
                 // A failure that passes is retried quietly, a stopped write is shown once
                 let level = if permanent && attempts == 1 { LogLevel::Error } else { LogLevel::Warn };
-                let message_of_log = if permanent { "write task failed, its target is gone" } else { "write task failed, retrying it" };
+                let message_of_log =
+                    if permanent { "write task failed, its target is gone" } else { "write task failed, retrying it" };
                 self.log(level, message_of_log, &[("key", &key), ("error", &message)]);
                 let resolver = pending.resolver.take();
                 self.resolve(resolver, WriteOutcome::Failed(error));
@@ -795,11 +891,13 @@ impl State {
 
     /// Discard the pending tasks of a workbook
     fn cancel_workbook(&mut self, workbook_id: &str) {
-        let keys: Vec<String> = self.pending_keys().into_iter().filter(|key| belongs_to_workbook(key, workbook_id)).collect();
+        let keys: Vec<String> =
+            self.pending_keys().into_iter().filter(|key| belongs_to_workbook(key, workbook_id)).collect();
         for key in keys {
             self.cancel(&key);
         }
-        let failed: Vec<String> = self.failures.keys().filter(|key| belongs_to_workbook(key, workbook_id)).cloned().collect();
+        let failed: Vec<String> =
+            self.failures.keys().filter(|key| belongs_to_workbook(key, workbook_id)).cloned().collect();
         for key in failed {
             self.clear_failure(&key);
         }
@@ -965,17 +1063,33 @@ fn log<H: StorageHost>(shared: &Rc<Shared<H>>, level: LogLevel, message: &str, d
 }
 
 /// Save the workbook file of a workbook, expecting what the app wrote or acknowledged, and record the write
-async fn save_workbook_file<H: StorageHost>(shared: &Rc<Shared<H>>, workbook_id: &str, workbook: &WorkbookData) -> Result<(), HostError> {
+async fn save_workbook_file<H: StorageHost>(
+    shared: &Rc<Shared<H>>,
+    workbook_id: &str,
+    workbook: &WorkbookData,
+) -> Result<(), HostError> {
     let json = workbook.to_json();
     let bytes = serde_json::to_string_pretty(&json).map(|text| text.len()).unwrap_or_default();
     let expect = shared.stamps.expect_workbook(workbook_id);
-    let stamp = timed_write(shared, &workbook_file_key(workbook_id), bytes, shared.host.save_workbook(workbook_id, &json, expect)).await?;
+    let stamp = timed_write(
+        shared,
+        &workbook_file_key(workbook_id),
+        bytes,
+        shared.host.save_workbook(workbook_id, &json, expect),
+    )
+    .await?;
     shared.stamps.wrote_workbook(workbook_id, stamp);
     Ok(())
 }
 
 /// Save a script, expecting what the app wrote or acknowledged, and record the write
-async fn save_script_file<H: StorageHost>(shared: &Rc<Shared<H>>, workbook_id: &str, file_name: &str, text: &str, expect: Expect) -> Result<(), HostError> {
+async fn save_script_file<H: StorageHost>(
+    shared: &Rc<Shared<H>>,
+    workbook_id: &str,
+    file_name: &str,
+    text: &str,
+    expect: Expect,
+) -> Result<(), HostError> {
     let write = shared.host.save_script(workbook_id, file_name, text, expect);
     let stamp = timed_write(shared, &script_key(workbook_id, file_name), text.len(), write).await?;
     shared.stamps.wrote_script(workbook_id, file_name, stamp);
@@ -1043,10 +1157,16 @@ async fn execute<H: StorageHost>(shared: &Rc<Shared<H>>, key: &str, task: &Write
             save_workbook_file(shared, workbook_id, &next).await.map_err(|error| workbook_error(workbook_id, error))?;
         }
         WriteTask::WriteWorkbookProperties { workbook_id, name, ephemeral, cloud } => {
-            patch_workbook_file(shared, key, workbook_id, |existing| properties_patch(existing, name.as_deref(), *ephemeral, cloud.as_ref())).await?;
+            patch_workbook_file(shared, key, workbook_id, |existing| {
+                properties_patch(existing, name.as_deref(), *ephemeral, cloud.as_ref())
+            })
+            .await?;
         }
         WriteTask::WriteWorkbookScripts { workbook_id, scripts, connections } => {
-            patch_workbook_file(shared, key, workbook_id, |existing| with_workbook_scripts(existing, scripts.clone(), connections)).await?;
+            patch_workbook_file(shared, key, workbook_id, |existing| {
+                with_workbook_scripts(existing, scripts.clone(), connections)
+            })
+            .await?;
         }
         WriteTask::SaveDataFile { workbook_id, file_name, file } => {
             log(shared, LogLevel::Info, "Writing attachment", &[("key", key), ("workbookId", workbook_id)]);
@@ -1060,7 +1180,9 @@ async fn execute<H: StorageHost>(shared: &Rc<Shared<H>>, key: &str, task: &Write
         WriteTask::WriteConnectionEntry { entry } => {
             let bytes = serde_json::to_string(entry).map(|text| text.len()).unwrap_or_default();
             let upserted = entry.clone();
-            let update = Box::new(move |connections: Option<Vec<Value>>| upsert_connection_entry(connections.as_deref(), &upserted));
+            let update = Box::new(move |connections: Option<Vec<Value>>| {
+                upsert_connection_entry(connections.as_deref(), &upserted)
+            });
             timed_write(shared, key, bytes, host.update_connections(update)).await?;
         }
         WriteTask::DeleteConnectionEntry { connection_id } => {
@@ -1079,7 +1201,13 @@ async fn execute<H: StorageHost>(shared: &Rc<Shared<H>>, key: &str, task: &Write
         }
         WriteTask::WriteConnectionFile { connection_id, file_name, text } => {
             let Some(text) = text.read()? else { return Ok(()) };
-            timed_write(shared, &connection_file_key(connection_id, file_name), text.len(), host.save_connection_file(connection_id, file_name, &text)).await?;
+            timed_write(
+                shared,
+                &connection_file_key(connection_id, file_name),
+                text.len(),
+                host.save_connection_file(connection_id, file_name, &text),
+            )
+            .await?;
         }
         WriteTask::PatchWorkbookConnection { workbook_id, copy, replaced } => {
             // Only an existing workbook file is patched
@@ -1089,26 +1217,56 @@ async fn execute<H: StorageHost>(shared: &Rc<Shared<H>>, key: &str, task: &Write
             .await?;
         }
         WriteTask::WriteScript { workbook_id, file_name, text } => {
-            log(shared, LogLevel::Info, "Writing workbook script", &[("key", key), ("workbookId", workbook_id), ("file", file_name)]);
+            log(
+                shared,
+                LogLevel::Info,
+                "Writing workbook script",
+                &[("key", key), ("workbookId", workbook_id), ("file", file_name)],
+            );
             let expect = stamps.expect_script(workbook_id, file_name);
-            save_script_file(shared, workbook_id, file_name, text, expect).await.map_err(|error| workbook_error(workbook_id, error))?;
+            save_script_file(shared, workbook_id, file_name, text, expect)
+                .await
+                .map_err(|error| workbook_error(workbook_id, error))?;
         }
         WriteTask::DeleteScript { workbook_id, file_name } => {
-            log(shared, LogLevel::Info, "Deleting workbook script", &[("key", key), ("workbookId", workbook_id), ("file", file_name)]);
+            log(
+                shared,
+                LogLevel::Info,
+                "Deleting workbook script",
+                &[("key", key), ("workbookId", workbook_id), ("file", file_name)],
+            );
             let expect = stamps.expect_script(workbook_id, file_name);
-            host.delete_script(workbook_id, file_name, expect).await.map_err(|error| workbook_error(workbook_id, error))?;
+            host.delete_script(workbook_id, file_name, expect)
+                .await
+                .map_err(|error| workbook_error(workbook_id, error))?;
             stamps.deleted_script(workbook_id, file_name);
         }
         WriteTask::RenameScript { workbook_id, from, to } => {
-            log(shared, LogLevel::Info, "Renaming workbook script", &[("key", key), ("workbookId", workbook_id), ("from", from), ("to", to)]);
+            log(
+                shared,
+                LogLevel::Info,
+                "Renaming workbook script",
+                &[("key", key), ("workbookId", workbook_id), ("from", from), ("to", to)],
+            );
             let expect_from = stamps.expect_script(workbook_id, from);
             // A rename that only changes the case or the Unicode form of a name moves the file onto itself
-            let expect_to = if file_name_key(from) == file_name_key(to) { Expect::Any } else { stamps.expect_script(workbook_id, to) };
-            host.rename_script(workbook_id, from, to, expect_from, expect_to).await.map_err(|error| workbook_error(workbook_id, error))?;
+            let expect_to = if file_name_key(from) == file_name_key(to) {
+                Expect::Any
+            } else {
+                stamps.expect_script(workbook_id, to)
+            };
+            host.rename_script(workbook_id, from, to, expect_from, expect_to)
+                .await
+                .map_err(|error| workbook_error(workbook_id, error))?;
             stamps.renamed_script(workbook_id, from, to);
         }
         WriteTask::RenameDataFile { workbook_id, from, to } => {
-            log(shared, LogLevel::Info, "Renaming attachment", &[("key", key), ("workbookId", workbook_id), ("from", from), ("to", to)]);
+            log(
+                shared,
+                LogLevel::Info,
+                "Renaming attachment",
+                &[("key", key), ("workbookId", workbook_id), ("from", from), ("to", to)],
+            );
             host.rename_data_file(workbook_id, from, to).await.map_err(|error| workbook_error(workbook_id, error))?;
         }
     }
@@ -1135,7 +1293,9 @@ impl<H: StorageHost> StorageWriter<H> {
 
     /// A writer that records the stamps of its writes in stamps that the host shares, e.g. with the checks of folders
     pub fn with_stamps(host: H, format_version: i64, stamps: Rc<FolderStamps>) -> StorageWriter<H> {
-        StorageWriter { shared: Rc::new(Shared { host, format_version, stamps, state: RefCell::new(State::default()) }) }
+        StorageWriter {
+            shared: Rc::new(Shared { host, format_version, stamps, state: RefCell::new(State::default()) }),
+        }
     }
 
     pub fn host(&self) -> &H {
@@ -1169,7 +1329,9 @@ impl<H: StorageHost> StorageWriter<H> {
             let (result, seq) = state.schedule(key, task, 0.0, passes);
             let Some(seq) = seq else { return result };
             if state.is_held(key, false, passes) {
-                if let Some((timer, resolver)) = state.pending.get_mut(&seq).map(|p| (p.timer.take(), p.resolver.take())) {
+                if let Some((timer, resolver)) =
+                    state.pending.get_mut(&seq).map(|p| (p.timer.take(), p.resolver.take()))
+                {
                     if let Some(timer) = timer {
                         state.cancel_timer(timer);
                     }
@@ -1216,7 +1378,13 @@ impl<H: StorageHost> StorageWriter<H> {
 
     /// The reasons that hold a workbook itself, without the holds of the writer
     pub fn workbook_holds(&self, workbook_id: &str) -> Vec<HoldReason> {
-        self.shared.state.borrow().workbook_holds.get(workbook_id).map(|holds| holds.keys().copied().collect()).unwrap_or_default()
+        self.shared
+            .state
+            .borrow()
+            .workbook_holds
+            .get(workbook_id)
+            .map(|holds| holds.keys().copied().collect())
+            .unwrap_or_default()
     }
 
     /// What the writer holds and what failed
@@ -1298,7 +1466,9 @@ impl<H: StorageHost> StorageWriter<H> {
     pub fn flush(&self) -> impl Future<Output = ()> + 'static {
         let shared = self.shared.clone();
         async move {
-            let seqs: Vec<u64> = update(&shared, |state| state.pending.iter().filter(|(_, pending)| !pending.stopped).map(|(seq, _)| *seq).collect());
+            let seqs: Vec<u64> = update(&shared, |state| {
+                state.pending.iter().filter(|(_, pending)| !pending.stopped).map(|(seq, _)| *seq).collect()
+            });
             for seq in seqs {
                 let ran = update(&shared, |state| state.process(seq, true));
                 if let Some(ran) = ran {
@@ -1331,7 +1501,9 @@ impl<H: StorageHost> StorageWriter<H> {
             let held: Vec<(String, String, String)> = {
                 let state = shared.state.borrow();
                 let is_held = |workbook_id: &str| {
-                    state.workbook_holds.get(workbook_id).is_some_and(|holds| holds.contains_key(&HoldReason::ExternalChange) || holds.contains_key(&HoldReason::Reload))
+                    state.workbook_holds.get(workbook_id).is_some_and(|holds| {
+                        holds.contains_key(&HoldReason::ExternalChange) || holds.contains_key(&HoldReason::Reload)
+                    })
                 };
                 state
                     .pending
@@ -1349,13 +1521,22 @@ impl<H: StorageHost> StorageWriter<H> {
                     let name = recovery_name(&file_name, n);
                     match save_script_file(&shared, &workbook_id, &name, &text, Expect::Absent).await {
                         Ok(()) => {
-                            log(&shared, LogLevel::Warn, "Kept a held script as a recovery copy", &[("workbookId", &workbook_id), ("file", &name)]);
+                            log(
+                                &shared,
+                                LogLevel::Warn,
+                                "Kept a held script as a recovery copy",
+                                &[("workbookId", &workbook_id), ("file", &name)],
+                            );
                             break;
                         }
                         // The name is taken, the next one is tried
                         Err(error) if error.external_change().is_some() => continue,
                         Err(error) => {
-                            let details = [("workbookId", workbook_id.as_str()), ("file", file_name.as_str()), ("error", error.message())];
+                            let details = [
+                                ("workbookId", workbook_id.as_str()),
+                                ("file", file_name.as_str()),
+                                ("error", error.message()),
+                            ];
                             log(&shared, LogLevel::Error, "Failed to keep a held script as a recovery copy", &details);
                             break;
                         }
@@ -1395,7 +1576,8 @@ impl<H: StorageHost> StorageWriter<H> {
             settle(shared.clone()).await;
             // A write that would overwrite an external change holds the workbook and stays pending
             let state = shared.state.borrow();
-            !state.is_workbook_held(&workbook_id) && !state.failures.keys().any(|key| belongs_to_workbook(key, &workbook_id))
+            !state.is_workbook_held(&workbook_id)
+                && !state.failures.keys().any(|key| belongs_to_workbook(key, &workbook_id))
         }
     }
 

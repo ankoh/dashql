@@ -77,7 +77,8 @@ pub async fn spawn_http_server() -> (SocketAddr, tokio::sync::mpsc::Receiver<(Re
                     .filter_map(|line| line.split_once(':'))
                     .map(|(key, value)| (key.trim().to_lowercase(), value.trim().to_string()))
                     .collect();
-                let length: usize = headers.iter()
+                let length: usize = headers
+                    .iter()
                     .find(|(key, _)| key == "content-length")
                     .map_or(0, |(_, value)| value.parse().unwrap());
                 let mut body = buffer[head_end + 4..].to_vec();

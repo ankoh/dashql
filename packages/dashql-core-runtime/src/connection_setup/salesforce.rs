@@ -15,15 +15,17 @@ use crate::executor::HostValue;
 use crate::host::{HostError, LogLevel};
 use crate::http::CancellationToken;
 use crate::salesforce::api::{
-    core_access_token_request, core_user_info_request, data_cloud_access_token_request, read_core_access_token_response,
-    read_core_user_info_response, read_data_cloud_access_token_response, SalesforceError,
+    core_access_token_request, core_user_info_request, data_cloud_access_token_request,
+    read_core_access_token_response, read_core_user_info_response, read_data_cloud_access_token_response,
+    SalesforceError,
 };
 use crate::salesforce::auth::{
-    build_salesforce_authorization_url, salesforce_oauth_state, validate_salesforce_oauth_callback_state, OAuthFlowEvent,
-    OAuthState,
+    build_salesforce_authorization_url, salesforce_oauth_state, validate_salesforce_oauth_callback_state,
+    OAuthFlowEvent, OAuthState,
 };
 use crate::salesforce::{
-    SalesforceConnectionParams, SalesforceCoreUserInfo, SalesforceOAuthConfig, SalesforceTokens, SharedSalesforceChannel,
+    SalesforceConnectionParams, SalesforceCoreUserInfo, SalesforceOAuthConfig, SalesforceTokens,
+    SharedSalesforceChannel,
 };
 use crate::time::iso_timestamp;
 
@@ -280,7 +282,8 @@ async fn run<H: SetupHost>(
         Some(Err(error)) => return Err(fail(SalesforceError::new(error.message()), None)),
         Some(Ok(response)) => response,
     };
-    let data_cloud = read_data_cloud_access_token_response(&request, &response, host.now()).map_err(|error| fail(error, None))?;
+    let data_cloud =
+        read_data_cloud_access_token_response(&request, &response, host.now()).map_err(|error| fail(error, None))?;
     let tokens = SalesforceTokens { core, data_cloud };
     // The connection owns the channel with the tokens from now on
     let channel = SharedSalesforceChannel::new(connector, &sf_params, tokens.clone())

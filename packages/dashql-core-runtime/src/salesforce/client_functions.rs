@@ -5,11 +5,11 @@
 //! until a check on an org settles it.
 
 use crate::clfn::request::{ClientFunctionHostTarget, ClientFunctionVariables};
-use crate::clfn::ClientFunctionBinding;
-use crate::connections::ConnectionChannel;
 use crate::clfn::time::parse_iso_ms;
-use crate::http::Url;
+use crate::clfn::ClientFunctionBinding;
 use crate::clfn::ClientFunctionError;
+use crate::connections::ConnectionChannel;
+use crate::http::Url;
 
 use super::types::SalesforceTokens;
 
@@ -24,9 +24,16 @@ pub fn salesforce_client_function_variables() -> ClientFunctionVariables {
 }
 
 /// The host and the token of a request
-fn target(instance_url: Option<&str>, token: Option<&str>, host: &str) -> Result<ClientFunctionHostTarget, ClientFunctionError> {
-    let (Some(instance_url), Some(token)) = (instance_url.filter(|u| !u.is_empty()), token.filter(|t| !t.is_empty())) else {
-        return Err(ClientFunctionError::new(format!("the Salesforce connection has no URL or token for the host {host}")));
+fn target(
+    instance_url: Option<&str>,
+    token: Option<&str>,
+    host: &str,
+) -> Result<ClientFunctionHostTarget, ClientFunctionError> {
+    let (Some(instance_url), Some(token)) = (instance_url.filter(|u| !u.is_empty()), token.filter(|t| !t.is_empty()))
+    else {
+        return Err(ClientFunctionError::new(format!(
+            "the Salesforce connection has no URL or token for the host {host}"
+        )));
     };
     Ok(ClientFunctionHostTarget {
         base_url: Url::parse(instance_url).map_err(|e| ClientFunctionError::new(e.to_string()))?,
@@ -78,7 +85,12 @@ impl ClientFunctionBinding for Data360Binding {
     }
 
     /// The tokens of the Salesforce channel, none without a channel
-    fn resolve_host(&self, channel: Option<&ConnectionChannel>, host: &str, now: f64) -> Result<ClientFunctionHostTarget, ClientFunctionError> {
+    fn resolve_host(
+        &self,
+        channel: Option<&ConnectionChannel>,
+        host: &str,
+        now: f64,
+    ) -> Result<ClientFunctionHostTarget, ClientFunctionError> {
         let tokens = channel.and_then(ConnectionChannel::salesforce).map(|channel| channel.tokens());
         resolve_salesforce_client_function_host(tokens.as_ref(), host, now)
     }

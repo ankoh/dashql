@@ -100,7 +100,9 @@ impl Runs {
                 let query = query_id.and_then(|id| {
                     let (_, history) = registry.query_history(id as QueryId)?;
                     let history = history.try_borrow().ok()?;
-                    history.query(id as QueryId).map(|query| (query.cache_key.clone().unwrap_or_default(), query.cache_deleted))
+                    history
+                        .query(id as QueryId)
+                        .map(|query| (query.cache_key.clone().unwrap_or_default(), query.cache_deleted))
                 });
                 let _ = write!(stamp, ":{query_id:?}{query:?}");
             }
@@ -114,7 +116,11 @@ impl Runs {
         for connection_id in connections {
             let connection = registry.get(connection_id).and_then(|connection| {
                 let state = connection.state.try_borrow().ok()?;
-                let params = state.details().setup_params.as_ref().map(|params| serde_json::Value::Object(params.clone()).to_string());
+                let params = state
+                    .details()
+                    .setup_params
+                    .as_ref()
+                    .map(|params| serde_json::Value::Object(params.clone()).to_string());
                 Some((state.caches_query_results(), params))
             });
             let _ = write!(stamp, "{connection_id}:{connection:?};");
@@ -134,7 +140,8 @@ impl Runs {
             let entries = self.workbooks.entries.borrow();
             // The stamps of workbooks that are gone are forgotten
             self.cached.stamps.borrow_mut().retain(|id, _| entries.iter().any(|entry| entry.id == *id));
-            let checked: Vec<&WorkbookEntry> = entries.iter().filter(|entry| all || pending.contains(&entry.id)).collect();
+            let checked: Vec<&WorkbookEntry> =
+                entries.iter().filter(|entry| all || pending.contains(&entry.id)).collect();
             for entry in checked {
                 // A workbook whose lookup runs is checked again once it ended
                 if self.cached.looking_up.borrow().contains(&entry.id) {
@@ -177,7 +184,12 @@ impl Runs {
                 let cached_at = match platform.cache_lookup(&key).await {
                     Ok(entry) => field(&entry, "cachedAt").and_then(|at| at.as_f64()),
                     Err(error) => {
-                        platform.log_on(LogLevel::Debug, "Looking up a cached result failed", &[("key", key.as_str()), ("error", error.message())], super::LOG_TARGET);
+                        platform.log_on(
+                            LogLevel::Debug,
+                            "Looking up a cached result failed",
+                            &[("key", key.as_str()), ("error", error.message())],
+                            super::LOG_TARGET,
+                        );
                         None
                     }
                 };
@@ -197,8 +209,14 @@ impl Runs {
             if current.as_ref() == Some(&stamp) {
                 runs.cached.stamps.borrow_mut().insert(workbook_id.clone(), stamp);
                 for (key, cached) in scripts.into_iter().zip(found) {
-                    if let Err(error) = runs.workbooks.apply(&workbook_id, WorkbookAction::SetCachedResult { key, cached }) {
-                        runs.log(LogLevel::Debug, "Showing a cached result failed", &[("workbookId", workbook_id.as_str()), ("error", error.what())]);
+                    if let Err(error) =
+                        runs.workbooks.apply(&workbook_id, WorkbookAction::SetCachedResult { key, cached })
+                    {
+                        runs.log(
+                            LogLevel::Debug,
+                            "Showing a cached result failed",
+                            &[("workbookId", workbook_id.as_str()), ("error", error.what())],
+                        );
                     }
                 }
             }

@@ -4,12 +4,12 @@ use std::collections::BTreeMap;
 
 use serde_json::{Map, Value};
 
-use crate::http::{Headers, HttpMethod, HttpRequest};
 use super::json::{js_string, to_json_text};
-use crate::http::url::{encode_uri_component, form_encode};
 use super::spec::{ClientFunction, ClientFunctionAttribute, ClientFunctionSchema, ClientFunctionSpec};
-use crate::http::Url;
 use super::ClientFunctionError;
+use crate::http::url::{encode_uri_component, form_encode};
+use crate::http::Url;
+use crate::http::{Headers, HttpMethod, HttpRequest};
 
 /// The options that the runtime applies itself, they are never sent
 pub const STANDARD_OPTIONS: [&str; 4] = ["_next", "_pages", "_poll", "_wait"];
@@ -68,9 +68,16 @@ fn find_schema_attribute<'a>(
 }
 
 /// A value in the spelling of the API
-fn to_api_value(spec: &ClientFunctionSpec, value: &Value, attribute: Option<&ClientFunctionAttribute>, map: bool) -> Value {
+fn to_api_value(
+    spec: &ClientFunctionSpec,
+    value: &Value,
+    attribute: Option<&ClientFunctionAttribute>,
+    map: bool,
+) -> Value {
     match value {
-        Value::Array(items) => Value::Array(items.iter().map(|item| to_api_value(spec, item, attribute, map)).collect()),
+        Value::Array(items) => {
+            Value::Array(items.iter().map(|item| to_api_value(spec, item, attribute, map)).collect())
+        }
         // The keys of a map stay as written, the attribute holds for its values
         Value::Object(fields) if map => Value::Object(
             fields.iter().map(|(key, item)| (key.clone(), to_api_value(spec, item, attribute, false))).collect(),
@@ -125,7 +132,12 @@ fn flatten(name: &str, value: &Value, out: &mut Vec<(String, String)>) -> Result
 }
 
 /// Add a query option in its style
-fn add_query_option(name: &str, value: &Value, style: Option<&str>, out: &mut Vec<(String, String)>) -> Result<(), ClientFunctionError> {
+fn add_query_option(
+    name: &str,
+    value: &Value,
+    style: Option<&str>,
+    out: &mut Vec<(String, String)>,
+) -> Result<(), ClientFunctionError> {
     match value {
         Value::Null => {}
         Value::Array(items) => match style {
@@ -190,7 +202,11 @@ fn fill_placeholders(
 }
 
 /// The base path of a host
-fn base_path(spec: &ClientFunctionSpec, host: &str, variables: &dyn Fn(&str) -> Option<String>) -> Result<String, ClientFunctionError> {
+fn base_path(
+    spec: &ClientFunctionSpec,
+    host: &str,
+    variables: &dyn Fn(&str) -> Option<String>,
+) -> Result<String, ClientFunctionError> {
     let declared = spec
         .hosts
         .get(host)
@@ -244,7 +260,11 @@ fn build_raw_request(
         path: format!("{}{path}", base_path(spec, &host, variables)?),
         host,
         query,
-        headers: if body.is_some() { vec![("Content-Type".to_string(), "application/json".to_string())] } else { vec![] },
+        headers: if body.is_some() {
+            vec![("Content-Type".to_string(), "application/json".to_string())]
+        } else {
+            vec![]
+        },
         body: body.map(to_json_text),
         follow_url: None,
     })
@@ -281,9 +301,7 @@ pub fn build_client_function_request(
         let attribute = function.option(name);
         let api_name = attribute.map_or(name.as_str(), ClientFunctionAttribute::api_name);
         // A name the spec doesn't list goes to the body if the function has one
-        let location = attribute
-            .and_then(|a| a.location.as_deref())
-            .unwrap_or(if has_body { "body" } else { "query" });
+        let location = attribute.and_then(|a| a.location.as_deref()).unwrap_or(if has_body { "body" } else { "query" });
         match location {
             "path" => {
                 let multi_segment = attribute.is_some_and(|a| a.multi_segment);
@@ -304,14 +322,18 @@ pub fn build_client_function_request(
                 body_fields.insert(api_name.to_string(), option_value(spec, value, attribute));
             }
             other => {
-                return Err(ClientFunctionError::new(format!("{label}: the option {name} has the unknown location {other}")))
+                return Err(ClientFunctionError::new(format!(
+                    "{label}: the option {name} has the unknown location {other}"
+                )))
             }
         }
     }
 
-    let path = fill_placeholders(path, |name| path_values.get(name).cloned(), |name| {
-        format!("{label} needs the path value {name}")
-    })?;
+    let path = fill_placeholders(
+        path,
+        |name| path_values.get(name).cloned(),
+        |name| format!("{label} needs the path value {name}"),
+    )?;
     let mut body = None;
     let format = function.body.as_deref().unwrap_or("json");
     if root_body.is_some() || !body_fields.is_empty() {
@@ -353,7 +375,8 @@ pub fn build_client_function_request(
 /// A request that follows a URL from a response: always a GET without a body, so it can't repeat a create. The headers
 /// of options still apply, the path and query come from the URL.
 pub fn follow_request(request: &ClientFunctionRequest, url: &str) -> ClientFunctionRequest {
-    let headers = request.headers.iter().filter(|(name, _)| !name.eq_ignore_ascii_case("content-type")).cloned().collect();
+    let headers =
+        request.headers.iter().filter(|(name, _)| !name.eq_ignore_ascii_case("content-type")).cloned().collect();
     ClientFunctionRequest {
         method: "GET".to_string(),
         host: request.host.clone(),
@@ -388,12 +411,21 @@ pub fn request_url(request: &ClientFunctionRequest, base_url: &Url) -> Result<Ur
 }
 
 /// The HTTP request of a request on its host: the URL, the headers of the host and then those of the options
-pub fn http_request(request: &ClientFunctionRequest, target: &ClientFunctionHostTarget) -> Result<HttpRequest, ClientFunctionError> {
+pub fn http_request(
+    request: &ClientFunctionRequest,
+    target: &ClientFunctionHostTarget,
+) -> Result<HttpRequest, ClientFunctionError> {
     let url = request_url(request, &target.base_url)?;
     let mut headers = Headers::new();
     for (name, value) in target.headers.iter().chain(request.headers.iter()) {
         // A later header replaces an earlier one, as `Headers.set` does
         headers.set(name, value.clone());
     }
-    Ok(HttpRequest { method: HttpMethod::parse(&request.method), url: url.to_string(), headers, body: request.body.clone(), sensitive: false })
+    Ok(HttpRequest {
+        method: HttpMethod::parse(&request.method),
+        url: url.to_string(),
+        headers,
+        body: request.body.clone(),
+        sensitive: false,
+    })
 }

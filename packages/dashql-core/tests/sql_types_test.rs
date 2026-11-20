@@ -79,8 +79,14 @@ fn types_parse_to_their_kinds() {
     assert_eq!(kind("numeric(10,2)"), SqlTypeKind::Numeric { precision: Some(10), scale: Some(2) });
     assert_eq!(kind("varchar(20)"), SqlTypeKind::Varchar { length: Some(20) });
     assert_eq!(kind("bit varying(8)"), SqlTypeKind::Bit { length: Some(8), varying: true });
-    assert_eq!(kind("timestamp(3) with time zone"), SqlTypeKind::Timestamp { precision: Some(3), with_time_zone: true });
-    assert_eq!(kind("interval day to second"), SqlTypeKind::Interval { fields: Some(IntervalType::DAY_TO_SECOND), precision: None });
+    assert_eq!(
+        kind("timestamp(3) with time zone"),
+        SqlTypeKind::Timestamp { precision: Some(3), with_time_zone: true }
+    );
+    assert_eq!(
+        kind("interval day to second"),
+        SqlTypeKind::Interval { fields: Some(IntervalType::DAY_TO_SECOND), precision: None }
+    );
     // A known generic name with modifiers stays generic
     assert_eq!(kind("text(5)"), SqlTypeKind::Generic { name: Arc::from("text"), modifiers: vec![Arc::from("5")] });
     assert_eq!(parse_sql_type("int[3]").unwrap().array_dimensions, 1);
@@ -143,7 +149,10 @@ fn types_pack_their_fields() {
     assert_eq!((t.kind, t.precision, t.with_time_zone), (PackedSqlTypeKind::TIMESTAMP, -1, false));
 
     let t = pack("interval year to month");
-    assert_eq!((t.kind, t.interval_fields, t.precision), (PackedSqlTypeKind::INTERVAL, IntervalType::YEAR_TO_MONTH.0 as i16, -1));
+    assert_eq!(
+        (t.kind, t.interval_fields, t.precision),
+        (PackedSqlTypeKind::INTERVAL, IntervalType::YEAR_TO_MONTH.0 as i16, -1)
+    );
     let t = pack("interval");
     assert_eq!(t.interval_fields, -1);
 

@@ -15,10 +15,7 @@ pub struct Location {
 
 impl Location {
     fn span(first: Location, last: Location) -> Location {
-        Location {
-            offset: first.offset,
-            length: last.offset + last.length - first.offset,
-        }
+        Location { offset: first.offset, length: last.offset + last.length - first.offset }
     }
 }
 
@@ -211,10 +208,7 @@ fn evaluates_parentheses_and_unary_minus() {
 fn action_errors_carry_locations() {
     // 1 / (2 - 2)
     let input = [num(1), op(S_SLASH), op(S_LRB), num(2), op(S_MINUS), num(2), op(S_RRB)];
-    assert_eq!(
-        parse(&input),
-        Err(ParseError::Action(ReduceError::DivisionByZero(Location { offset: 2, length: 5 })))
-    );
+    assert_eq!(parse(&input), Err(ParseError::Action(ReduceError::DivisionByZero(Location { offset: 2, length: 5 }))));
 }
 
 #[test]

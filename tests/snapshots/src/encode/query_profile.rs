@@ -214,7 +214,8 @@ pub fn encode_profile_progress(plan: &str, events: &str) -> Result<Node, String>
 /// adapter. Returns the sections `fragments` (the registered stages) and `updates` (the output events of all
 /// polls, the time is the elapsed time of the poll).
 pub fn encode_trino_statement_progress(recording: &str) -> Result<Map, String> {
-    let recording: serde_json::Value = serde_json::from_str(recording).map_err(|e| format!("invalid recording: {e}"))?;
+    let recording: serde_json::Value =
+        serde_json::from_str(recording).map_err(|e| format!("invalid recording: {e}"))?;
     let responses = recording["statementResponses"].as_array().ok_or("recording without statement responses")?;
     let mut view_model = QueryProfile::new();
     view_model.start_query(fb::ProfileEngine::TRINO);
@@ -240,7 +241,8 @@ pub fn encode_trino_statement_progress(recording: &str) -> Result<Map, String> {
 /// samples on top, in the order they arrived. The plan grows top-down unless `layout` is `left-to-right`.
 /// Returns the sections of `encode_query_profile` and `updates`.
 pub fn encode_trino_profile(recording: &str, source: &str, layout: Option<&str>) -> Result<Map, String> {
-    let recording: serde_json::Value = serde_json::from_str(recording).map_err(|e| format!("invalid recording: {e}"))?;
+    let recording: serde_json::Value =
+        serde_json::from_str(recording).map_err(|e| format!("invalid recording: {e}"))?;
     let plan = match source {
         "explain" => recording["explain"].clone(),
         "query-info" => {

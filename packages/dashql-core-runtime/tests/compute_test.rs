@@ -8,7 +8,6 @@
 
 use std::collections::BTreeSet;
 
-
 use dashql_core_runtime::compute::cross_filters::{CrossFilterPredicate, CrossFilters};
 use dashql_core_runtime::compute::types::{
     ArrowTable, ColumnAggregate, ColumnAggregationTask, ColumnGroup, ColumnStatsFields, ColumnSummary, ComputationTask,
@@ -61,7 +60,10 @@ fn score() -> OrdinalColumnGroup {
 
 /// The column groups of the result table: the row numbers and the score
 fn input_columns() -> Vec<ColumnGroup> {
-    vec![ColumnGroup::RowNumber(RowNumberColumnGroup { row_number_field_name: "rowNumber".into() }), ColumnGroup::Ordinal(score())]
+    vec![
+        ColumnGroup::RowNumber(RowNumberColumnGroup { row_number_field_name: "rowNumber".into() }),
+        ColumnGroup::Ordinal(score()),
+    ]
 }
 
 /// A string column with value ids
@@ -113,7 +115,11 @@ fn score_descending() -> Vec<OrderByConstraint> {
 }
 
 /// The ordered rows of a version
-fn ordering_table(data_frame: DataFrameId, constraints: Vec<OrderByConstraint>, version: ComputationVersion) -> OrderingTable {
+fn ordering_table(
+    data_frame: DataFrameId,
+    constraints: Vec<OrderByConstraint>,
+    version: ComputationVersion,
+) -> OrderingTable {
     OrderingTable {
         input_row_number_column_name: "rowNumber".into(),
         ordering_constraints: constraints,
@@ -126,7 +132,13 @@ fn ordering_table(data_frame: DataFrameId, constraints: Vec<OrderByConstraint>, 
 
 /// The rows of a data search
 fn search_table(data_frame: DataFrameId, version: ComputationVersion, request_id: u64) -> DataSearchTable {
-    DataSearchTable { input_row_number_column_name: "rowNumber".into(), table: arrow_table(104, 2), data_frame, version, request_id }
+    DataSearchTable {
+        input_row_number_column_name: "rowNumber".into(),
+        table: arrow_table(104, 2),
+        data_frame,
+        version,
+        request_id,
+    }
 }
 
 fn apply(state: &mut ComputationState, action: ComputationAction) -> ComputationOutcome {
@@ -230,11 +242,20 @@ fn computation_from_query_result() {
 #[test]
 fn keeps_column_matches_visible_while_a_replacement_search_is_pending() {
     let mut state = state_with_table(1);
-    let set = |pattern: &str| ComputationAction::SetResultSearchPattern { table_id: 1, kind: SearchKind::Columns, pattern: pattern.into() };
+    let set = |pattern: &str| ComputationAction::SetResultSearchPattern {
+        table_id: 1,
+        kind: SearchKind::Columns,
+        pattern: pattern.into(),
+    };
     apply(&mut state, set("score"));
     let outcome = apply(
         &mut state,
-        ComputationAction::ColumnSearchSucceeded { table_id: 1, data_frame: 1, request_id: 1, matching_column_groups: vec![1] },
+        ComputationAction::ColumnSearchSucceeded {
+            table_id: 1,
+            data_frame: 1,
+            request_id: 1,
+            matching_column_groups: vec![1],
+        },
     );
     assert!(outcome.changed);
     apply(&mut state, set("sc"));
@@ -252,7 +273,10 @@ fn keeps_column_matches_visible_while_a_replacement_search_is_pending() {
 #[test]
 fn accepts_the_latest_materialized_data_search_without_changing_the_filter_version() {
     let mut state = state_with_table(1);
-    apply(&mut state, ComputationAction::SetResultSearchPattern { table_id: 1, kind: SearchKind::Data, pattern: "10".into() });
+    apply(
+        &mut state,
+        ComputationAction::SetResultSearchPattern { table_id: 1, kind: SearchKind::Data, pattern: "10".into() },
+    );
     let before = version(&state);
 
     let matching_rows = 2;
@@ -282,7 +306,11 @@ fn accepts_the_latest_materialized_data_search_without_changing_the_filter_versi
 #[test]
 fn drops_the_data_search_of_the_latest_request_when_it_fails() {
     let mut state = state_with_table(1);
-    let set = |pattern: &str| ComputationAction::SetResultSearchPattern { table_id: 1, kind: SearchKind::Data, pattern: pattern.into() };
+    let set = |pattern: &str| ComputationAction::SetResultSearchPattern {
+        table_id: 1,
+        kind: SearchKind::Data,
+        pattern: pattern.into(),
+    };
     apply(&mut state, set("10"));
     let search = search_table(2, version(&state), 1);
     apply(
@@ -326,7 +354,10 @@ fn drops_the_data_search_of_the_latest_request_when_it_fails() {
 #[test]
 fn records_the_error_of_a_failed_column_search() {
     let mut state = state_with_table(1);
-    apply(&mut state, ComputationAction::SetResultSearchPattern { table_id: 1, kind: SearchKind::Columns, pattern: "sc".into() });
+    apply(
+        &mut state,
+        ComputationAction::SetResultSearchPattern { table_id: 1, kind: SearchKind::Columns, pattern: "sc".into() },
+    );
     let request_id = state.computation(1).unwrap().column_search.request_id;
     let failed = |request_id: u64, error: &str| ComputationAction::ResultSearchFailed {
         table_id: 1,
@@ -557,9 +588,14 @@ fn table_aggregation_task() {
     assert!(state.computation(1).unwrap().tasks.table_aggregation.is_some());
 
     // The statistics replace the earlier ones
-    apply(&mut state, ComputationAction::TableAggregationSucceeded { table_id: 1, aggregation: table_aggregation(2), now: NOW });
-    let outcome =
-        apply(&mut state, ComputationAction::TableAggregationSucceeded { table_id: 1, aggregation: table_aggregation(3), now: NOW });
+    apply(
+        &mut state,
+        ComputationAction::TableAggregationSucceeded { table_id: 1, aggregation: table_aggregation(2), now: NOW },
+    );
+    let outcome = apply(
+        &mut state,
+        ComputationAction::TableAggregationSucceeded { table_id: 1, aggregation: table_aggregation(3), now: NOW },
+    );
     assert_eq!(released(&outcome), vec![2]);
     let computation = state.computation(1).unwrap();
     assert_eq!(computation.table_aggregation.as_ref().map(|aggregation| aggregation.data_frame), Some(3));
@@ -585,7 +621,10 @@ fn system_column_computation_task() {
     assert_eq!(task_id, 1);
     assert!(matches!(state.scheduler_task(1), Some(ComputationTask::SystemColumns(_))));
     assert_eq!(state.next_task_id(), 2);
-    assert_eq!(state.computation(1).unwrap().tasks.system_columns.as_ref().unwrap().progress.status, TaskStatus::Running);
+    assert_eq!(
+        state.computation(1).unwrap().tasks.system_columns.as_ref().unwrap().progress.status,
+        TaskStatus::Running
+    );
     assert_eq!(state.data_frames().len(), 2);
     assert_eq!(state.data_frame_holds(1), 3);
     assert_eq!(state.data_frame_holds(2), 2);
@@ -606,12 +645,21 @@ fn system_columns_replace_the_table_and_the_data_frame() {
     columns.push(ColumnGroup::RowNumber(RowNumberColumnGroup { row_number_field_name: "_rownum".into() }));
     let outcome = apply(
         &mut state,
-        ComputationAction::SystemColumnsSucceeded { table_id: 1, data_table: numbered.clone(), data_frame: 2, column_groups: columns.clone(), now: NOW },
+        ComputationAction::SystemColumnsSucceeded {
+            table_id: 1,
+            data_table: numbered.clone(),
+            data_frame: 2,
+            column_groups: columns.clone(),
+            now: NOW,
+        },
     );
     // The table that the system columns replace goes back to the host
     assert_eq!(
         outcome.effects,
-        vec![ComputationEffect::ReleaseDataFrame { data_frame: 1 }, ComputationEffect::Release { handle: input_table().id }]
+        vec![
+            ComputationEffect::ReleaseDataFrame { data_frame: 1 },
+            ComputationEffect::Release { handle: input_table().id }
+        ]
     );
     let computation = state.computation(1).unwrap();
     assert_eq!(computation.version, before.with_data_increment());
@@ -661,7 +709,9 @@ fn a_task_of_an_unknown_column_fails() {
     let revision = state.revision();
     let mut task = score_aggregation(1, 2);
     task.column_id = 2;
-    assert!(state.apply(ComputationAction::ScheduleTask { task: ComputationTask::ColumnAggregation(task), now: NOW }).is_err());
+    assert!(state
+        .apply(ComputationAction::ScheduleTask { task: ComputationTask::ColumnAggregation(task), now: NOW })
+        .is_err());
     assert_eq!(state.revision(), revision);
     assert_eq!(state.next_task_id(), 1);
     assert_eq!(state.scheduler_tasks().count(), 0);
@@ -672,20 +722,21 @@ fn a_task_of_an_unknown_computation_is_dropped() {
     let mut state = state_with_table(1);
     let mut task = score_aggregation(1, 2);
     task.table_id = 7;
-    let outcome = apply(&mut state, ComputationAction::ScheduleTask { task: ComputationTask::ColumnAggregation(task), now: NOW });
+    let outcome =
+        apply(&mut state, ComputationAction::ScheduleTask { task: ComputationTask::ColumnAggregation(task), now: NOW });
     // The table of the task goes back to the host
-    let released = ComputationOutcome { effects: vec![ComputationEffect::Release { handle: AGGREGATE_TABLE }], ..Default::default() };
+    let released = ComputationOutcome {
+        effects: vec![ComputationEffect::Release { handle: AGGREGATE_TABLE }],
+        ..Default::default()
+    };
     assert_eq!(outcome, released);
     assert_eq!(state.scheduler_tasks().count(), 0);
 }
 
 #[test]
 fn stores_succeeded_column_aggregates_and_releases_the_previous_one() {
-    let succeeded = |table_id: TableId, column_id: u32, aggregate: ColumnAggregate| ComputationAction::ColumnAggregationSucceeded {
-        table_id,
-        column_id,
-        aggregate,
-        now: NOW,
+    let succeeded = |table_id: TableId, column_id: u32, aggregate: ColumnAggregate| {
+        ComputationAction::ColumnAggregationSucceeded { table_id, column_id, aggregate, now: NOW }
     };
     let mut state = state_with_table(1);
     schedule(&mut state, ComputationTask::ColumnAggregation(score_aggregation(1, 2)));
@@ -749,7 +800,13 @@ fn filtered_column_aggregation_task() {
     assert!(state.computation(1).unwrap().tasks.filtered_column_aggregation[1].is_some());
 
     // A new task of the column replaces the earlier one and releases what only that one held
-    let outcome = apply(&mut state, ComputationAction::ScheduleTask { task: filtered_score_aggregation(ComputationVersion::new(0, 11), 5), now: NOW });
+    let outcome = apply(
+        &mut state,
+        ComputationAction::ScheduleTask {
+            task: filtered_score_aggregation(ComputationVersion::new(0, 11), 5),
+            now: NOW,
+        },
+    );
     assert_eq!(released(&outcome), vec![4]);
     release_all(state);
 }
@@ -758,7 +815,15 @@ fn filtered_column_aggregation_task() {
 fn state_with_score_summary(summary_frame: DataFrameId) -> (ComputationState, ComputationVersion) {
     let mut state = state_with_table(1);
     let aggregation = schedule(&mut state, ComputationTask::ColumnAggregation(score_aggregation(1, 2)));
-    apply(&mut state, ComputationAction::ColumnAggregationSucceeded { table_id: 1, column_id: 1, aggregate: score_summary(summary_frame), now: NOW });
+    apply(
+        &mut state,
+        ComputationAction::ColumnAggregationSucceeded {
+            table_id: 1,
+            column_id: 1,
+            aggregate: score_summary(summary_frame),
+            now: NOW,
+        },
+    );
     apply(&mut state, ComputationAction::UnregisterSchedulerTask { task_id: aggregation });
     let filtering = schedule(
         &mut state,
@@ -781,7 +846,12 @@ fn marks_filtered_column_summaries_outdated_without_scheduling_all_columns_on_fi
     let (mut state, filter_version) = state_with_score_summary(3);
     let outcome = apply(
         &mut state,
-        ComputationAction::TableFilteringSucceeded { table_id: 1, version: filter_version, filter: Some(filter_table(4, filter_version)), now: NOW },
+        ComputationAction::TableFilteringSucceeded {
+            table_id: 1,
+            version: filter_version,
+            filter: Some(filter_table(4, filter_version)),
+            now: NOW,
+        },
     );
     assert!(outcome.changed);
     assert_eq!(state.scheduler_tasks().count(), 0);
@@ -795,7 +865,10 @@ fn marks_filtered_column_summaries_outdated_without_scheduling_all_columns_on_fi
     assert_eq!(computation.tasks.filtering.as_ref().unwrap().progress.status, TaskStatus::Succeeded);
 
     // Clearing the filter drops the outdated marks
-    let outcome = apply(&mut state, ComputationAction::TableFilteringSucceeded { table_id: 1, version: filter_version, filter: None, now: NOW });
+    let outcome = apply(
+        &mut state,
+        ComputationAction::TableFilteringSucceeded { table_id: 1, version: filter_version, filter: None, now: NOW },
+    );
     assert_eq!(released(&outcome), vec![4]);
     assert!(!state.computation(1).unwrap().filtered_column_aggregate_outdated(1));
 }
@@ -806,7 +879,12 @@ fn ignores_stale_filter_table_success_for_an_older_table_epoch() {
     let stale = ComputationVersion::new(filter_version.data, filter_version.filter - 1);
     let outcome = apply(
         &mut state,
-        ComputationAction::TableFilteringSucceeded { table_id: 1, version: stale, filter: Some(filter_table(4, stale)), now: NOW },
+        ComputationAction::TableFilteringSucceeded {
+            table_id: 1,
+            version: stale,
+            filter: Some(filter_table(4, stale)),
+            now: NOW,
+        },
     );
     assert!(!outcome.changed);
     assert_eq!(released(&outcome), vec![4]);
@@ -821,7 +899,14 @@ fn accepts_filter_table_success_for_the_current_table_epoch() {
     let mut state = state_with_table(1);
     let ordering = schedule(&mut state, ordering_task(score_descending()));
     let current = version(&state);
-    apply(&mut state, ComputationAction::TableOrderingSucceeded { table_id: 1, ordering: ordering_table(5, score_descending(), current), now: NOW });
+    apply(
+        &mut state,
+        ComputationAction::TableOrderingSucceeded {
+            table_id: 1,
+            ordering: ordering_table(5, score_descending(), current),
+            now: NOW,
+        },
+    );
     apply(&mut state, ComputationAction::UnregisterSchedulerTask { task_id: ordering });
     assert!(state.computation(1).unwrap().ordering_table.is_some());
 
@@ -839,7 +924,12 @@ fn accepts_filter_table_success_for_the_current_table_epoch() {
     let filter_version = version(&state);
     let outcome = apply(
         &mut state,
-        ComputationAction::TableFilteringSucceeded { table_id: 1, version: filter_version, filter: Some(filter_table(4, filter_version)), now: NOW },
+        ComputationAction::TableFilteringSucceeded {
+            table_id: 1,
+            version: filter_version,
+            filter: Some(filter_table(4, filter_version)),
+            now: NOW,
+        },
     );
     // The ordering goes because the filter changed
     assert_eq!(released(&outcome), vec![5]);
@@ -858,7 +948,11 @@ fn stores_the_ordering_table_without_replacing_the_immutable_base_table() {
     let current = version(&state);
     let outcome = apply(
         &mut state,
-        ComputationAction::TableOrderingSucceeded { table_id: 1, ordering: ordering_table(5, score_descending(), current), now: NOW },
+        ComputationAction::TableOrderingSucceeded {
+            table_id: 1,
+            ordering: ordering_table(5, score_descending(), current),
+            now: NOW,
+        },
     );
     assert!(outcome.changed);
     assert!(outcome.effects.is_empty());
@@ -878,7 +972,14 @@ fn clears_the_active_table_ordering() {
     let mut state = state_with_table(1);
     let ordering = schedule(&mut state, ordering_task(score_descending()));
     let current = version(&state);
-    apply(&mut state, ComputationAction::TableOrderingSucceeded { table_id: 1, ordering: ordering_table(5, score_descending(), current), now: NOW });
+    apply(
+        &mut state,
+        ComputationAction::TableOrderingSucceeded {
+            table_id: 1,
+            ordering: ordering_table(5, score_descending(), current),
+            now: NOW,
+        },
+    );
 
     let outcome = apply(&mut state, ComputationAction::ClearTableOrdering { table_id: 1 });
     assert_eq!(released(&outcome), vec![5]);
@@ -900,7 +1001,11 @@ fn ignores_an_ordering_result_after_ordering_is_cleared() {
     let current = version(&state);
     let outcome = apply(
         &mut state,
-        ComputationAction::TableOrderingSucceeded { table_id: 1, ordering: ordering_table(5, score_descending(), current), now: NOW },
+        ComputationAction::TableOrderingSucceeded {
+            table_id: 1,
+            ordering: ordering_table(5, score_descending(), current),
+            now: NOW,
+        },
     );
     assert!(!outcome.changed);
     assert_eq!(released(&outcome), vec![5]);
@@ -919,7 +1024,11 @@ fn ignores_stale_ordering_table_success_for_an_older_table_epoch() {
     let stale = ComputationVersion::new(current.data, current.filter + 1);
     let outcome = apply(
         &mut state,
-        ComputationAction::TableOrderingSucceeded { table_id: 1, ordering: ordering_table(5, score_descending(), stale), now: NOW },
+        ComputationAction::TableOrderingSucceeded {
+            table_id: 1,
+            ordering: ordering_table(5, score_descending(), stale),
+            now: NOW,
+        },
     );
     assert!(!outcome.changed);
     assert_eq!(released(&outcome), vec![5]);
@@ -935,7 +1044,12 @@ fn discards_stale_filtered_aggregation_results_without_replacing_the_active_task
     let (mut state, filter_version) = state_with_score_summary(3);
     apply(
         &mut state,
-        ComputationAction::TableFilteringSucceeded { table_id: 1, version: filter_version, filter: Some(filter_table(4, filter_version)), now: NOW },
+        ComputationAction::TableFilteringSucceeded {
+            table_id: 1,
+            version: filter_version,
+            filter: Some(filter_table(4, filter_version)),
+            now: NOW,
+        },
     );
     assert!(state.computation(1).unwrap().filtered_column_aggregate_outdated(1));
     schedule(&mut state, filtered_score_aggregation(filter_version, 4));
@@ -970,9 +1084,15 @@ fn discards_stale_filtered_aggregation_results_without_replacing_the_active_task
     );
     assert!(outcome.changed);
     let computation = state.computation(1).unwrap();
-    assert_eq!(computation.filtered_column_aggregate(1).map(|aggregate| aggregate.filter_version), Some(filter_version));
+    assert_eq!(
+        computation.filtered_column_aggregate(1).map(|aggregate| aggregate.filter_version),
+        Some(filter_version)
+    );
     assert!(!computation.filtered_column_aggregate_outdated(1));
-    assert_eq!(computation.tasks.filtered_column_aggregation[1].as_ref().unwrap().progress.status, TaskStatus::Succeeded);
+    assert_eq!(
+        computation.tasks.filtered_column_aggregation[1].as_ref().unwrap().progress.status,
+        TaskStatus::Succeeded
+    );
     assert_eq!(state.data_frame_holds(6), 1);
     release_all(state);
 }
@@ -980,7 +1100,11 @@ fn discards_stale_filtered_aggregation_results_without_replacing_the_active_task
 #[test]
 fn ending_the_data_search_drops_its_rows_and_aborts_it() {
     let mut state = state_with_table(1);
-    let set = |pattern: &str| ComputationAction::SetResultSearchPattern { table_id: 1, kind: SearchKind::Data, pattern: pattern.into() };
+    let set = |pattern: &str| ComputationAction::SetResultSearchPattern {
+        table_id: 1,
+        kind: SearchKind::Data,
+        pattern: pattern.into(),
+    };
     apply(&mut state, set("10"));
     let current = version(&state);
     let task = schedule(
@@ -1032,7 +1156,10 @@ fn revisions_change_with_every_change() {
     let mut state = state_with_table(1);
     let state_revision = state.revision();
     let revision = state.computation(1).unwrap().revision();
-    apply(&mut state, ComputationAction::SetResultSearchPattern { table_id: 1, kind: SearchKind::Columns, pattern: "a".into() });
+    apply(
+        &mut state,
+        ComputationAction::SetResultSearchPattern { table_id: 1, kind: SearchKind::Columns, pattern: "a".into() },
+    );
     assert!(state.revision() > state_revision);
     assert!(state.computation(1).unwrap().revision() > revision);
 
@@ -1138,7 +1265,10 @@ fn cross_filters_add_histogram_filters() {
 
     // Without bins the selection has no filters
     filters.add_histogram_filter(1, &binned("score", None), Some((1.0, 4.0)));
-    assert_eq!(filters.column_filters.get(&1), Some(&CrossFilterPredicate::Histogram { selection: (1.0, 4.0), filters: Vec::new() }));
+    assert_eq!(
+        filters.column_filters.get(&1),
+        Some(&CrossFilterPredicate::Histogram { selection: (1.0, 4.0), filters: Vec::new() })
+    );
 
     // A selection overwrites the one of the column, none removes it
     let ordinal = binned("score", Some("_score_bin"));

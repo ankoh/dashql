@@ -1,13 +1,15 @@
 //! DELETE statements.
 
-use dashql_parser::attrs;
 use super::{FmtReg, Formatter, FormattingJoinPolicy, K};
 use dashql_buffers::parser::Node;
+use dashql_parser::attrs;
 
 impl<'a> Formatter<'a> {
     pub(super) fn format_delete(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
-        let [target, using_clause, where_clause, returning, with_ctes, with_recursive] = attrs!(self.children(node), [
+        let [target, using_clause, where_clause, returning, with_ctes, with_recursive] = attrs!(
+            self.children(node),
+            [
                 K::SQL_DELETE_TARGET,
                 K::SQL_DELETE_USING,
                 K::SQL_DELETE_WHERE,

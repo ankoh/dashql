@@ -14,8 +14,8 @@ use dashql_core_runtime::host::{Host, HostError};
 use dashql_core_runtime::http::HostBytes;
 pub use stamps::{Expect, FileStamp, FolderListing, FolderStamps, NamedStamp};
 pub use writer::{
-    FailedWrite, HoldReason, StorageWriter, TextSource, WriteError, WriteHold, WriteOutcome, WriteResult, WriteStatistics, WriteTask,
-    WriterStatus,
+    FailedWrite, HoldReason, StorageWriter, TextSource, WriteError, WriteHold, WriteOutcome, WriteResult,
+    WriteStatistics, WriteTask, WriterStatus,
 };
 
 /// The workbook file of a workbook
@@ -42,14 +42,32 @@ pub trait StorageHost: Host {
     async fn load_workbook(&self, workbook_id: &str) -> Result<Value, HostError>;
     /// Save the workbook file of a workbook. The write is atomic: a reader sees the old file or the new one, never a
     /// part (a folder on disk writes a temporary file and renames it).
-    async fn save_workbook(&self, workbook_id: &str, workbook: &Value, expect: Expect) -> Result<Option<FileStamp>, HostError>;
+    async fn save_workbook(
+        &self,
+        workbook_id: &str,
+        workbook: &Value,
+        expect: Expect,
+    ) -> Result<Option<FileStamp>, HostError>;
     /// Save a script file atomically. A missing folder of the workbook is not created again, e.g. a native folder that
     /// was moved: the write fails as unavailable (`HostError::unavailable`).
-    async fn save_script(&self, workbook_id: &str, file_name: &str, text: &str, expect: Expect) -> Result<Option<FileStamp>, HostError>;
+    async fn save_script(
+        &self,
+        workbook_id: &str,
+        file_name: &str,
+        text: &str,
+        expect: Expect,
+    ) -> Result<Option<FileStamp>, HostError>;
     /// Delete a script file, a missing file counts as deleted
     async fn delete_script(&self, workbook_id: &str, file_name: &str, expect: Expect) -> Result<(), HostError>;
     /// Rename a script file, keeping its contents and its stamp. A missing source counts as renamed.
-    async fn rename_script(&self, workbook_id: &str, from: &str, to: &str, expect_from: Expect, expect_to: Expect) -> Result<(), HostError>;
+    async fn rename_script(
+        &self,
+        workbook_id: &str,
+        from: &str,
+        to: &str,
+        expect_from: Expect,
+        expect_to: Expect,
+    ) -> Result<(), HostError>;
     /// The names of the attachments of a workbook in natural order, the order of the attachment list
     async fn list_attachments(&self, workbook_id: &str) -> Result<Vec<String>, HostError>;
     /// Save an attachment of a workbook, the file stays with the host. A storage without attachments refuses.

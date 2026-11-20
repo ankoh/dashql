@@ -4,8 +4,8 @@
 use crate::catalog::{Catalog, CatalogLayer};
 use crate::error::{Error, Result};
 use crate::pack::{pack_analyzed_script, pack_catalog_descriptor, pack_parsed_script, pack_scanned_script};
-use crate::visualize::pack_visualization;
 use crate::script::Script;
+use crate::visualize::pack_visualization;
 use dashql_buffers::analyzer::AnalyzerErrorSeverity;
 use dashql_buffers::batch::{BatchDiagnosticT, BatchRequest, BatchResultT, BatchScriptResultT};
 pub use dashql_buffers::batch::{DiagnosticSeverity, ProcessingStage};
@@ -115,7 +115,8 @@ pub fn process_batch(request: &[u8]) -> Result<Vec<u8>> {
     if let Some(descriptors) = request.catalog_descriptors() {
         // Earlier descriptors get older entry ids and win on name conflicts
         for descriptor in descriptors.iter() {
-            let data = descriptor.data().ok_or_else(|| Error::invalid_argument("missing batch catalog descriptor bytes"))?;
+            let data =
+                descriptor.data().ok_or_else(|| Error::invalid_argument("missing batch catalog descriptor bytes"))?;
             let id = catalog.allocate_entry_id();
             catalog.replace_descriptor(id, CatalogLayer::CONNECTION, data.bytes())?;
         }

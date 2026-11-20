@@ -8,7 +8,8 @@
 //!   snapshot to test whether candidate symbols fit the rest of the script.
 
 use super::driver::{
-    default_rule, is_default_state, lac_check, rule_length, rule_lhs, state_below, table_action, Action, StateId, NO_STATE,
+    default_rule, is_default_state, lac_check, rule_length, rule_lhs, state_below, table_action, Action, StateId,
+    NO_STATE,
 };
 use crate::scanner::Symbol;
 use crate::symbol_kind::*;
@@ -72,7 +73,14 @@ impl Tokens<'_> {
 trait Policy {
     /// Inspect or replace a token that was just read. `pre_index` is the token index before the read,
     /// rewind `tokens` to it to read the real token again later.
-    fn on_lookahead_read(&mut self, states: &[StateId], next: &mut SymbolKind, pre_index: u32, tokens: &mut Tokens, stop: &mut bool);
+    fn on_lookahead_read(
+        &mut self,
+        states: &[StateId],
+        next: &mut SymbolKind,
+        pre_index: u32,
+        tokens: &mut Tokens,
+        stop: &mut bool,
+    );
     fn on_shifted(&mut self, _kind: SymbolKind) {}
     fn on_accept(&mut self) {}
     /// Stop instead of recovering from an error?
@@ -196,7 +204,9 @@ fn drive<P: Policy>(policy: &mut P, states: &mut Vec<StateId>, tokens: &mut Toke
             Label::ErrLab1 => {
                 errstatus = 3;
                 let next = loop {
-                    if let Some(Action::Shift(next)) = table_action(states.last().copied().unwrap_or(NO_STATE), S_YYerror) {
+                    if let Some(Action::Shift(next)) =
+                        table_action(states.last().copied().unwrap_or(NO_STATE), S_YYerror)
+                    {
                         break next;
                     }
                     if states.len() <= 1 {
@@ -229,7 +239,14 @@ struct PrefixCapture<'a> {
 }
 
 impl Policy for PrefixCapture<'_> {
-    fn on_lookahead_read(&mut self, states: &[StateId], _next: &mut SymbolKind, pre_index: u32, _tokens: &mut Tokens, stop: &mut bool) {
+    fn on_lookahead_read(
+        &mut self,
+        states: &[StateId],
+        _next: &mut SymbolKind,
+        pre_index: u32,
+        _tokens: &mut Tokens,
+        stop: &mut bool,
+    ) {
         if pre_index >= self.target {
             self.out.reached_target = true;
             self.out.state_stack.extend_from_slice(states);
@@ -264,7 +281,14 @@ struct CollectAfter {
 }
 
 impl Policy for CollectAfter {
-    fn on_lookahead_read(&mut self, _states: &[StateId], next: &mut SymbolKind, pre_index: u32, _tokens: &mut Tokens, _stop: &mut bool) {
+    fn on_lookahead_read(
+        &mut self,
+        _states: &[StateId],
+        next: &mut SymbolKind,
+        pre_index: u32,
+        _tokens: &mut Tokens,
+        _stop: &mut bool,
+    ) {
         if self.phase == 1 {
             *next = S_COMPLETE_HERE;
             self.phase = 2;
@@ -286,12 +310,7 @@ impl Policy for CollectAfter {
 
 /// Parse until the cursor token, feed a symbol instead, and collect the expected symbols after it
 pub fn parse_until_after(symbols: &[Symbol], target: u32, feed: SymbolKind) -> Vec<SymbolKind> {
-    let mut policy = CollectAfter {
-        target,
-        feed,
-        phase: 0,
-        expected: Vec::new(),
-    };
+    let mut policy = CollectAfter { target, feed, phase: 0, expected: Vec::new() };
     let mut states = vec![0];
     let mut tokens = Tokens { symbols, next_index: 0 };
     drive(&mut policy, &mut states, &mut tokens);
@@ -313,7 +332,14 @@ struct SuffixProbePolicy<'a> {
 }
 
 impl Policy for SuffixProbePolicy<'_> {
-    fn on_lookahead_read(&mut self, _states: &[StateId], next: &mut SymbolKind, pre_index: u32, tokens: &mut Tokens, _stop: &mut bool) {
+    fn on_lookahead_read(
+        &mut self,
+        _states: &[StateId],
+        next: &mut SymbolKind,
+        pre_index: u32,
+        tokens: &mut Tokens,
+        _stop: &mut bool,
+    ) {
         if let Some(&fed) = self.feed.get(self.fed_count) {
             // Only the first fed symbol replaces the target, all other fed symbols are insertions
             let consumes_target = self.replace_target && self.fed_count == 0;
@@ -346,7 +372,13 @@ impl Policy for SuffixProbePolicy<'_> {
 }
 
 /// Probe a sequence of symbols fed at the cursor against the tokens after it
-pub fn probe_suffix_sequence(symbols: &[Symbol], target: u32, prefix: &PrefixSnapshot, feed: &[SymbolKind], replace_target: bool) -> SuffixProbe {
+pub fn probe_suffix_sequence(
+    symbols: &[Symbol],
+    target: u32,
+    prefix: &PrefixSnapshot,
+    feed: &[SymbolKind],
+    replace_target: bool,
+) -> SuffixProbe {
     if !prefix.reached_target || feed.is_empty() {
         return SuffixProbe::default();
     }
@@ -357,23 +389,22 @@ pub fn probe_suffix_sequence(symbols: &[Symbol], target: u32, prefix: &PrefixSna
     // Advance the tokens to the target
     let next_index = target.min(symbols.len() as u32);
     let mut tokens = Tokens { symbols, next_index };
-    let mut policy = SuffixProbePolicy {
-        feed,
-        replace_target,
-        probe: SuffixProbe::default(),
-        fed_count: 0,
-        feed_shifted: 0,
-    };
+    let mut policy =
+        SuffixProbePolicy { feed, replace_target, probe: SuffixProbe::default(), fed_count: 0, feed_shifted: 0 };
     drive(&mut policy, &mut states, &mut tokens);
     policy.probe
 }
 
 /// Probe every symbol on its own
-pub fn probe_suffix_batch(symbols: &[Symbol], target: u32, prefix: &PrefixSnapshot, feed: &[SymbolKind], replace_target: bool) -> Vec<SuffixProbe> {
+pub fn probe_suffix_batch(
+    symbols: &[Symbol],
+    target: u32,
+    prefix: &PrefixSnapshot,
+    feed: &[SymbolKind],
+    replace_target: bool,
+) -> Vec<SuffixProbe> {
     if feed.is_empty() || !prefix.reached_target {
         return vec![SuffixProbe::default(); feed.len()];
     }
-    feed.iter()
-        .map(|&kind| probe_suffix_sequence(symbols, target, prefix, &[kind], replace_target))
-        .collect()
+    feed.iter().map(|&kind| probe_suffix_sequence(symbols, target, prefix, &[kind], replace_target)).collect()
 }

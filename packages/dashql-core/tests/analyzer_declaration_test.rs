@@ -131,7 +131,8 @@ fn derived_tables_keep_the_types_of_passed_through_columns() {
         "create table result as with selected as (select * from source) select *, amount + 1 as next, id as renamed from selected",
         &catalog,
     );
-    let types: Vec<(&str, Option<&str>)> = single_table(&script).table_columns.iter().map(|c| (c.column_name.text(), c.column_type.as_deref())).collect();
+    let types: Vec<(&str, Option<&str>)> =
+        single_table(&script).table_columns.iter().map(|c| (c.column_name.text(), c.column_type.as_deref())).collect();
     assert_eq!(
         types,
         vec![("amount", Some("integer")), ("id", Some("integer")), ("next", None), ("renamed", Some("integer"))]
@@ -139,7 +140,8 @@ fn derived_tables_keep_the_types_of_passed_through_columns() {
 
     // Column aliases name the output columns by position
     let script = analyze_single_table("create view aliased (a, b) as select amount + 1, id from source", &catalog);
-    let types: Vec<(&str, Option<&str>)> = single_table(&script).table_columns.iter().map(|c| (c.column_name.text(), c.column_type.as_deref())).collect();
+    let types: Vec<(&str, Option<&str>)> =
+        single_table(&script).table_columns.iter().map(|c| (c.column_name.text(), c.column_type.as_deref())).collect();
     assert_eq!(types, vec![("a", None), ("b", Some("integer"))]);
 }
 
@@ -155,12 +157,20 @@ fn declared(text: &str, catalog_sql: Option<&str>) -> Vec<String> {
     let mut script = Script::new(&catalog);
     script.insert_text_at(0, text);
     script.analyze(&catalog, true).unwrap();
-    script.analyzed.as_ref().unwrap().entry.table_declarations.iter().map(|t| {
-        let mut columns: Vec<_> = t.table_columns.iter().collect();
-        columns.sort_by_key(|c| c.ast_node_id.unwrap_or(0));
-        let columns: Vec<&str> = columns.iter().map(|c| c.column_name.text()).collect();
-        format!("{}.{}({})", t.table_name.schema_name.text(), t.table_name.table_name.text(), columns.join(", "))
-    }).collect()
+    script
+        .analyzed
+        .as_ref()
+        .unwrap()
+        .entry
+        .table_declarations
+        .iter()
+        .map(|t| {
+            let mut columns: Vec<_> = t.table_columns.iter().collect();
+            columns.sort_by_key(|c| c.ast_node_id.unwrap_or(0));
+            let columns: Vec<&str> = columns.iter().map(|c| c.column_name.text()).collect();
+            format!("{}.{}({})", t.table_name.schema_name.text(), t.table_name.table_name.text(), columns.join(", "))
+        })
+        .collect()
 }
 
 /// The unresolved columns of a script
@@ -176,7 +186,13 @@ fn unresolved(text: &str, catalog_sql: Option<&str>) -> Vec<String> {
     script.insert_text_at(0, text);
     script.analyze(&catalog, true).unwrap();
     let analyzed = script.analyzed.as_ref().unwrap();
-    analyzed.expressions.iter().filter_map(|e| e.column_ref()).filter(|c| matches!(c.resolved, dashql_core::analyzer::ColumnResolution::Unresolved)).map(|c| c.column_name.column_name.text().to_string()).collect()
+    analyzed
+        .expressions
+        .iter()
+        .filter_map(|e| e.column_ref())
+        .filter(|c| matches!(c.resolved, dashql_core::analyzer::ColumnResolution::Unresolved))
+        .map(|c| c.column_name.column_name.text().to_string())
+        .collect()
 }
 
 fn errors(text: &str) -> Vec<String> {
@@ -200,7 +216,10 @@ fn alter_table_changes_the_declaration_of_the_script() {
 fn alter_table_that_moves_a_table_declares_the_new_name() {
     assert_eq!(declared("create table s.t (a int); alter table s.t rename to u", None), ["s.t(a)", "s.u(a)"]);
     assert_eq!(declared("create table s.t (a int); alter table s.t set schema o", None), ["s.t(a)", "o.t(a)"]);
-    assert_eq!(declared("create table s.t (a int); alter table s.t rename to u, add column b int", None), ["s.t(a)", "s.u(a, b)"]);
+    assert_eq!(
+        declared("create table s.t (a int); alter table s.t rename to u, add column b int", None),
+        ["s.t(a)", "s.u(a, b)"]
+    );
 }
 
 #[test]
@@ -217,7 +236,10 @@ fn alter_table_of_a_table_of_the_catalog_waits_for_the_connection() {
     assert!(declared("alter table db.s.t add column b int", Some(catalog)).is_empty());
     assert!(declared("alter table t rename to u", Some(catalog)).is_empty());
     // A read before and after the statement reads what the connection reports until it answers
-    assert_eq!(unresolved("select a from t; alter table t rename column a to b; select b from t", Some(catalog)), ["b"]);
+    assert_eq!(
+        unresolved("select a from t; alter table t rename column a to b; select b from t", Some(catalog)),
+        ["b"]
+    );
     assert!(declared("alter table unknown add column b int", Some(catalog)).is_empty());
 }
 
@@ -235,7 +257,8 @@ fn alter_table_that_moves_a_table_keeps_what_the_new_name_leaves_out() {
     assert_eq!(declared("create table db.s.t (a int); alter table db.s.t rename to o.u", None), ["s.t(a)", "o.u(a)"]);
     assert_eq!(declared("create table db.s.t (a int); alter table db.s.t rename to u", None), ["s.t(a)", "s.u(a)"]);
     assert_eq!(declared("create table db.s.t (a int); alter table db.s.t set schema o", None), ["s.t(a)", "o.t(a)"]);
-    assert!(unresolved("create table db.s.t (a int); alter table db.s.t rename to o.u; select a from db.o.u", None).is_empty());
+    assert!(unresolved("create table db.s.t (a int); alter table db.s.t rename to o.u; select a from db.o.u", None)
+        .is_empty());
 }
 
 #[test]
@@ -277,6 +300,12 @@ fn alter_table_applies_to_a_table_of_create_table_as() {
     assert_eq!(declared("create table t as select 1 as a; alter table t add column b int", None), [".t(a, b)"]);
     assert_eq!(declared("create table t as select 1 as a, 2 as c; alter table t drop column a", None), [".t(c)"]);
     // What waits for the columns moves along
-    assert_eq!(declared("create table t as select 1 a, 2 b; alter table t drop column a; alter table t rename to u", None), [".t(b)", ".u(b)"]);
-    assert_eq!(declared("create table t as select 1 a, 2 b; alter table t rename to u; alter table u drop column a", None), [".t(a, b)", ".u(b)"]);
+    assert_eq!(
+        declared("create table t as select 1 a, 2 b; alter table t drop column a; alter table t rename to u", None),
+        [".t(b)", ".u(b)"]
+    );
+    assert_eq!(
+        declared("create table t as select 1 a, 2 b; alter table t rename to u; alter table u drop column a", None),
+        [".t(a, b)", ".u(b)"]
+    );
 }

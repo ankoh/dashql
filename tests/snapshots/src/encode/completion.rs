@@ -38,7 +38,11 @@ fn insert_fields(out: &mut Map, key: &str, fields: &[CandidateField]) {
     if fields.iter().all(|field| field.description.is_none()) {
         let fields = fields
             .iter()
-            .map(|field| Node::dquo(field.detail.as_ref().map_or(field.name.clone(), |detail| format!("{} {detail}", field.name))))
+            .map(|field| {
+                Node::dquo(
+                    field.detail.as_ref().map_or(field.name.clone(), |detail| format!("{} {detail}", field.name)),
+                )
+            })
             .collect();
         out.insert(key, Node::flow_seq(fields));
         return;

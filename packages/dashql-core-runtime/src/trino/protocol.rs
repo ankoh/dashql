@@ -8,12 +8,12 @@
 use serde_json::Value;
 
 use super::error::{TrinoError, TrinoErrorKind, TrinoResult};
+use crate::connections::{trino_session_defaults, JsonObject, TrinoSessionDefaults};
 use crate::http::base64::{base64_decode, base64_encode};
-use crate::salesforce::api::redact_token_diagnostics;
 use crate::http::url::{encode_uri_component, form_encode, set_query_param, url_path};
 use crate::http::{FetchOutcome, HttpMethod, HttpRequest, HttpResponse};
+use crate::salesforce::api::redact_token_diagnostics;
 use crate::time::{iso_timestamp, parse_iso_timestamp, Millis};
-use crate::connections::{trino_session_defaults, JsonObject, TrinoSessionDefaults};
 
 /// The size of the result pages that we ask Trino for. Trino returns pages of 1 MB by default and caps the size at
 /// 128 MB. A page also ends early when the coordinator has no more rows buffered, its exchange buffer holds 32 MB by
@@ -216,11 +216,14 @@ impl TrinoAccessToken {
 /// The `sub` of the payload of a JWT, none for a token that doesn't read
 fn jwt_subject(jwt: &str) -> Option<String> {
     let payload = jwt.split('.').nth(1)?;
-    let standard: String = payload.chars().map(|c| match c {
-        '-' => '+',
-        '_' => '/',
-        c => c,
-    }).collect();
+    let standard: String = payload
+        .chars()
+        .map(|c| match c {
+            '-' => '+',
+            '_' => '/',
+            c => c,
+        })
+        .collect();
     let bytes = base64_decode(&standard)?;
     let payload: Value = serde_json::from_slice(&bytes).ok()?;
     payload.get("sub").and_then(Value::as_str).filter(|sub| !sub.is_empty()).map(str::to_string)
@@ -261,9 +264,11 @@ pub fn read_token_response(outcome: &FetchOutcome, now: Millis) -> TrinoResult<T
         .and_then(Value::as_str)
         .filter(|token| !token.is_empty())
         .ok_or_else(|| TrinoError::protocol("The token response has no access token"))?;
-    let optional = |key: &str| token.get(key).and_then(Value::as_str).filter(|value| !value.is_empty()).map(str::to_string);
+    let optional =
+        |key: &str| token.get(key).and_then(Value::as_str).filter(|value| !value.is_empty()).map(str::to_string);
     // A lifetime of 0 counts as none
-    let expires_in = token.get("expires_in").and_then(Value::as_f64).filter(|seconds| *seconds != 0.0 && seconds.is_finite());
+    let expires_in =
+        token.get("expires_in").and_then(Value::as_f64).filter(|seconds| *seconds != 0.0 && seconds.is_finite());
     Ok(TrinoAccessToken {
         created_at: now,
         access_token: access_token.to_string(),
@@ -323,7 +328,11 @@ impl TrinoChannel {
 
     /// The channel of Trino params, without an access token
     pub fn from_params(params: &JsonObject) -> Self {
-        Self::new(str_field(params, "endpoint"), TrinoAuthParams::from_json(params.get("auth")), trino_session_defaults(params))
+        Self::new(
+            str_field(params, "endpoint"),
+            TrinoAuthParams::from_json(params.get("auth")),
+            trino_session_defaults(params),
+        )
     }
 
     /// Does the access token need a refresh at a time? Only an OAuth token with a refresh token and an expiry
@@ -335,7 +344,9 @@ impl TrinoChannel {
         self.auth.auth_type == TrinoAuthType::OAuth
             && self.auth.oauth.is_some()
             && token.refresh_token.is_some()
-            && token.expires_at.is_some_and(|expires_at| expires_at.saturating_sub(now) <= ACCESS_TOKEN_REFRESH_MARGIN_MS)
+            && token
+                .expires_at
+                .is_some_and(|expires_at| expires_at.saturating_sub(now) <= ACCESS_TOKEN_REFRESH_MARGIN_MS)
     }
 
     /// Check the access token before a request. A token about to expire is refreshed once, the requests of the
@@ -420,7 +431,8 @@ impl TrinoChannel {
                 let path = url_path(next_uri).ok_or_else(|| invalid_uri(next_uri))?;
                 // Only the URIs of executing queries return rows
                 let url = if path.contains("/v1/statement/executing/") {
-                    set_query_param(next_uri, "targetResultSize", TARGET_RESULT_SIZE).ok_or_else(|| invalid_uri(next_uri))?
+                    set_query_param(next_uri, "targetResultSize", TARGET_RESULT_SIZE)
+                        .ok_or_else(|| invalid_uri(next_uri))?
                 } else {
                     next_uri.clone()
                 };

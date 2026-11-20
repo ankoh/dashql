@@ -9,7 +9,9 @@ use super::information_schema::{
     catalog_tables_from_information_schema, information_schema_query, relation_scopes, InformationSchemaScope,
 };
 use super::tables::{pack_catalog_descriptor_of_tables, pack_catalog_table_update, CatalogTable, Groups};
-use super::{ConnectorCatalogUpdate, CatalogEntries, CatalogLoadError, CatalogQuery, ConnectorStep, Publication, QueryAnswer};
+use super::{
+    CatalogEntries, CatalogLoadError, CatalogQuery, ConnectorCatalogUpdate, ConnectorStep, Publication, QueryAnswer,
+};
 use crate::connections::{trino_session_defaults, JsonObject, RelationName};
 use crate::query::QueryType;
 
@@ -82,7 +84,11 @@ pub fn trino_catalog_scopes(params: &JsonObject) -> Vec<InformationSchemaScope> 
     }
     let scopes = scopes.into_entries();
     if scopes.is_empty() {
-        return trino_session_defaults(params).catalog.map(|catalog| InformationSchemaScope::catalog(&catalog)).into_iter().collect();
+        return trino_session_defaults(params)
+            .catalog
+            .map(|catalog| InformationSchemaScope::catalog(&catalog))
+            .into_iter()
+            .collect();
     }
     scopes
         .into_iter()
@@ -95,7 +101,9 @@ pub fn trino_catalog_scopes(params: &JsonObject) -> Vec<InformationSchemaScope> 
 }
 
 /// The catalogs of the result of the catalogs query, all schemas of each
-pub fn trino_catalog_scopes_of_result(batches: &[arrow_array::RecordBatch]) -> Result<Vec<InformationSchemaScope>, CatalogLoadError> {
+pub fn trino_catalog_scopes_of_result(
+    batches: &[arrow_array::RecordBatch],
+) -> Result<Vec<InformationSchemaScope>, CatalogLoadError> {
     let mut scopes = Vec::new();
     for batch in batches_with_rows(batches) {
         let names = Strings::of(batch, "catalog_name")?;
@@ -133,7 +141,11 @@ pub struct TrinoCatalogUpdate {
 }
 
 impl TrinoCatalogUpdate {
-    pub(crate) fn new(setup_params: &JsonObject, entries: CatalogEntries, relations: Option<Vec<RelationName>>) -> Self {
+    pub(crate) fn new(
+        setup_params: &JsonObject,
+        entries: CatalogEntries,
+        relations: Option<Vec<RelationName>>,
+    ) -> Self {
         // Trino folds the names of relations to lower case
         let relations = relations.map(|relations| {
             relations
@@ -162,7 +174,6 @@ impl TrinoCatalogUpdate {
         };
         Self { relations, entries, phase }
     }
-
 }
 
 impl ConnectorCatalogUpdate for TrinoCatalogUpdate {
@@ -211,10 +222,14 @@ impl ConnectorCatalogUpdate for TrinoCatalogUpdate {
         };
         let layer = CatalogLayer::CONNECTION;
         let result = match &self.relations {
-            Some(relations) => {
-                catalog.replace_tables(self.entries.relations, layer, &pack_catalog_table_update(&[], relations, &tables))
+            Some(relations) => catalog.replace_tables(
+                self.entries.relations,
+                layer,
+                &pack_catalog_table_update(&[], relations, &tables),
+            ),
+            None => {
+                catalog.replace_descriptor(self.entries.relations, layer, &pack_catalog_descriptor_of_tables(&tables))
             }
-            None => catalog.replace_descriptor(self.entries.relations, layer, &pack_catalog_descriptor_of_tables(&tables)),
         };
         Publication::of(result.map(|()| None).map_err(CatalogLoadError::from))
     }

@@ -46,16 +46,8 @@ impl TraceContext {
     }
 
     #[allow(dead_code)]
-    pub fn from_headers(
-        trace_id: String,
-        span_id: String,
-        parent_span_id: Option<String>,
-    ) -> Self {
-        Self {
-            trace_id,
-            span_id,
-            parent_span_id,
-        }
+    pub fn from_headers(trace_id: String, span_id: String, parent_span_id: Option<String>) -> Self {
+        Self { trace_id, span_id, parent_span_id }
     }
 
     #[allow(dead_code)]
@@ -74,11 +66,7 @@ impl TraceContext {
     /// Returns (trace_id, span_id, parent_span_id) for manual KV addition
     #[allow(dead_code)]
     pub fn trace_fields(&self) -> (&str, &str, &str) {
-        (
-            &self.trace_id,
-            &self.span_id,
-            self.parent_span_id.as_deref().unwrap_or(""),
-        )
+        (&self.trace_id, &self.span_id, self.parent_span_id.as_deref().unwrap_or(""))
     }
 }
 
@@ -147,11 +135,7 @@ mod tests {
         let span_id = "456".to_string();
         let parent_span_id = Some("789".to_string());
 
-        let ctx = TraceContext::from_headers(
-            trace_id.clone(),
-            span_id.clone(),
-            parent_span_id.clone(),
-        );
+        let ctx = TraceContext::from_headers(trace_id.clone(), span_id.clone(), parent_span_id.clone());
 
         assert_eq!(ctx.trace_id, trace_id);
         assert_eq!(ctx.span_id, span_id);
@@ -160,11 +144,7 @@ mod tests {
 
     #[test]
     fn test_trace_fields() {
-        let ctx = TraceContext::from_headers(
-            "trace-abc".to_string(),
-            "123".to_string(),
-            Some("456".to_string()),
-        );
+        let ctx = TraceContext::from_headers("trace-abc".to_string(), "123".to_string(), Some("456".to_string()));
 
         let (trace_id, span_id, parent_span_id) = ctx.trace_fields();
 
@@ -175,11 +155,7 @@ mod tests {
 
     #[test]
     fn test_trace_fields_no_parent() {
-        let ctx = TraceContext::from_headers(
-            "trace-xyz".to_string(),
-            "999".to_string(),
-            None,
-        );
+        let ctx = TraceContext::from_headers("trace-xyz".to_string(), "999".to_string(), None);
 
         let (trace_id, span_id, parent_span_id) = ctx.trace_fields();
 
@@ -208,7 +184,8 @@ mod tests {
                 let current = current_trace_context();
                 assert!(current.is_some());
                 assert_eq!(current.unwrap().trace_id, "trace-1");
-            }).await
+            })
+            .await
         });
 
         let handle2 = tokio::spawn(async move {
@@ -216,7 +193,8 @@ mod tests {
                 let current = current_trace_context();
                 assert!(current.is_some());
                 assert_eq!(current.unwrap().trace_id, "trace-2");
-            }).await
+            })
+            .await
         });
 
         handle1.await.unwrap();

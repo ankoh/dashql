@@ -11,8 +11,8 @@
 
 use crate::{Catalog, SharedCatalog};
 use dashql_core_shell::{
-    CompletionCandidate, EffectCompletionStatus, PromptInputAction, PromptInputKey, PromptSnapshot, ShellOperation as CoreOperation,
-    ShellSession, ShellStatus, TerminalCompletionList, TerminalOutput,
+    CompletionCandidate, EffectCompletionStatus, PromptInputAction, PromptInputKey, PromptSnapshot,
+    ShellOperation as CoreOperation, ShellSession, ShellStatus, TerminalCompletionList, TerminalOutput,
 };
 use wasm_bindgen::prelude::*;
 
@@ -137,7 +137,8 @@ impl ShellOperation {
     /// The effect payload of a pending operation: the query or the dot command
     #[wasm_bindgen(getter, js_name = effectPayload)]
     pub fn effect_payload(&self) -> Option<String> {
-        self.effect_header().map(|_| String::from_utf8_lossy(self.inner.data.get(16..).unwrap_or_default()).into_owned())
+        self.effect_header()
+            .map(|_| String::from_utf8_lossy(self.inner.data.get(16..).unwrap_or_default()).into_owned())
     }
 }
 
@@ -256,10 +257,7 @@ impl Shell {
     pub fn new(catalog: &Catalog, terminal_columns: u32, auto_qualify_non_default_database_tables: bool) -> Shell {
         let shared = catalog.shared();
         let inner = ShellSession::new(&shared.borrow(), terminal_columns, auto_qualify_non_default_database_tables);
-        Shell {
-            catalog: shared,
-            inner,
-        }
+        Shell { catalog: shared, inner }
     }
 
     pub fn resize(&mut self, terminal_columns: u32) {
@@ -324,8 +322,19 @@ impl Shell {
     }
 
     #[wasm_bindgen(js_name = applyCompletion)]
-    pub fn apply_completion(&mut self, display_text: &str, completion_text: &str, target_offset: u32, target_length: u32) -> ShellPromptResult {
-        prompt(self.inner.apply_completion_bytes(display_text.as_bytes(), completion_text.as_bytes(), target_offset, target_length))
+    pub fn apply_completion(
+        &mut self,
+        display_text: &str,
+        completion_text: &str,
+        target_offset: u32,
+        target_length: u32,
+    ) -> ShellPromptResult {
+        prompt(self.inner.apply_completion_bytes(
+            display_text.as_bytes(),
+            completion_text.as_bytes(),
+            target_offset,
+            target_length,
+        ))
     }
 
     /// Consume a `DashQLShellPromptInput` with its text

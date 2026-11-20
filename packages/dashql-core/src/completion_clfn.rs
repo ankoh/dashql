@@ -4,16 +4,19 @@
 //! start of the statement keeps a stack with the schema of every open `(` and `[`. A wrong decision here only affects
 //! suggestions, since nothing of this is part of parsing.
 
-use crate::catalog::clfn::{ClientFunctionAttribute, ClientFunctionEffect, ClientFunctionField, ClientFunction, ClientFunctionSchema, ClientFunctionSpec, ClientFunctionUnknownPolicy, OPTION_NEXT, OPTION_PAGES, OPTION_POLL, OPTION_WAIT};
+use crate::catalog::clfn::{
+    ClientFunction, ClientFunctionAttribute, ClientFunctionEffect, ClientFunctionField, ClientFunctionSchema,
+    ClientFunctionSpec, ClientFunctionUnknownPolicy, OPTION_NEXT, OPTION_PAGES, OPTION_POLL, OPTION_WAIT,
+};
 use crate::catalog::CatalogSnapshot;
 use crate::completion::{Candidate, CandidateField, CandidateInfo, CandidateTags, Completion, Score};
 use crate::utils::quote_identifier;
 use dashql_buffers::analyzer::NameTag;
 use dashql_buffers::completion::CandidateTag;
 use dashql_buffers::parser::SymbolSpan;
+use dashql_parser::keywords::Keyword;
 use dashql_parser::scanner::Symbol;
 use dashql_parser::symbol_kind::*;
-use dashql_parser::keywords::Keyword;
 use dashql_parser::SymbolKind;
 use std::sync::Arc;
 
@@ -144,7 +147,9 @@ fn find_position<'s>(completion: &Completion, specs: &'s CatalogSnapshot, symbol
     i += 1;
     // The function
     let Some(function) = symbols.get(i) else { return Position::Function(spec) };
-    let Some(function) = Some(function).filter(|s| is_name(s.kind)).and_then(|s| spec.function(&token_text(completion, s))) else {
+    let Some(function) =
+        Some(function).filter(|s| is_name(s.kind)).and_then(|s| spec.function(&token_text(completion, s)))
+    else {
         return Position::Nothing;
     };
     i += 1;
@@ -220,7 +225,8 @@ fn find_position<'s>(completion: &Completion, specs: &'s CatalogSnapshot, symbol
                 // A key: remember its attribute for the value that follows
                 let text = token_text(completion, symbol);
                 top.used.push(ClientFunctionField { name: text.clone(), ..Default::default() });
-                top.attribute = top.attributes(spec).into_iter().map(|(a, _)| a).find(|a| a.name.eq_ignore_ascii_case(&text));
+                top.attribute =
+                    top.attributes(spec).into_iter().map(|(a, _)| a).find(|a| a.name.eq_ignore_ascii_case(&text));
                 top.at_key = false;
             }
             // The value of the key, it can select the variant of a union
@@ -234,14 +240,23 @@ fn find_position<'s>(completion: &Completion, specs: &'s CatalogSnapshot, symbol
         i += 1;
     }
     let Some(top) = stack.pop() else { return Position::Outside };
-    if top.at_key { Position::Key(spec, top) } else { Position::Nothing }
+    if top.at_key {
+        Position::Key(spec, top)
+    } else {
+        Position::Nothing
+    }
 }
 
 /// A name as it is inserted in a script
 fn insert_text(name: &str) -> Arc<str> {
     // Salesforce-style names keep their case, they scan fine without quotes
-    let plain = name.bytes().enumerate().all(|(i, c)| c.is_ascii_alphabetic() || c == b'_' || (i > 0 && c.is_ascii_digit()));
-    if plain { Arc::from(name) } else { Arc::from(quote_identifier(name)) }
+    let plain =
+        name.bytes().enumerate().all(|(i, c)| c.is_ascii_alphabetic() || c == b'_' || (i > 0 && c.is_ascii_digit()));
+    if plain {
+        Arc::from(name)
+    } else {
+        Arc::from(quote_identifier(name))
+    }
 }
 
 /// What a candidate of a call is
@@ -285,7 +300,11 @@ fn attribute_fields(attributes: &[(&ClientFunctionAttribute, bool)]) -> Vec<Cand
     let optional = attributes.iter().filter(|(_, required)| !*required);
     required
         .chain(optional)
-        .map(|(a, required)| CandidateField { name: a.name.clone(), detail: attribute_detail(a, *required), description: a.description.clone() })
+        .map(|(a, required)| CandidateField {
+            name: a.name.clone(),
+            detail: attribute_detail(a, *required),
+            description: a.description.clone(),
+        })
         .collect()
 }
 
@@ -321,7 +340,11 @@ fn function_info(spec: &ClientFunctionSpec, function: &ClientFunction) -> Candid
     let columns = function
         .columns
         .iter()
-        .map(|column| CandidateField { name: column.name.clone(), detail: column.column_type.clone(), description: None })
+        .map(|column| CandidateField {
+            name: column.name.clone(),
+            detail: column.column_type.clone(),
+            description: None,
+        })
         .collect();
     let mut facts = Vec::new();
     if let Some(family) = &function.family {
@@ -350,7 +373,8 @@ fn attribute_info(spec: &ClientFunctionSpec, attribute: &ClientFunctionAttribute
     let schema = attribute.schema.as_deref().and_then(|name| spec.schema(name));
     let mut facts = Vec::new();
     if !attribute.values.is_empty() {
-        let values: Vec<String> = attribute.values.iter().map(|v| v.as_str().map_or_else(|| v.to_string(), str::to_string)).collect();
+        let values: Vec<String> =
+            attribute.values.iter().map(|v| v.as_str().map_or_else(|| v.to_string(), str::to_string)).collect();
         facts.push(fact("Values", values.join(", ")));
     }
     if let Some(format) = &attribute.format {
@@ -389,7 +413,9 @@ fn attribute_detail(attribute: &ClientFunctionAttribute, required: bool) -> Opti
 /// What a list shows about a standard option, no spec describes them
 fn standard_option_info(option: &str) -> CandidateInfo {
     let (detail, description) = match option {
-        OPTION_NEXT => ("string", "The page to read, a next value of the service, e.g. from `_meta`. `null` means the first page."),
+        OPTION_NEXT => {
+            ("string", "The page to read, a next value of the service, e.g. from `_meta`. `null` means the first page.")
+        }
         OPTION_PAGES => ("integer", "The number of pages to read, 1 without this option."),
         OPTION_POLL => ("string", "The pending result to poll, the `_poll` column of an earlier result."),
         OPTION_WAIT => ("integer", "The seconds to poll a pending result for, no polling without this option."),
@@ -427,7 +453,8 @@ impl<'s> Candidates<'s> {
 
     /// The top k candidates: by score, then by name. Only these get their info, a namespace can have many functions.
     fn finish(mut self, k: usize) -> Vec<Candidate> {
-        self.out.sort_by(|(l, _), (r, _)| r.score.cmp(&l.score).then_with(|| l.completion_text.cmp(&r.completion_text)));
+        self.out
+            .sort_by(|(l, _), (r, _)| r.score.cmp(&l.score).then_with(|| l.completion_text.cmp(&r.completion_text)));
         self.out.truncate(k);
         self.out
             .into_iter()
@@ -449,10 +476,8 @@ pub(crate) fn complete_client_function_call(completion: &mut Completion, k: usiz
     let symbols = completion.symbols();
     let offset = completion.cursor.text_offset as u32;
     // The tokens that end before the cursor, and the name that the cursor is in or right behind
-    let before = symbols
-        .iter()
-        .take_while(|s| s.kind != S_YYEOF && s.location.offset + s.location.length <= offset)
-        .count();
+    let before =
+        symbols.iter().take_while(|s| s.kind != S_YYEOF && s.location.offset + s.location.length <= offset).count();
     let containing = symbols.get(before).filter(|s| s.location.offset < offset && s.kind != S_YYEOF);
     if containing.is_some_and(|s| !is_name(s.kind)) {
         return false;
@@ -460,7 +485,9 @@ pub(crate) fn complete_client_function_call(completion: &mut Completion, k: usiz
     let (end, target) = match (containing, before.checked_sub(1).and_then(|i| symbols.get(i))) {
         (Some(symbol), _) => (before, Some(symbol)),
         // Right behind a name
-        (None, Some(previous)) if is_name(previous.kind) && previous.location.offset + previous.location.length == offset => {
+        (None, Some(previous))
+            if is_name(previous.kind) && previous.location.offset + previous.location.length == offset =>
+        {
             (before - 1, Some(previous))
         }
         _ => (before, None),
@@ -504,7 +531,9 @@ pub(crate) fn complete_client_function_call(completion: &mut Completion, k: usiz
         Position::Key(spec, scope) => {
             let free_form = match scope.frame {
                 Frame::Fields(None) | Frame::Map(_) => true,
-                Frame::Fields(Some(schema)) => schema.attributes.is_empty() && schema.unknown == ClientFunctionUnknownPolicy::Allow,
+                Frame::Fields(Some(schema)) => {
+                    schema.attributes.is_empty() && schema.unknown == ClientFunctionUnknownPolicy::Allow
+                }
                 _ => false,
             };
             if !free_form {

@@ -4,7 +4,9 @@
 use dashql_core::analyzer::{AnalyzedScript, ColumnResolution};
 use dashql_core::catalog::Catalog;
 use dashql_core::script::Script;
-use dashql_core::table_parameters::{TableParameterAttachment, TableParameterSource, TableParameters, TABLE_PARAMETERS_ENTRY_ID};
+use dashql_core::table_parameters::{
+    TableParameterAttachment, TableParameterSource, TableParameters, TABLE_PARAMETERS_ENTRY_ID,
+};
 use std::sync::Arc;
 
 /// Analyze scripts and derive their table parameters
@@ -13,7 +15,11 @@ fn session(catalog: &Catalog, scripts: &[(&str, &str)]) -> Arc<TableParameters> 
 }
 
 /// Analyze scripts and derive their table parameters with attachments
-fn session_with(catalog: &Catalog, scripts: &[(&str, &str)], attachments: &[TableParameterAttachment]) -> Arc<TableParameters> {
+fn session_with(
+    catalog: &Catalog,
+    scripts: &[(&str, &str)],
+    attachments: &[TableParameterAttachment],
+) -> Arc<TableParameters> {
     let analyzed: Vec<Script> = scripts
         .iter()
         .map(|(_, text)| {
@@ -49,7 +55,11 @@ fn resolve(script: &Script, results: &TableParameters) -> Vec<String> {
             let target = match column_ref.resolved {
                 ColumnResolution::TableColumn(loc) if loc.table.entry == TABLE_PARAMETERS_ENTRY_ID => {
                     let table = results.table(loc.table).unwrap();
-                    format!("{}.{}", table.table_name.table_name.text(), table.table_columns[loc.column as usize].column_name.text())
+                    format!(
+                        "{}.{}",
+                        table.table_name.table_name.text(),
+                        table.table_columns[loc.column as usize].column_name.text()
+                    )
                 }
                 ColumnResolution::Unresolved => "?".into(),
                 _ => "other".into(),
@@ -68,8 +78,20 @@ fn complete(script: &mut Script, catalog: &Catalog, offset: usize) -> Vec<String
 #[test]
 fn results_are_the_output_columns_of_single_selects() {
     let catalog = Catalog::new();
-    let results = session(&catalog, &[("foo", "select 1 as a, 2 as b"), ("cmds", "create table t (x int); select 1"), ("bar", "select * from :foo")]);
-    let columns = |i: usize| results.entries[i].table.as_ref().map(|t| t.table_columns.iter().map(|c| c.column_name.text().to_string()).collect::<Vec<_>>());
+    let results = session(
+        &catalog,
+        &[
+            ("foo", "select 1 as a, 2 as b"),
+            ("cmds", "create table t (x int); select 1"),
+            ("bar", "select * from :foo"),
+        ],
+    );
+    let columns = |i: usize| {
+        results.entries[i]
+            .table
+            .as_ref()
+            .map(|t| t.table_columns.iter().map(|c| c.column_name.text().to_string()).collect::<Vec<_>>())
+    };
     assert_eq!(columns(0), Some(vec!["a".to_string(), "b".to_string()]));
     assert_eq!(columns(1), None);
 }
@@ -87,9 +109,19 @@ fn results_of_calls_are_the_columns_of_their_functions() {
         .unwrap();
     let results = session(
         &catalog,
-        &[("listed", "call t.list ()"), ("removed", "call t.remove ()"), ("explained", "explain call t.list ()"), ("two", "call t.list (); call t.list ()")],
+        &[
+            ("listed", "call t.list ()"),
+            ("removed", "call t.remove ()"),
+            ("explained", "explain call t.list ()"),
+            ("two", "call t.list (); call t.list ()"),
+        ],
     );
-    let columns = |i: usize| results.entries[i].table.as_ref().map(|t| t.table_columns.iter().map(|c| c.column_name.text().to_string()).collect::<Vec<_>>().join(","));
+    let columns = |i: usize| {
+        results.entries[i]
+            .table
+            .as_ref()
+            .map(|t| t.table_columns.iter().map(|c| c.column_name.text().to_string()).collect::<Vec<_>>().join(","))
+    };
     assert_eq!(columns(0).as_deref(), Some("id,label,_status,_meta,_raw"));
     // Only a single call that reads has a result that other scripts read
     assert_eq!(columns(1), None);
@@ -121,7 +153,14 @@ fn results_flow_through_chains_and_stars() {
     let bar = consumer(&catalog, &first, "select *, 2 as z from :foo");
     let inputs = [("foo", None), ("bar", bar.analyzed.as_deref())];
     let results = Arc::new(TableParameters::derive(&inputs, &[], Some(&first)));
-    let columns: Vec<String> = results.entries[1].table.as_ref().unwrap().table_columns.iter().map(|c| c.column_name.text().to_string()).collect();
+    let columns: Vec<String> = results.entries[1]
+        .table
+        .as_ref()
+        .unwrap()
+        .table_columns
+        .iter()
+        .map(|c| c.column_name.text().to_string())
+        .collect();
     assert_eq!(columns, ["a", "z"]);
     // The script without an analysis kept its columns
     assert!(results.entries[0].table.is_some());
@@ -152,7 +191,15 @@ fn the_result_yields_its_name_to_other_from_items() {
 #[test]
 fn completion_offers_scripts_after_the_colon_of_a_table() {
     let catalog = Catalog::new();
-    let results = session(&catalog, &[("foo", "select 1 as a"), ("food", "select 1 as a"), ("bar", "select 1 as a"), ("cmds", "create table t (x int)")]);
+    let results = session(
+        &catalog,
+        &[
+            ("foo", "select 1 as a"),
+            ("food", "select 1 as a"),
+            ("bar", "select 1 as a"),
+            ("cmds", "create table t (x int)"),
+        ],
+    );
     let text = "select * from :";
     let mut script = consumer(&catalog, &results, text);
     let mut names = complete(&mut script, &catalog, text.len());
@@ -183,7 +230,10 @@ fn completion_of_columns_through_a_result() {
 fn attachments_follow_the_scripts() {
     let catalog = Catalog::new();
     let columns: Vec<Arc<str>> = vec!["region".into(), "amount".into()];
-    let attachments = [TableParameterAttachment { name: "sales", columns: Some(&columns) }, TableParameterAttachment { name: "raw", columns: None }];
+    let attachments = [
+        TableParameterAttachment { name: "sales", columns: Some(&columns) },
+        TableParameterAttachment { name: "raw", columns: None },
+    ];
     let results = session_with(&catalog, &[("foo", "select 1 as a")], &attachments);
     let sources: Vec<_> = results.entries.iter().map(|e| (e.name.to_string(), e.source, e.table.is_some())).collect();
     assert_eq!(
@@ -200,7 +250,10 @@ fn attachments_follow_the_scripts() {
 fn table_parameters_resolve_columns_of_attachments() {
     let catalog = Catalog::new();
     let columns: Vec<Arc<str>> = vec!["region".into(), "amount".into()];
-    let attachments = [TableParameterAttachment { name: "sales", columns: Some(&columns) }, TableParameterAttachment { name: "raw", columns: None }];
+    let attachments = [
+        TableParameterAttachment { name: "sales", columns: Some(&columns) },
+        TableParameterAttachment { name: "raw", columns: None },
+    ];
     let results = session_with(&catalog, &[("foo", "select 1 as a")], &attachments);
     let script = consumer(&catalog, &results, "select s.region, amount, s.nope from :sales s");
     assert_eq!(resolve(&script, &results), ["region -> sales.region", "amount -> sales.amount", "nope -> ?"]);
@@ -225,7 +278,10 @@ fn a_script_and_an_attachment_with_one_name_are_ambiguous() {
 fn completion_offers_attachments_after_the_colon_of_a_table() {
     let catalog = Catalog::new();
     let columns: Vec<Arc<str>> = vec!["region".into()];
-    let attachments = [TableParameterAttachment { name: "sales", columns: Some(&columns) }, TableParameterAttachment { name: "salt", columns: None }];
+    let attachments = [
+        TableParameterAttachment { name: "sales", columns: Some(&columns) },
+        TableParameterAttachment { name: "salt", columns: None },
+    ];
     let results = session_with(&catalog, &[("sample", "select 1 as a")], &attachments);
     let text = "select * from :sa";
     let mut script = consumer(&catalog, &results, text);
@@ -251,9 +307,21 @@ fn table_parameters_compare_names_sources_and_columns() {
     assert!(!base.same_as(&session_with(&catalog, &[("bar", "select 1 as a")], &attachment)));
     assert!(!base.same_as(&session_with(&catalog, &[("foo", "select 1 as a")], &[])));
     let other_columns: [Arc<str>; 1] = [Arc::from("y")];
-    assert!(!base.same_as(&session_with(&catalog, &[("foo", "select 1 as a")], &[TableParameterAttachment { name: "file", columns: Some(&other_columns) }])));
-    assert!(!base.same_as(&session_with(&catalog, &[("foo", "select 1 as a")], &[TableParameterAttachment { name: "file", columns: None }])));
-    let swapped = session_with(&catalog, &[], &[TableParameterAttachment { name: "foo", columns: Some(&columns) }, attachment[0]]);
+    assert!(!base.same_as(&session_with(
+        &catalog,
+        &[("foo", "select 1 as a")],
+        &[TableParameterAttachment { name: "file", columns: Some(&other_columns) }]
+    )));
+    assert!(!base.same_as(&session_with(
+        &catalog,
+        &[("foo", "select 1 as a")],
+        &[TableParameterAttachment { name: "file", columns: None }]
+    )));
+    let swapped = session_with(
+        &catalog,
+        &[],
+        &[TableParameterAttachment { name: "foo", columns: Some(&columns) }, attachment[0]],
+    );
     assert!(!base.same_as(&swapped));
 }
 

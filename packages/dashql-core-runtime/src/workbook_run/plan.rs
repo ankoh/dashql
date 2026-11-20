@@ -93,8 +93,11 @@ impl PlannedStatement {
             parts.push(format!("inlines {}", self.inlined.join(", ")));
         }
         if !self.scans.is_empty() {
-            let scans: Vec<String> =
-                self.scans.iter().map(|scan| if scan.cached { format!("{} (cached)", scan.script) } else { scan.script.clone() }).collect();
+            let scans: Vec<String> = self
+                .scans
+                .iter()
+                .map(|scan| if scan.cached { format!("{} (cached)", scan.script) } else { scan.script.clone() })
+                .collect();
             parts.push(format!("scans {}", scans.join(", ")));
         }
         if self.materializes.is_some() {
@@ -121,13 +124,19 @@ impl PlannedStatement {
             parts.push(format!("inlines the queries of {}", self.inlined.join(", ")));
         }
         for scan in &self.scans {
-            parts.push(format!("scans the {} result of {} at {}", if scan.cached { "cached" } else { "materialized" }, scan.script, scan.path));
+            parts.push(format!(
+                "scans the {} result of {} at {}",
+                if scan.cached { "cached" } else { "materialized" },
+                scan.script,
+                scan.path
+            ));
         }
         if let Some(path) = &self.materializes {
             parts.push(format!("writes its result to {path}"));
         }
         if !self.after.is_empty() {
-            let after: Vec<String> = self.after.iter().map(|(node, reason)| format!("node {node} ({reason})")).collect();
+            let after: Vec<String> =
+                self.after.iter().map(|(node, reason)| format!("node {node} ({reason})")).collect();
             parts.push(format!("runs after {}", after.join(", ")));
         }
         parts.join("; ")
@@ -143,8 +152,11 @@ impl PlannedStatement {
 
     /// The fields of the log messages of the statement
     pub fn log_fields(&self) -> Vec<(String, String)> {
-        let scans: Vec<String> =
-            self.scans.iter().map(|scan| format!("{}{}: {}", scan.script, if scan.cached { " (cached)" } else { "" }, scan.path)).collect();
+        let scans: Vec<String> = self
+            .scans
+            .iter()
+            .map(|scan| format!("{}{}: {}", scan.script, if scan.cached { " (cached)" } else { "" }, scan.path))
+            .collect();
         let after: Vec<String> = self.after.iter().map(|(node, reason)| format!("{node} {reason}")).collect();
         vec![
             ("run".to_string(), self.run_name()),
@@ -221,7 +233,11 @@ pub fn planned_statements(graph: &ExecutionGraphT, files: &[String], run: &PlanR
                 .iter()
                 .flatten()
                 .filter_map(|m| materializations.get(*m as usize))
-                .map(|m| StatementScan { script: file_of(files, m.script), path: m.path.clone().unwrap_or_default(), cached: m.node == NONE })
+                .map(|m| StatementScan {
+                    script: file_of(files, m.script),
+                    path: m.path.clone().unwrap_or_default(),
+                    cached: m.node == NONE,
+                })
                 .collect();
             PlannedStatement {
                 run: run.clone(),
@@ -229,7 +245,11 @@ pub fn planned_statements(graph: &ExecutionGraphT, files: &[String], run: &PlanR
                 script: file_of(files, node.script),
                 statement: position as u32 + 1,
                 statements: statements.len() as u32,
-                statement_type: node.statement_type.variant_name().map(str::to_string).unwrap_or_else(|| node.statement_type.0.to_string()),
+                statement_type: node
+                    .statement_type
+                    .variant_name()
+                    .map(str::to_string)
+                    .unwrap_or_else(|| node.statement_type.0.to_string()),
                 result: node.script_result,
                 cached: false,
                 inlined: node.inlined_scripts.iter().flatten().map(|script| file_of(files, *script)).collect(),
@@ -283,7 +303,11 @@ pub fn script_follows(graph: &ExecutionGraphT, scripts: usize) -> Vec<BTreeSet<u
 
 /// The nodes of a plan that don't run: the nodes of the connections that can't run and the nodes that follow them. A
 /// script runs completely or not at all, so a skipped node skips the other nodes of its script too.
-pub fn skipped_nodes(graph: &ExecutionGraphT, connection_ids: &[String], can_run: impl Fn(&str) -> bool) -> BTreeSet<u32> {
+pub fn skipped_nodes(
+    graph: &ExecutionGraphT,
+    connection_ids: &[String],
+    can_run: impl Fn(&str) -> bool,
+) -> BTreeSet<u32> {
     let nodes = nodes(graph);
     let mut successors: Vec<Vec<u32>> = vec![Vec::new(); nodes.len()];
     for edge in edges(graph) {
@@ -335,7 +359,10 @@ pub fn affected_scripts(dataflow: &Dataflow, inputs: &[String]) -> Vec<u32> {
     while let Some(script) = pending.pop() {
         for edge in &dataflow.edges {
             // The source of an input or an attachment edge is no script
-            let carries = matches!(edge.kind, DataflowEdgeKind::InlineReference | DataflowEdgeKind::ScanReference | DataflowEdgeKind::Table);
+            let carries = matches!(
+                edge.kind,
+                DataflowEdgeKind::InlineReference | DataflowEdgeKind::ScanReference | DataflowEdgeKind::Table
+            );
             if !carries || edge.from.script != script {
                 continue;
             }
@@ -385,7 +412,11 @@ pub struct ResultKey {
 /// the scripts it references (docs/design/query_cache.md). None for scripts that aren't planned, whose connection has
 /// no key or that reference such a script. `key_of` derives the key of a script from its signature, `caches_results`
 /// tells whether the connection of a script caches results.
-pub async fn result_keys<F, Fut>(graph: &ExecutionGraphT, key_of: F, caches_results: impl Fn(u32) -> bool) -> Vec<Option<ResultKey>>
+pub async fn result_keys<F, Fut>(
+    graph: &ExecutionGraphT,
+    key_of: F,
+    caches_results: impl Fn(u32) -> bool,
+) -> Vec<Option<ResultKey>>
 where
     F: Fn(u32, String) -> Fut,
     Fut: Future<Output = Option<String>>,
@@ -418,11 +449,15 @@ where
             lines.extend(referenced.iter().map(|r| r.key.clone()));
             let signature = lines.join("\n");
             let key = key_of(index as u32, signature.clone()).await;
-            set_key(&mut keys, index, key.map(|key| ResultKey {
-                key,
-                signature,
-                reusable: script.cacheable && caches_results(index as u32) && referenced.iter().all(|r| r.reusable),
-            }));
+            set_key(
+                &mut keys,
+                index,
+                key.map(|key| ResultKey {
+                    key,
+                    signature,
+                    reusable: script.cacheable && caches_results(index as u32) && referenced.iter().all(|r| r.reusable),
+                }),
+            );
         }
         if !progressed {
             break;
@@ -439,7 +474,12 @@ mod tests {
     use dashql_core::analyzer::{SqlType, SqlTypeKind};
 
     fn edge(from: u32, to: u32, kind: DataflowEdgeKind) -> DataflowEdge {
-        DataflowEdge { from: DataflowPort { script: from, statement: 0 }, to: DataflowPort { script: to, statement: 0 }, kind, name: String::new() }
+        DataflowEdge {
+            from: DataflowPort { script: from, statement: 0 },
+            to: DataflowPort { script: to, statement: 0 },
+            kind,
+            name: String::new(),
+        }
     }
 
     fn input(name: &str) -> SessionInput {

@@ -376,7 +376,10 @@ fn generate_dataflow_snapshots(dir: &Path) -> Result<(), String> {
         for fixture in fixtures.children_mut() {
             println!("  TEST {}", fixture.get("name").and_then(Node::val).unwrap_or(""));
             fixture.remove("expected");
-            let expected = dataflow::encode_dataflow_fixture(&planner::Fixture::from_node(fixture), &dataflow::collapsed_of(fixture))?;
+            let expected = dataflow::encode_dataflow_fixture(
+                &planner::Fixture::from_node(fixture),
+                &dataflow::collapsed_of(fixture),
+            )?;
             fixture.push("expected", expected);
         }
         write_snapshot(&out, ryml::emit_root(&template));

@@ -19,14 +19,15 @@ use super::pg_proc::{catalog_sql_from_pg_proc, pg_proc_query};
 use super::prefetched_hyper_functions::qualify_prefetched_hyper_functions;
 use super::sql::{function_script_header, quote_identifier, relation_filter, HYPER_WASM_PG_PROC_SOURCE};
 use super::tables::{
-    catalog_tables_of_schema, pack_catalog_descriptor_of_tables, pack_catalog_table_update, CatalogTable, ColumnMetadata,
-    SchemaTables,
+    catalog_tables_of_schema, pack_catalog_descriptor_of_tables, pack_catalog_table_update, CatalogTable,
+    ColumnMetadata, SchemaTables,
 };
-use super::{ConnectorCatalogUpdate, 
-    CatalogEntries, CatalogLoadError, CatalogQuery, ConnectorStep, Publication, QueryAnswer,
+use super::{
+    CatalogEntries, CatalogLoadError, CatalogQuery, ConnectorCatalogUpdate, ConnectorStep, Publication, QueryAnswer,
 };
 use crate::connections::{
-    JsonObject, RelationName, Timestamp, DEFAULT_DATABASE_NAME, HYPER_CLOUD_DEFAULT_DATABASE_NAME, SALESFORCE_CATALOG_DATABASE,
+    JsonObject, RelationName, Timestamp, DEFAULT_DATABASE_NAME, HYPER_CLOUD_DEFAULT_DATABASE_NAME,
+    SALESFORCE_CATALOG_DATABASE,
 };
 use crate::query::QueryType;
 
@@ -60,7 +61,10 @@ pub fn hyper_cloud_attached_database(setup_params: &JsonObject) -> AttachedDatab
         .and_then(Value::as_str)
         .filter(|name| !name.is_empty())
         .unwrap_or(HYPER_CLOUD_DEFAULT_DATABASE_NAME);
-    AttachedDatabase { path: format!("hyper.cloud:{database_name}"), alias: Some(SALESFORCE_CATALOG_DATABASE.to_string()) }
+    AttachedDatabase {
+        path: format!("hyper.cloud:{database_name}"),
+        alias: Some(SALESFORCE_CATALOG_DATABASE.to_string()),
+    }
 }
 
 /// The query of the relations of a Hyper Cloud database, from its `_hyper_catalog`
@@ -68,7 +72,9 @@ pub fn hyper_cloud_catalog_query_sql(database_alias: &str, relations: Option<&[R
     let database = quote_identifier(database_alias);
     let table = |name: &str| format!("{database}.{}.{}", quote_identifier("_hyper_catalog"), quote_identifier(name));
     let relations = match relations {
-        Some(relations) => format!("AND {}", relation_filter("s.schema_name_display", "o.object_name_display", relations)),
+        Some(relations) => {
+            format!("AND {}", relation_filter("s.schema_name_display", "o.object_name_display", relations))
+        }
         None => String::new(),
     };
     format!(
@@ -130,7 +136,8 @@ pub fn catalog_tables_from_hyper_cloud(
         let ordinal_positions = Integers::of(batch, "ordinal_position")?;
         let data_types = Strings::of(batch, "data_type")?;
         for row in 0..batch.num_rows() {
-            let (Some(schema), Some(table), Some(column)) = (schema_names.get(row), table_names.get(row), column_names.get(row))
+            let (Some(schema), Some(table), Some(column)) =
+                (schema_names.get(row), table_names.get(row), column_names.get(row))
             else {
                 continue;
             };
@@ -157,7 +164,9 @@ pub fn catalog_tables_from_hyper_cloud(
         }
     }
     let warning = first_duplicate.map(|first| {
-        format!("Skipping duplicate Hyper Cloud catalog columns: database={database_name} duplicates={duplicates} {first}")
+        format!(
+            "Skipping duplicate Hyper Cloud catalog columns: database={database_name} duplicates={duplicates} {first}"
+        )
     });
     let mut tables = Vec::new();
     for (schema, schema_tables) in schemas {
@@ -295,7 +304,11 @@ impl HyperCatalogUpdate {
             .drain(..)
             .filter_map(|(key, database_name, query_database_name, path)| {
                 let target_relations = relations.as_ref().map(|relations| {
-                    relations.iter().filter(|relation| relation.database_name == database_name).cloned().collect::<Vec<_>>()
+                    relations
+                        .iter()
+                        .filter(|relation| relation.database_name == database_name)
+                        .cloned()
+                        .collect::<Vec<_>>()
                 });
                 // An update of relations only asks the databases they belong to
                 if target_relations.as_ref().is_some_and(Vec::is_empty) {
@@ -360,7 +373,10 @@ impl HyperCatalogUpdate {
         let successful = self.targets.iter().filter(|target| matches!(target.state, TargetState::Tables(_))).count();
         let failures = self.failures();
         if successful == 0 && (full || !failures.is_empty()) {
-            return Err(CatalogLoadError::failed(format!("Failed to refresh every attached database: {}", failures.join("; "))));
+            return Err(CatalogLoadError::failed(format!(
+                "Failed to refresh every attached database: {}",
+                failures.join("; ")
+            )));
         }
         if !full {
             self.phase = Phase::Publish(None);
@@ -414,7 +430,6 @@ impl HyperCatalogUpdate {
         }
         (databases, relations, tables)
     }
-
 }
 
 impl ConnectorCatalogUpdate for HyperCatalogUpdate {
@@ -458,13 +473,15 @@ impl ConnectorCatalogUpdate for HyperCatalogUpdate {
                 self.resolve_targets()
             }
             Phase::Functions => {
-                let answer = answers.into_iter().next().unwrap_or_else(|| Err("the query was not answered".to_string()));
+                let answer =
+                    answers.into_iter().next().unwrap_or_else(|| Err("the query was not answered".to_string()));
                 let batches = answer.map_err(CatalogLoadError::Failed)?;
                 let functions = catalog_sql_from_pg_proc(&batches, Some(DEFAULT_DATABASE_NAME))?;
                 for skipped in &functions.skipped {
                     self.warnings.push(format!("Skipping unsupported PostgreSQL function signature: {skipped}"));
                 }
-                let text = format!("{}{}", function_script_header(HYPER_WASM_PG_PROC_SOURCE, self.updated_at), functions.sql);
+                let text =
+                    format!("{}{}", function_script_header(HYPER_WASM_PG_PROC_SOURCE, self.updated_at), functions.sql);
                 self.batch_functions(text, false)
             }
             _ => Err(CatalogLoadError::failed("the Hyper catalog update didn't ask for queries")),
@@ -482,7 +499,11 @@ impl ConnectorCatalogUpdate for HyperCatalogUpdate {
             let result = if answered.is_empty() {
                 Ok(())
             } else {
-                catalog.replace_tables(self.entries.relations, layer, &pack_catalog_table_update(&[], &answered, &tables))
+                catalog.replace_tables(
+                    self.entries.relations,
+                    layer,
+                    &pack_catalog_table_update(&[], &answered, &tables),
+                )
             };
             return Publication::of(result.map(|()| self.partial_error()).map_err(CatalogLoadError::from));
         }
@@ -500,7 +521,10 @@ impl ConnectorCatalogUpdate for HyperCatalogUpdate {
         } else {
             catalog.replace_tables(self.entries.relations, layer, &pack_catalog_table_update(&databases, &[], &tables))
         };
-        Publication { function_script_text, result: result.map(|()| self.partial_error()).map_err(CatalogLoadError::from) }
+        Publication {
+            function_script_text,
+            result: result.map(|()| self.partial_error()).map_err(CatalogLoadError::from),
+        }
     }
 
     fn take_warnings(&mut self) -> Vec<String> {
@@ -509,7 +533,11 @@ impl ConnectorCatalogUpdate for HyperCatalogUpdate {
 }
 
 /// The tables of the answer of a database, an error if a full refresh found none
-fn read_target(target: &Target, answer: QueryAnswer, full: bool) -> Result<(Vec<CatalogTable>, Option<String>), String> {
+fn read_target(
+    target: &Target,
+    answer: QueryAnswer,
+    full: bool,
+) -> Result<(Vec<CatalogTable>, Option<String>), String> {
     let batches = answer?;
     let (tables, warning) = if target.is_cloud() {
         if full && row_count(&batches) == 0 {

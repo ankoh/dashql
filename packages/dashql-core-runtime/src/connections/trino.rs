@@ -63,9 +63,20 @@ impl TrinoAction {
 }
 
 /// Apply an action of the setup to a Trino connection. The caller checked that the connection is one of Trino.
-pub(super) fn reduce(state: &mut ConnectionState, action: TrinoAction, now: Timestamp, effects: &mut Vec<ConnectionEffect>) {
-    let ConnectionDetails { setup_timings: timings, setup_params, channel_error, health_check_error, channel, connector } =
-        &mut state.details;
+pub(super) fn reduce(
+    state: &mut ConnectionState,
+    action: TrinoAction,
+    now: Timestamp,
+    effects: &mut Vec<ConnectionEffect>,
+) {
+    let ConnectionDetails {
+        setup_timings: timings,
+        setup_params,
+        channel_error,
+        health_check_error,
+        channel,
+        connector,
+    } = &mut state.details;
     let ConnectorDetails::Trino(trino) = connector else {
         return;
     };

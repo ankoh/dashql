@@ -3,8 +3,8 @@
 pub mod actions;
 pub mod context;
 pub mod driver;
-pub mod probe;
 pub mod enums;
+pub mod probe;
 pub mod value;
 
 use crate::comment_blocks::{group_comments, CommentBlocks};
@@ -48,7 +48,10 @@ pub struct StatementDescription {
 
 /// Only whitespace and semicolons
 fn is_description_gap(text: &[u8], begin: usize, end: usize) -> bool {
-    text.get(begin..end.max(begin)).unwrap_or_default().iter().all(|c| matches!(c, b' ' | b'\t' | b'\n' | b'\r' | b'\x0c' | b';'))
+    text.get(begin..end.max(begin))
+        .unwrap_or_default()
+        .iter()
+        .all(|c| matches!(c, b' ' | b'\t' | b'\n' | b'\r' | b'\x0c' | b';'))
 }
 
 /// The end of the statement source, including comments that trail its terminating semicolon on the
@@ -121,7 +124,9 @@ impl ParsedScript {
             };
             let mut cursor = end;
             while cursor < next_begin {
-                if let Some(comment) = comments.iter().find(|c| (c.offset as usize) <= cursor && cursor < c.end() as usize) {
+                if let Some(comment) =
+                    comments.iter().find(|c| (c.offset as usize) <= cursor && cursor < c.end() as usize)
+                {
                     cursor = comment.end() as usize;
                     continue;
                 }
@@ -224,20 +229,24 @@ fn replace_obfuscated_cast_literals(scanned: &mut ScannedScript, nodes: &[Node])
         let Some(&cast) = nodes.get(node.parent() as usize) else { continue };
         if !matches!(
             cast.node_type(),
-            NodeType::OBJECT_SQL_CONST_TYPE_CAST | NodeType::OBJECT_SQL_CONST_FUNCTION_CAST | NodeType::OBJECT_SQL_CONST_INTERVAL_CAST
+            NodeType::OBJECT_SQL_CONST_TYPE_CAST
+                | NodeType::OBJECT_SQL_CONST_FUNCTION_CAST
+                | NodeType::OBJECT_SQL_CONST_INTERVAL_CAST
         ) {
             continue;
         }
         let literal_span = context::resolve_text_span(&scanned.text, &scanned.symbols, *node.symbol_span());
-        let Ok(i) = scanned
-            .obfuscated_literals
-            .binary_search_by_key(&literal_span.offset, |l| l.location.offset)
+        let Ok(i) = scanned.obfuscated_literals.binary_search_by_key(&literal_span.offset, |l| l.location.offset)
         else {
             continue;
         };
         // The type is the text of the cast in front of the literal, e.g. "timestamp with time zone"
         let cast_span = context::resolve_text_span(&scanned.text, &scanned.symbols, *cast.symbol_span());
-        let type_text = scanned.text.get(cast_span.offset as usize..literal_span.offset as usize).unwrap_or_default().to_ascii_lowercase();
+        let type_text = scanned
+            .text
+            .get(cast_span.offset as usize..literal_span.offset as usize)
+            .unwrap_or_default()
+            .to_ascii_lowercase();
         let Some(literal) = scanned.obfuscated_literals.get_mut(i) else { continue };
         let hash = literal.replacement.get(1..5).unwrap_or_default().to_string();
         let has = |s: &str| type_text.contains(s);
@@ -330,7 +339,11 @@ mod tests {
                 .statements
                 .iter()
                 .map(|statement| {
-                    let span = context::resolve_text_span(&parsed.scanned.text, &parsed.scanned.symbols, *parsed.nodes[statement.root as usize].symbol_span());
+                    let span = context::resolve_text_span(
+                        &parsed.scanned.text,
+                        &parsed.scanned.symbols,
+                        *parsed.nodes[statement.root as usize].symbol_span(),
+                    );
                     parsed.scanned.text[span.offset as usize..span.end() as usize].to_string()
                 })
                 .collect();

@@ -10,7 +10,6 @@ use std::rc::Rc;
 
 use serde_json::{Map, Value};
 
-use crate::http::{Headers, HttpResponse};
 use super::json::{
     is_empty_value, js_number, js_string, json_pointer_segments, number_value, read_json_pointer, to_json_text,
 };
@@ -23,6 +22,7 @@ use super::spec::{
     ClientFunctionPoll, ClientFunctionSpec,
 };
 use super::ClientFunctionError;
+use crate::http::{Headers, HttpResponse};
 
 /// The first and the longest wait between two polls
 const POLL_MIN_MS: f64 = 1000.0;
@@ -132,7 +132,8 @@ fn first_request(
     let next = options.get("_next").filter(|v| !v.is_null());
     let poll = options.get("_poll").filter(|v| !v.is_null());
     // Only a request that repeats has this value, anything else would send the request again, even a write
-    let repeats = matches!(spec.pending_of(function), Some(ClientFunctionPending { poll: ClientFunctionPoll::Repeat, .. }));
+    let repeats =
+        matches!(spec.pending_of(function), Some(ClientFunctionPending { poll: ClientFunctionPoll::Repeat, .. }));
     let poll_same = poll.is_some_and(|p| p.as_str() == Some(POLL_SAME));
     if poll_same && !repeats {
         return Err(ClientFunctionError::new(format!("{label} polls a URL, _poll takes the value of its result")));
@@ -262,7 +263,8 @@ impl ClientFunctionCallRun {
         let request = first_request(&spec, &function, options, &lookup(&variables))?;
         let numeric = function.paging.as_ref().is_some_and(ClientFunctionPaging::is_numeric);
         let start = function.paging.as_ref().and_then(|p| p.start).unwrap_or(0.0);
-        let size = function.paging.as_ref().and_then(|p| p.size.as_ref()).and_then(|s| options.get(s)).and_then(Value::as_f64);
+        let size =
+            function.paging.as_ref().and_then(|p| p.size.as_ref()).and_then(|s| options.get(s)).and_then(Value::as_f64);
         let position = match function.paging.as_ref().and_then(|p| p.option.as_ref()) {
             Some(option) if numeric => send.get(option).and_then(Value::as_f64).unwrap_or(start),
             _ if numeric => start,
@@ -369,7 +371,10 @@ impl ClientFunctionCallRun {
             return Ok(read_json_pointer(&page.body, &pointer).cloned());
         }
         // A mistake in a spec would end the list without a word otherwise
-        Err(ClientFunctionError::new(format!("the spec reads a value from the unknown source {}", to_json_text(source))))
+        Err(ClientFunctionError::new(format!(
+            "the spec reads a value from the unknown source {}",
+            to_json_text(source)
+        )))
     }
 
     /// Does the list end after a page? Only a documented rule ends it early, so an empty page is the default.
@@ -509,7 +514,12 @@ impl ClientFunctionCallRun {
     }
 
     /// The response says that the call isn't finished
-    fn on_pending(&mut self, pending: ClientFunctionPending, response: &HttpResponse, now: f64) -> Result<CallStep, ClientFunctionError> {
+    fn on_pending(
+        &mut self,
+        pending: ClientFunctionPending,
+        response: &HttpResponse,
+        now: f64,
+    ) -> Result<CallStep, ClientFunctionError> {
         let poll = match &pending.poll {
             ClientFunctionPoll::Header(header) => match response.header(header).filter(|v| !v.is_empty()) {
                 Some(value) => value.to_string(),
@@ -566,7 +576,8 @@ impl ClientFunctionCallRun {
         let page = self.finish_page(response)?;
         let value = if page.unexpected.is_none() { self.next_value(&page)? } else { None };
         // A list that doesn't move on would repeat forever
-        let previous = if self.page_index == 0 { self.next.as_ref().and_then(Value::as_str) } else { self.last_next.as_deref() };
+        let previous =
+            if self.page_index == 0 { self.next.as_ref().and_then(Value::as_str) } else { self.last_next.as_deref() };
         if value.is_some() && value.as_deref() == previous {
             return Err(ClientFunctionError::new(format!("{} returned the same next value twice", self.label())));
         }
@@ -590,7 +601,8 @@ impl ClientFunctionCallRun {
             let Some(option) = &paging.option else {
                 return Err(ClientFunctionError::new(format!("{} names no option for its paging", self.label())));
             };
-            let next = if paging.is_numeric() { number_value(js_number(&Value::String(value))) } else { Value::String(value) };
+            let next =
+                if paging.is_numeric() { number_value(js_number(&Value::String(value))) } else { Value::String(value) };
             self.send.insert(option.clone(), next);
             build_client_function_request(&self.spec, &self.function, &self.send, &lookup(&self.variables))?
         };

@@ -8,7 +8,8 @@ use dashql_snapshots::{compare, load_category, run, Arguments, Failed, Trial};
 /// The nodes of a plan are in statement order of the scripts in session order, edges point forward
 fn check_order(graph: &ExecutionGraphT) -> Result<(), String> {
     let nodes = graph.nodes.as_deref().unwrap_or_default();
-    let (scripts, connections) = (graph.scripts.as_ref().map_or(0, Vec::len), graph.connections.as_ref().map_or(0, Vec::len));
+    let (scripts, connections) =
+        (graph.scripts.as_ref().map_or(0, Vec::len), graph.connections.as_ref().map_or(0, Vec::len));
     for (i, node) in nodes.iter().enumerate() {
         if node.script as usize >= scripts || node.connection as usize >= connections {
             return Err(format!("node {i} references an unknown script or connection"));

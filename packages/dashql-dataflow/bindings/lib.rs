@@ -87,8 +87,10 @@ pub fn dataflow_config() -> DataflowConfig {
 #[wasm_bindgen(js_name = routeDataflowEdges)]
 pub fn route_dataflow_edges(boxes: &[f64], edges: &[f64]) -> Vec<f64> {
     use dashql_dataflow::routing::{route_edges, RouteBox, RouteRequestEdge};
-    let boxes: Vec<RouteBox> = boxes.chunks_exact(4).map(|b| RouteBox { x: b[0], y: b[1], width: b[2], height: b[3] }).collect();
-    let edges: Vec<RouteRequestEdge> = edges.chunks_exact(4).map(|e| RouteRequestEdge { from: (e[0], e[1]), to: (e[2], e[3]) }).collect();
+    let boxes: Vec<RouteBox> =
+        boxes.chunks_exact(4).map(|b| RouteBox { x: b[0], y: b[1], width: b[2], height: b[3] }).collect();
+    let edges: Vec<RouteRequestEdge> =
+        edges.chunks_exact(4).map(|e| RouteRequestEdge { from: (e[0], e[1]), to: (e[2], e[3]) }).collect();
     let mut out = Vec::new();
     for route in route_edges(&boxes, &edges, &dashql_dataflow::layout::DataflowLayoutConfig::default()) {
         let points = route.unwrap_or_default();
@@ -97,7 +99,6 @@ pub fn route_dataflow_edges(boxes: &[f64], edges: &[f64]) -> Vec<f64> {
     }
     out
 }
-
 
 /// The layout of the dataflow canvas (`layout::compute_dataflow_layout_with_routes`): boxes and edges in, the geometry
 /// of the boxes out
@@ -114,7 +115,13 @@ pub struct DataflowLayout {
 impl DataflowLayout {
     #[wasm_bindgen(constructor)]
     pub fn new() -> DataflowLayout {
-        DataflowLayout { config: Default::default(), boxes: Vec::new(), edges: Vec::new(), geometry: Vec::new(), routes: Vec::new() }
+        DataflowLayout {
+            config: Default::default(),
+            boxes: Vec::new(),
+            edges: Vec::new(),
+            geometry: Vec::new(),
+            routes: Vec::new(),
+        }
     }
 
     /// Add a box, returns its index. A negative chart statement is absent, a width or a chart height that is not
@@ -156,7 +163,8 @@ impl DataflowLayout {
 
     /// Lay out the boxes, returns x, y, width and height of every box
     pub fn compute(&mut self) -> Vec<f64> {
-        (self.geometry, self.routes) = dashql_dataflow::layout::compute_dataflow_layout_with_routes(&self.boxes, &self.edges, &self.config);
+        (self.geometry, self.routes) =
+            dashql_dataflow::layout::compute_dataflow_layout_with_routes(&self.boxes, &self.edges, &self.config);
         self.geometry.iter().flat_map(|g| [g.x, g.y, g.width, g.height]).collect()
     }
 

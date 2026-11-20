@@ -261,7 +261,10 @@ impl WorkbookData {
                 "nativePath" => data.native_path = string(value),
                 "name" => data.name = string(value),
                 "connections" => {
-                    data.connections = value.as_array().map(|list| list.iter().filter_map(WorkbookConnection::from_json).collect()).unwrap_or_default();
+                    data.connections = value
+                        .as_array()
+                        .map(|list| list.iter().filter_map(WorkbookConnection::from_json).collect())
+                        .unwrap_or_default();
                 }
                 "scripts" => {
                     has_scripts = true;
@@ -271,7 +274,10 @@ impl WorkbookData {
                     };
                     for entry in list {
                         let script = entry.as_object().and_then(|object| {
-                            Some(WorkbookScript::new(object.get("name")?.as_str()?, object.get("connectionId")?.as_str()?))
+                            Some(WorkbookScript::new(
+                                object.get("name")?.as_str()?,
+                                object.get("connectionId")?.as_str()?,
+                            ))
                         });
                         match script {
                             Some(script) => data.scripts.push(script),
@@ -328,12 +334,20 @@ impl WorkbookData {
         if let Some(name) = &self.name {
             object.insert("name".into(), json!(name));
         }
-        object.insert("connections".into(), Value::Array(self.connections.iter().map(WorkbookConnection::to_json).collect()));
+        object.insert(
+            "connections".into(),
+            Value::Array(self.connections.iter().map(WorkbookConnection::to_json).collect()),
+        );
         object.insert(
             "scripts".into(),
-            Value::Array(self.scripts.iter().map(|s| json!({ "name": s.name, "connectionId": s.connection_id })).collect()),
+            Value::Array(
+                self.scripts.iter().map(|s| json!({ "name": s.name, "connectionId": s.connection_id })).collect(),
+            ),
         );
-        object.insert("attachments".into(), Value::Array(self.attachments.iter().map(|a| json!({ "name": a.name })).collect()));
+        object.insert(
+            "attachments".into(),
+            Value::Array(self.attachments.iter().map(|a| json!({ "name": a.name })).collect()),
+        );
         object.insert("metadata".into(), self.metadata.to_json());
         if let Some(at) = &self.last_modified {
             object.insert("lastModified".into(), json!(at));
@@ -378,7 +392,15 @@ pub struct ConnectionEntry {
 impl ConnectionEntry {
     /// An entry with params
     pub fn new(id: impl Into<String>, params: Value) -> Self {
-        Self { id: id.into(), params, params_draft: None, name: None, created_at: None, cache_query_results: None, extra: JsonObject::new() }
+        Self {
+            id: id.into(),
+            params,
+            params_draft: None,
+            name: None,
+            created_at: None,
+            cache_query_results: None,
+            extra: JsonObject::new(),
+        }
     }
 
     /// Read an entry, None if it has no string `id`

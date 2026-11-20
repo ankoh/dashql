@@ -1,23 +1,24 @@
 //! Tests of editor sessions: events, offset units, analysis projections, completion, diffs and
 //! catalog publishing. Packed events go through `apply_buffer`.
 
-use dashql_core::catalog::CatalogLayer;
+use dashql_buffers::completion::CompletionT;
 use dashql_buffers::cursor::RelativeSymbolPosition;
 use dashql_buffers::diff::ScriptDiffOpCode;
 use dashql_buffers::editor::{
-    EditorCursorSemanticKind, EditorDiagnosticSource, EditorEventAction, EditorEventIntent, EditorEventOrigin,
-    EditorEventT, EditorOffsetUnit, EditorAnalysisVersionT, EditorSelectionT, EditorSemanticReferenceKind, EditorSemanticResolution,
-    EditorSemanticSpanT, EditorTextChangeT, EditorTextSpanT, EditorUpdateStatus, EditorUpdateT,
+    EditorAnalysisVersionT, EditorCursorSemanticKind, EditorDiagnosticSource, EditorEventAction, EditorEventIntent,
+    EditorEventOrigin, EditorEventT, EditorOffsetUnit, EditorSelectionT, EditorSemanticReferenceKind,
+    EditorSemanticResolution, EditorSemanticSpanT, EditorTextChangeT, EditorTextSpanT, EditorUpdateStatus,
+    EditorUpdateT,
 };
+use dashql_buffers::execution::ScriptCompilationResultT;
 use dashql_buffers::formatting::{FormattingConfigT, FormattingDialect, FormattingMode, KeywordCase};
 use dashql_buffers::parser::{ScannerTokenType, StatementType};
+use dashql_core::catalog::CatalogLayer;
 use dashql_core::catalog::{Catalog, PROTO_NULL_U32};
 use dashql_core::pack::pack_completion;
-use dashql_core::vis_rewrite::VisBoard;
 use dashql_core::script::Script;
 use dashql_core::script_session::ScriptSession;
-use dashql_buffers::completion::CompletionT;
-use dashql_buffers::execution::ScriptCompilationResultT;
+use dashql_core::vis_rewrite::VisBoard;
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -58,7 +59,12 @@ impl Session {
         self.inner.complete(&self.catalog.borrow(), limit, keyword_case)
     }
 
-    fn compile_query(&mut self, config: &FormattingConfigT, allow_extensions: bool, parse_if_outdated: bool) -> ScriptCompilationResultT {
+    fn compile_query(
+        &mut self,
+        config: &FormattingConfigT,
+        allow_extensions: bool,
+        parse_if_outdated: bool,
+    ) -> ScriptCompilationResultT {
         self.inner.compile_query(&self.catalog.borrow(), config, allow_extensions, parse_if_outdated)
     }
 
@@ -556,7 +562,8 @@ fn projects_unicode_syntax_comments_and_diagnostics_as_utf8_bytes() {
     assert_eq!(missing.resolution, EditorSemanticResolution::UNRESOLVED);
     assert_eq!(missing.text_span.offset, text.find("missing").unwrap() as u64);
 
-    let mut scanner_session = Session { catalog: catalog.clone(), inner: ScriptSession::new(&catalog.borrow(), UTF8).unwrap() };
+    let mut scanner_session =
+        Session { catalog: catalog.clone(), inner: ScriptSession::new(&catalog.borrow(), UTF8).unwrap() };
     let scanner_text = "select '\u{e9}";
     let scanner_update = analyze(&mut scanner_session, scanner_text);
     let diagnostics = scanner_update.diagnostics.as_ref().unwrap();
@@ -564,7 +571,8 @@ fn projects_unicode_syntax_comments_and_diagnostics_as_utf8_bytes() {
     assert_eq!(scanner.message.as_deref(), Some("unterminated quoted string"));
     assert_eq!(read_span(scanner_text, scanner.text_span.as_ref()), "'\u{e9}");
 
-    let mut parser_session = Session { catalog: catalog.clone(), inner: ScriptSession::new(&catalog.borrow(), UTF8).unwrap() };
+    let mut parser_session =
+        Session { catalog: catalog.clone(), inner: ScriptSession::new(&catalog.borrow(), UTF8).unwrap() };
     let parser_text = "select 1 'alias'";
     let parser_update = analyze(&mut parser_session, parser_text);
     let parser =
@@ -749,7 +757,10 @@ fn projects_the_board_position_of_the_last_statement() {
     let catalog = new_catalog();
     let mut session = session(&catalog, UTF8);
     // The placement of the last statement places the script, also without a renderer
-    let update = analyze(&mut session, "/* @board width=2 */\nselect 1;\n/* @board row=1 column=3 width=4 height=2 */\ncreate table t (a int)");
+    let update = analyze(
+        &mut session,
+        "/* @board width=2 */\nselect 1;\n/* @board row=1 column=3 width=4 height=2 */\ncreate table t (a int)",
+    );
     let position = update.script_annotations.as_ref().unwrap().board_position.as_ref().unwrap();
     assert_eq!(
         (position.statement_id, position.row, position.column, position.width, position.height),
@@ -763,7 +774,8 @@ fn projects_the_board_position_of_the_last_statement() {
 fn projects_the_flow_position_of_the_script() {
     let catalog = new_catalog();
     let mut session = session(&catalog, UTF8);
-    let update = analyze(&mut session, "select 1;\n/* @vis table\n   @flow x=-16 y=240 width=400 height=96 */\nselect 2");
+    let update =
+        analyze(&mut session, "select 1;\n/* @vis table\n   @flow x=-16 y=240 width=400 height=96 */\nselect 2");
     let position = update.script_annotations.as_ref().unwrap().flow_position.as_ref().unwrap();
     assert_eq!(
         (position.statement_id, position.x, position.y, position.width, position.height),
@@ -772,7 +784,10 @@ fn projects_the_flow_position_of_the_script() {
     // A box without a position is placed automatically
     let update = analyze(&mut session, "/* @flow width=200 */\nselect 1");
     let position = update.script_annotations.as_ref().unwrap().flow_position.as_ref().unwrap();
-    assert_eq!((position.statement_id, position.x, position.y, position.width, position.height), (0, None, None, Some(200), None));
+    assert_eq!(
+        (position.statement_id, position.x, position.y, position.width, position.height),
+        (0, None, None, Some(200), None)
+    );
     let update = analyze(&mut session, "select 1");
     assert!(update.script_annotations.as_ref().unwrap().flow_position.is_none());
 }
@@ -801,7 +816,10 @@ fn sessions_rewrite_the_tags_of_their_script() {
         "select :min;\n/**\n * @param Sales.\n * @flow x=1 y=2\n */\nselect 2"
     );
     // The analysis puts the value at the first use of the input
-    assert_eq!(session.rewrite_param_tag("min", Some("3"), false).unwrap(), "/** @param :min = 3 */\nselect :min;\n-- @param Sales.\nselect 2");
+    assert_eq!(
+        session.rewrite_param_tag("min", Some("3"), false).unwrap(),
+        "/** @param :min = 3 */\nselect :min;\n-- @param Sales.\nselect 2"
+    );
     // The rewrites return the text, the session keeps its own
     assert_eq!(session.text(), "select :min;\n-- @param Sales.\nselect 2");
     assert!(session.read_annotation(2, false).is_err());
@@ -966,7 +984,8 @@ fn compatibility_query_formatting_and_diff_apis() {
 fn rewrites_the_board_placement_through_the_parsed_comments() {
     let catalog = new_catalog();
     let mut session = session(&catalog, UTF16);
-    let source = "/* \u{1F4CA} @vis board is text here\n   @vis table\n   @board row=1 width=4 */\nselect '\u{1F4CA}' as label";
+    let source =
+        "/* \u{1F4CA} @vis board is text here\n   @vis table\n   @board row=1 width=4 */\nselect '\u{1F4CA}' as label";
     assert_eq!(session.replace_text(0, source).status, EditorUpdateStatus::OK);
 
     assert_eq!(
@@ -985,7 +1004,9 @@ fn inserts_a_board_placement_into_a_visualization() {
     let mut session = session(&catalog, UTF8);
     assert_eq!(session.replace_text(0, "/* @vis table */\nselect 1").status, EditorUpdateStatus::OK);
     assert_eq!(
-        session.rewrite_vis_board(0, Some(&VisBoard { row: Some(0), column: Some(0), width: 6, height: 3 }), true).unwrap(),
+        session
+            .rewrite_vis_board(0, Some(&VisBoard { row: Some(0), column: Some(0), width: 6, height: 3 }), true)
+            .unwrap(),
         "/**\n * @vis table\n * @board row=0 column=0 width=6 height=3\n */\nselect 1"
     );
 }
@@ -1088,7 +1109,10 @@ fn places_queries_with_and_without_a_renderer() {
     let mut script = Script::new(&catalog);
     script.replace_text("select 1");
     let board = VisBoard { row: Some(-1), column: Some(20), width: 20, height: 0 };
-    assert_eq!(script.rewrite_vis_board(0, Some(&board), true).unwrap(), "/** @board column=0 width=12 height=1 */\nselect 1");
+    assert_eq!(
+        script.rewrite_vis_board(0, Some(&board), true).unwrap(),
+        "/** @board column=0 width=12 height=1 */\nselect 1"
+    );
     script.replace_text("/* @vis vegalite {\"mark\": \"bar\"} */\nselect 1");
     assert_eq!(
         script.rewrite_vis_board(0, Some(&board), true).unwrap(),
@@ -1220,8 +1244,7 @@ fn completion_ignores_published_version_of_edited_script() {
     assert!(analyze(&mut session, text).analysis_available);
     assert_eq!(session.set_primary_cursor(session.text_version(), text.len() as u64).status, EditorUpdateStatus::OK);
     let completion = session.complete(10, KeywordCase::LOWER).unwrap();
-    let texts: Vec<_> =
-        completion.candidates.iter().flatten().filter_map(|c| c.completion_text.as_deref()).collect();
+    let texts: Vec<_> = completion.candidates.iter().flatten().filter_map(|c| c.completion_text.as_deref()).collect();
     assert!(texts.contains(&"items_new"), "{texts:?}");
     assert!(!texts.contains(&"items_old"), "{texts:?}");
 }
@@ -1259,7 +1282,8 @@ fn cursor_context_names_the_descriptor_that_declares_the_table() {
         let mut catalog_script = Script::new(&catalog);
         catalog_script.replace_text(catalog_sql);
         catalog_script.analyze(&catalog, true).unwrap();
-        let bytes = dashql_core::pack::pack_catalog_descriptor(&catalog_script.analyzed.as_ref().unwrap().entry).unwrap();
+        let bytes =
+            dashql_core::pack::pack_catalog_descriptor(&catalog_script.analyzed.as_ref().unwrap().entry).unwrap();
         let id = catalog_script.catalog_entry_id();
         catalog.replace_descriptor(id, CatalogLayer::CONNECTION, &bytes).unwrap();
         id
@@ -1273,7 +1297,13 @@ fn cursor_context_names_the_descriptor_that_declares_the_table() {
     let text = "select name from items";
     assert!(analyze(&mut session, text).analysis_available);
     check(session.set_primary_cursor(session.text_version(), 9).primary_cursor_context.as_ref().unwrap());
-    check(session.set_primary_cursor(session.text_version(), text.find("items").unwrap() as u64 + 1).primary_cursor_context.as_ref().unwrap());
+    check(
+        session
+            .set_primary_cursor(session.text_version(), text.find("items").unwrap() as u64 + 1)
+            .primary_cursor_context
+            .as_ref()
+            .unwrap(),
+    );
 }
 
 #[test]
@@ -1302,7 +1332,8 @@ fn script_references_are_table_parameters_of_the_analysis() {
     session.replace_text(&catalog, 0, text);
     session.analyze(&catalog);
     let names = vec!["foo".to_string(), "Bar".to_string()];
-    let found: Vec<(u64, u64, Option<usize>)> = session.script_references(&names).into_iter().map(|(s, i)| (s.offset, s.length, i)).collect();
+    let found: Vec<(u64, u64, Option<usize>)> =
+        session.script_references(&names).into_iter().map(|(s, i)| (s.offset, s.length, i)).collect();
     // The UTF-16 offset of `:FOO` and `:bar` behind the `é` of the literal, not the comment, the literal, the scalar or the write target
     let utf16 = |needle: &str| text[..text.find(needle).unwrap()].encode_utf16().count() as u64;
     assert_eq!(found, [(utf16(":FOO"), 4, Some(0)), (utf16(":bar"), 4, Some(1))]);
@@ -1319,21 +1350,29 @@ fn the_cursor_relates_table_parameters_like_tables() {
     let _schema = load_schema(&catalog, "create table foo (a int)");
     let mut producer = session(&catalog, UTF8);
     analyze(&mut producer, "select 1 as a");
-    let results = Arc::new(TableParameters::derive(&[("patient_fox", producer.script().analyzed.as_deref())], &[], None));
+    let results =
+        Arc::new(TableParameters::derive(&[("patient_fox", producer.script().analyzed.as_deref())], &[], None));
     let mut consumer = session(&catalog, UTF8);
     consumer.set_table_parameters(Some(results));
     let text = "select * from :patient_fox f, foo b where f.a = b.a";
     let update = analyze(&mut consumer, text);
     assert_eq!(update.status, EditorUpdateStatus::OK);
     // The parameter is a resolved table reference
-    let span = find_semantic_span(&update, text, EditorSemanticReferenceKind::TABLE, ":patient_fox f").expect("table span");
+    let span =
+        find_semantic_span(&update, text, EditorSemanticReferenceKind::TABLE, ":patient_fox f").expect("table span");
     assert_eq!(span.resolution, EditorSemanticResolution::RESOLVED);
     let mut related = |offset: usize| {
         let update = consumer.set_primary_cursor(consumer.text_version(), offset as u64);
         let context = update.primary_cursor_context.as_ref().unwrap().clone();
-        (context.kind, context.related_table_reference_ids.unwrap_or_default(), context.related_column_reference_ids.unwrap_or_default().len())
+        (
+            context.kind,
+            context.related_table_reference_ids.unwrap_or_default(),
+            context.related_column_reference_ids.unwrap_or_default().len(),
+        )
     };
-    let table_ref = |source: &str| find_semantic_span(&update, text, EditorSemanticReferenceKind::TABLE, source).unwrap().reference_id;
+    let table_ref = |source: &str| {
+        find_semantic_span(&update, text, EditorSemanticReferenceKind::TABLE, source).unwrap().reference_id
+    };
     // f of f.a relates :patient_fox f, b of b.a relates foo b
     let (kind, tables, columns) = related(text.find("f.a").unwrap());
     assert_eq!(kind, EditorCursorSemanticKind::COLUMN_REFERENCE);

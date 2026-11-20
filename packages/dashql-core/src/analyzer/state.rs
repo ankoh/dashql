@@ -3,6 +3,7 @@
 use super::types::*;
 use super::AnalyzedScript;
 use crate::catalog::*;
+use crate::hash::HashMap;
 use dashql_buffers::analyzer::{AnalyzerErrorSeverity, AnalyzerErrorType, NameTag, SemanticNodeMarkerType};
 use dashql_buffers::parser::{Node, NodeType, SymbolSpan};
 use dashql_parser::names::NameId;
@@ -10,7 +11,6 @@ use dashql_parser::parser::context::resolve_text_span;
 use dashql_parser::parser::ParsedScript;
 use dashql_parser::scanner::ScannedScript;
 use dashql_parser::span::TextSpan;
-use crate::hash::HashMap;
 use std::sync::Arc;
 
 /// The state shared between the analysis passes of a script
@@ -180,19 +180,12 @@ impl<'a> AnalysisState<'a> {
 
     /// A name of the script, with an empty text for an id that the script doesn't hold
     pub fn name(&self, id: NameId) -> Name {
-        Name {
-            entry: self.entry_id,
-            id,
-            text: self.name_texts.get(id as usize).cloned().unwrap_or_default(),
-        }
+        Name { entry: self.entry_id, id, text: self.name_texts.get(id as usize).cloned().unwrap_or_default() }
     }
 
     /// The location of an object of this script
     pub fn loc(&self, index: usize) -> ObjectLoc {
-        ObjectLoc {
-            entry: self.entry_id,
-            index: index as u32,
-        }
+        ObjectLoc { entry: self.entry_id, index: index as u32 }
     }
 
     /// The empty name
@@ -269,7 +262,13 @@ impl<'a> AnalysisState<'a> {
     }
 
     /// Add an error at an AST node, without a location for a node that the AST doesn't hold
-    pub fn add_error(&mut self, error_type: AnalyzerErrorType, severity: AnalyzerErrorSeverity, node_id: u32, message: String) {
+    pub fn add_error(
+        &mut self,
+        error_type: AnalyzerErrorType,
+        severity: AnalyzerErrorSeverity,
+        node_id: u32,
+        message: String,
+    ) {
         let span = self.node(node_id).map(|n| *n.symbol_span());
         let text_span = span.map(|s| self.text_span(s));
         self.out.errors.push(AnalyzerError {
@@ -321,12 +320,7 @@ impl<'a> AnalysisState<'a> {
             self.tag(&schema, NameTag::SCHEMA_NAME);
         }
         self.tag(&table, NameTag::TABLE_NAME);
-        Some(QualifiedTableName {
-            ast_node_id,
-            database_name: db,
-            schema_name: schema,
-            table_name: table,
-        })
+        Some(QualifiedTableName { ast_node_id, database_name: db, schema_name: schema, table_name: table })
     }
 
     /// Read a qualified column name.
@@ -340,22 +334,14 @@ impl<'a> AnalysisState<'a> {
             [column] => {
                 let column = self.name(column);
                 self.tag(&column, NameTag::COLUMN_NAME);
-                Some(QualifiedColumnName {
-                    ast_node_id,
-                    table_alias: None,
-                    column_name: column,
-                })
+                Some(QualifiedColumnName { ast_node_id, table_alias: None, column_name: column })
             }
             [alias, column, ..] => {
                 let alias = self.name(alias);
                 let column = self.name(column);
                 self.tag(&alias, NameTag::TABLE_ALIAS);
                 self.tag(&column, NameTag::COLUMN_NAME);
-                Some(QualifiedColumnName {
-                    ast_node_id,
-                    table_alias: Some(alias),
-                    column_name: column,
-                })
+                Some(QualifiedColumnName { ast_node_id, table_alias: Some(alias), column_name: column })
             }
         }
     }
@@ -378,12 +364,7 @@ impl<'a> AnalysisState<'a> {
             self.tag(&schema, NameTag::SCHEMA_NAME);
         }
         self.tag(&function, NameTag::FUNCTION_NAME);
-        Some(QualifiedFunctionName {
-            ast_node_id,
-            database_name: db,
-            schema_name: schema,
-            function_name: function,
-        })
+        Some(QualifiedFunctionName { ast_node_id, database_name: db, schema_name: schema, function_name: function })
     }
 
     /// A table of this script or of the catalog

@@ -25,7 +25,9 @@ use super::{
     CatalogTicket, CatalogUpdate, CatalogUpdateHost, CatalogUpdateOutcome, QueryAnswer, STALE_MESSAGE,
 };
 use crate::clfn::{ClientFunctionRegistrations, ClientFunctionRegistryEffect};
-use crate::connections::{CatalogUpdateTask, CatalogUpdateTaskStatus, ConnectionChannel, ConnectionState, RelationName};
+use crate::connections::{
+    CatalogUpdateTask, CatalogUpdateTaskStatus, ConnectionChannel, ConnectionState, RelationName,
+};
 use crate::host::signal::{oneshot, Sender};
 use crate::host::{join_all, HostError, LocalFuture, LogLevel};
 use crate::http::{CancellationToken, HttpHost, HttpRequest, HttpResponse};
@@ -210,7 +212,8 @@ impl<H: CatalogLoaderHost> CatalogLoaderService<H> {
 
     /// Follow a connection of the registry under its id, it replaces another connection of the id
     pub fn follow(&self, connection_id: &str, connection: &FollowedConnection) {
-        let followed = Followed { state: Rc::downgrade(&connection.state), queries: Rc::downgrade(&connection.queries) };
+        let followed =
+            Followed { state: Rc::downgrade(&connection.state), queries: Rc::downgrade(&connection.queries) };
         let mut state = self.state.borrow_mut();
         match state.connections.iter_mut().find(|(id, _)| id == connection_id) {
             Some((_, current)) => *current = followed,
@@ -282,8 +285,10 @@ impl<H: CatalogLoaderHost> CatalogLoaderService<H> {
             let connection_state = connection.as_ref().and_then(|connection| connection.state.try_borrow().ok());
             let spec = spec.as_deref().map_err(|error| error.message().to_string());
             let mut state = self.state.borrow_mut();
-            let registered = state.registrations.spec_loaded_of(connection_id, connection_state.as_deref(), ticket, spec);
-            let (waiters, others) = std::mem::take(&mut state.spec_waiters).into_iter().partition(|(id, _)| id == connection_id);
+            let registered =
+                state.registrations.spec_loaded_of(connection_id, connection_state.as_deref(), ticket, spec);
+            let (waiters, others) =
+                std::mem::take(&mut state.spec_waiters).into_iter().partition(|(id, _)| id == connection_id);
             state.spec_waiters = others;
             (registered, waiters)
         };
@@ -306,7 +311,10 @@ impl<H: CatalogLoaderHost> CatalogLoaderService<H> {
     /// The spec of the client functions that the catalog of a connection registered, the one that its calls run with.
     /// A spec that loads is awaited. None after its registration failed: the core then describes no calls of the
     /// connection.
-    pub fn client_function_spec(&self, connection_id: &str) -> impl Future<Output = Option<Rc<crate::clfn::ClientFunctionSpec>>> + 'static {
+    pub fn client_function_spec(
+        &self,
+        connection_id: &str,
+    ) -> impl Future<Output = Option<Rc<crate::clfn::ClientFunctionSpec>>> + 'static {
         let service = self.clone();
         let connection_id = connection_id.to_string();
         async move {
@@ -461,7 +469,10 @@ impl<H: CatalogLoaderHost> CatalogLoaderService<H> {
     /// Is an update still the one of its connection: the connection is followed with this state and runs the update?
     fn is_current(&self, connection_id: &str, connection: &FollowedConnection, task_id: u32) -> bool {
         self.follows(connection_id, &connection.state)
-            && connection.state.try_borrow().is_ok_and(|state| state.catalog_updates().tasks_running.contains_key(&task_id))
+            && connection
+                .state
+                .try_borrow()
+                .is_ok_and(|state| state.catalog_updates().tasks_running.contains_key(&task_id))
     }
 
     /// The reason of a cancelled update
@@ -471,7 +482,12 @@ impl<H: CatalogLoaderHost> CatalogLoaderService<H> {
     }
 
     /// Run an update of a connection to its end
-    async fn run_update(&self, connection_id: &str, task_id: u32, relations: Option<Vec<RelationName>>) -> Result<(), CatalogLoadError> {
+    async fn run_update(
+        &self,
+        connection_id: &str,
+        task_id: u32,
+        relations: Option<Vec<RelationName>>,
+    ) -> Result<(), CatalogLoadError> {
         let Some(connection) = self.connection(connection_id) else {
             self.log(LogLevel::Warn, "Failed to resolve connection", &[("connectionId", connection_id)]);
             return Err(CatalogLoadError::failed(format!("couldn't find a connection with id {connection_id}")));
@@ -481,17 +497,19 @@ impl<H: CatalogLoaderHost> CatalogLoaderService<H> {
         // The clock of the host is read before anything is borrowed
         let now = self.host.now();
         let update = {
-            let connection_state = connection
-                .state
-                .try_borrow()
-                .map_err(|_| CatalogLoadError::failed("the connection is in use"))?;
+            let connection_state =
+                connection.state.try_borrow().map_err(|_| CatalogLoadError::failed("the connection is in use"))?;
             let mut state = self.state.borrow_mut();
             CatalogUpdate::start(&connection_state, task_id, relations, &mut state.generations, now)
         };
         let update = match update {
             Ok(update) => update,
             Err(error) => {
-                self.log(LogLevel::Warn, "Catalog update failed", &[("connectionId", connection_id), ("error", error.message())]);
+                self.log(
+                    LogLevel::Warn,
+                    "Catalog update failed",
+                    &[("connectionId", connection_id), ("error", error.message())],
+                );
                 return Err(error);
             }
         };
@@ -531,7 +549,14 @@ impl<H: CatalogLoaderHost> CatalogLoaderService<H> {
     }
 
     /// Finish an update: set the text of the function script, log the outcome and let the host apply it
-    fn finish(&self, connection_id: &str, task_id: u32, connection: &FollowedConnection, outcome: &CatalogUpdateOutcome, started_at: f64) {
+    fn finish(
+        &self,
+        connection_id: &str,
+        task_id: u32,
+        connection: &FollowedConnection,
+        outcome: &CatalogUpdateOutcome,
+        started_at: f64,
+    ) {
         if let Some(text) = &outcome.function_script_text {
             let replaced = match connection.state.try_borrow_mut() {
                 Ok(mut state) => state.replace_function_script_text(text).map_err(|error| error.message),
@@ -539,7 +564,11 @@ impl<H: CatalogLoaderHost> CatalogLoaderService<H> {
             };
             match replaced {
                 Ok(()) => self.host.connection_changed(connection_id),
-                Err(error) => self.log(LogLevel::Warn, "Failed to keep the function script", &[("connectionId", connection_id), ("error", &error)]),
+                Err(error) => self.log(
+                    LogLevel::Warn,
+                    "Failed to keep the function script",
+                    &[("connectionId", connection_id), ("error", &error)],
+                ),
             }
         }
         for warning in &outcome.warnings {
@@ -550,15 +579,21 @@ impl<H: CatalogLoaderHost> CatalogLoaderService<H> {
             CatalogUpdateTaskStatus::Succeeded | CatalogUpdateTaskStatus::Started => {
                 self.log(LogLevel::Debug, "Updated catalog", &[("connectionId", connection_id)])
             }
-            CatalogUpdateTaskStatus::PartiallySucceeded => {
-                self.log(LogLevel::Warn, "Partially updated the catalog", &[("connectionId", connection_id), ("failed", &error)])
-            }
-            CatalogUpdateTaskStatus::Cancelled => {
-                self.log(LogLevel::Info, "Cancelled catalog update", &[("connectionId", connection_id), ("error", &error)])
-            }
-            CatalogUpdateTaskStatus::Failed => {
-                self.log(LogLevel::Error, "Failed to update catalog", &[("connectionId", connection_id), ("error", &error)])
-            }
+            CatalogUpdateTaskStatus::PartiallySucceeded => self.log(
+                LogLevel::Warn,
+                "Partially updated the catalog",
+                &[("connectionId", connection_id), ("failed", &error)],
+            ),
+            CatalogUpdateTaskStatus::Cancelled => self.log(
+                LogLevel::Info,
+                "Cancelled catalog update",
+                &[("connectionId", connection_id), ("error", &error)],
+            ),
+            CatalogUpdateTaskStatus::Failed => self.log(
+                LogLevel::Error,
+                "Failed to update catalog",
+                &[("connectionId", connection_id), ("error", &error)],
+            ),
         }
         self.host.update_finished(connection_id, task_id, outcome);
         let duration = format!("{:.0}", self.host.now() - started_at);
@@ -591,7 +626,9 @@ impl<H: CatalogLoaderHost> CatalogUpdateHost for RunningUpdate<'_, H> {
         let host = &self.service.host;
         let runs: Vec<LocalFuture<Result<Vec<RecordBatch>, HostError>>> = queries
             .iter()
-            .map(|query| Box::pin(host.run_query(self.connection_id, self.task_id, query, &self.token)) as LocalFuture<_>)
+            .map(|query| {
+                Box::pin(host.run_query(self.connection_id, self.task_id, query, &self.token)) as LocalFuture<_>
+            })
             .collect();
         let results = self.token.run(join_all(runs)).await.filter(|_| !self.token.is_cancelled())?;
         Some(results.into_iter().map(|result| result.map_err(|error| error.message().to_string())).collect())
@@ -602,7 +639,8 @@ impl<H: CatalogLoaderHost> CatalogUpdateHost for RunningUpdate<'_, H> {
             return Some(Err("the connection is in use".to_string()));
         };
         if let Some(channel) = &channel {
-            let fresh = self.token.run(channel.fresh(&self.service.host)).await.filter(|_| !self.token.is_cancelled())?;
+            let fresh =
+                self.token.run(channel.fresh(&self.service.host)).await.filter(|_| !self.token.is_cancelled())?;
             if let Err(error) = fresh {
                 return Some(Err(error));
             }
@@ -613,8 +651,10 @@ impl<H: CatalogLoaderHost> CatalogUpdateHost for RunningUpdate<'_, H> {
     async fn fetch(&self, requests: &[HttpRequest]) -> Option<Vec<Result<HttpResponse, String>>> {
         let host = &self.service.host;
         let started_at = host.now();
-        let fetches: Vec<LocalFuture<Result<HttpResponse, HostError>>> =
-            requests.iter().map(|request| Box::pin(host.fetch(request.clone(), &self.token)) as LocalFuture<_>).collect();
+        let fetches: Vec<LocalFuture<Result<HttpResponse, HostError>>> = requests
+            .iter()
+            .map(|request| Box::pin(host.fetch(request.clone(), &self.token)) as LocalFuture<_>)
+            .collect();
         let responses = self.token.run(join_all(fetches)).await.filter(|_| !self.token.is_cancelled())?;
         let duration = format!("{:.2}", host.now() - started_at);
         let count = responses.len().to_string();
@@ -631,7 +671,8 @@ impl<H: CatalogLoaderHost> CatalogUpdateHost for RunningUpdate<'_, H> {
         if !self.service.is_current(self.connection_id, self.connection, self.task_id) {
             return Err(CatalogLoadError::cancelled(STALE_MESSAGE));
         }
-        let state = self.connection.state.try_borrow().map_err(|_| CatalogLoadError::failed("the connection is in use"))?;
+        let state =
+            self.connection.state.try_borrow().map_err(|_| CatalogLoadError::failed("the connection is in use"))?;
         Ok(state.catalog().clone())
     }
 }

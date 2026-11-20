@@ -9,14 +9,16 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::task::{Context, Poll, Wake, Waker};
 
-use dashql_core_runtime::settings::RuntimeSettings;
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
-use dashql_core_storage::workbook_format::data::{STORAGE_VERSION, WORKBOOK_FORMAT_VERSION};
+use dashql_core_runtime::settings::RuntimeSettings;
 use dashql_core_storage::storage::{Expect, FileStamp, FolderListing, FolderStamps};
-use dashql_core_storage::workbook_format::migration::{migrate_folder, migrate_stamped_folder, FolderHost, WorkbookMigrationResult};
+use dashql_core_storage::workbook_format::data::{STORAGE_VERSION, WORKBOOK_FORMAT_VERSION};
+use dashql_core_storage::workbook_format::migration::{
+    migrate_folder, migrate_stamped_folder, FolderHost, WorkbookMigrationResult,
+};
 use dashql_core_storage::workbook_format::storage_migration::{
-    migrate_storage, plan_connection_migration, run_storage_migration_step, DirEntry, MigratingSession, StorageMigrationSummary,
-    StorageRootHost, STORAGE_MIGRATION_STEPS,
+    migrate_storage, plan_connection_migration, run_storage_migration_step, DirEntry, MigratingSession,
+    StorageMigrationSummary, StorageRootHost, STORAGE_MIGRATION_STEPS,
 };
 use serde_json::{json, Value};
 
@@ -220,10 +222,10 @@ impl StorageRootHost for FakeRoot {
             .map(|dir| DirEntry { name: dir.rsplit('/').next().unwrap_or_default().to_string(), directory: true })
             .collect();
         entries.extend(
-            fs.files
-                .keys()
-                .filter(|file| parent(file) == path)
-                .map(|file| DirEntry { name: file.rsplit('/').next().unwrap_or_default().to_string(), directory: false }),
+            fs.files.keys().filter(|file| parent(file) == path).map(|file| DirEntry {
+                name: file.rsplit('/').next().unwrap_or_default().to_string(),
+                directory: false,
+            }),
         );
         Ok(Some(entries))
     }
@@ -236,7 +238,8 @@ impl StorageRootHost for FakeRoot {
         for dir in dirs {
             fs.create_dirs(&format!("{to}/{dir}"));
         }
-        let files: Vec<(String, String)> = fs.files.iter().filter_map(|(file, text)| Some((below(from, file)?, text.clone()))).collect();
+        let files: Vec<(String, String)> =
+            fs.files.iter().filter_map(|(file, text)| Some((below(from, file)?, text.clone()))).collect();
         for (file, text) in files {
             let target = format!("{to}/{file}");
             if keep_existing && fs.files.contains_key(&target) {
@@ -257,7 +260,11 @@ impl StorageRootHost for FakeRoot {
             return Ok(None);
         }
         fs.claims.push(native_path.to_string());
-        Ok(fs.native_dirs.contains(native_path).then(|| FakeFolder { fs: self.fs.clone(), native: true, dir: native_path.to_string() }))
+        Ok(fs.native_dirs.contains(native_path).then(|| FakeFolder {
+            fs: self.fs.clone(),
+            native: true,
+            dir: native_path.to_string(),
+        }))
     }
 
     fn random_uuid(&self) -> Result<String, HostError> {
@@ -384,10 +391,14 @@ fn brings_a_notebook_storage_to_the_current_version() {
     assert!(manifest.get("notebooks").is_none());
     assert_eq!(manifest["appSettings"], json!({ "keywordCase": "upper" }));
     assert_eq!(manifest["storageVersion"], json!(STORAGE_VERSION));
-    let ids: Vec<&str> = manifest["connections"].as_array().unwrap().iter().map(|entry| entry["id"].as_str().unwrap()).collect();
+    let ids: Vec<&str> =
+        manifest["connections"].as_array().unwrap().iter().map(|entry| entry["id"].as_str().unwrap()).collect();
     assert_eq!(ids, [DB_A]);
     assert_eq!(manifest["connections"][0]["createdAt"], json!("2026-01-01T00:00:00.000Z"));
-    assert_eq!(root.text(&format!("connections/{DB_A}/dashql-catalog-relations.sql")).as_deref(), Some("CREATE TABLE a(id int);"));
+    assert_eq!(
+        root.text(&format!("connections/{DB_A}/dashql-catalog-relations.sql")).as_deref(),
+        Some("CREATE TABLE a(id int);")
+    );
 
     // The OPFS session moved and is at the current format
     assert!(root.dirs_starting_with("notebooks").is_empty());
@@ -404,7 +415,8 @@ fn brings_a_notebook_storage_to_the_current_version() {
     let session_b = root.native_json(&format!("{NATIVE_DIR}/dashql-workbook.json"));
     assert_eq!(session_b["formatVersion"], json!(WORKBOOK_FORMAT_VERSION));
     assert_eq!(session_b["workbookId"], json!(SESSION_B));
-    let connections: Vec<&str> = session_b["connections"].as_array().unwrap().iter().map(|c| c["connectionId"].as_str().unwrap()).collect();
+    let connections: Vec<&str> =
+        session_b["connections"].as_array().unwrap().iter().map(|c| c["connectionId"].as_str().unwrap()).collect();
     assert_eq!(connections, [DB_A]);
 
     // A migrated storage stays as it is
@@ -419,7 +431,10 @@ fn brings_a_notebook_storage_to_the_current_version() {
 fn keeps_the_connections_of_a_storage_that_has_them_already() {
     let root = storage();
     let connections = json!([{ "id": DB_B, "params": wasm(), "createdAt": "2026-10-22T00:00:00.000Z" }]);
-    root.set("dashql-manifest.json", json!({ "notebooks": [{ "path": SESSION_A }], "connections": connections }).to_string());
+    root.set(
+        "dashql-manifest.json",
+        json!({ "notebooks": [{ "path": SESSION_A }], "connections": connections }).to_string(),
+    );
     root.dir("notebooks");
     root.dir(&format!("notebooks/{SESSION_A}"));
     root.set(&format!("notebooks/{SESSION_A}/dashql-notebook.json"), notebook(SESSION_A, DB_B));
@@ -441,7 +456,10 @@ fn migrates_the_workbooks_of_a_current_storage() {
     root.set(&format!("workbooks/{SESSION_A}/dashql-notebook.json"), notebook(SESSION_A, DB_A));
 
     assert_eq!(root.migrate().unwrap(), summary(0, 1));
-    assert_eq!(root.json(&format!("workbooks/{SESSION_A}/dashql-workbook.json"))["formatVersion"], json!(WORKBOOK_FORMAT_VERSION));
+    assert_eq!(
+        root.json(&format!("workbooks/{SESSION_A}/dashql-workbook.json"))["formatVersion"],
+        json!(WORKBOOK_FORMAT_VERSION)
+    );
     // A current storage has nothing left to migrate
     assert_eq!(root.migrate().unwrap(), summary(0, 0));
 }
@@ -468,7 +486,10 @@ fn moves_the_sessions_of_the_manifest_into_the_folder_my_sessions_of_the_session
     );
 
     assert_eq!(i64::from(root.migrate().unwrap().steps), STORAGE_VERSION - 6);
-    assert_eq!(root.json("workbooktree/My Sessions/dashql-folder.json"), json!({ "workbooks": [{ "path": SESSION_A, "storageType": "opfs" }] }));
+    assert_eq!(
+        root.json("workbooktree/My Sessions/dashql-folder.json"),
+        json!({ "workbooks": [{ "path": SESSION_A, "storageType": "opfs" }] })
+    );
     assert_eq!(
         root.json("workbooktree/clients/dashql-folder.json")["workbooks"],
         json!([{ "path": SESSION_B, "storageType": "native", "nativePath": NATIVE_DIR }])
@@ -481,7 +502,10 @@ fn moves_the_sessions_of_the_manifest_into_the_folder_my_sessions_of_the_session
 
     // The step is idempotent
     block_on(run_storage_migration_step(&root, 9)).unwrap();
-    assert_eq!(root.json("workbooktree/My Sessions/dashql-folder.json"), json!({ "workbooks": [{ "path": SESSION_A, "storageType": "opfs" }] }));
+    assert_eq!(
+        root.json("workbooktree/My Sessions/dashql-folder.json"),
+        json!({ "workbooks": [{ "path": SESSION_A, "storageType": "opfs" }] })
+    );
 }
 
 #[test]
@@ -520,7 +544,10 @@ fn seeds_connections_without_a_catalog_from_the_catalog_copies_of_the_sessions()
     root.migrate().unwrap();
 
     assert_eq!(root.json("dashql-manifest.json")["storageVersion"], json!(STORAGE_VERSION));
-    assert_eq!(root.text(&format!("connections/{DB_A}/dashql-catalog-relations.sql")).as_deref(), Some("CREATE TABLE a(id int);"));
+    assert_eq!(
+        root.text(&format!("connections/{DB_A}/dashql-catalog-relations.sql")).as_deref(),
+        Some("CREATE TABLE a(id int);")
+    );
     assert_eq!(root.text(&format!("connections/{DB_A}/dashql-catalog-changes.sql")).as_deref(), Some("DROP TABLE a;"));
     assert_eq!(root.text(&format!("connections/{DB_B}/dashql-catalog-relations.sql")), None);
     assert_eq!(
@@ -529,9 +556,13 @@ fn seeds_connections_without_a_catalog_from_the_catalog_copies_of_the_sessions()
     );
     // The copies are removed from every session
     assert_eq!(root.files_starting_with("workbooks/"), [format!("workbooks/{SESSION_A}/dashql-workbook.json")]);
-    let native: Vec<String> = root.fs.borrow().native_files.keys().filter(|file| file.starts_with(NATIVE_DIR)).cloned().collect();
+    let native: Vec<String> =
+        root.fs.borrow().native_files.keys().filter(|file| file.starts_with(NATIVE_DIR)).cloned().collect();
     assert_eq!(native, [format!("{NATIVE_DIR}/dashql-workbook.json")]);
-    assert_eq!(root.json(&format!("workbooks/{SESSION_A}/dashql-workbook.json"))["formatVersion"], json!(WORKBOOK_FORMAT_VERSION));
+    assert_eq!(
+        root.json(&format!("workbooks/{SESSION_A}/dashql-workbook.json"))["formatVersion"],
+        json!(WORKBOOK_FORMAT_VERSION)
+    );
 }
 
 #[test]
@@ -552,9 +583,15 @@ fn drops_the_aliases_of_the_connections() {
 
     let manifest = root.json("dashql-manifest.json");
     assert_eq!(manifest["storageVersion"], json!(STORAGE_VERSION));
-    assert_eq!(manifest["connections"], json!([{ "id": DB_A, "params": wasm(), "createdAt": created_at }, { "id": DB_B, "params": wasm() }]));
+    assert_eq!(
+        manifest["connections"],
+        json!([{ "id": DB_A, "params": wasm(), "createdAt": created_at }, { "id": DB_B, "params": wasm() }])
+    );
     // The fields keep their order
-    assert_eq!(serde_json::to_string(&manifest["connections"][0]).unwrap(), format!(r#"{{"id":"{DB_A}","params":{{"hyper":{{"protocol":"WASM"}}}},"createdAt":"{created_at}"}}"#));
+    assert_eq!(
+        serde_json::to_string(&manifest["connections"][0]).unwrap(),
+        format!(r#"{{"id":"{DB_A}","params":{{"hyper":{{"protocol":"WASM"}}}},"createdAt":"{created_at}"}}"#)
+    );
 }
 
 #[test]
@@ -658,7 +695,10 @@ fn renames_the_sessions_as_workbooks() {
     assert_eq!(root.text(&format!("workbooks/{SESSION_A}/dashql-session.json")), None);
     assert_eq!(root.text(&format!("workbooks/{SESSION_A}/scripts/1_a.sql")).as_deref(), Some("SELECT 1"));
     let settings = &root.json("dashql-manifest.json")["appSettings"];
-    assert_eq!(serde_json::to_string(settings).unwrap(), format!(r#"{{"keywordCase":"upper","agentWorkbooks":["{SESSION_A}"]}}"#));
+    assert_eq!(
+        serde_json::to_string(settings).unwrap(),
+        format!(r#"{{"keywordCase":"upper","agentWorkbooks":["{SESSION_A}"]}}"#)
+    );
 }
 
 #[test]
@@ -703,9 +743,10 @@ fn old_storage() -> FakeRoot {
         .to_string(),
     );
     root.dir("notebooks");
-    for (session_id, database_id, params, relations) in
-        [(SESSION_A, DB_A, wasm(), "CREATE TABLE a(id int);"), (SESSION_C, DB_A, trino("https://trino", ""), "CREATE TABLE c(id int);")]
-    {
+    for (session_id, database_id, params, relations) in [
+        (SESSION_A, DB_A, wasm(), "CREATE TABLE a(id int);"),
+        (SESSION_C, DB_A, trino("https://trino", ""), "CREATE TABLE c(id int);"),
+    ] {
         root.dir(&format!("notebooks/{session_id}"));
         root.dir(&format!("notebooks/{session_id}/scripts"));
         root.set(&format!("notebooks/{session_id}/dashql-notebook.json"), notebook_on(session_id, database_id, params));
@@ -746,7 +787,10 @@ fn diff(actual: &Snapshot, expected: &Snapshot) -> Vec<String> {
 /// The ids of the connections of the manifest
 fn manifest_connection_ids(root: &FakeRoot) -> Vec<String> {
     let manifest = root.json("dashql-manifest.json");
-    manifest["connections"].as_array().map(|entries| entries.iter().filter_map(|e| e["id"].as_str().map(str::to_string)).collect()).unwrap_or_default()
+    manifest["connections"]
+        .as_array()
+        .map(|entries| entries.iter().filter_map(|e| e["id"].as_str().map(str::to_string)).collect())
+        .unwrap_or_default()
 }
 
 /// The folders of connections that the manifest doesn't list
@@ -773,7 +817,10 @@ fn repeats_a_migration_that_failed_at_any_operation_to_the_same_storage() {
     let expected = snapshot(&reference);
     assert_eq!(manifest_connection_ids(&reference), [DB_A, FRESH_ID]);
     assert!(orphans(&reference).is_empty());
-    assert_eq!(reference.text(&format!("connections/{FRESH_ID}/dashql-catalog-relations.sql")).as_deref(), Some("CREATE TABLE c(id int);"));
+    assert_eq!(
+        reference.text(&format!("connections/{FRESH_ID}/dashql-catalog-relations.sql")).as_deref(),
+        Some("CREATE TABLE c(id int);")
+    );
     let total = reference.fs.borrow().ops;
 
     let mut interrupted_at_versions = BTreeSet::new();
@@ -812,7 +859,9 @@ fn removes_the_catalogs_that_an_interrupted_step_copied_under_fresh_ids() {
             let failed = root.migrate().is_err();
             (root, failed)
         })
-        .find(|(root, failed)| *failed && root.text(&fresh).is_some() && root.json("dashql-manifest.json").get("connections").is_none())
+        .find(|(root, failed)| {
+            *failed && root.text(&fresh).is_some() && root.json("dashql-manifest.json").get("connections").is_none()
+        })
         .map(|(root, _)| root)
         .expect("an interruption after the catalog copy");
     assert_eq!(storage_version(&root), 2);
@@ -824,7 +873,10 @@ fn removes_the_catalogs_that_an_interrupted_step_copied_under_fresh_ids() {
     assert_eq!(manifest_connection_ids(&root), [DB_A, second]);
     assert_eq!(root.text(&fresh), None);
     assert!(root.dirs_starting_with(&format!("connections/{FRESH_ID}")).is_empty());
-    assert_eq!(root.text(&format!("connections/{second}/dashql-catalog-relations.sql")).as_deref(), Some("CREATE TABLE c(id int);"));
+    assert_eq!(
+        root.text(&format!("connections/{second}/dashql-catalog-relations.sql")).as_deref(),
+        Some("CREATE TABLE c(id int);")
+    );
     assert!(orphans(&root).is_empty());
 }
 
@@ -865,8 +917,12 @@ fn session(session_id: &str, database_id: &str, params: Value, draft: Option<Val
     v4_session(session_id, main, json!([]))
 }
 
-fn plan(sessions: &[MigratingSession]) -> dashql_core_storage::workbook_format::storage_migration::ConnectionMigrationPlan {
-    plan_connection_migration(sessions, "2026-10-22T00:00:00.000Z", &mut || "00000000-0000-4000-8000-000000000000".to_string())
+fn plan(
+    sessions: &[MigratingSession],
+) -> dashql_core_storage::workbook_format::storage_migration::ConnectionMigrationPlan {
+    plan_connection_migration(sessions, "2026-10-22T00:00:00.000Z", &mut || {
+        "00000000-0000-4000-8000-000000000000".to_string()
+    })
 }
 
 fn entry_ids(entries: &[Value]) -> Vec<&str> {
@@ -893,7 +949,10 @@ fn consolidates_databases_with_equal_params_under_the_first_id() {
 
 #[test]
 fn keeps_databases_that_differ_in_a_secret_separate() {
-    let plan = plan(&[session(SESSION_A, DB_A, trino("https://trino", "one"), None), session(SESSION_B, DB_B, trino("https://trino", "two"), None)]);
+    let plan = plan(&[
+        session(SESSION_A, DB_A, trino("https://trino", "one"), None),
+        session(SESSION_B, DB_B, trino("https://trino", "two"), None),
+    ]);
     assert_eq!(entry_ids(&plan.entries), [DB_A, DB_B]);
     assert!(plan.rewrites.is_empty());
 }
@@ -902,7 +961,8 @@ fn keeps_databases_that_differ_in_a_secret_separate() {
 fn consolidates_params_that_differ_in_the_draft_rows_of_a_form() {
     let mut with_rows = trino("https://trino", "");
     with_rows["trino"]["draftRows"] = json!([{ "key": "a" }]);
-    let plan = plan(&[session(SESSION_A, DB_A, with_rows, None), session(SESSION_B, DB_B, trino("https://trino", ""), None)]);
+    let plan =
+        plan(&[session(SESSION_A, DB_A, with_rows, None), session(SESSION_B, DB_B, trino("https://trino", ""), None)]);
     assert_eq!(entry_ids(&plan.entries), [DB_A]);
     assert_eq!(plan.entries[0]["params"], trino("https://trino", ""));
 }
@@ -916,13 +976,19 @@ fn moves_drafts_into_the_app_manifest_and_keeps_conflicting_drafts_in_connection
         session(SESSION_B, DB_B, trino("https://trino", ""), Some(draft_one.clone())),
         session(SESSION_C, DB_C, trino("https://trino", ""), Some(draft_two.clone())),
     ]);
-    let drafts: Vec<(&str, &Value)> = plan.entries.iter().map(|entry| (entry["id"].as_str().unwrap(), &entry["paramsDraft"])).collect();
+    let drafts: Vec<(&str, &Value)> =
+        plan.entries.iter().map(|entry| (entry["id"].as_str().unwrap(), &entry["paramsDraft"])).collect();
     assert_eq!(drafts, [(DB_A, &draft_one), (DB_C, &draft_two)]);
     // Every session drops its draft
     for (_, rewrite) in &plan.rewrites {
         assert!(rewrite["mainDatabase"].get("paramsDraft").is_none());
     }
-    let rewrite = |session_id: &str| plan.rewrites.iter().find(|(id, _)| id == session_id).map(|(_, data)| data["mainDatabase"]["databaseId"].clone());
+    let rewrite = |session_id: &str| {
+        plan.rewrites
+            .iter()
+            .find(|(id, _)| id == session_id)
+            .map(|(_, data)| data["mainDatabase"]["databaseId"].clone())
+    };
     assert_eq!(rewrite(SESSION_B), Some(json!(DB_A)));
     assert_eq!(rewrite(SESSION_C), Some(json!(DB_C)));
 }
@@ -934,7 +1000,10 @@ fn dedupes_references_that_consolidate_within_a_session() {
         json!({ "databaseId": DB_A, "params": wasm() }),
         json!([{ "databaseId": DB_B, "params": wasm() }, { "databaseId": DB_C, "params": trino("https://trino", "") }]),
     )]);
-    assert_eq!(plan.rewrites[0].1["attachedDatabases"], json!([{ "databaseId": DB_C, "params": trino("https://trino", "") }]));
+    assert_eq!(
+        plan.rewrites[0].1["attachedDatabases"],
+        json!([{ "databaseId": DB_C, "params": trino("https://trino", "") }])
+    );
 }
 
 #[test]
@@ -993,14 +1062,23 @@ impl FolderHost for MemoryFolder {
 
 #[test]
 fn records_the_stamp_of_the_workbook_file_that_a_migration_of_an_acknowledged_folder_writes() {
-    let old = json!({ "formatVersion": 10, "sessionId": SESSION_A, "sessionPath": "opfs://sessions/x", "name": "n" }).to_string();
+    let old = json!({ "formatVersion": 10, "sessionId": SESSION_A, "sessionPath": "opfs://sessions/x", "name": "n" })
+        .to_string();
     let folder = MemoryFolder::with(&[("dashql-session.json", old)]);
     let stamps = FolderStamps::default();
     let before = FileStamp { size: 1.0, mtime_ms: 1.0 };
     stamps.acknowledge(SESSION_A, &FolderListing { workbook: Some(before), ..FolderListing::default() });
-    assert_eq!(block_on(migrate_stamped_folder(&folder, SESSION_A, &stamps)).unwrap(), WorkbookMigrationResult::Migrated);
+    assert_eq!(
+        block_on(migrate_stamped_folder(&folder, SESSION_A, &stamps)).unwrap(),
+        WorkbookMigrationResult::Migrated
+    );
     // The migration wrote the workbook file, the app's own write is no change outside the app
-    let written = folder.files.borrow().iter().find(|(name, _)| name == "dashql-workbook.json").map(|(_, text)| text.len() as f64);
+    let written = folder
+        .files
+        .borrow()
+        .iter()
+        .find(|(name, _)| name == "dashql-workbook.json")
+        .map(|(_, text)| text.len() as f64);
     let stamp = FileStamp { size: written.unwrap(), mtime_ms: 2.0 };
     assert_eq!(stamps.expect_workbook(SESSION_A), Expect::Stamp(stamp));
     let listing = FolderListing { workbook: Some(stamp), ..FolderListing::default() };
@@ -1010,7 +1088,11 @@ fn records_the_stamp_of_the_workbook_file_that_a_migration_of_an_acknowledged_fo
 #[test]
 fn brings_a_notebook_folder_to_the_current_format_the_writes_first_and_then_the_removals() {
     let folder = MemoryFolder::with(&[
-        ("dashql-notebook.json", json!({ "formatVersion": 2, "notebookId": SESSION_A, "notebookPath": "opfs://notebooks/x", "name": "n" }).to_string()),
+        (
+            "dashql-notebook.json",
+            json!({ "formatVersion": 2, "notebookId": SESSION_A, "notebookPath": "opfs://notebooks/x", "name": "n" })
+                .to_string(),
+        ),
         ("dashql-notebook-index.json", r#"{"scripts":[]}"#.to_string()),
         ("dashql-relations.sql", "relations".to_string()),
     ]);
@@ -1038,7 +1120,13 @@ fn stops_at_a_target_version_and_leaves_unusable_folders_untouched() {
     assert_eq!(folder.json("dashql-notebook.json")["formatVersion"], json!(3));
     assert!(folder.names().iter().any(|name| name == "dashql-catalog-relations.sql"));
 
-    let newer = MemoryFolder::with(&[("dashql-session.json", format!(r#"{{"formatVersion":{}}}"#, WORKBOOK_FORMAT_VERSION + 1))]);
+    let newer = MemoryFolder::with(&[(
+        "dashql-session.json",
+        format!(r#"{{"formatVersion":{}}}"#, WORKBOOK_FORMAT_VERSION + 1),
+    )]);
     assert_eq!(block_on(migrate_folder(&newer, WORKBOOK_FORMAT_VERSION)).unwrap(), WorkbookMigrationResult::Newer);
-    assert_eq!(block_on(migrate_folder(&MemoryFolder::default(), WORKBOOK_FORMAT_VERSION)).unwrap(), WorkbookMigrationResult::Missing);
+    assert_eq!(
+        block_on(migrate_folder(&MemoryFolder::default(), WORKBOOK_FORMAT_VERSION)).unwrap(),
+        WorkbookMigrationResult::Missing
+    );
 }

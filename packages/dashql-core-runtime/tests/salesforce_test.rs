@@ -5,12 +5,12 @@ use std::collections::BTreeMap;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use base64::Engine;
 use dashql_core_runtime::clfn::HttpResponse;
+use dashql_core_runtime::connections::sharing::sanitize_connection_params_for_sharing;
 use dashql_core_runtime::connections::{ConnectorType, OAuthPkceChallenge};
 use dashql_core_runtime::salesforce::api::*;
 use dashql_core_runtime::salesforce::auth::*;
 use dashql_core_runtime::salesforce::client_functions::*;
 use dashql_core_runtime::salesforce::*;
-use dashql_core_runtime::connections::sharing::sanitize_connection_params_for_sharing;
 use serde_json::{json, Value};
 
 /// 2026-01-01T00:00:00.000Z
@@ -29,7 +29,11 @@ fn encode_jwt_part(value: &Value) -> String {
 }
 
 fn core_token(instance_url: &str) -> SalesforceCoreAccessToken {
-    SalesforceCoreAccessToken { access_token: "core-token".into(), instance_url: Some(instance_url.into()), ..Default::default() }
+    SalesforceCoreAccessToken {
+        access_token: "core-token".into(),
+        instance_url: Some(instance_url.into()),
+        ..Default::default()
+    }
 }
 
 /// The form fields of a body
@@ -44,7 +48,8 @@ fn form(body: &str) -> BTreeMap<String, String> {
 
 #[test]
 fn requests_metadata_separately_for_each_entity_type() {
-    let (mut load, progress) = SalesforceMetadataLoad::new(&core_token("https://example.my.salesforce.com/"), "Marketing Space");
+    let (mut load, progress) =
+        SalesforceMetadataLoad::new(&core_token("https://example.my.salesforce.com/"), "Marketing Space");
     assert!(progress.iter().all(|p| p.state == SalesforceMetadataState::Requesting));
     let mut urls: Vec<&str> = load.requests().iter().map(|r| r.url.as_str()).collect();
     urls.sort();
@@ -75,7 +80,10 @@ fn requests_metadata_separately_for_each_entity_type() {
         reported.push(progress);
     }
     let metadata = load.finish().unwrap();
-    assert_eq!(metadata.metadata.iter().map(|e| e.name.as_str()).collect::<Vec<_>>(), ["Individual__dlm", "Account__dll", "Revenue__cio"]);
+    assert_eq!(
+        metadata.metadata.iter().map(|e| e.name.as_str()).collect::<Vec<_>>(),
+        ["Individual__dlm", "Account__dll", "Revenue__cio"]
+    );
     assert_eq!(metadata.metadata[0].fields[0].name, "FirstName__c");
     assert_eq!(metadata.metadata[0].primary_keys[0].name, "Id__c");
     assert_eq!(metadata.metadata[2].fields.iter().map(|f| f.name.as_str()).collect::<Vec<_>>(), ["Amount__c"]);
@@ -118,15 +126,22 @@ fn returns_successful_metadata_and_logs_details_when_one_request_fails() {
     assert_eq!(states.iter().filter(|s| **s == SalesforceMetadataState::Complete).count(), 2);
     assert_eq!(states.iter().filter(|s| **s == SalesforceMetadataState::Failed).count(), 1);
     let metadata = load.finish().unwrap();
-    assert_eq!(metadata.metadata.iter().map(|e| e.name.as_str()).collect::<Vec<_>>(), ["DataModelObject", "CalculatedInsight"]);
+    assert_eq!(
+        metadata.metadata.iter().map(|e| e.name.as_str()).collect::<Vec<_>>(),
+        ["DataModelObject", "CalculatedInsight"]
+    );
 }
 
 #[test]
 fn rejects_with_only_the_summary_when_every_metadata_request_fails() {
     let (mut load, _) = SalesforceMetadataLoad::new(&core_token("https://example.my.salesforce.com"), "default");
-    let failures: Vec<_> = (0..3).filter_map(|i| load.on_response(i, &response(json!({ "error": "unavailable" }), 503))?.1).collect();
+    let failures: Vec<_> =
+        (0..3).filter_map(|i| load.on_response(i, &response(json!({ "error": "unavailable" }), 503))?.1).collect();
     assert_eq!(failures.len(), 3);
-    assert_eq!(load.finish().unwrap_err().message, "Metadata: 0 done, 0 active, 3 failed | DMO failed | DLO failed | CI failed");
+    assert_eq!(
+        load.finish().unwrap_err().message,
+        "Metadata: 0 done, 0 active, 3 failed | DMO failed | DLO failed | CI failed"
+    );
 }
 
 #[test]
@@ -157,8 +172,14 @@ fn formats_aggregate_progress_for_all_three_metadata_requests() {
         ("DataLakeObject".to_string(), progress("DataLakeObject", 0, None, SalesforceMetadataState::Requesting)),
         ("CalculatedInsight".to_string(), progress("CalculatedInsight", 0, None, SalesforceMetadataState::Failed)),
     ]);
-    assert_eq!(format_salesforce_metadata_progress(&map), "Metadata: 1 done, 1 active, 1 failed | DMO 120 | DLO - | CI failed");
-    assert_eq!(format_salesforce_metadata_progress(&BTreeMap::new()), "Metadata: 0 done, 0 active, 0 failed, 3 pending | DMO - | DLO - | CI -");
+    assert_eq!(
+        format_salesforce_metadata_progress(&map),
+        "Metadata: 1 done, 1 active, 1 failed | DMO 120 | DLO - | CI failed"
+    );
+    assert_eq!(
+        format_salesforce_metadata_progress(&BTreeMap::new()),
+        "Metadata: 0 done, 0 active, 0 failed, 3 pending | DMO - | DLO - | CI -"
+    );
 }
 
 // The tokens
@@ -173,9 +194,17 @@ fn decodes_base64url_jwt_parts_without_changing_the_raw_token() {
         "scp": ["api", "sfap_api", "cdp_query_api", "data_cloud_user_claims"],
         "customAttributes": { "dataspace": "Marketing" },
     });
-    let raw = format!("{}.{}.signature", encode_jwt_part(&json!({ "alg": "RS256", "marker": "\u{ffff}\u{ffff}\u{ffff}" })), encode_jwt_part(&payload));
+    let raw = format!(
+        "{}.{}.signature",
+        encode_jwt_part(&json!({ "alg": "RS256", "marker": "\u{ffff}\u{ffff}\u{ffff}" })),
+        encode_jwt_part(&payload)
+    );
     assert!(raw.contains(['-', '_']));
-    let core = parse_core_access_token(&json!({ "access_token": "opaque-core-token", "instance_url": "https://example.my.salesforce.com" }), NOW).unwrap();
+    let core = parse_core_access_token(
+        &json!({ "access_token": "opaque-core-token", "instance_url": "https://example.my.salesforce.com" }),
+        NOW,
+    )
+    .unwrap();
     let request = data_cloud_access_token_request(&core);
     assert_eq!(request.url, "https://example.my.salesforce.com/services/a360/token");
     let fields = form(request.body.as_deref().unwrap());
@@ -192,7 +221,10 @@ fn decodes_base64url_jwt_parts_without_changing_the_raw_token() {
     assert_eq!(token.created_at, "2026-01-01T00:00:00.000Z");
     assert_eq!(get_salesforce_data_space(&token), "Marketing");
     assert_eq!(token.instance_url, "https://data.example.com/");
-    assert_eq!(get_salesforce_data_cloud_url(Some("configured.example.com")).unwrap(), "https://configured.example.com/");
+    assert_eq!(
+        get_salesforce_data_cloud_url(Some("configured.example.com")).unwrap(),
+        "https://configured.example.com/"
+    );
     let info = collect_salesforce_auth_info(&core, &token).unwrap();
     assert_eq!(info.core_access_token.as_deref(), Some("opaque-core-token"));
     assert_eq!(info.core_tenant_id.as_deref(), Some("tenant-1"));
@@ -207,13 +239,20 @@ fn decodes_base64url_jwt_parts_without_changing_the_raw_token() {
 #[test]
 fn allows_opaque_core_credentials() {
     for access_token in ["opaque-token", "a.b", "a.b.", "a.b.c"] {
-        assert_eq!(parse_core_access_token(&json!({ "access_token": access_token }), NOW).unwrap().access_token, access_token);
+        assert_eq!(
+            parse_core_access_token(&json!({ "access_token": access_token }), NOW).unwrap().access_token,
+            access_token
+        );
     }
 }
 
 #[test]
 fn exchanges_the_authorization_code_for_an_opaque_core_token_using_pkce() {
-    let params = SalesforceConnectionParams { instance_url: "https://core.example.com".into(), app_consumer_key: "key".into(), ..Default::default() };
+    let params = SalesforceConnectionParams {
+        instance_url: "https://core.example.com".into(),
+        app_consumer_key: "key".into(),
+        ..Default::default()
+    };
     let config = SalesforceOAuthConfig { oauth_redirect: "https://dashql.app/oauth.html".into() };
     let request = core_access_token_request(&config, &params, "code", "verifier");
     assert_eq!(request.url, "https://core.example.com/services/oauth2/token");
@@ -225,17 +264,29 @@ fn exchanges_the_authorization_code_for_an_opaque_core_token_using_pkce() {
     assert_eq!(fields["code_verifier"], "verifier");
     assert_eq!(fields["redirect_uri"], "https://dashql.app/oauth.html");
     assert!(!fields.contains_key("client_secret"));
-    let token = read_core_access_token_response(&request, &ok(json!({ "access_token": "opaque-core-token", "instance_url": "https://core.example.com" })), NOW).unwrap();
+    let token = read_core_access_token_response(
+        &request,
+        &ok(json!({ "access_token": "opaque-core-token", "instance_url": "https://core.example.com" })),
+        NOW,
+    )
+    .unwrap();
     assert_eq!(token.access_token, "opaque-core-token");
     // A secret goes along if the connected app has one
     let with_secret = SalesforceConnectionParams { app_consumer_secret: "s".into(), ..params };
-    assert_eq!(form(core_access_token_request(&config, &with_secret, "c", "v").body.as_deref().unwrap())["client_secret"], "s");
+    assert_eq!(
+        form(core_access_token_request(&config, &with_secret, "c", "v").body.as_deref().unwrap())["client_secret"],
+        "s"
+    );
 }
 
 fn exchange(payload: Value, instance_url: Value) -> Result<SalesforceDataCloudAccessToken, SalesforceError> {
     let raw = format!("{}.{}.signature", encode_jwt_part(&json!({ "alg": "RS256" })), encode_jwt_part(&payload));
     let request = data_cloud_access_token_request(&core_token("https://core.example.com"));
-    read_data_cloud_access_token_response(&request, &ok(json!({ "access_token": raw, "instance_url": instance_url })), NOW)
+    read_data_cloud_access_token_response(
+        &request,
+        &ok(json!({ "access_token": raw, "instance_url": instance_url })),
+        NOW,
+    )
 }
 
 #[test]
@@ -247,7 +298,12 @@ fn restores_string_expiration_and_legacy_custom_attributes_from_the_exchange() {
 
 #[test]
 fn rejects_an_unusable_exchanged_endpoint() {
-    for instance_url in [json!(null), json!("http://data.example.com"), json!("https://data.example.com/path"), json!("https://u@data.example.com")] {
+    for instance_url in [
+        json!(null),
+        json!("http://data.example.com"),
+        json!("https://data.example.com/path"),
+        json!("https://u@data.example.com"),
+    ] {
         assert!(exchange(json!({ "exp": 1_800_000_000 }), instance_url.clone()).is_err(), "{instance_url}");
     }
 }
@@ -268,7 +324,8 @@ fn logs_failed_exchange_responses_with_credentials_and_identities_redacted() {
         "user_claims": { "cdp_tenant": "private-tenant", "user-id": "private-user-id", "org-id": "private-org-id" },
         "sfap_op": "private-opaque-context",
     });
-    let access_token = format!("{}.{}.private-signature", encode_jwt_part(&json!({ "alg": "RS256" })), encode_jwt_part(&payload));
+    let access_token =
+        format!("{}.{}.private-signature", encode_jwt_part(&json!({ "alg": "RS256" })), encode_jwt_part(&payload));
     let body = json!({
         "access_token": access_token, "refresh_token": "private-refresh-token", "id_token": "private-id-token",
         "signature": "private-response-signature", "scope": "api data_cloud_user_claims", "token_format": "jwt",
@@ -292,8 +349,12 @@ fn logs_failed_exchange_responses_with_credentials_and_identities_redacted() {
         assert!(!diagnostics.oauth_response.contains(secret));
     }
     // Identities are redacted at every level
-    let nested = redact_token_diagnostics(&json!({ "user": { "user-id": "u", "name": "n", "email": "e", "scope": "s" } }));
-    assert_eq!(serde_json::from_str::<Value>(&nested).unwrap(), json!({ "user": { "user-id": "<redacted>", "name": "<redacted>", "email": "<redacted>", "scope": "s" } }));
+    let nested =
+        redact_token_diagnostics(&json!({ "user": { "user-id": "u", "name": "n", "email": "e", "scope": "s" } }));
+    assert_eq!(
+        serde_json::from_str::<Value>(&nested).unwrap(),
+        json!({ "user": { "user-id": "<redacted>", "name": "<redacted>", "email": "<redacted>", "scope": "s" } })
+    );
 }
 
 #[test]
@@ -309,12 +370,24 @@ fn logs_safe_diagnostics_for_missing_core_credentials() {
 #[test]
 fn rejects_http_errors_even_without_an_oauth_error_body() {
     for status in [401, 500] {
-        let params = SalesforceConnectionParams { instance_url: "https://core.example.com".into(), app_consumer_key: "key".into(), ..Default::default() };
+        let params = SalesforceConnectionParams {
+            instance_url: "https://core.example.com".into(),
+            app_consumer_key: "key".into(),
+            ..Default::default()
+        };
         let config = SalesforceOAuthConfig { oauth_redirect: "https://dashql.app/oauth.html".into() };
         let answer = response(json!({ "access_token": "private-token" }), status);
-        let core = read_core_access_token_response(&core_access_token_request(&config, &params, "code", "verifier"), &answer, NOW);
+        let core = read_core_access_token_response(
+            &core_access_token_request(&config, &params, "code", "verifier"),
+            &answer,
+            NOW,
+        );
         assert!(core.unwrap_err().message.contains(&status.to_string()));
-        let data_cloud = read_data_cloud_access_token_response(&data_cloud_access_token_request(&core_token(&params.instance_url)), &answer, NOW);
+        let data_cloud = read_data_cloud_access_token_response(
+            &data_cloud_access_token_request(&core_token(&params.instance_url)),
+            &answer,
+            NOW,
+        );
         assert!(data_cloud.unwrap_err().message.contains(&status.to_string()));
     }
 }
@@ -341,14 +414,21 @@ fn requests_the_user_info_with_the_core_token_and_maps_the_fields() {
 
 fn with_attributes(attributes: Value) -> SalesforceDataCloudAccessToken {
     SalesforceDataCloudAccessToken {
-        jwt: SalesforceDataCloudJwt { raw: "data-cloud-token".into(), header: json!({}), payload: json!({ "customAttributes": attributes }) },
+        jwt: SalesforceDataCloudJwt {
+            raw: "data-cloud-token".into(),
+            header: json!({}),
+            payload: json!({ "customAttributes": attributes }),
+        },
         ..Default::default()
     }
 }
 
 #[test]
 fn resolves_the_data_space() {
-    assert_eq!(get_salesforce_data_space(&with_attributes(json!({ "data": { "dataspace": "Marketing" } }))), "Marketing");
+    assert_eq!(
+        get_salesforce_data_space(&with_attributes(json!({ "data": { "dataspace": "Marketing" } }))),
+        "Marketing"
+    );
     assert_eq!(get_salesforce_data_space(&with_attributes(json!({ "dataspace": "Sales" }))), "Sales");
     assert_eq!(get_salesforce_data_space(&with_attributes(json!({}))), DEFAULT_SALESFORCE_DATA_SPACE);
 }
@@ -383,7 +463,8 @@ fn sends_the_calls_of_a_host_with_its_token() {
 
 #[test]
 fn says_so_when_the_token_of_the_tenant_has_expired() {
-    let expired = resolve_salesforce_client_function_host(Some(&connected("2000-01-01T00:00:00Z")), "tenant", NOW).unwrap_err();
+    let expired =
+        resolve_salesforce_client_function_host(Some(&connected("2000-01-01T00:00:00Z")), "tenant", NOW).unwrap_err();
     assert!(expired.message.contains("has expired, connect again"));
     assert!(resolve_salesforce_client_function_host(Some(&connected("2999-01-01T00:00:00Z")), "tenant", NOW).is_ok());
 }
@@ -398,7 +479,10 @@ fn has_no_other_host() {
 fn needs_a_login_for_a_host_and_none_for_the_variables() {
     let error = resolve_salesforce_client_function_host(None, "core", NOW).unwrap_err();
     assert!(error.message.contains("not set up"));
-    assert_eq!(salesforce_client_function_variables(), BTreeMap::from([("api_version".to_string(), "68.0".to_string())]));
+    assert_eq!(
+        salesforce_client_function_variables(),
+        BTreeMap::from([("api_version".to_string(), "68.0".to_string())])
+    );
 }
 
 // The authorization
@@ -413,7 +497,12 @@ fn params() -> SalesforceConnectionParams {
 }
 
 fn flow() -> OAuthFlowInfo {
-    OAuthFlowInfo { redirect_variant: "WEB_OPENER_FLOW".into(), redirect_callback_url: None, debug_mode: false, flavor: None }
+    OAuthFlowInfo {
+        redirect_variant: "WEB_OPENER_FLOW".into(),
+        redirect_callback_url: None,
+        debug_mode: false,
+        flavor: None,
+    }
 }
 
 fn pkce() -> OAuthPkceChallenge {
@@ -442,19 +531,35 @@ fn builds_the_authorization_url_with_the_state_of_the_flow() {
 #[test]
 fn validates_the_state_of_a_callback() {
     let expected = salesforce_oauth_state(&params(), &flow(), "flow-1", NOW as i64);
-    let callback = |state: OAuthState| OAuthRedirectData { state: Some(state), code: Some("code".into()), ..Default::default() };
+    let callback =
+        |state: OAuthState| OAuthRedirectData { state: Some(state), code: Some("code".into()), ..Default::default() };
     assert!(validate_salesforce_oauth_callback_state(&callback(expected.clone()), &expected, NOW as i64).is_ok());
     let other_flow = OAuthState { flow_id: "flow-2".into(), ..expected.clone() };
-    assert_eq!(validate_salesforce_oauth_callback_state(&callback(other_flow), &expected, NOW as i64).unwrap_err().message, "OAuth callback flow ID does not match");
+    assert_eq!(
+        validate_salesforce_oauth_callback_state(&callback(other_flow), &expected, NOW as i64).unwrap_err().message,
+        "OAuth callback flow ID does not match"
+    );
     let other_variant = OAuthState { flow_variant: "NATIVE_LINK_FLOW".into(), ..expected.clone() };
-    assert!(validate_salesforce_oauth_callback_state(&callback(other_variant), &expected, NOW as i64).unwrap_err().message.contains("variant"));
+    assert!(validate_salesforce_oauth_callback_state(&callback(other_variant), &expected, NOW as i64)
+        .unwrap_err()
+        .message
+        .contains("variant"));
     let mut other_app = expected.clone();
     other_app.salesforce_provider.as_mut().unwrap().app_consumer_key = "other".into();
-    assert!(validate_salesforce_oauth_callback_state(&callback(other_app), &expected, NOW as i64).unwrap_err().message.contains("provider does not match"));
+    assert!(validate_salesforce_oauth_callback_state(&callback(other_app), &expected, NOW as i64)
+        .unwrap_err()
+        .message
+        .contains("provider does not match"));
     let later = NOW as i64 + OAUTH_FLOW_LIFETIME_MS;
-    assert_eq!(validate_salesforce_oauth_callback_state(&callback(expected.clone()), &expected, later).unwrap_err().message, "OAuth callback state has expired");
+    assert_eq!(
+        validate_salesforce_oauth_callback_state(&callback(expected.clone()), &expected, later).unwrap_err().message,
+        "OAuth callback state has expired"
+    );
     let without = OAuthRedirectData::default();
-    assert!(validate_salesforce_oauth_callback_state(&without, &expected, NOW as i64).unwrap_err().message.contains("missing"));
+    assert!(validate_salesforce_oauth_callback_state(&without, &expected, NOW as i64)
+        .unwrap_err()
+        .message
+        .contains("missing"));
 }
 
 // The params
@@ -470,6 +575,9 @@ fn shares_params_without_the_secret() {
     assert_eq!((shared["appConsumerSecret"].as_str(), shared["login"].as_str()), (Some(""), Some("")));
     assert_eq!(sanitize(true)["login"], "u");
     assert_eq!(login_hint(object), Some("u"));
-    assert_eq!(cache_signature(ConnectorType::SalesforceDataCloud, object), json!({ "case": "salesforce", "instanceUrl": "https://org", "appConsumerKey": "k", "login": "u" }));
+    assert_eq!(
+        cache_signature(ConnectorType::SalesforceDataCloud, object),
+        json!({ "case": "salesforce", "instanceUrl": "https://org", "appConsumerKey": "k", "login": "u" })
+    );
     assert_eq!(cache_signature(ConnectorType::Dbcom, object)["databaseName"], "default");
 }

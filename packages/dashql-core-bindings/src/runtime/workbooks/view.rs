@@ -29,12 +29,17 @@ impl WorkbookCloudLink {
     /// The link to a cloud of an origin, none for an origin that names no published workbook and version
     pub fn of(origin: &WorkbookOrigin) -> Option<Self> {
         let text = |key: &str| origin.link.get(key).and_then(serde_json::Value::as_str).map(str::to_string);
-        Some(WorkbookCloudLink { workbook_id: text("workbookId")?, version_id: text("versionId")?, preview: origin.read_only })
+        Some(WorkbookCloudLink {
+            workbook_id: text("workbookId")?,
+            version_id: text("versionId")?,
+            preview: origin.read_only,
+        })
     }
 
     /// The origin of a workbook that a link to a cloud names, none without its ids
     pub fn origin(link: &serde_json::Value) -> Option<WorkbookOrigin> {
-        let ids = link.get("workbookId").and_then(serde_json::Value::as_str).is_some() && link.get("versionId").and_then(serde_json::Value::as_str).is_some();
+        let ids = link.get("workbookId").and_then(serde_json::Value::as_str).is_some()
+            && link.get("versionId").and_then(serde_json::Value::as_str).is_some();
         let read_only = link.get("preview").and_then(serde_json::Value::as_bool).unwrap_or(false);
         ids.then(|| WorkbookOrigin { link: link.clone(), read_only })
     }
@@ -55,7 +60,11 @@ pub struct WorkbookDataFile {
 
 impl From<WorkbookDataFile> for DataFile {
     fn from(file: WorkbookDataFile) -> Self {
-        DataFile { name: file.name, size_bytes: file.size_bytes.max(0.0) as u64, mtime_ms: file.mtime_ms.unwrap_or(0.0).max(0.0) as u64 }
+        DataFile {
+            name: file.name,
+            size_bytes: file.size_bytes.max(0.0) as u64,
+            mtime_ms: file.mtime_ms.unwrap_or(0.0).max(0.0) as u64,
+        }
     }
 }
 
@@ -89,8 +98,16 @@ pub struct WorkbookScriptList {
 impl From<ScriptList> for WorkbookScriptList {
     fn from(list: ScriptList) -> Self {
         WorkbookScriptList {
-            scripts: list.scripts.into_iter().map(|s| WorkbookScriptListEntry { name: s.name, connection_id: s.connection_id }).collect(),
-            connections: list.connections.into_iter().map(|c| WorkbookConnectionCopy { connection_id: c.connection_id, params: c.params }).collect(),
+            scripts: list
+                .scripts
+                .into_iter()
+                .map(|s| WorkbookScriptListEntry { name: s.name, connection_id: s.connection_id })
+                .collect(),
+            connections: list
+                .connections
+                .into_iter()
+                .map(|c| WorkbookConnectionCopy { connection_id: c.connection_id, params: c.params })
+                .collect(),
         }
     }
 }
@@ -215,10 +232,13 @@ pub struct WorkbookScriptAnnotations {
 impl WorkbookScriptAnnotations {
     /// The annotations of an editor update
     pub fn of(update: Option<&dashql_buffers::editor::EditorUpdateT>) -> Self {
-        let Some(annotations) = update.filter(|update| update.analysis_available).and_then(|update| update.script_annotations.as_deref()) else {
+        let Some(annotations) =
+            update.filter(|update| update.analysis_available).and_then(|update| update.script_annotations.as_deref())
+        else {
             return Self::default();
         };
-        let mut table_defs: Vec<String> = annotations.table_definitions.iter().flatten().filter_map(|table| table.name.clone()).collect();
+        let mut table_defs: Vec<String> =
+            annotations.table_definitions.iter().flatten().filter_map(|table| table.name.clone()).collect();
         table_defs.sort();
         let last = annotations.statements.iter().flatten().max_by_key(|statement| statement.statement_id);
         WorkbookScriptAnnotations {
@@ -238,7 +258,8 @@ impl WorkbookScriptAnnotations {
                 height: board.height,
             }),
             last_statement_id: last.map(|statement| statement.statement_id),
-            last_statement_is_query: last.is_some_and(|statement| statement.statement_type == dashql_buffers::parser::StatementType::SELECT),
+            last_statement_is_query: last
+                .is_some_and(|statement| statement.statement_type == dashql_buffers::parser::StatementType::SELECT),
             manual: annotations.manual,
         }
     }
@@ -295,7 +316,10 @@ pub struct WorkbookExternalChanges {
 
 impl From<&ExternalChanges> for WorkbookExternalChanges {
     fn from(external: &ExternalChanges) -> Self {
-        WorkbookExternalChanges { from_text: external.from_text.clone(), changes: external.changes.iter().map(WorkbookTextChange::from).collect() }
+        WorkbookExternalChanges {
+            from_text: external.from_text.clone(),
+            changes: external.changes.iter().map(WorkbookTextChange::from).collect(),
+        }
     }
 }
 
@@ -397,7 +421,9 @@ impl WorkbookScriptView {
         let update = script.editor_update();
         let editor_update_key = editor_update_key(script);
         let editor_update = match (update, &editor_update_key) {
-            (Some(update), Some(key)) if Some(key) != known.editor_update.as_ref() => Some(FlatBufferBytes(finish!(update))),
+            (Some(update), Some(key)) if Some(key) != known.editor_update.as_ref() => {
+                Some(FlatBufferBytes(finish!(update)))
+            }
             _ => None,
         };
         let pending_diff = script.pending_diff().map(|pending| WorkbookPendingDiff {
@@ -410,13 +436,17 @@ impl WorkbookScriptView {
             key: visualization_key,
             sql: v.sql.clone(),
             statement_id: v.statement_id,
-            visualization: (known.visualization != Some(visualization_key)).then(|| FlatBufferBytes(finish!(v.visualization))),
+            visualization: (known.visualization != Some(visualization_key))
+                .then(|| FlatBufferBytes(finish!(v.visualization))),
         });
         let statistics = script
             .statistics_with_revisions()
             .map(|(key, statistics)| WorkbookScriptStatistics {
                 key,
-                statistics: known.statistics.is_none_or(|newest| key > newest).then(|| FlatBufferBytes(finish!(statistics))),
+                statistics: known
+                    .statistics
+                    .is_none_or(|newest| key > newest)
+                    .then(|| FlatBufferBytes(finish!(statistics))),
             })
             .collect();
         WorkbookScriptView {
@@ -430,7 +460,9 @@ impl WorkbookScriptView {
             analysis_outdated: script.is_analysis_outdated(),
             latest_query_id: script.latest_query_id(),
             latest_result_query_id: script.latest_result_query_id(),
-            cached_result: script.cached_result().map(|cached| WorkbookScriptCachedResult { key: cached.key.clone(), cached_at: cached.cached_at }),
+            cached_result: script
+                .cached_result()
+                .map(|cached| WorkbookScriptCachedResult { key: cached.key.clone(), cached_at: cached.cached_at }),
             external_changes: script.external_changes().map(WorkbookExternalChanges::from),
             annotations: WorkbookScriptAnnotations::of(update),
             editor_update_key,

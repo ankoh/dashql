@@ -20,9 +20,7 @@ use super::{
     ChannelMessage, ClientFunctionTarget, ExecutorHost, ExecutorRun, FailureKind, QueryEvent, QueryFailure,
     QueryTarget, LOG_TARGET,
 };
-use crate::clfn::{
-    start_connection_client_function, CallStep, ClientFunctionResult, ConnectionCallStart,
-};
+use crate::clfn::{start_connection_client_function, CallStep, ClientFunctionResult, ConnectionCallStart};
 use crate::connections::DetailedError;
 use crate::host::signal::Receiver;
 use crate::host::{timeout, HostError, LogLevel};
@@ -30,11 +28,10 @@ use crate::http::{Body, CancellationToken, FetchOutcome, Headers, HttpHost, Http
 use crate::hyper::{HyperHttpChannel, ResultEvent};
 use crate::query::progress::QueryProgressModel;
 use crate::query::{QueryExecutionMetrics, QueryExecutionProgress};
-use dashql_buffers::profile::ProfileLayoutConfig;
 use crate::trino::{
-    refresh_outcome, SharedTrinoChannel, StreamOutput, TokenCheck, TrinoError, TrinoQuery,
-    TrinoQueryOptions,
+    refresh_outcome, SharedTrinoChannel, StreamOutput, TokenCheck, TrinoError, TrinoQuery, TrinoQueryOptions,
 };
+use dashql_buffers::profile::ProfileLayoutConfig;
 
 /// A failure to write the Arrow IPC stream of a result
 fn write_failure(message: String) -> QueryFailure {
@@ -281,14 +278,23 @@ fn refresh_trino_token<H: HttpHost>(
             let channel = channel.clone();
             let task_host = host.clone();
             host.spawn(Box::pin(async move {
-                let fetched = timeout(&*task_host, TRINO_TOKEN_REFRESH_TIMEOUT_MS, task_host.fetch(request, &CancellationToken::new())).await;
+                let fetched = timeout(
+                    &*task_host,
+                    TRINO_TOKEN_REFRESH_TIMEOUT_MS,
+                    task_host.fetch(request, &CancellationToken::new()),
+                )
+                .await;
                 let outcome = match fetched {
                     Some(response) => fetch_outcome(response),
                     None => FetchOutcome::NetworkError("The refresh of the access token timed out".to_string()),
                 };
                 let finished = channel.finish_token_refresh(&outcome, task_host.now() as i64).map(|_| ());
                 if let Err(error) = &finished {
-                    task_host.log(LogLevel::Warn, "Failed to refresh the access token", &[("error", error.message.as_str()), ("target", LOG_TARGET)]);
+                    task_host.log(
+                        LogLevel::Warn,
+                        "Failed to refresh the access token",
+                        &[("error", error.message.as_str()), ("target", LOG_TARGET)],
+                    );
                 }
                 on_end(finished.map_err(|error| DetailedError { message: error.message, data: error.data }));
             }));
@@ -300,11 +306,15 @@ fn refresh_trino_token<H: HttpHost>(
 /// Make sure that the access token of a shared Trino channel is fresh before a request. A token about to expire is
 /// refreshed once for every query of the channel (`refresh_trino_token`), the host hears how a refresh that this query
 /// started ended. None if the query was cancelled while it waited.
-async fn fresh_trino_token<H: ExecutorHost>(context: &StreamContext<H>, channel: &SharedTrinoChannel) -> Option<Result<(), TrinoError>> {
+async fn fresh_trino_token<H: ExecutorHost>(
+    context: &StreamContext<H>,
+    channel: &SharedTrinoChannel,
+) -> Option<Result<(), TrinoError>> {
     let host = context.host.clone();
     let run = context.run.clone();
     let ended = host.clone();
-    let Some(refreshed) = refresh_trino_token(&host, channel, move |outcome| ended.token_refresh_ended(&run, outcome)) else {
+    let Some(refreshed) = refresh_trino_token(&host, channel, move |outcome| ended.token_refresh_ended(&run, outcome))
+    else {
         return Some(Ok(()));
     };
     context.token.run(refreshed).await.map(refresh_outcome)
@@ -323,11 +333,17 @@ const BACKEND_CANCEL_TIMED_OUT: &str = "The cancellation at the backend timed ou
 async fn cancel_trino<H: ExecutorHost>(context: &StreamContext<H>, channel: &SharedTrinoChannel, query: &TrinoQuery) {
     let Some(cancel) = query.cancel_request() else { return };
     let result = match channel.http_request(&cancel).map_err(|e| e.message) {
-        Ok(request) => match timeout(&*context.host, BACKEND_CANCEL_TIMEOUT_MS, context.host.fetch(request, &CancellationToken::new())).await {
+        Ok(request) => match timeout(
+            &*context.host,
+            BACKEND_CANCEL_TIMEOUT_MS,
+            context.host.fetch(request, &CancellationToken::new()),
+        )
+        .await
+        {
             None => Err(BACKEND_CANCEL_TIMED_OUT.to_string()),
-            Some(response) => response
-                .map_err(|e| e.message().to_string())
-                .and_then(|response| crate::trino::read_cancel_response(&FetchOutcome::Response(response)).map_err(|e| e.message)),
+            Some(response) => response.map_err(|e| e.message().to_string()).and_then(|response| {
+                crate::trino::read_cancel_response(&FetchOutcome::Response(response)).map_err(|e| e.message)
+            }),
         },
         Err(message) => Err(message),
     };
@@ -394,7 +410,8 @@ async fn stream_trino<H: ExecutorHost>(
                     match channel.http_request(&request) {
                         Ok(http) => {
                             let response = host.fetch(http, &context.token);
-                            pending.push(TrinoKey::Request(id), async move { TrinoCompletion::Response(response.await) });
+                            pending
+                                .push(TrinoKey::Request(id), async move { TrinoCompletion::Response(response.await) });
                         }
                         Err(error) => queue.extend(query.on_request_failed(id, error, now())),
                     }
@@ -475,7 +492,13 @@ async fn run_hyper<H: ExecutorHost>(
         // A cancelled query, or one whose result broke off while Hyper may still run it, stops at the backend
         let cancelled = failure.kind == FailureKind::Cancelled || context.token.is_cancelled();
         if cancelled || *at_backend {
-            let result = match timeout(&*host, BACKEND_CANCEL_TIMEOUT_MS, host.fetch(reader.cancel_request(&auth), &CancellationToken::new())).await {
+            let result = match timeout(
+                &*host,
+                BACKEND_CANCEL_TIMEOUT_MS,
+                host.fetch(reader.cancel_request(&auth), &CancellationToken::new()),
+            )
+            .await
+            {
                 None => Err(BACKEND_CANCEL_TIMED_OUT.to_string()),
                 Some(result) => result
                     .map_err(|e| e.message().to_string())

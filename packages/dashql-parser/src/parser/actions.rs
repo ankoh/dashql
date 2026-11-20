@@ -36,7 +36,14 @@ pub enum ReduceError {
 
 /// Set the attribute key of a node
 pub fn attr(key: AttributeKey, node: Node) -> Node {
-    Node::new(node.symbol_span(), node.node_type(), key, node.parent(), node.children_begin_or_value(), node.children_count())
+    Node::new(
+        node.symbol_span(),
+        node.node_type(),
+        key,
+        node.parent(),
+        node.children_begin_or_value(),
+        node.children_count(),
+    )
 }
 
 /// An operator

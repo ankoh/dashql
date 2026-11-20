@@ -402,7 +402,6 @@ impl PromptBuffer {
         self.cursor_grapheme_offset = self.positions().at_or_after(byte_offset + text.len()).graphemes;
         true
     }
-
 }
 
 /// Find a byte at or after an offset

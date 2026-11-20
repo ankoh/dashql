@@ -103,9 +103,8 @@ fn maps_the_node_names_of_the_plan_printer_to_kinds() {
 
 #[test]
 fn reads_the_stage_plans_of_a_query_info() {
-    let stage = |id: &str, plan: &str| {
-        serde_json::json!({"stageId": format!("q.{id}"), "plan": {"jsonRepresentation": plan}})
-    };
+    let stage =
+        |id: &str, plan: &str| serde_json::json!({"stageId": format!("q.{id}"), "plan": {"jsonRepresentation": plan}});
     let info = serde_json::json!({"queryId": "q", "stages": {"stages": [
         stage("0", r#"{"id": "1", "name": "Output", "children": [
             {"id": "2", "name": "RemoteSource", "descriptor": {"sourceFragmentIds": "[1]"}, "children": []}]}"#),

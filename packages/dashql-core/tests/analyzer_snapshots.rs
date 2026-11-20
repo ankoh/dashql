@@ -12,7 +12,9 @@ fn main() {
             let catalog = &case.node["catalog"]["script"];
             let main_input = main["input"].as_str().map(trim_input).unwrap_or_default();
             let catalog_input = catalog["input"].as_str().map(trim_input);
-            let (catalog_yaml, main_yaml) = analyze_case(client_functions_of(&case.node), catalog_input.as_deref(), &main_input).map_err(Failed::from)?;
+            let (catalog_yaml, main_yaml) =
+                analyze_case(client_functions_of(&case.node), catalog_input.as_deref(), &main_input)
+                    .map_err(Failed::from)?;
             if let Some(catalog_yaml) = catalog_yaml {
                 compare_script(catalog, &catalog_yaml).map_err(|e| Failed::from(format!("catalog: {e}")))?;
             }

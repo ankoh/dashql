@@ -66,7 +66,10 @@ pub fn pg_attribute_query(scope: &PgAttributeScope) -> CatalogQuery {
 
 /// The tables of the rows of `pg_attribute`, grouped by schema and table, in a database. Rows without a name are
 /// skipped.
-pub fn catalog_tables_from_pg_attribute(batches: &[RecordBatch], database_name: &str) -> Result<Vec<CatalogTable>, CatalogLoadError> {
+pub fn catalog_tables_from_pg_attribute(
+    batches: &[RecordBatch],
+    database_name: &str,
+) -> Result<Vec<CatalogTable>, CatalogLoadError> {
     let mut schemas: Groups<String, SchemaTables> = Groups::new();
     for batch in batches_with_rows(batches) {
         let table_schemas = Strings::of(batch, "table_schema")?;
@@ -75,7 +78,8 @@ pub fn catalog_tables_from_pg_attribute(batches: &[RecordBatch], database_name: 
         let ordinal_positions = Integers::of(batch, "ordinal_position")?;
         let data_types = Strings::of(batch, "data_type")?;
         for row in 0..batch.num_rows() {
-            let (Some(schema), Some(table), Some(column)) = (table_schemas.get(row), table_names.get(row), column_names.get(row))
+            let (Some(schema), Some(table), Some(column)) =
+                (table_schemas.get(row), table_names.get(row), column_names.get(row))
             else {
                 continue;
             };

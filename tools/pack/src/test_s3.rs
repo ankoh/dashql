@@ -67,7 +67,8 @@ impl FakeS3 {
             r2_endpoint: self.endpoint.clone(),
             r2_access_key_id: "key".to_string(),
             r2_secret_access_key: "secret".to_string(),
-        }.r2_client()
+        }
+        .r2_client()
     }
 
     pub fn put_objects(&self, keys: Vec<String>) {
@@ -163,7 +164,8 @@ async fn serve_connection(mut stream: TcpStream, state: Arc<Mutex<State>>) {
             buffer.drain(..length).collect()
         };
         let body = if headers.get("content-encoding").is_some_and(|value| value.contains("aws-chunked"))
-            || headers.get("transfer-encoding").is_some_and(|value| value.contains("chunked")) {
+            || headers.get("transfer-encoding").is_some_and(|value| value.contains("chunked"))
+        {
             decode_chunks(&raw)
         } else {
             raw
@@ -178,7 +180,8 @@ async fn serve_connection(mut stream: TcpStream, state: Arc<Mutex<State>>) {
                 (percent_decode(name), percent_decode(value))
             })
             .collect();
-        let relative = path.strip_prefix("/dashql-get").unwrap_or_else(|| panic!("request outside of the bucket: {path}"));
+        let relative =
+            path.strip_prefix("/dashql-get").unwrap_or_else(|| panic!("request outside of the bucket: {path}"));
         let key = percent_decode(relative.strip_prefix('/').unwrap_or(relative));
 
         let request = Request { method, key, query, headers, body };
@@ -210,13 +213,19 @@ fn respond(state: &mut State, request: &Request) -> (&'static str, String) {
             let start: usize = request.query.get("continuation-token").map_or(0, |token| token.parse().unwrap());
             let matching: Vec<&String> = state.objects.keys().filter(|key| key.starts_with(&prefix)).collect();
             let end = state.page_size.map_or(matching.len(), |size| (start + size).min(matching.len()));
-            let contents: String = matching[start..end].iter().map(|key| format!("<Contents><Key>{key}</Key></Contents>")).collect();
+            let contents: String =
+                matching[start..end].iter().map(|key| format!("<Contents><Key>{key}</Key></Contents>")).collect();
             let next = if end < matching.len() {
                 format!("<IsTruncated>true</IsTruncated><NextContinuationToken>{end}</NextContinuationToken>")
             } else {
                 "<IsTruncated>false</IsTruncated>".to_string()
             };
-            (OK, format!(r#"<?xml version="1.0"?><ListBucketResult><Name>dashql-get</Name>{next}{contents}</ListBucketResult>"#))
+            (
+                OK,
+                format!(
+                    r#"<?xml version="1.0"?><ListBucketResult><Name>dashql-get</Name>{next}{contents}</ListBucketResult>"#
+                ),
+            )
         }
         ("POST", "") => {
             if state.deny_deletes {
@@ -227,7 +236,9 @@ fn respond(state: &mut State, request: &Request) -> (&'static str, String) {
             for part in body.split("<Key>").skip(1) {
                 let key = part.split("</Key>").next().unwrap();
                 if state.kept_objects.contains(key) {
-                    result.push_str(&format!("<Error><Key>{key}</Key><Code>AccessDenied</Code><Message>denied</Message></Error>"));
+                    result.push_str(&format!(
+                        "<Error><Key>{key}</Key><Code>AccessDenied</Code><Message>denied</Message></Error>"
+                    ));
                 } else {
                     state.objects.remove(key);
                     result.push_str(&format!("<Deleted><Key>{key}</Key></Deleted>"));
@@ -238,17 +249,27 @@ fn respond(state: &mut State, request: &Request) -> (&'static str, String) {
         (method, key) if state.denied_uploads.contains(key) && (method == "PUT" || method == "POST") => {
             (ACCESS_DENIED.0, ACCESS_DENIED.1.to_string())
         }
-        ("POST", key) if request.query.contains_key("uploads") => {
-            (OK, format!(r#"<?xml version="1.0"?><InitiateMultipartUploadResult><Bucket>dashql-get</Bucket><Key>{key}</Key><UploadId>upload</UploadId></InitiateMultipartUploadResult>"#))
-        }
+        ("POST", key) if request.query.contains_key("uploads") => (
+            OK,
+            format!(
+                r#"<?xml version="1.0"?><InitiateMultipartUploadResult><Bucket>dashql-get</Bucket><Key>{key}</Key><UploadId>upload</UploadId></InitiateMultipartUploadResult>"#
+            ),
+        ),
         ("PUT", _) if request.query.contains_key("partNumber") => (OK, String::new()),
         ("POST", key) if request.query.contains_key("uploadId") => {
-            let parts = state.requests.iter()
+            let parts = state
+                .requests
+                .iter()
                 .filter(|part| part.key == key && part.query.contains_key("partNumber"))
                 .flat_map(|part| part.body.clone())
                 .collect();
             state.objects.insert(key.to_string(), parts);
-            (OK, format!(r#"<?xml version="1.0"?><CompleteMultipartUploadResult><Key>{key}</Key><ETag>"etag"</ETag></CompleteMultipartUploadResult>"#))
+            (
+                OK,
+                format!(
+                    r#"<?xml version="1.0"?><CompleteMultipartUploadResult><Key>{key}</Key><ETag>"etag"</ETag></CompleteMultipartUploadResult>"#
+                ),
+            )
         }
         ("PUT", key) => {
             state.objects.insert(key.to_string(), request.body.clone());

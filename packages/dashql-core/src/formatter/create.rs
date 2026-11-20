@@ -1,8 +1,8 @@
 //! CREATE, DROP, ATTACH and SET statements.
 
-use dashql_parser::attrs;
 use super::{FmtReg, Formatter, FormattingJoinPolicy, K};
 use dashql_buffers::parser::{Node, NodeType, OnCommitOption, TempType};
+use dashql_parser::attrs;
 
 impl<'a> Formatter<'a> {
     pub(super) fn format_temp_type(&self, node: &'a Node) -> FmtReg {
@@ -32,7 +32,9 @@ impl<'a> Formatter<'a> {
         if !self.state(node).is_statement_root {
             return self.format_unimplemented(node);
         }
-        let [name, elements, if_not_exists, temp, on_commit] = attrs!(self.children(node), [
+        let [name, elements, if_not_exists, temp, on_commit] = attrs!(
+            self.children(node),
+            [
                 K::SQL_CREATE_TABLE_NAME,
                 K::SQL_CREATE_TABLE_ELEMENTS,
                 K::SQL_CREATE_TABLE_IF_NOT_EXISTS,
@@ -78,7 +80,9 @@ impl<'a> Formatter<'a> {
 
     pub(super) fn format_create_as(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
-        let [name, columns, if_not_exists, temp, statement, with_data, on_commit] = attrs!(self.children(node), [
+        let [name, columns, if_not_exists, temp, statement, with_data, on_commit] = attrs!(
+            self.children(node),
+            [
                 K::SQL_CREATE_AS_NAME,
                 K::SQL_CREATE_AS_COLUMNS,
                 K::SQL_CREATE_AS_IF_NOT_EXISTS,
@@ -122,7 +126,9 @@ impl<'a> Formatter<'a> {
 
     pub(super) fn format_view(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
-        let [name, columns, or_replace, temp, statement] = attrs!(self.children(node), [K::SQL_VIEW_NAME, K::SQL_VIEW_COLUMNS, K::SQL_VIEW_OR_REPLACE, K::SQL_VIEW_TEMP, K::SQL_VIEW_STATEMENT],
+        let [name, columns, or_replace, temp, statement] = attrs!(
+            self.children(node),
+            [K::SQL_VIEW_NAME, K::SQL_VIEW_COLUMNS, K::SQL_VIEW_OR_REPLACE, K::SQL_VIEW_TEMP, K::SQL_VIEW_STATEMENT],
         );
         let (Some(name), Some(statement)) = (name, statement) else { return self.format_unimplemented(node) };
 
@@ -153,7 +159,9 @@ impl<'a> Formatter<'a> {
 
     pub(super) fn format_create_function(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
-        let [name, params, returns, aggregate] = attrs!(self.children(node), [
+        let [name, params, returns, aggregate] = attrs!(
+            self.children(node),
+            [
                 K::SQL_CREATE_FUNCTION_NAME,
                 K::SQL_CREATE_FUNCTION_PARAMS,
                 K::SQL_CREATE_FUNCTION_RETURNS,
@@ -178,8 +186,10 @@ impl<'a> Formatter<'a> {
 
     pub(super) fn format_schema_statement(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
-        let [name, condition, cascade, new_name] =
-            attrs!(self.children(node), [K::SQL_SCHEMA_NAME, K::SQL_SCHEMA_IF, K::SQL_SCHEMA_CASCADE, K::SQL_SCHEMA_NEW_NAME]);
+        let [name, condition, cascade, new_name] = attrs!(
+            self.children(node),
+            [K::SQL_SCHEMA_NAME, K::SQL_SCHEMA_IF, K::SQL_SCHEMA_CASCADE, K::SQL_SCHEMA_NEW_NAME]
+        );
         let Some(name) = name else { return self.format_unimplemented(node) };
         match (node.node_type(), new_name) {
             (NodeType::OBJECT_SQL_CREATE_SCHEMA, _) => {
@@ -190,7 +200,9 @@ impl<'a> Formatter<'a> {
                 let condition = if condition.is_some() { f.text("if exists ") } else { f.empty() };
                 f.concat(&[f.text("drop schema "), condition, self.reg(name), self.format_drop_behavior(cascade)])
             }
-            (NodeType::OBJECT_SQL_ALTER_SCHEMA, Some(new_name)) => f.concat(&[f.text("alter schema "), self.reg(name), f.text(" rename to "), self.reg(new_name)]),
+            (NodeType::OBJECT_SQL_ALTER_SCHEMA, Some(new_name)) => {
+                f.concat(&[f.text("alter schema "), self.reg(name), f.text(" rename to "), self.reg(new_name)])
+            }
             _ => self.format_unimplemented(node),
         }
     }
@@ -206,7 +218,10 @@ impl<'a> Formatter<'a> {
 
     pub(super) fn format_alter_table(&self, node: &'a Node, statement: &'static str) -> FmtReg {
         let f = &self.fmt;
-        let [name, if_exists, actions] = attrs!(self.children(node), [K::SQL_ALTER_TABLE_NAME, K::SQL_ALTER_TABLE_IF_EXISTS, K::SQL_ALTER_TABLE_ACTIONS]);
+        let [name, if_exists, actions] = attrs!(
+            self.children(node),
+            [K::SQL_ALTER_TABLE_NAME, K::SQL_ALTER_TABLE_IF_EXISTS, K::SQL_ALTER_TABLE_ACTIONS]
+        );
         let (Some(name), Some(actions)) = (name, actions) else { return self.format_unimplemented(node) };
         let if_exists_reg = if if_exists.is_some() { f.text("if exists ") } else { f.empty() };
         f.concat(&[f.text(statement), if_exists_reg, self.reg(name), f.text(" "), self.reg(actions)])
@@ -214,7 +229,9 @@ impl<'a> Formatter<'a> {
 
     pub(super) fn format_alter_table_action(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
-        let [column, condition, condition_after, new_name, new_table, column_type, cascade, using] = attrs!(self.children(node), [
+        let [column, condition, condition_after, new_name, new_table, column_type, cascade, using] = attrs!(
+            self.children(node),
+            [
                 K::SQL_ALTER_ACTION_COLUMN,
                 K::SQL_ALTER_ACTION_IF,
                 K::SQL_ALTER_ACTION_IF_AFTER,
@@ -234,19 +251,35 @@ impl<'a> Formatter<'a> {
                 // Trino writes the condition before the column, Hyper after it
                 let condition = if condition.is_some() { f.text("if exists ") } else { f.empty() };
                 let condition_after = if condition_after.is_some() { f.text(" if exists") } else { f.empty() };
-                f.concat(&[f.text("drop column "), condition, self.reg(column), condition_after, self.format_drop_behavior(cascade)])
+                f.concat(&[
+                    f.text("drop column "),
+                    condition,
+                    self.reg(column),
+                    condition_after,
+                    self.format_drop_behavior(cascade),
+                ])
             }
             (NodeType::OBJECT_SQL_ALTER_RENAME_COLUMN, Some(column), Some(new_name), _, _) => {
                 f.concat(&[f.text("rename column "), self.reg(column), f.text(" to "), self.reg(new_name)])
             }
-            (NodeType::OBJECT_SQL_ALTER_RENAME_TABLE, _, _, Some(new_table), _) => f.concat(&[f.text("rename to "), self.reg(new_table)]),
-            (NodeType::OBJECT_SQL_ALTER_SET_SCHEMA, _, Some(new_name), _, _) => f.concat(&[f.text("set schema "), self.reg(new_name)]),
+            (NodeType::OBJECT_SQL_ALTER_RENAME_TABLE, _, _, Some(new_table), _) => {
+                f.concat(&[f.text("rename to "), self.reg(new_table)])
+            }
+            (NodeType::OBJECT_SQL_ALTER_SET_SCHEMA, _, Some(new_name), _, _) => {
+                f.concat(&[f.text("set schema "), self.reg(new_name)])
+            }
             (NodeType::OBJECT_SQL_ALTER_COLUMN_TYPE, Some(column), _, _, Some(column_type)) => {
                 let using = match using {
                     Some(using) => f.concat(&[f.text(" using "), self.reg(using)]),
                     None => f.empty(),
                 };
-                f.concat(&[f.text("alter column "), self.reg(column), f.text(" set data type "), self.reg(column_type), using])
+                f.concat(&[
+                    f.text("alter column "),
+                    self.reg(column),
+                    f.text(" set data type "),
+                    self.reg(column_type),
+                    using,
+                ])
             }
             _ => self.format_unimplemented(node),
         }
@@ -261,7 +294,9 @@ impl<'a> Formatter<'a> {
 
     pub(super) fn format_attach_database(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
-        let [path, alias, local, options] = attrs!(self.children(node), [
+        let [path, alias, local, options] = attrs!(
+            self.children(node),
+            [
                 K::SQL_ATTACH_DATABASE_PATH,
                 K::SQL_ATTACH_DATABASE_ALIAS,
                 K::SQL_ATTACH_DATABASE_LOCAL,

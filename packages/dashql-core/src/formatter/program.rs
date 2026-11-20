@@ -411,7 +411,9 @@ fn leading_inline_width(reg: FmtReg, program: &[FormattingOperation]) -> (usize,
             }
             (width, false)
         }
-        FormattingOpCode::Indent => doc.children.first().map_or((0, false), |&child| leading_inline_width(child, program)),
+        FormattingOpCode::Indent => {
+            doc.children.first().map_or((0, false), |&child| leading_inline_width(child, program))
+        }
         // A join may break after its first item, parentheses after the opening one
         FormattingOpCode::Join => match doc.children.first() {
             Some(&first) => {
@@ -716,7 +718,8 @@ fn render(program: &[FormattingOperation], root: FmtReg, options: &FormattingRen
                             && list.join_policy == FormattingJoinPolicy::BreakAllOrNone
                     });
                     if let Some(list) = list {
-                        let indentation = indentation + if list.indent_after_breaks { options.indentation_width } else { 0 };
+                        let indentation =
+                            indentation + if list.indent_after_breaks { options.indentation_width } else { 0 };
                         push_rendered_join(&mut stack, list, indentation, list.break_separator);
                     } else {
                         stack.push(RenderCommand::format(child, indentation));

@@ -1,23 +1,23 @@
 use std::collections::HashMap;
 use std::future::Future;
+use std::result::Result;
 use std::str::FromStr;
 use std::sync::atomic::AtomicUsize;
 use std::sync::Arc;
 use std::sync::RwLock;
-use std::result::Result;
 use std::time::Duration;
 
-use tonic::codegen::http::uri::PathAndQuery;
 use http::HeaderMap;
+use http::HeaderName;
 use http::HeaderValue;
+use tonic::codegen::http::uri::PathAndQuery;
 use tonic::metadata::AsciiMetadataKey;
 use tonic::metadata::AsciiMetadataValue;
 use tonic::metadata::MetadataMap;
 use tonic::transport::channel::Endpoint;
-use http::HeaderName;
 
-use tonic::transport::ClientTlsConfig;
 use tonic::transport::Certificate;
+use tonic::transport::ClientTlsConfig;
 use tonic::transport::Identity;
 
 use crate::grpc_client::GenericGrpcClient;
@@ -54,24 +54,17 @@ struct GrpcChannelParams {
 }
 
 async fn read_tls_file(path: &str, label: &'static str) -> Result<Vec<u8>, Status> {
-    tokio::fs::read(path)
-        .await
-        .map_err(|e| Status::GrpcTlsConfigInvalid {
-            message: format!("failed to read {} from '{}': {}", label, path, e),
-        })
+    tokio::fs::read(path).await.map_err(|e| Status::GrpcTlsConfigInvalid {
+        message: format!("failed to read {} from '{}': {}", label, path, e),
+    })
 }
 
-fn connect_endpoint(
-    endpoint: Endpoint,
-) -> impl Future<Output = Result<tonic::transport::Channel, Status>> {
+fn connect_endpoint(endpoint: Endpoint) -> impl Future<Output = Result<tonic::transport::Channel, Status>> {
     async move {
-        endpoint
-            .connect()
-            .await
-            .map_err(|e| {
-                log::warn!("Failed creating channel: {:?}", e);
-                Status::GrpcEndpointConnectFailed{ message: e.to_string() }
-            })
+        endpoint.connect().await.map_err(|e| {
+            log::warn!("Failed creating channel: {:?}", e);
+            Status::GrpcEndpointConnectFailed { message: e.to_string() }
+        })
     }
 }
 
@@ -106,9 +99,8 @@ async fn connect_tls_endpoint(
         (None, None) => {}
     }
 
-    let endpoint = endpoint
-        .tls_config(tls_config)
-        .map_err(|e| Status::GrpcTlsConfigInvalid { message: e.to_string() })?;
+    let endpoint =
+        endpoint.tls_config(tls_config).map_err(|e| Status::GrpcTlsConfigInvalid { message: e.to_string() })?;
     connect_endpoint(endpoint).await
 }
 
@@ -130,11 +122,7 @@ pub struct GrpcProxy {
 
 impl Default for GrpcProxy {
     fn default() -> Self {
-        Self {
-            next_channel_id: AtomicUsize::new(1),
-            channels: Default::default(),
-            streams: Default::default(),
-        }
+        Self { next_channel_id: AtomicUsize::new(1), channels: Default::default(), streams: Default::default() }
     }
 }
 
@@ -173,10 +161,7 @@ fn read_channel_params(headers: &mut HeaderMap) -> Result<GrpcChannelParams, Sta
 
     // Helper to unpack a header value
     let read_header_value = |value: HeaderValue, header: &'static str| -> Result<String, Status> {
-        Ok(value
-            .to_str()
-            .map_err(|e| Status::HeaderHasInvalidEncoding{ header, message: e.to_string() })?
-            .to_string())
+        Ok(value.to_str().map_err(|e| Status::HeaderHasInvalidEncoding { header, message: e.to_string() })?.to_string())
     };
 
     // Read all headers in the request, pick up the one from us and declare the remaining as extra
@@ -214,17 +199,13 @@ fn read_channel_params(headers: &mut HeaderMap) -> Result<GrpcChannelParams, Sta
 
     // Make sure the user provided an endpoint
     let endpoint = if let Some(host) = &host {
-        Endpoint::from_str(host).map_err(|e| Status::HeaderIsNotAValidEndpoint { header: HEADER_NAME_ENDPOINT, message: e.to_string() })
-        ?
+        Endpoint::from_str(host)
+            .map_err(|e| Status::HeaderIsNotAValidEndpoint { header: HEADER_NAME_ENDPOINT, message: e.to_string() })?
     } else {
         return Err(Status::HeaderRequiredButMissing { header: HEADER_NAME_ENDPOINT });
     };
     let tls_config = if tls {
-        Some(GrpcRequestTlsConfig {
-            client_key: tls_client_key,
-            client_cert: tls_client_cert,
-            cacerts: tls_cacerts,
-        })
+        Some(GrpcRequestTlsConfig { client_key: tls_client_key, client_cert: tls_client_cert, cacerts: tls_cacerts })
     } else {
         None
     };
@@ -237,7 +218,7 @@ fn require_string_header(headers: &HeaderMap, header_name: &'static str) -> Resu
     if let Some(header) = headers.get(header_name) {
         let header = header
             .to_str()
-            .map_err(|e| Status::HeaderHasInvalidEncoding{ header: header_name, message: e.to_string() })?
+            .map_err(|e| Status::HeaderHasInvalidEncoding { header: header_name, message: e.to_string() })?
             .to_string();
         Ok(header)
     } else {
@@ -250,9 +231,11 @@ fn require_usize_header(headers: &HeaderMap, header_name: &'static str) -> Resul
     if let Some(header) = headers.get(header_name) {
         let header = header
             .to_str()
-            .map_err(|e| Status::HeaderHasInvalidEncoding{ header: header_name, message: e.to_string() })?
+            .map_err(|e| Status::HeaderHasInvalidEncoding { header: header_name, message: e.to_string() })?
             .to_string();
-        let header: usize = header.parse::<usize>().map_err(|e| Status::HeaderIsNotAnUsize { header: header_name, message: e.to_string() })?;
+        let header: usize = header
+            .parse::<usize>()
+            .map_err(|e| Status::HeaderIsNotAnUsize { header: header_name, message: e.to_string() })?;
         Ok(header)
     } else {
         Err(Status::HeaderRequiredButMissing { header: header_name })
@@ -262,9 +245,7 @@ fn require_usize_header(headers: &HeaderMap, header_name: &'static str) -> Resul
 impl GrpcProxy {
     /// Create a channel
     pub async fn create_channel(&self, headers: &mut HeaderMap) -> Result<usize, Status> {
-        let channel_id = self
-            .next_channel_id
-            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        let channel_id = self.next_channel_id.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         let params = read_channel_params(headers)?;
         let channel = if let Some(tls) = params.tls {
             connect_tls_endpoint(params.endpoint, tls).await?
@@ -285,7 +266,12 @@ impl GrpcProxy {
     }
 
     /// Call a unary gRPC function
-    pub async fn call_unary(&self, channel_id: usize, headers: &mut HeaderMap, body: Vec<u8>) -> Result<(Vec<u8>, MetadataMap), Status> {
+    pub async fn call_unary(
+        &self,
+        channel_id: usize,
+        headers: &mut HeaderMap,
+        body: Vec<u8>,
+    ) -> Result<(Vec<u8>, MetadataMap), Status> {
         let path = require_string_header(headers, HEADER_NAME_PATH)?;
         let channel_entry = if let Some(channel) = self.channels.read().unwrap().get(&channel_id) {
             channel.clone()
@@ -293,25 +279,30 @@ impl GrpcProxy {
             return Err(Status::GrpcChannelIdIsUnknown { channel_id });
         };
         let mut client = GenericGrpcClient::new(channel_entry.channel.clone());
-        let path = PathAndQuery::from_str(&path)
-            .map_err(|e| {
-                Status::HeaderPathIsInvalid { header: HEADER_NAME_PATH, path: path.to_string(), message: e.to_string() }
-            })?;
+        let path = PathAndQuery::from_str(&path).map_err(|e| Status::HeaderPathIsInvalid {
+            header: HEADER_NAME_PATH,
+            path: path.to_string(),
+            message: e.to_string(),
+        })?;
 
         let mut request = tonic::Request::new(body);
         prepare_metadata(request.metadata_mut(), headers);
-        let mut response = client.call_unary(request, path).await
-            .map_err(|status| {
-                log::warn!("Grpc call failed: {:?}", status);
-                Status::GrpcCallFailed { status }
-            })?;
+        let mut response = client.call_unary(request, path).await.map_err(|status| {
+            log::warn!("Grpc call failed: {:?}", status);
+            Status::GrpcCallFailed { status }
+        })?;
         let metadata = std::mem::take(response.metadata_mut());
         let body = response.into_inner();
         Ok((body, metadata))
     }
 
     /// Call a gRPC function with results streamed from the server
-    pub async fn start_server_stream(&self, channel_id: usize, headers: &mut HeaderMap, body: Vec<u8>) -> Result<(usize, MetadataMap), Status> {
+    pub async fn start_server_stream(
+        &self,
+        channel_id: usize,
+        headers: &mut HeaderMap,
+        body: Vec<u8>,
+    ) -> Result<(usize, MetadataMap), Status> {
         let path = require_string_header(headers, HEADER_NAME_PATH)?;
         let channel_entry = if let Some(channel) = self.channels.read().unwrap().get(&channel_id) {
             channel.clone()
@@ -321,19 +312,24 @@ impl GrpcProxy {
 
         // Send the gRPC request
         let mut client = GenericGrpcClient::new(channel_entry.channel.clone());
-        let path = PathAndQuery::from_str(&path)
-            .map_err(|e| {
-                Status::HeaderPathIsInvalid { header: HEADER_NAME_PATH, path: path.to_string(), message: e.to_string() }
-            })?;
+        let path = PathAndQuery::from_str(&path).map_err(|e| Status::HeaderPathIsInvalid {
+            header: HEADER_NAME_PATH,
+            path: path.to_string(),
+            message: e.to_string(),
+        })?;
         let mut request = tonic::Request::new(body);
         prepare_metadata(request.metadata_mut(), headers);
-        log::debug!("Sending gRPC request: channel_id={}, path={}, request={:?}", channel_id, path.to_string(), &request);
+        log::debug!(
+            "Sending gRPC request: channel_id={}, path={}, request={:?}",
+            channel_id,
+            path.to_string(),
+            &request
+        );
 
-        let mut response = client.call_server_streaming(request, path).await
-            .map_err(|status| {
-                log::warn!("Grpc call failed: {:?}", status);
-                Status::GrpcCallFailed { status }
-            })?;
+        let mut response = client.call_server_streaming(request, path).await.map_err(|status| {
+            log::warn!("Grpc call failed: {:?}", status);
+            Status::GrpcCallFailed { status }
+        })?;
 
         // Save the response headers
         let response_headers = std::mem::take(response.metadata_mut());
@@ -346,7 +342,12 @@ impl GrpcProxy {
     }
 
     /// Read from a result stream
-    pub async fn read_server_stream(&self, channel_id: usize, stream_id: usize, headers: &mut HeaderMap) -> Result<GrpcServerStreamBatch, Status> {
+    pub async fn read_server_stream(
+        &self,
+        channel_id: usize,
+        stream_id: usize,
+        headers: &mut HeaderMap,
+    ) -> Result<GrpcServerStreamBatch, Status> {
         // We don't need the channel id to resolve the stream today since the stream id is unique across all channels.
         // We still check if the channel id exists so that we can still maintain streams per channel later.
         if self.channels.read().unwrap().get(&channel_id).is_none() {
@@ -360,7 +361,10 @@ impl GrpcProxy {
         // Read from the stream
         let read_timeout_duration = Duration::from_millis(read_timeout as u64);
         let batch_timeout_duration = Duration::from_millis(batch_timeout as u64);
-        let read_result = self.streams.read_server_stream(channel_id, stream_id, read_timeout_duration, batch_timeout_duration, batch_bytes).await?;
+        let read_result = self
+            .streams
+            .read_server_stream(channel_id, stream_id, read_timeout_duration, batch_timeout_duration, batch_bytes)
+            .await?;
         Ok(read_result)
     }
 

@@ -10,8 +10,8 @@ use unicode_normalization::UnicodeNormalization;
 
 use crate::workbook_format::data::{WorkbookAttachment, WorkbookConnection, WorkbookData, WorkbookScript};
 use crate::workbook_format::layout::{is_attachment_file_name, DRAFT_SCRIPT_FILE, MAX_WORKBOOK_FILES};
-use dashql_core_runtime::natural::sort_naturally;
 use crate::workbook_format::validation::is_valid_uuid;
+use dashql_core_runtime::natural::sort_naturally;
 
 /// Is a name a plain file name that can't escape its folder? A `:` would name an alternate data stream on NTFS.
 pub fn is_safe_file_name(name: &str) -> bool {
@@ -79,7 +79,10 @@ pub fn sanitize_workbook_files(workbook: &WorkbookData) -> SanitizedWorkbookFile
         }
         let key = file_name_key(&attachment.name);
         // A workbook attaches Parquet files only
-        if !is_safe_file_name(&attachment.name) || !is_attachment_file_name(&attachment.name) || attachment_keys.contains(&key) {
+        if !is_safe_file_name(&attachment.name)
+            || !is_attachment_file_name(&attachment.name)
+            || attachment_keys.contains(&key)
+        {
             valid = false;
             continue;
         }
@@ -92,7 +95,12 @@ pub fn sanitize_workbook_files(workbook: &WorkbookData) -> SanitizedWorkbookFile
 /// The workbook with its file lists sanitized, and whether they were valid
 pub fn with_sanitized_files(workbook: &WorkbookData) -> (WorkbookData, bool) {
     let files = sanitize_workbook_files(workbook);
-    let next = WorkbookData { scripts: files.scripts, attachments: files.attachments, malformed_lists: false, ..workbook.clone() };
+    let next = WorkbookData {
+        scripts: files.scripts,
+        attachments: files.attachments,
+        malformed_lists: false,
+        ..workbook.clone()
+    };
     (next, files.valid)
 }
 
@@ -145,7 +153,10 @@ pub fn reconcile_workbook_scripts(
         if !listed.insert(name) {
             continue;
         }
-        let connection_id = result.last().map(|script| script.connection_id.clone()).unwrap_or_else(|| fallback_connection_id.to_string());
+        let connection_id = result
+            .last()
+            .map(|script| script.connection_id.clone())
+            .unwrap_or_else(|| fallback_connection_id.to_string());
         result.push(WorkbookScript::new(name, connection_id));
         changed = true;
     }
@@ -166,7 +177,11 @@ pub fn workbook_connection_ids_of(scripts: &[WorkbookScript], empty_connection_i
         return empty_connection_id.map(|id| vec![id.to_string()]).unwrap_or_default();
     }
     let mut seen = HashSet::new();
-    scripts.iter().filter(|script| seen.insert(script.connection_id.as_str())).map(|script| script.connection_id.clone()).collect()
+    scripts
+        .iter()
+        .filter(|script| seen.insert(script.connection_id.as_str()))
+        .map(|script| script.connection_id.clone())
+        .collect()
 }
 
 /// The workbook with a new script list.
@@ -177,7 +192,11 @@ pub fn workbook_connection_ids_of(scripts: &[WorkbookScript], empty_connection_i
 ///
 /// A workbook without scripts keeps one connection, the one its first script will run on: the first given copy, or
 /// the first connection the workbook held.
-pub fn with_workbook_scripts(workbook: &WorkbookData, scripts: Vec<WorkbookScript>, copies: &[WorkbookConnection]) -> WorkbookData {
+pub fn with_workbook_scripts(
+    workbook: &WorkbookData,
+    scripts: Vec<WorkbookScript>,
+    copies: &[WorkbookConnection],
+) -> WorkbookData {
     let mut known: HashMap<&str, &WorkbookConnection> = HashMap::new();
     for copy in workbook.connections.iter().chain(copies.iter()) {
         known.entry(copy.connection_id.as_str()).or_insert(copy);
@@ -191,12 +210,18 @@ pub fn with_workbook_scripts(workbook: &WorkbookData, scripts: Vec<WorkbookScrip
 }
 
 /// Replace the connection ids of the scripts, ids without a replacement are kept
-pub fn remap_workbook_scripts(scripts: &[WorkbookScript], connection_ids: &HashMap<String, String>) -> Vec<WorkbookScript> {
+pub fn remap_workbook_scripts(
+    scripts: &[WorkbookScript],
+    connection_ids: &HashMap<String, String>,
+) -> Vec<WorkbookScript> {
     scripts
         .iter()
         .map(|script| WorkbookScript {
             name: script.name.clone(),
-            connection_id: connection_ids.get(&script.connection_id).cloned().unwrap_or_else(|| script.connection_id.clone()),
+            connection_id: connection_ids
+                .get(&script.connection_id)
+                .cloned()
+                .unwrap_or_else(|| script.connection_id.clone()),
         })
         .collect()
 }
@@ -209,10 +234,18 @@ pub fn dedupe_connections(connections: Vec<WorkbookConnection>) -> Vec<WorkbookC
 
 /// The workbook with a copy of a connection in place of the copies it replaces (with the same id or an id in
 /// `replaced`), the scripts of a replaced connection follow it. None if nothing changed.
-pub fn patch_workbook_connection(workbook: &WorkbookData, copy: &WorkbookConnection, replaced: &[String]) -> Option<WorkbookData> {
+pub fn patch_workbook_connection(
+    workbook: &WorkbookData,
+    copy: &WorkbookConnection,
+    replaced: &[String],
+) -> Option<WorkbookData> {
     let references = |id: &str| id == copy.connection_id || replaced.iter().any(|r| r == id);
     let connections = dedupe_connections(
-        workbook.connections.iter().map(|connection| if references(&connection.connection_id) { copy.clone() } else { connection.clone() }).collect(),
+        workbook
+            .connections
+            .iter()
+            .map(|connection| if references(&connection.connection_id) { copy.clone() } else { connection.clone() })
+            .collect(),
     );
     let scripts = workbook
         .scripts

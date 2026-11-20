@@ -1,15 +1,14 @@
 use aws_sdk_s3::primitives::ByteStream;
 use chrono::prelude::*;
 use futures::StreamExt;
-use std::{collections::HashMap, io::Read};
 use std::path::PathBuf;
+use std::{collections::HashMap, io::Read};
 
 use crate::{
     badge::build_version_badge,
     git_info::GitInfo,
     release_metadata::{
-        Architecture, Bundle, BundleTarget, BundleType, Platform, ReleaseMetadata, UpdateArtifact,
-        UpdateManifest,
+        Architecture, Bundle, BundleTarget, BundleType, Platform, ReleaseMetadata, UpdateArtifact, UpdateManifest,
     },
     release_version::ReleaseVersion,
     remote_paths::{derive_remote_paths, electron_channel_manifest},
@@ -76,7 +75,9 @@ pub struct ReleaseArgs {
 }
 
 fn file_name(path: &PathBuf) -> anyhow::Result<String> {
-    path.file_name().and_then(|value| value.to_str()).map(str::to_owned)
+    path.file_name()
+        .and_then(|value| value.to_str())
+        .map(str::to_owned)
         .ok_or_else(|| anyhow::anyhow!("artifact path has no valid file name: {:?}", path))
 }
 
@@ -92,16 +93,11 @@ impl Release {
         release.release_metadata.release_id = args.release_version.id.to_string();
         release.release_metadata.version = args.release_version.version.clone();
         release.release_metadata.pub_date = pub_date.clone();
-        release.release_metadata.update_manifest_url = format!(
-            "{}/{}",
-            &args.remote_base_url,
-            remote_paths.release_update.clone()
-        );
+        release.release_metadata.update_manifest_url =
+            format!("{}/{}", &args.remote_base_url, remote_paths.release_update.clone());
         release.release_metadata.git_commit_hash = args.git_repo.version.short_hash.clone();
-        release.release_metadata.git_commit_url = format!(
-            "https://github.com/ankoh/dashql/tree/{}",
-            &args.git_repo.version.short_hash
-        );
+        release.release_metadata.git_commit_url =
+            format!("https://github.com/ankoh/dashql/tree/{}", &args.git_repo.version.short_hash);
 
         // Prepare update manifest
         release.release_update_manifest_path = remote_paths.release_update.clone();
@@ -117,15 +113,31 @@ impl Release {
         release.channel_update_manifest_path = remote_paths.channel_update;
 
         for (arch, architecture, dmg, zip, blockmap, manifest) in [
-            ("arm64", Architecture::Aarch64, &args.macos_arm64_dmg_path, &args.macos_arm64_zip_path, &args.macos_arm64_zip_blockmap_path, &args.macos_arm64_update_manifest_path),
-            ("x64", Architecture::X86_64, &args.macos_x64_dmg_path, &args.macos_x64_zip_path, &args.macos_x64_zip_blockmap_path, &args.macos_x64_update_manifest_path),
+            (
+                "arm64",
+                Architecture::Aarch64,
+                &args.macos_arm64_dmg_path,
+                &args.macos_arm64_zip_path,
+                &args.macos_arm64_zip_blockmap_path,
+                &args.macos_arm64_update_manifest_path,
+            ),
+            (
+                "x64",
+                Architecture::X86_64,
+                &args.macos_x64_dmg_path,
+                &args.macos_x64_zip_path,
+                &args.macos_x64_zip_blockmap_path,
+                &args.macos_x64_update_manifest_path,
+            ),
         ] {
             for artifact in [dmg, zip, blockmap] {
                 if !artifact.is_file() {
                     return Err(anyhow::anyhow!("missing Electron artifact: {:?}", artifact));
                 }
                 let remote_path = format!("{}/macos/{}/{}", remote_paths.release_directory, arch, file_name(artifact)?);
-                release.file_uploads.insert(remote_path.clone(), FileUpload {source_path: artifact.clone(), remote_path});
+                release
+                    .file_uploads
+                    .insert(remote_path.clone(), FileUpload { source_path: artifact.clone(), remote_path });
             }
 
             let dmg_name = file_name(dmg)?;
@@ -136,7 +148,7 @@ impl Release {
                 signature: None,
                 name: dmg_name,
                 bundle_type: BundleType::Dmg,
-                targets: vec![BundleTarget {platform: Platform::Darwin, arch: architecture}],
+                targets: vec![BundleTarget { platform: Platform::Darwin, arch: architecture }],
             };
             release.release_metadata.bundles.push(bundle);
 
@@ -146,14 +158,19 @@ impl Release {
                 url: format!("{}/{}", &args.remote_base_url, zip_remote_path),
                 signature: String::new(),
             };
-            release.release_update_manifest.platforms.insert(BundleTarget {platform: Platform::Darwin, arch: architecture}, update_artifact);
+            release
+                .release_update_manifest
+                .platforms
+                .insert(BundleTarget { platform: Platform::Darwin, arch: architecture }, update_artifact);
 
             let manifest_text = std::fs::read_to_string(manifest)?;
             let artifact_base = format!("{}/{}/macos/{}/", args.remote_base_url, remote_paths.release_directory, arch);
             let manifest_text = manifest_text
                 .replace(&format!("url: {}", zip_name), &format!("url: {}{}", artifact_base, zip_name))
                 .replace(&format!("path: {}", zip_name), &format!("path: {}{}", artifact_base, zip_name));
-            release.electron_channel_manifests.push((electron_channel_manifest(remote_paths.channel, arch), manifest_text.into_bytes()));
+            release
+                .electron_channel_manifests
+                .push((electron_channel_manifest(remote_paths.channel, arch), manifest_text.into_bytes()));
         }
 
         log::info!("{:?}", &release);
@@ -180,12 +197,8 @@ impl Release {
         }
 
         // Serialize release metadata and update manifest and abort after serialization errors
-        let release_metadata = serde_json::to_string_pretty(&self.release_metadata)?
-            .as_bytes()
-            .to_vec();
-        let update_manifest = serde_json::to_string_pretty(&self.release_update_manifest)?
-            .as_bytes()
-            .to_vec();
+        let release_metadata = serde_json::to_string_pretty(&self.release_metadata)?.as_bytes().to_vec();
+        let update_manifest = serde_json::to_string_pretty(&self.release_update_manifest)?.as_bytes().to_vec();
 
         // Collect json file uploads
         let mut pending_uploads = vec![
@@ -199,7 +212,7 @@ impl Release {
             let path = path.clone();
             let bytes = ByteStream::from(metadata.to_vec());
             let client = client.clone();
-            let content_type = if path.ends_with(".yml") {"application/yaml"} else {"application/json"};
+            let content_type = if path.ends_with(".yml") { "application/yaml" } else { "application/json" };
             log::info!("upload started, path={}", &path);
             upload_futures.push(tokio::spawn(async move {
                 client
@@ -231,10 +244,7 @@ impl Release {
                 }
                 Err(e) => {
                     log::error!("failed to join upload task, error={}", &e);
-                    upload_error = Some(anyhow::format_err!(
-                        "failed to join upload task, error={}",
-                        &e
-                    ));
+                    upload_error = Some(anyhow::format_err!("failed to join upload task, error={}", &e));
                 }
             }
         }
@@ -329,7 +339,8 @@ mod tests {
 
     /// The artifacts of a release in a directory
     fn release_args(dir: &TempDir, iteration: u32) -> ReleaseArgs {
-        let manifest = |zip: &str| format!("version: 1.2.3\nfiles:\n  - url: {zip}\n    sha512: abc\npath: {zip}\nsha512: abc\n");
+        let manifest =
+            |zip: &str| format!("version: 1.2.3\nfiles:\n  - url: {zip}\n    sha512: abc\npath: {zip}\nsha512: abc\n");
         let git_version = GitVersion {
             description: format!("v1.2.3-{iteration}-gabc1234"),
             major: 1,
@@ -373,20 +384,34 @@ mod tests {
 
         let mut uploads: Vec<&String> = release.file_uploads.keys().collect();
         uploads.sort();
-        assert_eq!(uploads, vec![
-            "releases/1.2.3/macos/arm64/DashQL-arm64.dmg",
-            "releases/1.2.3/macos/arm64/DashQL-arm64.zip",
-            "releases/1.2.3/macos/arm64/DashQL-arm64.zip.blockmap",
-            "releases/1.2.3/macos/x64/DashQL-x64.dmg",
-            "releases/1.2.3/macos/x64/DashQL-x64.zip",
-            "releases/1.2.3/macos/x64/DashQL-x64.zip.blockmap",
-        ]);
-        assert_eq!(release.release_metadata.bundles[0].url, "https://get.example/releases/1.2.3/macos/arm64/DashQL-arm64.dmg");
+        assert_eq!(
+            uploads,
+            vec![
+                "releases/1.2.3/macos/arm64/DashQL-arm64.dmg",
+                "releases/1.2.3/macos/arm64/DashQL-arm64.zip",
+                "releases/1.2.3/macos/arm64/DashQL-arm64.zip.blockmap",
+                "releases/1.2.3/macos/x64/DashQL-x64.dmg",
+                "releases/1.2.3/macos/x64/DashQL-x64.zip",
+                "releases/1.2.3/macos/x64/DashQL-x64.zip.blockmap",
+            ]
+        );
+        assert_eq!(
+            release.release_metadata.bundles[0].url,
+            "https://get.example/releases/1.2.3/macos/arm64/DashQL-arm64.dmg"
+        );
         assert_eq!(release.release_metadata.bundles.len(), 2);
-        assert_eq!(release.release_update_manifest.platforms[&BundleTarget {platform: Platform::Darwin, arch: Architecture::Aarch64}].url,
-            "https://get.example/releases/1.2.3/macos/arm64/DashQL-arm64.zip");
-        assert_eq!(release.release_update_manifest.platforms[&BundleTarget {platform: Platform::Darwin, arch: Architecture::X86_64}].url,
-            "https://get.example/releases/1.2.3/macos/x64/DashQL-x64.zip");
+        assert_eq!(
+            release.release_update_manifest.platforms
+                [&BundleTarget { platform: Platform::Darwin, arch: Architecture::Aarch64 }]
+                .url,
+            "https://get.example/releases/1.2.3/macos/arm64/DashQL-arm64.zip"
+        );
+        assert_eq!(
+            release.release_update_manifest.platforms
+                [&BundleTarget { platform: Platform::Darwin, arch: Architecture::X86_64 }]
+                .url,
+            "https://get.example/releases/1.2.3/macos/x64/DashQL-x64.zip"
+        );
     }
 
     #[tokio::test]
@@ -394,10 +419,10 @@ mod tests {
         let dir = TempDir::new();
         let release = Release::build(release_args(&dir, 0)).await.unwrap();
         let feeds: Vec<&str> = release.electron_channel_manifests.iter().map(|(path, _)| path.as_str()).collect();
-        assert_eq!(feeds, vec![
-            "channels/stable/macos/arm64/latest-mac.yml",
-            "channels/stable/macos/x64/latest-mac.yml",
-        ]);
+        assert_eq!(
+            feeds,
+            vec!["channels/stable/macos/arm64/latest-mac.yml", "channels/stable/macos/x64/latest-mac.yml",]
+        );
         assert_eq!(release.latest_badge, None);
     }
 
@@ -448,20 +473,23 @@ mod tests {
         let s3 = FakeS3::start().await;
         release.publish(&s3.client()).await.unwrap();
 
-        assert_eq!(s3.object_keys(), vec![
-            "channels/stable/macos/arm64/latest-mac.yml",
-            "channels/stable/macos/x64/latest-mac.yml",
-            "releases/1.2.3/macos/arm64/DashQL-arm64.dmg",
-            "releases/1.2.3/macos/arm64/DashQL-arm64.zip",
-            "releases/1.2.3/macos/arm64/DashQL-arm64.zip.blockmap",
-            "releases/1.2.3/macos/x64/DashQL-x64.dmg",
-            "releases/1.2.3/macos/x64/DashQL-x64.zip",
-            "releases/1.2.3/macos/x64/DashQL-x64.zip.blockmap",
-            "releases/1.2.3/metadata.json",
-            "releases/1.2.3/update.json",
-            "stable-update.json",
-            "stable.json",
-        ]);
+        assert_eq!(
+            s3.object_keys(),
+            vec![
+                "channels/stable/macos/arm64/latest-mac.yml",
+                "channels/stable/macos/x64/latest-mac.yml",
+                "releases/1.2.3/macos/arm64/DashQL-arm64.dmg",
+                "releases/1.2.3/macos/arm64/DashQL-arm64.zip",
+                "releases/1.2.3/macos/arm64/DashQL-arm64.zip.blockmap",
+                "releases/1.2.3/macos/x64/DashQL-x64.dmg",
+                "releases/1.2.3/macos/x64/DashQL-x64.zip",
+                "releases/1.2.3/macos/x64/DashQL-x64.zip.blockmap",
+                "releases/1.2.3/metadata.json",
+                "releases/1.2.3/update.json",
+                "stable-update.json",
+                "stable.json",
+            ]
+        );
         assert_eq!(s3.object("releases/1.2.3/macos/arm64/DashQL-arm64.dmg").unwrap(), b"arm64 dmg");
         let pointer: serde_json::Value = serde_json::from_slice(&s3.object("stable.json").unwrap()).unwrap();
         assert_eq!(pointer["version"], "1.2.3");
@@ -477,13 +505,16 @@ mod tests {
         release.publish(&s3.client()).await.unwrap();
 
         let pointers: Vec<String> = s3.object_keys().into_iter().filter(|key| is_channel_pointer(key)).collect();
-        assert_eq!(pointers, vec![
-            "channels/latest/badge.svg",
-            "channels/latest/macos/arm64/latest-mac.yml",
-            "channels/latest/macos/x64/latest-mac.yml",
-            "latest-update.json",
-            "latest.json",
-        ]);
+        assert_eq!(
+            pointers,
+            vec![
+                "channels/latest/badge.svg",
+                "channels/latest/macos/arm64/latest-mac.yml",
+                "channels/latest/macos/x64/latest-mac.yml",
+                "latest-update.json",
+                "latest.json",
+            ]
+        );
         let badge = s3.requests().into_iter().find(|request| request.key == "channels/latest/badge.svg").unwrap();
         assert_eq!(badge.headers.get("cache-control").map(String::as_str), Some("no-cache"));
         assert_eq!(badge.headers.get("content-type").map(String::as_str), Some("image/svg+xml"));
@@ -509,16 +540,24 @@ mod tests {
         let s3 = FakeS3::start().await;
         release.publish(&s3.client()).await.unwrap();
 
-        let header = |key: &str, name: &str| s3.requests().iter()
-            .find(|request| request.key == key && (request.method == "PUT" || request.query.contains_key("uploads")))
-            .and_then(|request| request.headers.get(name).cloned());
+        let header = |key: &str, name: &str| {
+            s3.requests()
+                .iter()
+                .find(|request| {
+                    request.key == key && (request.method == "PUT" || request.query.contains_key("uploads"))
+                })
+                .and_then(|request| request.headers.get(name).cloned())
+        };
         for key in ["releases/1.2.3/metadata.json", "releases/1.2.3/macos/arm64/DashQL-arm64.dmg"] {
             assert_eq!(header(key, "cache-control").as_deref(), Some(IMMUTABLE), "{key}");
         }
         for key in ["stable.json", "stable-update.json", "channels/stable/macos/x64/latest-mac.yml"] {
             assert_eq!(header(key, "cache-control").as_deref(), Some("no-cache"), "{key}");
         }
-        assert_eq!(header("channels/stable/macos/x64/latest-mac.yml", "content-type").as_deref(), Some("application/yaml"));
+        assert_eq!(
+            header("channels/stable/macos/x64/latest-mac.yml", "content-type").as_deref(),
+            Some("application/yaml")
+        );
         assert_eq!(header("stable.json", "content-type").as_deref(), Some("application/json"));
     }
 
@@ -562,7 +601,9 @@ mod tests {
         let path = dir.write("large.dmg", &content);
         multipart_upload(&s3.client(), &path, "releases/1.2.3/large.dmg").await.unwrap();
 
-        let parts: Vec<(String, usize)> = s3.requests().iter()
+        let parts: Vec<(String, usize)> = s3
+            .requests()
+            .iter()
             .filter(|request| request.query.contains_key("partNumber"))
             .map(|request| (request.query["partNumber"].clone(), request.body.len()))
             .collect();
@@ -579,11 +620,7 @@ mod tests {
     }
 }
 
-async fn multipart_upload(
-    client: &aws_sdk_s3::Client,
-    source_path: &PathBuf,
-    remote_path: &str,
-) -> anyhow::Result<()> {
+async fn multipart_upload(client: &aws_sdk_s3::Client, source_path: &PathBuf, remote_path: &str) -> anyhow::Result<()> {
     // Create multipart upload
     let create_upload = client
         .create_multipart_upload()
@@ -618,10 +655,9 @@ async fn multipart_upload(
             .send()
             .await?;
 
-        parts.push(aws_sdk_s3::types::CompletedPart::builder()
-            .part_number(part_number)
-            .e_tag(part.e_tag().unwrap())
-            .build());
+        parts.push(
+            aws_sdk_s3::types::CompletedPart::builder().part_number(part_number).e_tag(part.e_tag().unwrap()).build(),
+        );
 
         part_number += 1;
     }
@@ -632,9 +668,7 @@ async fn multipart_upload(
         .bucket("dashql-get")
         .key(remote_path)
         .upload_id(upload_id)
-        .multipart_upload(aws_sdk_s3::types::CompletedMultipartUpload::builder()
-            .set_parts(Some(parts))
-            .build())
+        .multipart_upload(aws_sdk_s3::types::CompletedMultipartUpload::builder().set_parts(Some(parts)).build())
         .send()
         .await?;
 

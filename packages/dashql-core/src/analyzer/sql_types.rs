@@ -7,7 +7,9 @@
 //! of well-known types (`text`, `date`, `int8`, `timestamptz`, ...) map to their kinds, so `::int8` and `::bigint`
 //! are the same type.
 
-use dashql_buffers::parser::{AttributeKey as K, CharacterType, IntervalType as IntervalTypeEnum, Node, NodeType, NumericType};
+use dashql_buffers::parser::{
+    AttributeKey as K, CharacterType, IntervalType as IntervalTypeEnum, Node, NodeType, NumericType,
+};
 use dashql_parser::attrs;
 use dashql_parser::parser::{parse, ParsedScript};
 use dashql_parser::scanner::scan;
@@ -44,17 +46,39 @@ pub enum SqlTypeKind {
     Int8,
     Float4,
     Float8,
-    Numeric { precision: Option<u32>, scale: Option<u32> },
-    Varchar { length: Option<u32> },
-    Char { length: Option<u32> },
+    Numeric {
+        precision: Option<u32>,
+        scale: Option<u32>,
+    },
+    Varchar {
+        length: Option<u32>,
+    },
+    Char {
+        length: Option<u32>,
+    },
     Text,
-    Bit { length: Option<u32>, varying: bool },
+    Bit {
+        length: Option<u32>,
+        varying: bool,
+    },
     Date,
-    Time { precision: Option<u32>, with_time_zone: bool },
-    Timestamp { precision: Option<u32>, with_time_zone: bool },
-    Interval { fields: Option<IntervalTypeEnum>, precision: Option<u32> },
+    Time {
+        precision: Option<u32>,
+        with_time_zone: bool,
+    },
+    Timestamp {
+        precision: Option<u32>,
+        with_time_zone: bool,
+    },
+    Interval {
+        fields: Option<IntervalTypeEnum>,
+        precision: Option<u32>,
+    },
     /// Any other type, by its lowercased name and the text of its modifiers
-    Generic { name: Arc<str>, modifiers: Vec<Arc<str>> },
+    Generic {
+        name: Arc<str>,
+        modifiers: Vec<Arc<str>>,
+    },
 }
 
 /// A SQL type
@@ -89,7 +113,8 @@ impl SqlType {
 
     /// Is the type an integer?
     pub fn is_integer(&self) -> bool {
-        self.array_dimensions == 0 && matches!(self.kind, SqlTypeKind::Int1 | SqlTypeKind::Int2 | SqlTypeKind::Int4 | SqlTypeKind::Int8)
+        self.array_dimensions == 0
+            && matches!(self.kind, SqlTypeKind::Int1 | SqlTypeKind::Int2 | SqlTypeKind::Int4 | SqlTypeKind::Int8)
     }
 
     /// Is the type a boolean?
@@ -165,7 +190,8 @@ fn read_kind(parsed: &ParsedScript, node: &Node) -> Option<SqlTypeKind> {
             numeric_kind(base?.children_begin_or_value(), precision, scale)
         }
         NodeType::OBJECT_SQL_CHARACTER_TYPE => {
-            let [char_type, length] = attrs!(parsed.children(node), [K::SQL_CHARACTER_TYPE, K::SQL_CHARACTER_TYPE_LENGTH]);
+            let [char_type, length] =
+                attrs!(parsed.children(node), [K::SQL_CHARACTER_TYPE, K::SQL_CHARACTER_TYPE_LENGTH]);
             let length = read_u32(parsed, length);
             match CharacterType(char_type?.children_begin_or_value() as _) {
                 CharacterType::VARCHAR => Some(SqlTypeKind::Varchar { length }),
@@ -177,7 +203,8 @@ fn read_kind(parsed: &ParsedScript, node: &Node) -> Option<SqlTypeKind> {
             Some(SqlTypeKind::Bit { length: read_u32(parsed, length), varying: read_bool(varying) })
         }
         NodeType::OBJECT_SQL_TIMESTAMP_TYPE | NodeType::OBJECT_SQL_TIME_TYPE => {
-            let [precision, tz] = attrs!(parsed.children(node), [K::SQL_TIME_TYPE_PRECISION, K::SQL_TIME_TYPE_WITH_TIMEZONE]);
+            let [precision, tz] =
+                attrs!(parsed.children(node), [K::SQL_TIME_TYPE_PRECISION, K::SQL_TIME_TYPE_WITH_TIMEZONE]);
             let precision = read_u32(parsed, precision);
             let with_time_zone = read_bool(tz);
             if node.node_type() == NodeType::OBJECT_SQL_TIMESTAMP_TYPE {
@@ -282,7 +309,9 @@ impl fmt::Display for SqlType {
             SqlTypeKind::Varchar { length } => with_length(f, "varchar", *length)?,
             SqlTypeKind::Char { length } => with_length(f, "char", *length)?,
             SqlTypeKind::Text => f.write_str("text")?,
-            SqlTypeKind::Bit { length, varying } => with_length(f, if *varying { "bit varying" } else { "bit" }, *length)?,
+            SqlTypeKind::Bit { length, varying } => {
+                with_length(f, if *varying { "bit varying" } else { "bit" }, *length)?
+            }
             SqlTypeKind::Date => f.write_str("date")?,
             SqlTypeKind::Time { precision, with_time_zone } | SqlTypeKind::Timestamp { precision, with_time_zone } => {
                 let name = if matches!(self.kind, SqlTypeKind::Time { .. }) { "time" } else { "timestamp" };

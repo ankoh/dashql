@@ -7,10 +7,10 @@ use std::hash::Hash;
 use dashql_buffers::analyzer::{QualifiedTableNameT, TableColumnT, TableT};
 use dashql_buffers::batch::DiagnosticSeverity;
 use dashql_buffers::catalog::{CatalogDescriptor, CatalogDescriptorT, CatalogTableUpdateT};
+use dashql_core::batch::{check_script, ProcessingStage};
 use dashql_core::catalog::Catalog;
 use dashql_core::catalog::QualifiedKey;
 use dashql_core::pack::pack_catalog_descriptor;
-use dashql_core::batch::{check_script, ProcessingStage};
 use serde_json::{json, Value};
 
 use super::sql::{qualified_table_name, quote_data_type, quote_identifier};
@@ -201,7 +201,12 @@ pub fn catalog_tables_of_descriptor(descriptor: Option<&CatalogDescriptorT>) -> 
 }
 
 /// A `CREATE TABLE` of a table, a table without a schema is named by its name only
-pub fn create_table_sql(database_name: Option<&str>, schema_name: Option<&str>, table_name: &str, columns: &[ColumnMetadata]) -> String {
+pub fn create_table_sql(
+    database_name: Option<&str>,
+    schema_name: Option<&str>,
+    table_name: &str,
+    columns: &[ColumnMetadata],
+) -> String {
     let name = match schema_name {
         Some(schema_name) => qualified_table_name(database_name, schema_name, table_name),
         None => quote_identifier(table_name),
@@ -210,7 +215,9 @@ pub fn create_table_sql(database_name: Option<&str>, schema_name: Option<&str>, 
     sorted.sort_by_key(|column| column.ordinal_position);
     let columns: Vec<String> = sorted
         .into_iter()
-        .map(|column| format!("    {} {}", quote_identifier(&column.name), quote_data_type(column.data_type.as_deref())))
+        .map(|column| {
+            format!("    {} {}", quote_identifier(&column.name), quote_data_type(column.data_type.as_deref()))
+        })
         .collect();
     format!("CREATE TABLE {name} (\n{}\n);", columns.join(",\n"))
 }
@@ -219,7 +226,9 @@ pub fn create_table_sql(database_name: Option<&str>, schema_name: Option<&str>, 
 pub fn catalog_tables_sql(tables: &[CatalogTable]) -> String {
     let statements: Vec<String> = tables
         .iter()
-        .map(|table| create_table_sql(Some(&table.database_name), Some(&table.schema_name), &table.table_name, &table.columns))
+        .map(|table| {
+            create_table_sql(Some(&table.database_name), Some(&table.schema_name), &table.table_name, &table.columns)
+        })
         .collect();
     statements.join("\n\n")
 }
@@ -322,7 +331,8 @@ pub fn catalog_descriptor_of_sql(sql: &str) -> Result<Vec<u8>, CatalogLoadError>
     if let Some(failure) = &checked.failure {
         return Err(CatalogLoadError::failed(format!("Cannot read a catalog: {failure}")));
     }
-    if let Some(error) = checked.diagnostics.iter().find(|diagnostic| diagnostic.severity == DiagnosticSeverity::ERROR) {
+    if let Some(error) = checked.diagnostics.iter().find(|diagnostic| diagnostic.severity == DiagnosticSeverity::ERROR)
+    {
         return Err(CatalogLoadError::failed(format!("Cannot read a catalog: {}", error.message)));
     }
     let analyzed = checked
@@ -330,7 +340,8 @@ pub fn catalog_descriptor_of_sql(sql: &str) -> Result<Vec<u8>, CatalogLoadError>
         .analyzed
         .as_deref()
         .ok_or_else(|| CatalogLoadError::failed("Cannot read a catalog: no descriptor"))?;
-    pack_catalog_descriptor(&analyzed.entry).map_err(|error| CatalogLoadError::failed(format!("Cannot read a catalog: {error}")))
+    pack_catalog_descriptor(&analyzed.entry)
+        .map_err(|error| CatalogLoadError::failed(format!("Cannot read a catalog: {error}")))
 }
 
 /// Parse the SQL of a catalog file into its tables and functions. Fails if the core can't read the file.

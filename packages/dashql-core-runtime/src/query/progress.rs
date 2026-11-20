@@ -387,12 +387,14 @@ impl ProfileRecording {
             });
         }
         let has_stages = |response: &&Value| {
-            let stage = response.get("body").and_then(|body| body.get("stats")).and_then(|stats| stats.get("rootStage"));
+            let stage =
+                response.get("body").and_then(|body| body.get("stats")).and_then(|stats| stats.get("rootStage"));
             stage.is_some_and(|stage| !stage.is_null())
         };
         let stages_at = statements.iter().find(has_stages).map(elapsed);
         if let (Some(mut plans), Some(at)) = (infos.last().and_then(|sample| sample.get("body")).cloned(), stages_at) {
-            let stages = plans.get_mut("stages").and_then(|stages| stages.get_mut("stages")).and_then(Value::as_array_mut);
+            let stages =
+                plans.get_mut("stages").and_then(|stages| stages.get_mut("stages")).and_then(Value::as_array_mut);
             for stage in stages.into_iter().flatten() {
                 let Some(stage) = stage.as_object_mut() else { continue };
                 let stats = stage.entry("stageStats").or_insert_with(|| json!({}));
@@ -437,7 +439,10 @@ impl SharedRecording {
 
     /// The payloads from an index on
     pub fn payloads_from(&self, start: usize) -> Vec<RecordedPayload> {
-        self.0.try_borrow().map(|recording| recording.payloads.get(start..).unwrap_or_default().to_vec()).unwrap_or_default()
+        self.0
+            .try_borrow()
+            .map(|recording| recording.payloads.get(start..).unwrap_or_default().to_vec())
+            .unwrap_or_default()
     }
 
     /// When the first payload was received
@@ -664,8 +669,7 @@ impl QueryProgressModels {
     /// Apply a payload to the model of a query, the first payload of a query creates its model for its engine
     pub fn apply(&mut self, query_id: QueryId, payload: EngineProgressPayload) -> Result<&QueryProfileProgress> {
         let layout = self.layout.as_ref();
-        let model =
-            self.models.entry(query_id).or_insert_with(|| QueryProgressModel::new(payload.engine(), layout));
+        let model = self.models.entry(query_id).or_insert_with(|| QueryProgressModel::new(payload.engine(), layout));
         model.apply(payload)
     }
 

@@ -208,9 +208,9 @@ impl TableComputation {
         for ((column, group), slot) in self.column_groups.iter().enumerate().zip(outdated.iter_mut()) {
             *slot = group.has_filtered_summary()
                 && self.column_aggregate(column).is_some()
-                && !self
-                    .filtered_column_aggregate(column)
-                    .is_some_and(|aggregate| aggregate.filter_version.filter_matches(target) && aggregate.data_search_request_id == search);
+                && !self.filtered_column_aggregate(column).is_some_and(|aggregate| {
+                    aggregate.filter_version.filter_matches(target) && aggregate.data_search_request_id == search
+                });
         }
         outdated
     }
@@ -261,7 +261,9 @@ impl TableComputation {
                             request_id: previous.task.request_id,
                         });
                     }
-                } else if self.tasks.data_search.as_ref().map(|tracked| tracked.task.request_id) != Some(task.request_id) {
+                } else if self.tasks.data_search.as_ref().map(|tracked| tracked.task.request_id)
+                    != Some(task.request_id)
+                {
                     return false;
                 }
                 let progress = progress.apply(self.tasks.data_search.as_ref().map(|tracked| &tracked.progress));
@@ -361,7 +363,12 @@ pub enum ComputationAction {
     ClearTableOrdering { table_id: TableId },
     /// A filter was computed for a version, none if no filter is active. It is dropped unless the version is the
     /// current one.
-    TableFilteringSucceeded { table_id: TableId, version: ComputationVersion, filter: Option<FilterTable>, now: Timestamp },
+    TableFilteringSucceeded {
+        table_id: TableId,
+        version: ComputationVersion,
+        filter: Option<FilterTable>,
+        now: Timestamp,
+    },
     /// The statistics of the table were computed
     TableAggregationSucceeded { table_id: TableId, aggregation: TableAggregation, now: Timestamp },
     /// The system columns were computed: the table and the data frame with them and the column groups that use them.
@@ -391,7 +398,12 @@ pub enum ComputationAction {
     SetResultSearchPattern { table_id: TableId, kind: SearchKind, pattern: String },
     /// A search of the columns of a data frame matched column groups. It is dropped unless the data frame and the
     /// request are current.
-    ColumnSearchSucceeded { table_id: TableId, data_frame: DataFrameId, request_id: u64, matching_column_groups: Vec<u32> },
+    ColumnSearchSucceeded {
+        table_id: TableId,
+        data_frame: DataFrameId,
+        request_id: u64,
+        matching_column_groups: Vec<u32>,
+    },
     /// A search of the data of a data frame matched rows: the table of the matches, whose matching columns the host
     /// reads, and the number of matched rows. It is dropped unless the data frame, the request and the data version
     /// are current.
@@ -425,7 +437,9 @@ impl ComputationAction {
             ComputationAction::CreatedDataFrame { data_frame, .. } => held.frame(*data_frame),
             ComputationAction::TableOrderingSucceeded { ordering, .. } => held.ordering(ordering),
             ComputationAction::TableFilteringSucceeded { filter, .. } => held.filter(filter.as_ref()),
-            ComputationAction::TableAggregationSucceeded { aggregation, .. } => held.table_aggregation(Some(aggregation)),
+            ComputationAction::TableAggregationSucceeded { aggregation, .. } => {
+                held.table_aggregation(Some(aggregation))
+            }
             ComputationAction::SystemColumnsSucceeded { data_table, data_frame, .. } => {
                 held.table(data_table);
                 held.frame(*data_frame);
@@ -961,8 +975,10 @@ fn reduce_computation(
                 computation.clear_filtered_aggregates();
             } else {
                 // With a selection they stay until new ones are computed, their filter version tells they are outdated
-                computation.filtered_column_aggregates_outdated = computation
-                    .outdated_filtered_aggregates(filter.as_ref().map(|filter| filter.version), computation.data_search_request());
+                computation.filtered_column_aggregates_outdated = computation.outdated_filtered_aggregates(
+                    filter.as_ref().map(|filter| filter.version),
+                    computation.data_search_request(),
+                );
             }
             computation.filter_table = filter;
             computation.ordering_table = None;
@@ -1042,7 +1058,13 @@ fn reduce_computation(
                 ResultSearchState { request_id, applied_request_id: request_id, ..Default::default() }
             } else {
                 // The matches of the applied search stay visible while the new one runs
-                ResultSearchState { requested_pattern: pattern.clone(), request_id, pending: true, error: None, ..current.clone() }
+                ResultSearchState {
+                    requested_pattern: pattern.clone(),
+                    request_id,
+                    pending: true,
+                    error: None,
+                    ..current.clone()
+                }
             };
             if kind == SearchKind::Data {
                 if let Some(tracked) = &computation.tasks.data_search {
@@ -1053,8 +1075,10 @@ fn reduce_computation(
                 }
                 // Ending the data search drops its rows
                 if pattern.is_empty() {
-                    computation.filtered_column_aggregates_outdated =
-                        computation.outdated_filtered_aggregates(computation.filter_table.as_ref().map(|filter| filter.version), None);
+                    computation.filtered_column_aggregates_outdated = computation.outdated_filtered_aggregates(
+                        computation.filter_table.as_ref().map(|filter| filter.version),
+                        None,
+                    );
                     if computation.filter_table.is_none() {
                         computation.clear_filtered_aggregates();
                     }
@@ -1095,8 +1119,10 @@ fn reduce_computation(
             if let Some(tracked) = &mut computation.tasks.data_search {
                 tracked.progress.succeed(now);
             }
-            computation.filtered_column_aggregates_outdated = computation
-                .outdated_filtered_aggregates(computation.filter_table.as_ref().map(|filter| filter.version), Some(search.request_id));
+            computation.filtered_column_aggregates_outdated = computation.outdated_filtered_aggregates(
+                computation.filter_table.as_ref().map(|filter| filter.version),
+                Some(search.request_id),
+            );
             computation.data_search_table = Some(search);
             computation.ordering_table = None;
         }
@@ -1110,8 +1136,8 @@ fn reduce_computation(
             state.matching_rows = None;
             state.pending = false;
             state.error = Some(error);
-            computation.filtered_column_aggregates_outdated =
-                computation.outdated_filtered_aggregates(computation.filter_table.as_ref().map(|filter| filter.version), None);
+            computation.filtered_column_aggregates_outdated = computation
+                .outdated_filtered_aggregates(computation.filter_table.as_ref().map(|filter| filter.version), None);
             if computation.filter_table.is_none() {
                 computation.clear_filtered_aggregates();
             }

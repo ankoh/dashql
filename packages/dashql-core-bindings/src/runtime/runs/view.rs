@@ -4,7 +4,9 @@
 
 use std::collections::BTreeMap;
 
-use dashql_core_runtime::workbook_run::{report, RunFailure, RunFailureKind, RunPhase, RunResult, RunState, ScriptEvent};
+use dashql_core_runtime::workbook_run::{
+    report, RunFailure, RunFailureKind, RunPhase, RunResult, RunState, ScriptEvent,
+};
 use serde::{Deserialize, Serialize};
 use tsify::Tsify;
 
@@ -172,7 +174,14 @@ impl WorkbookRunFailure {
             RunFailureKind::Cancelled => WorkbookRunFailureKind::Cancelled,
             RunFailureKind::Error => WorkbookRunFailureKind::Error,
         };
-        let mut view = WorkbookRunFailure { kind, message: failure.message.clone(), details: BTreeMap::new(), target: None, query_id: None, host_value: false };
+        let mut view = WorkbookRunFailure {
+            kind,
+            message: failure.message.clone(),
+            details: BTreeMap::new(),
+            target: None,
+            query_id: None,
+            host_value: false,
+        };
         let value = match failure.value.as_ref() {
             Some(value) => match value.downcast_ref::<StatementError>() {
                 Some(statement) => {
@@ -216,10 +225,14 @@ impl WorkbookScriptRunEvent {
     pub fn of(event: &ScriptEvent) -> (Self, wasm_bindgen::JsValue) {
         let view = match event {
             ScriptEvent::Planned { follows } => WorkbookScriptRunEvent::Planned { follows: follows.clone() },
-            ScriptEvent::Cached { key, query_id } => WorkbookScriptRunEvent::Cached { key: key.clone(), query_id: *query_id },
+            ScriptEvent::Cached { key, query_id } => {
+                WorkbookScriptRunEvent::Cached { key: key.clone(), query_id: *query_id }
+            }
             ScriptEvent::Skipped { reason } => WorkbookScriptRunEvent::Skipped { reason: reason.clone() },
             ScriptEvent::Started => WorkbookScriptRunEvent::Started,
-            ScriptEvent::Done { key, query_id } => WorkbookScriptRunEvent::Done { key: key.clone(), query_id: *query_id },
+            ScriptEvent::Done { key, query_id } => {
+                WorkbookScriptRunEvent::Done { key: key.clone(), query_id: *query_id }
+            }
             ScriptEvent::Failed { failure } => {
                 let (failure, value) = WorkbookRunFailure::of(failure);
                 return (WorkbookScriptRunEvent::Failed { failure }, value);

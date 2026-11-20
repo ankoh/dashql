@@ -10,8 +10,7 @@ use std::fmt;
 use std::path::PathBuf;
 
 lazy_static! {
-    static ref REGEX_DESCRIBE_LONG: Regex =
-        Regex::new("v([0-9]+).([0-9]+).([0-9]+)-([0-9]+)-g([a-f0-9]+)").unwrap();
+    static ref REGEX_DESCRIBE_LONG: Regex = Regex::new("v([0-9]+).([0-9]+).([0-9]+)-([0-9]+)-g([a-f0-9]+)").unwrap();
 }
 
 /// A version derived from the long `git describe` output of a repository
@@ -84,44 +83,23 @@ pub fn describe_git_version(source_dir: &PathBuf) -> Result<GitVersion> {
 
     let description_parts = match REGEX_DESCRIBE_LONG.captures(&description_text) {
         Some(parts) => parts,
-        None => {
-            return Err(anyhow!(
-                "git describe output is not matching version regex: {}",
-                &description_text
-            ))
-        }
+        None => return Err(anyhow!("git describe output is not matching version regex: {}", &description_text)),
     };
 
     Ok(GitVersion {
         description: description_text.clone(),
-        major: description_parts[1].parse().map_err(|e| {
-            anyhow!(
-                "failed to parse major version {}, {}",
-                &description_parts[1],
-                e
-            )
-        })?,
-        minor: description_parts[2].parse().map_err(|e| {
-            anyhow!(
-                "failed to parse minor version {}, {}",
-                &description_parts[2],
-                e
-            )
-        })?,
-        patch: description_parts[3].parse().map_err(|e| {
-            anyhow!(
-                "failed to parse patch version {}, {}",
-                &description_parts[3],
-                e
-            )
-        })?,
-        iteration: description_parts[4].parse().map_err(|e| {
-            anyhow!(
-                "failed to parse iteration version {}, {}",
-                &description_parts[4],
-                e
-            )
-        })?,
+        major: description_parts[1]
+            .parse()
+            .map_err(|e| anyhow!("failed to parse major version {}, {}", &description_parts[1], e))?,
+        minor: description_parts[2]
+            .parse()
+            .map_err(|e| anyhow!("failed to parse minor version {}, {}", &description_parts[2], e))?,
+        patch: description_parts[3]
+            .parse()
+            .map_err(|e| anyhow!("failed to parse patch version {}, {}", &description_parts[3], e))?,
+        iteration: description_parts[4]
+            .parse()
+            .map_err(|e| anyhow!("failed to parse iteration version {}, {}", &description_parts[4], e))?,
         short_hash: description_parts[5].to_string(),
     })
 }

@@ -35,70 +35,280 @@ const FLOW_ARGS: &[&str] = &["x", "y", "width", "height"];
 
 /// The top-level properties of a Vega-Lite spec
 const SPEC_KEYS: &[&str] = &[
-    "mark", "encoding", "title", "description", "transform", "layer", "width", "height", "params", "resolve",
-    "projection", "facet", "spec", "repeat", "hconcat", "vconcat", "concat", "autosize", "padding",
-    "background", "view", "config", "name",
+    "mark",
+    "encoding",
+    "title",
+    "description",
+    "transform",
+    "layer",
+    "width",
+    "height",
+    "params",
+    "resolve",
+    "projection",
+    "facet",
+    "spec",
+    "repeat",
+    "hconcat",
+    "vconcat",
+    "concat",
+    "autosize",
+    "padding",
+    "background",
+    "view",
+    "config",
+    "name",
 ];
 /// The mark types
 const MARK_TYPES: &[&str] = &[
-    "bar", "line", "point", "area", "arc", "rect", "rule", "text", "tick", "circle", "square", "trail",
-    "boxplot", "errorband", "errorbar", "geoshape", "image",
+    "bar",
+    "line",
+    "point",
+    "area",
+    "arc",
+    "rect",
+    "rule",
+    "text",
+    "tick",
+    "circle",
+    "square",
+    "trail",
+    "boxplot",
+    "errorband",
+    "errorbar",
+    "geoshape",
+    "image",
 ];
 /// The properties of a mark definition
 const MARK_KEYS: &[&str] = &[
-    "type", "color", "fill", "stroke", "opacity", "fillOpacity", "strokeOpacity", "strokeWidth", "strokeDash",
-    "size", "shape", "angle", "point", "line", "filled", "tooltip", "interpolate", "tension", "orient",
-    "thickness", "cornerRadius", "radius", "innerRadius", "outerRadius", "align", "baseline", "dx", "dy",
-    "fontSize", "fontWeight", "text", "clip",
+    "type",
+    "color",
+    "fill",
+    "stroke",
+    "opacity",
+    "fillOpacity",
+    "strokeOpacity",
+    "strokeWidth",
+    "strokeDash",
+    "size",
+    "shape",
+    "angle",
+    "point",
+    "line",
+    "filled",
+    "tooltip",
+    "interpolate",
+    "tension",
+    "orient",
+    "thickness",
+    "cornerRadius",
+    "radius",
+    "innerRadius",
+    "outerRadius",
+    "align",
+    "baseline",
+    "dx",
+    "dy",
+    "fontSize",
+    "fontWeight",
+    "text",
+    "clip",
 ];
 /// The encoding channels
 const CHANNELS: &[&str] = &[
-    "x", "y", "color", "size", "shape", "opacity", "tooltip", "text", "theta", "radius", "x2", "y2", "xOffset",
-    "yOffset", "fill", "stroke", "fillOpacity", "strokeOpacity", "strokeWidth", "strokeDash", "angle", "theta2",
-    "radius2", "latitude", "longitude", "latitude2", "longitude2", "row", "column", "facet", "detail", "key",
-    "order", "href", "url", "description",
+    "x",
+    "y",
+    "color",
+    "size",
+    "shape",
+    "opacity",
+    "tooltip",
+    "text",
+    "theta",
+    "radius",
+    "x2",
+    "y2",
+    "xOffset",
+    "yOffset",
+    "fill",
+    "stroke",
+    "fillOpacity",
+    "strokeOpacity",
+    "strokeWidth",
+    "strokeDash",
+    "angle",
+    "theta2",
+    "radius2",
+    "latitude",
+    "longitude",
+    "latitude2",
+    "longitude2",
+    "row",
+    "column",
+    "facet",
+    "detail",
+    "key",
+    "order",
+    "href",
+    "url",
+    "description",
 ];
 /// The properties of a field definition
 const FIELD_DEF_KEYS: &[&str] = &[
-    "field", "type", "aggregate", "timeUnit", "bin", "title", "sort", "stack", "scale", "axis", "legend",
-    "format", "formatType", "value", "datum", "condition", "impute", "bandPosition",
+    "field",
+    "type",
+    "aggregate",
+    "timeUnit",
+    "bin",
+    "title",
+    "sort",
+    "stack",
+    "scale",
+    "axis",
+    "legend",
+    "format",
+    "formatType",
+    "value",
+    "datum",
+    "condition",
+    "impute",
+    "bandPosition",
 ];
 /// The field types
 const FIELD_TYPES: &[&str] = &["quantitative", "temporal", "ordinal", "nominal", "geojson"];
 /// The aggregate operations
 const AGGREGATES: &[&str] = &[
-    "count", "sum", "mean", "average", "median", "min", "max", "distinct", "valid", "missing", "values",
-    "product", "variance", "variancep", "stdev", "stdevp", "stderr", "q1", "q3", "ci0", "ci1", "argmin",
+    "count",
+    "sum",
+    "mean",
+    "average",
+    "median",
+    "min",
+    "max",
+    "distinct",
+    "valid",
+    "missing",
+    "values",
+    "product",
+    "variance",
+    "variancep",
+    "stdev",
+    "stdevp",
+    "stderr",
+    "q1",
+    "q3",
+    "ci0",
+    "ci1",
+    "argmin",
     "argmax",
 ];
 /// The time units
 const TIME_UNITS: &[&str] = &[
-    "year", "quarter", "month", "week", "day", "date", "hours", "minutes", "seconds", "milliseconds",
-    "dayofyear", "yearquarter", "yearmonth", "yearweek", "yearmonthdate", "yearmonthdatehours",
-    "yearmonthdatehoursminutes", "yearmonthdatehoursminutesseconds", "monthdate", "hoursminutes",
-    "hoursminutesseconds", "minutesseconds",
+    "year",
+    "quarter",
+    "month",
+    "week",
+    "day",
+    "date",
+    "hours",
+    "minutes",
+    "seconds",
+    "milliseconds",
+    "dayofyear",
+    "yearquarter",
+    "yearmonth",
+    "yearweek",
+    "yearmonthdate",
+    "yearmonthdatehours",
+    "yearmonthdatehoursminutes",
+    "yearmonthdatehoursminutesseconds",
+    "monthdate",
+    "hoursminutes",
+    "hoursminutesseconds",
+    "minutesseconds",
 ];
 /// The properties of a scale
 const SCALE_KEYS: &[&str] = &[
-    "type", "domain", "domainMin", "domainMax", "domainMid", "range", "rangeMin", "rangeMax", "scheme", "zero",
-    "nice", "clamp", "reverse", "round", "padding", "paddingInner", "paddingOuter", "interpolate", "exponent",
-    "base", "constant", "bins", "align",
+    "type",
+    "domain",
+    "domainMin",
+    "domainMax",
+    "domainMid",
+    "range",
+    "rangeMin",
+    "rangeMax",
+    "scheme",
+    "zero",
+    "nice",
+    "clamp",
+    "reverse",
+    "round",
+    "padding",
+    "paddingInner",
+    "paddingOuter",
+    "interpolate",
+    "exponent",
+    "base",
+    "constant",
+    "bins",
+    "align",
 ];
 /// The scale types
 const SCALE_TYPES: &[&str] = &[
-    "linear", "log", "pow", "sqrt", "symlog", "time", "utc", "ordinal", "band", "point", "sequential",
-    "quantile", "quantize", "threshold", "bin-ordinal", "identity",
+    "linear",
+    "log",
+    "pow",
+    "sqrt",
+    "symlog",
+    "time",
+    "utc",
+    "ordinal",
+    "band",
+    "point",
+    "sequential",
+    "quantile",
+    "quantize",
+    "threshold",
+    "bin-ordinal",
+    "identity",
 ];
 /// The properties of an axis
 const AXIS_KEYS: &[&str] = &[
-    "title", "orient", "format", "formatType", "grid", "ticks", "tickCount", "tickSize", "labels",
-    "labelAngle", "labelFontSize", "labelOverlap", "labelLimit", "domain", "direction", "offset", "values",
-    "titleFontSize", "zindex",
+    "title",
+    "orient",
+    "format",
+    "formatType",
+    "grid",
+    "ticks",
+    "tickCount",
+    "tickSize",
+    "labels",
+    "labelAngle",
+    "labelFontSize",
+    "labelOverlap",
+    "labelLimit",
+    "domain",
+    "direction",
+    "offset",
+    "values",
+    "titleFontSize",
+    "zindex",
 ];
 /// The properties of a legend
 const LEGEND_KEYS: &[&str] = &[
-    "title", "orient", "format", "formatType", "direction", "columns", "symbolType", "labelLimit", "padding",
-    "offset", "values", "type", "zindex",
+    "title",
+    "orient",
+    "format",
+    "formatType",
+    "direction",
+    "columns",
+    "symbolType",
+    "labelLimit",
+    "padding",
+    "offset",
+    "values",
+    "type",
+    "zindex",
 ];
 
 fn is_word_byte(c: u8) -> bool {
@@ -117,11 +327,7 @@ struct Candidates {
 
 impl Candidates {
     fn new(target: TextSpan, prefix: &[u8]) -> Self {
-        Self {
-            target,
-            prefix: String::from_utf8_lossy(prefix).to_ascii_lowercase(),
-            out: Vec::new(),
-        }
+        Self { target, prefix: String::from_utf8_lossy(prefix).to_ascii_lowercase(), out: Vec::new() }
     }
 
     /// Add a candidate if it matches the prefix, `insert` is the text that replaces the target
@@ -232,22 +438,17 @@ fn scan_json(json: &[u8]) -> Option<JsonContext> {
         // A scalar that ends at the cursor is still typed, unless it is a closed string
         let typed = matches!(
             token.kind,
-            JsonTokenKind::String { closed: false } | JsonTokenKind::Number | JsonTokenKind::Literal | JsonTokenKind::Word
+            JsonTokenKind::String { closed: false }
+                | JsonTokenKind::Number
+                | JsonTokenKind::Literal
+                | JsonTokenKind::Word
         );
         if typed && token.end == json.len() {
             let string = matches!(token.kind, JsonTokenKind::String { .. });
-            return Some(JsonContext {
-                path: scanner.path(),
-                slot: token.slot?,
-                token: Some((token.begin, string)),
-            });
+            return Some(JsonContext { path: scanner.path(), slot: token.slot?, token: Some((token.begin, string)) });
         }
     }
-    Some(JsonContext {
-        path: scanner.path(),
-        slot: scanner.slot()?,
-        token: None,
-    })
+    Some(JsonContext { path: scanner.path(), slot: scanner.slot()?, token: None })
 }
 
 /// The candidates of a JSON context in a Vega-Lite spec
@@ -257,7 +458,9 @@ fn add_json_candidates(candidates: &mut Candidates, context: &JsonContext, colum
     let mut path = &context.path[..];
     loop {
         match path {
-            [PathItem::Key(k), PathItem::Index, rest @ ..] if matches!(k.as_str(), "layer" | "hconcat" | "vconcat" | "concat") => {
+            [PathItem::Key(k), PathItem::Index, rest @ ..]
+                if matches!(k.as_str(), "layer" | "hconcat" | "vconcat" | "concat") =>
+            {
                 path = rest
             }
             [PathItem::Key(k), rest @ ..] if k == "spec" => path = rest,
@@ -316,7 +519,8 @@ fn complete_vis_tag(completion: &Completion, parsed: &ParsedScript, offset: usiz
     let script = parsed.scanned.text.as_bytes();
     let blocks = &parsed.comment_blocks;
     // A tag outside of the text has no name
-    let name_of = |b: &CommentBlock| script.get(b.tag_span.offset as usize..b.tag_span.end() as usize).unwrap_or_default();
+    let name_of =
+        |b: &CommentBlock| script.get(b.tag_span.offset as usize..b.tag_span.end() as usize).unwrap_or_default();
     let (block_id, block): (usize, &CommentBlock) = blocks.blocks.iter().enumerate().find(|(_, b)| {
         b.block_type == CommentBlockType::DASHQL_TAG
             && matches!(name_of(b), VIS_TAG | BOARD_TAG | FLOW_TAG)
@@ -336,7 +540,8 @@ fn complete_vis_tag(completion: &Completion, parsed: &ParsedScript, offset: usiz
         _ => 0,
     };
     let text = tag.text.as_bytes();
-    let span = |begin: usize, end: usize| if tag.is_empty() { TextSpan::new(offset as u32, 0) } else { tag.span(begin, end) };
+    let span =
+        |begin: usize, end: usize| if tag.is_empty() { TextSpan::new(offset as u32, 0) } else { tag.span(begin, end) };
     // `@board` and `@flow` start with their args, `@vis` with its kind
     let (kind, kind_end): (&[u8], usize) = if name == VIS_TAG {
         let kind_end = text.iter().position(|c| c.is_ascii_whitespace()).unwrap_or(text.len());
@@ -362,7 +567,8 @@ fn complete_vis_tag(completion: &Completion, parsed: &ParsedScript, offset: usiz
                 return None;
             }
             let mut arg_end = at;
-            while arg_end < first_line_end && text.get(arg_end).is_some_and(|&c| !c.is_ascii_whitespace() && c != b'=') {
+            while arg_end < first_line_end && text.get(arg_end).is_some_and(|&c| !c.is_ascii_whitespace() && c != b'=')
+            {
                 arg_end += 1;
             }
             let has_equals = text.get(arg_end) == Some(&b'=');

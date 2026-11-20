@@ -12,7 +12,9 @@ use dashql_core_runtime::host::{HostError, LogLevel, OnHost};
 
 use dashql_core_storage::restore::bundle::BundleFile;
 use dashql_core_storage::storage::FolderStamps;
-use dashql_core_storage::workbook_format::bundle::{catalog_of_files, read_workbook_bundle, DataFileData, ScriptData, WorkbookBundle};
+use dashql_core_storage::workbook_format::bundle::{
+    catalog_of_files, read_workbook_bundle, DataFileData, ScriptData, WorkbookBundle,
+};
 use dashql_core_storage::workbook_format::data::WorkbookData;
 use dashql_core_storage::workbook_format::layout::{STORAGE_CATALOG_FUNCTIONS, STORAGE_CATALOG_RELATIONS};
 use dashql_core_storage::workbook_format::tables::{Cell, WorkbookTableName, WorkbookTableRow, WorkbookTables};
@@ -51,7 +53,10 @@ impl HostFiles {
         if !file.is_object() {
             return Err(HostError::new("the platform returned no file"));
         }
-        let size = field(file, "size").or_else(|| field(file, "byteLength")).and_then(|size| size.as_f64()).unwrap_or_default();
+        let size = field(file, "size")
+            .or_else(|| field(file, "byteLength"))
+            .and_then(|size| size.as_f64())
+            .unwrap_or_default();
         let handle = self.platform.register(file)?;
         self.handles.borrow_mut().push(handle);
         Ok(HostFile { handle, size: size.max(0.0) as u64 })
@@ -91,9 +96,11 @@ pub(crate) async fn read_stored_bundle(
     with_catalog: bool,
 ) -> Result<WorkbookBundle<HostFile>, HostError> {
     let stored = WorkbookData::from_json(&super::storage::load_workbook(platform, stamps, workbook_id).await?);
-    let scripts: Vec<RestoreScriptFile> = items(platform.storage_await("loadScripts", &[text(workbook_id)]).await?, "the scripts")?;
+    let scripts: Vec<RestoreScriptFile> =
+        items(platform.storage_await("loadScripts", &[text(workbook_id)]).await?, "the scripts")?;
     let scripts = scripts.into_iter().map(|script| ScriptData::new(script.name, script.sql)).collect();
-    let listed: Vec<WorkbookDataFile> = items(platform.storage_await("listDataFiles", &[text(workbook_id)]).await?, "the data files")?;
+    let listed: Vec<WorkbookDataFile> =
+        items(platform.storage_await("listDataFiles", &[text(workbook_id)]).await?, "the data files")?;
     let mut data = Vec::with_capacity(listed.len());
     for file in listed {
         let bytes = platform.storage_await("loadDataFile", &[text(workbook_id), text(&file.name)]).await?;
@@ -104,8 +111,14 @@ pub(crate) async fn read_stored_bundle(
     if with_catalog && owns_connections {
         for connection in &stored.connections {
             let id = &connection.connection_id;
-            let relations = platform.storage_await("loadConnectionFile", &[text(id), text(STORAGE_CATALOG_RELATIONS)]).await?.as_string();
-            let functions = platform.storage_await("loadConnectionFile", &[text(id), text(STORAGE_CATALOG_FUNCTIONS)]).await?.as_string();
+            let relations = platform
+                .storage_await("loadConnectionFile", &[text(id), text(STORAGE_CATALOG_RELATIONS)])
+                .await?
+                .as_string();
+            let functions = platform
+                .storage_await("loadConnectionFile", &[text(id), text(STORAGE_CATALOG_FUNCTIONS)])
+                .await?
+                .as_string();
             catalogs.extend(catalog_of_files(id, relations, functions));
         }
     }

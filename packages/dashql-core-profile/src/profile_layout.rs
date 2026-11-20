@@ -351,8 +351,7 @@ impl<'a> ProfileLayouter<'a> {
 
                 // Compute the current shift as the difference between the left contour and the right contour along
                 // the seam. Section 4 in the Buchheim paper does a good job explain the fractional spacing approach.
-                let shift =
-                    (self.node(lr).prelim + lr_mod) - (self.node(rl).prelim + rl_mod) + self.separation(lr, rl);
+                let shift = (self.node(lr).prelim + lr_mod) - (self.node(rl).prelim + rl_mod) + self.separation(lr, rl);
 
                 if shift > 0.0 {
                     let ancestor = self.find_greatest_distinct_ancestor(lr, root, default_ancestor);

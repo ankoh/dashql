@@ -14,8 +14,8 @@ use std::rc::Rc;
 use dashql_core_runtime::host::{HostError, LogLevel};
 use dashql_core_storage::workbook_format::bundle::{WorkbookBundle, WorkbookBundleResult};
 use dashql_core_storage::workbook_format::export::{
-    connection_link_workbook, exported_bundle, shared_export_head, shared_workbook_tables, workbook_archive_entries, workbook_link,
-    ArchiveEntrySource, EntryCompression, SharedWorkbookExportOptions,
+    connection_link_workbook, exported_bundle, shared_export_head, shared_workbook_tables, workbook_archive_entries,
+    workbook_link, ArchiveEntrySource, EntryCompression, SharedWorkbookExportOptions,
 };
 use dashql_core_storage::workbook_format::tables::{ColumnType, WorkbookTableName, WorkbookTables};
 use js_sys::{Function, Promise, Uint8Array};
@@ -186,7 +186,9 @@ impl Exports {
                 Some((_, size)) => *size,
                 None => {
                     let entry = self.platform.cache_lookup(&key).await?;
-                    let size = crate::host::field(&entry, "size").and_then(|size| size.as_f64()).or_else(|| entry.is_object().then_some(0.0));
+                    let size = crate::host::field(&entry, "size")
+                        .and_then(|size| size.as_f64())
+                        .or_else(|| entry.is_object().then_some(0.0));
                     if let Some(size) = size {
                         counts.files += 1;
                         counts.bytes += size;
@@ -203,7 +205,12 @@ impl Exports {
     }
 
     /// Retain the cached results of the scripts of a workbook under the keys that a run of the workbook reads
-    async fn retain_results(&self, workbook_id: &str, files: &HostFiles, retained: &mut RetainedResults) -> Result<(Vec<WorkbookBundleResult<HostFile>>, ExportedResults), HostError> {
+    async fn retain_results(
+        &self,
+        workbook_id: &str,
+        files: &HostFiles,
+        retained: &mut RetainedResults,
+    ) -> Result<(Vec<WorkbookBundleResult<HostFile>>, ExportedResults), HostError> {
         let keys = self.result_keys(workbook_id).await?;
         let mut counts = ExportedResults { total_scripts: keys.len() as u32, ..ExportedResults::default() };
         let mut results: Vec<WorkbookBundleResult<HostFile>> = Vec::new();
@@ -232,7 +239,12 @@ impl Exports {
 
     /// Export a workbook. A table export hands the tables to `consume` and resolves once it settled, the files of the
     /// tables stay readable until then.
-    pub async fn export_workbook(self, workbook_id: String, options: ExportOptions, consume: Option<Function>) -> Result<ExportOutcome, HostError> {
+    pub async fn export_workbook(
+        self,
+        workbook_id: String,
+        options: ExportOptions,
+        consume: Option<Function>,
+    ) -> Result<ExportOutcome, HostError> {
         // The export reads the workbook from the storage, with the changes that are pending. A workbook whose changes
         // didn't reach the storage, or that a change outside the app holds, isn't exported: the export would miss
         // what the app shows.
@@ -243,7 +255,9 @@ impl Exports {
         if !persistence.flush_workbook(&workbook_id).await {
             let reason = match persistence.failed_writes_for_workbook(&workbook_id).first() {
                 Some(failed) => format!("saving {} failed: {}", failed.key, failed.error),
-                None if persistence.is_workbook_held(&workbook_id) => "its writes are held, e.g. a file changed outside the app".to_string(),
+                None if persistence.is_workbook_held(&workbook_id) => {
+                    "its writes are held, e.g. a file changed outside the app".to_string()
+                }
                 None => "its changes are not saved yet".to_string(),
             };
             let message = format!("The workbook can't be exported, {reason}");
@@ -280,17 +294,21 @@ impl Exports {
         let Some(stamps) = self.workbooks.persistence.writer().map(|writer| writer.stamps().clone()) else {
             return Err(HostError::new("the runtime keeps no files, its platform has no storage"));
         };
-        let bundle = super::archives::read_stored_bundle(&self.platform, &stamps, files, workbook_id, shared.with_catalog(link)).await?;
+        let bundle =
+            super::archives::read_stored_bundle(&self.platform, &stamps, files, workbook_id, shared.with_catalog(link))
+                .await?;
         let (results, counts) = if !link && options.results.unwrap_or(false) {
             self.retain_results(workbook_id, files, retained).await?
         } else {
             (Vec::new(), ExportedResults::default())
         };
         let mut bundle = exported_bundle(bundle, results);
-        let (params, names) = self.live_connections(bundle.workbook.connections.iter().map(|connection| connection.connection_id.clone()));
+        let (params, names) = self
+            .live_connections(bundle.workbook.connections.iter().map(|connection| connection.connection_id.clone()));
         shared.connection_names = names;
         let failed = Cell::new(false);
-        let (workbook, catalogs) = shared_export_head(&bundle.workbook, &bundle.catalogs, &params, &shared, &mut self.new_uuid(&failed));
+        let (workbook, catalogs) =
+            shared_export_head(&bundle.workbook, &bundle.catalogs, &params, &shared, &mut self.new_uuid(&failed));
         bundle.workbook = workbook;
         bundle.catalogs = catalogs;
         let tables = shared_workbook_tables(&bundle, &mut self.new_uuid(&failed)).map_err(format_error)?;
@@ -304,11 +322,13 @@ impl Exports {
                 outcome.archive = Some(self.platform.register(&archive)?);
             }
             ExportFormat::Link => {
-                let base = options.link_base.as_deref().ok_or_else(|| HostError::new("a link needs the URL of the app"))?;
+                let base =
+                    options.link_base.as_deref().ok_or_else(|| HostError::new("a link needs the URL of the app"))?;
                 outcome.link = Some(archive_link(&self.platform, files, &tables, base).await?);
             }
             ExportFormat::Tables => {
-                let consume = consume.ok_or_else(|| HostError::new("an export of the workbook tables needs a consumer"))?;
+                let consume =
+                    consume.ok_or_else(|| HostError::new("an export of the workbook tables needs a consumer"))?;
                 let value = tables_value(&tables)?;
                 let promise = consume.call1(&JsValue::NULL, &value).map_err(host_error)?;
                 JsFuture::from(Promise::resolve(&promise)).await.map_err(host_error)?;
@@ -319,14 +339,33 @@ impl Exports {
 
     /// The link of a connection: an empty workbook that holds only the connection, with fresh ids and the params
     /// sanitized for sharing
-    pub async fn export_connection(self, connection_id: String, options: ConnectionLinkOptions) -> Result<String, HostError> {
+    pub async fn export_connection(
+        self,
+        connection_id: String,
+        options: ConnectionLinkOptions,
+    ) -> Result<String, HostError> {
         let (params, names) = self.live_connections(std::iter::once(connection_id.clone()));
-        let params = params.get(&connection_id).cloned().ok_or_else(|| HostError::new(format!("no connection registered with id {connection_id}")))?;
+        let params = params
+            .get(&connection_id)
+            .cloned()
+            .ok_or_else(|| HostError::new(format!("no connection registered with id {connection_id}")))?;
         let created_at = js_sys::Date::new_0().to_iso_string().as_string().unwrap_or_default();
         let name = names.get(&connection_id).map(String::as_str);
         let failed = Cell::new(false);
-        let workbook = connection_link_workbook(&params, name, options.with_login_hint.unwrap_or(true), &created_at, &mut self.new_uuid(&failed));
-        let bundle: WorkbookBundle<HostFile> = WorkbookBundle { workbook, catalogs: Vec::new(), scripts: Vec::new(), data: Vec::new(), results: Vec::new() };
+        let workbook = connection_link_workbook(
+            &params,
+            name,
+            options.with_login_hint.unwrap_or(true),
+            &created_at,
+            &mut self.new_uuid(&failed),
+        );
+        let bundle: WorkbookBundle<HostFile> = WorkbookBundle {
+            workbook,
+            catalogs: Vec::new(),
+            scripts: Vec::new(),
+            data: Vec::new(),
+            results: Vec::new(),
+        };
         let tables = shared_workbook_tables(&bundle, &mut self.new_uuid(&failed)).map_err(format_error)?;
         if failed.get() {
             return Err(HostError::new("the platform made no fresh id for the link"));
@@ -338,13 +377,18 @@ impl Exports {
 
 /// Write the archive of workbook tables with the platform: the tables with rows as Parquet, the workbook first, then
 /// the Parquet files of the attachments and results as they are. Returns the Blob of the archive.
-pub(crate) async fn write_archive(platform: &JsPlatform, tables: &WorkbookTables<HostFile>) -> Result<JsValue, HostError> {
+pub(crate) async fn write_archive(
+    platform: &JsPlatform,
+    tables: &WorkbookTables<HostFile>,
+) -> Result<JsValue, HostError> {
     let mut entries = Vec::new();
     for entry in workbook_archive_entries(tables) {
         // A query result stays stored, an import reads it in place as a slice of the archive
         let stored = JsValue::from_bool(entry.compression == EntryCompression::Stored);
         let (table, file) = match &entry.source {
-            ArchiveEntrySource::Table(table) => (bytes_value(&tables.encode_table(*table).map_err(format_error)?), JsValue::NULL),
+            ArchiveEntrySource::Table(table) => {
+                (bytes_value(&tables.encode_table(*table).map_err(format_error)?), JsValue::NULL)
+            }
             ArchiveEntrySource::Data(table_name) => {
                 let file = tables
                     .data
@@ -355,13 +399,23 @@ pub(crate) async fn write_archive(platform: &JsPlatform, tables: &WorkbookTables
                 (JsValue::NULL, JsValue::from_f64(file as f64))
             }
         };
-        entries.push(object(&[("fileName", JsValue::from_str(&entry.file_name)), ("stored", stored), ("table", table), ("file", file)]));
+        entries.push(object(&[
+            ("fileName", JsValue::from_str(&entry.file_name)),
+            ("stored", stored),
+            ("table", table),
+            ("file", file),
+        ]));
     }
     platform.archives_call("write", &[list(entries)]).await
 }
 
 /// Write the archive of workbook tables and encode it as a link
-async fn archive_link(platform: &JsPlatform, files: &HostFiles, tables: &WorkbookTables<HostFile>, link_base: &str) -> Result<String, HostError> {
+async fn archive_link(
+    platform: &JsPlatform,
+    files: &HostFiles,
+    tables: &WorkbookTables<HostFile>,
+    link_base: &str,
+) -> Result<String, HostError> {
     let archive = files.keep(&write_archive(platform, tables).await?)?;
     let bytes = platform.archives_call("bytes", &[JsValue::from_f64(archive.handle as f64)]).await?;
     if !bytes.is_object() {

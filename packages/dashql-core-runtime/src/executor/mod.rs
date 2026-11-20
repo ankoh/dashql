@@ -319,7 +319,11 @@ pub trait ExecutorHost: HttpHost {
     /// Look up a result in the query result cache
     fn cache_lookup(&self, key: &str) -> impl Future<Output = Result<Option<CacheEntry>, HostError>> + 'static;
     /// Read a cached result, the host holds it as the result of the run
-    fn cache_read(&self, run: &Rc<Self::Run>, entry: &CacheEntry) -> impl Future<Output = Result<HostTable, HostError>> + 'static;
+    fn cache_read(
+        &self,
+        run: &Rc<Self::Run>,
+        entry: &CacheEntry,
+    ) -> impl Future<Output = Result<HostTable, HostError>> + 'static;
     /// Record that a cached result was used, for the eviction
     fn cache_touch(&self, entry: &CacheEntry) -> impl Future<Output = Result<(), HostError>> + 'static;
     /// Write the result of a run into the cache. False if the cache evicted the new file right away to keep its
@@ -647,7 +651,8 @@ impl<H: ExecutorHost> QueryTask<H> {
             None => return Err(QueryFailure::cancelled()),
             Some(Ok(entry)) => entry,
             Some(Err(error)) => {
-                let details = vec![("query".to_string(), query_id.clone()), ("error".to_string(), error.message().to_string())];
+                let details =
+                    vec![("query".to_string(), query_id.clone()), ("error".to_string(), error.message().to_string())];
                 self.log(LogLevel::Warn, "Failed to read query cache", details);
                 None
             }
@@ -673,9 +678,15 @@ impl<H: ExecutorHost> QueryTask<H> {
         let run = self.run.clone();
         self.host.spawn(Box::pin(async move {
             if let Err(error) = touch.await {
-                let details = vec![("query".to_string(), run.query_id().to_string()), ("error".to_string(), error.message().to_string())];
+                let details = vec![
+                    ("query".to_string(), run.query_id().to_string()),
+                    ("error".to_string(), error.message().to_string()),
+                ];
                 let message = "Failed to record query cache access".to_string();
-                host.report(&run, QueryEvent::Log { level: LogLevel::Warn, message, details, target: LOG_TARGET.to_string() });
+                host.report(
+                    &run,
+                    QueryEvent::Log { level: LogLevel::Warn, message, details, target: LOG_TARGET.to_string() },
+                );
             }
         }));
         let mut details = self.query_details();
@@ -726,9 +737,15 @@ impl<H: ExecutorHost> QueryTask<H> {
                 host.report(&run, QueryEvent::Log { level, message, details, target: LOG_TARGET.to_string() });
             };
             match write.await {
-                Ok(true) => host.report(&run, QueryEvent::CacheRecorded { key, served_from_cache: false, cached_at: None }),
+                Ok(true) => {
+                    host.report(&run, QueryEvent::CacheRecorded { key, served_from_cache: false, cached_at: None })
+                }
                 Ok(false) => log(LogLevel::Info, "The query result cache evicted the result right away", vec![query]),
-                Err(error) => log(LogLevel::Warn, "Failed to write query cache", vec![query, ("error".to_string(), error.message().to_string())]),
+                Err(error) => log(
+                    LogLevel::Warn,
+                    "Failed to write query cache",
+                    vec![query, ("error".to_string(), error.message().to_string())],
+                ),
             }
             drop(guard);
         }));

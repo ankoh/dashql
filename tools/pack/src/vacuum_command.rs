@@ -84,7 +84,9 @@ async fn list_release_objects(client: &aws_sdk_s3::Client) -> Result<Vec<String>
             .await?;
         keys.extend(results.contents().iter().filter_map(|entry| entry.key()).map(str::to_owned));
         continuation_token = results.next_continuation_token().map(str::to_owned);
-        if continuation_token.is_none() { break; }
+        if continuation_token.is_none() {
+            break;
+        }
     }
     Ok(keys)
 }
@@ -101,12 +103,7 @@ async fn vacuum_bucket(client: &aws_sdk_s3::Client, args: &VacuumArgs) -> Result
                 .map(|key| aws_sdk_s3::types::ObjectIdentifier::builder().key(key).build())
                 .collect::<Result<Vec<_>, _>>()?;
             let objects = aws_sdk_s3::types::Delete::builder().set_objects(Some(objects)).build()?;
-            let result = client
-                .delete_objects()
-                .bucket("dashql-get")
-                .delete(objects)
-                .send()
-                .await?;
+            let result = client.delete_objects().bucket("dashql-get").delete(objects).send().await?;
             if !result.errors().is_empty() {
                 return Err(anyhow::anyhow!("R2 failed to delete objects: {:?}", result.errors()));
             }
@@ -122,7 +119,8 @@ mod tests {
     use super::*;
     use crate::test_s3::{FakeS3, ENV_LOCK};
 
-    const R2_ENV: [&str; 3] = ["DASHQL_GET_R2_ENDPOINT", "DASHQL_GET_R2_ACCESS_KEY_ID", "DASHQL_GET_R2_SECRET_ACCESS_KEY"];
+    const R2_ENV: [&str; 3] =
+        ["DASHQL_GET_R2_ENDPOINT", "DASHQL_GET_R2_ACCESS_KEY_ID", "DASHQL_GET_R2_SECRET_ACCESS_KEY"];
 
     fn keys(values: &[&str]) -> Vec<String> {
         values.iter().map(|value| value.to_string()).collect()
@@ -130,8 +128,11 @@ mod tests {
 
     /// The objects of the versions, one metadata file and one artifact per version
     fn objects_of(versions: &[&str]) -> Vec<String> {
-        versions.iter()
-            .flat_map(|version| [format!("releases/{version}/metadata.json"), format!("releases/{version}/macos/arm64/DashQL.dmg")])
+        versions
+            .iter()
+            .flat_map(|version| {
+                [format!("releases/{version}/metadata.json"), format!("releases/{version}/macos/arm64/DashQL.dmg")]
+            })
             .collect()
     }
 
@@ -147,7 +148,9 @@ mod tests {
     #[test]
     fn retention_keeps_newest_versions() {
         let versions = ["1.0.0-dev.1", "1.0.0-dev.3", "1.0.0-dev.2"]
-            .into_iter().map(|value| Version::parse(value).unwrap()).collect();
+            .into_iter()
+            .map(|value| Version::parse(value).unwrap())
+            .collect();
         let (keep, delete) = retained_versions(versions, 2);
         assert_eq!(keep, vec![Version::parse("1.0.0-dev.3").unwrap(), Version::parse("1.0.0-dev.2").unwrap()]);
         assert_eq!(delete, vec![Version::parse("1.0.0-dev.1").unwrap()]);
@@ -187,7 +190,8 @@ mod tests {
 
     #[test]
     fn never_expires_keys_without_a_version() {
-        let objects = keys(&["releases/notes.txt", "releases/latest/metadata.json", "releases/1.0/metadata.json", "stable.json"]);
+        let objects =
+            keys(&["releases/notes.txt", "releases/latest/metadata.json", "releases/1.0/metadata.json", "stable.json"]);
         assert_eq!(expired_objects(&objects, 0, 0), Vec::<String>::new());
     }
 
@@ -210,12 +214,22 @@ mod tests {
     async fn deletes_only_the_expired_objects_of_the_bucket() {
         let s3 = FakeS3::start().await;
         s3.put_objects(objects_of(&["1.0.0", "2.0.0", "2.0.1-dev.1", "2.0.1-dev.2"]));
-        s3.put_objects(keys(&["stable.json", "latest.json", "channels/stable/macos/arm64/latest-mac.yml", "releases/notes.txt"]));
+        s3.put_objects(keys(&[
+            "stable.json",
+            "latest.json",
+            "channels/stable/macos/arm64/latest-mac.yml",
+            "releases/notes.txt",
+        ]));
 
         vacuum_bucket(&s3.client(), &args(1, 1, false)).await.unwrap();
 
         let mut expected = objects_of(&["2.0.0", "2.0.1-dev.2"]);
-        expected.extend(keys(&["stable.json", "latest.json", "channels/stable/macos/arm64/latest-mac.yml", "releases/notes.txt"]));
+        expected.extend(keys(&[
+            "stable.json",
+            "latest.json",
+            "channels/stable/macos/arm64/latest-mac.yml",
+            "releases/notes.txt",
+        ]));
         assert_eq!(s3.object_keys(), sorted(expected));
     }
 
@@ -259,7 +273,9 @@ mod tests {
         vacuum_bucket(&s3.client(), &args(0, 1, false)).await.unwrap();
 
         assert_eq!(s3.object_keys(), keys(&["releases/2.0.0/metadata.json"]));
-        let batches: Vec<usize> = s3.requests().iter()
+        let batches: Vec<usize> = s3
+            .requests()
+            .iter()
             .filter(|request| request.method == "POST")
             .map(|request| String::from_utf8_lossy(&request.body).matches("<Key>").count())
             .collect();

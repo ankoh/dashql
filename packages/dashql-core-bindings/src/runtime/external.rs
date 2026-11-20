@@ -23,10 +23,10 @@ use dashql_core_runtime::connections::label::is_hyper_wasm_connection;
 use dashql_core_runtime::connections::ConnectionAction;
 use dashql_core_runtime::host::signal::{oneshot, Sender};
 use dashql_core_runtime::host::{Host, HostError, LogLevel};
+use dashql_core_runtime::workbook::WorkbookAction;
 use dashql_core_storage::restore::connection_state;
 use dashql_core_storage::storage::keys::{is_reloaded_key, script_key, workbook_script_list_key};
 use dashql_core_storage::storage::{FolderListing, HoldReason, WriteTask, WORKBOOK_FILE};
-use dashql_core_runtime::workbook::WorkbookAction;
 use dashql_core_storage::workbook_format::data::{WorkbookConnection, WorkbookData};
 use dashql_core_storage::workbook_format::files::nfc;
 use dashql_core_storage::workbook_format::restore::RestoreConnection;
@@ -55,7 +55,8 @@ const BUSY_RETRY_MS: f64 = 100.0;
 
 /// The attachments of a listing of a folder as a comparable text: name, size and modification time, sorted
 fn attachment_listing(listing: &FolderListing) -> String {
-    let mut files: Vec<(&str, f64, f64)> = listing.attachments.iter().map(|file| (file.name.as_str(), file.stamp.size, file.stamp.mtime_ms)).collect();
+    let mut files: Vec<(&str, f64, f64)> =
+        listing.attachments.iter().map(|file| (file.name.as_str(), file.stamp.size, file.stamp.mtime_ms)).collect();
     files.sort_by(|a, b| a.0.cmp(b.0).then(a.1.total_cmp(&b.1)).then(a.2.total_cmp(&b.2)));
     files.iter().map(|(name, size, mtime)| format!("{name}\u{0}{size}\u{0}{mtime}")).collect::<Vec<_>>().join("\u{1}")
 }
@@ -84,9 +85,16 @@ struct RuntimeResolver<'a> {
 }
 
 impl ConnectionResolver for RuntimeResolver<'_> {
-    fn resolve(&mut self, connection_id: &str, copy: Option<&WorkbookConnection>) -> Result<Option<ResolvedConnection>> {
+    fn resolve(
+        &mut self,
+        connection_id: &str,
+        copy: Option<&WorkbookConnection>,
+    ) -> Result<Option<ResolvedConnection>> {
         if let Some(known) = self.known.iter().find(|known| known.connection_id == connection_id) {
-            return Ok(Some(ResolvedConnection { connection_id: known.connection_id.clone(), params: known.params.clone() }));
+            return Ok(Some(ResolvedConnection {
+                connection_id: known.connection_id.clone(),
+                params: known.params.clone(),
+            }));
         }
         let Some(copy) = copy else {
             return Ok(None);
@@ -97,7 +105,10 @@ impl ConnectionResolver for RuntimeResolver<'_> {
         }
         let connection = self.sync.create_connection(connection_id, copy)?;
         self.created.push(connection.connection_id.clone());
-        self.known.push(KnownConnection { connection_id: connection.connection_id.clone(), params: connection.params.clone() });
+        self.known.push(KnownConnection {
+            connection_id: connection.connection_id.clone(),
+            params: connection.params.clone(),
+        });
         Ok(Some(connection))
     }
 
@@ -144,7 +155,13 @@ pub(crate) struct ExternalChanges {
 }
 
 impl ExternalChanges {
-    pub fn new(platform: JsPlatform, storage: Rc<StorageState>, connections: Rc<Connections>, workbooks: Rc<Workbooks>, runs: Rc<Runs>) -> Rc<Self> {
+    pub fn new(
+        platform: JsPlatform,
+        storage: Rc<StorageState>,
+        connections: Rc<Connections>,
+        workbooks: Rc<Workbooks>,
+        runs: Rc<Runs>,
+    ) -> Rc<Self> {
         Rc::new(ExternalChanges {
             platform,
             storage,
@@ -233,7 +250,12 @@ impl ExternalChanges {
 
     /// The keys of the pending writes that a reload replaces
     fn reloaded_pending(&self, workbook_id: &str) -> Vec<String> {
-        self.workbooks.persistence.pending_keys_for_workbook(workbook_id).into_iter().filter(|key| is_reloaded_key(key, workbook_id)).collect()
+        self.workbooks
+            .persistence
+            .pending_keys_for_workbook(workbook_id)
+            .into_iter()
+            .filter(|key| is_reloaded_key(key, workbook_id))
+            .collect()
     }
 
     /// The latest generation of the writes that a reload replaces
@@ -274,7 +296,11 @@ impl ExternalChanges {
             // A later check decides, it releases the hold then
             Ok(Checked::Pending) => {}
             Err(error) => {
-                self.log(LogLevel::Warn, "failed to check the workbook folder", &[("workbookId", workbook_id.as_str()), ("error", error.message())]);
+                self.log(
+                    LogLevel::Warn,
+                    "failed to check the workbook folder",
+                    &[("workbookId", workbook_id.as_str()), ("error", error.message())],
+                );
             }
         }
         if !registered {
@@ -287,7 +313,13 @@ impl ExternalChanges {
         self.platform.changed(Slice::Storage, true);
     }
 
-    async fn check_folder(self: &Rc<Self>, workbook_id: &str, folder: &JsValue, created: &mut Vec<String>, registered: &mut bool) -> std::result::Result<Checked, HostError> {
+    async fn check_folder(
+        self: &Rc<Self>,
+        workbook_id: &str,
+        folder: &JsValue,
+        created: &mut Vec<String>,
+        registered: &mut bool,
+    ) -> std::result::Result<Checked, HostError> {
         let Some(writer) = self.workbooks.persistence.writer().cloned() else { return Ok(Checked::Settled) };
         let stamps = writer.stamps().clone();
         // A write that started before the check must finish before the stable disk read
@@ -315,7 +347,10 @@ impl ExternalChanges {
 
         // A stamp differs, the scripts are read. A file that changes after its stamp was taken has a newer stamp than
         // the acknowledged one and is checked again.
-        let scripts: Vec<RestoreScriptFile> = super::archives::items(self.platform.storage_await("loadScripts", &[JsValue::from_str(workbook_id)]).await?, "the scripts")?;
+        let scripts: Vec<RestoreScriptFile> = super::archives::items(
+            self.platform.storage_await("loadScripts", &[JsValue::from_str(workbook_id)]).await?,
+            "the scripts",
+        )?;
         let workbook_file = match workbook_file {
             Some(file) => file,
             None => self.load_workbook(workbook_id).await?,
@@ -325,7 +360,11 @@ impl ExternalChanges {
             // The scripts folder is gone or empty while the workbook file lists scripts, e.g. in the middle of a git
             // checkout or with files that a sync client keeps online. The check decides nothing now, a later one
             // reads the folder again: a reload would empty the workbook and write an empty script list.
-            self.log(LogLevel::Warn, "the scripts of a workbook folder are missing, checking again later", &[("workbookId", workbook_id)]);
+            self.log(
+                LogLevel::Warn,
+                "the scripts of a workbook folder are missing, checking again later",
+                &[("workbookId", workbook_id)],
+            );
             return Ok(Checked::Pending);
         }
         let Some(stored) = self.resolve(&stored_file, &scripts, created)? else {
@@ -336,7 +375,8 @@ impl ExternalChanges {
         };
         let stored_name = stored_file.display_name().map(str::to_string);
         let matches = {
-            let stored = self.workbooks.stored_scripts(stored.scripts.clone()).map_err(|error| HostError::new(error.what()))?;
+            let stored =
+                self.workbooks.stored_scripts(stored.scripts.clone()).map_err(|error| HostError::new(error.what()))?;
             match workbook.try_borrow() {
                 Ok(workbook) => workbook.matches_stored_scripts(&stored) && workbook.name() == stored_name.as_deref(),
                 // A workbook that another task holds is checked again, it is not taken as changed
@@ -389,7 +429,11 @@ impl ExternalChanges {
             let connection_id = connection_id.clone();
             self.platform.spawn(Box::pin(async move {
                 if let Err(error) = save.await {
-                    sync.log(LogLevel::Warn, "failed to save a connection of the workbook file", &[("connectionId", connection_id.as_str()), ("error", error.what())]);
+                    sync.log(
+                        LogLevel::Warn,
+                        "failed to save a connection of the workbook file",
+                        &[("connectionId", connection_id.as_str()), ("error", error.what())],
+                    );
                 }
             }));
         }
@@ -404,9 +448,13 @@ impl ExternalChanges {
         }
         // A workbook that was removed while the question was open stays removed
         if self.workbooks.get(workbook_id).is_some() {
-            self.workbooks.replace_from_storage(workbook_id, stored.scripts).map_err(|error| HostError::new(error.what()))?;
+            self.workbooks
+                .replace_from_storage(workbook_id, stored.scripts)
+                .map_err(|error| HostError::new(error.what()))?;
             // The name on disk wins as well
-            self.workbooks.apply(workbook_id, WorkbookAction::RenameWorkbook { name: stored_name }).map_err(|error| HostError::new(error.what()))?;
+            self.workbooks
+                .apply(workbook_id, WorkbookAction::RenameWorkbook { name: stored_name })
+                .map_err(|error| HostError::new(error.what()))?;
             self.runs.describe_attachments();
         }
         self.log(LogLevel::Info, "reloaded externally changed workbook", &[("workbookId", workbook_id)]);
@@ -423,15 +471,26 @@ impl ExternalChanges {
         let sync = self.clone();
         let workbook_id = workbook_id.to_string();
         self.platform.spawn(Box::pin(async move {
-            if let Err(error) = reconcile_attachments(&sync.platform, &sync.workbooks, &sync.runs, &workbook_id, &[]).await {
-                sync.log(LogLevel::Warn, "Listing the attachments failed", &[("workbookId", workbook_id.as_str()), ("error", error.message())]);
+            if let Err(error) =
+                reconcile_attachments(&sync.platform, &sync.workbooks, &sync.runs, &workbook_id, &[]).await
+            {
+                sync.log(
+                    LogLevel::Warn,
+                    "Listing the attachments failed",
+                    &[("workbookId", workbook_id.as_str()), ("error", error.message())],
+                );
             }
         }));
     }
 
     /// Resolve the scripts of a folder like the restore does, against the connections of the runtime. Scripts on
     /// unknown connections run on the embedded Hyper, none without one.
-    fn resolve(&self, workbook: &WorkbookData, scripts: &[RestoreScriptFile], created: &mut Vec<String>) -> std::result::Result<Option<StoredScripts>, HostError> {
+    fn resolve(
+        &self,
+        workbook: &WorkbookData,
+        scripts: &[RestoreScriptFile],
+        created: &mut Vec<String>,
+    ) -> std::result::Result<Option<StoredScripts>, HostError> {
         let (known, embedded) = {
             let registry = self.connections.registry.borrow();
             let mut known = Vec::new();
@@ -440,7 +499,8 @@ impl ExternalChanges {
                 let Ok(state) = connection.state.try_borrow() else { continue };
                 let params = Value::Object(state.params().to_object());
                 if embedded.is_none() && is_hyper_wasm_connection(&state) {
-                    embedded = Some(ResolvedConnection { connection_id: connection_id.to_string(), params: params.clone() });
+                    embedded =
+                        Some(ResolvedConnection { connection_id: connection_id.to_string(), params: params.clone() });
                 }
                 known.push(KnownConnection { connection_id: connection_id.to_string(), params });
             }
@@ -450,9 +510,11 @@ impl ExternalChanges {
             return Ok(None);
         };
         let names: Vec<String> = scripts.iter().map(|script| nfc(&script.name)).collect();
-        let sql_by_name: BTreeMap<String, &str> = names.iter().cloned().zip(scripts.iter().map(|script| script.sql.as_str())).collect();
+        let sql_by_name: BTreeMap<String, &str> =
+            names.iter().cloned().zip(scripts.iter().map(|script| script.sql.as_str())).collect();
         let mut resolver = RuntimeResolver { known, embedded, sync: self, created };
-        let resolved = resolve_workbook_scripts(workbook, &names, &mut resolver).map_err(|error| HostError::new(error.what()))?;
+        let resolved =
+            resolve_workbook_scripts(workbook, &names, &mut resolver).map_err(|error| HostError::new(error.what()))?;
         let scripts = resolved
             .scripts
             .into_iter()
@@ -488,7 +550,9 @@ impl ExternalChanges {
     fn write_kept_scripts(&self, workbook_id: &str, disk: &[RestoreScriptFile]) {
         let Some(workbook) = self.workbooks.get(workbook_id) else { return };
         let scripts: Vec<(String, String)> = match workbook.try_borrow() {
-            Ok(workbook) => workbook.scripts().iter().map(|script| (script.file_name().to_string(), script.text())).collect(),
+            Ok(workbook) => {
+                workbook.scripts().iter().map(|script| (script.file_name().to_string(), script.text())).collect()
+            }
             Err(_) => return,
         };
         for (file_name, text) in scripts {

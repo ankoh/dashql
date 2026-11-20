@@ -8,7 +8,7 @@
 use super::state::AnalysisState;
 use super::AnalyzedScript;
 use crate::catalog::clfn::*;
-use crate::catalog::{ClientFunctionSpec, CatalogSnapshot};
+use crate::catalog::{CatalogSnapshot, ClientFunctionSpec};
 use crate::utils::unquote_string_literal;
 use dashql_buffers::analyzer::{AnalyzerErrorSeverity, AnalyzerErrorType};
 use dashql_buffers::parser::{AttributeKey as K, Node, NodeType};
@@ -59,11 +59,17 @@ pub fn starts_client_function_call(scanned: &ScannedScript, catalog: &CatalogSna
             return false;
         }
         let location = namespace.location;
-        let name = scanned.text.as_bytes().get(location.offset as usize..(location.offset + location.length) as usize).unwrap_or_default();
+        let name = scanned
+            .text
+            .as_bytes()
+            .get(location.offset as usize..(location.offset + location.length) as usize)
+            .unwrap_or_default();
         catalog.client_function_spec(&String::from_utf8_lossy(name).trim_matches('"').to_ascii_lowercase()).is_some()
     };
     scanned.symbols.split(|symbol| symbol.kind == S_SEMICOLON).any(|statement| match statement.split_first() {
-        Some((first, rest)) if first.kind == S_EXPLAIN => (0..rest.len()).any(|i| rest.get(i..).is_some_and(starts_call)),
+        Some((first, rest)) if first.kind == S_EXPLAIN => {
+            (0..rest.len()).any(|i| rest.get(i..).is_some_and(starts_call))
+        }
         _ => starts_call(statement),
     })
 }
@@ -127,7 +133,11 @@ fn read_name_path(parsed: &ParsedScript, name: &Node) -> Vec<String> {
         .filter(|c| c.node_type() == NodeType::NAME)
         .map(|c| {
             let key = read_key(parsed, c);
-            if key.quoted { key.text } else { key.text.to_ascii_lowercase() }
+            if key.quoted {
+                key.text
+            } else {
+                key.text.to_ascii_lowercase()
+            }
         })
         .collect()
 }
@@ -168,7 +178,9 @@ fn raw_method_is_get(parsed: &ParsedScript, args: Option<&Node>) -> bool {
         let (Some(key), Some(value)) = (key, value) else { return false };
         let name = read_key(parsed, key);
         let is_method = if name.quoted { name.text == "method" } else { name.text.eq_ignore_ascii_case("method") };
-        is_method && value.node_type() == NodeType::LITERAL_STRING && string_text(source(parsed, value)).eq_ignore_ascii_case("GET")
+        is_method
+            && value.node_type() == NodeType::LITERAL_STRING
+            && string_text(source(parsed, value)).eq_ignore_ascii_case("GET")
     })
 }
 
@@ -213,8 +225,14 @@ pub(super) fn analyze(state: &mut AnalysisState) {
             None => {
                 let function_name = callee.path.join(".");
                 let suggestion = closest_name(&function_name, spec.functions.iter().map(|f| f.name.as_str()));
-                let message = with_suggestion(format!("unknown function {}.{function_name}", callee.namespace), suggestion);
-                state.add_error(AnalyzerErrorType::CLIENT_FUNCTION_UNKNOWN_FUNCTION, AnalyzerErrorSeverity::ERROR, name_id, message);
+                let message =
+                    with_suggestion(format!("unknown function {}.{function_name}", callee.namespace), suggestion);
+                state.add_error(
+                    AnalyzerErrorType::CLIENT_FUNCTION_UNKNOWN_FUNCTION,
+                    AnalyzerErrorSeverity::ERROR,
+                    name_id,
+                    message,
+                );
             }
         }
         state.out.client_function_calls.push(ClientFunctionCall {
@@ -266,7 +284,11 @@ impl Checker<'_, '_, '_> {
                 match standard.iter().find(|s| **s == lower) {
                     Some(&option) => {
                         if used_standard.contains(&option) {
-                            self.error(AnalyzerErrorType::CLIENT_FUNCTION_DUPLICATE_OPTION, key, format!("duplicate option {option}"));
+                            self.error(
+                                AnalyzerErrorType::CLIENT_FUNCTION_DUPLICATE_OPTION,
+                                key,
+                                format!("duplicate option {option}"),
+                            );
                         }
                         used_standard.push(option);
                         self.check_standard_value(option, value);
@@ -281,7 +303,11 @@ impl Checker<'_, '_, '_> {
             let attribute = find_attribute(&function.options, &name.text, name.quoted);
             let canonical: Arc<str> = Arc::from(attribute.map_or(name.text.as_str(), |a| a.name.as_str()));
             if seen.contains(&canonical) {
-                self.error(AnalyzerErrorType::CLIENT_FUNCTION_DUPLICATE_OPTION, key, format!("duplicate option {canonical}"));
+                self.error(
+                    AnalyzerErrorType::CLIENT_FUNCTION_DUPLICATE_OPTION,
+                    key,
+                    format!("duplicate option {canonical}"),
+                );
             }
             seen.push(canonical);
             if attribute.is_none() && !name.quoted {
@@ -328,10 +354,15 @@ impl Checker<'_, '_, '_> {
         }
         match value.node_type() {
             NodeType::OBJECT_SQL_PARAMETER_REF => {}
-            NodeType::LITERAL_INTEGER if source(self.state.parsed, value).parse::<u64>().is_ok_and(|n| n > 0 || option == OPTION_WAIT) => {}
+            NodeType::LITERAL_INTEGER
+                if source(self.state.parsed, value).parse::<u64>().is_ok_and(|n| n > 0 || option == OPTION_WAIT) => {}
             _ => {
                 let expected = if option == OPTION_WAIT { "a number of seconds" } else { "a positive number" };
-                self.error(AnalyzerErrorType::CLIENT_FUNCTION_INVALID_VALUE, value, format!("{option} takes {expected}"));
+                self.error(
+                    AnalyzerErrorType::CLIENT_FUNCTION_INVALID_VALUE,
+                    value,
+                    format!("{option} takes {expected}"),
+                );
             }
         }
     }
@@ -373,7 +404,11 @@ impl Checker<'_, '_, '_> {
                 for (key, item) in fields_of(parsed, value) {
                     let name = read_key(parsed, key);
                     if seen.iter().any(|s| s.text == name.text) {
-                        self.error(AnalyzerErrorType::CLIENT_FUNCTION_DUPLICATE_OPTION, key, format!("duplicate key {}", name.text));
+                        self.error(
+                            AnalyzerErrorType::CLIENT_FUNCTION_DUPLICATE_OPTION,
+                            key,
+                            format!("duplicate key {}", name.text),
+                        );
                     }
                     seen.push(name);
                     self.check_nested_value(item, attribute, false);
@@ -420,17 +455,29 @@ impl Checker<'_, '_, '_> {
             let attribute = schema.and_then(|s| spec.attribute_of(s, &name.name, name.quoted));
             let canonical: Arc<str> = Arc::from(attribute.map_or(name.name.as_str(), |a| a.name.as_str()));
             if seen.contains(&canonical) {
-                self.error(AnalyzerErrorType::CLIENT_FUNCTION_DUPLICATE_OPTION, key, format!("duplicate attribute {canonical}"));
+                self.error(
+                    AnalyzerErrorType::CLIENT_FUNCTION_DUPLICATE_OPTION,
+                    key,
+                    format!("duplicate attribute {canonical}"),
+                );
             }
             seen.push(canonical);
             if let Some(fit) = fit.as_ref() {
                 if attribute.is_none() && !name.quoted {
                     let candidates = fit.variants.iter().flat_map(|v| v.attributes.iter()).map(|a| a.name.as_str());
-                    let message = with_suggestion(format!("no attribute {} here", name.name), closest_name(&name.name, candidates));
+                    let message = with_suggestion(
+                        format!("no attribute {} here", name.name),
+                        closest_name(&name.name, candidates),
+                    );
                     self.report_unknown(fit.unknown(), key, message);
                 } else if fit.conflicts.contains(&i) {
                     let message = match fit.tag_field.and_then(|t| read.get(t)) {
-                        Some(tag) => format!("no attribute {} when {} is '{}'", name.name, tag.name, tag.text.as_deref().unwrap_or_default()),
+                        Some(tag) => format!(
+                            "no attribute {} when {} is '{}'",
+                            name.name,
+                            tag.name,
+                            tag.text.as_deref().unwrap_or_default()
+                        ),
                         None => format!("{} does not fit the attributes before it", name.name),
                     };
                     self.report_unknown(fit.unknown(), key, message);
@@ -455,9 +502,14 @@ impl Checker<'_, '_, '_> {
         // What all of them need is certain, the rest is a choice between them
         let needed_by_all = |name: &str| closest.iter().all(|m| m.contains(&name));
         for name in closest.first().into_iter().flat_map(|m| m.iter().copied()).filter(|name| needed_by_all(name)) {
-            self.error(AnalyzerErrorType::CLIENT_FUNCTION_MISSING_OPTION, object, format!("needs the attribute {name}"));
+            self.error(
+                AnalyzerErrorType::CLIENT_FUNCTION_MISSING_OPTION,
+                object,
+                format!("needs the attribute {name}"),
+            );
         }
-        let mut choice: Vec<&str> = closest.iter().flat_map(|m| m.iter().copied()).filter(|name| !needed_by_all(name)).collect();
+        let mut choice: Vec<&str> =
+            closest.iter().flat_map(|m| m.iter().copied()).filter(|name| !needed_by_all(name)).collect();
         choice.sort_unstable();
         choice.dedup();
         if !choice.is_empty() {
@@ -505,7 +557,8 @@ fn is_parenthesized(symbols: &[Symbol]) -> bool {
 fn select_text<'a>(parsed: &'a ParsedScript, node: &Node) -> &'a str {
     let scanned = &parsed.scanned;
     let span = node.symbol_span();
-    let mut symbols = scanned.symbols.get(span.offset() as usize..(span.offset() + span.length()) as usize).unwrap_or_default();
+    let mut symbols =
+        scanned.symbols.get(span.offset() as usize..(span.offset() + span.length()) as usize).unwrap_or_default();
     while is_parenthesized(symbols) {
         let [_, inner @ .., _] = symbols else { break };
         symbols = inner;
@@ -554,7 +607,13 @@ impl Describer<'_> {
 
     /// The value of a node, a parameter leaves a null and a binding. `map` says that an object is the map of the attribute:
     /// its keys stay as written, and the attribute holds for its values.
-    fn nested_value(&mut self, node: &Node, attribute: Option<&ClientFunctionAttribute>, map: bool, pointer: &str) -> Value {
+    fn nested_value(
+        &mut self,
+        node: &Node,
+        attribute: Option<&ClientFunctionAttribute>,
+        map: bool,
+        pointer: &str,
+    ) -> Value {
         // The checks reported a value that nests deeper
         if self.depth >= MAX_VALUE_DEPTH {
             return Value::Null;
@@ -566,7 +625,13 @@ impl Describer<'_> {
     }
 
     /// The value of a node below the depth limit
-    fn value_at_depth(&mut self, node: &Node, attribute: Option<&ClientFunctionAttribute>, map: bool, pointer: &str) -> Value {
+    fn value_at_depth(
+        &mut self,
+        node: &Node,
+        attribute: Option<&ClientFunctionAttribute>,
+        map: bool,
+        pointer: &str,
+    ) -> Value {
         let parsed = self.analyzed.parsed.clone();
         let text = source(&parsed, node);
         match node.node_type() {
@@ -584,7 +649,13 @@ impl Describer<'_> {
             NodeType::OBJECT_EXT_VARARG_ARRAY => {
                 let [values] = attrs!(parsed.children(node), [K::EXT_VARARG_ARRAY_VALUES]);
                 let items = values.map(|v| parsed.children(v)).unwrap_or(&[]);
-                Value::Array(items.iter().enumerate().map(|(i, item)| self.nested_value(item, attribute, map, &format!("{pointer}/{i}"))).collect())
+                Value::Array(
+                    items
+                        .iter()
+                        .enumerate()
+                        .map(|(i, item)| self.nested_value(item, attribute, map, &format!("{pointer}/{i}")))
+                        .collect(),
+                )
             }
             NodeType::ARRAY => {
                 let spec = self.spec;

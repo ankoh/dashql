@@ -1,11 +1,11 @@
-use tokio::time::timeout;
-use std::sync::atomic::AtomicUsize;
-use std::time::Instant;
 use std::collections::HashMap;
+use std::sync::atomic::AtomicUsize;
 use std::sync::Arc;
 use std::sync::RwLock;
 use std::time::Duration;
+use std::time::Instant;
 use tokio::sync::Mutex;
+use tokio::time::timeout;
 use tonic::metadata::MetadataMap;
 
 use crate::status::GrpcStreamElement;
@@ -91,17 +91,12 @@ impl GrpcStreamManager {
     ) -> Result<usize, Status> {
         // Allocate an identifier for the stream
         let reg = self.clone();
-        let stream_id = reg
-            .next_stream_id
-            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        let stream_id = reg.next_stream_id.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
 
         // Register the receiver
         const STREAM_CAPACITY: usize = 10;
         let (sender, receiver) = tokio::sync::mpsc::channel(STREAM_CAPACITY);
-        let stream_entry = Arc::new(GRPCServerStream {
-            channel_id,
-            response_receiver: Mutex::new(receiver),
-        });
+        let stream_entry = Arc::new(GRPCServerStream { channel_id, response_receiver: Mutex::new(receiver) });
         if let Ok(mut streams) = self.server_streams.write() {
             streams.insert(stream_id, stream_entry);
         }
@@ -116,10 +111,7 @@ impl GrpcStreamManager {
                         // Received bytes, forward the message as-is to receivers
                         Ok(Some(m)) => {
                             let buffer: Vec<u8> = m.into();
-                            log::debug!(
-                                "Receiving message from server stream, bytes={}",
-                                buffer.len()
-                            );
+                            log::debug!("Receiving message from server stream, bytes={}", buffer.len());
                             GrpcServerStreamEvent::Message(buffer)
                         }
                         // Stream was closed, delete stream and return trailers
@@ -129,9 +121,7 @@ impl GrpcStreamManager {
                             match streaming.trailers().await {
                                 Ok(Some(trailer)) => GrpcServerStreamEvent::End(trailer),
                                 Ok(None) => GrpcServerStreamEvent::End(MetadataMap::new()),
-                                Err(e) => {
-                                    GrpcServerStreamEvent::ReadFailed(e, GrpcStreamElement::Trailers)
-                                }
+                                Err(e) => GrpcServerStreamEvent::ReadFailed(e, GrpcStreamElement::Trailers),
                             }
                         }
                         // Stream failed, send error to receivers and close the stream
@@ -143,10 +133,7 @@ impl GrpcStreamManager {
                     };
 
                     // Push the response into the queue
-                    if let Err(e) = sender
-                        .send(response)
-                        .await
-                    {
+                    if let Err(e) = sender.send(response).await {
                         stream_alive = false;
                         log::warn!("Failed writing response to stream: {}", e);
                     }
@@ -197,10 +184,10 @@ impl GrpcStreamManager {
                 // Initially, we check the `timeout_read_after` timeout.
                 let receive_timeout = timeout_read_after.checked_sub(elapsed_since_start).unwrap_or_default();
                 match timeout(receive_timeout, receiver.recv()).await {
-                    Ok(Some(response)) =>  response,
+                    Ok(Some(response)) => response,
                     Ok(None) => {
                         return Err(Status::GrpcStreamClosed { channel_id, stream_id });
-                    },
+                    }
                     Err(_) => {
                         return Err(Status::GrpcStreamReadTimedOut { channel_id, stream_id });
                     }
@@ -215,11 +202,11 @@ impl GrpcStreamManager {
                     }
                 };
                 match timeout(receive_timeout, receiver.recv()).await {
-                    Ok(Some(response)) =>  response,
+                    Ok(Some(response)) => response,
                     Ok(None) => {
                         batch.event = GrpcServerStreamBatchEvent::FlushAfterClose;
                         return Ok(batch);
-                    },
+                    }
                     Err(_) => {
                         batch.event = GrpcServerStreamBatchEvent::FlushAfterTimeout;
                         return Ok(batch);
@@ -244,12 +231,7 @@ impl GrpcStreamManager {
                     if let Ok(mut streams) = self.server_streams.write() {
                         streams.remove(&stream_id);
                     }
-                    return Err(Status::GrpcStreamReadFailed{
-                        channel_id,
-                        stream_id,
-                        element,
-                        status,
-                    });
+                    return Err(Status::GrpcStreamReadFailed { channel_id, stream_id, element, status });
                 }
                 // Return the message
                 GrpcServerStreamEvent::Message(m) => {
@@ -262,7 +244,7 @@ impl GrpcStreamManager {
                         batch.event = GrpcServerStreamBatchEvent::FlushAfterBytes;
                         return Ok(batch);
                     }
-                },
+                }
             }
         }
     }
@@ -279,12 +261,10 @@ impl GrpcStreamManager {
 #[cfg(test)]
 mod test {
     use super::*;
+    use prost::Message;
     use std::collections::HashMap;
     use tokio_stream::StreamExt;
-    use prost::Message;
 
-    use crate::status::Status;
-    use crate::test::hyper_service_mock::{spawn_hyper_service_mock, HyperServiceMock};
     use crate::proto::salesforce_hyperdb_grpc_v1::hyper_service_client::HyperServiceClient;
     use crate::proto::salesforce_hyperdb_grpc_v1::query_param;
     use crate::proto::salesforce_hyperdb_grpc_v1::query_result;
@@ -295,6 +275,8 @@ mod test {
     use crate::proto::salesforce_hyperdb_grpc_v1::SqlType;
     use crate::proto::salesforce_hyperdb_grpc_v1::{sql_type, QueryResultHeader};
     use crate::proto::salesforce_hyperdb_grpc_v1::{ColumnDescription, QueryResult};
+    use crate::status::Status;
+    use crate::test::hyper_service_mock::{spawn_hyper_service_mock, HyperServiceMock};
 
     impl Into<Vec<u8>> for QueryResult {
         fn into(self) -> Vec<u8> {
@@ -306,9 +288,7 @@ mod test {
     async fn test_execute_query_mock() -> Result<(), Status> {
         let (mock, mut setup_execute_query) = HyperServiceMock::new();
         let (addr, shutdown) = spawn_hyper_service_mock(mock).await;
-        let mut client = HyperServiceClient::connect(format!("http://{}", addr))
-            .await
-            .unwrap();
+        let mut client = HyperServiceClient::connect(format!("http://{}", addr)).await.unwrap();
 
         let param = QueryParam {
             query: "select 1".to_string(),
@@ -327,22 +307,21 @@ mod test {
                     header: Some(Header::Schema(QueryResultSchema {
                         column: vec![ColumnDescription {
                             name: "foo".to_string(),
-                            r#type: Some(SqlType {
-                                tag: sql_type::TypeTag::HyperBool.into(),
-                                modifier: None,
-                            }),
+                            r#type: Some(SqlType { tag: sql_type::TypeTag::HyperBool.into(), modifier: None }),
                         }],
                     })),
                 })),
             }))
-            .await.unwrap();
+            .await
+            .unwrap();
         result_sender
             .send(Ok(QueryResult {
                 result: Some(query_result::Result::ArrowChunk(QueryBinaryResultChunk {
                     data: vec![0x1, 0x2, 0x3, 0x4],
                 })),
             }))
-            .await.unwrap();
+            .await
+            .unwrap();
         drop(result_sender);
 
         let mut results = Vec::new();
@@ -359,10 +338,7 @@ mod test {
                     header: Some(Header::Schema(QueryResultSchema {
                         column: vec![ColumnDescription {
                             name: "foo".to_string(),
-                            r#type: Some(SqlType {
-                                tag: sql_type::TypeTag::HyperBool.into(),
-                                modifier: None,
-                            }),
+                            r#type: Some(SqlType { tag: sql_type::TypeTag::HyperBool.into(), modifier: None }),
                         }],
                     })),
                 })),
@@ -387,9 +363,7 @@ mod test {
         // Spawn a hyper service mock
         let (mock, mut setup_execute_query) = HyperServiceMock::new();
         let (addr, shutdown) = spawn_hyper_service_mock(mock).await;
-        let mut client = HyperServiceClient::connect(format!("http://{}", addr))
-            .await
-            .unwrap();
+        let mut client = HyperServiceClient::connect(format!("http://{}", addr)).await.unwrap();
 
         // Exeute the query
         let param = QueryParam {
@@ -421,13 +395,13 @@ mod test {
 
         // Setup the stream manager
         let reg = Arc::new(GrpcStreamManager::default());
-        reg.next_stream_id
-            .fetch_add(42, std::sync::atomic::Ordering::SeqCst);
+        reg.next_stream_id.fetch_add(42, std::sync::atomic::Ordering::SeqCst);
         let stream_id = reg.start_server_stream(0, res.into_inner()).unwrap();
         assert_eq!(stream_id, 42);
 
         // Read batched messages
-        let batch = reg.read_server_stream(0, stream_id, Duration::from_secs(10), Duration::from_secs(10), 1000000).await?;
+        let batch =
+            reg.read_server_stream(0, stream_id, Duration::from_secs(10), Duration::from_secs(10), 1000000).await?;
         assert_eq!(batch.messages.len(), 2);
         assert_eq!(batch.messages[0], messages[0].as_ref().unwrap().encode_to_vec());
         assert_eq!(batch.messages[1], messages[1].as_ref().unwrap().encode_to_vec());

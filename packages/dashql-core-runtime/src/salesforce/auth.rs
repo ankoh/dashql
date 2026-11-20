@@ -7,8 +7,8 @@ use serde::{Deserialize, Serialize};
 
 use super::api::SalesforceError;
 use super::types::{SalesforceConnectionParams, SalesforceOAuthConfig};
-use crate::http::Url;
 use crate::connections::OAuthPkceChallenge;
+use crate::http::Url;
 
 /// How long an OAuth flow of Salesforce is valid
 pub const OAUTH_FLOW_LIFETIME_MS: i64 = 2 * 60 * 60 * 1000;
@@ -80,7 +80,12 @@ pub enum OAuthFlowEvent {
 }
 
 /// The state of a new flow
-pub fn salesforce_oauth_state(params: &SalesforceConnectionParams, flow: &OAuthFlowInfo, flow_id: &str, now: i64) -> OAuthState {
+pub fn salesforce_oauth_state(
+    params: &SalesforceConnectionParams,
+    flow: &OAuthFlowInfo,
+    flow_id: &str,
+    now: i64,
+) -> OAuthState {
     OAuthState {
         flow_id: flow_id.to_string(),
         flow_variant: flow.redirect_variant.clone(),
@@ -125,13 +130,15 @@ pub fn build_salesforce_authorization_url(
 }
 
 /// Check that a callback belongs to the flow that the app started and that the flow hasn't expired
-pub fn validate_salesforce_oauth_callback_state(callback: &OAuthRedirectData, expected: &OAuthState, now: i64) -> Result<(), SalesforceError> {
+pub fn validate_salesforce_oauth_callback_state(
+    callback: &OAuthRedirectData,
+    expected: &OAuthState,
+    now: i64,
+) -> Result<(), SalesforceError> {
     let actual = callback.state.as_ref();
-    let (Some(actual), Some(actual_provider), Some(expected_provider)) = (
-        actual,
-        actual.and_then(|s| s.salesforce_provider.as_ref()),
-        expected.salesforce_provider.as_ref(),
-    ) else {
+    let (Some(actual), Some(actual_provider), Some(expected_provider)) =
+        (actual, actual.and_then(|s| s.salesforce_provider.as_ref()), expected.salesforce_provider.as_ref())
+    else {
         return Err(SalesforceError::new("OAuth callback state is missing the Salesforce provider"));
     };
     if actual.flow_id != expected.flow_id {

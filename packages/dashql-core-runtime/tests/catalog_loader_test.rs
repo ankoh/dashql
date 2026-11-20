@@ -13,31 +13,37 @@ use dashql_buffers::analyzer::QualifiedTableNameT;
 use dashql_core::catalog::{Catalog, CatalogLayer};
 use dashql_core::script::Script;
 use dashql_core_runtime::catalog_loader::batch::{publish_catalog_batch_sync, CatalogBatch, CatalogBatchEntry};
-use dashql_core_runtime::workbook::CatalogHandle;
 use dashql_core_runtime::catalog_loader::hyper::{catalog_tables_from_hyper_cloud, hyper_cloud_catalog_query_sql};
-use dashql_core_runtime::catalog_loader::information_schema::{information_schema_columns_query, InformationSchemaScope};
-use dashql_core_runtime::catalog_loader::pg_attribute::{catalog_tables_from_pg_attribute, pg_attribute_query_sql, PgAttributeScope};
+use dashql_core_runtime::catalog_loader::information_schema::{
+    information_schema_columns_query, InformationSchemaScope,
+};
+use dashql_core_runtime::catalog_loader::pg_attribute::{
+    catalog_tables_from_pg_attribute, pg_attribute_query_sql, PgAttributeScope,
+};
 use dashql_core_runtime::catalog_loader::pg_proc::{catalog_sql_from_pg_proc, PG_PROC_QUERY};
 use dashql_core_runtime::catalog_loader::prefetched_hyper_functions::{
     load_prefetched_hyper_functions, qualify_prefetched_hyper_functions, PREFETCHED_HYPER_FUNCTIONS_SQL,
 };
 use dashql_core_runtime::catalog_loader::salesforce::catalog_tables_from_salesforce_metadata;
-use dashql_core_runtime::catalog_loader::sql::{qualified_table_name, quote_data_type, quote_identifier, relation_filter};
+use dashql_core_runtime::catalog_loader::sql::{
+    qualified_table_name, quote_data_type, quote_identifier, relation_filter,
+};
 use dashql_core_runtime::catalog_loader::tables::{
-    catalog_descriptor_of_sql, catalog_functions_sql, catalog_tables_of_descriptor, catalog_tables_sql, create_table_sql,
-    pack_catalog_descriptor_of_tables, parse_catalog_sql, read_catalog_descriptor, relations_file, relations_file_of_entry,
-    CatalogStateFile, CatalogTable, ColumnMetadata,
+    catalog_descriptor_of_sql, catalog_functions_sql, catalog_tables_of_descriptor, catalog_tables_sql,
+    create_table_sql, pack_catalog_descriptor_of_tables, parse_catalog_sql, read_catalog_descriptor, relations_file,
+    relations_file_of_entry, CatalogStateFile, CatalogTable, ColumnMetadata,
 };
 use dashql_core_runtime::catalog_loader::trino::{
     parse_trino_catalog_entry, trino_catalog_entries, trino_catalog_scopes, TrinoCatalogEntry, TRINO_CATALOGS_QUERY,
 };
 use dashql_core_runtime::catalog_loader::{
-    CatalogGenerations, CatalogLoader, CatalogLoaderCommand, CatalogLoaderConnection, CatalogLoadError,
-    CatalogQuery, CatalogTicket, CatalogUpdate, CatalogUpdateHost, CatalogUpdateOutcome, QueryAnswer,
+    CatalogGenerations, CatalogLoadError, CatalogLoader, CatalogLoaderCommand, CatalogLoaderConnection, CatalogQuery,
+    CatalogTicket, CatalogUpdate, CatalogUpdateHost, CatalogUpdateOutcome, QueryAnswer,
 };
 use dashql_core_runtime::connections::*;
 use dashql_core_runtime::http::{HttpRequest, HttpResponse};
 use dashql_core_runtime::query::QueryType;
+use dashql_core_runtime::workbook::CatalogHandle;
 use serde_json::{json, Value};
 
 /// 2026-01-01T00:00:00.000Z
@@ -197,7 +203,12 @@ impl<'a> Host<'a> {
     }
 
     /// Run an update to its end, publishing into a catalog while the batch of the update is current
-    fn drive(&self, update: CatalogUpdate, catalog: &CatalogHandle, generations: &RefCell<CatalogGenerations>) -> CatalogUpdateOutcome {
+    fn drive(
+        &self,
+        update: CatalogUpdate,
+        catalog: &CatalogHandle,
+        generations: &RefCell<CatalogGenerations>,
+    ) -> CatalogUpdateOutcome {
         block_on(update.run(&Steps { host: self, catalog, generations }))
     }
 }
@@ -253,7 +264,8 @@ struct Fixture {
 
 impl Fixture {
     fn new(connector: ConnectorType, params: Value) -> Self {
-        let connection = ConnectionState::from_params("connection", ConnectionParams::new(connector, object(params)), NOW);
+        let connection =
+            ConnectionState::from_params("connection", ConnectionParams::new(connector, object(params)), NOW);
         Self { connection, generations: RefCell::default(), task_id: 0 }
     }
 
@@ -264,13 +276,19 @@ impl Fixture {
     /// Start an update and register it with the connection
     fn start(&mut self, relations: Option<Vec<RelationName>>) -> CatalogUpdate {
         self.task_id += 1;
-        let update = CatalogUpdate::start(&self.connection, self.task_id, relations, &mut self.generations.borrow_mut(), NOW).unwrap();
+        let update =
+            CatalogUpdate::start(&self.connection, self.task_id, relations, &mut self.generations.borrow_mut(), NOW)
+                .unwrap();
         self.connection.apply(ConnectionAction::UpdateCatalog(update.task.clone()), NOW).unwrap();
         update
     }
 
     /// Start an update of a connection without registering it
-    fn start_of(connection: &ConnectionState, task_id: u32, generations: &RefCell<CatalogGenerations>) -> CatalogUpdate {
+    fn start_of(
+        connection: &ConnectionState,
+        task_id: u32,
+        generations: &RefCell<CatalogGenerations>,
+    ) -> CatalogUpdate {
         CatalogUpdate::start(connection, task_id, None, &mut generations.borrow_mut(), NOW).unwrap()
     }
 
@@ -284,7 +302,8 @@ impl Fixture {
     }
 
     fn relations_text(&self) -> String {
-        relations_file_of_entry(&self.connection.catalog().borrow(), self.connection.relation_entry_id()).unwrap_or_default()
+        relations_file_of_entry(&self.connection.catalog().borrow(), self.connection.relation_entry_id())
+            .unwrap_or_default()
     }
 
     fn function_entry(&self) -> u32 {
@@ -359,7 +378,12 @@ fn creates_tables_with_sorted_and_quoted_columns() {
         &[column("name", 1, Some("varchar")), column("id", 0, Some("integer")), column("email", 2, None)],
     );
     assert_eq!(sql, "CREATE TABLE \"db\".\"schema\".\"users\" (\n    \"id\" \"integer\",\n    \"name\" \"varchar\",\n    \"email\" \"unknown\"\n);");
-    let sql = create_table_sql(Some("db"), Some("s"), "u", &[column("user id", 0, Some("integer")), column("user\"name", 1, Some("varchar"))]);
+    let sql = create_table_sql(
+        Some("db"),
+        Some("s"),
+        "u",
+        &[column("user id", 0, Some("integer")), column("user\"name", 1, Some("varchar"))],
+    );
     assert!(sql.contains("\"user id\" \"integer\""));
     assert!(sql.contains("\"user\"\"name\" \"varchar\""));
     assert_eq!(create_table_sql(None, None, "t", &[]), "CREATE TABLE \"t\" (\n\n);");
@@ -415,7 +439,9 @@ fn output(tables: &[CatalogTable]) -> Vec<(String, Vec<(String, Option<String>)>
 fn the_catalog_on_disk_reads_back_what_the_connection_reported() {
     let mut catalog = Catalog::new();
     let entry = catalog.allocate_entry_id();
-    catalog.replace_descriptor(entry, CatalogLayer::CONNECTION, &pack_catalog_descriptor_of_tables(&disk_tables())).unwrap();
+    catalog
+        .replace_descriptor(entry, CatalogLayer::CONNECTION, &pack_catalog_descriptor_of_tables(&disk_tables()))
+        .unwrap();
     let before = read_catalog_descriptor(catalog.descriptor_bytes(entry).unwrap()).unwrap();
     assert_eq!(output(&catalog_tables_of_descriptor(Some(&before))), output(&disk_tables()));
 
@@ -488,7 +514,12 @@ fn the_structure_reads_tables_and_columns() {
                 table_name: "orders".into(),
                 columns: vec![column("id", 0, Some("integer")), column("note", 1, Some("text"))],
             },
-            CatalogTable { database_name: "db".into(), schema_name: "public".into(), table_name: "empty".into(), columns: vec![] },
+            CatalogTable {
+                database_name: "db".into(),
+                schema_name: "public".into(),
+                table_name: "empty".into(),
+                columns: vec![]
+            },
         ]
     );
 }
@@ -517,7 +548,12 @@ CREATE AGGREGATE \"db\".\"pg_catalog\".\"any_value\"() RETURNS any;",
     assert_eq!(
         functions,
         vec![
-            ("db.public.scale".to_string(), false, s("bigint"), vec![(s("value"), s("integer")), (s("factor"), s("integer"))]),
+            (
+                "db.public.scale".to_string(),
+                false,
+                s("bigint"),
+                vec![(s("value"), s("integer")), (s("factor"), s("integer"))]
+            ),
             ("db.public.scale".to_string(), false, s("bigint"), vec![(s("value"), s("bigint"))]),
             ("db.pg_catalog.any_value".to_string(), true, s("any"), vec![]),
         ]
@@ -558,7 +594,11 @@ fn the_structure_refuses_a_file_that_does_not_parse() {
 #[test]
 fn reads_the_information_schema_of_every_catalog() {
     let scopes = vec![
-        InformationSchemaScope { catalog: "hive".into(), schemas: vec!["sales".into(), "o'neil".into()], relations: None },
+        InformationSchemaScope {
+            catalog: "hive".into(),
+            schemas: vec!["sales".into(), "o'neil".into()],
+            relations: None,
+        },
         InformationSchemaScope::catalog("my\"lake"),
     ];
     assert_eq!(
@@ -644,13 +684,18 @@ fn a_trino_refresh_rejects_an_empty_metadata_result() {
 fn a_trino_refresh_orders_the_columns_by_bigint_ordinal_positions() {
     let mut trino = trino(json!({ "defaultCatalog": "db" }));
     let host = Host::new(|_| {
-        Ok(vec![information_schema_rows(&[("db", "public", "items", "name", 2, "varchar"), ("db", "public", "items", "id", 1, "bigint")])])
+        Ok(vec![information_schema_rows(&[
+            ("db", "public", "items", "name", 2, "varchar"),
+            ("db", "public", "items", "id", 1, "bigint"),
+        ])])
     });
     let (outcome, _) = trino.run(None, &host);
     assert_eq!(outcome.status, CatalogUpdateTaskStatus::Succeeded);
     assert!(outcome.catalog_changed);
     assert!(host.queries.borrow()[0].sql.contains("FROM \"db\".information_schema.columns"));
-    assert!(trino.relations_text().contains("CREATE TABLE \"db\".\"public\".\"items\" (\n    \"id\" \"bigint\",\n    \"name\" \"varchar\"\n);"));
+    assert!(trino
+        .relations_text()
+        .contains("CREATE TABLE \"db\".\"public\".\"items\" (\n    \"id\" \"bigint\",\n    \"name\" \"varchar\"\n);"));
 }
 
 #[test]
@@ -704,7 +749,8 @@ fn a_trino_lookup_asks_the_catalogs_of_the_relations_in_lower_case_and_updates_o
     let host = Host::new(|_| Ok(vec![information_schema_rows(&[("hive", "sales", "other", "id", 1, "bigint")])]));
     trino.run(None, &host);
     let host = Host::new(|_| Ok(vec![information_schema_rows(&[("hive", "sales", "orders", "id", 1, "bigint")])]));
-    let (outcome, _) = trino.run(Some(vec![relation("Hive", "Sales", "Orders"), relation("hive", "sales", "gone")]), &host);
+    let (outcome, _) =
+        trino.run(Some(vec![relation("Hive", "Sales", "Orders"), relation("hive", "sales", "gone")]), &host);
     assert_eq!(outcome.status, CatalogUpdateTaskStatus::Succeeded);
     assert!(host.queries.borrow()[0].sql.contains(
         "FROM \"hive\".information_schema.columns
@@ -714,7 +760,8 @@ WHERE table_schema <> 'information_schema' AND ((table_schema = 'sales' AND tabl
     assert!(text.contains("\"hive\".\"sales\".\"other\""));
     assert!(text.contains("\"hive\".\"sales\".\"orders\""));
     let catalog = trino.connection.catalog().borrow();
-    let gone: Vec<RelationName> = catalog.absent_relations().iter().map(|key| relation(&key.0, &key.1, &key.2)).collect();
+    let gone: Vec<RelationName> =
+        catalog.absent_relations().iter().map(|key| relation(&key.0, &key.1, &key.2)).collect();
     assert_eq!(gone, vec![relation("hive", "sales", "gone")]);
 }
 
@@ -723,7 +770,8 @@ WHERE table_schema <> 'information_schema' AND ((table_schema = 'sales' AND tabl
 
 #[test]
 fn pg_attribute_qualifies_an_attached_database_safely() {
-    let query = pg_attribute_query_sql(&PgAttributeScope { query_database_name: Some("db\"name".into()), relations: None });
+    let query =
+        pg_attribute_query_sql(&PgAttributeScope { query_database_name: Some("db\"name".into()), relations: None });
     assert!(query.contains("FROM \"db\"\"name\".\"pg_catalog\".pg_class c"));
     assert!(query.contains("JOIN \"db\"\"name\".\"pg_catalog\".pg_attribute a"));
     assert!(!query.contains("NOT IN"));
@@ -731,11 +779,17 @@ fn pg_attribute_qualifies_an_attached_database_safely() {
 
 #[test]
 fn pg_attribute_reads_only_the_relations_it_is_asked_about() {
-    let query = pg_attribute_query_sql(&PgAttributeScope { query_database_name: None, relations: Some(vec![relation("db", "o'x", "a")]) });
+    let query = pg_attribute_query_sql(&PgAttributeScope {
+        query_database_name: None,
+        relations: Some(vec![relation("db", "o'x", "a")]),
+    });
     assert!(query.contains("AND ((n.nspname = 'o''x' AND c.relname = 'a'))"));
     assert!(query.contains("AND n.nspname NOT IN ('pg_catalog', 'information_schema')"));
     assert!(query.contains("FROM pg_catalog.pg_class c"));
-    let query = pg_attribute_query_sql(&PgAttributeScope { query_database_name: None, relations: Some(vec![relation("db", "", "a")]) });
+    let query = pg_attribute_query_sql(&PgAttributeScope {
+        query_database_name: None,
+        relations: Some(vec![relation("db", "", "a")]),
+    });
     assert!(query.contains("AND ((c.relname = 'a'))"));
 }
 
@@ -749,7 +803,8 @@ fn pg_attribute_groups_the_rows_by_table_and_keeps_the_ordinal_positions() {
         ("data_type", optional_strings(&[Some("text"), Some("int8"), None, Some("text")])),
     ]);
     let tables = catalog_tables_from_pg_attribute(&[rows], "db").unwrap();
-    let names: Vec<String> = tables.iter().map(|t| format!("{}.{}.{}", t.database_name, t.schema_name, t.table_name)).collect();
+    let names: Vec<String> =
+        tables.iter().map(|t| format!("{}.{}.{}", t.database_name, t.schema_name, t.table_name)).collect();
     assert_eq!(names, ["db.public.items", "db.other.tags"]);
     assert_eq!(tables[0].columns, vec![column("name", 2, Some("text")), column("id", 1, Some("int8"))]);
     assert_eq!(tables[1].columns, vec![column("tag", 1, None)]);
@@ -784,7 +839,12 @@ fn pg_proc_processes_multi_argument_named_mode_array_and_overload_signatures() {
                 Some(vec![Some("integer"), Some("integer")]),
                 Some(vec![Some("integer"), Some("text"), Some("numeric(12, 3)")]),
                 Some(vec![Some("integer"), Some("bigint"), Some("text"), Some("integer[]")]),
-                Some(vec![Some("integer[]"), Some("numeric(18, 4)"), Some("character varying(40)"), Some("timestamp with time zone")]),
+                Some(vec![
+                    Some("integer[]"),
+                    Some("numeric(18, 4)"),
+                    Some("character varying(40)"),
+                    Some("timestamp with time zone"),
+                ]),
                 Some(vec![Some("integer")]),
                 Some(vec![Some("text")]),
             ]),
@@ -802,7 +862,14 @@ fn pg_proc_processes_multi_argument_named_mode_array_and_overload_signatures() {
         ),
         (
             "argument_modes",
-            string_lists(&[None, Some(vec![]), Some(vec![Some("i"), Some("o"), Some("b"), Some("v")]), Some(vec![]), Some(vec![]), Some(vec![])]),
+            string_lists(&[
+                None,
+                Some(vec![]),
+                Some(vec![Some("i"), Some("o"), Some("b"), Some("v")]),
+                Some(vec![]),
+                Some(vec![]),
+                Some(vec![]),
+            ]),
         ),
     ]);
     let functions = catalog_sql_from_pg_proc(&[rows], Some("db")).unwrap();
@@ -854,7 +921,10 @@ fn pg_proc_skips_set_and_table_results_and_qualified_custom_types() {
             ]),
         ),
         ("argument_names", string_lists(&[Some(vec![]), Some(vec![]), Some(vec![]), Some(vec![]), Some(vec![])])),
-        ("argument_modes", string_lists(&[Some(vec![]), Some(vec![Some("i"), Some("t")]), Some(vec![]), Some(vec![]), Some(vec![])])),
+        (
+            "argument_modes",
+            string_lists(&[Some(vec![]), Some(vec![Some("i"), Some("t")]), Some(vec![]), Some(vec![]), Some(vec![])]),
+        ),
     ]);
     let functions = catalog_sql_from_pg_proc(&[rows], Some("db")).unwrap();
     assert_eq!(functions.skipped, ["public.set_result", "public.table_result", "public.custom_type"]);
@@ -889,12 +959,17 @@ fn loads_the_bundled_function_catalog_as_a_descriptor() {
     let mut catalog = Catalog::new();
     let mut generations = CatalogGenerations::default();
     let entry = catalog.allocate_entry_id();
-    let count = load_prefetched_hyper_functions(&mut catalog, &mut generations, entry, PREFETCHED_HYPER_FUNCTIONS_SQL).unwrap();
+    let count =
+        load_prefetched_hyper_functions(&mut catalog, &mut generations, entry, PREFETCHED_HYPER_FUNCTIONS_SQL).unwrap();
     assert_eq!(count, 350);
     let entries = catalog.describe_entries().entries.unwrap();
     assert_eq!(entries[0].catalog_entry_type, dashql_buffers::catalog::CatalogEntryType::DESCRIPTOR_POOL);
-    assert!(PREFETCHED_HYPER_FUNCTIONS_SQL.contains("CREATE FUNCTION \"hyper\".\"pg_catalog\".\"date_add\"() RETURNS any;"));
-    assert!(PREFETCHED_HYPER_FUNCTIONS_SQL.contains("CREATE AGGREGATE \"hyper\".\"pg_catalog\".\"count\"() RETURNS any;"));
+    assert!(
+        PREFETCHED_HYPER_FUNCTIONS_SQL.contains("CREATE FUNCTION \"hyper\".\"pg_catalog\".\"date_add\"() RETURNS any;")
+    );
+    assert!(
+        PREFETCHED_HYPER_FUNCTIONS_SQL.contains("CREATE AGGREGATE \"hyper\".\"pg_catalog\".\"count\"() RETURNS any;")
+    );
     assert!(PREFETCHED_HYPER_FUNCTIONS_SQL.contains("CREATE FUNCTION \"hyper\".\"tableau\".\"sqrt\"() RETURNS any;"));
 }
 
@@ -916,7 +991,8 @@ fn rejects_invalid_or_empty_function_sql_without_publishing() {
     let mut catalog = Catalog::new();
     let mut generations = CatalogGenerations::default();
     let entry = catalog.allocate_entry_id();
-    let error = load_prefetched_hyper_functions(&mut catalog, &mut generations, entry, "<!doctype html><html></html>").unwrap_err();
+    let error = load_prefetched_hyper_functions(&mut catalog, &mut generations, entry, "<!doctype html><html></html>")
+        .unwrap_err();
     assert!(error.message().contains("contains invalid SQL"), "{error}");
     assert!(catalog.descriptor_bytes(entry).is_none());
 
@@ -986,7 +1062,11 @@ fn hyper_queries_standard_and_cloud_attachments_and_merges_their_catalogs() {
         ],
     }));
     let host = Host::new(|query| {
-        Ok(vec![if query.sql.contains("\"_hyper_catalog\".\"databases\"") { cloud_rows() } else { pg_rows("lake_table", &["id"]) }])
+        Ok(vec![if query.sql.contains("\"_hyper_catalog\".\"databases\"") {
+            cloud_rows()
+        } else {
+            pg_rows("lake_table", &["id"])
+        }])
     });
     let (outcome, functions) = hyper.run(None, &host);
     assert_eq!(outcome.status, CatalogUpdateTaskStatus::Succeeded, "{outcome:?}");
@@ -1019,7 +1099,9 @@ fn hyper_wasm_reads_the_default_database_and_the_live_function_catalog() {
     assert!(hyper.relations_text().contains("CREATE TABLE \"hyper\".\"public\".\"default_table\""));
     let functions = functions.unwrap();
     assert!(functions.contains("-- Catalog Source: HyperDB WASM pg_proc"));
-    assert!(functions.contains("CREATE FUNCTION \"hyper\".\"pg_catalog\".\"wasm_catalog_function\"(\"arg1\" integer) RETURNS bigint;"));
+    assert!(functions.contains(
+        "CREATE FUNCTION \"hyper\".\"pg_catalog\".\"wasm_catalog_function\"(\"arg1\" integer) RETURNS bigint;"
+    ));
     assert!(!functions.contains("\"abs\""));
 }
 
@@ -1039,7 +1121,10 @@ fn hyper_keeps_the_relations_of_a_failed_database_while_committing_the_others() 
     let (outcome, _) = hyper.run(None, &host);
     assert_eq!(outcome.status, CatalogUpdateTaskStatus::PartiallySucceeded);
     assert_eq!(outcome.error.as_deref(), Some("second: second unavailable"));
-    assert!(matches!(outcome.connection_action(2), ConnectionAction::CatalogUpdatePartiallySucceeded { task_id: 2, .. }));
+    assert!(matches!(
+        outcome.connection_action(2),
+        ConnectionAction::CatalogUpdatePartiallySucceeded { task_id: 2, .. }
+    ));
     let text = hyper.relations_text();
     assert!(text.contains("\"first\".\"public\".\"first_v2\""));
     assert!(!text.contains("first_v1"));
@@ -1049,14 +1134,20 @@ fn hyper_keeps_the_relations_of_a_failed_database_while_committing_the_others() 
 
 #[test]
 fn hyper_leaves_the_catalog_untouched_when_every_attachment_fails_its_checks() {
-    for attached in [json!([{ "path": "lakehouse:first", "alias": "" }]), json!([{ "path": "a", "alias": "x" }, { "path": "b", "alias": "x" }])] {
+    for attached in [
+        json!([{ "path": "lakehouse:first", "alias": "" }]),
+        json!([{ "path": "a", "alias": "x" }, { "path": "b", "alias": "x" }]),
+    ] {
         let mut hyper = Fixture::hyper(json!({ "protocol": "V3_HTTP", "attachedDatabases": attached }));
         let host = Host::new(|_| unreachable!("no query runs"));
         let (outcome, functions) = hyper.run(None, &host);
         assert_eq!(outcome.status, CatalogUpdateTaskStatus::Failed);
         let error = outcome.error.unwrap();
         assert!(error.starts_with("Failed to refresh every attached database"), "{error}");
-        assert!(error.contains("non-empty alias") || error.contains("Attached database alias \"x\" is not unique"), "{error}");
+        assert!(
+            error.contains("non-empty alias") || error.contains("Attached database alias \"x\" is not unique"),
+            "{error}"
+        );
         assert!(functions.is_none());
         assert!(hyper.relations_text().is_empty());
     }
@@ -1196,26 +1287,34 @@ fn a_database_com_connection_reads_the_hyper_cloud_database_it_attaches() {
 // ---------------------------------------------------------------------------------------------------------------------
 // Salesforce
 
-
 /// The channel of a Salesforce login with its tokens, as the setup hands it to the connection
 fn salesforce_channel() -> dashql_core_runtime::salesforce::SharedSalesforceChannel {
     use dashql_core_runtime::salesforce::{
-        SalesforceConnectionParams, SalesforceCoreAccessToken, SalesforceDataCloudAccessToken, SalesforceTokens, SharedSalesforceChannel,
+        SalesforceConnectionParams, SalesforceCoreAccessToken, SalesforceDataCloudAccessToken, SalesforceTokens,
+        SharedSalesforceChannel,
     };
     let core = SalesforceCoreAccessToken {
         access_token: "core-token".into(),
         instance_url: Some("https://example.my.salesforce.com".into()),
         ..Default::default()
     };
-    let data_cloud = SalesforceDataCloudAccessToken { instance_url: "https://tenant.c360a.salesforce.com/".into(), ..Default::default() };
+    let data_cloud = SalesforceDataCloudAccessToken {
+        instance_url: "https://tenant.c360a.salesforce.com/".into(),
+        ..Default::default()
+    };
     let params = SalesforceConnectionParams::default();
-    SharedSalesforceChannel::new(ConnectorType::SalesforceDataCloud, &params, SalesforceTokens { core, data_cloud }).unwrap()
+    SharedSalesforceChannel::new(ConnectorType::SalesforceDataCloud, &params, SalesforceTokens { core, data_cloud })
+        .unwrap()
 }
 
 /// A Salesforce connection with the channel of a login
 fn salesforce() -> Fixture {
-    let mut salesforce = Fixture::new(ConnectorType::SalesforceDataCloud, json!({ "instanceUrl": "https://example.my.salesforce.com" }));
-    salesforce.connection.apply(ConnectionAction::Salesforce(SalesforceAction::ChannelReady(salesforce_channel())), NOW).unwrap();
+    let mut salesforce =
+        Fixture::new(ConnectorType::SalesforceDataCloud, json!({ "instanceUrl": "https://example.my.salesforce.com" }));
+    salesforce
+        .connection
+        .apply(ConnectionAction::Salesforce(SalesforceAction::ChannelReady(salesforce_channel())), NOW)
+        .unwrap();
     salesforce
 }
 
@@ -1249,7 +1348,9 @@ fn salesforce_sends_the_metadata_requests_with_the_tokens_of_the_fresh_channel_a
     let requests = host.requests.borrow();
     assert!(requests.len() > 1);
     assert!(requests.iter().all(|request| request.url.starts_with("https://example.my.salesforce.com/services/data/")));
-    assert!(requests.iter().all(|request| request.headers.get("authorization").is_some_and(|value| value.contains("core-token"))));
+    assert!(requests
+        .iter()
+        .all(|request| request.headers.get("authorization").is_some_and(|value| value.contains("core-token"))));
     assert_eq!(outcome.status, CatalogUpdateTaskStatus::Succeeded, "{outcome:?}");
     assert_eq!(outcome.warnings.len(), 1, "{:?}", outcome.warnings);
     assert!(outcome.warnings[0].contains("offline"));
@@ -1281,7 +1382,9 @@ fn salesforce_loads_the_metadata_relations_and_the_bundled_functions() {
     assert_eq!(salesforce.function_count(), 350);
     let catalog = salesforce.connection.catalog().borrow();
     let entries = catalog.describe_entries().entries.unwrap();
-    assert!(entries.iter().all(|entry| entry.catalog_entry_type == dashql_buffers::catalog::CatalogEntryType::DESCRIPTOR_POOL));
+    assert!(entries
+        .iter()
+        .all(|entry| entry.catalog_entry_type == dashql_buffers::catalog::CatalogEntryType::DESCRIPTOR_POOL));
 }
 
 #[test]
@@ -1327,7 +1430,8 @@ fn salesforce_preserves_the_catalog_when_the_metadata_has_no_usable_relations() 
         let old = salesforce.relations_text();
         let version = salesforce.version();
         let empty = empty.clone();
-        let (outcome, _) = salesforce.run(None, &Host::new(|_| unreachable!()).with_metadata(move || Ok(empty.clone())));
+        let (outcome, _) =
+            salesforce.run(None, &Host::new(|_| unreachable!()).with_metadata(move || Ok(empty.clone())));
         assert_eq!(outcome.status, CatalogUpdateTaskStatus::Failed);
         assert!(outcome.error.unwrap().contains("no usable catalog relations"));
         assert_eq!(salesforce.relations_text(), old);
@@ -1354,7 +1458,10 @@ fn salesforce_metadata_becomes_tables_of_lakehouse_public() {
         output(&tables),
         vec![
             ("lakehouse.public.a".to_string(), vec![("z".to_string(), Some("Text".to_string()))]),
-            ("lakehouse.public.b".to_string(), vec![("x".to_string(), Some("Number".to_string())), ("y".to_string(), None)]),
+            (
+                "lakehouse.public.b".to_string(),
+                vec![("x".to_string(), Some("Number".to_string())), ("y".to_string(), None)]
+            ),
         ]
     );
 }
@@ -1364,7 +1471,9 @@ fn salesforce_metadata_becomes_tables_of_lakehouse_public() {
 
 #[test]
 fn trino_splits_a_catalog_entry_at_the_first_dot() {
-    let entry = |catalog: &str, schema: Option<&str>| Some(TrinoCatalogEntry { catalog: catalog.into(), schema: schema.map(Into::into) });
+    let entry = |catalog: &str, schema: Option<&str>| {
+        Some(TrinoCatalogEntry { catalog: catalog.into(), schema: schema.map(Into::into) })
+    };
     assert_eq!(parse_trino_catalog_entry("hive"), entry("hive", None));
     assert_eq!(parse_trino_catalog_entry(" hive . sales "), entry("hive", Some("sales")));
     assert_eq!(parse_trino_catalog_entry("hive."), entry("hive", None));
@@ -1375,10 +1484,16 @@ fn trino_splits_a_catalog_entry_at_the_first_dot() {
 
 #[test]
 fn trino_reads_the_entries_of_params_that_predate_them() {
-    assert_eq!(trino_catalog_entries(&object(json!({ "catalogName": "hive", "schemaNames": ["sales", "hr"] }))), ["hive.sales", "hive.hr"]);
+    assert_eq!(
+        trino_catalog_entries(&object(json!({ "catalogName": "hive", "schemaNames": ["sales", "hr"] }))),
+        ["hive.sales", "hive.hr"]
+    );
     assert!(trino_catalog_entries(&object(json!({ "catalogName": "hive" }))).is_empty());
     assert!(trino_catalog_entries(&object(json!({ "catalogName": "" }))).is_empty());
-    assert_eq!(trino_catalog_entries(&object(json!({ "defaultCatalog": "iceberg", "catalogs": ["iceberg"] }))), ["iceberg"]);
+    assert_eq!(
+        trino_catalog_entries(&object(json!({ "defaultCatalog": "iceberg", "catalogs": ["iceberg"] }))),
+        ["iceberg"]
+    );
 }
 
 #[test]
@@ -1386,17 +1501,26 @@ fn trino_reads_the_default_catalog_without_entries() {
     let scopes = |params: Value| trino_catalog_scopes(&object(params));
     assert_eq!(scopes(json!({ "defaultCatalog": "hive", "catalogs": [] })), [InformationSchemaScope::catalog("hive")]);
     assert_eq!(scopes(json!({ "catalogName": "hive" })), [InformationSchemaScope::catalog("hive")]);
-    assert_eq!(scopes(json!({ "defaultCatalog": "hive", "catalogs": ["iceberg"] })), [InformationSchemaScope::catalog("iceberg")]);
+    assert_eq!(
+        scopes(json!({ "defaultCatalog": "hive", "catalogs": ["iceberg"] })),
+        [InformationSchemaScope::catalog("iceberg")]
+    );
     assert_eq!(scopes(json!({ "catalogs": [] })), []);
 }
 
 #[test]
 fn trino_groups_the_entries_by_catalog_in_the_order_of_their_first_entry() {
-    let scopes = trino_catalog_scopes(&object(json!({ "catalogs": ["iceberg.sales", "hive", "", "iceberg.hr", "iceberg.sales", "hive.ignored"] })));
+    let scopes = trino_catalog_scopes(&object(
+        json!({ "catalogs": ["iceberg.sales", "hive", "", "iceberg.hr", "iceberg.sales", "hive.ignored"] }),
+    ));
     assert_eq!(
         scopes,
         [
-            InformationSchemaScope { catalog: "iceberg".into(), schemas: vec!["sales".into(), "hr".into()], relations: None },
+            InformationSchemaScope {
+                catalog: "iceberg".into(),
+                schemas: vec!["sales".into(), "hr".into()],
+                relations: None
+            },
             InformationSchemaScope::catalog("hive"),
         ]
     );
@@ -1408,10 +1532,16 @@ fn trino_groups_the_entries_by_catalog_in_the_order_of_their_first_entry() {
 #[test]
 fn only_the_catalog_of_the_embedded_hyper_does_not_outlive_the_app() {
     let params = |connector, value: Value| ConnectionParams::new(connector, object(value));
-    assert!(!ConnectorType::Hyper.connector().catalog_is_durable(&params(ConnectorType::Hyper, json!({ "protocol": "WASM" })).params));
-    assert!(ConnectorType::Hyper.connector().catalog_is_durable(&params(ConnectorType::Hyper, json!({ "protocol": "V3_HTTP" })).params));
+    assert!(!ConnectorType::Hyper
+        .connector()
+        .catalog_is_durable(&params(ConnectorType::Hyper, json!({ "protocol": "WASM" })).params));
+    assert!(ConnectorType::Hyper
+        .connector()
+        .catalog_is_durable(&params(ConnectorType::Hyper, json!({ "protocol": "V3_HTTP" })).params));
     assert!(ConnectorType::Trino.connector().catalog_is_durable(&params(ConnectorType::Trino, json!({})).params));
-    assert!(ConnectorType::SalesforceDataCloud.connector().catalog_is_durable(&params(ConnectorType::SalesforceDataCloud, json!({})).params));
+    assert!(ConnectorType::SalesforceDataCloud
+        .connector()
+        .catalog_is_durable(&params(ConnectorType::SalesforceDataCloud, json!({})).params));
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -1436,7 +1566,8 @@ struct Registry {
 
 impl Registry {
     fn new(params: Value) -> Self {
-        let connection = ConnectionState::from_params("database", ConnectionParams::new(ConnectorType::Hyper, object(params)), NOW);
+        let connection =
+            ConnectionState::from_params("database", ConnectionParams::new(ConnectorType::Hyper, object(params)), NOW);
         Self {
             loader: CatalogLoader::new(),
             connection,
@@ -1474,7 +1605,11 @@ impl Registry {
 
     /// Mark the connection described, as a restored catalog or a refresh that succeeded does
     fn describe(&mut self) {
-        self.apply(ConnectionAction::UpdateCatalog(CatalogUpdateTask::new(999, CatalogUpdateVariant::FullCatalogRefresh, self.now)));
+        self.apply(ConnectionAction::UpdateCatalog(CatalogUpdateTask::new(
+            999,
+            CatalogUpdateVariant::FullCatalogRefresh,
+            self.now,
+        )));
         self.apply(ConnectionAction::CatalogUpdateSucceeded { task_id: 999 });
     }
 
@@ -1487,13 +1622,21 @@ impl Registry {
             match command {
                 CatalogLoaderCommand::Abort { task_id } => {
                     self.aborted.push(task_id);
-                    if let Some((_, cancel)) = self.running.iter_mut().find(|(update, _)| update.task.task_id == task_id) {
+                    if let Some((_, cancel)) =
+                        self.running.iter_mut().find(|(update, _)| update.task.task_id == task_id)
+                    {
                         *cancel = Some("Superseded by forced catalog refresh".to_string());
                     }
                 }
                 CatalogLoaderCommand::Start { task_id, relations, .. } => {
-                    let update =
-                        CatalogUpdate::start(&self.connection, task_id, relations.clone(), &mut self.generations.borrow_mut(), self.now).unwrap();
+                    let update = CatalogUpdate::start(
+                        &self.connection,
+                        task_id,
+                        relations.clone(),
+                        &mut self.generations.borrow_mut(),
+                        self.now,
+                    )
+                    .unwrap();
                     self.apply(ConnectionAction::UpdateCatalog(update.task.clone()));
                     self.started.push(relations);
                     self.running.push((update, None));
@@ -1574,7 +1717,10 @@ fn the_relations_of_statements_are_asked_about_once_the_connection_has_room() {
     registry.active_queries = 0;
     registry.schedule();
     assert_eq!(registry.started, [orders()]);
-    assert_eq!(registry.connection.catalog_updates().tasks_running.values().next().unwrap().variant, CatalogUpdateVariant::RelationRefresh);
+    assert_eq!(
+        registry.connection.catalog_updates().tasks_running.values().next().unwrap().variant,
+        CatalogUpdateVariant::RelationRefresh
+    );
     registry.settle(true);
     assert!(registry.touched().is_empty());
     // The embedded Hyper runs one query at a time

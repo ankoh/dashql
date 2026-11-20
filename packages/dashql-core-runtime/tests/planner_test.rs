@@ -5,14 +5,40 @@ use dashql_buffers::execution::ExecutionGraphT;
 use dashql_buffers::formatting::FormattingDialect;
 use dashql_core::catalog::{Catalog, CatalogLayer};
 use dashql_core::script::Script;
-use dashql_core_runtime::planner::{plan_session, ConnectionKind, PlanScope, PlannerConnection, PlannerScript, SessionPlanRequest};
 use dashql_core::script_session::ScriptSession;
+use dashql_core_runtime::planner::{
+    plan_session, ConnectionKind, PlanScope, PlannerConnection, PlannerScript, SessionPlanRequest,
+};
 
 /// Plan scripts of one catalog as the session of one connection
 fn plan_scripts(catalog: &Catalog, scripts: &[&Script]) -> ExecutionGraphT {
-    let connections = [PlannerConnection { id: "c", kind: ConnectionKind::Remote, catalog, dialect: FormattingDialect::HYPER, default_database: "", default_schema: "" }];
-    let scripts: Vec<_> = scripts.iter().map(|&script| PlannerScript { script, name: "", connection: 0, materialization_file: None, current_by_own_publish: false }).collect();
-    plan_session(&SessionPlanRequest { connections: &connections, scripts: &scripts, scope: PlanScope::Session, materialized: &[], mount_prefix: "", attachments: &[], attachment_prefix: "" })
+    let connections = [PlannerConnection {
+        id: "c",
+        kind: ConnectionKind::Remote,
+        catalog,
+        dialect: FormattingDialect::HYPER,
+        default_database: "",
+        default_schema: "",
+    }];
+    let scripts: Vec<_> = scripts
+        .iter()
+        .map(|&script| PlannerScript {
+            script,
+            name: "",
+            connection: 0,
+            materialization_file: None,
+            current_by_own_publish: false,
+        })
+        .collect();
+    plan_session(&SessionPlanRequest {
+        connections: &connections,
+        scripts: &scripts,
+        scope: PlanScope::Session,
+        materialized: &[],
+        mount_prefix: "",
+        attachments: &[],
+        attachment_prefix: "",
+    })
 }
 
 /// Replace the text of a session and analyze in one event

@@ -20,10 +20,12 @@
 //! The planner edges that only order statements (`WRITE_AFTER_READ`, `BARRIER`, `SEQUENCE`) and the edges of
 //! materializations, which the references stand for, are no dataflow.
 
-use crate::planner::{plan, runs_on_request, PlanScope, Prepared, SessionPlanRequest};
 use crate::planner::script_references::ReferenceKind;
 use crate::planner::session_inputs::SessionInput;
-use dashql_buffers::execution::{ExecutionGraphAccessMode as Mode, ExecutionGraphEdgeReason as Reason, ExecutionGraphNodeT, ExecutionGraphT};
+use crate::planner::{plan, runs_on_request, PlanScope, Prepared, SessionPlanRequest};
+use dashql_buffers::execution::{
+    ExecutionGraphAccessMode as Mode, ExecutionGraphEdgeReason as Reason, ExecutionGraphNodeT, ExecutionGraphT,
+};
 use dashql_buffers::parser::StatementType;
 use dashql_parser::span::TextSpan;
 use std::collections::{BTreeMap, BTreeSet};
@@ -150,7 +152,8 @@ pub fn derive_session_dataflow(request: &SessionPlanRequest) -> Dataflow {
     let empty = Vec::new();
     let nodes = graph.nodes.as_ref().unwrap_or(&empty);
     let port = |node: &ExecutionGraphNodeT| DataflowPort { script: node.script, statement: node.statement_id };
-    let node_of: BTreeMap<(u32, u32), u32> = nodes.iter().enumerate().map(|(i, n)| ((n.script, n.statement_id), i as u32)).collect();
+    let node_of: BTreeMap<(u32, u32), u32> =
+        nodes.iter().enumerate().map(|(i, n)| ((n.script, n.statement_id), i as u32)).collect();
 
     // The statements, from the nodes of the plan
     let mut scripts: Vec<DataflowScript> = vec![DataflowScript::default(); request.scripts.len()];
@@ -199,13 +202,19 @@ pub fn derive_session_dataflow(request: &SessionPlanRequest) -> Dataflow {
         edges.insert(DataflowEdge {
             from: port(from),
             to: port(to),
-            kind: if reference.materialization != NONE { DataflowEdgeKind::ScanReference } else { DataflowEdgeKind::InlineReference },
+            kind: if reference.materialization != NONE {
+                DataflowEdgeKind::ScanReference
+            } else {
+                DataflowEdgeKind::InlineReference
+            },
             name: reference.parameter.clone().unwrap_or_default(),
         });
     }
     for consumer in 0..request.scripts.len() as u32 {
         for reference in plan.references.of(consumer).iter().filter(|r| r.kind == ReferenceKind::Invalid) {
-            let Some(from) = reference.producer.and_then(terminal_of).and_then(|from| nodes.get(from as usize)) else { continue };
+            let Some(from) = reference.producer.and_then(terminal_of).and_then(|from| nodes.get(from as usize)) else {
+                continue;
+            };
             if !node_of.contains_key(&(consumer, reference.statement_id)) {
                 continue;
             }
@@ -227,7 +236,9 @@ pub fn derive_session_dataflow(request: &SessionPlanRequest) -> Dataflow {
         let Some(relation) = relation_of(e.entity, e.unresolved_reference) else { continue };
         let (Some(from), Some(to)) = (nodes.get(e.from as usize), nodes.get(e.to as usize)) else { continue };
         // A drop neither produces nor reads data
-        let drop = |node: &ExecutionGraphNodeT| matches!(node.statement_type, StatementType::DROP_TABLE | StatementType::DROP_VIEW);
+        let drop = |node: &ExecutionGraphNodeT| {
+            matches!(node.statement_type, StatementType::DROP_TABLE | StatementType::DROP_VIEW)
+        };
         if !writes(from).any(|r| r == relation) || drop(from) || drop(to) {
             continue;
         }
@@ -267,6 +278,10 @@ pub fn derive_session_dataflow(request: &SessionPlanRequest) -> Dataflow {
         }
     }
 
-    let attachments = request.attachments.iter().map(|a| DataflowAttachment { name: a.name.to_string(), file: a.file.to_string() }).collect();
+    let attachments = request
+        .attachments
+        .iter()
+        .map(|a| DataflowAttachment { name: a.name.to_string(), file: a.file.to_string() })
+        .collect();
     Dataflow { scripts, inputs: plan.inputs.inputs, attachments, edges: edges.into_iter().collect() }
 }

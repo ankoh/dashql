@@ -11,7 +11,10 @@
 //! an analysis is current only with the table parameters it was analyzed with.
 
 use crate::analyzer::{AnalyzedScript, ParameterKind};
-use crate::catalog::{CatalogEntryId, CatalogTableId, Name, QualifiedCatalogObjectId, QualifiedTableName, TableColumn, TableDeclaration, TableLoc};
+use crate::catalog::{
+    CatalogEntryId, CatalogTableId, Name, QualifiedCatalogObjectId, QualifiedTableName, TableColumn, TableDeclaration,
+    TableLoc,
+};
 use crate::hash::HashMap;
 use dashql_buffers::parser::StatementType;
 use std::sync::Arc;
@@ -42,7 +45,8 @@ pub fn find_table_parameter<'a>(names: impl Iterator<Item = &'a str> + Clone, na
     if let Some(found) = pick(exact) {
         return found;
     }
-    let folded = names.enumerate().filter(|(_, n)| !n.is_empty() && n.eq_ignore_ascii_case(name)).map(|(i, _)| i).collect();
+    let folded =
+        names.enumerate().filter(|(_, n)| !n.is_empty() && n.eq_ignore_ascii_case(name)).map(|(i, _)| i).collect();
     pick(folded).unwrap_or(TableParameterLookup::Unknown)
 }
 
@@ -128,7 +132,9 @@ impl TableParameters {
 
     /// Do two registries have the same names, sources and columns?
     pub fn same_as(&self, other: &TableParameters) -> bool {
-        let columns = |t: &Option<TableDeclaration>| t.as_ref().map(|t| t.table_columns.iter().map(|c| c.column_name.text.clone()).collect::<Vec<_>>());
+        let columns = |t: &Option<TableDeclaration>| {
+            t.as_ref().map(|t| t.table_columns.iter().map(|c| c.column_name.text.clone()).collect::<Vec<_>>())
+        };
         self.entries.len() == other.entries.len()
             && self
                 .entries
@@ -140,7 +146,11 @@ impl TableParameters {
     /// Derive the table parameters of a session from the analyses of its scripts and the columns of its attachments. A
     /// script without an analysis keeps the columns of the script with the same name in `previous`. Scripts on a cycle
     /// of references have no result: the columns of one would grow with every analysis of the other.
-    pub fn derive(scripts: &[(&str, Option<&AnalyzedScript>)], attachments: &[TableParameterAttachment], previous: Option<&TableParameters>) -> TableParameters {
+    pub fn derive(
+        scripts: &[(&str, Option<&AnalyzedScript>)],
+        attachments: &[TableParameterAttachment],
+        previous: Option<&TableParameters>,
+    ) -> TableParameters {
         let names = || scripts.iter().map(|(n, _)| *n).chain(attachments.iter().map(|a| a.name));
         // The scripts that the terminal query of a script references, attachments reference nothing
         let edges: Vec<Vec<usize>> = scripts
@@ -164,7 +174,11 @@ impl TableParameters {
             let columns = match analyzed {
                 Some(analyzed) => query_columns(analyzed),
                 None => previous
-                    .and_then(|p| p.entries.iter().find(|s| matches!(s.source, TableParameterSource::Script(_)) && &*s.name == *name))
+                    .and_then(|p| {
+                        p.entries
+                            .iter()
+                            .find(|s| matches!(s.source, TableParameterSource::Script(_)) && &*s.name == *name)
+                    })
                     .and_then(|s| s.table.as_ref())
                     .map(|t| t.table_columns.iter().map(|c| c.column_name.text.clone()).collect()),
             };
@@ -177,7 +191,11 @@ impl TableParameters {
         for (i, attachment) in attachments.iter().enumerate() {
             let index = (scripts.len() + i) as u32;
             let table = attachment.columns.map(|columns| result_table(index, attachment.name, columns.to_vec()));
-            out.push(TableParameter { name: Arc::from(attachment.name), source: TableParameterSource::Attachment(i as u32), table });
+            out.push(TableParameter {
+                name: Arc::from(attachment.name),
+                source: TableParameterSource::Attachment(i as u32),
+                table,
+            });
         }
         TableParameters { entries: out }
     }
@@ -187,7 +205,9 @@ impl TableParameters {
 /// a client function that reads
 fn query_columns(analyzed: &AnalyzedScript) -> Option<Vec<Arc<str>>> {
     match &analyzed.parsed.statements[..] {
-        [statement] if statement.statement_type == StatementType::SELECT => Some(crate::analyzer::statement_output_columns(analyzed, 0)),
+        [statement] if statement.statement_type == StatementType::SELECT => {
+            Some(crate::analyzer::statement_output_columns(analyzed, 0))
+        }
         [_] => {
             let call = analyzed.single_client_function_call().filter(|c| c.readable())?;
             analyzed.client_function_result_columns(call)

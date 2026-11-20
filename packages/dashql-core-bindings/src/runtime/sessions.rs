@@ -54,7 +54,12 @@ impl Runtime {
         };
         if latest {
             if let Err(error) = self.connections.apply(connection_id, ConnectionAction::Reset, None) {
-                self.platform.log_on(LogLevel::Debug, "Closing a session reset no connection", &[("connectionId", connection_id), ("error", error.what())], "runtime");
+                self.platform.log_on(
+                    LogLevel::Debug,
+                    "Closing a session reset no connection",
+                    &[("connectionId", connection_id), ("error", error.what())],
+                    "runtime",
+                );
             }
         }
     }
@@ -71,13 +76,14 @@ impl Runtime {
             let started = platform.now();
             loop {
                 // A task that holds the connections or the connection changes its updates
-                let settled = connections.registry.try_borrow().is_ok_and(|registry| match registry.get(&connection_id) {
-                    None => true,
-                    Some(connection) => connection.state.try_borrow().is_ok_and(|state| {
-                        let updates = state.catalog_updates();
-                        updates.touched_relations.is_empty() && updates.tasks_running.is_empty()
-                    }),
-                });
+                let settled =
+                    connections.registry.try_borrow().is_ok_and(|registry| match registry.get(&connection_id) {
+                        None => true,
+                        Some(connection) => connection.state.try_borrow().is_ok_and(|state| {
+                            let updates = state.catalog_updates();
+                            updates.touched_relations.is_empty() && updates.tasks_running.is_empty()
+                        }),
+                    });
                 if settled || platform.is_fenced() || platform.now() - started >= timeout {
                     return Ok(JsValue::UNDEFINED);
                 }

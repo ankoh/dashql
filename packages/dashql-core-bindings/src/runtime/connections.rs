@@ -20,35 +20,35 @@ use dashql_core_runtime::catalog_loader::CatalogLoaderService;
 use dashql_core_runtime::compute::service::ComputeService;
 use dashql_core_runtime::compute::types::TableId;
 use dashql_core_runtime::compute::ComputationOutcome;
-use dashql_core_storage::connection_persistence::{
-    connection_entry, connection_writes, save_connection, saved_entry, saved_params, schedule_connection_writes, write_workbook_copies,
-    ConnectionChange, PersistedConnection,
-};
 use dashql_core_runtime::connections::registry::{ConnectionRegistry, RegistryOutcome};
 use dashql_core_runtime::connections::{
-    CatalogUpdateTaskStatus, CatalogUpdateVariant, ConnectionAction, ConnectionDetails, ConnectionParams, ConnectionState, ConnectionStateOptions,
-    ConnectorType, JsonObject,
+    CatalogUpdateTaskStatus, CatalogUpdateVariant, ConnectionAction, ConnectionDetails, ConnectionParams,
+    ConnectionState, ConnectionStateOptions, ConnectorType, JsonObject,
 };
 use dashql_core_runtime::executor::QueryExecutor;
 use dashql_core_runtime::host::{Host, LogLevel};
 use dashql_core_runtime::query::{QueryExecutionAction, QueryId};
+use dashql_core_runtime::workbook::{next_revision, CatalogHandle};
+use dashql_core_storage::connection_persistence::{
+    connection_entry, connection_writes, save_connection, saved_entry, saved_params, schedule_connection_writes,
+    write_workbook_copies, ConnectionChange, PersistedConnection,
+};
 use dashql_core_storage::storage::keys::connection_entry_key;
 use dashql_core_storage::storage::{StorageWriter as RuntimeStorageWriter, WriteTask};
-use dashql_core_runtime::workbook::{next_revision, CatalogHandle};
 use serde_json::{json, Value};
 use wasm_bindgen::prelude::*;
 
 use super::catalog::{CatalogLoader, LoaderHost};
-use super::compute_tracking::ComputeTracker;
 use super::changes::{Read, Slice};
+use super::compute_tracking::ComputeTracker;
 use super::queries::{QueryHost, QueryRun};
-use dashql_core_runtime::connections::open_setup::OpenSetups;
 use super::setups::RunningSetup;
-use view::{copies, ConnectionSaveOutcome, ConnectionSaveView, ConnectionView};
 use crate::host::JsPlatform;
 use crate::runtime::storage::view::StorageWriteOutcome;
 use crate::runtime::storage::JsStorage;
 use crate::views::JsonValue;
+use dashql_core_runtime::connections::open_setup::OpenSetups;
+use view::{copies, ConnectionSaveOutcome, ConnectionSaveView, ConnectionView};
 
 /// The target of the log messages of the connections
 const LOG_TARGET: &str = "connection_registry";
@@ -118,7 +118,9 @@ impl Connections {
     pub fn new(platform: JsPlatform, computations: ComputeService<ComputeTracker>) -> Rc<Self> {
         let connections = Rc::new(Connections {
             platform: platform.clone(),
-            registry: RefCell::new(ConnectionRegistry::with_history_limit(platform.settings().internal_query_history_limit)),
+            registry: RefCell::new(ConnectionRegistry::with_history_limit(
+                platform.settings().internal_query_history_limit,
+            )),
             computations,
             writer: RefCell::new(None),
             saves: RefCell::new(Vec::new()),
@@ -160,7 +162,13 @@ impl Connections {
     /// connection superseded. The change marks the query of the action, or the queries of the history; the connection
     /// moves with the lists of the history. A change that is urgent lets the catalog loader follow the registry, e.g. a
     /// query that started or finished.
-    pub fn settle(self: &Rc<Self>, connection_id: &str, outcome: &RegistryOutcome, urgent: bool, query: Option<QueryId>) {
+    pub fn settle(
+        self: &Rc<Self>,
+        connection_id: &str,
+        outcome: &RegistryOutcome,
+        urgent: bool,
+        query: Option<QueryId>,
+    ) {
         if outcome.changed || !outcome.effects.is_empty() {
             self.platform.mark(match query {
                 Some(query_id) => Slice::Query(connection_id, query_id),
@@ -219,7 +227,11 @@ impl Connections {
         if let Some(setup_params) = connection.setup_params {
             details.setup_params = Some(setup_params);
         }
-        let options = ConnectionStateOptions { active: connection.active, params: connection.params, params_draft: connection.params_draft };
+        let options = ConnectionStateOptions {
+            active: connection.active,
+            params: connection.params,
+            params_draft: connection.params_draft,
+        };
         let now = self.now();
         let mut state = ConnectionState::new(&connection_id, details, options, now);
         if let Some(name) = connection.name {
@@ -268,7 +280,9 @@ impl Connections {
     /// The view of a connection, busy if the connection or its history is borrowed
     pub fn view(&self, registry: &ConnectionRegistry, connection_id: &str) -> Read<ConnectionView> {
         let Some(connection) = registry.get(connection_id) else { return Read::Gone };
-        let (Ok(state), Ok(queries)) = (connection.state.try_borrow(), connection.queries.try_borrow()) else { return Read::Busy };
+        let (Ok(state), Ok(queries)) = (connection.state.try_borrow(), connection.queries.try_borrow()) else {
+            return Read::Busy;
+        };
         let free = self.saves.try_borrow().is_ok()
             && self.setups.try_borrow().is_ok()
             && self.catalog_versions.try_borrow().is_ok()
@@ -276,7 +290,8 @@ impl Connections {
         if !free {
             return Read::Busy;
         }
-        let mut view = ConnectionView::of(&state, &queries, registry.workbooks_of(connection_id), self.save_view(connection_id));
+        let mut view =
+            ConnectionView::of(&state, &queries, registry.workbooks_of(connection_id), self.save_view(connection_id));
         view.catalog_version = self.catalog_version(connection_id);
         view.setup_running = self.setup_running(connection_id);
         view.catalog_id = self.catalog_id(connection_id, state.catalog());
@@ -288,20 +303,35 @@ impl Connections {
         let writer = self.writer.borrow().clone();
         match writer {
             Some(writer) => drop(writer.write(key, task, debounce_ms)),
-            None => self.log(LogLevel::Warn, "The runtime has no storage writer, a change of a connection is not saved", &[("key", key)]),
+            None => self.log(
+                LogLevel::Warn,
+                "The runtime has no storage writer, a change of a connection is not saved",
+                &[("key", key)],
+            ),
         }
     }
 
     /// Apply an action to a connection and schedule what storage keeps of the change. A finished catalog update tells
     /// whether it changed the catalog.
-    pub fn apply(self: &Rc<Self>, connection_id: &str, action: ConnectionAction, catalog_changed: Option<bool>) -> Result<RegistryOutcome> {
+    pub fn apply(
+        self: &Rc<Self>,
+        connection_id: &str,
+        action: ConnectionAction,
+        catalog_changed: Option<bool>,
+    ) -> Result<RegistryOutcome> {
         let connection = self.registry.borrow().get(connection_id).cloned();
         let prev = connection.as_ref().map(|connection| PersistedConnection::of_state(&connection.state.borrow()));
         let finished_task = match &action {
-            ConnectionAction::CatalogUpdateSucceeded { task_id } => Some((*task_id, CatalogUpdateTaskStatus::Succeeded)),
-            ConnectionAction::CatalogUpdatePartiallySucceeded { task_id, .. } => Some((*task_id, CatalogUpdateTaskStatus::PartiallySucceeded)),
+            ConnectionAction::CatalogUpdateSucceeded { task_id } => {
+                Some((*task_id, CatalogUpdateTaskStatus::Succeeded))
+            }
+            ConnectionAction::CatalogUpdatePartiallySucceeded { task_id, .. } => {
+                Some((*task_id, CatalogUpdateTaskStatus::PartiallySucceeded))
+            }
             ConnectionAction::CatalogUpdateFailed { task_id, .. } => Some((*task_id, CatalogUpdateTaskStatus::Failed)),
-            ConnectionAction::CatalogUpdateCancelled { task_id, .. } => Some((*task_id, CatalogUpdateTaskStatus::Cancelled)),
+            ConnectionAction::CatalogUpdateCancelled { task_id, .. } => {
+                Some((*task_id, CatalogUpdateTaskStatus::Cancelled))
+            }
             _ => None,
         };
         let change = match &action {
@@ -313,7 +343,9 @@ impl Connections {
         let now = self.now();
         // The workbooks that use the connection show its params and derive with its catalog
         let workbooks = self.registry.borrow().workbooks_of(connection_id).to_vec();
-        let profile = connection.as_ref().and_then(|connection| connection.state.try_borrow().ok().map(|state| state.script_connection().profile().clone()));
+        let profile = connection.as_ref().and_then(|connection| {
+            connection.state.try_borrow().ok().map(|state| state.script_connection().profile().clone())
+        });
         let outcome = self.registry.borrow_mut().apply(connection_id, action, now)?;
         if outcome.changed {
             for workbook_id in &workbooks {
@@ -364,15 +396,27 @@ impl Connections {
         match writer {
             Some(writer) => schedule_connection_writes(&writer, writes, connection_id),
             // A runtime without storage keeps nothing, e.g. the one of the shell
-            None => self.log(LogLevel::Debug, "The runtime has no storage writer, a change of a connection is not saved", &[("connection", connection_id)]),
+            None => self.log(
+                LogLevel::Debug,
+                "The runtime has no storage writer, a change of a connection is not saved",
+                &[("connection", connection_id)],
+            ),
         }
         Ok(outcome)
     }
 
     /// Apply an action to a query of the history of a connection
-    pub fn apply_query(self: &Rc<Self>, connection_id: &str, action: QueryExecutionAction, urgent: bool) -> Result<RegistryOutcome> {
+    pub fn apply_query(
+        self: &Rc<Self>,
+        connection_id: &str,
+        action: QueryExecutionAction,
+        urgent: bool,
+    ) -> Result<RegistryOutcome> {
         let query_id = action.query_id();
-        let cache = matches!(action, QueryExecutionAction::QueryCacheRecorded { .. } | QueryExecutionAction::QueryCacheDeleted { .. });
+        let cache = matches!(
+            action,
+            QueryExecutionAction::QueryCacheRecorded { .. } | QueryExecutionAction::QueryCacheDeleted { .. }
+        );
         let outcome = self.registry.borrow_mut().apply_query(connection_id, action)?;
         self.settle(connection_id, &outcome, urgent, Some(query_id));
         // The scripts of the workbooks on the connection show the cached results of their queries
@@ -408,22 +452,34 @@ impl Connections {
     pub fn save_view(&self, connection_id: &str) -> ConnectionSaveView {
         let saves = self.saves.borrow();
         let save = saves.iter().find(|(id, _)| id == connection_id).map(|(_, save)| save);
-        ConnectionSaveView { saving: save.is_some_and(|save| save.saving), outcome: save.and_then(|save| save.outcome.clone()) }
+        ConnectionSaveView {
+            saving: save.is_some_and(|save| save.saving),
+            outcome: save.and_then(|save| save.outcome.clone()),
+        }
     }
 
     /// Save a connection: the given params, else its draft, else its params. The app manifest first, then the params
     /// are committed and the copies of the workbooks that use the connection are written. Resolves with the outcome.
-    pub fn save(self: &Rc<Self>, connection_id: String, given: Option<ConnectionParams>) -> impl std::future::Future<Output = Result<ConnectionSaveOutcome>> {
+    pub fn save(
+        self: &Rc<Self>,
+        connection_id: String,
+        given: Option<ConnectionParams>,
+    ) -> impl std::future::Future<Output = Result<ConnectionSaveOutcome>> {
         let prepared = (|| -> Result<(StorageWriter, Value, Value, Vec<String>)> {
             let registry = self.registry.borrow();
-            let connection =
-                registry.get(&connection_id).ok_or_else(|| Error::invalid_argument(format!("no connection registered with id {connection_id}")))?;
+            let connection = registry
+                .get(&connection_id)
+                .ok_or_else(|| Error::invalid_argument(format!("no connection registered with id {connection_id}")))?;
             let state = connection.state.borrow();
             let params = saved_params(&state, given.as_ref());
             let entry = saved_entry(&connection_id, &state, &params);
             let params = Value::Object(params.to_object());
             let workbooks = registry.workbooks_of(&connection_id).to_vec();
-            let writer = self.writer.borrow().clone().ok_or_else(|| Error::invalid_argument("the runtime has no storage writer"))?;
+            let writer = self
+                .writer
+                .borrow()
+                .clone()
+                .ok_or_else(|| Error::invalid_argument("the runtime has no storage writer"))?;
             Ok((writer, entry, params, workbooks))
         })();
         let connections = self.clone();
@@ -461,13 +517,19 @@ impl Connections {
                 move || {
                     let Some(connections) = connections.upgrade() else { return };
                     // A commit that fails leaves the copies as they are, the next restore heals them
-                    if let Ok(params) = ConnectionParams::from_object(committed.as_object().cloned().unwrap_or_default()) {
+                    if let Ok(params) =
+                        ConnectionParams::from_object(committed.as_object().cloned().unwrap_or_default())
+                    {
                         let _ = connections.apply(&connection_id, ConnectionAction::CommitParams(params), None);
                     }
                 }
             };
             let saved = save_connection(&writer, &connection_id, entry, &params, &workbooks, commit).await;
-            let outcome = ConnectionSaveOutcome { params: JsonValue(params), manifest: saved.manifest.into(), workbooks: copies(saved.workbooks) };
+            let outcome = ConnectionSaveOutcome {
+                params: JsonValue(params),
+                manifest: saved.manifest.into(),
+                workbooks: copies(saved.workbooks),
+            };
             if connections.registry.borrow().get(&connection_id).is_some() {
                 connections.set_save(&connection_id, false, Some(outcome.clone()));
             }
@@ -477,8 +539,13 @@ impl Connections {
 
     /// Write the copies of the saved params of the last save of a connection into workbooks again, none without a save
     /// that wrote the app manifest
-    pub fn retry_save(self: &Rc<Self>, connection_id: String, workbook_ids: Vec<String>) -> impl std::future::Future<Output = Option<ConnectionSaveOutcome>> {
-        let last = self.saves.borrow().iter().find(|(id, _)| *id == connection_id).and_then(|(_, save)| save.outcome.clone());
+    pub fn retry_save(
+        self: &Rc<Self>,
+        connection_id: String,
+        workbook_ids: Vec<String>,
+    ) -> impl std::future::Future<Output = Option<ConnectionSaveOutcome>> {
+        let last =
+            self.saves.borrow().iter().find(|(id, _)| *id == connection_id).and_then(|(_, save)| save.outcome.clone());
         let last = last.filter(|last| matches!(last.manifest, StorageWriteOutcome::Written));
         let writer = self.writer.borrow().clone();
         let connections = self.clone();
@@ -502,4 +569,3 @@ impl Connections {
 fn iso_now(ms: f64) -> String {
     js_sys::Date::new(&JsValue::from_f64(ms)).to_iso_string().as_string().unwrap_or_default()
 }
-

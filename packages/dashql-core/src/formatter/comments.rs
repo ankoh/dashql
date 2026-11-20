@@ -3,7 +3,7 @@
 //! Comments work on bytes: wrapping splits long words at byte offsets, which can split UTF-8
 //! sequences (see docs/design/core_quirks.md).
 
-use crate::annotation::{AnnotationTag, Annotation, ANNOTATION_GUTTER};
+use crate::annotation::{Annotation, AnnotationTag, ANNOTATION_GUTTER};
 use dashql_parser::comment_blocks::{
     group_comment_bytes, is_comment_tag, CommentBlockType, COMMENT_TAG_END, COMMENT_TAG_PREFIX,
 };
@@ -167,7 +167,8 @@ fn append_wrapped_line_comments(output: &mut Vec<u8>, input: &[u8], comments: &[
         let mut remaining = line;
         while !remaining.is_empty() {
             let word_end = find_first_of(remaining, b" \t\r\n\x0c");
-            let (word, rest) = remaining.split_at_checked(word_end.unwrap_or(remaining.len())).unwrap_or((remaining, &[]));
+            let (word, rest) =
+                remaining.split_at_checked(word_end.unwrap_or(remaining.len())).unwrap_or((remaining, &[]));
             if !word.is_empty() {
                 words.push(word);
             }
@@ -316,7 +317,8 @@ struct Unit {
 /// older scripts close it with, and the ordinary comments between them.
 fn comment_units(input: &[u8], comments: &[TextSpan]) -> Vec<Unit> {
     let opens = |c: &TextSpan| read_comment_tag(input, c).is_some_and(|t| t.name != COMMENT_TAG_END.as_bytes());
-    let closes = |c: &TextSpan| read_comment_tag(input, c).is_some_and(|t| t.name == COMMENT_TAG_END.as_bytes() && t.alone);
+    let closes =
+        |c: &TextSpan| read_comment_tag(input, c).is_some_and(|t| t.name == COMMENT_TAG_END.as_bytes() && t.alone);
     let mut units = Vec::new();
     let mut i = 0;
     while let Some(&comment) = comments.get(i) {
@@ -463,7 +465,13 @@ fn keep_blank_line(output: &mut Vec<u8>, input: &[u8], text_end: usize, next: Op
 /// comment with the ordinary comments as the description on top, like a rewrite of a tag prints it (see
 /// `annotation`). Otherwise, or if the annotation cannot be printed canonically, they are appended like other
 /// comments. `following` is the offset of the statement.
-pub(super) fn append_description(output: &mut Vec<u8>, input: &[u8], comments: &[TextSpan], max_width: usize, following: Option<usize>) {
+pub(super) fn append_description(
+    output: &mut Vec<u8>,
+    input: &[u8],
+    comments: &[TextSpan],
+    max_width: usize,
+    following: Option<usize>,
+) {
     let annotation = comment_units(input, comments)
         .iter()
         .any(|unit| unit.tagged)
@@ -552,10 +560,16 @@ mod tests {
         // The placements of older scripts become their own tags
         assert_eq!(format_comments("/*   @vis   board  width=6   height=3 */"), "/** @board width=6 height=3 */");
         assert_eq!(format_comments("/* @vis card width=6 */"), "/** @board width=6 */");
-        assert_eq!(format_comments("/* @vis table\n   @vis flow x=1 y=2 */"), "/**\n * @vis table\n * @flow x=1 y=2\n */");
+        assert_eq!(
+            format_comments("/* @vis table\n   @vis flow x=1 y=2 */"),
+            "/**\n * @vis table\n * @flow x=1 y=2\n */"
+        );
         assert_eq!(format_comments("/* @vis table */"), "/** @vis table */");
         let input = "/* @vis vegalite {\"mark\":\"bar\", \"encoding\": {\"x\": {\"field\": \"a\"}}} */";
-        assert_eq!(format_comments(input), "/**\n * @vis vegalite\n * {\"mark\": \"bar\", \"encoding\": {\"x\": {\"field\": \"a\"}}}\n */");
+        assert_eq!(
+            format_comments(input),
+            "/**\n * @vis vegalite\n * {\"mark\": \"bar\", \"encoding\": {\"x\": {\"field\": \"a\"}}}\n */"
+        );
         // The JSON breaks where it does not fit in the comment lines
         assert_eq!(
             format_comments_within(input, 40),
@@ -586,7 +600,10 @@ mod tests {
     #[test]
     fn merges_tagged_comments() {
         let input = "-- @param\n-- Add to timestamps.\n-- @end\n\n/* @vis vegalite\n   {\"mark\": \"bar\"}\n*/";
-        assert_eq!(format_comments(input), "/**\n * @param\n * Add to timestamps.\n * @vis vegalite\n * {\"mark\": \"bar\"}\n */");
+        assert_eq!(
+            format_comments(input),
+            "/**\n * @param\n * Add to timestamps.\n * @vis vegalite\n * {\"mark\": \"bar\"}\n */"
+        );
         // Ordinary comments between them keep them apart
         let input = "/* @param Sales. */\n-- note\n/* @vis table */";
         assert_eq!(format_comments(input), "/** @param Sales. */\n-- note\n/** @vis table */");

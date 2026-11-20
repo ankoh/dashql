@@ -9,14 +9,14 @@
 use std::collections::BTreeMap;
 
 use dashql_buffers::analyzer::QualifiedTableNameT;
-use dashql_core_runtime::connections::{
-    self as rt, CatalogUpdateTask, ConnectionChannel, ConnectionDetails, ConnectionParams, ConnectionState, ConnectorDetails, DetailedError, JsonObject,
-    RelationName, SetupTimings,
-};
 use dashql_core_runtime::connections::label::{self, ConnectionLabelParts};
 use dashql_core_runtime::connections::registry::ListedConnection;
-use dashql_core_runtime::hyper::local_cloud::embedded_cloud_databases;
+use dashql_core_runtime::connections::{
+    self as rt, CatalogUpdateTask, ConnectionChannel, ConnectionDetails, ConnectionParams, ConnectionState,
+    ConnectorDetails, DetailedError, JsonObject, RelationName, SetupTimings,
+};
 use dashql_core_runtime::hyper::link as rt_link;
+use dashql_core_runtime::hyper::local_cloud::embedded_cloud_databases;
 use dashql_core_runtime::query::QueryExecutionHistory;
 use dashql_core_storage::storage::WriteOutcome;
 
@@ -227,9 +227,10 @@ fn token_summary(token: &Option<String>) -> Option<ConnectionTokenSummary> {
 /// of Salesforce. The channel is their one owner.
 fn channel_tokens(details: &ConnectionDetails) -> ConnectionSecrets {
     match details.channel.as_ref() {
-        Some(ConnectionChannel::Trino(trino)) => {
-            ConnectionSecrets { access_token: trino.access_token().map(|token| token.to_json().to_string()), ..Default::default() }
-        }
+        Some(ConnectionChannel::Trino(trino)) => ConnectionSecrets {
+            access_token: trino.access_token().map(|token| token.to_json().to_string()),
+            ..Default::default()
+        },
         Some(ConnectionChannel::Salesforce(salesforce)) => {
             let tokens = salesforce.tokens();
             ConnectionSecrets {
@@ -325,21 +326,23 @@ impl From<&ConnectionDetails> for ConnectionConnectorDetails {
                     access_token: token_summary(&tokens.access_token),
                 }),
             },
-            ConnectorDetails::SalesforceDataCloud(salesforce) | ConnectorDetails::Dbcom(salesforce) => Self::Salesforce {
-                setup_error: error(&salesforce.setup_error),
-                oauth_state: salesforce.oauth_state.as_ref().map(|state| ConnectionSalesforceOAuthState {
-                    oauth_params: state.oauth_params.as_ref().map(|p| ConnectionSalesforceOAuthParams {
-                        instance_url: p.instance_url.clone(),
-                        app_consumer_key: p.app_consumer_key.clone(),
-                        requested_at: p.requested_at,
-                        expires_at: p.expires_at,
+            ConnectorDetails::SalesforceDataCloud(salesforce) | ConnectorDetails::Dbcom(salesforce) => {
+                Self::Salesforce {
+                    setup_error: error(&salesforce.setup_error),
+                    oauth_state: salesforce.oauth_state.as_ref().map(|state| ConnectionSalesforceOAuthState {
+                        oauth_params: state.oauth_params.as_ref().map(|p| ConnectionSalesforceOAuthParams {
+                            instance_url: p.instance_url.clone(),
+                            app_consumer_key: p.app_consumer_key.clone(),
+                            requested_at: p.requested_at,
+                            expires_at: p.expires_at,
+                        }),
+                        pkce_generated: state.pkce_generated,
+                        core_auth_code_received_at: state.core_auth_code_received_at.clone(),
+                        core_access_token: token_summary(&tokens.core_access_token),
+                        data_cloud_access_token: token_summary(&tokens.data_cloud_access_token),
                     }),
-                    pkce_generated: state.pkce_generated,
-                    core_auth_code_received_at: state.core_auth_code_received_at.clone(),
-                    core_access_token: token_summary(&tokens.core_access_token),
-                    data_cloud_access_token: token_summary(&tokens.data_cloud_access_token),
-                }),
-            },
+                }
+            }
         }
     }
 }
@@ -612,7 +615,12 @@ pub struct ConnectionView {
 
 impl ConnectionView {
     /// The view of a connection with its queries, the workbooks that use it and its save
-    pub fn of(state: &ConnectionState, queries: &QueryExecutionHistory, workbooks: &[String], save: ConnectionSaveView) -> Self {
+    pub fn of(
+        state: &ConnectionState,
+        queries: &QueryExecutionHistory,
+        workbooks: &[String],
+        save: ConnectionSaveView,
+    ) -> Self {
         let updates = state.catalog_updates();
         let metrics = queries.metrics();
         ConnectionView {
@@ -672,7 +680,9 @@ impl ConnectionView {
                 .active_ids()
                 .iter()
                 .filter_map(|id| queries.query(*id))
-                .filter(|query| query.query_metadata.query_type != dashql_core_runtime::query::QueryType::InternalSqlframe)
+                .filter(|query| {
+                    query.query_metadata.query_type != dashql_core_runtime::query::QueryType::InternalSqlframe
+                })
                 .count() as u32,
             queries_finished_ordered: queries.finished_ids().to_vec(),
             snapshot_queries_active_finished: queries.snapshot_queries_active_finished(),
@@ -703,7 +713,6 @@ pub struct ConnectionListEntry {
     pub label: ConnectionLabel,
 }
 
-
 /// The connections of the runtime, the slice `connectionList`
 #[derive(Clone, Debug, Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
@@ -727,11 +736,19 @@ impl ConnectionListView {
                 active: connection.active,
                 listed: connection.used || connection.active,
                 ordinal: None,
-                label: label::label_parts(connection.connector_type, connection.name.as_deref(), connection.label_detail, None).into(),
+                label: label::label_parts(
+                    connection.connector_type,
+                    connection.name.as_deref(),
+                    connection.label_detail,
+                    None,
+                )
+                .into(),
             })
             .collect();
         for connector in rt::CONNECTOR_TYPES {
-            let of_connector = |entry: &ConnectionListEntry, listed: &ListedConnection| entry.listed && listed.connector_type == connector;
+            let of_connector = |entry: &ConnectionListEntry, listed: &ListedConnection| {
+                entry.listed && listed.connector_type == connector
+            };
             if connections.iter().zip(listed).filter(|(entry, listed)| of_connector(entry, listed)).count() < 2 {
                 continue;
             }
@@ -740,14 +757,21 @@ impl ConnectionListView {
                 if of_connector(entry, listed) {
                     next += 1;
                     entry.ordinal = Some(next);
-                    entry.label =
-                        label::label_parts(listed.connector_type, listed.name.as_deref(), listed.label_detail, Some(next)).into();
+                    entry.label = label::label_parts(
+                        listed.connector_type,
+                        listed.name.as_deref(),
+                        listed.label_detail,
+                        Some(next),
+                    )
+                    .into();
                 }
             }
         }
         let connections_by_type = rt::CONNECTOR_TYPES
             .iter()
-            .map(|connector| listed.iter().filter(|c| c.connector_type == *connector).map(|c| c.connection_id.clone()).collect())
+            .map(|connector| {
+                listed.iter().filter(|c| c.connector_type == *connector).map(|c| c.connection_id.clone()).collect()
+            })
             .collect();
         ConnectionListView { connections, connections_by_type }
     }
@@ -758,7 +782,14 @@ mod tests {
     use super::*;
 
     fn listed(id: &str, connector_type: rt::ConnectorType, active: bool, used: bool) -> ListedConnection {
-        ListedConnection { connection_id: id.to_string(), connector_type, active, used, name: None, label_detail: "Http" }
+        ListedConnection {
+            connection_id: id.to_string(),
+            connector_type,
+            active,
+            used,
+            name: None,
+            label_detail: "Http",
+        }
     }
 
     #[test]
@@ -793,7 +824,8 @@ pub struct ConnectionCopyOutcome {
 }
 
 pub(crate) fn copies(copies: Vec<(String, WriteOutcome)>) -> Vec<ConnectionCopyOutcome> {
-    let copy = |(workbook_id, outcome): (String, WriteOutcome)| ConnectionCopyOutcome { workbook_id, result: outcome.into() };
+    let copy =
+        |(workbook_id, outcome): (String, WriteOutcome)| ConnectionCopyOutcome { workbook_id, result: outcome.into() };
     copies.into_iter().map(copy).collect()
 }
 
@@ -859,7 +891,9 @@ pub struct HyperLinkView {
 impl HyperLinkView {
     /// The view of a link and its binding
     pub fn of(target: rt_link::HyperLinkTarget, binding: rt_link::HyperLinkBinding) -> Self {
-        let params = |params: dashql_core_runtime::connections::ConnectionParams| JsonValue(serde_json::Value::Object(params.to_object()));
+        let params = |params: dashql_core_runtime::connections::ConnectionParams| {
+            JsonValue(serde_json::Value::Object(params.to_object()))
+        };
         let confirmation = match binding {
             rt_link::HyperLinkBinding::Existing { .. } => None,
             _ => rt_link::hyper_link_confirmation(&target),
@@ -869,7 +903,9 @@ impl HyperLinkView {
             rt_link::HyperLinkBinding::AskToReuse { connection_id, params: reused, create } => {
                 HyperLinkBindingView::AskToReuse { connection_id, params: params(reused), create: params(create) }
             }
-            rt_link::HyperLinkBinding::Create { params: created } => HyperLinkBindingView::Create { params: params(created) },
+            rt_link::HyperLinkBinding::Create { params: created } => {
+                HyperLinkBindingView::Create { params: params(created) }
+            }
         };
         HyperLinkView { endpoint: target.endpoint, token: target.token, confirmation, binding }
     }

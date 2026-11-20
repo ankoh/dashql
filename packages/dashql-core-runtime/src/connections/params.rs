@@ -102,8 +102,8 @@ impl ConnectionParams {
 
     /// Read params from JSON, e.g. `{"trino": {...}}`. The first connector with a field wins.
     pub fn from_json(text: &str) -> Result<Self> {
-        let value: Value =
-            serde_json::from_str(text).map_err(|e| Error::invalid_argument(format!("invalid connection params: {e}")))?;
+        let value: Value = serde_json::from_str(text)
+            .map_err(|e| Error::invalid_argument(format!("invalid connection params: {e}")))?;
         let Value::Object(fields) = value else {
             return Err(Error::invalid_argument("connection params must be an object"));
         };
@@ -163,7 +163,8 @@ pub struct TrinoSessionDefaults {
 
 /// The default catalog and schema of Trino params. `defaultCatalog` replaced `catalogName`, which is read without it.
 pub fn trino_session_defaults(params: &JsonObject) -> TrinoSessionDefaults {
-    let catalog = string_field(params, "defaultCatalog").or_else(|| string_field(params, "catalogName")).unwrap_or("").trim();
+    let catalog =
+        string_field(params, "defaultCatalog").or_else(|| string_field(params, "catalogName")).unwrap_or("").trim();
     let schema = string_field(params, "defaultSchema").unwrap_or("").trim();
     if catalog.is_empty() {
         return TrinoSessionDefaults::default();

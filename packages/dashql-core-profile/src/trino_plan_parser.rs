@@ -123,7 +123,6 @@ fn read_fragments(document: Value) -> Result<BTreeMap<String, Value>, StatusCode
     Err(StatusCode::VIEWMODEL_INPUT_JSON_PARSER_ERROR)
 }
 
-
 /// The ids of the fragments that a plan tree reads
 fn read_fragment_ids(root: &Value) -> Vec<String> {
     let mut ids = Vec::new();

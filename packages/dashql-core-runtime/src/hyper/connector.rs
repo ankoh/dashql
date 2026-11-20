@@ -8,8 +8,8 @@ use crate::catalog_loader::{CatalogEntries, ConnectorCatalogUpdate};
 use crate::connections::connector::Connector;
 use crate::connections::sharing::without;
 use crate::connections::{
-    Timestamp, RelationName, object, CatalogNameDefaults, ConnectionChannel, ConnectionDetails, ConnectionParams, ConnectorFeatures, ConnectorType, JsonObject,
-    DEFAULT_DATABASE_NAME, HYPER_DEFAULT_SCHEMA,
+    object, CatalogNameDefaults, ConnectionChannel, ConnectionDetails, ConnectionParams, ConnectorFeatures,
+    ConnectorType, JsonObject, RelationName, Timestamp, DEFAULT_DATABASE_NAME, HYPER_DEFAULT_SCHEMA,
 };
 use crate::hyper::link::{hyper_link_token_fingerprint, is_hyper_link_params};
 
@@ -24,7 +24,10 @@ pub static HYPER: HyperConnector = HyperConnector;
 
 /// Do params name a Hyper server rather than the embedded Hyper? Params without a protocol are the embedded Hyper.
 fn is_server(params: Option<&JsonObject>) -> bool {
-    params.and_then(|params| params.get("protocol")).and_then(Value::as_str).is_some_and(|protocol| protocol != EMBEDDED_PROTOCOL)
+    params
+        .and_then(|params| params.get("protocol"))
+        .and_then(Value::as_str)
+        .is_some_and(|protocol| protocol != EMBEDDED_PROTOCOL)
 }
 
 impl Connector for HyperConnector {
@@ -78,7 +81,11 @@ impl Connector for HyperConnector {
     }
 
     fn label_detail(&self, setup_params: Option<&JsonObject>) -> &'static str {
-        match setup_params.and_then(|params| params.get("protocol")).and_then(Value::as_str).unwrap_or(EMBEDDED_PROTOCOL) {
+        match setup_params
+            .and_then(|params| params.get("protocol"))
+            .and_then(Value::as_str)
+            .unwrap_or(EMBEDDED_PROTOCOL)
+        {
             "V3_GRPC" => "gRPC",
             "V3_HTTP" => "Http",
             "V3_HTTP_LINK" => "Link",

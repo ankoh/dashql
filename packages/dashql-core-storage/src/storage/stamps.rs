@@ -149,7 +149,8 @@ impl FolderStamps {
             names.extend(listing.workbook.map(|_| workbook_file.to_string()));
             return names;
         };
-        let disk: BTreeMap<String, &NamedStamp> = listing.scripts.iter().map(|script| (file_name_key(&script.name), script)).collect();
+        let disk: BTreeMap<String, &NamedStamp> =
+            listing.scripts.iter().map(|script| (file_name_key(&script.name), script)).collect();
         let mut changed: Vec<String> = Vec::new();
         for (key, script) in &disk {
             if folder.scripts.get(key).map(|known| known.stamp) != Some(script.stamp) {
@@ -179,7 +180,10 @@ mod tests {
 
     fn listing(scripts: &[(&str, f64)], workbook: Option<f64>) -> FolderListing {
         FolderListing {
-            scripts: scripts.iter().map(|(name, size)| NamedStamp { name: name.to_string(), stamp: stamp(*size) }).collect(),
+            scripts: scripts
+                .iter()
+                .map(|(name, size)| NamedStamp { name: name.to_string(), stamp: stamp(*size) })
+                .collect(),
             attachments: Vec::new(),
             workbook: workbook.map(stamp),
         }
@@ -189,7 +193,10 @@ mod tests {
     fn checks_nothing_before_the_folder_is_acknowledged() {
         let stamps = FolderStamps::default();
         assert_eq!(stamps.expect_script("w", "a.sql"), Expect::Any);
-        assert_eq!(stamps.changes("w", &listing(&[("b.sql", 1.0), ("a.sql", 1.0)], Some(1.0)), "wb.json"), ["a.sql", "b.sql", "wb.json"]);
+        assert_eq!(
+            stamps.changes("w", &listing(&[("b.sql", 1.0), ("a.sql", 1.0)], Some(1.0)), "wb.json"),
+            ["a.sql", "b.sql", "wb.json"]
+        );
         // A host without stamps records nothing
         stamps.wrote_script("w", "a.sql", Some(stamp(1.0)));
         assert!(!stamps.is_acknowledged("w"));

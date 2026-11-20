@@ -19,8 +19,14 @@ fn main() {
             let text = search["text"].as_str().unwrap_or("");
             let index = search["index"].as_i64().unwrap_or(0) as usize;
             let limit = node["completions"]["limit"].as_i64().unwrap_or(100) as usize;
-            let out = complete_case(client_functions_of(node), catalog_input.as_deref(), &editor_input, CursorOffset::Search { text, index }, limit)
-                .map_err(Failed::from)?;
+            let out = complete_case(
+                client_functions_of(node),
+                catalog_input.as_deref(),
+                &editor_input,
+                CursorOffset::Search { text, index },
+                limit,
+            )
+            .map_err(Failed::from)?;
             if let Some(catalog_yaml) = out.catalog {
                 compare_script(catalog, &catalog_yaml).map_err(|e| Failed::from(format!("catalog: {e}")))?;
             }

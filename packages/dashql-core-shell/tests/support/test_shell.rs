@@ -2,7 +2,9 @@
 //! that reads or publishes catalog state, and dropping the shell detaches its session relations.
 
 use dashql_core::catalog::Catalog;
-use dashql_core_shell::{CompletionCandidate, EffectCompletionStatus, PromptInputKey, ShellOperation, ShellSession, TerminalOutput};
+use dashql_core_shell::{
+    CompletionCandidate, EffectCompletionStatus, PromptInputKey, ShellOperation, ShellSession, TerminalOutput,
+};
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -66,4 +68,3 @@ impl std::ops::DerefMut for TestShell {
         &mut self.session
     }
 }
-

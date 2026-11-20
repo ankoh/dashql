@@ -8,7 +8,7 @@
 mod harness;
 
 use dashql_buffers::editor::{
-    EditorEventAction, EditorEventIntent, EditorEventOrigin, EditorEventT, EditorOffsetUnit, EditorAnalysisVersionT,
+    EditorAnalysisVersionT, EditorEventAction, EditorEventIntent, EditorEventOrigin, EditorEventT, EditorOffsetUnit,
     EditorSelectionT, EditorTextChangeT, EditorUpdateT,
 };
 use dashql_core::catalog::{Catalog, CatalogLayer};

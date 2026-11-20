@@ -16,14 +16,14 @@ pub mod time;
 
 use std::fmt;
 
-pub use connection::{
-    start_connection_client_function, ClientFunctionBinding, ClientFunctionRegistrations, ClientFunctionRegistryEffect,
-    ConnectionCallStart, client_function_binding,
-};
 pub use crate::http::{HttpRequest, HttpResponse};
+pub use connection::{
+    client_function_binding, start_connection_client_function, ClientFunctionBinding, ClientFunctionRegistrations,
+    ClientFunctionRegistryEffect, ConnectionCallStart,
+};
 pub use request::{
-    build_client_function_request, follow_request, http_request, request_url, resolve_follow_url, ClientFunctionHostTarget,
-    ClientFunctionRequest, ClientFunctionVariables, STANDARD_OPTIONS,
+    build_client_function_request, follow_request, http_request, request_url, resolve_follow_url,
+    ClientFunctionHostTarget, ClientFunctionRequest, ClientFunctionVariables, STANDARD_OPTIONS,
 };
 pub use result::{Cell, ClientFunctionResult, ColumnType, ResultField};
 pub use runtime::{explain_client_function_call, CallStep, ClientFunctionCallRun, POLL_SAME};

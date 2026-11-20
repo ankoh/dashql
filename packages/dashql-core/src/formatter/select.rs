@@ -1,9 +1,9 @@
 //! SELECT statements.
 
-use dashql_parser::attrs;
 use super::{FmtReg, Formatter, FormattingJoinPolicy, K};
 use dashql_buffers::formatting::FormattingMode;
 use dashql_buffers::parser::{CombineModifier, CombineOperation, Node, NodeType};
+use dashql_parser::attrs;
 
 /// The binding strength of a set operation, INTERSECT binds tighter than UNION and EXCEPT
 fn combine_precedence(operation: CombineOperation) -> u8 {

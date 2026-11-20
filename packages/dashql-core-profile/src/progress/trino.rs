@@ -75,12 +75,8 @@ pub(crate) fn trino_statement_events(model: &QueryProfile, stats: &Value, time: 
     events.push(ProfileInputEvent::UpdateQuery { time, status, stats: query });
 
     // The known fragments by engine id
-    let mut fragments: HashMap<String, u32> = model
-        .fragments
-        .iter()
-        .enumerate()
-        .filter_map(|(i, f)| Some((f.engine_id.clone()?, i as u32)))
-        .collect();
+    let mut fragments: HashMap<String, u32> =
+        model.fragments.iter().enumerate().filter_map(|(i, f)| Some((f.engine_id.clone()?, i as u32))).collect();
     let mut next_fragment = model.fragments.len() as u32;
 
     // Walk the stage tree, parents first
@@ -188,24 +184,12 @@ fn slot_stats(operators: &[&Value]) -> Stats {
 /// EXPLAIN ANALYZE. A pruned QueryInfo keeps the output stage only. Operators that are not in the plan are skipped.
 pub(crate) fn trino_query_info_events(model: &QueryProfile, info: &Value, time: u64) -> Vec<ProfileInputEvent> {
     let mut events = Vec::new();
-    let fragments: HashMap<&str, u32> = model
-        .fragments
-        .iter()
-        .enumerate()
-        .filter_map(|(i, f)| Some((f.engine_id.as_deref()?, i as u32)))
-        .collect();
-    let operators: HashMap<&str, u32> = model
-        .operators
-        .iter()
-        .enumerate()
-        .filter_map(|(i, op)| Some((op.engine_id.as_deref()?, i as u32)))
-        .collect();
-    let mut pipelines: HashMap<String, u32> = model
-        .pipelines
-        .iter()
-        .enumerate()
-        .filter_map(|(i, p)| Some((p.engine_id.clone()?, i as u32)))
-        .collect();
+    let fragments: HashMap<&str, u32> =
+        model.fragments.iter().enumerate().filter_map(|(i, f)| Some((f.engine_id.as_deref()?, i as u32))).collect();
+    let operators: HashMap<&str, u32> =
+        model.operators.iter().enumerate().filter_map(|(i, op)| Some((op.engine_id.as_deref()?, i as u32))).collect();
+    let mut pipelines: HashMap<String, u32> =
+        model.pipelines.iter().enumerate().filter_map(|(i, p)| Some((p.engine_id.clone()?, i as u32))).collect();
     let mut next_pipeline = model.pipelines.len() as u32;
     let mut next_slot = model.slots.len() as u32;
     let mut slot_of: HashMap<(u32, u32), u32> =

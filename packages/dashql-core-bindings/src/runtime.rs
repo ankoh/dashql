@@ -17,7 +17,6 @@
 
 pub(crate) mod actions;
 pub(crate) mod archives;
-pub(crate) mod persistence;
 pub(crate) mod attachments;
 pub(crate) mod catalog;
 pub(crate) mod changes;
@@ -28,6 +27,7 @@ pub(crate) mod exports;
 pub(crate) mod external;
 pub(crate) mod imports;
 pub(crate) mod migrations;
+pub(crate) mod persistence;
 pub(crate) mod queries;
 pub(crate) mod runs;
 pub(crate) mod sessions;
@@ -45,10 +45,10 @@ use dashql_core_runtime::compute::tasks::analyze_table::AnalyzeTableOptions as R
 use dashql_core_runtime::compute::types::{OrderByConstraint, TableId};
 use dashql_core_runtime::compute::ComputationOutcome;
 use dashql_core_runtime::connections::registry::{ConnectionRegistry, RegistryOutcome};
+use dashql_core_runtime::connections::sharing::{self, sanitize_connection_params_for_sharing};
 use dashql_core_runtime::connections::{ConnectionAction, ConnectionParams};
 use dashql_core_runtime::host::LogLevel;
 use dashql_core_runtime::query::{QueryExecutionAction, QueryExecutionState, QueryId};
-use dashql_core_runtime::connections::sharing::{self, sanitize_connection_params_for_sharing};
 use js_sys::{Array, Function, Object, Promise, Reflect};
 use serde::{Deserialize, Serialize};
 use tsify::{Ts, Tsify};
@@ -56,31 +56,32 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::future_to_promise;
 
-use crate::runtime::connections::view::{
-    ConnectionListView, ConnectionSecrets, ConnectionView, ConnectorType, JsonParams,
-};
 use crate::host::{lifetime_token, HandleEffect, JsPlatform, JsRuntimePlatform};
 use crate::query_history::view::{ProfileLayoutView, QueryProfileKeys, QueryProfileProgressView, QueryView};
 use crate::query_history::{progress_recording, QueryProgressFollower};
+use crate::runtime::connections::view::{
+    ConnectionListView, ConnectionSecrets, ConnectionView, ConnectorType, JsonParams,
+};
 use crate::views::{from_js, to_js, value_to_js, FlatBufferBytes, JsonValue};
 use crate::{js_error, Catalog, ScriptSession, SharedCatalog, WorkbookScriptSession};
 use changes::{Read, Slice, Taken};
 use computation::{AnalyzeTableOptions, ComputationView};
 use compute_tracking::ComputeTracker;
 use connections::{Connections, NewConnection};
-use queries::{QueryArgs, QueryTicket};
-use runs::view::{RunScriptOptions, RunWorkbookOptions, WorkbookRunView};
-use persistence::Persistence;
-use runs::Runs;
-use setups::{listener, SetupOptions, SetupOutcome};
 use dashql_core_storage::restore::bundle::BundleHost;
 use dashql_core_storage::restore::{AppRestore, RestoreOptions, RestoredState};
 use dashql_core_storage::workbook_format::data::WORKBOOK_FORMAT_VERSION;
+use persistence::Persistence;
+use queries::{QueryArgs, QueryTicket};
+use runs::view::{RunScriptOptions, RunWorkbookOptions, WorkbookRunView};
+use runs::Runs;
+use setups::{listener, SetupOptions, SetupOutcome};
 use storage::restore_view::{RestoreOutcome, RestoreProgress as RestoreProgressView, RestoredInvalidWorkbook};
 use storage::view::{StorageHoldReason, StorageKeyStatistics, StorageWriteStatistics};
 use storage::{error_value, JsStorage, StorageCommand, StorageState, StorageView};
 use workbooks::view::{
-    EditorEventOutcome, StoredScriptView, WorkbookDerivedView, WorkbookListView, WorkbookScriptKeys, WorkbookScriptView, WorkbookView,
+    EditorEventOutcome, StoredScriptView, WorkbookDerivedView, WorkbookListView, WorkbookScriptKeys,
+    WorkbookScriptView, WorkbookView,
 };
 use workbooks::{NewWorkbook, StoredScriptRef, Workbooks};
 
@@ -244,7 +245,8 @@ fn integer(value: f64, what: &str) -> Result<u64, JsError> {
 
 /// The views of slices as JS objects, maps as plain objects
 pub(crate) fn views_to_js<T: Serialize>(views: &T) -> Result<JsValue, JsError> {
-    let serializer = serde_wasm_bindgen::Serializer::new().serialize_missing_as_null(true).serialize_maps_as_objects(true);
+    let serializer =
+        serde_wasm_bindgen::Serializer::new().serialize_missing_as_null(true).serialize_maps_as_objects(true);
     views.serialize(&serializer).map_err(|e| JsError::new(&e.to_string()))
 }
 
@@ -281,7 +283,10 @@ impl Runtime {
     }
 
     fn text_ids(ids: &JsValue, what: &str) -> Result<Vec<String>, JsError> {
-        Self::ids(ids)?.into_iter().map(|id| id.as_string().ok_or_else(|| JsError::new(&format!("the id of a {what} is no string")))).collect()
+        Self::ids(ids)?
+            .into_iter()
+            .map(|id| id.as_string().ok_or_else(|| JsError::new(&format!("the id of a {what} is no string"))))
+            .collect()
     }
 
     /// Apply an action to a connection
@@ -293,7 +298,13 @@ impl Runtime {
     }
 
     /// The views of slices of a kind, see `Read` for how they cross. The ids of the busy ones go to `busy`.
-    fn read_views(&self, kind: &str, ids: JsValue, known: JsValue, busy: &mut Vec<JsValue>) -> Result<JsValue, JsError> {
+    fn read_views(
+        &self,
+        kind: &str,
+        ids: JsValue,
+        known: JsValue,
+        busy: &mut Vec<JsValue>,
+    ) -> Result<JsValue, JsError> {
         /// Note the id of a busy slice
         fn noted<T>(read: Read<T>, id: JsValue, busy: &mut Vec<JsValue>) -> Read<T> {
             if matches!(read, Read::Busy) {
@@ -322,7 +333,13 @@ impl Runtime {
             COMPUTATION => {
                 let ids = Self::number_ids(&ids, "id of a computation")?;
                 let reads: Option<Vec<Read<ComputationView>>> = self.computations.try_read(|state| {
-                    ids.iter().map(|id| state.computation(*id).map_or(Read::Gone, |computation| Read::Value(ComputationView::from(computation)))).collect()
+                    ids.iter()
+                        .map(|id| {
+                            state
+                                .computation(*id)
+                                .map_or(Read::Gone, |computation| Read::Value(ComputationView::from(computation)))
+                        })
+                        .collect()
                 });
                 match reads {
                     Some(reads) => value_to_js(&reads).map_err(|e| JsError::new(&e.to_string())),
@@ -343,7 +360,8 @@ impl Runtime {
                 let Ok(registry) = self.connections.registry.try_borrow() else {
                     return all_busy(ids.iter().map(|id| text(id)).collect(), busy);
                 };
-                let reads: Vec<Read<ConnectionView>> = ids.iter().map(|id| noted(self.connections.view(&registry, id), text(id), busy)).collect();
+                let reads: Vec<Read<ConnectionView>> =
+                    ids.iter().map(|id| noted(self.connections.view(&registry, id), text(id), busy)).collect();
                 views_to_js(&reads)
             }
             QUERY => {
@@ -351,7 +369,8 @@ impl Runtime {
                 let known: Vec<Option<QueryProfileKeys>> = if known.is_undefined() || known.is_null() {
                     Vec::new()
                 } else {
-                    serde_wasm_bindgen::from_value(known).map_err(|e| JsError::new(&format!("the known keys of the queries: {e}")))?
+                    serde_wasm_bindgen::from_value(known)
+                        .map_err(|e| JsError::new(&format!("the known keys of the queries: {e}")))?
                 };
                 let Ok(registry) = self.connections.registry.try_borrow() else {
                     return all_busy(ids.iter().map(|id| number(*id)).collect(), busy);
@@ -377,7 +396,8 @@ impl Runtime {
             }
             WORKBOOK => {
                 let ids = Self::text_ids(&ids, "workbook")?;
-                let reads: Vec<Read<WorkbookView>> = ids.iter().map(|id| noted(self.workbooks.view(id), text(id), busy)).collect();
+                let reads: Vec<Read<WorkbookView>> =
+                    ids.iter().map(|id| noted(self.workbooks.view(id), text(id), busy)).collect();
                 views_to_js(&reads)
             }
             SCRIPT => {
@@ -385,7 +405,8 @@ impl Runtime {
                 let known: Vec<Option<WorkbookScriptKeys>> = if known.is_undefined() || known.is_null() {
                     Vec::new()
                 } else {
-                    serde_wasm_bindgen::from_value(known).map_err(|e| JsError::new(&format!("the known keys of the scripts: {e}")))?
+                    serde_wasm_bindgen::from_value(known)
+                        .map_err(|e| JsError::new(&format!("the known keys of the scripts: {e}")))?
                 };
                 let reads: Vec<Read<WorkbookScriptView>> = ids
                     .iter()
@@ -437,7 +458,8 @@ impl Runtime {
             }
             RUN => {
                 let ids = Self::text_ids(&ids, "workbook")?;
-                let reads: Vec<Read<WorkbookRunView>> = ids.iter().map(|id| noted(self.runs.view(id), text(id), busy)).collect();
+                let reads: Vec<Read<WorkbookRunView>> =
+                    ids.iter().map(|id| noted(self.runs.view(id), text(id), busy)).collect();
                 views_to_js(&reads)
             }
             STORAGE => {
@@ -458,7 +480,9 @@ impl Runtime {
         }
         let outcome = match target {
             Target::Computation(table_id) => read(action).map(|action| self.dispatch_computation(table_id, action)),
-            Target::Connection(connection_id) => read(action).and_then(|action| self.dispatch_connection(connection_id, action)),
+            Target::Connection(connection_id) => {
+                read(action).and_then(|action| self.dispatch_connection(connection_id, action))
+            }
             Target::Workbook(workbook_id) => read(action).map(|action| self.dispatch_workbook(workbook_id, action)),
             Target::App => read(action).map(|action| self.dispatch_app(action)),
         };
@@ -471,25 +495,39 @@ impl Runtime {
         let service = &self.computations;
         match action {
             A::DeleteComputation => self.settle(service.delete_computation(table_id)),
-            A::OrderBy { constraints } => self.settle(service.order_by(table_id, constraints.into_iter().map(OrderByConstraint::from).collect())),
-            A::HistogramFilter { column_group, selection } => self.settle(service.histogram_filter(table_id, column_group, selection)),
+            A::OrderBy { constraints } => {
+                self.settle(service.order_by(table_id, constraints.into_iter().map(OrderByConstraint::from).collect()))
+            }
+            A::HistogramFilter { column_group, selection } => {
+                self.settle(service.histogram_filter(table_id, column_group, selection))
+            }
             A::MostFrequentValueFilter { column_group, value_id } => {
                 self.settle(service.most_frequent_value_filter(table_id, column_group, value_id))
             }
             A::ClearCrossFilters => self.settle(service.clear_cross_filters(table_id)),
-            A::SetResultSearchPattern { search, pattern } => self.settle(service.set_search_pattern(table_id, search.into(), pattern)),
+            A::SetResultSearchPattern { search, pattern } => {
+                self.settle(service.set_search_pattern(table_id, search.into(), pattern))
+            }
             A::RequestFilteredColumnAggregation { column_group } => {
-                let requested = service.request_filtered_column_aggregation(table_id, column_group).map(|_| ComputationOutcome::default());
+                let requested = service
+                    .request_filtered_column_aggregation(table_id, column_group)
+                    .map(|_| ComputationOutcome::default());
                 self.settle(requested)
             }
         }
     }
 
     /// Apply an action to a connection, the actions of its queries included
-    fn dispatch_connection(&self, connection_id: String, action: actions::ConnectionAction) -> Result<DispatchOutcome, String> {
+    fn dispatch_connection(
+        &self,
+        connection_id: String,
+        action: actions::ConnectionAction,
+    ) -> Result<DispatchOutcome, String> {
         use actions::ConnectionAction as A;
         let connections = &self.connections;
-        let Ok(registry) = connections.registry.try_borrow() else { return Ok(DispatchOutcome::failed("the connections are busy")) };
+        let Ok(registry) = connections.registry.try_borrow() else {
+            return Ok(DispatchOutcome::failed("the connections are busy"));
+        };
         if registry.get(&connection_id).is_none() {
             return Ok(DispatchOutcome::failed(format!("no connection registered with id {connection_id}")));
         }
@@ -505,9 +543,14 @@ impl Runtime {
             A::SetQueryResultCaching { caching } => ConnectionAction::SetQueryResultCaching(caching),
             A::DeleteConnection => ConnectionAction::Delete,
             A::ResetConnection => ConnectionAction::Reset,
-            A::RelationsTouched { names } => ConnectionAction::RelationsTouched(names.into_iter().map(Into::into).collect()),
+            A::RelationsTouched { names } => {
+                ConnectionAction::RelationsTouched(names.into_iter().map(Into::into).collect())
+            }
             A::QueryCacheDeleted { query_id } => {
-                return self.dispatch_query(&connection_id, QueryExecutionAction::QueryCacheDeleted { query_id: id_of(query_id, "query id")? })
+                return self.dispatch_query(
+                    &connection_id,
+                    QueryExecutionAction::QueryCacheDeleted { query_id: id_of(query_id, "query id")? },
+                )
             }
         };
         // The host logs a refused action
@@ -581,7 +624,10 @@ impl Runtime {
 
 impl Runtime {
     /// The connection of the scripts on a connection by id
-    fn script_connection(&self, connection_id: &str) -> Result<Rc<dashql_core_runtime::workbook::ScriptConnection>, String> {
+    fn script_connection(
+        &self,
+        connection_id: &str,
+    ) -> Result<Rc<dashql_core_runtime::workbook::ScriptConnection>, String> {
         self.workbooks.script_connection(connection_id).map_err(error_text)
     }
 
@@ -608,7 +654,9 @@ impl Runtime {
             W::AcceptPendingDiff { script_key } => A::AcceptPendingDiff { key: script_key },
             W::RejectPendingDiff { script_key } => A::RejectPendingDiff { key: script_key },
             W::SetScriptVisSpec { script_key, spec } => A::SetScriptVisSpec { key: script_key, spec },
-            W::SetWorkbookInput { name, literal, script_keys } => A::SetWorkbookInput { name, literal, keys: script_keys },
+            W::SetWorkbookInput { name, literal, script_keys } => {
+                A::SetWorkbookInput { name, literal, keys: script_keys }
+            }
             W::AnalyzeOutdatedScript { script_key } => A::AnalyzeOutdatedScript { key: script_key },
             W::ShowScript { script_key, selected } => {
                 workbooks.visible.show(script_key, selected);
@@ -664,7 +712,12 @@ impl Runtime {
 
     /// The services that an export reads
     fn exports(&self) -> exports::Exports {
-        exports::Exports { platform: self.platform.clone(), connections: self.connections.clone(), workbooks: self.workbooks.clone(), runs: self.runs.clone() }
+        exports::Exports {
+            platform: self.platform.clone(),
+            connections: self.connections.clone(),
+            workbooks: self.workbooks.clone(),
+            runs: self.runs.clone(),
+        }
     }
 
     /// The outcome of an action of a workbook, the host logs a refused one
@@ -696,7 +749,13 @@ impl Restorer {
         for (connection_id, connection) in self.connections.registry.borrow().connections() {
             let Ok(state) = connection.state.try_borrow() else { continue };
             let params = serde_json::Value::Object(state.params().to_object());
-            let connection = RestoreConnection { connection_id: connection_id.to_string(), params, params_draft: None, name: None, cache_query_results: None };
+            let connection = RestoreConnection {
+                connection_id: connection_id.to_string(),
+                params,
+                params_draft: None,
+                name: None,
+                cache_query_results: None,
+            };
             live.push(LiveConnection { connection, script_connection: script_connection_of(&state) });
         }
         live
@@ -709,7 +768,8 @@ impl Restorer {
         bundle: dashql_core_storage::workbook_format::bundle::WorkbookBundle<archives::HostFile>,
     ) -> Result<RestoreOutcome, dashql_core_runtime::host::HostError> {
         let workbook_id = bundle.workbook.workbook_id.clone();
-        let files: Vec<(String, archives::HostFile)> = bundle.data.iter().map(|file| (file.name.clone(), file.bytes.clone())).collect();
+        let files: Vec<(String, archives::HostFile)> =
+            bundle.data.iter().map(|file| (file.name.clone(), file.bytes.clone())).collect();
         let options = RestoreOptions {
             offset_unit: Workbooks::offset_unit(),
             new_uuid: {
@@ -738,7 +798,9 @@ impl Restorer {
 
     /// A restore over the storage of the platform that writes through the writer of the runtime
     fn app_restore(&self) -> Result<AppRestore<JsStorage, JsStorage>, dashql_core_runtime::host::HostError> {
-        let writer = self.workbooks.persistence.writer().cloned().ok_or_else(|| dashql_core_runtime::host::HostError::new("the runtime keeps no files, its platform has no storage"))?;
+        let writer = self.workbooks.persistence.writer().cloned().ok_or_else(|| {
+            dashql_core_runtime::host::HostError::new("the runtime keeps no files, its platform has no storage")
+        })?;
         let host = JsStorage { platform: self.platform.clone(), state: self.storage.clone() };
         let platform = self.platform.clone();
         let options = RestoreOptions {
@@ -750,7 +812,10 @@ impl Restorer {
 
     /// Restore a single workbook of the storage against the connections of the runtime, unknown connections are
     /// registered and a workbook with the same id is replaced
-    pub async fn restore_workbook(self, workbook_id: String) -> Result<RestoreOutcome, dashql_core_runtime::host::HostError> {
+    pub async fn restore_workbook(
+        self,
+        workbook_id: String,
+    ) -> Result<RestoreOutcome, dashql_core_runtime::host::HostError> {
         let mut restore = self.app_restore()?;
         for live in self.live_connections() {
             restore.add_live_connection(live);
@@ -779,7 +844,11 @@ impl Runtime {
         let host = JsStorage { platform: platform.clone(), state: storage.clone() };
         // A runtime without storage keeps nothing, e.g. the one of the shell or of an embed without OPFS
         let persistence = if platform.has_storage() {
-            let writer = dashql_core_storage::storage::StorageWriter::with_stamps(host, WORKBOOK_FORMAT_VERSION, storage.stamps.clone());
+            let writer = dashql_core_storage::storage::StorageWriter::with_stamps(
+                host,
+                WORKBOOK_FORMAT_VERSION,
+                storage.stamps.clone(),
+            );
             *connections.writer.borrow_mut() = Some(writer.clone());
             Persistence::Writer(writer)
         } else {
@@ -788,9 +857,26 @@ impl Runtime {
         let workbooks = Workbooks::new(platform.clone(), connections.clone(), persistence);
         let runs = Runs::new(platform.clone(), connections.clone(), workbooks.clone());
         let imports = imports::Imports::new(platform.clone(), connections.clone());
-        let external = external::ExternalChanges::new(platform.clone(), storage.clone(), connections.clone(), workbooks.clone(), runs.clone());
+        let external = external::ExternalChanges::new(
+            platform.clone(),
+            storage.clone(),
+            connections.clone(),
+            workbooks.clone(),
+            runs.clone(),
+        );
         // A runtime starts without connections, workbooks and writes, the host reads none until they change
-        Runtime { computations, connections, workbooks, runs, imports, external, storage, platform, sessions: Default::default(), taken: RefCell::new(Taken::default()) }
+        Runtime {
+            computations,
+            connections,
+            workbooks,
+            runs,
+            imports,
+            external,
+            storage,
+            platform,
+            sessions: Default::default(),
+            taken: RefCell::new(Taken::default()),
+        }
     }
 
     /// The slices that changed and the effects on handles since the last call: the slices that the services marked,
@@ -810,7 +896,11 @@ impl Runtime {
 
     /// The host failed to project slices of a kind, e.g. a projection threw: they move with the next changes, also if
     /// their views didn't change, and the host is told
-    pub fn resync(&self, #[wasm_bindgen(unchecked_param_type = "ViewKind")] kind: &str, #[wasm_bindgen(unchecked_param_type = "(string | number)[]")] ids: JsValue) -> Result<(), JsError> {
+    pub fn resync(
+        &self,
+        #[wasm_bindgen(unchecked_param_type = "ViewKind")] kind: &str,
+        #[wasm_bindgen(unchecked_param_type = "(string | number)[]")] ids: JsValue,
+    ) -> Result<(), JsError> {
         let ids = Self::ids(&ids)?;
         self.resync_slices(kind, &ids)
     }
@@ -823,7 +913,12 @@ impl Runtime {
         let views = self.read_views(kind, ids, known, &mut busy)?;
         if !busy.is_empty() {
             let details = [("kind", kind), ("slices", &busy.len().to_string())];
-            self.platform.log_on(LogLevel::Warn, "Slices were busy when the host read their views, they follow with the next changes", &details, "runtime");
+            self.platform.log_on(
+                LogLevel::Warn,
+                "Slices were busy when the host read their views, they follow with the next changes",
+                &details,
+                "runtime",
+            );
             // The take that follows runs after the borrow ended
             let _ = self.resync_slices(kind, &busy);
         }
@@ -844,9 +939,17 @@ impl Runtime {
             Err(error) => DispatchOutcome::failed(format!("the target is malformed: {error}")),
         };
         if !outcome.ok {
-            let target = js_sys::JSON::stringify(&target).ok().and_then(|target| target.as_string()).unwrap_or_default();
-            let kind = Reflect::get(&action, &JsValue::from_str("kind")).ok().and_then(|kind| kind.as_string()).unwrap_or_default();
-            let details = [("target", target.as_str()), ("action", kind.as_str()), ("error", outcome.error.as_deref().unwrap_or_default())];
+            let target =
+                js_sys::JSON::stringify(&target).ok().and_then(|target| target.as_string()).unwrap_or_default();
+            let kind = Reflect::get(&action, &JsValue::from_str("kind"))
+                .ok()
+                .and_then(|kind| kind.as_string())
+                .unwrap_or_default();
+            let details = [
+                ("target", target.as_str()),
+                ("action", kind.as_str()),
+                ("error", outcome.error.as_deref().unwrap_or_default()),
+            ];
             self.platform.log_on(LogLevel::Warn, "The runtime refused an action", &details, "runtime");
         }
         views_to_js(&outcome).unwrap_or_else(|_| {
@@ -862,7 +965,12 @@ impl Runtime {
     /// nothing to analyze, its handle is released. Resolves once the analysis is done, rejects with the error of a
     /// failed task.
     #[wasm_bindgen(js_name = analyzeTable, unchecked_return_type = "Promise<void>")]
-    pub fn analyze_table(&self, table_id: f64, table: f64, options: Ts<AnalyzeTableOptions>) -> Result<Promise, JsError> {
+    pub fn analyze_table(
+        &self,
+        table_id: f64,
+        table: f64,
+        options: Ts<AnalyzeTableOptions>,
+    ) -> Result<Promise, JsError> {
         let table = integer(table, "table handle")?;
         let table = u32::try_from(table).map_err(|_| JsError::new("the table handle is no integer"))?;
         // The handle is the computation's from here on, a call that fails releases it
@@ -870,8 +978,10 @@ impl Runtime {
             self.platform.release_handle(table);
             JsError::new(&error)
         };
-        let options: AnalyzeTableOptions = options.to_rust().map_err(|error| fail(format!("the options of the analysis: {error}")))?;
-        let table_id = integer(table_id, "table id").map_err(|_| fail("the table id is no integer".to_string()))? as TableId;
+        let options: AnalyzeTableOptions =
+            options.to_rust().map_err(|error| fail(format!("the options of the analysis: {error}")))?;
+        let table_id =
+            integer(table_id, "table id").map_err(|_| fail("the table id is no integer".to_string()))? as TableId;
         let result = self.platform.describe_table(table).map_err(|error| fail(error.to_string()))?;
         if result.schema.fields().is_empty() {
             self.platform.release_handle(table);
@@ -880,9 +990,16 @@ impl Runtime {
         let lifetime = self.platform.register(&lifetime_token()).map_err(|error| fail(error.to_string()))?;
         let handles = AnalysisHandles { table, lifetime };
         let analyze_options = RuntimeAnalyzeOptions { column_aggregates: options.column_aggregates.unwrap_or(true) };
-        let analysis =
-            self.computations.analyze_table(table_id, result, handles, options.connection_id, options.client_context, analyze_options);
-        let ordering: Vec<OrderByConstraint> = options.ordering.unwrap_or_default().into_iter().map(OrderByConstraint::from).collect();
+        let analysis = self.computations.analyze_table(
+            table_id,
+            result,
+            handles,
+            options.connection_id,
+            options.client_context,
+            analyze_options,
+        );
+        let ordering: Vec<OrderByConstraint> =
+            options.ordering.unwrap_or_default().into_iter().map(OrderByConstraint::from).collect();
         let order = (!ordering.is_empty()).then(|| self.computations.order_by_and_wait(table_id, ordering));
         Ok(future_to_promise(async move {
             analysis.await.map_err(task_error)?;
@@ -982,7 +1099,12 @@ impl Runtime {
     /// shows the save while it runs.
     #[wasm_bindgen(js_name = saveConnection, unchecked_return_type = "Promise<ConnectionSaveOutcome>")]
     pub fn save_connection(&self, connection_id: String, params: Option<Ts<JsonParams>>) -> Result<Promise, JsError> {
-        let params = params.as_ref().map(from_js).transpose()?.map(|params| params.connection_params().map_err(|e| JsError::new(e.what()))).transpose()?;
+        let params = params
+            .as_ref()
+            .map(from_js)
+            .transpose()?
+            .map(|params| params.connection_params().map_err(|e| JsError::new(e.what())))
+            .transpose()?;
         let save = self.connections.save(connection_id, params);
         Ok(future_to_promise(async move {
             let outcome = save.await.map_err(task_error)?;
@@ -1008,7 +1130,11 @@ impl Runtime {
     /// view of the connection shows them and whether a setup runs. A setup of the connection that runs is cancelled.
     /// Resolves with the outcome, a failure is in the view of the connection as well.
     #[wasm_bindgen(js_name = setupConnection, unchecked_return_type = "Promise<SetupOutcome>")]
-    pub fn setup_connection(&self, connection_id: String, options: Option<Ts<SetupOptions>>) -> Result<Promise, JsError> {
+    pub fn setup_connection(
+        &self,
+        connection_id: String,
+        options: Option<Ts<SetupOptions>>,
+    ) -> Result<Promise, JsError> {
         let options = options.as_ref().map(from_js).transpose()?.unwrap_or_default();
         let setup = self.connections.setup(connection_id, options);
         Ok(future_to_promise(async move { setup_outcome(setup.await) }))
@@ -1019,7 +1145,10 @@ impl Runtime {
     /// again when the workbook or the tokens of the links change.
     #[wasm_bindgen(js_name = setUpOpenedWorkbook)]
     pub fn set_up_opened_workbook(&self, workbook_id: &str) {
-        let connection_ids = self.workbooks.get(workbook_id).and_then(|workbook| workbook.try_borrow().ok().map(|workbook| workbook.connection_ids()));
+        let connection_ids = self
+            .workbooks
+            .get(workbook_id)
+            .and_then(|workbook| workbook.try_borrow().ok().map(|workbook| workbook.connection_ids()));
         self.connections.set_up_opened(workbook_id, connection_ids.unwrap_or_default());
     }
 
@@ -1062,11 +1191,20 @@ impl Runtime {
     /// uses it and the connection it binds to, the connection of the recent link of the tab first. Null unless the
     /// endpoint and the token are a target: an endpoint on this machine may speak http, any other one https.
     #[wasm_bindgen(js_name = bindHyperLink, unchecked_return_type = "HyperLinkView | null")]
-    pub fn bind_hyper_link(&self, endpoint: &str, token: &str, recent_connection_id: Option<String>) -> Result<JsValue, JsError> {
+    pub fn bind_hyper_link(
+        &self,
+        endpoint: &str,
+        token: &str,
+        recent_connection_id: Option<String>,
+    ) -> Result<JsValue, JsError> {
         use dashql_core_runtime::hyper::link::{bind_hyper_link, parse_hyper_link_target};
         let Some(target) = parse_hyper_link_target(Some(endpoint), Some(token)) else { return Ok(JsValue::NULL) };
         let registry = self.connections.registry.try_borrow().map_err(|_| busy())?;
-        let states = registry.connections().map(|(_, connection)| connection.state.try_borrow()).collect::<Result<Vec<_>, _>>().map_err(|_| busy())?;
+        let states = registry
+            .connections()
+            .map(|(_, connection)| connection.state.try_borrow())
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|_| busy())?;
         let binding = bind_hyper_link(&target, states.iter().map(|state| &**state), recent_connection_id.as_deref());
         Ok(to_js(&connections::view::HyperLinkView::of(target, binding))?.into())
     }
@@ -1194,14 +1332,24 @@ impl Runtime {
         known: Option<String>,
     ) -> Result<Option<Ts<EditorEventOutcome>>, JsError> {
         let generation = integer(session_generation, "session generation")?;
-        let event = flatbuffers::root::<dashql_buffers::editor::EditorEvent>(event).map_err(|_| JsError::new("invalid editor event"))?.unpack();
-        let outcome = self.workbooks.apply_editor_event(workbook_id, script_key, generation, event, known.as_deref()).map_err(js_error)?;
+        let event = flatbuffers::root::<dashql_buffers::editor::EditorEvent>(event)
+            .map_err(|_| JsError::new("invalid editor event"))?
+            .unpack();
+        let outcome = self
+            .workbooks
+            .apply_editor_event(workbook_id, script_key, generation, event, known.as_deref())
+            .map_err(js_error)?;
         match outcome {
             Some((update, key)) => Ok(Some(to_js(&EditorEventOutcome { update: FlatBufferBytes(update), key })?)),
             None => {
                 let key = script_key.to_string();
                 let details = [("workbookId", workbook_id), ("scriptKey", key.as_str())];
-                self.platform.log_on(LogLevel::Warn, "Dropping editor event of an unknown script or a stale session", &details, "workbook_scripts");
+                self.platform.log_on(
+                    LogLevel::Warn,
+                    "Dropping editor event of an unknown script or a stale session",
+                    &details,
+                    "workbook_scripts",
+                );
                 Ok(None)
             }
         }
@@ -1228,12 +1376,19 @@ impl Runtime {
         let (name, id) = part.split_once(':').unwrap_or((part, ""));
         match name {
             "workbook" => {
-                let workbook = self.workbooks.get(id).ok_or_else(|| JsError::new("no workbook registered with the id"))?;
+                let workbook =
+                    self.workbooks.get(id).ok_or_else(|| JsError::new("no workbook registered with the id"))?;
                 let _held = workbook.try_borrow_mut().map_err(|_| busy())?;
                 call()
             }
             "connection" => {
-                let state = self.connections.registry.try_borrow().map_err(|_| busy())?.get(id).map(|connection| connection.state.clone());
+                let state = self
+                    .connections
+                    .registry
+                    .try_borrow()
+                    .map_err(|_| busy())?
+                    .get(id)
+                    .map(|connection| connection.state.clone());
                 let state = state.ok_or_else(|| JsError::new("no connection registered with the id"))?;
                 let _held = state.try_borrow_mut().map_err(|_| busy())?;
                 call()
@@ -1267,7 +1422,11 @@ impl Runtime {
     #[wasm_bindgen(js_name = isAnalysisOutdated)]
     pub fn is_analysis_outdated(&self, script_key: u32) -> bool {
         let Some((_, workbook)) = self.workbooks.of_script(script_key).value() else { return false };
-        workbook.try_borrow().ok().and_then(|workbook| workbook.script(script_key).map(|script| script.is_analysis_outdated())).unwrap_or(false)
+        workbook
+            .try_borrow()
+            .ok()
+            .and_then(|workbook| workbook.script(script_key).map(|script| script.is_analysis_outdated()))
+            .unwrap_or(false)
     }
 
     /// Give the table parameters of a workbook to a session that is no script of it, e.g. the draft of the composer.
@@ -1283,13 +1442,22 @@ impl Runtime {
     /// Does storage hold the scripts of a workbook as they are: the same files in the same order, on the same
     /// connections, with the same texts?
     #[wasm_bindgen(js_name = matchesStoredScripts)]
-    pub fn matches_stored_scripts(&self, workbook_id: &str, scripts: Vec<Ts<StoredScriptView>>) -> Result<bool, JsError> {
+    pub fn matches_stored_scripts(
+        &self,
+        workbook_id: &str,
+        scripts: Vec<Ts<StoredScriptView>>,
+    ) -> Result<bool, JsError> {
         let Some(workbook) = self.workbooks.get(workbook_id) else { return Ok(false) };
         let scripts = scripts
             .iter()
             .map(|script| {
                 let script = script.to_rust()?;
-                Ok(StoredScriptRef { name: script.name, sql: script.sql, connection_id: script.connection_id, unresolved_connection_id: script.unresolved_connection_id })
+                Ok(StoredScriptRef {
+                    name: script.name,
+                    sql: script.sql,
+                    connection_id: script.connection_id,
+                    unresolved_connection_id: script.unresolved_connection_id,
+                })
             })
             .collect::<Result<Vec<_>, JsError>>()?;
         let stored = self.workbooks.stored_scripts(scripts).map_err(js_error)?;
@@ -1304,11 +1472,18 @@ impl Runtime {
     /// progress. Resolves with what was restored, the workbooks that were refused a load are in the list of the
     /// workbooks.
     #[wasm_bindgen(unchecked_return_type = "Promise<RestoreOutcome>")]
-    pub fn restore(&self, #[wasm_bindgen(unchecked_param_type = "((progress: RestoreProgress) => void) | null")] progress: JsValue) -> Result<Promise, JsError> {
+    pub fn restore(
+        &self,
+        #[wasm_bindgen(unchecked_param_type = "((progress: RestoreProgress) => void) | null")] progress: JsValue,
+    ) -> Result<Promise, JsError> {
         let listener = if progress.is_undefined() || progress.is_null() {
             None
         } else {
-            Some(progress.dyn_into::<Function>().map_err(|_| JsError::new("the progress of a restore is no function"))?)
+            Some(
+                progress
+                    .dyn_into::<Function>()
+                    .map_err(|_| JsError::new("the progress of a restore is no function"))?,
+            )
         };
         self.storage.set_progress(listener);
         let restore = self.restorer().app_restore().map_err(|error| JsError::new(error.message()))?;
@@ -1319,7 +1494,8 @@ impl Runtime {
         Ok(future_to_promise(async move {
             let state = restore.restore().await;
             storage.set_progress(None);
-            let invalid: Vec<RestoredInvalidWorkbook> = state.invalid_workbooks.iter().map(RestoredInvalidWorkbook::from).collect();
+            let invalid: Vec<RestoredInvalidWorkbook> =
+                state.invalid_workbooks.iter().map(RestoredInvalidWorkbook::from).collect();
             workbooks.set_invalid(invalid);
             let outcome = adopt_restored(&connections, &workbooks, state);
             runs.describe_attachments();
@@ -1350,7 +1526,9 @@ impl Runtime {
     #[wasm_bindgen(js_name = migrateStorage, unchecked_return_type = "Promise<StorageMigrationOutcome>")]
     pub fn migrate_storage(
         #[wasm_bindgen(unchecked_param_type = "RuntimeStorageRoot")] root: JsValue,
-        #[wasm_bindgen(unchecked_param_type = "((level: 'debug' | 'info' | 'warn' | 'error', message: string, details: [string, string][], target: string) => void) | null")]
+        #[wasm_bindgen(
+            unchecked_param_type = "((level: 'debug' | 'info' | 'warn' | 'error', message: string, details: [string, string][], target: string) => void) | null"
+        )]
         log: JsValue,
     ) -> Promise {
         let log = log.dyn_into::<Function>().ok();
@@ -1430,7 +1608,9 @@ impl Runtime {
             return Err(JsError::new("connection params must be an object"));
         };
         let params = ConnectionParams::from_object(fields).map_err(js_error)?.without_draft_rows();
-        JsonValue(serde_json::Value::Object(params.to_object())).to_js().map_err(|error| JsError::new(&error.to_string()))
+        JsonValue(serde_json::Value::Object(params.to_object()))
+            .to_js()
+            .map_err(|error| JsError::new(&error.to_string()))
     }
 
     /// The login hint of connection params (the account username or login), null if there is none. Fails on params of
@@ -1457,7 +1637,8 @@ impl Runtime {
     /// script of its base name, every script without names
     #[wasm_bindgen(js_name = runScripts, unchecked_return_type = "RunScriptSelection")]
     pub fn run_scripts(files: Vec<String>, names: Vec<String>) -> Result<JsValue, JsError> {
-        let selection: runs::view::RunScriptSelection = dashql_core_runtime::workbook_run::report::select_run_scripts(&files, &names).into();
+        let selection: runs::view::RunScriptSelection =
+            dashql_core_runtime::workbook_run::report::select_run_scripts(&files, &names).into();
         Ok(to_js(&selection)?.into())
     }
 
@@ -1485,7 +1666,9 @@ impl Runtime {
     #[wasm_bindgen(js_name = localCloudParams, unchecked_return_type = "Record<string, unknown>")]
     pub fn local_cloud_params() -> Result<JsValue, JsError> {
         let params = dashql_core_runtime::hyper::local_cloud::local_cloud_params();
-        JsonValue(serde_json::Value::Object(params.to_object())).to_js().map_err(|error| JsError::new(&error.to_string()))
+        JsonValue(serde_json::Value::Object(params.to_object()))
+            .to_js()
+            .map_err(|error| JsError::new(&error.to_string()))
     }
 
     /// Build the workbook tree of the directories of `workbooktree/` as the platform lists them (`{ name, folderFile,
@@ -1497,10 +1680,13 @@ impl Runtime {
         #[wasm_bindgen(unchecked_param_type = "Record<string, unknown> | null")] directory: JsValue,
         stored: bool,
     ) -> Result<JsValue, JsError> {
-        use dashql_core_storage::workbook_format::tree::{read_stored_workbook_tree, read_workbook_tree, TreeDirectory};
-        let directory =
-            (!directory.is_null() && !directory.is_undefined()).then(|| TreeDirectory::from_json(&JsonValue::of(&directory).0));
-        let tree = if stored { read_stored_workbook_tree(directory.as_ref()) } else { read_workbook_tree(directory.as_ref()) };
+        use dashql_core_storage::workbook_format::tree::{
+            read_stored_workbook_tree, read_workbook_tree, TreeDirectory,
+        };
+        let directory = (!directory.is_null() && !directory.is_undefined())
+            .then(|| TreeDirectory::from_json(&JsonValue::of(&directory).0));
+        let tree =
+            if stored { read_stored_workbook_tree(directory.as_ref()) } else { read_workbook_tree(directory.as_ref()) };
         JsonValue(tree.map_err(js_error)?.to_json()).to_js().map_err(|error| JsError::new(&error.to_string()))
     }
 
@@ -1512,16 +1698,25 @@ impl Runtime {
         #[wasm_bindgen(unchecked_param_type = "Record<string, unknown>")] stored: JsValue,
         #[wasm_bindgen(unchecked_param_type = "Record<string, unknown>")] change: JsValue,
     ) -> Result<JsValue, JsError> {
-        use dashql_core_storage::workbook_format::tree::{change_workbook_tree, WorkbookEntry, WorkbookTreeChange, WorkbookTreeFolder};
+        use dashql_core_storage::workbook_format::tree::{
+            change_workbook_tree, WorkbookEntry, WorkbookTreeChange, WorkbookTreeFolder,
+        };
         let stored = WorkbookTreeFolder::from_json(&JsonValue::of(&stored).0);
         let change = JsonValue::of(&change).0;
         let path = |key: &str| -> Vec<String> {
-            change.get(key).and_then(serde_json::Value::as_array).map(|names| names.iter().filter_map(serde_json::Value::as_str).map(str::to_string).collect()).unwrap_or_default()
+            change
+                .get(key)
+                .and_then(serde_json::Value::as_array)
+                .map(|names| names.iter().filter_map(serde_json::Value::as_str).map(str::to_string).collect())
+                .unwrap_or_default()
         };
         let text = |key: &str| change.get(key).and_then(serde_json::Value::as_str).unwrap_or_default().to_string();
         let change = match change.get("kind").and_then(serde_json::Value::as_str) {
             Some("upsert") => WorkbookTreeChange::Upsert {
-                entry: change.get("entry").and_then(WorkbookEntry::from_json).ok_or_else(|| JsError::new("the change names no workbook"))?,
+                entry: change
+                    .get("entry")
+                    .and_then(WorkbookEntry::from_json)
+                    .ok_or_else(|| JsError::new("the change names no workbook"))?,
                 folder_path: path("folderPath"),
             },
             Some("remove") => WorkbookTreeChange::Remove { workbook_id: text("workbookId") },
@@ -1529,13 +1724,19 @@ impl Runtime {
                 workbook_id: text("workbookId"),
                 folder_path: path("folderPath"),
                 // A float casts saturating, an index past the end appends
-                index: change.get("index").and_then(serde_json::Value::as_f64).map_or(usize::MAX, |index| index as usize),
+                index: change
+                    .get("index")
+                    .and_then(serde_json::Value::as_f64)
+                    .map_or(usize::MAX, |index| index as usize),
             },
             _ => return Err(JsError::new("unknown change of the workbook tree")),
         };
         let (tree, writes) = change_workbook_tree(&stored, change).map_err(js_error)?;
-        let writes: Vec<serde_json::Value> = writes.into_iter().map(|write| serde_json::json!({ "path": write.path, "text": write.text })).collect();
-        JsonValue(serde_json::json!({ "tree": tree.to_json(), "writes": writes })).to_js().map_err(|error| JsError::new(&error.to_string()))
+        let writes: Vec<serde_json::Value> =
+            writes.into_iter().map(|write| serde_json::json!({ "path": write.path, "text": write.text })).collect();
+        JsonValue(serde_json::json!({ "tree": tree.to_json(), "writes": writes }))
+            .to_js()
+            .map_err(|error| JsError::new(&error.to_string()))
     }
 
     /// Why a name can't name a new folder of the workbook tree next to its siblings, null if it can. The names compare
@@ -1607,7 +1808,12 @@ impl Runtime {
             let deleted = deletion.await;
             if let Err(error) = &deleted {
                 let details = [("workbookId", workbook_id.as_str()), ("error", error.message())];
-                workbooks.platform.log_on(LogLevel::Error, "Failed to delete invalid workbook", &details, "workbook_scripts");
+                workbooks.platform.log_on(
+                    LogLevel::Error,
+                    "Failed to delete invalid workbook",
+                    &details,
+                    "workbook_scripts",
+                );
             }
             workbooks.forget_invalid(&workbook_id);
             Ok(JsValue::UNDEFINED)
@@ -1636,7 +1842,12 @@ impl Runtime {
     /// Run a script of a workbook with the scripts it references, see `runWorkbook`. A run that holds the workbook
     /// refuses it.
     #[wasm_bindgen(js_name = runScript, unchecked_return_type = "Promise<{ outcome: RunOutcome; error: unknown }>")]
-    pub fn run_script(&self, workbook_id: &str, script_key: u32, options: Option<Ts<RunScriptOptions>>) -> Result<Promise, JsError> {
+    pub fn run_script(
+        &self,
+        workbook_id: &str,
+        script_key: u32,
+        options: Option<Ts<RunScriptOptions>>,
+    ) -> Result<Promise, JsError> {
         let options = options.map(|options| from_js(&options)).transpose()?.unwrap_or_default();
         let run = self.runs.run_script(workbook_id, script_key, options);
         Ok(future_to_promise(async move { run_result(run.await) }))
@@ -1677,7 +1888,11 @@ impl Runtime {
         let keys = self.runs.result_keys(workbook_id, targets).map_err(|message| JsError::new(&message))?;
         Ok(future_to_promise(async move {
             let keys = keys.await;
-            Ok(keys.into_iter().map(|key| key.map(|key| JsValue::from_str(&key)).unwrap_or(JsValue::NULL)).collect::<Array>().into())
+            Ok(keys
+                .into_iter()
+                .map(|key| key.map(|key| JsValue::from_str(&key)).unwrap_or(JsValue::NULL))
+                .collect::<Array>()
+                .into())
         }))
     }
 
@@ -1705,10 +1920,16 @@ impl Runtime {
 
     /// The link of a connection: an empty workbook that holds only the connection, the params sanitized for sharing
     #[wasm_bindgen(js_name = exportConnection, unchecked_return_type = "Promise<string>")]
-    pub fn export_connection(&self, connection_id: String, options: Ts<exports::ConnectionLinkOptions>) -> Result<Promise, JsError> {
+    pub fn export_connection(
+        &self,
+        connection_id: String,
+        options: Ts<exports::ConnectionLinkOptions>,
+    ) -> Result<Promise, JsError> {
         let options = from_js(&options)?;
         let export = self.exports().export_connection(connection_id, options);
-        Ok(future_to_promise(async move { export.await.map(|link| JsValue::from_str(&link)).map_err(|error| error_value(&error)) }))
+        Ok(future_to_promise(async move {
+            export.await.map(|link| JsValue::from_str(&link)).map_err(|error| error_value(&error))
+        }))
     }
 
     /// The cached results of the scripts of a workbook that an export would carry, counted without reading them
@@ -1740,7 +1961,8 @@ impl Runtime {
         &self,
         import_id: u32,
         answers: Ts<imports::ImportAnswers>,
-        #[wasm_bindgen(unchecked_param_type = "((step: ImportStep, results: ImportedResults | null) => void) | null")] listener: JsValue,
+        #[wasm_bindgen(unchecked_param_type = "((step: ImportStep, results: ImportedResults | null) => void) | null")]
+        listener: JsValue,
     ) -> Result<Promise, JsError> {
         let answers = from_js(&answers)?;
         let listener = imports::function_of(listener, "listener of the import")?;
@@ -1792,7 +2014,9 @@ impl Runtime {
             }
             StorageCommand::DeleteWorkbook { workbook_id } => {
                 let deletion = writer.delete_workbook(&workbook_id);
-                future_to_promise(async move { deletion.await.map(|_| JsValue::UNDEFINED).map_err(|error| error_value(&error)) })
+                future_to_promise(async move {
+                    deletion.await.map(|_| JsValue::UNDEFINED).map_err(|error| error_value(&error))
+                })
             }
             StorageCommand::HandOver => {
                 let handover = writer.hand_over();
@@ -1936,7 +2160,9 @@ fn adopt_restored(connections: &Rc<Connections>, workbooks: &Rc<Workbooks>, stat
     for connection in state.connections {
         match connections.adopt(connection) {
             Ok(id) => connection_ids.push(id),
-            Err(error) => connections.log(LogLevel::Error, "Failed to take a restored connection", &[("error", error.what())]),
+            Err(error) => {
+                connections.log(LogLevel::Error, "Failed to take a restored connection", &[("error", error.what())])
+            }
         }
     }
     let mut workbook_ids = Vec::with_capacity(state.workbooks.len());
@@ -1955,7 +2181,11 @@ fn adopt_restored(connections: &Rc<Connections>, workbooks: &Rc<Workbooks>, stat
 
 /// Read a query of the histories of the connections of a registry: gone if no history holds it, busy if none does but
 /// one is borrowed
-fn read_query<T>(registry: &ConnectionRegistry, query_id: QueryId, read: impl FnOnce(&str, &QueryExecutionState) -> T) -> Read<T> {
+fn read_query<T>(
+    registry: &ConnectionRegistry,
+    query_id: QueryId,
+    read: impl FnOnce(&str, &QueryExecutionState) -> T,
+) -> Read<T> {
     let mut busy = false;
     for (connection_id, connection) in registry.connections() {
         let Ok(history) = connection.queries.try_borrow() else {

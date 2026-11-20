@@ -10,7 +10,9 @@ use arrow_ipc::writer::{FileWriter, StreamWriter};
 use arrow_schema::{DataType, Field, Schema};
 use dashql_core::catalog::Catalog;
 use dashql_core_shell::unicode::display_width;
-use dashql_core_shell::{ArrowRenderer, EffectCompletionStatus, QueryResultTag, ShellOperation, ShellSession, ShellStatus};
+use dashql_core_shell::{
+    ArrowRenderer, EffectCompletionStatus, QueryResultTag, ShellOperation, ShellSession, ShellStatus,
+};
 use std::sync::Arc;
 
 fn write_ipc(batch: &RecordBatch) -> Vec<u8> {
@@ -287,7 +289,10 @@ fn rejects_empty_buffers() {
 fn reports_corrupted_stream_framing() {
     assert_eq!(render_error(&[1, 2, 3]), "Invalid: Corrupted message, only 3 bytes available");
     // A continuation token without a metadata length
-    assert_eq!(render_error(&[0xff, 0xff, 0xff, 0xff, 1, 2]), "Invalid: Corrupted metadata length, only 2 bytes available");
+    assert_eq!(
+        render_error(&[0xff, 0xff, 0xff, 0xff, 1, 2]),
+        "Invalid: Corrupted metadata length, only 2 bytes available"
+    );
     // Negative lengths
     let mut negative_length = vec![0xff, 0xff, 0xff, 0xff];
     negative_length.extend_from_slice(&(-5i32).to_le_bytes());
@@ -309,7 +314,8 @@ fn reports_truncated_stream_bodies() {
     let stream = write_ipc_stream(&make_batch());
     // Cut into the record batch message, after the schema message
     let schema_message_end = 8 + i32::from_le_bytes(stream[4..8].try_into().unwrap()) as usize;
-    let metadata_length = i32::from_le_bytes(stream[schema_message_end + 4..schema_message_end + 8].try_into().unwrap()) as usize;
+    let metadata_length =
+        i32::from_le_bytes(stream[schema_message_end + 4..schema_message_end + 8].try_into().unwrap()) as usize;
     let body_begin = schema_message_end + 8 + metadata_length;
     let error = render_error(&stream[..body_begin + 2]);
     assert!(error.starts_with("IOError: Expected to be able to read"), "{error}");

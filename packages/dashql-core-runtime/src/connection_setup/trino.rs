@@ -106,7 +106,11 @@ pub async fn setup_trino<H: SetupHost>(
         return Err(fail(message, Default::default(), None));
     }
     if callback.state.as_deref() != Some(state.as_str()) {
-        return Err(fail("OAuth callback state does not match the authorization request".into(), Default::default(), None));
+        return Err(fail(
+            "OAuth callback state does not match the authorization request".into(),
+            Default::default(),
+            None,
+        ));
     }
     let Some(code) = callback.code.filter(|code| !code.is_empty()) else {
         return Err(fail("No authorization code received".into(), Default::default(), None));
@@ -133,7 +137,8 @@ pub async fn setup_trino<H: SetupHost>(
         Some(Ok(response)) => FetchOutcome::Response(response),
         Some(Err(error)) => FetchOutcome::NetworkError(error.message().to_string()),
     };
-    let token = read_token_response(&outcome, host.now() as i64).map_err(|error| fail(error.message, error.data, None))?;
+    let token =
+        read_token_response(&outcome, host.now() as i64).map_err(|error| fail(error.message, error.data, None))?;
     dispatch(TrinoAction::ReceivedAccessToken);
     channel.access_token = Some(token);
     dispatch(TrinoAction::ChannelSetupStarted { params });

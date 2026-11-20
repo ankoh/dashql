@@ -17,15 +17,33 @@ use yaml_rust2::{Yaml, YamlLoader};
 /// What a person writes in the documents, they aren't generated
 const HAND_WRITTEN: [&str; 3] = ["overview.md", "functions.md", "api_notes.md"];
 const PART_OF: &str = "Part of the [Data 360 function reference](functions.md). Nothing here is implemented or tested against an org. Every result also has the [standard columns](functions.md#result-schema).";
-const SCHEMAS_INTRO: &str = "Attribute names are keywords inside the object they belong to, so completion offers exactly these.";
+const SCHEMAS_INTRO: &str =
+    "Attribute names are keywords inside the object they belong to, so completion offers exactly these.";
 
 /// What only the documents read, a function of the spec goes without it. Its `description`, `example` and
 /// `result_description` stay, completion shows them.
 const FUNCTION_PROSE: [&str; 5] = ["notes", "spec_url", "reference_url", "tools", "evidence"];
 /// The fields that are strings. YAML would read `1.0` or `true` as something else without a word.
 const STRING_FIELDS: [&str; 19] = [
-    "name", "api_name", "in", "type", "schema", "format", "family", "method", "host", "path", "spec_url", "reference_url", "evidence", "effect",
-    "description", "example", "result_description", "notes", "title",
+    "name",
+    "api_name",
+    "in",
+    "type",
+    "schema",
+    "format",
+    "family",
+    "method",
+    "host",
+    "path",
+    "spec_url",
+    "reference_url",
+    "evidence",
+    "effect",
+    "description",
+    "example",
+    "result_description",
+    "notes",
+    "title",
 ];
 /// The fields that are lists of strings
 const STRING_LIST_FIELDS: [&str; 3] = ["enum", "tools", "variants"];
@@ -45,7 +63,12 @@ fn to_json(yaml: &Yaml) -> Result<Value, String> {
         Yaml::Null => Value::Null,
         Yaml::Boolean(b) => Value::Bool(*b),
         Yaml::Integer(i) => Value::from(*i),
-        Yaml::Real(text) => text.parse::<f64>().ok().and_then(serde_json::Number::from_f64).map(Value::Number).ok_or(format!("invalid number {text}"))?,
+        Yaml::Real(text) => text
+            .parse::<f64>()
+            .ok()
+            .and_then(serde_json::Number::from_f64)
+            .map(Value::Number)
+            .ok_or(format!("invalid number {text}"))?,
         // A block scalar ends in a line break that isn't part of the text
         Yaml::String(s) => Value::String(s.trim_end_matches('\n').to_string()),
         Yaml::Array(items) => Value::Array(items.iter().map(to_json).collect::<Result<_, _>>()?),
@@ -70,13 +93,17 @@ fn check_strings(value: &Value, path: &str, problems: &mut Vec<String>) {
                 if STRING_FIELDS.contains(&key.as_str()) && !field.is_string() {
                     problems.push(format!("{here} isn't a string, quote it: {field}"));
                 }
-                if STRING_LIST_FIELDS.contains(&key.as_str()) && !field.as_array().is_some_and(|l| l.iter().all(Value::is_string)) {
+                if STRING_LIST_FIELDS.contains(&key.as_str())
+                    && !field.as_array().is_some_and(|l| l.iter().all(Value::is_string))
+                {
                     problems.push(format!("{here} isn't a list of strings, quote its items: {field}"));
                 }
                 check_strings(field, &here, problems);
             }
         }
-        Value::Array(items) => items.iter().enumerate().for_each(|(i, item)| check_strings(item, &format!("{path}[{i}]"), problems)),
+        Value::Array(items) => {
+            items.iter().enumerate().for_each(|(i, item)| check_strings(item, &format!("{path}[{i}]"), problems))
+        }
         _ => {}
     }
 }
@@ -139,7 +166,8 @@ fn functions_of(value: &mut Map<String, Value>) -> Vec<Value> {
 
 /// Read the sources of a directory, `clfn.yaml` and a family per other file
 fn read_sources(files: &[(String, String)], problems: &mut Vec<String>) -> Option<Sources> {
-    let mut sources = Sources { spec: Map::new(), families: Vec::new(), other_functions: Vec::new(), schemas: BTreeMap::new() };
+    let mut sources =
+        Sources { spec: Map::new(), families: Vec::new(), other_functions: Vec::new(), schemas: BTreeMap::new() };
     let mut found_spec = false;
     for (name, text) in files {
         let Some(Value::Object(mut document)) = parse_yaml(text, name, problems) else { continue };
@@ -179,7 +207,13 @@ fn read_sources(files: &[(String, String)], problems: &mut Vec<String>) -> Optio
 }
 
 /// The schemas that a schema needs, itself included
-fn reach(schemas: &BTreeMap<String, Value>, name: &str, out: &mut BTreeSet<String>, owner: &str, problems: &mut Vec<String>) {
+fn reach(
+    schemas: &BTreeMap<String, Value>,
+    name: &str,
+    out: &mut BTreeSet<String>,
+    owner: &str,
+    problems: &mut Vec<String>,
+) {
     let Some(schema) = schemas.get(name) else {
         problems.push(format!("{owner}: unknown schema {name}"));
         return;
@@ -249,19 +283,29 @@ fn name_cells(attribute: &Value) -> Vec<String> {
 }
 
 fn required_cell(attribute: &Value) -> String {
-    if attribute["required"] == true { "yes".to_string() } else { String::new() }
+    if attribute["required"] == true {
+        "yes".to_string()
+    } else {
+        String::new()
+    }
 }
 
 fn column_type(column: &Value) -> String {
     let base = column["type"].as_str().unwrap_or_default();
     match column["schema"].as_str() {
-        Some(schema) => format!("{base} ({}{schema})", "array of ".repeat(column["array"].as_u64().unwrap_or(0) as usize)),
+        Some(schema) => {
+            format!("{base} ({}{schema})", "array of ".repeat(column["array"].as_u64().unwrap_or(0) as usize))
+        }
         None => base.to_string(),
     }
 }
 
 fn request_line(function: &Value) -> String {
-    let mut parts = vec![format!("`{} {}`", function["method"].as_str().unwrap_or_default(), function["path"].as_str().unwrap_or_default())];
+    let mut parts = vec![format!(
+        "`{} {}`",
+        function["method"].as_str().unwrap_or_default(),
+        function["path"].as_str().unwrap_or_default()
+    )];
     if let Some(url) = function["spec_url"].as_str() {
         parts.push(format!("[spec]({url})"));
     }
@@ -354,7 +398,11 @@ fn schema_blocks(schemas: &BTreeMap<String, Value>, name: &str) -> Vec<String> {
 /// A link inside a document has to find its heading. Nobody reads a generated document to notice.
 fn check_links(file: &str, text: &str, problems: &mut Vec<String>) {
     let anchor = |heading: &str| -> String {
-        let kept = heading.trim_start_matches('#').trim().chars().filter(|c| c.is_alphanumeric() || matches!(c, '_' | '-' | ' '));
+        let kept = heading
+            .trim_start_matches('#')
+            .trim()
+            .chars()
+            .filter(|c| c.is_alphanumeric() || matches!(c, '_' | '-' | ' '));
         kept.map(|c| if c == ' ' { '-' } else { c.to_ascii_lowercase() }).collect()
     };
     let anchors: BTreeSet<String> = text.lines().filter(|line| line.starts_with('#')).map(anchor).collect();
@@ -370,7 +418,8 @@ fn check_links(file: &str, text: &str, problems: &mut Vec<String>) {
 fn render_document(sources: &Sources, family: &Family, problems: &mut Vec<String>) -> String {
     let stem = family.file.trim_end_matches(".md");
     let generated = format!("<!-- Generated from extensions/d360-api/clfn/spec/{stem}.yaml, edit that and run: bazel run //extensions/d360-api:update -->");
-    let names: Vec<String> = family.functions.iter().filter_map(|f| f["name"].as_str()).map(|n| format!("[`{n}`](#{n})")).collect();
+    let names: Vec<String> =
+        family.functions.iter().filter_map(|f| f["name"].as_str()).map(|n| format!("[`{n}`](#{n})")).collect();
     let mut blocks = vec![generated, format!("# {}", family.title), PART_OF.to_string()];
     if let Some(description) = &family.description {
         blocks.push(description.clone());
@@ -487,7 +536,8 @@ fn main() {
     let source = arg("source").expect("--source=<dir>");
     let mut problems = Vec::new();
     let Some(sources) = read_sources(&read_directory(Path::new(&source)), &mut problems) else { fail(&problems) };
-    let documents: Vec<(String, String)> = sources.families.iter().map(|f| (f.file.clone(), render_document(&sources, f, &mut problems))).collect();
+    let documents: Vec<(String, String)> =
+        sources.families.iter().map(|f| (f.file.clone(), render_document(&sources, f, &mut problems))).collect();
     if !problems.is_empty() {
         fail(&problems);
     }
@@ -515,7 +565,12 @@ fn main() {
         }
     }
     if write {
-        println!("{} families, {} schemas, {} documents changed", sources.families.len(), sources.schemas.len(), stale.len());
+        println!(
+            "{} families, {} schemas, {} documents changed",
+            sources.families.len(),
+            sources.schemas.len(),
+            stale.len()
+        );
     }
     if check && !stale.is_empty() {
         eprintln!("stale, run bazel run //extensions/d360-api:update: {stale:?}");
@@ -527,7 +582,8 @@ fn main() {
 mod tests {
     use super::*;
 
-    const SPEC_SOURCE: &str = "format: 1\nnamespace: t\nfunctions:\n  - {name: request, family: Escape hatch, raw: true}\n";
+    const SPEC_SOURCE: &str =
+        "format: 1\nnamespace: t\nfunctions:\n  - {name: request, family: Escape hatch, raw: true}\n";
     const FAMILY: &str = r#"
 title: Things
 description: |
@@ -561,7 +617,8 @@ schemas:
 "#;
 
     fn sources(family: &str) -> (Option<Sources>, Vec<String>) {
-        let files = vec![("clfn.yaml".to_string(), SPEC_SOURCE.to_string()), ("things.yaml".to_string(), family.to_string())];
+        let files =
+            vec![("clfn.yaml".to_string(), SPEC_SOURCE.to_string()), ("things.yaml".to_string(), family.to_string())];
         let mut problems = Vec::new();
         (read_sources(&files, &mut problems), problems)
     }
@@ -591,7 +648,10 @@ schemas:
     #[test]
     fn a_result_goes_without_its_schema_sentence() {
         assert_eq!(without_schema_sentence("One row. Schema `A`."), "One row.");
-        assert_eq!(without_schema_sentence("One row. Schema `A`. Other fields go to `_meta`."), "One row. Other fields go to `_meta`.");
+        assert_eq!(
+            without_schema_sentence("One row. Schema `A`. Other fields go to `_meta`."),
+            "One row. Other fields go to `_meta`."
+        );
         assert_eq!(without_schema_sentence("One row of `A`."), "One row of `A`.");
         assert_eq!(without_schema_sentence("Schema `A` and more."), "Schema `A` and more.");
     }
@@ -627,7 +687,8 @@ schemas:
             assert!(problems.iter().any(|p| p.contains(expected)), "{bad}: {problems:?}");
         }
         // A key that isn't a string
-        let (_, problems) = sources("title: T\nschemas:\n  U: {variants: [A], tag: {attribute: a, values: {1.5: A}}}\n");
+        let (_, problems) =
+            sources("title: T\nschemas:\n  U: {variants: [A], tag: {attribute: a, values: {1.5: A}}}\n");
         assert!(problems.iter().any(|p| p.contains("isn't a string")), "{problems:?}");
     }
 

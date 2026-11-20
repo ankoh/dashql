@@ -32,7 +32,8 @@ pub fn coverage_badge(args: CoverageBadgeArgs) -> Result<()> {
     let (mut hit, mut found) = (0, 0);
     for path in &args.tracefiles {
         let tracefile = std::fs::read_to_string(path).with_context(|| format!("failed to read {}", path.display()))?;
-        let (file_hit, file_found) = count_lines(&tracefile).with_context(|| format!("failed to parse {}", path.display()))?;
+        let (file_hit, file_found) =
+            count_lines(&tracefile).with_context(|| format!("failed to parse {}", path.display()))?;
         hit += file_hit;
         found += file_found;
     }

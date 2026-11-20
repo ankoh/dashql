@@ -64,7 +64,11 @@ fn documented_examples_pass_the_checks() {
             failures.push(format!("{file}: {}: {}", error.message, first_line(example)));
         }
         for call in &analyzed.client_function_calls {
-            assert!(analyzed.describe_client_function_call(call.ast_statement_id).is_some(), "{file}: {}", first_line(example));
+            assert!(
+                analyzed.describe_client_function_call(call.ast_statement_id).is_some(),
+                "{file}: {}",
+                first_line(example)
+            );
         }
     }
     println!("{} blocks, {calls} calls", examples.len());
@@ -89,8 +93,13 @@ fn complete(catalog: &Catalog, text: &str) -> BTreeSet<String> {
 
 /// How a name of the spec is inserted
 fn inserted(name: &str) -> String {
-    let plain = name.bytes().enumerate().all(|(i, c)| c.is_ascii_alphabetic() || c == b'_' || (i > 0 && c.is_ascii_digit()));
-    if plain { name.to_string() } else { format!("\"{name}\"") }
+    let plain =
+        name.bytes().enumerate().all(|(i, c)| c.is_ascii_alphabetic() || c == b'_' || (i > 0 && c.is_ascii_digit()));
+    if plain {
+        name.to_string()
+    } else {
+        format!("\"{name}\"")
+    }
 }
 
 fn names(attributes: Option<&Value>) -> BTreeSet<String> {
@@ -105,7 +114,8 @@ fn completion_describes_what_the_spec_describes() {
     let scanned = Arc::new(scan(text, 0, entry_id));
     let parsed = Arc::new(parse(scanned.clone()));
     let analyzed = Arc::new(analyze(parsed.clone(), &catalog).expect("the analysis runs"));
-    let view = ScriptView { scanned: Some(&scanned), parsed: Some(&parsed), analyzed: Some(&analyzed), catalog: &catalog };
+    let view =
+        ScriptView { scanned: Some(&scanned), parsed: Some(&parsed), analyzed: Some(&analyzed), catalog: &catalog };
     let cursor = ScriptCursor::place(view, text.len());
     let completion = Completion::compute(&cursor, 100_000);
     let spec: Value = serde_json::from_str(&spec_text()).unwrap();
@@ -114,19 +124,43 @@ fn completion_describes_what_the_spec_describes() {
     assert!(described > 500, "only {described} functions have a description");
     for candidate in &completion.top_candidates {
         let function = functions.iter().find(|f| f["name"].as_str() == Some(&*candidate.completion_text)).unwrap();
-        assert_eq!(candidate.info.description.as_deref(), function["description"].as_str(), "{}", candidate.completion_text);
+        assert_eq!(
+            candidate.info.description.as_deref(),
+            function["description"].as_str(),
+            "{}",
+            candidate.completion_text
+        );
         assert_eq!(candidate.info.example.as_deref(), function["example"].as_str(), "{}", candidate.completion_text);
-        assert_eq!(candidate.info.result_description.as_deref(), function["result_description"].as_str(), "{}", candidate.completion_text);
+        assert_eq!(
+            candidate.info.result_description.as_deref(),
+            function["result_description"].as_str(),
+            "{}",
+            candidate.completion_text
+        );
         // The names of schemas mean nothing in a script
         let schemas = spec["schemas"].as_object().unwrap();
-        let details = candidate.info.parameters.iter().filter_map(|p| p.detail.as_deref()).chain(candidate.info.detail.as_deref());
+        let details = candidate
+            .info
+            .parameters
+            .iter()
+            .filter_map(|p| p.detail.as_deref())
+            .chain(candidate.info.detail.as_deref());
         for detail in details {
-            assert!(!schemas.keys().any(|schema| detail.contains(schema.as_str())), "{}: {detail}", candidate.completion_text);
+            assert!(
+                !schemas.keys().any(|schema| detail.contains(schema.as_str())),
+                "{}: {detail}",
+                candidate.completion_text
+            );
         }
         let result = candidate.info.result_description.as_deref().unwrap_or("");
         assert!(!result.contains("Schema `"), "{}: {result}", candidate.completion_text);
         let options = function["options"].as_array().map_or(0, Vec::len);
-        assert_eq!(candidate.info.detail.is_some(), options > 0 && function.get("raw").is_none(), "{}", candidate.completion_text);
+        assert_eq!(
+            candidate.info.detail.is_some(),
+            options > 0 && function.get("raw").is_none(),
+            "{}",
+            candidate.completion_text
+        );
         assert!(candidate.info.parameters.len() >= options, "{}", candidate.completion_text);
         let columns = function["columns"].as_array().map_or(0, Vec::len);
         assert_eq!(candidate.info.columns.len(), columns, "{}", candidate.completion_text);
@@ -136,7 +170,8 @@ fn completion_describes_what_the_spec_describes() {
 #[test]
 fn completion_offers_every_function() {
     let spec: Value = serde_json::from_str(&spec_text()).unwrap();
-    let expected: BTreeSet<String> = spec["functions"].as_array().unwrap().iter().map(|f| f["name"].as_str().unwrap().to_string()).collect();
+    let expected: BTreeSet<String> =
+        spec["functions"].as_array().unwrap().iter().map(|f| f["name"].as_str().unwrap().to_string()).collect();
     assert_eq!(complete(&catalog(), "call d360."), expected);
 }
 
@@ -177,7 +212,10 @@ fn completion_offers_the_attributes_of_every_object_option() {
             }
             // The keys of a map are free, its values have the attributes
             let value = if option["map"] == true {
-                assert!(complete(&catalog, &format!("call d360.{name} ({option_name} => (")).is_empty(), "{name}.{option_name}");
+                assert!(
+                    complete(&catalog, &format!("call d360.{name} ({option_name} => (")).is_empty(),
+                    "{name}.{option_name}"
+                );
                 "(key = ("
             } else {
                 "("
@@ -203,30 +241,53 @@ fn messages(catalog: &Catalog, text: &str) -> Vec<String> {
 #[test]
 fn unions_check_one_variant() {
     let catalog = catalog();
-    let check = |call: &str, expected: &[&str]| assert_eq!(messages(&catalog, &format!("call d360.{call};")), expected, "{call}");
-    let route = |fields: &str| format!("private_network_route_create (name => 'n', label => 'l', description => 'd', route => ({fields}))");
+    let check = |call: &str, expected: &[&str]| {
+        assert_eq!(messages(&catalog, &format!("call d360.{call};")), expected, "{call}")
+    };
+    let route = |fields: &str| {
+        format!("private_network_route_create (name => 'n', label => 'l', description => 'd', route => ({fields}))")
+    };
 
     // The tag selects the variant
     check(&route("type = 'Redshift', service_name = 's'"), &[]);
     check(&route("type = 'Snowflake', service_name = 's', account_url = 'u'"), &[]);
-    check(&route("type = 'Redshift', service_name = 's', account_url = 'u'"), &["no attribute account_url when type is 'Redshift'"]);
+    check(
+        &route("type = 'Redshift', service_name = 's', account_url = 'u'"),
+        &["no attribute account_url when type is 'Redshift'"],
+    );
     check(&route("type = 'Snowflake', service_name = 's'"), &["needs the attribute account_url"]);
-    check(&route("type = 'AmazonMsk', service_name = 's', account_url = 'u'"), &["no attribute account_url when type is 'AmazonMsk'", "needs the attribute broker_endpoints"]);
+    check(
+        &route("type = 'AmazonMsk', service_name = 's', account_url = 'u'"),
+        &["no attribute account_url when type is 'AmazonMsk'", "needs the attribute broker_endpoints"],
+    );
     // A value without a variant selects nothing, and a parameter isn't known yet
     check(&route("type = 'SnowflakeInternalStage', service_name = 's'"), &[]);
     check(&route("type = :type, service_name = 's', account_url = 'u'"), &[]);
     // The attributes of different variants never go together
-    check(&route("type = :type, service_name = 's', account_url = 'u', broker_endpoints = ['b']"), &["broker_endpoints does not fit the attributes before it"]);
+    check(
+        &route("type = :type, service_name = 's', account_url = 'u', broker_endpoints = ['b']"),
+        &["broker_endpoints does not fit the attributes before it"],
+    );
 
     // The case of a value doesn't matter, the examples of the spec write DCSQL for DcSql
-    let definition = |fields: &str| format!("transform_validate (name => 'n', label => 'l', type => 'BATCH', definition => ({fields}))");
+    let definition = |fields: &str| {
+        format!("transform_validate (name => 'n', label => 'l', type => 'BATCH', definition => ({fields}))")
+    };
     check(&definition("type = 'SQL', version = '1', expression = 'e'"), &[]);
-    check(&definition("type = 'SQL', version = '1', manifest = :manifest"), &["no attribute manifest when type is 'SQL'"]);
-    check(&definition("type = 'DCSQL', version = '1', expression = 'e'"), &["no attribute expression when type is 'DCSQL'"]);
+    check(
+        &definition("type = 'SQL', version = '1', manifest = :manifest"),
+        &["no attribute manifest when type is 'SQL'"],
+    );
+    check(
+        &definition("type = 'DCSQL', version = '1', expression = 'e'"),
+        &["no attribute expression when type is 'DCSQL'"],
+    );
     check(&definition("type = 'SqlHidden', version = '1', expression = 'e'"), &[]);
 
     // Without a tag the attributes decide
-    let target = |fields: &str| format!("dataaction_target_create (api_name => 'n', label => 'l', type => 't', config => ({fields}))");
+    let target = |fields: &str| {
+        format!("dataaction_target_create (api_name => 'n', label => 'l', type => 't', config => ({fields}))")
+    };
     check(&target("api_contract = 'a', org_id = 'o', org_label = 'l'"), &[]);
     check(&target("api_contract = 'a', content_key = 'k'"), &[]);
     check(&target("org_id = 'o', content_key = 'k'"), &["content_key does not fit the attributes before it"]);
@@ -270,7 +331,8 @@ fn unions_narrow_completion() {
 
 /// The entries of a directory in name order
 fn sorted_entries(dir: &Path) -> Vec<PathBuf> {
-    let mut paths: Vec<_> = std::fs::read_dir(dir).expect("the snippets are a test input").map(|f| f.unwrap().path()).collect();
+    let mut paths: Vec<_> =
+        std::fs::read_dir(dir).expect("the snippets are a test input").map(|f| f.unwrap().path()).collect();
     paths.sort();
     paths
 }
@@ -303,7 +365,11 @@ fn check_snippet(catalog: &Catalog, path: &Path, failures: &mut Vec<String>) -> 
             failures.push(format!("{path:?} doesn't say where :{name} comes from"));
         }
     }
-    analyzed.client_function_calls.iter().filter_map(|call| analyzed.describe_client_function_call(call.ast_statement_id)).collect()
+    analyzed
+        .client_function_calls
+        .iter()
+        .filter_map(|call| analyzed.describe_client_function_call(call.ast_statement_id))
+        .collect()
 }
 
 /// The scenarios are workflows, their steps build on each other. They can't run alone, but each step has to say which
@@ -373,7 +439,8 @@ fn zero_copy_snippets_pass_the_checks() {
 fn every_function_has_a_snippet() {
     let catalog = catalog();
     let spec: Value = serde_json::from_str(&spec_text()).unwrap();
-    let functions: BTreeSet<String> = spec["functions"].as_array().unwrap().iter().map(|f| f["name"].as_str().unwrap().to_string()).collect();
+    let functions: BTreeSet<String> =
+        spec["functions"].as_array().unwrap().iter().map(|f| f["name"].as_str().unwrap().to_string()).collect();
     let mut failures = Vec::new();
     let mut snippets = BTreeSet::new();
     for family in sorted_entries(Path::new(FUNCTIONS)) {

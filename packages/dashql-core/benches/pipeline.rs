@@ -7,9 +7,9 @@
 
 mod harness;
 
-use dashql_core::catalog::CatalogLayer;
 use dashql_buffers::formatting::FormattingConfigT;
 use dashql_core::catalog::Catalog;
+use dashql_core::catalog::CatalogLayer;
 use dashql_core::formatter::Formatter;
 use dashql_core::script::Script;
 use dashql_parser::parser::parse;
@@ -608,11 +608,8 @@ fn main() {
     });
     let scanned = scan(MAIN_SCRIPT, 0, 1);
     bench("parse_driver_only", || {
-        let mut ctx = dashql_parser::parser::context::ParseContext::new(
-            &scanned.text,
-            &scanned.symbols,
-            scanned.names.clone(),
-        );
+        let mut ctx =
+            dashql_parser::parser::context::ParseContext::new(&scanned.text, &scanned.symbols, scanned.names.clone());
         dashql_parser::parser::driver::parse(&mut ctx);
         black_box(&ctx);
     });
@@ -682,28 +679,63 @@ fn bench_attribute_lookups() {
     use dashql_buffers::parser::{AttributeKey as K, Node, NodeType, SymbolSpan};
     use dashql_parser::attrs;
     const KEYS: [K; 21] = [
-        K::SQL_SELECT_ALL, K::SQL_SELECT_DISTINCT, K::SQL_SELECT_EXPRESSION_INDIRECTION,
-        K::SQL_SELECT_EXPRESSION_STATEMENT, K::SQL_SELECT_FROM, K::SQL_SELECT_GROUPS, K::SQL_SELECT_HAVING,
-        K::SQL_SELECT_INTO, K::SQL_SELECT_LIMIT, K::SQL_SELECT_LIMIT_ALL, K::SQL_SELECT_OFFSET, K::SQL_SELECT_ORDER,
-        K::SQL_SELECT_ROW_LOCKING, K::SQL_SELECT_SAMPLE, K::SQL_SELECT_TABLE, K::SQL_SELECT_TARGETS,
-        K::SQL_SELECT_VALUES, K::SQL_SELECT_WHERE, K::SQL_SELECT_WINDOWS, K::SQL_SELECT_WITH_CTES,
+        K::SQL_SELECT_ALL,
+        K::SQL_SELECT_DISTINCT,
+        K::SQL_SELECT_EXPRESSION_INDIRECTION,
+        K::SQL_SELECT_EXPRESSION_STATEMENT,
+        K::SQL_SELECT_FROM,
+        K::SQL_SELECT_GROUPS,
+        K::SQL_SELECT_HAVING,
+        K::SQL_SELECT_INTO,
+        K::SQL_SELECT_LIMIT,
+        K::SQL_SELECT_LIMIT_ALL,
+        K::SQL_SELECT_OFFSET,
+        K::SQL_SELECT_ORDER,
+        K::SQL_SELECT_ROW_LOCKING,
+        K::SQL_SELECT_SAMPLE,
+        K::SQL_SELECT_TABLE,
+        K::SQL_SELECT_TARGETS,
+        K::SQL_SELECT_VALUES,
+        K::SQL_SELECT_WHERE,
+        K::SQL_SELECT_WINDOWS,
+        K::SQL_SELECT_WITH_CTES,
         K::SQL_SELECT_WITH_RECURSIVE,
     ];
     let node = |k: K| Node::new(&SymbolSpan::new(0, 0), NodeType::NONE, k, 0, 0, 0);
     let few: Vec<Node> =
-        [K::SQL_SELECT_ALL, K::SQL_SELECT_FROM, K::SQL_SELECT_ORDER, K::SQL_SELECT_WITH_RECURSIVE, K::NONE].map(node).to_vec();
+        [K::SQL_SELECT_ALL, K::SQL_SELECT_FROM, K::SQL_SELECT_ORDER, K::SQL_SELECT_WITH_RECURSIVE, K::NONE]
+            .map(node)
+            .to_vec();
     let many: Vec<Node> = KEYS.iter().rev().map(|k| node(*k)).collect();
     let wide: Vec<Node> = (0..40u16).map(|i| node(K(KEYS[(i % 21) as usize].0 + (i / 21) * 300))).collect();
     for (label, children) in [("5", &few), ("21", &many), ("40", &wide)] {
         bench(&format!("attrs_21/{label}"), || {
-            let found = attrs!(black_box(&children[..]), [
-                K::SQL_SELECT_ALL, K::SQL_SELECT_DISTINCT, K::SQL_SELECT_EXPRESSION_INDIRECTION,
-                K::SQL_SELECT_EXPRESSION_STATEMENT, K::SQL_SELECT_FROM, K::SQL_SELECT_GROUPS, K::SQL_SELECT_HAVING,
-                K::SQL_SELECT_INTO, K::SQL_SELECT_LIMIT, K::SQL_SELECT_LIMIT_ALL, K::SQL_SELECT_OFFSET,
-                K::SQL_SELECT_ORDER, K::SQL_SELECT_ROW_LOCKING, K::SQL_SELECT_SAMPLE, K::SQL_SELECT_TABLE,
-                K::SQL_SELECT_TARGETS, K::SQL_SELECT_VALUES, K::SQL_SELECT_WHERE, K::SQL_SELECT_WINDOWS,
-                K::SQL_SELECT_WITH_CTES, K::SQL_SELECT_WITH_RECURSIVE,
-            ]);
+            let found = attrs!(
+                black_box(&children[..]),
+                [
+                    K::SQL_SELECT_ALL,
+                    K::SQL_SELECT_DISTINCT,
+                    K::SQL_SELECT_EXPRESSION_INDIRECTION,
+                    K::SQL_SELECT_EXPRESSION_STATEMENT,
+                    K::SQL_SELECT_FROM,
+                    K::SQL_SELECT_GROUPS,
+                    K::SQL_SELECT_HAVING,
+                    K::SQL_SELECT_INTO,
+                    K::SQL_SELECT_LIMIT,
+                    K::SQL_SELECT_LIMIT_ALL,
+                    K::SQL_SELECT_OFFSET,
+                    K::SQL_SELECT_ORDER,
+                    K::SQL_SELECT_ROW_LOCKING,
+                    K::SQL_SELECT_SAMPLE,
+                    K::SQL_SELECT_TABLE,
+                    K::SQL_SELECT_TARGETS,
+                    K::SQL_SELECT_VALUES,
+                    K::SQL_SELECT_WHERE,
+                    K::SQL_SELECT_WINDOWS,
+                    K::SQL_SELECT_WITH_CTES,
+                    K::SQL_SELECT_WITH_RECURSIVE,
+                ]
+            );
             black_box(found);
         });
     }

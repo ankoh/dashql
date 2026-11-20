@@ -95,7 +95,12 @@ pub trait Connector: Sync {
 
     /// Add what the results of a connection depend on beyond its params, e.g. the account of a login, to the signature
     /// of its params. None while that is unknown: the results get no reusable key then.
-    fn sign_login(&self, _signature: &mut Value, _setup_params: &JsonObject, _details: &ConnectionDetails) -> Option<()> {
+    fn sign_login(
+        &self,
+        _signature: &mut Value,
+        _setup_params: &JsonObject,
+        _details: &ConnectionDetails,
+    ) -> Option<()> {
         Some(())
     }
 }

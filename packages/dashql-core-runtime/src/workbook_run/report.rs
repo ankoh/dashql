@@ -31,8 +31,10 @@ pub fn select_run_scripts(files: &[String], names: &[String]) -> RunScriptSelect
             requested.push(name);
         }
     }
-    let unknown = requested.iter().filter(|name| !files.iter().any(|file| file == *name)).map(|name| name.to_string()).collect();
-    let selected = files.iter().filter(|file| requested.is_empty() || requested.contains(&file.as_str())).cloned().collect();
+    let unknown =
+        requested.iter().filter(|name| !files.iter().any(|file| file == *name)).map(|name| name.to_string()).collect();
+    let selected =
+        files.iter().filter(|file| requested.is_empty() || requested.contains(&file.as_str())).cloned().collect();
     RunScriptSelection { selected, requested: !requested.is_empty(), unknown }
 }
 
@@ -101,7 +103,11 @@ pub struct RunReportEnd {
 
 /// The end of the report of a run: the outcomes of the scripts as their events had them, the scripts that the run
 /// reports and how the run ended
-pub fn finish_run_report(selected: &[String], outcomes: &[(String, ReportedScriptOutcome)], end: &RunEnd) -> RunReportEnd {
+pub fn finish_run_report(
+    selected: &[String],
+    outcomes: &[(String, ReportedScriptOutcome)],
+    end: &RunEnd,
+) -> RunReportEnd {
     // The last outcome of a script counts
     let mut scripts: Vec<(&str, ReportedScriptOutcome)> = Vec::new();
     for (script, outcome) in outcomes {
@@ -126,19 +132,26 @@ pub fn finish_run_report(selected: &[String], outcomes: &[(String, ReportedScrip
     } else {
         "the run failed"
     };
-    let not_run: Vec<(String, String)> =
-        selected.iter().filter(|script| outcome_of(script).is_none()).map(|script| (script.clone(), reason.to_string())).collect();
+    let not_run: Vec<(String, String)> = selected
+        .iter()
+        .filter(|script| outcome_of(script).is_none())
+        .map(|script| (script.clone(), reason.to_string()))
+        .collect();
     // The scripts that ran count only if the run reports them
     let tally = |wanted: ReportedScriptOutcome| {
         scripts
             .iter()
             .filter(|(script, outcome)| {
-                *outcome == wanted && (wanted != ReportedScriptOutcome::Ok || selected.iter().any(|name| name == script))
+                *outcome == wanted
+                    && (wanted != ReportedScriptOutcome::Ok || selected.iter().any(|name| name == script))
             })
             .count() as u32
     };
-    let (ok, failed, cancelled) =
-        (tally(ReportedScriptOutcome::Ok), tally(ReportedScriptOutcome::Failed), tally(ReportedScriptOutcome::Cancelled));
+    let (ok, failed, cancelled) = (
+        tally(ReportedScriptOutcome::Ok),
+        tally(ReportedScriptOutcome::Failed),
+        tally(ReportedScriptOutcome::Cancelled),
+    );
     let not_run_count = tally(ReportedScriptOutcome::NotRun) + not_run.len() as u32;
     let all_ok = run_error.is_none()
         && selected.iter().all(|script| outcome_of(script) == Some(ReportedScriptOutcome::Ok))
@@ -176,7 +189,9 @@ mod tests {
     #[test]
     fn labels_the_connections_of_a_run() {
         let label = |value: Value| {
-            run_connection_label(&ConnectionParams::from_object(value.as_object().cloned().unwrap_or_default()).unwrap())
+            run_connection_label(
+                &ConnectionParams::from_object(value.as_object().cloned().unwrap_or_default()).unwrap(),
+            )
         };
         assert_eq!(label(json!({ "trino": { "endpoint": "http://localhost:8080" } })), "trino http://localhost:8080");
         assert_eq!(label(json!({ "hyper": { "protocol": "WASM" } })), "the embedded hyper");
@@ -218,8 +233,11 @@ mod tests {
         assert_eq!(refused.run_error.as_deref(), Some("the workbook is running elsewhere"));
 
         // A stopped run is interrupted, whatever its scripts did
-        let stopped =
-            finish_run_report(&selected, &[outcome("a.sql", Cancelled)], &RunEnd { interrupted: true, ..RunEnd::default() });
+        let stopped = finish_run_report(
+            &selected,
+            &[outcome("a.sql", Cancelled)],
+            &RunEnd { interrupted: true, ..RunEnd::default() },
+        );
         assert_eq!((stopped.end, stopped.cancelled, stopped.run_error), (ReportedRunEnd::Interrupted, 1, None));
         assert_eq!(stopped.not_run, vec![("b.sql".to_string(), "interrupted".to_string())]);
     }

@@ -2,7 +2,9 @@
 //! progress of a query with another layout of the plan, `replayQueryProgress` replays a recording that was saved. The
 //! histories of the queries are part of the `Runtime` (`runtime.rs`), the views of the queries are in `view.rs`.
 
-use dashql_core_runtime::query::progress::{replay_recording, ProfileRecording, QueryProgressFollower as RuntimeFollower};
+use dashql_core_runtime::query::progress::{
+    replay_recording, ProfileRecording, QueryProgressFollower as RuntimeFollower,
+};
 use dashql_core_runtime::query::{QueryExecutionHistory, QueryId};
 use tsify::Ts;
 use wasm_bindgen::prelude::*;
@@ -41,7 +43,10 @@ impl QueryProgressFollower {
             .and_then(|progress| progress.profile_progress.as_ref())
             .map(|profile| profile.recording.clone());
         let Some(recording) = recording else { return Ok(None) };
-        self.follower.follow(&recording).map(|progress| to_js(&QueryProfileProgressView::of(progress, known))).transpose()
+        self.follower
+            .follow(&recording)
+            .map(|progress| to_js(&QueryProfileProgressView::of(progress, known)))
+            .transpose()
     }
 }
 
@@ -54,7 +59,8 @@ pub fn replay_query_progress(
     layout: Option<Ts<ProfileLayoutView>>,
 ) -> Result<Option<Ts<QueryProfileProgressView>>, JsError> {
     let recording = ProfileRecording::from_json(recording).map_err(js_error)?;
-    let layout: Option<dashql_buffers::profile::ProfileLayoutConfig> = layout.as_ref().map(from_js).transpose()?.map(Into::into);
+    let layout: Option<dashql_buffers::profile::ProfileLayoutConfig> =
+        layout.as_ref().map(from_js).transpose()?.map(Into::into);
     let progress = replay_recording(&recording, until_ms as i64, layout.as_ref());
     progress.map(|progress| to_js(&QueryProfileProgressView::of(&progress, QueryProfileKeys::default()))).transpose()
 }

@@ -6,8 +6,7 @@
 use std::sync::Arc;
 
 use arrow_array::{
-    Array, ArrayRef, BooleanArray, Float64Array, Int32Array, Int64Array, RecordBatch, StringArray,
-    UInt64Array,
+    Array, ArrayRef, BooleanArray, Float64Array, Int32Array, Int64Array, RecordBatch, StringArray, UInt64Array,
 };
 use arrow_schema::{DataType, Field, Schema, TimeUnit};
 
@@ -25,8 +24,7 @@ use dashql_core_runtime::compute::tasks::data_search::{
 };
 use dashql_core_runtime::compute::tasks::result_table::ResultTable;
 use dashql_core_runtime::compute::tasks::sql::{
-    format_number, AggregateFunction, Binning, GroupBy, GroupByAggregate, GroupByKey,
-    GroupByKeyBinning, SqlFrame,
+    format_number, AggregateFunction, Binning, GroupBy, GroupByAggregate, GroupByKey, GroupByKeyBinning, SqlFrame,
 };
 use dashql_core_runtime::compute::tasks::system_columns::plan_system_columns;
 use dashql_core_runtime::compute::tasks::table_aggregation::plan_table_aggregation;
@@ -152,7 +150,10 @@ fn sql_binning_converts_temporal_and_boolean_values() {
 
 #[test]
 fn sql_scalar_filter() {
-    let sql = SqlFrame::from("t").filter("score", FilterOp::GreaterEqual, 10.0).filter("score", FilterOp::LessEqual, 20.0).to_sql();
+    let sql = SqlFrame::from("t")
+        .filter("score", FilterOp::GreaterEqual, 10.0)
+        .filter("score", FilterOp::LessEqual, 20.0)
+        .to_sql();
     assert_eq!(
         sql,
         "WITH\n  __filtered AS (\n    SELECT * FROM \"t\" WHERE \"score\" >= 10 AND \"score\" <= 20\n  )\nSELECT * FROM __filtered"
@@ -255,7 +256,9 @@ fn sql_binned_group_by_keeps_temporal_bounds_as_epoch_milliseconds() {
     assert!(sql.contains(
         "(EXTRACT(EPOCH FROM CAST(t.\"at\" AS INTERVAL)) - EXTRACT(EPOCH FROM CAST(s.__min AS INTERVAL))) / s.__bin_width"
     ));
-    assert!(sql.contains("EXTRACT(EPOCH FROM CAST(s.__min AS INTERVAL)) * 1000.0 + (\"bin\" * s.__bin_width) * 1000.0 AS \"bin_lb\""));
+    assert!(sql.contains(
+        "EXTRACT(EPOCH FROM CAST(s.__min AS INTERVAL)) * 1000.0 + (\"bin\" * s.__bin_width) * 1000.0 AS \"bin_lb\""
+    ));
 }
 
 #[test]
@@ -402,8 +405,12 @@ fn search_without_columns() {
 
 #[test]
 fn search_data_of_every_column() {
-    let sql =
-        build_data_search_sql("__syscols_1", "_rownum", &collect_searchable_result_columns(&search_column_groups()), "search");
+    let sql = build_data_search_sql(
+        "__syscols_1",
+        "_rownum",
+        &collect_searchable_result_columns(&search_column_groups()),
+        "search",
+    );
     let union = |idx: u32, field: &str| {
         format!("    SELECT \"_rownum\" AS row_idx, {idx} AS column_idx\n    FROM \"__syscols_1\"\n    WHERE CAST({field} AS TEXT) ILIKE '%search%'")
     };
@@ -751,7 +758,11 @@ fn filtered_task(column_entry: ColumnGroup) -> FilteredColumnAggregationTask {
             column_id: 0,
             column_entry,
             input_data_frame: 10,
-            table_aggregate: TableAggregation { table: arrow_table(50, 1), data_frame: 20, count_star_field_name: "_count_star".into() },
+            table_aggregate: TableAggregation {
+                table: arrow_table(50, 1),
+                data_frame: 20,
+                count_star_field_name: "_count_star".into(),
+            },
         },
         filter_table: Some(FilterTable {
             input_row_number_column_name: "rownum".into(),
@@ -788,7 +799,9 @@ fn filtered_column_aggregation_counts_the_frequent_values_of_the_selected_rows()
     let result = plan.finish(&stats(), frequent).expect("a summary");
     assert_eq!(result.filter_version, ComputationVersion::new(1, 2));
     assert_eq!(result.data_search_request_id, Some(9));
-    let ColumnAggregateResult::String { analysis, data_frame, .. } = result.aggregate else { panic!("a string summary") };
+    let ColumnAggregateResult::String { analysis, data_frame, .. } = result.aggregate else {
+        panic!("a string summary")
+    };
     assert_eq!(data_frame, 11);
     assert_eq!(analysis.total_count, 5);
     assert_eq!(analysis.count_not_null, 8);
@@ -867,12 +880,14 @@ fn column_aggregation_rejects_columns_that_cannot_be_aggregated() {
 #[test]
 fn column_aggregation_wraps_failures() {
     let plan = plan_filtered_column_aggregation(&filtered_task(name_column()), &result_schema(), 11).expect("a plan");
-    assert!(plan.plan.query.failed("query failed").to_string().starts_with("Failed to compute filtered column aggregate"));
+    assert!(plan
+        .plan
+        .query
+        .failed("query failed")
+        .to_string()
+        .starts_with("Failed to compute filtered column aggregate"));
     // Frequent values without ids
-    let frequent = table(vec![
-        ("key", a(StringArray::from(vec!["a"]))),
-        ("count", a(Int64Array::from(vec![4]))),
-    ]);
+    let frequent = table(vec![("key", a(StringArray::from(vec!["a"]))), ("count", a(Int64Array::from(vec![4])))]);
     let error = plan.finish(&stats(), frequent).expect_err("no ids");
     assert!(error.to_string().contains("Missing keyId column in frequent values table"));
 }
@@ -894,7 +909,13 @@ fn analysis_schedules_the_summaries_of_ordinal_and_string_columns() {
     let tasks = column_aggregation_tasks(1, &groups, 12, &stats_aggregation(), AnalyzeTableOptions::default());
     assert_eq!(tasks.iter().map(|task| task.column_id).collect::<Vec<_>>(), vec![1, 2]);
     assert!(tasks.iter().all(|task| task.input_data_frame == 12));
-    let none = column_aggregation_tasks(1, &groups, 12, &stats_aggregation(), AnalyzeTableOptions { column_aggregates: false });
+    let none = column_aggregation_tasks(
+        1,
+        &groups,
+        12,
+        &stats_aggregation(),
+        AnalyzeTableOptions { column_aggregates: false },
+    );
     assert!(none.is_empty());
     assert_eq!(data_frame_table_name(12), "__df_12");
 }

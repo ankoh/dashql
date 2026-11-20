@@ -21,13 +21,13 @@
 )]
 
 use dashql_buffers::formatting::{FormattingConfigT, FormattingDialect, FormattingMode, KeywordCase};
+use dashql_core::annotation::Annotation;
 use dashql_core::catalog::{Catalog as CoreCatalog, CatalogLayer};
 use dashql_core::completion::Completion;
 use dashql_core::error::Error;
-use dashql_core::annotation::Annotation;
-use dashql_core::vis_rewrite::{VisBoard, VisFlow, VisRenderer};
 use dashql_core::script::Script as CoreScript;
 use dashql_core::script_session::ScriptSession as CoreScriptSession;
+use dashql_core::vis_rewrite::{VisBoard, VisFlow, VisRenderer};
 use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
 use wasm_bindgen::prelude::*;
@@ -77,13 +77,20 @@ macro_rules! finish {
 }
 
 // After the macros, the module uses them
-mod views;
-mod query_history;
 mod host;
+mod query_history;
 mod runtime;
+mod views;
 
 /// A formatting config from the numeric arguments of the JS API
-fn formatting_config(dialect: u8, mode: u8, max_width: u32, indentation_width: u32, debug_mode: bool, keyword_case: u8) -> FormattingConfigT {
+fn formatting_config(
+    dialect: u8,
+    mode: u8,
+    max_width: u32,
+    indentation_width: u32,
+    debug_mode: bool,
+    keyword_case: u8,
+) -> FormattingConfigT {
     let mut config = FormattingConfigT::default();
     config.dialect = FormattingDialect(dialect);
     config.mode = FormattingMode(mode);
@@ -149,10 +156,7 @@ impl Catalog {
 impl Catalog {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Catalog {
-        Catalog {
-            inner: SharedCatalog::new(dashql_core_runtime::workbook::new_catalog()),
-            read_only: false,
-        }
+        Catalog { inner: SharedCatalog::new(dashql_core_runtime::workbook::new_catalog()), read_only: false }
     }
 
     pub fn clear(&self) -> Result<(), JsError> {
@@ -211,13 +215,20 @@ impl Catalog {
     #[wasm_bindgen(js_name = absentRelations)]
     pub fn absent_relations(&self) -> Vec<u8> {
         let mut out = dashql_buffers::catalog::TouchedRelationsT::default();
-        out.relations = Some(self.inner.borrow().absent_relations().iter().map(|(database, schema, table)| {
-            let mut name = dashql_buffers::analyzer::QualifiedTableNameT::default();
-            name.database_name = Some(database.to_string());
-            name.schema_name = Some(schema.to_string());
-            name.table_name = Some(table.to_string());
-            name
-        }).collect());
+        out.relations = Some(
+            self.inner
+                .borrow()
+                .absent_relations()
+                .iter()
+                .map(|(database, schema, table)| {
+                    let mut name = dashql_buffers::analyzer::QualifiedTableNameT::default();
+                    name.database_name = Some(database.to_string());
+                    name.schema_name = Some(schema.to_string());
+                    name.table_name = Some(table.to_string());
+                    name
+                })
+                .collect(),
+        );
         finish!(out)
     }
 
@@ -257,7 +268,10 @@ impl Catalog {
     /// Load the analysis of a script into a `CatalogLayer`
     #[wasm_bindgen(js_name = loadScript)]
     pub fn load_script(&self, script: &Script, layer: u8) -> Result<(), JsError> {
-        let analyzed = script.inner.analyzed.clone().ok_or_else(|| js_error(Error::status(dashql_buffers::status::StatusCode::CATALOG_SCRIPT_NOT_ANALYZED)))?;
+        let analyzed =
+            script.inner.analyzed.clone().ok_or_else(|| {
+                js_error(Error::status(dashql_buffers::status::StatusCode::CATALOG_SCRIPT_NOT_ANALYZED))
+            })?;
         self.writable()?.load_script(analyzed, CatalogLayer(layer)).map_err(js_error)
     }
 
@@ -304,11 +318,10 @@ impl ScriptBatch {
 
     /// Add the analysis of a script in a `CatalogLayer`
     pub fn add(&mut self, script: &Script, layer: u8) -> Result<(), JsError> {
-        let analyzed = script
-            .inner
-            .analyzed
-            .clone()
-            .ok_or_else(|| js_error(Error::status(dashql_buffers::status::StatusCode::CATALOG_SCRIPT_NOT_ANALYZED)))?;
+        let analyzed =
+            script.inner.analyzed.clone().ok_or_else(|| {
+                js_error(Error::status(dashql_buffers::status::StatusCode::CATALOG_SCRIPT_NOT_ANALYZED))
+            })?;
         self.scripts.push((analyzed, CatalogLayer(layer)));
         Ok(())
     }
@@ -330,7 +343,12 @@ pub struct Script {
 }
 
 impl Script {
-    fn format_with(&mut self, catalog: SharedCatalog, config: FormattingConfigT, parse_if_outdated: bool) -> Result<Script, JsError> {
+    fn format_with(
+        &mut self,
+        catalog: SharedCatalog,
+        config: FormattingConfigT,
+        parse_if_outdated: bool,
+    ) -> Result<Script, JsError> {
         let text = self.inner.format(&config, parse_if_outdated).map_err(js_error)?;
         let mut inner = CoreScript::new(&catalog.borrow());
         inner.replace_text(&text);
@@ -343,10 +361,7 @@ impl Script {
     #[wasm_bindgen(constructor)]
     pub fn new(catalog: &Catalog) -> Script {
         let inner = CoreScript::new(&catalog.inner.borrow());
-        Script {
-            catalog: catalog.inner.clone(),
-            inner,
-        }
+        Script { catalog: catalog.inner.clone(), inner }
     }
 
     #[wasm_bindgen(js_name = catalogEntryId)]
@@ -393,20 +408,30 @@ impl Script {
     #[wasm_bindgen(js_name = startsClientFunctionCall)]
     pub fn starts_client_function_call(&self) -> bool {
         let catalog = self.catalog.borrow();
-        self.inner.parsed.as_ref().is_some_and(|parsed| dashql_core::analyzer::clfn_calls::starts_client_function_call(&parsed.scanned, &catalog))
+        self.inner.parsed.as_ref().is_some_and(|parsed| {
+            dashql_core::analyzer::clfn_calls::starts_client_function_call(&parsed.scanned, &catalog)
+        })
     }
 
     /// The packed `ParsedScript`
     #[wasm_bindgen(js_name = getParsed)]
     pub fn get_parsed(&self) -> Result<Vec<u8>, JsError> {
-        let parsed = self.inner.parsed.as_ref().ok_or_else(|| js_error(Error::status(dashql_buffers::status::StatusCode::SCRIPT_NOT_ANALYZED)))?;
+        let parsed = self
+            .inner
+            .parsed
+            .as_ref()
+            .ok_or_else(|| js_error(Error::status(dashql_buffers::status::StatusCode::SCRIPT_NOT_ANALYZED)))?;
         Ok(finish!(dashql_core::pack::pack_parsed_script(parsed)))
     }
 
     /// The packed `AnalyzedScript`
     #[wasm_bindgen(js_name = getAnalyzed)]
     pub fn get_analyzed(&self) -> Result<Vec<u8>, JsError> {
-        let analyzed = self.inner.analyzed.as_ref().ok_or_else(|| js_error(Error::status(dashql_buffers::status::StatusCode::SCRIPT_NOT_ANALYZED)))?;
+        let analyzed = self
+            .inner
+            .analyzed
+            .as_ref()
+            .ok_or_else(|| js_error(Error::status(dashql_buffers::status::StatusCode::SCRIPT_NOT_ANALYZED)))?;
         Ok(finish!(dashql_core::pack::pack_analyzed_script(analyzed, &dashql_core::visualize::pack_visualization)))
     }
 
@@ -456,10 +481,7 @@ impl Script {
         parse_if_outdated: bool,
     ) -> Vec<u8> {
         let config = formatting_config(dialect, mode, max_width, indentation_width, false, 0);
-        let options = dashql_core::compiler::CompilationOptions {
-            allow_extensions,
-            parse_if_outdated,
-        };
+        let options = dashql_core::compiler::CompilationOptions { allow_extensions, parse_if_outdated };
         let catalog = self.catalog.borrow();
         finish!(dashql_core::compiler::compile(&mut self.inner, &catalog, &config, options))
     }
@@ -489,7 +511,12 @@ impl Script {
     /// Replace the annotation of a statement, given as JSON like `readAnnotation` returns it. Returns the new
     /// text, the script is not changed.
     #[wasm_bindgen(js_name = rewriteAnnotation)]
-    pub fn rewrite_annotation(&mut self, statement_id: u32, annotation: &str, parse_if_outdated: bool) -> Result<String, JsError> {
+    pub fn rewrite_annotation(
+        &mut self,
+        statement_id: u32,
+        annotation: &str,
+        parse_if_outdated: bool,
+    ) -> Result<String, JsError> {
         let annotation = parse_annotation(annotation)?;
         self.inner.rewrite_annotation(statement_id as usize, &annotation, parse_if_outdated).map_err(js_error)
     }
@@ -513,7 +540,11 @@ impl Script {
         parse_if_outdated: bool,
     ) -> Result<Script, JsError> {
         let catalog = self.catalog.clone();
-        self.format_with(catalog, formatting_config(dialect, mode, max_width, indentation_width, debug_mode, keyword_case), parse_if_outdated)
+        self.format_with(
+            catalog,
+            formatting_config(dialect, mode, max_width, indentation_width, debug_mode, keyword_case),
+            parse_if_outdated,
+        )
     }
 
     /// Format the script into a new script of another catalog
@@ -579,7 +610,12 @@ pub struct ScriptSession {
 }
 
 impl ScriptSession {
-    fn format_with(&self, catalog: SharedCatalog, config: FormattingConfigT, parse_if_outdated: bool) -> Result<Script, JsError> {
+    fn format_with(
+        &self,
+        catalog: SharedCatalog,
+        config: FormattingConfigT,
+        parse_if_outdated: bool,
+    ) -> Result<Script, JsError> {
         let inner = self.inner.borrow_mut().format(&catalog.borrow(), &config, parse_if_outdated).map_err(js_error)?;
         Ok(Script { catalog, inner })
     }
@@ -590,7 +626,8 @@ impl ScriptSession {
     #[wasm_bindgen(constructor)]
     pub fn new(catalog: &Catalog, offset_unit: u8) -> Result<ScriptSession, JsError> {
         let session =
-            CoreScriptSession::new(&catalog.inner.borrow(), dashql_buffers::editor::EditorOffsetUnit(offset_unit)).map_err(js_error)?;
+            CoreScriptSession::new(&catalog.inner.borrow(), dashql_buffers::editor::EditorOffsetUnit(offset_unit))
+                .map_err(js_error)?;
         Ok(ScriptSession {
             catalog: catalog.inner.clone(),
             inner: Rc::new(RefCell::new(session)),
@@ -601,9 +638,12 @@ impl ScriptSession {
     /// A session whose script takes an entry id that the catalogs of the module allocated before
     #[wasm_bindgen(js_name = withEntryId)]
     pub fn with_entry_id(catalog: &Catalog, offset_unit: u8, entry_id: u32) -> Result<ScriptSession, JsError> {
-        let session =
-            CoreScriptSession::with_entry_id(&catalog.inner.borrow(), dashql_buffers::editor::EditorOffsetUnit(offset_unit), entry_id)
-                .map_err(js_error)?;
+        let session = CoreScriptSession::with_entry_id(
+            &catalog.inner.borrow(),
+            dashql_buffers::editor::EditorOffsetUnit(offset_unit),
+            entry_id,
+        )
+        .map_err(js_error)?;
         Ok(ScriptSession {
             catalog: catalog.inner.clone(),
             inner: Rc::new(RefCell::new(session)),
@@ -671,7 +711,8 @@ impl ScriptSession {
     /// Complete at the primary cursor, returns the packed `Completion`
     #[wasm_bindgen(js_name = completeAtCursor)]
     pub fn complete_at_cursor(&self, limit: usize, keyword_case: u8) -> Result<Vec<u8>, JsError> {
-        let completion = self.inner.borrow().complete(&self.catalog.borrow(), limit, KeywordCase(keyword_case)).map_err(js_error)?;
+        let completion =
+            self.inner.borrow().complete(&self.catalog.borrow(), limit, KeywordCase(keyword_case)).map_err(js_error)?;
         Ok(finish!(completion))
     }
 
@@ -687,7 +728,12 @@ impl ScriptSession {
         parse_if_outdated: bool,
     ) -> Vec<u8> {
         let config = formatting_config(dialect, mode, max_width, indentation_width, false, 0);
-        finish!(self.inner.borrow_mut().compile_query(&self.catalog.borrow(), &config, allow_extensions, parse_if_outdated))
+        finish!(self.inner.borrow_mut().compile_query(
+            &self.catalog.borrow(),
+            &config,
+            allow_extensions,
+            parse_if_outdated
+        ))
     }
 
     /// Format the script into a new script of the session catalog
@@ -702,7 +748,11 @@ impl ScriptSession {
         keyword_case: u8,
         parse_if_outdated: bool,
     ) -> Result<Script, JsError> {
-        self.format_with(self.catalog.clone(), formatting_config(dialect, mode, max_width, indentation_width, debug_mode, keyword_case), parse_if_outdated)
+        self.format_with(
+            self.catalog.clone(),
+            formatting_config(dialect, mode, max_width, indentation_width, debug_mode, keyword_case),
+            parse_if_outdated,
+        )
     }
 
     /// Format the script into a new script of another catalog
@@ -726,15 +776,24 @@ impl ScriptSession {
     /// The annotation of a statement as JSON, like `Script.readAnnotation`
     #[wasm_bindgen(js_name = readAnnotation)]
     pub fn read_annotation(&self, statement_id: u32, parse_if_outdated: bool) -> Result<String, JsError> {
-        let annotation = self.inner.borrow_mut().read_annotation(statement_id as usize, parse_if_outdated).map_err(js_error)?;
+        let annotation =
+            self.inner.borrow_mut().read_annotation(statement_id as usize, parse_if_outdated).map_err(js_error)?;
         serde_json::to_string(&annotation).map_err(|e| JsError::new(&e.to_string()))
     }
 
     /// Replace the annotation of a statement, given as JSON. Returns the new text.
     #[wasm_bindgen(js_name = rewriteAnnotation)]
-    pub fn rewrite_annotation(&self, statement_id: u32, annotation: &str, parse_if_outdated: bool) -> Result<String, JsError> {
+    pub fn rewrite_annotation(
+        &self,
+        statement_id: u32,
+        annotation: &str,
+        parse_if_outdated: bool,
+    ) -> Result<String, JsError> {
         let annotation = parse_annotation(annotation)?;
-        self.inner.borrow_mut().rewrite_annotation(statement_id as usize, &annotation, parse_if_outdated).map_err(js_error)
+        self.inner
+            .borrow_mut()
+            .rewrite_annotation(statement_id as usize, &annotation, parse_if_outdated)
+            .map_err(js_error)
     }
 
     /// Set the `@board` tag of a query, negative rows and columns are absent. Returns the new text.
@@ -749,7 +808,10 @@ impl ScriptSession {
         parse_if_outdated: bool,
     ) -> Result<String, JsError> {
         let board = VisBoard { row: (row >= 0).then_some(row), column: (column >= 0).then_some(column), width, height };
-        self.inner.borrow_mut().rewrite_vis_board(statement_id as usize, Some(&board), parse_if_outdated).map_err(js_error)
+        self.inner
+            .borrow_mut()
+            .rewrite_vis_board(statement_id as usize, Some(&board), parse_if_outdated)
+            .map_err(js_error)
     }
 
     /// Set the `@flow` tag of the script, its placement on the dataflow canvas: the position if both coordinates are
@@ -806,9 +868,18 @@ impl ScriptSession {
     /// Set the renderer tag of a query (`vegalite` with a JSON object, `markdown` with a template or
     /// `table`), an empty kind removes it. Returns the new text.
     #[wasm_bindgen(js_name = rewriteVisRenderer)]
-    pub fn rewrite_vis_renderer(&self, statement_id: u32, kind: &str, body: &str, parse_if_outdated: bool) -> Result<String, JsError> {
+    pub fn rewrite_vis_renderer(
+        &self,
+        statement_id: u32,
+        kind: &str,
+        body: &str,
+        parse_if_outdated: bool,
+    ) -> Result<String, JsError> {
         let renderer = (!kind.is_empty()).then(|| VisRenderer::from_parts(kind, body)).transpose().map_err(js_error)?;
-        self.inner.borrow_mut().rewrite_vis_renderer(statement_id as usize, renderer.as_ref(), parse_if_outdated).map_err(js_error)
+        self.inner
+            .borrow_mut()
+            .rewrite_vis_renderer(statement_id as usize, renderer.as_ref(), parse_if_outdated)
+            .map_err(js_error)
     }
 
     /// Can formatting represent every node?
@@ -840,7 +911,10 @@ impl ScriptSession {
         if self.read_only {
             return Err(JsError::new("the catalog of a connection changes only through the runtime"));
         }
-        self.inner.borrow_mut().load_into_catalog(&mut self.catalog.borrow_mut(), CatalogLayer::SESSION).map_err(js_error)
+        self.inner
+            .borrow_mut()
+            .load_into_catalog(&mut self.catalog.borrow_mut(), CatalogLayer::SESSION)
+            .map_err(js_error)
     }
 
     #[wasm_bindgen(js_name = dropFromCatalog)]
@@ -881,7 +955,12 @@ impl WorkbookScriptSession {
         self.catalog.0.try_borrow().map_err(|_| JsError::new("the catalog of the script is busy"))
     }
 
-    fn format_with(&self, catalog: SharedCatalog, config: FormattingConfigT, parse_if_outdated: bool) -> Result<Script, JsError> {
+    fn format_with(
+        &self,
+        catalog: SharedCatalog,
+        config: FormattingConfigT,
+        parse_if_outdated: bool,
+    ) -> Result<Script, JsError> {
         let inner = {
             let target = catalog.0.try_borrow().map_err(|_| JsError::new("the catalog is busy"))?;
             self.parsed()?.format(&target, &config, parse_if_outdated).map_err(js_error)?
@@ -929,7 +1008,8 @@ impl WorkbookScriptSession {
     /// Complete at the primary cursor, returns the packed `Completion`
     #[wasm_bindgen(js_name = completeAtCursor)]
     pub fn complete_at_cursor(&self, limit: usize, keyword_case: u8) -> Result<Vec<u8>, JsError> {
-        let completion = self.session()?.complete(&*self.catalog()?, limit, KeywordCase(keyword_case)).map_err(js_error)?;
+        let completion =
+            self.session()?.complete(&*self.catalog()?, limit, KeywordCase(keyword_case)).map_err(js_error)?;
         Ok(finish!(completion))
     }
 
@@ -961,7 +1041,11 @@ impl WorkbookScriptSession {
         keyword_case: u8,
         parse_if_outdated: bool,
     ) -> Result<Script, JsError> {
-        self.format_with(self.catalog.clone(), formatting_config(dialect, mode, max_width, indentation_width, debug_mode, keyword_case), parse_if_outdated)
+        self.format_with(
+            self.catalog.clone(),
+            formatting_config(dialect, mode, max_width, indentation_width, debug_mode, keyword_case),
+            parse_if_outdated,
+        )
     }
 
     /// Format the script into a new script of another catalog
@@ -991,7 +1075,12 @@ impl WorkbookScriptSession {
 
     /// Replace the annotation of a statement, given as JSON. Returns the new text, the session stays.
     #[wasm_bindgen(js_name = rewriteAnnotation)]
-    pub fn rewrite_annotation(&self, statement_id: u32, annotation: &str, parse_if_outdated: bool) -> Result<String, JsError> {
+    pub fn rewrite_annotation(
+        &self,
+        statement_id: u32,
+        annotation: &str,
+        parse_if_outdated: bool,
+    ) -> Result<String, JsError> {
         let annotation = parse_annotation(annotation)?;
         self.parsed()?.rewrite_annotation(statement_id as usize, &annotation, parse_if_outdated).map_err(js_error)
     }
@@ -1062,9 +1151,17 @@ impl WorkbookScriptSession {
 
     /// Set the renderer tag of a query, an empty kind removes it. Returns the new text, the session stays.
     #[wasm_bindgen(js_name = rewriteVisRenderer)]
-    pub fn rewrite_vis_renderer(&self, statement_id: u32, kind: &str, body: &str, parse_if_outdated: bool) -> Result<String, JsError> {
+    pub fn rewrite_vis_renderer(
+        &self,
+        statement_id: u32,
+        kind: &str,
+        body: &str,
+        parse_if_outdated: bool,
+    ) -> Result<String, JsError> {
         let renderer = (!kind.is_empty()).then(|| VisRenderer::from_parts(kind, body)).transpose().map_err(js_error)?;
-        self.parsed()?.rewrite_vis_renderer(statement_id as usize, renderer.as_ref(), parse_if_outdated).map_err(js_error)
+        self.parsed()?
+            .rewrite_vis_renderer(statement_id as usize, renderer.as_ref(), parse_if_outdated)
+            .map_err(js_error)
     }
 
     /// Can formatting represent every node?
@@ -1129,7 +1226,15 @@ impl SessionPlanRequest {
 
     /// Add a connection, returns its index
     #[wasm_bindgen(js_name = addConnection)]
-    pub fn add_connection(&mut self, id: String, local: bool, catalog: &Catalog, dialect: u8, default_database: String, default_schema: String) -> u32 {
+    pub fn add_connection(
+        &mut self,
+        id: String,
+        local: bool,
+        catalog: &Catalog,
+        dialect: u8,
+        default_database: String,
+        default_schema: String,
+    ) -> u32 {
         self.connections.push((id, local, catalog.inner.clone(), dialect, default_database, default_schema));
         (self.connections.len() - 1) as u32
     }
@@ -1137,7 +1242,13 @@ impl SessionPlanRequest {
     /// Add a script in session order, returns its index. A materialized result of the script is written to
     /// `materialization_file` below the mount prefix, `s<index>.parquet` if absent.
     #[wasm_bindgen(js_name = addScript)]
-    pub fn add_script(&mut self, name: String, connection: u32, session: &ScriptSession, materialization_file: Option<String>) -> u32 {
+    pub fn add_script(
+        &mut self,
+        name: String,
+        connection: u32,
+        session: &ScriptSession,
+        materialization_file: Option<String>,
+    ) -> u32 {
         self.scripts.push((name, connection, session.inner.clone(), materialization_file));
         (self.scripts.len() - 1) as u32
     }
@@ -1188,7 +1299,9 @@ fn with_session_plan_request<R>(
     request: &SessionPlanRequest,
     f: impl FnOnce(&dashql_core_runtime::planner::SessionPlanRequest, &[std::cell::Ref<CoreScriptSession>]) -> R,
 ) -> R {
-    use dashql_core_runtime::planner::{ConnectionKind, PlanScope, PlannerAttachment, PlannerConnection, PlannerScript};
+    use dashql_core_runtime::planner::{
+        ConnectionKind, PlanScope, PlannerAttachment, PlannerConnection, PlannerScript,
+    };
     let catalogs: Vec<_> = request.connections.iter().map(|(_, _, catalog, _, _, _)| catalog.borrow()).collect();
     let sessions: Vec<_> = request.scripts.iter().map(|(_, _, session, _)| session.borrow()).collect();
     let connections: Vec<_> = request
@@ -1238,8 +1351,13 @@ fn with_session_plan_request<R>(
 /// session of each script. A script whose references have no errors carries neither its text version nor the spans of
 /// its references: the editors show only the errors of references, in the text that was checked, so typing in such a
 /// script leaves the buffer as it is.
-pub(crate) fn pack_reference_check(core: &dashql_core_runtime::planner::SessionPlanRequest, sessions: &[std::cell::Ref<CoreScriptSession>]) -> Vec<u8> {
-    use dashql_buffers::execution::{CheckedScriptReferenceT, CheckedScriptT, ScriptReferenceCheckT, ScriptReferenceKind, TableParameterCollisionT};
+pub(crate) fn pack_reference_check(
+    core: &dashql_core_runtime::planner::SessionPlanRequest,
+    sessions: &[std::cell::Ref<CoreScriptSession>],
+) -> Vec<u8> {
+    use dashql_buffers::execution::{
+        CheckedScriptReferenceT, CheckedScriptT, ScriptReferenceCheckT, ScriptReferenceKind, TableParameterCollisionT,
+    };
     use dashql_core_runtime::planner::script_references::ReferenceKind;
     {
         let checked = dashql_core_runtime::planner::script_references::check_script_references(core);
@@ -1314,7 +1432,10 @@ fn label_span(text: &str, span: dashql_parser::span::TextSpan) -> Option<dashql_
         let trimmed = line.trim_start();
         if !trimmed.trim_end().is_empty() {
             let begin = offset + (line.len() - trimmed.len());
-            return Some(dashql_parser::span::TextSpan { offset: (start + begin) as _, length: trimmed.trim_end().len() as _ });
+            return Some(dashql_parser::span::TextSpan {
+                offset: (start + begin) as _,
+                length: trimmed.trim_end().len() as _,
+            });
         }
         offset += line.len() + 1;
     }
@@ -1346,8 +1467,13 @@ mod label_tests {
 /// each script. The scripts carry no text versions and a statement carries the span of its label instead of its own,
 /// none with a target: the dataflow shows the target or the first line of a statement, so typing within a statement
 /// after its first line leaves the buffer as it is.
-pub(crate) fn pack_dataflow(core: &dashql_core_runtime::planner::SessionPlanRequest, sessions: &[std::cell::Ref<CoreScriptSession>]) -> Vec<u8> {
-    use dashql_buffers::execution::{DataflowEdgeKind, DataflowEdgeT, DataflowScriptT, DataflowStatementT, SessionDataflowT};
+pub(crate) fn pack_dataflow(
+    core: &dashql_core_runtime::planner::SessionPlanRequest,
+    sessions: &[std::cell::Ref<CoreScriptSession>],
+) -> Vec<u8> {
+    use dashql_buffers::execution::{
+        DataflowEdgeKind, DataflowEdgeT, DataflowScriptT, DataflowStatementT, SessionDataflowT,
+    };
     use dashql_core_runtime::planner::dataflow::DataflowEdgeKind as Kind;
     {
         let dataflow = dashql_core_runtime::planner::dataflow::derive_session_dataflow(core);
@@ -1359,11 +1485,15 @@ pub(crate) fn pack_dataflow(core: &dashql_core_runtime::planner::SessionPlanRequ
                 .zip(sessions)
                 .map(|(script, session)| {
                     let text = session.text();
-                    let labels: Vec<Option<dashql_parser::span::TextSpan>> =
-                        script.statements.iter().map(|s| if s.target.is_some() { None } else { label_span(&text, s.text_span) }).collect();
+                    let labels: Vec<Option<dashql_parser::span::TextSpan>> = script
+                        .statements
+                        .iter()
+                        .map(|s| if s.target.is_some() { None } else { label_span(&text, s.text_span) })
+                        .collect();
                     let projected = session.project_text_spans(labels.iter().flatten().copied());
                     let mut projected = projected.into_iter();
-                    let spans: Vec<_> = labels.iter().map(|label| label.and_then(|_| projected.next().flatten())).collect();
+                    let spans: Vec<_> =
+                        labels.iter().map(|label| label.and_then(|_| projected.next().flatten())).collect();
                     let mut packed = DataflowScriptT::default();
                     packed.analyzed = script.analyzed;
                     packed.text_version = 0;
@@ -1412,11 +1542,7 @@ pub(crate) fn pack_dataflow(core: &dashql_core_runtime::planner::SessionPlanRequ
             })
             .collect();
         out.edges = (!edges.is_empty()).then_some(edges);
-        let inputs: Vec<_> = dataflow
-            .inputs
-            .into_iter()
-            .map(|input| pack_session_input(&input))
-            .collect();
+        let inputs: Vec<_> = dataflow.inputs.into_iter().map(|input| pack_session_input(&input)).collect();
         out.inputs = (!inputs.is_empty()).then_some(inputs);
         let attachments: Vec<_> = dataflow
             .attachments
@@ -1434,7 +1560,9 @@ pub(crate) fn pack_dataflow(core: &dashql_core_runtime::planner::SessionPlanRequ
 }
 
 /// Pack an input of a session
-fn pack_session_input(input: &dashql_core_runtime::planner::session_inputs::SessionInput) -> dashql_buffers::execution::SessionInputT {
+fn pack_session_input(
+    input: &dashql_core_runtime::planner::session_inputs::SessionInput,
+) -> dashql_buffers::execution::SessionInputT {
     use dashql_buffers::execution::{SessionInputConsumerT, SessionInputT, SessionInputTypeSource};
     use dashql_core_runtime::planner::session_inputs::InputTypeSource;
     let (consumers, warnings, literal) = (&input.consumers, &input.warnings, input.literal.as_ref());
@@ -1449,7 +1577,8 @@ fn pack_session_input(input: &dashql_core_runtime::planner::session_inputs::Sess
     out.has_value = literal.is_some();
     out.literal = literal.map(|l| l.to_hyper());
     out.value = literal.map(|l| l.display_value());
-    out.consumers = (!consumers.is_empty()).then(|| consumers
+    out.consumers = (!consumers.is_empty()).then(|| {
+        consumers
             .iter()
             .map(|c| {
                 let mut t = SessionInputConsumerT::default();
@@ -1457,7 +1586,8 @@ fn pack_session_input(input: &dashql_core_runtime::planner::session_inputs::Sess
                 t.statement = c.statement;
                 t
             })
-            .collect());
+            .collect()
+    });
     out.warnings = (!warnings.is_empty()).then(|| warnings.to_vec());
     out
 }
@@ -1467,7 +1597,9 @@ fn pack_session_input(input: &dashql_core_runtime::planner::session_inputs::Sess
 #[wasm_bindgen(js_name = inputLiteral)]
 pub fn input_literal(value: &str, sql_type: Option<String>) -> Result<String, JsError> {
     let ty = sql_type.as_deref().and_then(dashql_core::analyzer::sql_types::parse_sql_type);
-    dashql_core::sql_literal::SqlLiteral::from_value(value, ty.as_ref()).map(|l| l.to_hyper()).map_err(|e| JsError::new(&e))
+    dashql_core::sql_literal::SqlLiteral::from_value(value, ty.as_ref())
+        .map(|l| l.to_hyper())
+        .map_err(|e| JsError::new(&e))
 }
 
 /// The change from one text to another (`workbook::text_change`): the range between their common prefix and suffix, on
@@ -1490,13 +1622,7 @@ pub(crate) fn pack_inputs(core: &dashql_core_runtime::planner::SessionPlanReques
     {
         let inputs = dashql_core_runtime::planner::session_inputs::collect_session_inputs(core);
         let mut out = dashql_buffers::execution::SessionInputsT::default();
-        out.inputs = Some(
-            inputs
-                .inputs
-                .iter()
-                .map(pack_session_input)
-                .collect(),
-        );
+        out.inputs = Some(inputs.inputs.iter().map(pack_session_input).collect());
         finish!(out)
     }
 }
@@ -1535,7 +1661,10 @@ impl TableParameters {
             let attachments: Vec<_> = request
                 .attachments
                 .iter()
-                .map(|(name, _, _, columns)| dashql_core::table_parameters::TableParameterAttachment { name, columns: columns.as_deref() })
+                .map(|(name, _, _, columns)| dashql_core::table_parameters::TableParameterAttachment {
+                    name,
+                    columns: columns.as_deref(),
+                })
                 .collect();
             CoreResults::derive(&inputs, &attachments, previous.as_deref())
         };
@@ -1547,7 +1676,8 @@ impl TableParameters {
         let mut outdated = Vec::new();
         for (i, (_, _, session, _)) in request.scripts.iter().enumerate() {
             let mut session = session.borrow_mut();
-            let attached = session.script().table_parameters.as_ref().is_some_and(|r| std::sync::Arc::ptr_eq(r, &results));
+            let attached =
+                session.script().table_parameters.as_ref().is_some_and(|r| std::sync::Arc::ptr_eq(r, &results));
             if !attached {
                 session.set_table_parameters(Some(results.clone()));
                 // An analysis without table parameters reads no results
@@ -1601,7 +1731,6 @@ pub fn process_batch(request: &[u8]) -> Result<Vec<u8>, JsError> {
     dashql_core::batch::process_batch(request).map_err(js_error)
 }
 
-
 /// A query profile (`dashql_query_profile_*`)
 #[wasm_bindgen]
 pub struct QueryProfile {
@@ -1613,9 +1742,7 @@ pub struct QueryProfile {
 impl QueryProfile {
     #[wasm_bindgen(constructor)]
     pub fn new() -> QueryProfile {
-        QueryProfile {
-            inner: dashql_core_profile::QueryProfile::new(),
-        }
+        QueryProfile { inner: dashql_core_profile::QueryProfile::new() }
     }
 
     /// Configure the layout with a packed `ProfileLayoutConfig`

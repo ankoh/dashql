@@ -39,10 +39,7 @@ pub struct NameSearchIndex {
 
 impl NameSearchIndex {
     pub fn new(names: Vec<IndexedName>) -> Self {
-        Self {
-            names,
-            suffixes: OnceLock::new(),
-        }
+        Self { names, suffixes: OnceLock::new() }
     }
 
     /// The sorted suffixes

@@ -676,7 +676,10 @@ fn left_to_right_siblings_do_not_overlap() {
                 continue;
             }
             let (upper, lower) = if a.y() > b.y() { (b, a) } else { (a, b) };
-            assert!(lower.y() - lower.height() / 2.0 >= upper.y() + upper.height() / 2.0 + 2.0 - 0.001, "operators {i} and {j}");
+            assert!(
+                lower.y() - lower.height() / 2.0 >= upper.y() + upper.height() / 2.0 + 2.0 - 0.001,
+                "operators {i} and {j}"
+            );
         }
     }
 }
@@ -716,7 +719,8 @@ fn left_to_right_roots_are_stacked() {
     let plan = root(&buffer);
     let roots = plan.root_operators().unwrap();
     let operators = plan.operators().unwrap();
-    let (first, second) = (operators.get(roots.get(0) as usize).layout_rect(), operators.get(roots.get(1) as usize).layout_rect());
+    let (first, second) =
+        (operators.get(roots.get(0) as usize).layout_rect(), operators.get(roots.get(1) as usize).layout_rect());
     assert!((first.x() - first.width() / 2.0 - (second.x() - second.width() / 2.0)).abs() <= 0.001);
     assert!(second.y() - second.height() / 2.0 >= first.y() + first.height() / 2.0 + margin - 0.001);
 }

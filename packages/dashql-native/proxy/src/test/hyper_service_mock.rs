@@ -16,10 +16,7 @@ pub struct HyperServiceMock {
 }
 
 impl HyperServiceMock {
-    pub fn new() -> (
-        Self,
-        tokio::sync::mpsc::Receiver<(QueryParam, QueryResultSender)>,
-    ) {
+    pub fn new() -> (Self, tokio::sync::mpsc::Receiver<(QueryParam, QueryResultSender)>) {
         let (send, recv) = tokio::sync::mpsc::channel(1);
         (Self { setup_execute_query: send }, recv)
     }
@@ -45,9 +42,7 @@ impl HyperService for HyperServiceMock {
 
         // Wire up a receiver stream to the gRPC output
         let out = ReceiverStream::new(receive);
-        Ok(tonic::Response::new(
-            Box::pin(out) as Self::ExecuteQueryStream
-        ))
+        Ok(tonic::Response::new(Box::pin(out) as Self::ExecuteQueryStream))
     }
 }
 
@@ -63,10 +58,9 @@ pub async fn spawn_hyper_service_mock(mock: HyperServiceMock) -> (SocketAddr, on
     tokio::spawn(async move {
         tonic::transport::Server::builder()
             .add_service(service)
-            .serve_with_incoming_shutdown(
-                tokio_stream::wrappers::TcpListenerStream::new(listener),
-                async { drop(shutdown_rx.await) },
-            )
+            .serve_with_incoming_shutdown(tokio_stream::wrappers::TcpListenerStream::new(listener), async {
+                drop(shutdown_rx.await)
+            })
             .await
             .unwrap();
     });

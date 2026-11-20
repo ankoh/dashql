@@ -18,7 +18,8 @@ use crate::hyper::link::hyper_link_channel_params;
 use crate::hyper::{HyperChannelContext, HyperHttpChannel};
 
 /// The message of a link whose token the page doesn't hold
-pub const MISSING_LINK_TOKEN_MESSAGE: &str = "Open the link of this Hyper again, e.g. the one that `hyperd run --ui` prints";
+pub const MISSING_LINK_TOKEN_MESSAGE: &str =
+    "Open the link of this Hyper again, e.g. the one that `hyperd run --ui` prints";
 
 /// What kind of channel a Hyper connection uses
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -55,7 +56,8 @@ pub fn hyper_channel_request(params: &JsonObject, link_token: Option<&str>) -> R
     match protocol {
         "WASM" => Ok(HyperChannelRequest { kind: HyperChannelKind::Embedded, params: params.clone() }),
         "V3_HTTP_LINK" => {
-            let token = link_token.filter(|token| !token.is_empty()).ok_or_else(|| MISSING_LINK_TOKEN_MESSAGE.to_string())?;
+            let token =
+                link_token.filter(|token| !token.is_empty()).ok_or_else(|| MISSING_LINK_TOKEN_MESSAGE.to_string())?;
             Ok(HyperChannelRequest { kind: HyperChannelKind::Http, params: hyper_link_channel_params(params, token) })
         }
         "V3_HTTP" => Ok(HyperChannelRequest { kind: HyperChannelKind::Http, params: params.clone() }),
@@ -72,13 +74,19 @@ fn http_channel(request: &HyperChannelRequest, client_context: Option<Value>) ->
 }
 
 /// Set up a Hyper connection with its params, the connection takes the channel with the ready step
-pub async fn setup_hyper<H: SetupHost>(host: Rc<H>, params: JsonObject, cancellation: CancellationToken) -> Result<(), SetupFailure> {
+pub async fn setup_hyper<H: SetupHost>(
+    host: Rc<H>,
+    params: JsonObject,
+    cancellation: CancellationToken,
+) -> Result<(), SetupFailure> {
     let mut params = params;
     params.remove("draftRows");
     host.dispatch(&ConnectionAction::Hyper(HyperAction::ChannelSetupStarted { params: params.clone() }));
     let cancel = |host: &H| {
         host.log(LogLevel::Warn, "Cancelled setup", &[("target", LOG_TARGET)]);
-        host.dispatch(&ConnectionAction::Hyper(HyperAction::ChannelSetupCancelled(DetailedError::new(super::CANCELLED_MESSAGE))));
+        host.dispatch(&ConnectionAction::Hyper(HyperAction::ChannelSetupCancelled(DetailedError::new(
+            super::CANCELLED_MESSAGE,
+        ))));
         Err(SetupFailure::cancelled())
     };
     let fail = |host: &H, failure: SetupFailure| {
@@ -105,7 +113,8 @@ pub async fn setup_hyper<H: SetupHost>(host: Rc<H>, params: JsonObject, cancella
         return Ok(());
     }
     // A cancellation stops the wait for the connect, a channel that is ready after it is closed
-    let channel = match connect_channel(&host, host.connect_hyper_channel(&request, &cancellation), &cancellation).await {
+    let channel = match connect_channel(&host, host.connect_hyper_channel(&request, &cancellation), &cancellation).await
+    {
         None => return cancel(&host),
         Some(Err(_)) if cancellation.is_cancelled() => return cancel(&host),
         Some(Err(error)) => {
@@ -120,6 +129,9 @@ pub async fn setup_hyper<H: SetupHost>(host: Rc<H>, params: JsonObject, cancella
         host.close_channel(channel);
         return cancel(&host);
     }
-    host.dispatch(&ConnectionAction::Hyper(HyperAction::ChannelReady { channel: ConnectionChannel::Host(channel), params }));
+    host.dispatch(&ConnectionAction::Hyper(HyperAction::ChannelReady {
+        channel: ConnectionChannel::Host(channel),
+        params,
+    }));
     Ok(())
 }

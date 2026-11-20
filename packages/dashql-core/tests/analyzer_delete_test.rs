@@ -1,12 +1,12 @@
 //! Tests of the analysis of DELETE statements.
 
-use dashql_core::catalog::CatalogLayer;
 use dashql_buffers::analyzer::TableReferenceRole;
 use dashql_core::analyzer::{AnalyzedScript, ColumnRef, TableRole};
 use dashql_core::catalog::Catalog;
-use dashql_core::pack::{pack_analyzed_script};
-use dashql_core::visualize::pack_visualization;
+use dashql_core::catalog::CatalogLayer;
+use dashql_core::pack::pack_analyzed_script;
 use dashql_core::script::Script;
+use dashql_core::visualize::pack_visualization;
 use std::sync::Arc;
 
 /// The fixture: a catalog with the tables target, source and audit
@@ -57,11 +57,13 @@ fn unresolved_reads(analyzed: &AnalyzedScript) -> usize {
 #[test]
 fn resolves_write_target_and_using_reads() {
     let test = AnalyzerDeleteTest::new();
-    let analyzed = test.analyze("delete from target as t using source as s where t.id = s.id returning t.label, s.source_only");
+    let analyzed =
+        test.analyze("delete from target as t using source as s where t.id = s.id returning t.label, s.source_only");
     assert_eq!(analyzed.table_references.len(), 2);
     for reference in &analyzed.table_references {
         let relation = reference.inner.as_ref().expect("relation expression");
-        let expected_role = if relation.table_name.table_name.text() == "target" { TableRole::Write } else { TableRole::Read };
+        let expected_role =
+            if relation.table_name.table_name.text() == "target" { TableRole::Write } else { TableRole::Read };
         assert_eq!(reference.role, expected_role);
         assert!(relation.resolved_table.is_some());
         assert_eq!(reference.ast_statement_id, Some(0));
@@ -139,8 +141,8 @@ fn cte_does_not_shadow_write_target() {
 #[test]
 fn non_recursive_ctes_do_not_resolve_self_or_forward_references() {
     let test = AnalyzerDeleteTest::new();
-    let analyzed =
-        test.analyze("with first as (select * from later), later as (select * from later) delete from target using first");
+    let analyzed = test
+        .analyze("with first as (select * from later), later as (select * from later) delete from target using first");
     assert_eq!(unresolved_reads(&analyzed), 2);
 }
 
@@ -159,8 +161,9 @@ fn recursive_cte_and_using_join_resolve_columns() {
 #[test]
 fn inner_aliases_shadow_target_during_correlation() {
     let test = AnalyzerDeleteTest::new();
-    let analyzed = test
-        .analyze("delete from target t where exists (select 1 from source t where t.source_only = 'x') returning t.label");
+    let analyzed = test.analyze(
+        "delete from target t where exists (select 1 from source t where t.source_only = 'x') returning t.label",
+    );
     for column in column_refs(&analyzed) {
         assert!(column.resolved.is_resolved());
     }
@@ -169,8 +172,8 @@ fn inner_aliases_shadow_target_during_correlation() {
 #[test]
 fn child_outputs_do_not_leak_into_delete_scope() {
     let test = AnalyzerDeleteTest::new();
-    let analyzed =
-        test.analyze("delete from target t where exists (select 1 as subquery_only) returning subquery_only, target.id");
+    let analyzed = test
+        .analyze("delete from target t where exists (select 1 as subquery_only) returning subquery_only, target.id");
     let unresolved_columns = column_refs(&analyzed).filter(|c| !c.resolved.is_resolved()).count();
     assert_eq!(unresolved_columns, 2);
 }
@@ -178,9 +181,8 @@ fn child_outputs_do_not_leak_into_delete_scope() {
 #[test]
 fn unresolved_target_remains_write_and_statements_are_isolated() {
     let test = AnalyzerDeleteTest::new();
-    let analyzed = test.analyze(
-        "delete from missing m where m.id = 1 returning m.id; delete from target where m.id = 2 returning id",
-    );
+    let analyzed = test
+        .analyze("delete from missing m where m.id = 1 returning m.id; delete from target where m.id = 2 returning id");
     assert_eq!(analyzed.table_references.len(), 2);
     assert_eq!(analyzed.table_references[0].role, TableRole::Write);
     assert_eq!(analyzed.table_references[1].role, TableRole::Write);

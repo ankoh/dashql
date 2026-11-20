@@ -7,13 +7,15 @@
 
 use std::rc::Rc;
 
-use dashql_core_runtime::attachments::{attachment_parameter_name, unique_attachment_file_name, DataFile, WorkbookAttachment};
+use dashql_core_runtime::attachments::{
+    attachment_parameter_name, unique_attachment_file_name, DataFile, WorkbookAttachment,
+};
 use dashql_core_runtime::host::HostError;
 use dashql_core_runtime::http::HostBytes;
 use dashql_core_runtime::names::script_display_name;
+use dashql_core_runtime::workbook::WorkbookAction;
 use dashql_core_storage::storage::keys::{attachment_key, workbook_attachment_list_key};
 use dashql_core_storage::storage::{WriteError, WriteOutcome, WriteTask};
-use dashql_core_runtime::workbook::WorkbookAction;
 use js_sys::{Array, Promise};
 use serde::Serialize;
 use tsify::Tsify;
@@ -73,9 +75,17 @@ pub(crate) async fn reconcile_attachments(
     if !workbooks.persistence.keeps() {
         return Ok(());
     }
-    let mut files: Vec<DataFile> =
-        items::<WorkbookDataFile>(platform.storage_await("listDataFiles", &[JsValue::from_str(workbook_id)]).await?, "the data files")?.into_iter().map(Into::into).collect();
-    let pending: Vec<DataFile> = pending_attachments(workbooks, workbook_id, deferred).into_iter().filter(|file| !files.iter().any(|listed| listed.name == file.name)).collect();
+    let mut files: Vec<DataFile> = items::<WorkbookDataFile>(
+        platform.storage_await("listDataFiles", &[JsValue::from_str(workbook_id)]).await?,
+        "the data files",
+    )?
+    .into_iter()
+    .map(Into::into)
+    .collect();
+    let pending: Vec<DataFile> = pending_attachments(workbooks, workbook_id, deferred)
+        .into_iter()
+        .filter(|file| !files.iter().any(|listed| listed.name == file.name))
+        .collect();
     files.extend(pending);
     let action = WorkbookAction::SetWorkbookAttachments { files };
     workbooks.apply(workbook_id, action).map_err(|error| HostError::new(error.what()))?;
@@ -84,7 +94,11 @@ pub(crate) async fn reconcile_attachments(
     runs.describe_attachments();
     // The write runs once the workbook is not held
     let key = workbook_attachment_list_key(workbook_id);
-    workbooks.persistence.write(&key, WriteTask::RefreshWorkbookAttachments { workbook_id: workbook_id.to_string() }, 0.0);
+    workbooks.persistence.write(
+        &key,
+        WriteTask::RefreshWorkbookAttachments { workbook_id: workbook_id.to_string() },
+        0.0,
+    );
     Ok(())
 }
 
@@ -93,7 +107,9 @@ fn pending_attachments(workbooks: &Rc<Workbooks>, workbook_id: &str, deferred: &
     let pending = workbooks.persistence.pending_keys_for_workbook(workbook_id);
     let shown: Vec<WorkbookAttachment> = workbooks
         .get(workbook_id)
-        .and_then(|workbook| workbook.try_borrow().ok().map(|workbook| workbook.attachments().map(<[_]>::to_vec).unwrap_or_default()))
+        .and_then(|workbook| {
+            workbook.try_borrow().ok().map(|workbook| workbook.attachments().map(<[_]>::to_vec).unwrap_or_default())
+        })
         .unwrap_or_default();
     let mut files = Vec::new();
     for key in pending {
@@ -105,7 +121,9 @@ fn pending_attachments(workbooks: &Rc<Workbooks>, workbook_id: &str, deferred: &
             .iter()
             .find(|(file_name, _)| file_name == name)
             .map(|(_, size)| *size as u64)
-            .or_else(|| shown.iter().find(|attachment| attachment.file_name == name).map(|attachment| attachment.size_bytes))
+            .or_else(|| {
+                shown.iter().find(|attachment| attachment.file_name == name).map(|attachment| attachment.size_bytes)
+            })
             .unwrap_or_default();
         files.push(DataFile { name: name.to_string(), size_bytes: size, mtime_ms: 0 });
     }
@@ -114,7 +132,11 @@ fn pending_attachments(workbooks: &Rc<Workbooks>, workbook_id: &str, deferred: &
 
 /// The size of a file of the host, a Blob or bytes
 fn file_size(file: &JsValue) -> usize {
-    field(file, "size").or_else(|| field(file, "byteLength")).and_then(|size| size.as_f64()).unwrap_or_default().max(0.0) as usize
+    field(file, "size")
+        .or_else(|| field(file, "byteLength"))
+        .and_then(|size| size.as_f64())
+        .unwrap_or_default()
+        .max(0.0) as usize
 }
 
 #[wasm_bindgen]
@@ -124,14 +146,22 @@ impl Runtime {
     /// it), is written through the storage writer and the view of the workbook lists it once the storage does. Resolves
     /// with the names the files got and the refused files, rejects with what the storage failed with.
     #[wasm_bindgen(js_name = attachFiles, unchecked_return_type = "Promise<AttachFilesOutcome>")]
-    pub fn attach_files(&self, workbook_id: String, #[wasm_bindgen(unchecked_param_type = "AttachedFile[]")] files: JsValue) -> Result<Promise, JsError> {
-        let workbook = self.workbooks.get(&workbook_id).ok_or_else(|| JsError::new(&format!("no workbook registered with id {workbook_id}")))?;
+    pub fn attach_files(
+        &self,
+        workbook_id: String,
+        #[wasm_bindgen(unchecked_param_type = "AttachedFile[]")] files: JsValue,
+    ) -> Result<Promise, JsError> {
+        let workbook = self
+            .workbooks
+            .get(&workbook_id)
+            .ok_or_else(|| JsError::new(&format!("no workbook registered with id {workbook_id}")))?;
         let Some(writer) = self.workbooks.persistence.writer().cloned() else {
             return Err(JsError::new("the runtime keeps no files, its platform has no storage"));
         };
         let (script_names, mut taken): (Vec<String>, Vec<WorkbookAttachment>) = {
             let workbook = workbook.try_borrow().map_err(|_| JsError::new("the workbook is busy"))?;
-            let names = workbook.scripts().iter().map(|script| script_display_name(script.file_name()).to_string()).collect();
+            let names =
+                workbook.scripts().iter().map(|script| script_display_name(script.file_name()).to_string()).collect();
             (names, workbook.attachments().map(<[_]>::to_vec).unwrap_or_default())
         };
         let mut outcome = AttachFilesOutcome::default();
@@ -140,7 +170,9 @@ impl Runtime {
         for file in Array::from(&files).iter() {
             let name = field(&file, "name").and_then(|name| name.as_string()).unwrap_or_default();
             let content = field(&file, "file");
-            let file_name = content.as_ref().and_then(|_| unique_attachment_file_name(&name, script_names.iter().map(String::as_str), &taken));
+            let file_name = content
+                .as_ref()
+                .and_then(|_| unique_attachment_file_name(&name, script_names.iter().map(String::as_str), &taken));
             let (Some(content), Some(file_name)) = (content, file_name) else {
                 outcome.refused.push(name);
                 continue;
@@ -148,10 +180,20 @@ impl Runtime {
             // A later file of the same name replaces this one, others name themselves past it
             if !taken.iter().any(|attachment| attachment.file_name == file_name) {
                 let parameter = attachment_parameter_name(&file_name).unwrap_or_default().to_string();
-                taken.push(WorkbookAttachment { file_name: file_name.clone(), name: parameter, size_bytes: 0, mtime_ms: 0, columns: None });
+                taken.push(WorkbookAttachment {
+                    file_name: file_name.clone(),
+                    name: parameter,
+                    size_bytes: 0,
+                    mtime_ms: 0,
+                    columns: None,
+                });
             }
             let size = file_size(&content);
-            let task = WriteTask::SaveDataFile { workbook_id: workbook_id.clone(), file_name: file_name.clone(), file: HostBytes::new(Rc::new(content), size) };
+            let task = WriteTask::SaveDataFile {
+                workbook_id: workbook_id.clone(),
+                file_name: file_name.clone(),
+                file: HostBytes::new(Rc::new(content), size),
+            };
             writes.push(writer.write_durable(&task.key(), task));
             sizes.push((file_name.clone(), size));
             outcome.attached.push(AttachedFileName { name, file_name });
@@ -163,7 +205,8 @@ impl Runtime {
             let mut deferred = Vec::new();
             for (write, size) in writes.into_iter().zip(sizes) {
                 match write.await {
-                    WriteOutcome::Failed(WriteError::Host(error)) | WriteOutcome::Failed(WriteError::WorkbookUnavailable { cause: error, .. }) => {
+                    WriteOutcome::Failed(WriteError::Host(error))
+                    | WriteOutcome::Failed(WriteError::WorkbookUnavailable { cause: error, .. }) => {
                         failed.get_or_insert(error);
                     }
                     WriteOutcome::Deferred => deferred.push(size),
@@ -171,7 +214,11 @@ impl Runtime {
                 }
             }
             // The view lists what the storage holds and what waits for it, also after a failed write
-            let reconciled = if outcome.attached.is_empty() { Ok(()) } else { reconcile_attachments(&platform, &workbooks, &runs, &workbook_id, &deferred).await };
+            let reconciled = if outcome.attached.is_empty() {
+                Ok(())
+            } else {
+                reconcile_attachments(&platform, &workbooks, &runs, &workbook_id, &deferred).await
+            };
             if let Some(error) = failed {
                 return Err(error_value(&error));
             }
@@ -194,11 +241,15 @@ impl Runtime {
             let Some((new_file_name, write)) = rename else { return Ok(JsValue::NULL) };
             // In memory the file is renamed with the workbook, the next mount of the attachments follows the new name
             if let Some(write) = write {
-                if let WriteOutcome::Failed(WriteError::Host(error)) | WriteOutcome::Failed(WriteError::WorkbookUnavailable { cause: error, .. }) = write.await {
+                if let WriteOutcome::Failed(WriteError::Host(error))
+                | WriteOutcome::Failed(WriteError::WorkbookUnavailable { cause: error, .. }) = write.await
+                {
                     return Err(error_value(&error));
                 }
                 // The mount of the attachments and the attachment list of the workbook file follow the file
-                reconcile_attachments(&platform, &workbooks, &runs, &workbook_id, &[]).await.map_err(|error| error_value(&error))?;
+                reconcile_attachments(&platform, &workbooks, &runs, &workbook_id, &[])
+                    .await
+                    .map_err(|error| error_value(&error))?;
             }
             Ok(JsValue::from_str(&new_file_name))
         }))
@@ -210,7 +261,9 @@ impl Runtime {
     pub fn refresh_attachments(&self, workbook_id: String) -> Promise {
         let (platform, workbooks, runs) = (self.platform.clone(), self.workbooks.clone(), self.runs.clone());
         future_to_promise(async move {
-            reconcile_attachments(&platform, &workbooks, &runs, &workbook_id, &[]).await.map_err(|error| error_value(&error))?;
+            reconcile_attachments(&platform, &workbooks, &runs, &workbook_id, &[])
+                .await
+                .map_err(|error| error_value(&error))?;
             Ok(JsValue::UNDEFINED)
         })
     }

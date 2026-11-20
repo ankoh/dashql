@@ -33,12 +33,22 @@ pub fn param_tag(name: &str, literal: &SqlLiteral) -> AnnotationTag {
 
 /// Set or remove the value of an input, a literal in the Hyper dialect. `first_use` is the statement that uses the
 /// input first, a new tag goes there, the last statement if unknown.
-pub fn rewrite_param_tag(text: &str, parsed: &ParsedScript, name: &str, literal: Option<&str>, first_use: Option<usize>) -> Result<String> {
+pub fn rewrite_param_tag(
+    text: &str,
+    parsed: &ParsedScript,
+    name: &str,
+    literal: Option<&str>,
+    first_use: Option<usize>,
+) -> Result<String> {
     let literal = literal.map(SqlLiteral::parse).transpose().map_err(Error::invalid_argument)?;
     let tag = literal.map(|literal| param_tag(name, &literal));
     // After the other inputs, before the visualization
     let insert_at = |tags: &[AnnotationTag]| {
-        tags.iter().rposition(|t| t.name == PARAM_TAG).map(|i| i + 1).or_else(|| tags.iter().position(is_vis_family)).unwrap_or(tags.len())
+        tags.iter()
+            .rposition(|t| t.name == PARAM_TAG)
+            .map(|i| i + 1)
+            .or_else(|| tags.iter().position(is_vis_family))
+            .unwrap_or(tags.len())
     };
     rewrite_script_tag(text, parsed, |t| is_input(t, name), tag, first_use, insert_at)
 }
@@ -56,19 +66,36 @@ mod tests {
 
     #[test]
     fn adds_a_tag_to_the_first_use() {
-        assert_eq!(rewrite("select 1;\nselect :min", "min", Some("10"), Some(1)), "select 1;\n/** @param :min = 10 */\nselect :min");
-        assert_eq!(rewrite("select :span", "span", Some("INTERVAL '3' DAY"), None), "/** @param :span = interval '3' day */\nselect :span");
+        assert_eq!(
+            rewrite("select 1;\nselect :min", "min", Some("10"), Some(1)),
+            "select 1;\n/** @param :min = 10 */\nselect :min"
+        );
+        assert_eq!(
+            rewrite("select :span", "span", Some("INTERVAL '3' DAY"), None),
+            "/** @param :span = interval '3' day */\nselect :span"
+        );
     }
 
     #[test]
     fn replaces_the_tag_in_place() {
-        assert_eq!(rewrite("/* @param :min = 10 */\nselect :min", "min", Some("20"), None), "/** @param :min = 20 */\nselect :min");
         assert_eq!(
-            rewrite("/** @param :a = 1\n * @param :min = 10\n * @vis table */\nselect :min", "min", Some("'x y'"), None),
+            rewrite("/* @param :min = 10 */\nselect :min", "min", Some("20"), None),
+            "/** @param :min = 20 */\nselect :min"
+        );
+        assert_eq!(
+            rewrite(
+                "/** @param :a = 1\n * @param :min = 10\n * @vis table */\nselect :min",
+                "min",
+                Some("'x y'"),
+                None
+            ),
             "/**\n * @param :a = 1\n * @param :min = 'x y'\n * @vis table\n */\nselect :min"
         );
         // An unset input gets its value
-        assert_eq!(rewrite("/* @param :min */\nselect :min", "min", Some("1"), None), "/** @param :min = 1 */\nselect :min");
+        assert_eq!(
+            rewrite("/* @param :min */\nselect :min", "min", Some("1"), None),
+            "/** @param :min = 1 */\nselect :min"
+        );
     }
 
     #[test]
@@ -91,7 +118,10 @@ mod tests {
 
     #[test]
     fn quotes_names_and_rejects_expressions() {
-        assert_eq!(rewrite("select :\"foo 2\"", "foo 2", Some("'a'"), None), "/** @param :\"foo 2\" = 'a' */\nselect :\"foo 2\"");
+        assert_eq!(
+            rewrite("select :\"foo 2\"", "foo 2", Some("'a'"), None),
+            "/** @param :\"foo 2\" = 'a' */\nselect :\"foo 2\""
+        );
         let parsed = parse(std::sync::Arc::new(scan("select :min", 0, 0)));
         assert!(rewrite_param_tag("select :min", &parsed, "min", Some("1 + 1"), None).is_err());
     }

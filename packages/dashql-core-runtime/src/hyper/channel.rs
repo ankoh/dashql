@@ -11,9 +11,9 @@ use serde_json::{Map, Value};
 
 use super::client::{AttachedDatabase, ExecuteQueryRequest, HyperHttpClient, HyperRequestHeaders};
 use super::error::HyperError;
-use crate::http::{Headers, HttpRequest, HttpResponse};
 use super::result_reader::{HyperResultReader, DEFAULT_PARALLEL_CHUNKS};
 use crate::connections::JsonObject;
+use crate::http::{Headers, HttpRequest, HttpResponse};
 use crate::query::Timestamp;
 
 /// The protocol of a Hyper connection

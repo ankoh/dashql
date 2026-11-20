@@ -156,7 +156,9 @@ fn split_host_port(host_port: &str) -> Option<(&str, Option<&str>)> {
 
 /// The characters that no host contains
 fn forbidden_in_host(c: char) -> bool {
-    c <= ' ' || c.is_control() || matches!(c, '<' | '>' | '^' | '|' | '%' | '\\' | '/' | '?' | '#' | '@' | '"' | '`' | '{' | '}' | '[' | ']')
+    c <= ' '
+        || c.is_control()
+        || matches!(c, '<' | '>' | '^' | '|' | '%' | '\\' | '/' | '?' | '#' | '@' | '"' | '`' | '{' | '}' | '[' | ']')
 }
 
 impl Url {
@@ -202,7 +204,9 @@ impl Url {
             }
         };
         let valid_host = match host.strip_prefix('[').and_then(|host| host.strip_suffix(']')) {
-            Some(address) => !address.is_empty() && address.chars().all(|c| c.is_ascii_hexdigit() || matches!(c, ':' | '.')),
+            Some(address) => {
+                !address.is_empty() && address.chars().all(|c| c.is_ascii_hexdigit() || matches!(c, ':' | '.'))
+            }
             None => !host.is_empty() && !host.chars().any(forbidden_in_host),
         };
         if !valid_host {
@@ -520,7 +524,10 @@ mod tests {
     fn encodes_like_the_browser() {
         assert_eq!(encode_uri_component("a b/c"), "a%20b%2Fc");
         assert_eq!(encode_uri_component("%2e"), "%252e");
-        assert_eq!(form_encode([("dataspace", "Marketing Space"), ("a[b]", "ü")]), "dataspace=Marketing+Space&a%5Bb%5D=%C3%BC");
+        assert_eq!(
+            form_encode([("dataspace", "Marketing Space"), ("a[b]", "ü")]),
+            "dataspace=Marketing+Space&a%5Bb%5D=%C3%BC"
+        );
         assert_eq!(decode_uri_component("a%20b%2Fc").as_deref(), Some("a b/c"));
         assert_eq!(decode_uri_component("%zz"), None);
         assert_eq!(decode_uri_component("%C3"), None);

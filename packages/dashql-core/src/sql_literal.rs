@@ -13,8 +13,8 @@
 //! several units or without one, `interval '1 day 2 hours'` or `interval '3 days'`, is no literal: Trino has no form of
 //! it, and DashQL doesn't read the text of intervals.
 
-use crate::analyzer::sql_types::{generic_kind, interval_keyword, read_sql_type};
 use crate::analyzer::clfn_calls::number;
+use crate::analyzer::sql_types::{generic_kind, interval_keyword, read_sql_type};
 use crate::analyzer::{SqlType, SqlTypeKind};
 use crate::formatter::Formatter;
 use crate::utils::{quote_string_literal, unquote_string_literal};
@@ -75,14 +75,17 @@ fn read_literal(parsed: &ParsedScript, node: &Node) -> Result<(Option<SqlType>, 
     let scalar = |kind| Some(SqlType::scalar(kind));
     match node.node_type() {
         NodeType::LITERAL_INTEGER => Ok((scalar(SqlTypeKind::Int8), text.to_string())),
-        NodeType::LITERAL_FLOAT => Ok((scalar(SqlTypeKind::Numeric { precision: None, scale: None }), text.to_string())),
+        NodeType::LITERAL_FLOAT => {
+            Ok((scalar(SqlTypeKind::Numeric { precision: None, scale: None }), text.to_string()))
+        }
         NodeType::LITERAL_NULL => Ok((None, String::new())),
         NodeType::BOOL => Ok((scalar(SqlTypeKind::Bool), (node.children_begin_or_value() != 0).to_string())),
         NodeType::LITERAL_STRING => Ok((scalar(SqlTypeKind::Text), string_content(parsed, Some(node))?)),
         // -2.5
         NodeType::OBJECT_SQL_NARY_EXPRESSION => {
             let [op, args] = attrs!(parsed.children(node), [K::SQL_EXPRESSION_OPERATOR, K::SQL_EXPRESSION_ARGS]);
-            let negate = op.is_some_and(|o| ExpressionOperator(o.children_begin_or_value() as _) == ExpressionOperator::NEGATE);
+            let negate =
+                op.is_some_and(|o| ExpressionOperator(o.children_begin_or_value() as _) == ExpressionOperator::NEGATE);
             match (negate, args.map(|a| parsed.children(a)).unwrap_or(&[])) {
                 (true, [arg]) if matches!(arg.node_type(), NodeType::LITERAL_INTEGER | NodeType::LITERAL_FLOAT) => {
                     let (sql_type, value) = read_literal(parsed, arg)?;
@@ -99,8 +102,10 @@ fn read_literal(parsed: &ParsedScript, node: &Node) -> Result<(Option<SqlType>, 
         }
         // date '...', timestamptz '...', json '...'
         NodeType::OBJECT_SQL_CONST_FUNCTION_CAST => {
-            let [args, name, value] =
-                attrs!(parsed.children(node), [K::SQL_CONST_CAST_FUNC_ARGS_LIST, K::SQL_CONST_CAST_FUNC_NAME, K::SQL_CONST_CAST_VALUE]);
+            let [args, name, value] = attrs!(
+                parsed.children(node),
+                [K::SQL_CONST_CAST_FUNC_ARGS_LIST, K::SQL_CONST_CAST_FUNC_NAME, K::SQL_CONST_CAST_VALUE]
+            );
             if args.is_some() {
                 return Err(format!("{text} is no literal"));
             }
@@ -110,8 +115,10 @@ fn read_literal(parsed: &ParsedScript, node: &Node) -> Result<(Option<SqlType>, 
         }
         // interval '3' day
         NodeType::OBJECT_SQL_CONST_INTERVAL_CAST => {
-            let [interval, value] = attrs!(parsed.children(node), [K::SQL_CONST_CAST_INTERVAL, K::SQL_CONST_CAST_VALUE]);
-            let invalid = || format!("{text} is no interval literal, an interval is a number and a unit, e.g. interval '3' day");
+            let [interval, value] =
+                attrs!(parsed.children(node), [K::SQL_CONST_CAST_INTERVAL, K::SQL_CONST_CAST_VALUE]);
+            let invalid =
+                || format!("{text} is no interval literal, an interval is a number and a unit, e.g. interval '3' day");
             let [fields, precision] = match interval {
                 Some(i) if i.node_type() == NodeType::OBJECT_SQL_INTERVAL_TYPE => {
                     attrs!(parsed.children(i), [K::SQL_INTERVAL_TYPE, K::SQL_INTERVAL_PRECISION])
@@ -119,7 +126,9 @@ fn read_literal(parsed: &ParsedScript, node: &Node) -> Result<(Option<SqlType>, 
                 _ => return Err(invalid()),
             };
             let unit = fields.map(|f| IntervalTypeEnum(f.children_begin_or_value() as _));
-            let Some(unit) = unit.filter(|u| precision.is_none() && interval_unit(*u).is_some()) else { return Err(invalid()) };
+            let Some(unit) = unit.filter(|u| precision.is_none() && interval_unit(*u).is_some()) else {
+                return Err(invalid());
+            };
             let amount = string_content(parsed, value).map_err(|_| invalid())?;
             if !is_interval_amount(&amount, unit) {
                 return Err(invalid());
@@ -133,8 +142,14 @@ fn read_literal(parsed: &ParsedScript, node: &Node) -> Result<(Option<SqlType>, 
 }
 
 /// The units of an interval literal
-const INTERVAL_UNITS: [IntervalTypeEnum; 6] =
-    [IntervalTypeEnum::YEAR, IntervalTypeEnum::MONTH, IntervalTypeEnum::DAY, IntervalTypeEnum::HOUR, IntervalTypeEnum::MINUTE, IntervalTypeEnum::SECOND];
+const INTERVAL_UNITS: [IntervalTypeEnum; 6] = [
+    IntervalTypeEnum::YEAR,
+    IntervalTypeEnum::MONTH,
+    IntervalTypeEnum::DAY,
+    IntervalTypeEnum::HOUR,
+    IntervalTypeEnum::MINUTE,
+    IntervalTypeEnum::SECOND,
+];
 
 /// The keyword of the unit of an interval literal, None for ranges like `day to second`
 fn interval_unit(unit: IntervalTypeEnum) -> Option<&'static str> {
@@ -175,7 +190,8 @@ impl SqlLiteral {
             return Err(invalid());
         }
         // The value of the one result target of the select, which is the whole text, `1 from t` is no literal
-        let mut values = parsed.nodes.iter().enumerate().filter(|(_, n)| n.attribute_key() == K::SQL_RESULT_TARGET_VALUE);
+        let mut values =
+            parsed.nodes.iter().enumerate().filter(|(_, n)| n.attribute_key() == K::SQL_RESULT_TARGET_VALUE);
         let (Some((node, value)), None) = (values.next(), values.next()) else { return Err(invalid()) };
         if parsed.node_text(value) != text {
             return Err(invalid());
@@ -217,14 +233,23 @@ impl SqlLiteral {
                 .ok_or_else(|| format!("{ty} needs true or false, not \"{value}\"")),
             SqlTypeKind::Date => typed("date"),
             SqlTypeKind::Time { with_time_zone, .. } => typed(if *with_time_zone { "timetz" } else { "time" }),
-            SqlTypeKind::Timestamp { with_time_zone, .. } => typed(if *with_time_zone { "timestamptz" } else { "timestamp" }),
+            SqlTypeKind::Timestamp { with_time_zone, .. } => {
+                typed(if *with_time_zone { "timestamptz" } else { "timestamp" })
+            }
             SqlTypeKind::Interval { .. } => {
                 let invalid = || format!("{ty} needs a number and a unit, e.g. 3 day, not \"{value}\"");
                 let mut words = value.split_whitespace();
-                let (Some(amount), Some(unit), None) = (words.next(), words.next(), words.next()) else { return Err(invalid()) };
+                let (Some(amount), Some(unit), None) = (words.next(), words.next(), words.next()) else {
+                    return Err(invalid());
+                };
                 let unit = unit.to_ascii_lowercase();
-                let Some(keyword) = INTERVAL_UNITS.into_iter().filter_map(interval_keyword).find(|keyword| *keyword == unit) else { return Err(invalid()) };
-                SqlLiteral::parse(&format!("interval {} {keyword}", quote_string_literal(amount))).map_err(|_| invalid())
+                let Some(keyword) =
+                    INTERVAL_UNITS.into_iter().filter_map(interval_keyword).find(|keyword| *keyword == unit)
+                else {
+                    return Err(invalid());
+                };
+                SqlLiteral::parse(&format!("interval {} {keyword}", quote_string_literal(amount)))
+                    .map_err(|_| invalid())
             }
             _ => string(),
         }
@@ -296,11 +321,26 @@ mod tests {
         assert_eq!(kind("TRUE"), Some(SqlTypeKind::Bool));
         assert_eq!(kind("null"), None);
         assert_eq!(kind("date '2024-01-01'"), Some(SqlTypeKind::Date));
-        assert_eq!(kind("timestamp '2024-01-01 10:00'"), Some(SqlTypeKind::Timestamp { precision: None, with_time_zone: false }));
-        assert_eq!(kind("timestamp with time zone '2024-01-01'"), Some(SqlTypeKind::Timestamp { precision: None, with_time_zone: true }));
-        assert_eq!(kind("timestamptz '2024-01-01'"), Some(SqlTypeKind::Timestamp { precision: None, with_time_zone: true }));
-        assert_eq!(kind("interval '3' day"), Some(SqlTypeKind::Interval { fields: Some(IntervalTypeEnum::DAY), precision: None }));
-        assert_eq!(kind("interval '-2' MONTH"), Some(SqlTypeKind::Interval { fields: Some(IntervalTypeEnum::MONTH), precision: None }));
+        assert_eq!(
+            kind("timestamp '2024-01-01 10:00'"),
+            Some(SqlTypeKind::Timestamp { precision: None, with_time_zone: false })
+        );
+        assert_eq!(
+            kind("timestamp with time zone '2024-01-01'"),
+            Some(SqlTypeKind::Timestamp { precision: None, with_time_zone: true })
+        );
+        assert_eq!(
+            kind("timestamptz '2024-01-01'"),
+            Some(SqlTypeKind::Timestamp { precision: None, with_time_zone: true })
+        );
+        assert_eq!(
+            kind("interval '3' day"),
+            Some(SqlTypeKind::Interval { fields: Some(IntervalTypeEnum::DAY), precision: None })
+        );
+        assert_eq!(
+            kind("interval '-2' MONTH"),
+            Some(SqlTypeKind::Interval { fields: Some(IntervalTypeEnum::MONTH), precision: None })
+        );
         assert_eq!(read("'it''s'").display_value(), "it's");
         assert_eq!(read("interval '3' day").display_value(), "3 day");
         assert_eq!(read("interval '1.5' second").display_value(), "1.5 second");
@@ -309,7 +349,18 @@ mod tests {
 
     #[test]
     fn rejects_expressions() {
-        for text in ["", "1 + 2", "now()", "x", "'a' || 'b'", "interval(3) '1 s'", "select 1", "1; select 2", "1 from t", "-'a'"] {
+        for text in [
+            "",
+            "1 + 2",
+            "now()",
+            "x",
+            "'a' || 'b'",
+            "interval(3) '1 s'",
+            "select 1",
+            "1; select 2",
+            "1 from t",
+            "-'a'",
+        ] {
             assert!(SqlLiteral::parse(text).is_err(), "{text}");
         }
     }

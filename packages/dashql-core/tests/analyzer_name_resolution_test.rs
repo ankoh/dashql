@@ -1,10 +1,10 @@
 //! Name resolution through the FROM sources of the name scopes: derived tables, column aliases,
 //! correlation, qualified stars, merged join columns and output column names.
 
-use dashql_core::catalog::CatalogLayer;
 use dashql_buffers::analyzer::AnalyzerErrorType;
 use dashql_core::analyzer::{AnalyzedScript, ColumnResolution};
 use dashql_core::catalog::Catalog;
+use dashql_core::catalog::CatalogLayer;
 use dashql_core::script::Script;
 use std::sync::Arc;
 
@@ -108,10 +108,7 @@ fn values_columns_are_named_by_the_column_aliases() {
 #[test]
 fn expression_subquery_outputs_are_not_visible() {
     let test = NameResolutionTest::new();
-    assert_eq!(
-        test.resolve("select c from t where a in (select c from u)"),
-        ["c -> ?", "a -> t.a", "c -> u.c"]
-    );
+    assert_eq!(test.resolve("select c from t where a in (select c from u)"), ["c -> ?", "a -> t.a", "c -> u.c"]);
 }
 
 #[test]
@@ -144,10 +141,7 @@ fn derived_tables_do_not_correlate_with_their_siblings() {
 #[test]
 fn derived_tables_correlate_with_outer_queries() {
     let test = NameResolutionTest::new();
-    assert_eq!(
-        test.resolve("select (select s.k from (select t.a as k) s) from t"),
-        ["s.k -> t.a", "t.a -> t.a"]
-    );
+    assert_eq!(test.resolve("select (select s.k from (select t.a as k) s) from t"), ["s.k -> t.a", "t.a -> t.a"]);
 }
 
 #[test]
@@ -221,10 +215,7 @@ fn group_by_prefers_input_columns() {
 #[test]
 fn set_operations_order_by_the_left_output_columns() {
     let test = NameResolutionTest::new();
-    assert_eq!(
-        test.resolve("select a from t union select c from u order by a"),
-        ["a -> t.a", "c -> u.c", "a -> t.a"]
-    );
+    assert_eq!(test.resolve("select a from t union select c from u order by a"), ["a -> t.a", "c -> u.c", "a -> t.a"]);
 }
 
 #[test]

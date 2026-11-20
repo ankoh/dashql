@@ -1,7 +1,10 @@
 use std::io::{Read, Write};
 
 use bytes::{Buf, BufMut};
-use tonic::{codec::{Codec, DecodeBuf, Decoder, EncodeBuf, Encoder}, Status};
+use tonic::{
+    codec::{Codec, DecodeBuf, Decoder, EncodeBuf, Encoder},
+    Status,
+};
 
 type GenericGrpcClientData = Vec<u8>;
 
@@ -25,19 +28,11 @@ impl GenericGrpcClient {
         &mut self,
         request: tonic::Request<GenericGrpcClientData>,
         path: tonic::codegen::http::uri::PathAndQuery,
-    ) -> std::result::Result<
-        tonic::Response<GenericGrpcClientData>,
-        tonic::Status,
-    > {
+    ) -> std::result::Result<tonic::Response<GenericGrpcClientData>, tonic::Status> {
         self.inner
             .ready()
             .await
-            .map_err(|e| {
-                tonic::Status::new(
-                    tonic::Code::Unknown,
-                    format!("Service was not ready: {}", e),
-                )
-            })?;
+            .map_err(|e| tonic::Status::new(tonic::Code::Unknown, format!("Service was not ready: {}", e)))?;
         let codec = PassthroughCodec::default();
         self.inner.unary(request, path, codec).await
     }
@@ -46,19 +41,11 @@ impl GenericGrpcClient {
         &mut self,
         request: tonic::Request<GenericGrpcClientData>,
         path: tonic::codegen::http::uri::PathAndQuery,
-    ) -> std::result::Result<
-        tonic::Response<tonic::codec::Streaming<GenericGrpcClientData>>,
-        tonic::Status,
-    > {
+    ) -> std::result::Result<tonic::Response<tonic::codec::Streaming<GenericGrpcClientData>>, tonic::Status> {
         self.inner
             .ready()
             .await
-            .map_err(|e| {
-                tonic::Status::new(
-                    tonic::Code::Unknown,
-                    format!("Service was not ready: {}", e),
-                )
-            })?;
+            .map_err(|e| tonic::Status::new(tonic::Code::Unknown, format!("Service was not ready: {}", e)))?;
         let codec = PassthroughCodec::default();
         self.inner.server_streaming(request, path, codec).await
     }
@@ -112,7 +99,12 @@ mod test {
     use prost::Message;
     use tokio_stream::StreamExt;
 
-    use crate::{proto::dashql_test::{TestServerStreamingRequest, TestServerStreamingResponse, TestUnaryRequest, TestUnaryResponse}, test::grpc_service_mock::{spawn_grpc_test_service_mock, GrpcServiceMock}};
+    use crate::{
+        proto::dashql_test::{
+            TestServerStreamingRequest, TestServerStreamingResponse, TestUnaryRequest, TestUnaryResponse,
+        },
+        test::grpc_service_mock::{spawn_grpc_test_service_mock, GrpcServiceMock},
+    };
 
     #[tokio::test]
     async fn test_unary() -> Result<()> {
@@ -123,9 +115,7 @@ mod test {
         // Respond single unary response
         let unary_call = tokio::spawn(async move {
             let (param, result_sender) = setup_unary.recv().await.unwrap();
-            result_sender.send(Ok(TestUnaryResponse {
-                data: "response data".to_string()
-            })).await.unwrap();
+            result_sender.send(Ok(TestUnaryResponse { data: "response data".to_string() })).await.unwrap();
             param
         });
 
@@ -134,12 +124,8 @@ mod test {
         let mut client = GenericGrpcClient::new(channel);
 
         // Call the unary test function
-        let unary_path = tonic::codegen::http::uri::PathAndQuery::from_static(
-            "/dashql.test.TestService/TestUnary",
-        );
-        let unary_param = TestUnaryRequest {
-            data: "request data".to_string()
-        };
+        let unary_path = tonic::codegen::http::uri::PathAndQuery::from_static("/dashql.test.TestService/TestUnary");
+        let unary_param = TestUnaryRequest { data: "request data".to_string() };
         let unary_req = tonic::Request::new(unary_param.encode_to_vec());
         let unary_result = client.call_unary(unary_req, unary_path).await?;
 
@@ -165,9 +151,7 @@ mod test {
         // Respond single streaming response
         let streaming_call = tokio::spawn(async move {
             let (param, result_sender) = setup_server_streaming.recv().await.unwrap();
-            result_sender.send(Ok(TestServerStreamingResponse {
-                data: "response data".to_string()
-            })).await.unwrap();
+            result_sender.send(Ok(TestServerStreamingResponse { data: "response data".to_string() })).await.unwrap();
             param
         });
 
@@ -176,12 +160,9 @@ mod test {
         let mut client = GenericGrpcClient::new(channel);
 
         // Call the unary test function
-        let streaming_path = tonic::codegen::http::uri::PathAndQuery::from_static(
-            "/dashql.test.TestService/TestServerStreaming",
-        );
-        let streaming_param = TestServerStreamingRequest {
-            data: "request data".to_string()
-        };
+        let streaming_path =
+            tonic::codegen::http::uri::PathAndQuery::from_static("/dashql.test.TestService/TestServerStreaming");
+        let streaming_param = TestServerStreamingRequest { data: "request data".to_string() };
         let streaming_req = tonic::Request::new(streaming_param.encode_to_vec());
         let streaming_response = client.call_server_streaming(streaming_req, streaming_path).await?;
 

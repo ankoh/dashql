@@ -215,7 +215,8 @@ impl QueryProfileProgressView {
             revision: progress.revision,
             structure_version: progress.structure_version,
             structure: (!structure_known).then(|| FlatBufferBytes(progress.structure.as_ref().clone())),
-            execution: (!revision_known).then(|| FlatBufferBytes(progress.execution.pack_events(progress.structure_version))),
+            execution: (!revision_known)
+                .then(|| FlatBufferBytes(progress.execution.pack_events(progress.structure_version))),
         }
     }
 }
@@ -401,13 +402,19 @@ impl QueryView {
                 text_length: m.text_length,
                 stream_metrics: (&m.stream_metrics).into(),
             },
-            error: query.error.as_ref().map(|e| QueryErrorView { message: e.message.clone(), details: e.details.clone() }),
+            error: query
+                .error
+                .as_ref()
+                .map(|e| QueryErrorView { message: e.message.clone(), details: e.details.clone() }),
             result_table: query.result_table.map(|t| QueryResultTableView { id: t.id, rows: t.rows }),
             cache_key: query.cache_key.clone(),
             served_from_cache: query.served_from_cache,
             cache_deleted: query.cache_deleted,
             cached_at: query.cached_at,
-            latest_progress_update: query.latest_progress_update.as_ref().map(|progress| QueryLatestProgressView::of(progress, known)),
+            latest_progress_update: query
+                .latest_progress_update
+                .as_ref()
+                .map(|progress| QueryLatestProgressView::of(progress, known)),
             revision: query.revision,
             handle: query.handle,
         }

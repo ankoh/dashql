@@ -55,10 +55,7 @@ impl ExternalObjectId {
     }
 
     pub fn unpack(packed: u64) -> Self {
-        Self {
-            origin: (packed >> 32) as u32,
-            object: packed as u32,
-        }
+        Self { origin: (packed >> 32) as u32, object: packed as u32 }
     }
 }
 
@@ -93,46 +90,22 @@ pub struct QualifiedCatalogObjectId {
 
 impl QualifiedCatalogObjectId {
     pub const fn deferred() -> Self {
-        Self {
-            object_type: CatalogObjectType::Deferred,
-            part0: 0,
-            part1: 0,
-        }
+        Self { object_type: CatalogObjectType::Deferred, part0: 0, part1: 0 }
     }
     pub const fn database(database_id: CatalogDatabaseId) -> Self {
-        Self {
-            object_type: CatalogObjectType::DatabaseReference,
-            part0: database_id as u64,
-            part1: 0,
-        }
+        Self { object_type: CatalogObjectType::DatabaseReference, part0: database_id as u64, part1: 0 }
     }
     pub const fn schema(database_id: CatalogDatabaseId, schema_id: CatalogSchemaId) -> Self {
-        Self {
-            object_type: CatalogObjectType::SchemaReference,
-            part0: database_id as u64,
-            part1: schema_id,
-        }
+        Self { object_type: CatalogObjectType::SchemaReference, part0: database_id as u64, part1: schema_id }
     }
     pub fn table(table_id: CatalogTableId) -> Self {
-        Self {
-            object_type: CatalogObjectType::TableDeclaration,
-            part0: table_id.pack(),
-            part1: 0,
-        }
+        Self { object_type: CatalogObjectType::TableDeclaration, part0: table_id.pack(), part1: 0 }
     }
     pub fn table_column(table_id: CatalogTableId, column_id: u32) -> Self {
-        Self {
-            object_type: CatalogObjectType::ColumnDeclaration,
-            part0: table_id.pack(),
-            part1: column_id,
-        }
+        Self { object_type: CatalogObjectType::ColumnDeclaration, part0: table_id.pack(), part1: column_id }
     }
     pub fn function(function_id: CatalogFunctionId) -> Self {
-        Self {
-            object_type: CatalogObjectType::FunctionDeclaration,
-            part0: function_id.pack(),
-            part1: 0,
-        }
+        Self { object_type: CatalogObjectType::FunctionDeclaration, part0: function_id.pack(), part1: 0 }
     }
 
     pub fn object_type(&self) -> CatalogObjectType {

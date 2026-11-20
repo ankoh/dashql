@@ -59,7 +59,8 @@ impl RelationName {
 
 /// The relation of a table name of the analyzer, a name without a database gets the default database
 pub fn read_relation_name(name: &QualifiedTableNameT, default_database: &str) -> RelationName {
-    let database_name = name.database_name.as_deref().filter(|database| !database.is_empty()).unwrap_or(default_database);
+    let database_name =
+        name.database_name.as_deref().filter(|database| !database.is_empty()).unwrap_or(default_database);
     RelationName::new(
         database_name,
         name.schema_name.as_deref().unwrap_or(""),

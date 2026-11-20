@@ -20,18 +20,18 @@ pub mod local_cloud;
 pub mod result_reader;
 pub mod status;
 
+pub use crate::http::{Headers, HttpMethod, HttpRequest, HttpResponse};
 pub use channel::{HyperChannelContext, HyperHttpChannel, HyperProtocol};
 pub use client::{
-    read_cancel_response, read_query_response, read_status_header, read_status_response,
-    AttachedDatabase, ExecuteQueryRequest, GetQueryChunkParams, GetQueryStatusParams,
-    HyperHttpClient, HyperRequestHeaders, QueryResponse, ResultRange, ARROW_STREAM_CONTENT_TYPE, HEADER_HYPERDB_STATUS,
+    read_cancel_response, read_query_response, read_status_header, read_status_response, AttachedDatabase,
+    ExecuteQueryRequest, GetQueryChunkParams, GetQueryStatusParams, HyperHttpClient, HyperRequestHeaders,
+    QueryResponse, ResultRange, ARROW_STREAM_CONTENT_TYPE, HEADER_HYPERDB_STATUS,
 };
 pub use error::{
     check_response, read_error_response, HyperError, HyperHttpError, HyperQueryError, QueryErrorDetails,
     QueryErrorPosition, QueryErrorResponse,
 };
 pub use error_info::{from_http_error_response, HyperErrorInfo, HyperErrorSource, HyperTextPosition};
-pub use crate::http::{Headers, HttpMethod, HttpRequest, HttpResponse};
 pub use result_reader::{
     HyperResultReader, ReaderPoll, ReaderRequest, RequestId, ResultEvent, CHUNK_POLL_DELAY_MS, DEFAULT_PARALLEL_CHUNKS,
 };

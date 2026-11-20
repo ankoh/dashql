@@ -11,15 +11,15 @@
 //! binding of the core module holds both and clears the history on `ConnectionEffect::StopQueries`.
 
 mod catalog_updates;
-mod details;
 pub mod connector;
+mod details;
 mod hyper;
-pub mod open_setup;
 pub mod label;
+pub mod open_setup;
 mod params;
 pub mod registry;
-pub mod sharing;
 mod salesforce;
+pub mod sharing;
 mod trino;
 
 use std::cell::RefCell;
@@ -41,18 +41,18 @@ pub use details::{
     Timestamp, TrinoDetails, TrinoOAuthState,
 };
 pub use hyper::HyperAction;
+pub(crate) use params::object;
 pub use params::{
-    is_truthy, string_field, trino_session_defaults, ConnectionParams, ConnectorFeatures, ConnectorType, JsonObject, TrinoSessionDefaults,
-    CONNECTOR_TYPES, DEFAULT_DATABASE_NAME, HYPER_CLOUD_DEFAULT_DATABASE_NAME, HYPER_DEFAULT_SCHEMA,
-    SALESFORCE_CATALOG_DATABASE, SALESFORCE_CATALOG_SCHEMA,
+    is_truthy, string_field, trino_session_defaults, ConnectionParams, ConnectorFeatures, ConnectorType, JsonObject,
+    TrinoSessionDefaults, CONNECTOR_TYPES, DEFAULT_DATABASE_NAME, HYPER_CLOUD_DEFAULT_DATABASE_NAME,
+    HYPER_DEFAULT_SCHEMA, SALESFORCE_CATALOG_DATABASE, SALESFORCE_CATALOG_SCHEMA,
 };
 pub use salesforce::SalesforceAction;
-pub(crate) use params::object;
 pub use trino::TrinoAction;
 
-pub use crate::workbook::CatalogHandle;
 use crate::catalog_loader::sql::function_script_header;
 use crate::handles::Handle;
+pub use crate::workbook::CatalogHandle;
 use crate::workbook::{new_catalog, next_revision, ScriptConnection, ScriptConnectionProfile};
 use dashql_buffers::formatting::FormattingDialect;
 
@@ -279,7 +279,12 @@ pub struct ConnectionState {
 
 impl ConnectionState {
     /// A connection with an empty catalog of the runtime (`workbook::new_catalog`)
-    pub fn new(connection_id: &str, details: ConnectionDetails, options: ConnectionStateOptions, now: Timestamp) -> Self {
+    pub fn new(
+        connection_id: &str,
+        details: ConnectionDetails,
+        options: ConnectionStateOptions,
+        now: Timestamp,
+    ) -> Self {
         Self::with_catalog(connection_id, details, options, now, new_catalog())
     }
 
@@ -328,10 +333,18 @@ impl ConnectionState {
     }
 
     /// What the scripts read of a connection
-    fn profile_of(connector: ConnectorType, details: &ConnectionDetails, params: &ConnectionParams) -> ScriptConnectionProfile {
+    fn profile_of(
+        connector: ConnectorType,
+        details: &ConnectionDetails,
+        params: &ConnectionParams,
+    ) -> ScriptConnectionProfile {
         let defaults = details.catalog_name_defaults();
         ScriptConnectionProfile {
-            dialect: if connector == ConnectorType::Trino { FormattingDialect::TRINO } else { FormattingDialect::HYPER },
+            dialect: if connector == ConnectorType::Trino {
+                FormattingDialect::TRINO
+            } else {
+                FormattingDialect::HYPER
+            },
             local: false,
             params: Some(params.to_json()),
             default_database: defaults.database_name,
@@ -487,7 +500,8 @@ impl ConnectionState {
             }
             ConnectionAction::Reset => {
                 let catalog = self.catalog.clone();
-                let mut catalog = catalog.try_borrow_mut().map_err(|_| Error::invalid_argument("the catalog is in use"))?;
+                let mut catalog =
+                    catalog.try_borrow_mut().map_err(|_| Error::invalid_argument("the catalog is in use"))?;
                 // Pending publishers are stopped before the catalog is cleared
                 self.stop("Connection was reset", &mut outcome.effects);
                 catalog.clear();
@@ -495,7 +509,8 @@ impl ConnectionState {
             }
             ConnectionAction::Delete => {
                 let catalog = self.catalog.clone();
-                let mut catalog = catalog.try_borrow_mut().map_err(|_| Error::invalid_argument("the catalog is in use"))?;
+                let mut catalog =
+                    catalog.try_borrow_mut().map_err(|_| Error::invalid_argument("the catalog is in use"))?;
                 self.stop("Connection was deleted", &mut outcome.effects);
                 // The descriptors may have been dropped already, that is no error
                 let _ = catalog.drop_descriptor(self.relation_entry_id);
@@ -527,10 +542,12 @@ impl ConnectionState {
                 outcome.changed = self.catalog_updates.register_query(task_id, query_id);
             }
             ConnectionAction::CatalogUpdateCancelled { task_id, error } => {
-                outcome.changed = self.catalog_updates.finish(task_id, CatalogUpdateTaskStatus::Cancelled, Some(error), now);
+                outcome.changed =
+                    self.catalog_updates.finish(task_id, CatalogUpdateTaskStatus::Cancelled, Some(error), now);
             }
             ConnectionAction::CatalogUpdateFailed { task_id, error } => {
-                outcome.changed = self.catalog_updates.finish(task_id, CatalogUpdateTaskStatus::Failed, Some(error), now);
+                outcome.changed =
+                    self.catalog_updates.finish(task_id, CatalogUpdateTaskStatus::Failed, Some(error), now);
             }
             ConnectionAction::CatalogUpdateSucceeded { task_id } => {
                 outcome.changed = self.catalog_updates.finish(task_id, CatalogUpdateTaskStatus::Succeeded, None, now);
@@ -589,7 +606,8 @@ impl ConnectionState {
     /// Replace the text of the script with the functions of the connection, the catalog loader publishes its
     /// descriptor. A deleted connection has no script.
     pub fn replace_function_script_text(&mut self, text: &str) -> Result<()> {
-        let script = self.function_script.as_mut().ok_or_else(|| Error::invalid_argument("the connection was deleted"))?;
+        let script =
+            self.function_script.as_mut().ok_or_else(|| Error::invalid_argument("the connection was deleted"))?;
         script.replace_text(text);
         Ok(())
     }
@@ -616,7 +634,9 @@ impl ConnectionState {
             ConnectionAction::Hyper(HyperAction::ChannelSetupStarted { params }) => {
                 (Some(ConnectionParams::new(ConnectorType::Hyper, params.clone())), self.params_draft.clone())
             }
-            ConnectionAction::Trino(TrinoAction::OAuthStarted { params } | TrinoAction::ChannelSetupStarted { params }) => {
+            ConnectionAction::Trino(
+                TrinoAction::OAuthStarted { params } | TrinoAction::ChannelSetupStarted { params },
+            ) => {
                 // The channel setup after an OAuth flow continues the attempt of the flow
                 let draft = if self.setup_attempt_params.is_none() {
                     self.params_draft.clone()
@@ -730,4 +750,3 @@ impl ConnectionState {
         self.details.reset(effects);
     }
 }
-

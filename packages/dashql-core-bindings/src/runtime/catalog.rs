@@ -11,8 +11,10 @@ use std::future::Future;
 use std::rc::{Rc, Weak};
 
 use dashql_core_runtime::catalog_loader::service::LOG_TARGET;
-use dashql_core_runtime::catalog_loader::{CatalogLoaderHost, CatalogLoaderService, CatalogQuery, CatalogUpdateOutcome, FollowedConnection, QueryBatches};
 use dashql_core_runtime::catalog_loader::CATALOG_QUERY_ISSUER;
+use dashql_core_runtime::catalog_loader::{
+    CatalogLoaderHost, CatalogLoaderService, CatalogQuery, CatalogUpdateOutcome, FollowedConnection, QueryBatches,
+};
 use dashql_core_runtime::connections::{CatalogUpdateTask, CatalogUpdateTaskStatus, ConnectionAction};
 use dashql_core_runtime::executor::ipc;
 use dashql_core_runtime::host::{Host, HostError, LogLevel, OnHost};
@@ -44,7 +46,11 @@ impl LoaderHost {
     fn apply(&self, connection_id: &str, action: ConnectionAction, changed: Option<bool>) {
         let Some(connections) = self.connections.upgrade() else { return };
         if let Err(error) = connections.apply(connection_id, action, changed) {
-            connections.log(LogLevel::Debug, "A catalog update changed nothing", &[("connectionId", connection_id), ("error", error.what())]);
+            connections.log(
+                LogLevel::Debug,
+                "A catalog update changed nothing",
+                &[("connectionId", connection_id), ("error", error.what())],
+            );
         }
     }
 }
@@ -65,7 +71,11 @@ impl OnHost for LoaderHost {
 }
 
 impl HttpHost for LoaderHost {
-    fn fetch(&self, request: HttpRequest, cancellation: &CancellationToken) -> impl Future<Output = Result<HttpResponse, HostError>> + 'static {
+    fn fetch(
+        &self,
+        request: HttpRequest,
+        cancellation: &CancellationToken,
+    ) -> impl Future<Output = Result<HttpResponse, HostError>> + 'static {
         self.platform.send(request, cancellation, false)
     }
 }
@@ -104,7 +114,9 @@ impl CatalogLoaderHost for LoaderHost {
                 let read_timeout_ms = query.read_timeout.then(|| self.platform.settings().catalog_query_timeout_ms);
                 connections.run_internal(connection_id, &query.sql, metadata, read_timeout_ms, true, cancellation)
             };
-            let registered = u32::try_from(query_id).ok().map(|query_id| ConnectionAction::CatalogUpdateRegisterQuery { task_id, query_id });
+            let registered = u32::try_from(query_id)
+                .ok()
+                .map(|query_id| ConnectionAction::CatalogUpdateRegisterQuery { task_id, query_id });
             if let Some(registered) = registered {
                 self.apply(connection_id, registered, None);
             }

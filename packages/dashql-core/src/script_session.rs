@@ -19,30 +19,30 @@
 //! Projections convert the mostly ascending offsets of a script in one pass (`Utf16Projector`).
 
 use crate::analyzer::{AnalyzedScript, ExpressionInner, TableReference};
+use crate::annotation::Annotation;
 use crate::catalog::{Catalog, CatalogEntryId, CatalogLayer, CatalogTableId, QualifiedTableName, PROTO_NULL_U32};
 use crate::compiler::{compile, CompilationOptions};
 use crate::completion::is_symbol_kind_completable;
 use crate::cursor::CursorContext;
 use crate::error::{Error, Result};
-use crate::annotation::Annotation;
-use crate::vis_rewrite::{VisBoard, VisFlow, VisRenderer};
 use crate::pack::{pack_completion, pack_tokens};
 use crate::script::{Script, TextVersion};
-use crate::table_parameters::TableParameters;
 use crate::script_diff::ScriptDiff;
+use crate::table_parameters::TableParameters;
 use crate::utils::rope::{resolve_byte_boundary, resolve_utf16_boundary, TextPosition, Utf16Projector};
+use crate::vis_rewrite::{VisBoard, VisFlow, VisRenderer};
 use dashql_buffers::analyzer::AnalyzerErrorSeverity;
 use dashql_buffers::completion::CompletionT;
 use dashql_buffers::cursor::RelativeSymbolPosition;
 use dashql_buffers::diff::ScriptDiffT;
 use dashql_buffers::editor::{
-    EditorCommentTagT, EditorCursorSemanticContextT, EditorCursorSemanticKind, EditorCursorStateT, EditorDiagnosticSeverity,
-    EditorDiagnosticSource, EditorDiagnosticT, EditorEvent, EditorEventAction, EditorEventIntent, EditorEventOrigin,
-    EditorEventT, EditorOffsetUnit, EditorProcessingStatisticsT, EditorAnalysisVersionT, EditorScriptAnnotationsT,
-    EditorBoardPositionT, EditorFlowPositionT,
-    EditorSelectionT, EditorSemanticReferenceKind, EditorSemanticResolution, EditorSemanticSpanT,
-    EditorStatementDescriptionT, EditorStatementT, EditorSyntaxSpanT, EditorTableDefinitionT, EditorTextChangeT,
-    EditorTextSpanT, EditorUpdateStatus, EditorUpdateT,
+    EditorAnalysisVersionT, EditorBoardPositionT, EditorCommentTagT, EditorCursorSemanticContextT,
+    EditorCursorSemanticKind, EditorCursorStateT, EditorDiagnosticSeverity, EditorDiagnosticSource, EditorDiagnosticT,
+    EditorEvent, EditorEventAction, EditorEventIntent, EditorEventOrigin, EditorEventT, EditorFlowPositionT,
+    EditorOffsetUnit, EditorProcessingStatisticsT, EditorScriptAnnotationsT, EditorSelectionT,
+    EditorSemanticReferenceKind, EditorSemanticResolution, EditorSemanticSpanT, EditorStatementDescriptionT,
+    EditorStatementT, EditorSyntaxSpanT, EditorTableDefinitionT, EditorTextChangeT, EditorTextSpanT,
+    EditorUpdateStatus, EditorUpdateT,
 };
 use dashql_buffers::execution::ScriptCompilationResultT;
 use dashql_buffers::formatting::{FormattingConfigT, KeywordCase};
@@ -210,10 +210,7 @@ pub struct Selection {
 
 impl Selection {
     fn from_event(selection: &EditorSelectionT) -> Self {
-        Self {
-            anchor: selection.anchor,
-            head: selection.head,
-        }
+        Self { anchor: selection.anchor, head: selection.head }
     }
 
     fn pack(self) -> Box<EditorSelectionT> {
@@ -350,9 +347,9 @@ impl ScriptSession {
     /// `names` (`find_table_parameter`), in text order and in the offset unit of the session. Positional parameters and the
     /// targets of writes reference no script. Empty if the analysis lags behind the text.
     pub fn script_references(&self, names: &[String]) -> Vec<(EditorTextSpanT, Option<usize>)> {
-        use dashql_buffers::parser::AttributeKey;
         use crate::analyzer::ParameterKind;
         use crate::table_parameters::{find_table_parameter, TableParameterLookup};
+        use dashql_buffers::parser::AttributeKey;
         let Some((scanned, parsed, analyzed)) = self.script.current_analysis() else {
             return Vec::new();
         };
@@ -397,7 +394,8 @@ impl ScriptSession {
     /// The analysis is current if it was analyzed from the current text, and against a snapshot of
     /// the catalog that is still current.
     pub fn is_analysis_current(&self, catalog: &Catalog) -> bool {
-        self.script.current_analysis().is_some_and(|(_, _, analyzed)| catalog.is_current(&analyzed.snapshot)) && self.script.table_parameters_current()
+        self.script.current_analysis().is_some_and(|(_, _, analyzed)| catalog.is_current(&analyzed.snapshot))
+            && self.script.table_parameters_current()
     }
 
     /// The revision and selection part of an update
@@ -481,7 +479,12 @@ impl ScriptSession {
     }
 
     /// Move the primary cursor without changing the text
-    pub fn set_primary_cursor(&mut self, catalog: &Catalog, expected_text_version: TextVersion, offset: u64) -> EditorUpdateT {
+    pub fn set_primary_cursor(
+        &mut self,
+        catalog: &Catalog,
+        expected_text_version: TextVersion,
+        offset: u64,
+    ) -> EditorUpdateT {
         let mut selection = EditorSelectionT::default();
         selection.anchor = offset;
         selection.head = offset;
@@ -624,8 +627,8 @@ impl ScriptSession {
         // Selection updates also publish a complete projection. Refresh a stale analysis first,
         // otherwise a catalog change would turn a cursor move into an empty projection.
         let analysis_stale = !self.is_analysis_current(catalog);
-        let analysis_succeeded =
-            !(event.analyze || (event.primary_selection.is_some() && analysis_stale)) || self.analyze_into(catalog, &mut update);
+        let analysis_succeeded = !(event.analyze || (event.primary_selection.is_some() && analysis_stale))
+            || self.analyze_into(catalog, &mut update);
         let catalog_version = catalog.version() as u64;
         let analysis_current = self.is_analysis_current(catalog);
         let cursor_outdated = event.primary_selection.is_some()
@@ -725,9 +728,10 @@ impl ScriptSession {
         let mut projector = self.projector(Some(&parsed.scanned.text));
         // A current analysis is identified by the text version and the catalog version
         // A new analysis of the results of other scripts has the versions of the previous one
-        let omitted = !update.analysis_updated && known.is_some_and(|k| {
-            k.text_version == self.text_version() && k.catalog_revision == catalog.version() as u64
-        });
+        let omitted = !update.analysis_updated
+            && known.is_some_and(|k| {
+                k.text_version == self.text_version() && k.catalog_revision == catalog.version() as u64
+            });
         if omitted {
             update.analysis_omitted = true;
         } else {
@@ -802,15 +806,16 @@ impl ScriptSession {
         let lengths = tokens.token_lengths.as_deref().unwrap_or(&[]);
         let types = tokens.token_types.as_deref().unwrap_or(&[]);
         let mut syntax_spans = Vec::with_capacity(offsets.len() + scanned.comments.len());
-        let mut add_syntax = |projector: &mut Projector, token_type: ScannerTokenType, span: TextSpan, in_comment: bool| {
-            if let Some(text_span) = projector.span(span) {
-                let mut s = EditorSyntaxSpanT::default();
-                s.token_type = token_type;
-                s.text_span = text_span;
-                s.in_comment = in_comment;
-                syntax_spans.push(s);
-            }
-        };
+        let mut add_syntax =
+            |projector: &mut Projector, token_type: ScannerTokenType, span: TextSpan, in_comment: bool| {
+                if let Some(text_span) = projector.span(span) {
+                    let mut s = EditorSyntaxSpanT::default();
+                    s.token_type = token_type;
+                    s.text_span = text_span;
+                    s.in_comment = in_comment;
+                    syntax_spans.push(s);
+                }
+            };
         for ((&offset, &length), &token_type) in offsets.iter().zip(lengths).zip(types) {
             add_syntax(projector, token_type, TextSpan::new(offset, length), false);
         }
@@ -835,7 +840,13 @@ impl ScriptSession {
                 .get(block.lines_begin as usize..(block.lines_begin + block.lines_count) as usize)
                 .unwrap_or_default();
             let mut tag = EditorCommentTagT::default();
-            tag.name = Some(scanned.text.get(block.tag_span.offset as usize..block.tag_span.end() as usize).unwrap_or("").to_string());
+            tag.name = Some(
+                scanned
+                    .text
+                    .get(block.tag_span.offset as usize..block.tag_span.end() as usize)
+                    .unwrap_or("")
+                    .to_string(),
+            );
             tag.text_span = projector.span(block.text_span);
             tag.lines = non_empty(lines.iter().filter_map(|&line| projector.span(line)).collect());
             comment_tags.push(tag);
@@ -994,7 +1005,13 @@ impl ScriptSession {
     }
 
     /// Project the state and the semantic context of the collapsed primary cursor
-    fn project_cursor(&self, catalog: &Catalog, update: &mut EditorUpdateT, analyzed: &AnalyzedScript, projector: &mut Projector) {
+    fn project_cursor(
+        &self,
+        catalog: &Catalog,
+        update: &mut EditorUpdateT,
+        analyzed: &AnalyzedScript,
+        projector: &mut Projector,
+    ) {
         let Some(cursor) = self.script.cursor(catalog) else {
             return;
         };
@@ -1045,7 +1062,9 @@ impl ScriptSession {
             context.catalog_table_id = table.table_id;
             context.catalog_column_id = column.unwrap_or(0);
             context.referenced_catalog_version = table.catalog_version;
-            if let Some((entry_id, location)) = declaration(analyzed, catalog, CatalogTableId::unpack(table.table_id), column) {
+            if let Some((entry_id, location)) =
+                declaration(analyzed, catalog, CatalogTableId::unpack(table.table_id), column)
+            {
                 context.declaration_catalog_entry_id = entry_id;
                 context.declaration_location = location.map(|l| TextSpanT { offset: l.offset, length: l.length });
             }
@@ -1145,7 +1164,12 @@ impl ScriptSession {
     }
 
     /// Replace the annotation of a statement, returns the new text
-    pub fn rewrite_annotation(&mut self, statement_id: usize, annotation: &Annotation, parse_if_outdated: bool) -> Result<String> {
+    pub fn rewrite_annotation(
+        &mut self,
+        statement_id: usize,
+        annotation: &Annotation,
+        parse_if_outdated: bool,
+    ) -> Result<String> {
         self.script.rewrite_annotation(statement_id, annotation, parse_if_outdated)
     }
 
@@ -1160,7 +1184,12 @@ impl ScriptSession {
     }
 
     /// Set or remove the dashboard placement of a query, its `@board` tag, returns the new text
-    pub fn rewrite_vis_board(&mut self, statement_id: usize, board: Option<&VisBoard>, parse_if_outdated: bool) -> Result<String> {
+    pub fn rewrite_vis_board(
+        &mut self,
+        statement_id: usize,
+        board: Option<&VisBoard>,
+        parse_if_outdated: bool,
+    ) -> Result<String> {
         self.script.rewrite_vis_board(statement_id, board, parse_if_outdated)
     }
 
@@ -1176,7 +1205,12 @@ impl ScriptSession {
     }
 
     /// Select the columns of the result of the terminal query below it, returns the new text
-    pub fn rewrite_result_projection(&mut self, columns: &[String], config: &FormattingConfigT, parse_if_outdated: bool) -> Result<String> {
+    pub fn rewrite_result_projection(
+        &mut self,
+        columns: &[String],
+        config: &FormattingConfigT,
+        parse_if_outdated: bool,
+    ) -> Result<String> {
         self.script.rewrite_result_projection(columns, config, parse_if_outdated)
     }
 

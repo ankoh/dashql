@@ -17,14 +17,14 @@ use std::rc::{Rc, Weak};
 use dashql_buffers::editor::{EditorEventT, EditorOffsetUnit};
 use dashql_core::error::{Error, Result};
 use dashql_core_runtime::host::{Host, LogLevel};
-use dashql_core_storage::restore::script_connection_of;
 use dashql_core_runtime::names::free_workbook_name;
-use dashql_core_storage::storage::WriteResult;
 use dashql_core_runtime::visible_scripts::{ScriptAnalyses, VisibleScripts};
 use dashql_core_runtime::workbook::{
-    next_revision, EditorUpdateId, ScriptConnection, StoredScript, Workbook, WorkbookAction, WorkbookEffect, WorkbookOutcome,
-    WorkbookScript as Script,
+    next_revision, EditorUpdateId, ScriptConnection, StoredScript, Workbook, WorkbookAction, WorkbookEffect,
+    WorkbookOutcome, WorkbookScript as Script,
 };
+use dashql_core_storage::restore::script_connection_of;
+use dashql_core_storage::storage::WriteResult;
 use serde_json::{json, Map, Value};
 
 use super::changes::{Read, Slice};
@@ -34,7 +34,6 @@ use crate::host::JsPlatform;
 use crate::runtime::storage::restore_view::RestoredInvalidWorkbook;
 use crate::views::JsonValue;
 use view::{WorkbookAttachmentView, WorkbookCloudLink, WorkbookListEntry, WorkbookListView, WorkbookView};
-
 
 /// The target of the log messages of the workbooks
 const LOG_TARGET: &str = "workbook_scripts";
@@ -49,7 +48,11 @@ impl ScriptAnalyses for Workbooks {
     fn analyze(&self, key: u32) {
         let Some((workbook_id, _)) = self.of_script(key).value() else { return };
         if let Err(error) = self.apply(&workbook_id, WorkbookAction::AnalyzeOutdatedScript { key }) {
-            self.log(LogLevel::Warn, "Failed to analyze an outdated script", &[("workbookId", &workbook_id), ("error", error.what())]);
+            self.log(
+                LogLevel::Warn,
+                "Failed to analyze an outdated script",
+                &[("workbookId", &workbook_id), ("error", error.what())],
+            );
         }
     }
 }
@@ -143,7 +146,11 @@ impl Workbooks {
     pub fn new(platform: JsPlatform, connections: Rc<Connections>, persistence: Persistence) -> Rc<Self> {
         let workbooks = Rc::new(Workbooks {
             visible: VisibleScripts::new(platform.clone(), platform.settings().background_analysis_delay_ms),
-            pending_derives: Rc::new(RefCell::new(PendingDerives { platform: platform.clone(), workbooks: BTreeSet::new(), generation: 0 })),
+            pending_derives: Rc::new(RefCell::new(PendingDerives {
+                platform: platform.clone(),
+                workbooks: BTreeSet::new(),
+                generation: 0,
+            })),
             platform,
             connections: connections.clone(),
             persistence,
@@ -190,16 +197,22 @@ impl Workbooks {
     /// A workbook by id, busy while the workbooks are borrowed
     pub fn try_get(&self, workbook_id: &str) -> Read<Rc<RefCell<Workbook>>> {
         let Ok(entries) = self.entries.try_borrow() else { return Read::Busy };
-        entries.iter().find(|entry| entry.id == workbook_id).map_or(Read::Gone, |entry| Read::Value(entry.workbook.clone()))
+        entries
+            .iter()
+            .find(|entry| entry.id == workbook_id)
+            .map_or(Read::Gone, |entry| Read::Value(entry.workbook.clone()))
     }
 
     /// The workbook that holds a script, by the index of the scripts. Busy if no free workbook holds it but one is
     /// borrowed.
     pub fn of_script(&self, key: u32) -> Read<(String, Rc<RefCell<Workbook>>)> {
         let Ok(entries) = self.entries.try_borrow() else { return Read::Busy };
-        let holds = |entry: &WorkbookEntry| entry.workbook.try_borrow().is_ok_and(|workbook| workbook.script(key).is_some());
+        let holds =
+            |entry: &WorkbookEntry| entry.workbook.try_borrow().is_ok_and(|workbook| workbook.script(key).is_some());
         let indexed = self.script_index.try_borrow().ok().and_then(|index| index.get(&key).cloned());
-        if let Some(entry) = indexed.and_then(|id| entries.iter().find(|entry| entry.id == id)).filter(|entry| holds(entry)) {
+        if let Some(entry) =
+            indexed.and_then(|id| entries.iter().find(|entry| entry.id == id)).filter(|entry| holds(entry))
+        {
             return Read::Value((entry.id.clone(), entry.workbook.clone()));
         }
         let Some(entry) = entries.iter().find(|entry| holds(entry)) else {
@@ -226,8 +239,9 @@ impl Workbooks {
     /// The connection of the scripts on a connection of the runtime, with its catalog
     pub fn script_connection(&self, connection_id: &str) -> Result<Rc<ScriptConnection>> {
         let registry = self.connections.registry.borrow();
-        let connection =
-            registry.get(connection_id).ok_or_else(|| Error::invalid_argument(format!("no connection registered with id {connection_id}")))?;
+        let connection = registry
+            .get(connection_id)
+            .ok_or_else(|| Error::invalid_argument(format!("no connection registered with id {connection_id}")))?;
         let state = connection.state.borrow();
         Ok(script_connection_of(&state))
     }
@@ -259,7 +273,9 @@ impl Workbooks {
             .borrow()
             .iter()
             .filter(|entry| entry.id != except)
-            .filter_map(|entry| entry.workbook.try_borrow().ok().filter(|w| !w.ephemeral()).and_then(|w| w.name().map(str::to_string)))
+            .filter_map(|entry| {
+                entry.workbook.try_borrow().ok().filter(|w| !w.ephemeral()).and_then(|w| w.name().map(str::to_string))
+            })
             .collect()
     }
 
@@ -267,7 +283,9 @@ impl Workbooks {
     /// connections learn the workbooks that use them. A failed action leaves the workbook as it was, but for the
     /// scripts that analyzed on the way, e.g. before a rewrite of references, which show their analyses.
     pub fn apply(&self, workbook_id: &str, action: WorkbookAction) -> Result<bool> {
-        let workbook = self.get(workbook_id).ok_or_else(|| Error::invalid_argument(format!("no workbook registered with id {workbook_id}")))?;
+        let workbook = self
+            .get(workbook_id)
+            .ok_or_else(|| Error::invalid_argument(format!("no workbook registered with id {workbook_id}")))?;
         let changed = match action {
             // Fields of the scripts that the workbook derives nothing from
             WorkbookAction::SetCachedResult { .. }
@@ -275,10 +293,13 @@ impl Workbooks {
             | WorkbookAction::RegisterScriptResult { .. }
             | WorkbookAction::SetExecutionVisualization { .. } => Changed::Scripts { derives: false },
             // The analyses of the scripts
-            WorkbookAction::AnalyzeOutdatedScript { .. } | WorkbookAction::CatalogDidUpdate { .. } => Changed::Scripts { derives: true },
+            WorkbookAction::AnalyzeOutdatedScript { .. } | WorkbookAction::CatalogDidUpdate { .. } => {
+                Changed::Scripts { derives: true }
+            }
             _ => Changed::Workbook,
         };
-        let outcome = workbook.try_borrow_mut().map_err(|_| Error::invalid_argument("the workbook is busy"))?.apply(action);
+        let outcome =
+            workbook.try_borrow_mut().map_err(|_| Error::invalid_argument("the workbook is busy"))?.apply(action);
         match outcome {
             Ok(outcome) => Ok(self.settle(workbook_id, &workbook, outcome, changed)),
             Err(error) => {
@@ -292,8 +313,17 @@ impl Workbooks {
     /// Apply an event of the editor of a script of a session generation and return the packed update for the editor
     /// with its key: the update of the outcome, or the one that the script holds now. `known` is the key of the update
     /// that the editor holds. None for a script that holds another session.
-    pub fn apply_editor_event(&self, workbook_id: &str, key: u32, generation: u64, event: EditorEventT, known: Option<&str>) -> Result<Option<(Vec<u8>, String)>> {
-        let workbook = self.get(workbook_id).ok_or_else(|| Error::invalid_argument(format!("no workbook registered with id {workbook_id}")))?;
+    pub fn apply_editor_event(
+        &self,
+        workbook_id: &str,
+        key: u32,
+        generation: u64,
+        event: EditorEventT,
+        known: Option<&str>,
+    ) -> Result<Option<(Vec<u8>, String)>> {
+        let workbook = self
+            .get(workbook_id)
+            .ok_or_else(|| Error::invalid_argument(format!("no workbook registered with id {workbook_id}")))?;
         let (outcome, update, update_key, derives) = {
             let mut held = workbook.try_borrow_mut().map_err(|_| Error::invalid_argument("the workbook is busy"))?;
             if held.script(key).is_none_or(|script| script.session_generation() != generation) {
@@ -305,7 +335,9 @@ impl Workbooks {
             let script = held.script(key);
             let update = match &outcome.editor_update {
                 Some(update) => finish!(update),
-                None => script.and_then(|script| script.editor_update()).map(|update| finish!(update)).unwrap_or_default(),
+                None => {
+                    script.and_then(|script| script.editor_update()).map(|update| finish!(update)).unwrap_or_default()
+                }
             };
             // The update of the outcome is the state of the script, the one that it holds or an equal one
             let update_key = script.and_then(editor_update_key).unwrap_or_default();
@@ -330,7 +362,13 @@ impl Workbooks {
     /// change of the workbook marks it as a whole, promotes it and tells the connections which workbooks use them. The scripts of the other workbooks on a catalog that the scripts changed
     /// are outdated, the runs look up the cached results of the workbook again, and the outdated scripts that the
     /// editors show analyze.
-    fn settle(&self, workbook_id: &str, workbook: &Rc<RefCell<Workbook>>, outcome: WorkbookOutcome, changed: Changed) -> bool {
+    fn settle(
+        &self,
+        workbook_id: &str,
+        workbook: &Rc<RefCell<Workbook>>,
+        outcome: WorkbookOutcome,
+        changed: Changed,
+    ) -> bool {
         let mut moved = outcome.changed;
         self.write_effects(workbook_id, outcome.effects);
         match changed {
@@ -351,7 +389,10 @@ impl Workbooks {
                 self.pending_derives.borrow_mut().workbooks.remove(workbook_id);
                 self.platform.mark(Slice::Workbook(workbook_id));
                 let taken = self.taken_names(workbook_id);
-                let promoted = workbook.try_borrow_mut().ok().and_then(|mut workbook| workbook.promote(taken.iter().map(String::as_str)));
+                let promoted = workbook
+                    .try_borrow_mut()
+                    .ok()
+                    .and_then(|mut workbook| workbook.promote(taken.iter().map(String::as_str)));
                 if let Some(effect) = promoted {
                     moved = true;
                     self.write_effects(workbook_id, vec![effect]);
@@ -411,11 +452,24 @@ impl Workbooks {
     fn mark_published(&self, workbook_id: &str, workbook: &Rc<RefCell<Workbook>>) {
         let published = workbook.try_borrow_mut().map(|mut workbook| workbook.take_published()).unwrap_or_default();
         for connection_id in published {
-            let others: Vec<String> =
-                self.connections.registry.borrow().workbooks_of(&connection_id).iter().filter(|id| id.as_str() != workbook_id).cloned().collect();
+            let others: Vec<String> = self
+                .connections
+                .registry
+                .borrow()
+                .workbooks_of(&connection_id)
+                .iter()
+                .filter(|id| id.as_str() != workbook_id)
+                .cloned()
+                .collect();
             for other in others {
-                if let Err(error) = self.apply(&other, WorkbookAction::CatalogDidUpdate { connection_id: connection_id.clone() }) {
-                    self.log(LogLevel::Warn, "Failed to outdate the scripts of a workbook on a changed catalog", &[("workbookId", &other), ("error", error.what())]);
+                if let Err(error) =
+                    self.apply(&other, WorkbookAction::CatalogDidUpdate { connection_id: connection_id.clone() })
+                {
+                    self.log(
+                        LogLevel::Warn,
+                        "Failed to outdate the scripts of a workbook on a changed catalog",
+                        &[("workbookId", &other), ("error", error.what())],
+                    );
                 }
             }
         }
@@ -428,7 +482,11 @@ impl Workbooks {
         for workbook_id in ids {
             let action = WorkbookAction::ConnectionProfileChanged { connection_id: connection_id.to_string() };
             if let Err(error) = self.apply(&workbook_id, action) {
-                self.log(LogLevel::Warn, "Failed to follow the profile of a connection", &[("connectionId", connection_id), ("workbookId", &workbook_id), ("error", error.what())]);
+                self.log(
+                    LogLevel::Warn,
+                    "Failed to follow the profile of a connection",
+                    &[("connectionId", connection_id), ("workbookId", &workbook_id), ("error", error.what())],
+                );
             }
         }
     }
@@ -437,10 +495,18 @@ impl Workbooks {
     /// Returns the new file name with the write of the rename (none in memory, the file is renamed there at once), none
     /// if the name is unchanged or no plain file name. A
     /// refused rename changes nothing and writes nothing.
-    pub fn rename_attachment(&self, workbook_id: &str, file_name: &str, name: &str) -> Result<Option<(String, Option<WriteResult>)>> {
-        let workbook = self.get(workbook_id).ok_or_else(|| Error::invalid_argument(format!("no workbook registered with id {workbook_id}")))?;
+    pub fn rename_attachment(
+        &self,
+        workbook_id: &str,
+        file_name: &str,
+        name: &str,
+    ) -> Result<Option<(String, Option<WriteResult>)>> {
+        let workbook = self
+            .get(workbook_id)
+            .ok_or_else(|| Error::invalid_argument(format!("no workbook registered with id {workbook_id}")))?;
         let action = WorkbookAction::RenameAttachment { file_name: file_name.to_string(), name: name.to_string() };
-        let outcome = workbook.try_borrow_mut().map_err(|_| Error::invalid_argument("the workbook is busy"))?.apply(action);
+        let outcome =
+            workbook.try_borrow_mut().map_err(|_| Error::invalid_argument("the workbook is busy"))?.apply(action);
         let mut outcome = match outcome {
             Ok(outcome) => outcome,
             Err(error) => {
@@ -449,9 +515,15 @@ impl Workbooks {
                 return Err(error);
             }
         };
-        let rename = outcome.effects.iter().position(|effect| matches!(effect, WorkbookEffect::RenameDataFile { .. })).map(|index| outcome.effects.remove(index));
+        let rename = outcome
+            .effects
+            .iter()
+            .position(|effect| matches!(effect, WorkbookEffect::RenameDataFile { .. }))
+            .map(|index| outcome.effects.remove(index));
         let write = match rename {
-            Some(WorkbookEffect::RenameDataFile { from, to }) => Some((to.clone(), self.persistence.rename_data_file(workbook_id, from, to))),
+            Some(WorkbookEffect::RenameDataFile { from, to }) => {
+                Some((to.clone(), self.persistence.rename_data_file(workbook_id, from, to)))
+            }
             _ => None,
         };
         self.settle(workbook_id, &workbook, outcome, Changed::Workbook);
@@ -460,7 +532,12 @@ impl Workbooks {
 
     /// The metadata of a workbook
     fn metadata(&self, workbook_id: &str) -> Value {
-        self.entries.borrow().iter().find(|entry| entry.id == workbook_id).map(|entry| entry.metadata.clone()).unwrap_or(Value::Null)
+        self.entries
+            .borrow()
+            .iter()
+            .find(|entry| entry.id == workbook_id)
+            .map(|entry| entry.metadata.clone())
+            .unwrap_or(Value::Null)
     }
 
     /// Schedule the writes of the effects of an action, in order. Nothing is written without storage.
@@ -510,7 +587,12 @@ impl Workbooks {
     /// Take a workbook that the restore created. A workbook with the same id is replaced.
     pub fn adopt(&self, workbook: Workbook, metadata: Value) {
         let id = workbook.id().to_string();
-        let entry = WorkbookEntry { id: id.clone(), workbook: Rc::new(RefCell::new(workbook)), metadata, metadata_revision: next_revision() };
+        let entry = WorkbookEntry {
+            id: id.clone(),
+            workbook: Rc::new(RefCell::new(workbook)),
+            metadata,
+            metadata_revision: next_revision(),
+        };
         let replaced = {
             let mut entries = self.entries.borrow_mut();
             match entries.iter_mut().find(|held| held.id == id) {
@@ -582,11 +664,19 @@ impl Workbooks {
     /// link leaves the workbook and its metadata as they were.
     pub fn set_cloud_link(&self, workbook_id: &str, link: Option<Value>) -> Result<bool> {
         let ids = match &link {
-            Some(link) => Some(WorkbookCloudLink::origin(link).ok_or_else(|| Error::invalid_argument("the link to a cloud misses its ids"))?),
+            Some(link) => Some(
+                WorkbookCloudLink::origin(link)
+                    .ok_or_else(|| Error::invalid_argument("the link to a cloud misses its ids"))?,
+            ),
             None => None,
         };
-        let workbook = self.get(workbook_id).ok_or_else(|| Error::invalid_argument(format!("no workbook registered with id {workbook_id}")))?;
-        let outcome = workbook.try_borrow_mut().map_err(|_| Error::invalid_argument("the workbook is busy"))?.apply(WorkbookAction::SetOrigin { origin: ids })?;
+        let workbook = self
+            .get(workbook_id)
+            .ok_or_else(|| Error::invalid_argument(format!("no workbook registered with id {workbook_id}")))?;
+        let outcome = workbook
+            .try_borrow_mut()
+            .map_err(|_| Error::invalid_argument("the workbook is busy"))?
+            .apply(WorkbookAction::SetOrigin { origin: ids })?;
         // The metadata changes with the workbook, before its effects write the link into the workbook file
         {
             let mut entries = self.entries.borrow_mut();
@@ -626,13 +716,23 @@ impl Workbooks {
     /// Replace the scripts of a workbook with the ones that storage holds, e.g. after the files changed outside the app.
     /// Writes nothing back. Returns whether anything changed.
     pub fn replace_from_storage(&self, workbook_id: &str, scripts: Vec<StoredScriptRef>) -> Result<bool> {
-        let workbook = self.get(workbook_id).ok_or_else(|| Error::invalid_argument(format!("no workbook registered with id {workbook_id}")))?;
+        let workbook = self
+            .get(workbook_id)
+            .ok_or_else(|| Error::invalid_argument(format!("no workbook registered with id {workbook_id}")))?;
         let stored = self.stored_scripts(scripts)?;
-        let replaced = workbook.try_borrow_mut().map_err(|_| Error::invalid_argument("the workbook is busy"))?.replace_from_storage(stored);
+        let replaced = workbook
+            .try_borrow_mut()
+            .map_err(|_| Error::invalid_argument("the workbook is busy"))?
+            .replace_from_storage(stored);
         // A failure is reported once the workbook is whole again, it may have changed the workbook. Nothing is written
         // back.
         if replaced.as_ref().map_or(true, |changed| *changed) {
-            self.settle(workbook_id, &workbook, WorkbookOutcome { changed: true, effects: Vec::new(), editor_update: None }, Changed::Workbook);
+            self.settle(
+                workbook_id,
+                &workbook,
+                WorkbookOutcome { changed: true, effects: Vec::new(), editor_update: None },
+                Changed::Workbook,
+            );
         }
         replaced
     }
@@ -641,8 +741,14 @@ impl Workbooks {
     pub fn catalog_did_update(&self, connection_id: &str) {
         let ids: Vec<String> = self.connections.registry.borrow().workbooks_of(connection_id).to_vec();
         for workbook_id in ids {
-            if let Err(error) = self.apply(&workbook_id, WorkbookAction::CatalogDidUpdate { connection_id: connection_id.to_string() }) {
-                self.log(LogLevel::Error, "Connection script action failed", &[("connectionId", connection_id), ("workbookId", &workbook_id), ("error", error.what())]);
+            if let Err(error) =
+                self.apply(&workbook_id, WorkbookAction::CatalogDidUpdate { connection_id: connection_id.to_string() })
+            {
+                self.log(
+                    LogLevel::Error,
+                    "Connection script action failed",
+                    &[("connectionId", connection_id), ("workbookId", &workbook_id), ("error", error.what())],
+                );
             }
         }
     }
@@ -686,7 +792,6 @@ fn analysis_key(workbook: &Workbook, key: u32) -> Option<(u64, u64)> {
     Some((text_version, script.analysis_serial()))
 }
 
-
 /// The view of a workbook of an entry
 pub(crate) fn workbook_view(entry: &WorkbookEntry, workbook: &Workbook) -> WorkbookView {
     let mut metadata = match &entry.metadata {
@@ -708,12 +813,16 @@ pub(crate) fn workbook_view(entry: &WorkbookEntry, workbook: &Workbook) -> Workb
         ephemeral: workbook.ephemeral(),
         pending_connection_id: workbook.pending_connection().map(|c| c.connection_id.clone()),
         cloud: workbook.origin().and_then(WorkbookCloudLink::of),
-        attachments: workbook.attachments().map(|attachments| attachments.iter().map(WorkbookAttachmentView::from).collect()),
+        attachments: workbook
+            .attachments()
+            .map(|attachments| attachments.iter().map(WorkbookAttachmentView::from).collect()),
         script_list: workbook.script_list().into(),
         script_keys: scripts.iter().map(|script| script.key()).collect(),
         script_order: scripts.iter().map(|script| script.file_name().to_string()).collect(),
         script_connections: scripts.iter().map(|script| script.connection().connection_id.clone()).collect(),
         connection_ids: workbook.connection_ids(),
-        next_script_connection_id: workbook.new_script_connection(None).map(|connection| connection.connection_id.clone()),
+        next_script_connection_id: workbook
+            .new_script_connection(None)
+            .map(|connection| connection.connection_id.clone()),
     }
 }

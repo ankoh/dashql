@@ -35,7 +35,12 @@ pub trait ClientFunctionBinding: Sync + fmt::Debug {
 
     /// Where a host that the spec names is on a connection, and the credentials for it, which the channel of the
     /// connection holds
-    fn resolve_host(&self, channel: Option<&ConnectionChannel>, host: &str, now: f64) -> Result<ClientFunctionHostTarget, ClientFunctionError>;
+    fn resolve_host(
+        &self,
+        channel: Option<&ConnectionChannel>,
+        host: &str,
+        now: f64,
+    ) -> Result<ClientFunctionHostTarget, ClientFunctionError>;
 
     /// The HTTP request of a request of a call on a connection
     fn http_request(
@@ -105,7 +110,11 @@ impl ClientFunctionRegistrations {
 
     /// `ensure` for a connection that the host knows by an id of its own, e.g. a connection of the app whose Rust
     /// connection holds no id
-    pub fn ensure_of(&mut self, connection_id: &str, connection: Option<&ConnectionState>) -> Vec<ClientFunctionRegistryEffect> {
+    pub fn ensure_of(
+        &mut self,
+        connection_id: &str,
+        connection: Option<&ConnectionState>,
+    ) -> Vec<ClientFunctionRegistryEffect> {
         let Some(connection) = connection else { return Vec::new() };
         let connection_id = connection_id.to_string();
         let binding = client_function_binding(connection.connector_type());

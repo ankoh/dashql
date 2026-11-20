@@ -31,9 +31,9 @@ use std::pin::Pin;
 use std::rc::{Rc, Weak};
 use std::task::{Context, Poll};
 
+use dashql_core_runtime::clfn::{client_function_binding, ClientFunctionCallDescription};
 use dashql_core_runtime::compute::service::AnalysisHandles;
 use dashql_core_runtime::compute::tasks::analyze_table::AnalyzeTableOptions as RuntimeAnalyzeOptions;
-use dashql_core_runtime::clfn::{client_function_binding, ClientFunctionCallDescription};
 use dashql_core_runtime::connections::{ConnectionAction, ConnectionChannel, ConnectorType, DetailedError};
 use dashql_core_runtime::executor::cache_key::{connection_cache_signature, result_key_input, result_key_of_digest};
 use dashql_core_runtime::executor::{
@@ -44,9 +44,11 @@ use dashql_core_runtime::handles::Handle;
 use dashql_core_runtime::host::signal::{oneshot, Receiver, Sender};
 use dashql_core_runtime::host::{Host, HostError, LogLevel, OnHost};
 use dashql_core_runtime::http::{Body, CancellationToken, Headers, HttpHost, HttpRequest, HttpResponse};
-use dashql_core_runtime::trino::TimeZoneOffsets;
+use dashql_core_runtime::query::{
+    QueryError, QueryExecutionAction, QueryExecutionProgress, QueryExecutionState, QueryMetadata, QueryResultTable,
+};
 use dashql_core_runtime::salesforce::SharedSalesforceChannel;
-use dashql_core_runtime::query::{QueryError, QueryExecutionAction, QueryExecutionProgress, QueryExecutionState, QueryMetadata, QueryResultTable};
+use dashql_core_runtime::trino::TimeZoneOffsets;
 use js_sys::{Function, Promise, Uint8Array};
 use serde::{Deserialize, Serialize};
 use std::future::Future;
@@ -284,7 +286,14 @@ struct RunState {
 }
 
 impl QueryRun {
-    fn new(query_id: QueryId, connection_id: &str, text: &str, log_details: Vec<(String, String)>, preset_failure: bool, platform: &JsPlatform) -> Self {
+    fn new(
+        query_id: QueryId,
+        connection_id: &str,
+        text: &str,
+        log_details: Vec<(String, String)>,
+        preset_failure: bool,
+        platform: &JsPlatform,
+    ) -> Self {
         QueryRun {
             query_id,
             connection_id: connection_id.to_string(),
@@ -427,7 +436,10 @@ fn channel_progress(value: Option<JsValue>) -> QueryExecutionProgress {
 
 /// The metrics of a message of a channel, missing counters are 0
 fn channel_metrics(value: &JsValue) -> dashql_core_runtime::query::QueryExecutionMetrics {
-    field(value, "metrics").and_then(|metrics| serde_wasm_bindgen::from_value::<QueryStreamMetrics>(metrics).ok()).unwrap_or_default().into()
+    field(value, "metrics")
+        .and_then(|metrics| serde_wasm_bindgen::from_value::<QueryStreamMetrics>(metrics).ok())
+        .unwrap_or_default()
+        .into()
 }
 
 fn channel_message(value: &JsValue) -> Result<ChannelMessage, HostError> {
@@ -503,15 +515,32 @@ impl Connections {
                     Ok(table) => table,
                     Err(error) => {
                         let details = [("error".into(), error.message().to_string())];
-                        self.log_query(run, LogLevel::Warn, "Failed to keep the result of a query", &details, LOG_TARGET);
+                        self.log_query(
+                            run,
+                            LogLevel::Warn,
+                            "Failed to keep the result of a query",
+                            &details,
+                            LOG_TARGET,
+                        );
                         return;
                     }
                 };
-                let action = QueryExecutionAction::QueryReceivedAllBatches { query_id, table: QueryResultTable { id: table, rows }, metrics, now };
+                let action = QueryExecutionAction::QueryReceivedAllBatches {
+                    query_id,
+                    table: QueryResultTable { id: table, rows },
+                    metrics,
+                    now,
+                };
                 // A history that refuses the result took no handle, the handle goes again
                 if let Err(error) = self.apply_query(&run.connection_id, action, false) {
                     self.release_table(table);
-                    self.log_query(run, LogLevel::Debug, "A query event changed nothing", &[("error".into(), error.what().to_string())], LOG_TARGET);
+                    self.log_query(
+                        run,
+                        LogLevel::Debug,
+                        "A query event changed nothing",
+                        &[("error".into(), error.what().to_string())],
+                        LOG_TARGET,
+                    );
                 }
                 return;
             }
@@ -535,15 +564,30 @@ impl Connections {
                 QueryExecutionAction::QueryCancelled { query_id, error: query_error(&failure), metrics, now }
             }
             QueryEvent::CacheRecorded { key, served_from_cache, cached_at } => {
-                QueryExecutionAction::QueryCacheRecorded { query_id, cache_key: key, served_from_cache, cached_at: cached_at.map(|at| at as i64) }
+                QueryExecutionAction::QueryCacheRecorded {
+                    query_id,
+                    cache_key: key,
+                    served_from_cache,
+                    cached_at: cached_at.map(|at| at as i64),
+                }
             }
             QueryEvent::TouchRelations => {
-                let touched = dashql_core::touched_relations::touched_relations(&run.text).relations.unwrap_or_default();
+                let touched =
+                    dashql_core::touched_relations::touched_relations(&run.text).relations.unwrap_or_default();
                 if !touched.is_empty() {
                     // Following the catalog must not change the outcome of the statement
-                    if let Err(error) = self.apply(&run.connection_id, ConnectionAction::RelationsTouched(touched), None) {
-                        let details = [("query".into(), query_id.to_string()), ("error".into(), error.what().to_string())];
-                        self.log_query(run, LogLevel::Warn, "Failed to read the relations of a statement", &details, LOG_TARGET);
+                    if let Err(error) =
+                        self.apply(&run.connection_id, ConnectionAction::RelationsTouched(touched), None)
+                    {
+                        let details =
+                            [("query".into(), query_id.to_string()), ("error".into(), error.what().to_string())];
+                        self.log_query(
+                            run,
+                            LogLevel::Warn,
+                            "Failed to read the relations of a statement",
+                            &details,
+                            LOG_TARGET,
+                        );
                     }
                 }
                 return;
@@ -573,7 +617,13 @@ impl Connections {
                 | QueryExecutionAction::QueryCancelled { .. }
         );
         if let Err(error) = self.apply_query(&run.connection_id, action, urgent) {
-            self.log_query(run, LogLevel::Debug, "A query event changed nothing", &[("error".into(), error.what().to_string())], LOG_TARGET);
+            self.log_query(
+                run,
+                LogLevel::Debug,
+                "A query event changed nothing",
+                &[("error".into(), error.what().to_string())],
+                LOG_TARGET,
+            );
         }
     }
 
@@ -611,7 +661,14 @@ impl Connections {
             };
             let handles = AnalysisHandles { table, lifetime };
             let connection_id = Some(run.connection_id.clone());
-            let analysis = connections.computations.analyze_table(query_id, shape, handles, connection_id, None, RuntimeAnalyzeOptions::default());
+            let analysis = connections.computations.analyze_table(
+                query_id,
+                shape,
+                handles,
+                connection_id,
+                None,
+                RuntimeAnalyzeOptions::default(),
+            );
             // A cancel deletes the computation, which cancels the runs of the analysis
             let analyzed = CancellationToken::new();
             {
@@ -653,7 +710,11 @@ impl OnHost for QueryHost {
 }
 
 impl HttpHost for QueryHost {
-    fn fetch(&self, request: HttpRequest, cancellation: &CancellationToken) -> impl Future<Output = Result<HttpResponse, HostError>> + 'static {
+    fn fetch(
+        &self,
+        request: HttpRequest,
+        cancellation: &CancellationToken,
+    ) -> impl Future<Output = Result<HttpResponse, HostError>> + 'static {
         self.platform.send(request, cancellation, false)
     }
 }
@@ -698,7 +759,11 @@ impl ExecutorHost for QueryHost {
         }
     }
 
-    fn cache_read(&self, run: &Rc<QueryRun>, entry: &CacheEntry) -> impl Future<Output = Result<HostTable, HostError>> + 'static {
+    fn cache_read(
+        &self,
+        run: &Rc<QueryRun>,
+        entry: &CacheEntry,
+    ) -> impl Future<Output = Result<HostTable, HostError>> + 'static {
         let read = self.platform.cache_read(&entry.name);
         let run = run.clone();
         async move {
@@ -733,7 +798,11 @@ impl ExecutorHost for QueryHost {
         async move { analysis?.await }
     }
 
-    fn fetch_result(&self, request: HttpRequest, cancellation: &CancellationToken) -> impl Future<Output = Result<HttpResponse, HostError>> + 'static {
+    fn fetch_result(
+        &self,
+        request: HttpRequest,
+        cancellation: &CancellationToken,
+    ) -> impl Future<Output = Result<HttpResponse, HostError>> + 'static {
         self.platform.send(request, cancellation, true)
     }
 
@@ -757,7 +826,11 @@ impl ExecutorHost for QueryHost {
 
     fn channel_auth(&self, run: &QueryRun) -> impl Future<Output = Result<Option<Headers>, HostError>> + 'static {
         // The headers of the Hyper of Salesforce follow the tokens of the channel, e.g. after a refresh
-        let auth = self.connections().ok().and_then(|connections| connections.salesforce_channel_of(&run.connection_id)).map(|channel| channel.auth());
+        let auth = self
+            .connections()
+            .ok()
+            .and_then(|connections| connections.salesforce_channel_of(&run.connection_id))
+            .map(|channel| channel.auth());
         std::future::ready(Ok(auth))
     }
 
@@ -778,12 +851,24 @@ impl Connections {
     /// The refresh of a token of the channel of a connection ended. The channel keeps a new token, the view of the
     /// connection summarizes it; a failed refresh fails the connection that is online and still keeps the channel of
     /// setup epoch `epoch`.
-    pub(crate) fn token_refresh_ended(self: &Rc<Self>, connection_id: &str, epoch: u64, outcome: Result<(), DetailedError>) {
+    pub(crate) fn token_refresh_ended(
+        self: &Rc<Self>,
+        connection_id: &str,
+        epoch: u64,
+        outcome: Result<(), DetailedError>,
+    ) {
         match outcome {
             Ok(()) => self.platform.changed(super::changes::Slice::Connection(connection_id), false),
             Err(error) => {
-                if let Err(failure) = self.apply(connection_id, ConnectionAction::TokenRefreshFailed { epoch, error }, None) {
-                    self.platform.log_on(LogLevel::Warn, "Failed to fail a connection after a token refresh", &[("connectionId", connection_id), ("error", failure.what())], LOG_TARGET);
+                if let Err(failure) =
+                    self.apply(connection_id, ConnectionAction::TokenRefreshFailed { epoch, error }, None)
+                {
+                    self.platform.log_on(
+                        LogLevel::Warn,
+                        "Failed to fail a connection after a token refresh",
+                        &[("connectionId", connection_id), ("error", failure.what())],
+                        LOG_TARGET,
+                    );
                 }
             }
         }
@@ -800,8 +885,13 @@ impl Connections {
 /// The outcome of a query for its caller, the result table while the run still owns it
 fn outcome_value(outcome: QueryOutcome, table: JsValue) -> Result<JsValue, JsValue> {
     let outcome = match outcome {
-        QueryOutcome::Resolved { has_result } => QueryRunOutcome::Resolved { has_result, table: if has_result { table } else { JsValue::NULL } },
-        QueryOutcome::Rejected(failure) => QueryRunOutcome::Rejected { failure: QueryRunFailure::from(&failure), value: host_value(failure.value.as_ref()) },
+        QueryOutcome::Resolved { has_result } => {
+            QueryRunOutcome::Resolved { has_result, table: if has_result { table } else { JsValue::NULL } }
+        }
+        QueryOutcome::Rejected(failure) => QueryRunOutcome::Rejected {
+            failure: QueryRunFailure::from(&failure),
+            value: host_value(failure.value.as_ref()),
+        },
     };
     to_js(&outcome).map(JsValue::from).map_err(JsValue::from)
 }
@@ -809,7 +899,13 @@ fn outcome_value(outcome: QueryOutcome, table: JsValue) -> Result<JsValue, JsVal
 impl Connections {
     /// Run a query on a connection, see `Runtime.executeQuery`. Returns the id of the query and the promise of its
     /// outcome.
-    pub(crate) fn execute(self: &Rc<Self>, connection_id: &str, args: QueryArgs, failure: JsValue, events: Option<Function>) -> (QueryId, Promise) {
+    pub(crate) fn execute(
+        self: &Rc<Self>,
+        connection_id: &str,
+        args: QueryArgs,
+        failure: JsValue,
+        events: Option<Function>,
+    ) -> (QueryId, Promise) {
         let query_id = self.registry.borrow_mut().next_query_id();
         let now = self.now();
         let mut log_details = vec![("trace_id".to_string(), (args.trace_id as u64).to_string())];
@@ -820,25 +916,41 @@ impl Connections {
             log_details.push(("workbookId".to_string(), workbook_id.clone()));
         }
         let metadata: QueryMetadata = args.metadata.into();
-        let state = QueryExecutionState::new(query_id, args.trace_id as u64, args.text.clone(), metadata.clone(), now as i64);
+        let state =
+            QueryExecutionState::new(query_id, args.trace_id as u64, args.text.clone(), metadata.clone(), now as i64);
         // The query is in the history of the connection from the start
-        if let Err(error) = self.apply_query(connection_id, QueryExecutionAction::ExecuteQuery { state: Box::new(state) }, true) {
+        if let Err(error) =
+            self.apply_query(connection_id, QueryExecutionAction::ExecuteQuery { state: Box::new(state) }, true)
+        {
             let message = format!("Couldn't find a connection with id {connection_id}");
-            self.platform.log_on(LogLevel::Error, "Connection not configured", &[("connectionId", connection_id), ("error", error.what())], LOG_TARGET);
-            let failed = outcome_value(QueryOutcome::Rejected(QueryFailure::new(FailureKind::Error, message)), JsValue::NULL);
+            self.platform.log_on(
+                LogLevel::Error,
+                "Connection not configured",
+                &[("connectionId", connection_id), ("error", error.what())],
+                LOG_TARGET,
+            );
+            let failed =
+                outcome_value(QueryOutcome::Rejected(QueryFailure::new(FailureKind::Error, message)), JsValue::NULL);
             return (query_id, failed.map_or_else(|error| Promise::reject(&error), |failed| Promise::resolve(&failed)));
         }
         let preset_failure = !failure.is_undefined() && !failure.is_null();
         let mut run = QueryRun::new(query_id, connection_id, &args.text, log_details, preset_failure, &self.platform);
         run.caller.events = events;
         let run = self.adopt_run(run);
-        let description = QueryDescription { connection_id: connection_id.to_string(), text: args.text, metadata, options: args.options };
+        let description = QueryDescription {
+            connection_id: connection_id.to_string(),
+            text: args.text,
+            metadata,
+            options: args.options,
+        };
         let connections = self.clone();
         let done = wasm_bindgen_futures::future_to_promise(async move {
             let outcome = connections.run(&run, description, failure).await;
             // The caller gets the object of the result table while the run still owns it
             let table = match &outcome {
-                QueryOutcome::Resolved { has_result: true } => run.result().map(|table| connections.platform.handle(table)).unwrap_or(JsValue::NULL),
+                QueryOutcome::Resolved { has_result: true } => {
+                    run.result().map(|table| connections.platform.handle(table)).unwrap_or(JsValue::NULL)
+                }
                 _ => JsValue::NULL,
             };
             outcome_value(outcome, table)
@@ -851,7 +963,11 @@ impl Connections {
     /// its results, the platform computes the SHA-256 digest. The executor derives the same key, it uses the cache only
     /// with the compute database that reads and writes its files (`describe`); the cache indicators and the exports
     /// read the files of the keys without it.
-    pub(crate) fn result_key(&self, connection_id: &str, signature: &str) -> impl Future<Output = Option<String>> + 'static {
+    pub(crate) fn result_key(
+        &self,
+        connection_id: &str,
+        signature: &str,
+    ) -> impl Future<Output = Option<String>> + 'static {
         let input = if self.platform.has_cache() {
             let registry = self.registry.borrow();
             registry.get(connection_id).and_then(|connection| {
@@ -873,7 +989,11 @@ impl Connections {
     /// messages. The connection owns its channel: the module speaks Trino, Hyper over HTTP and the Hyper of Salesforce
     /// itself, the platform describes only a channel of the host, which it then keeps for the query until the query is
     /// forgotten.
-    async fn describe(self: &Rc<Self>, run: &QueryRun, description: &QueryDescription) -> Result<QueryRequest, QueryFailure> {
+    async fn describe(
+        self: &Rc<Self>,
+        run: &QueryRun,
+        description: &QueryDescription,
+    ) -> Result<QueryRequest, QueryFailure> {
         let query_id = run.query_id;
         let connection_id = description.connection_id.as_str();
         let connection = {
@@ -884,14 +1004,22 @@ impl Connections {
             })
         };
         let Some((connector, channel, epoch)) = connection else {
-            return Err(QueryFailure::new(FailureKind::Error, format!("Couldn't find a connection with id {connection_id}")));
+            return Err(QueryFailure::new(
+                FailureKind::Error,
+                format!("Couldn't find a connection with id {connection_id}"),
+            ));
         };
         run.channel_epoch.set(Some(epoch));
         // Credentials about to expire, e.g. a Data Cloud token, are refreshed before the query uses them, the channel
         // keeps the new ones. A failed refresh fails the connection.
         if let Some(channel) = &channel {
             if let Err(message) = channel.fresh(&Rc::new(self.platform.clone())).await {
-                self.platform.log_on(LogLevel::Warn, "Failed to refresh the credentials of the connection", &[("connectionId", connection_id), ("error", &message)], LOG_TARGET);
+                self.platform.log_on(
+                    LogLevel::Warn,
+                    "Failed to refresh the credentials of the connection",
+                    &[("connectionId", connection_id), ("error", &message)],
+                    LOG_TARGET,
+                );
                 self.token_refresh_ended(connection_id, epoch, Err(DetailedError::new(message.clone())));
                 return Err(QueryFailure::new(FailureKind::Error, message));
             }
@@ -899,9 +1027,10 @@ impl Connections {
         let options = &description.options;
         // The executor reads and writes the files of the cache with the compute database, through the mounts
         let cache = match &options.cache {
-            Some(cache) if self.platform.has_mounts() => {
-                self.result_key(connection_id, &cache.signature).await.map(|key| CacheRequest { key, refresh: cache.refresh })
-            }
+            Some(cache) if self.platform.has_mounts() => self
+                .result_key(connection_id, &cache.signature)
+                .await
+                .map(|key| CacheRequest { key, refresh: cache.refresh }),
             _ => None,
         };
         let publish_results = options.publish_results != Some(false);
@@ -930,12 +1059,14 @@ impl Connections {
             // channel
             (None, channel) => {
                 let handle = channel.as_ref().and_then(ConnectionChannel::host_handle);
-                let query = serde_wasm_bindgen::to_value(&query).map_err(|error| QueryFailure::new(FailureKind::Error, error.to_string()))?;
-                let described = self.platform.channel_describe(query_id as f64, handle, &query).await.map_err(|error| {
-                    let mut failure = QueryFailure::from_host(&error);
-                    failure.target = LOG_TARGET.to_string();
-                    failure
-                })?;
+                let query = serde_wasm_bindgen::to_value(&query)
+                    .map_err(|error| QueryFailure::new(FailureKind::Error, error.to_string()))?;
+                let described =
+                    self.platform.channel_describe(query_id as f64, handle, &query).await.map_err(|error| {
+                        let mut failure = QueryFailure::from_host(&error);
+                        failure.target = LOG_TARGET.to_string();
+                        failure
+                    })?;
                 let RuntimeChannelTarget::Host = described;
                 QueryTarget::Host
             }
@@ -944,7 +1075,8 @@ impl Connections {
         let mut log_details = Vec::new();
         if let Some(planned) = &description.metadata.planned {
             log_details.push(("planned".to_string(), description.metadata.title.clone().unwrap_or_default()));
-            let node = planned.get("node").map(|node| node.as_str().map(str::to_string).unwrap_or_else(|| node.to_string()));
+            let node =
+                planned.get("node").map(|node| node.as_str().map(str::to_string).unwrap_or_else(|| node.to_string()));
             log_details.push(("node".to_string(), node.unwrap_or_default()));
         }
         Ok(QueryRequest {
@@ -970,7 +1102,12 @@ impl Connections {
         outcome
     }
 
-    async fn run_steps(self: &Rc<Self>, run: &Rc<QueryRun>, description: QueryDescription, failure: JsValue) -> QueryOutcome {
+    async fn run_steps(
+        self: &Rc<Self>,
+        run: &Rc<QueryRun>,
+        description: QueryDescription,
+        failure: JsValue,
+    ) -> QueryOutcome {
         let query_id = run.query_id;
         let fail = |failure: QueryFailure| {
             let error = query_error(&failure);
@@ -1025,7 +1162,10 @@ impl Connections {
             None => None,
         };
         let Some(spec) = spec else {
-            return Err(format!("The client functions of {} connections are not registered", target.connector.connector().display_name()));
+            return Err(format!(
+                "The client functions of {} connections are not registered",
+                target.connector.connector().display_name()
+            ));
         };
         target.spec = Some(spec);
         Ok(())
@@ -1053,8 +1193,10 @@ impl Connections {
             options: QueryOptions { read_timeout_ms, throw_on_error: Some(true), ..Default::default() },
         };
         let state = QueryExecutionState::new(query_id, 0, text.to_string(), metadata, self.now() as i64);
-        if self.apply_query(connection_id, QueryExecutionAction::ExecuteQuery { state: Box::new(state) }, true).is_err() {
-            let failure = QueryFailure::new(FailureKind::Error, format!("Couldn't find a connection with id {connection_id}"));
+        if self.apply_query(connection_id, QueryExecutionAction::ExecuteQuery { state: Box::new(state) }, true).is_err()
+        {
+            let failure =
+                QueryFailure::new(FailureKind::Error, format!("Couldn't find a connection with id {connection_id}"));
             return (query_id, InternalQuery::Ready(Some(Err(failure))));
         }
         let run = self.adopt_run(QueryRun::new(query_id, connection_id, text, Vec::new(), false, &self.platform));
@@ -1096,7 +1238,10 @@ impl Connections {
     /// publishes and analyzes its result, a call of a client function. Returns its id, a future that completes once
     /// its result arrived and a future of its end: whether it has a result, or its failure. A statement that fails may
     /// never complete the first.
-    pub(crate) fn run_statement(self: &Rc<Self>, statement: Statement) -> (QueryId, LocalFuture<()>, LocalFuture<Result<bool, QueryFailure>>) {
+    pub(crate) fn run_statement(
+        self: &Rc<Self>,
+        statement: Statement,
+    ) -> (QueryId, LocalFuture<()>, LocalFuture<Result<bool, QueryFailure>>) {
         let connection_id = statement.connection_id.as_str();
         let query_id = self.registry.borrow_mut().next_query_id();
         let description = QueryDescription {
@@ -1120,9 +1265,15 @@ impl Connections {
         if let Some(workbook_id) = &statement.metadata.workbook_id {
             log_details.push(("workbookId".to_string(), workbook_id.clone()));
         }
-        let state = QueryExecutionState::new(query_id, 0, statement.text.clone(), statement.metadata, self.now() as i64);
-        if let Err(error) = self.apply_query(connection_id, QueryExecutionAction::ExecuteQuery { state: Box::new(state) }, true) {
-            let failure = QueryFailure::new(FailureKind::Error, format!("Couldn't find a connection with id {connection_id}: {}", error.what()));
+        let state =
+            QueryExecutionState::new(query_id, 0, statement.text.clone(), statement.metadata, self.now() as i64);
+        if let Err(error) =
+            self.apply_query(connection_id, QueryExecutionAction::ExecuteQuery { state: Box::new(state) }, true)
+        {
+            let failure = QueryFailure::new(
+                FailureKind::Error,
+                format!("Couldn't find a connection with id {connection_id}: {}", error.what()),
+            );
             return (query_id, Box::pin(std::future::pending()), Box::pin(std::future::ready(Err(failure))));
         }
         let (ready_sender, ready) = oneshot();
@@ -1166,7 +1317,10 @@ impl Connections {
         let history = self.registry.borrow().query_history(query_id).map(|(_, history)| history);
         let handle = history.and_then(|history| history.borrow().active(query_id).and_then(|query| query.handle));
         if let Some(handle) = handle {
-            let effect = dashql_core_runtime::connections::registry::RegistryEffect::Abort { handle, reason: "Query was cancelled" };
+            let effect = dashql_core_runtime::connections::registry::RegistryEffect::Abort {
+                handle,
+                reason: "Query was cancelled",
+            };
             self.platform.push_registry_effects(&[effect]);
             self.platform.signal(true);
         }
@@ -1221,8 +1375,12 @@ impl Future for InternalQuery {
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         match self.get_mut() {
-            InternalQuery::Ready(result) => Poll::Ready(result.take().unwrap_or_else(|| Err(QueryFailure::cancelled()))),
-            InternalQuery::Waiting(receiver) => Pin::new(receiver).poll(cx).map(|result| result.unwrap_or_else(|| Err(QueryFailure::cancelled()))),
+            InternalQuery::Ready(result) => {
+                Poll::Ready(result.take().unwrap_or_else(|| Err(QueryFailure::cancelled())))
+            }
+            InternalQuery::Waiting(receiver) => {
+                Pin::new(receiver).poll(cx).map(|result| result.unwrap_or_else(|| Err(QueryFailure::cancelled())))
+            }
         }
     }
 }

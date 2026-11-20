@@ -10,11 +10,11 @@ use base64::Engine;
 use serde_json::Value;
 
 use super::types::*;
-use crate::http::{Headers, HttpMethod, HttpRequest, HttpResponse};
 use crate::clfn::json::{js_number, js_string, js_truthy, to_json_text};
 use crate::http::url::form_encode;
-use crate::time::iso_timestamp;
 use crate::http::Url;
+use crate::http::{Headers, HttpMethod, HttpRequest, HttpResponse};
+use crate::time::iso_timestamp;
 
 /// The API version of the metadata
 pub const SALESFORCE_API_VERSION: &str = "v64.0";
@@ -106,19 +106,35 @@ pub fn get_salesforce_data_cloud_url(endpoint: Option<&str>) -> Result<String, S
             && chars.all(|c| c.is_ascii_alphanumeric() || matches!(c, '+' | '.' | '-'))
     });
     let normalized = if has_scheme { value.to_string() } else { format!("https://{value}") };
-    let invalid = || SalesforceError::new("Data Cloud Instance URL must be an HTTPS origin without credentials, path, query, or fragment");
+    let invalid = || {
+        SalesforceError::new(
+            "Data Cloud Instance URL must be an HTTPS origin without credentials, path, query, or fragment",
+        )
+    };
     let url = Url::parse(&normalized).map_err(|e| SalesforceError::new(e.to_string()))?;
-    let authority = normalized.get(..8).filter(|p| p.eq_ignore_ascii_case("https://")).and_then(|_| normalized.get(8..));
+    let authority =
+        normalized.get(..8).filter(|p| p.eq_ignore_ascii_case("https://")).and_then(|_| normalized.get(8..));
     let authority = authority.map(|a| a.strip_suffix('/').unwrap_or(a));
-    let plain = authority.is_some_and(|a| !a.is_empty() && !a.contains(|c: char| matches!(c, '/' | '\\' | '@' | '?' | '#') || c.is_whitespace()));
-    if !plain || url.scheme() != "https" || url.has_credentials() || url.query().is_some() || url.fragment().is_some() || url.path() != "/" {
+    let plain = authority.is_some_and(|a| {
+        !a.is_empty() && !a.contains(|c: char| matches!(c, '/' | '\\' | '@' | '?' | '#') || c.is_whitespace())
+    });
+    if !plain
+        || url.scheme() != "https"
+        || url.has_credentials()
+        || url.query().is_some()
+        || url.fragment().is_some()
+        || url.path() != "/"
+    {
         return Err(invalid());
     }
     Ok(url.to_string())
 }
 
 /// The auth infos of the tokens, none without a JWT
-pub fn collect_salesforce_auth_info(core: &SalesforceCoreAccessToken, offcore: &SalesforceDataCloudAccessToken) -> Option<SalesforceAuthInfo> {
+pub fn collect_salesforce_auth_info(
+    core: &SalesforceCoreAccessToken,
+    offcore: &SalesforceDataCloudAccessToken,
+) -> Option<SalesforceAuthInfo> {
     if offcore.jwt.raw.is_empty() {
         return None;
     }
@@ -140,8 +156,24 @@ fn is_secret_key(key: &str) -> bool {
         .iter()
         .any(|word| normalized.contains(word));
     let identity = [
-        "id", "sub", "jti", "clientid", "userid", "orgid", "sfuid", "sfoid", "sfappid", "tnk", "sfi", "sfapop", "code",
-        "codeverifier", "name", "givenname", "familyname", "preferredusername",
+        "id",
+        "sub",
+        "jti",
+        "clientid",
+        "userid",
+        "orgid",
+        "sfuid",
+        "sfoid",
+        "sfappid",
+        "tnk",
+        "sfi",
+        "sfapop",
+        "code",
+        "codeverifier",
+        "name",
+        "givenname",
+        "familyname",
+        "preferredusername",
     ]
     .contains(&normalized.as_str());
     (secret_word && normalized != "tokentype" && normalized != "tokenformat") || identity
@@ -153,7 +185,9 @@ fn redact(value: &Value) -> Value {
         Value::Object(fields) => Value::Object(
             fields
                 .iter()
-                .map(|(k, v)| (k.clone(), if is_secret_key(k) { Value::String("<redacted>".into()) } else { redact(v) }))
+                .map(|(k, v)| {
+                    (k.clone(), if is_secret_key(k) { Value::String("<redacted>".into()) } else { redact(v) })
+                })
                 .collect(),
         ),
         Value::Array(items) => Value::Array(items.iter().map(redact).collect()),
@@ -237,7 +271,10 @@ pub(crate) fn form_post(url: String, pairs: &[(&str, &str)]) -> HttpRequest {
     HttpRequest {
         method: HttpMethod::Post,
         url,
-        headers: Headers::from_pairs([("Accept", "application/json"), ("Content-Type", "application/x-www-form-urlencoded")]),
+        headers: Headers::from_pairs([
+            ("Accept", "application/json"),
+            ("Content-Type", "application/x-www-form-urlencoded"),
+        ]),
         body: Some(form_encode(pairs.iter().copied())),
         sensitive: true,
     }
@@ -275,11 +312,19 @@ fn oauth_failure(response: &HttpResponse, body: &Value, fallback: &str) -> Optio
         return None;
     }
     let field = |key: &str| body.get(key).filter(|v| !v.is_null()).map(js_string);
-    Some(field("error_description").or_else(|| field("error")).unwrap_or_else(|| format!("{fallback}: {}", response.status)))
+    Some(
+        field("error_description")
+            .or_else(|| field("error"))
+            .unwrap_or_else(|| format!("{fallback}: {}", response.status)),
+    )
 }
 
 /// Read the response of the core token request
-pub fn read_core_access_token_response(request: &HttpRequest, response: &HttpResponse, now: f64) -> Result<SalesforceCoreAccessToken, SalesforceError> {
+pub fn read_core_access_token_response(
+    request: &HttpRequest,
+    response: &HttpResponse,
+    now: f64,
+) -> Result<SalesforceCoreAccessToken, SalesforceError> {
     let body = response_json(response)?;
     if let Some(message) = oauth_failure(response, &body, "OAuth token request failed") {
         return Err(SalesforceError {
@@ -339,7 +384,11 @@ fn read_data_cloud_access_token(obj: &Value, now: f64) -> Result<SalesforceDataC
     }
     // Older tokens spell the custom attributes in snake case
     if let Some(fields) = payload.as_object_mut() {
-        let attributes = fields.get("customAttributes").filter(|v| !v.is_null()).or_else(|| fields.get("custom_attributes")).cloned();
+        let attributes = fields
+            .get("customAttributes")
+            .filter(|v| !v.is_null())
+            .or_else(|| fields.get("custom_attributes"))
+            .cloned();
         if let Some(attributes) = attributes.filter(|v| !v.is_null()) {
             fields.insert("customAttributes".to_string(), attributes);
         }
@@ -356,7 +405,11 @@ fn read_data_cloud_access_token(obj: &Value, now: f64) -> Result<SalesforceDataC
 }
 
 /// Read the response of the Data Cloud token exchange
-pub fn read_data_cloud_access_token_response(request: &HttpRequest, response: &HttpResponse, now: f64) -> Result<SalesforceDataCloudAccessToken, SalesforceError> {
+pub fn read_data_cloud_access_token_response(
+    request: &HttpRequest,
+    response: &HttpResponse,
+    now: f64,
+) -> Result<SalesforceDataCloudAccessToken, SalesforceError> {
     let body = response_json(response)?;
     if let Some(message) = oauth_failure(response, &body, "Data Cloud token request failed") {
         return Err(SalesforceError {
@@ -382,7 +435,10 @@ pub fn read_data_cloud_access_token_response(request: &HttpRequest, response: &H
 
 /// The headers of a call with the core token
 fn core_headers(access: &SalesforceCoreAccessToken) -> Headers {
-    Headers::from_pairs([("authorization", format!("Bearer {}", access.access_token).as_str()), ("accept", "application/json")])
+    Headers::from_pairs([
+        ("authorization", format!("Bearer {}", access.access_token).as_str()),
+        ("accept", "application/json"),
+    ])
 }
 
 /// The request of the user info of the core login, the token goes in the bearer header only
@@ -531,7 +587,11 @@ impl SalesforceMetadataLoad {
             .iter()
             .map(|c| SalesforceMetadataProgress::new(c, SalesforceMetadataState::Requesting, None, None))
             .collect();
-        let load = Self { data_space: data_space.to_string(), requests, results: vec![None; SALESFORCE_METADATA_ENTITY_TYPES.len()] };
+        let load = Self {
+            data_space: data_space.to_string(),
+            requests,
+            results: vec![None; SALESFORCE_METADATA_ENTITY_TYPES.len()],
+        };
         (load, progress)
     }
 
@@ -541,12 +601,25 @@ impl SalesforceMetadataLoad {
     }
 
     /// A request failed before it got a response
-    pub fn on_failure(&mut self, index: usize, error: &str) -> Option<(SalesforceMetadataProgress, SalesforceMetadataFailure)> {
+    pub fn on_failure(
+        &mut self,
+        index: usize,
+        error: &str,
+    ) -> Option<(SalesforceMetadataProgress, SalesforceMetadataFailure)> {
         let entity_type = *SALESFORCE_METADATA_ENTITY_TYPES.get(index)?;
         *self.results.get_mut(index)? = Some(Err(error.to_string()));
         Some((
-            SalesforceMetadataProgress::new(entity_type, SalesforceMetadataState::Failed, None, Some(error.to_string())),
-            SalesforceMetadataFailure { data_space: self.data_space.clone(), entity_type: entity_type.to_string(), error: error.to_string() },
+            SalesforceMetadataProgress::new(
+                entity_type,
+                SalesforceMetadataState::Failed,
+                None,
+                Some(error.to_string()),
+            ),
+            SalesforceMetadataFailure {
+                data_space: self.data_space.clone(),
+                entity_type: entity_type.to_string(),
+                error: error.to_string(),
+            },
         ))
     }
 
@@ -570,7 +643,10 @@ impl SalesforceMetadataLoad {
             Ok(entities) => {
                 let loaded = entities.len();
                 *self.results.get_mut(index)? = Some(Ok(entities));
-                Some((SalesforceMetadataProgress::new(entity_type, SalesforceMetadataState::Complete, Some(loaded), None), None))
+                Some((
+                    SalesforceMetadataProgress::new(entity_type, SalesforceMetadataState::Complete, Some(loaded), None),
+                    None,
+                ))
             }
             Err(error) => {
                 let (progress, failure) = self.on_failure(index, &error)?;
@@ -595,7 +671,9 @@ impl SalesforceMetadataLoad {
                     let message = format!("Salesforce {collection} metadata request failed: {error}");
                     (SalesforceMetadataState::Failed, None, Some(message))
                 }
-                None => return Err(SalesforceError::new(format!("the {collection} metadata request is still running"))),
+                None => {
+                    return Err(SalesforceError::new(format!("the {collection} metadata request is still running")))
+                }
             };
             progress.insert(collection.to_string(), SalesforceMetadataProgress::new(collection, state, loaded, error));
         }

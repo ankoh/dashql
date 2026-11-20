@@ -1,8 +1,8 @@
 //! EXPLAIN and CALL statements.
 
-use dashql_parser::attrs;
 use super::{FmtReg, Formatter, FormattingJoinPolicy, K};
 use dashql_buffers::parser::Node;
+use dashql_parser::attrs;
 
 impl<'a> Formatter<'a> {
     pub(super) fn format_explain(&self, node: &'a Node) -> FmtReg {

@@ -56,7 +56,12 @@ pub fn read_data_frame_sql(
 
 /// The read of the first rows of a result from its data frame: the fields of the result in the order of its rows, the
 /// row numbers that the import appended order them, the columns that the computation added stay out
-pub fn preview_data_frame_sql(data_frame: DataFrameId, fields: &[String], row_number_field: &str, limit: u64) -> String {
+pub fn preview_data_frame_sql(
+    data_frame: DataFrameId,
+    fields: &[String],
+    row_number_field: &str,
+    limit: u64,
+) -> String {
     SqlFrame::from(data_frame_table_name(data_frame))
         .order_by(vec![ascending(row_number_field)], Some(limit))
         .project(fields.to_vec())
@@ -117,7 +122,8 @@ impl StatsRow {
     /// Read the first row of a table
     pub fn read(table: &ResultTable) -> Result<Self> {
         let fields = table.schema().fields();
-        let value = |(column, field): (usize, &arrow_schema::FieldRef)| Ok((field.name().clone(), table.value(column, 0)?));
+        let value =
+            |(column, field): (usize, &arrow_schema::FieldRef)| Ok((field.name().clone(), table.value(column, 0)?));
         let values = fields.iter().enumerate().map(value);
         Ok(Self { values: values.collect::<Result<_>>()? })
     }
@@ -145,7 +151,11 @@ pub struct TableStats {
 
 impl TableStats {
     /// The statistics of the first row of a table
-    pub fn read(data_frame: DataFrameId, table: &ResultTable, count_star_field_name: impl Into<String>) -> Result<Self> {
+    pub fn read(
+        data_frame: DataFrameId,
+        table: &ResultTable,
+        count_star_field_name: impl Into<String>,
+    ) -> Result<Self> {
         let row = Arc::new(StatsRow::read(table)?);
         Ok(Self { data_frame, row, count_star_field_name: count_star_field_name.into() })
     }

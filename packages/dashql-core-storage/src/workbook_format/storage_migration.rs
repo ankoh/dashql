@@ -12,7 +12,6 @@
 
 use serde_json::{json, Value};
 
-use dashql_core_runtime::host::{Host, HostError, LogLevel};
 use crate::workbook_format::data::{STORAGE_VERSION, WORKBOOK_FORMAT_VERSION};
 use crate::workbook_format::json::{to_pretty_text, to_text, JsonObject};
 use crate::workbook_format::layout::{StorageType, STORAGE_FOLDER_FILE, STORAGE_WORKBOOK_TREE_FOLDER};
@@ -20,6 +19,7 @@ use crate::workbook_format::migration::{migrate_folder, rename_sidb_connections,
 use crate::workbook_format::tree::{read_workbook_tree, TreeDirectory};
 use crate::workbook_format::validation::is_valid_uuid;
 use dashql_core_runtime::connections::CONNECTOR_TYPES;
+use dashql_core_runtime::host::{Host, HostError, LogLevel};
 use dashql_core_runtime::time::iso_timestamp_f64;
 
 /// The manifest of the storage root, it holds the storage version
@@ -75,7 +75,10 @@ pub struct StorageMigrationStep {
 pub const STORAGE_MIGRATION_STEPS: [StorageMigrationStep; 8] = [
     StorageMigrationStep { version: 2, description: "Rename notebooks as sessions" },
     StorageMigrationStep { version: 3, description: "Move the connections of the sessions into the app manifest" },
-    StorageMigrationStep { version: 4, description: "Seed the catalogs of the connections from the catalog copies of the sessions" },
+    StorageMigrationStep {
+        version: 4,
+        description: "Seed the catalogs of the connections from the catalog copies of the sessions",
+    },
     StorageMigrationStep { version: 5, description: "Move the files of the shell from dashql-shell to shell" },
     StorageMigrationStep { version: 6, description: "Drop the aliases of the connections of the app manifest" },
     StorageMigrationStep { version: 7, description: "Move the sessions of the app manifest into the session tree" },
@@ -96,7 +99,8 @@ pub struct StorageMigrationSummary {
 }
 
 /// The catalog files that a session copied from its connections, up to the session format version 6
-const CATALOG_FILES: [&str; 3] = ["dashql-catalog-relations.sql", "dashql-catalog-functions.sql", "dashql-catalog-changes.sql"];
+const CATALOG_FILES: [&str; 3] =
+    ["dashql-catalog-relations.sql", "dashql-catalog-functions.sql", "dashql-catalog-changes.sql"];
 
 /// The message of a failed step for the log
 fn message(error: &HostError) -> &str {
@@ -157,7 +161,11 @@ impl FolderEntry {
 /// The workbook folders of entries that can be reached: OPFS workbooks live in `<opfs_folder>/<id>`, `sessions/<id>` up
 /// to storage version 8 and `workbooks/<id>` after it, native workbooks in their own directory, which may be missing or
 /// unavailable outside of the native app
-async fn list_workbook_folders<H: StorageRootHost>(host: &H, entries: &[FolderEntry], opfs_folder: &str) -> Result<Vec<(String, H::Folder)>, HostError> {
+async fn list_workbook_folders<H: StorageRootHost>(
+    host: &H,
+    entries: &[FolderEntry],
+    opfs_folder: &str,
+) -> Result<Vec<(String, H::Folder)>, HostError> {
     let mut folders = Vec::new();
     for entry in entries {
         match &entry.location {
@@ -266,9 +274,17 @@ pub async fn migrate_storage<H: StorageRootHost>(host: &H) -> Result<StorageMigr
                 summary.workbooks += 1;
             }
             Ok(WorkbookMigrationResult::Current) => {}
-            Ok(result) => host.log(LogLevel::Warn, "Session cannot be migrated", &[("workbookId", &workbook_id), ("result", result.as_str())]),
+            Ok(result) => host.log(
+                LogLevel::Warn,
+                "Session cannot be migrated",
+                &[("workbookId", &workbook_id), ("result", result.as_str())],
+            ),
             // The workbook is surfaced as invalid when it is restored
-            Err(error) => host.log(LogLevel::Warn, "Failed to migrate a session", &[("workbookId", &workbook_id), ("error", message(&error))]),
+            Err(error) => host.log(
+                LogLevel::Warn,
+                "Failed to migrate a session",
+                &[("workbookId", &workbook_id), ("error", message(&error))],
+            ),
         }
     }
     Ok(summary)
@@ -321,7 +337,8 @@ async fn notebooks_to_sessions<H: StorageRootHost>(host: &H) -> Result<(), HostE
 /// A database that the session metadata of format version 4 references
 fn is_database(value: &Value) -> bool {
     value.as_object().is_some_and(|database| {
-        database.get("databaseId").is_some_and(Value::is_string) && database.get("params").is_some_and(|params| params.is_object() || params.is_array())
+        database.get("databaseId").is_some_and(Value::is_string)
+            && database.get("params").is_some_and(|params| params.is_object() || params.is_array())
     })
 }
 
@@ -329,7 +346,10 @@ fn is_database(value: &Value) -> bool {
 fn has_databases(data: &JsonObject) -> bool {
     data.get("formatVersion").and_then(Value::as_f64) == Some(4.0)
         && data.get("mainDatabase").is_some_and(is_database)
-        && data.get("attachedDatabases").and_then(Value::as_array).is_some_and(|attached| attached.iter().all(is_database))
+        && data
+            .get("attachedDatabases")
+            .and_then(Value::as_array)
+            .is_some_and(|attached| attached.iter().all(is_database))
 }
 
 /// A session that takes part in the migration of the connections
@@ -394,7 +414,10 @@ struct PlannedConnection {
 fn params_without_draft_rows(params: &Value) -> Value {
     let mut params = params.clone();
     if let Some(object) = params.as_object_mut() {
-        let keys = CONNECTOR_TYPES.iter().map(|connector| connector.connector()).filter(|connector| connector.has_draft_rows());
+        let keys = CONNECTOR_TYPES
+            .iter()
+            .map(|connector| connector.connector())
+            .filter(|connector| connector.has_draft_rows());
         for connector in keys.map(|connector| connector.params_key()) {
             if let Some(Value::Object(inner)) = object.get_mut(connector) {
                 inner.shift_remove("draftRows");
@@ -412,7 +435,11 @@ fn params_without_draft_rows(params: &Value) -> Value {
 ///
 /// Drafts must not get lost: references with the same draft (or none) share a connection, every further distinct draft
 /// keeps a connection of its own under the id of its first holder.
-pub fn plan_connection_migration(sessions: &[MigratingSession], created_at: &str, new_id: &mut dyn FnMut() -> String) -> ConnectionMigrationPlan {
+pub fn plan_connection_migration(
+    sessions: &[MigratingSession],
+    created_at: &str,
+    new_id: &mut dyn FnMut() -> String,
+) -> ConnectionMigrationPlan {
     // Collect the references in the order of the sessions and group them by their params
     let mut groups: Vec<(Value, Vec<DatabaseRef>)> = Vec::new();
     for session in sessions {
@@ -452,7 +479,12 @@ pub fn plan_connection_migration(sessions: &[MigratingSession], created_at: &str
                     }
                     target.refs.push(reference);
                 }
-                None => by_draft.push(PlannedConnection { id: String::new(), params: params.clone(), params_draft: reference.params_draft.clone(), refs: vec![reference] }),
+                None => by_draft.push(PlannedConnection {
+                    id: String::new(),
+                    params: params.clone(),
+                    params_draft: reference.params_draft.clone(),
+                    refs: vec![reference],
+                }),
             }
         }
         for mut connection in by_draft {
@@ -503,7 +535,9 @@ pub fn plan_connection_migration(sessions: &[MigratingSession], created_at: &str
         // Drop attached databases that reference the main database or an earlier attached database
         let mut seen = vec![main_id];
         let mut attached = Vec::new();
-        for database in session.data.get("attachedDatabases").and_then(Value::as_array).into_iter().flatten().map(rewrite) {
+        for database in
+            session.data.get("attachedDatabases").and_then(Value::as_array).into_iter().flatten().map(rewrite)
+        {
             let id = database.get("databaseId").and_then(Value::as_str).unwrap_or_default().to_string();
             if !seen.contains(&id) {
                 seen.push(id);
@@ -562,7 +596,11 @@ async fn global_connections<H: StorageRootHost>(host: &H) -> Result<(), HostErro
             }
             Ok(None) => {}
             Err(error) => {
-                host.log(LogLevel::Warn, "Skipping the connections of an unreadable session", &[("sessionId", &session_id), ("error", message(&error))]);
+                host.log(
+                    LogLevel::Warn,
+                    "Skipping the connections of an unreadable session",
+                    &[("sessionId", &session_id), ("error", message(&error))],
+                );
             }
         }
     }
@@ -583,8 +621,17 @@ async fn global_connections<H: StorageRootHost>(host: &H) -> Result<(), HostErro
     // The step introduces the connections, so nothing references a folder of a connection yet. An interrupted step
     // copied catalogs already, also under fresh ids that this run doesn't plan again: they are removed.
     for entry in host.list("connections").await?.unwrap_or_default() {
-        if entry.directory && !plan.entries.iter().any(|planned| planned.get("id").and_then(Value::as_str) == Some(entry.name.as_str())) {
-            host.log(LogLevel::Info, "Removing the files of a connection of an interrupted migration", &[("connectionId", &entry.name)]);
+        if entry.directory
+            && !plan
+                .entries
+                .iter()
+                .any(|planned| planned.get("id").and_then(Value::as_str) == Some(entry.name.as_str()))
+        {
+            host.log(
+                LogLevel::Info,
+                "Removing the files of a connection of an interrupted migration",
+                &[("connectionId", &entry.name)],
+            );
             host.remove(&format!("connections/{}", entry.name)).await?;
         }
     }
@@ -603,7 +650,11 @@ async fn global_connections<H: StorageRootHost>(host: &H) -> Result<(), HostErro
         };
         if let Err(error) = copy.await {
             // The catalog is a cache, the next refresh describes the relations anyway
-            let details = [("connectionId", connection_id.as_str()), ("sessionId", session_id.as_str()), ("error", message(&error))];
+            let details = [
+                ("connectionId", connection_id.as_str()),
+                ("sessionId", session_id.as_str()),
+                ("error", message(&error)),
+            ];
             host.log(LogLevel::Warn, "Failed to copy the catalog of a connection", &details);
         }
     }
@@ -615,8 +666,14 @@ async fn global_connections<H: StorageRootHost>(host: &H) -> Result<(), HostErro
 
     for (session_id, data) in &plan.rewrites {
         let Some(folder) = folder_of(session_id) else { continue };
-        if let Err(error) = folder.write_text("dashql-session.json", &to_pretty_text(&Value::Object(data.clone()))).await {
-            host.log(LogLevel::Warn, "Failed to rewrite the connections of a session", &[("sessionId", session_id), ("error", message(&error))]);
+        if let Err(error) =
+            folder.write_text("dashql-session.json", &to_pretty_text(&Value::Object(data.clone()))).await
+        {
+            host.log(
+                LogLevel::Warn,
+                "Failed to rewrite the connections of a session",
+                &[("sessionId", session_id), ("error", message(&error))],
+            );
         }
     }
     Ok(())
@@ -672,7 +729,11 @@ async fn session_catalogs_to_connections<H: StorageRootHost>(host: &H) -> Result
             Ok(true) => seeded += 1,
             Ok(false) => {}
             // The catalog is a cache, the next refresh describes the relations anyway
-            Err(error) => host.log(LogLevel::Warn, "Failed to seed the catalog of a connection", &[("sessionId", &session_id), ("error", message(&error))]),
+            Err(error) => host.log(
+                LogLevel::Warn,
+                "Failed to seed the catalog of a connection",
+                &[("sessionId", &session_id), ("error", message(&error))],
+            ),
         }
     }
     host.log(LogLevel::Info, "Seeded the catalogs of connections", &[("connections", &seeded.to_string())]);
@@ -720,7 +781,8 @@ async fn read_folder_sessions<H: StorageRootHost>(host: &H, dir: &str) -> Result
     let Some(text) = host.read_text(&path).await? else {
         return Ok(Vec::new());
     };
-    let data: Value = serde_json::from_str(&text).map_err(|error| HostError::new(format!("Invalid {path}: {error}")))?;
+    let data: Value =
+        serde_json::from_str(&text).map_err(|error| HostError::new(format!("Invalid {path}: {error}")))?;
     Ok(data.get("sessions").and_then(Value::as_array).cloned().unwrap_or_default())
 }
 
@@ -773,7 +835,9 @@ async fn session_tree<H: StorageRootHost>(host: &H) -> Result<(), HostError> {
         registered.push(path.to_string());
         let mut session = JsonObject::new();
         session.insert("path".into(), json!(path));
-        if let Some(storage_type) = entry.get("storageType").and_then(Value::as_str).filter(|t| *t == "opfs" || *t == "native") {
+        if let Some(storage_type) =
+            entry.get("storageType").and_then(Value::as_str).filter(|t| *t == "opfs" || *t == "native")
+        {
             session.insert("storageType".into(), json!(storage_type));
         }
         if let Some(native_path) = entry.get("nativePath").and_then(Value::as_str) {

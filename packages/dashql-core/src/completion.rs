@@ -8,7 +8,9 @@
 // Bison names some symbol kinds in mixed case (S_Op)
 #![allow(non_upper_case_globals)]
 
-use crate::analyzer::{AnalyzedScript, ColumnResolution, ReferencedTable, ScopeId, ScopeSource, SourceVisibility, TableRole};
+use crate::analyzer::{
+    AnalyzedScript, ColumnResolution, ReferencedTable, ScopeId, ScopeSource, SourceVisibility, TableRole,
+};
 use crate::catalog::*;
 use crate::cursor::{CursorContext, NameComponentType, ScriptCursor, SymbolLocation};
 use crate::hash::HashMap;
@@ -265,7 +267,8 @@ fn describe_function(function: &FunctionDeclaration) -> CandidateInfo {
     let signature = if function.params.is_empty() && returns_any {
         None
     } else {
-        let params: Vec<String> = function.params.iter().map(|p| format!("{} {}", p.param_name.text, p.param_type)).collect();
+        let params: Vec<String> =
+            function.params.iter().map(|p| format!("{} {}", p.param_name.text, p.param_type)).collect();
         let params = params.join(", ");
         Some(if returns_any { format!("({params})") } else { format!("({params}) → {}", function.return_type) })
     };
@@ -575,8 +578,14 @@ impl<'c, 'a> Completion<'c, 'a> {
             (current.symbol_id - 1, Some(current.symbol))
         } else {
             match location.previous {
-                Some(p) if p.relative_pos == RelativeSymbolPosition::END_OF_SYMBOL && p.symbol.kind == S_COLON => (p.symbol_id, None),
-                Some(p) if p.relative_pos == RelativeSymbolPosition::END_OF_SYMBOL && is_name(p.symbol.kind) && p.symbol_id > 0 => {
+                Some(p) if p.relative_pos == RelativeSymbolPosition::END_OF_SYMBOL && p.symbol.kind == S_COLON => {
+                    (p.symbol_id, None)
+                }
+                Some(p)
+                    if p.relative_pos == RelativeSymbolPosition::END_OF_SYMBOL
+                        && is_name(p.symbol.kind)
+                        && p.symbol_id > 0 =>
+                {
                     (p.symbol_id - 1, Some(p.symbol))
                 }
                 _ => return false,
@@ -601,7 +610,10 @@ impl<'c, 'a> Completion<'c, 'a> {
         let (prefix, target) = match name {
             Some(name) => {
                 let text = self.text_at(name.location.offset, offset.saturating_sub(name.location.offset));
-                (trim_double_quotes(text).iter().copied().filter(|&c| c != b'\'').collect::<Vec<u8>>(), Self::symbol_location(&name))
+                (
+                    trim_double_quotes(text).iter().copied().filter(|&c| c != b'\'').collect::<Vec<u8>>(),
+                    Self::symbol_location(&name),
+                )
             }
             None => (Vec::new(), SymbolSpan::new(offset, 0)),
         };
@@ -622,7 +634,8 @@ impl<'c, 'a> Completion<'c, 'a> {
             self.candidates.push(Candidate::new(script.name.clone(), NameTag::TABLE_NAME.0, tags, target, target));
             self.candidates_by_name.insert(script.name.clone(), candidate);
             let loc = TableLoc { entry: TABLE_PARAMETERS_ENTRY_ID, index: index as u32 };
-            let object_id = QualifiedCatalogObjectId::table(CatalogTableId::new(TABLE_PARAMETERS_ENTRY_ID, index as u32));
+            let object_id =
+                QualifiedCatalogObjectId::table(CatalogTableId::new(TABLE_PARAMETERS_ENTRY_ID, index as u32));
             self.add_object(candidate, tags, object_id, CandidateObjectRef::Table(loc));
         }
         self.select_top_candidates();
@@ -978,7 +991,9 @@ impl<'c, 'a> Completion<'c, 'a> {
         let mut probes = probe_input_idx.into_iter().zip(probes).peekable();
 
         for (i, &expected) in symbols.iter().enumerate() {
-            let Some(name) = Keyword::name_of(expected).filter(|n| !n.is_empty()).filter(|_| offers(expected)) else { continue };
+            let Some(name) = Keyword::name_of(expected).filter(|n| !n.is_empty()).filter(|_| offers(expected)) else {
+                continue;
+            };
             let mut tags = keyword_tags(expected, name);
             // A leading FROM is no proactive suggestion outside of a SELECT
             if expected == S_FROM && !inside_select && !has(tags, CandidateTag::SUBSTRING_MATCH) {
@@ -1023,7 +1038,10 @@ impl<'c, 'a> Completion<'c, 'a> {
 
         for name in index.search(search_text) {
             // A script doesn't provide what the connection reported as gone
-            if through_catalog && !name.objects.is_empty() && name.objects.iter().all(|o| self.catalog().is_absent_object(*o)) {
+            if through_catalog
+                && !name.objects.is_empty()
+                && name.objects.iter().all(|o| self.catalog().is_absent_object(*o))
+            {
                 continue;
             }
             // Skip the name under the cursor itself
@@ -1134,7 +1152,8 @@ impl<'c, 'a> Completion<'c, 'a> {
                 let Some(scope) = analyzed.scope(loc.scope) else { return Vec::new() };
                 let Some(cte) = scope.cte_definitions.at(loc.index as usize) else { return Vec::new() };
                 let Some(child) = cte.child_scope else { return Vec::new() };
-                let aliases = if source.column_aliases.is_empty() { &cte.column_aliases } else { &source.column_aliases };
+                let aliases =
+                    if source.column_aliases.is_empty() { &cte.column_aliases } else { &source.column_aliases };
                 (child, aliases)
             }
             ReferencedTable::Subquery(child) => (*child, &source.column_aliases),
@@ -1189,7 +1208,8 @@ impl<'c, 'a> Completion<'c, 'a> {
                         continue;
                     }
                     if !scope.ctes_recursive
-                        && innermost.is_some_and(|innermost| Self::is_scope_within(analyzed, innermost, cte.child_scope))
+                        && innermost
+                            .is_some_and(|innermost| Self::is_scope_within(analyzed, innermost, cte.child_scope))
                     {
                         continue;
                     }
@@ -1352,7 +1372,12 @@ impl<'c, 'a> Completion<'c, 'a> {
                 if &**s != schema {
                     break;
                 }
-                out.extend(tables.iter().map(|&t| (other.table_loc(t), true)).filter(|(loc, _)| !self.catalog().is_absent_table(*loc)));
+                out.extend(
+                    tables
+                        .iter()
+                        .map(|&t| (other.table_loc(t), true))
+                        .filter(|(loc, _)| !self.catalog().is_absent_table(*loc)),
+                );
             }
         }
     }
@@ -1379,7 +1404,12 @@ impl<'c, 'a> Completion<'c, 'a> {
             let Some(other) = self.catalog().entry(*entry_id) else { continue };
             let other = other.data();
             if let Some(tables) = other.tables_by_unqualified_schema.get(&key) {
-                out.extend(tables.iter().map(|&t| (other.table_loc(t), true)).filter(|(loc, _)| !self.catalog().is_absent_table(*loc)));
+                out.extend(
+                    tables
+                        .iter()
+                        .map(|&t| (other.table_loc(t), true))
+                        .filter(|(loc, _)| !self.catalog().is_absent_table(*loc)),
+                );
             }
         }
     }
@@ -1582,7 +1612,9 @@ impl<'c, 'a> Completion<'c, 'a> {
                     let a = name_text(0);
                     for (scope_id, visibility) in Self::visible_scopes(analyzed, &cursor.name_scopes) {
                         let Some(scope) = analyzed.scope(scope_id) else { continue };
-                        if let Some(source) = scope.sources.iter().find(|s| visibility.sees(s) && s.name.as_deref() == Some(a)) {
+                        if let Some(source) =
+                            scope.sources.iter().find(|s| visibility.sees(s) && s.name.as_deref() == Some(a))
+                        {
                             match &source.table {
                                 ReferencedTable::Table(loc) => {
                                     if let Some(decl) = self.table(*loc) {

@@ -14,18 +14,19 @@ use serde_json::{json, Value};
 
 use dashql_core::error::{Error, Result};
 
-use dashql_core_runtime::catalog_loader::tables::Groups;
 use crate::workbook_format::bundle::{
-    assemble_workbook_bundle, bundle_catalog_path, check_workbook_bundle, read_workbook_bundle_head, DataFileData, ScriptData, WorkbookBundle, WorkbookBundleResult,
+    assemble_workbook_bundle, bundle_catalog_path, check_workbook_bundle, read_workbook_bundle_head, DataFileData,
+    ScriptData, WorkbookBundle, WorkbookBundleResult,
 };
 use crate::workbook_format::files::nfc;
 use crate::workbook_format::json::{to_text, JsonObject};
-use dashql_core_runtime::catalog_loader::tables::{
-    catalog_functions_sql, catalog_tables_sql, parse_catalog_sql, CatalogFunction, CatalogFunctionParam, CatalogStructure,
-    CatalogTable, ColumnMetadata,
-};
 use crate::workbook_format::layout::{STORAGE_CATALOG_FUNCTIONS, STORAGE_CATALOG_RELATIONS, STORAGE_WORKBOOK_FILE};
 use crate::workbook_format::migration::MigrationFolder;
+use dashql_core_runtime::catalog_loader::tables::Groups;
+use dashql_core_runtime::catalog_loader::tables::{
+    catalog_functions_sql, catalog_tables_sql, parse_catalog_sql, CatalogFunction, CatalogFunctionParam,
+    CatalogStructure, CatalogTable, ColumnMetadata,
+};
 
 /// The prefix of a table that holds the data of an attachment
 pub const ATTACHMENT_TABLE_PREFIX: &str = "workbook_attachment_";
@@ -125,9 +126,12 @@ impl WorkbookTableName {
 
     /// The columns of the table
     pub fn columns(self) -> &'static [TableColumn] {
-        const WORKBOOK: [TableColumn; 4] = [text("workbook_id", false), integer("format_version"), text("name", true), text("metadata", false)];
-        const CONNECTIONS: [TableColumn; 4] = [integer("position"), text("connection_id", false), text("name", true), text("params", false)];
-        const SCRIPTS: [TableColumn; 4] = [integer("position"), text("name", false), text("connection_id", false), text("text", false)];
+        const WORKBOOK: [TableColumn; 4] =
+            [text("workbook_id", false), integer("format_version"), text("name", true), text("metadata", false)];
+        const CONNECTIONS: [TableColumn; 4] =
+            [integer("position"), text("connection_id", false), text("name", true), text("params", false)];
+        const SCRIPTS: [TableColumn; 4] =
+            [integer("position"), text("name", false), text("connection_id", false), text("text", false)];
         const CATALOG_TABLES: [TableColumn; 5] = [
             integer("table_id"),
             text("connection_id", false),
@@ -135,7 +139,8 @@ impl WorkbookTableName {
             text("schema_name", false),
             text("table_name", false),
         ];
-        const CATALOG_COLUMNS: [TableColumn; 4] = [integer("table_id"), integer("position"), text("column_name", false), text("column_type", true)];
+        const CATALOG_COLUMNS: [TableColumn; 4] =
+            [integer("table_id"), integer("position"), text("column_name", false), text("column_type", true)];
         const CATALOG_FUNCTIONS: [TableColumn; 7] = [
             integer("function_id"),
             text("connection_id", false),
@@ -145,7 +150,8 @@ impl WorkbookTableName {
             boolean("is_aggregate"),
             text("return_type", true),
         ];
-        const CATALOG_FUNCTION_PARAMS: [TableColumn; 4] = [integer("function_id"), integer("position"), text("param_name", true), text("param_type", true)];
+        const CATALOG_FUNCTION_PARAMS: [TableColumn; 4] =
+            [integer("function_id"), integer("position"), text("param_name", true), text("param_type", true)];
         const ATTACHMENTS: [TableColumn; 3] = [integer("position"), text("name", false), text("table_name", false)];
         const RESULTS: [TableColumn; 2] = [text("cache_key", false), text("table_name", false)];
         match self {
@@ -458,22 +464,28 @@ pub fn table_to_arrow<R: WorkbookTableRow>(rows: &[R]) -> Result<RecordBatch> {
             let values = cells.iter().map(|row| row.get(i));
             match column.column_type {
                 ColumnType::Text => Arc::new(
-                    values.map(|cell| match cell {
-                        Some(Cell::Text(text)) => text.clone(),
-                        _ => None,
-                    }).collect::<StringArray>(),
+                    values
+                        .map(|cell| match cell {
+                            Some(Cell::Text(text)) => text.clone(),
+                            _ => None,
+                        })
+                        .collect::<StringArray>(),
                 ),
                 ColumnType::Integer => Arc::new(
-                    values.map(|cell| match cell {
-                        Some(Cell::Integer(value)) => Some(*value),
-                        _ => Some(0),
-                    }).collect::<Int32Array>(),
+                    values
+                        .map(|cell| match cell {
+                            Some(Cell::Integer(value)) => Some(*value),
+                            _ => Some(0),
+                        })
+                        .collect::<Int32Array>(),
                 ),
                 ColumnType::Boolean => Arc::new(
-                    values.map(|cell| match cell {
-                        Some(Cell::Boolean(value)) => Some(*value),
-                        _ => Some(false),
-                    }).collect::<BooleanArray>(),
+                    values
+                        .map(|cell| match cell {
+                            Some(Cell::Boolean(value)) => Some(*value),
+                            _ => Some(false),
+                        })
+                        .collect::<BooleanArray>(),
                 ),
             }
         })
@@ -489,7 +501,11 @@ pub fn table_from_arrow<R: WorkbookTableRow>(batch: &RecordBatch) -> Result<Vec<
     for column in table.columns() {
         let array = batch.column_by_name(column.name);
         if array.is_none() && !column.nullable {
-            return Err(Error::invalid_argument(format!("Invalid workbook tables: {} has no column {}", table.name(), column.name)));
+            return Err(Error::invalid_argument(format!(
+                "Invalid workbook tables: {} has no column {}",
+                table.name(),
+                column.name
+            )));
         }
         let target = match column.column_type {
             ColumnType::Text => DataType::Utf8,
@@ -510,7 +526,11 @@ pub fn table_from_arrow<R: WorkbookTableRow>(batch: &RecordBatch) -> Result<Vec<
             let present = array.as_ref().filter(|array| i < array.len() && array.is_valid(i));
             let Some(array) = present else {
                 if !column.nullable {
-                    return Err(Error::invalid_argument(format!("Invalid workbook tables: {}.{} is null", table.name(), column.name)));
+                    return Err(Error::invalid_argument(format!(
+                        "Invalid workbook tables: {}.{} is null",
+                        table.name(),
+                        column.name
+                    )));
                 }
                 cells.push(Cell::Text(None));
                 continue;
@@ -522,7 +542,11 @@ pub fn table_from_arrow<R: WorkbookTableRow>(batch: &RecordBatch) -> Result<Vec<
                 ColumnType::Boolean => any.downcast_ref::<BooleanArray>().map(|a| Cell::Boolean(a.value(i))),
             };
             let Some(cell) = cell else {
-                return Err(Error::invalid_argument(format!("Invalid workbook tables: {}.{} has the wrong type", table.name(), column.name)));
+                return Err(Error::invalid_argument(format!(
+                    "Invalid workbook tables: {}.{} has the wrong type",
+                    table.name(),
+                    column.name
+                )));
             };
             cells.push(cell);
         }
@@ -638,7 +662,11 @@ pub fn workbook_bundle_to_tables<B: Clone>(
     }
     for (position, file) in bundle.data.iter().enumerate() {
         let table_name = new_data_table_name(ATTACHMENT_TABLE_PREFIX, &new_uuid());
-        tables.attachments.push(AttachmentRow { position: position as i32, name: file.name.clone(), table_name: table_name.clone() });
+        tables.attachments.push(AttachmentRow {
+            position: position as i32,
+            name: file.name.clone(),
+            table_name: table_name.clone(),
+        });
         tables.data.push((table_name, DataTableFile { bytes: file.bytes.clone(), crc32: None }));
     }
     for result in &bundle.results {
@@ -656,7 +684,8 @@ fn parse_catalog_file(sql: &str) -> Result<CatalogStructure> {
 
 /// Parse a JSON text of a row
 fn parse_json(value: &str, error_prefix: &str, table: WorkbookTableName) -> Result<Value> {
-    serde_json::from_str(value).map_err(|_| Error::invalid_argument(format!("{error_prefix}: invalid JSON in {}", table.name())))
+    serde_json::from_str(value)
+        .map_err(|_| Error::invalid_argument(format!("{error_prefix}: invalid JSON in {}", table.name())))
 }
 
 /// The bundle of the workbook of a set of tables. The workbook file is assembled from the rows and migrated like a
@@ -666,7 +695,10 @@ pub fn workbook_tables_to_bundle<B: Clone>(
     error_prefix: &str,
 ) -> Result<WorkbookBundle<B>> {
     let [row] = tables.workbook.as_slice() else {
-        return Err(Error::invalid_argument(format!("{error_prefix}: expected one workbook, found {}", tables.workbook.len())));
+        return Err(Error::invalid_argument(format!(
+            "{error_prefix}: expected one workbook, found {}",
+            tables.workbook.len()
+        )));
     };
     let mut connections = tables.connections.clone();
     connections.sort_by_key(|row| row.position);
@@ -699,21 +731,29 @@ pub fn workbook_tables_to_bundle<B: Clone>(
         "scripts".into(),
         Value::Array(scripts.iter().map(|s| json!({ "name": s.name, "connectionId": s.connection_id })).collect()),
     );
-    workbook.insert("attachments".into(), Value::Array(attachments.iter().map(|a| json!({ "name": a.name })).collect()));
+    workbook
+        .insert("attachments".into(), Value::Array(attachments.iter().map(|a| json!({ "name": a.name })).collect()));
     workbook.insert("metadata".into(), parse_json(&row.metadata, error_prefix, WorkbookTableName::Workbook)?);
 
     // The workbook file and the catalogs are migrated in memory, like the top-level files of an archive
     let mut folder = MigrationFolder::new([(STORAGE_WORKBOOK_FILE.to_string(), to_text(&Value::Object(workbook)))]);
     for (connection_id, catalog) in catalog_structures(tables) {
         if !catalog.tables.is_empty() {
-            folder.write(bundle_catalog_path(&connection_id, STORAGE_CATALOG_RELATIONS), catalog_tables_sql(&catalog.tables));
+            folder.write(
+                bundle_catalog_path(&connection_id, STORAGE_CATALOG_RELATIONS),
+                catalog_tables_sql(&catalog.tables),
+            );
         }
         if !catalog.functions.is_empty() {
-            folder.write(bundle_catalog_path(&connection_id, STORAGE_CATALOG_FUNCTIONS), catalog_functions_sql(&catalog.functions));
+            folder.write(
+                bundle_catalog_path(&connection_id, STORAGE_CATALOG_FUNCTIONS),
+                catalog_functions_sql(&catalog.functions),
+            );
         }
     }
     let head = read_workbook_bundle_head(&mut folder, error_prefix)?;
-    let script_data: Vec<ScriptData> = scripts.iter().map(|script| ScriptData::new(script.name.clone(), script.text.clone())).collect();
+    let script_data: Vec<ScriptData> =
+        scripts.iter().map(|script| ScriptData::new(script.name.clone(), script.text.clone())).collect();
     // The data tables by name, the first of a name wins
     let mut data_files: HashMap<&str, &DataTableFile<B>> = HashMap::with_capacity(tables.data.len());
     for (name, file) in &tables.data {
@@ -722,13 +762,20 @@ pub fn workbook_tables_to_bundle<B: Clone>(
     let data_file = |table_name: &str| data_files.get(table_name).copied();
     let data: Vec<DataFileData<B>> = attachments
         .iter()
-        .filter_map(|attachment| data_file(&attachment.table_name).map(|file| DataFileData { name: attachment.name.clone(), bytes: file.bytes.clone() }))
+        .filter_map(|attachment| {
+            data_file(&attachment.table_name)
+                .map(|file| DataFileData { name: attachment.name.clone(), bytes: file.bytes.clone() })
+        })
         .collect();
     let results: Vec<WorkbookBundleResult<B>> = tables
         .results
         .iter()
         .filter_map(|result| {
-            data_file(&result.table_name).map(|file| WorkbookBundleResult { key: result.cache_key.clone(), bytes: file.bytes.clone(), crc32: file.crc32 })
+            data_file(&result.table_name).map(|file| WorkbookBundleResult {
+                key: result.cache_key.clone(),
+                bytes: file.bytes.clone(),
+                crc32: file.crc32,
+            })
         })
         .collect();
     let mut bundle = assemble_workbook_bundle(head.workbook, head.catalogs, script_data, data);
@@ -781,7 +828,13 @@ fn catalog_structures<B>(tables: &WorkbookTables<B>) -> Vec<(String, CatalogStru
             function_name: row.function_name.clone(),
             is_aggregate: row.is_aggregate,
             return_type: row.return_type.clone(),
-            params: params.into_iter().map(|param| CatalogFunctionParam { name: param.param_name.clone(), param_type: param.param_type.clone() }).collect(),
+            params: params
+                .into_iter()
+                .map(|param| CatalogFunctionParam {
+                    name: param.param_name.clone(),
+                    param_type: param.param_type.clone(),
+                })
+                .collect(),
         };
         catalogs.entry(&row.connection_id).functions.push(function);
     }

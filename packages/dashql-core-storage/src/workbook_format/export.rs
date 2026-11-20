@@ -10,11 +10,15 @@ use serde_json::Value;
 
 use dashql_core::error::Result;
 
-use crate::workbook_format::bundle::{prune_bundle_connections, regenerate_connection_ids, WorkbookBundle, WorkbookBundleCatalog, WorkbookBundleResult};
+use crate::workbook_format::bundle::{
+    prune_bundle_connections, regenerate_connection_ids, WorkbookBundle, WorkbookBundleCatalog, WorkbookBundleResult,
+};
 use crate::workbook_format::data::{WorkbookConnection, WorkbookData, WorkbookMetadata, WORKBOOK_FORMAT_VERSION};
 use crate::workbook_format::layout::{validate_data_file_name, DRAFT_SCRIPT_FILE};
+use crate::workbook_format::tables::{
+    workbook_bundle_to_tables, workbook_table_file_name, WorkbookTableName, WorkbookTables, RESULT_TABLE_PREFIX,
+};
 use dashql_core_runtime::connections::sharing::sanitize_connection_params_for_sharing;
-use crate::workbook_format::tables::{workbook_bundle_to_tables, workbook_table_file_name, WorkbookTableName, WorkbookTables, RESULT_TABLE_PREFIX};
 
 /// The parameter of a link that carries a `.dashql` archive inline, base64url-encoded
 pub const ZIP_QUERY_PARAMETER: &str = "zip";
@@ -36,7 +40,10 @@ pub fn shared_workbook_tables<B: Clone>(
         .iter()
         .map(|connection| WorkbookConnection {
             name: connection.name.clone(),
-            ..WorkbookConnection::new(connection.connection_id.clone(), sanitize_connection_params_for_sharing(&connection.params, true))
+            ..WorkbookConnection::new(
+                connection.connection_id.clone(),
+                sanitize_connection_params_for_sharing(&connection.params, true),
+            )
         })
         .collect();
     sanitized.scripts.retain(|script| script.name.to_lowercase() != DRAFT_SCRIPT_FILE);
@@ -81,12 +88,20 @@ pub fn workbook_archive_entries<B>(tables: &WorkbookTables<B>) -> Vec<ArchiveWri
     let mut entries: Vec<ArchiveWriteEntry> = WorkbookTableName::ALL
         .into_iter()
         .filter(|table| tables.row_count(*table) > 0)
-        .map(|table| ArchiveWriteEntry { file_name: table.file_name(), source: ArchiveEntrySource::Table(table), compression: EntryCompression::Deflate })
+        .map(|table| ArchiveWriteEntry {
+            file_name: table.file_name(),
+            source: ArchiveEntrySource::Table(table),
+            compression: EntryCompression::Deflate,
+        })
         .collect();
     entries.extend(tables.data.iter().map(|(table_name, _)| ArchiveWriteEntry {
         file_name: workbook_table_file_name(table_name),
         source: ArchiveEntrySource::Data(table_name.clone()),
-        compression: if table_name.starts_with(RESULT_TABLE_PREFIX) { EntryCompression::Stored } else { EntryCompression::Deflate },
+        compression: if table_name.starts_with(RESULT_TABLE_PREFIX) {
+            EntryCompression::Stored
+        } else {
+            EntryCompression::Deflate
+        },
     }));
     entries
 }

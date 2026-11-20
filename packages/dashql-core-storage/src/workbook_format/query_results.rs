@@ -71,7 +71,11 @@ impl ImportedWorkbookQueryResults {
 
 /// Which results of a workbook an import adds to the cache, by their sizes: true for a result to add, false for one
 /// beyond the limits of the cache, which would evict the ones before it again. Counts the dropped results.
-pub fn plan_result_import(sizes: &[u64], capacity: CacheCapacity, outcome: &mut ImportedWorkbookQueryResults) -> Vec<bool> {
+pub fn plan_result_import(
+    sizes: &[u64],
+    capacity: CacheCapacity,
+    outcome: &mut ImportedWorkbookQueryResults,
+) -> Vec<bool> {
     outcome.total = sizes.len() as u64;
     let mut budget_bytes = capacity.max_bytes;
     let mut budget_files = capacity.max_files;
@@ -108,13 +112,27 @@ mod tests {
         let plan = plan_result_import(&[3, 3], CacheCapacity { max_bytes: 5, max_files: 10 }, &mut outcome);
         assert_eq!(plan, [true, false]);
         outcome.added(3);
-        assert_eq!(outcome, ImportedWorkbookQueryResults { total: 2, added: 1, dropped: 1, bytes: 3, ..Default::default() });
+        assert_eq!(
+            outcome,
+            ImportedWorkbookQueryResults { total: 2, added: 1, dropped: 1, bytes: 3, ..Default::default() }
+        );
         let mut outcome = ImportedWorkbookQueryResults::default();
         plan_result_import(&[1, 3, 4], CacheCapacity { max_bytes: 100, max_files: 100 }, &mut outcome);
         outcome.failed("NotReadableError");
         outcome.added(3);
         outcome.kept();
         outcome.failed("other");
-        assert_eq!(outcome, ImportedWorkbookQueryResults { total: 3, added: 1, kept: 1, failed: 2, bytes: 3, error: Some("NotReadableError".into()), ..Default::default() });
+        assert_eq!(
+            outcome,
+            ImportedWorkbookQueryResults {
+                total: 3,
+                added: 1,
+                kept: 1,
+                failed: 2,
+                bytes: 3,
+                error: Some("NotReadableError".into()),
+                ..Default::default()
+            }
+        );
     }
 }

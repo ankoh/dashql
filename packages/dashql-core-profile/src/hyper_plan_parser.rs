@@ -1,12 +1,12 @@
 //! Reading Hyper plans into the query profile.
 
+use super::progress::{ProfileInputEvent, Stats};
 use super::query_profile::{
     Fragment, OperatorCrossEdge, OperatorReference, ParsedOperatorNode, PathComponent, QueryProfile,
 };
-use super::progress::{ProfileInputEvent, Stats};
 use dashql_buffers::parser::SymbolSpan;
-use dashql_buffers::status::StatusCode;
 use dashql_buffers::profile as fb;
+use dashql_buffers::status::StatusCode;
 use serde_json::{Map, Value};
 use std::collections::{HashMap, HashSet};
 
@@ -474,12 +474,7 @@ impl QueryProfile {
                 source.cross_edges_begin = self.operator_cross_edges.len();
             }
             source.cross_edge_count += 1;
-            self.operator_cross_edges.push(OperatorCrossEdge {
-                source_node,
-                target_node,
-                kind,
-                attributes,
-            });
+            self.operator_cross_edges.push(OperatorCrossEdge { source_node, target_node, kind, attributes });
         }
     }
 

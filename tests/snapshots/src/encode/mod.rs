@@ -9,8 +9,8 @@ pub mod completion;
 pub mod dataflow;
 pub mod diff;
 pub mod parser;
-pub mod query_profile;
 pub mod planner;
+pub mod query_profile;
 pub mod visualize;
 
 use crate::ryml::{Node, Scalar, ScalarStyle};

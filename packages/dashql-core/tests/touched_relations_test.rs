@@ -5,7 +5,12 @@ use dashql_core::touched_relations::touched_relations;
 
 /// A name as `db.schema.relation`, with the parts that were written
 fn describe(name: &QualifiedTableNameT) -> String {
-    [&name.database_name, &name.schema_name, &name.table_name].into_iter().flatten().map(String::as_str).collect::<Vec<_>>().join(".")
+    [&name.database_name, &name.schema_name, &name.table_name]
+        .into_iter()
+        .flatten()
+        .map(String::as_str)
+        .collect::<Vec<_>>()
+        .join(".")
 }
 
 fn touched(text: &str) -> Vec<String> {
@@ -74,12 +79,20 @@ fn alter_view_names_both_names() {
 fn schema_statements_name_the_schema() {
     // An empty table is the whole schema
     let schema = |text: &str| -> Vec<(Option<String>, Option<String>, Option<String>)> {
-        touched_relations(text).relations.iter().flatten().map(|r| (r.database_name.clone(), r.schema_name.clone(), r.table_name.clone())).collect()
+        touched_relations(text)
+            .relations
+            .iter()
+            .flatten()
+            .map(|r| (r.database_name.clone(), r.schema_name.clone(), r.table_name.clone()))
+            .collect()
     };
     let name = |s: &str| (None, Some(s.to_string()), Some(String::new()));
     assert_eq!(schema("drop schema s"), [name("s")]);
     assert_eq!(schema("drop schema if exists s cascade"), [name("s")]);
-    assert_eq!(schema("drop schema d.s restrict"), [(Some("d".to_string()), Some("s".to_string()), Some(String::new()))]);
+    assert_eq!(
+        schema("drop schema d.s restrict"),
+        [(Some("d".to_string()), Some("s".to_string()), Some(String::new()))]
+    );
     assert_eq!(schema("alter schema s rename to t"), [name("s"), name("t")]);
     assert!(schema("create schema if not exists s").is_empty());
 }

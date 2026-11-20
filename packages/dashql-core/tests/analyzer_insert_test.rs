@@ -1,12 +1,12 @@
 //! Tests of the analysis of INSERT statements.
 
-use dashql_core::catalog::CatalogLayer;
 use dashql_buffers::analyzer::TableReferenceRole;
 use dashql_core::analyzer::{AnalyzedScript, TableRole};
 use dashql_core::catalog::Catalog;
-use dashql_core::pack::{pack_analyzed_script};
-use dashql_core::visualize::pack_visualization;
+use dashql_core::catalog::CatalogLayer;
+use dashql_core::pack::pack_analyzed_script;
 use dashql_core::script::Script;
+use dashql_core::visualize::pack_visualization;
 use std::sync::Arc;
 
 /// Analyze a schema script and load it into the catalog
@@ -40,7 +40,10 @@ fn unresolved_reads(analyzed: &AnalyzedScript) -> usize {
 #[test]
 fn resolves_write_target_columns_and_source_reads() {
     let mut catalog = Catalog::new();
-    let _schema = load_schema(&mut catalog, "create table target (id int, label text); create table source (id int, label text);");
+    let _schema = load_schema(
+        &mut catalog,
+        "create table target (id int, label text); create table source (id int, label text);",
+    );
     let script = analyze(&catalog, "insert into target(id, label) select id, label from source returning id");
     let analyzed = analyzed(&script);
 
@@ -78,7 +81,8 @@ fn source_query_cannot_read_from_write_target() {
 fn leading_cte_feeds_source_and_returning_uses_target() {
     let mut catalog = Catalog::new();
     let _schema = load_schema(&mut catalog, "create table target (id int);");
-    let script = analyze(&catalog, "with source as (select 1 as id) insert into target(id) select id from source returning id");
+    let script =
+        analyze(&catalog, "with source as (select 1 as id) insert into target(id) select id from source returning id");
     let analyzed = analyzed(&script);
 
     assert_eq!(analyzed.insert_statements.len(), 1);

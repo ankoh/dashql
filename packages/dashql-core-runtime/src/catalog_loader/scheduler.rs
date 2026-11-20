@@ -20,7 +20,6 @@ use crate::connections::{
     MAX_TOUCHED_ATTEMPTS,
 };
 
-
 /// The wait before asking a connection again about the relations of executed statements, per failed attempt
 pub const TOUCHED_RETRY_DELAY_MS: f64 = 2000.0;
 
@@ -51,7 +50,8 @@ impl<'a> CatalogLoaderConnection<'a> {
 
     /// Does the connection have room for another query?
     fn has_room(&self) -> bool {
-        self.active_queries < self.details.connector_type().connector().max_concurrent_queries(self.details.setup_params.as_ref())
+        self.active_queries
+            < self.details.connector_type().connector().max_concurrent_queries(self.details.setup_params.as_ref())
     }
 }
 
@@ -139,7 +139,8 @@ impl CatalogLoader {
                 }
             }
         }
-        self.online.retain(|id| connections.iter().any(|connection| connection.connection_id == id) || busy.contains(id));
+        self.online
+            .retain(|id| connections.iter().any(|connection| connection.connection_id == id) || busy.contains(id));
     }
 
     /// Request a refresh of the catalog of a connection, a forced one supersedes a running update. A request that is
@@ -159,7 +160,12 @@ impl CatalogLoader {
 
     /// The updates to start and to abort. A requested refresh of a busy connection stays queued for the next schedule,
     /// one of a connection that is not online until it comes online.
-    pub fn schedule(&mut self, connections: &[CatalogLoaderConnection], busy: &[String], now: Timestamp) -> CatalogSchedule {
+    pub fn schedule(
+        &mut self,
+        connections: &[CatalogLoaderConnection],
+        busy: &[String],
+        now: Timestamp,
+    ) -> CatalogSchedule {
         let mut schedule = CatalogSchedule::default();
 
         // The requested refreshes go first, a lookup follows them
@@ -211,7 +217,10 @@ impl CatalogLoader {
         for connection in connections {
             let id = connection.connection_id;
             let updates = connection.catalog_updates;
-            if updates.touched_relations.is_empty() || self.in_progress.contains(id) || !updates.tasks_running.is_empty() {
+            if updates.touched_relations.is_empty()
+                || self.in_progress.contains(id)
+                || !updates.tasks_running.is_empty()
+            {
                 continue;
             }
             // A refresh that is still requested goes first, the lookup follows it
@@ -245,7 +254,9 @@ impl CatalogLoader {
 
         // The aborted updates that still run, a busy connection may run one
         if busy.is_empty() {
-            self.aborted.retain(|task_id| connections.iter().any(|connection| connection.catalog_updates.tasks_running.contains_key(task_id)));
+            self.aborted.retain(|task_id| {
+                connections.iter().any(|connection| connection.catalog_updates.tasks_running.contains_key(task_id))
+            });
         }
         schedule
     }

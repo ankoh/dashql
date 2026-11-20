@@ -1,5 +1,6 @@
 # Package for Bzlmod external_projects extension and build_file fragments.
 load("@rules_rust//rust:defs.bzl", "rust_lint_config")
+load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
 
 exports_files([
     "clippy_test.sh",
@@ -39,4 +40,13 @@ alias(
         "@platforms//os:linux": "@duckdb_cli_linux_amd64//:duckdb",
     }),
     visibility = ["//visibility:public"],
+)
+
+# Formats the Rust files of the repo with the rustfmt.toml of the repo: bazel run //bazel:rustfmt [-- <path>...], see
+# "rustfmt" in docs/agents/build_bazel_targets.md
+sh_binary(
+    name = "rustfmt",
+    srcs = ["rustfmt.sh"],
+    args = ["$(rootpath @rules_rust//rust/toolchain:current_rustfmt_toolchain)"],
+    data = ["@rules_rust//rust/toolchain:current_rustfmt_toolchain"],
 )

@@ -59,12 +59,8 @@ impl NameRegistry {
 
     /// Get a name, an id of another registry reads as an empty name without occurrences
     pub fn get(&self, id: NameId) -> &RegisteredName {
-        static UNKNOWN: RegisteredName = RegisteredName {
-            name_id: NameId::MAX,
-            text: String::new(),
-            location: TextSpan::new(0, 0),
-            occurrences: 0,
-        };
+        static UNKNOWN: RegisteredName =
+            RegisteredName { name_id: NameId::MAX, text: String::new(), location: TextSpan::new(0, 0), occurrences: 0 };
         self.names.get(id as usize).unwrap_or(&UNKNOWN)
     }
 
@@ -128,12 +124,7 @@ impl NameRegistry {
             return entry - 1;
         }
         let id = self.names.len() as NameId;
-        self.names.push(RegisteredName {
-            name_id: id,
-            text: text.to_string(),
-            location,
-            occurrences: 1,
-        });
+        self.names.push(RegisteredName { name_id: id, text: text.to_string(), location, occurrences: 1 });
         if let Some(entry) = self.table.get_mut(slot) {
             *entry = id + 1;
         }

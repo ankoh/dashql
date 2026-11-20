@@ -4,7 +4,8 @@
 use std::sync::Arc;
 
 use arrow_array::builder::{
-    BooleanBuilder, Date32Builder, Float64Builder, Int32Builder, Int64Builder, StringBuilder, TimestampMillisecondBuilder,
+    BooleanBuilder, Date32Builder, Float64Builder, Int32Builder, Int64Builder, StringBuilder,
+    TimestampMillisecondBuilder,
 };
 use arrow_array::{ArrayRef, RecordBatch};
 use arrow_schema::{DataType, Field, Schema, SchemaRef, TimeUnit};
@@ -177,7 +178,10 @@ impl ClientFunctionResult {
     /// The Arrow schema, every column is nullable
     pub fn schema(&self) -> SchemaRef {
         Arc::new(Schema::new(
-            self.fields.iter().map(|f| Field::new(f.name.clone(), f.column_type.arrow_type(), true)).collect::<Vec<_>>(),
+            self.fields
+                .iter()
+                .map(|f| Field::new(f.name.clone(), f.column_type.arrow_type(), true))
+                .collect::<Vec<_>>(),
         ))
     }
 
@@ -240,7 +244,10 @@ mod tests {
         assert_eq!(convert_value(Some(&json!(" 12 ")), ColumnType::Integer), Some(Cell::Int32(12)));
         assert_eq!(convert_value(Some(&json!("many")), ColumnType::Integer), None);
         assert_eq!(convert_value(Some(&json!(3_000_000_000_i64)), ColumnType::Integer), None);
-        assert_eq!(convert_value(Some(&json!("9007199254740993")), ColumnType::BigInt), Some(Cell::Int64(9_007_199_254_740_993)));
+        assert_eq!(
+            convert_value(Some(&json!("9007199254740993")), ColumnType::BigInt),
+            Some(Cell::Int64(9_007_199_254_740_993))
+        );
         assert_eq!(convert_value(Some(&json!(true)), ColumnType::Double), None);
         assert_eq!(convert_value(Some(&json!(1)), ColumnType::Boolean), None);
         assert_eq!(convert_value(Some(&json!({ "a": 1 })), ColumnType::Varchar), None);

@@ -25,26 +25,29 @@ pub mod dataflow;
 pub mod script_references;
 pub mod session_inputs;
 
-use dashql_core::compiler::{compile_visualization, produces_output, read_executable_text, read_executable_text_with};
-use script_references::{ReferenceErrors, ReferenceKind, ScriptReferences};
-use session_inputs::{bind_inputs, collect_session_inputs, describe_call, SessionInputs};
 use dashql_buffers::analyzer::AnalyzerErrorSeverity;
-use dashql_buffers::formatting::FormattingDialect;
 use dashql_buffers::execution::{
-    ExecutionGraphAccessMode as Mode, ExecutionGraphAccessT, ExecutionGraphCatalogObjectIDT, ExecutionGraphConnectionKind,
-    ExecutionGraphConnectionT, ExecutionGraphDiagnosticT, ExecutionGraphEdgeReason as Reason, ExecutionGraphEdgeT, ExecutionGraphEntityT,
-    ExecutionGraphAttachmentT, ExecutionGraphEntityType, ExecutionGraphMaterializationT, ExecutionGraphNodeT, ExecutionGraphScriptReferenceT, ExecutionGraphScriptT,
+    ExecutionGraphAccessMode as Mode, ExecutionGraphAccessT, ExecutionGraphAttachmentT, ExecutionGraphCatalogObjectIDT,
+    ExecutionGraphConnectionKind, ExecutionGraphConnectionT, ExecutionGraphDiagnosticT,
+    ExecutionGraphEdgeReason as Reason, ExecutionGraphEdgeT, ExecutionGraphEntityT, ExecutionGraphEntityType,
+    ExecutionGraphMaterializationT, ExecutionGraphNodeT, ExecutionGraphScriptReferenceT, ExecutionGraphScriptT,
     ExecutionGraphT, ExecutionGraphUnresolvedReferenceT,
 };
+use dashql_buffers::formatting::FormattingDialect;
 use dashql_buffers::parser::{AttributeKey as Key, NodeType, StatementType as Type, TempType, TextSpanT};
 use dashql_core::analyzer::{AnalyzedScript, ReferencedTable, RelationExpression, TableRole};
-use dashql_core::catalog::{Catalog, CatalogEntryId, CatalogEntryRef, QualifiedCatalogObjectId, QualifiedTableName, TableDeclaration};
+use dashql_core::catalog::{
+    Catalog, CatalogEntryId, CatalogEntryRef, QualifiedCatalogObjectId, QualifiedTableName, TableDeclaration,
+};
+use dashql_core::compiler::{compile_visualization, produces_output, read_executable_text, read_executable_text_with};
 use dashql_core::pack;
 use dashql_core::script::Script;
 use dashql_parser::attrs;
 use dashql_parser::parser::ParsedScript;
 use dashql_parser::scanner::ScannedScript;
 use dashql_parser::span::TextSpan;
+use script_references::{ReferenceErrors, ReferenceKind, ScriptReferences};
+use session_inputs::{bind_inputs, collect_session_inputs, describe_call, SessionInputs};
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
@@ -320,26 +323,41 @@ impl<'a> ConnectionState<'a> {
     /// incompatible or unavailable. Analysis can bind an earlier access to a later declaration of the same name, the
     /// live lifetime still owns that access.
     fn resolve(&self, relation: &RelationExpression) -> (Name, Option<&'a TableDeclaration>) {
-        let name = resource_name(relation.resolved_table.as_ref().map(|t| &t.table_name).unwrap_or(&relation.table_name));
+        let name =
+            resource_name(relation.resolved_table.as_ref().map(|t| &t.table_name).unwrap_or(&relation.table_name));
         let Some(resolved) = &relation.resolved_table else { return (name, None) };
         let declaration = self.declarations.get(&resolved.catalog_table_id).copied().filter(|d| {
-            d.catalog_schema_id == resolved.catalog_schema_id && resource_name(&d.table_name) == name && !self.incompatible_kinds.contains(&resolved.catalog_table_id)
+            d.catalog_schema_id == resolved.catalog_schema_id
+                && resource_name(&d.table_name) == name
+                && !self.incompatible_kinds.contains(&resolved.catalog_table_id)
         });
-        let owned = self.live_producers.contains(&name) || self.producers.contains_key(&resolved.catalog_table_id.unpack_table_id().pack());
+        let owned = self.live_producers.contains(&name)
+            || self.producers.contains_key(&resolved.catalog_table_id.unpack_table_id().pack());
         let table = declaration.map(|d| self.live_namespace.get(&name).copied().filter(|_| owned).unwrap_or(d));
         (name, table)
     }
 }
 
 /// Validate the analysis of a script against the catalog of its connection
-fn prepare<'a>(state: &mut PlanState, index: u32, input: &PlannerScript<'a>, catalog: &Catalog) -> Option<Prepared<'a>> {
+fn prepare<'a>(
+    state: &mut PlanState,
+    index: u32,
+    input: &PlannerScript<'a>,
+    catalog: &Catalog,
+) -> Option<Prepared<'a>> {
     let Some(prepared) = Prepared::lenient(input.script) else {
         state.report(NONE, index, None, "missing or stale script analysis".into(), true);
         return None;
     };
     let analyzed = prepared.analyzed;
     if analyzed.snapshot.id() != catalog.id() {
-        state.report(NONE, index, None, "script was analyzed with another catalog than the one of its connection".into(), true);
+        state.report(
+            NONE,
+            index,
+            None,
+            "script was analyzed with another catalog than the one of its connection".into(),
+            true,
+        );
         return None;
     }
     // A tolerant plan takes the analysis of an earlier catalog revision, its declarations keep their ids
@@ -363,7 +381,10 @@ fn diagnose_syntax(state: &mut PlanState, index: u32, prepared: &Prepared) {
         let text = scanned.text.as_bytes();
         let mut offset = 0;
         while offset < text.len() {
-            let comment = scanned.comments.iter().find(|c| c.offset as usize <= offset && offset < (c.offset + c.length) as usize);
+            let comment = scanned
+                .comments
+                .iter()
+                .find(|c| c.offset as usize <= offset && offset < (c.offset + c.length) as usize);
             if let Some(c) = comment {
                 offset = (c.offset + c.length) as usize;
                 continue;
@@ -394,7 +415,10 @@ pub(crate) fn has_manual_tag(script: &Script) -> bool {
 fn seeds(request: &SessionPlanRequest) -> Vec<u32> {
     match request.scope {
         PlanScope::Session => (0..request.scripts.len() as u32)
-            .filter(|&i| !request.materialized.contains(&i) && request.scripts.get(i as usize).is_some_and(|s| !runs_on_request(s.script)))
+            .filter(|&i| {
+                !request.materialized.contains(&i)
+                    && request.scripts.get(i as usize).is_some_and(|s| !runs_on_request(s.script))
+            })
             .collect(),
         PlanScope::Targets(targets) => targets.to_vec(),
         PlanScope::Tolerant => (0..request.scripts.len() as u32).collect(),
@@ -474,7 +498,9 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
     let mut pending: Vec<u32> = if targeted { targets.clone() } else { (0..script_count as u32).collect() };
     while let Some(i) = pending.pop() {
         // The scripts and their connections are checked with the request above
-        let (Some(planned), Some(input)) = (planned.get_mut(i as usize), request.scripts.get(i as usize)) else { continue };
+        let (Some(planned), Some(input)) = (planned.get_mut(i as usize), request.scripts.get(i as usize)) else {
+            continue;
+        };
         if *planned {
             continue;
         }
@@ -524,8 +550,11 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
     // A plan includes every statement of a script or none
     let included = |i: usize| include.get(i) == Some(&Include::All);
     // Scripts that a plan of targets passes through as one statement, they don't parse
-    let opaque: Vec<bool> =
-        include.iter().zip(&prepared).map(|(&level, p)| targeted && level == Include::All && p.as_ref().is_some_and(|p| !p.parses())).collect();
+    let opaque: Vec<bool> = include
+        .iter()
+        .zip(&prepared)
+        .map(|(&level, p)| targeted && level == Include::All && p.as_ref().is_some_and(|p| !p.parses()))
+        .collect();
 
     // The node ids of the included statements
     let mut node_of: BTreeMap<(u32, u32), u32> = BTreeMap::new();
@@ -548,7 +577,8 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
     let participates = |i: usize| node_of.range((i as u32, 0)..=(i as u32, u32::MAX)).next().is_some();
 
     // The relations of every connection
-    let mut connections: Vec<ConnectionState> = (0..request.connections.len()).map(|_| ConnectionState::default()).collect();
+    let mut connections: Vec<ConnectionState> =
+        (0..request.connections.len()).map(|_| ConnectionState::default()).collect();
     // Catalog entry ids are unique within the catalog of a connection
     let participating_ids: BTreeSet<(u32, CatalogEntryId)> = request
         .scripts
@@ -631,7 +661,9 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
             node.script = si as u32;
             node.statement_id = 0;
             node.statement_type = parsed.statements.first().map(|s| s.statement_type).unwrap_or(Type::NONE);
-            node.sql = opt(Some(read_executable_text(scanned, TextSpan::new(0, scanned.text.len() as u32)).trim().to_string()));
+            node.sql = opt(Some(
+                read_executable_text(scanned, TextSpan::new(0, scanned.text.len() as u32)).trim().to_string(),
+            ));
             node.produces_output = true;
             node.script_result = true;
             node.barrier = true;
@@ -650,7 +682,9 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
             let node_id = nodes.len() as u32;
             debug_assert_eq!(node_of.get(&(si as u32, statement_id as u32)), Some(&node_id));
             // The connections of the scripts are checked with the request above
-            let (Some(c), Some(connection_request)) = (connections.get_mut(connection as usize), request.connections.get(connection as usize)) else {
+            let (Some(c), Some(connection_request)) =
+                (connections.get_mut(connection as usize), request.connections.get(connection as usize))
+            else {
                 continue;
             };
             let mut node = ExecutionGraphNodeT::default();
@@ -690,7 +724,11 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
             for (script, span, message) in std::mem::take(&mut spliced.input_errors) {
                 state.report(node_id, script, Some(span), message, true);
             }
-            let mut sql = if spliced.edits.is_empty() { read_executable_text(scanned, span) } else { read_executable_text_with(scanned, span, &spliced.edits) };
+            let mut sql = if spliced.edits.is_empty() {
+                read_executable_text(scanned, span)
+            } else {
+                read_executable_text_with(scanned, span, &spliced.edits)
+            };
             for r in &spliced.references {
                 let mut reference = ExecutionGraphScriptReferenceT::default();
                 reference.node = node_id;
@@ -713,7 +751,11 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
                     state.diagnose(node_id, si as u32, $message.to_string());
                 }};
             }
-            let access = |state: &mut PlanState, accesses: &mut BTreeMap<(u32, u32), Mode>, name: &Name, table: Option<&TableDeclaration>, mode: Mode| {
+            let access = |state: &mut PlanState,
+                          accesses: &mut BTreeMap<(u32, u32), Mode>,
+                          name: &Name,
+                          table: Option<&TableDeclaration>,
+                          mode: Mode| {
                 let target = match table {
                     Some(t) => (state.intern_entity(connection, t), NONE),
                     None => (NONE, state.intern_unresolved(connection, name)),
@@ -736,20 +778,23 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
                 | Type::DROP_TABLE
                 | Type::DROP_VIEW => {}
                 // A client function call doesn't run on the backend, see below
-                Type::CALL if analyzed.client_function_calls.iter().any(|c| c.ast_statement_id == statement_id as u32) => {}
+                Type::CALL
+                    if analyzed.client_function_calls.iter().any(|c| c.ast_statement_id == statement_id as u32) => {}
                 _ => {
                     barrier!("unsupported statement effects; backend session semantics are not guaranteed");
                 }
             }
             // A spec shadows its namespace, a call in it never reaches the backend: the host runs its description, `sql`
             // only tells what the statement says. Any other call goes to the backend as written.
-            let client_function_call = analyzed.client_function_calls.iter().any(|c| c.ast_statement_id == statement_id as u32);
+            let client_function_call =
+                analyzed.client_function_calls.iter().any(|c| c.ast_statement_id == statement_id as u32);
             if client_function_call {
                 barrier = true;
                 node.client_function_call = describe_call(&state.inputs, analyzed, statement_id as u32);
             }
             // A query with `@vis` tags carries its visualization
-            let visualization = analyzed.visualization_specs.iter().find(|s| s.ast_statement_id == Some(statement_id as u32));
+            let visualization =
+                analyzed.visualization_specs.iter().find(|s| s.ast_statement_id == Some(statement_id as u32));
             if let Some(spec) = visualization.filter(|_| ty == Type::SELECT) {
                 match compile_visualization(spec, analyzed) {
                     Ok(mut compiled) => {
@@ -766,7 +811,8 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
             }
             if ty == Type::EXPLAIN {
                 // A root that the parser didn't emit has no children, the EXPLAIN has no body then
-                let children = parsed.nodes.get(statement.root as usize).map(|root| parsed.children(root)).unwrap_or_default();
+                let children =
+                    parsed.nodes.get(statement.root as usize).map(|root| parsed.children(root)).unwrap_or_default();
                 let [body, options] = attrs!(children, [Key::EXT_EXPLAIN_STATEMENT, Key::EXT_EXPLAIN_OPTIONS]);
                 explain_executes = dashql_core::touched_relations::explain_executes(parsed, options);
                 if body.is_none_or(|b| b.node_type() == NodeType::NONE) {
@@ -803,7 +849,9 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
                 if ty == Type::EXPLAIN && explain_executes && mutating {
                     barrier!("execution-enabled EXPLAIN with a mutating body cannot be safely classified");
                 }
-                if ast.node_type() == NodeType::ENUM_SQL_TEMP_TYPE && ast.children_begin_or_value() == TempType::NONE.0 as u32 {
+                if ast.node_type() == NodeType::ENUM_SQL_TEMP_TYPE
+                    && ast.children_begin_or_value() == TempType::NONE.0 as u32
+                {
                     continue;
                 }
                 if matches!(
@@ -814,8 +862,10 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
                         | Key::SQL_TEMP_TYPE
                         | Key::SQL_SELECT_ROW_LOCKING
                         | Key::SQL_TABLE_CONSTRAINT_REFERENCES_NAME
-                ) || matches!(ast.node_type(), NodeType::OBJECT_SQL_GRAPH_TABLE | NodeType::OBJECT_SQL_PROPERTY_GRAPH)
-                {
+                ) || matches!(
+                    ast.node_type(),
+                    NodeType::OBJECT_SQL_GRAPH_TABLE | NodeType::OBJECT_SQL_PROPERTY_GRAPH
+                ) {
                     if !effects {
                         barrier!("unsupported session, locking, constraint, or graph effects");
                     }
@@ -845,7 +895,9 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
                 let write = table_ref.role == TableRole::Write && (ty != Type::EXPLAIN || explain_executes);
                 access(&mut state, &mut accesses, &name, table, if write { Mode::WRITE } else { Mode::READ });
                 if c.dropped_resources.contains(&name) {
-                    barrier!("relation was dropped without an earlier lifetime producer; later producer cannot be reordered");
+                    barrier!(
+                        "relation was dropped without an earlier lifetime producer; later producer cannot be reordered"
+                    );
                 }
                 match &relation.resolved_table {
                     None => barrier!(format!("unresolved relation: {}", relation.table_name.debug_string())),
@@ -867,7 +919,11 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
             let direct: BTreeSet<(u32, u32)> = accesses.keys().copied().collect();
             let mut inherited: BTreeSet<(u32, u32)> = BTreeSet::new();
             for &(producer, producer_statement) in &spliced.inlined {
-                let Some(producer_analyzed) = prepared.get(producer as usize).and_then(Option::as_ref).map(|p| p.analyzed) else { continue };
+                let Some(producer_analyzed) =
+                    prepared.get(producer as usize).and_then(Option::as_ref).map(|p| p.analyzed)
+                else {
+                    continue;
+                };
                 for table_ref in &producer_analyzed.table_references {
                     if table_ref.ast_statement_id != Some(producer_statement)
                         || is_cte_reference(producer_analyzed, table_ref)
@@ -889,14 +945,21 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
             for &m in &spliced.inputs {
                 let Some(materialization) = materializations.get(m as usize) else { continue };
                 if materialization.node != NONE {
-                    reference_edges.push((materialization.node, node_id, Reason::MATERIALIZATION, materialization.script));
+                    reference_edges.push((
+                        materialization.node,
+                        node_id,
+                        Reason::MATERIALIZATION,
+                        materialization.script,
+                    ));
                 }
             }
             node.inputs = (!spliced.inputs.is_empty()).then(|| spliced.inputs.clone());
-            node.inlined_scripts = (!spliced.inlined.is_empty()).then(|| spliced.inlined.iter().map(|&(producer, _)| producer).collect());
+            node.inlined_scripts =
+                (!spliced.inlined.is_empty()).then(|| spliced.inlined.iter().map(|&(producer, _)| producer).collect());
             node.attachments = (!spliced.attachments.is_empty()).then(|| spliced.attachments.clone());
             let drop = matches!(ty, Type::DROP_TABLE | Type::DROP_VIEW);
-            let ddl = drop || matches!(ty, Type::CREATE_TABLE | Type::CREATE_TABLE_AS | Type::CREATE_VIEW | Type::SELECT_INTO);
+            let ddl = drop
+                || matches!(ty, Type::CREATE_TABLE | Type::CREATE_TABLE_AS | Type::CREATE_VIEW | Type::SELECT_INTO);
             if ddl {
                 let packed = pack::pack_parsed_statement(parsed, statement_id);
                 match packed.target {
@@ -915,7 +978,11 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
                                 let matches: BTreeSet<Name> = c
                                     .live_namespace
                                     .keys()
-                                    .filter(|n| n.2 == name.2 && (name.1.is_empty() || n.1 == name.1) && (name.0.is_empty() || n.0 == name.0))
+                                    .filter(|n| {
+                                        n.2 == name.2
+                                            && (name.1.is_empty() || n.1 == name.1)
+                                            && (name.0.is_empty() || n.0 == name.0)
+                                    })
                                     .cloned()
                                     .collect();
                                 if matches.len() == 1 {
@@ -937,7 +1004,9 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
                             }
                         } else {
                             for declaration in &analyzed.entry.table_declarations {
-                                if declaration.ast_statement_id == Some(statement_id as u32) && resource_name(&declaration.table_name) == name {
+                                if declaration.ast_statement_id == Some(statement_id as u32)
+                                    && resource_name(&declaration.table_name) == name
+                                {
                                     table = Some(declaration);
                                 }
                             }
@@ -1037,10 +1106,18 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
             // The accesses name the entities and the unresolved references that the plan interned
             let name = if a.entity != NONE {
                 let Some(e) = state.entity_list.get(a.entity as usize) else { continue };
-                (e.database_name.clone().unwrap_or_default(), e.schema_name.clone().unwrap_or_default(), e.name.clone().unwrap_or_default())
+                (
+                    e.database_name.clone().unwrap_or_default(),
+                    e.schema_name.clone().unwrap_or_default(),
+                    e.name.clone().unwrap_or_default(),
+                )
             } else {
                 let Some(r) = state.unresolved_list.get(a.unresolved_reference as usize) else { continue };
-                (r.database_name.clone().unwrap_or_default(), r.schema_name.clone().unwrap_or_default(), r.name.clone().unwrap_or_default())
+                (
+                    r.database_name.clone().unwrap_or_default(),
+                    r.schema_name.clone().unwrap_or_default(),
+                    r.name.clone().unwrap_or_default(),
+                )
             };
             // A statement can write `t` and the catalog can know it as `db.schema.t`
             let name = (
@@ -1059,12 +1136,30 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
             let timeline = timelines.entry((connection, name)).or_default();
             let ddl = a.mode == Mode::DDL || timeline.mode == Some(Mode::DDL);
             if a.mode == Mode::READ {
-                edge(timeline.writer, i, a.entity, a.unresolved_reference, if ddl { Reason::DDL } else { Reason::READ_AFTER_WRITE });
+                edge(
+                    timeline.writer,
+                    i,
+                    a.entity,
+                    a.unresolved_reference,
+                    if ddl { Reason::DDL } else { Reason::READ_AFTER_WRITE },
+                );
                 timeline.readers.push(i);
             } else {
-                edge(timeline.writer, i, a.entity, a.unresolved_reference, if ddl { Reason::DDL } else { Reason::WRITE_AFTER_WRITE });
+                edge(
+                    timeline.writer,
+                    i,
+                    a.entity,
+                    a.unresolved_reference,
+                    if ddl { Reason::DDL } else { Reason::WRITE_AFTER_WRITE },
+                );
                 for &reader in &timeline.readers {
-                    edge(Some(reader), i, a.entity, a.unresolved_reference, if a.mode == Mode::DDL { Reason::DDL } else { Reason::WRITE_AFTER_READ });
+                    edge(
+                        Some(reader),
+                        i,
+                        a.entity,
+                        a.unresolved_reference,
+                        if a.mode == Mode::DDL { Reason::DDL } else { Reason::WRITE_AFTER_READ },
+                    );
                 }
                 timeline.readers.clear();
                 timeline.writer = Some(i);
@@ -1125,12 +1220,17 @@ fn is_cte_reference(analyzed: &AnalyzedScript, table_ref: &dashql_core::analyzer
     {
         return false;
     }
-    let Some(&scope) = table_ref.ast_scope_root.and_then(|r| analyzed.name_scopes_by_root_node.get(&r)) else { return false };
+    let Some(&scope) = table_ref.ast_scope_root.and_then(|r| analyzed.name_scopes_by_root_node.get(&r)) else {
+        return false;
+    };
     let alias = match &table_ref.alias {
         Some((a, _)) => a.text.clone(),
         None => relation.table_name.table_name.text.clone(),
     };
-    matches!(analyzed.name_scopes.get(scope as usize).and_then(|s| s.source(&alias)).map(|s| &s.table), Some(ReferencedTable::Cte(_)))
+    matches!(
+        analyzed.name_scopes.get(scope as usize).and_then(|s| s.source(&alias)).map(|s| &s.table),
+        Some(ReferencedTable::Cte(_))
+    )
 }
 
 fn text_span_t(span: TextSpan) -> TextSpanT {
@@ -1163,7 +1263,13 @@ fn opt_vec<T>(v: Vec<T>) -> Option<Vec<T>> {
 }
 
 /// Complete the graph of a plan with its connections, scripts, entities and diagnostics
-fn finish(state: PlanState, request: &SessionPlanRequest, prepared: &[Option<Prepared>], planned: &[bool], references: ScriptReferences) -> Plan {
+fn finish(
+    state: PlanState,
+    request: &SessionPlanRequest,
+    prepared: &[Option<Prepared>],
+    planned: &[bool],
+    references: ScriptReferences,
+) -> Plan {
     let targets: BTreeSet<u32> = seeds(request).into_iter().collect();
     let mut graph = state.graph;
     if state.partial {
@@ -1274,16 +1380,49 @@ mod tests {
         graph.diagnostics.iter().flatten().filter_map(|d| d.message.clone()).collect()
     }
 
-    fn request<'a>(connections: &'a [PlannerConnection<'a>], scripts: &'a [PlannerScript<'a>]) -> SessionPlanRequest<'a> {
-        SessionPlanRequest { connections, scripts, scope: PlanScope::Session, materialized: &[], mount_prefix: "/mnt/external/test", attachments: &[], attachment_prefix: "" }
+    fn request<'a>(
+        connections: &'a [PlannerConnection<'a>],
+        scripts: &'a [PlannerScript<'a>],
+    ) -> SessionPlanRequest<'a> {
+        SessionPlanRequest {
+            connections,
+            scripts,
+            scope: PlanScope::Session,
+            materialized: &[],
+            mount_prefix: "/mnt/external/test",
+            attachments: &[],
+            attachment_prefix: "",
+        }
     }
 
     #[test]
     fn rejects_duplicate_script_names() {
         let catalog = Catalog::new();
         let (a, b) = (analyzed(&catalog, "select 1"), analyzed(&catalog, "select 2"));
-        let connections = [PlannerConnection { id: "c", kind: ConnectionKind::Local, catalog: &catalog, dialect: FormattingDialect::HYPER, default_database: "", default_schema: "" }];
-        let scripts = [PlannerScript { script: &a, name: "foo", connection: 0, materialization_file: None, current_by_own_publish: false }, PlannerScript { script: &b, name: "foo", connection: 0, materialization_file: None, current_by_own_publish: false }];
+        let connections = [PlannerConnection {
+            id: "c",
+            kind: ConnectionKind::Local,
+            catalog: &catalog,
+            dialect: FormattingDialect::HYPER,
+            default_database: "",
+            default_schema: "",
+        }];
+        let scripts = [
+            PlannerScript {
+                script: &a,
+                name: "foo",
+                connection: 0,
+                materialization_file: None,
+                current_by_own_publish: false,
+            },
+            PlannerScript {
+                script: &b,
+                name: "foo",
+                connection: 0,
+                materialization_file: None,
+                current_by_own_publish: false,
+            },
+        ];
         let graph = plan_session(&request(&connections, &scripts));
         assert!(!graph.valid);
         assert!(graph.nodes.is_none());
@@ -1295,10 +1434,30 @@ mod tests {
         let catalog = Catalog::new();
         let a = analyzed(&catalog, "select 1");
         let connections = [
-            PlannerConnection { id: "first", kind: ConnectionKind::Local, catalog: &catalog, dialect: FormattingDialect::HYPER, default_database: "", default_schema: "" },
-            PlannerConnection { id: "second", kind: ConnectionKind::Remote, catalog: &catalog, dialect: FormattingDialect::HYPER, default_database: "", default_schema: "" },
+            PlannerConnection {
+                id: "first",
+                kind: ConnectionKind::Local,
+                catalog: &catalog,
+                dialect: FormattingDialect::HYPER,
+                default_database: "",
+                default_schema: "",
+            },
+            PlannerConnection {
+                id: "second",
+                kind: ConnectionKind::Remote,
+                catalog: &catalog,
+                dialect: FormattingDialect::HYPER,
+                default_database: "",
+                default_schema: "",
+            },
         ];
-        let scripts = [PlannerScript { script: &a, name: "foo", connection: 0, materialization_file: None, current_by_own_publish: false }];
+        let scripts = [PlannerScript {
+            script: &a,
+            name: "foo",
+            connection: 0,
+            materialization_file: None,
+            current_by_own_publish: false,
+        }];
         let graph = plan_session(&request(&connections, &scripts));
         assert!(!graph.valid);
         assert_eq!(messages(&graph), vec!["connections share a catalog: second"]);
@@ -1308,10 +1467,29 @@ mod tests {
     fn rejects_unknown_connections_and_scripts() {
         let catalog = Catalog::new();
         let a = analyzed(&catalog, "select 1");
-        let connections = [PlannerConnection { id: "c", kind: ConnectionKind::Local, catalog: &catalog, dialect: FormattingDialect::HYPER, default_database: "", default_schema: "" }];
-        let scripts = [PlannerScript { script: &a, name: "foo", connection: 1, materialization_file: None, current_by_own_publish: false }];
+        let connections = [PlannerConnection {
+            id: "c",
+            kind: ConnectionKind::Local,
+            catalog: &catalog,
+            dialect: FormattingDialect::HYPER,
+            default_database: "",
+            default_schema: "",
+        }];
+        let scripts = [PlannerScript {
+            script: &a,
+            name: "foo",
+            connection: 1,
+            materialization_file: None,
+            current_by_own_publish: false,
+        }];
         assert_eq!(messages(&plan_session(&request(&connections, &scripts))), vec!["unknown planner connection"]);
-        let scripts = [PlannerScript { script: &a, name: "foo", connection: 0, materialization_file: None, current_by_own_publish: false }];
+        let scripts = [PlannerScript {
+            script: &a,
+            name: "foo",
+            connection: 0,
+            materialization_file: None,
+            current_by_own_publish: false,
+        }];
         let mut targets = request(&connections, &scripts);
         targets.scope = PlanScope::Targets(&[3]);
         assert_eq!(messages(&plan_session(&targets)), vec!["unknown planner script"]);
@@ -1322,33 +1500,94 @@ mod tests {
         let (trino, local) = (Catalog::new(), Catalog::new());
         let (foo, bar) = (analyzed(&trino, "select 1 as a"), analyzed(&local, "select * from :foo"));
         let connections = [
-            PlannerConnection { id: "trino", kind: ConnectionKind::Remote, catalog: &trino, dialect: FormattingDialect::HYPER, default_database: "", default_schema: "" },
-            PlannerConnection { id: "local", kind: ConnectionKind::Local, catalog: &local, dialect: FormattingDialect::HYPER, default_database: "", default_schema: "" },
+            PlannerConnection {
+                id: "trino",
+                kind: ConnectionKind::Remote,
+                catalog: &trino,
+                dialect: FormattingDialect::HYPER,
+                default_database: "",
+                default_schema: "",
+            },
+            PlannerConnection {
+                id: "local",
+                kind: ConnectionKind::Local,
+                catalog: &local,
+                dialect: FormattingDialect::HYPER,
+                default_database: "",
+                default_schema: "",
+            },
         ];
         let scripts = [
-            PlannerScript { script: &foo, name: "foo", connection: 0, materialization_file: Some("abc.0123.parquet"), current_by_own_publish: false },
-            PlannerScript { script: &bar, name: "bar", connection: 1, materialization_file: None, current_by_own_publish: false },
+            PlannerScript {
+                script: &foo,
+                name: "foo",
+                connection: 0,
+                materialization_file: Some("abc.0123.parquet"),
+                current_by_own_publish: false,
+            },
+            PlannerScript {
+                script: &bar,
+                name: "bar",
+                connection: 1,
+                materialization_file: None,
+                current_by_own_publish: false,
+            },
         ];
         let graph = plan_session(&request(&connections, &scripts));
         assert!(graph.valid, "{:?}", messages(&graph));
         let path = graph.materializations.as_ref().unwrap()[0].path.clone().unwrap();
         assert_eq!(path, "/mnt/external/test/abc.0123.parquet");
-        assert!(graph.nodes.as_ref().unwrap()[1].sql.as_ref().unwrap().contains("external('/mnt/external/test/abc.0123.parquet'"));
+        assert!(graph.nodes.as_ref().unwrap()[1]
+            .sql
+            .as_ref()
+            .unwrap()
+            .contains("external('/mnt/external/test/abc.0123.parquet'"));
     }
 
     #[test]
     fn rejects_duplicate_scripts_and_attachments() {
         let catalog = Catalog::new();
         let a = analyzed(&catalog, "select 1");
-        let connections = [PlannerConnection { id: "c", kind: ConnectionKind::Local, catalog: &catalog, dialect: FormattingDialect::HYPER, default_database: "", default_schema: "" }];
+        let connections = [PlannerConnection {
+            id: "c",
+            kind: ConnectionKind::Local,
+            catalog: &catalog,
+            dialect: FormattingDialect::HYPER,
+            default_database: "",
+            default_schema: "",
+        }];
         // The same script under two names
-        let scripts = [PlannerScript { script: &a, name: "foo", connection: 0, materialization_file: None, current_by_own_publish: false }, PlannerScript { script: &a, name: "bar", connection: 0, materialization_file: None, current_by_own_publish: false }];
+        let scripts = [
+            PlannerScript {
+                script: &a,
+                name: "foo",
+                connection: 0,
+                materialization_file: None,
+                current_by_own_publish: false,
+            },
+            PlannerScript {
+                script: &a,
+                name: "bar",
+                connection: 0,
+                materialization_file: None,
+                current_by_own_publish: false,
+            },
+        ];
         let graph = plan_session(&request(&connections, &scripts));
         assert!(!graph.valid);
         assert_eq!(messages(&graph), vec!["duplicate planner script"]);
         // Two attachments of one file
-        let scripts = [PlannerScript { script: &a, name: "foo", connection: 0, materialization_file: None, current_by_own_publish: false }];
-        let attachments = [PlannerAttachment { name: "x", file: "x.parquet", stamp: "1" }, PlannerAttachment { name: "y", file: "x.parquet", stamp: "1" }];
+        let scripts = [PlannerScript {
+            script: &a,
+            name: "foo",
+            connection: 0,
+            materialization_file: None,
+            current_by_own_publish: false,
+        }];
+        let attachments = [
+            PlannerAttachment { name: "x", file: "x.parquet", stamp: "1" },
+            PlannerAttachment { name: "y", file: "x.parquet", stamp: "1" },
+        ];
         let graph = plan_session(&SessionPlanRequest { attachments: &attachments, ..request(&connections, &scripts) });
         assert!(!graph.valid);
         assert_eq!(messages(&graph), vec!["duplicate attachment: x.parquet"]);
@@ -1361,13 +1600,27 @@ mod tests {
         // Publishing another script makes the analysis stale
         let schema = analyzed(&catalog, "create table t (x int)");
         catalog.load_script(schema.analyzed.clone().unwrap(), dashql_core::catalog::CatalogLayer::SESSION).unwrap();
-        let connections = [PlannerConnection { id: "c", kind: ConnectionKind::Local, catalog: &catalog, dialect: FormattingDialect::HYPER, default_database: "", default_schema: "" }];
-        let scripts = [PlannerScript { script: &a, name: "foo", connection: 0, materialization_file: None, current_by_own_publish: false }];
+        let connections = [PlannerConnection {
+            id: "c",
+            kind: ConnectionKind::Local,
+            catalog: &catalog,
+            dialect: FormattingDialect::HYPER,
+            default_database: "",
+            default_schema: "",
+        }];
+        let scripts = [PlannerScript {
+            script: &a,
+            name: "foo",
+            connection: 0,
+            materialization_file: None,
+            current_by_own_publish: false,
+        }];
         let graph = plan_session(&request(&connections, &scripts));
         assert!(!graph.valid);
         assert_eq!(messages(&graph), vec!["stale catalog analysis"]);
         // A tolerant plan takes the older analysis
-        let tolerant = plan_session(&SessionPlanRequest { scope: PlanScope::Tolerant, ..request(&connections, &scripts) });
+        let tolerant =
+            plan_session(&SessionPlanRequest { scope: PlanScope::Tolerant, ..request(&connections, &scripts) });
         assert!(!messages(&tolerant).contains(&"stale catalog analysis".to_string()));
     }
 
@@ -1375,8 +1628,21 @@ mod tests {
     fn rejects_scripts_of_another_catalog() {
         let (catalog, other) = (Catalog::new(), Catalog::new());
         let a = analyzed(&other, "select 1");
-        let connections = [PlannerConnection { id: "c", kind: ConnectionKind::Local, catalog: &catalog, dialect: FormattingDialect::HYPER, default_database: "", default_schema: "" }];
-        let scripts = [PlannerScript { script: &a, name: "foo", connection: 0, materialization_file: None, current_by_own_publish: false }];
+        let connections = [PlannerConnection {
+            id: "c",
+            kind: ConnectionKind::Local,
+            catalog: &catalog,
+            dialect: FormattingDialect::HYPER,
+            default_database: "",
+            default_schema: "",
+        }];
+        let scripts = [PlannerScript {
+            script: &a,
+            name: "foo",
+            connection: 0,
+            materialization_file: None,
+            current_by_own_publish: false,
+        }];
         let graph = plan_session(&request(&connections, &scripts));
         assert!(!graph.valid);
         assert_eq!(messages(&graph), vec!["script was analyzed with another catalog than the one of its connection"]);
@@ -1397,14 +1663,29 @@ mod tests {
             ("explain call clfn.f ()", false),
         ] {
             let mut catalog = Catalog::new();
-            catalog.register_client_functions(r#"{ "format": 1, "namespace": "clfn", "functions": [{ "name": "f" }] }"#).unwrap();
+            catalog
+                .register_client_functions(r#"{ "format": 1, "namespace": "clfn", "functions": [{ "name": "f" }] }"#)
+                .unwrap();
             let mut script = Script::new(&catalog);
             script.replace_text(text);
             script.scan();
             script.parse();
             script.analyze(&catalog, false).unwrap();
-            let connections = [PlannerConnection { id: "c", kind: ConnectionKind::Remote, catalog: &catalog, dialect: FormattingDialect::HYPER, default_database: "", default_schema: "" }];
-            let scripts = [PlannerScript { script: &script, name: "foo", connection: 0, materialization_file: None, current_by_own_publish: false }];
+            let connections = [PlannerConnection {
+                id: "c",
+                kind: ConnectionKind::Remote,
+                catalog: &catalog,
+                dialect: FormattingDialect::HYPER,
+                default_database: "",
+                default_schema: "",
+            }];
+            let scripts = [PlannerScript {
+                script: &script,
+                name: "foo",
+                connection: 0,
+                materialization_file: None,
+                current_by_own_publish: false,
+            }];
             let mut targets = request(&connections, &scripts);
             targets.scope = PlanScope::Targets(&[0]);
             let graph = plan_session(&targets);
@@ -1417,11 +1698,36 @@ mod tests {
     fn plans_scripts_without_names() {
         let catalog = Catalog::new();
         let (a, b) = (analyzed(&catalog, "select 1"), analyzed(&catalog, "select 2"));
-        let connections = [PlannerConnection { id: "c", kind: ConnectionKind::Remote, catalog: &catalog, dialect: FormattingDialect::HYPER, default_database: "", default_schema: "" }];
-        let scripts = [PlannerScript { script: &a, name: "", connection: 0, materialization_file: None, current_by_own_publish: false }, PlannerScript { script: &b, name: "", connection: 0, materialization_file: None, current_by_own_publish: false }];
+        let connections = [PlannerConnection {
+            id: "c",
+            kind: ConnectionKind::Remote,
+            catalog: &catalog,
+            dialect: FormattingDialect::HYPER,
+            default_database: "",
+            default_schema: "",
+        }];
+        let scripts = [
+            PlannerScript {
+                script: &a,
+                name: "",
+                connection: 0,
+                materialization_file: None,
+                current_by_own_publish: false,
+            },
+            PlannerScript {
+                script: &b,
+                name: "",
+                connection: 0,
+                materialization_file: None,
+                current_by_own_publish: false,
+            },
+        ];
         let graph = plan_session(&request(&connections, &scripts));
         assert!(graph.valid);
         assert_eq!(graph.nodes.as_ref().map(Vec::len), Some(2));
-        assert!(graph.connections.as_ref().is_some_and(|c| c.len() == 1 && c[0].kind == ExecutionGraphConnectionKind::REMOTE));
+        assert!(graph
+            .connections
+            .as_ref()
+            .is_some_and(|c| c.len() == 1 && c[0].kind == ExecutionGraphConnectionKind::REMOTE));
     }
 }

@@ -477,10 +477,7 @@ impl<'a> Lexer<'a> {
                     State::Xd => "unterminated delimited identifier",
                     State::Xbt => "unterminated backtick-quoted identifier",
                 };
-                out.errors.push(ScannerError {
-                    location: self.ext_begin.cover(eof),
-                    message: message.to_string(),
-                });
+                out.errors.push(ScannerError { location: self.ext_begin.cover(eof), message: message.to_string() });
                 self.state = State::Initial;
                 continue;
             }
@@ -531,7 +528,9 @@ impl<'a> Lexer<'a> {
                     None => self.no_match(out),
                 },
                 State::Xd => match self.next_match::<Xd>() {
-                    Some((Xd::Stop, loc)) => Some(self.identifier_stop(out, loc, b'"', "zero-length delimited identifier")),
+                    Some((Xd::Stop, loc)) => {
+                        Some(self.identifier_stop(out, loc, b'"', "zero-length delimited identifier"))
+                    }
                     Some((Xd::Inside, _)) => None,
                     None => self.no_match(out),
                 },
@@ -653,10 +652,7 @@ impl<'a> Lexer<'a> {
     fn identifier_stop(&mut self, out: &mut ScannedScript, loc: TextSpan, quote: u8, message: &str) -> Symbol {
         let loc = self.ext_begin.cover(loc);
         if loc.length == 2 {
-            out.errors.push(ScannerError {
-                location: loc,
-                message: message.to_string(),
-            });
+            out.errors.push(ScannerError { location: loc, message: message.to_string() });
         }
         self.state = State::Initial;
         self.read_quoted_identifier(out, loc, quote)
@@ -690,11 +686,7 @@ impl<'a> Lexer<'a> {
             inner
         };
         let id = out.names.register(utf8(name), loc);
-        Symbol {
-            kind: S_IDENT,
-            location: loc,
-            value: SymbolValue::Name(id),
-        }
+        Symbol { kind: S_IDENT, location: loc, value: SymbolValue::Name(id) }
     }
 
     fn read_identifier(&mut self, out: &mut ScannedScript, loc: TextSpan) -> Symbol {
@@ -703,18 +695,10 @@ impl<'a> Lexer<'a> {
         self.buffer.extend(text.iter().map(u8::to_ascii_lowercase));
         let lower = &self.buffer[..];
         if let Some(keyword) = Keyword::find(lower) {
-            return Symbol {
-                kind: keyword.symbol,
-                location: loc,
-                value: SymbolValue::Text(keyword.name),
-            };
+            return Symbol { kind: keyword.symbol, location: loc, value: SymbolValue::Text(keyword.name) };
         }
         let id = out.names.register(utf8(lower), loc);
-        Symbol {
-            kind: S_IDENT,
-            location: loc,
-            value: SymbolValue::Name(id),
-        }
+        Symbol { kind: S_IDENT, location: loc, value: SymbolValue::Name(id) }
     }
 
     /// The `{operator}` action

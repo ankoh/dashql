@@ -57,7 +57,11 @@ async fn main() -> Result<()> {
     let source_dir = {
         if let Ok(dir) = std::env::var("BUILD_WORKSPACE_DIRECTORY") {
             let path = std::path::PathBuf::from(&dir);
-            if path.exists() { path } else { std::env::current_dir()? }
+            if path.exists() {
+                path
+            } else {
+                std::env::current_dir()?
+            }
         } else {
             std::env::current_dir()?
         }

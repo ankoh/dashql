@@ -5,14 +5,14 @@ use super::prompt_buffer::{find_from, PromptBuffer};
 use super::unicode::{display_width, is_valid, next_grapheme};
 use super::vt100::{self, append_sequence, Command};
 use super::*;
+use dashql_buffers::completion::{CandidateTag, CompletionCandidateT, CompletionT};
+use dashql_buffers::parser::ScannerTokenType;
 use dashql_core::catalog::ids::CatalogObjectType;
 use dashql_core::catalog::Catalog;
 use dashql_core::error::Error;
 use dashql_core::pack::{pack_completion, pack_tokens};
 use dashql_core::script::Script;
 use dashql_core::utils::{ci_cmp, ci_find, ci_starts_with, quote_identifier};
-use dashql_buffers::completion::{CandidateTag, CompletionCandidateT, CompletionT};
-use dashql_buffers::parser::ScannerTokenType;
 use dashql_parser::symbol_kind::S_SEMICOLON;
 use std::cmp::Ordering;
 use std::collections::VecDeque;
@@ -1033,8 +1033,10 @@ impl ShellSession {
         self.terminal_action = PromptInputAction::None;
         if let Some(overlay) = &self.overlay {
             if !overlay.hint_only {
-                let variant_count =
-                    overlay.candidates.get(overlay.selection).map_or(0, |candidate| candidate.qualification_texts.len());
+                let variant_count = overlay
+                    .candidates
+                    .get(overlay.selection)
+                    .map_or(0, |candidate| candidate.qualification_texts.len());
                 if key == PromptInputKey::HistoryPrevious || key == PromptInputKey::Up {
                     return Ok(self.move_terminal_completion(-1));
                 }
@@ -1196,7 +1198,8 @@ impl ShellSession {
             progress.frame = (progress.frame + 1) % TERMINAL_QUERY_SPINNER_FRAMES.len();
         }
         // The frame is an index of the frames modulo their count
-        let mut line = TERMINAL_QUERY_SPINNER_FRAMES.get(progress.frame).copied().unwrap_or_default().as_bytes().to_vec();
+        let mut line =
+            TERMINAL_QUERY_SPINNER_FRAMES.get(progress.frame).copied().unwrap_or_default().as_bytes().to_vec();
         line.push(b' ');
         line.extend_from_slice(&progress.message);
         let line = truncate_display_text(&line, (self.terminal_columns as usize).max(1));
@@ -1378,12 +1381,7 @@ impl ShellSession {
     }
 
     /// Resume the operation of an effect with its result
-    pub fn complete_effect(
-        &mut self,
-        effect_id: u64,
-        status: EffectCompletionStatus,
-        data: &[u8],
-    ) -> ShellOperation {
+    pub fn complete_effect(&mut self, effect_id: u64, status: EffectCompletionStatus, data: &[u8]) -> ShellOperation {
         let Some(index) = self.pending_effects.iter().position(|e| e.id == effect_id) else {
             return ShellOperation::new(ShellStatus::StaleEffect, "effect is no longer pending");
         };
@@ -1546,7 +1544,8 @@ impl ShellSession {
         self.terminal_prompt_rows = rendered_layout.rows;
 
         let cursor = self.prompt.cursor_byte_offset();
-        let cursor_layout = layout_prompt(bytes_before(text, cursor), &terminal_prompt, &continuation, terminal_columns);
+        let cursor_layout =
+            layout_prompt(bytes_before(text, cursor), &terminal_prompt, &continuation, terminal_columns);
         self.terminal_prompt_cursor_row = cursor_layout.rows - 1;
         if let Some(overlay) = self.overlay.as_mut() {
             overlay.cursor_row = self.terminal_prompt_cursor_row;
@@ -1826,7 +1825,8 @@ impl ShellSession {
         let Some(overlay) = self.overlay.as_mut() else {
             return ShellOperation::ok(Vec::new());
         };
-        let count = overlay.candidates.get(overlay.selection).map_or(0, |candidate| candidate.qualification_texts.len());
+        let count =
+            overlay.candidates.get(overlay.selection).map_or(0, |candidate| candidate.qualification_texts.len());
         if count < 2 {
             return ShellOperation::ok(Vec::new());
         }

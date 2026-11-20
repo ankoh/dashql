@@ -11,15 +11,17 @@
 
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
 use dashql_core_runtime::settings::RuntimeSettings;
-use wasm_bindgen::JsCast;
 use dashql_core_storage::storage::{FileStamp, FolderStamps};
 use dashql_core_storage::workbook_format::data::{STORAGE_VERSION, WORKBOOK_FORMAT_VERSION};
 use dashql_core_storage::workbook_format::migration::{migrate_stamped_folder, FolderHost, WorkbookMigrationResult};
-use dashql_core_storage::workbook_format::storage_migration::{migrate_storage, DirEntry, StorageRootHost, StorageMigrationSummary};
+use dashql_core_storage::workbook_format::storage_migration::{
+    migrate_storage, DirEntry, StorageMigrationSummary, StorageRootHost,
+};
 use js_sys::{Array, Function, Promise, Reflect};
 use serde::Serialize;
 use tsify::Tsify;
 use wasm_bindgen::prelude::*;
+use wasm_bindgen::JsCast;
 
 use crate::host::{call_method, details_value, field, message_of, JsPlatform};
 use crate::runtime::storage::stamp_of;
@@ -133,14 +135,12 @@ impl Host for JsStorageRoot {
 
     fn sleep(&self, ms: f64) -> impl std::future::Future<Output = ()> + 'static {
         let set_timeout = global("setTimeout").ok().and_then(|f| f.dyn_into::<Function>().ok());
-        let promise = Promise::new(&mut |resolve, _| {
-            match &set_timeout {
-                Some(set_timeout) => {
-                    let _ = set_timeout.call2(&JsValue::NULL, &resolve, &JsValue::from_f64(ms));
-                }
-                None => {
-                    let _ = resolve.call0(&JsValue::NULL);
-                }
+        let promise = Promise::new(&mut |resolve, _| match &set_timeout {
+            Some(set_timeout) => {
+                let _ = set_timeout.call2(&JsValue::NULL, &resolve, &JsValue::from_f64(ms));
+            }
+            None => {
+                let _ = resolve.call0(&JsValue::NULL);
             }
         });
         async move {
@@ -158,9 +158,14 @@ impl Host for JsStorageRoot {
 
     fn log(&self, level: LogLevel, message: &str, details: &[(&str, &str)]) {
         if let Some(log) = &self.log {
-            let args: Array = [JsValue::from_str(level.name()), JsValue::from_str(message), details_value(details).into(), JsValue::from_str("storage_migration")]
-                .into_iter()
-                .collect();
+            let args: Array = [
+                JsValue::from_str(level.name()),
+                JsValue::from_str(message),
+                details_value(details).into(),
+                JsValue::from_str("storage_migration"),
+            ]
+            .into_iter()
+            .collect();
             let _ = log.apply(&JsValue::NULL, &args);
         }
     }

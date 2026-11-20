@@ -81,7 +81,10 @@ impl StatementFailure {
 
 impl std::fmt::Debug for StatementFailure {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("StatementFailure").field("message", &self.message).field("cache_miss", &self.cache_miss).finish()
+        f.debug_struct("StatementFailure")
+            .field("message", &self.message)
+            .field("cache_miss", &self.cache_miss)
+            .finish()
     }
 }
 

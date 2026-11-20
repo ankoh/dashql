@@ -47,7 +47,9 @@ pub async fn check_health<H: SetupHost>(
             host.dispatch(&ConnectionAction::HealthCheckSucceeded);
             return Ok(());
         }
-        None | Some(Ok(ProbeResult::Finished { has_table: false })) => (DetailedError::new(HEALTH_CHECK_FAILED_MESSAGE), None),
+        None | Some(Ok(ProbeResult::Finished { has_table: false })) => {
+            (DetailedError::new(HEALTH_CHECK_FAILED_MESSAGE), None)
+        }
         Some(Ok(ProbeResult::Failed(error))) => (error, None),
         Some(Err(error)) => (DetailedError::new(error.message()), error.value().cloned()),
     };

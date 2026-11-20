@@ -14,26 +14,38 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use dashql_core_runtime::connections::label::{connection_params_label_of_value, is_hyper_wasm_connection};
+use dashql_core_runtime::connections::sharing::descriptor_of_params;
 use dashql_core_runtime::handles::Handle;
 use dashql_core_runtime::host::{HostError, LogLevel};
 use dashql_core_storage::storage::{HoldReason, WriteError, WriteOutcome, WriteTask};
 use dashql_core_storage::workbook_format::bundle::{
-    assemble_workbook_bundle, bundle_catalog_path, catalog_seed_files, check_workbook_bundle, describe_workbook_bundle_difference, filter_invalid_workbook_catalogs,
-    prepare_workbook_bundle_write, read_workbook_bundle, read_workbook_bundle_head, reconcile_stored_workbook_files, rename_bundle_catalogs, DataFileData, ScriptData,
-    WorkbookBundle, WorkbookBundleResult, WorkbookBundleWriteOptions,
+    assemble_workbook_bundle, bundle_catalog_path, catalog_seed_files, check_workbook_bundle,
+    describe_workbook_bundle_difference, filter_invalid_workbook_catalogs, prepare_workbook_bundle_write,
+    read_workbook_bundle, read_workbook_bundle_head, reconcile_stored_workbook_files, rename_bundle_catalogs,
+    DataFileData, ScriptData, WorkbookBundle, WorkbookBundleResult, WorkbookBundleWriteOptions,
 };
 use dashql_core_storage::workbook_format::connection_import::{
-    apply_connection_import_plan, connection_refs_changed, plan_connection_import, ConnectionImportChoice, ConnectionImportDecision,
-    ConnectionImportPlanItem,
+    apply_connection_import_plan, connection_refs_changed, plan_connection_import, ConnectionImportChoice,
+    ConnectionImportDecision, ConnectionImportPlanItem,
 };
-use dashql_core_storage::workbook_format::data::{ConnectionEntry, WorkbookData, WorkbookMetadata, WORKBOOK_FORMAT_VERSION};
+use dashql_core_storage::workbook_format::data::{
+    ConnectionEntry, WorkbookData, WorkbookMetadata, WORKBOOK_FORMAT_VERSION,
+};
 use dashql_core_storage::workbook_format::files::nfc;
-use dashql_core_storage::workbook_format::import::{plan_archive, read_folder_archive, read_table_archive, ArchiveEntry, ArchivePlan, FolderArchiveEntry, FolderArchiveFiles, TableArchiveEntry};
-use dashql_core_storage::workbook_format::layout::{StorageType, STORAGE_CATALOG_FUNCTIONS, STORAGE_CATALOG_RELATIONS, STORAGE_WORKBOOK_FILE};
+use dashql_core_storage::workbook_format::import::{
+    plan_archive, read_folder_archive, read_table_archive, ArchiveEntry, ArchivePlan, FolderArchiveEntry,
+    FolderArchiveFiles, TableArchiveEntry,
+};
+use dashql_core_storage::workbook_format::layout::{
+    StorageType, STORAGE_CATALOG_FUNCTIONS, STORAGE_CATALOG_RELATIONS, STORAGE_WORKBOOK_FILE,
+};
 use dashql_core_storage::workbook_format::migration::{MigrationFolder, MIGRATION_FILES};
-use dashql_core_storage::workbook_format::query_results::{plan_result_import, CacheCapacity, ImportedWorkbookQueryResults};
-use dashql_core_runtime::connections::sharing::descriptor_of_params;
-use dashql_core_storage::workbook_format::tables::{workbook_tables_to_bundle, DataTableFile, WorkbookTableName, WorkbookTables};
+use dashql_core_storage::workbook_format::query_results::{
+    plan_result_import, CacheCapacity, ImportedWorkbookQueryResults,
+};
+use dashql_core_storage::workbook_format::tables::{
+    workbook_tables_to_bundle, DataTableFile, WorkbookTableName, WorkbookTables,
+};
 use dashql_core_storage::workbook_format::validation::validate_workbook_data;
 use js_sys::{Function, Uint8Array};
 use serde::{Deserialize, Serialize};
@@ -273,7 +285,9 @@ enum Source {
 fn source_of(value: &JsValue) -> Result<Source, HostError> {
     if let Some(archive) = field(value, "archive") {
         let handle = archive.as_f64().filter(|h| *h > 0.0 && h.fract() == 0.0 && *h <= Handle::MAX as f64);
-        return handle.map(|h| Source::Archive(h as Handle)).ok_or_else(|| HostError::new("the archive of an import is no handle"));
+        return handle
+            .map(|h| Source::Archive(h as Handle))
+            .ok_or_else(|| HostError::new("the archive of an import is no handle"));
     }
     if let Some(folder) = field(value, "folder") {
         return Ok(Source::Folder(folder));
@@ -311,7 +325,8 @@ struct Steps(Option<Function>);
 impl Steps {
     fn report(&self, step: &str, results: Option<&ImportedResults>) {
         let Some(listener) = &self.0 else { return };
-        let results = results.and_then(|results| crate::views::to_js(results).ok()).map(JsValue::from).unwrap_or(JsValue::NULL);
+        let results =
+            results.and_then(|results| crate::views::to_js(results).ok()).map(JsValue::from).unwrap_or(JsValue::NULL);
         let _ = listener.call2(&JsValue::NULL, &text(step), &results);
     }
 }
@@ -367,7 +382,11 @@ impl Imports {
         let bundle = WorkbookBundle { catalogs, ..bundle };
         if !invalid_catalogs.is_empty() {
             let joined = invalid_catalogs.join(", ");
-            self.log(LogLevel::Warn, "Ignored malformed workbook catalog files", &[("workbookId", &bundle.workbook.workbook_id), ("files", &joined)]);
+            self.log(
+                LogLevel::Warn,
+                "Ignored malformed workbook catalog files",
+                &[("workbookId", &bundle.workbook.workbook_id), ("files", &joined)],
+            );
         }
         let conflict = self.find_workbook(&bundle.workbook.workbook_id).await?;
         let plan = match self.connection_entries().await? {
@@ -382,7 +401,10 @@ impl Imports {
             workbook: JsonValue(bundle.workbook.to_json()),
             script_count: bundle.scripts.len() as u32,
             attachment_count: bundle.data.len() as u32,
-            results: ImportResultFiles { count: bundle.results.len() as u32, bytes: bundle.results.iter().map(|result| result.bytes.size as f64).sum() },
+            results: ImportResultFiles {
+                count: bundle.results.len() as u32,
+                bytes: bundle.results.iter().map(|result| result.bytes.size as f64).sum(),
+            },
             conflict,
             questions,
             invalid_catalogs,
@@ -397,7 +419,10 @@ impl Imports {
         ];
         let details: Vec<(&str, &str)> = details.iter().map(|(key, value)| (*key, value.as_str())).collect();
         self.log(LogLevel::Info, "Read a workbook to import", &details);
-        self.pending.borrow_mut().push((id, Rc::new(PendingImport { bundle, _files: files, native_path, plan, committing: Cell::new(false) })));
+        self.pending.borrow_mut().push((
+            id,
+            Rc::new(PendingImport { bundle, _files: files, native_path, plan, committing: Cell::new(false) }),
+        ));
         Ok(preview)
     }
 
@@ -409,9 +434,15 @@ impl Imports {
             filename: String,
             directory: bool,
         }
-        let entries: Vec<Entry> = items(self.platform.archives_call("entries", std::slice::from_ref(&handle)).await?, "the entries of the archive")?;
+        let entries: Vec<Entry> = items(
+            self.platform.archives_call("entries", std::slice::from_ref(&handle)).await?,
+            "the entries of the archive",
+        )?;
         // The names of the entries in NFC, a ZIP of another platform may decompose them
-        let entries: Vec<ArchiveEntry> = entries.into_iter().map(|entry| ArchiveEntry { filename: nfc(&entry.filename), directory: entry.directory }).collect();
+        let entries: Vec<ArchiveEntry> = entries
+            .into_iter()
+            .map(|entry| ArchiveEntry { filename: nfc(&entry.filename), directory: entry.directory })
+            .collect();
         let index = |index: usize| JsValue::from_f64(index as f64);
         match plan_archive(&entries).map_err(format_error)? {
             ArchivePlan::Tables(plan) => {
@@ -431,7 +462,12 @@ impl Imports {
                 read_table_archive(&tables).map_err(format_error)
             }
             ArchivePlan::Folder(plan) => {
-                let mut read = FolderArchiveFiles { texts: Vec::new(), scripts: Vec::new(), data: Vec::new(), results: Vec::new() };
+                let mut read = FolderArchiveFiles {
+                    texts: Vec::new(),
+                    scripts: Vec::new(),
+                    data: Vec::new(),
+                    results: Vec::new(),
+                };
                 for (i, entry) in &plan.entries {
                     match entry {
                         FolderArchiveEntry::Text { path } => {
@@ -460,22 +496,42 @@ impl Imports {
 
     /// Read a file entry of an archive: a slice of the archive if it is stored and `slice` is set, with the CRC-32 that
     /// the import of a result checks, else its bytes checked against the CRC-32
-    async fn read_entry_file(&self, archive: &JsValue, index: usize, slice: bool, files: &HostFiles) -> Result<(HostFile, Option<u32>), HostError> {
-        let read = self.platform.archives_call("readFile", &[archive.clone(), JsValue::from_f64(index as f64), JsValue::from_bool(slice)]).await?;
+    async fn read_entry_file(
+        &self,
+        archive: &JsValue,
+        index: usize,
+        slice: bool,
+        files: &HostFiles,
+    ) -> Result<(HostFile, Option<u32>), HostError> {
+        let read = self
+            .platform
+            .archives_call("readFile", &[archive.clone(), JsValue::from_f64(index as f64), JsValue::from_bool(slice)])
+            .await?;
         let file = field(&read, "file").ok_or_else(|| HostError::new("the archive returned no file"))?;
-        let crc32 = field(&read, "crc32").and_then(|crc| crc.as_f64()).filter(|crc| *crc >= 0.0 && *crc <= u32::MAX as f64).map(|crc| crc as u32);
+        let crc32 = field(&read, "crc32")
+            .and_then(|crc| crc.as_f64())
+            .filter(|crc| *crc >= 0.0 && *crc <= u32::MAX as f64)
+            .map(|crc| crc as u32);
         Ok((files.keep(&file)?, crc32))
     }
 
     /// Read a workbook folder: the top-level files are migrated in memory, the catalogs of the connections, the scripts
     /// and the attachments are read as they are
-    async fn read_folder(&self, folder: &JsValue, files: &HostFiles) -> Result<(WorkbookBundle<HostFile>, bool, Option<String>), HostError> {
+    async fn read_folder(
+        &self,
+        folder: &JsValue,
+        files: &HostFiles,
+    ) -> Result<(WorkbookBundle<HostFile>, bool, Option<String>), HostError> {
         let prefix = string_field(folder, "errorPrefix").unwrap_or_else(|| FOLDER_ERROR_PREFIX.to_string());
         let read_text = |path: &str| call_method(folder, "readText", &[text(path)]);
         // A current folder needs its workbook file only
         let mut texts: Vec<(String, String)> = Vec::new();
         let current = read_text(STORAGE_WORKBOOK_FILE).await?.as_string();
-        let is_current = current.as_deref().and_then(|text| serde_json::from_str::<Value>(text).ok()).and_then(|value| value.get("formatVersion").and_then(Value::as_i64)) == Some(WORKBOOK_FORMAT_VERSION);
+        let is_current = current
+            .as_deref()
+            .and_then(|text| serde_json::from_str::<Value>(text).ok())
+            .and_then(|value| value.get("formatVersion").and_then(Value::as_i64))
+            == Some(WORKBOOK_FORMAT_VERSION);
         match current {
             Some(current) if is_current => texts.push((STORAGE_WORKBOOK_FILE.to_string(), current)),
             _ => {
@@ -486,7 +542,8 @@ impl Imports {
                 }
             }
         }
-        let mut head = read_workbook_bundle_head(&mut MigrationFolder::new(texts.clone()), &prefix).map_err(format_error)?;
+        let mut head =
+            read_workbook_bundle_head(&mut MigrationFolder::new(texts.clone()), &prefix).map_err(format_error)?;
         // The catalogs of the connections, the core names the connections once it migrated the workbook file
         let mut catalogs = Vec::new();
         for connection in &head.workbook.connections {
@@ -503,14 +560,18 @@ impl Imports {
         }
         let listed = |names: Vec<String>| names.into_iter().map(JsValue::from).collect::<js_sys::Array>().into();
         let script_names: JsValue = listed(head.workbook.scripts.iter().map(|script| script.name.clone()).collect());
-        let scripts: Vec<RestoreScriptFile> = items(call_method(folder, "scripts", &[script_names]).await?, "the scripts")?;
+        let scripts: Vec<RestoreScriptFile> =
+            items(call_method(folder, "scripts", &[script_names]).await?, "the scripts")?;
         let scripts = scripts.into_iter().map(|script| ScriptData::new(script.name, script.sql)).collect();
-        let attachment_names: JsValue = listed(head.workbook.attachments.iter().map(|file| file.name.clone()).collect());
+        let attachment_names: JsValue =
+            listed(head.workbook.attachments.iter().map(|file| file.name.clone()).collect());
         let attachments = call_method(folder, "attachments", &[attachment_names]).await?;
         let mut data = Vec::new();
         for attachment in js_sys::Array::from(&attachments).iter() {
-            let name = string_field(&attachment, "name").ok_or_else(|| HostError::new("an attachment of the folder has no name"))?;
-            let file = field(&attachment, "file").ok_or_else(|| HostError::new(format!("the attachment {name} has no file")))?;
+            let name = string_field(&attachment, "name")
+                .ok_or_else(|| HostError::new("an attachment of the folder has no name"))?;
+            let file = field(&attachment, "file")
+                .ok_or_else(|| HostError::new(format!("the attachment {name} has no file")))?;
             data.push(DataFileData { name, bytes: files.keep(&file)? });
         }
         let mut bundle = assemble_workbook_bundle(head.workbook, head.catalogs, scripts, data);
@@ -539,8 +600,10 @@ impl Imports {
         }
         if let Some(data) = field(source, "data") {
             for entry in js_sys::Array::from(&data).iter() {
-                let table_name = string_field(&entry, "tableName").ok_or_else(|| HostError::new("a data table has no name"))?;
-                let file = field(&entry, "file").ok_or_else(|| HostError::new(format!("the data table {table_name} has no file")))?;
+                let table_name =
+                    string_field(&entry, "tableName").ok_or_else(|| HostError::new("a data table has no name"))?;
+                let file = field(&entry, "file")
+                    .ok_or_else(|| HostError::new(format!("the data table {table_name} has no file")))?;
                 let crc32 = field(&entry, "crc32").and_then(|crc| crc.as_f64()).map(|crc| crc as u32);
                 tables.data.push((table_name, DataTableFile { bytes: files.keep(&file)?, crc32 }));
             }
@@ -555,7 +618,9 @@ impl Imports {
             return Ok(None);
         }
         let entry = find_workbook(&self.platform, workbook_id).await?;
-        Ok(entry.and_then(|entry| Some(ImportConflict { workbook_id: entry_path(&entry)?.to_string(), entry: JsonValue(entry) })))
+        Ok(entry.and_then(|entry| {
+            Some(ImportConflict { workbook_id: entry_path(&entry)?.to_string(), entry: JsonValue(entry) })
+        }))
     }
 
     /// The connections of the app that an import maps to: the stored ones with their live params and the connections
@@ -565,7 +630,8 @@ impl Imports {
             return Ok(None);
         }
         let manifest = JsonValue::of(&self.platform.storage_await("loadManifestConnections", &[]).await?).0;
-        let registry = self.connections.registry.try_borrow().map_err(|_| HostError::new("the connections are busy"))?;
+        let registry =
+            self.connections.registry.try_borrow().map_err(|_| HostError::new("the connections are busy"))?;
         let live_params = |id: &str| -> Option<Value> {
             let connection = registry.get(id)?;
             let state = connection.state.try_borrow().ok()?;
@@ -619,7 +685,13 @@ impl Imports {
 
     /// Commit a pending import, it goes once it was written. A commit that failed leaves it for another try, e.g.
     /// after the user chose again.
-    pub async fn commit(self: Rc<Self>, import_id: u32, answers: ImportAnswers, listener: Option<Function>, restorer: Restorer) -> Result<ImportOutcome, HostError> {
+    pub async fn commit(
+        self: Rc<Self>,
+        import_id: u32,
+        answers: ImportAnswers,
+        listener: Option<Function>,
+        restorer: Restorer,
+    ) -> Result<ImportOutcome, HostError> {
         let pending = self.pending(import_id)?;
         let outcome = self.clone().commit_pending(&pending, answers, listener, restorer).await;
         pending.committing.set(false);
@@ -631,7 +703,13 @@ impl Imports {
 
     /// Commit a pending import with its answers. The listener hears the steps: `results` with the outcome of the
     /// results, `workbook`, `scripts`, `attachments` and `open`.
-    async fn commit_pending(self: Rc<Self>, pending: &PendingImport, answers: ImportAnswers, listener: Option<Function>, restorer: Restorer) -> Result<ImportOutcome, HostError> {
+    async fn commit_pending(
+        self: Rc<Self>,
+        pending: &PendingImport,
+        answers: ImportAnswers,
+        listener: Option<Function>,
+        restorer: Restorer,
+    ) -> Result<ImportOutcome, HostError> {
         let steps = Steps(listener);
         let mut bundle = pending.bundle.clone();
         let original = bundle.workbook.clone();
@@ -643,10 +721,14 @@ impl Imports {
             for item in plan {
                 let ConnectionImportDecision::Ask { candidates } = &item.decision else { continue };
                 let choice = if preview {
-                    candidates.first().map(|candidate| ConnectionImportChoice::Link { connection_id: candidate.id.clone() })
+                    candidates
+                        .first()
+                        .map(|candidate| ConnectionImportChoice::Link { connection_id: candidate.id.clone() })
                 } else {
                     answers.connections.get(&item.reference.connection_id).map(|choice| match choice {
-                        ImportChoice::Link { connection_id } => ConnectionImportChoice::Link { connection_id: connection_id.clone() },
+                        ImportChoice::Link { connection_id } => {
+                            ConnectionImportChoice::Link { connection_id: connection_id.clone() }
+                        }
                         ImportChoice::Separate => ConnectionImportChoice::Separate,
                     })
                 };
@@ -666,10 +748,16 @@ impl Imports {
             if let Some(error) = failed {
                 return Err(error);
             }
-            bundle.catalogs = rename_bundle_catalogs(&bundle.catalogs, &applied.connection_ids.iter().cloned().collect());
+            bundle.catalogs =
+                rename_bundle_catalogs(&bundle.catalogs, &applied.connection_ids.iter().cloned().collect());
             bundle.workbook = applied.workbook;
-            outcome.registered =
-                bundle.workbook.connections.iter().map(|connection| connection.connection_id.clone()).filter(|id| !entries.iter().any(|entry| entry.id == *id)).collect();
+            outcome.registered = bundle
+                .workbook
+                .connections
+                .iter()
+                .map(|connection| connection.connection_id.clone())
+                .filter(|id| !entries.iter().any(|entry| entry.id == *id))
+                .collect();
             let kinds: Vec<&str> = plan
                 .iter()
                 .map(|item| match item.decision {
@@ -678,7 +766,11 @@ impl Imports {
                     ConnectionImportDecision::Ask { .. } => "ask",
                 })
                 .collect();
-            self.log(LogLevel::Info, "Resolved the connections of an imported workbook", &[("workbookId", &original.workbook_id), ("connections", &kinds.join(","))]);
+            self.log(
+                LogLevel::Info,
+                "Resolved the connections of an imported workbook",
+                &[("workbookId", &original.workbook_id), ("connections", &kinds.join(","))],
+            );
         }
         if let Some(metadata) = &answers.metadata {
             bundle.workbook.metadata = WorkbookMetadata::from_json(metadata);
@@ -693,7 +785,11 @@ impl Imports {
                 let imported = self.import_results(&bundle.workbook.workbook_id, &results, &steps).await;
                 outcome.results = Some(ImportedResults::from(&imported));
             } else {
-                self.log(LogLevel::Warn, "Ignored the query results of an import", &[("results", &results.len().to_string())]);
+                self.log(
+                    LogLevel::Warn,
+                    "Ignored the query results of an import",
+                    &[("results", &results.len().to_string())],
+                );
             }
         }
         steps.report("workbook", None);
@@ -740,7 +836,9 @@ impl Imports {
                         held_replacement(storage, &conflict.workbook_id, replace).await?;
                         conflict.workbook_id
                     }
-                    (Some(conflict), None) => return Err(HostError::new(format!("Workbook {} is already registered", conflict.workbook_id))),
+                    (Some(conflict), None) => {
+                        return Err(HostError::new(format!("Workbook {} is already registered", conflict.workbook_id)))
+                    }
                 };
             }
             None => {
@@ -761,22 +859,42 @@ impl Imports {
                         let storage = &writer.storage;
                         let staging = self.new_uuid()?;
                         let backup = self.new_uuid()?;
-                        held_replacement(storage, &conflict.workbook_id, writer.replace_with_bundle(&bundle, &conflict, staging, backup)).await?;
+                        held_replacement(
+                            storage,
+                            &conflict.workbook_id,
+                            writer.replace_with_bundle(&bundle, &conflict, staging, backup),
+                        )
+                        .await?;
                         conflict.workbook_id
                     }
                     (Some(_), None) => {
-                        return Err(HostError::new(format!("A workbook with the id {} was added meanwhile", bundle.workbook.workbook_id)));
+                        return Err(HostError::new(format!(
+                            "A workbook with the id {} was added meanwhile",
+                            bundle.workbook.workbook_id
+                        )));
                     }
                 };
             }
         }
-        self.log(LogLevel::Info, "Imported a workbook", &[("workbookId", &outcome.workbook_id), ("restored", if outcome.restored { "true" } else { "false" })]);
+        self.log(
+            LogLevel::Info,
+            "Imported a workbook",
+            &[("workbookId", &outcome.workbook_id), ("restored", if outcome.restored { "true" } else { "false" })],
+        );
         Ok(outcome)
     }
 
     /// Restore a fresh copy into the runtime unless the caller reloads the app. A copy that can't be restored is
     /// deleted again.
-    async fn restore_fresh(&self, writer: &Writer<'_>, restorer: &Restorer, answers: &ImportAnswers, steps: &Steps, workbook_id: &str, outcome: &mut ImportOutcome) -> Result<(), HostError> {
+    async fn restore_fresh(
+        &self,
+        writer: &Writer<'_>,
+        restorer: &Restorer,
+        answers: &ImportAnswers,
+        steps: &Steps,
+        workbook_id: &str,
+        outcome: &mut ImportOutcome,
+    ) -> Result<(), HostError> {
         if !answers.restore.unwrap_or(true) {
             return Ok(());
         }
@@ -797,16 +915,26 @@ impl Imports {
 
     /// Add the cached query results of an imported workbook to the cache of the platform, the results of the app win.
     /// The results beyond the limits of the cache are left out, they would evict each other.
-    async fn import_results(&self, workbook_id: &str, results: &[WorkbookBundleResult<HostFile>], steps: &Steps) -> ImportedWorkbookQueryResults {
+    async fn import_results(
+        &self,
+        workbook_id: &str,
+        results: &[WorkbookBundleResult<HostFile>],
+        steps: &Steps,
+    ) -> ImportedWorkbookQueryResults {
         let total = results.len() as u64;
         let bytes: u64 = results.iter().map(|result| result.bytes.size).sum();
         steps.report("results", None);
-        let fields = [("workbookId", workbook_id.to_string()), ("results", total.to_string()), ("bytes", bytes.to_string())];
+        let fields =
+            [("workbookId", workbook_id.to_string()), ("results", total.to_string()), ("bytes", bytes.to_string())];
         let fields: Vec<(&str, &str)> = fields.iter().map(|(key, value)| (*key, value.as_str())).collect();
         let capacity = match self.cache_capacity().await {
             Ok(capacity) => capacity,
             Err(error) => {
-                self.log(LogLevel::Warn, "Ignored the query results of an imported workbook, results are not cached", &fields);
+                self.log(
+                    LogLevel::Warn,
+                    "Ignored the query results of an imported workbook, results are not cached",
+                    &fields,
+                );
                 let outcome = ImportedWorkbookQueryResults::failed_all(total, error.message());
                 steps.report("results", Some(&ImportedResults::from(&outcome)));
                 return outcome;
@@ -833,13 +961,23 @@ impl Imports {
                 }
                 Ok(_) => outcome.kept(),
                 Err(error) => {
-                    self.log(LogLevel::Warn, "Adding an imported query result to the cache failed", &[("key", &result.key), ("error", error.message())]);
+                    self.log(
+                        LogLevel::Warn,
+                        "Adding an imported query result to the cache failed",
+                        &[("key", &result.key), ("error", error.message())],
+                    );
                     outcome.failed(error.message());
                 }
             }
         }
         let level = if outcome.failed > 0 || outcome.dropped > 0 { LogLevel::Warn } else { LogLevel::Info };
-        let counts = [("added", outcome.added), ("kept", outcome.kept), ("failed", outcome.failed), ("dropped", outcome.dropped)].map(|(key, n)| (key, n.to_string()));
+        let counts = [
+            ("added", outcome.added),
+            ("kept", outcome.kept),
+            ("failed", outcome.failed),
+            ("dropped", outcome.dropped),
+        ]
+        .map(|(key, n)| (key, n.to_string()));
         let counts: Vec<(&str, &str)> = counts.iter().map(|(key, value)| (*key, value.as_str())).collect();
         self.log(level, "Imported the query results of a workbook", &counts);
         steps.report("results", Some(&ImportedResults::from(&outcome)));
@@ -897,7 +1035,9 @@ async fn held_replacement(
     replace: impl std::future::Future<Output = Result<(), HostError>>,
 ) -> Result<(), HostError> {
     if !storage.flush_workbook(workbook_id).await && !storage.failed_writes_for_workbook(workbook_id).is_empty() {
-        return Err(HostError::new(format!("the changes of workbook {workbook_id} can't be saved, it is not replaced")));
+        return Err(HostError::new(format!(
+            "the changes of workbook {workbook_id} can't be saved, it is not replaced"
+        )));
     }
     storage.hold(Some(workbook_id), HoldReason::Import);
     storage.settle().await;
@@ -913,7 +1053,9 @@ async fn held_replacement(
 fn write_result(outcome: WriteOutcome, what: &str) -> Result<(), HostError> {
     match outcome {
         WriteOutcome::Written => Ok(()),
-        WriteOutcome::Failed(WriteError::Host(error) | WriteError::WorkbookUnavailable { cause: error, .. }) => Err(error),
+        WriteOutcome::Failed(WriteError::Host(error) | WriteError::WorkbookUnavailable { cause: error, .. }) => {
+            Err(error)
+        }
         _ => Err(HostError::new(format!("the write of {what} did not run"))),
     }
 }
@@ -927,7 +1069,11 @@ struct Writer<'a> {
 }
 
 impl Writer<'_> {
-    fn storage(&self, name: &str, args: &[JsValue]) -> impl std::future::Future<Output = Result<JsValue, HostError>> + 'static {
+    fn storage(
+        &self,
+        name: &str,
+        args: &[JsValue],
+    ) -> impl std::future::Future<Output = Result<JsValue, HostError>> + 'static {
         self.platform.storage_await(name, args)
     }
 
@@ -953,7 +1099,8 @@ impl Writer<'_> {
         for script in &scripts {
             self.storage("saveScript", &[text(to), text(&script.name), text(&script.sql)]).await?;
         }
-        let listed: Vec<WorkbookDataFile> = items(self.storage("listDataFiles", &[text(from)]).await?, "the data files")?;
+        let listed: Vec<WorkbookDataFile> =
+            items(self.storage("listDataFiles", &[text(from)]).await?, "the data files")?;
         for file in &listed {
             let content = self.storage("loadDataFile", &[text(from), text(&file.name)]).await?;
             self.storage("saveDataFile", &[text(to), text(&file.name), content]).await?;
@@ -963,8 +1110,18 @@ impl Writer<'_> {
 
     /// Write a bundle as workbook `target`: the workbook file, the scripts, the attachments. A write of a fresh target
     /// deletes the target when it fails.
-    async fn write_bundle(&self, bundle: &WorkbookBundle<HostFile>, target: &str, fresh: bool, report: bool) -> Result<(), HostError> {
-        let options = WorkbookBundleWriteOptions { target_workbook_id: Some(target.to_string()), suffix_name_with_copy: false, target_is_fresh: fresh };
+    async fn write_bundle(
+        &self,
+        bundle: &WorkbookBundle<HostFile>,
+        target: &str,
+        fresh: bool,
+        report: bool,
+    ) -> Result<(), HostError> {
+        let options = WorkbookBundleWriteOptions {
+            target_workbook_id: Some(target.to_string()),
+            suffix_name_with_copy: false,
+            target_is_fresh: fresh,
+        };
         let write = prepare_workbook_bundle_write(bundle, StorageType::Opfs, &options).map_err(format_error)?;
         let written = async {
             let workbook = JsonValue(write.workbook.to_json()).to_js().map_err(|e| HostError::new(e.to_string()))?;
@@ -996,7 +1153,8 @@ impl Writer<'_> {
     async fn verify(&self, source: &WorkbookBundle<HostFile>, target: &str) -> Result<(), HostError> {
         let by_name = |a: &str, b: &str| a.cmp(b);
         let sized = |data: &[DataFileData<HostFile>]| -> Vec<DataFileData<u64>> {
-            let mut data: Vec<DataFileData<u64>> = data.iter().map(|file| DataFileData { name: file.name.clone(), bytes: file.bytes.size }).collect();
+            let mut data: Vec<DataFileData<u64>> =
+                data.iter().map(|file| DataFileData { name: file.name.clone(), bytes: file.bytes.size }).collect();
             data.sort_by(|a, b| by_name(&a.name, &b.name));
             data
         };
@@ -1006,18 +1164,32 @@ impl Writer<'_> {
             scripts
         };
         // The written workbook lists exactly the written scripts and attachments, the catalogs belong to the connections
-        let mut workbook = WorkbookData { workbook_id: target.to_string(), workbook_path: None, storage_type: None, native_path: None, ..source.workbook.clone() };
+        let mut workbook = WorkbookData {
+            workbook_id: target.to_string(),
+            workbook_path: None,
+            storage_type: None,
+            native_path: None,
+            ..source.workbook.clone()
+        };
         workbook = assemble_workbook_bundle(workbook, Vec::new(), source.scripts.clone(), sized(&source.data)).workbook;
         let expected = assemble_workbook_bundle(workbook, Vec::new(), sorted(&source.scripts), sized(&source.data));
         let stored = self.load_workbook(target).await?;
-        let scripts: Vec<RestoreScriptFile> = items(self.storage("loadScripts", &[text(target)]).await?, "the scripts")?;
-        let scripts: Vec<ScriptData> = scripts.into_iter().map(|script| ScriptData::new(script.name, script.sql)).collect();
-        let listed: Vec<WorkbookDataFile> = items(self.storage("listDataFiles", &[text(target)]).await?, "the data files")?;
-        let mut data: Vec<DataFileData<u64>> = listed.into_iter().map(|file| DataFileData { name: file.name, bytes: file.size_bytes.max(0.0) as u64 }).collect();
+        let scripts: Vec<RestoreScriptFile> =
+            items(self.storage("loadScripts", &[text(target)]).await?, "the scripts")?;
+        let scripts: Vec<ScriptData> =
+            scripts.into_iter().map(|script| ScriptData::new(script.name, script.sql)).collect();
+        let listed: Vec<WorkbookDataFile> =
+            items(self.storage("listDataFiles", &[text(target)]).await?, "the data files")?;
+        let mut data: Vec<DataFileData<u64>> = listed
+            .into_iter()
+            .map(|file| DataFileData { name: file.name, bytes: file.size_bytes.max(0.0) as u64 })
+            .collect();
         data.sort_by(|a, b| by_name(&a.name, &b.name));
         let actual = read_workbook_bundle(&stored, sorted(&scripts), Vec::new(), data);
         match describe_workbook_bundle_difference(&expected, &actual) {
-            Some(difference) => Err(HostError::new(format!("Workbook import verification failed for {target}: {difference}"))),
+            Some(difference) => {
+                Err(HostError::new(format!("Workbook import verification failed for {target}: {difference}")))
+            }
             None => Ok(()),
         }
     }
@@ -1028,7 +1200,12 @@ impl Writer<'_> {
     async fn seed_catalogs(&self, bundle: &WorkbookBundle<HostFile>) {
         if let Err(error) = self.seed_catalog_files(bundle).await {
             let details = [("workbookId", bundle.workbook.workbook_id.as_str()), ("error", error.message())];
-            self.platform.log_on(LogLevel::Warn, "Failed to seed the catalogs of an imported workbook", &details, "workbook_import");
+            self.platform.log_on(
+                LogLevel::Warn,
+                "Failed to seed the catalogs of an imported workbook",
+                &details,
+                "workbook_import",
+            );
         }
     }
 
@@ -1051,7 +1228,10 @@ impl Writer<'_> {
     /// Write a new workbook under an id that no workbook has, verify it and seed the catalogs. A failure deletes it.
     async fn write_fresh(&self, bundle: &WorkbookBundle<HostFile>, target: &str) -> Result<(), HostError> {
         if let Some(found) = find_workbook(&self.platform, target).await? {
-            return Err(HostError::new(format!("Workbook {} is already registered", entry_path(&found).unwrap_or(target))));
+            return Err(HostError::new(format!(
+                "Workbook {} is already registered",
+                entry_path(&found).unwrap_or(target)
+            )));
         }
         let written = async {
             self.write_bundle(bundle, target, true, true).await?;
@@ -1072,10 +1252,19 @@ impl Writer<'_> {
     /// after the target changed writes the files that were copied aside back, whatever their format: a replacement is
     /// also the recovery of a workbook that the format can no longer read. The copy aside is deleted only once the
     /// replacement or the rollback succeeded: when both fail, it stays and the error names its folder.
-    async fn replace_with_bundle(&self, bundle: &WorkbookBundle<HostFile>, conflict: &ImportConflict, staging: String, backup: String) -> Result<(), HostError> {
+    async fn replace_with_bundle(
+        &self,
+        bundle: &WorkbookBundle<HostFile>,
+        conflict: &ImportConflict,
+        staging: String,
+        backup: String,
+    ) -> Result<(), HostError> {
         let target = conflict.workbook_id.as_str();
         if bundle.workbook.workbook_id.to_lowercase() != target.to_lowercase() {
-            return Err(HostError::new(format!("Source workbook {} does not match replacement {target}", bundle.workbook.workbook_id)));
+            return Err(HostError::new(format!(
+                "Source workbook {} does not match replacement {target}",
+                bundle.workbook.workbook_id
+            )));
         }
         let old_entry = JsonValue(conflict.entry.0.clone()).to_js().map_err(|e| HostError::new(e.to_string()))?;
         // A native folder of the user is never changed, the files of the target in the origin private file system are
@@ -1116,8 +1305,18 @@ impl Writer<'_> {
         match (&replaced, rollback) {
             // The files that were copied aside are the only full copy of the workbook when the rollback failed, they stay
             (Err(error), Err(rollback)) if copied => {
-                let details = [("workbookId", target), ("backupId", backup.as_str()), ("error", error.message()), ("rollbackError", rollback.message())];
-                self.platform.log_on(LogLevel::Error, "Failed to restore a workbook after a failed replacement, its files are kept aside", &details, "workbook_import");
+                let details = [
+                    ("workbookId", target),
+                    ("backupId", backup.as_str()),
+                    ("error", error.message()),
+                    ("rollbackError", rollback.message()),
+                ];
+                self.platform.log_on(
+                    LogLevel::Error,
+                    "Failed to restore a workbook after a failed replacement, its files are kept aside",
+                    &details,
+                    "workbook_import",
+                );
                 return Err(HostError::new(format!(
                     "{}; restoring the workbook failed as well ({}), its files are kept in the workbook folder {backup}",
                     error.message(),
@@ -1136,7 +1335,12 @@ impl Writer<'_> {
 
     /// Register a native folder in place: the catalogs of the folder seed the connections that are new to the app, the
     /// platform adds the folder to the workbook tree and the runtime migrates it when it reads it
-    async fn register_native(&self, bundle: &WorkbookBundle<HostFile>, dir: &str, workbook_id: &str) -> Result<(), HostError> {
+    async fn register_native(
+        &self,
+        bundle: &WorkbookBundle<HostFile>,
+        dir: &str,
+        workbook_id: &str,
+    ) -> Result<(), HostError> {
         if let Err(error) = validate_workbook_data(&bundle.workbook) {
             return Err(HostError::new(format!("Workbook in {dir} is invalid: {}", error.describe())));
         }
@@ -1147,26 +1351,44 @@ impl Writer<'_> {
         // The file lists of the workbook file follow the files of the folder, the workbook file is written only when
         // they changed
         let stored = self.load_workbook(workbook_id).await?;
-        let scripts: Vec<RestoreScriptFile> = items(self.storage("loadScripts", &[text(workbook_id)]).await?, "the scripts")?;
+        let scripts: Vec<RestoreScriptFile> =
+            items(self.storage("loadScripts", &[text(workbook_id)]).await?, "the scripts")?;
         let scripts: Vec<String> = scripts.into_iter().map(|script| script.name).collect();
-        let listed: Vec<WorkbookDataFile> = items(self.storage("listDataFiles", &[text(workbook_id)]).await?, "the data files")?;
+        let listed: Vec<WorkbookDataFile> =
+            items(self.storage("listDataFiles", &[text(workbook_id)]).await?, "the data files")?;
         let data: Vec<String> = listed.into_iter().map(|file| file.name).collect();
         let reconciled = reconcile_stored_workbook_files(&stored, &scripts, &data);
         if reconciled.write {
             let workbook = reconciled.workbook;
-            let task = WriteTask::WriteWorkbookScripts { workbook_id: workbook_id.to_string(), scripts: workbook.scripts, connections: workbook.connections };
+            let task = WriteTask::WriteWorkbookScripts {
+                workbook_id: workbook_id.to_string(),
+                scripts: workbook.scripts,
+                connections: workbook.connections,
+            };
             self.patch(task, "the script list").await?;
-            self.patch(WriteTask::RefreshWorkbookAttachments { workbook_id: workbook_id.to_string() }, "the attachment list").await?;
+            self.patch(
+                WriteTask::RefreshWorkbookAttachments { workbook_id: workbook_id.to_string() },
+                "the attachment list",
+            )
+            .await?;
         }
         Ok(())
     }
 
     /// Replace a registered workbook with a native folder. The folder of the user is never changed, the files of an
     /// old workbook of the origin private file system go once the folder is registered.
-    async fn replace_with_native(&self, bundle: &WorkbookBundle<HostFile>, dir: &str, conflict: &ImportConflict) -> Result<(), HostError> {
+    async fn replace_with_native(
+        &self,
+        bundle: &WorkbookBundle<HostFile>,
+        dir: &str,
+        conflict: &ImportConflict,
+    ) -> Result<(), HostError> {
         let target = conflict.workbook_id.as_str();
         if bundle.workbook.workbook_id.to_lowercase() != target.to_lowercase() {
-            return Err(HostError::new(format!("Source workbook {} does not match replacement {target}", bundle.workbook.workbook_id)));
+            return Err(HostError::new(format!(
+                "Source workbook {} does not match replacement {target}",
+                bundle.workbook.workbook_id
+            )));
         }
         let storage_type = conflict.entry.0.get("storageType").and_then(Value::as_str);
         if storage_type == Some("native") && conflict.entry.0.get("nativePath").and_then(Value::as_str) == Some(dir) {

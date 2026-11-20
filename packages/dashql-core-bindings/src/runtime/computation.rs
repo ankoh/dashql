@@ -10,7 +10,8 @@ use dashql_core_runtime::compute::cross_filters::CrossFilterPredicate;
 use dashql_core_runtime::compute::tasks::analysis::BinBounds;
 use dashql_core_runtime::compute::tasks::data_search::collect_searchable_result_columns;
 use dashql_core_runtime::compute::types::{
-    self as rt, ColumnStatsFields, ColumnSummaryAnalysis, ComputationVersion, FilterOp, OrderByConstraint, ScalarFilter, TrackedTask,
+    self as rt, ColumnStatsFields, ColumnSummaryAnalysis, ComputationVersion, FilterOp, OrderByConstraint,
+    ScalarFilter, TrackedTask,
 };
 use dashql_core_runtime::compute::{SearchKind, TableComputation};
 use serde::{Deserialize, Serialize};
@@ -101,9 +102,15 @@ pub struct ComputationValueColumn {
 #[tsify(missing_as_null)]
 pub enum ComputationColumnGroup {
     #[serde(rename = "ROWNUMBER", rename_all = "camelCase")]
-    RowNumber { row_number_field_name: String },
+    RowNumber {
+        row_number_field_name: String,
+    },
     #[serde(rename_all = "camelCase")]
-    Skipped { input_field_name: String, input_field_type: String, input_field_nullable: bool },
+    Skipped {
+        input_field_name: String,
+        input_field_type: String,
+        input_field_nullable: bool,
+    },
     Ordinal(ComputationValueColumn),
     String(ComputationValueColumn),
     List(ComputationValueColumn),
@@ -386,7 +393,10 @@ pub struct ComputationTrackedTask {
     pub progress: ComputationTaskProgress,
 }
 
-fn tracked<T>(tracked: Option<&TrackedTask<T>>, version: impl Fn(&T) -> ComputationVersion) -> Option<ComputationTrackedTask> {
+fn tracked<T>(
+    tracked: Option<&TrackedTask<T>>,
+    version: impl Fn(&T) -> ComputationVersion,
+) -> Option<ComputationTrackedTask> {
     tracked.map(|tracked| {
         let progress = &tracked.progress;
         ComputationTrackedTask {
@@ -554,7 +564,9 @@ impl From<&TableComputation> for ComputationView {
             .column_filters
             .iter()
             .map(|(column, predicate)| match predicate {
-                CrossFilterPredicate::Histogram { selection, .. } => ComputationCrossFilter::Histogram { column: *column, selection: *selection },
+                CrossFilterPredicate::Histogram { selection, .. } => {
+                    ComputationCrossFilter::Histogram { column: *column, selection: *selection }
+                }
                 CrossFilterPredicate::MostFrequent { value_id, .. } => {
                     ComputationCrossFilter::MostFrequent { column: *column, value_id: *value_id }
                 }
@@ -571,7 +583,11 @@ impl From<&TableComputation> for ComputationView {
                 filtering_task: filtering,
                 ordering_task: ordering,
                 data_search_task: tracked(tasks.data_search.as_ref(), |task| task.table_version),
-                column_aggregation_tasks: tasks.column_aggregation.iter().map(|t| tracked(t.as_ref(), |task| task.table_version)).collect(),
+                column_aggregation_tasks: tasks
+                    .column_aggregation
+                    .iter()
+                    .map(|t| tracked(t.as_ref(), |task| task.table_version))
+                    .collect(),
                 filtered_column_aggregation_tasks: tasks
                     .filtered_column_aggregation
                     .iter()
@@ -586,7 +602,10 @@ impl From<&TableComputation> for ComputationView {
             column_groups: c.column_groups.iter().map(ComputationColumnGroup::from).collect(),
             search_columns: collect_searchable_result_columns(&c.column_groups)
                 .into_iter()
-                .map(|column| ComputationSearchColumn { column_idx: column.column_idx, column_group_idx: column.column_group_idx })
+                .map(|column| ComputationSearchColumn {
+                    column_idx: column.column_idx,
+                    column_group_idx: column.column_group_idx,
+                })
                 .collect(),
             data_table_ordering: order_by(&c.data_table_ordering),
             cross_filters,
@@ -623,7 +642,11 @@ impl From<&TableComputation> for ComputationView {
                 data_frame: t.data_frame,
                 count_star_field_name: t.count_star_field_name.clone(),
             }),
-            column_aggregates: c.column_aggregates.iter().map(|a| a.as_ref().map(ComputationColumnAggregate::from)).collect(),
+            column_aggregates: c
+                .column_aggregates
+                .iter()
+                .map(|a| a.as_ref().map(ComputationColumnAggregate::from))
+                .collect(),
             filtered_column_aggregates: c
                 .filtered_column_aggregates
                 .iter()

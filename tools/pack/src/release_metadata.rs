@@ -60,12 +60,8 @@ impl<'d> Deserialize<'d> for BundleTarget {
         D: Deserializer<'d>,
     {
         let s = String::deserialize(deserializer)?;
-        let invalid_value_error = |s: &str| {
-            Err(serde::de::Error::invalid_value(
-                serde::de::Unexpected::Str(s),
-                &"{platform}_arch",
-            ))
-        };
+        let invalid_value_error =
+            |s: &str| Err(serde::de::Error::invalid_value(serde::de::Unexpected::Str(s), &"{platform}_arch"));
         let parts: Vec<&str> = s.split("-").collect();
         if parts.len() != 2 {
             return invalid_value_error(&s);
@@ -74,22 +70,12 @@ impl<'d> Deserialize<'d> for BundleTarget {
             "darwin" => Platform::Darwin,
             "linux" => Platform::Linux,
             "windows" => Platform::Windows,
-            _ => {
-                return Err(serde::de::Error::invalid_value(
-                    serde::de::Unexpected::Str(&s),
-                    &"darwin",
-                ))
-            }
+            _ => return Err(serde::de::Error::invalid_value(serde::de::Unexpected::Str(&s), &"darwin")),
         };
         let arch = match parts[1] {
             "x86_64" => Architecture::X86_64,
             "aarch64" => Architecture::Aarch64,
-            _ => {
-                return Err(serde::de::Error::invalid_value(
-                    serde::de::Unexpected::Str(&s),
-                    &"x86_64 or aarch64",
-                ))
-            }
+            _ => return Err(serde::de::Error::invalid_value(serde::de::Unexpected::Str(&s), &"x86_64 or aarch64")),
         };
         Ok(BundleTarget { platform, arch })
     }
@@ -241,29 +227,12 @@ mod tests {
         assert_eq!(v.version.patch, 0);
         assert_eq!(v.notes, "Test version");
         assert_eq!(v.platforms.len(), 4);
-        assert!(v.platforms.contains_key(&BundleTarget {
-            platform: Platform::Darwin,
-            arch: Architecture::X86_64,
-        }));
-        assert!(v.platforms.contains_key(&BundleTarget {
-            platform: Platform::Darwin,
-            arch: Architecture::Aarch64,
-        }));
-        assert!(v.platforms.contains_key(&BundleTarget {
-            platform: Platform::Linux,
-            arch: Architecture::X86_64,
-        }));
-        assert!(v.platforms.contains_key(&BundleTarget {
-            platform: Platform::Windows,
-            arch: Architecture::X86_64,
-        }));
-        let darwin_x64 = &v
-            .platforms
-            .get(&BundleTarget {
-                platform: Platform::Darwin,
-                arch: Architecture::X86_64,
-            })
-            .unwrap();
+        assert!(v.platforms.contains_key(&BundleTarget { platform: Platform::Darwin, arch: Architecture::X86_64 }));
+        assert!(v.platforms.contains_key(&BundleTarget { platform: Platform::Darwin, arch: Architecture::Aarch64 }));
+        assert!(v.platforms.contains_key(&BundleTarget { platform: Platform::Linux, arch: Architecture::X86_64 }));
+        assert!(v.platforms.contains_key(&BundleTarget { platform: Platform::Windows, arch: Architecture::X86_64 }));
+        let darwin_x64 =
+            &v.platforms.get(&BundleTarget { platform: Platform::Darwin, arch: Architecture::X86_64 }).unwrap();
         assert_eq!(
             darwin_x64.url,
             "https://github.com/username/reponame/releases/download/v1.0.0/app-x86_64.app.tar.gz"

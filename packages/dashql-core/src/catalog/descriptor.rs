@@ -7,8 +7,8 @@ use crate::error::{Error, Result};
 use crate::utils::quote_identifier;
 use dashql_buffers::analyzer::NameTag;
 use dashql_buffers::catalog::CatalogDescriptor;
-use std::collections::BTreeSet;
 use dashql_parser::span::TextSpan;
+use std::collections::BTreeSet;
 use std::sync::Arc;
 
 /// A name of a descriptor entry
@@ -72,11 +72,8 @@ pub fn validate_descriptor(data: &[u8]) -> Result<CatalogDescriptor<'_>> {
             validate_text(name.database_name(), false)?;
             validate_text(name.schema_name(), false)?;
             validate_text(name.table_name(), true)?;
-            let key = (
-                name.database_name().unwrap_or(""),
-                name.schema_name().unwrap_or(""),
-                name.table_name().unwrap_or(""),
-            );
+            let key =
+                (name.database_name().unwrap_or(""), name.schema_name().unwrap_or(""), name.table_name().unwrap_or(""));
             if !table_names.insert(key) {
                 let table = qualified_name(&[key.0, key.1, key.2]);
                 return Err(invalid(&format!("duplicate descriptor table name {table}")));
@@ -97,8 +94,7 @@ pub fn validate_descriptor(data: &[u8]) -> Result<CatalogDescriptor<'_>> {
     }
     if let Some(functions) = descriptor.function_declarations() {
         for function in functions {
-            let function_name =
-                function.function_name().ok_or_else(|| invalid("missing descriptor function name"))?;
+            let function_name = function.function_name().ok_or_else(|| invalid("missing descriptor function name"))?;
             validate_text(function_name.database_name(), false)?;
             validate_text(function_name.schema_name(), false)?;
             validate_text(function_name.function_name(), true)?;
@@ -116,7 +112,9 @@ pub fn validate_descriptor(data: &[u8]) -> Result<CatalogDescriptor<'_>> {
                             function_name.function_name().unwrap_or(""),
                         ]);
                         let param = quote_identifier(name);
-                        return Err(invalid(&format!("duplicate descriptor parameter name {param} in function {qualified}")));
+                        return Err(invalid(&format!(
+                            "duplicate descriptor parameter name {param} in function {qualified}"
+                        )));
                     }
                 }
             }
@@ -177,41 +175,39 @@ impl DescriptorEntry {
                 None => {
                     let id = out.names.len() as NameId;
                     let text: Arc<str> = Arc::from(text);
-                    out.names.push(DescriptorName {
-                        text: text.clone(),
-                        tags: tag.0,
-                        occurrences: 1,
-                    });
+                    out.names.push(DescriptorName { text: text.clone(), tags: tag.0, occurrences: 1 });
                     names_by_text.insert(text.clone(), id);
                     (id, text)
                 }
             };
-            Name {
-                entry: out.entry.catalog_entry_id,
-                id,
-                text,
-            }
+            Name { entry: out.entry.catalog_entry_id, id, text }
         };
         let register_schema = |out: &mut DescriptorEntry, database: &Name, schema: &Name| -> QualifiedCatalogObjectId {
             let entry = Arc::make_mut(&mut out.entry);
             // The maps by name index the references of the entry
-            let db_id = match entry.databases_by_name.get(&database.text).and_then(|&i| entry.database_references.get(i)) {
-                Some(db) => db.object_id,
-                None => {
-                    let db_id = catalog.reserve_database_id(&database.text);
-                    entry.database_references.push(DatabaseReference {
-                        object_id: db_id,
-                        database_name: database.text.clone(),
-                        database_alias: Arc::from(""),
-                    });
-                    let index = entry.database_references.len() - 1;
-                    entry.databases_by_name.insert(database.text.clone(), index);
-                    out.name_objects.push((database.id, CatalogObjectRef::Database(ObjectLoc { entry: id, index: index as u32 })));
-                    db_id
-                }
-            };
+            let db_id =
+                match entry.databases_by_name.get(&database.text).and_then(|&i| entry.database_references.get(i)) {
+                    Some(db) => db.object_id,
+                    None => {
+                        let db_id = catalog.reserve_database_id(&database.text);
+                        entry.database_references.push(DatabaseReference {
+                            object_id: db_id,
+                            database_name: database.text.clone(),
+                            database_alias: Arc::from(""),
+                        });
+                        let index = entry.database_references.len() - 1;
+                        entry.databases_by_name.insert(database.text.clone(), index);
+                        out.name_objects.push((
+                            database.id,
+                            CatalogObjectRef::Database(ObjectLoc { entry: id, index: index as u32 }),
+                        ));
+                        db_id
+                    }
+                };
             let key = (database.text.clone(), schema.text.clone());
-            if let Some(schema) = entry.schemas_by_qualified_name.get(&key).and_then(|&i| entry.schema_references.get(i)) {
+            if let Some(schema) =
+                entry.schemas_by_qualified_name.get(&key).and_then(|&i| entry.schema_references.get(i))
+            {
                 return schema.object_id;
             }
             let schema_id = catalog.reserve_schema_id(&database.text, &schema.text, db_id);
@@ -256,29 +252,24 @@ impl DescriptorEntry {
                 let mut column_occurrences: std::collections::HashMap<Arc<str>, u32> = Default::default();
                 table.catalog_version = table_version;
                 table.location = source.location().map(|l| TextSpan::new(l.offset(), l.length()));
-                let table_loc = TableLoc {
-                    entry: id,
-                    index: table_index as u32,
-                };
+                let table_loc = TableLoc { entry: id, index: table_index as u32 };
                 out.name_objects.push((table_name.id, CatalogObjectRef::Table(table_loc)));
                 if let Some(columns) = source.table_columns() {
                     for source_column in columns {
                         let column_name =
                             register(&mut out, source_column.column_name().unwrap_or(""), NameTag::COLUMN_NAME);
                         let ordinal = table.table_columns.len() as u32;
-                        let column_loc = ColumnLoc {
-                            table: table_loc,
-                            column: ordinal,
-                        };
+                        let column_loc = ColumnLoc { table: table_loc, column: ordinal };
                         out.name_objects.push((column_name.id, CatalogObjectRef::Column(column_loc)));
                         table.table_columns_by_name.entry(column_name.text.clone()).or_insert(ordinal as usize);
-                        Arc::make_mut(&mut out.entry).table_columns_by_name.entry(column_name.text.clone()).or_default().push(ColumnLoc {
-                            table: TableLoc {
-                                entry: id,
-                                index: table_index as u32,
-                            },
-                            column: ordinal,
-                        });
+                        Arc::make_mut(&mut out.entry)
+                            .table_columns_by_name
+                            .entry(column_name.text.clone())
+                            .or_default()
+                            .push(ColumnLoc {
+                                table: TableLoc { entry: id, index: table_index as u32 },
+                                column: ordinal,
+                            });
                         table.table_columns.push(TableColumn {
                             object_id: QualifiedCatalogObjectId::table_column(table_id, {
                                 let occurrence = column_occurrences.entry(column_name.text.clone()).or_insert(0);
@@ -315,7 +306,8 @@ impl DescriptorEntry {
                 let schema_id = register_schema(&mut out, &db, &schema);
                 let function_index = out.entry.function_declarations.len();
                 let key = (db.text.clone(), schema.text.clone(), function_name.text.clone());
-                let function_id = catalog.reserve_function_id(id, &key, next_occurrence(&mut function_occurrences, &key));
+                let function_id =
+                    catalog.reserve_function_id(id, &key, next_occurrence(&mut function_occurrences, &key));
                 let mut params = Vec::new();
                 if let Some(values) = source.params() {
                     for param in values {
@@ -345,10 +337,7 @@ impl DescriptorEntry {
                 };
                 out.name_objects.push((
                     function.function_name.function_name.id,
-                    CatalogObjectRef::Function(ObjectLoc {
-                        entry: id,
-                        index: function_index as u32,
-                    }),
+                    CatalogObjectRef::Function(ObjectLoc { entry: id, index: function_index as u32 }),
                 ));
                 let entry = Arc::make_mut(&mut out.entry);
                 entry.functions_by_qualified_name.entry(function.function_name.key()).or_insert(function_index);

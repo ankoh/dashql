@@ -15,16 +15,21 @@ use dashql_parser::scanner::scan;
 
 use crate::workbook_format::data::{WorkbookData, WORKBOOK_CATALOG_COPY_FORMAT_VERSION};
 use crate::workbook_format::files::{
-    file_name_key, is_script_file_name, reconcile_workbook_scripts, remap_workbook_scripts, sanitize_workbook_files, with_sanitized_files, workbook_attachments,
-    workbook_connection_ids_of,
+    file_name_key, is_script_file_name, reconcile_workbook_scripts, remap_workbook_scripts, sanitize_workbook_files,
+    with_sanitized_files, workbook_attachments, workbook_connection_ids_of,
 };
 use crate::workbook_format::json::parse_object;
 use crate::workbook_format::layout::{
     connection_file_path, validate_data_file_name, StorageType, LEGACY_SESSION_FILE, STORAGE_CATALOG_FUNCTIONS,
     STORAGE_CATALOG_RELATIONS, STORAGE_CONNECTIONS_FOLDER, STORAGE_WORKBOOK_FILE,
 };
-use crate::workbook_format::migration::{migrate_workbook_folder, migrate_workbook_folder_to, MigrationFolder, WorkbookMigrationResult, WORKBOOK_MIGRATION_STEPS};
-use crate::workbook_format::validation::{is_valid_uuid, validate_workbook_data, validate_workbook_json, WorkbookValidationError};
+use crate::workbook_format::migration::{
+    migrate_workbook_folder, migrate_workbook_folder_to, MigrationFolder, WorkbookMigrationResult,
+    WORKBOOK_MIGRATION_STEPS,
+};
+use crate::workbook_format::validation::{
+    is_valid_uuid, validate_workbook_data, validate_workbook_json, WorkbookValidationError,
+};
 
 /// A script file
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -127,7 +132,8 @@ pub fn assemble_workbook_bundle<B>(
     let names: Vec<String> = scripts.iter().map(|script| script.name.clone()).collect();
     let reconciled = reconcile_workbook_scripts(&workbook.scripts, &names, first_connection_id(&workbook));
     let data_names: Vec<String> = data.iter().map(|file| file.name.clone()).collect();
-    let workbook = WorkbookData { scripts: reconciled.scripts, attachments: workbook_attachments(&data_names), ..workbook };
+    let workbook =
+        WorkbookData { scripts: reconciled.scripts, attachments: workbook_attachments(&data_names), ..workbook };
     WorkbookBundle { workbook, catalogs, scripts, data, results: Vec::new() }
 }
 
@@ -177,8 +183,16 @@ pub fn check_workbook_bundle<B>(bundle: &WorkbookBundle<B>, error_prefix: &str) 
 }
 
 /// The catalog of a connection from its files, None if it has neither
-pub fn catalog_of_files(connection_id: &str, relations: Option<String>, functions: Option<String>) -> Option<WorkbookBundleCatalog> {
-    (relations.is_some() || functions.is_some()).then(|| WorkbookBundleCatalog { connection_id: connection_id.to_string(), relations, functions })
+pub fn catalog_of_files(
+    connection_id: &str,
+    relations: Option<String>,
+    functions: Option<String>,
+) -> Option<WorkbookBundleCatalog> {
+    (relations.is_some() || functions.is_some()).then(|| WorkbookBundleCatalog {
+        connection_id: connection_id.to_string(),
+        relations,
+        functions,
+    })
 }
 
 /// A stored workbook file reconciled with the stored files
@@ -191,7 +205,11 @@ pub struct ReconciledStoredWorkbook {
 }
 
 /// Reconcile the file lists of a stored workbook file with the stored script files and attachments
-pub fn reconcile_stored_workbook_files(stored: &WorkbookData, script_names: &[String], data_file_names: &[String]) -> ReconciledStoredWorkbook {
+pub fn reconcile_stored_workbook_files(
+    stored: &WorkbookData,
+    script_names: &[String],
+    data_file_names: &[String],
+) -> ReconciledStoredWorkbook {
     let files = sanitize_workbook_files(stored);
     let reconciled = reconcile_workbook_scripts(&files.scripts, script_names, first_connection_id(stored));
     let attachments = workbook_attachments(data_file_names);
@@ -213,9 +231,11 @@ fn read_workbook_field(folder: &MigrationFolder, field: &str) -> Option<Value> {
 pub fn read_workbook_bundle_head(folder: &mut MigrationFolder, error_prefix: &str) -> Result<WorkbookBundleHead> {
     // Older workbooks copied the catalog of their default connection into the top level of the folder. It is read
     // before the migration removes the copy and the default connection.
-    let migration = migrate_workbook_folder_to(folder, WORKBOOK_CATALOG_COPY_FORMAT_VERSION, &WORKBOOK_MIGRATION_STEPS)?;
+    let migration =
+        migrate_workbook_folder_to(folder, WORKBOOK_CATALOG_COPY_FORMAT_VERSION, &WORKBOOK_MIGRATION_STEPS)?;
     let has_catalog_copy = migration != WorkbookMigrationResult::Missing
-        && read_workbook_field(folder, "formatVersion").and_then(|v| v.as_f64()) == Some(WORKBOOK_CATALOG_COPY_FORMAT_VERSION as f64);
+        && read_workbook_field(folder, "formatVersion").and_then(|v| v.as_f64())
+            == Some(WORKBOOK_CATALOG_COPY_FORMAT_VERSION as f64);
     let (legacy_relations, legacy_functions, legacy_connection_id) = if has_catalog_copy {
         (
             folder.read(STORAGE_CATALOG_RELATIONS).map(str::to_string),
@@ -241,7 +261,10 @@ pub fn read_workbook_bundle_head(folder: &mut MigrationFolder, error_prefix: &st
     };
     let parsed = Value::Object(parsed);
     if let Err(error) = validate_workbook_json(&parsed) {
-        return Err(Error::invalid_argument(format!("{error_prefix}: invalid {STORAGE_WORKBOOK_FILE}: {}", error.describe())));
+        return Err(Error::invalid_argument(format!(
+            "{error_prefix}: invalid {STORAGE_WORKBOOK_FILE}: {}",
+            error.describe()
+        )));
     }
     let (workbook, files_valid) = with_sanitized_files(&WorkbookData::from_json(&parsed));
     let first = first_connection_id(&workbook).to_string();
@@ -286,14 +309,19 @@ pub fn regenerate_connection_ids(
             next
         })
         .collect();
-    let next = WorkbookData { connections, scripts: remap_workbook_scripts(&workbook.scripts, &ids), ..workbook.clone() };
+    let next =
+        WorkbookData { connections, scripts: remap_workbook_scripts(&workbook.scripts, &ids), ..workbook.clone() };
     (next, rename_bundle_catalogs(catalogs, &ids))
 }
 
 /// Keep only the connections of a workbook that its scripts use, in the order the scripts first use them, and their
 /// catalogs. A workbook without scripts keeps the connection its first script will run on.
-pub fn prune_bundle_connections(workbook: &WorkbookData, catalogs: &[WorkbookBundleCatalog]) -> (WorkbookData, Vec<WorkbookBundleCatalog>) {
-    let used = workbook_connection_ids_of(&workbook.scripts, workbook.connections.first().map(|c| c.connection_id.as_str()));
+pub fn prune_bundle_connections(
+    workbook: &WorkbookData,
+    catalogs: &[WorkbookBundleCatalog],
+) -> (WorkbookData, Vec<WorkbookBundleCatalog>) {
+    let used =
+        workbook_connection_ids_of(&workbook.scripts, workbook.connections.first().map(|c| c.connection_id.as_str()));
     let connections = used
         .iter()
         .filter_map(|id| workbook.connections.iter().find(|connection| connection.connection_id == *id).cloned())
@@ -303,7 +331,10 @@ pub fn prune_bundle_connections(workbook: &WorkbookData, catalogs: &[WorkbookBun
 }
 
 /// Rename the connections of catalogs, connections that become one keep the first catalog
-pub fn rename_bundle_catalogs(catalogs: &[WorkbookBundleCatalog], ids: &HashMap<String, String>) -> Vec<WorkbookBundleCatalog> {
+pub fn rename_bundle_catalogs(
+    catalogs: &[WorkbookBundleCatalog],
+    ids: &HashMap<String, String>,
+) -> Vec<WorkbookBundleCatalog> {
     let mut renamed: Vec<WorkbookBundleCatalog> = Vec::new();
     for catalog in catalogs {
         let connection_id = ids.get(&catalog.connection_id).cloned().unwrap_or_else(|| catalog.connection_id.clone());
@@ -322,7 +353,9 @@ pub fn parses_without_errors(sql: &str) -> bool {
 
 /// Drop the catalog files that don't parse before they can reach storage, returns the catalogs and the paths of the
 /// dropped files. The catalogs aren't analyzed, they may reference what only their connection knows.
-pub fn filter_invalid_workbook_catalogs(catalogs: &[WorkbookBundleCatalog]) -> (Vec<WorkbookBundleCatalog>, Vec<String>) {
+pub fn filter_invalid_workbook_catalogs(
+    catalogs: &[WorkbookBundleCatalog],
+) -> (Vec<WorkbookBundleCatalog>, Vec<String>) {
     let mut invalid = Vec::new();
     let filtered = catalogs
         .iter()
@@ -386,7 +419,8 @@ pub fn prepare_workbook_bundle_write<B>(
     let data_names: Vec<String> = bundle.data.iter().map(|file| file.name.clone()).collect();
     let mut workbook = WorkbookData {
         workbook_id: workbook_id.clone(),
-        scripts: reconcile_workbook_scripts(&bundle.workbook.scripts, &names, first_connection_id(&bundle.workbook)).scripts,
+        scripts: reconcile_workbook_scripts(&bundle.workbook.scripts, &names, first_connection_id(&bundle.workbook))
+            .scripts,
         attachments: workbook_attachments(&data_names),
         malformed_lists: false,
         ..bundle.workbook.clone()
@@ -418,14 +452,19 @@ pub fn catalog_seed_files(catalog: &WorkbookBundleCatalog, has_catalog: bool) ->
 
 /// What differs between an expected and an actual bundle, None if nothing. Names the field or file and never a value,
 /// a value can be a secret of a connection.
-pub fn describe_workbook_bundle_difference<B: PartialEq>(expected: &WorkbookBundle<B>, actual: &WorkbookBundle<B>) -> Option<String> {
+pub fn describe_workbook_bundle_difference<B: PartialEq>(
+    expected: &WorkbookBundle<B>,
+    actual: &WorkbookBundle<B>,
+) -> Option<String> {
     let names = |names: Vec<&str>| names.join(", ");
     let expected_scripts = names(expected.scripts.iter().map(|s| s.name.as_str()).collect());
     let actual_scripts = names(actual.scripts.iter().map(|s| s.name.as_str()).collect());
     if expected_scripts != actual_scripts {
         return Some(format!("the scripts differ: expected [{expected_scripts}], found [{actual_scripts}]"));
     }
-    if let Some(script) = expected.scripts.iter().zip(actual.scripts.iter()).find(|(e, a)| e.sql != a.sql).map(|(e, _)| e) {
+    if let Some(script) =
+        expected.scripts.iter().zip(actual.scripts.iter()).find(|(e, a)| e.sql != a.sql).map(|(e, _)| e)
+    {
         return Some(format!("the text of the script {} differs", script.name));
     }
     let expected_data = names(expected.data.iter().map(|f| f.name.as_str()).collect());
@@ -454,7 +493,11 @@ fn first_different_field(expected: &Value, actual: &Value, path: &str) -> Option
         (Value::Object(a), Value::Object(b)) => {
             let keys = a.keys().chain(b.keys().filter(|key| !a.contains_key(*key)));
             for key in keys {
-                let difference = first_different_field(a.get(key).unwrap_or(&Value::Null), b.get(key).unwrap_or(&Value::Null), &format!("{path}.{key}"));
+                let difference = first_different_field(
+                    a.get(key).unwrap_or(&Value::Null),
+                    b.get(key).unwrap_or(&Value::Null),
+                    &format!("{path}.{key}"),
+                );
                 if difference.is_some() {
                     return difference;
                 }
@@ -463,7 +506,11 @@ fn first_different_field(expected: &Value, actual: &Value, path: &str) -> Option
         }
         (Value::Array(a), Value::Array(b)) => {
             for index in 0..a.len().max(b.len()) {
-                let difference = first_different_field(a.get(index).unwrap_or(&Value::Null), b.get(index).unwrap_or(&Value::Null), &format!("{path}[{index}]"));
+                let difference = first_different_field(
+                    a.get(index).unwrap_or(&Value::Null),
+                    b.get(index).unwrap_or(&Value::Null),
+                    &format!("{path}[{index}]"),
+                );
                 if difference.is_some() {
                     return difference;
                 }
@@ -481,5 +528,8 @@ pub fn workbook_bundles_equal<B: PartialEq>(a: &WorkbookBundle<B>, b: &WorkbookB
         && a.scripts == b.scripts
         && a.data == b.data
         && a.results.len() == b.results.len()
-        && a.results.iter().zip(b.results.iter()).all(|(x, y)| x.key == y.key && x.bytes == y.bytes && x.crc32 == y.crc32)
+        && a.results
+            .iter()
+            .zip(b.results.iter())
+            .all(|(x, y)| x.key == y.key && x.bytes == y.bytes && x.crc32 == y.crc32)
 }

@@ -99,14 +99,22 @@ fn starts_with_tag(line: &str) -> bool {
 impl Annotation {
     /// Read an annotation from comment blocks: ordinary blocks are the preamble, tagged blocks the tags.
     /// `text` is the script text.
-    pub(crate) fn from_blocks<'a>(text: &[u8], blocks: &CommentBlocks, range: impl Iterator<Item = &'a CommentBlock>) -> Self {
+    pub(crate) fn from_blocks<'a>(
+        text: &[u8],
+        blocks: &CommentBlocks,
+        range: impl Iterator<Item = &'a CommentBlock>,
+    ) -> Self {
         // Spans outside of the text read as empty
         let span_text = |span: TextSpan| {
-            String::from_utf8_lossy(text.get(span.offset as usize..span.end() as usize).unwrap_or_default()).into_owned()
+            String::from_utf8_lossy(text.get(span.offset as usize..span.end() as usize).unwrap_or_default())
+                .into_owned()
         };
         let mut annotation = Annotation::default();
         for block in range {
-            let spans = blocks.lines.get(block.lines_begin as usize..(block.lines_begin + block.lines_count) as usize).unwrap_or_default();
+            let spans = blocks
+                .lines
+                .get(block.lines_begin as usize..(block.lines_begin + block.lines_count) as usize)
+                .unwrap_or_default();
             let mut lines: Vec<String> = spans.iter().map(|&l| span_text(l)).collect();
             if block.block_type != CommentBlockType::DASHQL_TAG {
                 annotation.preamble.append(&mut lines);
@@ -114,7 +122,9 @@ impl Annotation {
             }
             // The parser drops the empty text of a tag that is alone on its line
             let tag_end = block.tag_span.end() as usize;
-            let inline = spans.first().is_some_and(|first| !text.get(tag_end..first.offset as usize).unwrap_or_default().contains(&b'\n'));
+            let inline = spans
+                .first()
+                .is_some_and(|first| !text.get(tag_end..first.offset as usize).unwrap_or_default().contains(&b'\n'));
             if !inline {
                 lines.insert(0, String::new());
             }
@@ -217,7 +227,9 @@ fn read_with_comments(parsed: &ParsedScript, statement_id: usize) -> Result<(Ann
     };
     let begin = description.description_blocks_begin as usize;
     let range = blocks.blocks.get(begin..begin + description.description_blocks_count as usize).unwrap_or_default();
-    let comments = (description.description_begin..description.description_begin + description.description_count).map(|c| c as usize).collect();
+    let comments = (description.description_begin..description.description_begin + description.description_count)
+        .map(|c| c as usize)
+        .collect();
     Ok((Annotation::from_blocks(parsed.scanned.text.as_bytes(), blocks, range.iter()), comments))
 }
 
@@ -303,7 +315,11 @@ pub(crate) fn rewrite(
             return Err(outdated());
         }
         match runs.last_mut() {
-            Some(run) if bytes.get(run.end() as usize..comment.offset as usize).is_some_and(|gap| gap.iter().all(u8::is_ascii_whitespace)) => {
+            Some(run)
+                if bytes
+                    .get(run.end() as usize..comment.offset as usize)
+                    .is_some_and(|gap| gap.iter().all(u8::is_ascii_whitespace)) =>
+            {
                 *run = TextSpan::new(run.offset, comment.end() - run.offset);
             }
             _ => runs.push(comment),
@@ -320,7 +336,9 @@ pub(crate) fn rewrite(
                 (first.offset as usize, first.end() as usize)
             }
             None => {
-                let Some(description) = parsed.associate_descriptions().get(statement_id).copied() else { return Err(outdated()) };
+                let Some(description) = parsed.associate_descriptions().get(statement_id).copied() else {
+                    return Err(outdated());
+                };
                 let at = description.statement_span.offset as usize;
                 (at, at)
             }
@@ -339,7 +357,11 @@ pub(crate) fn rewrite(
         if let Some(i) = written {
             // The printed lines of the written tag, none for an index outside of the annotation
             let first_line = annotation.first_line_of(i);
-            let lines = annotation.tags.get(i).and_then(|tag| line_spans.get(first_line..first_line + tag.printed_len())).unwrap_or_default();
+            let lines = annotation
+                .tags
+                .get(i)
+                .and_then(|tag| line_spans.get(first_line..first_line + tag.printed_len()))
+                .unwrap_or_default();
             if let (Some(&(first_begin, _)), Some(&(_, last_end))) = (lines.first(), lines.last()) {
                 let offset = begin + insert.len() + first_begin;
                 span = Some(TextSpan::new(offset as u32, (last_end - first_begin) as u32));
@@ -360,7 +382,12 @@ pub(crate) fn rewrite(
 }
 
 /// Replace the annotation of a statement, an empty annotation removes it. Returns the new text.
-pub fn write_annotation(text: &str, parsed: &ParsedScript, statement_id: usize, annotation: &Annotation) -> Result<String> {
+pub fn write_annotation(
+    text: &str,
+    parsed: &ParsedScript,
+    statement_id: usize,
+    annotation: &Annotation,
+) -> Result<String> {
     Ok(rewrite(text, parsed, statement_id, |current| {
         *current = annotation.clone();
         Ok(None)
@@ -393,7 +420,10 @@ pub(crate) fn rewrite_script_tag(
     let target = match (statements.first(), &tag) {
         (Some(&first), _) => first,
         (None, None) => return Ok(text.to_string()),
-        (None, Some(_)) => target.filter(|&s| s < parsed.statements.len()).or(last).ok_or_else(|| Error::invalid_argument("the script has no statement"))?,
+        (None, Some(_)) => target
+            .filter(|&s| s < parsed.statements.len())
+            .or(last)
+            .ok_or_else(|| Error::invalid_argument("the script has no statement"))?,
     };
     if !statements.contains(&target) {
         statements.push(target);
@@ -441,7 +471,10 @@ mod tests {
         assert_eq!(annotation.preamble, lines(&["note", "Revenue."]));
         assert_eq!(
             annotation.tags,
-            vec![AnnotationTag::new("param", lines(&["", "Sales.", "per region"])), AnnotationTag::new("vis", lines(&["table"]))]
+            vec![
+                AnnotationTag::new("param", lines(&["", "Sales.", "per region"])),
+                AnnotationTag::new("vis", lines(&["table"]))
+            ]
         );
         assert_eq!(annotation.tags[0].text(), "Sales.\nper region");
         assert_eq!(annotation.tags[1].kind(), "table");
@@ -454,12 +487,18 @@ mod tests {
         let mut annotation = Annotation { preamble: vec![], tags: vec![AnnotationTag::new("vis", lines(&["table"]))] };
         assert_eq!(annotation.print("").unwrap().0, "/** @vis table */");
         annotation.tags.insert(0, AnnotationTag::with_text("param", "Sales.\n\n* per region"));
-        assert_eq!(annotation.print("  ").unwrap().0, "/**\n   * @param\n   * Sales.\n   *\n   * * per region\n   * @vis table\n   */");
+        assert_eq!(
+            annotation.print("  ").unwrap().0,
+            "/**\n   * @param\n   * Sales.\n   *\n   * * per region\n   * @vis table\n   */"
+        );
     }
 
     #[test]
     fn rejects_annotations_that_do_not_read_back() {
-        let tag = |name: &str, content: &[&str]| Annotation { preamble: vec![], tags: vec![AnnotationTag::new(name, lines(content))] };
+        let tag = |name: &str, content: &[&str]| Annotation {
+            preamble: vec![],
+            tags: vec![AnnotationTag::new(name, lines(content))],
+        };
         assert!(tag("todo", &["x"]).print("").is_err());
         assert!(tag("end", &[""]).print("").is_err());
         assert!(tag("param", &["", "a */ b"]).print("").is_err());
@@ -475,19 +514,26 @@ mod tests {
         let script = parsed(text);
         let mut annotation = read_annotation(&script, 0).unwrap();
         annotation.tags[0] = AnnotationTag::with_text("param", "Revenue.");
-        assert_eq!(write_annotation(text, &script, 0, &annotation).unwrap(), "/**\n * @param\n * Revenue.\n * @vis table\n */\nselect 1");
+        assert_eq!(
+            write_annotation(text, &script, 0, &annotation).unwrap(),
+            "/**\n * @param\n * Revenue.\n * @vis table\n */\nselect 1"
+        );
         // An unchanged annotation leaves the text alone, an empty one removes the comments
         assert_eq!(write_annotation(text, &script, 0, &read_annotation(&script, 0).unwrap()).unwrap(), text);
         assert_eq!(write_annotation(text, &script, 0, &Annotation::default()).unwrap(), "select 1");
         // Statements of every kind have annotations
         let text = "create table t (a int)";
         let annotation = Annotation { preamble: vec![], tags: vec![AnnotationTag::new("param", lines(&["Tables."]))] };
-        assert_eq!(write_annotation(text, &parsed(text), 0, &annotation).unwrap(), "/** @param Tables. */\ncreate table t (a int)");
+        assert_eq!(
+            write_annotation(text, &parsed(text), 0, &annotation).unwrap(),
+            "/** @param Tables. */\ncreate table t (a int)"
+        );
     }
 
     #[test]
     fn converts_to_and_from_json() {
-        let annotation = Annotation { preamble: lines(&["Note."]), tags: vec![AnnotationTag::new("vis", lines(&["table"]))] };
+        let annotation =
+            Annotation { preamble: lines(&["Note."]), tags: vec![AnnotationTag::new("vis", lines(&["table"]))] };
         let json = serde_json::to_string(&annotation).unwrap();
         assert_eq!(json, r#"{"preamble":["Note."],"tags":[{"name":"vis","lines":["table"]}]}"#);
         assert_eq!(serde_json::from_str::<Annotation>(&json).unwrap(), annotation);

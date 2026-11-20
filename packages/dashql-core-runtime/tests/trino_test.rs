@@ -16,15 +16,18 @@ use arrow_array::{Array, RecordBatch};
 use arrow_schema::{DataType, Field, Schema, SchemaRef, TimeUnit};
 use serde_json::{json, Value};
 
-use dashql_core_runtime::connections::{JsonObject, TrinoSessionDefaults};
-use dashql_core_runtime::query::progress::EngineProgressPayload;
-use dashql_core_runtime::trino::arrow::{js_number_string, parse_trino_timestamp_ms, parse_trino_type, rows_to_record_batch, TimeZoneOffsets};
-use dashql_core_runtime::trino::descriptor::{cache_signature, login_hint};
 use dashql_core_runtime::connections::sharing::sanitize_connection_params_for_sharing;
+use dashql_core_runtime::connections::{JsonObject, TrinoSessionDefaults};
 use dashql_core_runtime::http::base64::{base64_decode, base64_encode};
 use dashql_core_runtime::http::url::{form_encode, set_query_param};
+use dashql_core_runtime::query::progress::EngineProgressPayload;
+use dashql_core_runtime::trino::arrow::{
+    js_number_string, parse_trino_timestamp_ms, parse_trino_type, rows_to_record_batch, TimeZoneOffsets,
+};
+use dashql_core_runtime::trino::descriptor::{cache_signature, login_hint};
 use dashql_core_runtime::trino::protocol::{
-    parse_trino_json, read_query_info, read_result_page, read_statement_response, read_token_response, ResultPageOutcome,
+    parse_trino_json, read_query_info, read_result_page, read_statement_response, read_token_response,
+    ResultPageOutcome,
 };
 use dashql_core_runtime::trino::{
     read_cancel_response, FetchOutcome, HttpMethod, HttpRequest, HttpResponse, RequestId, StreamOutput, TimerId,
@@ -45,7 +48,12 @@ fn object(value: Value) -> JsonObject {
 
 /// A channel with basic auth of `user`
 fn basic_channel(defaults: TrinoSessionDefaults) -> TrinoChannel {
-    let auth = TrinoAuthParams { auth_type: TrinoAuthType::Basic, username: "user".into(), secret: "secret".into(), oauth: None };
+    let auth = TrinoAuthParams {
+        auth_type: TrinoAuthType::Basic,
+        username: "user".into(),
+        secret: "secret".into(),
+        oauth: None,
+    };
     TrinoChannel::new(ENDPOINT, auth, defaults)
 }
 
@@ -66,7 +74,10 @@ fn status_response(status: u16, status_text: &str) -> HttpResponse {
 fn reads_the_info_of_a_query() {
     let channel = basic_channel(TrinoSessionDefaults::default());
     let request = channel.http_request(&TrinoRequest::FetchQueryInfo { query_id: "q1".into() }).unwrap();
-    assert_eq!((request.url.as_str(), request.method.clone()), ("https://trino.example.com/v1/query/q1", HttpMethod::Get));
+    assert_eq!(
+        (request.url.as_str(), request.method.clone()),
+        ("https://trino.example.com/v1/query/q1", HttpMethod::Get)
+    );
     assert_eq!(request.header("X-Trino-User"), Some("user"));
     let info = read_query_info(&HttpResponse::new(200, r#"{"queryId":"q1","state":"FINISHED"}"#)).unwrap();
     assert_eq!(info["state"], "FINISHED");
@@ -83,7 +94,10 @@ fn encodes_the_id_of_a_query_in_its_info_uri() {
 fn asks_executing_queries_for_large_result_pages() {
     let channel = basic_channel(TrinoSessionDefaults::default());
     let url = |uri: &str| channel.http_request(&TrinoRequest::FetchResults { next_uri: uri.into() }).unwrap().url;
-    assert_eq!(url("https://trino.example.com/v1/statement/queued/q1/y1/1"), "https://trino.example.com/v1/statement/queued/q1/y1/1");
+    assert_eq!(
+        url("https://trino.example.com/v1/statement/queued/q1/y1/1"),
+        "https://trino.example.com/v1/statement/queued/q1/y1/1"
+    );
     assert_eq!(
         url("https://trino.example.com/v1/statement/executing/q1/y2/2"),
         format!("https://trino.example.com/v1/statement/executing/q1/y2/2?targetResultSize={TARGET_RESULT_SIZE}")
@@ -117,16 +131,24 @@ fn retries_rejected_and_failed_requests_of_query_results() {
 #[test]
 fn gives_up_on_query_results_after_the_last_attempt_and_on_other_errors() {
     let policy = TrinoRetryPolicy { attempts: 2, initial_delay_ms: 0, max_delay_ms: 0 };
-    let ResultPageOutcome::Failed(error) = read_result_page(&FetchOutcome::Response(status_response(504, "")), 2, &policy) else {
+    let ResultPageOutcome::Failed(error) =
+        read_result_page(&FetchOutcome::Response(status_response(504, "")), 2, &policy)
+    else {
         panic!("expected a failure");
     };
     assert_eq!(error.data.get("status").map(String::as_str), Some("504"));
     let policy = TrinoRetryPolicy { attempts: 5, ..policy };
-    let ResultPageOutcome::Failed(error) = read_result_page(&FetchOutcome::Response(status_response(404, "")), 1, &policy) else {
+    let ResultPageOutcome::Failed(error) =
+        read_result_page(&FetchOutcome::Response(status_response(404, "")), 1, &policy)
+    else {
         panic!("expected a failure");
     };
-    assert_eq!((error.message.as_str(), error.kind), ("Failed to fetch query results", TrinoErrorKind::Http { status: 404 }));
-    let ResultPageOutcome::Failed(error) = read_result_page(&FetchOutcome::NetworkError("down".into()), 5, &policy) else {
+    assert_eq!(
+        (error.message.as_str(), error.kind),
+        ("Failed to fetch query results", TrinoErrorKind::Http { status: 404 })
+    );
+    let ResultPageOutcome::Failed(error) = read_result_page(&FetchOutcome::NetworkError("down".into()), 5, &policy)
+    else {
         panic!("expected a failure");
     };
     assert_eq!(error.kind, TrinoErrorKind::Network);
@@ -176,7 +198,10 @@ fn fails_on_rejected_requests() {
 fn posts_the_statement_with_basic_auth_and_without_defaults() {
     let channel = basic_channel(TrinoSessionDefaults::default());
     let request = channel.http_request(&TrinoRequest::SubmitStatement { text: "select 1".into() }).unwrap();
-    assert_eq!((request.url.as_str(), request.method.clone()), ("https://trino.example.com/v1/statement", HttpMethod::Post));
+    assert_eq!(
+        (request.url.as_str(), request.method.clone()),
+        ("https://trino.example.com/v1/statement", HttpMethod::Post)
+    );
     assert_eq!(request.body.as_deref(), Some("select 1"));
     assert_eq!(request.header("X-Trino-Catalog"), None);
     assert_eq!(request.header("X-Trino-Schema"), None);
@@ -188,7 +213,8 @@ fn posts_the_statement_with_basic_auth_and_without_defaults() {
 #[test]
 fn sends_the_default_catalog_and_schema() {
     let session = |catalog: Option<&str>, schema: Option<&str>| {
-        let channel = basic_channel(TrinoSessionDefaults { catalog: catalog.map(Into::into), schema: schema.map(Into::into) });
+        let channel =
+            basic_channel(TrinoSessionDefaults { catalog: catalog.map(Into::into), schema: schema.map(Into::into) });
         let request = channel.http_request(&TrinoRequest::SubmitStatement { text: "select 1".into() }).unwrap();
         (request.header("X-Trino-Catalog").map(str::to_string), request.header("X-Trino-Schema").map(str::to_string))
     };
@@ -309,7 +335,9 @@ impl TimeZoneOffsets for FakeZones {
             // Summer time from the last Sunday of March to the last Sunday of October, at 01:00 UTC
             "Europe/Berlin" => Some(if (utc(3, 31, 1)..utc(10, 27, 1)).contains(&instant) { 2 * HOUR } else { HOUR }),
             // Daylight saving time from the second Sunday of March to the first Sunday of November
-            "America/New_York" => Some(if (utc(3, 10, 7)..utc(11, 3, 6)).contains(&instant) { -4 * HOUR } else { -5 * HOUR }),
+            "America/New_York" => {
+                Some(if (utc(3, 10, 7)..utc(11, 3, 6)).contains(&instant) { -4 * HOUR } else { -5 * HOUR })
+            }
             _ => None,
         }
     }
@@ -334,44 +362,88 @@ fn primitive<T: arrow_array::ArrowPrimitiveType>(batch: &RecordBatch) -> Vec<Opt
 
 #[test]
 fn translates_the_values_of_every_column_type() {
-    let booleans = translate_column(DataType::Boolean, vec![json!(true), json!(0), Value::Null, json!(""), json!("false"), json!([])]);
+    let booleans = translate_column(
+        DataType::Boolean,
+        vec![json!(true), json!(0), Value::Null, json!(""), json!("false"), json!([])],
+    );
     let booleans: Vec<Option<bool>> = booleans.column(0).as_boolean().iter().collect();
     assert_eq!(booleans, [Some(true), Some(false), None, Some(false), Some(true), Some(true)]);
 
-    assert_eq!(primitive::<Int8Type>(&translate_column(DataType::Int8, vec![json!(-3), json!("5"), json!(300)])), [
-        Some(-3),
-        Some(5),
-        Some(44)
-    ]);
-    assert_eq!(primitive::<Int16Type>(&translate_column(DataType::Int16, vec![json!(-30000), json!("0x10")])), [Some(-30000), Some(16)]);
+    assert_eq!(
+        primitive::<Int8Type>(&translate_column(DataType::Int8, vec![json!(-3), json!("5"), json!(300)])),
+        [Some(-3), Some(5), Some(44)]
+    );
+    assert_eq!(
+        primitive::<Int16Type>(&translate_column(DataType::Int16, vec![json!(-30000), json!("0x10")])),
+        [Some(-30000), Some(16)]
+    );
     assert_eq!(
         primitive::<Int32Type>(&translate_column(
             DataType::Int32,
-            vec![json!(1), json!("42"), json!(""), Value::Null, json!("abc"), json!(" 7 "), json!(1.9), json!("4294967297"), json!("1e3")]
+            vec![
+                json!(1),
+                json!("42"),
+                json!(""),
+                Value::Null,
+                json!("abc"),
+                json!(" 7 "),
+                json!(1.9),
+                json!("4294967297"),
+                json!("1e3")
+            ]
         )),
         [Some(1), Some(42), None, None, None, Some(7), Some(1), Some(1), Some(1000)]
     );
     assert_eq!(
         primitive::<Int64Type>(&translate_column(
             DataType::Int64,
-            vec![json!("9007199254740993"), json!(2), json!("1.5"), json!(""), json!(9_007_199_254_740_993_i64), json!("18446744073709551617"), json!(true), json!(1.5)]
+            vec![
+                json!("9007199254740993"),
+                json!(2),
+                json!("1.5"),
+                json!(""),
+                json!(9_007_199_254_740_993_i64),
+                json!("18446744073709551617"),
+                json!(true),
+                json!(1.5)
+            ]
         )),
         [Some(9_007_199_254_740_993), Some(2), None, None, Some(9_007_199_254_740_993), Some(1), Some(1), None]
     );
-    assert_eq!(primitive::<Float32Type>(&translate_column(DataType::Float32, vec![json!(1.5), json!("x")])), [Some(1.5), None]);
     assert_eq!(
-        primitive::<Float64Type>(&translate_column(DataType::Float64, vec![json!(1.5), json!("2.25"), json!("x"), Value::Null, json!("Infinity"), json!("inf")])),
+        primitive::<Float32Type>(&translate_column(DataType::Float32, vec![json!(1.5), json!("x")])),
+        [Some(1.5), None]
+    );
+    assert_eq!(
+        primitive::<Float64Type>(&translate_column(
+            DataType::Float64,
+            vec![json!(1.5), json!("2.25"), json!("x"), Value::Null, json!("Infinity"), json!("inf")]
+        )),
         [Some(1.5), Some(2.25), None, None, Some(f64::INFINITY), None]
     );
     assert_eq!(
-        primitive::<Date32Type>(&translate_column(DataType::Date32, vec![json!("2024-02-29"), json!("not a date"), Value::Null, json!("2023-02-29"), json!("1969-12-31")])),
+        primitive::<Date32Type>(&translate_column(
+            DataType::Date32,
+            vec![json!("2024-02-29"), json!("not a date"), Value::Null, json!("2023-02-29"), json!("1969-12-31")]
+        )),
         [Some((utc(2024, 2, 29, 0, 0, 0, 0) / 86_400_000) as i32), None, None, None, Some(-1)]
     );
-    assert_eq!(primitive::<Date64Type>(&translate_column(DataType::Date64, vec![json!("1970-01-02"), json!("")])), [Some(86_400_000), None]);
+    assert_eq!(
+        primitive::<Date64Type>(&translate_column(DataType::Date64, vec![json!("1970-01-02"), json!("")])),
+        [Some(86_400_000), None]
+    );
     assert_eq!(
         primitive::<Time32MillisecondType>(&translate_column(
             DataType::Time32(TimeUnit::Millisecond),
-            vec![json!("01:02:03.456"), json!("12:30"), json!("00:00:00.5"), Value::Null, json!("01:02:03.456+01:00"), json!(""), json!("00:00:00.x")]
+            vec![
+                json!("01:02:03.456"),
+                json!("12:30"),
+                json!("00:00:00.5"),
+                Value::Null,
+                json!("01:02:03.456+01:00"),
+                json!(""),
+                json!("00:00:00.x")
+            ]
         )),
         [Some(3_723_456), Some(45_000_000), Some(500), None, Some(3_723_456), Some(0), Some(0)]
     );
@@ -379,18 +451,39 @@ fn translates_the_values_of_every_column_type() {
         DataType::Timestamp(TimeUnit::Millisecond, Some("UTC".into())),
         vec![json!("2024-01-02 03:04:05.678Z"), json!("never"), json!("")],
     );
-    assert_eq!(timestamps.schema().field(0).data_type(), &DataType::Timestamp(TimeUnit::Millisecond, Some("UTC".into())));
+    assert_eq!(
+        timestamps.schema().field(0).data_type(),
+        &DataType::Timestamp(TimeUnit::Millisecond, Some("UTC".into()))
+    );
     assert_eq!(primitive::<TimestampMillisecondType>(&timestamps), [Some(utc(2024, 1, 2, 3, 4, 5, 678)), None, None]);
-    let wall_clock = translate_column(DataType::Timestamp(TimeUnit::Millisecond, None), vec![json!("2024-01-02 03:04:05.678"), json!("")]);
+    let wall_clock = translate_column(
+        DataType::Timestamp(TimeUnit::Millisecond, None),
+        vec![json!("2024-01-02 03:04:05.678"), json!("")],
+    );
     assert_eq!(primitive::<TimestampMillisecondType>(&wall_clock), [Some(utc(2024, 1, 2, 3, 4, 5, 678)), None]);
 
-    let binaries = translate_column(DataType::Binary, vec![json!(base64_encode(&[1, 2])), json!(42), json!("not base64!")]);
+    let binaries =
+        translate_column(DataType::Binary, vec![json!(base64_encode(&[1, 2])), json!(42), json!("not base64!")]);
     let binaries: Vec<Option<&[u8]>> = binaries.column(0).as_binary::<i32>().iter().collect();
     assert_eq!(binaries, [Some(&[1u8, 2][..]), None, None]);
 
-    let strings = translate_column(DataType::Utf8, vec![json!("äö"), json!(3), json!({ "a": [1] }), Value::Null, json!(1.0), json!([1.5, 1e21, "x"]), json!(false)]);
+    let strings = translate_column(
+        DataType::Utf8,
+        vec![
+            json!("äö"),
+            json!(3),
+            json!({ "a": [1] }),
+            Value::Null,
+            json!(1.0),
+            json!([1.5, 1e21, "x"]),
+            json!(false),
+        ],
+    );
     let strings: Vec<Option<&str>> = strings.column(0).as_string::<i32>().iter().collect();
-    assert_eq!(strings, [Some("äö"), Some("3"), Some(r#"{"a":[1]}"#), None, Some("1"), Some(r#"[1.5,1e+21,"x"]"#), Some("false")]);
+    assert_eq!(
+        strings,
+        [Some("äö"), Some("3"), Some(r#"{"a":[1]}"#), None, Some("1"), Some(r#"[1.5,1e+21,"x"]"#), Some("false")]
+    );
 }
 
 #[test]
@@ -398,7 +491,17 @@ fn translates_decimals_into_unscaled_values_and_drops_values_that_do_not_fit() {
     let too_large = (1i128 << 126).to_string() + "0";
     let batch = translate_column(
         DataType::Decimal128(38, 2),
-        vec![json!("12.34"), json!("-0.5"), json!(".25"), json!(12.5), json!("1.234"), json!("."), json!(too_large), json!(" 7 "), json!("5.")],
+        vec![
+            json!("12.34"),
+            json!("-0.5"),
+            json!(".25"),
+            json!(12.5),
+            json!("1.234"),
+            json!("."),
+            json!(too_large),
+            json!(" 7 "),
+            json!("5."),
+        ],
     );
     let values: Vec<Option<i128>> = batch.column(0).as_primitive::<Decimal128Type>().iter().collect();
     assert_eq!(values, [Some(1234), Some(-50), Some(25), Some(1250), None, None, None, Some(700), Some(500)]);
@@ -406,14 +509,16 @@ fn translates_decimals_into_unscaled_values_and_drops_values_that_do_not_fit() {
 
 #[test]
 fn translates_columns_of_types_without_translation_into_json_strings() {
-    let batch = translate_column(DataType::List(Arc::new(Field::new("item", DataType::Int32, true))), vec![json!([1, 2])]);
+    let batch =
+        translate_column(DataType::List(Arc::new(Field::new("item", DataType::Int32, true))), vec![json!([1, 2])]);
     assert_eq!(batch.schema().field(0).data_type(), &DataType::Utf8);
     assert_eq!(batch.column(0).as_string::<i32>().value(0), "[1,2]");
 }
 
 #[test]
 fn translates_rows_that_lack_columns_into_nulls() {
-    let schema = Arc::new(Schema::new(vec![Field::new("a", DataType::Int32, true), Field::new("b", DataType::Utf8, true)]));
+    let schema =
+        Arc::new(Schema::new(vec![Field::new("a", DataType::Int32, true), Field::new("b", DataType::Utf8, true)]));
     let batch = rows_to_record_batch(&schema, &[json!([1]), json!("no row"), json!([2, "x"])], &FakeZones).unwrap();
     assert_eq!(primitive::<Int32Type>(&batch), [Some(1), None, Some(2)]);
     assert_eq!(batch.column(1).null_count(), 2);
@@ -445,7 +550,10 @@ fn parses_trino_timestamps() {
         assert_eq!(parse_trino_timestamp_ms(text, &FakeZones), expected, "{text}");
     }
     // Without zone offsets of the host, a named zone is unknown
-    assert_eq!(parse_trino_timestamp_ms("2024-01-15 12:00:00.000 Europe/Berlin", &dashql_core_runtime::trino::NoTimeZones), None);
+    assert_eq!(
+        parse_trino_timestamp_ms("2024-01-15 12:00:00.000 Europe/Berlin", &dashql_core_runtime::trino::NoTimeZones),
+        None
+    );
 }
 
 #[test]
@@ -519,7 +627,8 @@ fn translates_every_trino_type() {
         "2024-03-01 12:30:00.123", "2024-03-01 12:30:00.123456 Europe/Berlin", "1 02:03:04.000",
         "d1f9f0b2-0a4e-4b8e-9f4e-8f8f8f8f8f8f", "192.168.0.1", [1, 2], { "k": 3 }, [1, "x"], "AgwBAA=="
     ]);
-    let batch = rows_to_record_batch(&schema, &[row, Value::Array(vec![Value::Null; cases.len()])], &FakeZones).unwrap();
+    let batch =
+        rows_to_record_batch(&schema, &[row, Value::Array(vec![Value::Null; cases.len()])], &FakeZones).unwrap();
     assert_eq!(batch.num_rows(), 2);
     for (i, (_, expected)) in cases.iter().enumerate() {
         assert_eq!(batch.column(i).data_type(), expected, "column {i}");
@@ -658,7 +767,10 @@ impl Harness {
 
     /// The batches that the query reported
     fn batches(&self) -> Vec<&RecordBatch> {
-        self.outputs.iter().filter_map(|output| if let StreamOutput::Batch(batch) = output { Some(batch) } else { None }).collect()
+        self.outputs
+            .iter()
+            .filter_map(|output| if let StreamOutput::Batch(batch) = output { Some(batch) } else { None })
+            .collect()
     }
 
     /// The kinds of the engine progress that the query reported
@@ -744,7 +856,10 @@ fn publishes_the_progress_of_the_statement_and_of_every_poll_with_the_raw_statis
             _ => None,
         })
         .collect();
-    assert_eq!(progress, [(Some("QUEUED".into()), Some(true)), (Some("RUNNING".into()), None), (Some("FINISHED".into()), None)]);
+    assert_eq!(
+        progress,
+        [(Some("QUEUED".into()), Some(true)), (Some("RUNNING".into()), None), (Some("FINISHED".into()), None)]
+    );
     assert_eq!(harness.progress_kinds(), ["trino_statement_stats"; 3]);
     assert_eq!(harness.end(), Some(&StreamOutput::Finished));
 }
@@ -758,7 +873,9 @@ fn requests_the_plans_of_the_stages_once_the_stages_exist() {
         page(json!({ "stats": running, "nextUri": next(3) })),
         page(json!({ "columns": serde_json::from_str::<Value>(COLUMNS).unwrap(), "stats": state("FINISHED") })),
     ]);
-    harness.infos.push_back(json_response(json!({ "queryId": "query-id", "state": "FINISHED", "finalQueryInfo": true, "stages": { "stages": [] } })));
+    harness.infos.push_back(json_response(
+        json!({ "queryId": "query-id", "state": "FINISHED", "finalQueryInfo": true, "stages": { "stages": [] } }),
+    ));
     let out = harness.query.set_profile_detail(true, 0);
     harness.absorb(out);
     harness.run();
@@ -783,7 +900,9 @@ fn fetches_the_query_info_again_when_the_tasks_of_more_stages_are_done() {
         page(json!({ "stats": stages(&["RUNNING", "PENDING", "PENDING"]), "nextUri": next(4) })),
         page(json!({ "columns": serde_json::from_str::<Value>(COLUMNS).unwrap(), "stats": state("FINISHED") })),
     ]);
-    harness.infos.push_back(json_response(json!({ "queryId": "query-id", "state": "FINISHED", "finalQueryInfo": true, "stages": { "stages": [] } })));
+    harness.infos.push_back(json_response(
+        json!({ "queryId": "query-id", "state": "FINISHED", "finalQueryInfo": true, "stages": { "stages": [] } }),
+    ));
     let out = harness.query.set_profile_detail(true, 0);
     harness.absorb(out);
     harness.run();
@@ -815,7 +934,9 @@ fn fetches_the_query_info_again_while_a_stage_whose_tasks_are_done_has_no_operat
     assert_eq!(harness.query_info_requests(), 2);
     harness.advance(5000);
     assert_eq!(harness.query_info_requests(), 2);
-    harness.pages.push_back(json_response(page(json!({ "columns": serde_json::from_str::<Value>(COLUMNS).unwrap(), "stats": state("FINISHED") }))));
+    harness.pages.push_back(json_response(page(
+        json!({ "columns": serde_json::from_str::<Value>(COLUMNS).unwrap(), "stats": state("FINISHED") }),
+    )));
     harness.run();
     assert_eq!(harness.query_info_requests(), 3);
     assert_eq!(harness.end(), Some(&StreamOutput::Finished));
@@ -878,9 +999,15 @@ fn fetches_no_plans_while_nobody_shows_the_profile() {
 #[test]
 fn fetches_no_more_query_info_when_the_query_fails() {
     let running = json!({ "state": "RUNNING", "rootStage": { "stageId": "0" } });
-    let options = TrinoQueryOptions { retry_policy: TrinoRetryPolicy { attempts: 1, ..Default::default() }, ..Default::default() };
+    let options = TrinoQueryOptions {
+        retry_policy: TrinoRetryPolicy { attempts: 1, ..Default::default() },
+        ..Default::default()
+    };
     let mut harness = Harness::new(options);
-    harness.pages.extend([json_response(page(json!({ "stats": running, "nextUri": next(1) }))), FetchOutcome::NetworkError("connection lost".into())]);
+    harness.pages.extend([
+        json_response(page(json!({ "stats": running, "nextUri": next(1) }))),
+        FetchOutcome::NetworkError("connection lost".into()),
+    ]);
     harness.infos.push_back(json_response(json!({ "stages": { "stages": [{ "state": "PENDING" }] } })));
     let out = harness.query.set_profile_detail(true, 0);
     harness.absorb(out);
@@ -895,7 +1022,9 @@ fn fetches_no_more_query_info_when_the_query_fails() {
 
 #[test]
 fn reports_the_schema_of_an_already_finished_zero_row_response() {
-    let mut harness = Harness::with_pages(vec![page(json!({ "columns": serde_json::from_str::<Value>(COLUMNS).unwrap(), "stats": state("FINISHED") }))]);
+    let mut harness = Harness::with_pages(vec![page(
+        json!({ "columns": serde_json::from_str::<Value>(COLUMNS).unwrap(), "stats": state("FINISHED") }),
+    )]);
     harness.run();
     let names: Vec<&str> = harness.query.schema().unwrap().fields().iter().map(|field| field.name().as_str()).collect();
     assert_eq!(names, ["customer_id"]);
@@ -919,7 +1048,12 @@ fn follows_the_next_uris_until_the_query_finished_and_translates_the_data() {
     // The statement counts as a request
     let metrics = harness.query.metrics();
     assert_eq!(
-        (metrics.total_query_requests_started, metrics.total_query_requests_succeeded, metrics.total_batches_received, metrics.total_rows_received),
+        (
+            metrics.total_query_requests_started,
+            metrics.total_query_requests_succeeded,
+            metrics.total_batches_received,
+            metrics.total_rows_received
+        ),
         (4, 4, 2, 3)
     );
 }
@@ -947,10 +1081,17 @@ fn requests_the_next_page_before_producing_the_current_one() {
         panic!("expected the statement");
     };
     let out = query.on_response(*id, &json_response(page(json!({ "nextUri": next(1), "stats": state("RUNNING") }))), 0);
-    let Some(StreamOutput::Send { id, .. }) = out.iter().find(|output| matches!(output, StreamOutput::Send { .. })) else {
+    let Some(StreamOutput::Send { id, .. }) = out.iter().find(|output| matches!(output, StreamOutput::Send { .. }))
+    else {
         panic!("expected the first page");
     };
-    let out = query.on_response(*id, &json_response(page(json!({ "nextUri": next(2), "columns": columns, "data": [[1]], "stats": state("RUNNING") }))), 0);
+    let out = query.on_response(
+        *id,
+        &json_response(page(
+            json!({ "nextUri": next(2), "columns": columns, "data": [[1]], "stats": state("RUNNING") }),
+        )),
+        0,
+    );
     let send = out.iter().position(|output| matches!(output, StreamOutput::Send { .. }));
     let batch = out.iter().position(|output| matches!(output, StreamOutput::Batch(_)));
     assert!(send.is_some() && batch.is_some() && send < batch);
@@ -960,13 +1101,18 @@ fn requests_the_next_page_before_producing_the_current_one() {
 fn fails_on_query_errors() {
     let mut harness = Harness::with_pages(vec![
         page(json!({ "nextUri": next(1), "stats": state("QUEUED") })),
-        page(json!({ "error": { "errorCode": 1, "errorName": "SYNTAX_ERROR", "errorType": "USER_ERROR", "message": "line 1" } })),
+        page(
+            json!({ "error": { "errorCode": 1, "errorName": "SYNTAX_ERROR", "errorType": "USER_ERROR", "message": "line 1" } }),
+        ),
     ]);
     harness.run();
     let Some(StreamOutput::Failed(error)) = harness.end() else {
         panic!("expected a failure");
     };
-    assert_eq!((error.message.as_str(), error.kind.clone()), ("Query returned an error", TrinoErrorKind::Query { code: 1 }));
+    assert_eq!(
+        (error.message.as_str(), error.kind.clone()),
+        ("Query returned an error", TrinoErrorKind::Query { code: 1 })
+    );
     assert_eq!(error.data.get("errorName").map(String::as_str), Some("SYNTAX_ERROR"));
     assert_eq!(error.data.get("errorMessage").map(String::as_str), Some("line 1"));
     assert!(harness.query.schema().is_none());
@@ -1012,7 +1158,10 @@ fn cancels_the_query_by_its_next_uri() {
 
 #[test]
 fn retries_failed_pages_after_a_delay_and_stops_when_aborted() {
-    let options = TrinoQueryOptions { retry_policy: TrinoRetryPolicy { attempts: 3, initial_delay_ms: 100, max_delay_ms: 1000 }, ..Default::default() };
+    let options = TrinoQueryOptions {
+        retry_policy: TrinoRetryPolicy { attempts: 3, initial_delay_ms: 100, max_delay_ms: 1000 },
+        ..Default::default()
+    };
     let mut harness = Harness::new(options);
     harness.pages.extend([
         json_response(page(json!({ "nextUri": next(1), "stats": state("RUNNING") }))),
@@ -1052,7 +1201,10 @@ fn retries_failed_pages_after_a_delay_and_stops_when_aborted() {
 
 /// Options with a number of attempts and no delays
 fn options_with_attempts(attempts: u32) -> TrinoQueryOptions {
-    TrinoQueryOptions { retry_policy: TrinoRetryPolicy { attempts, initial_delay_ms: 10, max_delay_ms: 10 }, ..Default::default() }
+    TrinoQueryOptions {
+        retry_policy: TrinoRetryPolicy { attempts, initial_delay_ms: 10, max_delay_ms: 10 },
+        ..Default::default()
+    }
 }
 
 #[test]
@@ -1097,7 +1249,10 @@ fn replays_recorded_queries() {
     let first = harness.batches()[0];
     assert_eq!(first.column(0).as_primitive::<Int64Type>().value(0), 2_456_423);
     assert_eq!(first.column(1).as_primitive::<Float64Type>().value(0), 406_181.0111);
-    assert_eq!(first.column(2).as_primitive::<Date32Type>().value(0), (utc(1995, 3, 5, 0, 0, 0, 0) / 86_400_000) as i32);
+    assert_eq!(
+        first.column(2).as_primitive::<Date32Type>().value(0),
+        (utc(1995, 3, 5, 0, 0, 0, 0) / 86_400_000) as i32
+    );
     assert_eq!(harness.query.metrics().total_rows_received, 10);
 
     let failed = recorded_pages(include_str!("../../../tests/snapshots/profiles/trino/recordings/failed_cast.json"));

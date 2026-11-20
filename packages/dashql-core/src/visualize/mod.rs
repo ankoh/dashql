@@ -34,23 +34,18 @@ fn node_text(script: &AnalyzedScript, node_id: u32) -> &[u8] {
 pub fn pack_visualization(
     script: &AnalyzedScript,
     spec: &VisualizationSpec,
-) -> (
-    Option<String>,
-    Option<Box<dashql_buffers::visualization::MarkdownSpecT>>,
-) {
+) -> (Option<String>, Option<Box<dashql_buffers::visualization::MarkdownSpecT>>) {
     use dashql_buffers::visualization::MarkdownSpec;
     let renderer = spec.renderer.as_deref();
-    let vegalite = (renderer == Some("vegalite"))
-        .then(|| generate_vegalite_spec(spec, script))
-        .filter(|json| !json.is_empty());
+    let vegalite =
+        (renderer == Some("vegalite")).then(|| generate_vegalite_spec(spec, script)).filter(|json| !json.is_empty());
     // A spec that does not read back packs as no Markdown spec
-    let markdown =
-        (renderer == Some("markdown")).then(|| compile_markdown_spec(spec)).flatten().and_then(|doc| {
-            let mut builder = flatbuffers::FlatBufferBuilder::new();
-            let packed = pack_markdown_spec(&mut builder, &doc);
-            builder.finish(packed, None);
-            flatbuffers::root::<MarkdownSpec>(builder.finished_data()).ok().map(|spec| Box::new(spec.unpack()))
-        });
+    let markdown = (renderer == Some("markdown")).then(|| compile_markdown_spec(spec)).flatten().and_then(|doc| {
+        let mut builder = flatbuffers::FlatBufferBuilder::new();
+        let packed = pack_markdown_spec(&mut builder, &doc);
+        builder.finish(packed, None);
+        flatbuffers::root::<MarkdownSpec>(builder.finished_data()).ok().map(|spec| Box::new(spec.unpack()))
+    });
     (vegalite, markdown)
 }
 

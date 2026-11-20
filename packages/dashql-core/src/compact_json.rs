@@ -98,7 +98,10 @@ mod tests {
 
     #[test]
     fn keeps_values_that_fit_on_one_line() {
-        assert_eq!(compact(r#"{"mark":"bar","x":[1,2.5,null,true]}"#, 80), r#"{"mark": "bar", "x": [1, 2.5, null, true]}"#);
+        assert_eq!(
+            compact(r#"{"mark":"bar","x":[1,2.5,null,true]}"#, 80),
+            r#"{"mark": "bar", "x": [1, 2.5, null, true]}"#
+        );
         assert_eq!(compact("[]", 0), "[]");
         assert_eq!(compact("{}", 0), "{}");
         assert_eq!(compact(r#""a\"b""#, 0), r#""a\"b""#);
@@ -118,7 +121,10 @@ mod tests {
 }"#
         );
         // The key and the comma count, `"x": ...,` is 46 wide
-        assert_eq!(compact(r#"[{"x": {"field": "date", "type": "temporal"}}, 1]"#, 47), "[\n  {\"x\": {\"field\": \"date\", \"type\": \"temporal\"}},\n  1\n]");
+        assert_eq!(
+            compact(r#"[{"x": {"field": "date", "type": "temporal"}}, 1]"#, 47),
+            "[\n  {\"x\": {\"field\": \"date\", \"type\": \"temporal\"}},\n  1\n]"
+        );
         assert_eq!(
             compact(r#"[{"x": {"field": "date", "type": "temporal"}}, 1]"#, 46),
             "[\n  {\n    \"x\": {\"field\": \"date\", \"type\": \"temporal\"}\n  },\n  1\n]"

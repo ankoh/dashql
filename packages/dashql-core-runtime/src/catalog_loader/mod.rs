@@ -32,12 +32,12 @@ use arrow_schema::ArrowError;
 use dashql_core::catalog::{Catalog, CatalogEntryId, CatalogVersion};
 
 use crate::connections::{
-    CatalogUpdateTask, CatalogUpdateTaskStatus, CatalogUpdateVariant, ConnectionAction, ConnectionChannel, ConnectionState,
-    DetailedError, RelationName, Timestamp,
+    CatalogUpdateTask, CatalogUpdateTaskStatus, CatalogUpdateVariant, ConnectionAction, ConnectionChannel,
+    ConnectionState, DetailedError, RelationName, Timestamp,
 };
-use crate::workbook::CatalogHandle;
 use crate::http::{HttpRequest, HttpResponse};
 use crate::query::QueryType;
+use crate::workbook::CatalogHandle;
 
 pub use batch::{CatalogBatch, CatalogBatchEntry, CatalogGenerations, CatalogTicket};
 pub use scheduler::{CatalogLoader, CatalogLoaderCommand, CatalogLoaderConnection, CatalogSchedule};
@@ -258,19 +258,24 @@ impl CatalogUpdate {
         now: Timestamp,
     ) -> Result<Self, CatalogLoadError> {
         let (catalog_id, version_before) = {
-            let catalog = connection.catalog().try_borrow().map_err(|_| CatalogLoadError::failed("the catalog is in use"))?;
+            let catalog =
+                connection.catalog().try_borrow().map_err(|_| CatalogLoadError::failed("the catalog is in use"))?;
             (catalog.id(), catalog.version())
         };
         let variant = match relations {
             Some(_) => CatalogUpdateVariant::RelationRefresh,
             None => CatalogUpdateVariant::FullCatalogRefresh,
         };
-        let task = CatalogUpdateTask { touched_relations: relations.clone().unwrap_or_default(), ..CatalogUpdateTask::new(task_id, variant, now) };
+        let task = CatalogUpdateTask {
+            touched_relations: relations.clone().unwrap_or_default(),
+            ..CatalogUpdateTask::new(task_id, variant, now)
+        };
         let entries = CatalogEntries {
             relations: connection.relation_entry_id(),
             functions: connection.function_script().map(|script| script.catalog_entry_id()),
         };
-        let connector = connection.connector_type().connector().catalog_update(connection.details(), entries, relations, now);
+        let connector =
+            connection.connector_type().connector().catalog_update(connection.details(), entries, relations, now);
         Ok(Self { task, ticket: generations.begin(catalog_id), version_before, connector })
     }
 

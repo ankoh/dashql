@@ -47,7 +47,11 @@ fn is_empty_collection(value: &Value) -> bool {
 fn without_empty_collections(value: &Value) -> Value {
     match value {
         Value::Object(object) => Value::Object(
-            object.iter().filter(|(_, v)| !is_empty_collection(v)).map(|(k, v)| (k.clone(), without_empty_collections(v))).collect(),
+            object
+                .iter()
+                .filter(|(_, v)| !is_empty_collection(v))
+                .map(|(k, v)| (k.clone(), without_empty_collections(v)))
+                .collect(),
         ),
         Value::Array(list) => Value::Array(list.iter().map(without_empty_collections).collect()),
         other => other.clone(),
@@ -64,7 +68,11 @@ pub fn connection_params_equal(left: &Value, right: &Value) -> bool {
 pub fn connection_params_share_equal(left: &Value, right: &Value) -> bool {
     let key = |params: &Value| {
         let sanitized = sanitize_connection_params_for_sharing(params, false);
-        if is_empty_collection(&sanitized) { Value::Null } else { without_empty_collections(&sanitized) }
+        if is_empty_collection(&sanitized) {
+            Value::Null
+        } else {
+            without_empty_collections(&sanitized)
+        }
     };
     key(left) == key(right)
 }
@@ -87,7 +95,10 @@ mod tests {
             json!({ "hyper": { "protocol": "V3_HTTP", "tls": { "clientKeyPath": "", "clientCertPath": "", "caCertsPath": "" } } })
         );
         let salesforce = json!({ "salesforce": { "instanceUrl": "u", "appConsumerSecret": "s", "login": "me" } });
-        assert_eq!(sanitize_connection_params_for_sharing(&salesforce, true), json!({ "salesforce": { "instanceUrl": "u", "appConsumerSecret": "", "login": "me" } }));
+        assert_eq!(
+            sanitize_connection_params_for_sharing(&salesforce, true),
+            json!({ "salesforce": { "instanceUrl": "u", "appConsumerSecret": "", "login": "me" } })
+        );
         assert!(connection_params_share_equal(&trino, &sanitize_connection_params_for_sharing(&trino, true)));
         assert!(connection_params_share_equal(
             &json!({ "hyper": { "protocol": "WASM", "attachedDatabases": [] } }),

@@ -1,9 +1,9 @@
 //! Tests of `Script`: text edits and versions, parsing, analysis, statement text, dashboard and Vega-Lite rewrites,
 //! formatting and statistics.
 
-use dashql_core::catalog::CatalogLayer;
 use dashql_buffers::status::StatusCode;
 use dashql_core::catalog::Catalog;
+use dashql_core::catalog::CatalogLayer;
 use dashql_core::script::Script;
 use dashql_core::vis_rewrite::{VisBoard, VisFlow, VisRenderer};
 use dashql_parser::span::TextSpan;
@@ -292,7 +292,10 @@ fn rewrite_vis_flow_places_the_script() {
     );
     // A statement that is no query gets a new comment
     let mut script = parsed_script("create table t (a int)");
-    assert_eq!(script.rewrite_vis_flow(Some(&flow), false).unwrap(), "/** @flow x=-16 y=240 */\ncreate table t (a int)");
+    assert_eq!(
+        script.rewrite_vis_flow(Some(&flow), false).unwrap(),
+        "/** @flow x=-16 y=240 */\ncreate table t (a int)"
+    );
     // An existing position is replaced where it is, the first one in statement order
     let mut script = parsed_script("/* @flow x=1 y=2 */\ncreate table t (a int);\nselect a from t");
     assert_eq!(
@@ -301,7 +304,10 @@ fn rewrite_vis_flow_places_the_script() {
     );
     // Removing the position removes the comment it was alone in
     let mut script = parsed_script("/* @flow x=1 y=2 */\ncreate table t (a int);\n/* @vis table */\nselect a from t");
-    assert_eq!(script.rewrite_vis_flow(None, false).unwrap(), "create table t (a int);\n/* @vis table */\nselect a from t");
+    assert_eq!(
+        script.rewrite_vis_flow(None, false).unwrap(),
+        "create table t (a int);\n/* @vis table */\nselect a from t"
+    );
     // A script has one position: setting it keeps the first tag, removing it removes every tag
     let two = "/* @flow x=1 y=1 */\nselect 1;\n/* @vis table\n   @flow x=5 y=5 */\nselect 2";
     assert_eq!(
@@ -343,7 +349,8 @@ fn rewrite_vis_tags_consolidate_the_annotation() {
         "/**\n * @param Sales.\n * @param :a = 1\n * @vis table\n */\nselect 1 as a"
     );
     // Ordinary comments and the text before the first tag of a block comment are the description, it goes on top
-    let mut script = parsed_script("-- Note\n/* Revenue.\n   @vis table */\n-- More\n\n/* @param Sales. */\nselect 1 as a");
+    let mut script =
+        parsed_script("-- Note\n/* Revenue.\n   @vis table */\n-- More\n\n/* @param Sales. */\nselect 1 as a");
     assert_eq!(
         script.rewrite_vis_board(0, Some(&board(None, None, 6, 3)), false).unwrap(),
         "/**\n * Note\n * Revenue.\n * More\n *\n * @vis table\n * @board width=6 height=3\n * @param Sales.\n */\nselect 1 as a"
@@ -366,7 +373,10 @@ fn rewrite_vis_tags_consolidate_the_annotation() {
 fn rewrite_vis_board_places_a_statement_without_a_renderer() {
     // A query without a renderer is a collapsed card, the placement goes where a renderer would go
     let mut script = parsed_script("select 1");
-    assert_eq!(script.rewrite_vis_board(0, Some(&board(Some(1), Some(0), 4, 3)), false).unwrap(), "/** @board row=1 column=0 width=4 height=3 */\nselect 1");
+    assert_eq!(
+        script.rewrite_vis_board(0, Some(&board(Some(1), Some(0), 4, 3)), false).unwrap(),
+        "/** @board row=1 column=0 width=4 height=3 */\nselect 1"
+    );
     let mut script = parsed_script("-- @param :a = 1\n-- @flow x=1 y=2\nselect :a");
     assert_eq!(
         script.rewrite_vis_board(0, Some(&board(None, None, 6, 3)), false).unwrap(),
@@ -374,7 +384,10 @@ fn rewrite_vis_board_places_a_statement_without_a_renderer() {
     );
     // Any statement is placed
     let mut script = parsed_script("create table t (a int)");
-    assert_eq!(script.rewrite_vis_board(0, Some(&board(None, None, 6, 3)), false).unwrap(), "/** @board width=6 height=3 */\ncreate table t (a int)");
+    assert_eq!(
+        script.rewrite_vis_board(0, Some(&board(None, None, 6, 3)), false).unwrap(),
+        "/** @board width=6 height=3 */\ncreate table t (a int)"
+    );
     // A new renderer goes in front of a placement
     let mut script = parsed_script("/** @vis table */\nselect 1");
     assert_eq!(
@@ -435,7 +448,10 @@ fn rewrite_vis_renderer_replaces_inserts_and_removes() {
     let mut written = Script::new(&catalog);
     written.replace_text(&text);
     written.analyze(&catalog, true).unwrap();
-    assert_eq!(written.analyzed.as_ref().unwrap().visualization_specs[0].markdown.as_ref().unwrap().row_template, "### {{a}}\n\n* item");
+    assert_eq!(
+        written.analyzed.as_ref().unwrap().visualization_specs[0].markdown.as_ref().unwrap().row_template,
+        "### {{a}}\n\n* item"
+    );
     // A query without tags gets a comment with its description, a renderer goes before a board placement
     let mut script = parsed_script("-- Sales\nselect 1 as a");
     assert_eq!(
@@ -461,14 +477,20 @@ fn rewrite_vis_renderer_replaces_inserts_and_removes() {
 fn rewrite_vis_renderer_drops_the_placement_of_another_section() {
     // A collapsed card that gets a renderer moves to the visualizations, its placement among the scripts is dropped
     let mut script = parsed_script("/** @board row=2 column=4 width=4 height=1 */\nselect 1 as a");
-    assert_eq!(script.rewrite_vis_renderer(0, Some(&VisRenderer::Table), false).unwrap(), "/** @vis table */\nselect 1 as a");
+    assert_eq!(
+        script.rewrite_vis_renderer(0, Some(&VisRenderer::Table), false).unwrap(),
+        "/** @vis table */\nselect 1 as a"
+    );
     let mut script = parsed_script("/**\n * @param :a = 1\n * @vis board width=4\n * @flow x=1 y=2\n */\nselect :a");
     assert_eq!(
         script.rewrite_vis_renderer(0, Some(&VisRenderer::Table), false).unwrap(),
         "/**\n * @param :a = 1\n * @vis table\n * @flow x=1 y=2\n */\nselect :a"
     );
     let mut script = parsed_script("/** @board row=2 width=4 */\nselect 1 as a");
-    assert_eq!(script.rewrite_vegalite("{\"mark\": \"bar\"}", false).unwrap().0, "/**\n * @vis vegalite\n * {\"mark\": \"bar\"}\n */\nselect 1 as a");
+    assert_eq!(
+        script.rewrite_vegalite("{\"mark\": \"bar\"}", false).unwrap().0,
+        "/**\n * @vis vegalite\n * {\"mark\": \"bar\"}\n */\nselect 1 as a"
+    );
     // A visualization that loses its renderer collapses into the scripts, its placement is dropped
     let mut script = parsed_script("/* @vis table\n   @board row=12 column=6 width=6 height=4 */\nselect 1");
     assert_eq!(script.rewrite_vis_renderer(0, None, false).unwrap(), "select 1");
@@ -485,7 +507,10 @@ fn rewrite_vis_tags_removes_tags() {
     let mut script = parsed_script("/* @vis table\n   @board width=4 */\nselect 1");
     assert_eq!(script.rewrite_vis_board(0, None, false).unwrap(), "/** @vis table */\nselect 1");
     let mut script = parsed_script("/* Sales\n   @vis table\n   @param :a = 1\n*/\nselect :a");
-    assert_eq!(script.rewrite_vis_renderer(0, None, false).unwrap(), "/**\n * Sales\n *\n * @param :a = 1\n */\nselect :a");
+    assert_eq!(
+        script.rewrite_vis_renderer(0, None, false).unwrap(),
+        "/**\n * Sales\n *\n * @param :a = 1\n */\nselect :a"
+    );
     // The text before the first tag stays an ordinary comment
     let mut script = parsed_script("/* Sales\n   @vis table\n*/\nselect 1");
     assert_eq!(script.rewrite_vis_renderer(0, None, false).unwrap(), "/** Sales */\nselect 1");
@@ -535,7 +560,8 @@ fn vis_tag_warnings_point_at_the_json() {
     let mut script = Script::new(&catalog);
     script.replace_text(text);
     script.analyze(&catalog, true).unwrap();
-    let warnings: Vec<usize> = script.analyzed.as_ref().unwrap().errors.iter().map(|e| e.text_span.unwrap().offset as usize).collect();
+    let warnings: Vec<usize> =
+        script.analyzed.as_ref().unwrap().errors.iter().map(|e| e.text_span.unwrap().offset as usize).collect();
     assert_eq!(warnings, vec![text.find("\"data\": {").unwrap(), text.rfind("\"b\"").unwrap()]);
 }
 
@@ -543,7 +569,10 @@ fn vis_tag_warnings_point_at_the_json() {
 fn rewrite_vis_tags_check_the_statement() {
     let not_parsed = Some(StatusCode::SCRIPT_NOT_PARSED);
     let table = Some(&VisRenderer::Table);
-    assert_eq!(parsed_script("/* @vis table */ select 1 +").rewrite_vis_renderer(0, table, false).unwrap_err().status, not_parsed);
+    assert_eq!(
+        parsed_script("/* @vis table */ select 1 +").rewrite_vis_renderer(0, table, false).unwrap_err().status,
+        not_parsed
+    );
     assert!(parsed_script("create table t (a int)").rewrite_vis_renderer(0, table, false).is_err());
     assert!(parsed_script("select 1").rewrite_vis_renderer(1, table, false).is_err());
     assert!(parsed_script("select 1").rewrite_vis_board(1, Some(&board(None, None, 6, 3)), false).is_err());
@@ -591,16 +620,37 @@ fn rewrite_vegalite_puts_the_description_on_top() {
     let vis = "@vis vegalite\n * {\"mark\": \"bar\"}";
     let cases = [
         // The description joins the comment of the tags, an empty line separates them
-        ("/* Monthly revenue. */\nselect 1".to_string(), format!("/**\n * Monthly revenue.\n *\n * {vis}\n */\nselect 1")),
-        ("-- Monthly revenue\n-- by region\nselect 1".to_string(), format!("/**\n * Monthly revenue\n * by region\n *\n * {vis}\n */\nselect 1")),
+        (
+            "/* Monthly revenue. */\nselect 1".to_string(),
+            format!("/**\n * Monthly revenue.\n *\n * {vis}\n */\nselect 1"),
+        ),
+        (
+            "-- Monthly revenue\n-- by region\nselect 1".to_string(),
+            format!("/**\n * Monthly revenue\n * by region\n *\n * {vis}\n */\nselect 1"),
+        ),
         // A description below the tags moves on top of them
-        ("/** @param :min = 10 */\n/* Monthly revenue. */\nselect 1".to_string(), format!("/**\n * Monthly revenue.\n *\n * @param :min = 10\n * {vis}\n */\nselect 1")),
-        ("/* @flow x=1 y=2 */\n-- Monthly revenue\nselect 1".to_string(), format!("/**\n * Monthly revenue\n *\n * {vis}\n * @flow x=1 y=2\n */\nselect 1")),
+        (
+            "/** @param :min = 10 */\n/* Monthly revenue. */\nselect 1".to_string(),
+            format!("/**\n * Monthly revenue.\n *\n * @param :min = 10\n * {vis}\n */\nselect 1"),
+        ),
+        (
+            "/* @flow x=1 y=2 */\n-- Monthly revenue\nselect 1".to_string(),
+            format!("/**\n * Monthly revenue\n *\n * {vis}\n * @flow x=1 y=2\n */\nselect 1"),
+        ),
         // Text after a tag that ends at its line is description, e.g. after the value of a parameter
-        ("/* @param :min = 10\n   Monthly revenue. */\nselect 1".to_string(), format!("/**\n * Monthly revenue.\n *\n * @param :min = 10\n * {vis}\n */\nselect 1")),
-        ("-- @param :min = 10\n-- Monthly revenue\nselect 1".to_string(), format!("/**\n * Monthly revenue\n *\n * @param :min = 10\n * {vis}\n */\nselect 1")),
+        (
+            "/* @param :min = 10\n   Monthly revenue. */\nselect 1".to_string(),
+            format!("/**\n * Monthly revenue.\n *\n * @param :min = 10\n * {vis}\n */\nselect 1"),
+        ),
+        (
+            "-- @param :min = 10\n-- Monthly revenue\nselect 1".to_string(),
+            format!("/**\n * Monthly revenue\n *\n * @param :min = 10\n * {vis}\n */\nselect 1"),
+        ),
         // The descriptions keep their order, the blank lines between them go
-        ("-- Monthly revenue\n\n/* @vis table */\n/* by region */\nselect 1".to_string(), format!("/**\n * Monthly revenue\n * by region\n *\n * {vis}\n */\nselect 1")),
+        (
+            "-- Monthly revenue\n\n/* @vis table */\n/* by region */\nselect 1".to_string(),
+            format!("/**\n * Monthly revenue\n * by region\n *\n * {vis}\n */\nselect 1"),
+        ),
     ];
     for (before, after) in cases {
         assert_eq!(parsed_script(&before).rewrite_vegalite(r#"{"mark": "bar"}"#, false).unwrap().0, after, "{before}");
@@ -615,7 +665,10 @@ fn rewrite_vegalite_puts_the_description_on_top() {
 #[test]
 fn param_values_end_at_their_line() {
     // The text after the value is a description, not a part of the literal
-    for text in ["/* @param :min = 10\n   Minimum revenue. */\nselect :min", "-- @param :min = 10\n-- Minimum revenue\nselect :min"] {
+    for text in [
+        "/* @param :min = 10\n   Minimum revenue. */\nselect :min",
+        "-- @param :min = 10\n-- Minimum revenue\nselect :min",
+    ] {
         let catalog = Catalog::new();
         let mut script = Script::new(&catalog);
         script.replace_text(text);
@@ -636,15 +689,23 @@ fn rewrite_vegalite_replaces_the_renderer() {
         "/**\n * @vis vegalite\n * {\"mark\": \"bar\"}\n * @board width=6\n */\nselect 1"
     );
     // A multi-line spec and other renderers are replaced
-    let mut script = parsed_script("/* @board width=6\n   @vis vegalite\n   {\n     \"mark\": \"line\"\n   }\n*/\nselect 1");
+    let mut script =
+        parsed_script("/* @board width=6\n   @vis vegalite\n   {\n     \"mark\": \"line\"\n   }\n*/\nselect 1");
     assert_eq!(
         script.rewrite_vegalite(r#"{"mark": "bar"}"#, false).unwrap().0,
         "/**\n * @board width=6\n * @vis vegalite\n * {\"mark\": \"bar\"}\n */\nselect 1"
     );
     let mut script = parsed_script("/* @vis table */ select 1");
-    assert_eq!(script.rewrite_vegalite(r#"{"mark": "bar"}"#, false).unwrap().0, "/**\n * @vis vegalite\n * {\"mark\": \"bar\"}\n */ select 1");
+    assert_eq!(
+        script.rewrite_vegalite(r#"{"mark": "bar"}"#, false).unwrap().0,
+        "/**\n * @vis vegalite\n * {\"mark\": \"bar\"}\n */ select 1"
+    );
     // Line comments and gutters become the canonical comment
-    for before in ["-- @vis markdown\n-- **{{a}}**\n-- @board width=2\n-- @end\n", "/*\n * @vis table\n * @board width=2\n */\n", "/** @vis table\n  * @board width=2 */\n"] {
+    for before in [
+        "-- @vis markdown\n-- **{{a}}**\n-- @board width=2\n-- @end\n",
+        "/*\n * @vis table\n * @board width=2\n */\n",
+        "/** @vis table\n  * @board width=2 */\n",
+    ] {
         let mut script = parsed_script(&format!("{before}select 1"));
         assert_eq!(
             script.rewrite_vegalite(r#"{"mark": "bar"}"#, false).unwrap().0,
@@ -655,7 +716,9 @@ fn rewrite_vegalite_replaces_the_renderer() {
 
 #[test]
 fn rewrite_vegalite_returns_the_span_of_the_tag() {
-    let (text, span) = parsed_script("/* @param Sales.\n   @vis table\n   @board width=6 */\nselect 1").rewrite_vegalite("{}", false).unwrap();
+    let (text, span) = parsed_script("/* @param Sales.\n   @vis table\n   @board width=6 */\nselect 1")
+        .rewrite_vegalite("{}", false)
+        .unwrap();
     assert_eq!(&text[span.offset as usize..span.end() as usize], "@vis vegalite\n * {}");
     let (text, span) = parsed_script("select 1").rewrite_vegalite("{}", false).unwrap();
     assert_eq!(&text[span.offset as usize..span.end() as usize], "@vis vegalite\n * {}");
@@ -672,7 +735,9 @@ fn rewrite_vegalite_escapes_comment_delimiters() {
     written.replace_text(&text);
     written.analyze(&catalog, true).unwrap();
     let analyzed = written.analyzed.as_ref().unwrap();
-    assert!(analyzed.parsed.scanned.errors.is_empty() && analyzed.parsed.errors.is_empty() && analyzed.errors.is_empty());
+    assert!(
+        analyzed.parsed.scanned.errors.is_empty() && analyzed.parsed.errors.is_empty() && analyzed.errors.is_empty()
+    );
     assert_eq!(analyzed.visualization_specs[0].vegalite.as_ref().unwrap()["title"], "a */ b /* c");
 }
 
@@ -680,7 +745,12 @@ fn rewrite_vegalite_escapes_comment_delimiters() {
 fn rewrite_vegalite_spans_lines_in_every_comment() {
     // A spec of several lines reads back unchanged behind the indentation, `-- ` and the ` * ` gutter
     let spec = r#"{"mark": "bar", "encoding": {"x": {"field": "a", "type": "nominal", "axis": {"title": "The first column of the query"}}}}"#;
-    for before in ["/* @vis table */\n", "-- @vis table\n-- @end\n", "/*\n * @vis table\n */\n", "/** @vis table\n  * @board width=2 */\n"] {
+    for before in [
+        "/* @vis table */\n",
+        "-- @vis table\n-- @end\n",
+        "/*\n * @vis table\n */\n",
+        "/** @vis table\n  * @board width=2 */\n",
+    ] {
         let (text, _) = parsed_script(&format!("{before}select 1 as a")).rewrite_vegalite(spec, false).unwrap();
         assert!(text.lines().count() > 3, "{text}");
         let catalog = Catalog::new();
@@ -819,12 +889,18 @@ fn param_tags_go_to_the_first_use_of_the_input() {
     );
     // An analysis of an older parse is not used
     script.replace_text("select :min;\nselect 2");
-    assert_eq!(script.rewrite_param_tag("min", Some("'a'"), true).unwrap(), "select :min;\n/** @param :min = 'a' */\nselect 2");
+    assert_eq!(
+        script.rewrite_param_tag("min", Some("'a'"), true).unwrap(),
+        "select :min;\n/** @param :min = 'a' */\nselect 2"
+    );
     // Removing a value without a tag leaves the text
     assert_eq!(script.rewrite_param_tag("min", None, false).unwrap(), "select :min;\nselect 2");
     assert!(script.rewrite_param_tag("min", Some("1 +"), false).is_err());
 
     let mut unparsed = Script::new(&catalog);
     unparsed.replace_text("select :min");
-    assert_eq!(unparsed.rewrite_param_tag("min", Some("1"), false).unwrap_err().status, Some(StatusCode::SCRIPT_NOT_PARSED));
+    assert_eq!(
+        unparsed.rewrite_param_tag("min", Some("1"), false).unwrap_err().status,
+        Some(StatusCode::SCRIPT_NOT_PARSED)
+    );
 }

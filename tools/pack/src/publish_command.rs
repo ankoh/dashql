@@ -71,7 +71,10 @@ pub async fn publish(args: PublishArgs) -> Result<()> {
         }
         (ReleaseChannel::Latest, true) => {
             // The run of the tag owns this version, a second upload could replace the artifacts its feed points to
-            log::warn!("{} was built from a tagged commit, leaving the publish to the run of the tag", artifact_version);
+            log::warn!(
+                "{} was built from a tagged commit, leaving the publish to the run of the tag",
+                artifact_version
+            );
             return Ok(());
         }
         _ => {}
@@ -118,10 +121,7 @@ pub async fn publish(args: PublishArgs) -> Result<()> {
             pub_date: rel.release_metadata.pub_date.clone(),
             version: rel.release_metadata.version.clone(),
             git_commit_hash: git_repo.version.short_hash.clone(),
-            git_commit_url: format!(
-                "https://github.com/ankoh/dashql/tree/{}",
-                &git_repo.version.short_hash
-            ),
+            git_commit_url: format!("https://github.com/ankoh/dashql/tree/{}", &git_repo.version.short_hash),
             bundle_macos_dmg_url: rel.release_metadata.bundles[0].url.clone(),
             release_metadata_url: format!("{}/{}", &url, &rel.release_metadata_path),
             update_manifest_url: rel.release_metadata.update_manifest_url.clone(),

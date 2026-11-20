@@ -60,7 +60,9 @@ pub fn unique_attachment_file_name<'a>(
     script_names: impl IntoIterator<Item = &'a str>,
     attachments: &[WorkbookAttachment],
 ) -> Option<String> {
-    if attachment_parameter_name(file_name).is_some() && attachments.iter().any(|attachment| attachment.file_name == file_name) {
+    if attachment_parameter_name(file_name).is_some()
+        && attachments.iter().any(|attachment| attachment.file_name == file_name)
+    {
         return free_attachment_file_name(file_name, std::iter::empty(), &[]);
     }
     free_attachment_file_name(file_name, script_names, attachments)
@@ -80,20 +82,28 @@ pub fn renamed_attachment_file_name<'a>(
         Some(_) => requested.to_string(),
         None => format!("{requested}{ATTACHMENT_EXTENSION}"),
     };
-    let others: Vec<WorkbookAttachment> = attachments.iter().filter(|attachment| attachment.file_name != file_name).cloned().collect();
+    let others: Vec<WorkbookAttachment> =
+        attachments.iter().filter(|attachment| attachment.file_name != file_name).cloned().collect();
     free_attachment_file_name(&name, script_names, &others)
 }
 
 /// A file name whose table parameter takes no name of a script or of an attachment in any case, suffixing "-2", "-3",
 /// ... to the name. None for a file that is no attachment or no plain file name.
-fn free_attachment_file_name<'a>(file_name: &str, script_names: impl IntoIterator<Item = &'a str>, attachments: &[WorkbookAttachment]) -> Option<String> {
+fn free_attachment_file_name<'a>(
+    file_name: &str,
+    script_names: impl IntoIterator<Item = &'a str>,
+    attachments: &[WorkbookAttachment],
+) -> Option<String> {
     let base = attachment_parameter_name(file_name)?;
     if file_name.contains(['/', '\\', '\0']) {
         return None;
     }
     let extension = file_name.get(base.len()..)?;
-    let taken: std::collections::HashSet<String> =
-        script_names.into_iter().map(str::to_lowercase).chain(attachments.iter().map(|attachment| attachment.name.to_lowercase())).collect();
+    let taken: std::collections::HashSet<String> = script_names
+        .into_iter()
+        .map(str::to_lowercase)
+        .chain(attachments.iter().map(|attachment| attachment.name.to_lowercase()))
+        .collect();
     let mut candidate = base.to_string();
     let mut suffix = 2;
     while taken.contains(&candidate.to_lowercase()) {
@@ -117,7 +127,9 @@ pub fn read_workbook_attachments(files: &[DataFile], previous: &[WorkbookAttachm
                 mtime_ms: file.mtime_ms,
                 columns: None,
             };
-            if let Some(kept) = previous.iter().find(|kept| kept.file_name == file.name && kept.stamp() == attachment.stamp()) {
+            if let Some(kept) =
+                previous.iter().find(|kept| kept.file_name == file.name && kept.stamp() == attachment.stamp())
+            {
                 attachment.columns = kept.columns.clone();
             }
             Some(attachment)
@@ -148,15 +160,26 @@ mod tests {
     fn keeps_the_columns_of_unchanged_files() {
         let columns: Option<Vec<Arc<str>>> = Some(vec!["a".into()]);
         let previous = read_workbook_attachments(&[file("a.parquet", 1), file("b.parquet", 1)], &[]);
-        let previous: Vec<_> = previous.into_iter().map(|attachment| WorkbookAttachment { columns: columns.clone(), ..attachment }).collect();
-        let next = read_workbook_attachments(&[file("a.parquet", 1), file("b.parquet", 2), file("notes.txt", 1)], &previous);
-        assert_eq!(next.iter().map(|a| (a.name.as_str(), a.columns.is_some())).collect::<Vec<_>>(), [("a", true), ("b", false)]);
+        let previous: Vec<_> = previous
+            .into_iter()
+            .map(|attachment| WorkbookAttachment { columns: columns.clone(), ..attachment })
+            .collect();
+        let next =
+            read_workbook_attachments(&[file("a.parquet", 1), file("b.parquet", 2), file("notes.txt", 1)], &previous);
+        assert_eq!(
+            next.iter().map(|a| (a.name.as_str(), a.columns.is_some())).collect::<Vec<_>>(),
+            [("a", true), ("b", false)]
+        );
     }
 
     #[test]
     fn lists_the_attachments_in_natural_order() {
-        let listed = read_workbook_attachments(&[file("b10.parquet", 1), file("b9.parquet", 1), file("A.parquet", 1)], &[]);
-        assert_eq!(listed.iter().map(|a| a.file_name.as_str()).collect::<Vec<_>>(), ["A.parquet", "b9.parquet", "b10.parquet"]);
+        let listed =
+            read_workbook_attachments(&[file("b10.parquet", 1), file("b9.parquet", 1), file("A.parquet", 1)], &[]);
+        assert_eq!(
+            listed.iter().map(|a| a.file_name.as_str()).collect::<Vec<_>>(),
+            ["A.parquet", "b9.parquet", "b10.parquet"]
+        );
     }
 
     #[test]
@@ -165,9 +188,18 @@ mod tests {
         // A file with the name of an attachment replaces it
         assert_eq!(unique_attachment_file_name("sales.parquet", [], &attachments).as_deref(), Some("sales.parquet"));
         // The table parameter takes no name of an attachment in another case, nor of a script
-        assert_eq!(unique_attachment_file_name("orders.parquet", [], &attachments).as_deref(), Some("orders-2.parquet"));
-        assert_eq!(unique_attachment_file_name("Report.parquet", ["report", "report-2"], &attachments).as_deref(), Some("Report-3.parquet"));
-        assert_eq!(unique_attachment_file_name("fresh.PARQUET", ["other"], &attachments).as_deref(), Some("fresh.PARQUET"));
+        assert_eq!(
+            unique_attachment_file_name("orders.parquet", [], &attachments).as_deref(),
+            Some("orders-2.parquet")
+        );
+        assert_eq!(
+            unique_attachment_file_name("Report.parquet", ["report", "report-2"], &attachments).as_deref(),
+            Some("Report-3.parquet")
+        );
+        assert_eq!(
+            unique_attachment_file_name("fresh.PARQUET", ["other"], &attachments).as_deref(),
+            Some("fresh.PARQUET")
+        );
         // Other files and paths are no attachments
         assert_eq!(unique_attachment_file_name("notes.txt", [], &attachments), None);
         assert_eq!(unique_attachment_file_name("a/b.parquet", [], &attachments), None);

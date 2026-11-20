@@ -9,9 +9,9 @@ use std::collections::HashMap;
 
 use dashql_buffers::batch::{DiagnosticSeverity, ProcessingStage};
 use dashql_buffers::catalog::CatalogDescriptor;
+use dashql_core::batch::check_script;
 use dashql_core::catalog::{Catalog, CatalogEntryId, CatalogLayer};
 use dashql_core::pack::pack_catalog_descriptor;
-use dashql_core::batch::check_script;
 
 use super::{CatalogLoadError, STALE_MESSAGE};
 
@@ -118,12 +118,14 @@ impl CatalogBatch {
                 if let Some(failure) = checked.failure {
                     return Err(CatalogLoadError::failed(failure));
                 }
-                let error = checked.diagnostics.iter().find(|diagnostic| diagnostic.severity == DiagnosticSeverity::ERROR);
+                let error =
+                    checked.diagnostics.iter().find(|diagnostic| diagnostic.severity == DiagnosticSeverity::ERROR);
                 if let Some(error) = error {
                     return Err(CatalogLoadError::failed(format!("Catalog contains invalid SQL: {}", error.message)));
                 }
                 let analyzed = checked.script.analyzed.as_deref().ok_or_else(missing)?;
-                let descriptor = pack_catalog_descriptor(&analyzed.entry).map_err(|error| CatalogLoadError::failed(error.message))?;
+                let descriptor = pack_catalog_descriptor(&analyzed.entry)
+                    .map_err(|error| CatalogLoadError::failed(error.message))?;
                 if descriptor.is_empty() {
                     return Err(missing());
                 }

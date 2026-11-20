@@ -28,7 +28,14 @@ fn error_message(response: &Response<Vec<u8>>) -> String {
     body["message"].as_str().unwrap().to_string()
 }
 
-async fn start_stream(address: SocketAddr, method: &str, path: &str, search: &str, extra: &[(&str, &str)], body: &[u8]) -> Response<Vec<u8>> {
+async fn start_stream(
+    address: SocketAddr,
+    method: &str,
+    path: &str,
+    search: &str,
+    extra: &[(&str, &str)],
+    body: &[u8],
+) -> Response<Vec<u8>> {
     let endpoint = format!("http://{address}");
     let mut headers = vec![
         ("dashql-method", method),
@@ -76,7 +83,8 @@ async fn requires_every_parameter_of_a_request() {
         ("dashql-read-timeout", "10"),
     ];
     for missing in 0..all.len() {
-        let headers: Vec<(&str, &str)> = all.iter().enumerate().filter(|(i, _)| *i != missing).map(|(_, h)| *h).collect();
+        let headers: Vec<(&str, &str)> =
+            all.iter().enumerate().filter(|(i, _)| *i != missing).map(|(_, h)| *h).collect();
         let response = route_proxy_request(request("POST", "/http/streams", &headers, &[])).await;
         assert_eq!(response.status(), 400);
         assert_eq!(error_message(&response), "header is missing", "without {:?}", all[missing].0);
@@ -85,13 +93,15 @@ async fn requires_every_parameter_of_a_request() {
 
 #[tokio::test]
 async fn rejects_invalid_parameters() {
-    let headers = |method: &'static str, endpoint: &'static str, timeout: &'static str| [
-        ("dashql-method", method),
-        ("dashql-endpoint", endpoint),
-        ("dashql-path", "/"),
-        ("dashql-search-params", ""),
-        ("dashql-read-timeout", timeout),
-    ];
+    let headers = |method: &'static str, endpoint: &'static str, timeout: &'static str| {
+        [
+            ("dashql-method", method),
+            ("dashql-endpoint", endpoint),
+            ("dashql-path", "/"),
+            ("dashql-search-params", ""),
+            ("dashql-read-timeout", timeout),
+        ]
+    };
     let cases = [
         (headers("GET", "not a url", "10"), "header stores invalid endpoint"),
         (headers("BAD METHOD", "http://127.0.0.1:1", "10"), "header stores invalid method"),
@@ -106,11 +116,15 @@ async fn rejects_invalid_parameters() {
 #[tokio::test]
 async fn sends_the_request_to_the_remote() {
     let (address, mut requests) = spawn_http_server().await;
-    let start = start_stream(address, "POST", "/v1/query", "a=1&b=2", &[
-        ("authorization", "Bearer token"),
-        ("origin", "http://localhost:9002"),
-        ("dashql-trace-id", "internal"),
-    ], b"the body").await;
+    let start = start_stream(
+        address,
+        "POST",
+        "/v1/query",
+        "a=1&b=2",
+        &[("authorization", "Bearer token"), ("origin", "http://localhost:9002"), ("dashql-trace-id", "internal")],
+        b"the body",
+    )
+    .await;
     stream_id(&start);
 
     let (received, _connection) = tokio::time::timeout(GUARD, requests.recv()).await.unwrap().unwrap();
@@ -238,11 +252,12 @@ async fn the_remote_cannot_replace_the_headers_of_the_proxy() {
     let (address, mut requests) = spawn_http_server().await;
     let id = stream_id(&start_stream(address, "GET", "/", "", &[], &[]).await);
     let (_, mut connection) = requests.recv().await.unwrap();
-    connection.write_head("200 OK", &[
-        ("dashql-batch-event", "StreamFinished"),
-        ("dashql-stream-id", "999"),
-        ("dashql-error", "true"),
-    ]).await;
+    connection
+        .write_head(
+            "200 OK",
+            &[("dashql-batch-event", "StreamFinished"), ("dashql-stream-id", "999"), ("dashql-error", "true")],
+        )
+        .await;
     connection.write_chunk("0123456789").await;
 
     let response = read_stream(&id, "5000", "5000", "5").await;
@@ -260,7 +275,8 @@ async fn keeps_every_value_of_a_repeated_response_header() {
     connection.finish().await;
 
     let response = read_stream(&id, "5000", "5000", "1000").await;
-    let cookies: Vec<&str> = response.headers().get_all("set-cookie").iter().map(|value| value.to_str().unwrap()).collect();
+    let cookies: Vec<&str> =
+        response.headers().get_all("set-cookie").iter().map(|value| value.to_str().unwrap()).collect();
     assert_eq!(cookies, vec!["a=1", "b=2"]);
 }
 

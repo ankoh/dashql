@@ -7,13 +7,13 @@
 
 use serde_json::{json, Map, Value};
 
-use dashql_core_runtime::catalog_loader::tables::{relations_file_of_entry, CatalogStateFile};
-use dashql_core_runtime::connections::{CatalogUpdateTaskStatus, ConnectionParams, ConnectionState};
-use crate::workbook_format::layout::{STORAGE_CATALOG_FUNCTIONS, STORAGE_CATALOG_RELATIONS, STORAGE_CATALOG_STATE};
 use crate::storage::keys::{connection_entry_key, connection_file_key, workbook_connection_copy_key};
 use crate::storage::{StorageHost, StorageWriter, TextSource, WriteOutcome, WriteTask};
 use crate::workbook_format::data::WorkbookConnection;
+use crate::workbook_format::layout::{STORAGE_CATALOG_FUNCTIONS, STORAGE_CATALOG_RELATIONS, STORAGE_CATALOG_STATE};
+use dashql_core_runtime::catalog_loader::tables::{relations_file_of_entry, CatalogStateFile};
 use dashql_core_runtime::connections::sharing::connection_params_share_equal;
+use dashql_core_runtime::connections::{CatalogUpdateTaskStatus, ConnectionParams, ConnectionState};
 
 /// The debounce of the writes of the params and the catalog of a connection
 pub const CONNECTION_WRITE_DEBOUNCE_MS: f64 = 100.0;
@@ -121,7 +121,11 @@ fn params_writes(id: &str, next: &ConnectionState, workbook_ids: &[String], out:
     for workbook_id in workbook_ids {
         out.push(ConnectionWrite {
             key: workbook_connection_copy_key(workbook_id, id),
-            task: WriteTask::PatchWorkbookConnection { workbook_id: workbook_id.clone(), copy: copy.clone(), replaced: Vec::new() },
+            task: WriteTask::PatchWorkbookConnection {
+                workbook_id: workbook_id.clone(),
+                copy: copy.clone(),
+                replaced: Vec::new(),
+            },
             debounce_ms: CONNECTION_WRITE_DEBOUNCE_MS,
         });
     }
@@ -183,7 +187,8 @@ pub fn connection_writes(
         debounce_ms: CONNECTION_WRITE_DEBOUNCE_MS,
     };
     if let ConnectionChange::CatalogUpdateFinished { status, refreshed, changed } = change {
-        let succeeded = matches!(status, CatalogUpdateTaskStatus::Succeeded | CatalogUpdateTaskStatus::PartiallySucceeded);
+        let succeeded =
+            matches!(status, CatalogUpdateTaskStatus::Succeeded | CatalogUpdateTaskStatus::PartiallySucceeded);
         // A lookup that changed nothing has nothing to save
         if succeeded && durable && next.catalog_updates().described && (*refreshed || *changed != Some(false)) {
             let catalog = next.catalog().clone();
@@ -209,7 +214,11 @@ pub fn connection_writes(
 }
 
 /// Schedule the writes after a change of a connection
-pub fn schedule_connection_writes<W: StorageHost>(writer: &StorageWriter<W>, writes: ConnectionWrites, connection_id: &str) {
+pub fn schedule_connection_writes<W: StorageHost>(
+    writer: &StorageWriter<W>,
+    writes: ConnectionWrites,
+    connection_id: &str,
+) {
     if writes.cancel_file_writes {
         writer.cancel_pending_connection_file_writes(connection_id);
     }
@@ -254,7 +263,11 @@ pub async fn write_workbook_copies<W: StorageHost>(
     let pending: Vec<_> = workbook_ids
         .iter()
         .map(|workbook_id| {
-            let task = WriteTask::PatchWorkbookConnection { workbook_id: workbook_id.clone(), copy: copy.clone(), replaced: Vec::new() };
+            let task = WriteTask::PatchWorkbookConnection {
+                workbook_id: workbook_id.clone(),
+                copy: copy.clone(),
+                replaced: Vec::new(),
+            };
             (workbook_id.clone(), writer.write_durable(&workbook_connection_copy_key(workbook_id, connection_id), task))
         })
         .collect();
@@ -276,7 +289,8 @@ pub async fn save_connection<W: StorageHost>(
     workbook_ids: &[String],
     commit: impl FnOnce(),
 ) -> ConnectionSaveOutcome {
-    let manifest = writer.write_durable(&connection_entry_key(connection_id), WriteTask::WriteConnectionEntry { entry }).await;
+    let manifest =
+        writer.write_durable(&connection_entry_key(connection_id), WriteTask::WriteConnectionEntry { entry }).await;
     if !matches!(manifest, WriteOutcome::Written) {
         return ConnectionSaveOutcome { manifest, workbooks: Vec::new() };
     }

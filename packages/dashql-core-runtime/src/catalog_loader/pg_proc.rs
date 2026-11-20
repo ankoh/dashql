@@ -96,7 +96,10 @@ pub struct PgProcFunctions {
 
 /// The function statements of the rows of `pg_proc` in a database. DashQL declarations model scalar signatures only,
 /// a function with a set or table result or a qualified custom type is skipped. Invalid parameter metadata fails.
-pub fn catalog_sql_from_pg_proc(batches: &[RecordBatch], database_name: Option<&str>) -> Result<PgProcFunctions, CatalogLoadError> {
+pub fn catalog_sql_from_pg_proc(
+    batches: &[RecordBatch],
+    database_name: Option<&str>,
+) -> Result<PgProcFunctions, CatalogLoadError> {
     let mut functions = Vec::new();
     let mut skipped = Vec::new();
     for batch in batches_with_rows(batches) {
@@ -121,7 +124,9 @@ pub fn catalog_sql_from_pg_proc(batches: &[RecordBatch], database_name: Option<&
             let (Some(types), Some(modes)) = (types, modes) else {
                 return Err(CatalogLoadError::failed("pg_proc returned invalid function argument metadata"));
             };
-            if (!arg_names.is_empty() && arg_names.len() != types.len()) || (!modes.is_empty() && modes.len() != types.len()) {
+            if (!arg_names.is_empty() && arg_names.len() != types.len())
+                || (!modes.is_empty() && modes.len() != types.len())
+            {
                 return Err(CatalogLoadError::failed("pg_proc returned invalid function argument metadata"));
             }
             let return_type = return_types.get(row).filter(|return_type| !return_type.is_empty());

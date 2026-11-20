@@ -51,7 +51,13 @@ impl ConstantPropagationPass {
         state.expression_of(node_id).filter(|&e| state.out.expression(e).is_some_and(|e| e.is_constant_expression))
     }
 
-    fn add_constant(&mut self, state: &mut AnalysisState, node_id: u32, inner: ExpressionInner, marker: SemanticNodeMarkerType) {
+    fn add_constant(
+        &mut self,
+        state: &mut AnalysisState,
+        node_id: u32,
+        inner: ExpressionInner,
+        marker: SemanticNodeMarkerType,
+    ) {
         let Some(node) = state.node(node_id) else { return };
         let expr = state.add_expression(node_id, *node.symbol_span(), inner);
         if let Some(e) = state.out.expression_mut(expr) {
@@ -74,23 +80,19 @@ impl ConstantPropagationPass {
                 | NodeType::LITERAL_NULL
                 | NodeType::LITERAL_STRING => {
                     let raw_value = state.text_span(*node.symbol_span());
-                    let inner = ExpressionInner::Literal(Literal {
-                        literal_type: literal_type(node.node_type()),
-                        raw_value,
-                    });
+                    let inner =
+                        ExpressionInner::Literal(Literal { literal_type: literal_type(node.node_type()), raw_value });
                     // The literal node types share the values of the semantic markers
                     let marker = SemanticNodeMarkerType(node.node_type().0 as u8);
                     self.add_constant(state, node_id, inner, marker);
                 }
                 // interval '30 days'
                 NodeType::OBJECT_SQL_CONST_INTERVAL_CAST => {
-                    let [value, interval] = attrs!(state.children(node), [K::SQL_CONST_CAST_VALUE, K::SQL_CONST_CAST_INTERVAL]);
+                    let [value, interval] =
+                        attrs!(state.children(node), [K::SQL_CONST_CAST_VALUE, K::SQL_CONST_CAST_INTERVAL]);
                     let Some(value) = value else { continue };
                     let Some(value_expr) = Self::constant_of(state, state.node_id(value)) else { continue };
-                    let mut cast = ConstIntervalCast {
-                        value_expression_id: value_expr,
-                        interval: None,
-                    };
+                    let mut cast = ConstIntervalCast { value_expression_id: value_expr, interval: None };
                     if let Some(interval) = interval {
                         let [type_attr, precision] =
                             attrs!(state.children(interval), [K::SQL_INTERVAL_TYPE, K::SQL_INTERVAL_PRECISION]);
@@ -98,10 +100,7 @@ impl ConstantPropagationPass {
                             IntervalTypeEnum(type_attr.map(|t| t.children_begin_or_value()).unwrap_or(0) as _);
                         let precision_expression =
                             precision.and_then(|p| state.expression_of(state.node_id(p))).map(|e| e as i32);
-                        cast.interval = Some(IntervalType {
-                            interval_type,
-                            precision_expression,
-                        });
+                        cast.interval = Some(IntervalType { interval_type, precision_expression });
                     }
                     self.add_constant(
                         state,
@@ -112,8 +111,10 @@ impl ConstantPropagationPass {
                 }
                 // N-ary expressions
                 NodeType::OBJECT_SQL_NARY_EXPRESSION => {
-                    let [op_node, args_node] = attrs!(state.children(node), [K::SQL_EXPRESSION_OPERATOR, K::SQL_EXPRESSION_ARGS]);
-                    let Some(op_node) = op_node.filter(|n| n.node_type() == NodeType::ENUM_SQL_EXPRESSION_OPERATOR) else {
+                    let [op_node, args_node] =
+                        attrs!(state.children(node), [K::SQL_EXPRESSION_OPERATOR, K::SQL_EXPRESSION_ARGS]);
+                    let Some(op_node) = op_node.filter(|n| n.node_type() == NodeType::ENUM_SQL_EXPRESSION_OPERATOR)
+                    else {
                         continue;
                     };
                     // Are all arguments constant?
@@ -138,13 +139,16 @@ impl ConstantPropagationPass {
                                 right_expression_id,
                             })
                         }
-                        Op::EQUAL | Op::NOT_EQUAL | Op::LESS_THAN | Op::LESS_EQUAL | Op::GREATER_THAN | Op::GREATER_EQUAL => {
-                            ExpressionInner::Comparison(Comparison {
-                                func: comparison_function(op),
-                                left_expression_id,
-                                right_expression_id,
-                            })
-                        }
+                        Op::EQUAL
+                        | Op::NOT_EQUAL
+                        | Op::LESS_THAN
+                        | Op::LESS_EQUAL
+                        | Op::GREATER_THAN
+                        | Op::GREATER_EQUAL => ExpressionInner::Comparison(Comparison {
+                            func: comparison_function(op),
+                            left_expression_id,
+                            right_expression_id,
+                        }),
                         _ => continue,
                     };
                     self.add_constant(state, node_id, inner, SemanticNodeMarkerType::CONSTANT_EXPRESSION);
@@ -152,7 +156,8 @@ impl ConstantPropagationPass {
                 // Function calls
                 NodeType::OBJECT_SQL_FUNCTION_EXPRESSION => {
                     let Some(expr_id) = state.expression_of(node_id) else { continue };
-                    let Some(ExpressionInner::FunctionCall(call)) = state.out.expression(expr_id).map(|e| &e.inner) else {
+                    let Some(ExpressionInner::FunctionCall(call)) = state.out.expression(expr_id).map(|e| &e.inner)
+                    else {
                         continue;
                     };
                     // Skip functions with any modifiers
@@ -175,8 +180,14 @@ impl ConstantPropagationPass {
                             let mut is_constant = true;
                             for i in begin..begin + count {
                                 // A missing argument or argument expression makes the call not constant
-                                let arg_expr = state.out.function_arguments.get(i as usize).and_then(|a| state.expression_of(a.value_ast_node_id));
-                                let (Some(arg_expr), Some(arg)) = (arg_expr, state.out.function_arguments.get_mut(i as usize)) else {
+                                let arg_expr = state
+                                    .out
+                                    .function_arguments
+                                    .get(i as usize)
+                                    .and_then(|a| state.expression_of(a.value_ast_node_id));
+                                let (Some(arg_expr), Some(arg)) =
+                                    (arg_expr, state.out.function_arguments.get_mut(i as usize))
+                                else {
                                     is_constant = false;
                                     break;
                                 };

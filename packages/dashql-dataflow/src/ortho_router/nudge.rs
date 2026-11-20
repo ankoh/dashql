@@ -21,8 +21,8 @@
 //! ordered the same way with the axes swapped. Ties keep the
 //! connectors' order.
 
+use super::geom::{Point, EPS};
 use super::Route;
-use super::geom::{EPS, Point};
 
 /// A segment eligible for nudging.
 #[derive(Clone, Copy, Debug)]
@@ -64,8 +64,7 @@ pub(crate) fn nudge(routes: &mut [Route], spacing: f32, margin: f32) {
         let mut hi = first.hi;
         while end < segs.len() {
             let s = segs[end];
-            if s.horizontal != first.horizontal || (s.at - first.at).abs() > EPS || s.lo >= hi - EPS
-            {
+            if s.horizontal != first.horizontal || (s.at - first.at).abs() > EPS || s.lo >= hi - EPS {
                 break;
             }
             hi = hi.max(s.hi);
@@ -81,13 +80,7 @@ pub(crate) fn nudge(routes: &mut [Route], spacing: f32, margin: f32) {
         if group.len() < 2 || routes_in < 2 {
             continue;
         }
-        group.sort_by(|a, b| {
-            a.key
-                .0
-                .total_cmp(&b.key.0)
-                .then(a.key.1.total_cmp(&b.key.1))
-                .then(a.route.cmp(&b.route))
-        });
+        group.sort_by(|a, b| a.key.0.total_cmp(&b.key.0).then(a.key.1.total_cmp(&b.key.1)).then(a.route.cmp(&b.route)));
         let n = group.len() as f32;
         let step = spacing.min(margin.max(0.0) / (n - 1.0));
         for (m, s) in group.iter().enumerate() {
@@ -129,20 +122,8 @@ fn segments(routes: &[Route]) -> Vec<Seg> {
             let turn = |end: Point, next: Point| (uv(next).1 - uv(end).1).signum();
             let (ta, tb) = (turn(a, before), turn(b, after));
             // The first end (smaller `u`) and the second.
-            let ((u1, t1), (u2, t2)) = if ua <= ub {
-                ((ua, ta), (ub, tb))
-            } else {
-                ((ub, tb), (ua, ta))
-            };
-            out.push(Seg {
-                route: r,
-                k,
-                horizontal,
-                at: va,
-                lo: u1,
-                hi: u2,
-                key: (t1 + t2, t1 * u1 - t2 * u2),
-            });
+            let ((u1, t1), (u2, t2)) = if ua <= ub { ((ua, ta), (ub, tb)) } else { ((ub, tb), (ua, ta)) };
+            out.push(Seg { route: r, k, horizontal, at: va, lo: u1, hi: u2, key: (t1 + t2, t1 * u1 - t2 * u2) });
         }
     }
     out
@@ -153,10 +134,7 @@ mod tests {
     use super::*;
 
     fn route(points: &[[f32; 2]]) -> Route {
-        Route {
-            points: points.iter().map(|&p| Point::from(p)).collect(),
-            routed: true,
-        }
+        Route { points: points.iter().map(|&p| Point::from(p)).collect(), routed: true }
     }
 
     #[test]
@@ -189,9 +167,7 @@ mod tests {
             .collect();
         nudge(&mut routes, 6.0, 8.0);
         let xs: Vec<f32> = routes.iter().map(|r| r.points[1].x).collect();
-        let (lo, hi) = xs
-            .iter()
-            .fold((f32::MAX, f32::MIN), |(l, h), &x| (l.min(x), h.max(x)));
+        let (lo, hi) = xs.iter().fold((f32::MAX, f32::MIN), |(l, h), &x| (l.min(x), h.max(x)));
         assert!(hi - lo <= 8.0 + 1e-4, "{xs:?}");
     }
 
@@ -208,10 +184,7 @@ mod tests {
 
     #[test]
     fn ports_never_move() {
-        let mut routes = vec![
-            route(&[[0.0, 0.0], [100.0, 0.0]]),
-            route(&[[0.0, 0.0], [100.0, 0.0]]),
-        ];
+        let mut routes = vec![route(&[[0.0, 0.0], [100.0, 0.0]]), route(&[[0.0, 0.0], [100.0, 0.0]])];
         let before = routes.clone();
         nudge(&mut routes, 6.0, 12.0);
         assert_eq!(routes, before);

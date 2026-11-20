@@ -19,9 +19,9 @@ mod tests;
 #[cfg(test)]
 mod tests_progress;
 #[cfg(test)]
-mod tests_trino;
-#[cfg(test)]
 mod tests_tpch;
+#[cfg(test)]
+mod tests_trino;
 
 pub use progress::{EntityState, ProfileInputEvent, ProfileUpdate, SlotRole, SlotSpec, Stats, Status};
 pub use query_profile::QueryProfile;

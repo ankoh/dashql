@@ -110,18 +110,12 @@ pub fn find_symbol(scanned: &ScannedScript, text_offset: usize) -> Option<Locati
     if symbols.get(id as usize)?.kind == S_YYEOF {
         if id == 0 {
             // The very first symbol is EOF, the script is empty
-            let current = SymbolLocation {
-                relative_pos: RelativeSymbolPosition::BEFORE_SYMBOL,
-                ..location(0)?
-            };
+            let current = SymbolLocation { relative_pos: RelativeSymbolPosition::BEFORE_SYMBOL, ..location(0)? };
             return Some(LocationInfo { current, previous: None });
         }
         id -= 1;
     }
-    Some(LocationInfo {
-        current: location(id)?,
-        previous: Some(location(id.saturating_sub(1))?),
-    })
+    Some(LocationInfo { current: location(id)?, previous: Some(location(id.saturating_sub(1))?) })
 }
 
 /// Is a text offset strictly inside a comment?
@@ -140,7 +134,8 @@ pub fn is_inside_comment(scanned: &ScannedScript, text_offset: usize) -> bool {
         return false;
     }
     let text = scanned.text.as_bytes();
-    let is_line_comment = comment.length >= 2 && text.get(begin as usize) == Some(&b'-') && text.get(begin as usize + 1) == Some(&b'-');
+    let is_line_comment =
+        comment.length >= 2 && text.get(begin as usize) == Some(&b'-') && text.get(begin as usize + 1) == Some(&b'-');
     if is_line_comment {
         text_offset <= end
     } else {
@@ -158,7 +153,12 @@ pub fn find_node_at_offset(parsed: &ParsedScript, text_offset: usize) -> Option<
     let statement_id = parsed
         .statements
         .iter()
-        .position(|s| parsed.nodes.get(s.root as usize).is_none_or(|root| resolve(*root.symbol_span()).offset as u64 > text_offset))
+        .position(|s| {
+            parsed
+                .nodes
+                .get(s.root as usize)
+                .is_none_or(|root| resolve(*root.symbol_span()).offset as u64 > text_offset)
+        })
         .unwrap_or(parsed.statements.len())
         .checked_sub(1)?;
     // Traverse down the AST
@@ -192,7 +192,12 @@ pub fn find_node_at_offset(parsed: &ParsedScript, text_offset: usize) -> Option<
 }
 
 /// Collect the path from a node to its statement root and the name scopes on that path
-pub fn follow_path_upwards(analyzed: &AnalyzedScript, ast_node_id: u32, path: &mut Vec<u32>, scopes: &mut Vec<ScopeId>) {
+pub fn follow_path_upwards(
+    analyzed: &AnalyzedScript,
+    ast_node_id: u32,
+    path: &mut Vec<u32>,
+    scopes: &mut Vec<ScopeId>,
+) {
     path.clear();
     scopes.clear();
     let nodes = &analyzed.parsed.nodes;
@@ -316,9 +321,7 @@ impl<'a> ScriptCursor<'a> {
                     matched = true;
                     for expression in scope.expressions.iter().filter_map(|&expr| analyzed.expression(expr)) {
                         if expression.ast_node_id == node_id && expression.column_ref().is_some() {
-                            self.context = CursorContext::ColumnRef {
-                                expression_id: expression.expression_id,
-                            };
+                            self.context = CursorContext::ColumnRef { expression_id: expression.expression_id };
                         }
                     }
                 }
@@ -363,7 +366,9 @@ impl<'a> ScriptCursor<'a> {
         if self.context != CursorContext::None {
             return;
         }
-        let (Some(location), Some(analyzed), Some(scanned)) = (self.scanner_location, self.script.analyzed, self.script.scanned) else {
+        let (Some(location), Some(analyzed), Some(scanned)) =
+            (self.scanner_location, self.script.analyzed, self.script.scanned)
+        else {
             return;
         };
         let Some(dot) = Self::dot_symbol(&location, &location.current) else { return };

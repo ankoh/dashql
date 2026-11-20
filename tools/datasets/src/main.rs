@@ -177,8 +177,7 @@ fn run_index(args: IndexArgs) -> Result<()> {
     let folder_indexes: Vec<String> = files
         .iter()
         .filter_map(|(rel, _)| {
-            (rel != INDEX_FILE && rel.ends_with(&format!("/{FOLDER_INDEX_FILE}")))
-                .then(|| rel.clone())
+            (rel != INDEX_FILE && rel.ends_with(&format!("/{FOLDER_INDEX_FILE}"))).then(|| rel.clone())
         })
         .collect();
 
@@ -192,10 +191,7 @@ fn run_index(args: IndexArgs) -> Result<()> {
         // Expect <dataset>/v<version>/<file>. Anything else is a layout bug.
         let parts: Vec<&str> = rel.splitn(3, '/').collect();
         if parts.len() != 3 {
-            anyhow::bail!(
-                "unexpected path layout {:?}; expected <dataset>/v<version>/<file>",
-                rel
-            );
+            anyhow::bail!("unexpected path layout {:?}; expected <dataset>/v<version>/<file>", rel);
         }
         let dataset = parts[0].to_string();
         // The directory is `v<version>`; index by the bare version (strip leading 'v').
@@ -212,17 +208,11 @@ fn run_index(args: IndexArgs) -> Result<()> {
             bytes: (!is_folder_index).then_some(meta.len()),
             sha256: (!is_folder_index).then(|| sha256_hex(&abs)).transpose()?,
         };
-        registry
-            .entry(dataset)
-            .or_default()
-            .entry(version)
-            .or_default()
-            .push(entry);
+        registry.entry(dataset).or_default().entry(version).or_default().push(entry);
     }
 
     let json = serde_json::to_string_pretty(&registry)?;
-    std::fs::write(&args.out, json.as_bytes())
-        .with_context(|| format!("write {:?}", args.out))?;
+    std::fs::write(&args.out, json.as_bytes()).with_context(|| format!("write {:?}", args.out))?;
     log::info!("wrote {} datasets to {:?}", registry.len(), args.out);
     Ok(())
 }
@@ -234,11 +224,7 @@ fn run_folder_index(args: FolderIndexArgs) -> Result<()> {
             continue;
         }
         let meta = std::fs::metadata(&abs).with_context(|| format!("stat {:?}", abs))?;
-        files.push(FolderFileEntry {
-            path: rel,
-            bytes: meta.len(),
-            sha256: sha256_hex(&abs)?,
-        });
+        files.push(FolderFileEntry { path: rel, bytes: meta.len(), sha256: sha256_hex(&abs)? });
     }
     let json = serde_json::to_string_pretty(&serde_json::json!({ "files": files }))?;
     let output = args.dir.join(FOLDER_INDEX_FILE);
@@ -265,8 +251,7 @@ struct RemoteAccess {
 impl RemoteAccess {
     fn from_env() -> Result<RemoteAccess> {
         let var = |name: &str| -> Result<String> {
-            let v = std::env::var(name)
-                .with_context(|| format!("failed to access environment variable {}", name))?;
+            let v = std::env::var(name).with_context(|| format!("failed to access environment variable {}", name))?;
             anyhow::ensure!(!v.is_empty(), "environment variable {} is empty", name);
             Ok(v)
         };
@@ -345,8 +330,7 @@ async fn run_sync(args: SyncArgs) -> Result<()> {
     log::info!("r2 bucket: {} (endpoint/key/secret from environment)", BUCKET);
     let r2_credentials = remote_access.get_credentials();
     let r2_region = aws_config::Region::new("auto");
-    let r2_credential_provider =
-        aws_credential_types::provider::SharedCredentialsProvider::new(r2_credentials);
+    let r2_credential_provider = aws_credential_types::provider::SharedCredentialsProvider::new(r2_credentials);
     let r2_config = aws_sdk_s3::Config::builder()
         .behavior_version_latest()
         .endpoint_url(remote_access.r2_endpoint)

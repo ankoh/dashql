@@ -3,8 +3,8 @@
 
 use dashql_buffers::analyzer::AnalyzedScript;
 use dashql_buffers::batch::{
-    BatchRequestT, BatchResult, BatchResultT, BatchScriptInputT, BatchScriptResultT, DescriptorBufferT, DiagnosticSeverity,
-    ProcessingStage,
+    BatchRequestT, BatchResult, BatchResultT, BatchScriptInputT, BatchScriptResultT, DescriptorBufferT,
+    DiagnosticSeverity, ProcessingStage,
 };
 use dashql_buffers::catalog::CatalogDescriptor;
 use dashql_buffers::parser::{ParsedScript, ScannedScript, ScannerTokenType};
@@ -62,12 +62,7 @@ fn resolved_table_references(result: &BatchScriptResultT) -> usize {
 const DUPLICATE_ALIAS: &str = "select * from (select 1) s, (select 2) s";
 
 fn diagnostics(result: &BatchScriptResultT) -> Vec<(ProcessingStage, DiagnosticSeverity, String)> {
-    result
-        .diagnostics
-        .iter()
-        .flatten()
-        .map(|d| (d.stage, d.severity, d.message.clone().unwrap_or_default()))
-        .collect()
+    result.diagnostics.iter().flatten().map(|d| (d.stage, d.severity, d.message.clone().unwrap_or_default())).collect()
 }
 
 #[test]
@@ -266,10 +261,7 @@ fn catalog_descriptor_roundtrip() {
 #[test]
 fn scripts_do_not_publish_to_each_other() {
     let results = run(
-        vec![
-            input("a", "create table t (a int)", ANALYZED | DESCRIPTOR),
-            input("b", "select a from t", ANALYZED),
-        ],
+        vec![input("a", "create table t (a int)", ANALYZED | DESCRIPTOR), input("b", "select a from t", ANALYZED)],
         vec![],
     )
     .scripts

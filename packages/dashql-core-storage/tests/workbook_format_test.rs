@@ -6,15 +6,16 @@ use std::collections::HashMap;
 use serde_json::{json, Value};
 
 use dashql_core::error::Result;
+use dashql_core_runtime::catalog_loader::tables::{
+    catalog_functions_sql, catalog_tables_sql, parse_catalog_sql, CatalogFunction, CatalogFunctionParam, CatalogTable,
+    ColumnMetadata,
+};
+use dashql_core_runtime::connections::sharing::sanitize_connection_params_for_sharing;
 use dashql_core_runtime::connections::{
     ConnectionDetails, ConnectionParams, ConnectionState, ConnectionStateOptions, ConnectorType, JsonObject,
 };
 use dashql_core_storage::storage::workbook_file::{properties_patch, upsert_connection_entry};
 use dashql_core_storage::workbook_format::bundle::*;
-use dashql_core_runtime::catalog_loader::tables::{
-    catalog_functions_sql, catalog_tables_sql, parse_catalog_sql, CatalogFunction, CatalogFunctionParam, CatalogTable,
-    ColumnMetadata,
-};
 use dashql_core_storage::workbook_format::connection_import::*;
 use dashql_core_storage::workbook_format::data::*;
 use dashql_core_storage::workbook_format::export::*;
@@ -23,7 +24,6 @@ use dashql_core_storage::workbook_format::import::*;
 use dashql_core_storage::workbook_format::layout::StorageType;
 use dashql_core_storage::workbook_format::migration::*;
 use dashql_core_storage::workbook_format::restore::*;
-use dashql_core_runtime::connections::sharing::sanitize_connection_params_for_sharing;
 use dashql_core_storage::workbook_format::tables::*;
 use dashql_core_storage::workbook_format::validation::*;
 
@@ -76,7 +76,11 @@ fn uuids() -> impl FnMut() -> String {
 #[test]
 fn keeps_the_order_of_the_listed_scripts_and_appends_unlisted_files_in_natural_order() {
     let result = reconcile_workbook_scripts(
-        &[script("10_b.sql", OTHER_CONNECTION_ID), script("missing.sql", TEST_CONNECTION_ID), script("2_a.sql", TEST_CONNECTION_ID)],
+        &[
+            script("10_b.sql", OTHER_CONNECTION_ID),
+            script("missing.sql", TEST_CONNECTION_ID),
+            script("2_a.sql", TEST_CONNECTION_ID),
+        ],
         &names(&["2_a.sql", "10_b.sql", "3_new.sql", "20_new.sql"]),
         TEST_CONNECTION_ID,
     );
@@ -124,7 +128,10 @@ fn drops_unusable_entries_of_a_hand_edited_workbook_file() {
     })));
     // A workbook attaches Parquet files only
     assert_eq!(files.scripts, vec![script("b.sql", TEST_CONNECTION_ID)]);
-    assert_eq!(files.attachments, vec![WorkbookAttachment { name: "2.parquet".into() }, WorkbookAttachment { name: "10.parquet".into() }]);
+    assert_eq!(
+        files.attachments,
+        vec![WorkbookAttachment { name: "2.parquet".into() }, WorkbookAttachment { name: "10.parquet".into() }]
+    );
     assert!(!files.valid);
     assert!(sanitize_workbook_files(&test_workbook(json!({}))).valid);
     let mut without_scripts = test_workbook_json(json!({}));
@@ -156,9 +163,16 @@ fn trino_copy() -> WorkbookConnection {
 
 #[test]
 fn holds_the_connections_of_the_scripts_in_the_order_the_scripts_first_use_them() {
-    let scripts = vec![script("a.sql", OTHER_CONNECTION_ID), script("b.sql", TEST_CONNECTION_ID), script("c.sql", OTHER_CONNECTION_ID)];
+    let scripts = vec![
+        script("a.sql", OTHER_CONNECTION_ID),
+        script("b.sql", TEST_CONNECTION_ID),
+        script("c.sql", OTHER_CONNECTION_ID),
+    ];
     let next = with_workbook_scripts(&test_workbook(json!({})), scripts, &[trino_copy()]);
-    assert_eq!(next.connections.iter().map(|c| c.connection_id.as_str()).collect::<Vec<_>>(), [OTHER_CONNECTION_ID, TEST_CONNECTION_ID]);
+    assert_eq!(
+        next.connections.iter().map(|c| c.connection_id.as_str()).collect::<Vec<_>>(),
+        [OTHER_CONNECTION_ID, TEST_CONNECTION_ID]
+    );
 }
 
 #[test]
@@ -178,9 +192,16 @@ fn keeps_the_connection_of_the_next_script_in_a_workbook_without_scripts() {
 
 #[test]
 fn appends_script_files_without_an_entry_on_the_connection_of_the_script_before_them() {
-    let reconciled = reconcile_workbook_scripts(&[script("a.sql", OTHER_CONNECTION_ID)], &names(&["a.sql", "b.sql"]), TEST_CONNECTION_ID);
+    let reconciled = reconcile_workbook_scripts(
+        &[script("a.sql", OTHER_CONNECTION_ID)],
+        &names(&["a.sql", "b.sql"]),
+        TEST_CONNECTION_ID,
+    );
     assert_eq!(reconciled.scripts, vec![script("a.sql", OTHER_CONNECTION_ID), script("b.sql", OTHER_CONNECTION_ID)]);
-    assert_eq!(reconcile_workbook_scripts(&[], &names(&["a.sql"]), TEST_CONNECTION_ID).scripts, vec![script("a.sql", TEST_CONNECTION_ID)]);
+    assert_eq!(
+        reconcile_workbook_scripts(&[], &names(&["a.sql"]), TEST_CONNECTION_ID).scripts,
+        vec![script("a.sql", TEST_CONNECTION_ID)]
+    );
 }
 
 // ---- workbook_validation.test.ts ----------------------------------------------------------------
@@ -215,19 +236,37 @@ fn validates_workbook_files() {
     // Each known remote connector after the local database
     let local = json!({ "connectionId": CONNECTION_ID, "params": { "hyper": { "protocol": "WASM" } } });
     for params in [json!({ "hyper": { "protocol": "V3_HTTP" } }), json!({ "salesforce": {} }), json!({ "trino": {} })] {
-        let workbook = validation_workbook(json!({ "connections": [{ "connectionId": REMOTE_CONNECTION_ID, "params": params }, local] }));
+        let workbook = validation_workbook(
+            json!({ "connections": [{ "connectionId": REMOTE_CONNECTION_ID, "params": params }, local] }),
+        );
         assert_eq!(validate_workbook_json(&workbook), Ok(()));
     }
     // Removed connectors
-    assert_eq!(validate_workbook_json(&with_connection(json!({ "connectionId": CONNECTION_ID, "params": { "duckdb": {} } }))), Err(UnknownConnector));
-    assert_eq!(validate_workbook_json(&with_connection(json!({ "connectionId": CONNECTION_ID, "params": { "dataless": {} } }))), Err(UnknownConnector));
+    assert_eq!(
+        validate_workbook_json(&with_connection(json!({ "connectionId": CONNECTION_ID, "params": { "duckdb": {} } }))),
+        Err(UnknownConnector)
+    );
+    assert_eq!(
+        validate_workbook_json(&with_connection(
+            json!({ "connectionId": CONNECTION_ID, "params": { "dataless": {} } })
+        )),
+        Err(UnknownConnector)
+    );
     assert_eq!(validate_workbook_json(&validation_workbook(json!({ "workbookId": "" }))), Err(MissingWorkbookId));
-    for bad in ["imported-1700000000000".to_string(), format!("opfs://workbooks/{UUID}"), "not-a-uuid".to_string(), format!("{UUID}-extra")] {
+    for bad in [
+        "imported-1700000000000".to_string(),
+        format!("opfs://workbooks/{UUID}"),
+        "not-a-uuid".to_string(),
+        format!("{UUID}-extra"),
+    ] {
         assert_eq!(validate_workbook_json(&validation_workbook(json!({ "workbookId": bad }))), Err(InvalidWorkbookId));
     }
     assert_eq!(validate_workbook_json(&validation_workbook(json!({ "workbookId": UUID.to_uppercase() }))), Ok(()));
     for version in [json!(null), json!(1), json!(2), json!(5), json!(10), json!(12), json!("11")] {
-        assert_eq!(validate_workbook_json(&validation_workbook(json!({ "formatVersion": version }))), Err(UnsupportedFormatVersion));
+        assert_eq!(
+            validate_workbook_json(&validation_workbook(json!({ "formatVersion": version }))),
+            Err(UnsupportedFormatVersion)
+        );
     }
     let mut without = validation_workbook(json!({}));
     without.as_object_mut().unwrap().shift_remove("connections");
@@ -248,15 +287,31 @@ fn validates_workbook_files() {
         ] }));
         assert_eq!(validate_workbook_json(&workbook), Err(InvalidConnectionId));
     }
-    assert_eq!(validate_workbook_json(&with_connection(json!({ "connectionId": CONNECTION_ID }))), Err(MissingConnectionParams));
-    assert_eq!(validate_workbook_json(&with_connection(json!({ "connectionId": CONNECTION_ID, "params": { "garbage": "data" } }))), Err(UnknownConnector));
+    assert_eq!(
+        validate_workbook_json(&with_connection(json!({ "connectionId": CONNECTION_ID }))),
+        Err(MissingConnectionParams)
+    );
+    assert_eq!(
+        validate_workbook_json(&with_connection(
+            json!({ "connectionId": CONNECTION_ID, "params": { "garbage": "data" } })
+        )),
+        Err(UnknownConnector)
+    );
     // A draft of another connector
     assert_eq!(
-        validate_workbook_json(&with_connection(json!({ "connectionId": CONNECTION_ID, "params": { "hyper": {} }, "paramsDraft": { "trino": {} } }))),
+        validate_workbook_json(&with_connection(
+            json!({ "connectionId": CONNECTION_ID, "params": { "hyper": {} }, "paramsDraft": { "trino": {} } })
+        )),
         Err(UnknownConnector)
     );
     // Untrusted files never panic
-    for value in [json!(null), json!([]), json!("x"), json!({ "formatVersion": 11, "workbookId": 5 }), json!({ "formatVersion": 11, "workbookId": UUID, "connections": [5] })] {
+    for value in [
+        json!(null),
+        json!([]),
+        json!("x"),
+        json!({ "formatVersion": 11, "workbookId": 5 }),
+        json!({ "formatVersion": 11, "workbookId": UUID, "connections": [5] }),
+    ] {
         assert!(validate_workbook_json(&value).is_err());
     }
 }
@@ -269,21 +324,41 @@ fn describes_validation_errors_and_invalid_workbooks() {
     assert_eq!(WorkbookValidationError::WorkbookUnreadable.describe(), "Workbook files missing");
     let data = WorkbookData::from_json(&validation_workbook(json!({ "name": "My Workbook" })));
     let invalid = describe_invalid_workbook(UUID, WorkbookValidationError::UnknownConnector, Some(&data));
-    assert_eq!(invalid, InvalidWorkbook { workbook_id: UUID.into(), title: "My Workbook".into(), connector_type: Some(ConnectorType::Hyper), error: WorkbookValidationError::UnknownConnector });
+    assert_eq!(
+        invalid,
+        InvalidWorkbook {
+            workbook_id: UUID.into(),
+            title: "My Workbook".into(),
+            connector_type: Some(ConnectorType::Hyper),
+            error: WorkbookValidationError::UnknownConnector
+        }
+    );
     // The entry path is the key, even when the workbook data has a different id
     let data = WorkbookData::from_json(&validation_workbook(json!({ "workbookId": "imported-123" })));
-    assert_eq!(describe_invalid_workbook(UUID, WorkbookValidationError::InvalidWorkbookId, Some(&data)).workbook_id, UUID);
+    assert_eq!(
+        describe_invalid_workbook(UUID, WorkbookValidationError::InvalidWorkbookId, Some(&data)).workbook_id,
+        UUID
+    );
     let invalid = describe_invalid_workbook(UUID, WorkbookValidationError::MissingWorkbookId, None);
     assert_eq!((invalid.title.as_str(), invalid.connector_type), (UUID, None));
-    let data = WorkbookData::from_json(&with_connection(json!({ "connectionId": CONNECTION_ID, "params": { "garbage": "data" } })));
-    assert_eq!(describe_invalid_workbook(UUID, WorkbookValidationError::UnknownConnector, Some(&data)).connector_type, None);
+    let data = WorkbookData::from_json(&with_connection(
+        json!({ "connectionId": CONNECTION_ID, "params": { "garbage": "data" } }),
+    ));
+    assert_eq!(
+        describe_invalid_workbook(UUID, WorkbookValidationError::UnknownConnector, Some(&data)).connector_type,
+        None
+    );
 }
 
 #[test]
 fn recognizes_the_embedded_database() {
     assert!(is_local_hyper_wasm_params(&json!({ "hyper": {} })));
-    assert!(is_local_hyper_wasm_params(&json!({ "hyper": { "protocol": "WASM", "attachedDatabases": [{ "path": "tpch.hyper", "alias": "tpch" }] } })));
-    assert!(!is_local_hyper_wasm_params(&json!({ "hyper": { "protocol": "WASM", "attachedDatabases": [{ "path": "clouds/local.hyper", "alias": "dashql" }] } })));
+    assert!(is_local_hyper_wasm_params(
+        &json!({ "hyper": { "protocol": "WASM", "attachedDatabases": [{ "path": "tpch.hyper", "alias": "tpch" }] } })
+    ));
+    assert!(!is_local_hyper_wasm_params(
+        &json!({ "hyper": { "protocol": "WASM", "attachedDatabases": [{ "path": "clouds/local.hyper", "alias": "dashql" }] } })
+    ));
     assert!(!is_local_hyper_wasm_params(&json!({ "hyper": { "protocol": "V3_HTTP" } })));
     assert!(!is_local_hyper_wasm_params(&json!({ "trino": {} })));
 }
@@ -311,7 +386,11 @@ const LAST_SESSION_FORMAT_VERSION: i64 = 10;
 
 fn notebook_folder() -> MigrationFolder {
     MigrationFolder::new([
-        ("dashql-notebook.json", json!({ "formatVersion": 2, "notebookId": SESSION_ID, "notebookPath": "opfs://notebooks/x", "name": "n" }).to_string()),
+        (
+            "dashql-notebook.json",
+            json!({ "formatVersion": 2, "notebookId": SESSION_ID, "notebookPath": "opfs://notebooks/x", "name": "n" })
+                .to_string(),
+        ),
         ("dashql-notebook-index.json", r#"{"scripts":[]}"#.to_string()),
         ("dashql-relations.sql", "relations".to_string()),
         ("dashql-functions.sql", "functions".to_string()),
@@ -343,7 +422,10 @@ fn brings_a_notebook_folder_to_the_current_format() {
         data,
         json!({ "formatVersion": 11, "workbookId": SESSION_ID, "workbookPath": "opfs://notebooks/x", "name": "n", "scripts": [], "attachments": [], "connections": [] })
     );
-    assert_eq!(keys(&data), ["formatVersion", "workbookId", "workbookPath", "name", "scripts", "attachments", "connections"]);
+    assert_eq!(
+        keys(&data),
+        ["formatVersion", "workbookId", "workbookPath", "name", "scripts", "attachments", "connections"]
+    );
     // The host writes the new file and removes the old ones
     let changes = folder.changes();
     assert!(matches!(changes.first(), Some(FolderChange::Write { name, .. }) if name == "dashql-workbook.json"));
@@ -358,7 +440,10 @@ fn brings_a_notebook_folder_to_the_current_format() {
 #[test]
 fn stops_at_a_target_version() {
     let mut folder = notebook_folder();
-    assert_eq!(migrate_workbook_folder_to(&mut folder, 3, &WORKBOOK_MIGRATION_STEPS).unwrap(), WorkbookMigrationResult::Migrated);
+    assert_eq!(
+        migrate_workbook_folder_to(&mut folder, 3, &WORKBOOK_MIGRATION_STEPS).unwrap(),
+        WorkbookMigrationResult::Migrated
+    );
     assert_eq!(metadata(&folder, "dashql-notebook.json")["formatVersion"], json!(3));
     assert!(folder.exists("dashql-catalog-relations.sql"));
     assert!(!folder.exists("dashql-session.json"));
@@ -371,7 +456,10 @@ fn leaves_unusable_folders_untouched() {
         (vec![("dashql-session.json", "{}".into())], WorkbookMigrationResult::Unsupported),
         (vec![("dashql-notebook.json", r#"{"formatVersion":1}"#.into())], WorkbookMigrationResult::Unsupported),
         (vec![("dashql-session.json", "{".into())], WorkbookMigrationResult::Unsupported),
-        (vec![("dashql-session.json", format!(r#"{{"formatVersion":{}}}"#, WORKBOOK_FORMAT_VERSION + 1))], WorkbookMigrationResult::Newer),
+        (
+            vec![("dashql-session.json", format!(r#"{{"formatVersion":{}}}"#, WORKBOOK_FORMAT_VERSION + 1))],
+            WorkbookMigrationResult::Newer,
+        ),
     ];
     for (mut files, result) in cases {
         files.push(("dashql-relations.sql", "relations".into()));
@@ -418,7 +506,10 @@ fn lists_the_main_and_the_attached_databases_as_connections_in_place_of_the_main
         "dashql-session.json",
         json!({ "formatVersion": 4, "sessionId": SESSION_ID, "name": "n", "mainDatabase": main, "attachedDatabases": [attached], "metadata": {} }).to_string(),
     )]);
-    assert_eq!(migrate_workbook_folder_to(&mut folder, LAST_SESSION_FORMAT_VERSION, &WORKBOOK_MIGRATION_STEPS).unwrap(), WorkbookMigrationResult::Migrated);
+    assert_eq!(
+        migrate_workbook_folder_to(&mut folder, LAST_SESSION_FORMAT_VERSION, &WORKBOOK_MIGRATION_STEPS).unwrap(),
+        WorkbookMigrationResult::Migrated
+    );
     let data = metadata(&folder, "dashql-session.json");
     // A session without scripts keeps the main database, its first script runs on it
     assert_eq!(
@@ -429,7 +520,10 @@ fn lists_the_main_and_the_attached_databases_as_connections_in_place_of_the_main
             "metadata": {}, "scripts": [], "attachments": [],
         })
     );
-    assert_eq!(keys(&data), ["formatVersion", "sessionId", "name", "connections", "metadata", "scripts", "attachments"]);
+    assert_eq!(
+        keys(&data),
+        ["formatVersion", "sessionId", "name", "connections", "metadata", "scripts", "attachments"]
+    );
 }
 
 #[test]
@@ -445,7 +539,10 @@ fn turns_the_databases_of_a_version_5_session_into_connections() {
         })
         .to_string(),
     )]);
-    assert_eq!(migrate_workbook_folder_to(&mut folder, LAST_SESSION_FORMAT_VERSION, &WORKBOOK_MIGRATION_STEPS).unwrap(), WorkbookMigrationResult::Migrated);
+    assert_eq!(
+        migrate_workbook_folder_to(&mut folder, LAST_SESSION_FORMAT_VERSION, &WORKBOOK_MIGRATION_STEPS).unwrap(),
+        WorkbookMigrationResult::Migrated
+    );
     assert_eq!(
         metadata(&folder, "dashql-session.json"),
         json!({
@@ -523,14 +620,25 @@ fn moves_the_params_of_sidb_connections_to_the_key_dbcom() {
 fn moves_the_index_into_the_session_metadata_with_the_default_connection() {
     let connection_id = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee";
     let mut folder = MigrationFolder::new([
-        ("dashql-session.json", json!({ "formatVersion": 4, "sessionId": SESSION_ID, "mainDatabase": { "databaseId": connection_id } }).to_string()),
-        ("dashql-session-index.json", json!({ "scripts": [{ "name": "10_b.sql" }, { "name": "2_a.sql" }], "data": [{ "name": "x.csv" }] }).to_string()),
+        (
+            "dashql-session.json",
+            json!({ "formatVersion": 4, "sessionId": SESSION_ID, "mainDatabase": { "databaseId": connection_id } })
+                .to_string(),
+        ),
+        (
+            "dashql-session-index.json",
+            json!({ "scripts": [{ "name": "10_b.sql" }, { "name": "2_a.sql" }], "data": [{ "name": "x.csv" }] })
+                .to_string(),
+        ),
     ]);
     migrate_workbook_folder_to(&mut folder, LAST_SESSION_FORMAT_VERSION, &WORKBOOK_MIGRATION_STEPS).unwrap();
     assert!(!folder.exists("dashql-session-index.json"));
     let data = metadata(&folder, "dashql-session.json");
     assert_eq!(data["formatVersion"], json!(10));
-    assert_eq!(data["scripts"], json!([{ "name": "10_b.sql", "connectionId": connection_id }, { "name": "2_a.sql", "connectionId": connection_id }]));
+    assert_eq!(
+        data["scripts"],
+        json!([{ "name": "10_b.sql", "connectionId": connection_id }, { "name": "2_a.sql", "connectionId": connection_id }])
+    );
     assert_eq!(data["attachments"], json!([{ "name": "x.csv" }]));
     // Repeating the step keeps the moved list and only removes the index
     folder.write("dashql-session-index.json", r#"{"scripts":[]}"#);
@@ -543,7 +651,10 @@ fn moves_the_index_into_the_session_metadata_with_the_default_connection() {
 #[test]
 fn lists_no_scripts_of_a_folder_without_a_readable_index() {
     for index in [None, Some("{")] {
-        let mut files = vec![("dashql-session.json", json!({ "formatVersion": 4, "sessionId": SESSION_ID, "mainDatabase": { "databaseId": "x" } }).to_string())];
+        let mut files = vec![(
+            "dashql-session.json",
+            json!({ "formatVersion": 4, "sessionId": SESSION_ID, "mainDatabase": { "databaseId": "x" } }).to_string(),
+        )];
         if let Some(index) = index {
             files.push(("dashql-session-index.json", index.to_string()));
         }
@@ -558,7 +669,11 @@ fn lists_no_scripts_of_a_folder_without_a_readable_index() {
 #[test]
 fn removes_the_catalog_copies_and_the_settings() {
     let mut folder = MigrationFolder::new([
-        ("dashql-session.json", json!({ "formatVersion": 6, "sessionId": SESSION_ID, "defaultConnectionId": "x", "connections": [] }).to_string()),
+        (
+            "dashql-session.json",
+            json!({ "formatVersion": 6, "sessionId": SESSION_ID, "defaultConnectionId": "x", "connections": [] })
+                .to_string(),
+        ),
         ("dashql-catalog-relations.sql", "relations".into()),
         ("dashql-catalog-functions.sql", "functions".into()),
         ("dashql-catalog-changes.sql", "changes".into()),
@@ -626,9 +741,16 @@ fn drops_the_catalog_files_that_do_not_parse() {
 
 #[test]
 fn renames_the_connections_and_keeps_the_first_catalog_of_merged_connections() {
-    let catalog = |id: &str, relations: &str| WorkbookBundleCatalog { connection_id: id.into(), relations: Some(relations.into()), functions: None };
+    let catalog = |id: &str, relations: &str| WorkbookBundleCatalog {
+        connection_id: id.into(),
+        relations: Some(relations.into()),
+        functions: None,
+    };
     let ids = HashMap::from([("a".to_string(), "x".to_string()), ("b".to_string(), "x".to_string())]);
-    assert_eq!(rename_bundle_catalogs(&[catalog("a", "A"), catalog("b", "B"), catalog("c", "C")], &ids), vec![catalog("x", "A"), catalog("c", "C")]);
+    assert_eq!(
+        rename_bundle_catalogs(&[catalog("a", "A"), catalog("b", "B"), catalog("c", "C")], &ids),
+        vec![catalog("x", "A"), catalog("c", "C")]
+    );
 }
 
 #[test]
@@ -651,7 +773,11 @@ fn prepares_the_write_of_a_bundle() {
         vec![DataFileData { name: "d.parquet".into(), bytes: vec![1] }],
     );
     let target = "99999999-8888-4777-8666-555555555555";
-    let options = WorkbookBundleWriteOptions { target_workbook_id: Some(target.into()), suffix_name_with_copy: true, target_is_fresh: true };
+    let options = WorkbookBundleWriteOptions {
+        target_workbook_id: Some(target.into()),
+        suffix_name_with_copy: true,
+        target_is_fresh: true,
+    };
     let write = prepare_workbook_bundle_write(&bundle, StorageType::Opfs, &options).unwrap();
     assert_eq!(write.workbook_id, target);
     assert_eq!(write.workbook.workbook_id, target);
@@ -660,10 +786,16 @@ fn prepares_the_write_of_a_bundle() {
     assert!(write.rollback_on_failure);
     assert_eq!(write.workbook.scripts, vec![script("01_query.sql", TEST_CONNECTION_ID)]);
     let fresh_without_target = WorkbookBundleWriteOptions { target_is_fresh: true, ..Default::default() };
-    assert!(prepare_workbook_bundle_write(&bundle, StorageType::Opfs, &fresh_without_target).unwrap_err().message.contains("targetIsFresh"));
+    assert!(prepare_workbook_bundle_write(&bundle, StorageType::Opfs, &fresh_without_target)
+        .unwrap_err()
+        .message
+        .contains("targetIsFresh"));
     let mut v1 = bundle.clone();
     v1.workbook.format_version = 1;
-    assert!(prepare_workbook_bundle_write(&v1, StorageType::Opfs, &options).unwrap_err().message.contains("Unsupported workbook format version"));
+    assert!(prepare_workbook_bundle_write(&v1, StorageType::Opfs, &options)
+        .unwrap_err()
+        .message
+        .contains("Unsupported workbook format version"));
     let mut csv = bundle.clone();
     csv.data[0].name = "x.csv".into();
     assert!(prepare_workbook_bundle_write(&csv, StorageType::Opfs, &options).is_err());
@@ -671,7 +803,11 @@ fn prepares_the_write_of_a_bundle() {
 
 #[test]
 fn seeds_only_connections_without_a_catalog() {
-    let catalog = WorkbookBundleCatalog { connection_id: TEST_CONNECTION_ID.into(), relations: Some("schema".into()), functions: None };
+    let catalog = WorkbookBundleCatalog {
+        connection_id: TEST_CONNECTION_ID.into(),
+        relations: Some("schema".into()),
+        functions: None,
+    };
     assert_eq!(catalog_seed_files(&catalog, false), vec![("dashql-catalog-relations.sql", "schema".to_string())]);
     assert!(catalog_seed_files(&catalog, true).is_empty());
 }
@@ -687,13 +823,22 @@ fn describes_the_difference_of_bundles() {
     assert_eq!(describe_workbook_bundle_difference(&bundle, &bundle.clone()), None);
     let mut other = bundle.clone();
     other.data[0].bytes = vec![1, 3];
-    assert_eq!(describe_workbook_bundle_difference(&bundle, &other).as_deref(), Some("the bytes of the attachment d.parquet differ"));
+    assert_eq!(
+        describe_workbook_bundle_difference(&bundle, &other).as_deref(),
+        Some("the bytes of the attachment d.parquet differ")
+    );
     let mut other = bundle.clone();
     other.workbook.connections[0].params = json!({ "hyper": { "endpoint": "secret" } });
-    assert_eq!(describe_workbook_bundle_difference(&bundle, &other).as_deref(), Some("workbook.connections[0].params.hyper.endpoint differs"));
+    assert_eq!(
+        describe_workbook_bundle_difference(&bundle, &other).as_deref(),
+        Some("workbook.connections[0].params.hyper.endpoint differs")
+    );
     let mut other = bundle.clone();
     other.scripts[0].sql = "SELECT 2".into();
-    assert_eq!(describe_workbook_bundle_difference(&bundle, &other).as_deref(), Some("the text of the script a.sql differs"));
+    assert_eq!(
+        describe_workbook_bundle_difference(&bundle, &other).as_deref(),
+        Some("the text of the script a.sql differs")
+    );
     assert!(!workbook_bundles_equal(&bundle, &other));
 }
 
@@ -701,7 +846,8 @@ fn describes_the_difference_of_bundles() {
 
 /// Read an archive of a workbook folder from its files, the way the host reads the plan
 fn read_folder_zip(files: &[(&str, &str)]) -> Result<WorkbookBundle<Vec<u8>>> {
-    let entries: Vec<ArchiveEntry> = files.iter().map(|(name, _)| ArchiveEntry { filename: name.to_string(), directory: false }).collect();
+    let entries: Vec<ArchiveEntry> =
+        files.iter().map(|(name, _)| ArchiveEntry { filename: name.to_string(), directory: false }).collect();
     let ArchivePlan::Folder(plan) = plan_archive(&entries)? else {
         panic!("expected an archive of a workbook folder");
     };
@@ -711,8 +857,12 @@ fn read_folder_zip(files: &[(&str, &str)]) -> Result<WorkbookBundle<Vec<u8>>> {
         match entry {
             FolderArchiveEntry::Text { path } => read.texts.push((path.clone(), content)),
             FolderArchiveEntry::Script { name } => read.scripts.push(ScriptData::new(name.clone(), content)),
-            FolderArchiveEntry::Attachment { name } => read.data.push(DataFileData { name: name.clone(), bytes: content.into_bytes() }),
-            FolderArchiveEntry::Result { key } => read.results.push(WorkbookBundleResult { key: key.clone(), bytes: content.into_bytes(), crc32: None }),
+            FolderArchiveEntry::Attachment { name } => {
+                read.data.push(DataFileData { name: name.clone(), bytes: content.into_bytes() })
+            }
+            FolderArchiveEntry::Result { key } => {
+                read.results.push(WorkbookBundleResult { key: key.clone(), bytes: content.into_bytes(), crc32: None })
+            }
         }
     }
     read_folder_archive(&plan, read)
@@ -737,19 +887,39 @@ fn appends_unlisted_scripts_in_natural_order_and_ignores_derived_files() {
     .unwrap();
     assert_eq!(
         bundle.workbook,
-        test_workbook(json!({ "scripts": [{ "name": "2_first.sql", "connectionId": TEST_CONNECTION_ID }, { "name": "10_last.sql", "connectionId": TEST_CONNECTION_ID }] }))
+        test_workbook(
+            json!({ "scripts": [{ "name": "2_first.sql", "connectionId": TEST_CONNECTION_ID }, { "name": "10_last.sql", "connectionId": TEST_CONNECTION_ID }] })
+        )
     );
-    assert_eq!(bundle.catalogs, vec![WorkbookBundleCatalog { connection_id: TEST_CONNECTION_ID.into(), relations: Some("schema".into()), functions: Some("functions".into()) }]);
+    assert_eq!(
+        bundle.catalogs,
+        vec![WorkbookBundleCatalog {
+            connection_id: TEST_CONNECTION_ID.into(),
+            relations: Some("schema".into()),
+            functions: Some("functions".into())
+        }]
+    );
     assert!(bundle.data.is_empty());
-    assert_eq!(bundle.scripts, vec![ScriptData::new("2_first.sql", "SELECT 2"), ScriptData::new("10_last.sql", "SELECT 10")]);
+    assert_eq!(
+        bundle.scripts,
+        vec![ScriptData::new("2_first.sql", "SELECT 2"), ScriptData::new("10_last.sql", "SELECT 10")]
+    );
 }
 
 #[test]
 fn keeps_the_order_of_the_listed_scripts() {
     let scripts = json!([{ "name": "10_last.sql", "connectionId": TEST_CONNECTION_ID }, { "name": "2_first.sql", "connectionId": TEST_CONNECTION_ID }]);
     let workbook = test_workbook_json(json!({ "scripts": scripts })).to_string();
-    let bundle = read_folder_zip(&[("dashql-workbook.json", &workbook), ("scripts/10_last.sql", "SELECT 10"), ("scripts/2_first.sql", "SELECT 2")]).unwrap();
-    assert_eq!(bundle.workbook.scripts, vec![script("10_last.sql", TEST_CONNECTION_ID), script("2_first.sql", TEST_CONNECTION_ID)]);
+    let bundle = read_folder_zip(&[
+        ("dashql-workbook.json", &workbook),
+        ("scripts/10_last.sql", "SELECT 10"),
+        ("scripts/2_first.sql", "SELECT 2"),
+    ])
+    .unwrap();
+    assert_eq!(
+        bundle.workbook.scripts,
+        vec![script("10_last.sql", TEST_CONNECTION_ID), script("2_first.sql", TEST_CONNECTION_ID)]
+    );
 }
 
 #[test]
@@ -768,7 +938,14 @@ fn migrates_bundles_exported_by_older_versions() {
     assert_eq!(bundle.workbook.scripts, vec![script("01_query.sql", TEST_CONNECTION_ID)]);
     assert_eq!(bundle.workbook.connections, test_workbook(json!({})).connections);
     // The catalog copy of older versions is the catalog of the default connection
-    assert_eq!(bundle.catalogs, vec![WorkbookBundleCatalog { connection_id: TEST_CONNECTION_ID.into(), relations: Some("schema".into()), functions: Some("functions".into()) }]);
+    assert_eq!(
+        bundle.catalogs,
+        vec![WorkbookBundleCatalog {
+            connection_id: TEST_CONNECTION_ID.into(),
+            relations: Some("schema".into()),
+            functions: Some("functions".into())
+        }]
+    );
 }
 
 #[test]
@@ -787,12 +964,19 @@ fn rejects_misplaced_files_before_anything_is_written() {
         let error = read_folder_zip(&[("dashql-workbook.json", &workbook), (path, "SELECT 1")]).unwrap_err();
         assert!(error.message.contains(message), "{path}: {}", error.message);
     }
-    let error = read_folder_zip(&[("dashql-workbook.json", &workbook), ("scripts/a.sql", "1"), ("SCRIPTS/A.sql", "2")]).unwrap_err();
+    let error = read_folder_zip(&[("dashql-workbook.json", &workbook), ("scripts/a.sql", "1"), ("SCRIPTS/A.sql", "2")])
+        .unwrap_err();
     assert!(error.message.contains("duplicate destination"));
     let v1 = test_workbook_json(json!({ "formatVersion": 1 })).to_string();
-    assert!(read_folder_zip(&[("dashql-workbook.json", &v1)]).unwrap_err().message.contains("Unsupported workbook format version"));
+    assert!(read_folder_zip(&[("dashql-workbook.json", &v1)])
+        .unwrap_err()
+        .message
+        .contains("Unsupported workbook format version"));
     assert!(read_folder_zip(&[("scripts/a.sql", "1")]).unwrap_err().message.contains("missing dashql-workbook.json"));
-    assert!(read_folder_zip(&[("dashql-workbook.json", "[")]).unwrap_err().message.contains("invalid dashql-workbook.json"));
+    assert!(read_folder_zip(&[("dashql-workbook.json", "[")])
+        .unwrap_err()
+        .message
+        .contains("invalid dashql-workbook.json"));
 }
 
 #[test]
@@ -800,7 +984,8 @@ fn reads_the_results_of_an_archive_of_an_older_version() {
     let workbook = test_workbook_json(json!({})).to_string();
     let key = "a".repeat(64);
     let path = format!("results/{key}.parquet");
-    let bundle = read_folder_zip(&[("dashql-workbook.json", &workbook), (&path, "rows"), ("results/notes.txt", "x")]).unwrap();
+    let bundle =
+        read_folder_zip(&[("dashql-workbook.json", &workbook), (&path, "rows"), ("results/notes.txt", "x")]).unwrap();
     assert_eq!(bundle.results.iter().map(|r| r.key.as_str()).collect::<Vec<_>>(), [key.as_str()]);
 }
 
@@ -821,7 +1006,10 @@ fn function(schema: &str, name: &str, is_aggregate: bool, returns: &str, params:
         function_name: name.into(),
         is_aggregate,
         return_type: Some(returns.into()),
-        params: params.iter().map(|(n, t)| CatalogFunctionParam { name: Some(n.to_string()), param_type: Some(t.to_string()) }).collect(),
+        params: params
+            .iter()
+            .map(|(n, t)| CatalogFunctionParam { name: Some(n.to_string()), param_type: Some(t.to_string()) })
+            .collect(),
     }
 }
 
@@ -855,7 +1043,11 @@ fn tables_bundle() -> WorkbookBundle<Vec<u8>> {
             "attachments": [{ "name": "d.parquet" }],
             "metadata": { "createdAt": "2026-11-10T10:00:00.000Z" },
         })),
-        catalogs: vec![WorkbookBundleCatalog { connection_id: TEST_CONNECTION_ID.into(), relations: Some(relations()), functions: Some(functions()) }],
+        catalogs: vec![WorkbookBundleCatalog {
+            connection_id: TEST_CONNECTION_ID.into(),
+            relations: Some(relations()),
+            functions: Some(functions()),
+        }],
         scripts: vec![ScriptData::new("b.sql", "select 1"), ScriptData::new("a.sql", "select 'it''s'")],
         data: vec![DataFileData { name: "d.parquet".into(), bytes: vec![1, 2, 3] }],
         results: vec![WorkbookBundleResult { key: "k1".into(), bytes: vec![4, 5], crc32: Some(7) }],
@@ -879,7 +1071,10 @@ fn reads_and_renders_catalog_files_with_the_core() {
     let text = catalog_functions_sql(&functions);
     let parsed = parse_catalog_sql(&text).unwrap();
     assert_eq!(catalog_functions_sql(&parsed.functions), text);
-    assert_eq!(parsed.functions.iter().map(|f| (f.function_name.as_str(), f.is_aggregate)).collect::<Vec<_>>(), [("scale", false), ("total", true)]);
+    assert_eq!(
+        parsed.functions.iter().map(|f| (f.function_name.as_str(), f.is_aggregate)).collect::<Vec<_>>(),
+        [("scale", false), ("total", true)]
+    );
     assert!(parse_catalog_sql("create tabel t;").is_err());
 }
 
@@ -889,24 +1084,44 @@ fn round_trips_a_bundle_through_the_rows() {
     let tables = workbook_bundle_to_tables(&bundle, &mut uuids()).unwrap();
     assert_eq!(
         tables.workbook,
-        vec![WorkbookRow { workbook_id: TEST_WORKBOOK_ID.into(), format_version: 11, name: Some("Tables".into()), metadata: r#"{"createdAt":"2026-11-10T10:00:00.000Z"}"#.into() }]
+        vec![WorkbookRow {
+            workbook_id: TEST_WORKBOOK_ID.into(),
+            format_version: 11,
+            name: Some("Tables".into()),
+            metadata: r#"{"createdAt":"2026-11-10T10:00:00.000Z"}"#.into()
+        }]
     );
     assert_eq!(
         tables.scripts.iter().map(|r| (r.position, r.name.as_str(), r.connection_id.as_str())).collect::<Vec<_>>(),
         [(0, "b.sql", TEST_CONNECTION_ID), (1, "a.sql", TABLES_OTHER_CONNECTION_ID)]
     );
     assert_eq!(
-        tables.catalog_tables.iter().map(|r| (r.table_id, r.database_name.as_str(), r.table_name.as_str())).collect::<Vec<_>>(),
+        tables
+            .catalog_tables
+            .iter()
+            .map(|r| (r.table_id, r.database_name.as_str(), r.table_name.as_str()))
+            .collect::<Vec<_>>(),
         [(0, "hyper", "orders"), (1, "hyper", "empty")]
     );
-    assert_eq!(tables.catalog_columns.iter().map(|r| (r.table_id, r.position, r.column_name.as_str())).collect::<Vec<_>>(), [(0, 0, "id"), (0, 1, "note")]);
+    assert_eq!(
+        tables.catalog_columns.iter().map(|r| (r.table_id, r.position, r.column_name.as_str())).collect::<Vec<_>>(),
+        [(0, 0, "id"), (0, 1, "note")]
+    );
     // The overloads of a function stay apart by their ids
     assert_eq!(
-        tables.catalog_functions.iter().map(|r| (r.function_id, r.function_name.as_str(), r.is_aggregate)).collect::<Vec<_>>(),
+        tables
+            .catalog_functions
+            .iter()
+            .map(|r| (r.function_id, r.function_name.as_str(), r.is_aggregate))
+            .collect::<Vec<_>>(),
         [(0, "abs", false), (1, "scale", false), (2, "scale", false), (3, "any_value", true)]
     );
     assert_eq!(
-        tables.catalog_function_params.iter().map(|r| (r.function_id, r.position, r.param_name.as_deref())).collect::<Vec<_>>(),
+        tables
+            .catalog_function_params
+            .iter()
+            .map(|r| (r.function_id, r.position, r.param_name.as_deref()))
+            .collect::<Vec<_>>(),
         [(1, 0, Some("value")), (1, 1, Some("factor")), (2, 0, Some("value"))]
     );
     assert!(is_data_table_name(&tables.attachments[0].table_name));
@@ -919,7 +1134,13 @@ fn round_trips_a_bundle_through_the_rows() {
 
 #[test]
 fn round_trips_a_workbook_that_only_holds_a_connection() {
-    let bundle: WorkbookBundle<Vec<u8>> = WorkbookBundle { workbook: test_workbook(json!({})), catalogs: vec![], scripts: vec![], data: vec![], results: vec![] };
+    let bundle: WorkbookBundle<Vec<u8>> = WorkbookBundle {
+        workbook: test_workbook(json!({})),
+        catalogs: vec![],
+        scripts: vec![],
+        data: vec![],
+        results: vec![],
+    };
     let tables = workbook_bundle_to_tables(&bundle, &mut uuids()).unwrap();
     assert_eq!(workbook_tables_to_bundle(&tables, "Invalid").unwrap(), bundle);
 }
@@ -928,11 +1149,23 @@ fn round_trips_a_workbook_that_only_holds_a_connection() {
 fn numbers_the_tables_and_functions_of_all_connections() {
     let mut bundle = tables_bundle();
     let other = catalog_tables_sql(&[table("other", "events", vec![column("at", 0, "text")])]);
-    bundle.catalogs.push(WorkbookBundleCatalog { connection_id: TABLES_OTHER_CONNECTION_ID.into(), relations: Some(other), functions: Some(functions()) });
+    bundle.catalogs.push(WorkbookBundleCatalog {
+        connection_id: TABLES_OTHER_CONNECTION_ID.into(),
+        relations: Some(other),
+        functions: Some(functions()),
+    });
     let tables = workbook_bundle_to_tables(&bundle, &mut uuids()).unwrap();
     assert_eq!(
-        tables.catalog_tables.iter().map(|r| (r.table_id, r.connection_id.as_str(), r.table_name.as_str())).collect::<Vec<_>>(),
-        [(0, TEST_CONNECTION_ID, "orders"), (1, TEST_CONNECTION_ID, "empty"), (2, TABLES_OTHER_CONNECTION_ID, "events")]
+        tables
+            .catalog_tables
+            .iter()
+            .map(|r| (r.table_id, r.connection_id.as_str(), r.table_name.as_str()))
+            .collect::<Vec<_>>(),
+        [
+            (0, TEST_CONNECTION_ID, "orders"),
+            (1, TEST_CONNECTION_ID, "empty"),
+            (2, TABLES_OTHER_CONNECTION_ID, "events")
+        ]
     );
     assert_eq!(tables.catalog_functions.iter().map(|r| r.function_id).collect::<Vec<_>>(), (0..8).collect::<Vec<_>>());
     // The order of the rows doesn't matter, the ids and positions give it
@@ -949,13 +1182,22 @@ fn rejects_tables_without_exactly_one_workbook_and_invalid_json() {
     let tables = workbook_bundle_to_tables(&tables_bundle(), &mut uuids()).unwrap();
     let mut none = tables.clone();
     none.workbook.clear();
-    assert!(workbook_tables_to_bundle(&none, "Invalid workbook tables").unwrap_err().message.contains("expected one workbook, found 0"));
+    assert!(workbook_tables_to_bundle(&none, "Invalid workbook tables")
+        .unwrap_err()
+        .message
+        .contains("expected one workbook, found 0"));
     let mut two = tables.clone();
     two.workbook.push(two.workbook[0].clone());
-    assert!(workbook_tables_to_bundle(&two, "Invalid workbook tables").unwrap_err().message.contains("expected one workbook, found 2"));
+    assert!(workbook_tables_to_bundle(&two, "Invalid workbook tables")
+        .unwrap_err()
+        .message
+        .contains("expected one workbook, found 2"));
     let mut broken = tables.clone();
     broken.connections[0].params = "{".into();
-    assert!(workbook_tables_to_bundle(&broken, "Invalid workbook tables").unwrap_err().message.contains("invalid JSON in workbook_connections"));
+    assert!(workbook_tables_to_bundle(&broken, "Invalid workbook tables")
+        .unwrap_err()
+        .message
+        .contains("invalid JSON in workbook_connections"));
 }
 
 #[test]
@@ -1010,10 +1252,16 @@ fn checks_the_file_names_of_a_bundle_before_it_is_written() {
     }
     let mut bundle = tables_bundle();
     bundle.scripts[0].name = "A.sql".into();
-    assert!(prepare_workbook_bundle_write(&bundle, StorageType::Opfs, &options).unwrap_err().message.contains("duplicate script a.sql"));
+    assert!(prepare_workbook_bundle_write(&bundle, StorageType::Opfs, &options)
+        .unwrap_err()
+        .message
+        .contains("duplicate script a.sql"));
     let mut bundle = tables_bundle();
     bundle.catalogs[0].connection_id = "../escape".into();
-    assert!(prepare_workbook_bundle_write(&bundle, StorageType::Opfs, &options).unwrap_err().message.contains("invalid connection id"));
+    assert!(prepare_workbook_bundle_write(&bundle, StorageType::Opfs, &options)
+        .unwrap_err()
+        .message
+        .contains("invalid connection id"));
     assert!(prepare_workbook_bundle_write(&tables_bundle(), StorageType::Opfs, &options).is_ok());
 }
 
@@ -1032,9 +1280,9 @@ fn round_trips_the_rows_through_arrow_ipc() {
 
 #[test]
 fn rejects_arrow_tables_that_miss_a_column_or_hold_a_null() {
-    use std::sync::Arc;
     use arrow_array::{Int32Array, RecordBatch, StringArray};
     use arrow_schema::{DataType, Field, Schema};
+    use std::sync::Arc;
     let batch = RecordBatch::try_new(
         Arc::new(Schema::new(vec![Field::new("position", DataType::Int32, false)])),
         vec![Arc::new(Int32Array::from(vec![0]))],
@@ -1048,10 +1296,17 @@ fn rejects_arrow_tables_that_miss_a_column_or_hold_a_null() {
             Field::new("connection_id", DataType::Utf8, false),
             Field::new("params", DataType::Utf8, true),
         ])),
-        vec![Arc::new(StringArray::from(vec!["3"])), Arc::new(StringArray::from(vec!["c"])), Arc::new(StringArray::from(vec![None::<&str>]))],
+        vec![
+            Arc::new(StringArray::from(vec!["3"])),
+            Arc::new(StringArray::from(vec!["c"])),
+            Arc::new(StringArray::from(vec![None::<&str>])),
+        ],
     )
     .unwrap();
-    assert!(table_from_arrow::<ConnectionRow>(&batch).unwrap_err().message.contains("workbook_connections.params is null"));
+    assert!(table_from_arrow::<ConnectionRow>(&batch)
+        .unwrap_err()
+        .message
+        .contains("workbook_connections.params is null"));
     assert!(decode_table_ipc::<ScriptRow>(b"not arrow").is_err());
 }
 
@@ -1060,7 +1315,8 @@ fn reads_an_archive_of_workbook_tables() {
     let tables = workbook_bundle_to_tables(&tables_bundle(), &mut uuids()).unwrap();
     let written = workbook_archive_entries(&tables);
     // The host lists the archive it wrote and reads every entry of the plan
-    let mut entries: Vec<ArchiveEntry> = written.iter().map(|entry| ArchiveEntry { filename: entry.file_name.clone(), directory: false }).collect();
+    let mut entries: Vec<ArchiveEntry> =
+        written.iter().map(|entry| ArchiveEntry { filename: entry.file_name.clone(), directory: false }).collect();
     entries.push(ArchiveEntry { filename: "notes.txt".into(), directory: false });
     let ArchivePlan::Tables(plan) = plan_archive(&entries).unwrap() else {
         panic!("expected an archive of workbook tables");
@@ -1082,7 +1338,10 @@ fn reads_an_archive_of_workbook_tables() {
         }
     }
     assert_eq!(read_table_archive(&read).unwrap(), tables_bundle());
-    let duplicate = vec![ArchiveEntry { filename: "workbook.parquet".into(), directory: false }, ArchiveEntry { filename: "WORKBOOK.parquet".into(), directory: false }];
+    let duplicate = vec![
+        ArchiveEntry { filename: "workbook.parquet".into(), directory: false },
+        ArchiveEntry { filename: "WORKBOOK.parquet".into(), directory: false },
+    ];
     assert!(plan_archive(&duplicate).unwrap_err().message.contains("duplicate table"));
 }
 
@@ -1110,7 +1369,12 @@ fn shares_a_workbook_without_secrets_drafts_and_the_draft_script() {
     let mut bundle = tables_bundle();
     bundle.workbook.connections[0].params = json!({ "hyper": { "protocol": "V3_HTTP", "metadata": { "authorization": "secret" }, "queryParameters": { "token": "x" } } });
     bundle.workbook.connections[0].params_draft = Some(json!({ "hyper": { "endpoint": "draft" } }));
-    bundle.workbook.metadata.cloud = Some(WorkbookCloudLink { workbook_id: "w".into(), version_id: "v".into(), preview: None, connection_id: "c".into() });
+    bundle.workbook.metadata.cloud = Some(WorkbookCloudLink {
+        workbook_id: "w".into(),
+        version_id: "v".into(),
+        preview: None,
+        connection_id: "c".into(),
+    });
     bundle.scripts.push(ScriptData::new("dashql-draft.sql", "draft"));
     let tables = shared_workbook_tables(&bundle, &mut uuids()).unwrap();
     assert!(!tables.connections[0].params.contains("secret"));
@@ -1126,11 +1390,20 @@ fn exports_only_the_connections_that_the_scripts_use_with_fresh_ids() {
     bundle.workbook.scripts.pop();
     bundle.scripts.pop();
     let bundle = exported_bundle(bundle, vec![]);
-    assert_eq!(bundle.workbook.connections.iter().map(|c| c.connection_id.as_str()).collect::<Vec<_>>(), [TEST_CONNECTION_ID]);
+    assert_eq!(
+        bundle.workbook.connections.iter().map(|c| c.connection_id.as_str()).collect::<Vec<_>>(),
+        [TEST_CONNECTION_ID]
+    );
     assert!(bundle.results.is_empty());
 
-    let live = HashMap::from([(TEST_CONNECTION_ID.to_string(), json!({ "trino": { "endpoint": "https://trino", "auth": { "basic": { "username": "me", "secret": "s" } } } }))]);
-    let options = SharedWorkbookExportOptions { connection_names: HashMap::from([(TEST_CONNECTION_ID.to_string(), "Prod".to_string())]), ..Default::default() };
+    let live = HashMap::from([(
+        TEST_CONNECTION_ID.to_string(),
+        json!({ "trino": { "endpoint": "https://trino", "auth": { "basic": { "username": "me", "secret": "s" } } } }),
+    )]);
+    let options = SharedWorkbookExportOptions {
+        connection_names: HashMap::from([(TEST_CONNECTION_ID.to_string(), "Prod".to_string())]),
+        ..Default::default()
+    };
     let (workbook, catalogs) = shared_export_head(&bundle.workbook, &bundle.catalogs, &live, &options, &mut uuids());
     assert_eq!(workbook.workbook_id, "00000000-0000-4000-8000-000000000001");
     assert_eq!(workbook.connections[0].connection_id, "00000000-0000-4000-8000-000000000002");
@@ -1138,7 +1411,8 @@ fn exports_only_the_connections_that_the_scripts_use_with_fresh_ids() {
     assert_eq!(catalogs[0].connection_id, workbook.connections[0].connection_id);
     assert_eq!(workbook.connections[0].name.as_deref(), Some("Prod"));
     assert_eq!(workbook.connections[0].params["trino"]["auth"]["basic"], json!({ "username": "me", "secret": "" }));
-    let preserved = SharedWorkbookExportOptions { preserve_uuids: true, with_login_hint: Some(false), ..Default::default() };
+    let preserved =
+        SharedWorkbookExportOptions { preserve_uuids: true, with_login_hint: Some(false), ..Default::default() };
     let (workbook, _) = shared_export_head(&bundle.workbook, &bundle.catalogs, &live, &preserved, &mut uuids());
     assert_eq!(workbook.workbook_id, TEST_WORKBOOK_ID);
     assert_eq!(workbook.connections[0].params["trino"]["auth"]["basic"]["username"], json!(""));
@@ -1147,7 +1421,13 @@ fn exports_only_the_connections_that_the_scripts_use_with_fresh_ids() {
 
 #[test]
 fn shares_a_connection_as_an_empty_workbook_in_a_link() {
-    let workbook = connection_link_workbook(&json!({ "salesforce": { "instanceUrl": "u", "appConsumerSecret": "s" } }), Some("Org"), true, "2026-11-15T00:00:00.000Z", &mut uuids());
+    let workbook = connection_link_workbook(
+        &json!({ "salesforce": { "instanceUrl": "u", "appConsumerSecret": "s" } }),
+        Some("Org"),
+        true,
+        "2026-11-15T00:00:00.000Z",
+        &mut uuids(),
+    );
     assert_eq!(validate_workbook_data(&workbook), Ok(()));
     assert!(workbook.scripts.is_empty());
     assert_eq!(workbook.connections[0].params["salesforce"]["appConsumerSecret"], json!(""));
@@ -1170,7 +1450,10 @@ fn trino(endpoint: &str, secret: &str) -> Value {
 }
 
 fn entries() -> Vec<ConnectionEntry> {
-    vec![ConnectionEntry::new(KNOWN, trino("https://trino", "secret")), ConnectionEntry::new(OTHER, trino("https://other", "secret"))]
+    vec![
+        ConnectionEntry::new(KNOWN, trino("https://trino", "secret")),
+        ConnectionEntry::new(OTHER, trino("https://other", "secret")),
+    ]
 }
 
 fn imported(connection_id: &str, params: Value) -> WorkbookData {
@@ -1226,8 +1509,12 @@ fn never_reuses_a_known_id_for_a_separate_connection() {
 #[test]
 fn links_the_embedded_database_silently() {
     let tls = json!({ "clientKeyPath": "", "clientCertPath": "", "caCertsPath": "" });
-    let embedded = ConnectionEntry::new(EMBEDDED, json!({ "hyper": { "protocol": "WASM", "endpoint": "", "tls": tls } }));
-    let workbook = imported(IMPORTED, json!({ "hyper": { "protocol": "WASM", "endpoint": "", "tls": tls, "attachedDatabases": [], "metadata": {}, "queryParameters": {} } }));
+    let embedded =
+        ConnectionEntry::new(EMBEDDED, json!({ "hyper": { "protocol": "WASM", "endpoint": "", "tls": tls } }));
+    let workbook = imported(
+        IMPORTED,
+        json!({ "hyper": { "protocol": "WASM", "endpoint": "", "tls": tls, "attachedDatabases": [], "metadata": {}, "queryParameters": {} } }),
+    );
     let mut all = entries();
     all.push(embedded.clone());
     let plan = plan_connection_import(&workbook, &all);
@@ -1235,10 +1522,19 @@ fn links_the_embedded_database_silently() {
     let linked = apply_connection_import_plan(&workbook, &plan, &HashMap::new(), &all, &mut no_uuid).workbook;
     assert_eq!(linked.connections, vec![WorkbookConnection::new(EMBEDDED, embedded.params.clone())]);
     assert_eq!(linked.scripts, vec![script("query.sql", EMBEDDED)]);
-    let attached = imported(IMPORTED, json!({ "hyper": { "protocol": "WASM", "attachedDatabases": [{ "path": "tpch.hyper", "alias": "tpch" }] } }));
-    assert_eq!(plan_connection_import(&attached, &[embedded.clone()])[0].decision, ConnectionImportDecision::Link { connection_id: EMBEDDED.into() });
+    let attached = imported(
+        IMPORTED,
+        json!({ "hyper": { "protocol": "WASM", "attachedDatabases": [{ "path": "tpch.hyper", "alias": "tpch" }] } }),
+    );
+    assert_eq!(
+        plan_connection_import(&attached, &[embedded.clone()])[0].decision,
+        ConnectionImportDecision::Link { connection_id: EMBEDDED.into() }
+    );
     assert_eq!(plan_connection_import(&workbook, &entries())[0].decision, ConnectionImportDecision::Register);
-    let local = imported(IMPORTED, json!({ "hyper": { "protocol": "WASM", "attachedDatabases": [{ "path": "clouds/local.hyper", "alias": "dashql" }] } }));
+    let local = imported(
+        IMPORTED,
+        json!({ "hyper": { "protocol": "WASM", "attachedDatabases": [{ "path": "clouds/local.hyper", "alias": "dashql" }] } }),
+    );
     assert_eq!(plan_connection_import(&local, &[embedded])[0].decision, ConnectionImportDecision::Register);
 }
 
@@ -1284,7 +1580,10 @@ fn restores_unlisted_scripts_in_natural_order_and_writes_the_list() {
     assert_eq!(begun.catalogs_to_restore, [TEST_CONNECTION_ID]);
     let plan = planner.finish_workbook(begun, Some(&names(&["10_last.sql", "2_first.sql"]))).unwrap();
     assert_eq!(plan.scripts.iter().map(|s| s.name.as_str()).collect::<Vec<_>>(), ["2_first.sql", "10_last.sql"]);
-    assert_eq!(planner.pending().workbook_script_lists[0].scripts, vec![script("2_first.sql", TEST_CONNECTION_ID), script("10_last.sql", TEST_CONNECTION_ID)]);
+    assert_eq!(
+        planner.pending().workbook_script_lists[0].scripts,
+        vec![script("2_first.sql", TEST_CONNECTION_ID), script("10_last.sql", TEST_CONNECTION_ID)]
+    );
     assert_eq!(planner.pending().connection_entries.len(), 1);
     assert_eq!(planner.pending().connection_entries[0].created_at.as_deref(), Some("2026-11-15T00:00:00.000Z"));
 }
@@ -1305,7 +1604,11 @@ fn runs_scripts_of_unknown_connections_on_the_embedded_database_and_keeps_the_re
     assert_eq!(plan.scripts[1].connection.connection_id, TEST_CONNECTION_ID);
     assert_eq!(plan.scripts[1].unresolved_connection_id.as_deref(), Some(unknown));
     // The workbook file keeps the reference
-    assert!(planner.pending().workbook_script_lists.iter().all(|write| write.scripts.iter().all(|s| s.name != "2_first.sql" || s.connection_id == unknown)));
+    assert!(planner
+        .pending()
+        .workbook_script_lists
+        .iter()
+        .all(|write| write.scripts.iter().all(|s| s.name != "2_first.sql" || s.connection_id == unknown)));
 }
 
 #[test]
@@ -1319,7 +1622,10 @@ fn registers_only_the_connections_that_scripts_use() {
     }));
     let mut planner = planner();
     let plan = restore(&mut planner, &workbook, &["2_first.sql"]);
-    assert_eq!(planner.connections().iter().map(|c| c.connection_id.as_str()).collect::<Vec<_>>(), [TEST_CONNECTION_ID]);
+    assert_eq!(
+        planner.connections().iter().map(|c| c.connection_id.as_str()).collect::<Vec<_>>(),
+        [TEST_CONNECTION_ID]
+    );
     assert_eq!(plan.pending_connection, None);
 }
 
@@ -1345,12 +1651,24 @@ fn keeps_an_empty_ephemeral_workbook_and_promotes_one_that_holds_scripts() {
 #[test]
 fn surfaces_invalid_workbooks() {
     let mut planner = planner();
-    assert_eq!(planner.begin_workbook("not-a-uuid", Some("{}")).unwrap_err().error, WorkbookValidationError::InvalidWorkbookId);
-    assert_eq!(planner.begin_workbook(TEST_WORKBOOK_ID, None).unwrap_err().error, WorkbookValidationError::WorkbookUnreadable);
-    assert_eq!(planner.begin_workbook(TEST_WORKBOOK_ID, Some("{")).unwrap_err().error, WorkbookValidationError::WorkbookUnreadable);
+    assert_eq!(
+        planner.begin_workbook("not-a-uuid", Some("{}")).unwrap_err().error,
+        WorkbookValidationError::InvalidWorkbookId
+    );
+    assert_eq!(
+        planner.begin_workbook(TEST_WORKBOOK_ID, None).unwrap_err().error,
+        WorkbookValidationError::WorkbookUnreadable
+    );
+    assert_eq!(
+        planner.begin_workbook(TEST_WORKBOOK_ID, Some("{")).unwrap_err().error,
+        WorkbookValidationError::WorkbookUnreadable
+    );
     let v1 = test_workbook_json(json!({ "formatVersion": 1 })).to_string();
     let invalid = planner.begin_workbook(TEST_WORKBOOK_ID, Some(&v1)).unwrap_err();
-    assert_eq!((invalid.error, invalid.title.as_str()), (WorkbookValidationError::UnsupportedFormatVersion, "V2 Workbook"));
+    assert_eq!(
+        (invalid.error, invalid.title.as_str()),
+        (WorkbookValidationError::UnsupportedFormatVersion, "V2 Workbook")
+    );
     assert!(planner.connections().is_empty());
     // A workbook whose scripts can't be listed
     let begun = planner.begin_workbook(TEST_WORKBOOK_ID, Some(&test_workbook_json(json!({})).to_string())).unwrap();
@@ -1359,7 +1677,11 @@ fn surfaces_invalid_workbooks() {
 
 /// The copy of a connection as the restore writes it (its id and params, no name or draft), see `PatchWorkbookConnection`
 fn copy_patch(stored: &WorkbookData, connection: &RestoreConnection) -> Option<WorkbookData> {
-    patch_workbook_connection(stored, &WorkbookConnection::new(connection.connection_id.clone(), connection.params.clone()), &[])
+    patch_workbook_connection(
+        stored,
+        &WorkbookConnection::new(connection.connection_id.clone(), connection.params.clone()),
+        &[],
+    )
 }
 
 #[test]
@@ -1367,17 +1689,22 @@ fn lets_the_app_manifest_win_over_stale_workbook_copies() {
     let saved = json!({ "trino": { "endpoint": "https://saved", "auth": { "authType": "AUTH_BASIC" } } });
     let mut planner = planner();
     planner.restore_manifest_connection(&ConnectionEntry::new(TEST_CONNECTION_ID, saved.clone())).unwrap();
-    let stale = test_workbook_json(json!({ "connections": [{ "connectionId": TEST_CONNECTION_ID, "params": { "trino": { "endpoint": "https://stale" } } }] }));
+    let stale = test_workbook_json(
+        json!({ "connections": [{ "connectionId": TEST_CONNECTION_ID, "params": { "trino": { "endpoint": "https://stale" } } }] }),
+    );
     let begun = planner.begin_workbook(TEST_WORKBOOK_ID, Some(&stale.to_string())).unwrap();
     // The catalog of a connection of the manifest is restored already
     assert!(begun.catalogs_to_restore.is_empty());
     planner.finish_workbook(begun, Some(&[][..])).unwrap();
     assert_eq!(planner.pending().workbook_copies, [(TEST_WORKBOOK_ID.to_string(), TEST_CONNECTION_ID.to_string())]);
     assert!(planner.pending().connection_entries.is_empty());
-    let patched = copy_patch(&WorkbookData::from_json(&stale), planner.connection(TEST_CONNECTION_ID).unwrap()).unwrap();
+    let patched =
+        copy_patch(&WorkbookData::from_json(&stale), planner.connection(TEST_CONNECTION_ID).unwrap()).unwrap();
     assert_eq!(patched.connections, vec![WorkbookConnection::new(TEST_CONNECTION_ID, saved)]);
     // Params the app can't use fail, the workbooks register the connection again
-    assert!(planner.restore_manifest_connection(&ConnectionEntry::new(OTHER_CONNECTION_ID, json!({ "nope": {} }))).is_err());
+    assert!(planner
+        .restore_manifest_connection(&ConnectionEntry::new(OTHER_CONNECTION_ID, json!({ "nope": {} })))
+        .is_err());
 }
 
 #[test]
@@ -1406,7 +1733,10 @@ fn moves_the_name_of_an_imported_connection_into_the_app_manifest() {
         }
     }
     let manifest: Vec<ConnectionEntry> = manifest.iter().filter_map(ConnectionEntry::from_json).collect();
-    assert_eq!(manifest.iter().map(|e| (e.id.as_str(), e.name.as_deref())).collect::<Vec<_>>(), [(OTHER_CONNECTION_ID, Some("Mine")), (TEST_CONNECTION_ID, Some("Production"))]);
+    assert_eq!(
+        manifest.iter().map(|e| (e.id.as_str(), e.name.as_deref())).collect::<Vec<_>>(),
+        [(OTHER_CONNECTION_ID, Some("Mine")), (TEST_CONNECTION_ID, Some("Production"))]
+    );
     // The workbook copies drop the names
     let mut stored = WorkbookData::from_json(&workbook);
     for (workbook_id, connection_id) in &planner.pending().workbook_copies {
@@ -1422,7 +1752,13 @@ fn moves_the_name_of_an_imported_connection_into_the_app_manifest() {
 fn restores_an_imported_workbook_against_the_live_connections() {
     let known = json!({ "trino": { "endpoint": "https://known" } });
     let mut planner = planner();
-    planner.add_live_connection(RestoreConnection { connection_id: OTHER_CONNECTION_ID.into(), params: known.clone(), params_draft: None, name: None, cache_query_results: None });
+    planner.add_live_connection(RestoreConnection {
+        connection_id: OTHER_CONNECTION_ID.into(),
+        params: known.clone(),
+        params_draft: None,
+        name: None,
+        cache_query_results: None,
+    });
     let workbook = test_workbook_json(json!({
         "connections": [
             { "connectionId": OTHER_CONNECTION_ID, "params": known },
@@ -1437,7 +1773,9 @@ fn restores_an_imported_workbook_against_the_live_connections() {
     assert_eq!(planner.new_connections().map(|c| c.connection_id.as_str()).collect::<Vec<_>>(), [TEST_CONNECTION_ID]);
     // A workbook without a usable copy of its embedded database registers a new one
     let mut fresh = self::planner();
-    let remote_only = test_workbook_json(json!({ "connections": [{ "connectionId": OTHER_CONNECTION_ID, "params": { "trino": {} } }], "scripts": [{ "name": "a.sql", "connectionId": "99999999-9999-4999-8999-999999999999" }] }));
+    let remote_only = test_workbook_json(
+        json!({ "connections": [{ "connectionId": OTHER_CONNECTION_ID, "params": { "trino": {} } }], "scripts": [{ "name": "a.sql", "connectionId": "99999999-9999-4999-8999-999999999999" }] }),
+    );
     let plan = restore(&mut fresh, &remote_only, &["a.sql"]);
     assert!(is_local_hyper_wasm_params(&plan.scripts[0].connection.params));
 }
@@ -1497,7 +1835,8 @@ fn decodes_the_connections_of_a_workbook_file() {
     assert!(decode_connection(&json!({}), "workbook").is_err());
 
     let (_, details) = decode_connection(&json!({ "hyper": { "protocol": "V3_HTTP" } }), "workbook").unwrap();
-    let restored = ConnectionState::new("c1", details, ConnectionStateOptions { active: true, ..Default::default() }, 0.0);
+    let restored =
+        ConnectionState::new("c1", details, ConnectionStateOptions { active: true, ..Default::default() }, 0.0);
     assert!(restored.active());
     assert_eq!(restored.params().params, json_object(json!({ "protocol": "V3_HTTP" })));
 }

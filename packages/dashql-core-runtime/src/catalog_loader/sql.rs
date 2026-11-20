@@ -98,9 +98,12 @@ pub struct FunctionMetadata {
 
 /// A `CREATE FUNCTION` or `CREATE AGGREGATE` of a function of a database, the database `hyper` if there is none
 pub fn create_function_sql(database_name: Option<&str>, function: &FunctionMetadata) -> String {
-    let database = quote_identifier(database_name.filter(|database| !database.is_empty()).unwrap_or(DEFAULT_DATABASE_NAME));
+    let database =
+        quote_identifier(database_name.filter(|database| !database.is_empty()).unwrap_or(DEFAULT_DATABASE_NAME));
     let name = match &function.schema_name {
-        Some(schema) => format!("{database}.{}.{}", quote_identifier(schema), quote_identifier(&function.function_name)),
+        Some(schema) => {
+            format!("{database}.{}.{}", quote_identifier(schema), quote_identifier(&function.function_name))
+        }
         None => format!("{database}.{}", quote_identifier(&function.function_name)),
     };
     let keyword = if function.is_aggregate { "AGGREGATE" } else { "FUNCTION" };

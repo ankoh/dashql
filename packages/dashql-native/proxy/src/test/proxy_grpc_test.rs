@@ -6,7 +6,9 @@ use std::time::Duration;
 use http::{Request, Response};
 use prost::Message;
 
-use crate::proto::dashql_test::{TestServerStreamingRequest, TestServerStreamingResponse, TestUnaryRequest, TestUnaryResponse};
+use crate::proto::dashql_test::{
+    TestServerStreamingRequest, TestServerStreamingResponse, TestUnaryRequest, TestUnaryResponse,
+};
 use crate::route_proxy_request;
 use crate::test::grpc_service_mock::{spawn_grpc_test_service_mock, GrpcServiceMock};
 
@@ -33,7 +35,8 @@ fn error(response: &Response<Vec<u8>>) -> serde_json::Value {
 
 async fn create_channel(address: SocketAddr) -> String {
     let endpoint = format!("http://{address}");
-    let response = route_proxy_request(request("POST", "/grpc/channels", &[("dashql-endpoint", endpoint.as_str())], &[])).await;
+    let response =
+        route_proxy_request(request("POST", "/grpc/channels", &[("dashql-endpoint", endpoint.as_str())], &[])).await;
     assert_eq!(response.status(), 200, "{response:?}");
     header(&response, "dashql-channel-id").unwrap().to_string()
 }
@@ -83,7 +86,8 @@ async fn a_channel_needs_an_endpoint() {
 
 #[tokio::test]
 async fn rejects_an_invalid_endpoint() {
-    let response = route_proxy_request(request("POST", "/grpc/channels", &[("dashql-endpoint", "not a url")], &[])).await;
+    let response =
+        route_proxy_request(request("POST", "/grpc/channels", &[("dashql-endpoint", "not a url")], &[])).await;
     assert_eq!(error(&response)["message"], "header is not a valid endpoint");
 }
 
@@ -92,16 +96,25 @@ async fn reports_an_endpoint_that_cannot_be_reached() {
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let endpoint = format!("http://{}", listener.local_addr().unwrap());
     drop(listener);
-    let response = route_proxy_request(request("POST", "/grpc/channels", &[("dashql-endpoint", endpoint.as_str())], &[])).await;
+    let response =
+        route_proxy_request(request("POST", "/grpc/channels", &[("dashql-endpoint", endpoint.as_str())], &[])).await;
     assert_eq!(error(&response)["message"], "connecting to gRPC endpoint failed");
 }
 
 #[tokio::test]
 async fn a_client_certificate_needs_its_key_and_the_key_its_certificate() {
     let endpoint = ("dashql-endpoint", "https://127.0.0.1:1");
-    let response = route_proxy_request(request("POST", "/grpc/channels", &[endpoint, ("dashql-tls-client-cert", "/cert.pem")], &[])).await;
+    let response = route_proxy_request(request(
+        "POST",
+        "/grpc/channels",
+        &[endpoint, ("dashql-tls-client-cert", "/cert.pem")],
+        &[],
+    ))
+    .await;
     assert_eq!(error(&response)["details"]["header"], "dashql-tls-client-key");
-    let response = route_proxy_request(request("POST", "/grpc/channels", &[endpoint, ("dashql-tls-client-key", "/key.pem")], &[])).await;
+    let response =
+        route_proxy_request(request("POST", "/grpc/channels", &[endpoint, ("dashql-tls-client-key", "/key.pem")], &[]))
+            .await;
     assert_eq!(error(&response)["details"]["header"], "dashql-tls-client-cert");
 }
 
@@ -138,12 +151,13 @@ async fn calls_a_unary_function() {
         param
     });
     let body = TestUnaryRequest { data: "request".to_string() }.encode_to_vec();
-    let response = route_proxy_request(request("POST", &format!("/grpc/channel/{channel}/unary"), &[
-        ("dashql-path", UNARY),
-        ("authorization", "Bearer token"),
-        ("origin", "http://localhost"),
-        ("accept", "*/*"),
-    ], &body)).await;
+    let response = route_proxy_request(request(
+        "POST",
+        &format!("/grpc/channel/{channel}/unary"),
+        &[("dashql-path", UNARY), ("authorization", "Bearer token"), ("origin", "http://localhost"), ("accept", "*/*")],
+        &body,
+    ))
+    .await;
 
     assert_eq!(response.status(), 200, "{response:?}");
     assert_eq!(header(&response, "dashql-channel-id"), Some(channel.as_str()));
@@ -169,7 +183,9 @@ async fn forwards_the_rich_error_of_a_unary_function() {
         let status = tonic::Status::with_details(tonic::Code::InvalidArgument, "bad query", vec![1, 2, 3].into());
         sender.send(Err(status)).await.unwrap();
     });
-    let response = route_proxy_request(request("POST", &format!("/grpc/channel/{channel}/unary"), &[("dashql-path", UNARY)], &[])).await;
+    let response =
+        route_proxy_request(request("POST", &format!("/grpc/channel/{channel}/unary"), &[("dashql-path", UNARY)], &[]))
+            .await;
     assert_eq!(response.status(), 400);
     assert_eq!(header(&response, "dashql-grpc-status"), Some("3"));
     assert_eq!(header(&response, "dashql-grpc-message"), Some("bad query"));
@@ -188,7 +204,9 @@ async fn survives_a_database_error_that_spans_lines() {
         let status = tonic::Status::new(tonic::Code::InvalidArgument, "syntax error at line 1\nnear \"caf\u{e9}\"");
         sender.send(Err(status)).await.unwrap();
     });
-    let response = route_proxy_request(request("POST", &format!("/grpc/channel/{channel}/unary"), &[("dashql-path", UNARY)], &[])).await;
+    let response =
+        route_proxy_request(request("POST", &format!("/grpc/channel/{channel}/unary"), &[("dashql-path", UNARY)], &[]))
+            .await;
     assert_eq!(response.status(), 400);
     assert_eq!(header(&response, "dashql-grpc-status"), Some("3"));
     assert!(error(&response)["details"]["error"].as_str().unwrap().contains("near"));
@@ -214,7 +232,13 @@ async fn validates_a_call_before_sending_it() {
 #[tokio::test]
 async fn refuses_an_unknown_channel() {
     for route in ["unary", "streams"] {
-        let response = route_proxy_request(request("POST", &format!("/grpc/channel/999999/{route}"), &[("dashql-path", UNARY)], &[])).await;
+        let response = route_proxy_request(request(
+            "POST",
+            &format!("/grpc/channel/999999/{route}"),
+            &[("dashql-path", UNARY)],
+            &[],
+        ))
+        .await;
         assert_eq!(response.status(), 404);
         assert_eq!(error(&response)["message"], "gRPC channel id is unknown");
     }
@@ -226,8 +250,13 @@ async fn a_deleted_channel_is_gone() {
     let (mock, _setup_unary, _setup_streaming) = GrpcServiceMock::new();
     let (address, shutdown) = spawn_grpc_test_service_mock(mock).await;
     let channel = create_channel(address).await;
-    assert_eq!(route_proxy_request(request("DELETE", &format!("/grpc/channel/{channel}"), &[], &[])).await.status(), 200);
-    let response = route_proxy_request(request("POST", &format!("/grpc/channel/{channel}/unary"), &[("dashql-path", UNARY)], &[])).await;
+    assert_eq!(
+        route_proxy_request(request("DELETE", &format!("/grpc/channel/{channel}"), &[], &[])).await.status(),
+        200
+    );
+    let response =
+        route_proxy_request(request("POST", &format!("/grpc/channel/{channel}/unary"), &[("dashql-path", UNARY)], &[]))
+            .await;
     assert_eq!(response.status(), 404);
     shutdown.send(()).unwrap();
 }
@@ -325,7 +354,10 @@ async fn requires_the_limits_of_a_read() {
     let path = format!("/grpc/channel/{channel}/stream/0");
     assert_eq!(error(&route_proxy_request(request("GET", &path, &[], &[])).await)["message"], "header is missing");
     let headers = [("dashql-read-timeout", "soon"), ("dashql-batch-timeout", "1"), ("dashql-batch-bytes", "1")];
-    assert_eq!(error(&route_proxy_request(request("GET", &path, &headers, &[])).await)["message"], "header is not an unsigned integer");
+    assert_eq!(
+        error(&route_proxy_request(request("GET", &path, &headers, &[])).await)["message"],
+        "header is not an unsigned integer"
+    );
     shutdown.send(()).unwrap();
 }
 
@@ -338,7 +370,8 @@ async fn deleting_a_stream_cancels_a_query_that_is_silent() {
     let stream = stream_id(&start_stream(&channel, &[]).await);
     let (_, sender) = server.await.unwrap();
 
-    let response = route_proxy_request(request("DELETE", &format!("/grpc/channel/{channel}/stream/{stream}"), &[], &[])).await;
+    let response =
+        route_proxy_request(request("DELETE", &format!("/grpc/channel/{channel}/stream/{stream}"), &[], &[])).await;
     assert_eq!(response.status(), 200);
     assert_eq!(read_stream(&channel, &stream, "10", "10", "10").await.status(), 404);
     tokio::time::timeout(GUARD, sender.closed()).await.expect("the server was not told to stop");

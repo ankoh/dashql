@@ -16,8 +16,8 @@ use super::client::{
     read_query_response, read_status_response, GetQueryChunkParams, GetQueryStatusParams, HyperHttpClient,
 };
 use super::error::HyperError;
-use crate::http::{Body, Headers, HttpRequest, HttpResponse};
 use super::status::QueryStatus;
+use crate::http::{Body, Headers, HttpRequest, HttpResponse};
 use crate::query::{QueryExecutionMetrics, QueryExecutionProgress, Timestamp};
 
 /// How long the server may wait for a new status when the reader polls

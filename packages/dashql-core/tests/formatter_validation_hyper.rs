@@ -26,7 +26,8 @@ fn check(
         let Some(validation) = dialect.validation.as_ref().filter(|_| dialect.dialect == "hyper") else { continue };
         let database = TemporaryDatabase::new(database_name);
         let setup_failed = |e: String| format!("Dialect {}: Hyper setup failed: {e}", dialect.dialect);
-        let mut connection = hyper_process(process, "dashql-formatter-validation").connect(&database.path).map_err(setup_failed)?;
+        let mut connection =
+            hyper_process(process, "dashql-formatter-validation").connect(&database.path).map_err(setup_failed)?;
         connection.execute_script(&validation.setup).map_err(setup_failed)?;
 
         for (i, expectation) in dialect.expectations.iter().enumerate() {

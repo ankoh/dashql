@@ -31,8 +31,8 @@ use wasm_bindgen::prelude::*;
 
 use super::workbooks::WorkbookEntry;
 use super::{
-    ChangeSet, Runtime, SliceChange, SliceId, COMPUTATION, CONNECTION, CONNECTION_LIST, QUERY, ROOT, RUN, SCRIPT, STORAGE, WORKBOOK,
-    WORKBOOK_DERIVED, WORKBOOK_LIST,
+    ChangeSet, Runtime, SliceChange, SliceId, COMPUTATION, CONNECTION, CONNECTION_LIST, QUERY, ROOT, RUN, SCRIPT,
+    STORAGE, WORKBOOK, WORKBOOK_DERIVED, WORKBOOK_LIST,
 };
 use crate::host::HandleEffect;
 
@@ -305,7 +305,11 @@ fn text(id: &str) -> SliceId {
 /// Derive the buffers of the derived view of a workbook with the names that they refer to, and their hash
 pub(crate) fn derive(workbook: &Workbook) -> (Rc<DerivedParts>, u64) {
     let buffers = workbook.with_planner(|request, sessions| {
-        [crate::pack_reference_check(request, sessions), crate::pack_dataflow(request, sessions), crate::pack_inputs(request)]
+        [
+            crate::pack_reference_check(request, sessions),
+            crate::pack_dataflow(request, sessions),
+            crate::pack_inputs(request),
+        ]
     });
     let scripts = workbook.scripts();
     let hashes = buffers.each_ref().map(|buffer| {
@@ -318,7 +322,12 @@ pub(crate) fn derive(workbook: &Workbook) -> (Rc<DerivedParts>, u64) {
         hashes,
         script_keys: scripts.iter().map(|script| script.key()).collect(),
         script_files: scripts.iter().map(|script| script.file_name().to_string()).collect(),
-        attachments: workbook.attachments().unwrap_or_default().iter().map(|attachment| attachment.file_name.clone()).collect(),
+        attachments: workbook
+            .attachments()
+            .unwrap_or_default()
+            .iter()
+            .map(|attachment| attachment.file_name.clone())
+            .collect(),
     };
     let mut hasher = DefaultHasher::new();
     (&parts.hashes, &parts.script_keys, &parts.script_files, &parts.attachments).hash(&mut hasher);
@@ -375,11 +384,17 @@ impl Runtime {
         }
         if !retry.is_empty() {
             let details = format!("{retry:?}");
-            self.platform.log_on(LogLevel::Warn, "Slices were busy when the host took the changes, they follow with the next changes", &[("slices", &details)], "runtime");
+            self.platform.log_on(
+                LogLevel::Warn,
+                "Slices were busy when the host took the changes, they follow with the next changes",
+                &[("slices", &details)],
+                "runtime",
+            );
             self.platform.mark_all(retry);
             self.platform.signal(false);
             // A busy slice keeps its view of the last flush, the handles that it names stay until it moved
-            let (releases, now): (Vec<HandleEffect>, Vec<HandleEffect>) = effects.into_iter().partition(|effect| matches!(effect, HandleEffect::Release { .. }));
+            let (releases, now): (Vec<HandleEffect>, Vec<HandleEffect>) =
+                effects.into_iter().partition(|effect| matches!(effect, HandleEffect::Release { .. }));
             self.platform.requeue_effects(releases);
             effects = now;
         }
@@ -400,8 +415,9 @@ impl Runtime {
 
     /// The computations by their revisions
     fn take_computations(&self, taken: &mut Taken, out: &mut Changes, retry: &mut Dirty) {
-        let current: Option<BTreeMap<TableId, u64>> =
-            self.computations.try_read(|state| state.computations().map(|(id, computation)| (id, computation.revision())).collect());
+        let current: Option<BTreeMap<TableId, u64>> = self
+            .computations
+            .try_read(|state| state.computations().map(|(id, computation)| (id, computation.revision())).collect());
         let Some(current) = current else {
             retry.computations = true;
             return;
@@ -452,7 +468,10 @@ impl Runtime {
 
     /// The marked workbooks with their scripts and what they derive, and the list of the workbooks
     fn take_workbooks(&self, dirty: &Dirty, taken: &mut Taken, out: &mut Changes, retry: &mut Dirty) {
-        let marked = dirty.workbook_list || !dirty.workbooks.is_empty() || !dirty.scripts.is_empty() || !dirty.derived.is_empty();
+        let marked = dirty.workbook_list
+            || !dirty.workbooks.is_empty()
+            || !dirty.scripts.is_empty()
+            || !dirty.derived.is_empty();
         if !marked {
             return;
         }
@@ -549,7 +568,9 @@ impl Runtime {
 
     /// The host failed to project slices: they move with the next changes, also if they didn't change
     pub(crate) fn resync_slices(&self, kind: &str, ids: &[JsValue]) -> Result<(), JsError> {
-        let Ok(mut taken) = self.taken.try_borrow_mut() else { return Err(JsError::new("the runtime takes the changes")) };
+        let Ok(mut taken) = self.taken.try_borrow_mut() else {
+            return Err(JsError::new("the runtime takes the changes"));
+        };
         let text_ids = || ids.iter().filter_map(JsValue::as_string);
         let number_ids = || ids.iter().filter_map(JsValue::as_f64).map(|id| id as u64);
         match kind {
@@ -711,11 +732,13 @@ mod tests {
         // A change that failed to cross and the one of the next take
         changes.scripts.push(change(SCRIPT, SliceId::Number(4), Some(5)));
         changes.scripts.push(change(SCRIPT, SliceId::Number(1), None));
-        let changes: Vec<(String, Option<u64>)> = changes.into_vec().into_iter().map(|change| (change.kind, change.revision)).collect();
-        let expected: Vec<(String, Option<u64>)> = [(CONNECTION, None), (WORKBOOK, Some(1)), (SCRIPT, Some(5)), (SCRIPT, None), (WORKBOOK_DERIVED, Some(3))]
-            .into_iter()
-            .map(|(kind, revision)| (kind.to_string(), revision))
-            .collect();
+        let changes: Vec<(String, Option<u64>)> =
+            changes.into_vec().into_iter().map(|change| (change.kind, change.revision)).collect();
+        let expected: Vec<(String, Option<u64>)> =
+            [(CONNECTION, None), (WORKBOOK, Some(1)), (SCRIPT, Some(5)), (SCRIPT, None), (WORKBOOK_DERIVED, Some(3))]
+                .into_iter()
+                .map(|(kind, revision)| (kind.to_string(), revision))
+                .collect();
         assert_eq!(changes, expected);
     }
 }

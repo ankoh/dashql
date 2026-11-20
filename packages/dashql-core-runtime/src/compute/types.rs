@@ -451,7 +451,13 @@ pub struct TaskProgress {
 impl TaskProgress {
     /// A task that started running
     pub fn running(now: Timestamp) -> Self {
-        Self { status: TaskStatus::Running, started_at: now, completed_at: None, failed_at: None, failed_with_error: None }
+        Self {
+            status: TaskStatus::Running,
+            started_at: now,
+            completed_at: None,
+            failed_at: None,
+            failed_with_error: None,
+        }
     }
 
     /// Apply an update, it sets what it has

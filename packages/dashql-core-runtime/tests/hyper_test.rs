@@ -9,11 +9,11 @@ use arrow_schema::{DataType, Field, Schema};
 use dashql_core_runtime::connections::label::*;
 use dashql_core_runtime::connections::sharing::sanitize_connection_params_for_sharing;
 use dashql_core_runtime::connections::*;
+use dashql_core_runtime::http::{Body, HostBytes};
 use dashql_core_runtime::hyper::descriptor::{cache_signature, reads_attachments};
 use dashql_core_runtime::hyper::embedded::*;
 use dashql_core_runtime::hyper::link::*;
 use dashql_core_runtime::hyper::local_cloud::*;
-use dashql_core_runtime::http::{Body, HostBytes};
 use dashql_core_runtime::hyper::*;
 use serde_json::{json, Value};
 
@@ -1221,8 +1221,14 @@ fn clouds_among_connection_params() {
     }
     // The database of DashQL in the sessions of a cloud
     assert_eq!(cloud_database(&local), Some("dashql"));
-    assert_eq!(cloud_database(&params(json!({ "hyper": { "protocol": "V3_HTTP", "endpoint": "http://localhost:7484" } }))), Some("dashql"));
-    assert_eq!(cloud_database(&params(json!({ "dbcom": { "instanceUrl": "https://example.my.salesforce.com" } }))), Some("lakehouse"));
+    assert_eq!(
+        cloud_database(&params(json!({ "hyper": { "protocol": "V3_HTTP", "endpoint": "http://localhost:7484" } }))),
+        Some("dashql")
+    );
+    assert_eq!(
+        cloud_database(&params(json!({ "dbcom": { "instanceUrl": "https://example.my.salesforce.com" } }))),
+        Some("lakehouse")
+    );
     assert_eq!(cloud_database(&params(json!({ "hyper": { "protocol": "WASM" } }))), None);
     // A server that attaches the database of the local cloud is no local cloud
     let attached = json!({ "path": LOCAL_CLOUD_DATABASE_PATH, "alias": LOCAL_CLOUD_DATABASE_ALIAS });
@@ -1251,7 +1257,11 @@ fn labels_of_connections() {
         ),
     );
     assert!(!is_hyper_wasm_connection(&ConnectionState::from_params("cloud", cloud, 0.0)));
-    assert!(is_hyper_wasm_connection(&ConnectionState::from_params("local", ConnectionParams::default_for(ConnectorType::Hyper), 0.0)));
+    assert!(is_hyper_wasm_connection(&ConnectionState::from_params(
+        "local",
+        ConnectionParams::default_for(ConnectorType::Hyper),
+        0.0
+    )));
     let trino = ConnectionState::from_params("t", ConnectionParams::default_for(ConnectorType::Trino), 0.0);
     assert_eq!(connection_label(&trino, None), "Trino Http");
     assert!(!supports_connection_overview(&trino));
@@ -1261,7 +1271,10 @@ fn labels_of_connections() {
 fn the_catalog_refreshes_only_online_without_a_running_refresh() {
     let mut connection = ConnectionState::from_params("h", ConnectionParams::default_for(ConnectorType::Hyper), 0.0);
     assert!(!connection.can_refresh_catalog());
-    let ready = HyperAction::ChannelReady { channel: ConnectionChannel::Host(1), params: object(json!({ "protocol": "WASM" })) };
+    let ready = HyperAction::ChannelReady {
+        channel: ConnectionChannel::Host(1),
+        params: object(json!({ "protocol": "WASM" })),
+    };
     connection.apply(ConnectionAction::Hyper(ready), 0.0).unwrap();
     assert!(connection.can_refresh_catalog());
     let refresh = CatalogUpdateTask::new(7, CatalogUpdateVariant::FullCatalogRefresh, 0.0);

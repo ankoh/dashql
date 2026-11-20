@@ -7,7 +7,9 @@ use dashql_core::catalog::CatalogLayer;
 use dashql_core::touched_relations::touched_relations;
 
 use super::RestoreHost;
-use dashql_core_runtime::catalog_loader::batch::{publish_catalog_batch_sync, CatalogBatch, CatalogBatchEntry, CatalogGenerations};
+use dashql_core_runtime::catalog_loader::batch::{
+    publish_catalog_batch_sync, CatalogBatch, CatalogBatchEntry, CatalogGenerations,
+};
 use dashql_core_runtime::catalog_loader::tables::{pack_catalog_table_update, CatalogStateFile};
 use dashql_core_runtime::connections::{merge_relation_names, read_relation_name, ConnectionState, ConnectorType};
 use dashql_core_runtime::host::HostError;
@@ -15,7 +17,6 @@ use dashql_core_runtime::host::HostError;
 use crate::workbook_format::layout::{
     STORAGE_CATALOG_CHANGES, STORAGE_CATALOG_FUNCTIONS, STORAGE_CATALOG_RELATIONS, STORAGE_CATALOG_STATE,
 };
-
 
 /// The files of the catalog of a connection, None for a file that doesn't exist
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -77,7 +78,11 @@ pub fn apply_catalog_files(state: &mut ConnectionState, files: &CatalogFiles) ->
     let mut entries = Vec::new();
     if let Some(relations) = relations {
         // The batch reads the file once, the catalog keeps the descriptor and not the text
-        entries.push(CatalogBatchEntry { entry_id: state.relation_entry_id(), text: relations.to_string(), require_functions: false });
+        entries.push(CatalogBatchEntry {
+            entry_id: state.relation_entry_id(),
+            text: relations.to_string(),
+            require_functions: false,
+        });
     }
     let function_entry = state.function_script().map(|script| script.catalog_entry_id());
     if let (Some(functions), Some(entry_id)) = (functions, function_entry) {
@@ -107,7 +112,8 @@ pub fn apply_catalog_files(state: &mut ConnectionState, files: &CatalogFiles) ->
     let stored = CatalogStateFile::parse(files.state.as_deref());
     if durable && !stored.gone.is_empty() {
         let update = pack_catalog_table_update(&[], &stored.gone, &[]);
-        let replaced = state.catalog().borrow_mut().replace_tables(state.relation_entry_id(), CatalogLayer::CONNECTION, &update);
+        let replaced =
+            state.catalog().borrow_mut().replace_tables(state.relation_entry_id(), CatalogLayer::CONNECTION, &update);
         if let Err(error) = replaced {
             out.error = Some(error.message);
             return out;

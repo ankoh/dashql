@@ -93,7 +93,8 @@ impl TrinoServer {
     pub fn start_on_port(port: u16) -> io::Result<Self> {
         let launcher = runfile_from_env("TRINO_LAUNCHER")?;
         let java = runfile_from_env("TRINO_JAVA")?;
-        let trino_home = launcher.parent().and_then(Path::parent).ok_or_else(|| io::Error::other("bad launcher path"))?;
+        let trino_home =
+            launcher.parent().and_then(Path::parent).ok_or_else(|| io::Error::other("bad launcher path"))?;
         let java_home = java.parent().and_then(Path::parent).ok_or_else(|| io::Error::other("bad java path"))?;
 
         let scratch = scratch_dir("trino")?;

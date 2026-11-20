@@ -11,8 +11,8 @@ pub mod clfn_calls;
 mod constants;
 mod function_calls;
 pub mod manual_tag;
-pub mod param_tags;
 mod name_resolution;
+pub mod param_tags;
 mod parameters;
 pub mod sql_types;
 mod state;
@@ -26,12 +26,12 @@ pub use vis_tags::{has_vis_tags, statement_output_columns};
 
 use crate::catalog::*;
 use crate::error::Result;
+use crate::hash::HashMap;
 use crate::table_parameters::{TableParameters, TABLE_PARAMETERS_ENTRY_ID};
 use dashql_buffers::analyzer::{AnalyzerErrorSeverity, AnalyzerErrorType, NameTag, SemanticNodeMarkerType};
 use dashql_buffers::parser::Node;
 use dashql_parser::names::{NameId, NameRegistry};
 use dashql_parser::parser::ParsedScript;
-use crate::hash::HashMap;
 use std::fmt;
 use std::sync::Arc;
 
@@ -193,7 +193,11 @@ pub fn analyze(parsed: Arc<ParsedScript>, catalog: &Catalog) -> Result<AnalyzedS
 
 /// Analyze a parsed script against a catalog and the results of the scripts of its session, which its table
 /// parameters read
-pub fn analyze_with(parsed: Arc<ParsedScript>, catalog: &Catalog, table_parameters: Option<&Arc<TableParameters>>) -> Result<AnalyzedScript> {
+pub fn analyze_with(
+    parsed: Arc<ParsedScript>,
+    catalog: &Catalog,
+    table_parameters: Option<&Arc<TableParameters>>,
+) -> Result<AnalyzedScript> {
     let mut state = state::AnalysisState::new(&parsed, catalog);
     state.out.table_parameters = table_parameters.cloned();
     let mut name_resolution = name_resolution::NameResolutionPass::new(&state);

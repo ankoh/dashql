@@ -1,18 +1,21 @@
 //! Tests of the FlatBuffer packing of scripts, cursors and completions: the object API values that
 //! the JS bindings read.
 
-use dashql_core::catalog::CatalogLayer;
 use dashql_buffers::algebra::ExpressionSubTypeT;
 use dashql_buffers::completion::CompletionCandidateObjectType;
 use dashql_buffers::cursor::{RelativeSymbolPosition, ScriptCursorContextT};
 use dashql_buffers::parser::{
-    CommentBlockType, ParsedScriptT, ScannerTokenType, StatementTargetType, StatementT, StatementType,
+    CommentBlockType, ParsedScriptT, ScannerTokenType, StatementT, StatementTargetType, StatementType,
 };
 use dashql_core::analyzer::AnalyzedScript;
 use dashql_core::catalog::Catalog;
-use dashql_core::pack::{pack_analyzed_script, pack_completion, pack_cursor, pack_parsed_script, pack_parsed_statement, pack_scanned_script, pack_tokens};
-use dashql_core::visualize::pack_visualization;
+use dashql_core::catalog::CatalogLayer;
+use dashql_core::pack::{
+    pack_analyzed_script, pack_completion, pack_cursor, pack_parsed_script, pack_parsed_statement, pack_scanned_script,
+    pack_tokens,
+};
 use dashql_core::script::Script;
+use dashql_core::visualize::pack_visualization;
 use std::sync::Arc;
 
 fn parsed(text: &str) -> (Script, ParsedScriptT) {
@@ -62,7 +65,8 @@ fn statement_targets_of_ddl() {
 
 #[test]
 fn statement_targets_of_dml() {
-    let dml = statements("insert into db.s.t values (1); delete from s.t where a = 1; select 1 into analytics.r; select 1");
+    let dml =
+        statements("insert into db.s.t values (1); delete from s.t where a = 1; select 1 into analytics.r; select 1");
     assert_eq!(dml[0].target_type, StatementTargetType::TABLE);
     assert_eq!(target_names(&dml[0]), (Some("db"), Some("s"), Some("t")));
     assert_eq!(dml[1].target_type, StatementTargetType::TABLE);
@@ -111,10 +115,7 @@ fn parsed_scripts_carry_statements_descriptions_and_errors() {
     assert_eq!(packed.comments.as_ref().unwrap().len(), 2);
     assert_eq!(packed.line_breaks.as_ref().unwrap().len(), 4);
     assert!(packed.scanner_errors.is_none());
-    assert_eq!(
-        pack_parsed_statement(script.parsed.as_ref().unwrap(), 0).statement_type,
-        StatementType::SELECT
-    );
+    assert_eq!(pack_parsed_statement(script.parsed.as_ref().unwrap(), 0).statement_type, StatementType::SELECT);
 }
 
 #[test]
@@ -260,7 +261,10 @@ fn cursor_inside_of_a_name_reports_its_context() {
 #[test]
 fn completions_are_packed_with_catalog_objects() {
     let mut catalog = Catalog::new();
-    let schema = analyzed(&catalog, "create table dbname.schemaname.foo (barcol int); create function dbname.schemaname.fn_sum(x int) returns int;");
+    let schema = analyzed(
+        &catalog,
+        "create table dbname.schemaname.foo (barcol int); create function dbname.schemaname.fn_sum(x int) returns int;",
+    );
     catalog.load_script(schema, CatalogLayer::SESSION).unwrap();
 
     let complete = |text: &str, upper: bool| {

@@ -7,9 +7,9 @@ use super::details::{
     replace_channel, ConnectionChannel, ConnectionDetails, ConnectorDetails, DetailedError, SalesforceOAuthParams,
     Timestamp,
 };
-use crate::salesforce::SharedSalesforceChannel;
 use super::params::{string_field, JsonObject};
 use super::{ConnectionEffect, ConnectionHealth, ConnectionState, ConnectionStatus};
+use crate::salesforce::SharedSalesforceChannel;
 
 /// How long an OAuth flow of Salesforce is valid
 const OAUTH_FLOW_LIFETIME_MS: Timestamp = 2.0 * 60.0 * 60.0 * 1000.0;
@@ -90,8 +90,14 @@ pub(super) fn reduce(
     now: Timestamp,
     effects: &mut Vec<ConnectionEffect>,
 ) {
-    let ConnectionDetails { setup_timings: timings, setup_params, channel_error, health_check_error, channel, connector } =
-        &mut state.details;
+    let ConnectionDetails {
+        setup_timings: timings,
+        setup_params,
+        channel_error,
+        health_check_error,
+        channel,
+        connector,
+    } = &mut state.details;
     let (ConnectorDetails::SalesforceDataCloud(salesforce) | ConnectorDetails::Dbcom(salesforce)) = connector else {
         return;
     };

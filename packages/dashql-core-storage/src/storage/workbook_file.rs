@@ -17,7 +17,12 @@ pub fn same_file(a: &WorkbookData, b: &WorkbookData) -> bool {
 
 /// The workbook file with the properties that the user owns, see `WriteTask::WriteWorkbookProperties`: a name or none,
 /// a workbook that is no longer ephemeral loses its marker, a link to a cloud or none.
-pub fn properties_patch(existing: &WorkbookData, name: Option<&str>, ephemeral: bool, cloud: Option<&WorkbookCloudLink>) -> WorkbookData {
+pub fn properties_patch(
+    existing: &WorkbookData,
+    name: Option<&str>,
+    ephemeral: bool,
+    cloud: Option<&WorkbookCloudLink>,
+) -> WorkbookData {
     let mut file = existing.clone();
     file.name = name.filter(|name| !name.is_empty()).map(str::to_string);
     if !ephemeral {
@@ -44,11 +49,14 @@ pub struct CreatedWorkbook<'a> {
 pub fn created_workbook_file(existing: Option<&WorkbookData>, created: &CreatedWorkbook) -> WorkbookData {
     let mut file = match existing {
         Some(existing) => existing.clone(),
-        None => WorkbookData { connections: created.connection.into_iter().cloned().collect(), ..WorkbookData::default() },
+        None => {
+            WorkbookData { connections: created.connection.into_iter().cloned().collect(), ..WorkbookData::default() }
+        }
     };
     file.format_version = created.format_version;
     file.workbook_id = created.workbook_id.to_string();
-    file.name = created.name.filter(|name| !name.is_empty()).map(str::to_string).or(file.name.filter(|name| !name.is_empty()));
+    file.name =
+        created.name.filter(|name| !name.is_empty()).map(str::to_string).or(file.name.filter(|name| !name.is_empty()));
     file.metadata.original_file_name = created.original_file_name.map(str::to_string);
     if file.metadata.created_at.is_none() {
         file.metadata.created_at = Some(created.now.to_string());
@@ -62,7 +70,10 @@ pub fn created_workbook_file(existing: Option<&WorkbookData>, created: &CreatedW
 
 /// The workbook file with the attachments on disk, their names in natural order
 pub fn attachments_patch(existing: &WorkbookData, names: &[String]) -> WorkbookData {
-    WorkbookData { attachments: names.iter().map(|name| WorkbookAttachment { name: name.clone() }).collect(), ..existing.clone() }
+    WorkbookData {
+        attachments: names.iter().map(|name| WorkbookAttachment { name: name.clone() }).collect(),
+        ..existing.clone()
+    }
 }
 
 /// Insert or replace a connection entry of the app manifest, keeping its creation time. None if the entry is up to date.
@@ -119,8 +130,20 @@ mod tests {
         assert_eq!(created["metadata"]["createdAt"], json!("t"));
     }
 
-    fn creation<'a>(name: Option<&'a str>, connection: Option<&'a WorkbookConnection>, ephemeral: bool) -> CreatedWorkbook<'a> {
-        CreatedWorkbook { workbook_id: "w", format_version: 11, name, connection, ephemeral, original_file_name: None, now: NOW }
+    fn creation<'a>(
+        name: Option<&'a str>,
+        connection: Option<&'a WorkbookConnection>,
+        ephemeral: bool,
+    ) -> CreatedWorkbook<'a> {
+        CreatedWorkbook {
+            workbook_id: "w",
+            format_version: 11,
+            name,
+            connection,
+            ephemeral,
+            original_file_name: None,
+            now: NOW,
+        }
     }
 
     #[test]
@@ -150,7 +173,10 @@ mod tests {
         assert_eq!(next.metadata.original_file_name, None);
         assert_eq!(next.attachments.len(), 1);
         let connection = WorkbookConnection::new("c", json!({}));
-        let fresh = created_workbook_file(None, &CreatedWorkbook { original_file_name: Some(""), ..creation(Some("New"), Some(&connection), false) });
+        let fresh = created_workbook_file(
+            None,
+            &CreatedWorkbook { original_file_name: Some(""), ..creation(Some("New"), Some(&connection), false) },
+        );
         assert_eq!(fresh.to_json()["connections"], json!([{ "connectionId": "c", "params": {} }]));
         assert_eq!(fresh.metadata.original_file_name.as_deref(), Some(""));
     }

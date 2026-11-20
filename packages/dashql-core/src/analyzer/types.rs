@@ -3,11 +3,11 @@
 //! Every object lives in an arena of the analyzed script and is referenced by its index.
 
 use crate::catalog::*;
+use crate::hash::HashMap;
 use dashql_buffers::algebra::{BinaryExpressionFunction, ComparisonFunction, LiteralType};
 use dashql_buffers::analyzer::{AnalyzerErrorSeverity, AnalyzerErrorType};
 use dashql_buffers::parser::{IntervalType as IntervalTypeEnum, KnownFunction, SymbolSpan};
 use dashql_parser::span::TextSpan;
-use crate::hash::HashMap;
 use std::sync::Arc;
 
 /// An expression id (index into the expressions)
@@ -28,10 +28,7 @@ pub struct OrderedMap<V> {
 
 impl<V> Default for OrderedMap<V> {
     fn default() -> Self {
-        Self {
-            entries: Vec::new(),
-            index: HashMap::default(),
-        }
+        Self { entries: Vec::new(), index: HashMap::default() }
     }
 }
 
@@ -132,10 +129,9 @@ impl TableReference {
     /// Does the table reference read the result of a script, a table parameter `:foo`? The planner reads it through
     /// the script references, not as a relation.
     pub fn reads_table_parameter(&self) -> bool {
-        self.inner
-            .as_ref()
-            .and_then(|r| r.resolved_table.as_ref())
-            .is_some_and(|t| t.catalog_table_id.unpack_table_id().origin == crate::table_parameters::TABLE_PARAMETERS_ENTRY_ID)
+        self.inner.as_ref().and_then(|r| r.resolved_table.as_ref()).is_some_and(|t| {
+            t.catalog_table_id.unpack_table_id().origin == crate::table_parameters::TABLE_PARAMETERS_ENTRY_ID
+        })
     }
 }
 
@@ -279,12 +275,7 @@ pub struct FunctionArgument {
 
 impl Default for FunctionArgument {
     fn default() -> Self {
-        Self {
-            ast_node_id: 0,
-            value_ast_node_id: 0,
-            name: None,
-            expression_id: Some(0),
-        }
+        Self { ast_node_id: 0, value_ast_node_id: 0, name: None, expression_id: Some(0) }
     }
 }
 
@@ -657,12 +648,7 @@ pub struct DashboardSpec {
 
 impl Default for DashboardSpec {
     fn default() -> Self {
-        Self {
-            row: None,
-            column: None,
-            width: 6,
-            height: 6,
-        }
+        Self { row: None, column: None, width: 6, height: 6 }
     }
 }
 

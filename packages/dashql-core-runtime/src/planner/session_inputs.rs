@@ -132,7 +132,8 @@ pub fn collect_session_inputs(request: &SessionPlanRequest) -> SessionInputs {
     for script in request.scripts {
         let Some(p) = Prepared::lenient(script.script) else { continue };
         for tag in &p.analyzed.param_values {
-            if let (Some(input), Some(literal)) = (index.get(&tag.name).and_then(|&i| inputs.get_mut(i)), &tag.literal) {
+            if let (Some(input), Some(literal)) = (index.get(&tag.name).and_then(|&i| inputs.get_mut(i)), &tag.literal)
+            {
                 input.literal.get_or_insert_with(|| literal.clone());
             }
         }
@@ -166,14 +167,24 @@ pub(crate) fn describe_call(inputs: &SessionInputs, analyzed: &AnalyzedScript, s
     let bindings = description.as_object_mut()?.remove("bindings");
     for binding in bindings.as_ref().and_then(Value::as_array).into_iter().flatten() {
         let (Some(pointer), Some(param)) = (binding["pointer"].as_str(), binding["param"].as_str()) else { continue };
-        let (Some(literal), Some(option)) = (inputs.value_of(analyzed, param), description.get_mut("options").and_then(|options| options.pointer_mut(pointer))) else { continue };
+        let (Some(literal), Some(option)) = (
+            inputs.value_of(analyzed, param),
+            description.get_mut("options").and_then(|options| options.pointer_mut(pointer)),
+        ) else {
+            continue;
+        };
         *option = literal.to_json();
     }
     Some(description.to_string())
 }
 
 /// Bind the inputs of a statement, every statement if None
-pub(crate) fn bind_inputs(inputs: &SessionInputs, p: &Prepared, statement: Option<u32>, dialect: FormattingDialect) -> InputBindings {
+pub(crate) fn bind_inputs(
+    inputs: &SessionInputs,
+    p: &Prepared,
+    statement: Option<u32>,
+    dialect: FormattingDialect,
+) -> InputBindings {
     let mut out = InputBindings { edits: Vec::new(), errors: Vec::new(), values: BTreeMap::new() };
     for parameter in &p.analyzed.parameters {
         let (ParameterKind::Scalar, Some(name)) = (parameter.kind, &parameter.name) else { continue };
@@ -195,4 +206,3 @@ pub(crate) fn bind_inputs(inputs: &SessionInputs, p: &Prepared, statement: Optio
     }
     out
 }
-

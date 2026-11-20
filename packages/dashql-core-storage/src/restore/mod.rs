@@ -22,20 +22,25 @@ use dashql_core::catalog::Catalog;
 use dashql_core::error::{Error, Result};
 use serde_json::Value;
 
-use dashql_core_runtime::attachments::DataFile;
+use crate::storage::keys::{
+    connection_entry_key, connection_file_key, workbook_connection_copy_key, workbook_file_key,
+    workbook_script_list_key,
+};
+use crate::storage::{
+    FolderListing, StorageHost, StorageWriter, TextSource, WriteError, WriteOutcome, WriteResult, WriteTask,
+};
 use crate::workbook_format::data::decode_connection;
+use crate::workbook_format::data::{ConnectionEntry, WorkbookCloudLink, WorkbookConnection};
+use crate::workbook_format::restore::{not_restored_error, RestoreConnection, RestorePlanner, RestoredWorkbookPlan};
+use crate::workbook_format::validation::{
+    describe_invalid_workbook, is_valid_uuid, InvalidWorkbook, WorkbookValidationError,
+};
+use catalog::{apply_catalog_files, load_catalog_files, CatalogRestore};
+use dashql_core_runtime::attachments::DataFile;
 use dashql_core_runtime::connections::{ConnectionAction, ConnectionParams, ConnectionState, ConnectionStateOptions};
 use dashql_core_runtime::host::{HostError, LogLevel};
-use crate::storage::keys::{
-    connection_entry_key, connection_file_key, workbook_connection_copy_key, workbook_file_key, workbook_script_list_key,
-};
-use crate::storage::{FolderListing, StorageHost, StorageWriter, TextSource, WriteError, WriteOutcome, WriteResult, WriteTask};
-use dashql_core_runtime::workbook::{new_catalog, ScriptConnection, Workbook, WorkbookOrigin};
-use crate::workbook_format::data::{ConnectionEntry, WorkbookCloudLink, WorkbookConnection};
 use dashql_core_runtime::time::iso_timestamp_f64;
-use crate::workbook_format::restore::{not_restored_error, RestoreConnection, RestorePlanner, RestoredWorkbookPlan};
-use crate::workbook_format::validation::{describe_invalid_workbook, is_valid_uuid, InvalidWorkbook, WorkbookValidationError};
-use catalog::{apply_catalog_files, load_catalog_files, CatalogRestore};
+use dashql_core_runtime::workbook::{new_catalog, ScriptConnection, Workbook, WorkbookOrigin};
 
 /// What the restore asks of the platform on top of the storage operations of the writer: the workbook tree, the
 /// scripts and attachments of a workbook, the connections of the app manifest and the files of a connection. Stored
@@ -54,7 +59,11 @@ pub trait RestoreHost: StorageHost {
     /// The data files of a workbook
     async fn list_data_files(&self, workbook_id: &str) -> std::result::Result<Vec<DataFile>, HostError>;
     /// A file of a connection, none if it doesn't exist
-    async fn load_connection_file(&self, connection_id: &str, file_name: &str) -> std::result::Result<Option<String>, HostError>;
+    async fn load_connection_file(
+        &self,
+        connection_id: &str,
+        file_name: &str,
+    ) -> std::result::Result<Option<String>, HostError>;
     /// The stamps of the files of a workbook folder that may change outside the app, none for the workbooks of the
     /// storage root
     async fn stamp_folder(&self, _workbook_id: &str) -> std::result::Result<Option<FolderListing>, HostError> {
@@ -155,7 +164,11 @@ fn params_value(state: &ConnectionState) -> Value {
 
 /// Create the state of a stored connection. A restored connection is active. A draft that can't be read is dropped,
 /// the saved params stay. The runtime creates the connections of a workbook folder that changed outside the app with it.
-pub fn connection_state<H: RestoreHost>(host: &H, connection: &RestoreConnection, catalog: Catalog) -> Result<ConnectionState> {
+pub fn connection_state<H: RestoreHost>(
+    host: &H,
+    connection: &RestoreConnection,
+    catalog: Catalog,
+) -> Result<ConnectionState> {
     let now = host.now();
     let (_, details) = decode_connection(&connection.params, &connection.connection_id)?;
     let params_draft = match &connection.params_draft {
@@ -163,7 +176,11 @@ pub fn connection_state<H: RestoreHost>(host: &H, connection: &RestoreConnection
             Ok(draft) => Some(draft),
             Err(error) => {
                 let id = connection.connection_id.as_str();
-                host.log(LogLevel::Warn, "Dropping the unreadable draft of a connection", &[("connectionId", id), ("error", &error.message)]);
+                host.log(
+                    LogLevel::Warn,
+                    "Dropping the unreadable draft of a connection",
+                    &[("connectionId", id), ("error", &error.message)],
+                );
                 None
             }
         },
@@ -251,7 +268,12 @@ struct Run<'a, H: RestoreHost, W: StorageHost> {
 }
 
 impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
-    fn new(host: &'a H, writer: Option<&'a StorageWriter<W>>, options: RestoreOptions, live: Vec<LiveConnection>) -> Self {
+    fn new(
+        host: &'a H,
+        writer: Option<&'a StorageWriter<W>>,
+        options: RestoreOptions,
+        live: Vec<LiveConnection>,
+    ) -> Self {
         let RestoreOptions { offset_unit, new_uuid } = options;
         let mut run = Self {
             host,
@@ -304,7 +326,11 @@ impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
     /// Restore a connection of the app manifest with its catalog
     async fn restore_manifest_connection(&mut self, entry: &Value) {
         let Some(entry) = ConnectionEntry::from_json(entry) else {
-            self.log(LogLevel::Warn, "Failed to restore connection", &[("error", "the connection entry can't be read")]);
+            self.log(
+                LogLevel::Warn,
+                "Failed to restore connection",
+                &[("error", "the connection entry can't be read")],
+            );
             return;
         };
         let connection = RestoreConnection::of_entry(&entry);
@@ -318,7 +344,11 @@ impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
                 self.restore_catalog(&entry.id, &[("connectionId", &entry.id)]).await;
             }
             Err(error) => {
-                self.log(LogLevel::Warn, "Failed to restore connection", &[("connectionId", &entry.id), ("error", &error.message)]);
+                self.log(
+                    LogLevel::Warn,
+                    "Failed to restore connection",
+                    &[("connectionId", &entry.id), ("error", &error.message)],
+                );
             }
         }
     }
@@ -331,7 +361,9 @@ impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
         };
         let restored = match files {
             Ok(files) => apply_catalog_files(state, &files),
-            Err(error) => CatalogRestore { succeeded: false, files: Vec::new(), error: Some(error.message().to_string()) },
+            Err(error) => {
+                CatalogRestore { succeeded: false, files: Vec::new(), error: Some(error.message().to_string()) }
+            }
         };
         for (file_name, text) in restored.files {
             self.connection_files.push((connection_id.to_string(), file_name, text));
@@ -349,7 +381,11 @@ impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
         // The id is the key the storage routes on, a workbook with an invalid one can't be loaded
         if !is_valid_uuid(workbook_id) {
             let invalid = describe_invalid_workbook(workbook_id, WorkbookValidationError::InvalidWorkbookId, None);
-            self.log(LogLevel::Warn, "Refusing to load workbook with an invalid id", &[("workbookId", workbook_id), ("reason", invalid.error.code())]);
+            self.log(
+                LogLevel::Warn,
+                "Refusing to load workbook with an invalid id",
+                &[("workbookId", workbook_id), ("reason", invalid.error.code())],
+            );
             return WorkbookOutcome::Skipped(invalid);
         }
 
@@ -367,13 +403,21 @@ impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
                 }
             }
             Ok(None) => {}
-            Err(error) => self.log(LogLevel::Warn, "Failed to stamp the workbook folder", &[("workbookId", workbook_id), ("error", error.message())]),
+            Err(error) => self.log(
+                LogLevel::Warn,
+                "Failed to stamp the workbook folder",
+                &[("workbookId", workbook_id), ("error", error.message())],
+            ),
         }
         let stored = match self.host.load_workbook(workbook_id).await {
             Ok(stored) => Some(stored),
             Err(error) => {
                 // The tree registers the workbook, but its files may be gone, e.g. a native folder that was moved
-                self.log(LogLevel::Warn, "Refusing to load workbook with unreadable files", &[("workbookId", workbook_id), ("error", error.message())]);
+                self.log(
+                    LogLevel::Warn,
+                    "Refusing to load workbook with unreadable files",
+                    &[("workbookId", workbook_id), ("error", error.message())],
+                );
                 self.load_error = Some(error);
                 None
             }
@@ -381,19 +425,35 @@ impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
         let restore = match self.planner.begin_workbook_json(workbook_id, stored.as_ref()) {
             Ok(restore) => restore,
             Err(invalid) if invalid.error == WorkbookValidationError::WorkbookNotRestored => {
-                self.log(LogLevel::Warn, "Failed to restore workbook", &[("workbookId", workbook_id), ("error", "a connection can't be restored")]);
+                self.log(
+                    LogLevel::Warn,
+                    "Failed to restore workbook",
+                    &[("workbookId", workbook_id), ("error", "a connection can't be restored")],
+                );
                 return WorkbookOutcome::Failed(invalid);
             }
             Err(invalid) => {
                 if stored.is_some() {
-                    self.log(LogLevel::Warn, "Refusing to load invalid workbook", &[("workbookId", workbook_id), ("reason", invalid.error.code())]);
+                    self.log(
+                        LogLevel::Warn,
+                        "Refusing to load invalid workbook",
+                        &[("workbookId", workbook_id), ("reason", invalid.error.code())],
+                    );
                 }
                 return WorkbookOutcome::Skipped(invalid);
             }
         };
         if let Err(error) = self.create_registered_connections() {
-            self.log(LogLevel::Warn, "Failed to restore workbook", &[("workbookId", workbook_id), ("error", &error.message)]);
-            return WorkbookOutcome::Failed(describe_invalid_workbook(workbook_id, WorkbookValidationError::WorkbookNotRestored, None));
+            self.log(
+                LogLevel::Warn,
+                "Failed to restore workbook",
+                &[("workbookId", workbook_id), ("error", &error.message)],
+            );
+            return WorkbookOutcome::Failed(describe_invalid_workbook(
+                workbook_id,
+                WorkbookValidationError::WorkbookNotRestored,
+                None,
+            ));
         }
         self.progress.connections.succeeded += 1;
 
@@ -420,16 +480,22 @@ impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
         self.progress.workbook_scripts.started += 1;
         self.report();
         let metadata = stored.as_ref().and_then(|stored| stored.get("metadata")).cloned().unwrap_or(Value::Null);
-        let stored_name = stored.as_ref().and_then(|stored| stored.get("name")).and_then(Value::as_str).map(str::to_string);
+        let stored_name =
+            stored.as_ref().and_then(|stored| stored.get("name")).and_then(Value::as_str).map(str::to_string);
         let data = restore.data.clone();
         let scripts = match self.host.load_scripts(workbook_id).await {
             Ok(scripts) => Some(scripts),
             Err(error) => {
-                self.log(LogLevel::Warn, "Failed to restore workbook scripts", &[("workbookId", workbook_id), ("error", error.message())]);
+                self.log(
+                    LogLevel::Warn,
+                    "Failed to restore workbook scripts",
+                    &[("workbookId", workbook_id), ("error", error.message())],
+                );
                 None
             }
         };
-        let names: Option<Vec<String>> = scripts.as_ref().map(|scripts| scripts.iter().map(|(name, _)| name.clone()).collect());
+        let names: Option<Vec<String>> =
+            scripts.as_ref().map(|scripts| scripts.iter().map(|(name, _)| name.clone()).collect());
         let plan = match self.planner.finish_workbook(restore, names.as_deref()) {
             Ok(plan) => plan,
             Err(invalid) => {
@@ -440,19 +506,31 @@ impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
         };
         if !plan.missing_scripts.is_empty() {
             let missing = plan.missing_scripts.join(", ");
-            self.log(LogLevel::Warn, "The script files of the workbook are missing, keeping its script list", &[("workbookId", workbook_id), ("scripts", &missing)]);
+            self.log(
+                LogLevel::Warn,
+                "The script files of the workbook are missing, keeping its script list",
+                &[("workbookId", workbook_id), ("scripts", &missing)],
+            );
         }
         for script in &plan.scripts {
             if let Some(unresolved) = &script.unresolved_connection_id {
                 let details = [("workbookId", workbook_id), ("connectionId", unresolved.as_str())];
-                self.log(LogLevel::Warn, "Script references an unknown connection, using the embedded database", &details);
+                self.log(
+                    LogLevel::Warn,
+                    "Script references an unknown connection, using the embedded database",
+                    &details,
+                );
             }
         }
         // The attachments of the workbook, a Parquet attachment is a table parameter of the scripts
         let data_files = match self.host.list_data_files(workbook_id).await {
             Ok(files) => files,
             Err(error) => {
-                self.log(LogLevel::Warn, "Listing the attachments failed", &[("workbookId", workbook_id), ("error", error.message())]);
+                self.log(
+                    LogLevel::Warn,
+                    "Listing the attachments failed",
+                    &[("workbookId", workbook_id), ("error", error.message())],
+                );
                 Vec::new()
             }
         };
@@ -469,16 +547,25 @@ impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
                     self.promotions.push(Promotion { workbook_id: workbook_id.to_string(), name: stored_name, cloud });
                 }
                 let count = restored.workbook.scripts().len().to_string();
-                self.log(LogLevel::Info, "Workbook scripts restored", &[("workbookId", workbook_id), ("scriptCount", &count)]);
+                self.log(
+                    LogLevel::Info,
+                    "Workbook scripts restored",
+                    &[("workbookId", workbook_id), ("scriptCount", &count)],
+                );
                 self.progress.workbook_scripts.succeeded += 1;
                 self.report();
                 WorkbookOutcome::Restored(restored)
             }
             Err(error) => {
-                self.log(LogLevel::Warn, "Failed to restore workbook scripts", &[("workbookId", workbook_id), ("error", &error.message)]);
+                self.log(
+                    LogLevel::Warn,
+                    "Failed to restore workbook scripts",
+                    &[("workbookId", workbook_id), ("error", &error.message)],
+                );
                 self.progress.workbook_scripts.failed += 1;
                 self.report();
-                let invalid = describe_invalid_workbook(workbook_id, WorkbookValidationError::WorkbookNotRestored, Some(&data));
+                let invalid =
+                    describe_invalid_workbook(workbook_id, WorkbookValidationError::WorkbookNotRestored, Some(&data));
                 WorkbookOutcome::ScriptsFailed(invalid)
             }
         }
@@ -549,7 +636,10 @@ impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
                     fields.insert("params".to_string(), params_value(state));
                 }
                 let task = WriteTask::WriteConnectionEntry { entry: json };
-                writes.push(PendingWrite { result: writer.write_durable(&connection_entry_key(&entry.id), task), what: entry.id.clone() });
+                writes.push(PendingWrite {
+                    result: writer.write_durable(&connection_entry_key(&entry.id), task),
+                    what: entry.id.clone(),
+                });
             }
             for (connection_id, file_name, text) in std::mem::take(&mut self.connection_files) {
                 let key = connection_file_key(&connection_id, &file_name);
@@ -564,9 +654,13 @@ impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
             for (workbook_id, connection_id) in &pending.workbook_copies {
                 let Some(state) = self.state(connection_id) else { continue };
                 let copy = WorkbookConnection::new(connection_id.clone(), params_value(state));
-                let task = WriteTask::PatchWorkbookConnection { workbook_id: workbook_id.clone(), copy, replaced: Vec::new() };
+                let task =
+                    WriteTask::PatchWorkbookConnection { workbook_id: workbook_id.clone(), copy, replaced: Vec::new() };
                 let key = workbook_connection_copy_key(workbook_id, connection_id);
-                writes.push(PendingWrite { result: writer.write_durable(&key, task), what: format!("{workbook_id}:{connection_id}") });
+                writes.push(PendingWrite {
+                    result: writer.write_durable(&key, task),
+                    what: format!("{workbook_id}:{connection_id}"),
+                });
             }
         }
         for list in &pending.workbook_script_lists {
@@ -639,7 +733,11 @@ impl<H: RestoreHost, W: StorageHost> AppRestore<H, W> {
             Ok((entries, connections)) => {
                 let count = entries.len().to_string();
                 let connection_count = connections.len().to_string();
-                host.log(LogLevel::Info, "Loaded app manifest", &[("workbookCount", &count), ("connectionCount", &connection_count)]);
+                host.log(
+                    LogLevel::Info,
+                    "Loaded app manifest",
+                    &[("workbookCount", &count), ("connectionCount", &connection_count)],
+                );
                 // The connections before the workbooks that reference them
                 for entry in &connections {
                     run.restore_manifest_connection(entry).await;
@@ -648,10 +746,18 @@ impl<H: RestoreHost, W: StorageHost> AppRestore<H, W> {
                 run.report();
                 for (index, workbook_id) in entries.iter().enumerate() {
                     let position = format!("{}/{}", index + 1, entries.len());
-                    host.log(LogLevel::Info, "Restoring workbook", &[("index", &position), ("workbookId", workbook_id)]);
+                    host.log(
+                        LogLevel::Info,
+                        "Restoring workbook",
+                        &[("index", &position), ("workbookId", workbook_id)],
+                    );
                     match run.restore_workbook(workbook_id).await {
                         WorkbookOutcome::Restored(workbook) => {
-                            host.log(LogLevel::Info, "Workbook restored", &[("index", &position), ("workbookId", workbook_id)]);
+                            host.log(
+                                LogLevel::Info,
+                                "Workbook restored",
+                                &[("index", &position), ("workbookId", workbook_id)],
+                            );
                             workbooks.push(workbook);
                         }
                         WorkbookOutcome::Skipped(invalid) => {
@@ -670,7 +776,11 @@ impl<H: RestoreHost, W: StorageHost> AppRestore<H, W> {
                 }
             }
             Err(error) => {
-                host.log(LogLevel::Warn, "Failed to load manifest, starting with empty state", &[("error", error.message())]);
+                host.log(
+                    LogLevel::Warn,
+                    "Failed to load manifest, starting with empty state",
+                    &[("error", error.message())],
+                );
             }
         }
 
@@ -703,13 +813,20 @@ impl<H: RestoreHost, W: StorageHost> AppRestore<H, W> {
                     return Err(error);
                 }
                 return Err(match failed {
-                    WorkbookOutcome::Skipped(invalid) => HostError::new(format!("invalid workbook {workbook_id}: {}", invalid.error.code())),
+                    WorkbookOutcome::Skipped(invalid) => {
+                        HostError::new(format!("invalid workbook {workbook_id}: {}", invalid.error.code()))
+                    }
                     _ => HostError::new(not_restored_error(workbook_id).what()),
                 });
             }
         };
         run.flush_writes().await;
         let progress = run.progress.clone();
-        Ok(RestoredState { connections: run.states, workbooks: vec![workbook], invalid_workbooks: Vec::new(), progress })
+        Ok(RestoredState {
+            connections: run.states,
+            workbooks: vec![workbook],
+            invalid_workbooks: Vec::new(),
+            progress,
+        })
     }
 }

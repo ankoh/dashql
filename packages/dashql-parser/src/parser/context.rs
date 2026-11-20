@@ -14,7 +14,9 @@ use super::value::{ExprVariant, NodeList};
 use crate::names::NameRegistry;
 use crate::scanner::Symbol;
 use crate::span::TextSpan;
-use dashql_buffers::parser::{AttributeKey, ExpressionOperator, Node, NodeType, NumericType, SampleCountUnit, StatementType, SymbolSpan};
+use dashql_buffers::parser::{
+    AttributeKey, ExpressionOperator, Node, NodeType, NumericType, SampleCountUnit, StatementType, SymbolSpan,
+};
 
 /// The cell of the parse context state.
 ///
@@ -81,12 +83,7 @@ pub struct Statement {
 
 impl Default for Statement {
     fn default() -> Self {
-        Self {
-            statement_type: StatementType::NONE,
-            root: u32::MAX,
-            nodes_begin: 0,
-            node_count: 0,
-        }
+        Self { statement_type: StatementType::NONE, root: u32::MAX, nodes_begin: 0, node_count: 0 }
     }
 }
 
@@ -181,7 +178,14 @@ impl IntoNodeList for &[Node] {
 
 /// A node with replaced fields
 fn with_parent(n: &Node, parent: u32) -> Node {
-    Node::new(n.symbol_span(), n.node_type(), n.attribute_key(), parent, n.children_begin_or_value(), n.children_count())
+    Node::new(
+        n.symbol_span(),
+        n.node_type(),
+        n.attribute_key(),
+        parent,
+        n.children_begin_or_value(),
+        n.children_count(),
+    )
 }
 
 /// The null node, skipped by `object` and `array`
@@ -194,11 +198,7 @@ impl<'a> ParseContext<'a> {
         Self {
             text,
             symbols,
-            state: StateCell::new(State {
-                names,
-                nodes: Vec::with_capacity(symbols.len() * 3),
-                ..Default::default()
-            }),
+            state: StateCell::new(State { names, nodes: Vec::with_capacity(symbols.len() * 3), ..Default::default() }),
         }
     }
 
@@ -366,7 +366,13 @@ impl<'a> ParseContext<'a> {
     }
 
     /// An array of nodes with explicit options
-    pub fn array_ex(&self, mut loc: SymbolSpan, values: impl IntoNodeList, null_if_empty: bool, shrink_location: bool) -> Node {
+    pub fn array_ex(
+        &self,
+        mut loc: SymbolSpan,
+        values: impl IntoNodeList,
+        null_if_empty: bool,
+        shrink_location: bool,
+    ) -> Node {
         let list = values.into_node_list(self);
         let (begin, n) = self.emit_children(list);
         if n == 0 && null_if_empty {
@@ -447,12 +453,7 @@ impl<'a> ParseContext<'a> {
         let nary_args = self.list(&[]);
         let id = {
             let mut state = self.state.borrow_mut();
-            state.nary_expressions.push(NaryExpression {
-                location: loc,
-                op,
-                op_node,
-                args: nary_args,
-            });
+            state.nary_expressions.push(NaryExpression { location: loc, op, op_node, args: nary_args });
             state.nary_expressions.len() as u32 - 1
         };
         for &arg in args {
@@ -544,7 +545,10 @@ impl<'a> ParseContext<'a> {
         let l = self.resolve_text_span(left);
         let r = self.resolve_text_span(right);
         if l.end() != r.offset {
-            self.add_error(super::actions::loc(&[left, right]), &format!("expected adjacent punctuation \"{spelling}\""));
+            self.add_error(
+                super::actions::loc(&[left, right]),
+                &format!("expected adjacent punctuation \"{spelling}\""),
+            );
         }
     }
 
@@ -602,10 +606,7 @@ impl<'a> ParseContext<'a> {
         statement.statement_type = statement_type;
         statement.node_count = nodes_len - statement.nodes_begin;
         state.statements.push(statement);
-        state.current_statement = Statement {
-            nodes_begin: nodes_len,
-            ..Default::default()
-        };
+        state.current_statement = Statement { nodes_begin: nodes_len, ..Default::default() };
     }
 
     /// Drop the nodes of the current statement after an error
@@ -627,11 +628,7 @@ impl<'a> ParseContext<'a> {
     pub fn error(&self, loc: SymbolSpan, message: &str) {
         let mut state = self.state.borrow_mut();
         let hint = std::mem::take(&mut state.pending_hint);
-        state.errors.push(ParseError {
-            location: loc,
-            message: message.to_string(),
-            hint,
-        });
+        state.errors.push(ParseError { location: loc, message: message.to_string(), hint });
     }
 
     /// Drop the lookahead after the action (`yyclearin`)

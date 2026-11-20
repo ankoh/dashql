@@ -174,10 +174,9 @@ pub fn feed(states: &mut Vec<StateId>, token: SymbolKind) -> bool {
 /// Uses wrapping uint32 arithmetic.
 fn default_location(rhs: &[SymbolSpan], below: SymbolSpan) -> SymbolSpan {
     match (rhs.first(), rhs.last()) {
-        (Some(first), Some(last)) => SymbolSpan::new(
-            first.offset(),
-            last.offset().wrapping_add(last.length()).wrapping_sub(first.offset()),
-        ),
+        (Some(first), Some(last)) => {
+            SymbolSpan::new(first.offset(), last.offset().wrapping_add(last.length()).wrapping_sub(first.offset()))
+        }
         _ => SymbolSpan::new(below.offset().wrapping_add(below.length()), 0),
     }
 }
@@ -301,11 +300,7 @@ fn syntax_error(states: &[StateId], lookahead: Option<SymbolKind>, scratch: &mut
 
 /// Run the parser with the grammar actions. Returns false if parsing was aborted.
 pub fn parse(ctx: &mut ParseContext) -> bool {
-    let mut stack = Stack {
-        states: vec![0],
-        values: vec![Value::Empty],
-        locations: vec![SymbolSpan::default()],
-    };
+    let mut stack = Stack { states: vec![0], values: vec![Value::Empty], locations: vec![SymbolSpan::default()] };
     let mut tokens = TokenStream { next_index: 0 };
     let mut lookahead: Option<Lookahead> = None;
     // The location of the lookahead; it outlives the lookahead itself, like bison's yyla.location.
@@ -435,7 +430,10 @@ pub fn parse(ctx: &mut ParseContext) -> bool {
                 errstatus = 3;
                 // A statement that nests too deep recovers at the lowest state that shifts the error token
                 if std::mem::take(&mut unwind) {
-                    let bottom = stack.states.iter().position(|&state| matches!(table_action(state, S_YYerror), Some(Action::Shift(_))));
+                    let bottom = stack
+                        .states
+                        .iter()
+                        .position(|&state| matches!(table_action(state, S_YYerror), Some(Action::Shift(_))));
                     if let Some(bottom) = bottom {
                         error_range_begin = stack.locations.get(bottom + 1).copied().unwrap_or(error_range_begin);
                         stack.pop(stack.states.len().saturating_sub(bottom + 1));
@@ -462,7 +460,12 @@ pub fn parse(ctx: &mut ParseContext) -> bool {
 }
 
 /// Run the action of a rule
-fn reduce(ctx: &mut ParseContext, rule: usize, stack: &Stack, location: SymbolSpan) -> Result<Option<Value>, ReduceError> {
+fn reduce(
+    ctx: &mut ParseContext,
+    rule: usize,
+    stack: &Stack,
+    location: SymbolSpan,
+) -> Result<Option<Value>, ReduceError> {
     crate::tables::reduce(ctx, rule, stack, location)
 }
 

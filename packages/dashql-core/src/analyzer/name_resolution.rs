@@ -14,11 +14,11 @@ use super::sql_types::read_sql_type;
 use super::state::{quote_identifier, AnalysisState};
 use super::types::*;
 use crate::catalog::*;
+use crate::hash::{HashMap, HashSet};
 use crate::table_parameters::{TableParameterLookup, TABLE_PARAMETERS_ENTRY_ID};
 use dashql_buffers::analyzer::{AnalyzerErrorSeverity, AnalyzerErrorType, NameTag, SemanticNodeMarkerType};
 use dashql_buffers::parser::{AttributeKey as K, JoinType, Node, NodeType, StatementType, SymbolSpan};
 use dashql_parser::attrs;
-use crate::hash::{HashMap, HashSet};
 use std::ops::Range;
 use std::sync::Arc;
 
@@ -246,9 +246,18 @@ impl NameResolutionPass {
     }
 
     /// Register a schema and its database
-    fn register_schema(state: &mut AnalysisState, database_name: &Name, schema_name: &Name) -> QualifiedCatalogObjectId {
+    fn register_schema(
+        state: &mut AnalysisState,
+        database_name: &Name,
+        schema_name: &Name,
+    ) -> QualifiedCatalogObjectId {
         let entry = &state.out.entry;
-        let db_id = match entry.databases_by_name.get(&database_name.text).and_then(|&i| entry.database_references.get(i)).map(|d| d.object_id) {
+        let db_id = match entry
+            .databases_by_name
+            .get(&database_name.text)
+            .and_then(|&i| entry.database_references.get(i))
+            .map(|d| d.object_id)
+        {
             Some(db_id) => db_id,
             None => {
                 let db_id = state.catalog.reserve_database_id(&database_name.text);
@@ -265,7 +274,12 @@ impl NameResolutionPass {
         };
         let key = (database_name.text.clone(), schema_name.text.clone());
         let entry = &state.out.entry;
-        match entry.schemas_by_qualified_name.get(&key).and_then(|&i| entry.schema_references.get(i)).map(|s| s.object_id) {
+        match entry
+            .schemas_by_qualified_name
+            .get(&key)
+            .and_then(|&i| entry.schema_references.get(i))
+            .map(|s| s.object_id)
+        {
             Some(schema_id) => schema_id,
             None => {
                 let schema_id = state.catalog.reserve_schema_id(&database_name.text, &schema_name.text, db_id);
@@ -306,8 +320,13 @@ impl NameResolutionPass {
         for action in state.children(actions) {
             match action.node_type() {
                 NodeType::OBJECT_SQL_ALTER_RENAME_TABLE | NodeType::OBJECT_SQL_ALTER_SET_SCHEMA => {
-                    let [new_table, new_schema] = attrs!(state.children(action), [K::SQL_ALTER_ACTION_NEW_TABLE, K::SQL_ALTER_ACTION_NEW_NAME]);
-                    let Some(source) = state.out.entry.table_declarations.get(table as usize).map(|t| t.table_name.clone()) else { continue };
+                    let [new_table, new_schema] =
+                        attrs!(state.children(action), [K::SQL_ALTER_ACTION_NEW_TABLE, K::SQL_ALTER_ACTION_NEW_NAME]);
+                    let Some(source) =
+                        state.out.entry.table_declarations.get(table as usize).map(|t| t.table_name.clone())
+                    else {
+                        continue;
+                    };
                     let moved = match new_table {
                         Some(new_table) => state.read_qualified_table_name(Some(new_table)),
                         None => Some(source.clone()),
@@ -333,7 +352,13 @@ impl NameResolutionPass {
     }
 
     /// The declaration of a relation under its new name, the old one stays for the statements before the `ALTER`
-    fn move_declaration(&mut self, state: &mut AnalysisState, table: u32, name: &QualifiedTableName, node_id: u32) -> u32 {
+    fn move_declaration(
+        &mut self,
+        state: &mut AnalysisState,
+        table: u32,
+        name: &QualifiedTableName,
+        node_id: u32,
+    ) -> u32 {
         let Some(source) = state.out.entry.table_declarations.get(table as usize) else { return table };
         let (is_view, source_columns) = (source.is_view, source.table_columns.clone());
         let schema_id = Self::register_schema(state, &name.database_name, &name.schema_name);
@@ -351,15 +376,26 @@ impl NameResolutionPass {
                 table: Some(table_id),
                 ..source.clone()
             });
-            state.resolve_name(&source.column_name, CatalogObjectRef::Column(ColumnLoc { table: TableLoc { entry: state.entry_id, index }, column: column_index as u32 }));
+            state.resolve_name(
+                &source.column_name,
+                CatalogObjectRef::Column(ColumnLoc {
+                    table: TableLoc { entry: state.entry_id, index },
+                    column: column_index as u32,
+                }),
+            );
         }
         state.entry_mut().table_declarations.push(moved);
         state.resolve_name(&name.table_name, CatalogObjectRef::Table(TableLoc { entry: state.entry_id, index }));
         // A table of `CREATE TABLE AS` gets its columns from the same query
         if let Some(pending) = self.pending_derived_tables.iter().find(|p| p.table == table) {
-            let pending = PendingDerivedTable { table: index, select_node_id: pending.select_node_id, column_aliases: pending.column_aliases.clone() };
+            let pending = PendingDerivedTable {
+                table: index,
+                select_node_id: pending.select_node_id,
+                column_aliases: pending.column_aliases.clone(),
+            };
             self.pending_derived_tables.push(pending);
-            let queued: Vec<(u32, u32)> = self.pending_alters.iter().filter(|(t, _)| *t == table).map(|(_, action)| (index, *action)).collect();
+            let queued: Vec<(u32, u32)> =
+                self.pending_alters.iter().filter(|(t, _)| *t == table).map(|(_, action)| (index, *action)).collect();
             self.pending_alters.extend(queued);
         }
         index
@@ -367,26 +403,42 @@ impl NameResolutionPass {
 
     /// Apply an action that changes the columns of a declared table
     fn apply_column_action(state: &mut AnalysisState, table: u32, action: &Node) {
-        let Some(table_id) = state.out.entry.table_declarations.get(table as usize).map(|t| t.table_id()) else { return };
+        let Some(table_id) = state.out.entry.table_declarations.get(table as usize).map(|t| t.table_id()) else {
+            return;
+        };
         let entry_id = state.entry_id;
         let loc = move |column: u32| ColumnLoc { table: TableLoc { entry: entry_id, index: table }, column };
-        let [column, new_name, column_type] =
-            attrs!(state.children(action), [K::SQL_ALTER_ACTION_COLUMN, K::SQL_ALTER_ACTION_NEW_NAME, K::SQL_ALTER_ACTION_TYPE]);
+        let [column, new_name, column_type] = attrs!(
+            state.children(action),
+            [K::SQL_ALTER_ACTION_COLUMN, K::SQL_ALTER_ACTION_NEW_NAME, K::SQL_ALTER_ACTION_TYPE]
+        );
         let Some(column) = column else { return };
         match action.node_type() {
             NodeType::OBJECT_SQL_ALTER_ADD_COLUMN => {
-                let [name, declared_type] = attrs!(state.children(column), [K::SQL_COLUMN_DEF_NAME, K::SQL_COLUMN_DEF_TYPE]);
+                let [name, declared_type] =
+                    attrs!(state.children(column), [K::SQL_COLUMN_DEF_NAME, K::SQL_COLUMN_DEF_TYPE]);
                 let Some(name) = name.filter(|n| n.node_type() == NodeType::NAME) else { return };
                 let name = state.node_name(name);
                 state.tag(&name, NameTag::COLUMN_NAME);
-                if state.out.entry.table_declarations.get(table as usize).is_some_and(|t| t.table_columns_by_name.contains_key(&name.text)) {
+                if state
+                    .out
+                    .entry
+                    .table_declarations
+                    .get(table as usize)
+                    .is_some_and(|t| t.table_columns_by_name.contains_key(&name.text))
+                {
                     return;
                 }
-                let Some(&column_id) = state.reserve_column_ids(table_id, std::iter::once(&name.text)).first() else { return };
-                let column_type = declared_type.and_then(|t| read_sql_type(state.parsed, t)).map(|t| Arc::from(t.to_string()));
+                let Some(&column_id) = state.reserve_column_ids(table_id, std::iter::once(&name.text)).first() else {
+                    return;
+                };
+                let column_type =
+                    declared_type.and_then(|t| read_sql_type(state.parsed, t)).map(|t| Arc::from(t.to_string()));
                 let ast_node_id = state.node_id(column);
                 let location = state.text_span(*column.symbol_span());
-                let Some(table_declaration) = state.entry_mut().table_declarations.get_mut(table as usize) else { return };
+                let Some(table_declaration) = state.entry_mut().table_declarations.get_mut(table as usize) else {
+                    return;
+                };
                 let column_index = table_declaration.table_columns.len();
                 table_declaration.table_columns_by_name.insert(name.text.clone(), column_index);
                 table_declaration.table_columns.push(TableColumn {
@@ -400,16 +452,26 @@ impl NameResolutionPass {
                 let object = CatalogObjectRef::Column(loc(column_index as u32));
                 state.resolve_name(&name, object);
             }
-            NodeType::OBJECT_SQL_ALTER_DROP_COLUMN | NodeType::OBJECT_SQL_ALTER_RENAME_COLUMN | NodeType::OBJECT_SQL_ALTER_COLUMN_TYPE => {
+            NodeType::OBJECT_SQL_ALTER_DROP_COLUMN
+            | NodeType::OBJECT_SQL_ALTER_RENAME_COLUMN
+            | NodeType::OBJECT_SQL_ALTER_COLUMN_TYPE => {
                 if column.node_type() != NodeType::NAME {
                     return;
                 }
                 let name = state.node_name(column);
-                let column_index = state.out.entry.table_declarations.get(table as usize).and_then(|t| t.table_columns_by_name.get(&name.text));
+                let column_index = state
+                    .out
+                    .entry
+                    .table_declarations
+                    .get(table as usize)
+                    .and_then(|t| t.table_columns_by_name.get(&name.text));
                 let Some(&column_index) = column_index else { return };
                 match action.node_type() {
                     NodeType::OBJECT_SQL_ALTER_DROP_COLUMN => {
-                        let Some(table_declaration) = state.entry_mut().table_declarations.get_mut(table as usize) else { return };
+                        let Some(table_declaration) = state.entry_mut().table_declarations.get_mut(table as usize)
+                        else {
+                            return;
+                        };
                         if column_index >= table_declaration.table_columns.len() {
                             return;
                         }
@@ -438,8 +500,15 @@ impl NameResolutionPass {
                         let Some(new_name) = new_name.filter(|n| n.node_type() == NodeType::NAME) else { return };
                         let new_name = state.node_name(new_name);
                         state.tag(&new_name, NameTag::COLUMN_NAME);
-                        let Some(&column_id) = state.reserve_column_ids(table_id, std::iter::once(&new_name.text)).first() else { return };
-                        let Some(table_declaration) = state.entry_mut().table_declarations.get_mut(table as usize) else { return };
+                        let Some(&column_id) =
+                            state.reserve_column_ids(table_id, std::iter::once(&new_name.text)).first()
+                        else {
+                            return;
+                        };
+                        let Some(table_declaration) = state.entry_mut().table_declarations.get_mut(table as usize)
+                        else {
+                            return;
+                        };
                         let Some(declared) = table_declaration.table_columns.get_mut(column_index) else { return };
                         table_declaration.table_columns_by_name.remove(&name.text);
                         table_declaration.table_columns_by_name.insert(new_name.text.clone(), column_index);
@@ -450,7 +519,8 @@ impl NameResolutionPass {
                         state.resolve_name(&new_name, object);
                     }
                     _ => {
-                        let declared_type = column_type.and_then(|t| read_sql_type(state.parsed, t)).map(|t| Arc::from(t.to_string()));
+                        let declared_type =
+                            column_type.and_then(|t| read_sql_type(state.parsed, t)).map(|t| Arc::from(t.to_string()));
                         let table_declaration = state.entry_mut().table_declarations.get_mut(table as usize);
                         if let Some(declared) = table_declaration.and_then(|t| t.table_columns.get_mut(column_index)) {
                             declared.column_type = declared_type;
@@ -530,12 +600,18 @@ impl NameResolutionPass {
                 .collect()
         };
         let table_index = pending.table;
-        let Some(table_id) = state.out.entry.table_declarations.get(table_index as usize).map(|t| t.table_id()) else { return };
+        let Some(table_id) = state.out.entry.table_declarations.get(table_index as usize).map(|t| t.table_id()) else {
+            return;
+        };
         let column_ids = state.reserve_column_ids(table_id, columns.iter().map(|(n, _)| &n.text));
         for ((column_index, (column_name, output)), column_id) in columns.into_iter().enumerate().zip(column_ids) {
             // Only a column that is passed through keeps a known type, expressions have no type in the analyzer
-            let source = Self::resolved_table_column(state, ColumnResolution::ScopeColumn { scope: output_scope, column: output });
-            let column_type = source.and_then(|loc| state.table(loc.table)?.table_columns.get(loc.column as usize)?.column_type.clone());
+            let source = Self::resolved_table_column(
+                state,
+                ColumnResolution::ScopeColumn { scope: output_scope, column: output },
+            );
+            let column_type = source
+                .and_then(|loc| state.table(loc.table)?.table_columns.get(loc.column as usize)?.column_type.clone());
             let Some(table) = state.entry_mut().table_declarations.get_mut(table_index as usize) else { return };
             table.table_columns_by_name.entry(column_name.text.clone()).or_insert(column_index);
             table.table_columns.push(TableColumn {
@@ -591,7 +667,13 @@ impl NameResolutionPass {
     /// The FROM item of a table parameter `:foo` that reads the result of the script `foo.sql` or the attachment
     /// `foo.parquet`, None if the parameter is positional, the target of a write, ambiguous, or names no table parameter
     /// with columns
-    fn table_parameter_source(state: &mut AnalysisState, node_id: u32, node: &Node, table_node: Option<&Node>, alias_node: Option<&Node>) -> Option<(ScopeSource, TableRefId)> {
+    fn table_parameter_source(
+        state: &mut AnalysisState,
+        node_id: u32,
+        node: &Node,
+        table_node: Option<&Node>,
+        alias_node: Option<&Node>,
+    ) -> Option<(ScopeSource, TableRefId)> {
         let parameter = table_node.filter(|n| n.node_type() == NodeType::OBJECT_SQL_PARAMETER_REF)?;
         if matches!(node.attribute_key(), K::SQL_INSERT_TARGET | K::SQL_DELETE_TARGET) {
             return None;
@@ -649,7 +731,12 @@ impl NameResolutionPass {
         let Some(s) = state.out.scope(scope) else { return };
         if let Some(name) = source.name.as_ref().filter(|name| s.source(name).is_some()) {
             let message = format!("duplicate table alias {}", quote_identifier(name));
-            state.add_error(AnalyzerErrorType::DUPLICATE_TABLE_ALIAS, AnalyzerErrorSeverity::ERROR, source.ast_node_id, message);
+            state.add_error(
+                AnalyzerErrorType::DUPLICATE_TABLE_ALIAS,
+                AnalyzerErrorSeverity::ERROR,
+                source.ast_node_id,
+                message,
+            );
             return;
         }
         if let Some(s) = state.out.scope_mut(scope) {
@@ -693,17 +780,15 @@ impl NameResolutionPass {
                 if let Some(index) = candidate.cte_definitions.get_index(&ref_name) {
                     let mut visible = true;
                     if !candidate.ctes_recursive {
-                        let definition = candidate.cte_definitions.at(index).and_then(|d| state.node(d.definition_node_id));
+                        let definition =
+                            candidate.cte_definitions.at(index).and_then(|d| state.node(d.definition_node_id));
                         visible = definition.is_some_and(|d| {
                             let span = d.symbol_span();
                             reference_offset > span.offset() + span.length()
                         });
                     }
                     if visible {
-                        matched_cte = Some(CteLoc {
-                            scope: sid,
-                            index: index as u32,
-                        });
+                        matched_cte = Some(CteLoc { scope: sid, index: index as u32 });
                         break;
                     }
                 }
@@ -733,24 +818,26 @@ impl NameResolutionPass {
                     })
                     .collect();
                 // A location that the catalog doesn't hold keeps the referenced name
-                let best_name = entries.first().map_or_else(|| ref_name.clone(), |e| e.table_name.table_name.text.clone());
+                let best_name =
+                    entries.first().map_or_else(|| ref_name.clone(), |e| e.table_name.table_name.text.clone());
                 if let Some(relation) = state.out.table_ref_mut(table_ref_id).and_then(|t| t.inner.as_mut()) {
                     let mut entries = entries.into_iter();
                     relation.resolved_table = entries.next();
                     relation.resolved_alternatives.extend(entries);
                 }
                 let Some(table_ref) = state.out.table_ref(table_ref_id) else { continue };
-                sources.push(source(table_ref, Self::table_ref_alias(table_ref, &best_name), ReferencedTable::Table(best_loc)));
+                sources.push(source(
+                    table_ref,
+                    Self::table_ref_alias(table_ref, &best_name),
+                    ReferencedTable::Table(best_loc),
+                ));
                 continue;
             }
 
             // Neither a CTE nor in the catalog. Register an unresolved relation so that columns used
             // against it can be associated for schema inference.
             let Some(table_ref) = state.out.table_ref(table_ref_id) else { continue };
-            let unresolved = ReferencedTable::Unresolved(UnresolvedRelation {
-                table_ref: table_ref_id,
-                table_name,
-            });
+            let unresolved = ReferencedTable::Unresolved(UnresolvedRelation { table_ref: table_ref_id, table_name });
             sources.push(source(table_ref, Self::table_ref_alias(table_ref, &ref_name), unresolved));
         }
         // Register the FROM items in FROM order, table refs follow the nodes of earlier FROM items in
@@ -758,7 +845,8 @@ impl NameResolutionPass {
         sources.sort_by_key(|s| s.ast_node_id);
         // The result of a script yields its name to the other FROM items, the planner renames its common table
         // expression as well
-        let taken: HashSet<Arc<str>> = sources.iter().filter(|s| !Self::is_table_parameter(s)).filter_map(|s| s.name.clone()).collect();
+        let taken: HashSet<Arc<str>> =
+            sources.iter().filter(|s| !Self::is_table_parameter(s)).filter_map(|s| s.name.clone()).collect();
         for source in sources.iter_mut().filter(|s| Self::is_table_parameter(s)) {
             if source.name.as_ref().is_some_and(|n| taken.contains(n)) {
                 source.name = None;
@@ -778,14 +866,16 @@ impl NameResolutionPass {
     }
 
     /// Resolve a column against the output columns of a scope
-    fn resolve_scope_column(state: &AnalysisState, scope: ScopeId, aliases: &[Name], column_name: &str) -> ColumnResolution {
+    fn resolve_scope_column(
+        state: &AnalysisState,
+        scope: ScopeId,
+        aliases: &[Name],
+        column_name: &str,
+    ) -> ColumnResolution {
         let Some(s) = state.out.scope(scope) else { return ColumnResolution::Unresolved };
         let by_name = s.output_columns_by_name.get(column_name).copied();
         match Self::find_column(aliases, s.output_columns.len(), column_name, by_name) {
-            Some(column) => ColumnResolution::ScopeColumn {
-                scope,
-                column: column as u32,
-            },
+            Some(column) => ColumnResolution::ScopeColumn { scope, column: column as u32 },
             None => ColumnResolution::Unresolved,
         }
     }
@@ -797,10 +887,7 @@ impl NameResolutionPass {
                 let Some(table) = state.table(*loc) else { return ColumnResolution::Unresolved };
                 let by_name = table.table_columns_by_name.get(column_name).copied();
                 match Self::find_column(&source.column_aliases, table.table_columns.len(), column_name, by_name) {
-                    Some(column) => ColumnResolution::TableColumn(ColumnLoc {
-                        table: *loc,
-                        column: column as u32,
-                    }),
+                    Some(column) => ColumnResolution::TableColumn(ColumnLoc { table: *loc, column: column as u32 }),
                     None => ColumnResolution::Unresolved,
                 }
             }
@@ -812,10 +899,13 @@ impl NameResolutionPass {
                 let Some(child) = cte.child_scope else {
                     return ColumnResolution::Unresolved;
                 };
-                let aliases = if source.column_aliases.is_empty() { &cte.column_aliases } else { &source.column_aliases };
+                let aliases =
+                    if source.column_aliases.is_empty() { &cte.column_aliases } else { &source.column_aliases };
                 Self::resolve_scope_column(state, child, aliases, column_name)
             }
-            ReferencedTable::Subquery(child) => Self::resolve_scope_column(state, *child, &source.column_aliases, column_name),
+            ReferencedTable::Subquery(child) => {
+                Self::resolve_scope_column(state, *child, &source.column_aliases, column_name)
+            }
         }
     }
 
@@ -838,13 +928,22 @@ impl NameResolutionPass {
     fn is_using_column(&self, state: &AnalysisState, scope: ScopeId, source_nodes: &[u32], column_name: &str) -> bool {
         let Some(joins) = self.using_joins.get(&scope) else { return false };
         joins.iter().any(|join| {
-            join.uses(column_name) && source_nodes.iter().all(|&node_id| Self::is_within(state, node_id, join.ast_node_id))
+            join.uses(column_name)
+                && source_nodes.iter().all(|&node_id| Self::is_within(state, node_id, join.ast_node_id))
         })
     }
 
     /// Look up a column ref in the visible FROM items of a scope
-    fn try_resolve_column_in_scope(&mut self, state: &mut AnalysisState, expr: ExprId, target: ScopeId, visibility: SourceVisibility) -> Lookup {
-        let Some(column_ref) = state.out.expression(expr).and_then(Expression::column_ref) else { return Lookup::Missing };
+    fn try_resolve_column_in_scope(
+        &mut self,
+        state: &mut AnalysisState,
+        expr: ExprId,
+        target: ScopeId,
+        visibility: SourceVisibility,
+    ) -> Lookup {
+        let Some(column_ref) = state.out.expression(expr).and_then(Expression::column_ref) else {
+            return Lookup::Missing;
+        };
         let column_name = column_ref.column_name.column_name.text.clone();
         let alias = column_ref.column_name.table_alias.as_ref().map(|a| a.text.clone());
         let Some(scope) = state.out.scope(target) else { return Lookup::Missing };
@@ -875,7 +974,12 @@ impl NameResolutionPass {
             [(_, _, resolution)] => *resolution,
             // A USING column resolves to the column of the first input
             [(_, _, resolution), ..]
-                if self.is_using_column(state, target, &candidates.iter().map(|c| c.0).collect::<Vec<_>>(), &column_name) =>
+                if self.is_using_column(
+                    state,
+                    target,
+                    &candidates.iter().map(|c| c.0).collect::<Vec<_>>(),
+                    &column_name,
+                ) =>
             {
                 *resolution
             }
@@ -893,7 +997,12 @@ impl NameResolutionPass {
                     message.push_str(&quote_identifier(&column_name));
                 }
                 if let Some(node_id) = state.out.expression(expr).map(|e| e.ast_node_id) {
-                    state.add_error(AnalyzerErrorType::COLUMN_REF_AMBIGUOUS, AnalyzerErrorSeverity::ERROR, node_id, message);
+                    state.add_error(
+                        AnalyzerErrorType::COLUMN_REF_AMBIGUOUS,
+                        AnalyzerErrorSeverity::ERROR,
+                        node_id,
+                        message,
+                    );
                 }
                 self.ambiguous_column_refs.insert(expr);
                 return Lookup::Ambiguous;
@@ -933,7 +1042,9 @@ impl NameResolutionPass {
 
     /// How a column ref sees the output columns of its scope
     fn output_names(state: &AnalysisState, expr: ExprId) -> OutputNames {
-        let Some(node) = state.out.expression(expr).and_then(|e| state.node(e.ast_node_id)) else { return OutputNames::Invisible };
+        let Some(node) = state.out.expression(expr).and_then(|e| state.node(e.ast_node_id)) else {
+            return OutputNames::Invisible;
+        };
         let (output_names, list_key) = match node.attribute_key() {
             K::SQL_ORDER_VALUE => (OutputNames::Preferred, K::SQL_SELECT_ORDER),
             K::SQL_GROUP_BY_ITEM_ARG => (OutputNames::Fallback, K::SQL_SELECT_GROUPS),
@@ -1027,7 +1138,11 @@ impl NameResolutionPass {
     }
 
     /// Look up a FROM item by name in a scope and in the parent scopes it sees
-    fn lookup_source_in_scope_chain<'s>(state: &'s AnalysisState, scope: ScopeId, name: &str) -> Option<&'s ScopeSource> {
+    fn lookup_source_in_scope_chain<'s>(
+        state: &'s AnalysisState,
+        scope: ScopeId,
+        name: &str,
+    ) -> Option<&'s ScopeSource> {
         let mut current = scope;
         let mut visibility = SourceVisibility::All;
         loop {
@@ -1056,10 +1171,13 @@ impl NameResolutionPass {
             }
             // In p.x, p is not a table in scope but may be a row-typed column with a field x
             let qualified = column_ref.column_name.clone();
-            let Some(column_ref) = state.out.expression_mut(expr).and_then(Expression::column_ref_mut) else { continue };
+            let Some(column_ref) = state.out.expression_mut(expr).and_then(Expression::column_ref_mut) else {
+                continue;
+            };
             column_ref.column_name.table_alias = None;
             column_ref.column_name.column_name = qualifier.clone();
-            let resolved = self.try_resolve_column_in_scope(state, expr, scope, SourceVisibility::All) == Lookup::Resolved
+            let resolved = self.try_resolve_column_in_scope(state, expr, scope, SourceVisibility::All)
+                == Lookup::Resolved
                 || self.resolve_from_parent_chain(state, expr, scope);
             if resolved {
                 state.tag(&qualifier, NameTag::COLUMN_NAME);
@@ -1077,10 +1195,9 @@ impl NameResolutionPass {
             .sources
             .iter()
             .filter_map(|source| match &source.table {
-                ReferencedTable::Unresolved(rel) => Some(InferenceCandidate {
-                    table_name: rel.table_name.clone(),
-                    table_ref: rel.table_ref,
-                }),
+                ReferencedTable::Unresolved(rel) => {
+                    Some(InferenceCandidate { table_name: rel.table_name.clone(), table_ref: rel.table_ref })
+                }
                 _ => None,
             })
             .collect();
@@ -1133,7 +1250,8 @@ impl NameResolutionPass {
 
     /// The columns of a FROM item, as a star forwards them
     fn source_columns(state: &AnalysisState, source: &ScopeSource) -> Vec<ScopeColumn> {
-        let scope_columns = |scope: ScopeId| state.out.scope(scope).map(|s| s.output_columns.clone()).unwrap_or_default();
+        let scope_columns =
+            |scope: ScopeId| state.out.scope(scope).map(|s| s.output_columns.clone()).unwrap_or_default();
         let mut columns = match &source.table {
             ReferencedTable::Table(loc) => match state.table(*loc) {
                 Some(table) => table
@@ -1142,26 +1260,25 @@ impl NameResolutionPass {
                     .enumerate()
                     .map(|(ci, column)| ScopeColumn {
                         column_name: column.column_name.clone(),
-                        source: ScopeColumnSource::TableColumn(ColumnLoc {
-                            table: *loc,
-                            column: ci as u32,
-                        }),
+                        source: ScopeColumnSource::TableColumn(ColumnLoc { table: *loc, column: ci as u32 }),
                     })
                     .collect(),
                 None => Vec::new(),
             },
             // An unresolved relation has an unknown schema
             ReferencedTable::Unresolved(_) => Vec::new(),
-            ReferencedTable::Cte(loc) => match state.out.scope(loc.scope).and_then(|s| s.cte_definitions.at(loc.index as usize)) {
-                Some(cte) => {
-                    let mut columns = cte.child_scope.map(scope_columns).unwrap_or_default();
-                    for (column, alias) in columns.iter_mut().zip(&cte.column_aliases) {
-                        column.column_name = alias.clone();
+            ReferencedTable::Cte(loc) => {
+                match state.out.scope(loc.scope).and_then(|s| s.cte_definitions.at(loc.index as usize)) {
+                    Some(cte) => {
+                        let mut columns = cte.child_scope.map(scope_columns).unwrap_or_default();
+                        for (column, alias) in columns.iter_mut().zip(&cte.column_aliases) {
+                            column.column_name = alias.clone();
+                        }
+                        columns
                     }
-                    columns
+                    None => Vec::new(),
                 }
-                None => Vec::new(),
-            },
+            }
             ReferencedTable::Subquery(child) => scope_columns(*child),
         };
         for (column, alias) in columns.iter_mut().zip(&source.column_aliases) {
@@ -1322,14 +1439,17 @@ impl NameResolutionPass {
                         return;
                     }
                 }
-                let [name, column_type] = attrs!(state.children(node), [K::SQL_COLUMN_DEF_NAME, K::SQL_COLUMN_DEF_TYPE]);
+                let [name, column_type] =
+                    attrs!(state.children(node), [K::SQL_COLUMN_DEF_NAME, K::SQL_COLUMN_DEF_TYPE]);
                 if let Some(name) = name.filter(|n| n.node_type() == NodeType::NAME) {
                     let name = state.node_name(name);
                     state.tag(&name, NameTag::COLUMN_NAME);
                     node_state.table_columns.push(PendingColumn {
                         ast_node_id: node_id,
                         column_name: name,
-                        column_type: column_type.and_then(|t| read_sql_type(state.parsed, t)).map(|t| Arc::from(t.to_string())),
+                        column_type: column_type
+                            .and_then(|t| read_sql_type(state.parsed, t))
+                            .map(|t| Arc::from(t.to_string())),
                     });
                 }
             }
@@ -1351,7 +1471,8 @@ impl NameResolutionPass {
                         resolved_ids: None,
                         inferred: None,
                     };
-                    let expr = state.add_expression(node_id, *node.symbol_span(), ExpressionInner::ColumnRef(column_ref));
+                    let expr =
+                        state.add_expression(node_id, *node.symbol_span(), ExpressionInner::ColumnRef(column_ref));
                     node_state.column_references.push(expr);
                     state.set_expression_of(node_id, expr);
                     state.mark(node_id, SemanticNodeMarkerType::COLUMN_REFERENCE);
@@ -1364,12 +1485,10 @@ impl NameResolutionPass {
                 if self.is_inside_graph_syntax(state, node_id) {
                     return;
                 }
-                let [name_node, alias_node, table_node, lateral] = attrs!(state.children(node), [
-                    K::SQL_TABLEREF_NAME,
-                    K::SQL_TABLEREF_ALIAS,
-                    K::SQL_TABLEREF_TABLE,
-                    K::SQL_TABLEREF_LATERAL,
-                ]);
+                let [name_node, alias_node, table_node, lateral] = attrs!(
+                    state.children(node),
+                    [K::SQL_TABLEREF_NAME, K::SQL_TABLEREF_ALIAS, K::SQL_TABLEREF_TABLE, K::SQL_TABLEREF_LATERAL,]
+                );
                 if let Some(name) = state.read_qualified_table_name(name_node) {
                     let (alias, column_aliases) = Self::read_alias(state, alias_node);
                     let id = state.out.table_references.len() as TableRefId;
@@ -1390,7 +1509,9 @@ impl NameResolutionPass {
                     });
                     node_state.table_references.push(id);
                     state.mark(node_id, SemanticNodeMarkerType::TABLE_REFERENCE);
-                } else if let Some((source, table_ref)) = Self::table_parameter_source(state, node_id, node, table_node, alias_node) {
+                } else if let Some((source, table_ref)) =
+                    Self::table_parameter_source(state, node_id, node, table_node, alias_node)
+                {
                     // A table parameter that reads the result of a script of the session
                     node_state.derived_tables.push(source);
                     node_state.table_references.push(table_ref);
@@ -1421,15 +1542,11 @@ impl NameResolutionPass {
                     return;
                 }
                 self.merge_child_states(node_state, node);
-                let [value, name, star] = attrs!(state.children(node), [
-                    K::SQL_RESULT_TARGET_VALUE,
-                    K::SQL_RESULT_TARGET_NAME,
-                    K::SQL_RESULT_TARGET_STAR,
-                ]);
-                let mut rt = ResultTarget {
-                    ast_node_id: node_id,
-                    ..Default::default()
-                };
+                let [value, name, star] = attrs!(
+                    state.children(node),
+                    [K::SQL_RESULT_TARGET_VALUE, K::SQL_RESULT_TARGET_NAME, K::SQL_RESULT_TARGET_STAR,]
+                );
+                let mut rt = ResultTarget { ast_node_id: node_id, ..Default::default() };
                 if star.is_some() {
                     rt.is_star = true;
                     let [path] = value.map(|v| attrs!(state.children(v), [K::SQL_COLUMN_REF_PATH])).unwrap_or([None]);
@@ -1492,15 +1609,19 @@ impl NameResolutionPass {
             }
 
             NodeType::OBJECT_SQL_INSERT => {
-                let [target, columns, source, default_values, returning, recursive] = attrs!(state.children(node), [
-                    K::SQL_INSERT_TARGET,
-                    K::SQL_INSERT_COLUMNS,
-                    K::SQL_INSERT_SOURCE,
-                    K::SQL_INSERT_DEFAULT_VALUES,
-                    K::SQL_INSERT_RETURNING,
-                    K::SQL_SELECT_WITH_RECURSIVE,
-                ]);
-                let target_ref = target.and_then(|t| self.node_states.get(state.node_id(t) as usize)?.table_references.first().copied());
+                let [target, columns, source, default_values, returning, recursive] = attrs!(
+                    state.children(node),
+                    [
+                        K::SQL_INSERT_TARGET,
+                        K::SQL_INSERT_COLUMNS,
+                        K::SQL_INSERT_SOURCE,
+                        K::SQL_INSERT_DEFAULT_VALUES,
+                        K::SQL_INSERT_RETURNING,
+                        K::SQL_SELECT_WITH_RECURSIVE,
+                    ]
+                );
+                let target_ref = target
+                    .and_then(|t| self.node_states.get(state.node_id(t) as usize)?.table_references.first().copied());
                 let Some(target_ref) = target_ref else {
                     self.merge_child_states(node_state, node);
                     return;
@@ -1554,9 +1675,11 @@ impl NameResolutionPass {
             }
 
             NodeType::OBJECT_SQL_DELETE => {
-                let [target, recursive] = attrs!(state.children(node), [K::SQL_DELETE_TARGET, K::SQL_SELECT_WITH_RECURSIVE]);
+                let [target, recursive] =
+                    attrs!(state.children(node), [K::SQL_DELETE_TARGET, K::SQL_SELECT_WITH_RECURSIVE]);
                 if let Some(target) = target {
-                    let target_refs = self.node_states.get(state.node_id(target) as usize).map(|s| s.table_references.as_slice());
+                    let target_refs =
+                        self.node_states.get(state.node_id(target) as usize).map(|s| s.table_references.as_slice());
                     for &table_ref in target_refs.unwrap_or_default() {
                         if let Some(table_ref) = state.out.table_ref_mut(table_ref) {
                             table_ref.role = TableRole::Write;
@@ -1588,15 +1711,9 @@ impl NameResolutionPass {
                             columns.push(name.text);
                         }
                     }
-                    node_state.using_joins.push(UsingJoin {
-                        ast_node_id: node_id,
-                        using: Some(columns),
-                    });
+                    node_state.using_joins.push(UsingJoin { ast_node_id: node_id, using: Some(columns) });
                 } else if join_type.is_some_and(|t| t.children_begin_or_value() as u8 & JoinType::NATURAL_.0 != 0) {
-                    node_state.using_joins.push(UsingJoin {
-                        ast_node_id: node_id,
-                        using: None,
-                    });
+                    node_state.using_joins.push(UsingJoin { ast_node_id: node_id, using: None });
                 }
             }
 
@@ -1644,10 +1761,8 @@ impl NameResolutionPass {
                 state.entry_mut().table_declarations.push(table);
                 state.resolve_name(&name, CatalogObjectRef::Table(TableLoc { entry: state.entry_id, index }));
                 for (column_index, column) in columns.iter().enumerate() {
-                    let loc = ColumnLoc {
-                        table: TableLoc { entry: state.entry_id, index },
-                        column: column_index as u32,
-                    };
+                    let loc =
+                        ColumnLoc { table: TableLoc { entry: state.entry_id, index }, column: column_index as u32 };
                     state.resolve_name(&column.column_name, CatalogObjectRef::Column(loc));
                 }
             }
@@ -1657,17 +1772,21 @@ impl NameResolutionPass {
                     self.merge_child_states(node_state, node);
                     return;
                 }
-                let [name_node, params, returns, is_aggregate] = attrs!(state.children(node), [
-                    K::SQL_CREATE_FUNCTION_NAME,
-                    K::SQL_CREATE_FUNCTION_PARAMS,
-                    K::SQL_CREATE_FUNCTION_RETURNS,
-                    K::SQL_CREATE_FUNCTION_IS_AGGREGATE,
-                ]);
+                let [name_node, params, returns, is_aggregate] = attrs!(
+                    state.children(node),
+                    [
+                        K::SQL_CREATE_FUNCTION_NAME,
+                        K::SQL_CREATE_FUNCTION_PARAMS,
+                        K::SQL_CREATE_FUNCTION_RETURNS,
+                        K::SQL_CREATE_FUNCTION_IS_AGGREGATE,
+                    ]
+                );
                 let Some(function_name) = state.read_qualified_function_name(name_node) else { return };
                 let schema_id = Self::register_schema(state, &function_name.database_name, &function_name.schema_name);
                 let index = state.out.entry.function_declarations.len() as u32;
                 let function_id = state.reserve_function_id(&function_name);
-                let return_type: Arc<str> = returns.map(|r| Arc::from(state.text_at(*r.symbol_span()))).unwrap_or_else(|| Arc::from(""));
+                let return_type: Arc<str> =
+                    returns.map(|r| Arc::from(state.text_at(*r.symbol_span()))).unwrap_or_else(|| Arc::from(""));
                 let mut declaration = FunctionDeclaration {
                     object_id: QualifiedCatalogObjectId::function(function_id),
                     catalog_schema_id: schema_id,
@@ -1702,7 +1821,10 @@ impl NameResolutionPass {
 
             NodeType::OBJECT_SQL_CREATE_AS | NodeType::OBJECT_SQL_VIEW => {
                 let [name, columns, statement] = if node.node_type() == NodeType::OBJECT_SQL_CREATE_AS {
-                    attrs!(state.children(node), [K::SQL_CREATE_AS_NAME, K::SQL_CREATE_AS_COLUMNS, K::SQL_CREATE_AS_STATEMENT])
+                    attrs!(
+                        state.children(node),
+                        [K::SQL_CREATE_AS_NAME, K::SQL_CREATE_AS_COLUMNS, K::SQL_CREATE_AS_STATEMENT]
+                    )
                 } else {
                     attrs!(state.children(node), [K::SQL_VIEW_NAME, K::SQL_VIEW_COLUMNS, K::SQL_VIEW_STATEMENT])
                 };
@@ -1853,10 +1975,10 @@ impl NameResolutionPass {
                 .target_columns
                 .iter()
                 .map(|c| {
-                    table.table_columns_by_name.get(&c.column_name.text).map(|&column| ColumnLoc {
-                        table: loc,
-                        column: column as u32,
-                    })
+                    table
+                        .table_columns_by_name
+                        .get(&c.column_name.text)
+                        .map(|&column| ColumnLoc { table: loc, column: column as u32 })
                 })
                 .collect();
             let Some(insert) = state.out.insert_statements.get_mut(i) else { break };
@@ -1954,7 +2076,10 @@ impl NameResolutionPass {
             i
         }
         let has_confident_column = |out: &super::AnalyzedScript, table_name: &QualifiedTableName, column: &str| {
-            let schema = out.inferred_table_schemas_by_name.get(&table_name.key()).and_then(|&i| out.inferred_table_schemas.get(i));
+            let schema = out
+                .inferred_table_schemas_by_name
+                .get(&table_name.key())
+                .and_then(|&i| out.inferred_table_schemas.get(i));
             let Some(schema) = schema else { return false };
             let column = schema.columns_by_name.get(column).and_then(|&c| schema.columns.get(c));
             column.is_some_and(|c| c.confidence == InferenceConfidence::Confident)
@@ -2001,11 +2126,8 @@ impl NameResolutionPass {
                     .collect();
                 let Some(&owner) = owners.first() else { continue };
                 // Several owners make the use ambiguous, record a best guess
-                let confidence = if owners.len() == 1 {
-                    InferenceConfidence::Confident
-                } else {
-                    InferenceConfidence::Candidate
-                };
+                let confidence =
+                    if owners.len() == 1 { InferenceConfidence::Confident } else { InferenceConfidence::Candidate };
                 write_owner(out, c.expression_id, owner, confidence);
                 *is_resolved = true;
                 changed = true;

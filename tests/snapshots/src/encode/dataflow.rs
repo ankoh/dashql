@@ -10,20 +10,28 @@ use super::planner::{prepare_fixture, Fixture};
 use super::{location_text, Map};
 use crate::ryml::Node;
 use dashql_core_runtime::planner::dataflow::{derive_session_dataflow, Dataflow, DataflowEdgeKind};
-use dashql_dataflow::layout::{compute_dataflow_layout_with_routes, DataflowEdgeRoute, DataflowLayoutBox, DataflowLayoutConfig, DataflowLayoutEdge};
+use dashql_dataflow::layout::{
+    compute_dataflow_layout_with_routes, DataflowEdgeRoute, DataflowLayoutBox, DataflowLayoutConfig, DataflowLayoutEdge,
+};
 use yaml_rust2::Yaml;
 
 /// Derive the dataflow of a fixture and encode it
 pub fn encode_fixture(fixture: &Yaml) -> Result<Yaml, String> {
-    let collapsed: Vec<String> = fixture["collapsed"].as_vec().into_iter().flatten().filter_map(|n| n.as_str().map(str::to_string)).collect();
+    let collapsed: Vec<String> =
+        fixture["collapsed"].as_vec().into_iter().flatten().filter_map(|n| n.as_str().map(str::to_string)).collect();
     encode_dataflow_fixture(&Fixture::from_yaml(fixture), &collapsed).map(|node| node.to_yaml())
 }
 
 /// The scripts of a template fixture whose boxes are collapsed
 pub fn collapsed_of(fixture: &Node) -> Vec<String> {
-    fixture.get("collapsed").map(Node::children).unwrap_or_default().into_iter().filter_map(|n| n.val().map(str::to_string)).collect()
+    fixture
+        .get("collapsed")
+        .map(Node::children)
+        .unwrap_or_default()
+        .into_iter()
+        .filter_map(|n| n.val().map(str::to_string))
+        .collect()
 }
-
 
 /// The box of an edge source or target in the layout: the scripts, then the inputs, then the attachments
 fn layout_box(dataflow: &Dataflow, kind: DataflowEdgeKind, script: u32) -> u32 {
@@ -36,7 +44,11 @@ fn layout_box(dataflow: &Dataflow, kind: DataflowEdgeKind, script: u32) -> u32 {
 }
 
 /// Lay out the boxes of the scripts of a dataflow, then the boxes of its inputs, with the routes of the edges
-fn layout(dataflow: &Dataflow, scripts: &[&dashql_core::script::Script], collapsed: &[bool]) -> (Vec<(f64, f64, f64, f64)>, Vec<DataflowEdgeRoute>) {
+fn layout(
+    dataflow: &Dataflow,
+    scripts: &[&dashql_core::script::Script],
+    collapsed: &[bool],
+) -> (Vec<(f64, f64, f64, f64)>, Vec<DataflowEdgeRoute>) {
     let boxes: Vec<DataflowLayoutBox> = dataflow
         .scripts
         .iter()
@@ -48,7 +60,9 @@ fn layout(dataflow: &Dataflow, scripts: &[&dashql_core::script::Script], collaps
             let terminal = script.statements.len().checked_sub(1).map(|t| t as u32);
             let chart_statement = analyzed
                 .filter(|_| script.analyzed && !collapsed)
-                .and_then(|a| a.visualization_specs.iter().find(|v| v.renderer.is_some() && v.ast_statement_id == terminal))
+                .and_then(|a| {
+                    a.visualization_specs.iter().find(|v| v.renderer.is_some() && v.ast_statement_id == terminal)
+                })
                 .and(terminal);
             DataflowLayoutBox {
                 statements: script.statements.len() as u32,
@@ -62,7 +76,11 @@ fn layout(dataflow: &Dataflow, scripts: &[&dashql_core::script::Script], collaps
             }
         })
         .chain(dataflow.inputs.iter().map(|_| DataflowLayoutBox { statements: 1, input: true, ..Default::default() }))
-        .chain(dataflow.attachments.iter().map(|_| DataflowLayoutBox { statements: 1, input: true, ..Default::default() }))
+        .chain(dataflow.attachments.iter().map(|_| DataflowLayoutBox {
+            statements: 1,
+            input: true,
+            ..Default::default()
+        }))
         .collect();
     let edges: Vec<DataflowLayoutEdge> = dataflow
         .edges
@@ -155,7 +173,9 @@ pub fn encode_dataflow_fixture(fixture: &Fixture, collapsed: &[String]) -> Resul
             // border of the target box
             let key = (layout_box(&dataflow, e.kind, e.from.script), e.from.statement, e.to.script, e.to.statement);
             if let Some((_, points)) = routes.iter().find(|(k, _)| *k == key) {
-                let point = |&(x, y): &(f64, f64)| Node::flow_seq(vec![Node::int(x.round() as i64), Node::int(y.round() as i64)]);
+                let point = |&(x, y): &(f64, f64)| {
+                    Node::flow_seq(vec![Node::int(x.round() as i64), Node::int(y.round() as i64)])
+                };
                 m.insert("route", Node::flow_seq(points.iter().map(point).collect()));
             }
             m.into_node()

@@ -24,9 +24,11 @@ use dashql_core_runtime::connections::registry::RegistryEffect;
 use dashql_core_runtime::executor::HostTable;
 use dashql_core_runtime::handles::Handle;
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
-use dashql_core_runtime::settings::RuntimeSettings;
 use dashql_core_runtime::http::{CancellationToken, Headers, HostBytes, HttpHost, HttpRequest, HttpResponse};
-use dashql_core_storage::workbook_format::eviction::{evict_to_fit, CacheFileStat, CacheHost, DEFAULT_CACHE_MAX_BYTES, DEFAULT_CACHE_MAX_FILES};
+use dashql_core_runtime::settings::RuntimeSettings;
+use dashql_core_storage::workbook_format::eviction::{
+    evict_to_fit, CacheFileStat, CacheHost, DEFAULT_CACHE_MAX_BYTES, DEFAULT_CACHE_MAX_FILES,
+};
 use dashql_core_storage::workbook_format::query_results::CacheCapacity;
 use js_sys::{Array, Function, Object, Promise, Reflect, Uint8Array};
 use serde::{Deserialize, Serialize};
@@ -522,7 +524,11 @@ pub struct JsPlatform {
 
 /// The message of a value that JS failed with, an error of another realm too
 pub(crate) fn message_of(value: &JsValue) -> String {
-    let message = value.is_object().then(|| Reflect::get(value, &JsValue::from_str("message")).ok()).flatten().and_then(|m| m.as_string());
+    let message = value
+        .is_object()
+        .then(|| Reflect::get(value, &JsValue::from_str("message")).ok())
+        .flatten()
+        .and_then(|m| m.as_string());
     message.or_else(|| value.as_string()).unwrap_or_else(|| "the platform failed".to_string())
 }
 
@@ -555,7 +561,9 @@ fn member(object: &JsValue, name: &str) -> Result<JsValue, HostError> {
 
 /// Call a method of an object
 fn call(object: &JsValue, name: &str, args: &[JsValue]) -> Result<JsValue, HostError> {
-    let function = member(object, name)?.dyn_into::<Function>().map_err(|_| HostError::new(format!("{name} of the platform is no function")))?;
+    let function = member(object, name)?
+        .dyn_into::<Function>()
+        .map_err(|_| HostError::new(format!("{name} of the platform is no function")))?;
     function.apply(object, &args.iter().collect::<Array>()).map_err(host_error)
 }
 
@@ -565,13 +573,20 @@ async fn settled(value: Result<JsValue, HostError>) -> Result<JsValue, HostError
 }
 
 /// Call a method of an object of the host and await it, e.g. of the folder of an import
-pub(crate) fn call_method(object: &JsValue, name: &str, args: &[JsValue]) -> impl Future<Output = Result<JsValue, HostError>> + 'static {
+pub(crate) fn call_method(
+    object: &JsValue,
+    name: &str,
+    args: &[JsValue],
+) -> impl Future<Output = Result<JsValue, HostError>> + 'static {
     settled(call(object, name, args))
 }
 
 /// A number of the platform as a handle, none for no handle
 fn as_handle(value: &JsValue) -> Option<Handle> {
-    value.as_f64().filter(|value| *value > 0.0 && *value <= Handle::MAX as f64 && value.fract() == 0.0).map(|value| value as Handle)
+    value
+        .as_f64()
+        .filter(|value| *value > 0.0 && *value <= Handle::MAX as f64 && value.fract() == 0.0)
+        .map(|value| value as Handle)
 }
 
 /// The headers of a request or a response as `[name, value]` pairs
@@ -595,7 +610,9 @@ pub(crate) fn request_value(request: &HttpRequest) -> JsValue {
 
 /// A response of the host. A successful one may keep its body with the host, the module passes it on unread.
 pub(crate) fn response_keeping(value: &JsValue, keep_body: bool) -> Result<HttpResponse, HostError> {
-    let status = field(value, "status").and_then(|status| status.as_f64()).ok_or_else(|| HostError::new("a response without a status"))?;
+    let status = field(value, "status")
+        .and_then(|status| status.as_f64())
+        .ok_or_else(|| HostError::new("a response without a status"))?;
     let mut response = HttpResponse::new(status.clamp(0.0, 999.0) as u16, Vec::new());
     response.status_text = field(value, "statusText").and_then(|text| text.as_string()).unwrap_or_default();
     if let Some(headers) = field(value, "headers").filter(Array::is_array) {
@@ -625,9 +642,12 @@ pub(crate) fn response_keeping(value: &JsValue, keep_body: bool) -> Result<HttpR
 fn settings_of(object: &JsValue) -> RuntimeSettings {
     let defaults = RuntimeSettings::default();
     let Some(settings) = field(object, "settings") else { return defaults };
-    let number = |name: &str| field(&settings, name).and_then(|value| value.as_f64()).filter(|value| value.is_finite() && *value >= 0.0);
+    let number = |name: &str| {
+        field(&settings, name).and_then(|value| value.as_f64()).filter(|value| value.is_finite() && *value >= 0.0)
+    };
     RuntimeSettings {
-        background_analysis_delay_ms: number("backgroundAnalysisDelayMs").unwrap_or(defaults.background_analysis_delay_ms),
+        background_analysis_delay_ms: number("backgroundAnalysisDelayMs")
+            .unwrap_or(defaults.background_analysis_delay_ms),
         catalog_heartbeat_ms: number("catalogHeartbeatMs").unwrap_or(defaults.catalog_heartbeat_ms),
         catalog_query_timeout_ms: number("catalogQueryTimeoutMs")
             .map(|ms| ms.min(f64::from(u32::MAX)) as u32)
@@ -645,7 +665,11 @@ fn count_of(value: &JsValue, key: &str) -> u64 {
 
 /// A table of the host with its counts
 pub(crate) fn host_table(value: &JsValue) -> HostTable {
-    HostTable { rows: count_of(value, "rows"), columns: count_of(value, "columns"), batches: count_of(value, "batches") }
+    HostTable {
+        rows: count_of(value, "rows"),
+        columns: count_of(value, "columns"),
+        batches: count_of(value, "batches"),
+    }
 }
 
 /// The details of a log message as `[key, value]` pairs
@@ -655,7 +679,9 @@ pub(crate) fn details_value(details: &[(&str, &str)]) -> Array {
 
 /// The limits of the query result cache of the platform, a limit that it leaves out is the default of the runtime
 pub(crate) fn cache_capacity(capacity: &JsValue) -> CacheCapacity {
-    let limit = |name: &str| field(capacity, name).and_then(|n| n.as_f64()).filter(|n| n.is_finite()).map(|n| n.max(0.0) as u64);
+    let limit = |name: &str| {
+        field(capacity, name).and_then(|n| n.as_f64()).filter(|n| n.is_finite()).map(|n| n.max(0.0) as u64)
+    };
     CacheCapacity {
         max_bytes: limit("maxBytes").unwrap_or(DEFAULT_CACHE_MAX_BYTES),
         max_files: limit("maxFiles").unwrap_or(DEFAULT_CACHE_MAX_FILES),
@@ -758,7 +784,8 @@ impl JsPlatform {
             let mut pending = self.inner.pending.borrow_mut();
             let before = pending.effects.len();
             pending.effects.extend(effects);
-            let immediate = pending.effects.iter().skip(before).any(|effect| !matches!(effect, HandleEffect::Release { .. }));
+            let immediate =
+                pending.effects.iter().skip(before).any(|effect| !matches!(effect, HandleEffect::Release { .. }));
             let schedule = immediate && !pending.immediate;
             if schedule {
                 pending.immediate = true;
@@ -780,7 +807,9 @@ impl JsPlatform {
         let immediate: Vec<HandleEffect> = {
             let mut pending = self.inner.pending.borrow_mut();
             pending.immediate = false;
-            let (releases, immediate) = std::mem::take(&mut pending.effects).into_iter().partition(|effect| matches!(effect, HandleEffect::Release { .. }));
+            let (releases, immediate) = std::mem::take(&mut pending.effects)
+                .into_iter()
+                .partition(|effect| matches!(effect, HandleEffect::Release { .. }));
             pending.effects = releases;
             immediate
         };
@@ -820,7 +849,9 @@ impl JsPlatform {
     /// Queue the effects of the computations on handles
     pub fn push_effects(&self, effects: &[ComputationEffect]) {
         self.push(effects.iter().filter_map(|effect| match *effect {
-            ComputationEffect::Abort { handle, reason } => Some(HandleEffect::Abort { handle, reason: reason.to_string() }),
+            ComputationEffect::Abort { handle, reason } => {
+                Some(HandleEffect::Abort { handle, reason: reason.to_string() })
+            }
             ComputationEffect::Release { handle } => Some(HandleEffect::Release { handle }),
             // The service cancels the runs of a search and drops the data frames
             ComputationEffect::AbortDataSearch { .. } | ComputationEffect::ReleaseDataFrame { .. } => None,
@@ -835,9 +866,13 @@ impl JsPlatform {
             match *effect {
                 RegistryEffect::Release { handle } => queued.push(HandleEffect::Release { handle }),
                 RegistryEffect::Close { handle } => queued.push(HandleEffect::Close { handle }),
-                RegistryEffect::Abort { handle, reason } => queued.push(HandleEffect::Abort { handle, reason: reason.to_string() }),
+                RegistryEffect::Abort { handle, reason } => {
+                    queued.push(HandleEffect::Abort { handle, reason: reason.to_string() })
+                }
                 RegistryEffect::CancelSetup => follow_up.cancel_setup = true,
-                RegistryEffect::CancelCatalogUpdate { task_id, reason } => follow_up.cancel_catalog_updates.push((task_id, reason)),
+                RegistryEffect::CancelCatalogUpdate { task_id, reason } => {
+                    follow_up.cancel_catalog_updates.push((task_id, reason))
+                }
             }
         }
         self.push(queued);
@@ -863,25 +898,34 @@ impl JsPlatform {
 
     /// Log a message on a target
     pub fn log_on(&self, level: LogLevel, message: &str, details: &[(&str, &str)], target: &str) {
-        let args = [JsValue::from_str(level.name()), JsValue::from_str(message), details_value(details).into(), JsValue::from_str(target)];
+        let args = [
+            JsValue::from_str(level.name()),
+            JsValue::from_str(message),
+            details_value(details).into(),
+            JsValue::from_str(target),
+        ];
         let _ = self.call_own("log", &args);
     }
 
     /// Keep an object in the handle table of the host
     pub fn register(&self, object: &JsValue) -> Result<Handle, HostError> {
         let handles = self.member("handles")?;
-        as_handle(&call(&handles, "register", std::slice::from_ref(object))?).ok_or_else(|| HostError::new("the handle table returned no handle"))
+        as_handle(&call(&handles, "register", std::slice::from_ref(object))?)
+            .ok_or_else(|| HostError::new("the handle table returned no handle"))
     }
 
     /// The object of a handle, undefined for none
     pub fn handle(&self, handle: Handle) -> JsValue {
-        self.member("handles").and_then(|handles| call(&handles, "get", &[JsValue::from_f64(handle as f64)])).unwrap_or(JsValue::UNDEFINED)
+        self.member("handles")
+            .and_then(|handles| call(&handles, "get", &[JsValue::from_f64(handle as f64)]))
+            .unwrap_or(JsValue::UNDEFINED)
     }
 
     /// Keep the object of a handle under a new handle as well
     pub fn duplicate(&self, handle: Handle) -> Result<Handle, HostError> {
         let handles = self.member("handles")?;
-        as_handle(&call(&handles, "duplicate", &[JsValue::from_f64(handle as f64)])?).ok_or_else(|| HostError::new("the handle table returned no handle"))
+        as_handle(&call(&handles, "duplicate", &[JsValue::from_f64(handle as f64)])?)
+            .ok_or_else(|| HostError::new("the handle table returned no handle"))
     }
 
     /// Read a table of the handle table as an Arrow IPC stream
@@ -899,10 +943,13 @@ impl JsPlatform {
     pub fn describe_table(&self, table: Handle) -> Result<TableShape, HostError> {
         let tables = self.member("tables")?;
         let described = call(&tables, "describe", &[JsValue::from_f64(table as f64)])?;
-        let schema = field(&described, "schema").filter(JsValue::is_object).ok_or_else(|| HostError::new("the table has no schema"))?;
+        let schema = field(&described, "schema")
+            .filter(JsValue::is_object)
+            .ok_or_else(|| HostError::new("the table has no schema"))?;
         // The bytes may come from another realm, they are copied by value. A schema is small.
         let schema = Uint8Array::new(&schema).to_vec();
-        let schema = ResultTable::schema_of_ipc_stream(&schema).map_err(|e| HostError::new(format!("the schema of a table: {}", e.message)))?;
+        let schema = ResultTable::schema_of_ipc_stream(&schema)
+            .map_err(|e| HostError::new(format!("the schema of a table: {}", e.message)))?;
         Ok(TableShape { rows: count_of(&described, "rows"), schema })
     }
 
@@ -934,8 +981,14 @@ impl JsPlatform {
 
     /// Connect a channel of a setup, the handle of the channel. A future that is dropped before the connect settled
     /// closes the channel once it is connected, so a channel that nobody waits for never stays open.
-    pub fn connect_channel(&self, setup_id: &str, request: &JsValue) -> impl Future<Output = Result<Handle, HostError>> + 'static {
-        let call = self.member("channels").and_then(|channels| call(&channels, "connect", &[JsValue::from_str(setup_id), request.clone()]));
+    pub fn connect_channel(
+        &self,
+        setup_id: &str,
+        request: &JsValue,
+    ) -> impl Future<Output = Result<Handle, HostError>> + 'static {
+        let call = self
+            .member("channels")
+            .and_then(|channels| call(&channels, "connect", &[JsValue::from_str(setup_id), request.clone()]));
         let promise = call.map(|sent| Promise::resolve(&sent));
         let close = CloseOnDrop { promise: promise.as_ref().ok().cloned(), platform: self.clone() };
         async move {
@@ -954,12 +1007,20 @@ impl JsPlatform {
 
     /// Describe where a query runs on the channel of its connection, the target as JSON. The platform keeps the
     /// channel of a query of the host until `forget_channel_query`.
-    pub fn channel_describe(&self, query_id: f64, channel: Option<Handle>, query: &JsValue) -> impl Future<Output = Result<RuntimeChannelTarget, HostError>> + 'static {
+    pub fn channel_describe(
+        &self,
+        query_id: f64,
+        channel: Option<Handle>,
+        query: &JsValue,
+    ) -> impl Future<Output = Result<RuntimeChannelTarget, HostError>> + 'static {
         let channel = channel.map(|channel| JsValue::from_f64(channel as f64)).unwrap_or(JsValue::NULL);
-        let call = self.member("channels").and_then(|channels| call(&channels, "describe", &[JsValue::from_f64(query_id), channel, query.clone()]));
+        let call = self
+            .member("channels")
+            .and_then(|channels| call(&channels, "describe", &[JsValue::from_f64(query_id), channel, query.clone()]));
         async move {
             let described = settled(call).await?;
-            serde_wasm_bindgen::from_value(described).map_err(|error| HostError::new(format!("the platform described no channel: {error}")))
+            serde_wasm_bindgen::from_value(described)
+                .map_err(|error| HostError::new(format!("the platform described no channel: {error}")))
         }
     }
 
@@ -1039,7 +1100,9 @@ impl JsPlatform {
 
     /// Load the spec of the client functions of an extension, the JSON text
     pub fn load_spec(&self, extension: &str) -> impl Future<Output = Result<String, HostError>> + 'static {
-        let call = self.member("extensions").and_then(|extensions| call(&extensions, "loadSpec", &[JsValue::from_str(extension)]));
+        let call = self
+            .member("extensions")
+            .and_then(|extensions| call(&extensions, "loadSpec", &[JsValue::from_str(extension)]));
         async move { settled(call).await?.as_string().ok_or_else(|| HostError::new("a spec that isn't text")) }
     }
 
@@ -1065,18 +1128,31 @@ impl JsPlatform {
     }
 
     /// Call a member of the storage of the platform and await it
-    pub fn storage_await(&self, name: &str, args: &[JsValue]) -> impl Future<Output = Result<JsValue, HostError>> + 'static {
+    pub fn storage_await(
+        &self,
+        name: &str,
+        args: &[JsValue],
+    ) -> impl Future<Output = Result<JsValue, HostError>> + 'static {
         settled(self.storage_call(name, args))
     }
 
     /// Call a member of the archives of the platform and await it
-    pub fn archives_call(&self, name: &str, args: &[JsValue]) -> impl Future<Output = Result<JsValue, HostError>> + 'static {
-        let archives = self.member("archives").map_err(|_| HostError::new("the platform writes and reads no workbook archives"));
+    pub fn archives_call(
+        &self,
+        name: &str,
+        args: &[JsValue],
+    ) -> impl Future<Output = Result<JsValue, HostError>> + 'static {
+        let archives =
+            self.member("archives").map_err(|_| HostError::new("the platform writes and reads no workbook archives"));
         settled(archives.and_then(|archives| call(&archives, name, args)))
     }
 
     /// Call a member of the query result cache and await it
-    pub fn cache_call(&self, name: &str, args: &[JsValue]) -> impl Future<Output = Result<JsValue, HostError>> + 'static {
+    pub fn cache_call(
+        &self,
+        name: &str,
+        args: &[JsValue],
+    ) -> impl Future<Output = Result<JsValue, HostError>> + 'static {
         settled(self.result_cache().and_then(|cache| call(&cache, name, args)))
     }
 
@@ -1114,7 +1190,11 @@ impl JsPlatform {
     }
 
     /// Run a query on its channel of the host, the batches go into the table
-    pub fn channel_open(&self, query_id: f64, table: Handle) -> impl Future<Output = Result<bool, HostError>> + 'static {
+    pub fn channel_open(
+        &self,
+        query_id: f64,
+        table: Handle,
+    ) -> impl Future<Output = Result<bool, HostError>> + 'static {
         let call = self.channels("open", &[JsValue::from_f64(query_id), JsValue::from_f64(table as f64)]);
         async move { settled(call).await.map(|value| value.is_truthy()) }
     }
@@ -1147,7 +1227,8 @@ impl JsPlatform {
         let call = self.result_cache().and_then(|cache| call(&cache, "read", &[JsValue::from_str(name)]));
         async move {
             let read = settled(call).await?;
-            serde_wasm_bindgen::from_value(read).map_err(|error| HostError::new(format!("the cache returned no table: {error}")))
+            serde_wasm_bindgen::from_value(read)
+                .map_err(|error| HostError::new(format!("the cache returned no table: {error}")))
         }
     }
 
@@ -1159,7 +1240,9 @@ impl JsPlatform {
 
     /// Write a table as the newest file of a key, the name of the file. The host takes the table when it is called.
     pub fn cache_write(&self, key: &str, table: Handle) -> impl Future<Output = Result<String, HostError>> + 'static {
-        let call = self.result_cache().and_then(|cache| call(&cache, "write", &[JsValue::from_str(key), JsValue::from_f64(table as f64)]));
+        let call = self
+            .result_cache()
+            .and_then(|cache| call(&cache, "write", &[JsValue::from_str(key), JsValue::from_f64(table as f64)]));
         async move { settled(call).await?.as_string().ok_or_else(|| HostError::new("the cache named no file")) }
     }
 
@@ -1206,7 +1289,12 @@ impl JsPlatform {
             match evicted.await {
                 Ok(removed) if !removed.is_empty() => {
                     let count = removed.len().to_string();
-                    platform.log_on(LogLevel::Info, "Evicted query results", &[("files", count.as_str())], "query_result_cache");
+                    platform.log_on(
+                        LogLevel::Info,
+                        "Evicted query results",
+                        &[("files", count.as_str())],
+                        "query_result_cache",
+                    );
                     let listener = platform.inner.cache_evicted.borrow().clone();
                     if let Some(listener) = listener {
                         listener();
@@ -1215,7 +1303,12 @@ impl JsPlatform {
                 }
                 Ok(removed) => removed,
                 Err(error) => {
-                    platform.log_on(LogLevel::Warn, "Evicting query results failed", &[("error", error.message())], "query_result_cache");
+                    platform.log_on(
+                        LogLevel::Warn,
+                        "Evicting query results failed",
+                        &[("error", error.message())],
+                        "query_result_cache",
+                    );
                     Vec::new()
                 }
             }
@@ -1224,7 +1317,9 @@ impl JsPlatform {
 
     /// The files of the runs, an error without a compute database that reads Parquet files
     fn mounts(&self) -> Result<JsValue, HostError> {
-        self.member("mounts").map_err(|_| HostError::new("Scripts that read the results of other scripts or attachments need the compute database"))
+        self.member("mounts").map_err(|_| {
+            HostError::new("Scripts that read the results of other scripts or attachments need the compute database")
+        })
     }
 
     /// Can the platform mount files of runs?
@@ -1233,7 +1328,11 @@ impl JsPlatform {
     }
 
     /// Call a member of the files of the runs and await it
-    pub fn mounts_call(&self, name: &str, args: &[JsValue]) -> impl Future<Output = Result<JsValue, HostError>> + 'static {
+    pub fn mounts_call(
+        &self,
+        name: &str,
+        args: &[JsValue],
+    ) -> impl Future<Output = Result<JsValue, HostError>> + 'static {
         settled(self.mounts().and_then(|mounts| call(&mounts, name, args)))
     }
 
@@ -1245,7 +1344,12 @@ impl JsPlatform {
     /// Send a request with the fetch of the platform, a successful response may keep its body with the host. The fetch
     /// is aborted when the token is cancelled or when the future is dropped before it completed, e.g. by a query that
     /// stopped waiting for it.
-    pub fn send(&self, request: HttpRequest, cancellation: &CancellationToken, keep_body: bool) -> impl Future<Output = Result<HttpResponse, HostError>> + 'static {
+    pub fn send(
+        &self,
+        request: HttpRequest,
+        cancellation: &CancellationToken,
+        keep_body: bool,
+    ) -> impl Future<Output = Result<HttpResponse, HostError>> + 'static {
         let id = self.next_id();
         let http = self.member("http");
         let token = cancellation.clone();
@@ -1255,7 +1359,8 @@ impl JsPlatform {
             Some(http.clone().and_then(|http| call(&http, "fetch", &[JsValue::from_f64(id), request_value(&request)])))
         };
         // Aborts a fetch that was sent unless it settled, also when the future is dropped before it was polled
-        let abort = AbortOnDrop { target: sent.as_ref().is_some_and(|sent| sent.is_ok()).then(|| http.ok()).flatten(), id };
+        let abort =
+            AbortOnDrop { target: sent.as_ref().is_some_and(|sent| sent.is_ok()).then(|| http.ok()).flatten(), id };
         async move {
             let mut abort = abort;
             let Some(sent) = sent else {
@@ -1337,18 +1442,26 @@ impl CacheHost for JsCache {
         if !Array::is_array(&files) {
             return Err(HostError::new("the files of the query result cache are not a list"));
         }
-        let number = |file: &JsValue, name: &str| field(file, name).and_then(|n| n.as_f64()).filter(|n| n.is_finite() && *n >= 0.0).unwrap_or(0.0) as u64;
+        let number = |file: &JsValue, name: &str| {
+            field(file, name).and_then(|n| n.as_f64()).filter(|n| n.is_finite() && *n >= 0.0).unwrap_or(0.0) as u64
+        };
         Ok(Array::from(&files)
             .iter()
             .filter_map(|file| {
                 let name = field(&file, "name")?.as_string()?;
-                Some(CacheFileStat { name, size: number(&file, "size"), mtime_ms: number(&file, "mtimeMs"), last_access_ms: number(&file, "lastAccessMs") })
+                Some(CacheFileStat {
+                    name,
+                    size: number(&file, "size"),
+                    mtime_ms: number(&file, "mtimeMs"),
+                    last_access_ms: number(&file, "lastAccessMs"),
+                })
             })
             .collect())
     }
 
     async fn remove_file(&self, name: &str) -> Result<bool, HostError> {
-        let removed = settled(self.0.result_cache().and_then(|cache| call(&cache, "remove", &[JsValue::from_str(name)]))).await?;
+        let removed =
+            settled(self.0.result_cache().and_then(|cache| call(&cache, "remove", &[JsValue::from_str(name)]))).await?;
         // A file that is read stays
         Ok(removed.as_bool() != Some(false))
     }
@@ -1396,32 +1509,63 @@ impl Host for JsPlatform {
     }
 
     fn log(&self, level: LogLevel, message: &str, details: &[(&str, &str)]) {
-        let _ = self.call_own("log", &[JsValue::from_str(level.name()), JsValue::from_str(message), details_value(details).into()]);
+        let _ = self.call_own(
+            "log",
+            &[JsValue::from_str(level.name()), JsValue::from_str(message), details_value(details).into()],
+        );
     }
 }
 
 impl HttpHost for JsPlatform {
-    fn fetch(&self, request: HttpRequest, cancellation: &CancellationToken) -> impl Future<Output = Result<HttpResponse, HostError>> + 'static {
+    fn fetch(
+        &self,
+        request: HttpRequest,
+        cancellation: &CancellationToken,
+    ) -> impl Future<Output = Result<HttpResponse, HostError>> + 'static {
         self.send(request, cancellation, false)
     }
 }
 
 impl ComputeHost for JsPlatform {
-    async fn import_table(&self, data_frame: u64, table_name: &str, table: Handle, row_number_field: &str, context: &ComputeContext) -> Result<(), HostError> {
+    async fn import_table(
+        &self,
+        data_frame: u64,
+        table_name: &str,
+        table: Handle,
+        row_number_field: &str,
+        context: &ComputeContext,
+    ) -> Result<(), HostError> {
         let compute = self.compute()?;
         // The table goes to the compute database as the object of its handle, its rows never enter the module
         let table = self.handle(table);
         if table.is_undefined() {
             return Err(HostError::new("the result to import is gone"));
         }
-        let args = [JsValue::from_f64(data_frame as f64), JsValue::from_str(table_name), table, JsValue::from_str(row_number_field), context_js(context)?];
+        let args = [
+            JsValue::from_f64(data_frame as f64),
+            JsValue::from_str(table_name),
+            table,
+            JsValue::from_str(row_number_field),
+            context_js(context)?,
+        ];
         settled(call(&compute, "importTable", &args)).await?;
         Ok(())
     }
 
-    async fn create_table(&self, data_frame: u64, table_name: &str, sql: &str, context: &ComputeContext) -> Result<(), HostError> {
+    async fn create_table(
+        &self,
+        data_frame: u64,
+        table_name: &str,
+        sql: &str,
+        context: &ComputeContext,
+    ) -> Result<(), HostError> {
         let compute = self.compute()?;
-        let args = [JsValue::from_f64(data_frame as f64), JsValue::from_str(table_name), JsValue::from_str(sql), context_js(context)?];
+        let args = [
+            JsValue::from_f64(data_frame as f64),
+            JsValue::from_str(table_name),
+            JsValue::from_str(sql),
+            context_js(context)?,
+        ];
         settled(call(&compute, "createTable", &args)).await?;
         Ok(())
     }
@@ -1452,8 +1596,14 @@ impl ComputeHost for JsPlatform {
 
     async fn drop_table(&self, data_frame: u64, table_name: &str) -> Result<(), HostError> {
         let compute = self.compute()?;
-        let sql = format!("DROP TABLE IF EXISTS {}", dashql_core_runtime::catalog_loader::sql::quote_identifier(table_name));
-        settled(call(&compute, "dropTable", &[JsValue::from_f64(data_frame as f64), JsValue::from_str(table_name), JsValue::from_str(&sql)])).await?;
+        let sql =
+            format!("DROP TABLE IF EXISTS {}", dashql_core_runtime::catalog_loader::sql::quote_identifier(table_name));
+        settled(call(
+            &compute,
+            "dropTable",
+            &[JsValue::from_f64(data_frame as f64), JsValue::from_str(table_name), JsValue::from_str(&sql)],
+        ))
+        .await?;
         Ok(())
     }
 
@@ -1510,9 +1660,12 @@ impl IntlTimeZones {
             }
             let formatter = (|| {
                 let intl = Reflect::get(&js_sys::global(), &JsValue::from_str("Intl")).ok()?;
-                let constructor = Reflect::get(&intl, &JsValue::from_str("DateTimeFormat")).ok()?.dyn_into::<Function>().ok()?;
+                let constructor =
+                    Reflect::get(&intl, &JsValue::from_str("DateTimeFormat")).ok()?.dyn_into::<Function>().ok()?;
                 let options = Object::new();
-                let set = |key: &str, value: &str| Reflect::set(&options, &JsValue::from_str(key), &JsValue::from_str(value)).ok();
+                let set = |key: &str, value: &str| {
+                    Reflect::set(&options, &JsValue::from_str(key), &JsValue::from_str(value)).ok()
+                };
                 set("timeZone", zone)?;
                 set("hourCycle", "h23")?;
                 set("era", "short")?;
@@ -1522,7 +1675,8 @@ impl IntlTimeZones {
                 // Throws a RangeError for an unknown zone, `construct` catches it
                 let args = Array::of2(&JsValue::from_str("en-US"), &options);
                 let formatter = Reflect::construct(&constructor, &args).ok()?;
-                let format = Reflect::get(&formatter, &JsValue::from_str("formatToParts")).ok()?.dyn_into::<Function>().ok()?;
+                let format =
+                    Reflect::get(&formatter, &JsValue::from_str("formatToParts")).ok()?.dyn_into::<Function>().ok()?;
                 Some((formatter, format))
             })();
             formatters.borrow_mut().insert(zone.to_string(), formatter.clone());

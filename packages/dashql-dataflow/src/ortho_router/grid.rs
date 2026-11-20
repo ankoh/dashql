@@ -19,7 +19,7 @@
 use std::cmp::Ordering;
 use std::collections::BinaryHeap;
 
-use super::geom::{EPS, Point, Rect, Side};
+use super::geom::{Point, Rect, Side, EPS};
 
 /// Sorted distinct coordinates, those within [`EPS`] of the previous
 /// one dropped.
@@ -37,18 +37,12 @@ fn lines(mut v: Vec<f32>) -> Vec<f32> {
 
 /// The range of lines in `[lo, hi]` (within [`EPS`]).
 fn closed(v: &[f32], lo: f32, hi: f32) -> (usize, usize) {
-    (
-        v.partition_point(|&x| x < lo - EPS),
-        v.partition_point(|&x| x <= hi + EPS),
-    )
+    (v.partition_point(|&x| x < lo - EPS), v.partition_point(|&x| x <= hi + EPS))
 }
 
 /// The range of lines strictly inside `(lo, hi)` (within [`EPS`]).
 fn open(v: &[f32], lo: f32, hi: f32) -> (usize, usize) {
-    (
-        v.partition_point(|&x| x <= lo + EPS),
-        v.partition_point(|&x| x < hi - EPS),
-    )
+    (v.partition_point(|&x| x <= lo + EPS), v.partition_point(|&x| x < hi - EPS))
 }
 
 /// The index of the line at `x`, if there is one.
@@ -73,29 +67,11 @@ pub(crate) struct Grid {
 impl Grid {
     /// The grid of grown obstacles, with lines through `points` too.
     pub(crate) fn build(obstacles: &[Rect], points: &[Point]) -> Grid {
-        let xs = lines(
-            obstacles
-                .iter()
-                .flat_map(|o| [o.min.x, o.max.x])
-                .chain(points.iter().map(|p| p.x))
-                .collect(),
-        );
-        let ys = lines(
-            obstacles
-                .iter()
-                .flat_map(|o| [o.min.y, o.max.y])
-                .chain(points.iter().map(|p| p.y))
-                .collect(),
-        );
+        let xs = lines(obstacles.iter().flat_map(|o| [o.min.x, o.max.x]).chain(points.iter().map(|p| p.x)).collect());
+        let ys = lines(obstacles.iter().flat_map(|o| [o.min.y, o.max.y]).chain(points.iter().map(|p| p.y)).collect());
         let nx = xs.len();
         let n = nx * ys.len();
-        let mut grid = Grid {
-            blocked: vec![false; n],
-            h_blocked: vec![false; n],
-            v_blocked: vec![false; n],
-            xs,
-            ys,
-        };
+        let mut grid = Grid { blocked: vec![false; n], h_blocked: vec![false; n], v_blocked: vec![false; n], xs, ys };
         for o in obstacles {
             let (cxa, cxb) = closed(&grid.xs, o.min.x, o.max.x);
             let (cya, cyb) = closed(&grid.ys, o.min.y, o.max.y);
@@ -164,10 +140,7 @@ impl Ord for Open {
     fn cmp(&self, other: &Self) -> Ordering {
         // A max-heap: reversed, and ties broken by the state so the
         // order (and the route) only depends on the input.
-        other
-            .f
-            .total_cmp(&self.f)
-            .then_with(|| other.state.cmp(&self.state))
+        other.f.total_cmp(&self.f).then_with(|| other.state.cmp(&self.state))
     }
 }
 
@@ -220,10 +193,7 @@ impl Search {
         };
         let s0 = start * 4 + first.index();
         self.g[s0] = 0.0;
-        self.heap.push(Open {
-            f: h(start),
-            state: s0 as u32,
-        });
+        self.heap.push(Open { f: h(start), state: s0 as u32 });
         let mut best = (f32::INFINITY, NONE);
         while let Some(Open { f, state }) = self.heap.pop() {
             if f >= best.0 {
@@ -258,10 +228,7 @@ impl Search {
                 if cost < self.g[ns] {
                     self.g[ns] = cost;
                     self.parent[ns] = state;
-                    self.heap.push(Open {
-                        f: cost + h(n),
-                        state: ns as u32,
-                    });
+                    self.heap.push(Open { f: cost + h(n), state: ns as u32 });
                 }
             }
         }
@@ -285,10 +252,7 @@ mod tests {
 
     #[test]
     fn close_coordinates_make_one_line() {
-        assert_eq!(
-            lines(vec![2.0, 1.0, 1.0005, f32::NAN, 3.0]),
-            vec![1.0, 2.0, 3.0]
-        );
+        assert_eq!(lines(vec![2.0, 1.0, 1.0005, f32::NAN, 3.0]), vec![1.0, 2.0, 3.0]);
     }
 
     #[test]

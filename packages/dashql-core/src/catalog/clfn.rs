@@ -231,7 +231,11 @@ impl ClientFunction {
 
     /// What an option that is not listed does
     pub fn unknown_options(&self) -> ClientFunctionUnknownPolicy {
-        if self.raw { ClientFunctionUnknownPolicy::Allow } else { self.unknown }
+        if self.raw {
+            ClientFunctionUnknownPolicy::Allow
+        } else {
+            self.unknown
+        }
     }
 
     /// The standard options of the function
@@ -275,11 +279,16 @@ pub struct ClientFunctionSpec {
 /// Is a name a plain identifier in lower case?
 fn is_plain_lowercase(name: &str) -> bool {
     let mut bytes = name.bytes();
-    bytes.next().is_some_and(|c| c.is_ascii_lowercase() || c == b'_') && bytes.all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == b'_')
+    bytes.next().is_some_and(|c| c.is_ascii_lowercase() || c == b'_')
+        && bytes.all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == b'_')
 }
 
 /// Check the attributes of a function or a schema
-fn check_attributes(owner: &str, attributes: &[ClientFunctionAttribute], schemas: &HashMap<String, ClientFunctionSchema>) -> Result<()> {
+fn check_attributes(
+    owner: &str,
+    attributes: &[ClientFunctionAttribute],
+    schemas: &HashMap<String, ClientFunctionSchema>,
+) -> Result<()> {
     for (i, attribute) in attributes.iter().enumerate() {
         if attribute.name.is_empty() {
             return Err(Error::invalid_argument(format!("{owner}: an attribute has no name")));
@@ -295,7 +304,11 @@ fn check_attributes(owner: &str, attributes: &[ClientFunctionAttribute], schemas
 }
 
 /// Check the variants and the tag of a union
-fn check_union(owner: &str, schema: &ClientFunctionSchema, schemas: &HashMap<String, ClientFunctionSchema>) -> Result<()> {
+fn check_union(
+    owner: &str,
+    schema: &ClientFunctionSchema,
+    schemas: &HashMap<String, ClientFunctionSchema>,
+) -> Result<()> {
     let invalid = |message: String| Err(Error::invalid_argument(format!("{owner}: {message}")));
     if schema.variants.is_empty() {
         return if schema.tag.is_some() { invalid("a tag needs variants".to_string()) } else { Ok(()) };
@@ -393,7 +406,9 @@ impl ClientFunctionSpec {
     /// Check how a function answers before it finishes. Repeating a request is only safe if it reads.
     fn check_pending(&self, function: &ClientFunction) -> Result<()> {
         let invalid = |message: String| Err(Error::invalid_argument(format!("{}: {message}", function.name)));
-        let Some(pending) = function.pending.as_ref().or(self.pending.as_ref()).filter(|p| !p.is_null()) else { return Ok(()) };
+        let Some(pending) = function.pending.as_ref().or(self.pending.as_ref()).filter(|p| !p.is_null()) else {
+            return Ok(());
+        };
         let poll = &pending["poll"];
         if !pending["status"].is_number() || !(poll["header"].is_string() || poll["repeat"] == true) {
             return invalid("a pending rule needs a `status`, and a `poll` with a `header` or `repeat`".to_string());
@@ -406,8 +421,8 @@ impl ClientFunctionSpec {
 
     /// Read and check a spec
     pub fn parse(json: &str) -> Result<Self> {
-        let mut spec: ClientFunctionSpec =
-            serde_json::from_str(json).map_err(|e| Error::invalid_argument(format!("invalid client function spec: {e}")))?;
+        let mut spec: ClientFunctionSpec = serde_json::from_str(json)
+            .map_err(|e| Error::invalid_argument(format!("invalid client function spec: {e}")))?;
         if spec.format != CLIENT_FUNCTION_FORMAT {
             return Err(Error::invalid_argument(format!("unsupported client function spec format {}", spec.format)));
         }
@@ -428,10 +443,16 @@ impl ClientFunctionSpec {
             check_attributes(&function.name, &function.options, &spec.schemas)?;
             // The standard options and columns start with an underscore
             if let Some(option) = function.options.iter().find(|o| o.name.starts_with('_')) {
-                return Err(Error::invalid_argument(format!("{}: the name {} is reserved", function.name, option.name)));
+                return Err(Error::invalid_argument(format!(
+                    "{}: the name {} is reserved",
+                    function.name, option.name
+                )));
             }
             if let Some(column) = function.columns.iter().find(|c| c.name.starts_with('_')) {
-                return Err(Error::invalid_argument(format!("{}: the column {} is reserved", function.name, column.name)));
+                return Err(Error::invalid_argument(format!(
+                    "{}: the column {} is reserved",
+                    function.name, column.name
+                )));
             }
             check_paging(function)?;
             check_path(function)?;
@@ -459,19 +480,37 @@ impl ClientFunctionSpec {
     }
 
     /// The attribute that a name selects in a schema. A name means one thing in a union, so any variant can answer.
-    pub fn attribute_of<'a>(&'a self, schema: &'a ClientFunctionSchema, name: &str, quoted: bool) -> Option<&'a ClientFunctionAttribute> {
+    pub fn attribute_of<'a>(
+        &'a self,
+        schema: &'a ClientFunctionSchema,
+        name: &str,
+        quoted: bool,
+    ) -> Option<&'a ClientFunctionAttribute> {
         self.variants_of(schema).into_iter().find_map(|variant| find_attribute(&variant.attributes, name, quoted))
     }
 
     /// What an object with these fields can be. A tag selects its variant. Then every field in script order keeps the
     /// variants that take it, and one that would leave none is a conflict. A name that no variant takes says nothing.
-    pub fn fit<'a>(&'a self, schema: &'a ClientFunctionSchema, fields: &[ClientFunctionField]) -> ClientFunctionFit<'a> {
+    pub fn fit<'a>(
+        &'a self,
+        schema: &'a ClientFunctionSchema,
+        fields: &[ClientFunctionField],
+    ) -> ClientFunctionFit<'a> {
         let variants = self.variants_of(schema);
         let mut fit = ClientFunctionFit { variants: variants.clone(), tag_field: None, conflicts: Vec::new() };
         if let Some(tag) = &schema.tag {
-            let is_tag = |f: &ClientFunctionField| if f.quoted { f.name == tag.attribute } else { f.name.eq_ignore_ascii_case(&tag.attribute) };
+            let is_tag = |f: &ClientFunctionField| {
+                if f.quoted {
+                    f.name == tag.attribute
+                } else {
+                    f.name.eq_ignore_ascii_case(&tag.attribute)
+                }
+            };
             if let Some((i, field)) = fields.iter().enumerate().find(|(_, f)| is_tag(f)) {
-                let selected = field.text.as_ref().and_then(|text| tag.values.iter().find(|(value, _)| value.eq_ignore_ascii_case(text)));
+                let selected = field
+                    .text
+                    .as_ref()
+                    .and_then(|text| tag.values.iter().find(|(value, _)| value.eq_ignore_ascii_case(text)));
                 if let Some(variant) = selected.and_then(|(_, name)| self.schema(name)) {
                     fit.variants = vec![variant];
                     fit.tag_field = Some(i);
@@ -507,7 +546,8 @@ impl ClientFunctionSpec {
     /// The result columns of a function in the order of the runtime: the columns of the function, then the standard
     /// columns. A raw function has no columns of its own, its response is in `_raw`.
     pub fn result_columns<'a>(&self, function: &'a ClientFunction) -> Vec<&'a str> {
-        let mut columns: Vec<&'a str> = if function.raw { Vec::new() } else { function.columns.iter().map(|c| c.name.as_str()).collect() };
+        let mut columns: Vec<&'a str> =
+            if function.raw { Vec::new() } else { function.columns.iter().map(|c| c.name.as_str()).collect() };
         columns.push(COLUMN_STATUS);
         if self.has_pending(function) {
             columns.push(COLUMN_POLL);
@@ -518,7 +558,11 @@ impl ClientFunctionSpec {
 }
 
 /// The attribute that a name in a script selects. An unquoted name folds its case, a quoted one is exact.
-pub fn find_attribute<'a>(attributes: &'a [ClientFunctionAttribute], name: &str, quoted: bool) -> Option<&'a ClientFunctionAttribute> {
+pub fn find_attribute<'a>(
+    attributes: &'a [ClientFunctionAttribute],
+    name: &str,
+    quoted: bool,
+) -> Option<&'a ClientFunctionAttribute> {
     if quoted {
         attributes.iter().find(|a| a.name == name)
     } else {
@@ -600,14 +644,18 @@ mod tests {
         assert!(valid(&format!(r#"{option}, "paging": {{"kind": "page", "option": "o", "end": {{"total": "/t"}}}}"#)));
         // The options it names exist
         assert!(!valid(r#", "rows": "/items", "paging": {"kind": "offset", "option": "o"}"#));
-        assert!(!valid(&format!(r#"{option}, "rows": "/items", "paging": {{"kind": "offset", "option": "o", "size": "s"}}"#)));
+        assert!(!valid(&format!(
+            r#"{option}, "rows": "/items", "paging": {{"kind": "offset", "option": "o", "size": "s"}}"#
+        )));
     }
 
     #[test]
     fn rejects_a_path_that_its_options_do_not_fill() {
         let valid = |extra: &str| ClientFunctionSpec::parse(&function("f", extra)).is_ok();
         let path = r#", "path": "/a/{id}/b""#;
-        assert!(valid(&format!(r#"{path}, "options": [{{"name": "x", "api_name": "id", "in": "path", "required": true}}]"#)));
+        assert!(valid(&format!(
+            r#"{path}, "options": [{{"name": "x", "api_name": "id", "in": "path", "required": true}}]"#
+        )));
         assert!(!valid(path));
         assert!(!valid(&format!(r#"{path}, "options": [{{"name": "id", "in": "path"}}]"#)));
         assert!(!valid(&format!(r#"{path}, "options": [{{"name": "id", "in": "query", "required": true}}]"#)));
@@ -624,9 +672,12 @@ mod tests {
         assert!(!valid(r#", "method": "GET", "pending": {"status": 202}"#));
         assert!(!valid(r#", "method": "GET", "pending": {"poll": {"header": "Location"}}"#));
         // The default of the spec holds for every function
-        let default = format!(r#"{{"format": 1, "namespace": "t", {repeat}, "functions": [{{"name": "f", "method": "POST"}}]}}"#);
+        let default =
+            format!(r#"{{"format": 1, "namespace": "t", {repeat}, "functions": [{{"name": "f", "method": "POST"}}]}}"#);
         assert!(ClientFunctionSpec::parse(&default).is_err());
-        let opted_out = format!(r#"{{"format": 1, "namespace": "t", {repeat}, "functions": [{{"name": "f", "method": "POST", "pending": null}}]}}"#);
+        let opted_out = format!(
+            r#"{{"format": 1, "namespace": "t", {repeat}, "functions": [{{"name": "f", "method": "POST", "pending": null}}]}}"#
+        );
         assert!(ClientFunctionSpec::parse(&opted_out).is_ok());
     }
 
@@ -651,9 +702,18 @@ mod tests {
         assert!(union(&format!(r#"{{{a}, "U": {{"variants": ["A"]}}, "V": {{"variants": ["U"]}}}}"#)).is_err());
         assert!(union(&format!(r#"{{{a}, "U": {{"tag": {{"attribute": "x", "values": {{}}}}}}}}"#)).is_err());
         // A tag selects a variant of the union that has the tag
-        assert!(union(&format!(r#"{{{a}, "U": {{"variants": ["A"], "tag": {{"attribute": "x", "values": {{"v": "A"}}}}}}}}"#)).is_ok());
-        assert!(union(&format!(r#"{{{a}, "Z": {{}}, "U": {{"variants": ["A"], "tag": {{"attribute": "x", "values": {{"v": "Z"}}}}}}}}"#)).is_err());
-        assert!(union(&format!(r#"{{{a}, "U": {{"variants": ["A"], "tag": {{"attribute": "y", "values": {{"v": "A"}}}}}}}}"#)).is_err());
+        assert!(union(&format!(
+            r#"{{{a}, "U": {{"variants": ["A"], "tag": {{"attribute": "x", "values": {{"v": "A"}}}}}}}}"#
+        ))
+        .is_ok());
+        assert!(union(&format!(
+            r#"{{{a}, "Z": {{}}, "U": {{"variants": ["A"], "tag": {{"attribute": "x", "values": {{"v": "Z"}}}}}}}}"#
+        ))
+        .is_err());
+        assert!(union(&format!(
+            r#"{{{a}, "U": {{"variants": ["A"], "tag": {{"attribute": "y", "values": {{"v": "A"}}}}}}}}"#
+        ))
+        .is_err());
         // A name means one thing in a union
         let api_name = r#""B": {"attributes": [{"name": "x", "api_name": "Other"}]}"#;
         assert!(union(&format!(r#"{{{a}, {api_name}, "U": {{"variants": ["A", "B"]}}}}"#)).is_err());
@@ -671,7 +731,8 @@ mod tests {
         let fit = |schema: &str, fields: &[ClientFunctionField]| {
             let schema = &spec.schemas[schema];
             let fit = spec.fit(schema, fields);
-            let names: Vec<&str> = fit.variants.iter().map(|v| v.attributes[1.min(v.attributes.len() - 1)].name.as_str()).collect();
+            let names: Vec<&str> =
+                fit.variants.iter().map(|v| v.attributes[1.min(v.attributes.len() - 1)].name.as_str()).collect();
             (names.join(","), fit.tag_field, fit.conflicts)
         };
         // Nothing yet: any variant
@@ -697,7 +758,11 @@ mod tests {
 
     #[test]
     fn ignores_what_the_runtime_reads() {
-        let spec = ClientFunctionSpec::parse(&function("f", r#", "path": "/x", "host": "api", "rows": "", "errors": {"empty_on": [404]}"#)).unwrap();
+        let spec = ClientFunctionSpec::parse(&function(
+            "f",
+            r#", "path": "/x", "host": "api", "rows": "", "errors": {"empty_on": [404]}"#,
+        ))
+        .unwrap();
         assert!(spec.function("f").is_some());
     }
 

@@ -14,11 +14,12 @@ use std::task::{Context, Poll};
 use dashql_buffers::execution::ExecutionGraphT;
 
 use super::plan::{
-    affected_scripts, describe_plan_errors, edges, nodes, planned_statements, result_keys, script_follows, skipped_nodes,
-    visualization_is_valid, PlanRun, PlannedStatement, ResultKey, NONE,
+    affected_scripts, describe_plan_errors, edges, nodes, planned_statements, result_keys, script_follows,
+    skipped_nodes, visualization_is_valid, PlanRun, PlannedStatement, ResultKey, NONE,
 };
 use super::{
-    RunFailure, RunFailureKind, RunHost, RunOptions, RunPhase, RunResult, RunState, ScriptEvent, StatementCache, StatementRequest,
+    RunFailure, RunFailureKind, RunHost, RunOptions, RunPhase, RunResult, RunState, ScriptEvent, StatementCache,
+    StatementRequest,
 };
 use crate::executor::QueryId;
 use crate::host::signal::{oneshot, Sender};
@@ -370,14 +371,19 @@ impl<H: RunHost> Run<H> {
         }
         let workbook = self.workbook.try_borrow().map_err(|_| changed())?;
         let scripts = workbook.scripts();
-        if scripts.len() != self.files.len() || scripts.iter().zip(&self.files).any(|(script, file)| script.file_name() != file) {
+        if scripts.len() != self.files.len()
+            || scripts.iter().zip(&self.files).any(|(script, file)| script.file_name() != file)
+        {
             return Err(changed());
         }
         for (index, script) in scripts.iter().enumerate() {
             let same = self.keys.get(index) == Some(&script.key())
                 && self.sessions.get(index).is_some_and(|session| Rc::ptr_eq(session, script.session()));
             if !same {
-                return Err(RunFailure::error(format!("Workbook script changed during execution: {}", self.file(index as u32))));
+                return Err(RunFailure::error(format!(
+                    "Workbook script changed during execution: {}",
+                    self.file(index as u32)
+                )));
             }
         }
         let planned = graph.scripts.as_deref().unwrap_or_default();
@@ -404,7 +410,13 @@ impl<H: RunHost> Run<H> {
 
     /// Plan the scripts. A catalog update may have landed since the preparation, the scripts with outdated analyses
     /// analyze first.
-    fn plan(&self, targets: Option<&[u32]>, provided: &[u32], files: &[(u32, String)], mount_prefix: &str) -> Result<ExecutionGraphT, RunFailure> {
+    fn plan(
+        &self,
+        targets: Option<&[u32]>,
+        provided: &[u32],
+        files: &[(u32, String)],
+        mount_prefix: &str,
+    ) -> Result<ExecutionGraphT, RunFailure> {
         let busy = || RunFailure::error("The workbook is busy");
         let analyzed = self.workbook.try_borrow_mut().map_err(|_| busy())?.analyze_outdated_scripts();
         if analyzed {
@@ -463,9 +475,17 @@ impl<H: RunHost> Run<H> {
             Ok(outputs) => {
                 // The run of a script shows the last output of the script
                 if let (PlanRun::Script(_), Some([target])) = (&self.options.run, self.options.targets.as_deref()) {
-                    if let (Some(Some(query_id)), Some(key)) = (outputs.get(*target as usize), self.keys.get(*target as usize)) {
-                        if let Err(failure) = self.apply(WorkbookAction::RegisterQuery { key: *key, query_id: *query_id as u32 }) {
-                            self.log(LogLevel::Warn, "Failed to register the result of the run", vec![detail("error", failure.message)]);
+                    if let (Some(Some(query_id)), Some(key)) =
+                        (outputs.get(*target as usize), self.keys.get(*target as usize))
+                    {
+                        if let Err(failure) =
+                            self.apply(WorkbookAction::RegisterQuery { key: *key, query_id: *query_id as u32 })
+                        {
+                            self.log(
+                                LogLevel::Warn,
+                                "Failed to register the result of the run",
+                                vec![detail("error", failure.message)],
+                            );
                         }
                     }
                 }
@@ -485,8 +505,13 @@ impl<H: RunHost> Run<H> {
                     state.phase = if cancelled { RunPhase::Cancelled } else { RunPhase::Failed };
                     state.error = (!cancelled).then(|| failure.message.clone());
                 });
-                let failure = if cancelled { RunFailure { kind: RunFailureKind::Cancelled, ..failure } } else { failure };
-                RunResult { outputs: vec![None; self.files.len()], failure: Some(failure), launched: self.launched.get() }
+                let failure =
+                    if cancelled { RunFailure { kind: RunFailureKind::Cancelled, ..failure } } else { failure };
+                RunResult {
+                    outputs: vec![None; self.files.len()],
+                    failure: Some(failure),
+                    launched: self.launched.get(),
+                }
             }
         };
         self.control.finished.set(true);
@@ -552,11 +577,16 @@ impl<H: RunHost> Run<H> {
             if self.options.refresh || !host.has_cache() {
                 self.log(LogLevel::Warn, "Running without connections that can serve no cached result", details);
             } else {
-                self.log(LogLevel::Info, "Running without connections, their scripts serve their cached results", details);
+                self.log(
+                    LogLevel::Info,
+                    "Running without connections, their scripts serve their cached results",
+                    details,
+                );
             }
         }
         // The scripts with outdated analyses analyze, a slider that changes an input reruns without analyzing the rest
-        let prepared = self.workbook.try_borrow_mut().map_err(|_| RunFailure::error("The workbook is busy"))?.analyze_for_run();
+        let prepared =
+            self.workbook.try_borrow_mut().map_err(|_| RunFailure::error("The workbook is busy"))?.analyze_for_run();
         if prepared != Ok(false) {
             host.workbook_changed(Vec::new(), true);
         }
@@ -566,7 +596,8 @@ impl<H: RunHost> Run<H> {
         // A change of inputs runs the scripts that it affects, with what they read
         let mut targets = self.options.targets.clone();
         if let Some(inputs) = &self.options.inputs {
-            let dataflow = self.workbook.try_borrow().map_err(|_| RunFailure::error("The workbook is busy"))?.dataflow();
+            let dataflow =
+                self.workbook.try_borrow().map_err(|_| RunFailure::error("The workbook is busy"))?.dataflow();
             let affected = affected_scripts(&dataflow, inputs);
             let total = affected.len();
             self.emit(|state| state.total_scripts = total);
@@ -597,9 +628,17 @@ impl<H: RunHost> Run<H> {
             // served if they are cached: the script can't change what they read during the run
             let mut runs: Vec<bool> = self.connections.iter().map(|connection| host.can_run(connection)).collect();
             for index in 0..count as u32 {
-                let Some(key) = keys.get(index as usize).cloned().flatten().filter(|key| key.reusable) else { continue };
-                let Some(result_node) = nodes(&graph).iter().position(|node| node.script == index && node.script_result) else { continue };
-                let blocked = follows.get(index as usize).is_some_and(|earlier| earlier.iter().any(|e| runs.get(*e as usize) == Some(&true)));
+                let Some(key) = keys.get(index as usize).cloned().flatten().filter(|key| key.reusable) else {
+                    continue;
+                };
+                let Some(result_node) =
+                    nodes(&graph).iter().position(|node| node.script == index && node.script_result)
+                else {
+                    continue;
+                };
+                let blocked = follows
+                    .get(index as usize)
+                    .is_some_and(|earlier| earlier.iter().any(|e| runs.get(*e as usize) == Some(&true)));
                 if blocked {
                     continue;
                 }
@@ -610,12 +649,17 @@ impl<H: RunHost> Run<H> {
                 }
                 self.check_cancelled()?;
                 let Some(file) = file else { continue };
-                if let Some(served) = self.serve_cached(&graph, index, result_node, &key, &statements, &visualizations).await? {
+                if let Some(served) =
+                    self.serve_cached(&graph, index, result_node, &key, &statements, &visualizations).await?
+                {
                     if let Some(run) = runs.get_mut(index as usize) {
                         *run = false;
                     }
                     cached_files.insert(index, file.name);
-                    self.host.script_event(&self.file(index), &ScriptEvent::Cached { key: key.key.clone(), query_id: served });
+                    self.host.script_event(
+                        &self.file(index),
+                        &ScriptEvent::Cached { key: key.key.clone(), query_id: served },
+                    );
                     self.cooperate().await?;
                 }
             }
@@ -637,7 +681,8 @@ impl<H: RunHost> Run<H> {
         let mounts = host.mount_prefix().is_some();
         let materializations = graph.materializations.as_deref().unwrap_or_default();
         if !cached_files.is_empty() || (mounts && !materializations.is_empty()) {
-            let mut names: Vec<(u32, String)> = cached_files.iter().map(|(script, file)| (*script, file.clone())).collect();
+            let mut names: Vec<(u32, String)> =
+                cached_files.iter().map(|(script, file)| (*script, file.clone())).collect();
             if mounts {
                 for materialization in materializations {
                     if names.iter().any(|(script, _)| *script == materialization.script) {
@@ -662,7 +707,8 @@ impl<H: RunHost> Run<H> {
         }
         // A materialized result is the file of its key already
         let materialized: BTreeSet<u32> = graph.materializations.iter().flatten().map(|m| m.script).collect();
-        let empty: Vec<u32> = counted.iter().copied().filter(|index| !nodes(&graph).iter().any(|node| node.script == *index)).collect();
+        let empty: Vec<u32> =
+            counted.iter().copied().filter(|index| !nodes(&graph).iter().any(|node| node.script == *index)).collect();
         if !empty.is_empty() {
             let done = empty.len();
             self.emit(|state| state.completed_scripts += done);
@@ -672,8 +718,12 @@ impl<H: RunHost> Run<H> {
                 self.host.script_event(&self.file(*index), &ScriptEvent::Done { key: None, query_id: None });
             }
         }
-        let connection_ids: Vec<String> =
-            graph.connections.iter().flatten().map(|connection| connection.connection_id.clone().unwrap_or_default()).collect();
+        let connection_ids: Vec<String> = graph
+            .connections
+            .iter()
+            .flatten()
+            .map(|connection| connection.connection_id.clone().unwrap_or_default())
+            .collect();
         let mut skip = skipped_nodes(&graph, &connection_ids, |connection| host.can_run(connection));
         // The scripts that run, with the scripts that they follow
         let mut follows: BTreeMap<u32, BTreeSet<u32>> = BTreeMap::new();
@@ -703,21 +753,28 @@ impl<H: RunHost> Run<H> {
                 }
             }
             type Setup = Pin<Box<dyn Future<Output = Result<(), crate::host::HostError>>>>;
-            let setups: Vec<Setup> = needed.iter().map(|connection| Box::pin(host.prepare_connection(connection)) as Setup).collect();
+            let setups: Vec<Setup> =
+                needed.iter().map(|connection| Box::pin(host.prepare_connection(connection)) as Setup).collect();
             let results = join_all(setups).await;
             for (connection, result) in needed.iter().zip(results) {
                 if let Err(error) = result {
                     self.log(
                         LogLevel::Warn,
                         "A connection of the run could not be set up",
-                        vec![detail("workbookId", self.workbook_id.clone()), detail("connectionId", connection.clone()), detail("error", error.message())],
+                        vec![
+                            detail("workbookId", self.workbook_id.clone()),
+                            detail("connectionId", connection.clone()),
+                            detail("error", error.message()),
+                        ],
                     );
                     failed_setups.insert(connection.clone());
                 }
             }
             self.check_cancelled()?;
             if !failed_setups.is_empty() {
-                skip = skipped_nodes(&graph, &connection_ids, |connection| host.can_run(connection) && !failed_setups.contains(connection));
+                skip = skipped_nodes(&graph, &connection_ids, |connection| {
+                    host.can_run(connection) && !failed_setups.contains(connection)
+                });
             }
         }
         if !skip.is_empty() {
@@ -752,7 +809,8 @@ impl<H: RunHost> Run<H> {
                     Some(key) => format!("not served from the cache, key {}", key.key),
                 }
             };
-            let described: Vec<String> = skipped.iter().map(|index| format!("{} ({})", self.file(*index), reason(*index))).collect();
+            let described: Vec<String> =
+                skipped.iter().map(|index| format!("{} ({})", self.file(*index), reason(*index))).collect();
             self.log(
                 LogLevel::Info,
                 "Skipping the scripts that need a connection",
@@ -903,10 +961,14 @@ impl<H: RunHost> Run<H> {
         let materializations = graph.materializations.as_deref().unwrap_or_default();
         let mounts = self.host.mount_prefix().is_some();
         if !mounts && materializations.iter().any(|m| m.node == NONE || !skip.contains(&m.node)) {
-            return Err(RunFailure::error("Scripts of other connections need the compute database to scan their results"));
+            return Err(RunFailure::error(
+                "Scripts of other connections need the compute database to scan their results",
+            ));
         }
         // The statements that scan attachments read them from the mount of the workbook
-        let attachments = all.iter().enumerate().any(|(index, node)| !skip.contains(&(index as u32)) && node.attachments.as_ref().is_some_and(|a| !a.is_empty()));
+        let attachments = all.iter().enumerate().any(|(index, node)| {
+            !skip.contains(&(index as u32)) && node.attachments.as_ref().is_some_and(|a| !a.is_empty())
+        });
         if attachments {
             if !self.host.mounts_attachments() {
                 return Err(RunFailure::error("Scripts that read attachments need the compute database"));
@@ -934,7 +996,9 @@ impl<H: RunHost> Run<H> {
                 }
             }
         }
-        let ready: Vec<usize> = (0..all.len()).filter(|index| !skip.contains(&(*index as u32)) && predecessors.get(*index) == Some(&0)).collect();
+        let ready: Vec<usize> = (0..all.len())
+            .filter(|index| !skip.contains(&(*index as u32)) && predecessors.get(*index) == Some(&0))
+            .collect();
         let count = self.files.len();
         *self.schedule.borrow_mut() = Some(Schedule {
             predecessors,
@@ -949,7 +1013,11 @@ impl<H: RunHost> Run<H> {
             started: BTreeSet::new(),
             ended: BTreeSet::new(),
         });
-        let max_concurrent: Vec<usize> = context.connection_ids.iter().map(|connection| self.host.max_concurrent_queries(connection).max(1)).collect();
+        let max_concurrent: Vec<usize> = context
+            .connection_ids
+            .iter()
+            .map(|connection| self.host.max_concurrent_queries(connection).max(1))
+            .collect();
 
         let scheduled = self.schedule_nodes(&context, &max_concurrent).await;
         let failure = match scheduled {
@@ -981,7 +1049,8 @@ impl<H: RunHost> Run<H> {
         let failure = self.with_schedule(|schedule| schedule.failure.clone()).flatten();
         if failure.is_some() || self.control.cancelled.get() {
             // The scripts that started and didn't finish were stopped by the run
-            let started: Vec<u32> = self.with_schedule(|schedule| schedule.started.iter().copied().collect()).unwrap_or_default();
+            let started: Vec<u32> =
+                self.with_schedule(|schedule| schedule.started.iter().copied().collect()).unwrap_or_default();
             for script in started {
                 self.end_script(script, ScriptEvent::Cancelled);
             }
@@ -1013,11 +1082,17 @@ impl<H: RunHost> Run<H> {
     }
 
     /// Launch the ready nodes until the plan is done or stops
-    async fn schedule_nodes(self: &Rc<Self>, context: &Rc<PlanContext>, max_concurrent: &[usize]) -> Result<(), RunFailure> {
+    async fn schedule_nodes(
+        self: &Rc<Self>,
+        context: &Rc<PlanContext>,
+        max_concurrent: &[usize],
+    ) -> Result<(), RunFailure> {
         let all = nodes(&context.graph);
         loop {
             let proceed = self
-                .with_schedule(|schedule| (!schedule.ready.is_empty() || schedule.running_total > 0) && schedule.failure.is_none())
+                .with_schedule(|schedule| {
+                    (!schedule.ready.is_empty() || schedule.running_total > 0) && schedule.failure.is_none()
+                })
                 .unwrap_or(false);
             if !proceed || self.control.cancelled.get() {
                 return Ok(());
@@ -1104,9 +1179,8 @@ impl<H: RunHost> Run<H> {
         let output = context.output_nodes.get(script as usize).copied().flatten() == Some(index);
         let visualization = context.visualizations.get(index).cloned().flatten();
         let connection_id = context.connection_ids.get(node.connection as usize).cloned().unwrap_or_default();
-        let materialization = (node.materialization != NONE)
-            .then(|| graph_path(&context.graph, node.materialization))
-            .flatten();
+        let materialization =
+            (node.materialization != NONE).then(|| graph_path(&context.graph, node.materialization)).flatten();
         let file = self.file(script);
         let statement_count = statements.len() as u32;
         self.emit(|state| {
@@ -1161,15 +1235,25 @@ impl<H: RunHost> Run<H> {
             }
         };
         let query_id = handle.query_id;
-        let mut details = vec![detail("workbookId", self.workbook_id.clone()), detail("query", query_id.to_string()), detail("connectionId", connection_id.clone())];
+        let mut details = vec![
+            detail("workbookId", self.workbook_id.clone()),
+            detail("query", query_id.to_string()),
+            detail("connectionId", connection_id.clone()),
+        ];
         details.extend(planned.log_fields());
         details.push(detail("cacheable", refresh.to_string()));
         details.push(detail("refreshCache", refresh.to_string()));
         self.log(LogLevel::Info, "Running a planned statement", details);
-        self.control.active.borrow_mut().insert(query_id, ActiveQuery { connection_id: connection_id.clone(), cancelling: false });
+        self.control
+            .active
+            .borrow_mut()
+            .insert(query_id, ActiveQuery { connection_id: connection_id.clone(), cancelling: false });
         self.apply(WorkbookAction::RegisterQuery { key: script_key, query_id: query_id as u32 })?;
         if output {
-            self.apply(WorkbookAction::SetExecutionVisualization { key: script_key, visualization: visualization.clone() })?;
+            self.apply(WorkbookAction::SetExecutionVisualization {
+                key: script_key,
+                visualization: visualization.clone(),
+            })?;
         }
 
         let run = self.clone();
@@ -1205,10 +1289,14 @@ impl<H: RunHost> Run<H> {
                     }
                     run.check_cancelled()?;
                     if !has_result {
-                        return Err(RunFailure::error(format!("{} has no result that other scripts could read", run.file(script))));
+                        return Err(RunFailure::error(format!(
+                            "{} has no result that other scripts could read",
+                            run.file(script)
+                        )));
                     }
                     run.pin(path).await?;
-                    let rows = run.host.mount_write(path, query_id).await.map_err(|error| RunFailure::from_host(&error))?;
+                    let rows =
+                        run.host.mount_write(path, query_id).await.map_err(|error| RunFailure::from_host(&error))?;
                     run.log(
                         LogLevel::Info,
                         "Wrote a materialized script result",
@@ -1247,9 +1335,11 @@ impl<H: RunHost> Run<H> {
             Ok(has_result) => {
                 let mut registered = Ok(());
                 if output {
-                    registered = self.apply(WorkbookAction::SetExecutionVisualization { key: script_key, visualization });
+                    registered =
+                        self.apply(WorkbookAction::SetExecutionVisualization { key: script_key, visualization });
                     if registered.is_ok() && has_result {
-                        registered = self.apply(WorkbookAction::RegisterScriptResult { key: script_key, query_id: query_id as u32 });
+                        registered = self
+                            .apply(WorkbookAction::RegisterScriptResult { key: script_key, query_id: query_id as u32 });
                     }
                     self.with_schedule(|schedule| {
                         if let Some(slot) = schedule.outputs.get_mut(script as usize) {
@@ -1282,7 +1372,9 @@ impl<H: RunHost> Run<H> {
                     .unwrap_or((false, false));
                 if done {
                     self.emit(|state| state.completed_scripts += 1);
-                    let query_id = self.with_schedule(|schedule| schedule.outputs.get(script as usize).copied().flatten()).flatten();
+                    let query_id = self
+                        .with_schedule(|schedule| schedule.outputs.get(script as usize).copied().flatten())
+                        .flatten();
                     self.end_script(script, ScriptEvent::Done { key: context.done_key(script), query_id });
                 }
                 if yields {
@@ -1291,9 +1383,14 @@ impl<H: RunHost> Run<H> {
             }
             Err(failure) => {
                 // The failures of cancelled statements are no failures of the run
-                let first = self.with_schedule(|schedule| schedule.failure.is_none()).unwrap_or(false) && !self.control.cancelled.get();
-                let mut details = vec![detail("workbookId", self.workbook_id.clone()), detail("query", query_id.to_string())];
-                if let Some(connection) = nodes(&context.graph).get(index).and_then(|node| context.connection_ids.get(node.connection as usize)) {
+                let first = self.with_schedule(|schedule| schedule.failure.is_none()).unwrap_or(false)
+                    && !self.control.cancelled.get();
+                let mut details =
+                    vec![detail("workbookId", self.workbook_id.clone()), detail("query", query_id.to_string())];
+                if let Some(connection) = nodes(&context.graph)
+                    .get(index)
+                    .and_then(|node| context.connection_ids.get(node.connection as usize))
+                {
                     details.push(detail("connectionId", connection.clone()));
                 }
                 if let Some(statement) = context.statements.get(index) {

@@ -11,9 +11,13 @@ use serde_json::Value;
 
 use super::batch::{publish_prepared, CatalogBatch, CatalogBatchEntry, PreparedDescriptor};
 use super::prefetched_hyper_functions::PREFETCHED_HYPER_FUNCTIONS_SQL;
-use super::tables::{catalog_tables_of_schema, pack_catalog_descriptor_of_tables, CatalogTable, ColumnMetadata, Groups};
+use super::tables::{
+    catalog_tables_of_schema, pack_catalog_descriptor_of_tables, CatalogTable, ColumnMetadata, Groups,
+};
 use super::{CatalogEntries, CatalogLoadError, ConnectorCatalogUpdate, ConnectorStep, Publication};
-use crate::connections::{ConnectionChannel, ConnectionDetails, SALESFORCE_CATALOG_DATABASE, SALESFORCE_CATALOG_SCHEMA};
+use crate::connections::{
+    ConnectionChannel, ConnectionDetails, SALESFORCE_CATALOG_DATABASE, SALESFORCE_CATALOG_SCHEMA,
+};
 use crate::http::HttpResponse;
 use crate::salesforce::api::get_salesforce_data_space;
 use crate::salesforce::{SalesforceMetadataLoad, SharedSalesforceChannel};
@@ -107,7 +111,6 @@ impl SalesforceCatalogUpdate {
         }
     }
 
-
     /// Read the metadata, `{"metadata": [...]}`, and parse the functions next
     fn read_metadata(&mut self, metadata: &Value) -> Result<(), CatalogLoadError> {
         self.tables = catalog_tables_from_salesforce_metadata(metadata)?;
@@ -117,7 +120,11 @@ impl SalesforceCatalogUpdate {
             text: PREFETCHED_HYPER_FUNCTIONS_SQL.to_string(),
             require_functions: true,
         }]);
-        let prepared = batch.prepare()?.into_iter().next().ok_or_else(|| CatalogLoadError::failed("Catalog batch did not return a descriptor"))?;
+        let prepared = batch
+            .prepare()?
+            .into_iter()
+            .next()
+            .ok_or_else(|| CatalogLoadError::failed("Catalog batch did not return a descriptor"))?;
         self.phase = Phase::Publish(prepared);
         Ok(())
     }
@@ -172,13 +179,19 @@ impl ConnectorCatalogUpdate for SalesforceCatalogUpdate {
 
     fn publish(&mut self, catalog: &mut Catalog) -> Publication {
         let Phase::Publish(prepared) = std::mem::replace(&mut self.phase, Phase::Done) else {
-            return Publication::of(Err(CatalogLoadError::failed("the Salesforce catalog update didn't ask to publish")));
+            return Publication::of(Err(CatalogLoadError::failed(
+                "the Salesforce catalog update didn't ask to publish",
+            )));
         };
         if let Err(error) = publish_prepared(catalog, std::slice::from_ref(&prepared)) {
             return Publication::of(Err(error));
         }
         let result = catalog
-            .replace_descriptor(self.entries.relations, CatalogLayer::CONNECTION, &pack_catalog_descriptor_of_tables(&self.tables))
+            .replace_descriptor(
+                self.entries.relations,
+                CatalogLayer::CONNECTION,
+                &pack_catalog_descriptor_of_tables(&self.tables),
+            )
             .map(|()| None)
             .map_err(CatalogLoadError::from);
         Publication { function_script_text: Some(PREFETCHED_HYPER_FUNCTIONS_SQL.to_string()), result }

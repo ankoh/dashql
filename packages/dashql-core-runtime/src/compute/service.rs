@@ -35,17 +35,18 @@ use dashql_core::error::{Error, Result};
 use crate::host::signal::{cancellable, CancelHandle};
 use crate::host::{HostError, LogLevel};
 
+use super::cross_filters::CrossFilters;
 use super::host::{ComputeContext, ComputeHost, KeptTable, RunId, TableShape};
 use super::tasks::analyze_table::{
     column_aggregation_tasks, start_table_analysis, system_columns_task, table_aggregation_task, AnalyzeTableOptions,
 };
-use super::tasks::column_aggregation::{plan_column_aggregation, plan_filtered_column_aggregation, ColumnAggregateResult};
-use super::cross_filters::CrossFilters;
+use super::tasks::column_aggregation::{
+    plan_column_aggregation, plan_filtered_column_aggregation, ColumnAggregateResult,
+};
 use super::tasks::data_search::{
     build_column_search_sql, collect_searchable_result_columns, parse_column_search_matches, plan_data_search,
     DATA_SEARCH_ROW_FIELD,
 };
-use crate::catalog_loader::sql::quote_identifier;
 use super::tasks::result_table::ResultTable;
 use super::tasks::system_columns::plan_system_columns;
 use super::tasks::table_aggregation::plan_table_aggregation;
@@ -53,12 +54,14 @@ use super::tasks::table_filtering::plan_table_filtering;
 use super::tasks::table_ordering::plan_table_ordering;
 use super::tasks::{data_frame_table_name, preview_data_frame_sql, TableStats, TaskQuery};
 use super::types::{
-    same_ordering, ArrowTable, ColumnAggregate, ColumnAggregationTask, ColumnGroup, ColumnSummary, ColumnSummaryAnalysis,
-    ComputationTask, DataFrameId, DataSearchTable, DataSearchTask, FilterTable, FilteredColumnAggregate,
-    FilteredColumnAggregationTask, LifetimeId, OrderByConstraint, OrderingTable, TableAggregation, TableFilteringTask,
-    TableId, TableOrderingTask, TaskId, TaskProgressUpdate, TaskStatus, Timestamp,
+    same_ordering, ArrowTable, ColumnAggregate, ColumnAggregationTask, ColumnGroup, ColumnSummary,
+    ColumnSummaryAnalysis, ComputationTask, DataFrameId, DataSearchTable, DataSearchTask, FilterTable,
+    FilteredColumnAggregate, FilteredColumnAggregationTask, LifetimeId, OrderByConstraint, OrderingTable,
+    TableAggregation, TableFilteringTask, TableId, TableOrderingTask, TaskId, TaskProgressUpdate, TaskStatus,
+    Timestamp,
 };
 use super::{ComputationAction, ComputationEffect, ComputationOutcome, ComputationState, SearchKind, TableComputation};
+use crate::catalog_loader::sql::quote_identifier;
 
 /// The title of the import of a result
 const IMPORT_TITLE: &str = "Table import";
@@ -300,7 +303,11 @@ fn drop_data_frame<H: ComputeHost>(shared: &Rc<Shared<H>>, data_frame: DataFrame
 
 /// Apply an action, drop the released data frames and cancel the aborted runs. A task tells the host that the state
 /// changed.
-fn apply<H: ComputeHost>(shared: &Rc<Shared<H>>, action: ComputationAction, notify: bool) -> Result<ComputationOutcome> {
+fn apply<H: ComputeHost>(
+    shared: &Rc<Shared<H>>,
+    action: ComputationAction,
+    notify: bool,
+) -> Result<ComputationOutcome> {
     let (outcome, cancelled) = {
         let mut inner = shared.inner.borrow_mut();
         let outcome = inner.state.apply(action)?;
@@ -311,7 +318,8 @@ fn apply<H: ComputeHost>(shared: &Rc<Shared<H>>, action: ComputationAction, noti
                     cancelled.extend(inner.take_runs(|run| run.lifetime == *handle));
                 }
                 ComputationEffect::AbortDataSearch { table_id, request_id } => {
-                    cancelled.extend(inner.take_runs(|run| run.table_id == *table_id && run.search == Some(*request_id)));
+                    cancelled
+                        .extend(inner.take_runs(|run| run.table_id == *table_id && run.search == Some(*request_id)));
                 }
                 ComputationEffect::Release { .. } | ComputationEffect::ReleaseDataFrame { .. } => {}
             }
@@ -414,14 +422,22 @@ where
     };
     let (future, cancel) = cancellable(future(context));
     let RunOf { task, search, column_search } = of;
-    shared.inner.borrow_mut().runs.insert(run, Run { table_id, lifetime: info.lifetime, task, search, column_search, cancel });
+    shared
+        .inner
+        .borrow_mut()
+        .runs
+        .insert(run, Run { table_id, lifetime: info.lifetime, task, search, column_search, cancel });
     let result = future.await;
     shared.inner.borrow_mut().runs.remove(&run);
     result.unwrap_or(Err(RunError::Cancelled))
 }
 
 /// Create the table of a query and keep the rows of its read with the host, the state names them by their handle
-async fn run_query_kept<H: ComputeHost>(shared: &Shared<H>, query: &TaskQuery, context: &ComputeContext) -> RunResult<ArrowTable> {
+async fn run_query_kept<H: ComputeHost>(
+    shared: &Shared<H>,
+    query: &TaskQuery,
+    context: &ComputeContext,
+) -> RunResult<ArrowTable> {
     let host = &shared.host;
     let failed = |e: HostError| host_failed(e, |e| query.failed(e));
     host.create_table(query.data_frame, &query.table_name, &query.sql, context).await.map_err(failed)?;
@@ -520,7 +536,8 @@ async fn execute<H: ComputeHost>(
                 version: ordering.version,
                 data_search_request_id: ordering.data_search_request_id,
             };
-            let action = ComputationAction::TableOrderingSucceeded { table_id, ordering: ordering.clone(), now: now(shared) };
+            let action =
+                ComputationAction::TableOrderingSucceeded { table_id, ordering: ordering.clone(), now: now(shared) };
             Ok((action, TaskOutput::Ordering(ordering)))
         }
         ComputationTask::TableAggregation(task) => {
@@ -631,7 +648,8 @@ async fn run_task<H: ComputeHost>(shared: &Rc<Shared<H>>, task_id: TaskId) -> Re
     };
     let table_id = task.table_id();
     let title = task.title();
-    let unregister = |shared: &Rc<Shared<H>>| apply(shared, ComputationAction::UnregisterSchedulerTask { task_id }, true);
+    let unregister =
+        |shared: &Rc<Shared<H>>| apply(shared, ComputationAction::UnregisterSchedulerTask { task_id }, true);
     let Some(info) = computation_info(shared, table_id) else {
         unregister(shared)?;
         return Err(Error::invalid_argument(format!("the table {table_id} has no computation")));
@@ -645,18 +663,23 @@ async fn run_task<H: ComputeHost>(shared: &Rc<Shared<H>>, task_id: TaskId) -> Re
         ComputationTask::DataSearch(search) => Some(search.request_id),
         _ => None,
     };
-    let result = in_run(shared, table_id, &info, title, RunOf { task: Some(task_id), search, column_search: None }, |context| {
-        let shared = shared.clone();
-        let task = task.clone();
-        let schema = info.schema.clone();
-        async move { execute(&shared, &task, &schema, output, &context).await }
-    })
-    .await;
+    let result =
+        in_run(shared, table_id, &info, title, RunOf { task: Some(task_id), search, column_search: None }, |context| {
+            let shared = shared.clone();
+            let task = task.clone();
+            let schema = info.schema.clone();
+            async move { execute(&shared, &task, &schema, output, &context).await }
+        })
+        .await;
     match result {
         Ok((action, output)) => {
             let duration = format!("{}", (shared.host.now() - started).max(0.0).floor());
             let table = table_id.to_string();
-            shared.host.log(LogLevel::Info, &format!("{title} succeeded"), &[("table", &table), ("duration", &duration)]);
+            shared.host.log(
+                LogLevel::Info,
+                &format!("{title} succeeded"),
+                &[("table", &table), ("duration", &duration)],
+            );
             apply(shared, action, true)?;
             unregister(shared)?;
             Ok(output)
@@ -670,7 +693,11 @@ async fn run_task<H: ComputeHost>(shared: &Rc<Shared<H>>, task_id: TaskId) -> Re
                     TaskStatus::Cancelled
                 }
                 RunError::Failed(error) => {
-                    shared.host.log(LogLevel::Warn, &format!("{title} failed"), &[("table", &table), ("error", &error.to_string())]);
+                    shared.host.log(
+                        LogLevel::Warn,
+                        &format!("{title} failed"),
+                        &[("table", &table), ("error", &error.to_string())],
+                    );
                     TaskStatus::Failed
                 }
             };
@@ -749,7 +776,11 @@ async fn analyze<H: ComputeHost>(
         let name = import.table_name.clone();
         async move {
             let failed = |e: HostError| Error::invalid_argument(format!("importing the result failed: {e}"));
-            shared.host.import_table(input, &name, handles.table, &row_number_field, &context).await.map_err(|e| host_failed(e, failed))
+            shared
+                .host
+                .import_table(input, &name, handles.table, &row_number_field, &context)
+                .await
+                .map_err(|e| host_failed(e, failed))
         }
     })
     .await
@@ -768,8 +799,17 @@ async fn analyze<H: ComputeHost>(
     };
 
     // The system columns
-    let task = system_columns_task(table_id, column_groups, data_table, input, start.row_number_field_name, aggregation.clone());
-    let Some(TaskOutput::SystemColumns(table, data_frame, column_groups)) = schedule_and_run(shared, task.into()).await? else {
+    let task = system_columns_task(
+        table_id,
+        column_groups,
+        data_table,
+        input,
+        start.row_number_field_name,
+        aggregation.clone(),
+    );
+    let Some(TaskOutput::SystemColumns(table, data_frame, column_groups)) =
+        schedule_and_run(shared, task.into()).await?
+    else {
         return Ok(());
     };
     // The filters, the ordering and the searches that the app asked for before the data frame was there
@@ -787,7 +827,8 @@ async fn analyze<H: ComputeHost>(
     if count > 0 {
         let (table_name, rows, count) = (table_id.to_string(), table.rows().to_string(), count.to_string());
         let duration = format!("{}", (shared.host.now() - started).max(0.0).floor());
-        let details = [("table", table_name.as_str()), ("rows", &rows), ("aggregates", &count), ("duration", &duration)];
+        let details =
+            [("table", table_name.as_str()), ("rows", &rows), ("aggregates", &count), ("duration", &duration)];
         shared.host.log(LogLevel::Info, "Computed column aggregates", &details);
     }
     Ok(())
@@ -860,7 +901,12 @@ impl<H: ComputeHost> ComputeService<H> {
     }
 
     /// Select a range of bins in the histogram of a column group, none clears the selection of the column
-    pub fn histogram_filter(&self, table_id: TableId, column_group: u32, brush: Option<(f64, f64)>) -> Result<ComputationOutcome> {
+    pub fn histogram_filter(
+        &self,
+        table_id: TableId,
+        column_group: u32,
+        brush: Option<(f64, f64)>,
+    ) -> Result<ComputationOutcome> {
         let filters = {
             let inner = self.shared.inner.borrow();
             let Some(computation) = inner.state.computation(table_id) else {
@@ -898,7 +944,8 @@ impl<H: ComputeHost> ComputeService<H> {
                 return Ok(ComputationOutcome::default());
             }
             let current = &computation.cross_filters;
-            let value_id = if current.contains_most_frequent_value_filter(column_group, value_id) { None } else { value_id };
+            let value_id =
+                if current.contains_most_frequent_value_filter(column_group, value_id) { None } else { value_id };
             let mut filters = current.clone();
             filters.add_most_frequent_value_filter(column_group, group, value_id);
             filters
@@ -918,12 +965,19 @@ impl<H: ComputeHost> ComputeService<H> {
     }
 
     /// Search the columns or the data, an empty pattern ends the search
-    pub fn set_search_pattern(&self, table_id: TableId, kind: SearchKind, pattern: String) -> Result<ComputationOutcome> {
+    pub fn set_search_pattern(
+        &self,
+        table_id: TableId,
+        kind: SearchKind,
+        pattern: String,
+    ) -> Result<ComputationOutcome> {
         if kind == SearchKind::Columns {
-            let runs = self.shared.inner.borrow_mut().take_runs(|run| run.table_id == table_id && run.column_search.is_some());
+            let runs =
+                self.shared.inner.borrow_mut().take_runs(|run| run.table_id == table_id && run.column_search.is_some());
             cancel_runs(&self.shared, runs);
         }
-        let outcome = apply(&self.shared, ComputationAction::SetResultSearchPattern { table_id, kind, pattern }, false)?;
+        let outcome =
+            apply(&self.shared, ComputationAction::SetResultSearchPattern { table_id, kind, pattern }, false)?;
         refresh(&self.shared, table_id);
         Ok(outcome)
     }
@@ -956,18 +1010,20 @@ impl<H: ComputeHost> ComputeService<H> {
         let task_shared = shared.clone();
         shared.host.spawn(Box::pin(async move {
             let shared = task_shared;
-            let counted = in_run(&shared, table_id, &info, "Filtered column aggregation", RunOf::default(), |context| {
-                let shared = shared.clone();
-                async move {
-                    let failed = |e: HostError| Error::invalid_argument(format!("counting the selected rows failed: {e}"));
-                    let ipc = shared.host.query(&sql, &context).await.map_err(|e| host_failed(e, failed))?;
-                    let table = ResultTable::from_ipc_stream(&ipc)?;
-                    let count = if table.num_rows() == 0 { None } else { table.integer_value(0, 0)? };
-                    Ok(count.and_then(|count| u64::try_from(count).ok()).unwrap_or(0))
-                }
-            })
-            .await
-            .map_err(|error| error.into_error("Filtered column aggregation"));
+            let counted =
+                in_run(&shared, table_id, &info, "Filtered column aggregation", RunOf::default(), |context| {
+                    let shared = shared.clone();
+                    async move {
+                        let failed =
+                            |e: HostError| Error::invalid_argument(format!("counting the selected rows failed: {e}"));
+                        let ipc = shared.host.query(&sql, &context).await.map_err(|e| host_failed(e, failed))?;
+                        let table = ResultTable::from_ipc_stream(&ipc)?;
+                        let count = if table.num_rows() == 0 { None } else { table.integer_value(0, 0)? };
+                        Ok(count.and_then(|count| u64::try_from(count).ok()).unwrap_or(0))
+                    }
+                })
+                .await
+                .map_err(|error| error.into_error("Filtered column aggregation"));
             shared.inner.borrow_mut().counting.remove(&(table_id, column_id));
             let error = match counted {
                 Ok(rows) => start_task(&shared, task.with_selection(rows), true).err(),
@@ -975,7 +1031,11 @@ impl<H: ComputeHost> ComputeService<H> {
             };
             if let Some(error) = error {
                 let error = error.to_string();
-                shared.host.log(LogLevel::Warn, "Failed to summarize a column over the selected rows", &[("error", &error)]);
+                shared.host.log(
+                    LogLevel::Warn,
+                    "Failed to summarize a column over the selected rows",
+                    &[("error", &error)],
+                );
             }
         }));
         Ok(())
@@ -997,9 +1057,12 @@ impl<H: ComputeHost> ComputeService<H> {
             let sql = {
                 let inner = shared.inner.borrow();
                 let computation = inner.state.computation(table_id).ok_or_else(no_computation)?;
-                let (Some(data_frame), Some(row_numbers)) = (computation.data_frame, computation.row_number_column_name.as_deref())
+                let (Some(data_frame), Some(row_numbers)) =
+                    (computation.data_frame, computation.row_number_column_name.as_deref())
                 else {
-                    return Err(Error::invalid_argument(format!("the result of the table {table_id} is not analyzed yet")));
+                    return Err(Error::invalid_argument(format!(
+                        "the result of the table {table_id} is not analyzed yet"
+                    )));
                 };
                 preview_data_frame_sql(data_frame, &computation.data_table_fields, row_numbers, limit)
             };
@@ -1103,7 +1166,10 @@ fn filtering_task(computation: &TableComputation) -> Option<ComputationTask> {
             return None;
         }
         if tracked.task.filters == filters {
-            let current = computation.filter_table.as_ref().is_none_or(|filter| filter.version.filter_matches(computation.version));
+            let current = computation
+                .filter_table
+                .as_ref()
+                .is_none_or(|filter| filter.version.filter_matches(computation.version));
             if matches!(tracked.progress.status, TaskStatus::Failed | TaskStatus::Cancelled) || current {
                 return None;
             }
@@ -1139,7 +1205,8 @@ fn ordering_task(computation: &TableComputation, constraints: Option<&[OrderByCo
     }
     let input_data_frame = computation.data_frame?;
     let row_number_column_name = computation.row_number_column_name.clone()?;
-    let filtering = computation.tasks.filtering.as_ref().is_some_and(|tracked| tracked.progress.status == TaskStatus::Running);
+    let filtering =
+        computation.tasks.filtering.as_ref().is_some_and(|tracked| tracked.progress.status == TaskStatus::Running);
     if filtering || computation.data_search.pending {
         return None;
     }
@@ -1220,7 +1287,11 @@ fn column_search(computation: &TableComputation, runs: &BTreeMap<RunId, Run>) ->
 
 /// Schedule a task and run it in a task of the host, then derive the tasks of its computation again. The schedule
 /// tells the host with `notify`, else the caller hands the effects of the outcome to the host: one of them does.
-fn start_task<H: ComputeHost>(shared: &Rc<Shared<H>>, task: ComputationTask, notify: bool) -> Result<ComputationOutcome> {
+fn start_task<H: ComputeHost>(
+    shared: &Rc<Shared<H>>,
+    task: ComputationTask,
+    notify: bool,
+) -> Result<ComputationOutcome> {
     let table_id = task.table_id();
     let outcome = apply(shared, ComputationAction::ScheduleTask { task, now: now(shared) }, notify)?;
     if let Some(task_id) = outcome.task_id {
@@ -1254,12 +1325,19 @@ fn refresh<H: ComputeHost>(shared: &Rc<Shared<H>>, table_id: TableId) {
     }
     match column_search {
         Some(ColumnSearch::Empty { data_frame, request_id }) => {
-            let action = ComputationAction::ColumnSearchSucceeded { table_id, data_frame, request_id, matching_column_groups: Vec::new() };
+            let action = ComputationAction::ColumnSearchSucceeded {
+                table_id,
+                data_frame,
+                request_id,
+                matching_column_groups: Vec::new(),
+            };
             if let Err(error) = apply(shared, action, true) {
                 failed(error);
             }
         }
-        Some(ColumnSearch::Query { data_frame, request_id, sql }) => start_column_search(shared, table_id, data_frame, request_id, sql),
+        Some(ColumnSearch::Query { data_frame, request_id, sql }) => {
+            start_column_search(shared, table_id, data_frame, request_id, sql)
+        }
         None => {}
     }
     // The ordering waits for the filtering and the data search that just started
@@ -1275,7 +1353,13 @@ fn refresh<H: ComputeHost>(shared: &Rc<Shared<H>>, table_id: TableId) {
 }
 
 /// Search the names of the columns in a task of the host
-fn start_column_search<H: ComputeHost>(shared: &Rc<Shared<H>>, table_id: TableId, data_frame: DataFrameId, request_id: u64, sql: String) {
+fn start_column_search<H: ComputeHost>(
+    shared: &Rc<Shared<H>>,
+    table_id: TableId,
+    data_frame: DataFrameId,
+    request_id: u64,
+    sql: String,
+) {
     let Some(info) = computation_info(shared, table_id) else {
         return;
     };
@@ -1294,12 +1378,20 @@ fn start_column_search<H: ComputeHost>(shared: &Rc<Shared<H>>, table_id: TableId
         .await
         .map_err(|error| error.into_error("Column search"));
         let action = match searched {
-            Ok(matching_column_groups) => ComputationAction::ColumnSearchSucceeded { table_id, data_frame, request_id, matching_column_groups },
+            Ok(matching_column_groups) => {
+                ComputationAction::ColumnSearchSucceeded { table_id, data_frame, request_id, matching_column_groups }
+            }
             Err(error) => {
                 let message = error.to_string();
                 let table = table_id.to_string();
                 shared.host.log(LogLevel::Warn, "Column search failed", &[("table", &table), ("error", &message)]);
-                ComputationAction::ResultSearchFailed { table_id, data_frame, kind: SearchKind::Columns, request_id, error: message }
+                ComputationAction::ResultSearchFailed {
+                    table_id,
+                    data_frame,
+                    kind: SearchKind::Columns,
+                    request_id,
+                    error: message,
+                }
             }
         };
         // A superseded search changes nothing

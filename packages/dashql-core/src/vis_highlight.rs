@@ -72,7 +72,12 @@ impl Lines<'_> {
 }
 
 /// The tokens of the JSON of a tag, from `body` in the tag text, and the spans of its outermost objects
-fn json_tokens(tag: &TagText, body: usize, out: &mut Vec<(TextSpan, ScannerTokenType)>, mut objects: Option<&mut Vec<TextSpan>>) {
+fn json_tokens(
+    tag: &TagText,
+    body: usize,
+    out: &mut Vec<(TextSpan, ScannerTokenType)>,
+    mut objects: Option<&mut Vec<TextSpan>>,
+) {
     // A body past the tag text has no tokens
     let Some(json) = tag.text.as_bytes().get(body..) else { return };
     let mut object_begin = None;
@@ -91,11 +96,17 @@ fn json_tokens(tag: &TagText, body: usize, out: &mut Vec<(TextSpan, ScannerToken
             }
             JsonTokenKind::String { .. } if token.slot == Some(JsonSlot::Key) => ScannerTokenType::IDENTIFIER,
             JsonTokenKind::String { .. } => ScannerTokenType::LITERAL_STRING,
-            JsonTokenKind::Number if json.get(token.begin..token.end).is_some_and(|t| t.iter().any(|c| matches!(c, b'.' | b'e' | b'E'))) => {
+            JsonTokenKind::Number
+                if json
+                    .get(token.begin..token.end)
+                    .is_some_and(|t| t.iter().any(|c| matches!(c, b'.' | b'e' | b'E'))) =>
+            {
                 ScannerTokenType::LITERAL_FLOAT
             }
             JsonTokenKind::Number => ScannerTokenType::LITERAL_INTEGER,
-            JsonTokenKind::Literal if json.get(token.begin..token.end) == Some(b"null".as_slice()) => ScannerTokenType::KEYWORD,
+            JsonTokenKind::Literal if json.get(token.begin..token.end) == Some(b"null".as_slice()) => {
+                ScannerTokenType::KEYWORD
+            }
             JsonTokenKind::Literal => ScannerTokenType::LITERAL_BOOLEAN,
             _ => continue,
         };
@@ -137,11 +148,16 @@ fn tag_tokens(parsed: &ParsedScript) -> (Vec<(TextSpan, ScannerTokenType)>, Vec<
         let mut lines = Lines { script, out: &mut out };
         // The tag with its `@`, and the end line of a region of line comments
         lines.push(tag.offset as usize - 1, tag.end() as usize, ScannerTokenType::KEYWORD);
-        let last = ((block.comments_begin + block.comments_count) as usize).checked_sub(1).and_then(|i| parsed.scanned.comments.get(i));
+        let last = ((block.comments_begin + block.comments_count) as usize)
+            .checked_sub(1)
+            .and_then(|i| parsed.scanned.comments.get(i));
         if let Some((begin, end)) = last.and_then(|&last| end_tag(script, last)) {
             lines.push(begin, end, ScannerTokenType::KEYWORD);
         }
-        let content = blocks.lines.get(block.lines_begin as usize..(block.lines_begin + block.lines_count) as usize).unwrap_or_default();
+        let content = blocks
+            .lines
+            .get(block.lines_begin as usize..(block.lines_begin + block.lines_count) as usize)
+            .unwrap_or_default();
         // `@board` and `@flow` are args
         if name == BOARD_TAG || name == FLOW_TAG {
             if let Some(first) = content.first() {
@@ -318,9 +334,15 @@ mod tests {
             vegalite_specs("/* @vis vegalite\n   {\n     \"mark\": {\"type\": \"bar\"},\n     \"title\": \"a } b\"\n   }\n*/\nselect 1"),
             vec!["{\n     \"mark\": {\"type\": \"bar\"},\n     \"title\": \"a } b\"\n   }"]
         );
-        assert_eq!(vegalite_specs("-- @vis vegalite {\"mark\":\"bar\"}\n-- @end\nselect 1"), vec!["{\"mark\":\"bar\"}"]);
+        assert_eq!(
+            vegalite_specs("-- @vis vegalite {\"mark\":\"bar\"}\n-- @end\nselect 1"),
+            vec!["{\"mark\":\"bar\"}"]
+        );
         // Only the JSON of vegalite tags, and only closed objects
-        assert_eq!(vegalite_specs("/* @vis markdown {{a}} */ select 1; /* {\"mark\": 1} */ select 2"), Vec::<&str>::new());
+        assert_eq!(
+            vegalite_specs("/* @vis markdown {{a}} */ select 1; /* {\"mark\": 1} */ select 2"),
+            Vec::<&str>::new()
+        );
         assert_eq!(vegalite_specs("/* @vis vegalite {\"mark\": \"bar\" */ select 1"), Vec::<&str>::new());
     }
 }

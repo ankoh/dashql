@@ -20,11 +20,12 @@ use std::rc::Rc;
 use dashql_core_runtime::attachments::DataFile;
 use dashql_core_runtime::host::{HostError, LogLevel, OnHost};
 use dashql_core_runtime::http::HostBytes;
+use dashql_core_runtime::workbook::next_revision;
 use dashql_core_storage::restore::{RestoreHost, RestoreProgress};
 use dashql_core_storage::storage::{
-    ConnectionsUpdate, Expect, FileStamp, FolderListing, FolderStamps, NamedStamp, StorageHost, StorageWriter, WriterStatus,
+    ConnectionsUpdate, Expect, FileStamp, FolderListing, FolderStamps, NamedStamp, StorageHost, StorageWriter,
+    WriterStatus,
 };
-use dashql_core_runtime::workbook::next_revision;
 use dashql_core_storage::workbook_format::data::WORKBOOK_FORMAT_VERSION;
 use dashql_core_storage::workbook_format::files::{is_script_file_name, nfc};
 use dashql_core_storage::workbook_format::layout::is_attachment_file_name;
@@ -128,9 +129,15 @@ pub(crate) async fn stamp_folder(platform: &JsPlatform, workbook_id: &str) -> Re
 /// version of the app wrote, e.g. a native folder after a checkout of an older commit, is brought to the current
 /// workbook format first; the migration records its own writes in the stamps. The format version of the file decides
 /// on every load, a current file is read once. The folders of the storage root were migrated with the storage.
-pub(crate) async fn load_workbook(platform: &JsPlatform, stamps: &FolderStamps, workbook_id: &str) -> Result<Value, HostError> {
+pub(crate) async fn load_workbook(
+    platform: &JsPlatform,
+    stamps: &FolderStamps,
+    workbook_id: &str,
+) -> Result<Value, HostError> {
     let loaded = load_workbook_file(platform, workbook_id).await;
-    let current = loaded.as_ref().is_ok_and(|workbook| workbook.get("formatVersion").and_then(Value::as_i64).is_some_and(|version| version >= WORKBOOK_FORMAT_VERSION));
+    let current = loaded.as_ref().is_ok_and(|workbook| {
+        workbook.get("formatVersion").and_then(Value::as_i64).is_some_and(|version| version >= WORKBOOK_FORMAT_VERSION)
+    });
     if current || platform.workbook_folder(workbook_id).is_none() {
         return loaded;
     }
@@ -170,7 +177,9 @@ impl StorageState {
 
     /// The view of the storage, busy while a task holds it
     pub fn view(&self) -> Read<StorageView> {
-        let (Ok(status), Ok(questions)) = (self.status.try_borrow(), self.questions.try_borrow()) else { return Read::Busy };
+        let (Ok(status), Ok(questions)) = (self.status.try_borrow(), self.questions.try_borrow()) else {
+            return Read::Busy;
+        };
         Read::Value(StorageView {
             holds: status.holds.iter().map(StorageHoldView::from).collect(),
             failed_writes: status.failed.iter().map(FailedStorageWriteView::from).collect(),
@@ -300,20 +309,40 @@ impl StorageHost for JsStorage {
         load_workbook(&self.platform, &self.state.stamps, workbook_id).await
     }
 
-    async fn save_workbook(&self, workbook_id: &str, workbook: &Value, expect: Expect) -> Result<Option<FileStamp>, HostError> {
+    async fn save_workbook(
+        &self,
+        workbook_id: &str,
+        workbook: &Value,
+        expect: Expect,
+    ) -> Result<Option<FileStamp>, HostError> {
         let workbook = JsonValue(workbook.clone()).to_js().map_err(|e| HostError::new(e.to_string()))?;
         Ok(stamp_of(&self.call("saveWorkbook", &[text(workbook_id), workbook, expect_value(expect)]).await?))
     }
 
-    async fn save_script(&self, workbook_id: &str, file_name: &str, script: &str, expect: Expect) -> Result<Option<FileStamp>, HostError> {
-        Ok(stamp_of(&self.call("saveScript", &[text(workbook_id), text(file_name), text(script), expect_value(expect)]).await?))
+    async fn save_script(
+        &self,
+        workbook_id: &str,
+        file_name: &str,
+        script: &str,
+        expect: Expect,
+    ) -> Result<Option<FileStamp>, HostError> {
+        Ok(stamp_of(
+            &self.call("saveScript", &[text(workbook_id), text(file_name), text(script), expect_value(expect)]).await?,
+        ))
     }
 
     async fn delete_script(&self, workbook_id: &str, file_name: &str, expect: Expect) -> Result<(), HostError> {
         self.call("deleteScript", &[text(workbook_id), text(file_name), expect_value(expect)]).await.map(|_| ())
     }
 
-    async fn rename_script(&self, workbook_id: &str, from: &str, to: &str, expect_from: Expect, expect_to: Expect) -> Result<(), HostError> {
+    async fn rename_script(
+        &self,
+        workbook_id: &str,
+        from: &str,
+        to: &str,
+        expect_from: Expect,
+        expect_to: Expect,
+    ) -> Result<(), HostError> {
         let args = [text(workbook_id), text(from), text(to), expect_value(expect_from), expect_value(expect_to)];
         self.call("renameScript", &args).await.map(|_| ())
     }
@@ -324,12 +353,20 @@ impl StorageHost for JsStorage {
             return Err(HostError::new(format!("the attachments of {workbook_id} are not a list")));
         }
         // The attachments in NFC and in natural order
-        let names: Vec<String> = Array::from(&names).iter().filter_map(|name| name.as_string()).map(|name| nfc(&name)).collect();
-        Ok(dashql_core_storage::workbook_format::files::workbook_attachments(&names).into_iter().map(|attachment| attachment.name).collect())
+        let names: Vec<String> =
+            Array::from(&names).iter().filter_map(|name| name.as_string()).map(|name| nfc(&name)).collect();
+        Ok(dashql_core_storage::workbook_format::files::workbook_attachments(&names)
+            .into_iter()
+            .map(|attachment| attachment.name)
+            .collect())
     }
 
     async fn save_data_file(&self, workbook_id: &str, file_name: &str, file: &HostBytes) -> Result<(), HostError> {
-        let file = file.value().downcast_ref::<JsValue>().cloned().ok_or_else(|| HostError::new(format!("the attachment {file_name} is no file of the host")))?;
+        let file = file
+            .value()
+            .downcast_ref::<JsValue>()
+            .cloned()
+            .ok_or_else(|| HostError::new(format!("the attachment {file_name} is no file of the host")))?;
         self.call("saveDataFile", &[text(workbook_id), text(file_name), file]).await.map(|_| ())
     }
 
@@ -395,7 +432,10 @@ pub(crate) fn entry_path(entry: &Value) -> Option<&str> {
 /// files are invalid. Ids compare without their case, the entry keeps the spelling of the tree.
 pub(crate) async fn find_workbook(platform: &JsPlatform, workbook_id: &str) -> Result<Option<Value>, HostError> {
     let id = workbook_id.to_lowercase();
-    Ok(workbook_entries(platform).await?.into_iter().find(|entry| entry_path(entry).is_some_and(|path| path.to_lowercase() == id)))
+    Ok(workbook_entries(platform)
+        .await?
+        .into_iter()
+        .find(|entry| entry_path(entry).is_some_and(|path| path.to_lowercase() == id)))
 }
 
 impl RestoreHost for JsStorage {
@@ -415,12 +455,14 @@ impl RestoreHost for JsStorage {
     }
 
     async fn load_scripts(&self, workbook_id: &str) -> Result<Vec<(String, String)>, HostError> {
-        let scripts: Vec<RestoreScriptFile> = items(self.call("loadScripts", &[text(workbook_id)]).await?, "the scripts")?;
+        let scripts: Vec<RestoreScriptFile> =
+            items(self.call("loadScripts", &[text(workbook_id)]).await?, "the scripts")?;
         Ok(scripts.into_iter().map(|script| (script.name, script.sql)).collect())
     }
 
     async fn list_data_files(&self, workbook_id: &str) -> Result<Vec<DataFile>, HostError> {
-        let files: Vec<WorkbookDataFile> = items(self.call("listDataFiles", &[text(workbook_id)]).await?, "the data files")?;
+        let files: Vec<WorkbookDataFile> =
+            items(self.call("listDataFiles", &[text(workbook_id)]).await?, "the data files")?;
         Ok(files.into_iter().map(DataFile::from).collect())
     }
 

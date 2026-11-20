@@ -10,11 +10,13 @@ use std::task::{Context, Wake, Waker};
 
 use dashql_buffers::editor::EditorOffsetUnit;
 use dashql_buffers::formatting::FormattingDialect;
-use dashql_core_runtime::settings::RuntimeSettings;
 use dashql_core_runtime::executor::QueryId;
 use dashql_core_runtime::host::signal::{oneshot, Receiver, Sender};
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
-use dashql_core_runtime::workbook::{new_catalog, ScriptConnection, ScriptConnectionProfile, Workbook, WorkbookAction, WorkbookEffect};
+use dashql_core_runtime::settings::RuntimeSettings;
+use dashql_core_runtime::workbook::{
+    new_catalog, ScriptConnection, ScriptConnectionProfile, Workbook, WorkbookAction, WorkbookEffect,
+};
 use dashql_core_runtime::workbook_run::{
     start_run, PlanRun, RetainedFile, RunFailureKind, RunHost, RunOptions, RunPhase, RunResult, RunState, ScriptEvent,
     StatementCache, StatementFailure, StatementHandle, StatementRequest,
@@ -153,7 +155,9 @@ impl RunHost for FakeHost {
         state.calls.push(format!("execute {}", request.text));
         let fails = state.failing.iter().any(|text| request.text.contains(text.as_str()));
         let cached = matches!(&request.cache, StatementCache::Only { .. });
-        let miss = cached && (state.missing || !state.cached.iter().any(|key| key.ends_with(&format!(":{}", signature_of(&request)))));
+        let miss = cached
+            && (state.missing
+                || !state.cached.iter().any(|key| key.ends_with(&format!(":{}", signature_of(&request)))));
         if (self.auto && !(cached && state.gate_cached)) || (cached && !state.gate_cached) {
             let end = if fails {
                 Err(StatementFailure::new(format!("{} failed", request.text)))
@@ -163,7 +167,11 @@ impl RunHost for FakeHost {
                 Ok(request.publish_results)
             };
             state.statements.push(Statement { query_id, request, done: None });
-            return Ok(StatementHandle { query_id, ready: Box::pin(std::future::ready(())), done: Box::pin(std::future::ready(end)) });
+            return Ok(StatementHandle {
+                query_id,
+                ready: Box::pin(std::future::ready(())),
+                done: Box::pin(std::future::ready(end)),
+            });
         }
         let (sender, receiver) = oneshot();
         let (ready, readiness) = oneshot();
@@ -212,7 +220,11 @@ impl RunHost for FakeHost {
             if let Some(gate) = gate {
                 gate.await;
             }
-            if fails { Err(HostError::new("the setup failed")) } else { Ok(()) }
+            if fails {
+                Err(HostError::new("the setup failed"))
+            } else {
+                Ok(())
+            }
         }
     }
     fn has_cache(&self) -> bool {
@@ -241,7 +253,11 @@ impl RunHost for FakeHost {
         self.mounts.clone()
     }
     fn mount_file_name(&self, key: Option<&str>) -> String {
-        if key.is_some() { "keyed.parquet".to_string() } else { "transient.parquet".to_string() }
+        if key.is_some() {
+            "keyed.parquet".to_string()
+        } else {
+            "transient.parquet".to_string()
+        }
     }
     fn mount_pin(&self, path: &str) -> impl Future<Output = Result<u64, HostError>> + 'static {
         let pin = self.next_file();
@@ -350,12 +366,23 @@ fn setup(auto: bool, mounts: Option<&str>, concurrency: usize) -> Setup {
 }
 
 fn workbook_run() -> RunOptions {
-    RunOptions { run: PlanRun::Workbook, targets: None, inputs: None, refresh: false, reports_state: true, analyze: true }
+    RunOptions {
+        run: PlanRun::Workbook,
+        targets: None,
+        inputs: None,
+        refresh: false,
+        reports_state: true,
+        analyze: true,
+    }
 }
 
 impl Setup {
     /// Start a run, the result lands in the returned cell
-    fn start(&self, workbook: &Rc<RefCell<Workbook>>, options: RunOptions) -> (dashql_core_runtime::workbook_run::RunHandle<FakeHost>, Rc<RefCell<Option<RunResult>>>) {
+    fn start(
+        &self,
+        workbook: &Rc<RefCell<Workbook>>,
+        options: RunOptions,
+    ) -> (dashql_core_runtime::workbook_run::RunHandle<FakeHost>, Rc<RefCell<Option<RunResult>>>) {
         let (handle, run) = start_run(self.host.clone(), workbook.clone(), options);
         let result = Rc::new(RefCell::new(None));
         let slot = result.clone();
@@ -388,7 +415,13 @@ impl Setup {
 
     /// End a statement of a gated test
     fn end(&self, text: &str, end: Result<bool, StatementFailure>) {
-        let sender = self.state.borrow_mut().statements.iter_mut().find(|s| s.request.text.contains(text)).and_then(|s| s.done.take());
+        let sender = self
+            .state
+            .borrow_mut()
+            .statements
+            .iter_mut()
+            .find(|s| s.request.text.contains(text))
+            .and_then(|s| s.done.take());
         let (ready, done) = sender.expect("a running statement");
         ready.send(());
         done.send(end);
@@ -416,7 +449,8 @@ fn runs_the_scripts_of_a_workbook_in_the_order_of_the_plan() {
     assert_eq!(s.events("3_query.sql"), vec!["planned", "started", "done"]);
     assert_eq!(s.events("4_empty.sql"), vec!["done"]);
     // The query registered on its script, its result is the result of the script
-    let query = s.state.borrow().statements.iter().find(|s| s.request.text.starts_with("select")).map(|s| s.query_id).unwrap();
+    let query =
+        s.state.borrow().statements.iter().find(|s| s.request.text.starts_with("select")).map(|s| s.query_id).unwrap();
     let workbook = workbook.borrow();
     let script = workbook.script_by_file("3_query.sql").unwrap();
     assert_eq!(script.latest_query_id(), Some(query as u32));
@@ -581,7 +615,14 @@ fn runs_a_script_with_the_queries_it_inlines() {
         ("bar.sql", "select count(*) from :foo", &main),
     ]);
     let s = setup(true, None, 1);
-    let options = RunOptions { run: PlanRun::Script("bar.sql".into()), targets: Some(vec![2]), inputs: None, refresh: true, reports_state: false, analyze: true };
+    let options = RunOptions {
+        run: PlanRun::Script("bar.sql".into()),
+        targets: Some(vec![2]),
+        inputs: None,
+        refresh: true,
+        reports_state: false,
+        analyze: true,
+    };
     let result = s.run(&workbook, options);
     assert!(result.failure.is_none(), "{:?}", result.failure);
     assert_eq!(s.texts(), vec!["with foo as (\nselect x from t\n)\nselect count(*) from foo"]);
@@ -600,7 +641,8 @@ fn runs_a_script_with_the_queries_it_inlines() {
 #[test]
 fn a_change_of_inputs_runs_the_scripts_it_affects() {
     let main = connection("main", false);
-    let workbook = workbook(&[("a.sql", "/* @param :min = 3 */\nselect 1 where 2 > :min", &main), ("b.sql", "select 2", &main)]);
+    let workbook =
+        workbook(&[("a.sql", "/* @param :min = 3 */\nselect 1 where 2 > :min", &main), ("b.sql", "select 2", &main)]);
     let s = setup(true, None, 1);
     let options = RunOptions { inputs: Some(vec!["min".into()]), ..workbook_run() };
     let result = s.run(&workbook, options);
@@ -631,12 +673,19 @@ fn skips_the_scripts_of_a_connection_that_can_not_run() {
 #[test]
 fn a_run_analyzes_only_the_scripts_with_outdated_analyses() {
     let main = connection("main", false);
-    let workbook = workbook(&[("1_create.sql", "create table items (id int)", &main), ("2_query.sql", "select id from items", &main)]);
+    let workbook = workbook(&[
+        ("1_create.sql", "create table items (id int)", &main),
+        ("2_query.sql", "select id from items", &main),
+    ]);
     let s = setup(true, None, 1);
     assert!(s.run(&workbook, workbook_run()).failure.is_none());
     let analyses = |workbook: &Rc<RefCell<Workbook>>| -> Vec<Option<(u64, u64, u64)>> {
         let workbook = workbook.borrow();
-        workbook.scripts().iter().map(|s| s.editor_update().map(|u| (u.text_version, u.state_revision, u.catalog_revision))).collect()
+        workbook
+            .scripts()
+            .iter()
+            .map(|s| s.editor_update().map(|u| (u.text_version, u.state_revision, u.catalog_revision)))
+            .collect()
     };
     let before = analyses(&workbook);
     assert!(before.iter().all(Option::is_some));
@@ -648,7 +697,9 @@ fn a_run_analyzes_only_the_scripts_with_outdated_analyses() {
 }
 
 /// A gated run of two scripts on one connection, the first statement runs
-fn running_two_scripts(s: &Setup) -> (Rc<RefCell<Workbook>>, dashql_core_runtime::workbook_run::RunHandle<FakeHost>, Rc<RefCell<Option<RunResult>>>) {
+fn running_two_scripts(
+    s: &Setup,
+) -> (Rc<RefCell<Workbook>>, dashql_core_runtime::workbook_run::RunHandle<FakeHost>, Rc<RefCell<Option<RunResult>>>) {
     let main = connection("main", false);
     let workbook = workbook(&[("1_a.sql", "select 1", &main), ("2_b.sql", "select 2", &main)]);
     let (handle, result) = s.start(&workbook, workbook_run());
@@ -662,9 +713,15 @@ fn a_change_of_the_scripts_during_a_run_fails_it() {
     // A rename, a delete and a move to another connection change the scripts of the plan
     let other = connection("other", false);
     let changes: Vec<(WorkbookAction, &str)> = vec![
-        (WorkbookAction::RenameScript { file_name: "2_b.sql".into(), new_name: "2_c".into() }, "Workbook changed during execution"),
+        (
+            WorkbookAction::RenameScript { file_name: "2_b.sql".into(), new_name: "2_c".into() },
+            "Workbook changed during execution",
+        ),
         (WorkbookAction::DeleteScript { file_name: "2_b.sql".into() }, "Workbook changed during execution"),
-        (WorkbookAction::SetScriptConnection { file_name: "2_b.sql".into(), connection: other.clone() }, "Workbook script changed during execution: 2_b.sql"),
+        (
+            WorkbookAction::SetScriptConnection { file_name: "2_b.sql".into(), connection: other.clone() },
+            "Workbook script changed during execution: 2_b.sql",
+        ),
     ];
     for (action, message) in changes {
         let s = setup(false, None, 1);
@@ -679,7 +736,10 @@ fn a_change_of_the_scripts_during_a_run_fails_it() {
     let s = setup(false, None, 1);
     let (workbook, _handle, result) = running_two_scripts(&s);
     let key = workbook.borrow().script_by_file("2_b.sql").unwrap().key();
-    workbook.borrow_mut().apply(WorkbookAction::SetScriptText { key, text: "select 3".into(), with_diff: false }).unwrap();
+    workbook
+        .borrow_mut()
+        .apply(WorkbookAction::SetScriptText { key, text: "select 3".into(), with_diff: false })
+        .unwrap();
     s.end("select 1", Ok(true));
     s.end("select 2", Ok(true));
     assert!(result.borrow_mut().take().expect("the run ended").failure.is_none());

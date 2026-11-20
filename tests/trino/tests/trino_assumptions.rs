@@ -165,9 +165,8 @@ fn check_query_info(checks: &mut Checks, run: &QueryRun, explain: &Value) {
     let stage_ids: Vec<&str> = stages(info).iter().map(|s| str_of(s, "stageId")).collect();
     let fragments: BTreeSet<String> = stage_ids.iter().filter_map(|s| fragment_of_stage(query_id, s)).collect();
     let explained: BTreeSet<String> = explain.as_object().map(|o| o.keys().cloned().collect()).unwrap_or_default();
-    checks.check("stage ids are <queryId>.<fragmentId>", fragments.len() == stage_ids.len(), || {
-        format!("{stage_ids:?}")
-    });
+    checks
+        .check("stage ids are <queryId>.<fragmentId>", fragments.len() == stage_ids.len(), || format!("{stage_ids:?}"));
     checks.check("the stages are the fragments of EXPLAIN", fragments == explained, || {
         format!("{fragments:?} vs {explained:?}")
     });
@@ -200,7 +199,8 @@ fn check_query_info(checks: &mut Checks, run: &QueryRun, explain: &Value) {
     // operator summaries while the query still runs, and they are the ones it ends with. Right after the stage
     // turned PENDING the final task infos may still be missing, the summaries are empty then. The app fetches
     // QueryInfo when the statement stats show such a stage, and again while one has no summaries.
-    let output_rows = |stage: &Value| operator_summaries(stage).iter().filter_map(|o| o["outputPositions"].as_u64()).sum::<u64>();
+    let output_rows =
+        |stage: &Value| operator_summaries(stage).iter().filter_map(|o| o["outputPositions"].as_u64()).sum::<u64>();
     let final_rows: BTreeMap<&str, u64> = stages(info).iter().map(|s| (str_of(s, "stageId"), output_rows(s))).collect();
     let early: Vec<(&str, u64)> = run
         .query_infos
@@ -245,9 +245,7 @@ fn check_failures(checks: &mut Checks, client: &TrinoClient) {
     let state = str_of(&info, "state").to_string();
     checks.check("a cancelled query ends FAILED", state == "FAILED", || state.clone());
     let error = info.pointer("/errorCode/name").and_then(Value::as_str);
-    checks.check("a cancelled query fails with USER_CANCELED", error == Some("USER_CANCELED"), || {
-        format!("{error:?}")
-    });
+    checks.check("a cancelled query fails with USER_CANCELED", error == Some("USER_CANCELED"), || format!("{error:?}"));
 
     let (failed, _) = run(client, "failed_cast");
     let last_state = failed.stats().last().map(|s| str_of(s, "state"));

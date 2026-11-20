@@ -1,8 +1,11 @@
 //! Tests of the catalog: loading, publishing, describing, resolving and dropping entries.
 
 use dashql_buffers::status::StatusCode;
-use dashql_core::catalog::{Catalog, CatalogEntryId, CatalogObjectType, EntryIdSource, ExternalObjectId, QualifiedCatalogObjectId, CatalogLayer, INITIAL_ENTRY_ID};
 use dashql_core::analyzer::ColumnResolution;
+use dashql_core::catalog::{
+    Catalog, CatalogEntryId, CatalogLayer, CatalogObjectType, EntryIdSource, ExternalObjectId,
+    QualifiedCatalogObjectId, INITIAL_ENTRY_ID,
+};
 use dashql_core::script::Script;
 
 fn analyze(catalog: &Catalog, text: &str) -> Script {
@@ -211,7 +214,10 @@ fn load_scripts_validation_failure_preserves_catalog() {
     // A batch that loads the same script twice collides
     let valid_analyzed = valid.analyzed.clone().unwrap();
     let error = catalog
-        .load_scripts(&[(valid_analyzed.clone(), CatalogLayer::SESSION), (valid_analyzed.clone(), CatalogLayer::SESSION)])
+        .load_scripts(&[
+            (valid_analyzed.clone(), CatalogLayer::SESSION),
+            (valid_analyzed.clone(), CatalogLayer::SESSION),
+        ])
         .unwrap_err();
     assert_eq!(error.status, Some(StatusCode::EXTERNAL_ID_COLLISION));
     assert_eq!(catalog.version(), previous_version);
@@ -221,7 +227,10 @@ fn load_scripts_validation_failure_preserves_catalog() {
     let other_catalog = Catalog::new();
     let mismatched = analyze(&other_catalog, "create table db.schema.other(id int);");
     let error = catalog
-        .load_scripts(&[(valid_analyzed, CatalogLayer::SESSION), (mismatched.analyzed.clone().unwrap(), CatalogLayer::SESSION)])
+        .load_scripts(&[
+            (valid_analyzed, CatalogLayer::SESSION),
+            (mismatched.analyzed.clone().unwrap(), CatalogLayer::SESSION),
+        ])
         .unwrap_err();
     assert_eq!(error.status, Some(StatusCode::CATALOG_MISMATCH));
     assert_eq!(catalog.version(), previous_version);
@@ -232,7 +241,8 @@ fn load_scripts_validation_failure_preserves_catalog() {
 fn describe_entries_lists_scripts_as_one_anonymous_schema() {
     let mut catalog = Catalog::new();
     assert!(catalog.describe_entries().entries.unwrap().is_empty());
-    let first = analyze(&catalog, "create table db.main.items(id int, name text); create table db.main.tags(tag text);");
+    let first =
+        analyze(&catalog, "create table db.main.items(id int, name text); create table db.main.tags(tag text);");
     let second = analyze(&catalog, "create table other.misc(x int);");
     catalog.load_script(first.analyzed.clone().unwrap(), CatalogLayer::CONNECTION).unwrap();
     catalog.load_script(second.analyzed.clone().unwrap(), CatalogLayer::SESSION).unwrap();
@@ -266,7 +276,10 @@ fn statistics_count_scripts() {
     let script = analyze(&catalog, "create table db.main.t(a int, b int); create table db.other.u(c int);");
     catalog.load_script(script.analyzed.clone().unwrap(), CatalogLayer::SESSION).unwrap();
     let content = catalog.statistics().content.unwrap();
-    assert_eq!((content.database_count, content.schema_count, content.table_count, content.table_column_count), (1, 2, 2, 3));
+    assert_eq!(
+        (content.database_count, content.schema_count, content.table_count, content.table_column_count),
+        (1, 2, 2, 3)
+    );
 }
 
 #[test]
@@ -455,12 +468,17 @@ fn republishing_equal_declarations_keeps_the_version() {
 #[test]
 fn republishing_equal_functions_keeps_the_version() {
     let mut catalog = Catalog::new();
-    let mut script = analyze(&catalog, "create function f(x integer) returns integer; create aggregate g(x integer) returns integer");
+    let mut script = analyze(
+        &catalog,
+        "create function f(x integer) returns integer; create aggregate g(x integer) returns integer",
+    );
     catalog.load_script(script.analyzed.clone().unwrap(), CatalogLayer::SESSION).unwrap();
     let version = catalog.version();
 
     // The same functions with other whitespace and casing
-    script.replace_text("create function F(x integer)\n    returns integer;\ncreate aggregate g(x integer) returns integer");
+    script.replace_text(
+        "create function F(x integer)\n    returns integer;\ncreate aggregate g(x integer) returns integer",
+    );
     script.analyze(&catalog, true).unwrap();
     catalog.load_script(script.analyzed.clone().unwrap(), CatalogLayer::SESSION).unwrap();
     assert_eq!(catalog.version(), version);

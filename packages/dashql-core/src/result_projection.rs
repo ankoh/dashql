@@ -28,7 +28,12 @@ pub const DUPLICATE_COLUMNS: &str = "Two columns have the same name";
 /// Select the columns of the result of the terminal query of a script below it. `parsed` is the parsed `text`, its
 /// spans count UTF-8 bytes. Returns the new text of the script, or an error whose message says why the script cannot
 /// get the projection.
-pub fn rewrite_result_projection(text: &str, parsed: &ParsedScript, columns: &[String], config: &FormattingConfigT) -> Result<String> {
+pub fn rewrite_result_projection(
+    text: &str,
+    parsed: &ParsedScript,
+    columns: &[String],
+    config: &FormattingConfigT,
+) -> Result<String> {
     if columns.is_empty() {
         return Err(Error::invalid_argument(NO_COLUMNS));
     }
@@ -121,14 +126,19 @@ mod tests {
 
     #[test]
     fn keeps_the_statements_and_comments_before_the_query() {
-        let projected = project("create temp table t as select 1 as a;\n/* @vis table */\nselect * from t;\n", &["a"]).unwrap_or_default();
-        assert!(projected.starts_with("create temp table t as select 1 as a;\n/* @vis table */\nwith base as ("), "{projected}");
+        let projected = project("create temp table t as select 1 as a;\n/* @vis table */\nselect * from t;\n", &["a"])
+            .unwrap_or_default();
+        assert!(
+            projected.starts_with("create temp table t as select 1 as a;\n/* @vis table */\nwith base as ("),
+            "{projected}"
+        );
         assert!(projected.ends_with("from base;\n"), "{projected}");
     }
 
     #[test]
     fn quotes_column_names_that_do_not_read_back_unquoted() {
-        let projected = project(r#"select 1 as "user", 2 as "Name", 3 as "a b""#, &["user", "Name", "a b"]).unwrap_or_default();
+        let projected =
+            project(r#"select 1 as "user", 2 as "Name", 3 as "a b""#, &["user", "Name", "a b"]).unwrap_or_default();
         assert!(projected.contains(r#""user""#), "{projected}");
         assert!(projected.contains(r#""Name""#), "{projected}");
         assert!(projected.contains(r#""a b""#), "{projected}");

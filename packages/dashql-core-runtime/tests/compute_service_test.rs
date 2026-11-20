@@ -11,19 +11,19 @@ use std::task::{Context, Wake, Waker};
 use arrow_array::types::Int32Type;
 use arrow_array::{ArrayRef, Float64Array, Int64Array, ListArray, RecordBatch, StringArray};
 use dashql_core::error::Result;
-use dashql_core_runtime::settings::RuntimeSettings;
 use dashql_core_runtime::compute::host::{ComputeContext, ComputeHost, KeptTable, RunId, TableShape};
 use dashql_core_runtime::compute::service::{AnalysisHandles, ComputeService, TaskOutput};
 use dashql_core_runtime::compute::tasks::analyze_table::AnalyzeTableOptions;
 use dashql_core_runtime::compute::tasks::result_table::ResultTable;
+use dashql_core_runtime::compute::types::OrderByConstraint;
 use dashql_core_runtime::compute::types::{
     ColumnAggregate, ColumnGroup, ColumnSummaryAnalysis, ComputationTask, DataSearchColumn, DataSearchTask, FilterOp,
     ScalarFilter, TableFilteringTask, TaskStatus,
 };
-use dashql_core_runtime::compute::types::OrderByConstraint;
 use dashql_core_runtime::compute::{ComputationAction, ComputationEffect, ComputationOutcome, SearchKind};
 use dashql_core_runtime::host::signal::{oneshot, Receiver, Sender};
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
+use dashql_core_runtime::settings::RuntimeSettings;
 
 // The executor
 
@@ -163,7 +163,14 @@ fn read_table(sql: &str) -> Option<String> {
 }
 
 impl ComputeHost for FakeHost {
-    async fn import_table(&self, _data_frame: u64, table_name: &str, table: u32, row_number_field: &str, _context: &ComputeContext) -> std::result::Result<(), HostError> {
+    async fn import_table(
+        &self,
+        _data_frame: u64,
+        table_name: &str,
+        table: u32,
+        row_number_field: &str,
+        _context: &ComputeContext,
+    ) -> std::result::Result<(), HostError> {
         let mut database = self.database.borrow_mut();
         let table = database.objects.get(&table).ok_or_else(|| HostError::new(format!("no table {table}")))?;
         // The host numbers the rows of its table
@@ -173,7 +180,13 @@ impl ComputeHost for FakeHost {
         Ok(())
     }
 
-    async fn create_table(&self, _data_frame: u64, table_name: &str, sql: &str, context: &ComputeContext) -> std::result::Result<(), HostError> {
+    async fn create_table(
+        &self,
+        _data_frame: u64,
+        table_name: &str,
+        sql: &str,
+        context: &ComputeContext,
+    ) -> std::result::Result<(), HostError> {
         self.database.borrow_mut().calls.push(format!("create {table_name} ({})", context.title));
         self.database.borrow_mut().runs.push(context.run);
         let gate = self.database.borrow_mut().gates.remove(context.title);
@@ -192,7 +205,10 @@ impl ComputeHost for FakeHost {
         self.database.borrow_mut().queries.push(sql.to_string());
         // The search of the column names reads no table, it matches the column group of the name
         if sql.contains("AS columns(column_idx") {
-            let matches = table(vec![("column_idx", a(Int64Array::from(vec![1]))), ("column_group_idx", a(Int64Array::from(vec![2])))]);
+            let matches = table(vec![
+                ("column_idx", a(Int64Array::from(vec![1]))),
+                ("column_group_idx", a(Int64Array::from(vec![2]))),
+            ]);
             return matches.to_ipc_stream().map_err(|e| HostError::new(e.to_string()));
         }
         if sql.starts_with("SELECT count(*)") {
@@ -313,7 +329,12 @@ struct Setup {
 fn setup(answer: impl Fn(&str, &str) -> std::result::Result<ResultTable, String> + 'static) -> Setup {
     let executor = Rc::new(Executor::default());
     let database = Rc::new(RefCell::new(Database::default()));
-    let host = FakeHost { executor: executor.clone(), clock: Cell::new(1000.0), database: database.clone(), answer: Box::new(answer) };
+    let host = FakeHost {
+        executor: executor.clone(),
+        clock: Cell::new(1000.0),
+        database: database.clone(),
+        answer: Box::new(answer),
+    };
     Setup { executor, database, service: ComputeService::new(host) }
 }
 
@@ -344,7 +365,14 @@ impl Setup {
 
     fn analyze(&self) -> Result<()> {
         let handles = self.analysis_handles();
-        let analysis = self.service.analyze_table(1, shape(&result()), handles, Some("connection".into()), None, AnalyzeTableOptions::default());
+        let analysis = self.service.analyze_table(
+            1,
+            shape(&result()),
+            handles,
+            Some("connection".into()),
+            None,
+            AnalyzeTableOptions::default(),
+        );
         let output = self.run(analysis);
         let output = output.borrow_mut().take();
         output.expect("the analysis finished")
@@ -363,7 +391,11 @@ impl Setup {
     /// The id of the first data frame, the import of the result
     fn first_id(&self) -> u64 {
         let calls = self.database.borrow().calls.clone();
-        calls.first().and_then(|call| call.strip_prefix("import __df_")).and_then(|id| id.parse().ok()).expect("an import")
+        calls
+            .first()
+            .and_then(|call| call.strip_prefix("import __df_"))
+            .and_then(|id| id.parse().ok())
+            .expect("an import")
     }
 
     fn schedule(&self, task: ComputationTask) -> u64 {
@@ -416,7 +448,12 @@ fn analyzes_a_result() {
         let Some(ColumnSummaryAnalysis::String(analysis)) = name.analysis.as_deref() else { panic!("an analysis") };
         assert_eq!(analysis.frequent_value_strings, vec![Some("a".to_string()), Some("b".to_string()), None]);
         assert_eq!((analysis.count_distinct, analysis.is_unique), (2, false));
-        assert!(computation.tasks.column_aggregation.iter().flatten().all(|t| t.progress.status == TaskStatus::Succeeded));
+        assert!(computation
+            .tasks
+            .column_aggregation
+            .iter()
+            .flatten()
+            .all(|t| t.progress.status == TaskStatus::Succeeded));
         assert_eq!(computation.tasks.system_columns.as_ref().map(|t| t.progress.status), Some(TaskStatus::Succeeded));
         assert_eq!(state.scheduler_tasks().count(), 0);
     });
@@ -431,7 +468,8 @@ fn a_result_without_columns_has_nothing_to_analyze() {
     let setup = setup(analysis_answer);
     let empty = ResultTable::try_new(Arc::new(arrow_schema::Schema::empty()), Vec::new()).unwrap();
     let handles = setup.analysis_handles();
-    let output = setup.run(setup.service.analyze_table(1, shape(&empty), handles, None, None, AnalyzeTableOptions::default()));
+    let output =
+        setup.run(setup.service.analyze_table(1, shape(&empty), handles, None, None, AnalyzeTableOptions::default()));
     assert!(matches!(output.borrow().as_ref(), Some(Ok(()))));
     assert!(setup.service.read(|state| state.computation(1).is_none()));
     assert!(setup.database.borrow().calls.is_empty());
@@ -540,14 +578,28 @@ fn a_new_data_search_cancels_the_running_one() {
     };
     let (release, gate): (Sender<()>, Receiver<()>) = oneshot();
     setup.database.borrow_mut().gates.insert("Data search", gate);
-    setup.service.apply(ComputationAction::SetResultSearchPattern { table_id: 1, kind: dashql_core_runtime::compute::SearchKind::Data, pattern: "a".into() }).unwrap();
+    setup
+        .service
+        .apply(ComputationAction::SetResultSearchPattern {
+            table_id: 1,
+            kind: dashql_core_runtime::compute::SearchKind::Data,
+            pattern: "a".into(),
+        })
+        .unwrap();
     let first = setup.schedule(search(1));
     let first_output = setup.run(setup.service.run_task(first));
     assert!(first_output.borrow().is_none());
     assert!(setup.service.is_running(first));
 
     // The next search aborts the first one, its run is cancelled and fails
-    setup.service.apply(ComputationAction::SetResultSearchPattern { table_id: 1, kind: dashql_core_runtime::compute::SearchKind::Data, pattern: "b".into() }).unwrap();
+    setup
+        .service
+        .apply(ComputationAction::SetResultSearchPattern {
+            table_id: 1,
+            kind: dashql_core_runtime::compute::SearchKind::Data,
+            pattern: "b".into(),
+        })
+        .unwrap();
     setup.executor.run_until_stalled();
     assert!(!setup.service.is_running(first));
     assert_eq!(setup.database.borrow().cancelled.len(), 1);
@@ -586,7 +638,14 @@ fn a_run_that_is_cancelled_by_its_id_drops_its_future() {
     });
     let (_release, gate): (Sender<()>, Receiver<()>) = oneshot();
     setup.database.borrow_mut().gates.insert("Data search", gate);
-    setup.service.apply(ComputationAction::SetResultSearchPattern { table_id: 1, kind: dashql_core_runtime::compute::SearchKind::Data, pattern: "a".into() }).unwrap();
+    setup
+        .service
+        .apply(ComputationAction::SetResultSearchPattern {
+            table_id: 1,
+            kind: dashql_core_runtime::compute::SearchKind::Data,
+            pattern: "a".into(),
+        })
+        .unwrap();
     let task = setup.schedule(search);
     let output = setup.run(setup.service.run_task(task));
     assert!(output.borrow().is_none());
@@ -632,7 +691,14 @@ fn deleting_a_computation_cancels_its_runs_and_drops_its_data_frames() {
     let (_release, gate): (Sender<()>, Receiver<()>) = oneshot();
     setup.database.borrow_mut().gates.insert("System column computation", gate);
     let handles = setup.analysis_handles();
-    let analysis = setup.run(setup.service.analyze_table(1, shape(&result()), handles, None, None, AnalyzeTableOptions::default()));
+    let analysis = setup.run(setup.service.analyze_table(
+        1,
+        shape(&result()),
+        handles,
+        None,
+        None,
+        AnalyzeTableOptions::default(),
+    ));
     assert!(analysis.borrow().is_none());
 
     setup.apply(ComputationAction::DeleteComputation { table_id: 1 });
@@ -724,7 +790,14 @@ fn searches_run_once_the_data_frame_is_there() {
     let (release, gate): (Sender<()>, Receiver<()>) = oneshot();
     setup.database.borrow_mut().gates.insert("System column computation", gate);
     let handles = setup.analysis_handles();
-    let analysis = setup.run(setup.service.analyze_table(1, shape(&result()), handles, None, None, AnalyzeTableOptions::default()));
+    let analysis = setup.run(setup.service.analyze_table(
+        1,
+        shape(&result()),
+        handles,
+        None,
+        None,
+        AnalyzeTableOptions::default(),
+    ));
 
     // The searches wait for the data frame with the system columns
     setup.service.set_search_pattern(1, SearchKind::Data, "a".into()).unwrap();
@@ -794,7 +867,8 @@ fn requests_of_an_unknown_computation_change_nothing() {
 fn previews_the_first_rows_of_a_result_from_its_data_frame() {
     let setup = setup(analysis_answer);
     setup.analyze().unwrap();
-    let data_frame = setup.service.read(|state| state.computation(1).and_then(|computation| computation.data_frame)).unwrap();
+    let data_frame =
+        setup.service.read(|state| state.computation(1).and_then(|computation| computation.data_frame)).unwrap();
     let output = setup.run(setup.service.preview(1, 2));
     let ipc = output.borrow_mut().take().expect("the preview finished").unwrap();
     assert!(ResultTable::from_ipc_stream(&ipc).is_ok());
@@ -802,7 +876,9 @@ fn previews_the_first_rows_of_a_result_from_its_data_frame() {
     let queries = setup.database.borrow().queries.clone();
     assert_eq!(
         queries.last(),
-        Some(&format!("SELECT \"score\", \"name\" FROM \"__df_{data_frame}\"\nORDER BY \"_rownum\" ASC NULLS LAST\nLIMIT 2"))
+        Some(&format!(
+            "SELECT \"score\", \"name\" FROM \"__df_{data_frame}\"\nORDER BY \"_rownum\" ASC NULLS LAST\nLIMIT 2"
+        ))
     );
 }
 

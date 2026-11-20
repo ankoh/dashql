@@ -9,18 +9,20 @@ use std::sync::{Arc, Mutex};
 use std::task::{Context, Wake, Waker};
 
 use dashql_buffers::editor::EditorOffsetUnit;
-use dashql_core_runtime::settings::RuntimeSettings;
 use dashql_core_runtime::attachments::DataFile;
 use dashql_core_runtime::catalog_loader::tables::{catalog_tables_of_descriptor, read_catalog_descriptor};
 use dashql_core_runtime::connections::{ConnectionState, RelationName};
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
+use dashql_core_runtime::settings::RuntimeSettings;
 use dashql_core_storage::restore::bundle::BundleHost;
-use dashql_core_storage::workbook_format::bundle::{DataFileData, ScriptData, WorkbookBundle};
-use dashql_core_storage::workbook_format::data::WorkbookData;
 use dashql_core_storage::restore::{
     script_connection_of, AppRestore, LiveConnection, RestoreHost, RestoreOptions, RestoreProgress, RestoredState,
 };
-use dashql_core_storage::storage::{ConnectionsUpdate, Expect, FileStamp, FolderListing, NamedStamp, StorageHost, StorageWriter, WriteStatistics};
+use dashql_core_storage::storage::{
+    ConnectionsUpdate, Expect, FileStamp, FolderListing, NamedStamp, StorageHost, StorageWriter, WriteStatistics,
+};
+use dashql_core_storage::workbook_format::bundle::{DataFileData, ScriptData, WorkbookBundle};
+use dashql_core_storage::workbook_format::data::WorkbookData;
 use dashql_core_storage::workbook_format::restore::RestoreConnection;
 use dashql_core_storage::workbook_format::validation::WorkbookValidationError;
 use serde_json::{json, Value};
@@ -139,14 +141,25 @@ impl StorageHost for FakeHost {
         store.workbooks.get(workbook_id).cloned().ok_or_else(|| HostError::new(format!("No workbook {workbook_id}")))
     }
 
-    async fn save_workbook(&self, workbook_id: &str, workbook: &Value, _expect: Expect) -> Result<Option<FileStamp>, HostError> {
+    async fn save_workbook(
+        &self,
+        workbook_id: &str,
+        workbook: &Value,
+        _expect: Expect,
+    ) -> Result<Option<FileStamp>, HostError> {
         let mut store = self.store.borrow_mut();
         store.calls.push(format!("manifest:{workbook_id}"));
         store.workbooks.insert(workbook_id.to_string(), workbook.clone());
         Ok(None)
     }
 
-    async fn save_script(&self, _workbook_id: &str, _file_name: &str, _text: &str, _expect: Expect) -> Result<Option<FileStamp>, HostError> {
+    async fn save_script(
+        &self,
+        _workbook_id: &str,
+        _file_name: &str,
+        _text: &str,
+        _expect: Expect,
+    ) -> Result<Option<FileStamp>, HostError> {
         Ok(None)
     }
 
@@ -154,7 +167,14 @@ impl StorageHost for FakeHost {
         Ok(())
     }
 
-    async fn rename_script(&self, _workbook_id: &str, _from: &str, _to: &str, _expect_from: Expect, _expect_to: Expect) -> Result<(), HostError> {
+    async fn rename_script(
+        &self,
+        _workbook_id: &str,
+        _from: &str,
+        _to: &str,
+        _expect_from: Expect,
+        _expect_to: Expect,
+    ) -> Result<(), HostError> {
         Ok(())
     }
 
@@ -272,7 +292,9 @@ impl Fixture {
         let mut store = self.host.store.borrow_mut();
         store.tree.push(workbook_id.to_string());
         store.workbooks.insert(workbook_id.to_string(), file);
-        store.scripts.insert(workbook_id.to_string(), scripts.iter().map(|(n, t)| (n.to_string(), t.to_string())).collect());
+        store
+            .scripts
+            .insert(workbook_id.to_string(), scripts.iter().map(|(n, t)| (n.to_string(), t.to_string())).collect());
     }
 
     fn set_file(&self, connection_id: &str, file_name: &str, text: &str) {
@@ -362,10 +384,14 @@ fn acknowledges_the_stamps_of_a_folder_that_it_reads_before_the_reads() {
     let restored = fixture.run(restore.restore());
     assert_eq!(restored.workbooks.len(), 1);
     let reads = fixture.host.store.borrow().reads.clone();
-    assert_eq!(reads.get(..3), Some(&[format!("stamps:{WORKBOOK}"), format!("workbook:{WORKBOOK}"), format!("scripts:{WORKBOOK}")][..]));
+    assert_eq!(
+        reads.get(..3),
+        Some(&[format!("stamps:{WORKBOOK}"), format!("workbook:{WORKBOOK}"), format!("scripts:{WORKBOOK}")][..])
+    );
     assert!(writer.stamps().changes(WORKBOOK, &at_restore, "dashql-workbook.json").is_empty());
     // The folder comes back before the first check, its scripts are new to the app
-    let back = FolderListing { scripts: vec![NamedStamp { name: "a.sql".to_string(), stamp: stamp(3.0) }], ..at_restore };
+    let back =
+        FolderListing { scripts: vec![NamedStamp { name: "a.sql".to_string(), stamp: stamp(3.0) }], ..at_restore };
     assert_eq!(writer.stamps().changes(WORKBOOK, &back, "dashql-workbook.json"), ["a.sql"]);
     // A workbook of the storage root has no stamps
     assert!(!writer.stamps().is_acknowledged(OTHER_WORKBOOK));
@@ -375,7 +401,11 @@ fn acknowledges_the_stamps_of_a_folder_that_it_reads_before_the_reads() {
 fn restores_unlisted_scripts_in_natural_order_and_writes_the_list() {
     let fixture = Fixture::new();
     let copies = json!([{ "connectionId": CONNECTION, "params": hyper_wasm() }]);
-    fixture.add_workbook(WORKBOOK, workbook(WORKBOOK, copies, json!([])), &[("10_last.sql", "SELECT 10"), ("2_first.sql", "SELECT 2")]);
+    fixture.add_workbook(
+        WORKBOOK,
+        workbook(WORKBOOK, copies, json!([])),
+        &[("10_last.sql", "SELECT 10"), ("2_first.sql", "SELECT 2")],
+    );
     let restored = fixture.restore();
 
     assert_eq!(connection_ids(&restored), vec![CONNECTION]);
@@ -428,12 +458,16 @@ fn restores_a_bundle_into_memory_without_reading_storage() {
     };
     let host = BundleHost { host: fixture.host.clone(), bundle };
     let options = RestoreOptions { offset_unit: EditorOffsetUnit::UTF16_CODE_UNITS, new_uuid: Box::new(|| None) };
-    let restore: AppRestore<BundleHost<FakeHost, Vec<u8>>, BundleHost<FakeHost, Vec<u8>>> = AppRestore::in_memory(host, options);
+    let restore: AppRestore<BundleHost<FakeHost, Vec<u8>>, BundleHost<FakeHost, Vec<u8>>> =
+        AppRestore::in_memory(host, options);
     let restored = fixture.run(restore.restore_workbook(WORKBOOK)).unwrap();
     assert_eq!(script_names(&restored, WORKBOOK), vec!["2_first.sql", "10_last.sql"]);
     assert_eq!(connection_ids(&restored), vec![CONNECTION]);
     let attachments = restored.workbooks[0].workbook.attachments().unwrap_or_default();
-    assert_eq!(attachments.iter().map(|a| (a.file_name.as_str(), a.size_bytes)).collect::<Vec<_>>(), vec![("orders.parquet", 5)]);
+    assert_eq!(
+        attachments.iter().map(|a| (a.file_name.as_str(), a.size_bytes)).collect::<Vec<_>>(),
+        vec![("orders.parquet", 5)]
+    );
     assert!(fixture.host.store.borrow().reads.is_empty());
     assert!(fixture.host.store.borrow().calls.is_empty());
 }
@@ -456,11 +490,20 @@ fn keeps_the_script_list_while_the_script_files_are_gone() {
     assert!(missing[0].contains(&("scripts".to_string(), "b.sql, a.sql".to_string())));
 
     // The files are back: the scripts run on the connections of the list again
-    fixture.host.store.borrow_mut().scripts.insert(WORKBOOK.to_string(), vec![("a.sql".into(), "SELECT 1".into()), ("b.sql".into(), "SELECT 2".into())]);
+    fixture
+        .host
+        .store
+        .borrow_mut()
+        .scripts
+        .insert(WORKBOOK.to_string(), vec![("a.sql".into(), "SELECT 1".into()), ("b.sql".into(), "SELECT 2".into())]);
     let restored = fixture.restore();
     assert_eq!(script_names(&restored, WORKBOOK), vec!["b.sql", "a.sql"]);
-    let script_connections: Vec<String> =
-        restored.workbooks[0].workbook.scripts().iter().map(|script| script.connection().connection_id.clone()).collect();
+    let script_connections: Vec<String> = restored.workbooks[0]
+        .workbook
+        .scripts()
+        .iter()
+        .map(|script| script.connection().connection_id.clone())
+        .collect();
     assert_eq!(script_connections, vec![REMOTE.to_string(), CONNECTION.to_string()]);
     assert_eq!(fixture.stored(WORKBOOK)["scripts"], file["scripts"]);
 }
@@ -476,7 +519,11 @@ fn keeps_the_order_of_the_workbook_file_and_runs_unknown_connections_on_the_embe
         { "name": "10_last.sql", "connectionId": REMOTE },
         { "name": "2_first.sql", "connectionId": "99999999-9999-4999-8999-999999999999" },
     ]);
-    fixture.add_workbook(WORKBOOK, workbook(WORKBOOK, copies, scripts), &[("10_last.sql", "SELECT 10"), ("2_first.sql", "SELECT 2")]);
+    fixture.add_workbook(
+        WORKBOOK,
+        workbook(WORKBOOK, copies, scripts),
+        &[("10_last.sql", "SELECT 10"), ("2_first.sql", "SELECT 2")],
+    );
     let restored = fixture.restore();
 
     assert_eq!(script_names(&restored, WORKBOOK), vec!["10_last.sql", "2_first.sql"]);
@@ -493,7 +540,8 @@ fn keeps_the_order_of_the_workbook_file_and_runs_unknown_connections_on_the_embe
 #[test]
 fn lets_the_app_manifest_win_over_stale_copies() {
     let fixture = Fixture::new();
-    fixture.host.store.borrow_mut().connections = Some(vec![json!({ "id": CONNECTION, "params": trino("https://saved"), "name": "Mine" })]);
+    fixture.host.store.borrow_mut().connections =
+        Some(vec![json!({ "id": CONNECTION, "params": trino("https://saved"), "name": "Mine" })]);
     let stale = json!([{ "connectionId": CONNECTION, "params": trino("https://stale") }]);
     fixture.add_workbook(WORKBOOK, workbook(WORKBOOK, stale.clone(), json!([])), &[]);
     fixture.add_workbook(OTHER_WORKBOOK, workbook(OTHER_WORKBOOK, stale, json!([])), &[]);
@@ -502,20 +550,28 @@ fn lets_the_app_manifest_win_over_stale_copies() {
     assert_eq!(connection_ids(&restored), vec![CONNECTION]);
     assert_eq!(connection(&restored, CONNECTION).name(), Some("Mine"));
     for workbook_id in [WORKBOOK, OTHER_WORKBOOK] {
-        assert_eq!(fixture.stored(workbook_id)["connections"], json!([{ "connectionId": CONNECTION, "params": trino("https://saved") }]));
+        assert_eq!(
+            fixture.stored(workbook_id)["connections"],
+            json!([{ "connectionId": CONNECTION, "params": trino("https://saved") }])
+        );
     }
 }
 
 #[test]
 fn registers_connections_that_only_a_workbook_knows_with_their_names_and_catalogs() {
     let fixture = Fixture::new();
-    fixture.host.store.borrow_mut().connections = Some(vec![json!({ "id": OTHER_CONNECTION, "params": trino("https://known"), "name": "Mine" })]);
+    fixture.host.store.borrow_mut().connections =
+        Some(vec![json!({ "id": OTHER_CONNECTION, "params": trino("https://known"), "name": "Mine" })]);
     let copies = json!([
         { "connectionId": CONNECTION, "params": trino("https://unknown"), "name": "Production" },
         { "connectionId": OTHER_CONNECTION, "params": trino("https://known"), "name": "Theirs" },
     ]);
     let scripts = json!([{ "name": "01_new.sql", "connectionId": CONNECTION }, { "name": "02_known.sql", "connectionId": OTHER_CONNECTION }]);
-    fixture.add_workbook(WORKBOOK, workbook(WORKBOOK, copies, scripts), &[("01_new.sql", "SELECT 1"), ("02_known.sql", "SELECT 2")]);
+    fixture.add_workbook(
+        WORKBOOK,
+        workbook(WORKBOOK, copies, scripts),
+        &[("01_new.sql", "SELECT 1"), ("02_known.sql", "SELECT 2")],
+    );
     // E.g. an imported workbook seeded the catalog of the connection
     fixture.set_file(CONNECTION, "dashql-catalog-relations.sql", "CREATE TABLE db.public.seeded(id integer);");
     let restored = fixture.restore();
@@ -546,7 +602,8 @@ fn refuses_invalid_and_unreadable_workbooks_before_anything_is_created() {
     fixture.host.store.borrow_mut().tree.push("not-a-uuid".to_string());
     let restored = fixture.restore();
 
-    let errors: Vec<(String, WorkbookValidationError)> = restored.invalid_workbooks.iter().map(|i| (i.workbook_id.clone(), i.error)).collect();
+    let errors: Vec<(String, WorkbookValidationError)> =
+        restored.invalid_workbooks.iter().map(|i| (i.workbook_id.clone(), i.error)).collect();
     assert_eq!(
         errors,
         vec![
@@ -607,10 +664,23 @@ fn keeps_an_empty_ephemeral_workbook_and_promotes_one_that_holds_scripts() {
 #[test]
 fn restores_the_relations_and_functions_of_a_connection() {
     let fixture = Fixture::new();
-    fixture.host.store.borrow_mut().connections = Some(vec![json!({ "id": CONNECTION, "params": trino("https://trino.example") })]);
-    fixture.add_workbook(WORKBOOK, workbook(WORKBOOK, json!([{ "connectionId": CONNECTION, "params": trino("https://trino.example") }]), json!([])), &[]);
+    fixture.host.store.borrow_mut().connections =
+        Some(vec![json!({ "id": CONNECTION, "params": trino("https://trino.example") })]);
+    fixture.add_workbook(
+        WORKBOOK,
+        workbook(
+            WORKBOOK,
+            json!([{ "connectionId": CONNECTION, "params": trino("https://trino.example") }]),
+            json!([]),
+        ),
+        &[],
+    );
     let functions = "CREATE FUNCTION db.public.restored_function(first integer) RETURNS bigint;";
-    fixture.set_file(CONNECTION, "dashql-catalog-relations.sql", "CREATE TABLE db.public.restored_items(id integer, name text);");
+    fixture.set_file(
+        CONNECTION,
+        "dashql-catalog-relations.sql",
+        "CREATE TABLE db.public.restored_items(id integer, name text);",
+    );
     fixture.set_file(CONNECTION, "dashql-catalog-functions.sql", functions);
     let restored = fixture.restore();
 
@@ -623,7 +693,8 @@ fn restores_the_relations_and_functions_of_a_connection() {
 #[test]
 fn leaves_a_catalog_that_does_not_read_to_a_refresh() {
     let fixture = Fixture::new();
-    fixture.host.store.borrow_mut().connections = Some(vec![json!({ "id": CONNECTION, "params": trino("https://trino.example") })]);
+    fixture.host.store.borrow_mut().connections =
+        Some(vec![json!({ "id": CONNECTION, "params": trino("https://trino.example") })]);
     fixture.set_file(CONNECTION, "dashql-catalog-relations.sql", "CREATE TABLE broken(");
     let restored = fixture.restore();
 
@@ -637,8 +708,16 @@ fn leaves_a_catalog_that_does_not_read_to_a_refresh() {
 fn clears_the_catalog_changes_of_older_versions_and_asks_about_their_relations() {
     let fixture = Fixture::new();
     fixture.host.store.borrow_mut().connections = Some(vec![json!({ "id": CONNECTION, "params": hyper_http() })]);
-    fixture.set_file(CONNECTION, "dashql-catalog-relations.sql", r#"CREATE TABLE "hyper"."public"."kept"(id integer);"#);
-    fixture.set_file(CONNECTION, "dashql-catalog-changes.sql", "-- Catalog changes of executed statements\n\nDROP TABLE \"hyper\".\"public\".\"kept\";\n");
+    fixture.set_file(
+        CONNECTION,
+        "dashql-catalog-relations.sql",
+        r#"CREATE TABLE "hyper"."public"."kept"(id integer);"#,
+    );
+    fixture.set_file(
+        CONNECTION,
+        "dashql-catalog-changes.sql",
+        "-- Catalog changes of executed statements\n\nDROP TABLE \"hyper\".\"public\".\"kept\";\n",
+    );
     let restored = fixture.restore();
 
     let main = connection(&restored, CONNECTION);
@@ -646,7 +725,8 @@ fn clears_the_catalog_changes_of_older_versions_and_asks_about_their_relations()
     assert!(main.catalog_updates().described);
     assert_eq!(main.catalog_updates().touched_relations, vec![RelationName::new("hyper", "public", "kept")]);
     assert_eq!(fixture.file(CONNECTION, "dashql-catalog-changes.sql").as_deref(), Some(""));
-    let state: Value = serde_json::from_str(&fixture.file(CONNECTION, "dashql-catalog-state.json").unwrap_or_default()).unwrap();
+    let state: Value =
+        serde_json::from_str(&fixture.file(CONNECTION, "dashql-catalog-state.json").unwrap_or_default()).unwrap();
     assert_eq!(state["pending"], json!([{ "databaseName": "hyper", "schemaName": "public", "tableName": "kept" }]));
 }
 
@@ -654,7 +734,11 @@ fn clears_the_catalog_changes_of_older_versions_and_asks_about_their_relations()
 fn restores_the_relations_it_has_to_ask_about_and_those_that_are_gone() {
     let fixture = Fixture::new();
     fixture.host.store.borrow_mut().connections = Some(vec![json!({ "id": CONNECTION, "params": hyper_http() })]);
-    fixture.set_file(CONNECTION, "dashql-catalog-relations.sql", r#"CREATE TABLE "hyper"."public"."kept"(id integer);"#);
+    fixture.set_file(
+        CONNECTION,
+        "dashql-catalog-relations.sql",
+        r#"CREATE TABLE "hyper"."public"."kept"(id integer);"#,
+    );
     let state = json!({
         "pending": [{ "databaseName": "hyper", "schemaName": "", "tableName": "asked" }],
         "gone": [{ "databaseName": "hyper", "schemaName": "public", "tableName": "dropped" }],
@@ -675,7 +759,11 @@ fn asks_a_salesforce_connection_about_nothing() {
     let params = json!({ "salesforce": { "instanceUrl": "https://example.my.salesforce.com" } });
     fixture.host.store.borrow_mut().connections = Some(vec![json!({ "id": CONNECTION, "params": params })]);
     fixture.set_file(CONNECTION, "dashql-catalog-changes.sql", r#"CREATE TABLE "c"."s"."kept"(id integer);"#);
-    fixture.set_file(CONNECTION, "dashql-catalog-state.json", r#"{"pending":[{"databaseName":"c","schemaName":"s","tableName":"kept"}],"gone":[]}"#);
+    fixture.set_file(
+        CONNECTION,
+        "dashql-catalog-state.json",
+        r#"{"pending":[{"databaseName":"c","schemaName":"s","tableName":"kept"}],"gone":[]}"#,
+    );
     let restored = fixture.restore();
     assert!(connection(&restored, CONNECTION).catalog_updates().touched_relations.is_empty());
 }
@@ -685,8 +773,16 @@ fn drops_the_persisted_relations_of_an_embedded_connection() {
     let fixture = Fixture::new();
     fixture.host.store.borrow_mut().connections = Some(vec![json!({ "id": CONNECTION, "params": hyper_wasm() })]);
     let functions = r#"CREATE FUNCTION "hyper"."public"."kept_function"(value integer) RETURNS bigint;"#;
-    fixture.set_file(CONNECTION, "dashql-catalog-relations.sql", r#"CREATE TABLE "hyper"."public"."gone"(id integer);"#);
-    fixture.set_file(CONNECTION, "dashql-catalog-changes.sql", "CREATE TABLE \"hyper\".\"public\".\"created\" (\"a\" integer);\n");
+    fixture.set_file(
+        CONNECTION,
+        "dashql-catalog-relations.sql",
+        r#"CREATE TABLE "hyper"."public"."gone"(id integer);"#,
+    );
+    fixture.set_file(
+        CONNECTION,
+        "dashql-catalog-changes.sql",
+        "CREATE TABLE \"hyper\".\"public\".\"created\" (\"a\" integer);\n",
+    );
     fixture.set_file(CONNECTION, "dashql-catalog-functions.sql", functions);
     let restored = fixture.restore();
 
@@ -707,7 +803,8 @@ fn a_storage_without_connections_writes_no_connections() {
         store.owns_connections = false;
         store.connections = None;
     }
-    let copies = json!([{ "connectionId": CONNECTION, "params": trino("https://trino.example"), "name": "Production" }]);
+    let copies =
+        json!([{ "connectionId": CONNECTION, "params": trino("https://trino.example"), "name": "Production" }]);
     fixture.add_workbook(WORKBOOK, workbook(WORKBOOK, copies, json!([])), &[("1.sql", "SELECT 1")]);
     fixture.set_file(CONNECTION, "dashql-catalog-relations.sql", "CREATE TABLE db.public.seeded(id integer);");
     let restored = fixture.restore();
@@ -723,7 +820,8 @@ fn a_storage_without_connections_writes_no_connections() {
 #[test]
 fn restores_an_imported_workbook_against_the_live_connections() {
     let fixture = Fixture::new();
-    fixture.host.store.borrow_mut().connections = Some(vec![json!({ "id": OTHER_CONNECTION, "params": trino("https://known") })]);
+    fixture.host.store.borrow_mut().connections =
+        Some(vec![json!({ "id": OTHER_CONNECTION, "params": trino("https://known") })]);
     let live_state = fixture.restore().connections.into_iter().next().expect("the live connection");
     let live = LiveConnection {
         connection: RestoreConnection {
@@ -740,10 +838,15 @@ fn restores_an_imported_workbook_against_the_live_connections() {
         { "connectionId": CONNECTION, "params": trino("https://new") },
     ]);
     let scripts = json!([{ "name": "01_known.sql", "connectionId": OTHER_CONNECTION }, { "name": "02_new.sql", "connectionId": CONNECTION }]);
-    fixture.add_workbook(WORKBOOK, workbook(WORKBOOK, copies, scripts), &[("01_known.sql", "SELECT 1"), ("02_new.sql", "SELECT 2")]);
+    fixture.add_workbook(
+        WORKBOOK,
+        workbook(WORKBOOK, copies, scripts),
+        &[("01_known.sql", "SELECT 1"), ("02_new.sql", "SELECT 2")],
+    );
 
     let restore = fixture.restore_with(vec![live]);
-    let restored = fixture.run(async move { restore.restore_workbook(WORKBOOK).await }).expect("the workbook was restored");
+    let restored =
+        fixture.run(async move { restore.restore_workbook(WORKBOOK).await }).expect("the workbook was restored");
     assert_eq!(connection_ids(&restored), vec![CONNECTION]);
     assert_eq!(restored.workbooks[0].connection_ids, vec![OTHER_CONNECTION, CONNECTION]);
     let scripts = restored.workbooks[0].workbook.scripts();
@@ -758,12 +861,12 @@ fn restores_an_imported_workbook_against_the_live_connections() {
 
 mod persistence {
     use super::*;
+    use dashql_core_runtime::connections::{
+        CatalogUpdateTaskStatus, ConnectionAction, ConnectionDetails, ConnectionParams, ConnectionStateOptions,
+    };
     use dashql_core_storage::connection_persistence::{
         connection_writes, save_connection, saved_entry, saved_params, schedule_connection_writes, ConnectionChange,
         ConnectionWrites, PersistedConnection, CONNECTION_DRAFT_WRITE_DEBOUNCE_MS,
-    };
-    use dashql_core_runtime::connections::{
-        CatalogUpdateTaskStatus, ConnectionAction, ConnectionDetails, ConnectionParams, ConnectionStateOptions,
     };
     use dashql_core_storage::restore::catalog::{apply_catalog_files, CatalogFiles};
     use dashql_core_storage::storage::{WriteOutcome, WriteTask};
@@ -805,7 +908,9 @@ mod persistence {
         let copy = format!("{WORKBOOK}/dashql-workbook.json:connection/{CONNECTION}");
         assert_eq!(keys(&writes), vec![(entry, 100.0), (copy, 100.0)]);
         // Saving writes the committed params by itself
-        assert!(connection_writes(CONNECTION, &prev, &next, &ConnectionChange::ParamsCommitted, &workbooks()).writes.is_empty());
+        assert!(connection_writes(CONNECTION, &prev, &next, &ConnectionChange::ParamsCommitted, &workbooks())
+            .writes
+            .is_empty());
         // A connection that no workbook references and that was never active stays out of storage
         let inactive = state(&trino("https://a"), false);
         assert!(connection_writes(CONNECTION, &prev, &inactive, &ConnectionChange::Other, &[]).writes.is_empty());
@@ -815,26 +920,51 @@ mod persistence {
     fn writes_the_catalog_files_of_a_durable_connection() {
         let fixture = Fixture::new();
         let mut next = state(&trino("https://a"), true);
-        let files = CatalogFiles { relations: Some("CREATE TABLE db.public.t(id integer);".into()), ..CatalogFiles::default() };
+        let files =
+            CatalogFiles { relations: Some("CREATE TABLE db.public.t(id integer);".into()), ..CatalogFiles::default() };
         assert!(apply_catalog_files(&mut next, &files).succeeded);
         let prev = PersistedConnection::of_state(&next);
-        let refresh = ConnectionChange::CatalogUpdateFinished { status: CatalogUpdateTaskStatus::Succeeded, refreshed: true, changed: None };
+        let refresh = ConnectionChange::CatalogUpdateFinished {
+            status: CatalogUpdateTaskStatus::Succeeded,
+            refreshed: true,
+            changed: None,
+        };
         let writes = connection_writes(CONNECTION, &prev, &next, &refresh, &workbooks());
-        assert_eq!(names(&writes), vec![file("dashql-catalog-relations.sql"), file("dashql-catalog-functions.sql"), file("dashql-catalog-state.json")]);
+        assert_eq!(
+            names(&writes),
+            vec![
+                file("dashql-catalog-relations.sql"),
+                file("dashql-catalog-functions.sql"),
+                file("dashql-catalog-state.json")
+            ]
+        );
         let writer = StorageWriter::new(fixture.host.clone(), 11);
         schedule_connection_writes(&writer, writes, CONNECTION);
         fixture.run(writer.flush());
         let relations = fixture.file(CONNECTION, "dashql-catalog-relations.sql").unwrap_or_default();
         assert!(relations.contains("CREATE TABLE"), "{relations}");
-        assert_eq!(fixture.file(CONNECTION, "dashql-catalog-state.json").as_deref(), Some(r#"{"pending":[],"gone":[]}"#));
+        assert_eq!(
+            fixture.file(CONNECTION, "dashql-catalog-state.json").as_deref(),
+            Some(r#"{"pending":[],"gone":[]}"#)
+        );
 
         // A lookup that changed nothing only saves what it answered
-        let lookup = ConnectionChange::CatalogUpdateFinished { status: CatalogUpdateTaskStatus::Succeeded, refreshed: false, changed: Some(false) };
-        assert_eq!(names(&connection_writes(CONNECTION, &prev, &next, &lookup, &workbooks())), vec![file("dashql-catalog-state.json")]);
+        let lookup = ConnectionChange::CatalogUpdateFinished {
+            status: CatalogUpdateTaskStatus::Succeeded,
+            refreshed: false,
+            changed: Some(false),
+        };
+        assert_eq!(
+            names(&connection_writes(CONNECTION, &prev, &next, &lookup, &workbooks())),
+            vec![file("dashql-catalog-state.json")]
+        );
         // The embedded Hyper keeps no relations, a refresh writes its functions
         let embedded = state(&hyper_wasm(), true);
         let prev = PersistedConnection::of_state(&embedded);
-        assert_eq!(names(&connection_writes(CONNECTION, &prev, &embedded, &refresh, &[])), vec![file("dashql-catalog-functions.sql")]);
+        assert_eq!(
+            names(&connection_writes(CONNECTION, &prev, &embedded, &refresh, &[])),
+            vec![file("dashql-catalog-functions.sql")]
+        );
     }
 
     #[test]
@@ -843,7 +973,9 @@ mod persistence {
         let prev = PersistedConnection::of_state(&next);
         let writes = connection_writes(CONNECTION, &prev, &next, &ConnectionChange::Deleted, &[]);
         assert!(writes.cancel_file_writes);
-        assert!(matches!(writes.writes.as_slice(), [write] if matches!(write.task, WriteTask::DeleteConnectionEntry { .. })));
+        assert!(
+            matches!(writes.writes.as_slice(), [write] if matches!(write.task, WriteTask::DeleteConnectionEntry { .. }))
+        );
         let inactive = PersistedConnection { active: false, ..prev };
         assert!(connection_writes(CONNECTION, &inactive, &next, &ConnectionChange::Deleted, &[]).writes.is_empty());
     }
@@ -875,10 +1007,16 @@ mod persistence {
         });
         assert!(committed.get());
         assert!(matches!(outcome.manifest, WriteOutcome::Written));
-        let results: Vec<(&str, bool)> =
-            outcome.workbooks.iter().map(|(id, result)| (id.as_str(), matches!(result, WriteOutcome::Written))).collect();
+        let results: Vec<(&str, bool)> = outcome
+            .workbooks
+            .iter()
+            .map(|(id, result)| (id.as_str(), matches!(result, WriteOutcome::Written)))
+            .collect();
         // The copy of a workbook that isn't stored fails, the next restore heals it
         assert_eq!(results, vec![(WORKBOOK, true), (OTHER_WORKBOOK, false)]);
-        assert_eq!(fixture.stored(WORKBOOK)["connections"], json!([{ "connectionId": CONNECTION, "params": trino("https://saved") }]));
+        assert_eq!(
+            fixture.stored(WORKBOOK)["connections"],
+            json!([{ "connectionId": CONNECTION, "params": trino("https://saved") }])
+        );
     }
 }

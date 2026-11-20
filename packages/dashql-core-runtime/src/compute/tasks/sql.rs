@@ -402,7 +402,10 @@ impl SqlFrame {
 }
 
 fn aggregate_selects(group_by: &GroupBy) -> impl Iterator<Item = String> + '_ {
-    group_by.aggregates.iter().map(|a| format!("{} AS {}", format_aggregate(&a.func), quote_identifier(&a.output_alias)))
+    group_by
+        .aggregates
+        .iter()
+        .map(|a| format!("{} AS {}", format_aggregate(&a.func), quote_identifier(&a.output_alias)))
 }
 
 fn build_simple_group_by(ctes: &mut Vec<String>, prev: &str, group_by: &GroupBy) -> String {
@@ -449,16 +452,15 @@ fn build_binned_group_by(
         binning.min_bin_width,
     );
     let min = if is_temporal { min_field.clone() } else { to_numeric(&min_field, conversion) };
-    let stats_sql = format!("SELECT {min} AS __min, {width} AS __bin_width FROM {}", quote_identifier(&binning.stats_table));
+    let stats_sql =
+        format!("SELECT {min} AS __min, {width} AS __bin_width FROM {}", quote_identifier(&binning.stats_table));
     push_cte(ctes, "__grp_stats", &stats_sql);
 
     let bin_expr = match &binning.pre_binned_field_name {
         Some(field) => format!("t.{}", quote_identifier(field)),
-        None if is_temporal => format!(
-            "({} - {}) / s.__bin_width",
-            to_numeric(&key_field, conversion),
-            to_numeric("s.__min", conversion)
-        ),
+        None if is_temporal => {
+            format!("({} - {}) / s.__bin_width", to_numeric(&key_field, conversion), to_numeric("s.__min", conversion))
+        }
         None => format!("({} - s.__min) / s.__bin_width", to_numeric(&key_field, conversion)),
     };
 

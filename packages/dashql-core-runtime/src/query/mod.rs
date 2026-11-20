@@ -335,9 +335,8 @@ impl ConnectionQueryMetrics {
         self.total_queries = self.total_queries.saturating_add(1);
         self.total_batches_received = self.total_batches_received.saturating_add(stream.total_batches_received);
         self.total_rows_received = self.total_rows_received.saturating_add(stream.total_rows_received);
-        self.accumulated_time_until_first_batch = self
-            .accumulated_time_until_first_batch
-            .saturating_add(stream.duration_until_first_batch_ms.unwrap_or(0));
+        self.accumulated_time_until_first_batch =
+            self.accumulated_time_until_first_batch.saturating_add(stream.duration_until_first_batch_ms.unwrap_or(0));
         self.accumulated_query_duration =
             self.accumulated_query_duration.saturating_add(query.query_duration_ms.unwrap_or(0));
     }
@@ -780,7 +779,8 @@ impl QueryExecutionHistory {
         let is_internal = |query: Option<&QueryExecutionState>| {
             query.is_none_or(|query| query.query_metadata.query_type != QueryType::UserProvided)
         };
-        let internal = self.queries_finished_ordered.iter().filter(|id| is_internal(self.queries_finished.get(id))).count();
+        let internal =
+            self.queries_finished_ordered.iter().filter(|id| is_internal(self.queries_finished.get(id))).count();
         let mut excess = internal.saturating_sub(self.internal_limit);
         let finished = &mut self.queries_finished;
         self.queries_finished_ordered.retain(|id| {

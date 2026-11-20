@@ -69,11 +69,7 @@ pub fn group_comments(text: &str, comments: &[TextSpan]) -> CommentBlocks {
 
 /// Group comments into blocks, for callers that hold the script text as bytes
 pub fn group_comment_bytes(text: &[u8], comments: &[TextSpan]) -> CommentBlocks {
-    let mut grouper = Grouper {
-        text,
-        comments,
-        out: CommentBlocks::default(),
-    };
+    let mut grouper = Grouper { text, comments, out: CommentBlocks::default() };
     grouper.group();
     grouper.out
 }
@@ -173,10 +169,7 @@ impl<'a> Grouper<'a> {
         if !is_comment_tag(self.bytes(name_begin, name_end)) {
             return None;
         }
-        Some(Tag {
-            name: Range::new(name_begin, name_end),
-            rest: self.trim(Range::new(name_end, line.end)),
-        })
+        Some(Tag { name: Range::new(name_begin, name_end), rest: self.trim(Range::new(name_end, line.end)) })
     }
 
     /// Does a tag end at its line? Tags whose content is one line end there if their line has content, the lines
@@ -310,7 +303,14 @@ impl<'a> Grouper<'a> {
     }
 
     /// Emit a block that spans whole comments, leading and trailing empty lines are dropped
-    fn emit(&mut self, block_type: CommentBlockType, comments_begin: usize, comments_end: usize, tag: Range, lines: &[Range]) {
+    fn emit(
+        &mut self,
+        block_type: CommentBlockType,
+        comments_begin: usize,
+        comments_end: usize,
+        tag: Range,
+        lines: &[Range],
+    ) {
         let first = self.comment(comments_begin);
         let last = self.comment(comments_end - 1);
         let text_span = TextSpan::new(first.offset, last.end() - first.offset);
@@ -364,7 +364,10 @@ impl<'a> Grouper<'a> {
         for (i, &line) in lines.iter().enumerate() {
             let Some(tag) = self.read_tag(self.trim(line)) else { continue };
             if self.is_end(&tag) {
-                self.warn(TextSpan::new(line.begin as u32, (line.end - line.begin) as u32), "@end without an opening tag".to_string());
+                self.warn(
+                    TextSpan::new(line.begin as u32, (line.end - line.begin) as u32),
+                    "@end without an opening tag".to_string(),
+                );
                 continue;
             }
             tags.push((i, tag));
@@ -380,7 +383,14 @@ impl<'a> Grouper<'a> {
         if sub_lines(&lines, 0, first_tag).iter().any(|l| !l.is_empty()) {
             let tag_begin = first.name.begin - COMMENT_TAG_PREFIX.len();
             let span = Range::new(span_begin, tag_begin).span();
-            self.emit_span(CommentBlockType::COMMENT, comment_id, comment_id + 1, span, Range::default(), sub_lines(&lines, 0, first_tag));
+            self.emit_span(
+                CommentBlockType::COMMENT,
+                comment_id,
+                comment_id + 1,
+                span,
+                Range::default(),
+                sub_lines(&lines, 0, first_tag),
+            );
             span_begin = tag_begin;
         }
         for (k, (line, tag)) in tags.iter().enumerate() {
@@ -402,10 +412,24 @@ impl<'a> Grouper<'a> {
                 *l = rest;
             }
             let span = Range::new(span_begin, tag_end).span();
-            self.emit_span(CommentBlockType::DASHQL_TAG, comment_id, comment_id + 1, span, name, sub_lines(&lines, line, tag_lines_end));
+            self.emit_span(
+                CommentBlockType::DASHQL_TAG,
+                comment_id,
+                comment_id + 1,
+                span,
+                name,
+                sub_lines(&lines, line, tag_lines_end),
+            );
             if tag_end < span_end {
                 let span = Range::new(tag_end, span_end).span();
-                self.emit_span(CommentBlockType::COMMENT, comment_id, comment_id + 1, span, Range::default(), sub_lines(&lines, tag_lines_end, lines_end));
+                self.emit_span(
+                    CommentBlockType::COMMENT,
+                    comment_id,
+                    comment_id + 1,
+                    span,
+                    Range::default(),
+                    sub_lines(&lines, tag_lines_end, lines_end),
+                );
             }
             span_begin = span_end;
         }
@@ -448,7 +472,13 @@ impl<'a> Grouper<'a> {
                 close += 1;
             }
             if pending < i {
-                self.emit(CommentBlockType::COMMENT, pending, i, Range::default(), sub_lines(&lines, pending - run_begin, i - run_begin));
+                self.emit(
+                    CommentBlockType::COMMENT,
+                    pending,
+                    i,
+                    Range::default(),
+                    sub_lines(&lines, pending - run_begin, i - run_begin),
+                );
             }
             let mut content = Vec::with_capacity(close - i);
             content.push(tag.rest);
@@ -459,7 +489,13 @@ impl<'a> Grouper<'a> {
             i = region_end;
         }
         if pending < run_end {
-            self.emit(CommentBlockType::COMMENT, pending, run_end, Range::default(), sub_lines(&lines, pending - run_begin, lines.len()));
+            self.emit(
+                CommentBlockType::COMMENT,
+                pending,
+                run_end,
+                Range::default(),
+                sub_lines(&lines, pending - run_begin, lines.len()),
+            );
         }
     }
 
@@ -600,7 +636,10 @@ mod tests {
             ]
         );
         assert_eq!(line_texts(text, &blocks, 1), vec!["board width=6"]);
-        assert_eq!(block_texts(text, &blocks), vec!["-- @param Revenue.", "-- @vis board width=6", "-- @vis table\n-- @end"]);
+        assert_eq!(
+            block_texts(text, &blocks),
+            vec!["-- @param Revenue.", "-- @vis board width=6", "-- @vis table\n-- @end"]
+        );
         assert!(blocks.warnings.is_empty());
     }
 
@@ -623,7 +662,11 @@ mod tests {
         assert_eq!(warnings, vec!["@end without an opening tag", "@end without an opening tag"]);
         assert_eq!(
             tags(text, &blocks),
-            vec![(CommentBlockType::DASHQL_TAG, "param"), (CommentBlockType::COMMENT, ""), (CommentBlockType::COMMENT, "")]
+            vec![
+                (CommentBlockType::DASHQL_TAG, "param"),
+                (CommentBlockType::COMMENT, ""),
+                (CommentBlockType::COMMENT, "")
+            ]
         );
     }
 
@@ -631,7 +674,10 @@ mod tests {
     fn closes_the_last_region_at_the_end_of_the_run() {
         let text = "-- @param Revenue.\n-- per region\n-- @vis table\nselect 1";
         let blocks = group(text);
-        assert_eq!(tags(text, &blocks), vec![(CommentBlockType::DASHQL_TAG, "param"), (CommentBlockType::DASHQL_TAG, "vis")]);
+        assert_eq!(
+            tags(text, &blocks),
+            vec![(CommentBlockType::DASHQL_TAG, "param"), (CommentBlockType::DASHQL_TAG, "vis")]
+        );
         assert_eq!(line_texts(text, &blocks, 0), vec!["Revenue.", "per region"]);
         assert_eq!(line_texts(text, &blocks, 1), vec!["table"]);
         assert!(blocks.warnings.is_empty());
@@ -646,7 +692,8 @@ mod tests {
     #[test]
     fn ends_one_line_tags_at_their_line() {
         // The lines after a value, args or `@vis table` are ordinary text
-        let text = "/* @param :min = 10\n   Monthly revenue.\n   @board width=6\n   per region\n   @vis table\n   note */";
+        let text =
+            "/* @param :min = 10\n   Monthly revenue.\n   @board width=6\n   per region\n   @vis table\n   note */";
         let blocks = group(text);
         assert_eq!(
             tags(text, &blocks),
@@ -674,7 +721,10 @@ mod tests {
                 (CommentBlockType::DASHQL_TAG, "flow"),
             ]
         );
-        assert_eq!(block_texts(text, &blocks), vec!["-- @param :min = 10", "-- Monthly revenue", "-- @vis table\n-- @end", "-- @flow x=1 y=2"]);
+        assert_eq!(
+            block_texts(text, &blocks),
+            vec!["-- @param :min = 10", "-- Monthly revenue", "-- @vis table\n-- @end", "-- @flow x=1 y=2"]
+        );
         assert!(blocks.warnings.is_empty());
         // Multi-line tags and tags without content on their line run to the next tag
         for (text, last) in [

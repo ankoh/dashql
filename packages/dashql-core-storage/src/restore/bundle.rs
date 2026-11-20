@@ -3,16 +3,15 @@
 //! bundle and writes nothing. A runtime without storage opens an import this way. The host gives the clock, the tasks
 //! and the log, the files of the bundle are any bytes that know their size (`BundleFile`).
 
-
 use dashql_core_runtime::attachments::DataFile;
 use dashql_core_runtime::host::{Host, HostError, OnHost};
 
 use serde_json::Value;
 
-use crate::workbook_format::layout::{STORAGE_CATALOG_FUNCTIONS, STORAGE_CATALOG_RELATIONS};
 use super::{RestoreHost, RestoreProgress};
 use crate::storage::{ConnectionsUpdate, Expect, FileStamp, StorageHost};
 use crate::workbook_format::bundle::WorkbookBundle;
+use crate::workbook_format::layout::{STORAGE_CATALOG_FUNCTIONS, STORAGE_CATALOG_RELATIONS};
 
 /// What a bundle refuses, it is read only
 const READ_ONLY: &str = "a workbook opened into memory writes no files";
@@ -63,11 +62,22 @@ impl<H: Host, B: 'static> StorageHost for BundleHost<H, B> {
         Ok(self.bundle.workbook.to_json())
     }
 
-    async fn save_workbook(&self, _workbook_id: &str, _workbook: &Value, _expect: Expect) -> Result<Option<FileStamp>, HostError> {
+    async fn save_workbook(
+        &self,
+        _workbook_id: &str,
+        _workbook: &Value,
+        _expect: Expect,
+    ) -> Result<Option<FileStamp>, HostError> {
         Err(HostError::new(READ_ONLY))
     }
 
-    async fn save_script(&self, _workbook_id: &str, _file_name: &str, _text: &str, _expect: Expect) -> Result<Option<FileStamp>, HostError> {
+    async fn save_script(
+        &self,
+        _workbook_id: &str,
+        _file_name: &str,
+        _text: &str,
+        _expect: Expect,
+    ) -> Result<Option<FileStamp>, HostError> {
         Err(HostError::new(READ_ONLY))
     }
 
@@ -75,7 +85,14 @@ impl<H: Host, B: 'static> StorageHost for BundleHost<H, B> {
         Err(HostError::new(READ_ONLY))
     }
 
-    async fn rename_script(&self, _workbook_id: &str, _from: &str, _to: &str, _expect_from: Expect, _expect_to: Expect) -> Result<(), HostError> {
+    async fn rename_script(
+        &self,
+        _workbook_id: &str,
+        _from: &str,
+        _to: &str,
+        _expect_from: Expect,
+        _expect_to: Expect,
+    ) -> Result<(), HostError> {
         Err(HostError::new(READ_ONLY))
     }
 
@@ -122,7 +139,12 @@ impl<H: Host, B: BundleFile + 'static> RestoreHost for BundleHost<H, B> {
 
     async fn list_data_files(&self, workbook_id: &str) -> Result<Vec<DataFile>, HostError> {
         self.check(workbook_id)?;
-        Ok(self.bundle.data.iter().map(|file| DataFile { name: file.name.clone(), size_bytes: file.bytes.size_bytes(), mtime_ms: 0 }).collect())
+        Ok(self
+            .bundle
+            .data
+            .iter()
+            .map(|file| DataFile { name: file.name.clone(), size_bytes: file.bytes.size_bytes(), mtime_ms: 0 })
+            .collect())
     }
 
     async fn load_connection_file(&self, connection_id: &str, file_name: &str) -> Result<Option<String>, HostError> {

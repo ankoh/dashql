@@ -9,9 +9,9 @@ use http::HeaderName;
 use http::HeaderValue;
 use http::Request;
 use http::Response;
+use lazy_static::lazy_static;
 use tonic::metadata::KeyAndValueRef;
 use tonic::metadata::MetadataMap;
-use lazy_static::lazy_static;
 use tracing::instrument;
 
 use crate::grpc_proxy::GrpcProxy;
@@ -29,29 +29,23 @@ lazy_static! {
 #[instrument(skip(req))]
 pub async fn create_grpc_channel(mut req: Request<Vec<u8>>) -> Response<Vec<u8>> {
     match GRPC_PROXY.create_channel(req.headers_mut()).await {
-        Ok(channel_id) => {
-            Response::builder()
-                .status(200)
-                .header("X-Custom-Foo", "bar")
-                .header(HEADER_NAME_CHANNEL_ID, channel_id)
-                .body(Vec::new())
-                .unwrap()
-        },
-        Err(e) => Response::from(&e)
+        Ok(channel_id) => Response::builder()
+            .status(200)
+            .header("X-Custom-Foo", "bar")
+            .header(HEADER_NAME_CHANNEL_ID, channel_id)
+            .body(Vec::new())
+            .unwrap(),
+        Err(e) => Response::from(&e),
     }
 }
 
 pub async fn delete_grpc_channel(channel_id: usize) -> Response<Vec<u8>> {
     match GRPC_PROXY.destroy_channel(channel_id).await {
         Ok(()) => {
-            let response = Response::builder()
-                .status(200)
-                .body(Vec::new())
-                .unwrap();
+            let response = Response::builder().status(200).body(Vec::new()).unwrap();
             response
-        },
-        Err(e) => Response::from(&e)
-
+        }
+        Err(e) => Response::from(&e),
     }
 }
 
@@ -77,8 +71,7 @@ fn copy_metadata(metadata: &MetadataMap, headers: &mut HeaderMap) {
                 if key.as_str().starts_with(HEADER_PREFIX) {
                     continue;
                 }
-                let encoded = base64::engine::general_purpose::STANDARD
-                    .encode(value.to_bytes().unwrap_or_default());
+                let encoded = base64::engine::general_purpose::STANDARD.encode(value.to_bytes().unwrap_or_default());
                 let key = HeaderName::from_str(key.as_str());
                 let value = HeaderValue::from_str(&encoded);
                 if let (Ok(key), Ok(value)) = (key, value) {
@@ -95,15 +88,12 @@ pub async fn call_grpc_unary(channel_id: usize, mut req: Request<Vec<u8>>) -> Re
     tracing::Span::current().record("body_size", body.len());
     match GRPC_PROXY.call_unary(channel_id, req.headers_mut(), body).await {
         Ok((body, metadata)) => {
-            let mut response = Response::builder()
-                .status(200)
-                .header(HEADER_NAME_CHANNEL_ID, channel_id)
-                .body(body)
-                .unwrap();
+            let mut response =
+                Response::builder().status(200).header(HEADER_NAME_CHANNEL_ID, channel_id).body(body).unwrap();
             copy_metadata(&metadata, response.headers_mut());
             response
-        },
-        Err(e) => Response::from(&e)
+        }
+        Err(e) => Response::from(&e),
     }
 }
 
@@ -120,12 +110,16 @@ pub async fn start_grpc_server_stream(channel_id: usize, mut req: Request<Vec<u8
                 .unwrap();
             copy_metadata(&metadata, response.headers_mut());
             response
-        },
-        Err(e) => Response::from(&e)
+        }
+        Err(e) => Response::from(&e),
     }
 }
 
-pub async fn read_grpc_server_stream(channel_id: usize, stream_id: usize, mut req: Request<Vec<u8>>) -> Response<Vec<u8>> {
+pub async fn read_grpc_server_stream(
+    channel_id: usize,
+    stream_id: usize,
+    mut req: Request<Vec<u8>>,
+) -> Response<Vec<u8>> {
     match GRPC_PROXY.read_server_stream(channel_id, stream_id, req.headers_mut()).await {
         Ok(batches) => {
             let mut buffer: Vec<u8> = Vec::with_capacity(batches.total_message_bytes + 4 * batches.messages.len());
@@ -144,24 +138,20 @@ pub async fn read_grpc_server_stream(channel_id: usize, stream_id: usize, mut re
                 log::debug!("{:?}", trailers);
                 copy_metadata(&trailers, response.headers_mut().unwrap());
             }
-            response
-                .body(buffer)
-                .unwrap()
-        },
-        Err(e) => Response::from(&e)
+            response.body(buffer).unwrap()
+        }
+        Err(e) => Response::from(&e),
     }
 }
 
-pub async fn delete_grpc_server_stream(channel_id: usize, stream_id: usize, _req: Request<Vec<u8>>) -> Response<Vec<u8>> {
+pub async fn delete_grpc_server_stream(
+    channel_id: usize,
+    stream_id: usize,
+    _req: Request<Vec<u8>>,
+) -> Response<Vec<u8>> {
     match GRPC_PROXY.destroy_server_stream(channel_id, stream_id).await {
-        Ok(()) => {
-            Response::builder()
-                .status(200)
-                .header(HEADER_NAME_CHANNEL_ID, channel_id)
-                .body(Vec::new())
-                .unwrap()
-        }
-        Err(e) => Response::from(&e)
+        Ok(()) => Response::builder().status(200).header(HEADER_NAME_CHANNEL_ID, channel_id).body(Vec::new()).unwrap(),
+        Err(e) => Response::from(&e),
     }
 }
 

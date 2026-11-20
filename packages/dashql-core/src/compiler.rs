@@ -31,14 +31,17 @@ pub struct CompilationOptions {
 
 impl Default for CompilationOptions {
     fn default() -> Self {
-        Self {
-            allow_extensions: true,
-            parse_if_outdated: true,
-        }
+        Self { allow_extensions: true, parse_if_outdated: true }
     }
 }
 
-fn error(code: ErrorCode, message: &str, statement_id: u32, ast_node_id: u32, text_span: Option<TextSpan>) -> ScriptCompilationErrorT {
+fn error(
+    code: ErrorCode,
+    message: &str,
+    statement_id: u32,
+    ast_node_id: u32,
+    text_span: Option<TextSpan>,
+) -> ScriptCompilationErrorT {
     let mut e = ScriptCompilationErrorT::default();
     e.code = code;
     e.statement_id = statement_id;
@@ -100,7 +103,8 @@ fn has_returning(parsed: &ParsedScript, statement: &Statement) -> bool {
     let Some(root) = parsed.nodes.get(statement.root as usize) else { return false };
     let begin = root.children_begin_or_value() as usize;
     let children = parsed.nodes.get(begin..begin + root.children_count() as usize).unwrap_or_default();
-    let [insert_returning, delete_returning] = attrs!(children, [AttributeKey::SQL_INSERT_RETURNING, AttributeKey::SQL_DELETE_RETURNING]);
+    let [insert_returning, delete_returning] =
+        attrs!(children, [AttributeKey::SQL_INSERT_RETURNING, AttributeKey::SQL_DELETE_RETURNING]);
     let returning = if statement.statement_type == StatementType::DELETE { delete_returning } else { insert_returning };
     returning.is_some_and(|r| r.node_type() != NodeType::NONE)
 }
@@ -116,7 +120,10 @@ pub fn produces_output(parsed: &ParsedScript, statement: &Statement) -> bool {
 }
 
 /// Compile the visualization metadata
-pub fn compile_visualization(spec: &VisualizationSpec, script: &AnalyzedScript) -> Result<CompiledVisualizationT, String> {
+pub fn compile_visualization(
+    spec: &VisualizationSpec,
+    script: &AnalyzedScript,
+) -> Result<CompiledVisualizationT, String> {
     let renderer = spec.renderer.as_ref().ok_or("could not resolve visualization renderer")?.to_ascii_lowercase();
     let mut out = CompiledVisualizationT::default();
     // The compiled visualization always writes its strings
@@ -151,7 +158,12 @@ fn is_c_space(c: u8) -> bool {
 }
 
 /// Compile a script
-pub fn compile(script: &mut Script, catalog: &Catalog, config: &FormattingConfigT, options: CompilationOptions) -> ScriptCompilationResultT {
+pub fn compile(
+    script: &mut Script,
+    catalog: &Catalog,
+    config: &FormattingConfigT,
+    options: CompilationOptions,
+) -> ScriptCompilationResultT {
     let mut result = ScriptCompilationResultT::default();
     result.kind = StatementKind::QUERY;
     result.terminal_statement_id = PROTO_NULL_U32;
@@ -162,7 +174,9 @@ pub fn compile(script: &mut Script, catalog: &Catalog, config: &FormattingConfig
         result.errors = Some(errors);
         result
     };
-    if options.parse_if_outdated && script.parsed.as_ref().is_none_or(|p| p.scanned.text_version != script.text_version()) {
+    if options.parse_if_outdated
+        && script.parsed.as_ref().is_none_or(|p| p.scanned.text_version != script.text_version())
+    {
         script.parse();
     }
     let Some(parsed) = script.parsed.clone() else {
@@ -187,7 +201,13 @@ pub fn compile(script: &mut Script, catalog: &Catalog, config: &FormattingConfig
         return finish(result, errors);
     }
     let Some(terminal_statement) = parsed.statements.last() else {
-        errors.push(error(ErrorCode::EMPTY_SCRIPT, "script has no executable statement", PROTO_NULL_U32, PROTO_NULL_U32, None));
+        errors.push(error(
+            ErrorCode::EMPTY_SCRIPT,
+            "script has no executable statement",
+            PROTO_NULL_U32,
+            PROTO_NULL_U32,
+            None,
+        ));
         return finish(result, errors);
     };
     let terminal_statement_id = parsed.statements.len() - 1;
@@ -198,7 +218,8 @@ pub fn compile(script: &mut Script, catalog: &Catalog, config: &FormattingConfig
         && crate::analyzer::has_vis_tags(&parsed, terminal_statement_id);
     let descriptions = parsed.associate_descriptions();
     // There is one description per statement
-    let terminal_span = descriptions.last().map_or_else(|| TextSpan::new(0, scanned.text.len() as u32), |d| d.statement_span);
+    let terminal_span =
+        descriptions.last().map_or_else(|| TextSpan::new(0, scanned.text.len() as u32), |d| d.statement_span);
     let terminal_sql = read_executable_text(scanned, terminal_span);
     if !vis_tags {
         result.sql = Some(terminal_sql);
@@ -211,7 +232,13 @@ pub fn compile(script: &mut Script, catalog: &Catalog, config: &FormattingConfig
     if !current {
         // A failed analysis leaves the visualization without metadata
         if let Err(e) = script.analyze(catalog, false) {
-            errors.push(error(ErrorCode::VISUALIZATION_METADATA_UNAVAILABLE, &e.message, terminal_statement_id as u32, terminal_root, None));
+            errors.push(error(
+                ErrorCode::VISUALIZATION_METADATA_UNAVAILABLE,
+                &e.message,
+                terminal_statement_id as u32,
+                terminal_root,
+                None,
+            ));
             return finish(result, errors);
         }
     }

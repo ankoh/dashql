@@ -22,9 +22,11 @@ pub mod protocol;
 pub mod shared;
 pub mod stream;
 
-pub use arrow::{parse_trino_timestamp_ms, parse_trino_type, rows_to_record_batch, trino_schema, NoTimeZones, TimeZoneOffsets};
-pub use error::{TrinoError, TrinoErrorKind, TrinoResult};
 pub use crate::http::{FetchOutcome, HttpMethod, HttpRequest, HttpResponse};
+pub use arrow::{
+    parse_trino_timestamp_ms, parse_trino_type, rows_to_record_batch, trino_schema, NoTimeZones, TimeZoneOffsets,
+};
+pub use error::{TrinoError, TrinoErrorKind, TrinoResult};
 pub use protocol::{
     read_cancel_response, TokenRefresh, TrinoAccessToken, TrinoAuthParams, TrinoAuthType, TrinoChannel, TrinoColumn,
     TrinoOAuthParams, TrinoQueryError, TrinoQueryResult, TrinoRequest, TrinoRetryPolicy, DEFAULT_TRINO_RETRY_POLICY,

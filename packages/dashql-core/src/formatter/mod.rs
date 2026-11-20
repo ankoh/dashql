@@ -19,7 +19,6 @@ mod select;
 
 pub use program::*;
 
-use dashql_parser::attrs;
 use dashql_buffers::formatting::{FormattingConfigT, FormattingDialect, FormattingMode};
 use dashql_buffers::parser::{
     AttributeKey, CharacterType, ColumnConstraint, ConstraintAttribute, ExpressionOperator, ExtractTarget,
@@ -28,6 +27,7 @@ use dashql_buffers::parser::{
     SubqueryQuantifier, SymbolSpan, TableConstraint, TempType, TrimDirection, WindowBoundDirection, WindowBoundMode,
     WindowRangeMode,
 };
+use dashql_parser::attrs;
 use dashql_parser::parser::context::resolve_text_span;
 use dashql_parser::parser::ParsedScript;
 use dashql_parser::scanner::ScannedScript;
@@ -431,7 +431,8 @@ impl<'a> Formatter<'a> {
             if node.node_type() != NodeType::OBJECT_SQL_NARY_EXPRESSION {
                 continue;
             }
-            let [op_node, args_node] = attrs!(self.children(node), [K::SQL_EXPRESSION_OPERATOR, K::SQL_EXPRESSION_ARGS]);
+            let [op_node, args_node] =
+                attrs!(self.children(node), [K::SQL_EXPRESSION_OPERATOR, K::SQL_EXPRESSION_ARGS]);
             let Some(op_node) = op_node else { continue };
 
             let (precedence, associativity) = if op_node.node_type() == NodeType::ENUM_SQL_EXPRESSION_OPERATOR {
@@ -687,13 +688,11 @@ impl<'a> Formatter<'a> {
                 }
                 self.comma_join_on_overflow(&values, true)
             }
-            K::SQL_WINDOW_FRAME_BOUNDS => {
-                match *self.array_regs(node).as_slice() {
-                    [bound] if bound != 0 => bound,
-                    [from, to] if from != 0 && to != 0 => f.concat(&[f.text("between "), from, f.text(" and "), to]),
-                    _ => self.format_unimplemented(node),
-                }
-            }
+            K::SQL_WINDOW_FRAME_BOUNDS => match *self.array_regs(node).as_slice() {
+                [bound] if bound != 0 => bound,
+                [from, to] if from != 0 && to != 0 => f.concat(&[f.text("between "), from, f.text(" and "), to]),
+                _ => self.format_unimplemented(node),
+            },
             K::SQL_SELECT_VALUES => {
                 let rows = self.array_regs(node);
                 if rows.iter().any(|&r| r == 0) {
@@ -746,7 +745,9 @@ impl<'a> Formatter<'a> {
 
     fn format_table_ref(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
-        let [name, alias, table, lateral, sample, only] = attrs!(self.children(node), [
+        let [name, alias, table, lateral, sample, only] = attrs!(
+            self.children(node),
+            [
                 K::SQL_TABLEREF_NAME,
                 K::SQL_TABLEREF_ALIAS,
                 K::SQL_TABLEREF_TABLE,
@@ -839,8 +840,10 @@ impl<'a> Formatter<'a> {
 
     fn format_row_locking(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
-        let [strength, of, behavior] =
-            attrs!(self.children(node), [K::SQL_ROW_LOCKING_STRENGTH, K::SQL_ROW_LOCKING_OF, K::SQL_ROW_LOCKING_BLOCK_BEHAVIOR]);
+        let [strength, of, behavior] = attrs!(
+            self.children(node),
+            [K::SQL_ROW_LOCKING_STRENGTH, K::SQL_ROW_LOCKING_OF, K::SQL_ROW_LOCKING_BLOCK_BEHAVIOR]
+        );
         let Some(strength) = strength else { return self.format_unimplemented(node) };
         let mut parts = vec![self.reg(strength)];
         if let Some(of) = of.filter(|of| of.children_count() > 0) {
@@ -865,7 +868,9 @@ impl<'a> Formatter<'a> {
 
     fn format_sample(&self, node: &'a Node, table_sample: bool) -> FmtReg {
         let f = &self.fmt;
-        let [value, unit, function, repeat, seed] = attrs!(self.children(node), [
+        let [value, unit, function, repeat, seed] = attrs!(
+            self.children(node),
+            [
                 K::SQL_SAMPLE_COUNT_VALUE,
                 K::SQL_SAMPLE_COUNT_UNIT,
                 K::SQL_SAMPLE_FUNCTION,
@@ -945,11 +950,13 @@ impl<'a> Formatter<'a> {
         let clause_policy = self.pretty_policy(FormattingJoinPolicy::BreakAllOrNone);
         let table_ref_id = node.parent() as usize;
         let is_left_nested_join =
-            self.ast.get(table_ref_id).and_then(|table_ref| self.ast.get(table_ref.parent() as usize)).is_some_and(|parent| {
-                parent.node_type() == NodeType::ARRAY
-                    && parent.attribute_key() == K::SQL_JOIN_INPUT
-                    && table_ref_id == parent.children_begin_or_value() as usize
-            });
+            self.ast.get(table_ref_id).and_then(|table_ref| self.ast.get(table_ref.parent() as usize)).is_some_and(
+                |parent| {
+                    parent.node_type() == NodeType::ARRAY
+                        && parent.attribute_key() == K::SQL_JOIN_INPUT
+                        && table_ref_id == parent.children_begin_or_value() as usize
+                },
+            );
         self.space_join(&[left_reg, join_clause], clause_policy, !is_left_nested_join)
     }
 
@@ -1007,7 +1014,8 @@ impl<'a> Formatter<'a> {
                 } else if row_element && unbounded {
                     type_reg = f.concat(&[f.text("array("), type_reg, f.text(")")]);
                 } else {
-                    let bound_reg = bound.filter(|b| b.node_type() != NodeType::BOOL).map_or(f.empty(), |b| self.reg(b));
+                    let bound_reg =
+                        bound.filter(|b| b.node_type() != NodeType::BOOL).map_or(f.empty(), |b| self.reg(b));
                     type_reg = f.concat(&[type_reg, f.text("["), bound_reg, f.text("]")]);
                 }
             }
@@ -1121,7 +1129,9 @@ impl<'a> Formatter<'a> {
 
     fn format_const_function_cast(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
-        let [name, args, order, value] = attrs!(self.children(node), [
+        let [name, args, order, value] = attrs!(
+            self.children(node),
+            [
                 K::SQL_CONST_CAST_FUNC_NAME,
                 K::SQL_CONST_CAST_FUNC_ARGS_LIST,
                 K::SQL_CONST_CAST_FUNC_ARGS_ORDER,
@@ -1218,7 +1228,8 @@ impl<'a> Formatter<'a> {
 
     fn format_character_type(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
-        let [character_type, length] = attrs!(self.children(node), [K::SQL_CHARACTER_TYPE, K::SQL_CHARACTER_TYPE_LENGTH]);
+        let [character_type, length] =
+            attrs!(self.children(node), [K::SQL_CHARACTER_TYPE, K::SQL_CHARACTER_TYPE_LENGTH]);
         let Some(character_type) = character_type else { return self.format_unimplemented(node) };
         let mut parts = vec![self.reg(character_type)];
         if let Some(length) = length {
@@ -1258,7 +1269,8 @@ impl<'a> Formatter<'a> {
 
     fn format_timestamp_type(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
-        let [precision, with_tz] = attrs!(self.children(node), [K::SQL_TIME_TYPE_PRECISION, K::SQL_TIME_TYPE_WITH_TIMEZONE]);
+        let [precision, with_tz] =
+            attrs!(self.children(node), [K::SQL_TIME_TYPE_PRECISION, K::SQL_TIME_TYPE_WITH_TIMEZONE]);
         let is_time = node.node_type() == NodeType::OBJECT_SQL_TIME_TYPE;
         let mut parts = vec![f.text(if is_time { "time" } else { "timestamp" })];
         if let Some(precision) = precision {
@@ -1406,7 +1418,8 @@ impl<'a> Formatter<'a> {
 
     fn format_row_expression(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
-        let [is_explicit, values] = attrs!(self.children(node), [K::SQL_ROW_EXPRESSION_EXPLICIT, K::SQL_ROW_EXPRESSION_VALUES]);
+        let [is_explicit, values] =
+            attrs!(self.children(node), [K::SQL_ROW_EXPRESSION_EXPLICIT, K::SQL_ROW_EXPRESSION_VALUES]);
         let Some(values) = values.filter(|v| v.node_type() == NodeType::ARRAY) else {
             return self.format_unimplemented(node);
         };
@@ -1988,7 +2001,9 @@ impl<'a> Formatter<'a> {
 
     fn format_substring_args(&self, name_reg: FmtReg, args: &'a Node) -> Option<FmtReg> {
         let f = &self.fmt;
-        let [sub_input, sub_from, sub_for] = attrs!(self.children(args), [K::SQL_FUNCTION_SUBSTRING_INPUT, K::SQL_FUNCTION_SUBSTRING_FROM, K::SQL_FUNCTION_SUBSTRING_FOR],
+        let [sub_input, sub_from, sub_for] = attrs!(
+            self.children(args),
+            [K::SQL_FUNCTION_SUBSTRING_INPUT, K::SQL_FUNCTION_SUBSTRING_FROM, K::SQL_FUNCTION_SUBSTRING_FOR],
         );
         let input_reg = self.reg(sub_input?);
         if input_reg == 0 {
@@ -2019,7 +2034,10 @@ impl<'a> Formatter<'a> {
 
     fn format_trim_args(&self, name_reg: FmtReg, args: &'a Node) -> Option<FmtReg> {
         let f = &self.fmt;
-        let [trim_input, trim_dir, trim_chars] = attrs!(self.children(args), [K::SQL_FUNCTION_TRIM_INPUT, K::SQL_FUNCTION_TRIM_DIRECTION, K::SQL_FUNCTION_TRIM_CHARACTERS]);
+        let [trim_input, trim_dir, trim_chars] = attrs!(
+            self.children(args),
+            [K::SQL_FUNCTION_TRIM_INPUT, K::SQL_FUNCTION_TRIM_DIRECTION, K::SQL_FUNCTION_TRIM_CHARACTERS]
+        );
         let input_reg = self.reg(trim_input?);
         if input_reg == 0 {
             return None;
@@ -2050,7 +2068,9 @@ impl<'a> Formatter<'a> {
 
     fn format_overlay_args(&self, name_reg: FmtReg, args: &'a Node) -> Option<FmtReg> {
         let f = &self.fmt;
-        let [ov_input, ov_placing, ov_from, ov_for] = attrs!(self.children(args), [
+        let [ov_input, ov_placing, ov_from, ov_for] = attrs!(
+            self.children(args),
+            [
                 K::SQL_FUNCTION_OVERLAY_INPUT,
                 K::SQL_FUNCTION_OVERLAY_PLACING,
                 K::SQL_FUNCTION_OVERLAY_FROM,
@@ -2078,7 +2098,9 @@ impl<'a> Formatter<'a> {
 
     fn format_function_table(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
-        let [function, rows_from, with_ordinality] = attrs!(self.children(node), [K::SQL_FUNCTION_TABLE_FUNCTION, K::SQL_FUNCTION_TABLE_ROWS_FROM, K::SQL_FUNCTION_TABLE_WITH_ORDINALITY],
+        let [function, rows_from, with_ordinality] = attrs!(
+            self.children(node),
+            [K::SQL_FUNCTION_TABLE_FUNCTION, K::SQL_FUNCTION_TABLE_ROWS_FROM, K::SQL_FUNCTION_TABLE_WITH_ORDINALITY],
         );
         let mut base_reg = 0;
         if let Some(function) = function {
@@ -2106,7 +2128,9 @@ impl<'a> Formatter<'a> {
 
     fn format_window_frame(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
-        let [partition, order, mode, bounds, exclude, name] = attrs!(self.children(node), [
+        let [partition, order, mode, bounds, exclude, name] = attrs!(
+            self.children(node),
+            [
                 K::SQL_WINDOW_FRAME_PARTITION,
                 K::SQL_WINDOW_FRAME_ORDER,
                 K::SQL_WINDOW_FRAME_MODE,
@@ -2157,8 +2181,10 @@ impl<'a> Formatter<'a> {
 
     fn format_window_bound(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
-        let [mode, direction, value] =
-            attrs!(self.children(node), [K::SQL_WINDOW_BOUND_MODE, K::SQL_WINDOW_BOUND_DIRECTION, K::SQL_WINDOW_BOUND_VALUE]);
+        let [mode, direction, value] = attrs!(
+            self.children(node),
+            [K::SQL_WINDOW_BOUND_MODE, K::SQL_WINDOW_BOUND_DIRECTION, K::SQL_WINDOW_BOUND_VALUE]
+        );
         let Some(mode) = mode else { return self.format_unimplemented(node) };
         match (WindowBoundMode(value_u8(mode)), direction, value) {
             (WindowBoundMode::UNBOUNDED, Some(direction), None) => {
@@ -2317,8 +2343,11 @@ impl<'a> Formatter<'a> {
             return self.format_unimplemented(node);
         }
         // The right hand side is either a subquery, which parenthesizes itself, or an expression
-        let arg1_reg =
-            if arg1.node_type() == NodeType::OBJECT_SQL_SELECT_EXPRESSION { arg1_reg } else { f.parenthesized(arg1_reg) };
+        let arg1_reg = if arg1.node_type() == NodeType::OBJECT_SQL_SELECT_EXPRESSION {
+            arg1_reg
+        } else {
+            f.parenthesized(arg1_reg)
+        };
         f.concat(&[arg0_reg, f.text(" "), op_reg, f.text(" "), self.reg(quantifier), f.text(" "), arg1_reg])
     }
 
@@ -2335,11 +2364,14 @@ impl<'a> Formatter<'a> {
     /// `[value]` or `[lower:upper]`, a missing bound of a slice stays empty
     fn format_indirection_index(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
-        let [value, lower, upper] = attrs!(self.children(node), [
-            K::SQL_INDIRECTION_INDEX_VALUE,
-            K::SQL_INDIRECTION_INDEX_LOWER_BOUND,
-            K::SQL_INDIRECTION_INDEX_UPPER_BOUND,
-        ]);
+        let [value, lower, upper] = attrs!(
+            self.children(node),
+            [
+                K::SQL_INDIRECTION_INDEX_VALUE,
+                K::SQL_INDIRECTION_INDEX_LOWER_BOUND,
+                K::SQL_INDIRECTION_INDEX_UPPER_BOUND,
+            ]
+        );
         let reg_of = |bound: Option<&'a Node>| bound.map_or(f.empty(), |b| self.reg(b));
         if let Some(value) = value {
             return f.concat(&[f.text("["), self.reg(value), f.text("]")]);
@@ -2382,7 +2414,8 @@ impl<'a> Formatter<'a> {
     /// `f(...) [as (column definitions)]` of `rows from (...)`
     fn format_rows_from_item(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
-        let [function, columns] = attrs!(self.children(node), [K::SQL_ROWSFROM_ITEM_FUNCTION, K::SQL_ROWSFROM_ITEM_COLUMNS]);
+        let [function, columns] =
+            attrs!(self.children(node), [K::SQL_ROWSFROM_ITEM_FUNCTION, K::SQL_ROWSFROM_ITEM_COLUMNS]);
         let Some(function) = function else { return self.format_unimplemented(node) };
         let function_reg = self.reg(function);
         if function_reg == 0 {
@@ -2422,7 +2455,9 @@ impl<'a> Formatter<'a> {
 
     fn format_cte(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
-        let [name, columns, statement, graph, secure, options] = attrs!(self.children(node), [
+        let [name, columns, statement, graph, secure, options] = attrs!(
+            self.children(node),
+            [
                 K::SQL_CTE_NAME,
                 K::SQL_CTE_COLUMNS,
                 K::SQL_CTE_STATEMENT,
@@ -2487,7 +2522,9 @@ impl<'a> Formatter<'a> {
 
     fn format_result_target(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
-        let [value, name, star, exclude] = attrs!(self.children(node), [
+        let [value, name, star, exclude] = attrs!(
+            self.children(node),
+            [
                 K::SQL_RESULT_TARGET_VALUE,
                 K::SQL_RESULT_TARGET_NAME,
                 K::SQL_RESULT_TARGET_STAR,
@@ -2581,10 +2618,8 @@ impl<'a> Formatter<'a> {
             }
         }
         let (Some(op_node), Some(args_node)) = (op_node, args_node) else { return self.format_unimplemented(node) };
-        if !matches!(
-            op_node.node_type(),
-            NodeType::ENUM_SQL_EXPRESSION_OPERATOR | NodeType::OPERATOR | NodeType::ARRAY
-        ) || args_node.node_type() != NodeType::ARRAY
+        if !matches!(op_node.node_type(), NodeType::ENUM_SQL_EXPRESSION_OPERATOR | NodeType::OPERATOR | NodeType::ARRAY)
+            || args_node.node_type() != NodeType::ARRAY
             || args_node.children_count() == 0
         {
             return self.format_unimplemented(node);
@@ -2621,7 +2656,10 @@ impl<'a> Formatter<'a> {
                 if known_operator
                     && matches!(
                         op,
-                        O::BETWEEN_ASYMMETRIC | O::NOT_BETWEEN_ASYMMETRIC | O::BETWEEN_SYMMETRIC | O::NOT_BETWEEN_SYMMETRIC
+                        O::BETWEEN_ASYMMETRIC
+                            | O::NOT_BETWEEN_ASYMMETRIC
+                            | O::BETWEEN_SYMMETRIC
+                            | O::NOT_BETWEEN_SYMMETRIC
                     ) =>
             {
                 f.concat(&[value, f.text(" "), op_reg, f.text(" "), low, f.text(" and "), high])
@@ -2675,7 +2713,9 @@ impl<'a> Formatter<'a> {
             NodeType::OBJECT_SQL_DROP_VIEW => self.format_drop(node, false),
             NodeType::OBJECT_SQL_ALTER_TABLE => self.format_alter_table(node, "alter table "),
             NodeType::OBJECT_SQL_ALTER_VIEW => self.format_alter_table(node, "alter view "),
-            NodeType::OBJECT_SQL_CREATE_SCHEMA | NodeType::OBJECT_SQL_DROP_SCHEMA | NodeType::OBJECT_SQL_ALTER_SCHEMA => self.format_schema_statement(node),
+            NodeType::OBJECT_SQL_CREATE_SCHEMA
+            | NodeType::OBJECT_SQL_DROP_SCHEMA
+            | NodeType::OBJECT_SQL_ALTER_SCHEMA => self.format_schema_statement(node),
             NodeType::OBJECT_SQL_ALTER_ADD_COLUMN
             | NodeType::OBJECT_SQL_ALTER_DROP_COLUMN
             | NodeType::OBJECT_SQL_ALTER_RENAME_COLUMN
@@ -2861,14 +2901,16 @@ impl<'a> Formatter<'a> {
         let mut damaged = vec![false; chunks.len()];
         for error in &self.parsed.errors {
             let symbol = (error.location.offset() as usize).min(symbols.len().saturating_sub(1));
-            if let Some(flag) = chunk_of_symbol(symbol).or(chunks.len().checked_sub(1)).and_then(|c| damaged.get_mut(c)) {
+            if let Some(flag) = chunk_of_symbol(symbol).or(chunks.len().checked_sub(1)).and_then(|c| damaged.get_mut(c))
+            {
                 *flag = true;
             }
         }
         for error in &self.scanned.errors {
             let offset = error.location.offset;
             let symbol = symbols.partition_point(|s| s.location.end() <= offset);
-            if let Some(flag) = chunk_of_symbol(symbol).or(chunks.len().checked_sub(1)).and_then(|c| damaged.get_mut(c)) {
+            if let Some(flag) = chunk_of_symbol(symbol).or(chunks.len().checked_sub(1)).and_then(|c| damaged.get_mut(c))
+            {
                 *flag = true;
             }
         }
@@ -2944,7 +2986,8 @@ impl<'a> Formatter<'a> {
         let comment_range = |begin: usize, end: usize| comments.get(begin..end).unwrap_or_default();
         // The end of the comments from `begin` that start before an offset
         let comments_before = |begin: usize, offset: usize| {
-            begin + comments.get(begin..).unwrap_or_default().iter().take_while(|c| (c.offset as usize) < offset).count()
+            begin
+                + comments.get(begin..).unwrap_or_default().iter().take_while(|c| (c.offset as usize) < offset).count()
         };
         let max_width = self.config.max_width as usize;
         let descriptions = self.parsed.associate_descriptions();

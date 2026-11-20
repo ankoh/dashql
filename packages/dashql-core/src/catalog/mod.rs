@@ -16,12 +16,12 @@ pub use ids::*;
 pub use names::{IndexedName, NameSearchIndex};
 
 use crate::error::{Error, Result};
+use crate::hash::HashMap;
 use dashql_buffers::catalog::{
     FlatCatalogEntryT, FlatCatalogT, IndexedFlatDatabaseEntryT, IndexedFlatSchemaEntryT, IndexedFlatTableEntryT,
 };
 use dashql_buffers::status::StatusCode;
 use std::cell::RefCell;
-use crate::hash::HashMap;
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Arc;
@@ -355,7 +355,9 @@ impl CatalogSnapshot {
     }
 
     /// The entries by (database, schema, layer, id)
-    pub fn entries_by_qualified_schema(&self) -> &BTreeMap<(Arc<str>, Arc<str>, CatalogLayer, CatalogEntryId), SchemaEntryInfo> {
+    pub fn entries_by_qualified_schema(
+        &self,
+    ) -> &BTreeMap<(Arc<str>, Arc<str>, CatalogLayer, CatalogEntryId), SchemaEntryInfo> {
         &self.entries_by_qualified_schema
     }
 
@@ -398,7 +400,12 @@ impl Catalog {
     }
 
     /// Reserve the id of a function of an entry, like [`Catalog::reserve_table_id`]
-    pub fn reserve_function_id(&self, entry: CatalogEntryId, name: &QualifiedKey, occurrence: u32) -> CatalogFunctionId {
+    pub fn reserve_function_id(
+        &self,
+        entry: CatalogEntryId,
+        name: &QualifiedKey,
+        occurrence: u32,
+    ) -> CatalogFunctionId {
         CatalogFunctionId::new(entry, self.ids.borrow_mut().object_id(entry, ObjectKind::Function, name, occurrence))
     }
 
@@ -418,7 +425,12 @@ impl Catalog {
     }
 
     /// Reserve the canonical id of a schema
-    pub fn reserve_schema_id(&self, database: &str, schema: &str, db_id: QualifiedCatalogObjectId) -> QualifiedCatalogObjectId {
+    pub fn reserve_schema_id(
+        &self,
+        database: &str,
+        schema: &str,
+        db_id: QualifiedCatalogObjectId,
+    ) -> QualifiedCatalogObjectId {
         let mut ids = self.ids.borrow_mut();
         let key = (database.to_string(), schema.to_string());
         if let Some(&id) = ids.schema_ids_by_name.get(&key) {
@@ -639,7 +651,8 @@ impl Catalog {
                 Arc::from(name.table_name.as_deref().unwrap_or("")),
             )
         };
-        let key_of_table = |table: &TableT| key_of(table.table_name.as_deref().unwrap_or(&QualifiedTableNameT::default()));
+        let key_of_table =
+            |table: &TableT| key_of(table.table_name.as_deref().unwrap_or(&QualifiedTableNameT::default()));
         let before = descriptor.tables.take().unwrap_or_default();
         let new_tables = update.tables.unwrap_or_default();
         let new_keys: Vec<QualifiedKey> = new_tables.iter().map(key_of_table).collect();
@@ -651,7 +664,9 @@ impl Catalog {
             let key = key_of_table(table);
             if let Some((next, _)) = new_tables.iter().zip(&new_keys).find(|(_, k)| **k == key) {
                 tables.push(next.clone());
-            } else if !relations.iter().any(|r| same_relation(r, &key)) && !databases.iter().any(|d| d.as_str() == &*key.0) {
+            } else if !relations.iter().any(|r| same_relation(r, &key))
+                && !databases.iter().any(|d| d.as_str() == &*key.0)
+            {
                 tables.push(table.clone());
             }
             before_keys.push(key);
@@ -775,7 +790,6 @@ impl Catalog {
         self.absent_relations.clear();
         self.version += 1;
     }
-
 }
 
 impl CatalogSnapshot {
@@ -864,11 +878,7 @@ impl CatalogSnapshot {
                     continue;
                 }
                 let name_id = add_name(&schema_ref.schema_name);
-                schema_nodes.push(SchemaNode {
-                    schema_id: schema_ref.schema_id(),
-                    name_id,
-                    children: BTreeMap::new(),
-                });
+                schema_nodes.push(SchemaNode { schema_id: schema_ref.schema_id(), name_id, children: BTreeMap::new() });
                 let schema_node = schema_nodes.len() - 1;
                 schema_node_map.insert(schema_ref.object_id, schema_node);
                 // The databases of the entry are added before its schemas
@@ -882,7 +892,9 @@ impl CatalogSnapshot {
         // Tables are not deduplicated among entries, the first entry in resolution order wins
         for (_, entry) in self.entries_ranked() {
             for (index, table) in entry.data().table_declarations.iter().enumerate() {
-                if self.is_absent(entry.data().catalog_entry_id, table) || entry.data().tables_by_qualified_name.get(&table.table_name.key()) != Some(&index) {
+                if self.is_absent(entry.data().catalog_entry_id, table)
+                    || entry.data().tables_by_qualified_name.get(&table.table_name.key()) != Some(&index)
+                {
                     continue;
                 }
                 // A table outside of the schemas of the catalog is left out
@@ -910,16 +922,15 @@ impl CatalogSnapshot {
         }
 
         // (entry index, parent index, object id, name id, child begin, child count)
-        let entry = |idx: usize, parent: usize, object_id: u64, name_id: usize, begin: usize, count: usize| {
-            FlatCatalogEntryT {
+        let entry =
+            |idx: usize, parent: usize, object_id: u64, name_id: usize, begin: usize, count: usize| FlatCatalogEntryT {
                 flat_entry_idx: idx as u32,
                 flat_parent_idx: parent as u32,
                 catalog_object_id: object_id,
                 name_id: name_id as u32,
                 child_begin: begin as u32,
                 child_count: count as u32,
-            }
-        };
+            };
         let mut databases = Vec::new();
         let mut schemas = Vec::new();
         let mut tables = Vec::new();
@@ -930,27 +941,20 @@ impl CatalogSnapshot {
         for db in root.values().filter_map(|&n| database_nodes.get(n)) {
             let db_idx = databases.len();
             databases.push(entry(db_idx, 0, db.database_id as u64, db.name_id, schemas.len(), db.children.len()));
-            databases_by_id.push(IndexedFlatDatabaseEntryT {
-                database_id: db.database_id,
-                flat_entry_idx: db_idx as u32,
-            });
+            databases_by_id
+                .push(IndexedFlatDatabaseEntryT { database_id: db.database_id, flat_entry_idx: db_idx as u32 });
             for schema in db.children.values().filter_map(|&n| schema_nodes.get(n)) {
                 let schema_idx = schemas.len();
                 let schema_id = schema.schema_id as u64;
                 schemas.push(entry(schema_idx, db_idx, schema_id, schema.name_id, tables.len(), schema.children.len()));
-                schemas_by_id.push(IndexedFlatSchemaEntryT {
-                    schema_id: schema.schema_id,
-                    flat_entry_idx: schema_idx as u32,
-                });
+                schemas_by_id
+                    .push(IndexedFlatSchemaEntryT { schema_id: schema.schema_id, flat_entry_idx: schema_idx as u32 });
                 for table in schema.children.values().filter_map(|&n| table_nodes.get(n)) {
                     let table_idx = tables.len();
                     let table_id = table.table_id.pack();
                     let column_count = table.column_count;
                     tables.push(entry(table_idx, schema_idx, table_id, table.name_id, columns.len(), column_count));
-                    tables_by_id.push(IndexedFlatTableEntryT {
-                        table_id,
-                        flat_entry_idx: table_idx as u32,
-                    });
+                    tables_by_id.push(IndexedFlatTableEntryT { table_id, flat_entry_idx: table_idx as u32 });
                     let table_columns = table.columns_begin..table.columns_begin + table.column_count;
                     for &(column_id, name_id) in column_nodes.get(table_columns).unwrap_or_default() {
                         columns.push(entry(columns.len(), table_idx, column_id as u64, name_id, 0, 0));
@@ -1009,7 +1013,13 @@ impl CatalogSnapshot {
     /// Resolve a table across all entries except `ignore_entry`. The matches of the first layer that has one are
     /// the candidates: what the connection reports doesn't compete with what a script declares, and a script doesn't
     /// provide a relation that the connection reported as gone.
-    pub fn resolve_table(&self, name: &QualifiedTableName, ignore_entry: CatalogEntryId, out: &mut Vec<TableLoc>, limit: usize) {
+    pub fn resolve_table(
+        &self,
+        name: &QualifiedTableName,
+        ignore_entry: CatalogEntryId,
+        out: &mut Vec<TableLoc>,
+        limit: usize,
+    ) {
         self.collect_table_matches(name, ignore_entry, out, limit);
         out.retain(|loc| !self.is_absent_table(*loc));
         if let Some(first) = out.first().and_then(|loc| self.layer(loc.entry)) {
@@ -1018,7 +1028,13 @@ impl CatalogSnapshot {
     }
 
     /// Collect the matches of a table in resolution order
-    fn collect_table_matches(&self, name: &QualifiedTableName, ignore_entry: CatalogEntryId, out: &mut Vec<TableLoc>, limit: usize) {
+    fn collect_table_matches(
+        &self,
+        name: &QualifiedTableName,
+        ignore_entry: CatalogEntryId,
+        out: &mut Vec<TableLoc>,
+        limit: usize,
+    ) {
         let db = name.database_name.text.clone();
         let schema = name.schema_name.text.clone();
         // Direct lookups of the qualified name
@@ -1085,8 +1101,14 @@ fn same_relation(a: &QualifiedKey, b: &QualifiedKey) -> bool {
 }
 
 /// Describe a catalog entry of a layer
-fn describe_entry(snapshot: &CatalogSnapshot, layer: CatalogLayer, entry: &CatalogEntryRef) -> dashql_buffers::catalog::CatalogEntryT {
-    use dashql_buffers::catalog::{CatalogEntryT, CatalogEntryType, SchemaDescriptorT, SchemaTableColumnT, SchemaTableT};
+fn describe_entry(
+    snapshot: &CatalogSnapshot,
+    layer: CatalogLayer,
+    entry: &CatalogEntryRef,
+) -> dashql_buffers::catalog::CatalogEntryT {
+    use dashql_buffers::catalog::{
+        CatalogEntryT, CatalogEntryType, SchemaDescriptorT, SchemaTableColumnT, SchemaTableT,
+    };
     let data = entry.data();
     let mut out = CatalogEntryT::default();
     out.catalog_entry_id = data.catalog_entry_id;

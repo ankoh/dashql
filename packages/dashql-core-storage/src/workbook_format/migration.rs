@@ -12,10 +12,10 @@ use serde_json::{json, Value};
 
 use dashql_core::error::{Error, Result};
 
-use dashql_core_runtime::host::HostError;
 use crate::storage::stamps::{FileStamp, FolderStamps};
 use crate::workbook_format::data::WORKBOOK_FORMAT_VERSION;
 use crate::workbook_format::json::{to_pretty_text, JsonObject};
+use dashql_core_runtime::host::HostError;
 
 /// The top-level files that the migrations read, every name they ever had
 pub const MIGRATION_FILES: [&str; 10] = [
@@ -152,7 +152,11 @@ pub struct WorkbookMigrationStep {
 
 /// The steps in order. Steps are never removed, a workbook may skip any number of app versions.
 pub const WORKBOOK_MIGRATION_STEPS: [WorkbookMigrationStep; 9] = [
-    WorkbookMigrationStep { version: 3, description: "Prefix the catalog files with dashql-catalog", migrate: catalog_file_prefix },
+    WorkbookMigrationStep {
+        version: 3,
+        description: "Prefix the catalog files with dashql-catalog",
+        migrate: catalog_file_prefix,
+    },
     WorkbookMigrationStep { version: 4, description: "Rename notebooks as sessions", migrate: notebooks_to_sessions },
     WorkbookMigrationStep {
         version: 5,
@@ -164,7 +168,11 @@ pub const WORKBOOK_MIGRATION_STEPS: [WorkbookMigrationStep; 9] = [
         description: "List the databases of the session as connections with a default connection",
         migrate: session_connections,
     },
-    WorkbookMigrationStep { version: 7, description: "Remove the catalog copies of the session", migrate: catalogs_of_connections },
+    WorkbookMigrationStep {
+        version: 7,
+        description: "Remove the catalog copies of the session",
+        migrate: catalogs_of_connections,
+    },
     WorkbookMigrationStep {
         version: 8,
         description: "Hold the connections of the scripts without a default connection",
@@ -175,7 +183,11 @@ pub const WORKBOOK_MIGRATION_STEPS: [WorkbookMigrationStep; 9] = [
         description: "Remove the settings of the session, connections decide whether query results are cached",
         migrate: drop_session_settings,
     },
-    WorkbookMigrationStep { version: 10, description: "Rename the connection params of the SIDB connector to dbcom", migrate: dbcom_connector },
+    WorkbookMigrationStep {
+        version: 10,
+        description: "Rename the connection params of the SIDB connector to dbcom",
+        migrate: dbcom_connector,
+    },
     WorkbookMigrationStep { version: 11, description: "Rename sessions as workbooks", migrate: sessions_to_workbooks },
 ];
 
@@ -211,10 +223,13 @@ impl WorkbookMigrationResult {
 fn read_metadata(folder: &MigrationFolder) -> Option<(&'static str, Option<JsonObject>)> {
     WORKBOOK_METADATA_FILES.iter().find_map(|name| {
         let text = folder.read(name)?;
-        Some((*name, match serde_json::from_str::<Value>(text) {
-            Ok(Value::Object(object)) => Some(object),
-            _ => None,
-        }))
+        Some((
+            *name,
+            match serde_json::from_str::<Value>(text) {
+                Ok(Value::Object(object)) => Some(object),
+                _ => None,
+            },
+        ))
     })
 }
 
@@ -235,14 +250,18 @@ pub async fn read_current_workbook_file<F: FolderHost>(folder: &F) -> std::resul
     let Some(text) = folder.read_text(WORKBOOK_METADATA_FILES[0]).await? else {
         return Ok(None);
     };
-    let version = serde_json::from_str::<Value>(&text).ok().and_then(|data| data.get("formatVersion").and_then(Value::as_f64));
+    let version =
+        serde_json::from_str::<Value>(&text).ok().and_then(|data| data.get("formatVersion").and_then(Value::as_f64));
     Ok((version == Some(WORKBOOK_FORMAT_VERSION as f64)).then_some(text))
 }
 
 /// Bring a workbook folder of the storage to a format version: read its top-level files, migrate them in memory and
 /// write back what changed, the writes first, then the removals. A folder whose workbook file is at the current version
 /// is only read.
-pub async fn migrate_folder<F: FolderHost>(folder: &F, target_version: i64) -> std::result::Result<WorkbookMigrationResult, HostError> {
+pub async fn migrate_folder<F: FolderHost>(
+    folder: &F,
+    target_version: i64,
+) -> std::result::Result<WorkbookMigrationResult, HostError> {
     migrate_folder_with(folder, target_version, |_, _| {}).await
 }
 
@@ -276,7 +295,8 @@ async fn migrate_folder_with<F: FolderHost>(
         }
     }
     let mut memory = MigrationFolder::new(files);
-    let result = migrate_workbook_folder_to(&mut memory, target_version, &WORKBOOK_MIGRATION_STEPS).map_err(|error| HostError::new(error.message))?;
+    let result = migrate_workbook_folder_to(&mut memory, target_version, &WORKBOOK_MIGRATION_STEPS)
+        .map_err(|error| HostError::new(error.message))?;
     for change in memory.changes() {
         match change {
             FolderChange::Write { name, text } => {
@@ -304,7 +324,9 @@ pub fn migrate_workbook_folder_to(
         return Ok(WorkbookMigrationResult::Missing);
     };
     let version = data.as_ref().and_then(|data| data.get("formatVersion")).and_then(Value::as_f64);
-    let Some(version) = version.filter(|v| v.fract() == 0.0 && *v >= OLDEST_WORKBOOK_FORMAT_VERSION as f64).map(|v| v as i64) else {
+    let Some(version) =
+        version.filter(|v| v.fract() == 0.0 && *v >= OLDEST_WORKBOOK_FORMAT_VERSION as f64).map(|v| v as i64)
+    else {
         return Ok(WorkbookMigrationResult::Unsupported);
     };
     let latest = steps.iter().map(|step| step.version).fold(OLDEST_WORKBOOK_FORMAT_VERSION, i64::max);
@@ -352,7 +374,8 @@ fn rename_fields(data: &JsonObject, renames: &[(&str, &str)]) -> Option<JsonObje
     }
     let mut renamed = JsonObject::new();
     for (key, value) in data {
-        let key = renames.iter().find(|(from, _)| from == key).map(|(_, to)| to.to_string()).unwrap_or_else(|| key.clone());
+        let key =
+            renames.iter().find(|(from, _)| from == key).map(|(_, to)| to.to_string()).unwrap_or_else(|| key.clone());
         renamed.insert(key, value.clone());
     }
     Some(renamed)
@@ -398,14 +421,20 @@ fn scripts_in_session_file(folder: &mut MigrationFolder) -> Result<()> {
         return Ok(());
     };
     if !data.get("scripts").is_some_and(Value::is_array) {
-        let database_id = data.get("mainDatabase").and_then(|db| db.get("databaseId")).and_then(Value::as_str).map(str::to_string);
+        let database_id =
+            data.get("mainDatabase").and_then(|db| db.get("databaseId")).and_then(Value::as_str).map(str::to_string);
         let (scripts, files) = parse_index(folder.read("dashql-session-index.json"));
         let scripts: Vec<Value> = match database_id {
-            Some(database_id) => scripts.into_iter().map(|name| json!({ "name": name, "databaseId": database_id })).collect(),
+            Some(database_id) => {
+                scripts.into_iter().map(|name| json!({ "name": name, "databaseId": database_id })).collect()
+            }
             None => Vec::new(),
         };
         data.insert("scripts".into(), Value::Array(scripts));
-        data.insert("attachments".into(), Value::Array(files.into_iter().map(|name| json!({ "name": name })).collect()));
+        data.insert(
+            "attachments".into(),
+            Value::Array(files.into_iter().map(|name| json!({ "name": name })).collect()),
+        );
         write_object(folder, "dashql-session.json", data);
     }
     folder.remove("dashql-session-index.json");
@@ -439,7 +468,8 @@ fn session_connections(folder: &mut MigrationFolder) -> Result<()> {
             Some(Value::Object(connection))
         })
         .collect();
-    let default_connection_id = main_database.and_then(|db| db.get("databaseId")).filter(|id| id.is_string()).cloned().unwrap_or(Value::Null);
+    let default_connection_id =
+        main_database.and_then(|db| db.get("databaseId")).filter(|id| id.is_string()).cloned().unwrap_or(Value::Null);
     let insert_fields = |migrated: &mut JsonObject| {
         migrated.insert("defaultConnectionId".into(), default_connection_id.clone());
         migrated.insert("connections".into(), Value::Array(connections.clone()));
@@ -504,7 +534,8 @@ fn connections_of_scripts(folder: &mut MigrationFolder) -> Result<()> {
     let empty: Vec<Value> = Vec::new();
     let scripts = data.get("scripts").and_then(Value::as_array).unwrap_or(&empty);
     let connections = data.get("connections").and_then(Value::as_array).unwrap_or(&empty);
-    let script_connection_ids: Vec<&str> = scripts.iter().filter_map(|script| script.get("connectionId")?.as_str()).collect();
+    let script_connection_ids: Vec<&str> =
+        scripts.iter().filter_map(|script| script.get("connectionId")?.as_str()).collect();
     let mut by_id: Vec<(&str, &Value)> = Vec::new();
     for connection in connections {
         if let Some(id) = connection.get("connectionId").and_then(Value::as_str) {
@@ -519,7 +550,11 @@ fn connections_of_scripts(folder: &mut MigrationFolder) -> Result<()> {
         .and_then(Value::as_str)
         .filter(|id| lookup(id).is_some())
         .or_else(|| by_id.first().map(|(id, _)| *id));
-    let used: Vec<&str> = if !script_connection_ids.is_empty() { script_connection_ids } else { empty_connection_id.into_iter().collect() };
+    let used: Vec<&str> = if !script_connection_ids.is_empty() {
+        script_connection_ids
+    } else {
+        empty_connection_id.into_iter().collect()
+    };
     let mut unique: Vec<&str> = Vec::new();
     for id in used {
         if !unique.contains(&id) {

@@ -22,7 +22,8 @@ pub struct ResolvedConnection {
 pub trait ConnectionResolver {
     /// The connection of the app for a connection of the workbook, None if it is unknown. `copy` is the copy that the
     /// workbook file holds, a resolver may register an unknown connection from it.
-    fn resolve(&mut self, connection_id: &str, copy: Option<&WorkbookConnection>) -> Result<Option<ResolvedConnection>>;
+    fn resolve(&mut self, connection_id: &str, copy: Option<&WorkbookConnection>)
+        -> Result<Option<ResolvedConnection>>;
     /// The connection that scripts on unknown connections run on, the embedded database
     fn fallback(&mut self) -> Result<ResolvedConnection>;
     /// A script references a connection that couldn't be resolved
@@ -63,14 +64,25 @@ pub fn resolve_workbook_scripts(
     resolver: &mut dyn ConnectionResolver,
 ) -> Result<ResolvedWorkbookScripts> {
     let mut resolved: HashMap<String, Option<ResolvedConnection>> = HashMap::new();
-    let mut resolve_id = |resolver: &mut dyn ConnectionResolver, connection_id: &str| resolve_once(&mut resolved, workbook, resolver, connection_id);
+    let mut resolve_id = |resolver: &mut dyn ConnectionResolver, connection_id: &str| {
+        resolve_once(&mut resolved, workbook, resolver, connection_id)
+    };
     let first_connection_id = workbook.connections.first().map(|copy| copy.connection_id.clone());
-    let listed = reconcile_workbook_scripts(&sanitize_workbook_files(workbook).scripts, file_names, first_connection_id.as_deref().unwrap_or("")).scripts;
+    let listed = reconcile_workbook_scripts(
+        &sanitize_workbook_files(workbook).scripts,
+        file_names,
+        first_connection_id.as_deref().unwrap_or(""),
+    )
+    .scripts;
     let mut scripts = Vec::with_capacity(listed.len());
     for entry in listed {
         let script = match resolve_id(resolver, &entry.connection_id)? {
             Some(connection) => ResolvedWorkbookScript { name: entry.name, connection, unresolved_connection_id: None },
-            None => ResolvedWorkbookScript { name: entry.name, connection: resolver.fallback()?, unresolved_connection_id: Some(entry.connection_id) },
+            None => ResolvedWorkbookScript {
+                name: entry.name,
+                connection: resolver.fallback()?,
+                unresolved_connection_id: Some(entry.connection_id),
+            },
         };
         scripts.push(script);
     }
@@ -88,7 +100,12 @@ pub fn resolve_workbook_scripts(
     };
     let list: Vec<WorkbookScript> = scripts
         .iter()
-        .map(|script| WorkbookScript::new(script.name.clone(), script.unresolved_connection_id.clone().unwrap_or_else(|| script.connection.connection_id.clone())))
+        .map(|script| {
+            WorkbookScript::new(
+                script.name.clone(),
+                script.unresolved_connection_id.clone().unwrap_or_else(|| script.connection.connection_id.clone()),
+            )
+        })
         .collect();
     let used: Vec<WorkbookConnection> = pending_connection
         .iter()
@@ -120,6 +137,7 @@ fn resolve_once(
 
 /// Does a resolved workbook file differ from the stored one in its scripts or connections?
 pub fn workbook_scripts_resolution_changed(stored: &WorkbookData, resolved: &WorkbookData) -> bool {
-    let ids = |workbook: &WorkbookData| workbook.connections.iter().map(|c| c.connection_id.clone()).collect::<Vec<_>>();
+    let ids =
+        |workbook: &WorkbookData| workbook.connections.iter().map(|c| c.connection_id.clone()).collect::<Vec<_>>();
     ids(stored) != ids(resolved) || stored.scripts != resolved.scripts
 }

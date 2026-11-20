@@ -25,14 +25,14 @@ use serde_json::Value;
 
 use super::arrow::{rows_to_record_batch, trino_schema, NoTimeZones, TimeZoneOffsets};
 use super::error::{TrinoError, TrinoErrorKind};
-use crate::http::FetchOutcome;
 use super::protocol::{
     read_query_info, read_result_page, read_statement_response, ResultPageOutcome, TrinoQueryResult, TrinoRequest,
     TrinoRetryPolicy,
 };
-use crate::time::Millis;
+use crate::http::FetchOutcome;
 use crate::query::progress::EngineProgressPayload;
 use crate::query::{QueryExecutionMetrics, QueryExecutionProgress};
+use crate::time::Millis;
 
 /// Fetch the QueryInfo again after this long while a stage whose tasks are done has no operator summaries yet
 pub const QUERY_INFO_RETRY_MS: u64 = 1000;
@@ -211,7 +211,8 @@ fn is_stage_done(state: Option<&str>) -> bool {
 /// The stages of the statement stats whose tasks are done
 pub fn count_done_stages(stage: &Value) -> usize {
     let own = usize::from(is_stage_done(stage.get("state").and_then(Value::as_str)));
-    let children = stage.get("subStages").and_then(Value::as_array).map_or(0, |stages| stages.iter().map(count_done_stages).sum());
+    let children =
+        stage.get("subStages").and_then(Value::as_array).map_or(0, |stages| stages.iter().map(count_done_stages).sum());
     own + children
 }
 
@@ -221,7 +222,8 @@ pub fn lacks_operator_summaries(info: &Value) -> bool {
     let stages = info.pointer("/stages/stages").and_then(Value::as_array);
     stages.is_some_and(|stages| {
         stages.iter().any(|stage| {
-            let summaries = stage.pointer("/stageStats/operatorSummaries").and_then(Value::as_array).map_or(0, Vec::len);
+            let summaries =
+                stage.pointer("/stageStats/operatorSummaries").and_then(Value::as_array).map_or(0, Vec::len);
             is_stage_done(stage.get("state").and_then(Value::as_str)) && summaries == 0
         })
     })
@@ -238,7 +240,11 @@ pub fn is_final_query_info(info: &Value) -> bool {
 }
 
 /// The execution progress of the statistics of a response that arrived at a time
-pub fn derive_progress(stats: Option<&Value>, metrics: &QueryExecutionMetrics, received_at: Millis) -> QueryExecutionProgress {
+pub fn derive_progress(
+    stats: Option<&Value>,
+    metrics: &QueryExecutionMetrics,
+    received_at: Millis,
+) -> QueryExecutionProgress {
     let number = |key: &str| stats.and_then(|stats| stats.get(key)).and_then(Value::as_f64);
     QueryExecutionProgress {
         is_queued: stats.and_then(|stats| stats.get("queued")).and_then(Value::as_bool),
@@ -248,7 +254,8 @@ pub fn derive_progress(stats: Option<&Value>, metrics: &QueryExecutionMetrics, r
         execution_time_ms: number("elapsedTimeMillis").map(|ms| ms as i64),
         metrics: metrics.clone(),
         phase: stats.and_then(|stats| stats.get("state")).and_then(Value::as_str).map(str::to_string),
-        engine_progress: stats.map(|stats| EngineProgressPayload::TrinoStatementStats { stats: stats.clone(), received_at }),
+        engine_progress: stats
+            .map(|stats| EngineProgressPayload::TrinoStatementStats { stats: stats.clone(), received_at }),
         profile_progress: None,
     }
 }
@@ -449,7 +456,10 @@ impl TrinoQuery {
                 if let Some(status) = status {
                     warning.data.insert("status".into(), status.to_string());
                 }
-                out.push(StreamOutput::Warning { message: "Retrying a request of query results".into(), error: warning });
+                out.push(StreamOutput::Warning {
+                    message: "Retrying a request of query results".into(),
+                    error: warning,
+                });
                 page.attempt += 1;
                 self.page = Some(page);
                 self.start_timer(Timer::PageRetry, delay_ms, out);
@@ -540,7 +550,8 @@ impl TrinoQuery {
         if !self.profile.detail || self.phase == Phase::Done || self.query_id.is_empty() {
             return;
         }
-        let Some(root_stage) = self.latest_stats.as_ref().and_then(|stats| stats.get("rootStage")).filter(|stage| !stage.is_null())
+        let Some(root_stage) =
+            self.latest_stats.as_ref().and_then(|stats| stats.get("rootStage")).filter(|stage| !stage.is_null())
         else {
             return;
         };
@@ -591,7 +602,8 @@ impl TrinoQuery {
         match info {
             Ok(info) => {
                 let mut progress = derive_progress(self.latest_stats.as_ref(), &self.metrics, self.latest_received_at);
-                progress.engine_progress = Some(EngineProgressPayload::TrinoQueryInfo { info: info.clone(), received_at: now });
+                progress.engine_progress =
+                    Some(EngineProgressPayload::TrinoQueryInfo { info: info.clone(), received_at: now });
                 out.push(StreamOutput::Progress(progress));
                 self.retry_query_info_if_incomplete(&info, out);
             }
@@ -613,7 +625,8 @@ impl TrinoQuery {
         let info = info.ok();
         if let Some(info) = &info {
             let mut progress = derive_progress(self.latest_stats.as_ref(), &self.metrics, self.latest_received_at);
-            progress.engine_progress = Some(EngineProgressPayload::TrinoQueryInfoStats { info: info.clone(), received_at: now });
+            progress.engine_progress =
+                Some(EngineProgressPayload::TrinoQueryInfoStats { info: info.clone(), received_at: now });
             out.push(StreamOutput::Progress(progress));
         }
         if let Some(final_fetch) = &mut self.final_fetch {

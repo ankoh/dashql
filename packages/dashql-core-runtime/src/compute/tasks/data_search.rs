@@ -5,8 +5,8 @@ use dashql_core::error::Result;
 use dashql_core::utils::quote_string_literal;
 
 use super::result_table::ResultTable;
-use crate::catalog_loader::sql::quote_identifier;
 use super::{ascending, data_frame_table_name, read_data_frame_sql, TaskQuery};
+use crate::catalog_loader::sql::quote_identifier;
 use crate::compute::types::{ColumnGroup, ComputationVersion, DataFrameId, DataSearchColumn, DataSearchTask};
 
 /// The row number of a matching row in the result of a data search

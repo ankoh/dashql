@@ -5,8 +5,8 @@ use crate::{symbol_kind, SymbolKind};
 #[rustfmt::skip]
 mod table;
 
-pub use table::{KEYWORDS, MAX_KEYWORD_LENGTH};
 use table::KEYWORD_TABLE;
+pub use table::{KEYWORDS, MAX_KEYWORD_LENGTH};
 
 /// The category of a keyword
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

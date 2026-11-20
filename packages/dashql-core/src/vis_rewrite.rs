@@ -48,7 +48,9 @@ impl VisRenderer {
                 Ok(_) => Err(Error::invalid_argument("the Vega-Lite spec must be a JSON object")),
                 Err(e) => Err(Error::invalid_argument(format!("invalid Vega-Lite JSON: {e}"))),
             },
-            "markdown" if body.trim().is_empty() => Err(Error::invalid_argument("a Markdown template must not be empty")),
+            "markdown" if body.trim().is_empty() => {
+                Err(Error::invalid_argument("a Markdown template must not be empty"))
+            }
             "markdown" => Ok(VisRenderer::Markdown(body.to_string())),
             "table" => Ok(VisRenderer::Table),
             _ => Err(Error::invalid_argument(format!("unknown @vis renderer \"{kind}\""))),
@@ -212,13 +214,23 @@ pub(crate) fn rewrite_vis_renderer_tag(
 }
 
 /// Set or remove the renderer of a query
-pub fn rewrite_vis_renderer(text: &str, parsed: &ParsedScript, statement_id: usize, renderer: Option<&VisRenderer>) -> Result<String> {
+pub fn rewrite_vis_renderer(
+    text: &str,
+    parsed: &ParsedScript,
+    statement_id: usize,
+    renderer: Option<&VisRenderer>,
+) -> Result<String> {
     Ok(rewrite_vis_renderer_tag(text, parsed, statement_id, renderer)?.0)
 }
 
 /// Set or remove the board placement of a statement. Any statement is placed, a statement without a renderer is a
 /// collapsed card on the board.
-pub fn rewrite_vis_board(text: &str, parsed: &ParsedScript, statement_id: usize, board: Option<&VisBoard>) -> Result<String> {
+pub fn rewrite_vis_board(
+    text: &str,
+    parsed: &ParsedScript,
+    statement_id: usize,
+    board: Option<&VisBoard>,
+) -> Result<String> {
     let (text, _) = crate::annotation::rewrite(text, parsed, statement_id, |annotation| {
         let tags = &mut annotation.tags;
         Ok(match (board, tags.iter().position(is_board)) {

@@ -41,10 +41,22 @@ fn statements() -> Vec<(&'static str, Box<dyn Fn(usize) -> String>)> {
         ("prefix minus", Box::new(|n| format!("select {}1", "- ".repeat(n)))),
         ("not", Box::new(|n| format!("select {}true", "not ".repeat(n)))),
         ("case", Box::new(|n| format!("select {}", nested("case when true then ", "1", " end", n)))),
-        ("arrays of a client function", Box::new(|n| format!("call svc.item_find(ids => {})", nested("[", "1", "]", n)))),
-        ("maps of a client function", Box::new(|n| format!("call svc.item_find(labels => {})", nested("(a = ", "'x'", ")", n)))),
-        ("arrays of a raw client function", Box::new(|n| format!("call svc.item_raw(x => {})", nested("[", "1", "]", n)))),
-        ("objects of a raw client function", Box::new(|n| format!("call svc.item_raw(x => {})", nested("(a = ", "1", ")", n)))),
+        (
+            "arrays of a client function",
+            Box::new(|n| format!("call svc.item_find(ids => {})", nested("[", "1", "]", n))),
+        ),
+        (
+            "maps of a client function",
+            Box::new(|n| format!("call svc.item_find(labels => {})", nested("(a = ", "'x'", ")", n))),
+        ),
+        (
+            "arrays of a raw client function",
+            Box::new(|n| format!("call svc.item_raw(x => {})", nested("[", "1", "]", n))),
+        ),
+        (
+            "objects of a raw client function",
+            Box::new(|n| format!("call svc.item_raw(x => {})", nested("(a = ", "1", ")", n))),
+        ),
     ]
 }
 
@@ -111,9 +123,17 @@ fn a_value_of_a_client_function_nests_at_most_64_levels() {
     // 63 arrays around a number are 64 levels
     let (allowed, description) = errors(MAX_VALUE_DEPTH - 1);
     assert!(allowed.is_empty(), "{allowed:?}");
-    assert!(description.to_string().contains(&format!("{}1{}", "[".repeat(MAX_VALUE_DEPTH - 1), "]".repeat(MAX_VALUE_DEPTH - 1))));
+    assert!(description.to_string().contains(&format!(
+        "{}1{}",
+        "[".repeat(MAX_VALUE_DEPTH - 1),
+        "]".repeat(MAX_VALUE_DEPTH - 1)
+    )));
     let (deeper, description) = errors(MAX_VALUE_DEPTH);
     assert_eq!(deeper, [format!("a value can't nest deeper than {MAX_VALUE_DEPTH} levels")]);
     // The description leaves a null where the value nests too deep
-    assert!(description.to_string().contains(&format!("{}null{}", "[".repeat(MAX_VALUE_DEPTH), "]".repeat(MAX_VALUE_DEPTH))));
+    assert!(description.to_string().contains(&format!(
+        "{}null{}",
+        "[".repeat(MAX_VALUE_DEPTH),
+        "]".repeat(MAX_VALUE_DEPTH)
+    )));
 }

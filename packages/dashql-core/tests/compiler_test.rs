@@ -1,12 +1,15 @@
 //! Tests of the script compiler: the terminal statement of a script, its SQL and the compiled
 //! visualization of a terminal VISUALIZE statement, and the output of statements.
 
-use dashql_buffers::execution::{ScriptCompilationErrorCode as ErrorCode, ScriptCompilationResultT, ScriptCompilationStatementKind as StatementKind};
+use dashql_buffers::execution::{
+    ScriptCompilationErrorCode as ErrorCode, ScriptCompilationResultT, ScriptCompilationStatementKind as StatementKind,
+};
 use dashql_buffers::formatting::{FormattingConfigT, FormattingDialect, FormattingMode};
-use dashql_core::catalog::{Catalog, PROTO_NULL_U32};
 use dashql_core::analyzer::{MarkdownSpec, VisualizationSpec};
+use dashql_core::catalog::{Catalog, PROTO_NULL_U32};
 use dashql_core::compiler::{
-    compile, compile_visualization, produces_output, read_executable_text, read_executable_text_with, CompilationOptions,
+    compile, compile_visualization, produces_output, read_executable_text, read_executable_text_with,
+    CompilationOptions,
 };
 use dashql_core::script::Script;
 use dashql_parser::span::TextSpan;
@@ -107,7 +110,10 @@ fn outputs_before_the_terminal_statement_are_no_error() {
 #[test]
 fn queries_and_returning_statements_produce_output() {
     assert_eq!(outputs("select 1; explain select 1"), vec![true, true]);
-    assert_eq!(outputs("create table t (a int); insert into t values (1) returning a; delete from t where a = 1 returning a"), vec![false, true, true]);
+    assert_eq!(
+        outputs("create table t (a int); insert into t values (1) returning a; delete from t where a = 1 returning a"),
+        vec![false, true, true]
+    );
     // Without RETURNING they are commands
     assert_eq!(outputs("create table t (a int); insert into t values (1); delete from t"), vec![false; 3]);
     // The table of a SELECT INTO can be read by a later statement
@@ -151,7 +157,8 @@ fn vis_tag_table() {
 
 #[test]
 fn vis_tag_vegalite() {
-    let text = "/* @vis vegalite {\"mark\": \"bar\", \"encoding\": {\"x\": {\"field\": \"a\"}}} */\nselect 1 as a, 2 as b";
+    let text =
+        "/* @vis vegalite {\"mark\": \"bar\", \"encoding\": {\"x\": {\"field\": \"a\"}}} */\nselect 1 as a, 2 as b";
     let result = compile_text(text);
     assert!(result.errors.as_ref().unwrap().is_empty(), "{:?}", result.errors);
     let visualization = result.visualization.as_ref().unwrap();
@@ -174,7 +181,9 @@ fn vis_tag_markdown() {
 
 #[test]
 fn invalid_vis_tags_run_the_query() {
-    for text in ["/* @vis vegalite {\"mark\": */ select 1", "/* @board width=6 */ select 1", "/* @vis chart */ select 1"] {
+    for text in
+        ["/* @vis vegalite {\"mark\": */ select 1", "/* @board width=6 */ select 1", "/* @vis chart */ select 1"]
+    {
         let result = compile_text(text);
         assert!(result.errors.as_ref().unwrap().is_empty(), "{text}: {:?}", result.errors);
         assert_eq!(result.kind, StatementKind::QUERY, "{text}");
@@ -250,13 +259,21 @@ fn visualizations_need_a_known_renderer() {
     script.replace_text("select 1 as a");
     script.analyze(&catalog, true).unwrap();
     let analyzed = script.analyzed.clone().unwrap();
-    let spec = |renderer: Option<&str>| VisualizationSpec { renderer: renderer.map(str::to_string), ..Default::default() };
+    let spec =
+        |renderer: Option<&str>| VisualizationSpec { renderer: renderer.map(str::to_string), ..Default::default() };
 
     assert_eq!(compile_visualization(&spec(None), &analyzed).unwrap_err(), "could not resolve visualization renderer");
-    assert_eq!(compile_visualization(&spec(Some("chart")), &analyzed).unwrap_err(), "unsupported visualization renderer: chart");
+    assert_eq!(
+        compile_visualization(&spec(Some("chart")), &analyzed).unwrap_err(),
+        "unsupported visualization renderer: chart"
+    );
     // A Markdown visualization needs its row template
-    assert_eq!(compile_visualization(&spec(Some("markdown")), &analyzed).unwrap_err(), "could not compile Markdown visualization spec");
-    let markdown = VisualizationSpec { markdown: Some(MarkdownSpec { row_template: "*{{a}}*".into() }), ..spec(Some("Markdown")) };
+    assert_eq!(
+        compile_visualization(&spec(Some("markdown")), &analyzed).unwrap_err(),
+        "could not compile Markdown visualization spec"
+    );
+    let markdown =
+        VisualizationSpec { markdown: Some(MarkdownSpec { row_template: "*{{a}}*".into() }), ..spec(Some("Markdown")) };
     let compiled = compile_visualization(&markdown, &analyzed).unwrap();
     // Renderer names are case insensitive
     assert_eq!(compiled.renderer.as_deref(), Some("markdown"));

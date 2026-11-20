@@ -14,16 +14,19 @@ pub(super) fn visit(state: &mut AnalysisState, morsel: Range<usize>) -> Result<(
         if node.node_type() != NodeType::OBJECT_SQL_FUNCTION_EXPRESSION {
             continue;
         }
-        let [star, all, distinct, variadic, over, within_group, name, args] = attrs!(state.children(node), [
-            K::SQL_FUNCTION_ARGUMENTS_STAR,
-            K::SQL_FUNCTION_ALL,
-            K::SQL_FUNCTION_DISTINCT,
-            K::SQL_FUNCTION_VARIADIC,
-            K::SQL_FUNCTION_OVER,
-            K::SQL_FUNCTION_WITHIN_GROUP,
-            K::SQL_FUNCTION_NAME,
-            K::SQL_FUNCTION_ARGUMENTS,
-        ]);
+        let [star, all, distinct, variadic, over, within_group, name, args] = attrs!(
+            state.children(node),
+            [
+                K::SQL_FUNCTION_ARGUMENTS_STAR,
+                K::SQL_FUNCTION_ALL,
+                K::SQL_FUNCTION_DISTINCT,
+                K::SQL_FUNCTION_VARIADIC,
+                K::SQL_FUNCTION_OVER,
+                K::SQL_FUNCTION_WITHIN_GROUP,
+                K::SQL_FUNCTION_NAME,
+                K::SQL_FUNCTION_ARGUMENTS,
+            ]
+        );
         let mut modifiers = 0u8;
         for (attr, modifier) in [
             (star, FunctionCallModifier::ARGS_STAR),
@@ -58,10 +61,7 @@ pub(super) fn visit(state: &mut AnalysisState, morsel: Range<usize>) -> Result<(
             let count = args.children_count();
             for i in 0..count {
                 let arg_node_id = args.children_begin_or_value() + i;
-                let mut arg = FunctionArgument {
-                    ast_node_id: arg_node_id,
-                    ..Default::default()
-                };
+                let mut arg = FunctionArgument { ast_node_id: arg_node_id, ..Default::default() };
                 let Some(arg_node) = state.node(arg_node_id) else {
                     return Err(Error::invalid_argument("function argument outside of the AST"));
                 };
@@ -70,7 +70,8 @@ pub(super) fn visit(state: &mut AnalysisState, morsel: Range<usize>) -> Result<(
                     state.out.function_arguments.push(arg);
                     continue;
                 }
-                let [value, name] = attrs!(state.children(arg_node), [K::SQL_FUNCTION_ARG_VALUE, K::SQL_FUNCTION_ARG_NAME]);
+                let [value, name] =
+                    attrs!(state.children(arg_node), [K::SQL_FUNCTION_ARG_VALUE, K::SQL_FUNCTION_ARG_NAME]);
                 match value {
                     // Error recovery can leave an incomplete function argument
                     None => arg.value_ast_node_id = arg_node_id,
@@ -85,11 +86,7 @@ pub(super) fn visit(state: &mut AnalysisState, morsel: Range<usize>) -> Result<(
             }
             arguments = FunctionArguments::Generic { begin, count };
         }
-        let call = FunctionCall {
-            function_name,
-            function_call_modifiers: modifiers,
-            arguments,
-        };
+        let call = FunctionCall { function_name, function_call_modifiers: modifiers, arguments };
         let span = *node.symbol_span();
         let expr = state.add_expression(node_id as u32, span, ExpressionInner::FunctionCall(call));
         state.set_expression_of(node_id as u32, expr);

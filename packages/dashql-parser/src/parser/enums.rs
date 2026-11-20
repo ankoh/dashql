@@ -41,7 +41,9 @@ pub fn enum_text(node: &Node) -> &'static str {
         NodeType::ENUM_SQL_WINDOW_BOUND_MODE => by_index!(WindowBoundMode),
         NodeType::ENUM_SQL_WINDOW_EXCLUSION_MODE => by_index!(WindowExclusionMode),
         NodeType::ENUM_SQL_WINDOW_RANGE_MODE => by_index!(WindowRangeMode),
-        NodeType::ENUM_SQL_JOIN_TYPE => JoinType(v as u8).variant_name().filter(|_| v <= u8::MAX as usize).unwrap_or("?"),
+        NodeType::ENUM_SQL_JOIN_TYPE => {
+            JoinType(v as u8).variant_name().filter(|_| v <= u8::MAX as usize).unwrap_or("?")
+        }
         _ => "?",
     }
 }

@@ -118,7 +118,13 @@ pub struct HostError {
 
 impl HostError {
     pub fn new(message: impl Into<String>) -> HostError {
-        HostError { message: message.into(), external_script_change: None, cancelled: false, unavailable: false, value: None }
+        HostError {
+            message: message.into(),
+            external_script_change: None,
+            cancelled: false,
+            unavailable: false,
+            value: None,
+        }
     }
 
     /// A call that was cancelled, e.g. a request whose token was cancelled

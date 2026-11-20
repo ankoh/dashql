@@ -20,11 +20,12 @@ pub(super) fn visit(state: &mut AnalysisState, morsel: Range<usize>) {
         }
         // Statement roots are their own parents, the parent is always in the AST
         let Some(parent) = state.node(node.parent()) else { continue };
-        let kind = if node.attribute_key() == K::SQL_TABLEREF_TABLE && parent.node_type() == NodeType::OBJECT_SQL_TABLEREF {
-            ParameterKind::Table
-        } else {
-            ParameterKind::Scalar
-        };
+        let kind =
+            if node.attribute_key() == K::SQL_TABLEREF_TABLE && parent.node_type() == NodeType::OBJECT_SQL_TABLEREF {
+                ParameterKind::Table
+            } else {
+                ParameterKind::Scalar
+            };
         let [name] = attrs!(state.children(node), [K::SQL_PARAMETER_NAME]);
         let name = name.and_then(|n| state.read_name_path(n).last().map(|&id| state.name(id).text)).map(unquote);
         let cast_type = match kind {

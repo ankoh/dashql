@@ -107,7 +107,9 @@ fn append_batch(table: &mut Table, batch: &RecordBatch) {
     let mut text = String::new();
     for row in 0..batch.num_rows() {
         let mut cells = Vec::with_capacity(columns.len());
-        for (((column, nulls), formatter), alignment) in columns.iter().zip(&nulls).zip(&formatters).zip(&table.alignments) {
+        for (((column, nulls), formatter), alignment) in
+            columns.iter().zip(&nulls).zip(&formatters).zip(&table.alignments)
+        {
             text.clear();
             if !nulls.as_ref().is_some_and(|nulls| nulls.is_null(row)) {
                 let _ = match formatter {
@@ -446,7 +448,11 @@ fn render_table(table: &Table, terminal_columns: usize) -> Vec<u8> {
         .zip(&widths)
         .enumerate()
         .map(|(column, (header, &width))| {
-            let text = if hides_columns && column + 1 == widths.len() { mark_truncated(header, width) } else { header.clone() };
+            let text = if hides_columns && column + 1 == widths.len() {
+                mark_truncated(header, width)
+            } else {
+                header.clone()
+            };
             Cell { text, alignment: Alignment::Left }
         })
         .collect();

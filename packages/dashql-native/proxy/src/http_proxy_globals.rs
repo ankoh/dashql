@@ -19,14 +19,11 @@ pub async fn start_http_server_stream(mut req: Request<Vec<u8>>) -> Response<Vec
     let body = std::mem::take(req.body_mut());
     match HTTP_PROXY.start_server_stream(req.headers_mut(), body).await {
         Ok(stream_id) => {
-            let response = Response::builder()
-                .status(200)
-                .header(HEADER_NAME_STREAM_ID, stream_id)
-                .body(Vec::new())
-                .unwrap();
+            let response =
+                Response::builder().status(200).header(HEADER_NAME_STREAM_ID, stream_id).body(Vec::new()).unwrap();
             response
-        },
-        Err(e) => Response::from(&e)
+        }
+        Err(e) => Response::from(&e),
     }
 }
 
@@ -57,22 +54,15 @@ pub async fn read_http_server_stream(stream_id: usize, req: Request<Vec<u8>>) ->
                     headers.append(key, value.clone());
                 }
             }
-            response
-                .body(buffer)
-                .unwrap()
-        },
-        Err(e) => Response::from(&e)
+            response.body(buffer).unwrap()
+        }
+        Err(e) => Response::from(&e),
     }
 }
 
 pub async fn delete_http_server_stream(stream_id: usize, _req: Request<Vec<u8>>) -> Response<Vec<u8>> {
     match HTTP_PROXY.destroy_server_stream(stream_id).await {
-        Ok(()) => {
-            Response::builder()
-                .status(200)
-                .body(Vec::new())
-                .unwrap()
-        }
-        Err(e) => Response::from(&e)
+        Ok(()) => Response::builder().status(200).body(Vec::new()).unwrap(),
+        Err(e) => Response::from(&e),
     }
 }

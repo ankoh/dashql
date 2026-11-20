@@ -13,33 +13,18 @@ pub struct RemoteAccess {
 
 impl RemoteAccess {
     pub fn from_env() -> Result<RemoteAccess> {
-        let r2_endpoint = env::var("DASHQL_GET_R2_ENDPOINT").map_err(|e| {
-            anyhow::anyhow!(
-                "failed to access environment variable DASHQL_GET_R2_ENDPOINT: {}",
-                e
-            )
-        })?;
-        let r2_access_key_id = env::var("DASHQL_GET_R2_ACCESS_KEY_ID").map_err(|e| {
-            anyhow::anyhow!(
-                "failed to access environment variable DASHQL_GET_R2_ACCESS_KEY_ID: {}",
-                e
-            )
-        })?;
+        let r2_endpoint = env::var("DASHQL_GET_R2_ENDPOINT")
+            .map_err(|e| anyhow::anyhow!("failed to access environment variable DASHQL_GET_R2_ENDPOINT: {}", e))?;
+        let r2_access_key_id = env::var("DASHQL_GET_R2_ACCESS_KEY_ID")
+            .map_err(|e| anyhow::anyhow!("failed to access environment variable DASHQL_GET_R2_ACCESS_KEY_ID: {}", e))?;
         let r2_secret_access_key = env::var("DASHQL_GET_R2_SECRET_ACCESS_KEY").map_err(|e| {
-            anyhow::anyhow!(
-                "failed to access environment variable DASHQL_GET_R2_SECRET_ACCESS_KEY: {}",
-                e
-            )
+            anyhow::anyhow!("failed to access environment variable DASHQL_GET_R2_SECRET_ACCESS_KEY: {}", e)
         })?;
         // Interestingly, doing the is_empty check results in unreachable warnings
         assert!(!r2_endpoint.is_empty());
         assert!(!r2_access_key_id.is_empty());
         assert!(!r2_secret_access_key.is_empty());
-        Ok(RemoteAccess {
-            r2_endpoint,
-            r2_access_key_id,
-            r2_secret_access_key,
-        })
+        Ok(RemoteAccess { r2_endpoint, r2_access_key_id, r2_secret_access_key })
     }
 
     /// Build the client of the release bucket

@@ -223,7 +223,8 @@ impl<'a> ScriptDiff<'a> {
 
     /// Estimate the similarity of two statements (O(1) for unchanged statements)
     fn estimate_similarity(&self, source: &Statement, target: &Statement) -> SimilarityEstimate {
-        let (Some(s), Some(t)) = (self.source.nodes.get(source.root as usize), self.target.nodes.get(target.root as usize))
+        let (Some(s), Some(t)) =
+            (self.source.nodes.get(source.root as usize), self.target.nodes.get(target.root as usize))
         else {
             return SimilarityEstimate::NotEqual;
         };
@@ -306,7 +307,9 @@ impl<'a> ScriptDiff<'a> {
             }
             entry.visited = true;
             // A pair outside of the AST doesn't match
-            let (Some(&s), Some(&t)) = (self.source.nodes.get(entry.source_node), self.target.nodes.get(entry.target_node)) else {
+            let (Some(&s), Some(&t)) =
+                (self.source.nodes.get(entry.source_node), self.target.nodes.get(entry.target_node))
+            else {
                 continue;
             };
             let mut matched = true;
@@ -714,7 +717,8 @@ impl<'a> ScriptDiff<'a> {
                 out.target_statement = op.target_statement.unwrap_or(u32::MAX);
                 out.source_span = op.source_statement.map(|_| span(&op.source_span));
                 out.target_span = op.target_statement.map(|_| span(&op.target_span));
-                out.target_changes = (!op.target_changes.is_empty()).then(|| op.target_changes.iter().map(span).collect());
+                out.target_changes =
+                    (!op.target_changes.is_empty()).then(|| op.target_changes.iter().map(span).collect());
                 out
             })
             .collect();

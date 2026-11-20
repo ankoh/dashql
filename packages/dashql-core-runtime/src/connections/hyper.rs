@@ -1,6 +1,8 @@
 //! The setup of a Hyper connection: the channel to the embedded Hyper or to a Hyper server.
 
-use super::details::{replace_channel, ConnectionChannel, ConnectionDetails, ConnectorDetails, DetailedError, SetupTimings, Timestamp};
+use super::details::{
+    replace_channel, ConnectionChannel, ConnectionDetails, ConnectorDetails, DetailedError, SetupTimings, Timestamp,
+};
 use super::params::{string_field, JsonObject};
 use super::{ConnectionEffect, ConnectionHealth, ConnectionState, ConnectionStatus};
 
@@ -19,7 +21,12 @@ pub enum HyperAction {
 }
 
 /// Apply an action of the setup to a Hyper connection
-pub(super) fn reduce(state: &mut ConnectionState, action: HyperAction, now: Timestamp, effects: &mut Vec<ConnectionEffect>) {
+pub(super) fn reduce(
+    state: &mut ConnectionState,
+    action: HyperAction,
+    now: Timestamp,
+    effects: &mut Vec<ConnectionEffect>,
+) {
     let details = &mut state.details;
     match action {
         HyperAction::ChannelSetupStarted { params } => {

@@ -15,20 +15,23 @@ use std::future::Future;
 use std::rc::{Rc, Weak};
 
 use dashql_core_runtime::connection_setup::{
-    authenticate_salesforce, check_health, setup_hyper, setup_salesforce, setup_trino, HyperChannelKind, HyperChannelRequest, LoginStep,
-    OAuthCallback, OAuthEvents, OAuthHost, ProbeResult, SetupFailure, SetupHost, LOG_TARGET,
+    authenticate_salesforce, check_health, setup_hyper, setup_salesforce, setup_trino, HyperChannelKind,
+    HyperChannelRequest, LoginStep, OAuthCallback, OAuthEvents, OAuthHost, ProbeResult, SetupFailure, SetupHost,
+    LOG_TARGET,
 };
 use dashql_core_runtime::connections::open_setup::OpenSetup;
 use dashql_core_runtime::connections::{
-    ChannelId, ConnectionAction, ConnectionHealth, ConnectorType, DetailedError, HyperAction, JsonObject, OAuthPkceChallenge, SalesforceAction,
-    TrinoAction,
+    ChannelId, ConnectionAction, ConnectionHealth, ConnectorType, DetailedError, HyperAction, JsonObject,
+    OAuthPkceChallenge, SalesforceAction, TrinoAction,
 };
 use dashql_core_runtime::executor::FailureKind;
-use dashql_core_runtime::hyper::embedded::embedded_session_options;
 use dashql_core_runtime::host::{Host, HostError, LogLevel, OnHost};
 use dashql_core_runtime::http::{CancellationToken, HttpHost, HttpRequest, HttpResponse};
+use dashql_core_runtime::hyper::embedded::embedded_session_options;
 use dashql_core_runtime::query::QueryMetadata;
-use dashql_core_runtime::salesforce::{OAuthFlowEvent, OAuthFlowInfo, OAuthRedirectData, SalesforceOAuthConfig, SalesforceTokens};
+use dashql_core_runtime::salesforce::{
+    OAuthFlowEvent, OAuthFlowInfo, OAuthRedirectData, SalesforceOAuthConfig, SalesforceTokens,
+};
 use js_sys::Function;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -38,8 +41,8 @@ use wasm_bindgen::JsCast;
 
 use super::changes::Slice;
 use super::connections::Connections;
-use crate::runtime::connections::view::JsonParams;
 use crate::host::{field, host_value, JsPlatform};
+use crate::runtime::connections::view::JsonParams;
 use crate::views::JsonValue;
 
 /// How a setup runs
@@ -174,7 +177,9 @@ impl RuntimeSetupHost {
             ConnectionAction::Trino(TrinoAction::ChannelSetupStarted { .. }) => {
                 ConnectionAction::Trino(TrinoAction::ChannelSetupStarted { params: params.clone() })
             }
-            ConnectionAction::Trino(TrinoAction::OAuthStarted { .. }) => ConnectionAction::Trino(TrinoAction::OAuthStarted { params: params.clone() }),
+            ConnectionAction::Trino(TrinoAction::OAuthStarted { .. }) => {
+                ConnectionAction::Trino(TrinoAction::OAuthStarted { params: params.clone() })
+            }
             ConnectionAction::Salesforce(SalesforceAction::SetupStarted { .. }) => {
                 ConnectionAction::Salesforce(SalesforceAction::SetupStarted { params: params.clone() })
             }
@@ -213,7 +218,11 @@ impl OnHost for RuntimeSetupHost {
 }
 
 impl HttpHost for RuntimeSetupHost {
-    fn fetch(&self, request: HttpRequest, cancellation: &CancellationToken) -> impl Future<Output = Result<HttpResponse, HostError>> + 'static {
+    fn fetch(
+        &self,
+        request: HttpRequest,
+        cancellation: &CancellationToken,
+    ) -> impl Future<Output = Result<HttpResponse, HostError>> + 'static {
         self.platform.send(request, cancellation, false)
     }
 }
@@ -223,7 +232,8 @@ impl OAuthHost for RuntimeSetupHost {
         let pkce = self.platform.oauth_pkce();
         async move {
             let value = pkce.await?;
-            let (Some(challenge), Some(verifier)) = (string_field(&value, "value"), string_field(&value, "verifier")) else {
+            let (Some(challenge), Some(verifier)) = (string_field(&value, "value"), string_field(&value, "verifier"))
+            else {
                 return Err(HostError::new("the platform generated no PKCE challenge"));
             };
             Ok(OAuthPkceChallenge { value: challenge, verifier })
@@ -280,7 +290,8 @@ impl OAuthHost for RuntimeSetupHost {
         async move {
             let value = flow.await;
             drop(callback);
-            serde_json::from_value(JsonValue::of(&value?).0).map_err(|e| HostError::new(format!("invalid OAuth callback: {e}")))
+            serde_json::from_value(JsonValue::of(&value?).0)
+                .map_err(|e| HostError::new(format!("invalid OAuth callback: {e}")))
         }
     }
 }
@@ -309,14 +320,21 @@ impl SetupHost for RuntimeSetupHost {
         let session = match channel.kind {
             HyperChannelKind::Embedded => embedded_session_options(Some(&channel.params))
                 .map(|options| {
-                    let attached: Vec<Value> =
-                        options.attached_databases.iter().map(|database| json!({ "path": database.path, "alias": database.alias })).collect();
+                    let attached: Vec<Value> = options
+                        .attached_databases
+                        .iter()
+                        .map(|database| json!({ "path": database.path, "alias": database.alias }))
+                        .collect();
                     json!({ "defaultDatabase": options.default_database, "attachedDatabases": attached })
                 })
                 .map_err(|error| HostError::new(error.to_string())),
             _ => Ok(Value::Null),
         };
-        let connect = session.map(|session| self.connect(json!({ "type": "hyper", "kind": channel.kind.name(), "params": channel.params, "session": session })));
+        let connect = session.map(|session| {
+            self.connect(
+                json!({ "type": "hyper", "kind": channel.kind.name(), "params": channel.params, "session": session }),
+            )
+        });
         async move { connect?.await }
     }
 
@@ -338,7 +356,9 @@ impl SetupHost for RuntimeSetupHost {
         let value = host_value(error.value());
         let Some(key_values) = field(&value, "keyValues") else { return BTreeMap::new() };
         match JsonValue::of(&key_values).0 {
-            Value::Object(values) => values.into_iter().filter_map(|(key, value)| Some((key, value.as_str()?.to_string()))).collect(),
+            Value::Object(values) => {
+                values.into_iter().filter_map(|(key, value)| Some((key, value.as_str()?.to_string()))).collect()
+            }
             _ => BTreeMap::new(),
         }
     }
@@ -401,7 +421,8 @@ impl Connections {
         self.setup_numbers.set(number);
         let previous = {
             let mut setups = self.setups.borrow_mut();
-            let previous = setups.iter().position(|setup| setup.id == setup_id).map(|index| setups.swap_remove(index).token);
+            let previous =
+                setups.iter().position(|setup| setup.id == setup_id).map(|index| setups.swap_remove(index).token);
             setups.push(RunningSetup { id: setup_id.to_string(), number, token: token.clone() });
             previous
         };
@@ -433,7 +454,13 @@ impl Connections {
     }
 
     /// A host of a setup. The setup of a connection begins a setup attempt of the connection, its steps carry it.
-    fn setup_host(self: &Rc<Self>, setup_id: &str, connection_id: Option<String>, kept_params: Option<JsonObject>, events: Option<Function>) -> Rc<RuntimeSetupHost> {
+    fn setup_host(
+        self: &Rc<Self>,
+        setup_id: &str,
+        connection_id: Option<String>,
+        kept_params: Option<JsonObject>,
+        events: Option<Function>,
+    ) -> Rc<RuntimeSetupHost> {
         let epoch = connection_id
             .as_deref()
             .and_then(|connection_id| self.registry.borrow().get(connection_id).cloned())
@@ -454,10 +481,16 @@ impl Connections {
     }
 
     /// Set up a connection with its connector and check its health, see `Runtime.setupConnection`
-    pub(crate) fn setup(self: &Rc<Self>, connection_id: String, options: SetupOptions) -> impl Future<Output = SetupOutcome> + 'static {
+    pub(crate) fn setup(
+        self: &Rc<Self>,
+        connection_id: String,
+        options: SetupOptions,
+    ) -> impl Future<Output = SetupOutcome> + 'static {
         let prepared = (|| -> Result<(ConnectorType, JsonObject, Option<JsonObject>), String> {
             let registry = self.registry.borrow();
-            let connection = registry.get(&connection_id).ok_or_else(|| format!("no connection registered with id {connection_id}"))?;
+            let connection = registry
+                .get(&connection_id)
+                .ok_or_else(|| format!("no connection registered with id {connection_id}"))?;
             let state = connection.state.borrow();
             let connector = state.connector_type();
             let params = match options.params {
@@ -488,7 +521,9 @@ impl Connections {
                 ConnectorType::Hyper => setup_hyper(host.clone(), params, token.clone()).await,
                 ConnectorType::Trino => setup_trino(host.clone(), params, force_relogin, token.clone()).await,
                 ConnectorType::SalesforceDataCloud | ConnectorType::Dbcom => {
-                    setup_salesforce(host.clone(), connector, params, config, force_relogin, token.clone()).await.map(|_| ())
+                    setup_salesforce(host.clone(), connector, params, config, force_relogin, token.clone())
+                        .await
+                        .map(|_| ())
                 }
             };
             // A channel that is ready but not online yet answers a probe first
@@ -543,7 +578,11 @@ impl Connections {
                 let outcome = setup.await;
                 if let (Some(connections), "failed") = (connections.upgrade(), outcome.status) {
                     let error = outcome.message.unwrap_or_default();
-                    connections.log(LogLevel::Warn, "Memory database setup failed", &[("workbookId", &workbook_id), ("error", &error)]);
+                    connections.log(
+                        LogLevel::Warn,
+                        "Memory database setup failed",
+                        &[("workbookId", &workbook_id), ("error", &error)],
+                    );
                 }
             }));
         }
@@ -567,7 +606,9 @@ impl Connections {
         let connections = self.clone();
         async move {
             let config = SalesforceOAuthConfig { oauth_redirect: options.oauth_redirect.unwrap_or_default() };
-            let login = authenticate_salesforce(host, params, config, options.force_relogin.unwrap_or(false), token.clone()).await;
+            let login =
+                authenticate_salesforce(host, params, config, options.force_relogin.unwrap_or(false), token.clone())
+                    .await;
             connections.end_setup(&setup_id, number);
             match login {
                 Ok(login) => SetupOutcome::succeeded(Some(SetupAuthentication {

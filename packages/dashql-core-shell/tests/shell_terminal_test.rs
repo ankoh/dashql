@@ -1,18 +1,19 @@
 //! Tests of the shell as the host drives it: prompt editing and submission, terminal rendering,
 //! completion, history and the session relations of executed queries.
 
-use dashql_core::catalog::CatalogLayer;
 use dashql_core::catalog::Catalog;
+use dashql_core::catalog::CatalogLayer;
 use dashql_core::script::Script;
 use dashql_core_shell::vt100::{self, sequence, Command};
-use dashql_core_shell::{EffectCompletionStatus, PromptInputAction, PromptInputKey as Key, ShellStatus, TerminalOutput};
+use dashql_core_shell::{
+    EffectCompletionStatus, PromptInputAction, PromptInputKey as Key, ShellStatus, TerminalOutput,
+};
 
 #[path = "support/test_shell.rs"]
 mod support;
-use support::{SharedCatalog, TestShell as Shell};
 use std::cell::RefCell;
 use std::rc::Rc;
-
+use support::{SharedCatalog, TestShell as Shell};
 
 fn catalog() -> SharedCatalog {
     Rc::new(RefCell::new(Catalog::new()))
@@ -62,11 +63,7 @@ fn select_terminal_completion(shell: &mut Shell, completion_text: &str) -> (usiz
     let index = candidates.iter().position(|c| c == completion_text);
     assert!(index.is_some(), "{candidates:?}");
     let index = index.unwrap_or(candidates.len());
-    let mut output = TerminalOutput {
-        status: ShellStatus::Ok,
-        action: PromptInputAction::None,
-        data: Vec::new(),
-    };
+    let mut output = TerminalOutput { status: ShellStatus::Ok, action: PromptInputAction::None, data: Vec::new() };
     for _ in 0..index {
         output = consume(shell, Key::HistoryNext, "");
         assert_eq!(output.status, ShellStatus::Ok);
@@ -430,8 +427,14 @@ fn scopes_auto_wrap_to_terminal_output() {
     let status_output = shell.render_terminal_status(status.as_bytes());
     assert_eq!(status_output.status, ShellStatus::Ok);
     let status_output = data(&status_output);
-    assert!(status_output.find(vt100::ENABLE_AUTO_WRAP).unwrap() < status_output.find(status).unwrap(), "{status_output}");
-    assert!(status_output.find(status).unwrap() < status_output.find(vt100::DISABLE_AUTO_WRAP).unwrap(), "{status_output}");
+    assert!(
+        status_output.find(vt100::ENABLE_AUTO_WRAP).unwrap() < status_output.find(status).unwrap(),
+        "{status_output}"
+    );
+    assert!(
+        status_output.find(status).unwrap() < status_output.find(vt100::DISABLE_AUTO_WRAP).unwrap(),
+        "{status_output}"
+    );
 }
 
 #[test]
@@ -466,7 +469,10 @@ fn renders_and_clears_single_line_query_progress() {
 
     let output = shell.clear_terminal_query_progress();
     assert_eq!(output.status, ShellStatus::Ok);
-    assert_eq!(data(&output), format!("{}{}{}", vt100::CARRIAGE_RETURN, vt100::ERASE_ENTIRE_LINE, vt100::ENABLE_AUTO_WRAP));
+    assert_eq!(
+        data(&output),
+        format!("{}{}{}", vt100::CARRIAGE_RETURN, vt100::ERASE_ENTIRE_LINE, vt100::ENABLE_AUTO_WRAP)
+    );
 
     let output = shell.clear_terminal_query_progress();
     assert_eq!(output.status, ShellStatus::Ok);
@@ -487,7 +493,10 @@ fn starts_query_progress_after_last_multiline_prompt_row() {
     assert_eq!(output.action, PromptInputAction::Submit);
     let submitted = data(&output);
     let cursor_down = sequence(1, Command::CursorDown);
-    assert!(submitted.contains(&format!("{}{}{}", cursor_down, vt100::ENABLE_AUTO_WRAP, vt100::NEW_LINE)), "{submitted}");
+    assert!(
+        submitted.contains(&format!("{}{}{}", cursor_down, vt100::ENABLE_AUTO_WRAP, vt100::NEW_LINE)),
+        "{submitted}"
+    );
 
     let output = shell.render_terminal_query_progress(b"Executing query", false);
     assert_eq!(output.status, ShellStatus::Ok);
@@ -502,7 +511,12 @@ fn reflows_long_prompt_without_repeating_previous_render() {
     assert_eq!(shell.open_terminal(b"").status, ShellStatus::Ok);
     let output = consume(&mut shell, Key::Text, "SELECT 123456789");
     assert_eq!(output.status, ShellStatus::Ok);
-    assert!(data(&output).contains(&format!("{}{}     -> {}", sequence(1, Command::CursorDown), vt100::BOLD, vt100::RESET_ATTRIBUTES)));
+    assert!(data(&output).contains(&format!(
+        "{}{}     -> {}",
+        sequence(1, Command::CursorDown),
+        vt100::BOLD,
+        vt100::RESET_ATTRIBUTES
+    )));
 
     let output = consume(&mut shell, Key::Text, "0");
     assert_eq!(output.status, ShellStatus::Ok);
@@ -541,7 +555,13 @@ fn reflows_long_prompt_from_continuation_row() {
     );
     assert!(rendered.starts_with(&cleared_rows), "{rendered}");
     assert!(
-        !rendered.starts_with(&format!("{}{}{}{}", cursor_up, vt100::CARRIAGE_RETURN, vt100::ERASE_ENTIRE_LINE, vt100::NEW_LINE)),
+        !rendered.starts_with(&format!(
+            "{}{}{}{}",
+            cursor_up,
+            vt100::CARRIAGE_RETURN,
+            vt100::ERASE_ENTIRE_LINE,
+            vt100::NEW_LINE
+        )),
         "{rendered}"
     );
 }
@@ -641,7 +661,11 @@ fn navigates_and_accepts_terminal_completion_overlay() {
     let output = consume(&mut shell, Key::Tab, "");
     assert_eq!(output.status, ShellStatus::Ok);
     assert_eq!(output.action, PromptInputAction::None);
-    assert!(data(&output).contains(&format!("{}select{}", vt100::BOLD_FOREGROUND_PINK, vt100::RESET_ATTRIBUTES)), "{}", data(&output));
+    assert!(
+        data(&output).contains(&format!("{}select{}", vt100::BOLD_FOREGROUND_PINK, vt100::RESET_ATTRIBUTES)),
+        "{}",
+        data(&output)
+    );
 
     assert_eq!(shell.move_prompt_right().text, "select");
 }
@@ -682,7 +706,10 @@ fn accepting_with_enter_closes_the_list_and_does_not_submit() {
 #[test]
 fn lists_hints_and_accepts_column_after_fully_qualified_table_alias() {
     let catalog = catalog();
-    let _schema = load_schema(&catalog, "CREATE TABLE uip_iceberg.cdp_usage_nonprod_events.hyperdb_queries(event_id BIGINT, processed_rows BIGINT);");
+    let _schema = load_schema(
+        &catalog,
+        "CREATE TABLE uip_iceberg.cdp_usage_nonprod_events.hyperdb_queries(event_id BIGINT, processed_rows BIGINT);",
+    );
 
     let mut shell = shell(&catalog, 160);
     assert_eq!(shell.open_terminal(b"").status, ShellStatus::Ok);
@@ -777,7 +804,10 @@ fn tab_applies_a_single_candidate_without_an_overlay() {
 #[test]
 fn lists_columns_after_qualified_alias_before_later_prompt_lines() {
     let catalog = catalog();
-    let _schema = load_schema(&catalog, "CREATE TABLE uip_iceberg.cdp_usage_nonprod_events.hyperdb_queries(event_id BIGINT, processed_rows BIGINT);");
+    let _schema = load_schema(
+        &catalog,
+        "CREATE TABLE uip_iceberg.cdp_usage_nonprod_events.hyperdb_queries(event_id BIGINT, processed_rows BIGINT);",
+    );
 
     let mut shell = shell(&catalog, 160);
     assert_eq!(shell.open_terminal(b"trino> ").status, ShellStatus::Ok);
@@ -935,9 +965,18 @@ fn applies_keyword_completion_in_multiple_steps() {
     let output = consume(&mut shell, Key::Tab, "");
     assert_eq!(output.status, ShellStatus::Ok);
     let rendered = data(&output);
-    assert!(rendered.contains(&format!("{}SELECT{}", vt100::BOLD_FOREGROUND_PINK, vt100::RESET_ATTRIBUTES)), "{rendered}");
-    assert!(rendered.contains(&format!("{}supplier{}", vt100::FOREGROUND_SILVER, vt100::RESET_ATTRIBUTES)), "{rendered}");
-    assert!(rendered.contains(&format!("{}group{}", vt100::BOLD_FOREGROUND_PINK, vt100::RESET_ATTRIBUTES)), "{rendered}");
+    assert!(
+        rendered.contains(&format!("{}SELECT{}", vt100::BOLD_FOREGROUND_PINK, vt100::RESET_ATTRIBUTES)),
+        "{rendered}"
+    );
+    assert!(
+        rendered.contains(&format!("{}supplier{}", vt100::FOREGROUND_SILVER, vt100::RESET_ATTRIBUTES)),
+        "{rendered}"
+    );
+    assert!(
+        rendered.contains(&format!("{}group{}", vt100::BOLD_FOREGROUND_PINK, vt100::RESET_ATTRIBUTES)),
+        "{rendered}"
+    );
     assert!(rendered.contains(&bright(" by")), "{rendered}");
     // The next step is only a hint, the list stays closed
     assert!(shell.terminal_completion_list().is_none());
@@ -1057,7 +1096,10 @@ fn assert_variants_match_list_objects(shell: &mut Shell) {
 #[test]
 fn completion_variants_match_the_objects_of_the_list() {
     let catalog = catalog();
-    let _schema = load_schema(&catalog, "CREATE TABLE alpha.public.accounts(id BIGINT); CREATE TABLE beta.public.accounts(id BIGINT);");
+    let _schema = load_schema(
+        &catalog,
+        "CREATE TABLE alpha.public.accounts(id BIGINT); CREATE TABLE beta.public.accounts(id BIGINT);",
+    );
 
     // With and without auto qualification, so that objects without a qualification are dropped as well
     for auto_qualify in [true, false] {
@@ -1084,7 +1126,10 @@ fn renders_inline_completion_hint_before_later_prompt_lines() {
     let mut shell = shell(&catalog, 100);
     assert_eq!(shell.open_terminal(b"trino> ").status, ShellStatus::Ok);
 
-    assert_eq!(consume(&mut shell, Key::Text, "with foo as (\nselect * from hyperdb_quer\n\n) ").status, ShellStatus::Ok);
+    assert_eq!(
+        consume(&mut shell, Key::Text, "with foo as (\nselect * from hyperdb_quer\n\n) ").status,
+        ShellStatus::Ok
+    );
     for _ in 0.."\n\n) ".len() {
         assert_eq!(shell.move_prompt_left().status, ShellStatus::Ok);
     }
@@ -1156,7 +1201,10 @@ fn auto_qualifies_non_default_database_table_on_first_tab() {
 #[test]
 fn cycles_auto_qualified_table_options_with_left_and_right() {
     let catalog = catalog();
-    let _schema = load_schema(&catalog, "CREATE TABLE alpha.public.accounts(id BIGINT); CREATE TABLE beta.public.accounts(id BIGINT);");
+    let _schema = load_schema(
+        &catalog,
+        "CREATE TABLE alpha.public.accounts(id BIGINT); CREATE TABLE beta.public.accounts(id BIGINT);",
+    );
 
     let mut shell = Shell::new(&catalog, 100, true);
     assert_eq!(shell.open_terminal(b"").status, ShellStatus::Ok);

@@ -48,7 +48,11 @@ pub fn cloud_database(params: &ConnectionParams) -> Option<&'static str> {
     if !is_cloud_capable(params) {
         return None;
     }
-    Some(if params.connector == ConnectorType::Dbcom { SALESFORCE_CATALOG_DATABASE } else { LOCAL_CLOUD_DATABASE_ALIAS })
+    Some(if params.connector == ConnectorType::Dbcom {
+        SALESFORCE_CATALOG_DATABASE
+    } else {
+        LOCAL_CLOUD_DATABASE_ALIAS
+    })
 }
 
 /// Does a connection offer an operational overview?
@@ -83,7 +87,12 @@ pub fn connection_label_parts(connection: &ConnectionState, ordinal: Option<u32>
 
 /// The parts of the label of a connection of a connector, by the name the user gave it, the detail of its connector
 /// and its ordinal
-pub fn label_parts(connector: ConnectorType, name: Option<&str>, detail: &str, ordinal: Option<u32>) -> ConnectionLabelParts {
+pub fn label_parts(
+    connector: ConnectorType,
+    name: Option<&str>,
+    detail: &str,
+    ordinal: Option<u32>,
+) -> ConnectionLabelParts {
     let connector = connector.connector().display_name();
     let name = match (name, ordinal) {
         (Some(name), _) => name.to_string(),

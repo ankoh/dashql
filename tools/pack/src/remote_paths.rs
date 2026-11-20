@@ -24,14 +24,7 @@ pub fn derive_remote_paths(release: &ReleaseVersion) -> RemotePaths {
     let release_directory = format!("releases/{}", release.version.to_string());
     let release_metadata = format!("{}/{}", &release_directory, "metadata.json");
     let release_update = format!("{}/{}", &release_directory, "update.json");
-    RemotePaths {
-        channel_metadata,
-        channel_update,
-        release_directory,
-        release_metadata,
-        release_update,
-        channel,
-    }
+    RemotePaths { channel_metadata, channel_update, release_directory, release_metadata, release_update, channel }
 }
 
 pub fn electron_channel_manifest(channel: &str, arch: &str) -> String {

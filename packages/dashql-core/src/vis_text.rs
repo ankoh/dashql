@@ -29,11 +29,7 @@ impl TagText {
             offsets.push((line.offset as usize, text.len()));
             text.push_str(script.get(line.offset as usize..line.end() as usize).unwrap_or(""));
         }
-        Self {
-            text,
-            lines: offsets,
-            block,
-        }
+        Self { text, lines: offsets, block }
     }
 
     /// Does the tag have content lines?
@@ -91,7 +87,9 @@ pub(crate) enum JsonTokenKind {
     Colon,
     Comma,
     /// A string, not closed if the text or the line ends before the closing quote
-    String { closed: bool },
+    String {
+        closed: bool,
+    },
     /// A number, e.g. `-1.5e3`
     Number,
     /// `true`, `false` or `null`
@@ -136,7 +134,9 @@ impl JsonToken {
     /// The value of a closed string
     pub fn string(&self, text: &[u8]) -> Option<String> {
         match self.kind {
-            JsonTokenKind::String { closed: true } => text.get(self.begin..self.end).and_then(|s| serde_json::from_slice(s).ok()),
+            JsonTokenKind::String { closed: true } => {
+                text.get(self.begin..self.end).and_then(|s| serde_json::from_slice(s).ok())
+            }
             _ => None,
         }
     }
@@ -169,18 +169,16 @@ pub(crate) struct JsonScanner<'a> {
 
 impl<'a> JsonScanner<'a> {
     pub fn new(text: &'a [u8]) -> Self {
-        Self {
-            text,
-            at: 0,
-            stack: Vec::new(),
-        }
+        Self { text, at: 0, stack: Vec::new() }
     }
 
     /// The slot of the next scalar, None outside of containers or where no value fits
     pub fn slot(&self) -> Option<JsonSlot> {
         match self.stack.last()? {
             Frame::Object { state: ObjectState::ExpectKey, .. } => Some(JsonSlot::Key),
-            Frame::Object { state: ObjectState::ExpectValue, key } => Some(JsonSlot::Value(key.clone().unwrap_or_default())),
+            Frame::Object { state: ObjectState::ExpectValue, key } => {
+                Some(JsonSlot::Value(key.clone().unwrap_or_default()))
+            }
             Frame::Array { expects_value: true } => Some(JsonSlot::Element),
             _ => None,
         }

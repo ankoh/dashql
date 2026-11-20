@@ -13,17 +13,17 @@ use dashql_buffers::algebra::{
     FunctionCallExpressionT, LiteralT, ResolvedColumnT,
 };
 use dashql_buffers::analyzer::{
-    AnalyzedScriptT, AnalyzerErrorT, ConstantExpressionT, FunctionDeclarationT, FunctionParamT, IndexedColumnReferenceT,
-    ClientFunctionCallT, ClientFunctionEffect as PackedClientFunctionEffect,
-    IndexedTableReferenceT, InferredColumnT, InferredTableSchemaT, InsertStatementT, InsertTargetColumnT, NameScopeT,
-    ParameterKind as PackedParameterKind, ParameterT, SqlTypeKind as PackedSqlTypeKind, SqlTypeT,
-    QualifiedColumnNameT, QualifiedFunctionNameT, QualifiedTableNameT, ResolvedTableT, TableColumnT,
-    TableReferenceRole, TableReferenceT, TableT, VisualizationSpecT,
+    AnalyzedScriptT, AnalyzerErrorT, ClientFunctionCallT, ClientFunctionEffect as PackedClientFunctionEffect,
+    ConstantExpressionT, FunctionDeclarationT, FunctionParamT, IndexedColumnReferenceT, IndexedTableReferenceT,
+    InferredColumnT, InferredTableSchemaT, InsertStatementT, InsertTargetColumnT, NameScopeT,
+    ParameterKind as PackedParameterKind, ParameterT, QualifiedColumnNameT, QualifiedFunctionNameT,
+    QualifiedTableNameT, ResolvedTableT, SqlTypeKind as PackedSqlTypeKind, SqlTypeT, TableColumnT, TableReferenceRole,
+    TableReferenceT, TableT, VisualizationSpecT,
 };
 use dashql_buffers::parser::{
-    AttachDatabaseStatementT, AttributeKey, CommentBlockT, ErrorT, Node, NodeT, NodeType,
-    ParsedScriptT, ScannedScriptT, ScannerTokenType, ScannerTokensT, StatementT, StatementTargetT, StatementTargetType,
-    StatementType, SymbolSpan, SymbolSpanT, TextSpanT,
+    AttachDatabaseStatementT, AttributeKey, CommentBlockT, ErrorT, Node, NodeT, NodeType, ParsedScriptT,
+    ScannedScriptT, ScannerTokenType, ScannerTokensT, StatementT, StatementTargetT, StatementTargetType, StatementType,
+    SymbolSpan, SymbolSpanT, TextSpanT,
 };
 use dashql_buffers::visualization::{DashboardSpecT, TableSpecT};
 use dashql_parser::keywords::Keyword;
@@ -252,8 +252,12 @@ fn pack_statement(parsed: &ParsedScript, statement: &Statement) -> StatementT {
         StatementType::CREATE_VIEW => set_target(&mut out, StatementTargetType::VIEW, AttributeKey::SQL_VIEW_NAME),
         StatementType::DROP_TABLE => set_target(&mut out, StatementTargetType::TABLE, AttributeKey::SQL_DROP_NAME),
         StatementType::DROP_VIEW => set_target(&mut out, StatementTargetType::VIEW, AttributeKey::SQL_DROP_NAME),
-        StatementType::ALTER_TABLE => set_target(&mut out, StatementTargetType::TABLE, AttributeKey::SQL_ALTER_TABLE_NAME),
-        StatementType::ALTER_VIEW => set_target(&mut out, StatementTargetType::VIEW, AttributeKey::SQL_ALTER_TABLE_NAME),
+        StatementType::ALTER_TABLE => {
+            set_target(&mut out, StatementTargetType::TABLE, AttributeKey::SQL_ALTER_TABLE_NAME)
+        }
+        StatementType::ALTER_VIEW => {
+            set_target(&mut out, StatementTargetType::VIEW, AttributeKey::SQL_ALTER_TABLE_NAME)
+        }
         StatementType::SELECT_INTO => {
             if let Some(into) =
                 find_select_attribute(AttributeKey::SQL_SELECT_INTO).filter(|n| n.node_type() != NodeType::NONE)
@@ -525,10 +529,7 @@ fn pack_expression(script: &AnalyzedScript, expr: &Expression) -> ExpressionT {
 pub type VisualizationPacker = dyn Fn(
     &AnalyzedScript,
     &VisualizationSpec,
-) -> (
-    Option<String>,
-    Option<Box<dashql_buffers::visualization::MarkdownSpecT>>,
-);
+) -> (Option<String>, Option<Box<dashql_buffers::visualization::MarkdownSpecT>>);
 
 /// Pack an analyzed script. `visualize` packs the renderer-specific specs.
 pub fn pack_analyzed_script(script: &AnalyzedScript, visualize: &VisualizationPacker) -> AnalyzedScriptT {
@@ -567,7 +568,9 @@ pub fn pack_analyzed_script(script: &AnalyzedScript, visualize: &VisualizationPa
             build!(InsertStatementT {
                 ast_node_id: insert.ast_node_id,
                 ast_statement_id: insert.ast_statement_id.unwrap_or(PROTO_NULL_U32),
-                target_table_reference_id: script.table_ref(insert.target).map_or(PROTO_NULL_U32, |t| t.table_reference_id.object),
+                target_table_reference_id: script
+                    .table_ref(insert.target)
+                    .map_or(PROTO_NULL_U32, |t| t.table_reference_id.object),
                 source_ast_node_id: insert.source_ast_node_id.unwrap_or(PROTO_NULL_U32),
                 default_values: insert.default_values,
                 returning: insert.returning,
@@ -892,7 +895,9 @@ pub fn pack_cursor(cursor: &crate::cursor::ScriptCursor) -> dashql_buffers::curs
 }
 
 /// Pack what a list shows about a candidate or a catalog object
-fn pack_candidate_fields(fields: &[crate::completion::CandidateField]) -> Option<Vec<dashql_buffers::completion::CompletionCandidateFieldT>> {
+fn pack_candidate_fields(
+    fields: &[crate::completion::CandidateField],
+) -> Option<Vec<dashql_buffers::completion::CompletionCandidateFieldT>> {
     if fields.is_empty() {
         return None;
     }
@@ -906,7 +911,9 @@ fn pack_candidate_fields(fields: &[crate::completion::CandidateField]) -> Option
     Some(fields.iter().map(pack).collect())
 }
 
-fn pack_candidate_info(info: &crate::completion::CandidateInfo) -> Option<Box<dashql_buffers::completion::CompletionCandidateInfoT>> {
+fn pack_candidate_info(
+    info: &crate::completion::CandidateInfo,
+) -> Option<Box<dashql_buffers::completion::CompletionCandidateInfoT>> {
     if *info == crate::completion::CandidateInfo::default() {
         return None;
     }
@@ -927,11 +934,12 @@ pub fn pack_completion(
     upper_case_keywords: bool,
 ) -> dashql_buffers::completion::CompletionT {
     use crate::completion::CandidateObjectRef;
+    use crate::table_parameters::TableParameterSource;
     use crate::utils::quote_identifier;
     use dashql_buffers::completion::{
-        CompletionCandidateObjectT, CompletionCandidateObjectType, CompletionCandidateT, CompletionT, CompletionTableParameter,
+        CompletionCandidateObjectT, CompletionCandidateObjectType, CompletionCandidateT, CompletionT,
+        CompletionTableParameter,
     };
-    use crate::table_parameters::TableParameterSource;
 
     let candidates = completion
         .top_candidates
@@ -985,7 +993,9 @@ pub fn pack_completion(
                         }
                         CandidateObjectRef::Column(loc) => {
                             let table = completion.table(loc.table);
-                            if let Some((table, column)) = table.zip(table.and_then(|t| t.table_columns.get(loc.column as usize))) {
+                            if let Some((table, column)) =
+                                table.zip(table.and_then(|t| t.table_columns.get(loc.column as usize)))
+                            {
                                 let (db, schema) = table.catalog_schema_id.unpack_schema_id();
                                 let (table_id, column) = column.object_id.unpack_table_column_id();
                                 o.catalog_database_id = db;

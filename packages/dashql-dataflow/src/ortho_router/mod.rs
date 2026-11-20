@@ -30,10 +30,7 @@ pub struct Port {
 impl Port {
     /// A port at `at` on the `side` of its node.
     pub fn new(at: impl Into<Point>, side: Side) -> Port {
-        Port {
-            at: at.into(),
-            side,
-        }
+        Port { at: at.into(), side }
     }
 }
 
@@ -71,11 +68,7 @@ pub struct Options {
 
 impl Default for Options {
     fn default() -> Options {
-        Options {
-            margin: 12.0,
-            bend_penalty: 40.0,
-            spacing: 6.0,
-        }
+        Options { margin: 12.0, bend_penalty: 40.0, spacing: 6.0 }
     }
 }
 
@@ -101,10 +94,7 @@ impl Route {
 
     /// Its length.
     pub fn length(&self) -> f32 {
-        self.points
-            .windows(2)
-            .map(|w| (w[1].x - w[0].x).abs() + (w[1].y - w[0].y).abs())
-            .sum()
+        self.points.windows(2).map(|w| (w[1].x - w[0].x).abs() + (w[1].y - w[0].y).abs()).sum()
     }
 }
 
@@ -124,10 +114,7 @@ pub struct Router {
 impl Router {
     /// A router with these options and no obstacles.
     pub fn new(options: Options) -> Router {
-        Router {
-            options,
-            ..Router::default()
-        }
+        Router { options, ..Router::default() }
     }
 
     /// The router with these obstacles.
@@ -140,8 +127,7 @@ impl Router {
     /// rectangle that is not [valid](Rect::is_valid) is ignored.
     pub fn set_obstacles(&mut self, obstacles: impl IntoIterator<Item = Rect>) {
         self.obstacles.clear();
-        self.obstacles
-            .extend(obstacles.into_iter().filter(Rect::is_valid));
+        self.obstacles.extend(obstacles.into_iter().filter(Rect::is_valid));
     }
 
     /// The obstacles.
@@ -161,9 +147,7 @@ impl Router {
 
     /// Routes one connector.
     pub fn route(&mut self, connector: &Connector) -> Route {
-        self.route_all(std::slice::from_ref(connector))
-            .pop()
-            .unwrap_or_default()
+        self.route_all(std::slice::from_ref(connector)).pop().unwrap_or_default()
     }
 
     /// Routes connectors, in order: the routes match `connectors`.
@@ -183,10 +167,8 @@ impl Router {
             .filter(|p| p.is_finite())
             .collect();
         let grid = Grid::build(&grown, &stubs);
-        let mut routes: Vec<Route> = connectors
-            .iter()
-            .map(|c| route_in(&grid, &mut self.search, c, margin, bend))
-            .collect();
+        let mut routes: Vec<Route> =
+            connectors.iter().map(|c| route_in(&grid, &mut self.search, c, margin, bend)).collect();
         nudge::nudge(&mut routes, self.options.spacing, margin);
         routes
     }
@@ -227,10 +209,7 @@ fn stub(port: &Port, margin: f32) -> Point {
 fn route_in(grid: &Grid, search: &mut Search, c: &Connector, margin: f32, bend: f32) -> Route {
     let (a, b) = (c.from.at, c.to.at);
     if !a.is_finite() || !b.is_finite() {
-        return Route {
-            points: vec![a, b],
-            routed: false,
-        };
+        return Route { points: vec![a, b], routed: false };
     }
     let (sa, sb) = (stub(&c.from, margin), stub(&c.to, margin));
     let path = grid.vertex(sa).zip(grid.vertex(sb)).and_then(|(va, vb)| {
@@ -240,16 +219,11 @@ fn route_in(grid: &Grid, search: &mut Search, c: &Connector, margin: f32, bend: 
     match path {
         Some(path) => Route {
             points: simplify(
-                std::iter::once(a)
-                    .chain(path.into_iter().map(|v| grid.point(v)))
-                    .chain(std::iter::once(b)),
+                std::iter::once(a).chain(path.into_iter().map(|v| grid.point(v))).chain(std::iter::once(b)),
             ),
             routed: true,
         },
-        None => Route {
-            points: simplify(fallback(a, sa, c.from.side, sb, b)),
-            routed: false,
-        },
+        None => Route { points: simplify(fallback(a, sa, c.from.side, sb, b)), routed: false },
     }
 }
 
