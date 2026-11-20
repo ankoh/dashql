@@ -25,6 +25,7 @@ const B = '22222222-2222-4222-8222-222222222222';
 function Seed(props: { onRuntime: (runtime: Runtime, keys: number[]) => void; children: React.ReactNode }) {
     const runtime = useRuntime();
     const [ready, setReady] = React.useState(false);
+    const onRuntime = React.useEffectEvent(props.onRuntime);
     React.useEffect(() => {
         void createTestConnection(runtime, { connectionId: 'database', params: EMBEDDED });
         const keys = [A, B].map(workbookId => {
@@ -33,7 +34,7 @@ function Seed(props: { onRuntime: (runtime: Runtime, keys: number[]) => void; ch
             runtime.flush();
             return runtime.store.get('workbook', workbookId)!.scriptKeys[0];
         });
-        props.onRuntime(runtime, keys);
+        onRuntime(runtime, keys);
         setReady(true);
     }, [runtime]);
     return ready ? props.children : null;

@@ -20,16 +20,17 @@ interface Props {
 export const NameInput = React.forwardRef<HTMLInputElement, Props>((props, forwardedRef) => {
     const inputRef = React.useRef<HTMLInputElement | null>(null);
     const skipBlurCommitRef = React.useRef(false);
+    const { name, onCommit, onCancel } = props;
     React.useImperativeHandle(forwardedRef, () => inputRef.current!, []);
     // Re-sync the draft when the persisted name changes (e.g. a rename from elsewhere, or switching
     // the named object while the input stays mounted).
     React.useEffect(() => {
-        if (inputRef.current != null) inputRef.current.value = props.name ?? '';
-    }, [props.name]);
+        if (inputRef.current != null) inputRef.current.value = name ?? '';
+    }, [name]);
 
     const commitOnBlur = React.useCallback((e: React.FocusEvent<HTMLInputElement>) => {
-        if (!skipBlurCommitRef.current) props.onCommit(e.currentTarget.value);
-    }, [props.onCommit]);
+        if (!skipBlurCommitRef.current) onCommit(e.currentTarget.value);
+    }, [onCommit]);
     // Drop the focus without a commit. blur() fires its event synchronously, and none at all while the
     // window lacks focus, so the keys cannot leave it to the event to commit or to reset the flag.
     const blurWithoutCommit = React.useCallback((input: HTMLInputElement) => {
@@ -39,16 +40,16 @@ export const NameInput = React.forwardRef<HTMLInputElement, Props>((props, forwa
     }, []);
     const onKeyDown = React.useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
-            props.onCommit(e.currentTarget.value);
+            onCommit(e.currentTarget.value);
             blurWithoutCommit(e.currentTarget);
         } else if (e.key === 'Escape') {
             // Abandon the edit: restore the persisted value and drop focus.
-            e.currentTarget.value = props.name ?? '';
+            e.currentTarget.value = name ?? '';
             blurWithoutCommit(e.currentTarget);
-            props.onCancel?.();
+            onCancel?.();
         }
         e.stopPropagation();
-    }, [props.name, props.onCommit, props.onCancel, blurWithoutCommit]);
+    }, [name, onCommit, onCancel, blurWithoutCommit]);
     const onPointerDown = React.useCallback((e: React.PointerEvent<HTMLInputElement>) => {
         // Inputs are often portaled from sortable rows. Keep selection gestures from bubbling
         // through the React tree and activating a drag sensor.
@@ -61,7 +62,7 @@ export const NameInput = React.forwardRef<HTMLInputElement, Props>((props, forwa
             className={props.className}
             type="text"
             aria-label={props.ariaLabel}
-            defaultValue={props.name ?? ''}
+            defaultValue={name ?? ''}
             placeholder={props.placeholder}
             spellCheck={false}
             onBlur={commitOnBlur}

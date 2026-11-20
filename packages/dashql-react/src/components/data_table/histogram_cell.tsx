@@ -82,17 +82,18 @@ function HistogramCellImpl(props: HistogramCellProps): React.ReactElement {
     }, [histWidth, height, binCount, binCounts, countNull]);
 
     // Listen for brush events
+    const { onFilter, tableAggregation, columnIndex, columnAggregate } = props;
     const onBrushUpdate = React.useCallback((e: d3.D3BrushEvent<unknown>) => {
-        if (!props.onFilter) {
+        if (!onFilter) {
             return;
         }
         if (e.selection == null) {
-            props.onFilter(props.tableAggregation, props.columnIndex, props.columnAggregate, null);
+            onFilter(tableAggregation, columnIndex, columnAggregate, null);
             return;
         }
         const pixelSelection = e.selection as [number, number];
         if (pixelSelection[0] == pixelSelection[1]) {
-            props.onFilter(props.tableAggregation, props.columnIndex, props.columnAggregate, null);
+            onFilter(tableAggregation, columnIndex, columnAggregate, null);
             return;
         }
         // Bin i starts at binOffset + i * step, after the outer padding of the band scale
@@ -101,12 +102,12 @@ function HistogramCellImpl(props: HistogramCellProps): React.ReactElement {
         const fractionalBinStart = (pixelSelection[0] - binOffset) / step;
         const fractionalBinEnd = (pixelSelection[1] - binOffset) / step;
         const binSelection: [number, number] = [fractionalBinStart, fractionalBinEnd];
-        props.onFilter(props.tableAggregation, props.columnIndex, props.columnAggregate, binSelection);
-    }, [props.tableAggregation, props.columnAggregate, props.onFilter, props.columnIndex, histXScale]);
+        onFilter(tableAggregation, columnIndex, columnAggregate, binSelection);
+    }, [tableAggregation, columnAggregate, onFilter, columnIndex, histXScale]);
 
     const clearFilter = React.useCallback(() => {
-        props.onFilter(props.tableAggregation, props.columnIndex, props.columnAggregate, null);
-    }, [props.tableAggregation, props.columnIndex, props.columnAggregate, props.onFilter]);
+        onFilter(tableAggregation, columnIndex, columnAggregate, null);
+    }, [tableAggregation, columnIndex, columnAggregate, onFilter]);
 
     const brushSelection = React.useMemo<[number, number] | null>(() => {
         if (props.selection == null) {

@@ -2,7 +2,7 @@ import type * as arrow from 'apache-arrow';
 import * as React from 'react';
 
 import type { ComputationView } from '@akohn/dashql';
-import { resolveMatchingRows, type SummaryTables } from '@akohn/dashql/platform/compute/computation_types';
+import { resolveDataSearchMatches, type SummaryTables } from '@akohn/dashql/platform/compute/computation_types';
 
 /// The Arrow tables of the view of a computation, resolved by their handles
 export interface ComputationTables {
@@ -18,22 +18,46 @@ export interface ComputationTables {
     matchingRows: Map<number, number[]> | null;
 }
 
-/// The tables of a view
-export function resolveComputationTables(view: ComputationView | null, tables: SummaryTables | null): ComputationTables {
+/// The handles of the tables of a view
+interface ComputationTableHandles {
+    dataTable: number | null | undefined;
+    filterTable: number | null | undefined;
+    orderingTable: number | null | undefined;
+    dataSearchTable: number | null | undefined;
+    hasMatchingRows: boolean;
+}
+
+function resolveTables(handles: ComputationTableHandles, tables: SummaryTables | null): ComputationTables {
     const table = (handle: number | null | undefined) => tables?.table(handle) ?? null;
     return {
-        dataTable: table(view?.dataTable),
-        filterTable: table(view?.filterTable?.dataTable),
-        orderingTable: table(view?.orderingTable?.dataTable),
-        dataSearchTable: table(view?.dataSearchTable?.dataTable),
-        matchingRows: tables == null ? null : resolveMatchingRows(view, tables),
+        dataTable: table(handles.dataTable),
+        filterTable: table(handles.filterTable),
+        orderingTable: table(handles.orderingTable),
+        dataSearchTable: table(handles.dataSearchTable),
+        matchingRows: tables == null ? null : resolveDataSearchMatches(handles.hasMatchingRows, handles.dataSearchTable, tables),
     };
 }
 
-/// The tables of a view, the same object while the tables are the same
+function tableHandles(view: ComputationView | null): ComputationTableHandles {
+    return {
+        dataTable: view?.dataTable,
+        filterTable: view?.filterTable?.dataTable,
+        orderingTable: view?.orderingTable?.dataTable,
+        dataSearchTable: view?.dataSearchTable?.dataTable,
+        hasMatchingRows: view?.dataSearch.hasMatchingRows ?? false,
+    };
+}
+
+/// The tables of a view
+export function resolveComputationTables(view: ComputationView | null, tables: SummaryTables | null): ComputationTables {
+    return resolveTables(tableHandles(view), tables);
+}
+
+/// The tables of a view, the same object while its handles and the tables are the same
 export function useComputationTables(view: ComputationView | null, tables: SummaryTables | null): ComputationTables {
+    const { dataTable, filterTable, orderingTable, dataSearchTable, hasMatchingRows } = tableHandles(view);
     return React.useMemo(
-        () => resolveComputationTables(view, tables),
-        [tables, view?.dataTable, view?.filterTable, view?.orderingTable, view?.dataSearchTable, view?.dataSearch.hasMatchingRows],
+        () => resolveTables({ dataTable, filterTable, orderingTable, dataSearchTable, hasMatchingRows }, tables),
+        [tables, dataTable, filterTable, orderingTable, dataSearchTable, hasMatchingRows],
     );
 }

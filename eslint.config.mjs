@@ -103,7 +103,7 @@ export default defineConfig(
     },
     {
         // The React packages whose hooks are reviewed: every hook lists what it reads
-        files: ['packages/dashql-org/**'],
+        files: ['packages/dashql-org/**', 'packages/dashql-react/**'],
         rules: { 'react-hooks/exhaustive-deps': 'error' },
     },
     {

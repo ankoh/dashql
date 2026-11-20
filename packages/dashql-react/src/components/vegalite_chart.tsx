@@ -109,6 +109,7 @@ export function VegaLiteChart(props: Props): React.ReactElement {
     );
 
     // Embed the spec, the datasets and signals follow as updates
+    const spec = props.spec;
     React.useEffect(() => {
         const element = container.current;
         if (element == null) return;
@@ -119,7 +120,7 @@ export function VegaLiteChart(props: Props): React.ReactElement {
             if (disposed) return;
             const colors = resolveChartColors();
             const runtimeSpec = {
-                ...withViewEncodings(typeof props.spec === 'function' ? props.spec(colors) : props.spec),
+                ...withViewEncodings(typeof spec === 'function' ? spec(colors) : spec),
                 width: 'container',
                 height: 'container',
                 autosize: { type: 'fit', contains: 'padding', resize: true },
@@ -150,7 +151,7 @@ export function VegaLiteChart(props: Props): React.ReactElement {
             }
             element.replaceChildren();
         };
-    }, [props.spec, loader, colorScheme, flavorId]);
+    }, [spec, loader, colorScheme, flavorId]);
 
     // Update the datasets and signals in place
     React.useEffect(() => {

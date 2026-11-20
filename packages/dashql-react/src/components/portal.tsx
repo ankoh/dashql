@@ -59,26 +59,28 @@ export function Portal(props: PortalProps) {
         elementRef.current = div
     }
     const element = elementRef.current;
+    const containerName = props.containerName;
+    const onMount = React.useEffectEvent(() => props.onMount?.());
 
     React.useLayoutEffect(() => {
-        let containerName = props.containerName
-        if (containerName === undefined) {
-            containerName = DEFAULT_PORTAL_CONTAINER_NAME
+        let parentName = containerName
+        if (parentName === undefined) {
+            parentName = DEFAULT_PORTAL_CONTAINER_NAME
             ensureDefaultPortal();
         }
-        const parentElement = portalRootRegistry[containerName];
+        const parentElement = portalRootRegistry[parentName];
         if (!parentElement) {
             throw new Error(
-                `Portal container '${props.containerName}' is not yet registered. Container must be registered with registerPortal before use.`,
+                `Portal container '${containerName}' is not yet registered. Container must be registered with registerPortal before use.`,
             )
         }
         parentElement.appendChild(element);
-        props.onMount?.();
+        onMount();
 
         return () => {
             parentElement.removeChild(element)
         }
-    }, [element]);
+    }, [element, containerName]);
 
     return createPortal(props.children, element);
 }

@@ -656,7 +656,7 @@ export function QueryProfileView({ plan, execution = ProfileExecutionState.EMPTY
         else return;
         event.preventDefault();
         event.stopPropagation();
-    }, [fit, inspectorOpen, rotate, scene.operators, selection?.operator, zoomBy]);
+    }, [fit, inspectorOpen, rotate, scene.operators, scene.edges, scene.leftToRight, selection?.operator, zoomBy]);
 
     // Stable operator callbacks so that the memoized operator nodes only re-render when their own props change
     const selectionRef = React.useRef(selection);
@@ -1001,8 +1001,8 @@ const ProfileOperatorNode = React.memo(function ProfileOperatorNode(props: {
     onFocus: (operator: ProfileSceneOperator, anchor: SVGGElement) => void;
     onSelect: (operator: ProfileSceneOperator, anchor: SVGGElement, toggle: boolean) => void;
 }) {
-    const { operator, scene } = props;
-    const setAnchor = React.useCallback((anchor: SVGGElement | null) => props.setAnchor(operator.id, anchor), [props.setAnchor, operator.id]);
+    const { operator, scene, setAnchor: setOperatorAnchor } = props;
+    const setAnchor = React.useCallback((anchor: SVGGElement | null) => setOperatorAnchor(operator.id, anchor), [setOperatorAnchor, operator.id]);
     const x = operator.rect.x - operator.rect.width / 2;
     const y = operator.rect.y - operator.rect.height / 2;
     const input = scene.layoutConfig.input!;

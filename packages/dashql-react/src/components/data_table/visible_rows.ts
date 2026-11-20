@@ -65,7 +65,7 @@ export function resolveVisibleRowIndices(tables: Pick<ComputationTables, 'orderi
 
 /// Intersect the current cross-filtered/ordered rows with the active Data search.
 /// Search result keys are stable 1-based row numbers from the analyzed data frame.
-export function resolveSearchedRowIndices(computation: ComputationView | null, tables: ComputationTables): Int32Array | null {
+export function resolveSearchedRowIndices(computation: Pick<ComputationView, 'orderingTable' | 'dataSearchTable'> | null, tables: ComputationTables): Int32Array | null {
     if (computation == null) {
         return null;
     }

@@ -480,9 +480,11 @@ export interface AnchoredPositionHookArgs extends Partial<PositionSettings> {
     anchorElementRef?: React.RefObject<Element | null>
     /// Observe window resizes? Callers can disable this while the floating element is hidden. @default true
     observeWindow?: boolean
+    /// Measure again when this changes, e.g. after a detached anchor moved without a change of the layout
+    positionRevision?: number
 }
 
-export function useAnchoredPosition(args?: AnchoredPositionHookArgs, dependencies: React.DependencyList = []): {
+export function useAnchoredPosition(args?: AnchoredPositionHookArgs): {
     floatingElementRef: React.RefObject<Element | null>
     anchorElementRef: React.RefObject<Element | null>
     position: AnchorPosition | undefined
@@ -497,14 +499,21 @@ export function useAnchoredPosition(args?: AnchoredPositionHookArgs, dependencie
     const windowElem = React.useRef(document.documentElement);
     const windowSize = useObservedSize(windowElem, args?.observeWindow ?? true);
 
-    // Update the anchored position whenever the window resizes
-    React.useLayoutEffect(() => {
+    // The floating element of the last commit, a ref that forces a render (useRenderForcingRef) holds the new one
+    const floatingElement = floatingElementRef.current;
+    const positionRevision = args?.positionRevision;
+    // Measures with the settings of the latest render
+    const updatePosition = React.useEffectEvent(() => {
         if (floatingElementRef.current instanceof Element && anchorElementRef.current instanceof Element) {
             setPosition(getAnchoredPosition(floatingElementRef.current, anchorElementRef.current, args))
         } else {
             setPosition(undefined)
         }
-    }, [windowSize, ...dependencies]);
+    });
+    // Update the anchored position whenever the window resizes, the floating element changes or the revision moves
+    React.useLayoutEffect(() => {
+        updatePosition();
+    }, [windowSize, floatingElement, positionRevision]);
 
     return {
         floatingElementRef,

@@ -59,32 +59,33 @@ export function AnchoredOverlay(args: AnchoredOverlayProps) {
     const [overlayRef, updateOverlayRef] = useRenderForcingRef<HTMLDivElement>()
     const anchorId = React.useId()
 
-    const onClickOutside = React.useCallback(() => args.onClose?.('click-outside'), [args.onClose])
-    const onEscape = React.useCallback(() => args.onClose?.('escape'), [args.onClose])
+    const { open, onOpen, onClose } = args;
+    const onClickOutside = React.useCallback(() => onClose?.('click-outside'), [onClose])
+    const onEscape = React.useCallback(() => onClose?.('escape'), [onClose])
 
     const onAnchorKeyDown = React.useCallback(
         (event: React.KeyboardEvent<HTMLElement>) => {
             if (!event.defaultPrevented) {
-                if (!args.open && ['ArrowDown', 'ArrowUp', ' ', 'Enter'].includes(event.key)) {
-                    args.onOpen?.('anchor-key-press', event)
+                if (!open && ['ArrowDown', 'ArrowUp', ' ', 'Enter'].includes(event.key)) {
+                    onOpen?.('anchor-key-press', event)
                     event.preventDefault()
                 }
             }
         },
-        [args.open, args.onOpen],
+        [open, onOpen],
     )
     const onAnchorClick = React.useCallback(
         (event: React.MouseEvent<HTMLElement>) => {
             if (event.defaultPrevented || event.button !== 0) {
                 return
             }
-            if (!args.open) {
-                args.onOpen?.('anchor-click')
+            if (!open) {
+                onOpen?.('anchor-click')
             } else {
-                args.onClose?.('anchor-click')
+                onClose?.('anchor-click')
             }
         },
-        [args.open, args.onOpen, args.onClose],
+        [open, onOpen, onClose],
     )
 
     const { position } = useAnchoredPosition({
@@ -94,8 +95,9 @@ export function AnchoredOverlay(args: AnchoredOverlayProps) {
         align: args.align,
         alignmentOffset: args.alignmentOffset,
         anchorOffset: args.anchorOffset,
-        observeWindow: args.open,
-    }, [overlayRef.current, args.positionRevision])
+        observeWindow: open,
+        positionRevision: args.positionRevision,
+    })
 
     React.useEffect(() => {
         // ensure overlay ref gets cleared when closed, so position can reset between closing/re-opening

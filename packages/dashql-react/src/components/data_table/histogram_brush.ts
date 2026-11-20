@@ -64,16 +64,20 @@ export function useHistogramBrush(options: HistogramBrushOptions): {
     const syncingSelection = React.useRef(false);
     const settledBrushUpdates = React.useRef(new SettledBrushUpdates<d3.D3BrushEvent<unknown>>());
 
-    const onBrushUpdateRef = React.useRef(options.onBrushUpdate);
-    onBrushUpdateRef.current = options.onBrushUpdate;
+    const { xScale, height, selection, onBrushUpdate, onClear, onBrushingChange } = options;
+    const onBrushUpdateRef = React.useRef(onBrushUpdate);
+    onBrushUpdateRef.current = onBrushUpdate;
+    // A new brush starts hidden when there is no selection, the selection doesn't build a new brush
+    const selectionRef = React.useRef(selection);
+    selectionRef.current = selection;
 
     const onBrushStart = React.useCallback(() => {
         if (syncingSelection.current) {
             return;
         }
         settledBrushUpdates.current.cancel();
-        options.onBrushingChange?.(true);
-    }, [options.onBrushingChange]);
+        onBrushingChange?.(true);
+    }, [onBrushingChange]);
 
     const onBrushMove = React.useCallback((event: d3.D3BrushEvent<unknown>) => {
         if (syncingSelection.current) {
@@ -86,9 +90,9 @@ export function useHistogramBrush(options: HistogramBrushOptions): {
         if (syncingSelection.current) {
             return;
         }
-        settledBrushUpdates.current.flush(event, options.onBrushUpdate);
-        options.onBrushingChange?.(false);
-    }, [options.onBrushUpdate, options.onBrushingChange]);
+        settledBrushUpdates.current.flush(event, onBrushUpdate);
+        onBrushingChange?.(false);
+    }, [onBrushUpdate, onBrushingChange]);
 
     const onBrushStartRef = React.useRef(onBrushStart);
     const onBrushMoveRef = React.useRef(onBrushMove);
@@ -102,8 +106,8 @@ export function useHistogramBrush(options: HistogramBrushOptions): {
     React.useLayoutEffect(() => {
         const brush = d3.brushX()
             .extent([
-                [options.xScale.range()[0], 0],
-                [options.xScale.range()[1], options.height]
+                [xScale.range()[0], 0],
+                [xScale.range()[1], height]
             ])
             .on('start', () => onBrushStartRef.current())
             .on('brush', event => onBrushMoveRef.current(event))
@@ -117,14 +121,14 @@ export function useHistogramBrush(options: HistogramBrushOptions): {
             .call(brush)
             .selectAll('rect')
             .attr('y', 0)
-            .attr('height', options.height);
-        if (options.selection == null) {
+            .attr('height', height);
+        if (selectionRef.current == null) {
             hideBrushSelection(brushContainer.current!);
         }
         return () => {
             brushBehavior.current = null;
         };
-    }, [options.xScale, options.height]);
+    }, [xScale, height]);
 
     React.useLayoutEffect(() => {
         const container = brushContainer.current;
@@ -133,7 +137,7 @@ export function useHistogramBrush(options: HistogramBrushOptions): {
             return;
         }
         const current = d3.brushSelection(container) as [number, number] | null;
-        const next = options.selection;
+        const next = selection;
         if (current == null ? next == null : next != null && current[0] === next[0] && current[1] === next[1]) {
             return;
         }
@@ -147,7 +151,7 @@ export function useHistogramBrush(options: HistogramBrushOptions): {
         } finally {
             syncingSelection.current = false;
         }
-    }, [options.selection, options.xScale, options.height]);
+    }, [selection, xScale, height]);
 
     const clearBrush = React.useCallback(() => {
         const container = brushContainer.current;
@@ -157,8 +161,8 @@ export function useHistogramBrush(options: HistogramBrushOptions): {
             hideBrushSelection(container);
             return;
         }
-        options.onClear();
-    }, [options.onClear]);
+        onClear();
+    }, [onClear]);
 
     return { brushContainer, clearBrush };
 }

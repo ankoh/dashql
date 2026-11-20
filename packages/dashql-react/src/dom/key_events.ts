@@ -43,5 +43,5 @@ export function useKeyEvents(subscribers: KeyEventHandler[]) {
         } else {
             return () => {};
         }
-    }, [handleKeyPressBubble, handleKeyPressCapture, document]);
+    }, [handleKeyPressBubble, handleKeyPressCapture]);
 }

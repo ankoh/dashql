@@ -86,7 +86,7 @@ function MostFrequentCellImpl(props: MostFrequentCellProps): React.ReactElement 
             .domain([0, Number(xSum)]);
 
         return [xScale, xOffsets, xCounts, Number(xSum)];
-    }, [frequentValues, barWidth]);
+    }, [frequentValues, frequentValueCounts, barWidth]);
 
     // Build a lookup map from value ID to filtered count
     const filteredCountByValueId = React.useMemo(() => {

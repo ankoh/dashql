@@ -66,9 +66,10 @@ export function useResultComputation(model: QueryModel | null): ResultComputatio
     const computation = model?.computation?.computation ?? null;
     const tables = useComputationTables(computation, model?.computation?.tables ?? null);
     const rowNumberColumnName = computation?.rowNumberColumnName ?? null;
+    const hasComputation = computation != null;
     return React.useMemo(
-        () => computation == null ? null : { rowNumberColumnName, tables },
-        [rowNumberColumnName, computation == null, tables],
+        () => hasComputation ? { rowNumberColumnName, tables } : null,
+        [rowNumberColumnName, hasComputation, tables],
     );
 }
 
@@ -161,10 +162,13 @@ export function VegaLiteView(props: VegaLiteViewProps): React.ReactElement {
 
     const succeeded = props.model?.query.status === QueryExecutionStatus.SUCCEEDED;
     // Analysis emits a fresh spec object for editor transactions, including cursor-only updates.
-    // Keep the previous identity when the authored spec is structurally unchanged so Vega's
+    // Keep one spec object while the authored spec is structurally unchanged so Vega's
     // effect does not finalize and rebuild the canvas while the user types or moves the cursor.
     const specSignature = props.vegaLiteSpec == null ? null : getSpecSignature(props.vegaLiteSpec);
-    const spec = React.useMemo(() => props.vegaLiteSpec, [specSignature]);
+    const spec = React.useMemo(
+        () => specSignature == null ? null : JSON.parse(specSignature) as TopLevelSpec,
+        [specSignature],
+    );
 
     // Prefer the analyzed data table (it carries the cross-filter row-id indirection); fall back
     // to the raw result table when there is no computation registered. The analyzed table is a

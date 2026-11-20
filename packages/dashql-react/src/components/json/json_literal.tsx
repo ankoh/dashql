@@ -63,7 +63,7 @@ function StringLiteral(props: { children: string }) {
     const { variant, shortenTextAfterLength: length = 30, stringEllipsis = '...' } = useJsonViewerState();
     const childrenStr = props.children as string;
     const [shorten, setShorten] = React.useState(length && childrenStr.length > length);
-    React.useEffect(() => setShorten(length && childrenStr.length > length), [length]);
+    React.useEffect(() => setShorten(length && childrenStr.length > length), [length, childrenStr.length]);
 
     const style: React.CSSProperties = length > 0 ? {
         cursor: childrenStr.length <= length ? 'initial' : 'pointer',

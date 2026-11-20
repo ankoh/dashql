@@ -24,6 +24,7 @@ interface UseOnOutsideClickArgs {
 
 export function useOnOutsideClick(args: UseOnOutsideClickArgs) {
     const id = React.useMemo(() => NEXT_HANDLER_ID++, [])
+    const { containerRef, ignoreClickRefs, onClickOutside } = args
 
     const handler = React.useCallback<TouchOrMouseEventCallback>(
         event => {
@@ -33,17 +34,17 @@ export function useOnOutsideClick(args: UseOnOutsideClickArgs) {
                 return STOP_PROPAGATION;
             }
             // Don't call handler if the click happened inside of the container
-            if (args.containerRef.current?.contains(event.target as Node)) {
+            if (containerRef.current?.contains(event.target as Node)) {
                 return STOP_PROPAGATION;
             }
             // Don't call handler if click happened on an ignored ref
-            if (args.ignoreClickRefs && args.ignoreClickRefs.some(({ current }) => current?.contains(event.target as Node))) {
+            if (ignoreClickRefs && ignoreClickRefs.some(({ current }) => current?.contains(event.target as Node))) {
                 return STOP_PROPAGATION;
             }
 
-            args.onClickOutside(event)
+            onClickOutside(event)
         },
-        [args.containerRef, args.ignoreClickRefs, args.onClickOutside],
+        [containerRef, ignoreClickRefs, onClickOutside],
     )
 
     React.useEffect(() => {

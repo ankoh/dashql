@@ -129,9 +129,15 @@ function DataTableGrid(props: Props & { dataTable: arrow.Table }) {
     const tables = useComputationTables(computationState, summaryTables);
     const matchingRows = tables.matchingRows;
     // The summaries of the columns that the plots draw, they keep their objects while their tables are the same
+    const { tableAggregation, columnAggregates, filteredColumnAggregates, columnGroups } = computationState;
+    const dataTableHandle = computationState.dataTable;
     const summaries = React.useMemo(
-        () => resolveSummaries(computationState, summaryTables, logger),
-        [summaryTables, logger, computationState.tableAggregation, computationState.columnAggregates, computationState.filteredColumnAggregates, computationState.columnGroups, dataTable],
+        () => resolveSummaries(
+            { dataTable: dataTableHandle, tableAggregation, columnAggregates, filteredColumnAggregates, columnGroups },
+            summaryTables,
+            logger,
+        ),
+        [summaryTables, logger, tableAggregation, columnAggregates, filteredColumnAggregates, columnGroups, dataTableHandle],
     );
     const [gridApi, setGridApi] = useGridCallbackRef(null);
     const gridContainerElement = React.useRef(null);
@@ -143,9 +149,10 @@ function DataTableGrid(props: Props & { dataTable: arrow.Table }) {
     const plotsHeight = plotsCollapsed ? COLUMN_HEADER_PLOTS_COLLAPSED_HEIGHT : COLUMN_HEADER_PLOTS_HEIGHT;
 
     // Get the row-id indirection column from ordering or filtering
+    const { orderingTable, dataSearchTable } = computationState;
     const visibleRowIndices = React.useMemo(
-        () => resolveSearchedRowIndices(computationState, tables),
-        [computationState.orderingTable, computationState.dataSearchTable, tables],
+        () => resolveSearchedRowIndices({ orderingTable, dataSearchTable }, tables),
+        [orderingTable, dataSearchTable, tables],
     );
 
     // Data row count. Headers are rendered separately via portals
@@ -165,7 +172,7 @@ function DataTableGrid(props: Props & { dataTable: arrow.Table }) {
     // Construct the arrow formatter and update it whenever the data table changes
     const tableFormatter = React.useMemo(() => {
         return new ArrowTableFormatter(dataTable.schema, dataTable.batches, logger);
-    }, [dataTable]);
+    }, [dataTable, logger]);
 
     // Columns that the user resized by dragging a border, kept while the table is mounted
     const [resizedColumnWidths, setResizedColumnWidths] = React.useState<ResizedColumnWidths>(() => new Map());
@@ -184,9 +191,10 @@ function DataTableGrid(props: Props & { dataTable: arrow.Table }) {
                 headerRowCount
             };
         }
-        return computeTableLayout(tableFormatter, { columnGroups: computationState.columnGroups, dataTable }, props.debugMode, headerRowCount, gridContainerWidth, visibleColumnGroups, resizedColumnWidths);
+        return computeTableLayout(tableFormatter, { columnGroups, dataTable }, props.debugMode, headerRowCount, gridContainerWidth, visibleColumnGroups, resizedColumnWidths);
     }, [
-        computationState.columnGroups,
+        columnGroups,
+        dataTable,
         tableFormatter,
         props.debugMode,
         gridContainerWidth,

@@ -140,7 +140,7 @@ function once<T>(table: arrow.Table, build: () => T): T {
 }
 
 /// The statistics of a computation
-export function resolveTableAggregation(view: core.ComputationView, tables: SummaryTables, logger: LoggerLike): TableAggregation | null {
+export function resolveTableAggregation(view: Pick<core.ComputationView, 'tableAggregation'>, tables: SummaryTables, logger: LoggerLike): TableAggregation | null {
     const aggregation = view.tableAggregation;
     const table = aggregation == null ? undefined : tables.table(aggregation.table);
     if (aggregation == null || table == null) return null;
@@ -210,7 +210,13 @@ const SKIPPED_AGGREGATE: ColumnAggregationVariant = { type: SKIPPED_COLUMN, valu
 const epochs = new WeakMap<object, WithFilterEpoch<ColumnAggregationVariant>>();
 
 /// The summaries of a computation for the plots. A summary keeps its object while its table is the same.
-export function resolveSummaries(view: core.ComputationView, tables: SummaryTables, logger: LoggerLike): ComputationSummaries {
+/// The fields of the view of a computation that its summaries read
+export type SummaryView = Pick<
+    core.ComputationView,
+    'dataTable' | 'tableAggregation' | 'columnAggregates' | 'filteredColumnAggregates' | 'columnGroups'
+>;
+
+export function resolveSummaries(view: SummaryView, tables: SummaryTables, logger: LoggerLike): ComputationSummaries {
     const dataTable = tables.table(view.dataTable);
     const tableAggregation = resolveTableAggregation(view, tables, logger);
     const columnAggregates = view.columnAggregates.map((aggregate, i) =>
@@ -232,8 +238,17 @@ export function resolveSummaries(view: core.ComputationView, tables: SummaryTabl
 
 /// The matching columns of the rows of the applied data search by row number from 1, null without a data search
 export function resolveMatchingRows(view: core.ComputationView | null, tables: SummaryTables): Map<number, number[]> | null {
-    if (view == null || !view.dataSearch.hasMatchingRows) return null;
-    const table = tables.table(view.dataSearchTable?.dataTable);
+    return resolveDataSearchMatches(view?.dataSearch.hasMatchingRows ?? false, view?.dataSearchTable?.dataTable, tables);
+}
+
+/// The matching columns by row number from the handle of the table of a data search, null if the search has none
+export function resolveDataSearchMatches(
+    hasMatchingRows: boolean,
+    dataSearchTable: number | null | undefined,
+    tables: SummaryTables,
+): Map<number, number[]> | null {
+    if (!hasMatchingRows) return null;
+    const table = tables.table(dataSearchTable);
     if (table == null) return EMPTY_MATCHES;
     return once(table, () => parseDataSearchMatches(table));
 }

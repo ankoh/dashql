@@ -50,7 +50,6 @@ export interface FocusTrapHookArgs {
 /// Returns a ref that can be added to the container that should trap focus.
 export function useFocusTrap(
     args?: FocusTrapHookArgs,
-    dependencies: React.DependencyList = [],
 ): { containerRef: React.RefObject<HTMLElement | null>; initialFocusRef: React.RefObject<HTMLElement | null> } {
     const altContainerRef = React.useRef<HTMLElement>(null);
     const altInitialFocusRef = React.useRef<HTMLElement>(null);
@@ -68,7 +67,7 @@ export function useFocusTrap(
     }
     // This function removes the event listeners that enable the focus trap and restores focus
     // to the previously-focused element (if necessary).
-    function disableTrap() {
+    const disableTrap = React.useEffectEvent(() => {
         abortController.current?.abort()
         if (args?.returnFocusRef && args.returnFocusRef.current instanceof HTMLElement) {
             args.returnFocusRef.current.focus()
@@ -76,7 +75,7 @@ export function useFocusTrap(
             previousFocusedElement.current.focus()
             previousFocusedElement.current = null
         }
-    }
+    })
 
     React.useEffect(
         () => {
@@ -91,7 +90,7 @@ export function useFocusTrap(
                 }
             }
         },
-        [containerRef, initialFocusRef, disabled, ...dependencies],
+        [containerRef, initialFocusRef, disabled],
     )
     return { containerRef, initialFocusRef };
 }
@@ -110,7 +109,6 @@ export interface FocusZoneHookArgs extends Omit<FocusZoneSettings, 'activeDescen
 
 export function useFocusZone(
     settings: FocusZoneHookArgs = {},
-    dependencies: React.DependencyList = [],
 ): { containerRef: React.RefObject<HTMLElement | null>; activeDescendantControlRef: React.RefObject<HTMLElement | null> } {
     const altContainerRef = React.useRef<HTMLElement>(null);
     const altActiveDescFocusRef = React.useRef<HTMLElement>(null);
@@ -125,27 +123,28 @@ export function useFocusZone(
     const disabled = settings.disabled
     const abortController = React.useRef<AbortController | null>(null);
 
-    React.useEffect(
-        () => {
-            if (
-                containerRef.current instanceof HTMLElement &&
-                (!useActiveDescendant || activeDescendantControlRef.current instanceof HTMLElement)
-            ) {
-                if (!disabled) {
-                    const vanillaSettings: FocusZoneSettings = {
-                        ...settings,
-                        activeDescendantControl: activeDescendantControlRef.current ?? undefined,
-                    }
-                    abortController.current = focusZone(containerRef.current, vanillaSettings)
-                    return () => {
-                        abortController.current?.abort()
-                    }
-                } else {
+    // Starts or stops the zone with the settings of the latest render, returns the cleanup of a started zone
+    const updateZone = React.useEffectEvent((): (() => void) | undefined => {
+        if (
+            containerRef.current instanceof HTMLElement &&
+            (!useActiveDescendant || activeDescendantControlRef.current instanceof HTMLElement)
+        ) {
+            if (!disabled) {
+                const vanillaSettings: FocusZoneSettings = {
+                    ...settings,
+                    activeDescendantControl: activeDescendantControlRef.current ?? undefined,
+                }
+                abortController.current = focusZone(containerRef.current, vanillaSettings)
+                return () => {
                     abortController.current?.abort()
                 }
+            } else {
+                abortController.current?.abort()
             }
-        },
-        [disabled, ...dependencies],
-    )
+        }
+        return undefined
+    })
+    // The zone follows `disabled` only, a change of its settings applies when it starts again
+    React.useEffect(() => updateZone(), [disabled])
     return { containerRef, activeDescendantControlRef }
 }

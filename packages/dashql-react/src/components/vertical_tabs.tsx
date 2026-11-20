@@ -67,21 +67,22 @@ export function VerticalTabs<TabProps extends VerticalTabProps>(props: Props<Tab
     const [isDragging, setIsDragging] = React.useState(false);
     const containerRef = React.useRef<HTMLDivElement>(null);
 
+    const { splitModeEnabled, primaryTabKey: splitPrimaryTabKey, onSelectSplitTab, selectTab: selectMainTab } = props;
     const selectTab = React.useCallback((tabId: number) => {
-        if (props.splitModeEnabled) {
+        if (splitModeEnabled) {
             // In split mode, clicking primary tab does nothing
-            if (tabId === props.primaryTabKey) {
+            if (tabId === splitPrimaryTabKey) {
                 return;
             }
             // Clicking other tabs sets them as the split tab
-            if (props.onSelectSplitTab) {
-                props.onSelectSplitTab(tabId);
+            if (onSelectSplitTab) {
+                onSelectSplitTab(tabId);
             }
         } else {
             // Normal mode: select the tab as the main tab
-            props.selectTab(tabId);
+            selectMainTab(tabId);
         }
-    }, [props.splitModeEnabled, props.primaryTabKey, props.onSelectSplitTab, props.selectTab]);
+    }, [splitModeEnabled, splitPrimaryTabKey, onSelectSplitTab, selectMainTab]);
 
     const handleResizeStart = React.useCallback((e: React.MouseEvent) => {
         e.preventDefault();

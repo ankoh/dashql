@@ -58,19 +58,20 @@ function HeaderPlotsCellImpl(props: HeaderPlotsCellProps): React.ReactElement {
     }
 
     // The summary over the selected rows of a column that shows, the runtime computes it once per selection
+    const { isVisible, onRequestFilteredColumnAggregation } = props;
     React.useEffect(() => {
-        if (columnAggregateId == -1 || !props.isVisible || !filteredColumnAggregationOutdated) {
+        if (columnAggregateId == -1 || !isVisible || !filteredColumnAggregationOutdated) {
             return;
         }
-        props.onRequestFilteredColumnAggregation(columnAggregateId);
+        onRequestFilteredColumnAggregation(columnAggregateId);
     }, [
         columnAggregateId,
         filteredColumnAggregationOutdated,
         filteredColumnAggregationTask,
         props.selectionEpoch,
         props.dataSearchRequestId,
-        props.isVisible,
-        props.onRequestFilteredColumnAggregation,
+        isVisible,
+        onRequestFilteredColumnAggregation,
     ]);
 
     const isRightmost = props.columnIndex === props.rightmostVisibleColumn;

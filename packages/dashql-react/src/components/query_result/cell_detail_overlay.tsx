@@ -181,15 +181,16 @@ function CellDetailOverlayInner(props: CellDetailOverlayProps) {
     // again when the host can read SQL, which must not undo a pick.
     const pickedValue = React.useRef<typeof value | undefined>(undefined);
 
+    const { structuredValue, formattedValue, detectSql } = props;
     React.useEffect(() => {
-        const f = props.structuredValue == null
-            ? detectFormats(props.formattedValue, props.detectSql)
-            : detectStructuredFormats(props.structuredValue);
+        const f = structuredValue == null
+            ? detectFormats(formattedValue, detectSql)
+            : detectStructuredFormats(structuredValue);
         setFormats(f);
         setSelectedFormat(selected => pickedValue.current === value && getAvailableModes(f).includes(selected)
             ? selected
             : pickDefaultMode(f));
-    }, [props.formattedValue, props.structuredValue, props.detectSql]);
+    }, [formattedValue, structuredValue, detectSql, value]);
 
     const availableModes = React.useMemo(() => getAvailableModes(formats), [formats]);
 
@@ -198,13 +199,14 @@ function CellDetailOverlayInner(props: CellDetailOverlayProps) {
         setSelectedFormat(availableModes[index]);
     }, [availableModes, value]);
 
+    const { dataRow, maxRow, onNavigate } = props;
     useKeyEvents(React.useMemo(() => [
         {
             key: 'ArrowUp',
             callback: (e: KeyboardEvent) => {
                 e.preventDefault();
-                if (props.dataRow > 0) {
-                    props.onNavigate(-1);
+                if (dataRow > 0) {
+                    onNavigate(-1);
                 }
             },
         },
@@ -212,12 +214,12 @@ function CellDetailOverlayInner(props: CellDetailOverlayProps) {
             key: 'ArrowDown',
             callback: (e: KeyboardEvent) => {
                 e.preventDefault();
-                if (props.dataRow < props.maxRow) {
-                    props.onNavigate(1);
+                if (dataRow < maxRow) {
+                    onNavigate(1);
                 }
             },
         },
-    ], [props.dataRow, props.maxRow, props.onNavigate]));
+    ], [dataRow, maxRow, onNavigate]));
 
     const rawText = React.useMemo(() => props.structuredValue == null
         ? (props.formattedValue ?? 'NULL')

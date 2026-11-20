@@ -30,17 +30,18 @@ export function CopyToClipboardButton(props: Props): React.ReactElement {
     const [wasRecentlyCopied, setWasRecentlyCopied] = React.useState<boolean>(false);
     const timeoutMs = props.timeoutMs ?? DEFAULT_COPY_TIMEOUT;
 
+    const { value: propValue, getValue, logContext } = props;
     const copy = React.useCallback(async () => {
         // Read the value when copying, getValue may return text that changes without a re-render
-        const value = props.value ?? (props.getValue ? props.getValue() : "");
+        const value = propValue ?? (getValue ? getValue() : "");
         try {
             await navigator.clipboard.writeText(value);
-            logger.info("Copied to clipboard", { "chars": value.length.toString() }, props.logContext);
+            logger.info("Copied to clipboard", { "chars": value.length.toString() }, logContext);
             setLastCopied(Date.now());
         } catch (e: any) {
-            logger.error("Copying failed", { "error": stringifyError(e) }, props.logContext);
+            logger.error("Copying failed", { "error": stringifyError(e) }, logContext);
         }
-    }, [setLastCopied, props.value, props.getValue]);
+    }, [propValue, getValue, logger, logContext]);
 
     React.useEffect(() => {
         if (lastCopied == null) {
@@ -51,7 +52,7 @@ export function CopyToClipboardButton(props: Props): React.ReactElement {
             setWasRecentlyCopied(false);
         }, timeoutMs);
         return () => clearTimeout(timeoutId);
-    }, [lastCopied]);
+    }, [lastCopied, timeoutMs]);
 
     let InnerIcon: Icon;
     if (wasRecentlyCopied) {
