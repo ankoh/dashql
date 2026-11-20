@@ -48,7 +48,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.0.0",
     "hyperdb-wasm": "0.0.27368-dev.wasm.ge0a6b4a9",
-    "immutable": "^5.1.9",
+    "immutable": "^5.2.1",
     "json-schema-to-typescript": "^16.0.0",
     "jszip": "^3.10.2",
     "mocha": "^12.0.3",
