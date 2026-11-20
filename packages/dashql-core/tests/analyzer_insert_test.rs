@@ -6,7 +6,6 @@ use dashql_core::catalog::Catalog;
 use dashql_core::catalog::CatalogLayer;
 use dashql_core::pack::pack_analyzed_script;
 use dashql_core::script::Script;
-use dashql_core::visualize::pack_visualization;
 use std::sync::Arc;
 
 /// Analyze a schema script and load it into the catalog
@@ -172,7 +171,7 @@ fn packs_insert_metadata() {
     let script = analyze(&catalog, "insert into target(id, label) values (1, 'one') returning id");
 
     let mut builder = flatbuffers::FlatBufferBuilder::new();
-    let packed = pack_analyzed_script(analyzed(&script), &pack_visualization).pack(&mut builder);
+    let packed = pack_analyzed_script(analyzed(&script)).pack(&mut builder);
     builder.finish(packed, None);
     let analyzed = flatbuffers::root::<dashql_buffers::analyzer::AnalyzedScript>(builder.finished_data()).unwrap();
 

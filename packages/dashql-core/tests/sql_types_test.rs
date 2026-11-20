@@ -7,7 +7,6 @@ use dashql_core::analyzer::sql_types::{generic_kind, interval_keyword, parse_sql
 use dashql_core::catalog::Catalog;
 use dashql_core::pack::{pack_analyzed_script, pack_sql_type};
 use dashql_core::script::Script;
-use dashql_core::visualize::pack_visualization;
 use std::sync::Arc;
 
 /// The SQL text of a parsed type
@@ -188,7 +187,7 @@ fn analyzed_scripts_pack_parameters() {
     script.replace_text("select * from :source where a > :min::numeric(10,2) and b = $1 and c = :name");
     script.analyze(&catalog, true).unwrap();
     let analyzed = script.analyzed.clone().unwrap();
-    let packed = pack_analyzed_script(&analyzed, &pack_visualization);
+    let packed = pack_analyzed_script(&analyzed);
     let parameters = packed.parameters.unwrap();
     let summary: Vec<_> = parameters
         .iter()

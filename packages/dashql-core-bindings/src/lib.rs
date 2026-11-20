@@ -432,7 +432,7 @@ impl Script {
             .analyzed
             .as_ref()
             .ok_or_else(|| js_error(Error::status(dashql_buffers::status::StatusCode::SCRIPT_NOT_ANALYZED)))?;
-        Ok(finish!(dashql_core::pack::pack_analyzed_script(analyzed, &dashql_core::visualize::pack_visualization)))
+        Ok(finish!(dashql_core::pack::pack_analyzed_script(analyzed)))
     }
 
     /// The packed `ScriptDiff` from this script to a target script

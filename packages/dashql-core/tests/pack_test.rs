@@ -15,7 +15,6 @@ use dashql_core::pack::{
     pack_tokens,
 };
 use dashql_core::script::Script;
-use dashql_core::visualize::pack_visualization;
 use std::sync::Arc;
 
 fn parsed(text: &str) -> (Script, ParsedScriptT) {
@@ -170,7 +169,7 @@ fn tokens_are_typed() {
 fn analyzed_scripts_pack_vis_tags() {
     let catalog = Catalog::new();
     let script = analyzed(&catalog, "/* @vis vegalite {\"mark\": \"bar\"}\n   @vis board width=4 */\nselect 1 as a");
-    let packed = pack_analyzed_script(&script, &pack_visualization);
+    let packed = pack_analyzed_script(&script);
     let specs = packed.visualization_specs.unwrap();
     assert_eq!(specs.len(), 1);
     assert_eq!(specs[0].renderer.as_deref(), Some("vegalite"));
@@ -184,7 +183,7 @@ fn analyzed_scripts_pack_vis_tags() {
 fn analyzed_scripts_pack_markdown_specs() {
     let catalog = Catalog::new();
     let script = analyzed(&catalog, "-- @vis markdown by **{{author}}**\n-- @end\nselect 'Ada' as author");
-    let packed = pack_analyzed_script(&script, &pack_visualization);
+    let packed = pack_analyzed_script(&script);
     let specs = packed.visualization_specs.unwrap();
     assert_eq!(specs.len(), 1);
     assert_eq!(specs[0].renderer.as_deref(), Some("markdown"));
@@ -201,7 +200,7 @@ fn analyzed_scripts_pack_expressions() {
         "create table t (a int, b int); \
          select a + 1, 1 + 2, 1 < 2, upper('x'), interval '2' day, a from t where a = 1 and b > 2 or sum(a) < 3",
     );
-    let packed = pack_analyzed_script(&script, &pack_visualization);
+    let packed = pack_analyzed_script(&script);
     let expressions = packed.expressions.unwrap();
     let has = |f: &dyn Fn(&ExpressionSubTypeT) -> bool| expressions.iter().any(|e| f(&e.inner));
     assert!(has(&|e| matches!(e, ExpressionSubTypeT::ColumnRefExpression(_))));
@@ -219,7 +218,7 @@ fn analyzed_scripts_pack_expressions() {
 fn analyzed_scripts_pack_inferred_schemas() {
     let catalog = Catalog::new();
     let script = analyzed(&catalog, "select a, b from unknown_table where c = 1");
-    let packed = pack_analyzed_script(&script, &pack_visualization);
+    let packed = pack_analyzed_script(&script);
     let inferred = packed.inferred_table_schemas.expect("inferred schemas");
     assert_eq!(inferred.len(), 1);
     let columns = inferred[0].columns.as_ref().unwrap();

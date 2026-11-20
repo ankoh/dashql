@@ -6,7 +6,6 @@ use dashql_core::catalog::Catalog;
 use dashql_core::catalog::CatalogLayer;
 use dashql_core::pack::pack_analyzed_script;
 use dashql_core::script::Script;
-use dashql_core::visualize::pack_visualization;
 use std::sync::Arc;
 
 /// The fixture: a catalog with the tables target, source and audit
@@ -75,7 +74,7 @@ fn resolves_write_target_and_using_reads() {
     }
 
     let mut builder = flatbuffers::FlatBufferBuilder::new();
-    let packed = pack_analyzed_script(&analyzed, &pack_visualization).pack(&mut builder);
+    let packed = pack_analyzed_script(&analyzed).pack(&mut builder);
     builder.finish(packed, None);
     let packed = flatbuffers::root::<dashql_buffers::analyzer::AnalyzedScript>(builder.finished_data()).unwrap();
     let packed_refs = packed.table_references().unwrap();

@@ -31,7 +31,7 @@ fn node_text(script: &AnalyzedScript, node_id: u32) -> &[u8] {
 /// The renderer-specific packing of a visualization (the vegalite and markdown branches of
 /// `AnalyzedScript::Pack`)
 #[allow(clippy::type_complexity)]
-pub fn pack_visualization(
+pub(crate) fn pack_visualization(
     script: &AnalyzedScript,
     spec: &VisualizationSpec,
 ) -> (Option<String>, Option<Box<dashql_buffers::visualization::MarkdownSpecT>>) {

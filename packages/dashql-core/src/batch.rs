@@ -5,7 +5,6 @@ use crate::catalog::{Catalog, CatalogLayer};
 use crate::error::{Error, Result};
 use crate::pack::{pack_analyzed_script, pack_catalog_descriptor, pack_parsed_script, pack_scanned_script};
 use crate::script::Script;
-use crate::visualize::pack_visualization;
 use dashql_buffers::analyzer::AnalyzerErrorSeverity;
 use dashql_buffers::batch::{BatchDiagnosticT, BatchRequest, BatchResultT, BatchScriptResultT};
 pub use dashql_buffers::batch::{DiagnosticSeverity, ProcessingStage};
@@ -150,7 +149,7 @@ pub fn process_batch(request: &[u8]) -> Result<Vec<u8>> {
             out.failure = checked.failure.clone();
             if let (None, Some(analyzed)) = (&checked.failure, script.analyzed.as_deref()) {
                 if outputs & 4 != 0 {
-                    out.analyzed = Some(pack_bytes!(pack_analyzed_script(analyzed, &pack_visualization)));
+                    out.analyzed = Some(pack_bytes!(pack_analyzed_script(analyzed)));
                 }
                 if outputs & 8 != 0 && !checked.has_errors() {
                     match pack_catalog_descriptor(&analyzed.entry) {
