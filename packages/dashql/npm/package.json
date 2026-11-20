@@ -33,7 +33,7 @@
     "@zip.js/zip.js": "^2.24.0",
     "apache-arrow": "^21.2.0",
     "flatbuffers": "25.9.23",
-    "immutable": "^5.1.9"
+    "immutable": "^5.2.1"
   },
   "peerDependencies": {
     "hyperdb-wasm": "0.0.27368-dev.wasm.ge0a6b4a9",
