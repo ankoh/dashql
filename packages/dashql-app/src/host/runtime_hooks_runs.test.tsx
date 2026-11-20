@@ -40,6 +40,7 @@ function fixture(workbookId: string, deferStream = false) {
         cancel: vi.fn(() => cancellation.promise),
         getMetrics: createQueryResponseStreamMetrics,
         getSchema: async () => null,
+        // eslint-disable-next-line require-yield -- a stream that ends before its first batch
         read: vi.fn<QueryExecutionResponseStream['read']>(async function* (abort) {
             signal = abort;
             abort?.addEventListener('abort', aborted, { once: true });

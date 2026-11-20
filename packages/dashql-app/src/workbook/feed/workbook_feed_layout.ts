@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import { useListRef } from 'react-window';
 
-import { observeSize } from '@akohn/dashql-react/components/size_observer';
+import { useObservedSize } from '@akohn/dashql-react/components/size_observer';
 import { useScrollbarWidth } from '@akohn/dashql-react/dom/scrollbar';
 
 interface FeedLayoutEntry {
@@ -182,7 +182,7 @@ export function useWorkbookFeedLayout(entries: FeedLayoutEntry[], bottomInset = 
         if (scrollShift !== 0 && element != null) element.scrollTop += scrollShift;
     }, [heightsVersion, listRef]);
     const getEntrySpan = React.useCallback((index: number) => rowHeightCache.getEntrySpan(index), [rowHeightCache]);
-    const listContainerSize = observeSize(listContainerRef);
+    const listContainerSize = useObservedSize(listContainerRef);
     const listWidth = listContainerSize?.width ?? 0;
     const listHeight = listContainerSize?.height ?? 0;
     const listScrollbarInset = useScrollbarWidth();

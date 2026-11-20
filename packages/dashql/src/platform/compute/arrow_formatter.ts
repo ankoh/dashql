@@ -226,7 +226,7 @@ function formatStruct(value: Map<string, any> | Record<string, any>): string {
 }
 
 /// Format interval value
-function formatInterval(value: any, typeId: arrow.Type): string {
+function formatInterval(value: any, _typeId: arrow.Type): string {
     if (value == null) return '';
 
     // IntervalDayTime: { days, milliseconds }

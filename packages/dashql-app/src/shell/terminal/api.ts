@@ -292,7 +292,7 @@ export class DashQLShell {
         let candidates: ShellCompletionCandidate[];
         try {
             candidates = shell.completePrompt(limit);
-        } catch (error) {
+        } catch {
             throw new DashQLShellError(DashQLShellStatus.INTERNAL_ERROR, 'failed to complete shell prompt');
         }
         return candidates.map(candidate => {

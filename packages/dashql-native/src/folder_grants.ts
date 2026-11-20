@@ -101,7 +101,7 @@ async function realTarget(target: string): Promise<string> {
             const parent = path.dirname(existing);
             if (!isMissing(error) || parent === existing) throw error;
             // A dangling link is missing too, but writing through it would create its target
-            if (await lstat(existing).then(() => true, () => false)) throw new Error("Rejected dangling link");
+            if (await lstat(existing).then(() => true, () => false)) throw new Error("Rejected dangling link", { cause: error });
             missing.unshift(path.basename(existing));
             existing = parent;
         }

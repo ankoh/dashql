@@ -80,7 +80,7 @@ interface DropData {
 
 /// The listeners of a draggable row. A pointer drag starts from the row, not from a text field or the portaled menu,
 /// a keyboard drag only from the row itself, so that Enter and Space still press its buttons.
-function rowDragListeners(listeners: Record<string, Function> | undefined): Record<string, (event: React.SyntheticEvent<HTMLElement>) => void> | undefined {
+function rowDragListeners(listeners: ReturnType<typeof useDraggable>['listeners']): Record<string, (event: React.SyntheticEvent<HTMLElement>) => void> | undefined {
     if (listeners == null) return undefined;
     return Object.fromEntries(Object.entries(listeners).map(([eventName, handler]) => [eventName, (event: React.SyntheticEvent<HTMLElement>) => {
         const starts = eventName === 'onKeyDown' ? event.target === event.currentTarget : startsRowDrag(event);

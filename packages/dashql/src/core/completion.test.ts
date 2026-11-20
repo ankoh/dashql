@@ -108,7 +108,7 @@ describe('DashQL Completion', () => {
         const text = "select * from tableA \"T\" where attr";
         scriptA.insertTextAt(0, text);
         scriptA.analyze();
-        const cursor = scriptA.moveCursor(text.length);
+        scriptA.moveCursor(text.length);
         const completion = scriptA.completeAtCursor(10);
 
         const completionReader = completion.read()
@@ -117,7 +117,7 @@ describe('DashQL Completion', () => {
         expect(candidate?.catalogObjectsLength()).toEqual(1);
         expect(candidate?.completionText()).toEqual("\"attrA\"");
         expect(candidate?.catalogObjectsLength()).toEqual(1);
-        const catalogObject = candidate?.catalogObjects(0)!;
+        const catalogObject = candidate!.catalogObjects(0)!;
         expect(catalogObject.qualifiedNameLength()).toEqual(2);
         const name0 = catalogObject.qualifiedName(0)!;
         const name1 = catalogObject.qualifiedName(1)!;

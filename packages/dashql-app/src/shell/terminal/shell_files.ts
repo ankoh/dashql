@@ -5,7 +5,7 @@ import type {
 } from '@akohn/dashql/platform/embedded_database';
 import type { PlatformFile } from '../../host/file.js';
 import { stringifyError, type LoggerLike } from '@akohn/dashql/platform/logger/logger';
-import type { DashQLShellCommand, DashQLShellCommandContext } from './api.js';
+import type { DashQLShellCommand } from './api.js';
 
 const LOG_CTX = 'standalone_shell_files';
 const FS_USAGE = 'usage: .fs';
@@ -210,30 +210,6 @@ export function createShellFilesCommand(
             return FS_USAGE;
         },
     ];
-}
-
-async function selectShellFiles(
-    selectFiles: (signal?: AbortSignal) => Promise<readonly PlatformFile[]>,
-    context: DashQLShellCommandContext,
-    logger?: LoggerLike,
-): Promise<readonly PlatformFile[]> {
-    logger?.info('Opening shell file picker', {}, LOG_CTX);
-    try {
-        const selected = await selectFiles(context.signal);
-        logger?.info('Selected shell files', {
-            file_count: selected.length.toString(),
-            total_size_bytes: selected.every(file => file.size != null)
-                ? selected.reduce((total, file) => total + (file.size ?? 0), 0).toString()
-                : undefined,
-        }, LOG_CTX);
-        return selected;
-    } catch (error) {
-        logger?.error('Failed to select shell files', {
-            error: stringifyError(error),
-            error_name: error instanceof Error ? error.name : undefined,
-        }, LOG_CTX);
-        throw error;
-    }
 }
 
 function logDetails(

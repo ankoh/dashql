@@ -5,9 +5,8 @@ import * as auth from '@akohn/dashql-jsonschema/auth.js';
 
 import * as style from './connection_settings.module.css';
 
-import { BookIcon, KeyIcon, PlugIcon, XIcon } from '@akohn/dashql-react/components/symbol_icon';
+import { BookIcon, KeyIcon } from '@akohn/dashql-react/components/symbol_icon';
 
-import { Button, ButtonVariant } from '@akohn/dashql-react/components/button';
 import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_state';
 import { Dispatch } from '@akohn/dashql/platform/utils/variant';
 import { KeyValueListBuilder, KeyValueListElement, UpdateKeyValueList } from '@akohn/dashql-react/components/keyvalue_list';
@@ -270,23 +269,8 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
     const cancelSetup = connectionSetup.cancel;
     const resetSetup = connectionSetup.reset;
 
-    // Get the action button
-    let connectButton: React.ReactElement = <div />;
-    // Saving writes the settings into every workbook that uses the connection
-    let freezeInput = saving;
-    switch (connectionState?.connectionHealth) {
-        case ConnectionHealth.NOT_STARTED:
-        case ConnectionHealth.FAILED:
-            connectButton = <Button variant={ButtonVariant.Primary} leadingVisual={PlugIcon} onClick={setupConnection}>Connect</Button>;
-            break;
-        case ConnectionHealth.CONNECTING:
-            connectButton = <Button variant={ButtonVariant.Danger} leadingVisual={XIcon} onClick={cancelSetup}>Cancel</Button>;
-            freezeInput = true;
-            break;
-        case ConnectionHealth.ONLINE:
-            connectButton = <Button variant={ButtonVariant.Danger} leadingVisual={XIcon} onClick={resetSetup}>Disconnect</Button>;
-            break;
-    }
+    // Saving writes the settings into every workbook that uses the connection, the header shows the action buttons
+    const freezeInput = saving || connectionState?.connectionHealth === ConnectionHealth.CONNECTING;
 
     return (
         <div className={style.layout}>

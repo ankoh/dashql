@@ -12,11 +12,10 @@ function splitSql(core: dashql.DashQL, catalog: dashql.DashQLCatalog, sql: strin
     const bytes = new TextEncoder().encode(sql);
     const decoder = new TextDecoder();
     const script = core.createScript(catalog);
-    let parsed: dashql.FlatBufferPtr<dashql.buffers.parser.ParsedScript> | null = null;
     try {
         script.replaceText(sql);
         script.parse();
-        parsed = script.getParsed();
+        const parsed = script.getParsed();
         const reader = parsed.read();
         if (reader.scannerErrorsLength() > 0 || reader.parserErrorsLength() > 0 || reader.statementsLength() === 0) {
             out.push(terminateStatement(trimmed));

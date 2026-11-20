@@ -30,7 +30,7 @@ export const LoggerProvider: React.FC<Props> = (props: Props) => {
 /// Poll the log version and translate into React state.
 /// We deliberately do not use eager state updates from the log flusher.
 /// Pass enabled = false to skip polling, e.g. when a trace subscription already drives the component.
-export function pollLogVersion(interval: number = 100, enabled: boolean = true) {
+export function useLogVersion(interval: number = 100, enabled: boolean = true) {
     const logger = useLogger();
     const [logVersion, setLogVersion] = React.useState<number>(logger.buffer.version);
     // Compare against a ref, the interval closure would otherwise only see the initial version

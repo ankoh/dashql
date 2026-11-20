@@ -32,7 +32,7 @@ describe('DashQL Cursor', () => {
         script.analyze();
 
         const parsedBuffer = script.getParsed();
-        const analyzedBuffer = script.getAnalyzed();
+        script.getAnalyzed();
         const parsed = parsedBuffer.read();
         const tmpCursor = new dashql.buffers.cursor.ScriptCursor();
 

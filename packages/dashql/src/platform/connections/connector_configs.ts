@@ -16,8 +16,8 @@ export interface SalesforceConnectorConfig {
     mock?: SalesforceConnectorMockConfig;
 }
 
-export interface TrinoConnectorConfig {
-}
+/// Trino has no settings of the app yet
+export type TrinoConnectorConfig = object;
 
 export interface ConnectorConfigs {
     /// The config for the Salesforce Data Cloud connector

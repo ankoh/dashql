@@ -59,12 +59,7 @@ function selectControls(hints: Hint[], preferFirst: boolean) {
         }
     }
     // Select the hint with controls
-    let controlsAt = null;
-    if (preferFirst) {
-        controlsAt = firstInsert != null ? firstInsert : firstDelete;
-    } else {
-        controlsAt = lastInsert != null ? lastInsert : lastDelete;
-    }
+    const controlsAt = preferFirst ? (firstInsert ?? firstDelete) : (lastInsert ?? lastDelete);
     if (controlsAt != null) {
         hints[controlsAt].controls = true;
     }
@@ -214,7 +209,7 @@ function computeCompletionHintDecorations(viewUpdate: ViewUpdate): DecorationSet
                 }
                 break;
             }
-            case PATCH_DELETE_TEXT:
+            case PATCH_DELETE_TEXT: {
                 // Construct the deletion widget
                 const deleteClassName = getDeleteClassNameForCategory(patch.target);
                 const deleteDeco = Decoration.mark({ class: deleteClassName }).range(patch.value.at, patch.value.at + patch.value.length);
@@ -227,6 +222,7 @@ function computeCompletionHintDecorations(viewUpdate: ViewUpdate): DecorationSet
                     decorations.push(controlDeco);
                 }
                 break;
+            }
         }
     }
     return Decoration.set(decorations);

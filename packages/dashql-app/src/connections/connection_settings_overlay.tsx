@@ -16,7 +16,6 @@ import { ToggleSwitch } from '@akohn/dashql-react/components/toggle_switch';
 import { HyperConnectorSettings } from './hyper_connection_settings.js';
 import { TrinoConnectorSettings } from './trino_connection_settings.js';
 import { SalesforceConnectorSettings } from './salesforce_connection_settings.js';
-import { connectorInfoOf } from '@akohn/dashql/platform/connections/connection_state';
 
 const CheckIcon = SymbolIcon('check_16');
 

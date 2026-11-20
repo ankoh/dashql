@@ -43,7 +43,7 @@ describe('Completion Hint', () => {
         const text = "select * from tableA where attr";
         scriptPtr.insertTextAt(0, text);
         scriptPtr.analyze();
-        const cursor = scriptPtr.moveCursor(text.length);
+        scriptPtr.moveCursor(text.length);
         const completionPtr = scriptPtr.completeAtCursor(10);
 
         const completionReader = completionPtr.read()
@@ -102,7 +102,7 @@ describe('Completion Hint', () => {
         const text = "select * from tab";
         scriptPtr.insertTextAt(0, text);
         scriptPtr.analyze();
-        const cursor = scriptPtr.moveCursor(text.search(" tab") + 4);
+        scriptPtr.moveCursor(text.search(" tab") + 4);
         const completionPtr = scriptPtr.completeAtCursor(10);
 
         const completionReader = completionPtr.read()
@@ -175,7 +175,7 @@ describe('Completion Hint', () => {
         const text = "select * from \"tableA\"";
         scriptPtr.insertTextAt(0, text);
         scriptPtr.analyze();
-        const cursor = scriptPtr.moveCursor(text.search("\"tableA\"") + 4);
+        scriptPtr.moveCursor(text.search("\"tableA\"") + 4);
         const completionPtr = scriptPtr.completeAtCursor(10);
 
         const completionReader = completionPtr.read()

@@ -656,7 +656,7 @@ describe('DashQL shell Wasm', () => {
         expect(prompt.text).toBe('SELECT 42');
         prompt = shell.consumePromptInput(DashQLShellPromptInput.ENTER);
         expect(prompt).toMatchObject({ text: 'SELECT 42\n', action: DashQLShellPromptAction.NONE });
-        prompt = shell.consumePromptInput(DashQLShellPromptInput.TEXT, ';');
+        shell.consumePromptInput(DashQLShellPromptInput.TEXT, ';');
         prompt = shell.consumePromptInput(DashQLShellPromptInput.ENTER);
         expect(prompt.action).toBe(DashQLShellPromptAction.SUBMIT);
 

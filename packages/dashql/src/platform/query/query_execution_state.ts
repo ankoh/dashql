@@ -1,5 +1,4 @@
 import * as arrow from 'apache-arrow';
-import * as connection from '@akohn/dashql-jsonschema/connection.js';
 import type * as core from '../../core/index.js';
 import { QueryExecutionStatus, QueryType } from '../../core/index.js';
 

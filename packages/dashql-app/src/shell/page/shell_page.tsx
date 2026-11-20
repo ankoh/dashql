@@ -12,7 +12,7 @@ import { useRuntime } from '@akohn/dashql-react/hooks';
 import { ShellQueryResultOverlay } from '../../workbook/shell/shell_query_result_overlay.js';
 import { connectEmbeddedSession, type EmbeddedSession } from '@akohn/dashql/runtime/embedded_session';
 import { createEmbeddedDatabaseShellEnvironment } from './embedded_database_shell_environment.js';
-import { createLoginCommand, type SalesforceLoginAuthentication } from './commands/login.js';
+import { createLoginCommand } from './commands/login.js';
 import { SalesforceLoginHistoryStore } from './salesforce_login_history.js';
 import { createExamplesCommand } from '../terminal/shell_examples.js';
 import { useShellQueryHistory } from './shell_query_history.js';

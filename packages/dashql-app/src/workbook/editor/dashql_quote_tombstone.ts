@@ -1,4 +1,3 @@
-import * as dashql from '@akohn/dashql';
 
 import {
     EditorSelection,

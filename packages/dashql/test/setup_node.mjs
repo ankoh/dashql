@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { afterAll } from 'vitest';
 
 import { provideClientFunctionSpecs } from '../src/platform/connections/clfn_specs.ts';
 import { startNodeHyperEngine, useNodeRoot } from '../src/platform/node/node_hyperdb.ts';

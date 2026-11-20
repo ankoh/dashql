@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { act } from '@akohn/dashql-react/testing/react_act';
 import { createRoot } from 'react-dom/client';
-import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import * as core from '@akohn/dashql';
 import { testRuntime } from '@akohn/dashql/runtime/testing/test_runtime';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';

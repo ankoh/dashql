@@ -4,7 +4,7 @@ import * as styles from './mostfrequent_cell.module.css';
 
 import { ColumnAggregationVariant, StringColumnAggregation, STRING_COLUMN, TableAggregation, WithFilterEpoch } from '@akohn/dashql/platform/compute/computation_types';
 import { dataTypeToString } from '@akohn/dashql/platform/compute/arrow_formatter';
-import { observeSize } from '../size_observer.js';
+import { useObservedSize } from '../size_observer.js';
 import { NULL_SYMBOL } from './histogram_cell.js';
 import { COLUMN_SUMMARY_BASELINE_COLOR, COLUMN_SUMMARY_COLORS, getTotalBarColor, getFilteredBarColor } from './data_table_colors.js';
 import { formatHistogramFocusDescription } from './histogram_label.js';
@@ -41,7 +41,7 @@ function resolveRowUsingOffset(offsets: BigInt64Array, offset: number) {
 
 function MostFrequentCellImpl(props: MostFrequentCellProps): React.ReactElement {
     const svgContainer = React.useRef<HTMLDivElement>(null);
-    const svgContainerSize = observeSize(svgContainer);
+    const svgContainerSize = useObservedSize(svgContainer);
     const pendingFilterFrame = React.useRef<number | null>(null);
     const pendingFilterValueId = React.useRef<number | null>(null);
     const diagonalStripesId = React.useId();

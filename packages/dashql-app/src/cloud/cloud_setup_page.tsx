@@ -7,7 +7,6 @@ import symbols from '@akohn/dashql-svg-symbols';
 import { Button, ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
 import { PencilIcon, PlusIcon, XIcon } from '@akohn/dashql-react/components/symbol_icon';
 import { CompactNavBar } from '../app/navbar.js';
-import { useDashQLCoreSetup } from '../host/core_provider.js';
 import { useConnection, useConnections, useRuntime } from '@akohn/dashql-react/hooks';
 import { newConnectionFromParams, type ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
@@ -23,7 +22,6 @@ import { CloudConnectionRow } from './cloud_connection_row.js';
 import { useCloudState } from './cloud_state.js';
 import { useCloudRemoval } from './cloud_deletion.js';
 import type { CloudInstallation } from './cloud_store_schema.js';
-import { connectorInfoOf } from '@akohn/dashql/platform/connections/connection_state';
 
 // The page that sets up the cloud, a card like the one of the app loader, shown before the workbench. See
 // docs/design/cloud.md.
@@ -215,23 +213,22 @@ function ChooseCloudConnection(props: { onChoose: (connectionId: string, configu
     const setCloud = useSetCloudConnection();
     const attach = useConnectionAttach();
     const runtime = useRuntime();
-    const setupCore = useDashQLCoreSetup();
     const capable = [...connections.values()].filter(connection => connection.cloudCapable);
     const clouds = capable.filter(connection => cloudConnectionIds.includes(connection.connectionId));
     const others = capable.filter(connection => !cloudConnectionIds.includes(connection.connectionId));
-    const use = (connectionId: string, configure: boolean) => {
+    const choose = (connectionId: string, configure: boolean) => {
         setCloud(connectionId, true);
         props.onChoose(connectionId, configure);
     };
     const add = async (connector: ConnectorType) => {
         const connection = attach(connector);
-        use(connection.connectionId, true);
+        choose(connection.connectionId, true);
     };
     // There is one local cloud, a connection of the embedded Hyper to the database of the local cloud
     const hasLocalCloud = capable.some(connection => connection.localCloud);
     const addLocalCloud = async () => {
         const connection = runtime.createConnection(newConnectionFromParams(runtime.core.localCloudParams<ConnectionParams>(), { name: LOCAL_CLOUD_NAME, active: true }));
-        use(connection.connectionId, false);
+        choose(connection.connectionId, false);
     };
     return (
         <div className={styles.section} data-testid="cloud-setup-choose">
@@ -251,7 +248,7 @@ function ChooseCloudConnection(props: { onChoose: (connectionId: string, configu
             <div className={styles.label}>Where DashQL keeps published workbooks</div>
             {others.map(connection => (
                 <CloudConnectionRow key={connection.connectionId} connection={connection}>
-                    <Button variant={ButtonVariant.Default} size={ButtonSize.Small} onClick={() => use(connection.connectionId, false)}
+                    <Button variant={ButtonVariant.Default} size={ButtonSize.Small} onClick={() => choose(connection.connectionId, false)}
                         data-testid="cloud-use-connection">
                         Use
                     </Button>

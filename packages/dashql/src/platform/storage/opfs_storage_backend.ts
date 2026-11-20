@@ -710,7 +710,7 @@ export class OPFSStorageBackend implements WorkbookRegistryBackend {
                     currentDir = await currentDir.getDirectoryHandle(part, { create });
                 } catch (error) {
                     if ((error as any).name === 'NotFoundError') {
-                        throw new Error(`Directory not found: opfs://${accumulated}`);
+                        throw new Error(`Directory not found: opfs://${accumulated}`, { cause: error });
                     }
                     throw error;
                 }

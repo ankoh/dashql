@@ -1,4 +1,4 @@
-import { CONNECTOR_INFOS, ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
+import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import type * as core from '@akohn/dashql';
 import { connectionLabelOf, connectionLabels } from './connection_label.js';

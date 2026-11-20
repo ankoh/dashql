@@ -23,13 +23,12 @@ import { createTestHyperDB, testDatabasePath } from '../tests/hyperdb_test_clien
 import { createTestRoot } from '@akohn/dashql-react/testing/react_root';
 import * as core from '@akohn/dashql';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
-import { useConnections, useRuntime } from '@akohn/dashql-react/hooks';
+import { useRuntime } from '@akohn/dashql-react/hooks';
 import { addTestConnection, setTestConnectionHealth } from '../tests/test_connections.js';
 
 // The page of the cloud setup on the embedded Hyper of the tests: a Hyper server and a local cloud, each with a session
 // that the query executor runs their statements on, with a database attached as "dashql".
 
-type Registry = ReadonlyMap<string, ConnectionState>;
 let appRuntime: Runtime | null = null;
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
@@ -85,14 +84,12 @@ function hyperConnection(connectionId: string, health: ConnectionHealth, local =
 
 describe('cloud setup page', () => {
     let root: ReturnType<typeof createTestRoot>;
-    let registry: Registry | null;
     let config: AppConfig | null;
     let reconfigure: ReturnType<typeof useAppReconfigure> | null;
     let clouds: CloudsApi | null;
     let logins: string[];
 
     function Capture() {
-        registry = useConnections();
         appRuntime = useRuntime();
         config = useAppConfig();
         reconfigure = useAppReconfigure();
@@ -130,7 +127,6 @@ describe('cloud setup page', () => {
         await statements;
         await connection.execute(`DROP SCHEMA IF EXISTS "${CLOUD_DATABASE}"."dashql" CASCADE`);
         root = createTestRoot();
-        registry = null;
         config = null;
         reconfigure = null;
         clouds = null;

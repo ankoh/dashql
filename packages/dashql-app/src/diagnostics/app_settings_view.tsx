@@ -7,7 +7,7 @@ import { ToggleSwitch } from '@akohn/dashql-react/components/toggle_switch';
 import { SegmentedControl } from '@akohn/dashql-react/components/segmented_control';
 
 import { AppConfig, AppSettings as AppSettingsValue, useAppConfig, useAppReconfigure } from '../config/app_config.js';
-import { CONFIRM_FINISHED_SETUP, useRouteContext, useRouterNavigate } from '../app/router.js';
+import { CONFIRM_FINISHED_SETUP, useRouterNavigate } from '../app/router.js';
 import { useLogger } from '../host/logger_provider.js';
 import { LogLevel } from '@akohn/dashql/platform/logger/log_buffer';
 import { useStorageReader } from '../storage/storage_provider.js';
@@ -52,7 +52,6 @@ export function AppSettings(props: { onClose: () => void; }) {
     const config = useAppConfig();
     const reconfigure = useAppReconfigure();
     const routerNavigate = useRouterNavigate();
-    const routerContext = useRouteContext();
     const logger = useLogger();
     const storageReader = useStorageReader();
     const queryResultCache = useQueryResultCache();

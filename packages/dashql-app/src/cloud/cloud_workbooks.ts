@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import { useOptionalRuntime, useWorkbooks } from '@akohn/dashql-react/hooks';
 import { findWorkbookQueries } from '@akohn/dashql/platform/connections/connection_state';
-import type { ConnectionParams, WorkbookCloudLink } from '@akohn/dashql/platform/storage/storage_backend';
+import type { WorkbookCloudLink } from '@akohn/dashql/platform/storage/storage_backend';
 import { useStorageReader } from '../storage/storage_provider.js';
 import type * as core from '@akohn/dashql';
 import { useDeleteConnection } from '../connections/connection_deletion.js';

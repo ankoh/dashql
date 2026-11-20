@@ -422,7 +422,6 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
     const secrets = React.useMemo(
         () => props.connectionId != null && (coreSummary != null || dcSummary != null) ? runtime?.revealConnectionSecrets(props.connectionId) ?? null : null,
         // The summaries change with the tokens
-        // eslint-disable-next-line react-hooks/exhaustive-deps
         [runtime, props.connectionId, summaries],
     );
     const coreAccessToken = secrets?.coreAccessToken == null ? null : JSON.parse(secrets.coreAccessToken);

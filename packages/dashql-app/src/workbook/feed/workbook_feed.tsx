@@ -53,7 +53,7 @@ import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { WorkbookDataCard } from './workbook_data_card.js';
 import { WorkbookInputStrip } from '../inputs/workbook_input_strip.js';
 import { VerticalScrollShadows } from '@akohn/dashql-react/components/vertical_scroll_shadows';
-import { observeSize } from '@akohn/dashql-react/components/size_observer';
+import { useObservedSize } from '@akohn/dashql-react/components/size_observer';
 import {
     ScriptConnectionPicker,
     scriptConnectionView,
@@ -76,7 +76,6 @@ import { useLiveWorkbookStatuses, useReportWorkbookOutcomes, useWorkbookOutcomeT
 import { useWorkbookStatusSources } from '../status/use_workbook_status_sources.js';
 import { WorkbookStatusSource, WorkbookStatusTone, type WorkbookStatus } from '../status/workbook_status.js';
 import { useCloudPublishStatus } from '../../cloud/cloud_publish_status.js';
-import { quoteIdentifier } from '@akohn/dashql/platform/utils/sql_quote';
 
 export interface WorkbookFeedProps {
     workbookScripts: WorkbookScripts;
@@ -531,7 +530,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
 
     // The docked prompt floats over the bottom of the feed, the last script scrolls clear of it
     const composerSectionRef = React.useRef<HTMLDivElement>(null);
-    const composerSectionSize = observeSize(composerSectionRef);
+    const composerSectionSize = useObservedSize(composerSectionRef);
     const bottomInset = entries.length === 0 ? 0 : Math.ceil(composerSectionSize?.height ?? 0);
     const feedLayout = useWorkbookFeedLayout(entries, bottomInset);
 

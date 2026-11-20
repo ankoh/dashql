@@ -14,9 +14,7 @@ import { useSharedWorkbookImport } from './shared_workbook_import.js';
 import { isCloudLink, useCloudSetupGate } from './cloud_setup_gate.js';
 import { useHyperLinks } from '../hyper_links.js';
 
-interface Props { }
-
-export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React.PropsWithChildren<Props>) => {
+export const AppLoader: React.FC<React.PropsWithChildren> = (props: React.PropsWithChildren) => {
     const config = useAppConfig();
     const appSettingsReady = useAppSettingsReady();
     const reconfigure = useAppReconfigure();

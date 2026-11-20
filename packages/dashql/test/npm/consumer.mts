@@ -36,4 +36,4 @@ void [response, core, parsed, pending];
 
 // The fixture must not accidentally acquire lib.dom through declarations.
 // @ts-expect-error Document is a DOM-only type, unavailable in this consumer.
-type NoDOM = Document;
+type _NoDOM = Document;

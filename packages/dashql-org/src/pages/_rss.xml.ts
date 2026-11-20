@@ -1,6 +1,6 @@
 import rss from '@astrojs/rss';
 import type { APIContext } from 'astro';
-import { getPosts } from '../lib/posts';
+import { getPosts } from '../lib/posts.js';
 
 export async function GET(context: APIContext) {
     const posts = await getPosts();

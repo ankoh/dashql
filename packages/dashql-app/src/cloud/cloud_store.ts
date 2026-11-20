@@ -333,7 +333,7 @@ async function readDataTable(local: ParquetReadDatabase, what: string, file: Blo
         return await readParquetAsText(local, file, signal);
     } catch (error) {
         if (signal?.aborted) throw error;
-        throw new Error(`Can't publish ${what}: ${error instanceof Error ? error.message : String(error)}`);
+        throw new Error(`Can't publish ${what}: ${error instanceof Error ? error.message : String(error)}`, { cause: error });
     }
 }
 

@@ -282,7 +282,7 @@ export class DashQL {
         for (let i = entries.length - 1; i >= 0; --i) {
             try {
                 entries[i].deref()?.destroy();
-            } catch (e) {
+            } catch {
                 // Ignore errors during cleanup
             }
         }
@@ -1144,7 +1144,7 @@ export class DashQLScript {
     public tryCompleteAtCursor(limit: number): FlatBufferPtr<buffers.completion.Completion> | null {
         try {
             return this.completeAtCursor(limit);
-        } catch (e: unknown) {
+        } catch {
             return null;
         }
     }

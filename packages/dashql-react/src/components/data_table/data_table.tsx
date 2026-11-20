@@ -12,7 +12,7 @@ import { DataCell, DataCellData, TableColumnHeader } from './data_table_cell.js'
 import { classNames } from '../../dom/classnames.js';
 import { computeTableLayout, DataTableLayout } from './data_table_layout.js';
 import { useCrossFilters } from './use_cross_filters.js';
-import { observeSize } from '../size_observer.js';
+import { useObservedSize } from '../size_observer.js';
 import { useLogger } from '../../logger.js';
 import { useScrollbarHeight } from '../../dom/scrollbar.js';
 import { useDataTableOrdering } from './data_table_ordering.js';
@@ -28,7 +28,6 @@ export type { ComputationDispatch } from './use_cross_filters.js';
 export { forEachIntegerValue } from './visible_rows.js';
 export { peekFormat, type FormatHint } from './format_peek.js';
 
-const LOG_CTX = 'data_table';
 
 // The grid of a result table with its column plots, cross filters, ordering and searches, over the model of the
 // computation of the table (`useComputationModel`). The module is the entry of the table: what a host uses of it is
@@ -136,7 +135,7 @@ function DataTableGrid(props: Props & { dataTable: arrow.Table }) {
     );
     const [gridApi, setGridApi] = useGridCallbackRef(null);
     const gridContainerElement = React.useRef(null);
-    const gridContainerSize = observeSize(gridContainerElement);
+    const gridContainerSize = useObservedSize(gridContainerElement);
     const gridContainerWidth = Math.max(gridContainerSize?.width ?? 0, MIN_GRID_WIDTH);
     const columnHeader = props.columnHeader ?? TableColumnHeader.OnlyColumnName;
     const [plotsCollapsed, setPlotsCollapsed] = React.useState(false);

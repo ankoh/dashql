@@ -93,7 +93,6 @@ function Capture(props: { database: (runtime: Runtime) => Promise<void>; capture
             if (runtime.connection(CONNECTION_ID) == null) await props.database(runtime);
             setCreated(true);
         })();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [runtime]);
     React.useLayoutEffect(() => {
         if (compute && created) props.capture({ execute });

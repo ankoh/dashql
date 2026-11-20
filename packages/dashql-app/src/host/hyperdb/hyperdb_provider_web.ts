@@ -26,13 +26,9 @@ declare global {
     ) => Promise<HyperDB>) | undefined;
 }
 
-// eslint-disable-next-line import/no-unresolved -- package asset resolved by Vite
 import engineUrl from '@dashql/hyperdb-wasm-js?url';
-// eslint-disable-next-line import/no-unresolved -- package asset resolved by Vite
 import workerUrl from '@dashql/hyperdb-wasm-worker?url';
-// eslint-disable-next-line import/no-unresolved -- package asset resolved by Vite
 import workerBridgeUrl from './hyperdb_worker_bridge.js?url&no-inline';
-// eslint-disable-next-line import/no-unresolved -- package asset resolved by Bazel/Vite alias
 import wasmUrl from '@dashql/hyperdb-wasm?url';
 
 const HYPERDB_ENGINE_URL = new URL(engineUrl as string, import.meta.url);

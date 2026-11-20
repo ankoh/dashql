@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import type { LogRecord } from '@akohn/dashql/platform/logger/log_buffer';
-import { pollLogVersion, useLogger } from '../../host/logger_provider.js';
+import { useLogVersion, useLogger } from '../../host/logger_provider.js';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
 import { findWorkbookQueries } from '@akohn/dashql/platform/connections/connection_state';
 import { useOptionalRuntime } from '@akohn/dashql-react/hooks';
@@ -36,7 +36,7 @@ function workbookTraceIds(runtime: Runtime | null, workbookId: string): Set<numb
 export function useWorkbookLog(workbookId: string, enabled: boolean): readonly LogRecord[] {
     const logger = useLogger();
     const runtime = useOptionalRuntime();
-    const version = pollLogVersion(200, enabled);
+    const version = useLogVersion(200, enabled);
     // The records read so far, a new trace of the workbook reads the log again from the start
     const scan = React.useRef<{ workbookId: string; traceIds: Set<number>; scanned: number; records: LogRecord[] } | null>(null);
     return React.useMemo(() => {
@@ -57,6 +57,5 @@ export function useWorkbookLog(workbookId: string, enabled: boolean): readonly L
         scan.current = { workbookId, traceIds, scanned: length, records };
         return records;
         // The version of the log tells new records
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [logger, runtime, workbookId, enabled, version]);
 }

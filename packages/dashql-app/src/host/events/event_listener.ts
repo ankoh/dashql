@@ -1,5 +1,4 @@
 import * as app_event from '@akohn/dashql-jsonschema/app_event.js';
-import * as buf from "@bufbuild/protobuf";
 
 import { BASE64URL_CODEC } from '@akohn/dashql/platform/utils/base64';
 import { LEGACY_WORKBOOK_QUERY_PARAMETERS, migrateAppEventData } from './legacy_links.js';
@@ -362,7 +361,7 @@ export abstract class PlatformEventListener {
             this.logger.info(`Parsed app event`, {}, LOG_CTX);
             return event;
 
-        } catch (error: any) {
+        } catch {
             this.logger.info(`Event does not encode valid link data`, { "source": fromWhat }, LOG_CTX);
 
             return null;
@@ -377,7 +376,7 @@ export abstract class PlatformEventListener {
         const pastedText = clipboardText.trim();
 
         const setup = parseClipboardSetup(pastedText);
-        let eventData: string | null = null;
+        let eventData: string;
         if (setup?.type === "event") {
             eventData = setup.value;
         } else if (setup?.type === "workbook") {

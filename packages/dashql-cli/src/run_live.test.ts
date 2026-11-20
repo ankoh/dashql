@@ -14,7 +14,6 @@ class Screen {
     cursorHidden = false;
 
     write(text: string): void {
-        // eslint-disable-next-line no-control-regex
         const parts = text.split(/(\x1b\[[0-9;?]*[A-Za-z]|\n)/);
         for (const part of parts) {
             if (part === '') continue;

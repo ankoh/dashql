@@ -18,8 +18,8 @@ export function cyrb128(v: number) {
 
 export function xoshiro128ss(a: number, b: number, c: number, d: number) {
     return () => {
-        let t = b << 9,
-            r = b * 5;
+        const t = b << 9;
+        let r = b * 5;
         r = ((r << 7) | (r >>> 25)) * 9;
         c ^= a;
         d ^= b;

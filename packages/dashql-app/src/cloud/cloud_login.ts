@@ -5,7 +5,6 @@ import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/c
 import { useConnectionSetup } from '../connections/connection_setup.js';
 import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { useAppConfig } from '../config/app_config.js';
-import { connectorInfoOf } from '@akohn/dashql/platform/connections/connection_state';
 
 // The login to the cloud connection with its saved settings, the same setup that Connect of its settings runs.
 // Database.com logs in with OAuth in a popup, so the login runs on a click. A Hyper server connects with the endpoint and

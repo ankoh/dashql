@@ -2,7 +2,7 @@ import * as React from 'react';
 import type { TopLevelSpec } from 'vega-lite';
 import type { View } from 'vega';
 
-import { observeSize } from './size_observer.js';
+import { useObservedSize } from './size_observer.js';
 import { loadVega, type VegaModules } from '../vegalite/vegalite_loader.js';
 import { createEmbedOptions, resolveChartColors, type ChartColors } from '../vegalite/vegalite_theme.js';
 import { useColorScheme } from '../theme/color_scheme.js';
@@ -88,7 +88,7 @@ const NO_SIGNALS: VegaSignals = {};
 /// It fills its element, which the class sizes.
 export function VegaLiteChart(props: Props): React.ReactElement {
     const container = React.useRef<HTMLDivElement | null>(null);
-    const size = observeSize(container);
+    const size = useObservedSize(container);
     const [error, setError] = React.useState<string | null>(null);
     const [ready, setReady] = React.useState(false);
     const viewRef = React.useRef<{ view: View; vega: VegaModules['vega'] } | null>(null);

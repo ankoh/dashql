@@ -14,7 +14,7 @@ import { JsonView } from '@akohn/dashql-react/components/json/json_view';
 import { useRuntime, useView } from '@akohn/dashql-react/hooks';
 import type { StorageKeyStatistics } from '@akohn/dashql';
 import { formatBytes, formatMilliseconds } from '@akohn/dashql-react/format/format';
-import { observeSize } from '@akohn/dashql-react/components/size_observer';
+import { useObservedSize } from '@akohn/dashql-react/components/size_observer';
 import { useKeyEvents } from '@akohn/dashql-react/dom/key_events';
 import { VerticalScrollShadows } from '@akohn/dashql-react/components/vertical_scroll_shadows';
 
@@ -121,7 +121,7 @@ export function StorageWriterView(props: { workbookId: string | null; onClose: (
 
     // Container size for the virtual list
     const containerRef = React.useRef<HTMLDivElement>(null);
-    const containerSize = observeSize(containerRef);
+    const containerSize = useObservedSize(containerRef);
     const containerWidth = containerSize?.width ?? 200;
     const containerHeight = containerSize?.height ?? 100;
 

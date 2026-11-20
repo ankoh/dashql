@@ -1,6 +1,5 @@
 import * as core from '@akohn/dashql';
 
-import { scriptDisplayName } from '@akohn/dashql/platform/workbook/script_types';
 import type { ScriptData, ScriptDataMap, WorkbookDerived } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { readWorkbookInputType, type WorkbookInputType } from '@akohn/dashql/platform/workbook/workbook_inputs';
 

@@ -2,7 +2,7 @@ import * as dashql from '@akohn/dashql';
 
 import { EditorSelection, EditorState, Transaction } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
-import { analyzeScript, DashQLCompletionAbortEffect, DashQLCompletionStartEffect, DashQLCompletionNextCandidateVariantEffect, DashQLProcessorPlugin, DashQLProcessorUpdateIn, DashQLUpdateEffect, transactionToEditorEvent } from './dashql_processor.js';
+import { DashQLCompletionAbortEffect, DashQLCompletionStartEffect, DashQLCompletionNextCandidateVariantEffect, DashQLProcessorPlugin, DashQLProcessorUpdateIn, DashQLUpdateEffect, transactionToEditorEvent } from './dashql_processor.js';
 import { DashQLCompletionStatus, DashQLProcessorUpdateOut } from './completion/dashql_completion_state.js';
 import { applyCompletion, computePatches } from './completion/dashql_completion_patches.js';
 import { DashQLDecorationPlugin } from './dashql_decorations.js';

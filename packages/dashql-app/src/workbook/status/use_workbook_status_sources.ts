@@ -75,7 +75,6 @@ export function workbookConnectionStatuses(connections: ReadonlyMap<string, Conn
 /// Keeps the identity of a value while its JSON is unchanged
 function useStable<T>(value: T): T {
     const json = JSON.stringify(value);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     return React.useMemo(() => value, [json]);
 }
 

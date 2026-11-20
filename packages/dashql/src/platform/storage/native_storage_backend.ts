@@ -130,7 +130,7 @@ export class NativeStorageBackend implements StorageBackend {
     }
 
     /// The runtime migrates a folder of an older version of the app before it reads the workbook file
-    async loadWorkbook(workbookId: string): Promise<WorkbookData> {
+    async loadWorkbook(_workbookId: string): Promise<WorkbookData> {
         const text = await this.readWorkbookFile(STORAGE_WORKBOOK_FILE);
         if (text == null) {
             throw new Error(`Missing ${STORAGE_WORKBOOK_FILE} in ${this.dir}`);

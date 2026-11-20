@@ -1,6 +1,5 @@
 import * as React from 'react';
 import * as styles from './data_table.module.css';
-import symbols from '@akohn/dashql-svg-symbols';
 
 import { classNames } from '../../dom/classnames.js';
 import type * as core from '@akohn/dashql';
@@ -40,9 +39,8 @@ export interface HeaderPlotsCellProps {
 }
 
 function HeaderPlotsCellImpl(props: HeaderPlotsCellProps): React.ReactElement {
-    if (props.columnIndex >= props.gridLayout.arrowFieldByColumnIndex.length) {
-        return <div style={props.style} />;
-    }
+    // A column past the fields of the layout shows an empty cell, after the hooks so that every render calls them
+    const pastFields = props.columnIndex >= props.gridLayout.arrowFieldByColumnIndex.length;
 
     // Resolve the column summary
     let columnAggregate: ColumnAggregationVariant | null = null;
@@ -50,7 +48,7 @@ function HeaderPlotsCellImpl(props: HeaderPlotsCellProps): React.ReactElement {
     let filteredColumnAggregate: WithFilterEpoch<ColumnAggregationVariant> | null = null;
     let filteredColumnAggregationTask: ComputationTrackedTask | null = null;
     let filteredColumnAggregationOutdated = false;
-    const columnAggregateId = props.gridLayout.columnAggregateByColumnIndex[props.columnIndex];
+    const columnAggregateId = pastFields ? -1 : props.gridLayout.columnAggregateByColumnIndex[props.columnIndex];
     if (columnAggregateId != -1) {
         columnAggregate = props.columnAggregations[columnAggregateId] ?? null;
         columnAggregationTask = props.columnAggregationTasks[columnAggregateId] ?? null;
@@ -77,7 +75,7 @@ function HeaderPlotsCellImpl(props: HeaderPlotsCellProps): React.ReactElement {
 
     const isRightmost = props.columnIndex === props.rightmostVisibleColumn;
 
-    if (!props.isVisible) {
+    if (pastFields || !props.isVisible) {
         return <div style={props.style} />;
     }
 

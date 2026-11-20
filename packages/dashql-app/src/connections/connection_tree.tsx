@@ -8,7 +8,7 @@ import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_po
 import { AnchoredOverlay } from '@akohn/dashql-react/components/anchored_overlay';
 import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
 import { IndicatorStatus, StatusIndicator } from '@akohn/dashql-react/components/status_indicator';
-import { observeSize } from '@akohn/dashql-react/components/size_observer';
+import { useObservedSize } from '@akohn/dashql-react/components/size_observer';
 import { VerticalScrollShadows } from '@akohn/dashql-react/components/vertical_scroll_shadows';
 import { NameInput } from '@akohn/dashql-react/components/name_input';
 import { type RowContextMenu, useRowContextMenu, useRowContextMenuOpener } from '@akohn/dashql-react/dom/row_context_menu';
@@ -732,7 +732,7 @@ export const ConnectionTree: React.FC<ConnectionTreeProps> = ({
     // The rows are virtualized, the tree remembers the renamed connection while its row scrolls out of view
     const [renamingId, setRenamingId] = React.useState<string | null>(null);
     const containerRef = React.useRef<HTMLDivElement>(null);
-    const size = observeSize(containerRef);
+    const size = useObservedSize(containerRef);
     const listRef = useListRef(null);
     const getScrollElement = React.useCallback(() => listRef.current?.element ?? null, [listRef]);
     const toggle = React.useCallback((key: string) => {

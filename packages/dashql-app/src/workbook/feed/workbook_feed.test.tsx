@@ -22,7 +22,6 @@ import type { AgentSession, AgentSessionArgs, AgentTurn } from '../../agent/agen
 import { ComposerMode } from '../../agent/agent_connect.js';
 import type { AgentConnect } from '../../agent/agent_session_provider.js';
 import type { ScriptData, ScriptDataMap, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
-import { CONNECTOR_INFOS } from '@akohn/dashql/platform/connections/connector_info';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 

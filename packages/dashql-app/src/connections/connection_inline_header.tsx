@@ -15,7 +15,6 @@ import { getConnectionError, getConnectionHealthIndicator, getConnectionStatusTe
 import { useLogger } from '../host/logger_provider.js';
 import { CONNECTOR_ICON_STYLE, useConnectorIcon } from './connector_icon.js';
 
-const LOG_CTX = "conn_inline_header";
 
 interface Props {
     connector: ConnectorInfo;

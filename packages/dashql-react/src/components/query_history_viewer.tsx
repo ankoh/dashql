@@ -11,7 +11,7 @@ import { OverlaySize } from './overlay.js';
 import { AnchorAlignment, AnchorSide } from '../dom/anchored_position.js';
 import { JsonView } from './json/json_view.js';
 import { QueryExecutionState, QueryExecutionStatus } from '@akohn/dashql/platform/query/query_execution_state';
-import { observeSize } from './size_observer.js';
+import { useObservedSize } from './size_observer.js';
 import { useKeyEvents } from '../dom/key_events.js';
 import { VerticalScrollShadows } from './vertical_scroll_shadows.js';
 import { InspectorDetail, InspectorEmpty, InspectorOverlay, inspectorRowClassName } from './inspector_overlay.js';
@@ -145,7 +145,7 @@ export function QueryHistoryViewer(props: {
     const ListComponent = dependencies.List;
     // Container dimensions
     const containerRef = React.useRef<HTMLDivElement>(null);
-    const containerSize = observeSize(containerRef);
+    const containerSize = useObservedSize(containerRef);
     const containerWidth = containerSize?.width ?? 200;
     const containerHeight = containerSize?.height ?? 100;
 

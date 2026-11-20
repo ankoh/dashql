@@ -4,8 +4,8 @@ import * as styles from '../diagnostics/logs/log_viewer.module.css';
 import { List, useListRef } from 'react-window';
 
 import { LogRecord } from '@akohn/dashql/platform/logger/log_buffer';
-import { pollLogVersion, useLogger } from '../host/logger_provider.js';
-import { observeSize } from '@akohn/dashql-react/components/size_observer';
+import { useLogVersion, useLogger } from '../host/logger_provider.js';
+import { useObservedSize } from '@akohn/dashql-react/components/size_observer';
 import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
 import { useKeyEvents } from '@akohn/dashql-react/dom/key_events';
 import { LogJsonModal } from '../diagnostics/logs/log_json_modal.js';
@@ -32,7 +32,7 @@ interface TraceLogViewerProps {
 export const TraceLogViewer: React.FC<TraceLogViewerProps> = (props: TraceLogViewerProps) => {
     const logger = useLogger();
     // The trace subscription drives the re-renders, poll the log version only when showing all logs
-    const logVersion = pollLogVersion(100, props.traceId === undefined);
+    const logVersion = useLogVersion(100, props.traceId === undefined);
 
     // Maintain filtered log records for trace-specific viewing.
     // We append to a mutable array and bump a version, copying the array per record is quadratic.
@@ -82,7 +82,7 @@ export const TraceLogViewer: React.FC<TraceLogViewerProps> = (props: TraceLogVie
     // the last `maxRows` rows (see the scroll-to-last effect below), so the feed's own scroller
     // stays the only one. Otherwise it falls back to the fixed `height` prop and scrolls normally.
     const containerRef = React.useRef<HTMLDivElement>(null);
-    const containerSize = observeSize(containerRef);
+    const containerSize = useObservedSize(containerRef);
     const containerWidth = containerSize?.width ?? 200;
     // In fill mode the container stretches to its parent (height: 100%) and the inner list is sized
     // to the measured height so react-window has an explicit pixel viewport to scroll within.

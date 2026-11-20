@@ -491,7 +491,7 @@ function PlanCanvas(props: PlanCanvasProps) {
         const behavior = zoomRef.current;
         const group = sceneRef.current;
         if (viewport == null || svg == null || behavior == null || group == null) return;
-        let box: DOMRect | null = null;
+        let box: DOMRect | null;
         try { box = group.getBBox(); } catch { box = null; }
         if (box == null || box.width <= 0 || box.height <= 0) return;
         const bounds = { left: box.x, top: box.y, width: box.width, height: box.height };

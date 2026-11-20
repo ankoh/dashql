@@ -15,7 +15,7 @@ import {
 import { Button, ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
 import { TreeEntry, TreeEntryName } from '@akohn/dashql-react/components/tree_entry';
 import { VerticalScrollShadows } from '@akohn/dashql-react/components/vertical_scroll_shadows';
-import { observeSize } from '@akohn/dashql-react/components/size_observer';
+import { useObservedSize } from '@akohn/dashql-react/components/size_observer';
 import { classNames } from '@akohn/dashql-react/dom/classnames';
 import { formatBytes } from '@akohn/dashql-react/format/format';
 import { formatRelativeTime } from '@akohn/dashql-react/format/time_format';
@@ -364,7 +364,7 @@ export function StorageBrowserView(props: { onClose: () => void }) {
 
     // Container size for the virtual list
     const containerRef = React.useRef<HTMLDivElement>(null);
-    const containerSize = observeSize(containerRef);
+    const containerSize = useObservedSize(containerRef);
     const containerWidth = containerSize?.width ?? 200;
     const containerHeight = containerSize?.height ?? 100;
 

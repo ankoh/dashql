@@ -209,7 +209,7 @@ const Root: React.FC<SegmentedControlProps> = ({
 
                         if (!isDisabled) {
                             onChange?.(index);
-                            isUncontrolled && setSelectedIndexInternalState(index);
+                            if (isUncontrolled) setSelectedIndexInternalState(index);
                             child.props.onClick?.(event);
                         }
                     },

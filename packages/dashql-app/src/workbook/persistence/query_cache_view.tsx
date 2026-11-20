@@ -12,7 +12,7 @@ import { markDeletedQueryResults } from './query_result_cache_clear.js';
 import { useOptionalRuntime } from '@akohn/dashql-react/hooks';
 import { formatBytes } from '@akohn/dashql-react/format/format';
 import { formatRelativeTime } from '@akohn/dashql-react/format/time_format';
-import { observeSize } from '@akohn/dashql-react/components/size_observer';
+import { useObservedSize } from '@akohn/dashql-react/components/size_observer';
 import { useLogger } from '../../host/logger_provider.js';
 import { useQueryResultCache } from '../../storage/query_result_cache_provider.js';
 import { VerticalScrollShadows } from '@akohn/dashql-react/components/vertical_scroll_shadows';
@@ -105,7 +105,7 @@ export function QueryCacheView(props: { onClose: () => void; }) {
         }
         try {
             // A file that is read right now stays, the key is still cached
-            if (await cache.delete(key)) (runtime == null ? 0 : markDeletedQueryResults(runtime, [key]));
+            if ((await cache.delete(key)) && runtime != null) markDeletedQueryResults(runtime, [key]);
         } catch (e: any) {
             logger.warn('failed to delete query result cache entry', { error: String(e?.message ?? e) }, LOG_CTX);
         }
@@ -134,7 +134,7 @@ export function QueryCacheView(props: { onClose: () => void; }) {
 
     // Container size for the virtual list
     const containerRef = React.useRef<HTMLDivElement>(null);
-    const containerSize = observeSize(containerRef);
+    const containerSize = useObservedSize(containerRef);
     const containerWidth = containerSize?.width ?? 200;
     const containerHeight = containerSize?.height ?? 100;
 

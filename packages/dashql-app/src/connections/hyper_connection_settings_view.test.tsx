@@ -160,9 +160,6 @@ describe('HyperConnectorSettings', () => {
         if (element == null) throw new Error('nothing to click');
         await act(async () => element.click());
     }
-    async function settle() {
-        await act(async () => { await new Promise<void>(resolve => setTimeout(resolve, 0)); });
-    }
     /// Run as the desktop app, it speaks gRPC. The storage registers its flush with the bridge.
     function asDesktop() {
         (globalThis as { dashqlElectron?: unknown }).dashqlElectron = { onFlush: () => () => { } };

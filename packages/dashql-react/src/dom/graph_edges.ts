@@ -166,7 +166,7 @@ export function selectHorizontalEdgeType(
     const dx = toX - fromX;
     const dy = toY - fromY;
     const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
-    let orientation = selectEdgeTypeFromAngle(angle);
+    const orientation = selectEdgeTypeFromAngle(angle);
     if (orientation >= 4) {
         return orientation + 12; // [16, 20[
     } else {
@@ -184,7 +184,7 @@ export function selectVerticalEdgeType(
     const dx = toX - fromX;
     const dy = toY - fromY;
     const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
-    let orientation = selectEdgeTypeFromAngle(angle);
+    const orientation = selectEdgeTypeFromAngle(angle);
     if (orientation >= 4) {
         return orientation + 8; // [12, 16[
     } else {

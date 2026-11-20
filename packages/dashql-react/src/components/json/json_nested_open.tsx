@@ -42,7 +42,7 @@ export function JsonNestedOpen(props: NestedOpenProps) {
     // Click handler
     const click = () => {
         const opt = { expand: !isExpanded, value: props.value, keyName: props.keyName };
-        onExpand && onExpand(opt);
+        onExpand?.(opt);
         dispatchExpands({ [props.expandKey]: opt.expand });
     };
 

@@ -61,7 +61,7 @@ export function decodeRunEvent(value: unknown): RunEvent | null {
     if (value == null || typeof value !== 'object' || typeof (value as { type?: unknown }).type !== 'string') return null;
     const event = value as RunEvent & { table?: unknown; png?: unknown };
     if (event.type === 'script_chart') {
-        let png: Uint8Array | null = null;
+        let png: Uint8Array | null;
         try {
             png = typeof event.png === 'string' ? fromBase64(event.png) : null;
         } catch {

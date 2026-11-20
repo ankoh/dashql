@@ -1,7 +1,6 @@
 import type * as core from '@akohn/dashql';
 import { isListedConnection } from './connection_label.js';
 import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
-import { connectorInfoOf } from '@akohn/dashql/platform/connections/connection_state';
 
 /// The connections that can replace a connection, grouped by their connector
 export interface ConnectionReplaceCandidates {

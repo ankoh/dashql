@@ -20,8 +20,7 @@ import { listCloudWorkbookVersions, publishCloudWorkbook } from './cloud_store.j
 import { CLOUD_DATABASE, CLOUD_MIGRATIONS, installCloudStore, type CloudQuery } from './cloud_store_schema.js';
 import { AppConfigProvider, useAppConfig, useAppReconfigure, type AppConfig } from '../config/app_config.js';
 import { FlavorProvider } from '../config/flavor_provider.js';
-import { ConnectionHealth, ConnectionStatus, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
-import { CONNECTOR_INFOS, ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
+import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_state';
 import type { QueryExecutor } from '@akohn/dashql/platform/connections/query_execution_args';
 import { TestRuntime } from '../tests/test_runtime.js';
 import { LoggerProvider } from '../host/logger_provider.js';
@@ -34,13 +33,12 @@ import { createTestRoot } from '@akohn/dashql-react/testing/react_root';
 import { quoteLiteral } from '@akohn/dashql/platform/utils/sql_quote';
 import * as core from '@akohn/dashql';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
-import { useConnections, useRuntime } from '@akohn/dashql-react/hooks';
+import { useRuntime } from '@akohn/dashql-react/hooks';
 import { addTestConnection } from '../tests/test_connections.js';
 
 // The overview of a local cloud on the embedded Hyper of the tests: the statements of the cloud state go through the
 // query executor to the session of the local cloud, the listings of the page run against the same tables
 
-type Registry = ReadonlyMap<string, ConnectionState>;
 let appRuntime: Runtime | null = null;
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -119,12 +117,10 @@ function useTestWorkbooks(): CloudWorkbooks {
 
 describe('CloudOverviewPage', () => {
     let root: ReturnType<typeof createTestRoot>;
-    let registry: Registry | null;
     let config: AppConfig | null;
     let reconfigure: ReturnType<typeof useAppReconfigure> | null;
 
     function Capture() {
-        registry = useConnections();
         appRuntime = useRuntime();
         config = useAppConfig();
         reconfigure = useAppReconfigure();
@@ -137,7 +133,6 @@ describe('CloudOverviewPage', () => {
         await statements;
         await connection.execute(`DROP SCHEMA IF EXISTS "${CLOUD_DATABASE}"."dashql" CASCADE`);
         root = createTestRoot();
-        registry = null;
         config = null;
         reconfigure = null;
     });

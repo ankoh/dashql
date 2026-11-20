@@ -148,7 +148,7 @@ for (const [title, others] of [['3 scripts', FEW_SCRIPTS], ['20 scripts', manySc
             shown = update.textVersion;
             const t1 = performance.now();
             // The store takes the changes and reads the view of the script, the editor update is the one it holds
-            const changes = runtime.takeChanges().changes;
+            runtime.takeChanges();
             const statistics = view.statistics;
             const known = {
                 editorUpdate: heldKey,

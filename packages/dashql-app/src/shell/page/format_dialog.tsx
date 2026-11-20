@@ -135,13 +135,12 @@ function analyzeSql(
 
     const session = core.createScriptSession(catalog);
     const script = core.createScript(catalog);
-    let parsed: dashql.FlatBufferPtr<dashql.buffers.parser.ParsedScript> | null = null;
     try {
         session.replaceText(0n, text);
         const update = session.analyze();
         script.replaceText(text);
         script.parse();
-        parsed = script.getParsed();
+        const parsed = script.getParsed();
         const parsedReader = parsed.read();
         if (parsedReader.scannerErrorsLength() > 0) {
             return {

@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { test } from 'node:test';
 
-import { startFakeAnthropic, text, toolResults, toolUse } from './fake_anthropic.mjs';
+import { startFakeAnthropic, text, toolUse } from './fake_anthropic.mjs';
 import { installEdgeSkill, SKILL_DESCRIPTION, writeEdgeCommand } from './hyperdb_edge.mjs';
 import { requireLinuxSandboxTools, runHarness } from './probes.mjs';
 

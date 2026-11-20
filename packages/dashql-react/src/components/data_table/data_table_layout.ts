@@ -60,7 +60,7 @@ export interface DataTableLayoutInput {
 
 export function computeTableLayout(formatter: ArrowTableFormatter, state: DataTableLayoutInput, showSystemColumns: boolean, headerRowCount: number, containerWidth: number = 0, visibleColumnGroups?: ReadonlySet<number> | null, resizedColumnWidths?: ReadonlyMap<string, number> | null): DataTableLayout {
     // Allocate column offsets
-    let columnCount = computeColumnCount(state.columnGroups, showSystemColumns, visibleColumnGroups);
+    const columnCount = computeColumnCount(state.columnGroups, showSystemColumns, visibleColumnGroups);
     const columnFields = new Uint32Array(columnCount);
     const columnOffsets = new Float64Array(columnCount + 1);
     const columnAggregateIndex = new Int32Array(columnCount);
@@ -98,7 +98,7 @@ export function computeTableLayout(formatter: ArrowTableFormatter, state: DataTa
             }
             case SKIPPED_COLUMN:
                 break;
-            case ORDINAL_COLUMN:
+            case ORDINAL_COLUMN: {
                 const outputIndex = nextDisplayColumn++;
                 const valueColumnFormatter = formatter.columns[fieldIndexByName.get(columnGroup.value.inputFieldName)!];
                 let valueColumnWidth = Math.max(
@@ -130,6 +130,7 @@ export function computeTableLayout(formatter: ArrowTableFormatter, state: DataTa
                     nextDisplayOffset += idColumnWidth;
                 }
                 break;
+            }
             case STRING_COLUMN:
             case LIST_COLUMN: {
                 const outputIndex = nextDisplayColumn++;

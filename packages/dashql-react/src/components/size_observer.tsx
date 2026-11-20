@@ -16,7 +16,7 @@ function keepSameSize(prev: ObservedSize | null, next: ObservedSize | null): Obs
     return next;
 }
 
-export const observeSize = (target: React.RefObject<HTMLElement | null>, enabled: boolean = true): ObservedSize | null => {
+export const useObservedSize = (target: React.RefObject<HTMLElement | null>, enabled: boolean = true): ObservedSize | null => {
     const [size, setSize] = React.useState<ObservedSize | null>(null);
     React.useLayoutEffect(() => {
         const next = target.current?.getBoundingClientRect() ?? null;

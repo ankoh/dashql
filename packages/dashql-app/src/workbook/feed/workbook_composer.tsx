@@ -23,7 +23,6 @@ import { WorkbookInputCard } from '../inputs/workbook_input_card.js';
 import { collectDraftInputs, sameInputs, workbookInputLiteral, type WorkbookInput } from '@akohn/dashql/platform/workbook/workbook_inputs';
 import type { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import type { SnippetRegistry } from '../snippets/snippet_registry.js';
-import { quoteIdentifier } from '@akohn/dashql/platform/utils/sql_quote';
 
 /// The table parameters of a workbook for a session that is no script of it
 export interface WorkbookTableParameters {

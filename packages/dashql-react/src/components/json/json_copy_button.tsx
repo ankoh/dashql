@@ -37,7 +37,7 @@ export function JsonCopyButton<T extends object>(props: JsonCopyButtonProps<T>) 
 
     const click = (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
         event.stopPropagation();
-        let copyText = '';
+        let copyText: string;
         if (typeof value === 'number' && value === Infinity) {
             copyText = 'Infinity';
         } else if (typeof value === 'number' && isNaN(value)) {
@@ -57,7 +57,7 @@ export function JsonCopyButton<T extends object>(props: JsonCopyButtonProps<T>) 
             copyText = finalBeforeCopy(copyText, keyName, value, parentValue, expandKey, keyPath);
         }
 
-        onCopied && onCopied(copyText, value);
+        onCopied?.(copyText, value);
         setCopied(true);
 
         const _clipboard = navigator.clipboard || {

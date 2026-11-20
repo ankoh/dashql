@@ -6,8 +6,8 @@ import type { RowComponentProps } from 'react-window';
 import { XIcon, DownloadIcon } from '@akohn/dashql-react/components/symbol_icon';
 
 import { getLogLevelName, LogRecord } from '@akohn/dashql/platform/logger/log_buffer';
-import { pollLogVersion, useLogger } from '../../host/logger_provider.js';
-import { observeSize } from '@akohn/dashql-react/components/size_observer';
+import { useLogVersion, useLogger } from '../../host/logger_provider.js';
+import { useObservedSize } from '@akohn/dashql-react/components/size_observer';
 import { ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
 import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
 import { useKeyEvents } from '@akohn/dashql-react/dom/key_events';
@@ -87,7 +87,7 @@ interface LogViewerProps {
 
 export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
     const logger = useLogger();
-    const logVersion = pollLogVersion(100);
+    const logVersion = useLogVersion(100);
     const host = useHost();
 
     // Maintain filtered log records for trace-specific viewing.
@@ -170,7 +170,7 @@ export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
 
     // Determine log container dimensions
     const containerRef = React.useRef<HTMLDivElement>(null);
-    const containerSize = observeSize(containerRef);
+    const containerSize = useObservedSize(containerRef);
     const containerWidth = containerSize?.width ?? 200;
     const containerHeight = containerSize?.height ?? 100;
 

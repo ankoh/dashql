@@ -434,7 +434,7 @@ async function describeQuery(connection: HyperDBSourceConnection, query: string,
     try {
         result = await connection.query(`EXPLAIN (FORMAT SCHEMA) ${query}`);
     } catch (error) {
-        throw new Error(`invalid ${what}: ${error instanceof Error ? error.message : String(error)}`);
+        throw new Error(`invalid ${what}: ${error instanceof Error ? error.message : String(error)}`, { cause: error });
     }
     const names = result.getChild('name');
     const types = result.getChild('type');

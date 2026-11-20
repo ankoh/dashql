@@ -9,7 +9,6 @@ import { CorePanicOverlay } from './core_panic_overlay.js';
 import { HostProvider, useHost, type CoreSetup } from '@akohn/dashql-react/host';
 
 // Load the WebAssembly asset through the core package export.
-// eslint-disable-next-line import/no-unresolved -- resolved by bundler
 import coreWasmUrl from '@akohn/dashql/wasm?url';
 const DASHQL_WASM_URL = typeof coreWasmUrl === 'string' ? coreWasmUrl : new URL(coreWasmUrl as string, import.meta.url).href;
 

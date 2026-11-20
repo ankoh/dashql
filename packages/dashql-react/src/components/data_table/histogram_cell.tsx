@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as d3 from 'd3';
 import * as styles from './histogram_cell.module.css';
 
-import { observeSize } from '../size_observer.js';
+import { useObservedSize } from '../size_observer.js';
 import { ColumnAggregationVariant, OrdinalColumnAggregation, ORDINAL_COLUMN, TableAggregation, WithFilterEpoch } from '@akohn/dashql/platform/compute/computation_types';
 import { dataTypeToString } from '@akohn/dashql/platform/compute/arrow_formatter';
 import { COLUMN_SUMMARY_BASELINE_COLOR, getTotalBarColor, getFilteredBarColor } from './data_table_colors.js';
@@ -36,7 +36,7 @@ function HistogramCellImpl(props: HistogramCellProps): React.ReactElement {
     const binCount = props.columnAggregate.columnAnalysis.binCount;
 
     const svgContainer = React.useRef<HTMLDivElement>(null);
-    const svgContainerSize = observeSize(svgContainer);
+    const svgContainerSize = useObservedSize(svgContainer);
     const margin = { top: 8, right: 8, bottom: 20, left: 8 },
         width = (svgContainerSize?.width ?? 130) - margin.left - margin.right,
         height = (svgContainerSize?.height ?? 50) - margin.top - margin.bottom;
@@ -54,12 +54,12 @@ function HistogramCellImpl(props: HistogramCellProps): React.ReactElement {
         for (let i = 0; i < binCount; ++i) {
             xValues.push(i.toString());
         }
-        let yMin = BigInt(0);
+        const yMin = BigInt(0);
         let yMax = BigInt(countNull ?? 0);
         for (let i = 0; i < binCounts.length; ++i) {
             yMax = binCounts[i] > yMax ? binCounts[i] : yMax;
         }
-        let yDomain = [Number(yMin), Number(yMax)];
+        const yDomain = [Number(yMin), Number(yMax)];
 
         const histXScale = d3.scaleBand()
             .range([0, histWidth])

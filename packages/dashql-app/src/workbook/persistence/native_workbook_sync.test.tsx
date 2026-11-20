@@ -50,7 +50,6 @@ function App(props: { restore: (runtime: Runtime) => Promise<core.RestoreOutcome
     const [restored, setRestored] = React.useState<core.RestoreOutcome | null>(null);
     React.useEffect(() => {
         void props.restore(runtime).then(setRestored);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
     React.useLayoutEffect(() => {
         if (restored != null) props.capture({ runtime, writer, logger, connections, workbooks });

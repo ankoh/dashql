@@ -1,4 +1,3 @@
-import * as app_event from '@akohn/dashql-jsonschema/app_event.js';
 
 import { VariantKind } from "@akohn/dashql/platform/utils/variant";
 import { PlatformFile } from "../file.js";

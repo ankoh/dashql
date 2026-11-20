@@ -35,7 +35,7 @@ export const AppLoadingPage: React.FC<Props> = (props: Props) => {
                 if (!abort.signal.aborted) {
                     setCoreStatus(IndicatorStatus.Succeeded);
                 }
-            } catch (e: any) {
+            } catch {
                 setCoreStatus(IndicatorStatus.Failed);
             }
         };

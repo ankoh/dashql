@@ -33,7 +33,6 @@ export const ANSI = {
     eraseLines: (n: number) => n > 0 ? `\x1b[${n}F\x1b[J` : '',
 } as const;
 
-// eslint-disable-next-line no-control-regex
 const ESCAPE = /\x1b\[[0-9;?]*[A-Za-z]/y;
 
 /// The visible length of text with escape sequences, in code points

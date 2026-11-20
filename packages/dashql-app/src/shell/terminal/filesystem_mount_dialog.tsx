@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import * as ActionList from '@akohn/dashql-react/components/action_list';
-import { Button, ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
+import { Button, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
 import { useFocusTrap } from '@akohn/dashql-react/dom/focus';
 import { Overlay, OverlaySize } from '@akohn/dashql-react/components/overlay';
 import { FileDirectoryIcon, FileIcon, XIcon } from '@akohn/dashql-react/components/symbol_icon';

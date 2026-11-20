@@ -32,6 +32,7 @@ function connection(connectionId: string) {
         cancel: vi.fn(async () => {}),
         getMetrics: createQueryResponseStreamMetrics,
         getSchema: async () => null,
+        // eslint-disable-next-line require-yield -- a stream that ends before its first batch
         read: vi.fn<QueryExecutionResponseStream['read']>(async function* (abort) {
             await new Promise(resolve => abort?.addEventListener('abort', resolve, { once: true }));
             abort?.throwIfAborted();
@@ -69,7 +70,6 @@ function Capture(props: { databases: ((runtime: Runtime) => Promise<void>)[]; ca
             for (const create of props.databases) await create(runtime);
             setCreated(true);
         })();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [runtime]);
     React.useLayoutEffect(() => {
         if (compute && created) props.capture({ execute, merge, logMetrics, connections });

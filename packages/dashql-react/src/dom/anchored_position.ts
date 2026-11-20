@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { observeSize } from '../components/size_observer.js';
+import { useObservedSize } from '../components/size_observer.js';
 import { isDesktopHost } from './app_host.js';
 
 export enum AnchorAlignment {
@@ -170,7 +170,6 @@ function isOnTopLayer(element: Element) {
         return true
     }
     try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if (element.matches(':popover-open') && /native code/.test((document.body as any).showPopover?.toString())) {
             return true
         }
@@ -496,7 +495,7 @@ export function useAnchoredPosition(args?: AnchoredPositionHookArgs, dependencie
     const [position, setPosition] = React.useState<AnchorPosition | undefined>(undefined)
 
     const windowElem = React.useRef(document.documentElement);
-    const windowSize = observeSize(windowElem, args?.observeWindow ?? true);
+    const windowSize = useObservedSize(windowElem, args?.observeWindow ?? true);
 
     // Update the anchored position whenever the window resizes
     React.useLayoutEffect(() => {

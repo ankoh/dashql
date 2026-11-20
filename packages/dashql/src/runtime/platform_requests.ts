@@ -70,7 +70,7 @@ export class PlatformRequests {
             // runtime keeps only the message
             const cause = error instanceof Error ? (error as { cause?: unknown }).cause : undefined;
             if (error instanceof Error && cause instanceof Error) {
-                throw new Error(`${error.message}: ${cause.message}`);
+                throw new Error(`${error.message}: ${cause.message}`, { cause: error });
             }
             throw error;
         } finally {

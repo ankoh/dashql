@@ -1,7 +1,7 @@
 import * as core from '../../core/index.js';
 import { describe, expect, it } from 'vitest';
 
-import { readWorkbookInputType, workbookInputControl, WorkbookInputControl, type WorkbookInputType } from './workbook_inputs.js';
+import { workbookInputControl, WorkbookInputControl, type WorkbookInputType } from './workbook_inputs.js';
 
 const Kind = core.buffers.analyzer.SqlTypeKind;
 

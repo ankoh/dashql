@@ -7,7 +7,7 @@ import { InternalsViewer, InternalsViewerOverlay } from './internals_overlay.js'
 import { AppConfigProvider, useAppConfig, type AppConfig } from '../config/app_config.js';
 import { FlavorProvider } from '../config/flavor_provider.js';
 import { QueryType } from '@akohn/dashql/platform/query/query_execution_state';
-import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
+import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_state';
 import { LoggerProvider } from '../host/logger_provider.js';
 import { StorageProvider } from '../storage/storage_provider.js';
 import { QueryResultCacheProvider } from '../storage/query_result_cache_provider.js';
@@ -18,10 +18,9 @@ import { createTestRoot } from '@akohn/dashql-react/testing/react_root';
 import { TestRuntime } from '../tests/test_runtime.js';
 import * as core from '@akohn/dashql';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
-import { useConnections, useRuntime } from '@akohn/dashql-react/hooks';
+import { useRuntime } from '@akohn/dashql-react/hooks';
 import { addTestConnection, pendingTestChannel, runTestQuery } from '../tests/test_connections.js';
 
-type Registry = ReadonlyMap<string, ConnectionState>;
 let appRuntime: Runtime | null = null;
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
@@ -51,12 +50,10 @@ async function connectionWithQueries(runtime: Runtime): Promise<void> {
 
 describe('InternalsViewer', () => {
     let root: ReturnType<typeof createTestRoot>;
-    let registry: Registry | null;
     let config: AppConfig | null;
     let onClose: ReturnType<typeof vi.fn<() => void>>;
 
     function Capture() {
-        registry = useConnections();
         appRuntime = useRuntime();
         config = useAppConfig();
         return null;
@@ -67,7 +64,6 @@ describe('InternalsViewer', () => {
         root.container.style.width = '1000px';
         root.container.style.height = '700px';
         root.container.style.display = 'flex';
-        registry = null;
         config = null;
         onClose = vi.fn<() => void>();
         // The storage browser lists an empty OPFS

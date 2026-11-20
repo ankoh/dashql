@@ -107,13 +107,13 @@ export class Base64Codec {
                 const encoded2 = this.lookupTable[base64.charCodeAt(reader + 1)];
                 const encoded3 = this.lookupTable[base64.charCodeAt(reader + 2)];
                 bytes[writer++] = (encoded1 << 2) | (encoded2 >> 4);
-                bytes[writer++] = ((encoded2 & 15) << 4) | (encoded3 >> 2);
+                bytes[writer] = ((encoded2 & 15) << 4) | (encoded3 >> 2);
                 break;
             }
             case 2: {
                 const encoded1 = this.lookupTable[base64.charCodeAt(reader)];
                 const encoded2 = this.lookupTable[base64.charCodeAt(reader + 1)];
-                bytes[writer++] = (encoded1 << 2) | (encoded2 >> 4);
+                bytes[writer] = (encoded1 << 2) | (encoded2 >> 4);
                 break;
             }
             case 1: {
@@ -224,13 +224,13 @@ export class Base64UrlCodec {
                 const encoded2 = this.lookupTable[base64.charCodeAt(reader + 1)];
                 const encoded3 = this.lookupTable[base64.charCodeAt(reader + 2)];
                 bytes[writer++] = (encoded1 << 2) | (encoded2 >> 4);
-                bytes[writer++] = ((encoded2 & 15) << 4) | (encoded3 >> 2);
+                bytes[writer] = ((encoded2 & 15) << 4) | (encoded3 >> 2);
                 break;
             }
             case 2: {
                 const encoded1 = this.lookupTable[base64.charCodeAt(reader)];
                 const encoded2 = this.lookupTable[base64.charCodeAt(reader + 1)];
-                bytes[writer++] = (encoded1 << 2) | (encoded2 >> 4);
+                bytes[writer] = (encoded1 << 2) | (encoded2 >> 4);
                 break;
             }
             case 1: {

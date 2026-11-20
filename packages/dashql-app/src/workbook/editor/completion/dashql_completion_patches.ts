@@ -138,22 +138,22 @@ export function computePatches(prevState: DashQLCompletionState, text: Text, cur
         nextState.catalogObjectPatch = [];
 
         // Qualification prefix
-        let name = unpackQualifiedObjectName(catalogObject);
-        let qualPrefix = name.slice(0, catalogObject.qualifiedNameTargetIdx());
+        const name = unpackQualifiedObjectName(catalogObject);
+        const qualPrefix = name.slice(0, catalogObject.qualifiedNameTargetIdx());
         if (qualPrefix.length > 0) {
-            let have = text.sliceString(qualifiedFrom, targetFrom);
-            let want = qualPrefix.join(".") + ".";
+            const have = text.sliceString(qualifiedFrom, targetFrom);
+            const want = qualPrefix.join(".") + ".";
             // The prefix precedes the candidate, an opening quote of the candidate must follow it
-            let patch = completionDiff(qualifiedFrom, have, want, CompletionPatchTarget.CatalogObject, cursor, TextAnchor.Right);
+            const patch = completionDiff(qualifiedFrom, have, want, CompletionPatchTarget.CatalogObject, cursor, TextAnchor.Right);
             nextState.catalogObjectPatch = patch;
         }
 
         // Qualification suffix
-        let qualSuffix = name.slice(catalogObject.qualifiedNameTargetIdx() + 1);
+        const qualSuffix = name.slice(catalogObject.qualifiedNameTargetIdx() + 1);
         if (qualSuffix.length > 0) {
-            let have = text.sliceString(targetTo, qualifiedTo);
-            let want = "." + qualSuffix.join(".");
-            let patch = completionDiff(targetTo, have, want, CompletionPatchTarget.CatalogObject, cursor);
+            const have = text.sliceString(targetTo, qualifiedTo);
+            const want = "." + qualSuffix.join(".");
+            const patch = completionDiff(targetTo, have, want, CompletionPatchTarget.CatalogObject, cursor);
             nextState.catalogObjectPatch = nextState.catalogObjectPatch.concat(patch);
         }
     }

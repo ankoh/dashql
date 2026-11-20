@@ -46,13 +46,13 @@ export function JsonLiteral(props: ValueProps) {
     return null;
 };
 
-export function bigIntToString(bi?: BigInt | string) {
+export function bigIntToString(bi?: bigint | string) {
     if (bi === undefined) {
         return '0n';
     } else if (typeof bi === 'string') {
         try {
             bi = BigInt(bi);
-        } catch (e) {
+        } catch {
             return '0n';
         }
     }

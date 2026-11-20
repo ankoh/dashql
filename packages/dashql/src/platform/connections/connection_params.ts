@@ -1,7 +1,7 @@
 import type * as app_workbook from '@akohn/dashql-jsonschema/app_workbook.js';
 
 import * as core from '../../core/index.js';
-import { CONNECTOR_INFOS, ConnectorType, ConnectorInfo } from './connector_info.js';
+import { ConnectorType, ConnectorInfo } from './connector_info.js';
 import type { ConnectionState, NewConnection } from './connection_state.js';
 import { connectionParamsOf, connectorOf, connectorOfParams, connectorParams } from './connector_descriptor.js';
 

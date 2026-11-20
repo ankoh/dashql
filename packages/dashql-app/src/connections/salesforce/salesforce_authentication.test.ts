@@ -12,7 +12,7 @@ import { createRuntime } from '@akohn/dashql/runtime/runtime';
 import type { Logger } from '@akohn/dashql/platform/logger/logger';
 import { TASK_UPDATE_SCHEDULER } from '@akohn/dashql/runtime/store/update_scheduler';
 import type { OAuthFlow } from '@akohn/dashql/platform/oauth_flow';
-import { DATA_CLOUD_JWT, fakeSalesforceHttp, type FakeSalesforceOptions } from './salesforce_test_http.js';
+import { DATA_CLOUD_JWT, fakeSalesforceHttp } from './salesforce_test_http.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 let dql: core.DashQL;

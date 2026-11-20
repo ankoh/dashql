@@ -14,13 +14,9 @@ import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { HyperDB as HyperDBEngine } from 'hyperdb-wasm';
 import { HYPERDB_WASM_VERSION } from '../globals.js';
 
-// eslint-disable-next-line import/no-unresolved -- resolved by Vite
 import batchWorkerUrl from '@akohn/dashql/batch-worker?worker&url';
-// eslint-disable-next-line import/no-unresolved -- package asset resolved by Vite
 import hyperEngineUrl from '@dashql/hyperdb-wasm-js?url';
-// eslint-disable-next-line import/no-unresolved -- package asset resolved by Vite
 import hyperWorkerUrl from '@dashql/hyperdb-wasm-worker?url';
-// eslint-disable-next-line import/no-unresolved -- package asset resolved by Bazel/Vite alias
 import hyperWasmUrl from '@dashql/hyperdb-wasm?url';
 
 import '@akohn/dashql-react/fonts/fonts.css';

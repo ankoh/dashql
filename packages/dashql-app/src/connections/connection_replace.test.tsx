@@ -6,7 +6,7 @@ import type * as core from '@akohn/dashql';
 
 import { connectionReplaceBlocker, connectionReplaceCandidates } from './connection_replace.js';
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
-import { CONNECTOR_INFOS, CONNECTOR_TYPES, ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
+import { CONNECTOR_TYPES, ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { ConnectionRowMenu, type ConnectionRefreshDependencies } from './connection_tree.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);

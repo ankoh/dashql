@@ -71,7 +71,7 @@ describe('dashql lint', () => {
 
     it('shows the timings with --debug', async () => {
         const output = await lint(testFiles([['a.sql', 'select 1;\n']]), ['--debug', 'a.sql']);
-        expect(output.stdout).toMatch(/^dashql-core  scan, parse and analyze \d+ ms\n\n1 file/);
+        expect(output.stdout).toMatch(/^dashql-core {2}scan, parse and analyze \d+ ms\n\n1 file/);
     });
 
     it('rejects bad command lines', async () => {
