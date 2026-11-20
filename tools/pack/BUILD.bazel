@@ -1,4 +1,5 @@
 load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_test")
+load("//bazel:rustfmt.bzl", "rustfmt_test")
 
 _DEPS = [
     "@crates//:anyhow",
@@ -44,4 +45,10 @@ rust_binary(
     ],
     deps = _DEPS,
     visibility = ["//visibility:public"]
+)
+
+# rustfmt of the Rust files of the package, see //bazel:rustfmt.bzl
+rustfmt_test(
+    name = "rustfmt_test",
+    srcs = glob(["**/*.rs"]),
 )

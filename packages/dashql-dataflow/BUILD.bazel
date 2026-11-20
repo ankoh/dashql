@@ -7,6 +7,7 @@
 
 load("@rules_rust//rust:defs.bzl", "rust_library", "rust_shared_library", "rust_test")
 load("@rules_rust_wasm_bindgen//:defs.bzl", "rust_wasm_bindgen")
+load("//bazel:rustfmt.bzl", "rustfmt_test")
 load("//bazel:wasm_tools.bzl", "optimize_wasm", "wasm_bindgen_module")
 
 rust_library(
@@ -63,4 +64,10 @@ optimize_wasm(
     src = ":dashql_dataflow_bindgen_wasm",
     out = "dashql_dataflow_bg.wasm",
     visibility = ["//visibility:public"],
+)
+
+# rustfmt of the Rust files of the package, see //bazel:rustfmt.bzl
+rustfmt_test(
+    name = "rustfmt_test",
+    srcs = glob(["**/*.rs"]),
 )

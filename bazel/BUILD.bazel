@@ -8,6 +8,7 @@ exports_files([
     "external_duckdb_cli.BUILD",
     "external_m4.bzl",
     "macos_packaging.bzl",
+    "rustfmt_test.sh",
 ])
 
 # The safety lints of the Rust crates linked into the core module, see rust_safety.bzl: a panic traps the whole module,

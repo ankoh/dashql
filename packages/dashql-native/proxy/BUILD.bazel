@@ -2,6 +2,7 @@ load("@aspect_bazel_lib//lib:copy_file.bzl", "copy_file")
 load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
 load("@rules_rust//rust:defs.bzl", "rust_library", "rust_shared_library", "rust_test")
 load("//bazel:macos_packaging.bzl", "platform_binary")
+load("//bazel:rustfmt.bzl", "rustfmt_test")
 
 package(default_visibility = ["//visibility:private"])
 
@@ -115,4 +116,10 @@ platform_binary(
     tags = ["manual"],
     target_compatible_with = ["@platforms//os:macos"],
     visibility = ["//packages/dashql-native:__pkg__"],
+)
+
+# rustfmt of the Rust files of the package, see //bazel:rustfmt.bzl
+rustfmt_test(
+    name = "rustfmt_test",
+    srcs = glob(["**/*.rs"]),
 )

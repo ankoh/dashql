@@ -5,6 +5,7 @@
 # All third-party crates resolve from the isolated @core_crates universe (MODULE.bazel).
 
 load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_library", "rust_test")
+load("//bazel:rustfmt.bzl", "rustfmt_test")
 load("//tests/snapshots:defs.bzl", "snapshot_library")
 
 package(default_visibility = ["//visibility:public"])
@@ -98,4 +99,10 @@ rust_test(
         ":dashql_snapshots",
         "//packages/dashql-parser:dashql_parser",
     ],
+)
+
+# rustfmt of the Rust files of the package, see //bazel:rustfmt.bzl
+rustfmt_test(
+    name = "rustfmt_test",
+    srcs = glob(["**/*.rs"]),
 )

@@ -1,4 +1,5 @@
 load("@rules_rust//rust:defs.bzl", "rust_binary")
+load("//bazel:rustfmt.bzl", "rustfmt_test")
 load(":datasets.bzl", "declare_datasets", "tpch_extension_repo_name")
 
 # The vendored TPC-H extension, selected per exec platform. Unlike //bazel:duckdb_cli
@@ -89,4 +90,10 @@ rust_binary(
         "@crates//:walkdir",
     ],
     visibility = ["//visibility:public"],
+)
+
+# rustfmt of the Rust files of the package, see //bazel:rustfmt.bzl
+rustfmt_test(
+    name = "rustfmt_test",
+    srcs = glob(["**/*.rs"]),
 )

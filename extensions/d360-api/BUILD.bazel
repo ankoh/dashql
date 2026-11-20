@@ -13,6 +13,7 @@
 load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_test")
 load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
 load("@rules_shell//shell:sh_test.bzl", "sh_test")
+load("//bazel:rustfmt.bzl", "rustfmt_test")
 
 filegroup(
     name = "files",
@@ -95,4 +96,10 @@ rust_test(
         "//proto/fb:dashql_buffers_rs",
         "@core_crates//:serde_json",
     ],
+)
+
+# rustfmt of the Rust files of the package, see //bazel:rustfmt.bzl
+rustfmt_test(
+    name = "rustfmt_test",
+    srcs = glob(["**/*.rs"]),
 )

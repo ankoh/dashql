@@ -5,6 +5,7 @@
 
 load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
 load("//bazel:rust_safety.bzl", "rust_safety_test")
+load("//bazel:rustfmt.bzl", "rustfmt_test")
 load("//grammar/rust:defs.bzl", "bison_rust_tables")
 
 # rules_rust places generated sources next to the checked-in ones only if they belong to the same
@@ -69,4 +70,10 @@ rust_test(
     ],
     crate_root = "tests/calc_test.rs",
     edition = "2021",
+)
+
+# rustfmt of the Rust files of the package, see //bazel:rustfmt.bzl
+rustfmt_test(
+    name = "rustfmt_test",
+    srcs = glob(["**/*.rs"]),
 )

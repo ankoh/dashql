@@ -114,6 +114,7 @@ bazel test //...
 | `//packages/dashql-core-shell:all` | Shell tests, Clippy with the safety lints |
 | `//packages/dashql-core-profile:all` | Query profile unit tests, and the plan and progress snapshot tests, Clippy with the safety lints |
 | `//packages/dashql-dataflow:all` | Dataflow layout and routing unit tests |
+| `//<package>:rustfmt_test` | `rustfmt --check` of the Rust files of a package with Rust code, part of its `:all`, see "rustfmt" |
 | `//packages/dashql-core:dashql_core_unit_tests` | Core unit tests |
 | `//tests/snapshots:parser_snapshot_test` | Parser snapshot tests |
 | `//packages/dashql-core:analyzer_snapshot_test` | Analyzer snapshot tests |
@@ -325,6 +326,28 @@ bazel build //packages/dashql-core-runtime:clippy_test_clippy //packages/dashql-
 
 A new crate of the module takes the lints with `lint_config = "//bazel:rust_safety_lints"` and a `rust_safety_test`.
 
+### rustfmt
+
+The Rust code is formatted with rustfmt and the `rustfmt.toml` of the repo (120 columns, `use_small_heuristics =
+"Max"`). Every Bazel package with Rust files has a `:rustfmt_test` (`rustfmt_test` of `bazel/rustfmt.bzl`) that runs
+`rustfmt --check` on the files of the package (`glob(["**/*.rs"])`), so CI fails on unformatted code. Generated Rust
+(the parser tables of `//grammar`, the FlatBuffers of `//proto/fb`, the protos of the native proxy) is not in the tree
+and is not checked. The test and the formatter run the rustfmt of the Rust toolchain of rules_rust, a nightly, with
+`skip_children` so that rustfmt doesn't follow a module into a generated file. `bazel run @rules_rust//:rustfmt` and
+the `rustfmt_test` of rules_rust don't work here: their transition registers the host platform a second time and
+crashes Bazel 9.
+
+```bash
+# Format the Rust files of the repo that git knows (tracked or new), or those under paths relative to the repo root
+bazel run //bazel:rustfmt
+bazel run //bazel:rustfmt -- packages/dashql-core-runtime
+
+# Check the formatting of a package
+bazel test //packages/dashql-core-runtime:rustfmt_test
+```
+
+A new package with Rust files adds a `rustfmt_test(name = "rustfmt_test", srcs = glob(["**/*.rs"]))`.
+
 ### C++
 
 The only C++ code is the Hyper API binding in `tests/hyper`. It is type-checked when it is compiled.
@@ -446,6 +469,9 @@ bazel test //packages/dashql:all //packages/dashql/test/browser:all
 ### After Changing Rust Code
 
 ```bash
+# Format, the :rustfmt_test of each package checks it
+bazel run //bazel:rustfmt
+
 # Build and test (type checking happens automatically)
 bazel test //packages/dashql-native/proxy:test //tools/pack:test
 

@@ -1,5 +1,6 @@
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
 load("@rules_rust//rust:defs.bzl", "rust_library")
+load("//bazel:rustfmt.bzl", "rustfmt_test")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -80,4 +81,10 @@ cc_test(
         ":hyperapi",
         "@googletest//:gtest_main",
     ],
+)
+
+# rustfmt of the Rust files of the package, see //bazel:rustfmt.bzl
+rustfmt_test(
+    name = "rustfmt_test",
+    srcs = glob(["**/*.rs"]),
 )

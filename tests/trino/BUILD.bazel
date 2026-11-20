@@ -1,4 +1,5 @@
 load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_library", "rust_test")
+load("//bazel:rustfmt.bzl", "rustfmt_test")
 
 package(default_visibility = ["//visibility:private"])
 
@@ -119,4 +120,10 @@ rust_test(
         ":trino_testing",
         "@crates//:serde_json",
     ],
+)
+
+# rustfmt of the Rust files of the package, see //bazel:rustfmt.bzl
+rustfmt_test(
+    name = "rustfmt_test",
+    srcs = glob(["**/*.rs"]),
 )

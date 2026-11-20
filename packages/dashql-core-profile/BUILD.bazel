@@ -5,6 +5,7 @@
 
 load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
 load("//bazel:rust_safety.bzl", "rust_safety_test")
+load("//bazel:rustfmt.bzl", "rustfmt_test")
 
 rust_library(
     name = "dashql_core_profile",
@@ -52,4 +53,10 @@ rust_test(
         ":dashql_core_profile",
         "//tests/snapshots:dashql_snapshots",
     ],
+)
+
+# rustfmt of the Rust files of the package, see //bazel:rustfmt.bzl
+rustfmt_test(
+    name = "rustfmt_test",
+    srcs = glob(["**/*.rs"]),
 )
