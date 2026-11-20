@@ -30,13 +30,9 @@ fn error(message: &str) -> DetailedError {
     DetailedError::new(message)
 }
 
-/// A catalog update, the host keeps its record under the handle `100 + task_id`
+/// A catalog update
 fn task(task_id: u32, variant: CatalogUpdateVariant, touched: &[RelationName]) -> CatalogUpdateTask {
-    CatalogUpdateTask {
-        touched_relations: touched.to_vec(),
-        handle: Some(100 + task_id),
-        ..CatalogUpdateTask::new(task_id, variant, NOW)
-    }
+    CatalogUpdateTask { touched_relations: touched.to_vec(), ..CatalogUpdateTask::new(task_id, variant, NOW) }
 }
 
 /// Publish a descriptor with the declarations of a script into the catalog of a connection
@@ -71,19 +67,13 @@ fn stopping_aborts_the_pending_publishers_and_clears_the_running_tasks() {
         apply(&mut database, ConnectionAction::CatalogUpdateSucceeded { task_id: 2 });
         let revision = database.revision();
         let effects = apply(&mut database, stop.clone());
-        // The host stops the setup, the publishers and the tasks right after the action, before anything else runs,
-        // and releases the records of the running and the finished updates
+        // The host stops the setup and the tasks right after the action, before anything else runs
         assert_eq!(
             effects,
             vec![
                 ConnectionEffect::CancelSetup,
                 ConnectionEffect::CancelCatalogUpdate { task_id: 0, reason },
                 ConnectionEffect::CancelCatalogUpdate { task_id: 1, reason },
-                ConnectionEffect::Abort { handle: 100, reason },
-                ConnectionEffect::Abort { handle: 101, reason },
-                ConnectionEffect::Release { handle: 100 },
-                ConnectionEffect::Release { handle: 101 },
-                ConnectionEffect::Release { handle: 102 },
                 ConnectionEffect::StopQueries { reason },
             ],
             "{stop:?}"
@@ -606,18 +596,6 @@ fn reset_closes_the_channel_and_keeps_the_setup_params() {
     assert_eq!(connection.details().setup_params, Some(hyper_params("a").params));
     // A connection that was online stays active
     assert!(connection.active());
-}
-
-#[test]
-fn an_update_that_replaces_one_of_the_same_id_releases_its_handle() {
-    let mut database = hyper();
-    apply(&mut database, ConnectionAction::UpdateCatalog(task(0, CatalogUpdateVariant::FullCatalogRefresh, &[])));
-    let again = CatalogUpdateTask { handle: Some(200), ..task(0, CatalogUpdateVariant::FullCatalogRefresh, &[]) };
-    assert_eq!(
-        apply(&mut database, ConnectionAction::UpdateCatalog(again)),
-        vec![ConnectionEffect::Release { handle: 100 }]
-    );
-    assert_eq!(database.catalog_updates().tasks_running[&0].handle, Some(200));
 }
 
 #[test]

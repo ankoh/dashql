@@ -428,8 +428,6 @@ pub struct ConnectionCatalogUpdateTask {
     pub started_at: Option<f64>,
     pub finished_at: Option<f64>,
     pub touched_relations: Vec<ConnectionRelationName>,
-    /// The handle of the record of the update at the host: its cancellation and its error
-    pub handle: Option<u32>,
 }
 
 impl From<&CatalogUpdateTask> for ConnectionCatalogUpdateTask {
@@ -443,7 +441,6 @@ impl From<&CatalogUpdateTask> for ConnectionCatalogUpdateTask {
             started_at: task.started_at,
             finished_at: task.finished_at,
             touched_relations: relations(&task.touched_relations),
-            handle: task.handle,
         }
     }
 }

@@ -227,14 +227,10 @@ impl ConnectionRegistry {
         for effect in applied.effects {
             match effect {
                 ConnectionEffect::CancelSetup => outcome.effects.push(RegistryEffect::CancelSetup),
-                ConnectionEffect::Abort { handle, reason } => {
-                    outcome.effects.push(RegistryEffect::Abort { handle, reason })
-                }
                 ConnectionEffect::CancelCatalogUpdate { task_id, reason } => {
                     outcome.effects.push(RegistryEffect::CancelCatalogUpdate { task_id, reason })
                 }
                 ConnectionEffect::Close { handle } => outcome.effects.push(RegistryEffect::Close { handle }),
-                ConnectionEffect::Release { handle } => outcome.effects.push(RegistryEffect::Release { handle }),
                 ConnectionEffect::StopQueries { reason } => {
                     outcome.stopped.extend_from_slice(queries.active_ids());
                     let cleared = queries.clear(reason);

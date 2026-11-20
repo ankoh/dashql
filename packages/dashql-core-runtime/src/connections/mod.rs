@@ -120,8 +120,8 @@ impl fmt::Display for ConnectionHealth {
     }
 }
 
-/// What the host does after an action, in this order. The channels, the catalog updates and the queries are handles
-/// of the host (`crate::handles`).
+/// What the host does after an action, in this order. The channels and the queries are handles of the host
+/// (`crate::handles`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ConnectionEffect {
     /// Cancel the setup of the connection that is running, e.g. an OAuth flow
@@ -129,14 +129,10 @@ pub enum ConnectionEffect {
     /// Drop the queries of the connection and the metrics: the holder of the history clears it, which aborts the
     /// active queries with the reason and releases the handles of all queries
     StopQueries { reason: &'static str },
-    /// Abort a handle, e.g. a running catalog update
-    Abort { handle: Handle, reason: &'static str },
     /// Cancel a running catalog update of the catalog loader, it ends as cancelled with the reason
     CancelCatalogUpdate { task_id: u32, reason: &'static str },
     /// Close a handle, a channel of the host that the connection owned, and release it
     Close { handle: Handle },
-    /// Release a handle without closing it, e.g. the one of a catalog update that ended
-    Release { handle: Handle },
 }
 
 /// An action on a connection
@@ -530,10 +526,7 @@ impl ConnectionState {
                 outcome.changed = self.catalog_updates.touch(&relations);
             }
             ConnectionAction::UpdateCatalog(task) => {
-                // An update that replaces one of the same id lets go of its handle
-                if let Some(handle) = self.catalog_updates.start(task) {
-                    outcome.effects.push(ConnectionEffect::Release { handle });
-                }
+                self.catalog_updates.start(task);
                 outcome.changed = true;
             }
             ConnectionAction::CatalogUpdateRegisterQuery { task_id, query_id } => {
@@ -722,7 +715,7 @@ impl ConnectionState {
     }
 
     /// Stop a connection that is reset or deleted: cancel the setup, the catalog updates and the queries, close the
-    /// channel. The catalog updates release their handles.
+    /// channel.
     fn stop(&mut self, reason: &'static str, effects: &mut Vec<ConnectionEffect>) {
         // The steps of the setup that runs change nothing anymore
         self.setup_epoch += 1;
@@ -730,13 +723,6 @@ impl ConnectionState {
         let updates = std::mem::take(&mut self.catalog_updates);
         for task_id in updates.tasks_running.keys() {
             effects.push(ConnectionEffect::CancelCatalogUpdate { task_id: *task_id, reason });
-        }
-        for handle in updates.tasks_running.values().filter_map(|task| task.handle) {
-            effects.push(ConnectionEffect::Abort { handle, reason });
-        }
-        let tasks = updates.tasks_running.values().chain(updates.tasks_finished.values());
-        for handle in tasks.filter_map(|task| task.handle) {
-            effects.push(ConnectionEffect::Release { handle });
         }
         // The queries run on the channel of the stopped connection, the host stops them at the backend
         effects.push(ConnectionEffect::StopQueries { reason });
