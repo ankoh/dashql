@@ -11,3 +11,9 @@ allowBuilds:
   electron: true
   electron-winstaller: true
   protobufjs: false
+packageExtensions:
+  # astro2tsx pins @emnapi/core 1.x but takes @emnapi/runtime as a peer of @napi-rs/wasm-runtime. Without its own
+  # runtime the peer resolves to the 2.0 beta of the wasm binding of rolldown, and the mix fails at load.
+  '@astrojs/astro2tsx':
+    dependencies:
+      '@emnapi/runtime': 1.11.3
