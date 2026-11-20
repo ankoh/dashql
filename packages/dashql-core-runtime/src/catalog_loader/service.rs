@@ -245,9 +245,9 @@ impl<H: CatalogLoaderHost> CatalogLoaderService<H> {
 
         // The client functions of a connection come with its connector, scripts that call them are analyzed again
         let mut effects = Vec::new();
-        for (id, connection) in &connections {
+        for (_, connection) in &connections {
             let Ok(connection_state) = connection.state.try_borrow() else { continue };
-            effects.extend(self.state.borrow_mut().registrations.ensure_of(id, Some(&connection_state)));
+            effects.extend(self.state.borrow_mut().registrations.ensure(&connection_state));
         }
         self.run_registry_effects(effects);
 
@@ -283,8 +283,7 @@ impl<H: CatalogLoaderHost> CatalogLoaderService<H> {
             let connection_state = connection.as_ref().and_then(|connection| connection.state.try_borrow().ok());
             let spec = spec.as_deref().map_err(|error| error.message().to_string());
             let mut state = self.state.borrow_mut();
-            let registered =
-                state.registrations.spec_loaded_of(connection_id, connection_state.as_deref(), ticket, spec);
+            let registered = state.registrations.spec_loaded(connection_state.as_deref(), ticket, spec);
             let (waiters, others) =
                 std::mem::take(&mut state.spec_waiters).into_iter().partition(|(id, _)| id == connection_id);
             state.spec_waiters = others;
@@ -321,10 +320,10 @@ impl<H: CatalogLoaderHost> CatalogLoaderService<H> {
                     let connection = service.connection(&connection_id)?;
                     let connection_state = connection.state.try_borrow().ok()?;
                     let mut state = service.state.borrow_mut();
-                    if let Some(spec) = state.registrations.spec_of(&connection_id, &connection_state) {
+                    if let Some(spec) = state.registrations.spec(&connection_state) {
                         return Some(spec);
                     }
-                    if !state.registrations.loading_of(&connection_id, &connection_state) {
+                    if !state.registrations.loading(&connection_state) {
                         return None;
                     }
                     let (sender, receiver) = oneshot();

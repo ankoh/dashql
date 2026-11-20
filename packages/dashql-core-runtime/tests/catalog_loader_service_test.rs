@@ -373,7 +373,7 @@ fn setup(connector: ConnectorType, params: Value) -> Rc<FakeHost> {
 }
 
 fn add(host: &FakeHost, connection_id: &str, connector: ConnectorType, params: Value) {
-    let state = ConnectionState::from_params("", ConnectionParams::new(connector, object(params)), NOW);
+    let state = ConnectionState::from_params(connection_id, ConnectionParams::new(connector, object(params)), NOW);
     let connection = FollowedConnection {
         state: Rc::new(RefCell::new(state)),
         queries: Rc::new(RefCell::new(QueryExecutionHistory::new())),

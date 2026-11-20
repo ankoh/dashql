@@ -107,7 +107,7 @@ fn calls(state: &ConnectionState) -> usize {
 
 /// Register the client functions of a connection with the spec
 fn sync(registrations: &mut ClientFunctionRegistrations, state: &ConnectionState) -> Vec<ClientFunctionRegistryEffect> {
-    let effects = registrations.ensure(Some(state));
+    let effects = registrations.ensure(state);
     let [ClientFunctionRegistryEffect::LoadSpec { extension, ticket, .. }] = effects.as_slice() else {
         panic!("{effects:?}")
     };
@@ -141,24 +141,24 @@ fn are_registered_once() {
     let state = connection(ConnectorType::SalesforceDataCloud);
     let mut registrations = ClientFunctionRegistrations::default();
     sync(&mut registrations, &state);
-    assert!(registrations.ensure(Some(&state)).is_empty());
+    assert!(registrations.ensure(&state).is_empty());
     // While the spec loads, the registration waits for it
     let other = connection(ConnectorType::SalesforceDataCloud);
     let mut loading = ClientFunctionRegistrations::default();
-    assert_eq!(loading.ensure(Some(&other)).len(), 1);
-    assert!(loading.ensure(Some(&other)).is_empty());
+    assert_eq!(loading.ensure(&other).len(), 1);
+    assert!(loading.ensure(&other).is_empty());
 }
 
 #[test]
 fn are_tried_again_if_their_spec_failed_to_load() {
     let state = connection(ConnectorType::SalesforceDataCloud);
     let mut registrations = ClientFunctionRegistrations::default();
-    let effects = registrations.ensure(Some(&state));
+    let effects = registrations.ensure(&state);
     let [ClientFunctionRegistryEffect::LoadSpec { ticket, .. }] = effects.as_slice() else { panic!() };
     assert!(registrations.spec_loaded(Some(&state), *ticket, Err("chunk failed".into())).is_err());
     assert_eq!(calls(&state), 0);
     // A spec that the core rejects stays unregistered as well
-    let effects = registrations.ensure(Some(&state));
+    let effects = registrations.ensure(&state);
     let [ClientFunctionRegistryEffect::LoadSpec { ticket, .. }] = effects.as_slice() else { panic!() };
     assert!(registrations.spec_loaded(Some(&state), *ticket, Ok("{\"format\": 99}")).is_err());
     sync(&mut registrations, &state);
@@ -172,7 +172,7 @@ fn survive_a_reset_of_the_connection() {
     sync(&mut registrations, &state);
     state.apply(ConnectionAction::Reset, NOW).unwrap();
     assert_eq!(calls(&state), 1);
-    assert!(registrations.ensure(Some(&state)).is_empty());
+    assert!(registrations.ensure(&state).is_empty());
 }
 
 #[test]
@@ -182,10 +182,7 @@ fn are_dropped_when_the_connection_switches_to_a_connector_without_them() {
     sync(&mut registrations, &state);
     state.apply(ConnectionAction::SwitchConnectorType(ConnectorType::Trino), NOW).unwrap();
     assert_eq!(state.connector_type(), ConnectorType::Trino);
-    assert_eq!(
-        registrations.ensure(Some(&state)),
-        [ClientFunctionRegistryEffect::Updated { connection_id: "c".into() }]
-    );
+    assert_eq!(registrations.ensure(&state), [ClientFunctionRegistryEffect::Updated { connection_id: "c".into() }]);
     assert_eq!(calls(&state), 0);
 }
 
@@ -193,7 +190,7 @@ fn are_dropped_when_the_connection_switches_to_a_connector_without_them() {
 fn do_not_reach_a_catalog_that_is_gone_by_the_time_the_spec_loaded() {
     let state = connection(ConnectorType::SalesforceDataCloud);
     let mut registrations = ClientFunctionRegistrations::default();
-    let effects = registrations.ensure(Some(&state));
+    let effects = registrations.ensure(&state);
     let [ClientFunctionRegistryEffect::LoadSpec { ticket, .. }] = effects.as_slice() else { panic!() };
     assert!(registrations.spec_loaded(None, *ticket, Ok(&spec_text())).unwrap().is_empty());
     // A new connection with the same id has a catalog of its own
@@ -207,7 +204,7 @@ fn are_not_on_other_connectors() {
     for connector in [ConnectorType::Hyper, ConnectorType::Trino, ConnectorType::Dbcom] {
         let state = connection(connector);
         let mut registrations = ClientFunctionRegistrations::default();
-        assert!(registrations.ensure(Some(&state)).is_empty());
+        assert!(registrations.ensure(&state).is_empty());
         assert_eq!(calls(&state), 0);
     }
 }

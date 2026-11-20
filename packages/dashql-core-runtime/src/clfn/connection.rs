@@ -96,29 +96,17 @@ pub struct ClientFunctionRegistrations {
 
 impl ClientFunctionRegistrations {
     /// The registration of a connection, if it's on the catalog the connection has now
-    fn registration(&self, connection_id: &str, connection: &ConnectionState) -> Option<&Registration> {
-        let registration = self.by_connection.get(connection_id)?;
+    fn registration(&self, connection: &ConnectionState) -> Option<&Registration> {
+        let registration = self.by_connection.get(connection.connection_id())?;
         let catalog = registration.catalog.upgrade()?;
         Rc::ptr_eq(&catalog, connection.catalog()).then_some(registration)
     }
 
     /// Make the catalog of a connection hold the client functions of its connector
-    pub fn ensure(&mut self, connection: Option<&ConnectionState>) -> Vec<ClientFunctionRegistryEffect> {
-        let Some(connection) = connection else { return Vec::new() };
-        self.ensure_of(connection.connection_id(), Some(connection))
-    }
-
-    /// `ensure` for a connection that the host knows by an id of its own, e.g. a connection of the app whose Rust
-    /// connection holds no id
-    pub fn ensure_of(
-        &mut self,
-        connection_id: &str,
-        connection: Option<&ConnectionState>,
-    ) -> Vec<ClientFunctionRegistryEffect> {
-        let Some(connection) = connection else { return Vec::new() };
-        let connection_id = connection_id.to_string();
+    pub fn ensure(&mut self, connection: &ConnectionState) -> Vec<ClientFunctionRegistryEffect> {
+        let connection_id = connection.connection_id().to_string();
         let binding = client_function_binding(connection.connector_type());
-        let registered = self.registration(&connection_id, connection).map(|r| (r.binding, r.namespace.clone()));
+        let registered = self.registration(connection).map(|r| (r.binding, r.namespace.clone()));
         if registered.as_ref().map(|(binding, _)| binding.extension()) == extension_of(binding) {
             return Vec::new();
         }
@@ -151,22 +139,10 @@ impl ClientFunctionRegistrations {
         spec: Result<&str, String>,
     ) -> Result<Vec<ClientFunctionRegistryEffect>, ClientFunctionError> {
         let Some(connection) = connection else { return Ok(Vec::new()) };
-        self.spec_loaded_of(connection.connection_id(), Some(connection), ticket, spec)
-    }
-
-    /// `spec_loaded` for a connection that the host knows by an id of its own
-    pub fn spec_loaded_of(
-        &mut self,
-        connection_id: &str,
-        connection: Option<&ConnectionState>,
-        ticket: u64,
-        spec: Result<&str, String>,
-    ) -> Result<Vec<ClientFunctionRegistryEffect>, ClientFunctionError> {
-        let Some(connection) = connection else { return Ok(Vec::new()) };
-        if self.registration(connection_id, connection).is_none_or(|r| r.ticket != ticket || r.namespace.is_some()) {
+        if self.registration(connection).is_none_or(|r| r.ticket != ticket || r.namespace.is_some()) {
             return Ok(Vec::new());
         }
-        let connection_id = connection_id.to_string();
+        let connection_id = connection.connection_id().to_string();
         let registered = spec.map_err(ClientFunctionError::new).and_then(|json| {
             let runtime_spec = ClientFunctionSpec::from_json(json)?;
             let namespace = connection
@@ -193,17 +169,12 @@ impl ClientFunctionRegistrations {
 
     /// The spec of the client functions that a connection has registered
     pub fn spec(&self, connection: &ConnectionState) -> Option<Rc<ClientFunctionSpec>> {
-        self.spec_of(connection.connection_id(), connection)
+        self.registration(connection)?.spec.clone()
     }
 
     /// Does the spec of a registration of a connection still load?
-    pub fn loading_of(&self, connection_id: &str, connection: &ConnectionState) -> bool {
-        self.registration(connection_id, connection).is_some_and(|registration| registration.spec.is_none())
-    }
-
-    /// `spec` for a connection that the host knows by an id of its own
-    pub fn spec_of(&self, connection_id: &str, connection: &ConnectionState) -> Option<Rc<ClientFunctionSpec>> {
-        self.registration(connection_id, connection)?.spec.clone()
+    pub fn loading(&self, connection: &ConnectionState) -> bool {
+        self.registration(connection).is_some_and(|registration| registration.spec.is_none())
     }
 
     /// Forget a connection that was deleted
