@@ -12,7 +12,7 @@ import { sessionFolder } from './session_folder.js';
 import { startSessionServer } from './session_server.js';
 
 export const CONNECT_USAGE = `Usage:
-  dashql connect --launch <claude|codex> --port <port> --secret <secret> [--workbook-only] [--folder <dir>]
+  dashql connect --launch <claude|codex> --port <port> --secret <secret> [--folder <dir>]
                  [--command <program>] [-- <argument>...]
       Shows a session of Claude Code or Codex live in the tab of DashQL that gave this command. Starts the server of
       the session on 127.0.0.1:<port> with the secret as its token, launches the harness in this terminal with the
@@ -22,8 +22,7 @@ export const CONNECT_USAGE = `Usage:
 
       The harness learns how to work on the workbooks of DashQL at its start: Claude Code in its system prompt,
       Codex from the output of the hook. Claude Code runs the commands of dashql and edits the workbooks of the
-      session without asking. --workbook-only lets the file tools of the harness write only into the workbooks of
-      the session, .dashql/workbooks/; the commands of its shell stay with its permissions and its sandbox.`;
+      session without asking.`;
 
 /// The harnesses that `dashql connect` runs
 const HARNESSES = new Set(['claude', 'codex']);
@@ -99,19 +98,16 @@ export function writeDashqlCommand(folder: string, session: string, dashql: stri
     }
 }
 
-/// The session that the hooks of a harness send to: the folder and the id of the session, and whether the file tools may
-/// write only into the copies of the workbooks
+/// The session that the hooks of a harness send to: the folder and the id of the session
 export interface HookSession {
     workspace: string;
     session: string;
-    workbookOnly: boolean;
 }
 
 /// The command of a hook of a harness, the session in its arguments
 function hookCommand(dashql: string[], event: string, harness: string, session: HookSession): string {
     return [
         ...dashql, 'session', 'hook', event, '--harness', harness, '--workspace', session.workspace, '--session', session.session,
-        ...(session.workbookOnly ? ['--workbook-only'] : []),
     ].map(shellWord).join(' ');
 }
 
@@ -140,7 +136,7 @@ export function codexHookArgs(dashql: string[], session: HookSession): string[] 
 export async function runConnect(argv: string[], cli: CliProcess, env: ConnectEnvironment = processConnectEnvironment()): Promise<number> {
     let parsed: ReturnType<typeof options>;
     try {
-        parsed = options(argv, new Set(['help', 'workbook-only']));
+        parsed = options(argv, new Set(['help']));
     } catch (error) {
         cli.stderr(`error: ${String(error)}\n\n${CONNECT_USAGE}\n`);
         return EXIT_USAGE;
@@ -177,7 +173,7 @@ export async function runConnect(argv: string[], cli: CliProcess, env: ConnectEn
     }
     const target: SessionTarget = { endpoint: `http://127.0.0.1:${server.port}`, token: secret };
     const program = named.get('command') ?? harness;
-    const hookSession: HookSession = { workspace: folder, session, workbookOnly: set.has('workbook-only') };
+    const hookSession: HookSession = { workspace: folder, session };
     const args = [...(harness === 'claude' ? claudeHookArgs(env.dashql, hookSession) : codexHookArgs(env.dashql, hookSession)), ...rest];
     cli.stdout(`DashQL follows this session on 127.0.0.1:${server.port}\n`);
     // The session goes to the harness in the arguments of its hooks, the agent learns it at the start: nothing in the

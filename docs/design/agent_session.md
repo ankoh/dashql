@@ -189,8 +189,7 @@ stays the one place the page talks to.
   `dashql vis` checks a chart against the result of its script and writes the PNG of it to look at, `dashql run`
   prints the syntax errors of its scripts first. The checks are local, on files and the core. The tab renders the PNG
   as it runs the query, an option of the run request and an event of the run.
-- **Fewer approvals.** Claude Code may run `dashql` and edit the copies without asking. `dashql connect --workbook-only`
-  refuses edits of the file tools outside the copies in the hook of `PreToolUse`.
+- **Fewer approvals.** Claude Code may run `dashql` and edit the copies without asking.
 - **`dashql` on the path.** The agent of a harness that `npx` launched has no `dashql`: `dashql connect` writes one
   into the folder of the session and puts it first on the `PATH` of the harness.
 - **No MCP server.** The commands are the one interface for every session, with `dashql connect` or without, the agent

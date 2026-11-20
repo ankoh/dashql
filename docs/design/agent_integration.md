@@ -79,7 +79,6 @@ The reasons:
 | The check of a chart | Terminal: the core reads the `@vis` tag, Vega-Lite compiles the spec in Node, the fields are compared with the columns of the result | The columns of the result, in the run events |
 | The PNG of a chart | Tab: the image renderer of the feed, after the result | `chart` of the run request, the event `script_chart` back |
 | Who changes the workbook | Tab: the switch of the prompt, AI for the agent, SQL for the user | Nothing new: in SQL the tab holds the edits of the agent and fails its runs |
-| Refusing edits outside the copies | Terminal: the hook of `PreToolUse` of `dashql connect --workbook-only` | Nothing |
 
 ## What crosses
 
@@ -180,7 +179,7 @@ user changed keeps the text of the user.
   project. Codex gets it in the output of the hook at the start. Both get the session that the commands take
   (`--workspace <folder> --session <id>`), the copies and the connections of the session.
 - **Permissions**: Claude Code may run `dashql` and edit `.dashql/sessions/**` without asking; everything else asks as
-  the user configured it. `--workbook-only` refuses the file tools outside the copies in the hook.
+  the user configured it.
 - **Connections**: the tab runs only the connections that the user allows; `connections.json` tells the agent which,
   it guides, the tab enforces.
 

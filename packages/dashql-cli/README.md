@@ -199,7 +199,7 @@ workbook and 130 when interrupted.
 ## dashql connect
 
 ```
-npx -y --registry=https://registry.npmjs.org/ --min-release-age=0 @akohn/dashql-cli@<version> connect --launch <claude|codex> --port <port> --secret <secret> [--workbook-only] [--folder <dir>] [--command <program>] [-- <argument>...]
+npx -y --registry=https://registry.npmjs.org/ --min-release-age=0 @akohn/dashql-cli@<version> connect --launch <claude|codex> --port <port> --secret <secret> [--folder <dir>] [--command <program>] [-- <argument>...]
 ```
 
 The AI side of the prompt of DashQL shows this line with a port and a secret that the tab picked, and waits for a
@@ -219,16 +219,12 @@ request to the workbooks) in its system prompt (`--append-system-prompt`), Codex
 which the harness puts into the context of the agent. That hook also gives both the session that the commands take,
 `--workspace <folder> --session <id>`, where the tab copies its workbook, and the workbooks and the connections of the
 session. The settings of Claude Code let it run `dashql` and edit the files of the sessions in `.dashql/sessions/`
-without asking (`permissions.allow`: `Bash(dashql:*)`, `Edit(./.dashql/sessions/**)`); everything else asks as the
-user configured it.
-`--workbook-only` lets the file tools write only into the copies: the hook of `PreToolUse` (`--workbook-only` in its
-arguments) refuses an `Edit`, `MultiEdit`, `Write`, `NotebookEdit` or a patch of Codex that writes elsewhere with exit
-code 2, and the harness shows the agent why. Commands of the shell stay with the permissions and the sandbox of the
-harness. `//tests/agents` runs `connect` with Claude Code and Codex and a fake model: the events of a turn, the guide in
-the system prompt, `dashql` and a script of the copy without approval, a file of the project only with one. The agent
-of a harness that `npx` launched has no `dashql` on its path: `connect` writes one into the folder of the session
-(`.dashql/sessions/<id>/bin/dashql`, a shell script that runs this `dashql`) and puts that folder first on the `PATH`
-of the harness, the only variable it sets. Not on Windows.
+without asking (`permissions.allow`: `Bash(dashql:*)`, `Edit(./.dashql/sessions/**)`); everything else asks as the user
+configured it, and Codex keeps its sandbox. `//tests/agents` runs `connect` with Claude Code and Codex and a fake model:
+the events of a turn, the guide in the system prompt, `dashql` and a script of the copy without approval, a file of the
+project only with one. The agent of a harness that `npx` launched has no `dashql` on its path: `connect` writes one into
+the folder of the session (`.dashql/sessions/<id>/bin/dashql`, a shell script that runs this `dashql`) and puts that
+folder first on the `PATH` of the harness, the only variable it sets. Not on Windows.
 
 The folder of the session is `.dashql/sessions/<id>/`: `server.json` with the address and the token of the server for
 the commands, readable by the user only, `connections.json` with the connections that the agent may use, and the
@@ -292,7 +288,7 @@ after every change) and how to work. The text lives in the command, so it fits t
 ## dashql session
 
 ```
-dashql session hook <event> --harness <name> --workspace <dir> --session <id> [--workbook-only]
+dashql session hook <event> --harness <name> --workspace <dir> --session <id>
 ```
 
 The hooks that `dashql connect` gives the harness, nobody installs them by hand. `session hook` reads the payload of

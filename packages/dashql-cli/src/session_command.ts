@@ -3,19 +3,15 @@ import type { AgentSessionEvent } from '@akohn/dashql/platform/session/agent_ses
 
 import { EXIT_OK, EXIT_USAGE, type CliProcess } from './cli_process.js';
 import { CONNECTED_AGENT_GUIDE, describeWorkspace } from './describe_command.js';
-import { sessionEventOf, workbookOnlyRefusal } from './session_hook.js';
+import { sessionEventOf } from './session_hook.js';
 import { readSessionServer, sessionCopiesFolder } from './session_folder.js';
 
 export const SESSION_USAGE = `Usage:
-  dashql session hook <event> --harness <name> --workspace <dir> --session <id> [--workbook-only]
+  dashql session hook <event> --harness <name> --workspace <dir> --session <id>
       The hooks that dashql connect gives the harness. Called with the payload of the hook on stdin: SessionStart,
       UserPromptSubmit, PreToolUse, PostToolUse, PostToolUseFailure, Stop or SessionEnd. Sends the event to the
       server of the session that --workspace and --session name. SessionStart prints how to work on the workbooks of
-      the session. --workbook-only refuses the file tools outside the copies of the workbooks. Never fails the
-      harness.`;
-
-/// The exit code of a hook that refuses a tool, Claude Code and Codex show its stderr to the agent
-const EXIT_REFUSED = 2;
+      the session. Never fails the harness.`;
 
 /// A word of a POSIX shell command
 export function shellWord(word: string): string {
@@ -89,7 +85,7 @@ export async function postSessionEvent(target: SessionTarget, event: AgentSessio
 }
 
 async function hook(args: string[], cli: CliProcess): Promise<number> {
-    const { positional, named, set } = options(args, new Set(['workbook-only']));
+    const { positional, named } = options(args);
     const [name] = positional;
     const harness = named.get('harness') ?? 'agent';
     const workspace = named.get('workspace');
@@ -104,13 +100,6 @@ async function hook(args: string[], cli: CliProcess): Promise<number> {
     }
     const event = sessionEventOf(name ?? '', harness, payload);
     if (event == null) return EXIT_OK;
-    // A harness that may write only into the workbooks: the hook refuses the tool, the agent reads why. Relative paths
-    // are relative to the directory of the agent, the `cwd` of the payload.
-    const refusal = set.has('workbook-only') && event.event === 'PreToolUse' ? workbookOnlyRefusal(payload, sessionCopiesFolder(workspace, session), event.folder || cli.cwd) : null;
-    if (refusal != null) {
-        cli.stderr(`${refusal}\n`);
-        return EXIT_REFUSED;
-    }
     const target = readSessionServer(workspace, session);
     if (target == null) {
         cli.stderr(`dashql: the session ${session} does not run in ${workspace}\n`);
