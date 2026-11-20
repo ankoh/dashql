@@ -148,6 +148,7 @@ bazel test //...
 | `//packages/hyperdb-edge:stores_claude_code_test` | The session store under `query()` of the Claude Agent SDK with the pinned Claude Code and a fake model, outside the sandbox: mirroring, resuming from the store alone, sessions at once |
 | `//packages/dashql:boundary_test` | The folders of `@akohn/dashql` keep their rules: `src/core` imports neither `src/runtime` nor `src/platform`, `src/platform` doesn't import `src/runtime`, the package imports itself relatively, nothing reaches code of the app, React, an editor or a `.tsx` module, and only the known seams of a browser or a bundler |
 | `//packages/dashql:editor_config_test` | Editors resolve every import of `@akohn/dashql`: its `tsconfig.json` extends the root one, every imported package is a path of the root `tsconfig.json` or a dependency of the root `package.json`. Bazel checks with `tsconfig.bazel.json` |
+| `//packages/<package>:eslint_test` | ESLint of the TypeScript and JavaScript of the package with the root `eslint.config.mjs`, every finding fails, see "ESLint" |
 | `//packages/dashql-app:test_chromium` | Web app tests in Chromium |
 | `//packages/dashql-app:test_firefox` | Web app tests in Firefox |
 | `//packages/dashql-app:coverage_chromium` | Line coverage of the app sources in the Chromium tests (manual), published at [coverage.dashql.app](https://coverage.dashql.app) |
@@ -295,6 +296,39 @@ bazel test //packages/dashql:tsc_typecheck_test //packages/dashql:tsc_typecheck_
 ```
 
 **Never run `npx tsc` directly.** The check of the app uses `packages/dashql-app/tsconfig.bazel.json` in Bazel's sandbox and resolves `@akohn/dashql-react` through its package exports. The editor and the type checker of the dev server use the root `tsconfig.json`, so a mapping that is missing there does not fail the check.
+
+### ESLint
+
+Every package with TypeScript or JavaScript has an `:eslint_test` (`eslint_test` of `bazel/eslint.bzl`): ESLint with
+the rules of the root `eslint.config.mjs` over every `.ts`, `.tsx`, `.mts`, `.js`, `.mjs` and `.cjs` file of the package,
+part of `//packages/...` and `//tests/agents/...`. Every finding fails the test, warnings and unused
+`eslint-disable` comments included. The rules need no type information, the type checks check the types:
+
+- `@eslint/js` and `typescript-eslint` recommended, unused variables unless they start with `_`
+- no default import of `immutable` (`no-restricted-syntax`), its ESM build has none
+- in `.ts` and `.tsx`, a relative import names its file with `.js`: `./foo.js`, not `./foo` or `./foo.ts`
+  (`no-restricted-imports` for `import` and `export … from`, `no-restricted-syntax` for `import()`); hyperdb-edge and
+  the desktop app run the output of tsc in Node, and the declarations of `@akohn/dashql` resolve under `NodeNext`.
+  Assets keep their extension (`.css`, `.sql?raw`, `?url`)
+- `react-hooks/rules-of-hooks` in the app, `@akohn/dashql-react` and the website: a function that calls hooks is
+  named `use…`
+
+Off, with the reason in the config: `@typescript-eslint/no-explicit-any`, `no-control-regex`,
+`@typescript-eslint/no-namespace` and `react-hooks/exhaustive-deps` (166 findings when it was measured, most of them
+effects that run on mount by intent; a dependency added changes when an effect runs, so each hook needs a review before
+the rule can be on).
+
+```bash
+# One package
+bazel test //packages/dashql-app:eslint_test
+
+# Write the fixes of the rules that have one into the workspace, all of packages/ and tests/agents/ or the paths given
+bazel run //bazel:eslint_fix
+bazel run //bazel:eslint_fix -- packages/dashql-react
+```
+
+A new package with TypeScript loads `eslint_test` from `//bazel:eslint.bzl` and calls `eslint_test()` in its
+`BUILD.bazel`.
 
 ### Rust
 
@@ -459,7 +493,8 @@ bazel run //tests/snapshots/parser:update
 ### After Changing TypeScript Code
 
 ```bash
-# Type check and run tests
+# Lint, type check and run tests
+bazel test //packages/dashql-app:eslint_test //packages/dashql-react:eslint_test //packages/dashql:eslint_test
 bazel build //packages/dashql-app:tsc --output_groups=typecheck
 bazel test //packages/dashql-app:test_chromium //packages/dashql-app:test_firefox
 # The package @akohn/dashql in Node and its bindings in the browsers

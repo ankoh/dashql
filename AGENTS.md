@@ -5,7 +5,8 @@ start with `packages/` or `extensions/`.
 
 ## Read first
 
-- `agents/build_bazel_targets.md`: always, before building or testing; every build and test is a Bazel target.
+- `agents/build_bazel_targets.md`: always, before building or testing; every build and test is a Bazel target,
+  the lints too (ESLint of the TypeScript, Clippy and rustfmt of the Rust).
 - `agents/core_first.md`: before writing TypeScript; logic that fits the core is Rust in the core module.
 - `agents/writing_components.md`: before writing a React component; components show models, hooks bind the runtime.
 
