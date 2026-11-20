@@ -107,11 +107,13 @@ goes through a `dashql` command, so the commands tell what they changed.
   journal.
 - **One journal per session of `dashql connect`.** Its journal is `.dashql/sessions/<port>/journal.jsonl`: the port
   names the session, no other session on the machine has it while it runs. `dashql connect` passes the name to the
-  harness in an environment variable without a secret in it (`DASHQL_SESSION`), `dashql run` appends to the journal of
-  that session, and to `.dashql/journal.jsonl` of `dashql session serve` without it. The folder of the session goes
-  when it ends, two sessions in one folder keep apart.
-- **Commands append their log to it.** A command gets the workspace, the folder that the harness works in: the
-  invoking directory, or `--workspace <dir>`. If the workspace has a journal, a command of a workbook folder in the
+  harness in an environment variable without a secret in it (`DASHQL_SESSION`), the folder of the session in another
+  (`DASHQL_WORKSPACE`). `dashql run` appends to the journal of that session, and to `.dashql/journal.jsonl` of `dashql
+  session serve` without it. The folder of the session goes when it ends, two sessions in one folder keep apart.
+- **Commands append their log to it.** A command gets the workspace, the folder that the harness works in:
+  `--workspace <dir>`, else the folder of the session of `dashql connect` (`DASHQL_WORKSPACE`), else the invoking
+  directory. The shell of the agent may change into a copy, the commands and the hooks still find the copies of the
+  tab, the journal and the server; nothing is searched for. If the workspace has a journal, a command of a workbook folder in the
   workspace appends its log records from `info` on, one JSON line each, the `LogRecord`s of the log of the app.
   Records of the target `workbook_journal` are markers of what changed (`session/workbook_journal.ts` of the runtime),
   with the workbook folder relative to the folder of the session and the workbook id in their values:

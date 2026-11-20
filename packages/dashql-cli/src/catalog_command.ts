@@ -7,7 +7,7 @@ import path from 'node:path';
 import { STORAGE_ATTACHMENTS_FOLDER, STORAGE_WORKBOOK_FILE } from '@akohn/dashql/platform/storage/storage_backend';
 
 import { EXIT_FAILED, EXIT_OK, EXIT_USAGE, type CliProcess } from './cli_process.js';
-import { readSessionConnections, SESSION_NAME_ENV } from './session_journal.js';
+import { readSessionConnections, SESSION_NAME_ENV, SESSION_WORKSPACE_ENV } from './session_journal.js';
 
 export const CATALOG_USAGE = `Usage: dashql catalog [--workspace <dir>] [--max-chars <n>] <workbook-dir> [<connection>...]
 
@@ -101,8 +101,13 @@ function upTo(text: string, max: number): { text: string; cut: boolean } {
 }
 
 /// Run `catalog` with the arguments after it, returns the exit code
-export function runCatalog(args: string[], cli: CliProcess, session: string | null = process.env[SESSION_NAME_ENV] || null): number {
-    let workspace = cli.cwd;
+export function runCatalog(
+    args: string[],
+    cli: CliProcess,
+    session: string | null = process.env[SESSION_NAME_ENV] || null,
+    sessionWorkspace: string | null = process.env[SESSION_WORKSPACE_ENV] || null,
+): number {
+    let workspace = path.resolve(cli.cwd, sessionWorkspace ?? '.');
     let maxChars = DEFAULT_MAX_CHARS;
     const positional: string[] = [];
     for (let i = 0; i < args.length; ++i) {

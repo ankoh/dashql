@@ -8,7 +8,7 @@ import type { AgentSessionState } from '@akohn/dashql/platform/session/agent_ses
 
 import { CLAUDE_ALLOWED_TOOLS, claudeHookArgs, codexHookArgs, CONNECT_USAGE, runConnect, shellWord, type ConnectEnvironment } from './connect_command.js';
 import { CONNECTED_AGENT_GUIDE, DESCRIBE_TEXT } from './describe_command.js';
-import { SESSION_NAME_ENV } from './session_journal.js';
+import { SESSION_NAME_ENV, SESSION_WORKSPACE_ENV } from './session_journal.js';
 import {
     CONNECTED_SESSION_START,
     connectedSessionStart,
@@ -44,6 +44,7 @@ function hookEnvironment(harnessEnv: Record<string, string>): SessionEnvironment
         startServer: () => { throw new Error('a connected hook starts no server'); },
         connected: endpoint != null && token != null ? { endpoint, token } : null,
         sessionName: harnessEnv[SESSION_NAME_ENV] ?? null,
+        sessionWorkspace: harnessEnv[SESSION_WORKSPACE_ENV] ?? null,
         workbookOnly: harnessEnv[WORKBOOK_ONLY_ENV] === '1',
     };
 }
@@ -79,6 +80,8 @@ describe('dashql connect', () => {
                 [SESSION_ENDPOINT_ENV]: `http://127.0.0.1:${port}`,
                 [SESSION_TOKEN_ENV]: 's3cret',
                 [SESSION_NAME_ENV]: String(port),
+                // The commands and the hooks find the folder of the session from any directory of the shell
+                [SESSION_WORKSPACE_ENV]: W,
                 PATH: `${bin}:/usr/bin`,
             });
             // The agent runs dashql like the hooks
@@ -147,6 +150,12 @@ describe('dashql connect', () => {
             // A patch of Codex names its files
             const patch = '*** Begin Patch\n*** Update File: src/app.ts\n@@\n-a\n+b\n*** End Patch';
             expect((await runHook(pre, harnessEnv, { session_id: 'c1', cwd: W, tool_name: 'apply_patch', tool_input: { command: patch } })).code).toBe(2);
+            // In a shell that changed into a copy, its relative paths are in the copy, the workbooks stay those of the
+            // folder of the session
+            const copy = path.join(W, '.dashql', 'workbooks', 'w1');
+            const writeIn = (cwd: string, file: string) => runHook(pre, harnessEnv, { session_id: 'c1', cwd, tool_name: 'Write', tool_input: { file_path: file, content: 'select 1' } });
+            expect((await writeIn(copy, 'scripts/b.sql')).code).toBe(0);
+            expect((await writeIn(copy, '../../../notes.sql')).code).toBe(2);
             return 0;
         });
         const output = await connect(env, ['--launch', 'claude', '--port', String(port), '--secret', 's', '--workbook-only']);

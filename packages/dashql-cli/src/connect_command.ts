@@ -7,7 +7,7 @@ import { sessionJournalPath, SESSION_JOURNAL_FOLDER } from '@akohn/dashql/platfo
 import { EXIT_FAILED, EXIT_OK, EXIT_USAGE, type CliProcess } from './cli_process.js';
 import { CONNECTED_AGENT_GUIDE } from './describe_command.js';
 import { options, postSessionEvent, SESSION_ENDPOINT_ENV, SESSION_TOKEN_ENV, WORKBOOK_ONLY_ENV, type SessionTarget } from './session_command.js';
-import { SESSION_NAME_ENV, SESSION_SERVER_FILE } from './session_journal.js';
+import { SESSION_NAME_ENV, SESSION_SERVER_FILE, SESSION_WORKSPACE_ENV } from './session_journal.js';
 import { startSessionServer } from './session_server.js';
 
 export const CONNECT_USAGE = `Usage:
@@ -161,7 +161,7 @@ export async function runConnect(argv: string[], cli: CliProcess, env: ConnectEn
     if (!Number.isInteger(port) || port < 1 || port > 65535) return usage('--port needs a port between 1 and 65535');
     if (secret.length === 0) return usage('--secret needs the secret that DashQL shows');
 
-    const folder = named.get('folder') ?? cli.cwd;
+    const folder = path.resolve(cli.cwd, named.get('folder') ?? '.');
     let server: Awaited<ReturnType<typeof startSessionServer>>;
     try {
         // The port names the session, no other session on this machine has it while it runs
@@ -181,6 +181,7 @@ export async function runConnect(argv: string[], cli: CliProcess, env: ConnectEn
         [SESSION_ENDPOINT_ENV]: target.endpoint,
         [SESSION_TOKEN_ENV]: target.token,
         [SESSION_NAME_ENV]: String(server.port),
+        [SESSION_WORKSPACE_ENV]: folder,
         ...(set.has('workbook-only') ? { [WORKBOOK_ONLY_ENV]: '1' } : {}),
     };
     // The agent runs `dashql` like the hooks do

@@ -160,8 +160,8 @@ that are not named show up only when they fail. `--verbose` prints the log of th
   folder before the run, and a folder per run of the embedded Hyper in `instances/`, removed at its end or by the next
   run once its process is gone. The root is
   `DASHQL_HOME`, else the `.dashql/` of the workspace, the one that `dashql session serve` creates in the folder of its
-  session, else `~/.dashql`. The workspace is the folder that the harness works in: the invoking directory, or
-  `--workspace <dir>`; nothing is searched for. In a session, everything of a project is in its `.dashql/`, which
+  session, else `~/.dashql`. The workspace is the folder that the harness works in: `--workspace <dir>`, else the
+  folder of the session of `dashql connect` (`DASHQL_WORKSPACE`), else the invoking directory; nothing is searched for. In a session, everything of a project is in its `.dashql/`, which
   commands in the sandbox of a harness may write. It is a root of its own, the app keeps its files in the storage of
   the browser.
 - **Cached results.** A script whose result is cached is not run again unless a script it follows runs, like in the
@@ -227,7 +227,9 @@ that `npx` launched has no `dashql` on its path: `connect` writes one into the f
 of the harness. Not on Windows.
 
 The port names the session: its journal is `.dashql/sessions/<port>/journal.jsonl`, and the harness gets
-`DASHQL_SESSION=<port>`, which `dashql run` appends to. Two sessions in one folder keep apart, the folder of a session
+`DASHQL_SESSION=<port>`, which `dashql run` appends to, and `DASHQL_WORKSPACE`, the absolute path of the folder. The
+commands and the hooks take that folder as their workspace, so an agent whose shell changed into a copy still runs it
+in the tab. A run in the session of a folder that is no copy of the tab runs in the process and says so on stderr. Two sessions in one folder keep apart, the folder of a session
 goes when it ends. The tab writes the workbook that it shows into `.dashql/workbooks/<workbook id>/` once the server
 answers, with the catalogs of the connections that the agent may use, and the agent works on that copy; its changed
 scripts come back into the tab with their text (`docs/design/agent_session.md`).

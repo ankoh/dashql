@@ -7,12 +7,13 @@ import { SESSION_JOURNAL_FOLDER, SESSION_WORKBOOK_COPIES } from '@akohn/dashql/p
 import { STORAGE_ATTACHMENTS_FOLDER, STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE } from '@akohn/dashql/platform/storage/storage_backend';
 
 import { EXIT_OK, EXIT_USAGE, type CliProcess } from './cli_process.js';
-import { readSessionConnections, SESSION_NAME_ENV } from './session_journal.js';
+import { readSessionConnections, SESSION_NAME_ENV, SESSION_WORKSPACE_ENV } from './session_journal.js';
 
 export const DESCRIBE_USAGE = `Usage: dashql describe [--workspace <dir>]
 
 Prints how to work on the workbooks of DashQL with the commands of dashql, and the workbooks that the tabs of DashQL
-copied into the workspace (.dashql/workbooks/). The workspace is the invoking directory unless --workspace names it.`;
+copied into the workspace (.dashql/workbooks/). The workspace is --workspace, else the folder of the session of dashql
+connect (DASHQL_WORKSPACE), else the invoking directory.`;
 
 export const DESCRIBE_TEXT = `DashQL works on workbooks: folders of SQL scripts that run on connections. The tab of DashQL in the browser shows
 the workbooks of this session live: the scripts, their runs, their results and their charts. Work on a workbook
@@ -216,8 +217,13 @@ ${lines.join('\n')}`;
 }
 
 /// Run `describe` with the arguments after it, returns the exit code
-export function runDescribe(args: string[], cli: CliProcess, session: string | null = process.env[SESSION_NAME_ENV] || null): number {
-    let workspace = cli.cwd;
+export function runDescribe(
+    args: string[],
+    cli: CliProcess,
+    session: string | null = process.env[SESSION_NAME_ENV] || null,
+    sessionWorkspace: string | null = process.env[SESSION_WORKSPACE_ENV] || null,
+): number {
+    let workspace = path.resolve(cli.cwd, sessionWorkspace ?? '.');
     for (let i = 0; i < args.length; ++i) {
         const arg = args[i];
         if (arg === '-h' || arg === '--help') {

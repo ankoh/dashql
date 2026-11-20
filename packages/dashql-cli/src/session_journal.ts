@@ -30,6 +30,11 @@ export const SESSION_SERVER_FILE = 'server.json';
 /// passes it to the commands of its agent.
 export const SESSION_NAME_ENV = 'DASHQL_SESSION';
 
+/// The variable that names the folder of the session of `dashql connect` for the commands of its harness and its hooks:
+/// their workspace. The agent may change the directory of its shell, e.g. into a workbook folder; the commands still
+/// find the copies of the tab, the journal and the server of the session.
+export const SESSION_WORKSPACE_ENV = 'DASHQL_WORKSPACE';
+
 /// The journal of the session of a workspace, which the server of the session creates in its folder:
 /// `.dashql/sessions/<session>/journal.jsonl` for a session of `dashql connect`, `.dashql/journal.jsonl` for one of
 /// `dashql session serve`. Null outside a session and for a workbook folder outside the workspace: the server hands

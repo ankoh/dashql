@@ -152,7 +152,8 @@ harness: the tab keeps trying the port, tells the new session by the `id` of its
 ### A run
 
 1. `dashql run .dashql/workbooks/<id> top.sql` prints the syntax errors of the script, finds the server through
-   `DASHQL_SESSION` and posts the run request.
+   `DASHQL_SESSION` and the copy in the folder of the session (`DASHQL_WORKSPACE`), and posts the run request. A
+   folder that is no copy of the tab runs in the process, `dashql run` says so on stderr.
 2. The server stamps the copies, sends the state and then the run to the tab.
 3. The tab fails the run if the prompt is in SQL, waits until it took the edits, and runs the workbook with its
    runtime on the connections that the agent may use. The feed shows the run.

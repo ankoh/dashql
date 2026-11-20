@@ -146,14 +146,14 @@ function writtenFiles(payload: unknown): string[] | null {
 }
 
 /// Why a harness of `dashql connect --workbook-only` may not use a tool: the tool writes files outside the workbooks
-/// of the session, `.dashql/workbooks/` of the folder. Null for a tool that it may use. Commands of the shell are left
-/// to the permissions and the sandbox of the harness.
-export function workbookOnlyRefusal(payload: unknown, folder: string): string | null {
+/// of the session, `.dashql/workbooks/` of the folder. A relative path is relative to `cwd`, the directory of the agent.
+/// Null for a tool that it may use. Commands of the shell are left to the permissions and the sandbox of the harness.
+export function workbookOnlyRefusal(payload: unknown, folder: string, cwd: string = folder): string | null {
     const files = writtenFiles(payload);
     if (files == null || folder.length === 0) return null;
     const root = `${folder.replace(/\/+$/, '')}/${SESSION_JOURNAL_FOLDER}/${SESSION_WORKBOOK_COPIES}/`;
     const outside = files.filter(file => {
-        const absolute = file.startsWith('/') ? file : `${folder.replace(/\/+$/, '')}/${file}`;
+        const absolute = file.startsWith('/') ? file : `${cwd.replace(/\/+$/, '')}/${file}`;
         // A path that climbs out of the workbooks is outside
         const parts: string[] = [];
         for (const part of absolute.split('/')) {

@@ -171,7 +171,7 @@ export async function runVis(args: string[], cli: CliProcess, env: RunEnvironmen
         return EXIT_USAGE;
     }
     const dir = path.resolve(cli.cwd, parsed.workbook);
-    const workspace = path.resolve(cli.cwd, parsed.workspace ?? '.');
+    const workspace = path.resolve(cli.cwd, parsed.workspace ?? env.workspace ?? '.');
     if (!existsSync(path.join(dir, STORAGE_WORKBOOK_FILE))) {
         cli.stderr(`error: ${parsed.workbook} is no workbook folder, it has no ${STORAGE_WORKBOOK_FILE}\n`);
         return EXIT_USAGE;

@@ -3,7 +3,8 @@ import path from 'node:path';
 import { DESCRIBE_TEXT, DESCRIBE_USAGE, runDescribe } from './describe_command.js';
 import { runWith, testFiles } from './test_process.js';
 
-const describeIn = (cwd: string, args: string[] = [], session: string | null = null) => runWith(async (a, cli) => runDescribe(a, cli, session), cwd, args);
+const describeIn = (cwd: string, args: string[] = [], session: string | null = null, sessionWorkspace: string | null = null) =>
+    runWith(async (a, cli) => runDescribe(a, cli, session, sessionWorkspace), cwd, args);
 
 describe('dashql describe', () => {
     it('tells how to work on workbooks and lists the workbooks that the tabs copied', async () => {
@@ -30,6 +31,8 @@ describe('dashql describe', () => {
 
         // A workspace that the invoking directory is not
         expect((await describeIn(path.join(workspace, '.dashql'), ['--workspace', '..'])).stdout).toBe(output.stdout);
+        // The folder of the session of dashql connect, from a shell in a copy
+        expect((await describeIn(path.join(workspace, '.dashql', 'workbooks', 'w1'), [], null, workspace)).stdout).toBe(output.stdout);
     });
 
     it('says when no tab copied a workbook yet and checks its arguments', async () => {

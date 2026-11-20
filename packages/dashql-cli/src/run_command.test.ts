@@ -17,7 +17,7 @@ import {
 import { fetchAgentSession } from '@akohn/dashql/platform/session/agent_session_protocol';
 import { encodeRunEvent, type RunEvent } from '@akohn/dashql/platform/workbook/run_events';
 
-import { runRun, type RunEnvironment } from './run_command.js';
+import { notACopyNote, runRun, type RunEnvironment } from './run_command.js';
 import { startSessionServer } from './session_server.js';
 import { runWith, testFiles } from './test_process.js';
 
@@ -494,6 +494,22 @@ describe('dashql run in a session of dashql connect', () => {
         }
     });
 
+    it('runs the copy in the tab from a shell in the copy, in the folder of the session that dashql connect names', async () => {
+        const session = await sessionWithTab(async (message, send) => {
+            await send({ type: 'run_started', workbook: message.label, scripts: [ORDERS[0]] });
+            await send({ type: 'run_finished', ms: 1, ok: 0, failed: 0, cancelled: 0, notRun: 0, interrupted: false });
+        });
+        try {
+            const copy = path.join(session.folder, ...COPY.split('/'));
+            const output = await runWith((args, cli) => runRun(args, cli, { home: tempHome(), ...session.env, workspace: session.folder }), copy, ['.']);
+            expect(output.stderr).toBe('');
+            expect(output.code).toBe(0);
+            expect(session.runs).toEqual([{ type: 'run', runId: expect.any(String), workbookId: WORKBOOK_ID, label: '.', scripts: [], refresh: false, rows: 10 }]);
+        } finally {
+            await session.close();
+        }
+    });
+
     it('stops the run in the tab on an interrupt', async () => {
         const session = await sessionWithTab(async (_message, send, stopped) => {
             await send({ type: 'run_started', workbook: COPY, scripts: [ORDERS[0]] });
@@ -529,8 +545,11 @@ describe('dashql run in a session of dashql connect', () => {
             expect(output.code).toBe(1);
             expect(output.stderr).toBe('error: no tab of DashQL follows the session, open it with the line of dashql connect\n');
             // A workbook folder that no tab copied runs in this process
-            const own = await runWith((args, cli) => runRun(args, cli, { home: tempHome(), ...env }), workbook, ['.']);
+            const own = await runWith((args, cli) => runRun(args, cli, { home: tempHome(), ...env, workspace: folder }), workbook, ['.']);
             expect(own.stdout).toContain(`trino http://trino.invalid  failed`);
+            // It says that the tab does not show it
+            expect(own.stderr).toBe(`${notACopyNote('.', folder)}\n`);
+            expect(own.stderr).toContain(`into ${folder}/.dashql/workbooks/, it runs here`);
         } finally {
             await server.close();
         }

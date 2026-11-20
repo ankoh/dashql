@@ -15,7 +15,7 @@ import { LogLevel, type LogRecord } from '@akohn/dashql/platform/logger/log_buff
 import { LoggableException, Logger } from '@akohn/dashql/platform/logger/logger';
 import { createRuntime, type Runtime } from '@akohn/dashql/runtime/runtime';
 import { describeRunError, runScriptsOf, runWorkbookReported, type ReportedRunEnd } from '@akohn/dashql/runtime/workbook_run_report';
-import { isWorkbookCopyId, JOURNAL_TARGET, SESSION_JOURNAL_FOLDER, journalFilesMarker, workbookCopyPath } from '@akohn/dashql/platform/session/workbook_journal';
+import { isWorkbookCopyId, JOURNAL_TARGET, SESSION_JOURNAL_FOLDER, SESSION_WORKBOOK_COPIES, journalFilesMarker, workbookCopyPath } from '@akohn/dashql/platform/session/workbook_journal';
 import { NativeStorageBackend } from '@akohn/dashql/platform/storage/native_storage_backend';
 import { QUERY_RESULT_CACHE_DIRECTORY } from '@akohn/dashql/platform/storage/opfs_query_result_cache';
 import { STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE } from '@akohn/dashql/platform/storage/storage_backend';
@@ -29,7 +29,7 @@ import type { RunEvent, RunReporter } from './run_events.js';
 import { LiveRunReporter } from './run_live.js';
 import { PlainRunReporter } from './run_output.js';
 import { runInTab } from './run_tab.js';
-import { openSessionJournal, readSessionConnections, readSessionServer, SESSION_NAME_ENV, workbookFolderPaths, type SessionJournal } from './session_journal.js';
+import { openSessionJournal, readSessionConnections, readSessionServer, SESSION_NAME_ENV, SESSION_WORKSPACE_ENV, workbookFolderPaths, type SessionJournal } from './session_journal.js';
 
 const RUN_USAGE = `Usage: dashql run [--rows <n>] [--refresh] [--plain] [--workspace <dir>] [--verbose] <workbook-dir> [<script>...]
 
@@ -52,7 +52,8 @@ connection that can't be set up are not run.
 The files of DashQL are in a folder with the layout of the storage of the app: the query result cache in cache/, the
 attachments of the workbooks in workbooks/<id>/attachments. It is DASHQL_HOME, or the .dashql/ of the workspace, which
 dashql session serve creates in the folder of its session, or ~/.dashql. The workspace is the folder that the harness
-works in, the invoking directory unless --workspace names it. In a session, run appends its log to the journal there.
+works in: --workspace, else the folder of the session of dashql connect (DASHQL_WORKSPACE), else the invoking
+directory. In a session, run appends its log to the journal there.
 
 Connections: Trino with basic auth and the embedded Hyper. DASHQL_TRINO_USER and DASHQL_TRINO_PASSWORD override the
 user and the password of the workbook.
@@ -80,6 +81,8 @@ export interface RunEnvironment {
     /// The server of that session (DASHQL_SESSION_ENDPOINT, DASHQL_SESSION_TOKEN), else the folder of the session names it
     sessionEndpoint?: string;
     sessionToken?: string;
+    /// The folder of that session (DASHQL_WORKSPACE), the workspace unless --workspace names one
+    workspace?: string | null;
 }
 
 export function processRunEnvironment(): RunEnvironment {
@@ -90,6 +93,7 @@ export function processRunEnvironment(): RunEnvironment {
         session: process.env[SESSION_NAME_ENV] || null,
         sessionEndpoint: process.env.DASHQL_SESSION_ENDPOINT || undefined,
         sessionToken: process.env.DASHQL_SESSION_TOKEN || undefined,
+        workspace: process.env[SESSION_WORKSPACE_ENV] || null,
     };
 }
 
@@ -237,6 +241,11 @@ function copiedWorkbookId(workspace: string, dir: string): string | null {
     return isWorkbookCopyId(id) && path.resolve(workspace, workbookCopyPath(id)) === path.resolve(dir) ? id : null;
 }
 
+/// Why a run in a session runs in this process: the folder is no copy of the tab in the folder of the session
+export function notACopyNote(workbook: string, workspace: string): string {
+    return `note: ${workbook} is no workbook that the tab of DashQL copied into ${path.join(workspace, SESSION_JOURNAL_FOLDER, SESSION_WORKBOOK_COPIES)}/, it runs here and the tab does not show it`;
+}
+
 /// Run `dashql run` with its arguments, returns the exit code
 export async function runRun(args: string[], cli: CliProcess, env: RunEnvironment = processRunEnvironment()): Promise<number> {
     if (args.includes('-h') || args.includes('--help')) {
@@ -250,7 +259,7 @@ export async function runRun(args: string[], cli: CliProcess, env: RunEnvironmen
     }
     const dir = path.resolve(cli.cwd, parsed.workbook);
     // The folder that the harness works in, the folder of its session
-    const workspace = path.resolve(cli.cwd, parsed.workspace ?? '.');
+    const workspace = path.resolve(cli.cwd, parsed.workspace ?? env.workspace ?? '.');
     if (!existsSync(path.join(dir, STORAGE_WORKBOOK_FILE))) {
         cli.stderr(`error: ${parsed.workbook} is no workbook folder, it has no ${STORAGE_WORKBOOK_FILE}\n`);
         return EXIT_USAGE;
@@ -336,6 +345,8 @@ export async function runWorkbookFolder(
             return EXIT_FAILED;
         }
     }
+    // In a session, say that the tab doesn't show this run: the agent may have meant a copy of the tab
+    if (server != null) cli.stderr(`${notACopyNote(run.workbook, workspace)}\n`);
     return await runHere(run, dir, workspace, env, cli, signal, emit, live);
 }
 

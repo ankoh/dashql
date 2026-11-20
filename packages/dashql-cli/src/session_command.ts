@@ -9,7 +9,7 @@ import type { AgentSessionEvent } from '@akohn/dashql/platform/session/agent_ses
 import { EXIT_FAILED, EXIT_OK, EXIT_USAGE, type CliProcess } from './cli_process.js';
 import { CONNECTED_AGENT_GUIDE, describeWorkspace } from './describe_command.js';
 import { sessionEventOf, workbookOnlyRefusal } from './session_hook.js';
-import { SESSION_NAME_ENV } from './session_journal.js';
+import { SESSION_NAME_ENV, SESSION_WORKSPACE_ENV } from './session_journal.js';
 import { startSessionServer } from './session_server.js';
 
 export const SESSION_USAGE = `Usage:
@@ -50,6 +50,9 @@ export interface SessionEnvironment {
     connected: SessionTarget | null;
     /// The name of the session of `dashql connect` (DASHQL_SESSION), null outside of it
     sessionName?: string | null;
+    /// The folder of the session of `dashql connect` (DASHQL_WORKSPACE), null outside of it. The `cwd` of a payload
+    /// follows the directory of the shell of the agent.
+    sessionWorkspace?: string | null;
     /// May the agent write only into the workbooks of the session (`dashql connect --workbook-only`)?
     workbookOnly?: boolean;
 }
@@ -91,6 +94,7 @@ export function processSessionEnvironment(): SessionEnvironment {
         },
         connected: endpoint && token ? { endpoint, token } : null,
         sessionName: process.env[SESSION_NAME_ENV] || null,
+        sessionWorkspace: process.env[SESSION_WORKSPACE_ENV] || null,
         workbookOnly: process.env[WORKBOOK_ONLY_ENV] === '1',
     };
 }
@@ -181,8 +185,10 @@ async function hook(args: string[], cli: CliProcess, env: SessionEnvironment): P
     const event = sessionEventOf(name ?? '', harness, payload);
     if (event == null) return EXIT_OK;
     if (env.connected != null) {
+        const cwd = event.folder || cli.cwd;
+        const workspace = env.sessionWorkspace || cwd;
         // A harness that may write only into the workbooks: the hook refuses the tool, the agent reads why
-        const refusal = env.workbookOnly && event.event === 'PreToolUse' ? workbookOnlyRefusal(payload, event.folder || cli.cwd) : null;
+        const refusal = env.workbookOnly && event.event === 'PreToolUse' ? workbookOnlyRefusal(payload, workspace, cwd) : null;
         if (refusal != null) {
             cli.stderr(`${refusal}\n`);
             return EXIT_REFUSED;
@@ -192,7 +198,7 @@ async function hook(args: string[], cli: CliProcess, env: SessionEnvironment): P
         } catch (error) {
             cli.stderr(`dashql: the session did not take the event: ${String(error)}\n`);
         }
-        if (event.event === 'SessionStart') cli.stdout(connectedSessionStart(harness, event.folder || cli.cwd, env.sessionName ?? null));
+        if (event.event === 'SessionStart') cli.stdout(connectedSessionStart(harness, workspace, env.sessionName ?? null));
         return EXIT_OK;
     }
     const session = (payload as { session_id?: unknown })?.session_id;
