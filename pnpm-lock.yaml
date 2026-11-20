@@ -417,11 +417,11 @@ importers:
         specifier: 1.7.5
         version: 1.7.5(@langchain/core@1.4.1(@opentelemetry/api@1.9.1)(openai@7.56.0(undici@8.12.3)(ws@8.23.0)(zod@4.6.7))(ws@8.23.0))(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(zod@4.6.7)
       '@langchain/langgraph-checkpoint':
-        specifier: 1.2.2
-        version: 1.2.2(@langchain/core@1.4.1(@opentelemetry/api@1.9.1)(openai@7.56.0(undici@8.12.3)(ws@8.23.0)(zod@4.6.7))(ws@8.23.0))
+        specifier: 1.2.3
+        version: 1.2.3(@langchain/core@1.4.1(@opentelemetry/api@1.9.1)(openai@7.56.0(undici@8.12.3)(ws@8.23.0)(zod@4.6.7))(ws@8.23.0))
       '@langchain/langgraph-checkpoint-validation':
         specifier: 1.2.1
-        version: 1.2.1(@langchain/core@1.4.1(@opentelemetry/api@1.9.1)(openai@7.56.0(undici@8.12.3)(ws@8.23.0)(zod@4.6.7))(ws@8.23.0))(@langchain/langgraph-checkpoint@1.2.2(@langchain/core@1.4.1(@opentelemetry/api@1.9.1)(openai@7.56.0(undici@8.12.3)(ws@8.23.0)(zod@4.6.7))(ws@8.23.0)))(@opentelemetry/api@1.9.1)(@types/node@26.6.6)(jsdom@29.1.1(@noble/hashes@1.8.0))(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(less@4.9.1(supports-color@8.1.1))(sass@1.106.1)(stylus@0.62.0(supports-color@8.1.1))(yaml@2.9.1))
+        version: 1.2.1(@langchain/core@1.4.1(@opentelemetry/api@1.9.1)(openai@7.56.0(undici@8.12.3)(ws@8.23.0)(zod@4.6.7))(ws@8.23.0))(@langchain/langgraph-checkpoint@1.2.3(@langchain/core@1.4.1(@opentelemetry/api@1.9.1)(openai@7.56.0(undici@8.12.3)(ws@8.23.0)(zod@4.6.7))(ws@8.23.0)))(@opentelemetry/api@1.9.1)(@types/node@26.6.6)(jsdom@29.1.1(@noble/hashes@1.8.0))(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(less@4.9.1(supports-color@8.1.1))(sass@1.106.1)(stylus@0.62.0(supports-color@8.1.1))(yaml@2.9.1))
       '@modelcontextprotocol/sdk':
         specifier: ^1.32.2
         version: 1.32.2(@cfworker/json-schema@4.1.6)(supports-color@8.1.1)(zod@4.6.7)
@@ -1305,12 +1305,6 @@ packages:
     peerDependencies:
       '@langchain/core': ^1.1.44
       '@langchain/langgraph-checkpoint': ^1.2.0
-
-  '@langchain/langgraph-checkpoint@1.2.2':
-    resolution: {integrity: sha512-KL3nzi7I61ll5nANCQe5RoJ5SqTFrE+si9IK6k7IIj9OrPkIKT/Dz0w8CyJF+K7OEuJfA33HvPrZqfzzW1DXDA==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      '@langchain/core': ^1.1.48
 
   '@langchain/langgraph-checkpoint@1.2.3':
     resolution: {integrity: sha512-7pjMUAA23SgENm4kyrPACmvjh+hVb/dT9nutYlCWEErhZTPbBZe0KWcuAA62ZU+Xqopu7r/wDNxGjRXCrpYFVA==}
@@ -6339,10 +6333,10 @@ snapshots:
       - openai
       - ws
 
-  '@langchain/langgraph-checkpoint-validation@1.2.1(@langchain/core@1.4.1(@opentelemetry/api@1.9.1)(openai@7.56.0(undici@8.12.3)(ws@8.23.0)(zod@4.6.7))(ws@8.23.0))(@langchain/langgraph-checkpoint@1.2.2(@langchain/core@1.4.1(@opentelemetry/api@1.9.1)(openai@7.56.0(undici@8.12.3)(ws@8.23.0)(zod@4.6.7))(ws@8.23.0)))(@opentelemetry/api@1.9.1)(@types/node@26.6.6)(jsdom@29.1.1(@noble/hashes@1.8.0))(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(less@4.9.1(supports-color@8.1.1))(sass@1.106.1)(stylus@0.62.0(supports-color@8.1.1))(yaml@2.9.1))':
+  '@langchain/langgraph-checkpoint-validation@1.2.1(@langchain/core@1.4.1(@opentelemetry/api@1.9.1)(openai@7.56.0(undici@8.12.3)(ws@8.23.0)(zod@4.6.7))(ws@8.23.0))(@langchain/langgraph-checkpoint@1.2.3(@langchain/core@1.4.1(@opentelemetry/api@1.9.1)(openai@7.56.0(undici@8.12.3)(ws@8.23.0)(zod@4.6.7))(ws@8.23.0)))(@opentelemetry/api@1.9.1)(@types/node@26.6.6)(jsdom@29.1.1(@noble/hashes@1.8.0))(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(less@4.9.1(supports-color@8.1.1))(sass@1.106.1)(stylus@0.62.0(supports-color@8.1.1))(yaml@2.9.1))':
     dependencies:
       '@langchain/core': 1.4.1(@opentelemetry/api@1.9.1)(openai@7.56.0(undici@8.12.3)(ws@8.23.0)(zod@4.6.7))(ws@8.23.0)
-      '@langchain/langgraph-checkpoint': 1.2.2(@langchain/core@1.4.1(@opentelemetry/api@1.9.1)(openai@7.56.0(undici@8.12.3)(ws@8.23.0)(zod@4.6.7))(ws@8.23.0))
+      '@langchain/langgraph-checkpoint': 1.2.3(@langchain/core@1.4.1(@opentelemetry/api@1.9.1)(openai@7.56.0(undici@8.12.3)(ws@8.23.0)(zod@4.6.7))(ws@8.23.0))
       vitest: 4.1.12(@opentelemetry/api@1.9.1)(@types/node@26.6.6)(jsdom@29.1.1(@noble/hashes@1.8.0))(vite@8.3.8(@types/node@26.6.6)(jiti@2.7.0)(less@4.9.1(supports-color@8.1.1))(sass@1.106.1)(stylus@0.62.0(supports-color@8.1.1))(yaml@2.9.1))
       yargs: 17.7.2
       zod: 4.6.7
@@ -6360,10 +6354,6 @@ snapshots:
       - jsdom
       - msw
       - vite
-
-  '@langchain/langgraph-checkpoint@1.2.2(@langchain/core@1.4.1(@opentelemetry/api@1.9.1)(openai@7.56.0(undici@8.12.3)(ws@8.23.0)(zod@4.6.7))(ws@8.23.0))':
-    dependencies:
-      '@langchain/core': 1.4.1(@opentelemetry/api@1.9.1)(openai@7.56.0(undici@8.12.3)(ws@8.23.0)(zod@4.6.7))(ws@8.23.0)
 
   '@langchain/langgraph-checkpoint@1.2.3(@langchain/core@1.4.1(@opentelemetry/api@1.9.1)(openai@7.56.0(undici@8.12.3)(ws@8.23.0)(zod@4.6.7))(ws@8.23.0))':
     dependencies:
