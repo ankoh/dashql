@@ -26,6 +26,7 @@ const pageTitle = title === 'DashQL' ? title : `${title} · DashQL`;
 const canonical = new URL(Astro.url.pathname, Astro.site);
 const path = Astro.url.pathname;
 const isBlog = path.startsWith('/blog');
+const isArchitecture = path.startsWith('/architecture');
 ---
 
 <!doctype html>
@@ -58,6 +59,7 @@ const isBlog = path.startsWith('/blog');
                     <span>DashQL</span>
                 </a>
                 <nav class={styles.nav} aria-label="Main navigation">
+                    <a class={styles.nav_link} href="/architecture/" aria-current={isArchitecture ? 'page' : undefined}>Architecture</a>
                     {SHOW_BLOG && <a class={styles.nav_link} href="/blog/" aria-current={isBlog ? 'page' : undefined}>Blog</a>}
                 </nav>
                 <nav class={styles.segments} aria-label="DashQL apps">
@@ -78,6 +80,7 @@ const isBlog = path.startsWith('/blog');
         <footer class={styles.footer}>
             <span>© {new Date().getFullYear()} DashQL</span>
             <div class={styles.footer_links}>
+                <a href="/architecture/">Architecture</a>
                 {SHOW_BLOG && <a href="/blog/">Blog</a>}
                 {SHOW_BLOG && <a href="/rss.xml">RSS</a>}
                 <a href="https://github.com/ankoh/dashql">GitHub</a>

@@ -1,0 +1,138 @@
+---
+import styles from './architecture_viewer.module.css';
+---
+
+<!-- The zoom of a diagram, a dialog with a copy of its SVG. One per page, the Zoom in buttons of the figures open it. -->
+<dialog class={styles.viewer} aria-labelledby="diagram-viewer-title" data-diagram-viewer>
+    <header class={styles.header}>
+        <h2 id="diagram-viewer-title" data-viewer-title></h2>
+        <button class={styles.button} type="button" data-viewer-close autofocus>Close</button>
+    </header>
+    <div class={styles.controls}>
+        <div class={styles.control_group} role="group" aria-label="Zoom">
+            <button class={styles.button} type="button" data-zoom-out aria-label="Zoom out">−</button>
+            <button class={styles.button} type="button" data-zoom-fit>Fit</button>
+            <button class={styles.button} type="button" data-zoom-in aria-label="Zoom in">+</button>
+            <output class={styles.zoom_level} data-zoom-level aria-live="polite">100%</output>
+        </div>
+        <div class={styles.control_group} role="group" aria-label="Download the diagram">
+            <button class={styles.button} type="button" data-viewer-svg>Download SVG</button>
+            <button class={styles.button} type="button" data-viewer-png>Download PNG</button>
+        </div>
+        <p class={styles.status} role="status" data-viewer-status></p>
+    </div>
+    <div class={styles.canvas} data-viewer-canvas data-zoom="3" tabindex="0" role="region" aria-label="The zoomed diagram, scroll to explore it"></div>
+</dialog>
+
+<script>
+    import { downloadPng, downloadSvg } from './svg_download';
+
+    function required<T extends Element>(root: ParentNode, selector: string): T {
+        const element = root.querySelector<T>(selector);
+        if (!element) throw new Error(`The viewer has no ${selector}`);
+        return element;
+    }
+
+    const viewer = required<HTMLDialogElement>(document, '[data-diagram-viewer]');
+    const title = required<HTMLElement>(viewer, '[data-viewer-title]');
+    const canvas = required<HTMLElement>(viewer, '[data-viewer-canvas]');
+    const zoomIn = required<HTMLButtonElement>(viewer, '[data-zoom-in]');
+    const zoomOut = required<HTMLButtonElement>(viewer, '[data-zoom-out]');
+    const zoomFit = required<HTMLButtonElement>(viewer, '[data-zoom-fit]');
+    const zoomLevel = required<HTMLOutputElement>(viewer, '[data-zoom-level]');
+    const svgButton = required<HTMLButtonElement>(viewer, '[data-viewer-svg]');
+    const pngButton = required<HTMLButtonElement>(viewer, '[data-viewer-png]');
+    const status = required<HTMLElement>(viewer, '[data-viewer-status]');
+
+    // The widths of the diagram in percent of the canvas, data-zoom is the index, see the stylesheet
+    const scales = [25, 50, 75, 100, 125, 150, 200, 300, 400];
+    const defaultZoom = 3;
+    let zoom: number | 'fit' = defaultZoom;
+    let sourceSvg: SVGSVGElement | null = null;
+    let filename = '';
+    let opener: HTMLElement | null = null;
+
+    function currentPercent(): number {
+        if (zoom !== 'fit') return scales[zoom];
+        if (!sourceSvg || !canvas.clientWidth) return 100;
+        const { width, height } = sourceSvg.viewBox.baseVal;
+        return Math.min(100, (((canvas.clientHeight * width) / height / canvas.clientWidth) * 100));
+    }
+
+    function setZoom(value: number | 'fit') {
+        zoom = value === 'fit' ? value : Math.max(0, Math.min(scales.length - 1, value));
+        canvas.dataset.zoom = String(zoom);
+        zoomLevel.value = zoom === 'fit' ? 'Fit' : `${scales[zoom]}%`;
+        zoomOut.disabled = currentPercent() <= scales[0];
+        zoomIn.disabled = currentPercent() >= scales[scales.length - 1];
+    }
+
+    for (const button of document.querySelectorAll<HTMLElement>('[data-diagram-open]')) {
+        button.addEventListener('click', () => {
+            const figure = document.getElementById(button.dataset.diagramOpen ?? '');
+            const svg = figure?.querySelector<SVGSVGElement>('svg[data-architecture-diagram]');
+            const download = figure?.querySelector<HTMLButtonElement>('[data-svg-download]')?.dataset.svgDownload;
+            if (!figure || !svg || !download) return;
+            // The copy gets ids of its own, its markers and its description must not resolve to the figure
+            const copy = svg.cloneNode(true) as SVGSVGElement;
+            const ids = new Map<string, string>();
+            for (const element of copy.querySelectorAll('[id]')) {
+                ids.set(element.id, `viewer-${element.id}`);
+                element.id = `viewer-${element.id}`;
+            }
+            for (const element of [copy, ...Array.from(copy.querySelectorAll('*'))]) {
+                for (const attribute of Array.from(element.attributes)) {
+                    let value = attribute.value;
+                    for (const [oldId, newId] of ids) value = value.replaceAll(`url(#${oldId})`, `url(#${newId})`);
+                    if (attribute.name === 'aria-describedby') value = value.split(' ').map((id) => ids.get(id) ?? id).join(' ');
+                    if (value !== attribute.value) element.setAttribute(attribute.name, value);
+                }
+            }
+            sourceSvg = svg;
+            filename = download;
+            opener = button;
+            title.textContent = figure.getAttribute('aria-label') ?? 'Diagram';
+            status.textContent = '';
+            canvas.replaceChildren(copy);
+            viewer.showModal();
+            setZoom(defaultZoom);
+            canvas.scrollTo(0, 0);
+        });
+    }
+
+    zoomIn.addEventListener('click', () => {
+        const next = scales.findIndex((scale) => scale > currentPercent() + 0.01);
+        setZoom(next < 0 ? scales.length - 1 : next);
+    });
+    zoomOut.addEventListener('click', () => {
+        const next = scales.findLastIndex((scale) => scale < currentPercent() - 0.01);
+        setZoom(Math.max(0, next));
+    });
+    zoomFit.addEventListener('click', () => {
+        setZoom('fit');
+        canvas.scrollTo(0, 0);
+    });
+    required<HTMLButtonElement>(viewer, '[data-viewer-close]').addEventListener('click', () => viewer.close());
+    viewer.addEventListener('close', () => {
+        canvas.replaceChildren();
+        sourceSvg = null;
+        opener?.focus();
+    });
+
+    // The downloads take the SVG of the figure, not the copy with the prefixed ids
+    async function download(png: boolean) {
+        if (!sourceSvg) return;
+        svgButton.disabled = pngButton.disabled = true;
+        status.textContent = png ? 'Preparing PNG…' : 'Preparing SVG…';
+        try {
+            await (png ? downloadPng : downloadSvg)(sourceSvg, png ? filename.replace(/\.svg$/, '.png') : filename);
+            status.textContent = '';
+        } catch {
+            status.textContent = 'The download failed, please try again.';
+        } finally {
+            svgButton.disabled = pngButton.disabled = false;
+        }
+    }
+    svgButton.addEventListener('click', () => void download(false));
+    pngButton.addEventListener('click', () => void download(true));
+</script>

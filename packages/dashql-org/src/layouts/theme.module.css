@@ -66,6 +66,21 @@
     --card_row_hover: hsl(var(--neutral_hue), calc(29% * var(--neutral_tint)), 98.5%);
     --card_code_bg: var(--card_header_bg);
 
+    /* The architecture diagrams, in the dark theme of the app: the page neutral_dark_0, the regions a step lighter, the
+       boxes the cards of the app. Grey text in two steps, quiet grey edges, the purple of the app for the WebAssembly
+       modules. Solid colors only, the downloads freeze them. See docs/agents/architecture_diagrams.md. */
+    --diagram_bg: var(--base_color_neutral_dark_0);
+    --diagram_fg: var(--base_color_neutral_1);
+    --diagram_fg_muted: var(--base_color_neutral_3);
+    --diagram_border: var(--base_color_neutral_7);
+    --diagram_region_bg: var(--base_color_neutral_dark_1);
+    --diagram_group_bg: var(--base_color_neutral_dark_0);
+    --diagram_box_bg: var(--base_color_neutral_dark_2);
+    --diagram_accent_fg: hsl(var(--neutral_hue), calc(32% * var(--neutral_tint)), 70%);
+    --diagram_edge: var(--base_color_neutral_6);
+    --diagram_wasm: var(--base_color_purple_4);
+    --diagram_wasm_fg: var(--base_color_purple_3);
+
     background: var(--site_bg);
 }
 

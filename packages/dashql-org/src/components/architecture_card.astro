@@ -1,0 +1,52 @@
+---
+import { CARD_FIRST_LINE, CARD_LINE_HEIGHT, CARD_PADDING, type DiagramCard, type DiagramTone } from './architecture_diagram';
+import styles from './architecture_diagram.module.css';
+
+interface Props {
+    card: DiagramCard;
+    /// The id of the diagram, it prefixes the ids of the cards
+    diagram: string;
+}
+
+const { card, diagram } = Astro.props;
+const id = `${diagram}-${card.id}`;
+const toneClass: Record<DiagramTone, string | undefined> = {
+    heading: styles.heading,
+    accent: styles.accent,
+    wasm: styles.wasm_text,
+    muted: styles.muted,
+};
+// A card that holds others is a little rounder than the boxes in it
+const radius = card.kind === 'region' || card.children != null ? 14 : 10;
+const right = card.x + card.width - CARD_PADDING;
+const firstLine = card.y + CARD_FIRST_LINE;
+---
+
+<g id={id}>
+    <rect class={styles[card.kind]} x={card.x} y={card.y} width={card.width} height={card.height} rx={radius} />
+    {
+        card.lines.map((line, index) => (
+            <text class={toneClass[line.tone ?? (index === 0 ? 'heading' : 'muted')]} x={card.x + CARD_PADDING} y={firstLine + index * CARD_LINE_HEIGHT}>
+                {line.text}
+            </text>
+        ))
+    }
+    {
+        card.aside && (
+            <text class:list={[styles.muted, styles.right]} x={right} y={firstLine}>
+                {card.aside.map((part) => <tspan class={toneClass[part.tone ?? 'muted']}>{part.text}</tspan>)}
+            </text>
+        )
+    }
+    {
+        card.badge && (
+            <g id={`${id}-badge`}>
+                <rect class={styles.badge} x={right - 56} y={card.y + 14} width="56" height="28" rx="6" />
+                <text class:list={[styles.muted, styles.center]} x={right - 28} y={card.y + 34}>
+                    {card.badge}
+                </text>
+            </g>
+        )
+    }
+    {card.children?.map((child) => <Astro.self card={child} diagram={diagram} />)}
+</g>

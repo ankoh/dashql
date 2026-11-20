@@ -1,0 +1,97 @@
+/* The SVG of an architecture diagram. The colors are tokens of the theme, the download freezes them into presentation
+   attributes, see svg_download.ts. */
+.diagram {
+    display: block;
+    width: 100%;
+    /* Narrower pages scroll the diagram instead of shrinking its text */
+    min-width: 960px;
+    height: auto;
+    font-family: var(--font_family);
+    font-size: 18px;
+    font-weight: 400;
+    fill: var(--diagram_fg);
+}
+
+.background {
+    fill: var(--diagram_bg);
+}
+
+/* The cards, from the outside in */
+.region,
+.box,
+.wasm,
+.external {
+    stroke: var(--diagram_border);
+    stroke-width: 1;
+}
+
+.region {
+    fill: var(--diagram_region_bg);
+}
+
+.box {
+    fill: var(--diagram_box_bg);
+}
+
+.wasm {
+    fill: var(--diagram_group_bg);
+    stroke: var(--diagram_wasm);
+    stroke-width: 1.5;
+}
+
+.external {
+    fill: var(--diagram_region_bg);
+    stroke-width: 1.5;
+    stroke-dasharray: 6 5;
+}
+
+.badge {
+    fill: var(--diagram_box_bg);
+    stroke: var(--diagram_border);
+    stroke-width: 1;
+}
+
+/* The text */
+.heading {
+    font-weight: 600;
+}
+
+.muted {
+    fill: var(--diagram_fg_muted);
+}
+
+.accent {
+    fill: var(--diagram_accent_fg);
+    font-weight: 600;
+}
+
+.wasm_text {
+    fill: var(--diagram_wasm_fg);
+    font-weight: 600;
+}
+
+.center {
+    text-anchor: middle;
+}
+
+.right {
+    text-anchor: end;
+}
+
+/* The edges */
+.dependency,
+.runtime {
+    fill: none;
+    stroke: var(--diagram_edge);
+    stroke-width: 1.25;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.runtime {
+    stroke-dasharray: 6 5;
+}
+
+.arrow {
+    fill: var(--diagram_edge);
+}

@@ -38,6 +38,7 @@ start with `packages/` or `extensions/`.
 - Agents: `design/agent_integration.md` (start here), `design/agent_session.md`, `design/agent_integration_tests.md`,
   `wip/agent_session.md` (planned), `packages/dashql-cli/README.md` (the `dashql` commands)
 - hyperdb-edge: `wip/hyperdb_edge.md`, `wip/hyperdb_edge_stores.md`
+- Website: `agents/architecture_diagrams.md` (the style of the architecture diagrams of dashql.org, for new ones)
 - Hosts and embeds: `design/electron.md` (desktop app), `design/app_csp.md`, `design/document_isolation_policy.md`,
   `wip/embeds.md`, `design/slack_app.md`, `packages/dashql-mcp/README.md`
 

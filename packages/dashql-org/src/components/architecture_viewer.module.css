@@ -1,0 +1,161 @@
+/* The zoom of a diagram, a dark card on the dimmed page like the cards on the backdrop */
+.viewer {
+    box-sizing: border-box;
+    width: min(96vw, 1600px);
+    max-width: none;
+    max-height: 94dvh;
+    padding: 1.25rem;
+    border: 1px solid var(--site_border_strong);
+    border-radius: var(--card_radius);
+    color: var(--site_fg);
+    background: var(--chrome_bg_100);
+    box-shadow: var(--shadow_extra_large);
+}
+
+.viewer::backdrop {
+    background: hsla(0, 0%, 0%, 0.6);
+}
+
+.viewer[open] {
+    display: flex;
+    flex-direction: column;
+    height: 94dvh;
+}
+
+.header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.header h2 {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 600;
+}
+
+/* Like the segmented control in the header of the site */
+.button {
+    min-width: 2.25rem;
+    height: 2.125rem;
+    padding: 0 0.85rem;
+    border: 1px solid var(--site_button_border);
+    border-radius: var(--border_radius);
+    font: inherit;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--site_button_fg);
+    background: var(--site_button_bg);
+    cursor: pointer;
+    transition: background 80ms cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+.button:hover {
+    background: var(--site_button_bg_hover);
+}
+
+.button:disabled {
+    color: var(--site_fg_subtle);
+    cursor: default;
+}
+
+.button:focus-visible {
+    outline: 2px solid var(--color_focus);
+    outline-offset: 2px;
+}
+
+.controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1.5rem;
+    margin-block: 1rem;
+}
+
+.control_group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.zoom_level {
+    min-width: 3.5rem;
+    color: var(--site_fg_muted);
+    font-size: 0.8125rem;
+    text-align: center;
+}
+
+.status {
+    margin: 0;
+    color: var(--site_fg_muted);
+    font-size: 0.8125rem;
+}
+
+.canvas {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+}
+
+.canvas:focus-visible {
+    outline: 2px solid var(--color_focus);
+    outline-offset: 3px;
+}
+
+/* The diagram in the style of the cards */
+.canvas :global(svg) {
+    box-sizing: border-box;
+    min-width: 0;
+    width: 100%;
+    height: auto;
+    margin-inline: auto;
+    border: 1px solid var(--diagram_border);
+    border-radius: var(--card_radius);
+    background: var(--diagram_bg);
+}
+
+.canvas[data-zoom='0'] :global(svg) {
+    width: 25%;
+}
+
+.canvas[data-zoom='1'] :global(svg) {
+    width: 50%;
+}
+
+.canvas[data-zoom='2'] :global(svg) {
+    width: 75%;
+}
+
+.canvas[data-zoom='4'] :global(svg) {
+    width: 125%;
+}
+
+.canvas[data-zoom='5'] :global(svg) {
+    width: 150%;
+}
+
+.canvas[data-zoom='6'] :global(svg) {
+    width: 200%;
+}
+
+.canvas[data-zoom='7'] :global(svg) {
+    width: 300%;
+}
+
+.canvas[data-zoom='8'] :global(svg) {
+    width: 400%;
+}
+
+.canvas[data-zoom='fit'] :global(svg) {
+    width: auto;
+    max-width: 100%;
+    max-height: 100%;
+}
+
+@media (max-width: 36rem) {
+    .viewer {
+        padding: 1rem;
+    }
+}

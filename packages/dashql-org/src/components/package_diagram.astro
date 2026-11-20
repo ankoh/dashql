@@ -1,0 +1,402 @@
+---
+import ArchitectureCard from './architecture_card.astro';
+import type { DiagramCard, DiagramEdge } from './architecture_diagram';
+import styles from './architecture_diagram.module.css';
+
+// The packages of the repository and their dependencies, from the hosts at the top to the core at the bottom.
+// An edge is an import of the sources, or a dep of the BUILD.bazel files for what no source imports (the brand assets
+// of the app, the bundle of the desktop app); the deps that only tests or bundles need are not edges. Between the
+// packages every dependency is drawn. In the core module the bindings also use dashql-core and the parser, and the
+// shell, the storage and the runtime the parser: those edges are left out, the <desc> names them.
+const diagram = 'packages';
+const width = 1440;
+const height = 1494;
+
+// The four columns of the boxes
+const column = [44, 392, 740, 1088];
+const columnWidth = 308;
+// The crates of the core module, four in the width of three columns
+const crate = [64, 311, 558, 805];
+const crateWidth = 223;
+// The last column is narrower, right of it runs the lane of dashql-app to hyperdb-wasm
+const lastColumnWidth = 268;
+const lastColumnCenter = column[3] + lastColumnWidth / 2;
+
+const cards: DiagramCard[] = [
+    {
+        id: 'integrations',
+        kind: 'region',
+        x: 24,
+        y: 72,
+        width: 1392,
+        height: 140,
+        lines: [{ text: 'Integrations' }, { text: 'Cloudflare Workers' }, { text: 'that open the embed' }],
+        children: [
+            {
+                id: 'dashql-mcp',
+                kind: 'box',
+                x: column[1],
+                y: 86,
+                width: columnWidth,
+                height: 112,
+                lines: [{ text: 'dashql-mcp' }, { text: 'MCP server', tone: 'accent' }, { text: 'An MCP App frames the embed' }],
+            },
+            {
+                id: 'dashql-slack',
+                kind: 'box',
+                x: column[2],
+                y: 86,
+                width: columnWidth,
+                height: 112,
+                lines: [{ text: 'dashql-slack' }, { text: 'Slack app', tone: 'accent' }, { text: 'Unfurls links to the embed' }],
+            },
+        ],
+    },
+    {
+        id: 'apps',
+        kind: 'region',
+        x: 24,
+        y: 236,
+        width: 1392,
+        height: 218,
+        lines: [{ text: 'Apps & tools' }],
+        children: [
+            {
+                id: 'dashql-org',
+                kind: 'box',
+                x: column[0],
+                y: 290,
+                width: columnWidth,
+                height: 140,
+                lines: [{ text: 'dashql-org' }, { text: 'dashql.org', tone: 'accent' }, { text: 'This website, built with Astro' }, { text: 'Brand assets of the app' }],
+            },
+            {
+                id: 'dashql-app',
+                kind: 'box',
+                x: column[1],
+                y: 290,
+                width: columnWidth,
+                height: 140,
+                lines: [{ text: 'dashql-app' }, { text: 'dashql.app', tone: 'accent' }, { text: 'The web app, built with Vite' }, { text: 'Editor, workbooks and embed' }],
+            },
+            {
+                id: 'dashql-native',
+                kind: 'box',
+                x: column[2],
+                y: 290,
+                width: columnWidth,
+                height: 140,
+                lines: [{ text: 'dashql-native' }, { text: 'Desktop app', tone: 'accent' }, { text: 'Electron around the app' }, { text: 'gRPC proxy in Rust' }],
+            },
+            {
+                id: 'dashql-cli',
+                kind: 'box',
+                x: column[3],
+                y: 290,
+                width: lastColumnWidth,
+                height: 140,
+                badge: 'npm',
+                lines: [{ text: 'dashql-cli' }, { text: 'The dashql command', tone: 'accent' }, { text: 'Lints, formats and runs SQL' }, { text: 'Live sessions of agents' }],
+            },
+        ],
+    },
+    {
+        id: 'typescript',
+        kind: 'region',
+        x: 24,
+        y: 494,
+        width: 1392,
+        height: 250,
+        lines: [{ text: 'TypeScript packages' }, { text: 'Source packages, the hosts' }, { text: 'bundle their TypeScript' }],
+        children: [
+            {
+                id: 'dashql-react',
+                kind: 'box',
+                x: column[1],
+                y: 552,
+                width: columnWidth,
+                height: 168,
+                lines: [
+                    { text: 'dashql-react' },
+                    { text: 'Hooks and components', tone: 'accent' },
+                    { text: 'Models of the views' },
+                    { text: 'Design tokens and fonts' },
+                    { text: 'Shared with the website' },
+                ],
+            },
+            {
+                id: 'dashql',
+                kind: 'box',
+                x: column[2],
+                y: 552,
+                width: columnWidth,
+                height: 168,
+                badge: 'npm',
+                lines: [
+                    { text: 'dashql' },
+                    { text: 'The runtime in TypeScript', tone: 'accent' },
+                    { text: 'Bindings of the core module' },
+                    { text: 'In browser, desktop and Node' },
+                    { text: 'Storage, Hyper and HTTP' },
+                ],
+            },
+            {
+                id: 'hyperdb-edge',
+                kind: 'box',
+                x: column[3],
+                y: 552,
+                width: lastColumnWidth,
+                height: 168,
+                lines: [
+                    { text: 'hyperdb-edge' },
+                    { text: 'SQL on embedded Hyper', tone: 'accent' },
+                    { text: 'Library and command line' },
+                    { text: 'Node and the browser' },
+                    { text: 'Built on hyperdb-wasm' },
+                ],
+            },
+        ],
+    },
+    {
+        id: 'webassembly',
+        kind: 'region',
+        x: 24,
+        y: 784,
+        width: 1392,
+        height: 686,
+        lines: [{ text: 'WebAssembly modules' }],
+        children: [
+            {
+                id: 'core-module',
+                kind: 'wasm',
+                x: 44,
+                y: 842,
+                width: 1004,
+                height: 604,
+                lines: [{ text: 'The core module in Rust' }],
+                aside: [{ text: 'dashql_core.wasm', tone: 'wasm' }],
+                children: [
+                    {
+                        id: 'dashql-core-bindings',
+                        kind: 'box',
+                        x: crate[0],
+                        y: 898,
+                        width: 964,
+                        height: 112,
+                        lines: [
+                            { text: 'dashql-core-bindings' },
+                            { text: 'wasm-bindgen bindings', tone: 'accent' },
+                            { text: 'The Runtime class with its platform, views and change journal' },
+                        ],
+                    },
+                    {
+                        id: 'dashql-core-shell',
+                        kind: 'box',
+                        x: crate[0],
+                        y: 1066,
+                        width: crateWidth,
+                        height: 168,
+                        lines: [
+                            { text: 'dashql-core-shell' },
+                            { text: 'Shell', tone: 'accent' },
+                            { text: 'Prompt and VT100' },
+                            { text: 'Result tables' },
+                            { text: 'Dot commands' },
+                        ],
+                    },
+                    {
+                        id: 'dashql-core-storage',
+                        kind: 'box',
+                        x: crate[1],
+                        y: 1066,
+                        width: crateWidth,
+                        height: 168,
+                        lines: [
+                            { text: 'dashql-core-storage' },
+                            { text: 'Storage', tone: 'accent' },
+                            { text: 'Storage writer' },
+                            { text: 'Restore, migrations' },
+                            { text: 'Workbook format' },
+                        ],
+                    },
+                    {
+                        id: 'dashql-core-runtime',
+                        kind: 'box',
+                        x: crate[2],
+                        y: 1066,
+                        width: crateWidth,
+                        height: 168,
+                        lines: [
+                            { text: 'dashql-core-runtime' },
+                            { text: 'Runtime', tone: 'accent' },
+                            { text: 'Workbooks, planner' },
+                            { text: 'Connections and runs' },
+                            { text: 'Without I/O' },
+                        ],
+                    },
+                    {
+                        id: 'dashql-core-profile',
+                        kind: 'box',
+                        x: crate[3],
+                        y: 1066,
+                        width: crateWidth,
+                        height: 168,
+                        lines: [
+                            { text: 'dashql-core-profile' },
+                            { text: 'Query profiles', tone: 'accent' },
+                            { text: 'Hyper plans' },
+                            { text: 'Trino stages' },
+                            { text: 'Progress events' },
+                        ],
+                    },
+                    {
+                        id: 'dashql-core',
+                        kind: 'box',
+                        x: crate[0],
+                        y: 1282,
+                        width: crate[2] + crateWidth - crate[0],
+                        height: 140,
+                        lines: [
+                            { text: 'dashql-core' },
+                            { text: 'The SQL language of DashQL', tone: 'accent' },
+                            { text: 'Analyzer, catalog, completion and formatter' },
+                            { text: 'Script sessions, script diffs and visualizations' },
+                        ],
+                    },
+                    {
+                        id: 'dashql-parser',
+                        kind: 'box',
+                        x: crate[3],
+                        y: 1282,
+                        width: crateWidth,
+                        height: 140,
+                        lines: [{ text: 'dashql-parser' }, { text: 'Parser', tone: 'accent' }, { text: 'Scanner with logos' }, { text: 'LALR(1) of bison' }],
+                    },
+                ],
+            },
+            {
+                id: 'hyperdb-wasm',
+                kind: 'external',
+                x: column[3],
+                y: 842,
+                width: lastColumnWidth,
+                height: 140,
+                lines: [{ text: 'hyperdb-wasm' }, { text: 'Hyper in WebAssembly', tone: 'wasm' }, { text: 'The embedded database' }, { text: 'From npm' }],
+            },
+            {
+                id: 'dashql-dataflow',
+                kind: 'wasm',
+                x: column[3],
+                y: 1066,
+                width: lastColumnWidth,
+                height: 168,
+                lines: [
+                    { text: 'dashql-dataflow' },
+                    { text: 'dashql_dataflow.wasm', tone: 'wasm' },
+                    { text: 'Layout of the dataflow' },
+                    { text: 'canvas with elk-rs' },
+                    { text: 'Loaded when it opens' },
+                ],
+            },
+        ],
+    },
+];
+
+// The centers of the crates, where the arrows meet them
+const crateCenter = crate.map((x) => x + crateWidth / 2);
+const edges: DiagramEdge[] = [
+    // The integrations open the embed of the app
+    { from: 'dashql-mcp', to: 'dashql-app', path: 'M546 198 V290', runtime: true },
+    { from: 'dashql-slack', to: 'dashql-app', path: 'M894 198 V224 H646 V290', runtime: true },
+    // The apps and tools
+    { from: 'dashql-org', to: 'dashql-app', path: 'M352 360 H392' },
+    { from: 'dashql-native', to: 'dashql-app', path: 'M740 360 H700' },
+    { from: 'dashql-org', to: 'dashql-react', path: 'M198 430 V474 H440 V552' },
+    { from: 'dashql-app', to: 'dashql-react', path: 'M520 430 V552' },
+    // The app shares its trunk to dashql with the lane to hyperdb-wasm, the one edge that crosses another
+    { from: 'dashql-app', to: 'dashql', path: 'M640 430 V464 H800 V552' },
+    { from: 'dashql-app', to: 'hyperdb-wasm', path: `M640 430 V464 H1386 V912 H${column[3] + lastColumnWidth}` },
+    { from: 'dashql-cli', to: 'dashql', path: `M${lastColumnCenter} 430 V484 H980 V552` },
+    // The TypeScript packages
+    { from: 'dashql-react', to: 'dashql', path: 'M700 636 H740' },
+    { from: 'dashql', to: 'hyperdb-edge', path: 'M1048 636 H1088' },
+    { from: 'dashql', to: 'dashql-core-bindings', path: 'M800 720 V898' },
+    { from: 'dashql', to: 'hyperdb-wasm', path: 'M1010 720 V764 H1130 V842' },
+    { from: 'dashql', to: 'dashql-dataflow', path: 'M1010 720 V764 H1068 V1150 H1088' },
+    { from: 'hyperdb-edge', to: 'hyperdb-wasm', path: `M${lastColumnCenter} 720 V842` },
+    // The crates of the core module, the bindings bind all of them
+    ...['dashql-core-shell', 'dashql-core-storage', 'dashql-core-runtime', 'dashql-core-profile'].map((to, index) => ({
+        from: 'dashql-core-bindings',
+        to,
+        path: `M546 1010 V1038 H${crateCenter[index]} V1066`,
+    })),
+    { from: 'dashql-core-storage', to: 'dashql-core-runtime', path: 'M534 1150 H558' },
+    { from: 'dashql-core-runtime', to: 'dashql-core-profile', path: 'M781 1150 H805' },
+    ...['dashql-core-shell', 'dashql-core-storage', 'dashql-core-runtime'].map((from, index) => ({
+        from,
+        to: 'dashql-core',
+        path: `M${crateCenter[index]} 1234 V1282`,
+    })),
+    { from: 'dashql-core', to: 'dashql-parser', path: 'M781 1352 H805' },
+];
+const arrow = `${diagram}-arrow`;
+---
+
+<svg
+    class={styles.diagram}
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox={`0 0 ${width} ${height}`}
+    width={width}
+    height={height}
+    role="img"
+    aria-label="The packages of DashQL and their dependencies: the apps and tools, the TypeScript packages and the WebAssembly modules of the Rust core."
+    aria-describedby={`${diagram}-description`}
+    data-architecture-diagram
+>
+    <title>The packages of DashQL</title>
+    <desc id={`${diagram}-description`}>
+        The integrations dashql-mcp and dashql-slack are Cloudflare Workers that open the embed of dashql-app at run time. The website
+        dashql-org takes the brand assets of the app, and the desktop app dashql-native wraps the bundle of dashql-app in Electron. The website
+        builds on dashql-react, the hooks, models, components and design tokens. The app builds on dashql-react, on dashql, the runtime in
+        TypeScript published on npm as @akohn/dashql, and on hyperdb-wasm, the embedded Hyper of its web connections and its embed. The
+        command line tool dashql-cli builds on dashql, and so does dashql-react. dashql binds the core module dashql_core.wasm and the
+        dataflow layout dashql_dataflow.wasm, runs Hyper on hyperdb-wasm and checks the WebAssembly features of Node with hyperdb-edge, which
+        is built on hyperdb-wasm too. The core module links the Rust crates dashql-core-bindings, dashql-core-shell, dashql-core-storage,
+        dashql-core-runtime, dashql-core-profile, dashql-core and dashql-parser. The bindings use all of them. The storage builds on the
+        runtime, the runtime on the profiles, the shell, the storage and the runtime on dashql-core and dashql-parser, and dashql-core on
+        dashql-parser.
+    </desc>
+    <defs>
+        <marker id={arrow} viewBox="0 0 8 8" refX="8" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+            <path class={styles.arrow} d="M0 0 8 4 0 8Z" />
+        </marker>
+    </defs>
+    <rect id={`${diagram}-background`} class={styles.background} width={width} height={height} />
+
+    <g id={`${diagram}-legend`}>
+        <path class={styles.dependency} d="M730 36 H764" />
+        <text class={styles.muted} x="776" y="42">Depends on</text>
+        <path class={styles.runtime} d="M914 36 H948" />
+        <text class={styles.muted} x="960" y="42">Loads at run time</text>
+        <rect class={styles.wasm} x="1150" y="26" width="34" height="20" rx="5" />
+        <text class={styles.muted} x="1196" y="42">WebAssembly module</text>
+    </g>
+
+    <g id={`${diagram}-cards`}>
+        {cards.map((card) => <ArchitectureCard card={card} diagram={diagram} />)}
+    </g>
+
+    <!-- Above the cards: an edge crosses the regions it leaves and enters -->
+    <g id={`${diagram}-dependencies`}>
+        {
+            edges.map((edge) => (
+                <path
+                    id={`${diagram}-${edge.from}-to-${edge.to}`}
+                    class={edge.runtime ? styles.runtime : styles.dependency}
+                    d={edge.path}
+                    marker-end={`url(#${arrow})`}
+                />
+            ))
+        }
+    </g>
+</svg>

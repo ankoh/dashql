@@ -1,0 +1,64 @@
+---
+import Card from './card.astro';
+import styles from './architecture_figure.module.css';
+
+interface Props {
+    /// The anchor of the figure
+    id: string;
+    title: string;
+    /// The name of the downloaded SVG, the PNG takes the same name with .png
+    filename: string;
+    /// A caption below the card, on the backdrop
+    caption?: string;
+}
+
+const { id, title, filename, caption } = Astro.props;
+---
+
+<figure id={id} class={styles.figure} aria-label={title} data-architecture-figure>
+    <Card title={title} dark>
+        <Fragment slot="actions">
+            <span class={styles.status} role="status" data-download-status></span>
+            <button class={styles.button} type="button" data-diagram-open={id} aria-haspopup="dialog" aria-label={`Zoom in: ${title}`}>
+                Zoom in
+            </button>
+            <button class={styles.button} type="button" data-svg-download={filename} aria-label={`Download SVG: ${title}`}>
+                Download SVG
+            </button>
+            <button class={styles.button} type="button" data-png-download={filename.replace(/\.svg$/, '.png')} aria-label={`Download PNG: ${title}`}>
+                Download PNG
+            </button>
+        </Fragment>
+        <div class={styles.scroll} tabindex="0" role="region" aria-label={`${title}, scroll to see all of it`}>
+            <slot />
+        </div>
+    </Card>
+    {caption && <figcaption class={styles.caption}>{caption}</figcaption>}
+</figure>
+
+<script>
+    import { downloadPng, downloadSvg } from './svg_download';
+
+    for (const figure of document.querySelectorAll<HTMLElement>('[data-architecture-figure]')) {
+        const buttons = figure.querySelectorAll<HTMLButtonElement>('[data-svg-download], [data-png-download]');
+        const svg = figure.querySelector<SVGSVGElement>('svg[data-architecture-diagram]');
+        const status = figure.querySelector<HTMLElement>('[data-download-status]');
+        for (const button of buttons) {
+            button.addEventListener('click', async () => {
+                const png = button.dataset.pngDownload;
+                const filename = png ?? button.dataset.svgDownload;
+                if (!svg || !status || !filename) return;
+                for (const control of buttons) control.disabled = true;
+                status.textContent = png ? 'Preparing PNG…' : 'Preparing SVG…';
+                try {
+                    await (png ? downloadPng : downloadSvg)(svg, filename);
+                    status.textContent = '';
+                } catch {
+                    status.textContent = 'The download failed, please try again.';
+                } finally {
+                    for (const control of buttons) control.disabled = false;
+                }
+            });
+        }
+    }
+</script>

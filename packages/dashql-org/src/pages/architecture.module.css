@@ -1,0 +1,61 @@
+/* The architecture diagrams, one card per diagram on the backdrop */
+.page {
+    width: min(100% - 3rem, var(--content_width));
+    margin-inline: auto;
+    padding-block: 3.5rem 5rem;
+}
+
+.intro {
+    max-width: 48rem;
+    margin-bottom: 2.5rem;
+}
+
+.intro p {
+    margin: 0;
+    font-size: 1.0625rem;
+    line-height: 1.65;
+    color: var(--site_fg_muted);
+}
+
+/* Like the eyebrows of the front page */
+.intro .eyebrow {
+    margin: 0 0 0.75rem;
+    font-family: var(--font_family_mono);
+    font-size: 0.8rem;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--hero_accent);
+}
+
+.title {
+    margin: 0 0 1.25rem;
+    font-size: clamp(1.75rem, 3vw, 2.25rem);
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: -0.03em;
+}
+
+.diagram_navigation {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.5rem;
+    margin-top: 1.25rem;
+}
+
+.diagram_navigation a {
+    color: var(--site_fg_muted);
+    font-size: 0.9rem;
+    text-underline-offset: 0.25em;
+}
+
+.diagram_navigation a:hover {
+    color: var(--site_fg);
+}
+
+@media (max-width: 36rem) {
+    .page {
+        width: calc(100% - 2rem);
+        padding-block: 2rem 3rem;
+    }
+}
