@@ -9,15 +9,14 @@
 //! `remove`. The storage of a runtime migrates a workbook folder that it keeps elsewhere (`storage.workbookFolder` of
 //! the platform) when it reads a workbook file of an older format.
 
-use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
-use dashql_core_runtime::settings::RuntimeSettings;
+use dashql_core_runtime::host::{HostError, LogLevel};
 use dashql_core_storage::storage::{FileStamp, FolderStamps};
 use dashql_core_storage::workbook_format::data::{STORAGE_VERSION, WORKBOOK_FORMAT_VERSION};
 use dashql_core_storage::workbook_format::migration::{migrate_stamped_folder, FolderHost, WorkbookMigrationResult};
 use dashql_core_storage::workbook_format::storage_migration::{
     migrate_storage, DirEntry, StorageMigrationSummary, StorageRootHost,
 };
-use js_sys::{Array, Function, Promise, Reflect};
+use js_sys::{Array, Function, Reflect};
 use serde::Serialize;
 use tsify::Tsify;
 use wasm_bindgen::prelude::*;
@@ -110,7 +109,7 @@ impl FolderHost for JsFolder {
 }
 
 /// A storage root of the platform as the steps of the migration see it, with the log of the platform. It needs no
-/// runtime: the clock, the timers and the random ids are the ones of the global scope.
+/// runtime: the clock and the random ids are the ones of the global scope.
 pub(crate) struct JsStorageRoot {
     root: JsValue,
     /// Logs a message: `(level, message, details, target)`
@@ -128,32 +127,11 @@ fn global(name: &str) -> Result<JsValue, HostError> {
     Reflect::get(&js_sys::global(), &JsValue::from_str(name)).map_err(|error| HostError::new(message_of(&error)))
 }
 
-impl Host for JsStorageRoot {
+impl StorageRootHost for JsStorageRoot {
+    type Folder = JsFolder;
+
     fn now(&self) -> f64 {
         js_sys::Date::now()
-    }
-
-    fn sleep(&self, ms: f64) -> impl std::future::Future<Output = ()> + 'static {
-        let set_timeout = global("setTimeout").ok().and_then(|f| f.dyn_into::<Function>().ok());
-        let promise = Promise::new(&mut |resolve, _| match &set_timeout {
-            Some(set_timeout) => {
-                let _ = set_timeout.call2(&JsValue::NULL, &resolve, &JsValue::from_f64(ms));
-            }
-            None => {
-                let _ = resolve.call0(&JsValue::NULL);
-            }
-        });
-        async move {
-            let _ = wasm_bindgen_futures::JsFuture::from(promise).await;
-        }
-    }
-
-    fn spawn(&self, task: LocalTask) {
-        wasm_bindgen_futures::spawn_local(task);
-    }
-
-    fn settings(&self) -> RuntimeSettings {
-        RuntimeSettings::default()
     }
 
     fn log(&self, level: LogLevel, message: &str, details: &[(&str, &str)]) {
@@ -169,10 +147,6 @@ impl Host for JsStorageRoot {
             let _ = log.apply(&JsValue::NULL, &args);
         }
     }
-}
-
-impl StorageRootHost for JsStorageRoot {
-    type Folder = JsFolder;
 
     async fn read_text(&self, path: &str) -> Result<Option<String>, HostError> {
         Ok(self.call("readText", &[text(path)]).await?.as_string())

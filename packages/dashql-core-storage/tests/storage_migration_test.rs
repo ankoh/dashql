@@ -9,8 +9,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::task::{Context, Poll, Wake, Waker};
 
-use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
-use dashql_core_runtime::settings::RuntimeSettings;
+use dashql_core_runtime::host::{HostError, LogLevel};
 use dashql_core_storage::storage::{Expect, FileStamp, FolderListing, FolderStamps};
 use dashql_core_storage::workbook_format::data::{STORAGE_VERSION, WORKBOOK_FORMAT_VERSION};
 use dashql_core_storage::workbook_format::migration::{
@@ -160,28 +159,16 @@ impl FolderHost for FakeFolder {
     }
 }
 
-impl Host for FakeRoot {
+impl StorageRootHost for FakeRoot {
+    type Folder = FakeFolder;
+
     fn now(&self) -> f64 {
         1_767_225_600_000.0
     }
 
-    fn sleep(&self, _ms: f64) -> impl Future<Output = ()> + 'static {
-        std::future::ready(())
-    }
-
-    fn spawn(&self, _task: LocalTask) {}
-
     fn log(&self, level: LogLevel, message: &str, _details: &[(&str, &str)]) {
         self.fs.borrow_mut().logs.push((level, message.to_string()));
     }
-
-    fn settings(&self) -> RuntimeSettings {
-        RuntimeSettings::default()
-    }
-}
-
-impl StorageRootHost for FakeRoot {
-    type Folder = FakeFolder;
 
     async fn read_text(&self, path: &str) -> Result<Option<String>, HostError> {
         Ok(self.fs.borrow().files.get(path).cloned())

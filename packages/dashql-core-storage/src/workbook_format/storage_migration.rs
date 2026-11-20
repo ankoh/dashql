@@ -19,7 +19,7 @@ use crate::workbook_format::migration::{migrate_folder, rename_sidb_connections,
 use crate::workbook_format::tree::{read_workbook_tree, TreeDirectory};
 use crate::workbook_format::validation::is_valid_uuid;
 use dashql_core_runtime::connections::CONNECTOR_TYPES;
-use dashql_core_runtime::host::{Host, HostError, LogLevel};
+use dashql_core_runtime::host::{HostError, LogLevel};
 use dashql_core_runtime::time::iso_timestamp_f64;
 
 /// The manifest of the storage root, it holds the storage version
@@ -37,9 +37,13 @@ pub struct DirEntry {
 /// The storage root as the migrations see it: files and directories by their paths below the root, and the folders of
 /// native workbooks
 #[allow(async_fn_in_trait)] // The futures hold values of the host and run on its thread, they are not Send
-pub trait StorageRootHost: Host {
+pub trait StorageRootHost {
     /// A workbook folder
     type Folder: FolderHost;
+    /// The time in milliseconds since the epoch
+    fn now(&self) -> f64;
+    /// Log a message of the migration
+    fn log(&self, level: LogLevel, message: &str, details: &[(&str, &str)]);
     /// A file below the root by its path, `/` separated, None if it doesn't exist
     async fn read_text(&self, path: &str) -> Result<Option<String>, HostError>;
     /// Write a file, its directories are created
