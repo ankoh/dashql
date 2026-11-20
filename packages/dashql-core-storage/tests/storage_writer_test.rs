@@ -15,7 +15,7 @@ use dashql_core_runtime::settings::RuntimeSettings;
 use dashql_core_storage::storage::keys::chain_key;
 use dashql_core_storage::storage::{
     ConnectionsUpdate, Expect, FileStamp, FolderListing, HoldReason, NamedStamp, StorageHost, StorageWriter,
-    TextSource, WriteError, WriteOutcome, WriteStatistics, WriteTask, WriterStatus,
+    TextSource, WriteError, WriteOutcome, WriteTask, WriterStatus,
 };
 use dashql_core_storage::workbook_format::data::{WorkbookCloudLink, WorkbookConnection, WorkbookScript};
 use serde_json::{json, Value};
@@ -146,7 +146,6 @@ struct Store {
     unavailable: bool,
     /// Fail the deletion of a workbook
     deletion_fails: bool,
-    statistics: BTreeMap<String, WriteStatistics>,
     logs: Vec<(LogLevel, String)>,
 }
 
@@ -357,10 +356,6 @@ impl StorageHost for FakeHost {
         store.calls.push(format!("delete-workbook:{workbook_id}"));
         store.workbooks.remove(workbook_id);
         Ok(())
-    }
-
-    fn statistics_changed(&self, key: &str, statistics: &WriteStatistics) {
-        self.store.borrow_mut().statistics.insert(key.to_string(), statistics.clone());
     }
 
     fn status_changed(&self, status: &WriterStatus) {
@@ -1551,10 +1546,12 @@ fn counts_scheduled_and_performed_writes() {
     h.start(h.writer.write(write_script(WORKBOOK, "a.sql", "12"), 100.0));
     h.advance(10);
     h.advance(100);
-    let stats = h.store.borrow().statistics.get(&key).cloned().unwrap_or_default();
+    let statistics = h.writer.statistics();
+    assert_eq!(statistics.len(), 1);
+    let (written, stats) = &statistics[0];
+    assert_eq!(written, &key);
     assert_eq!((stats.scheduled_writes, stats.writes, stats.written_bytes), (2, 1, 2));
     assert_eq!(stats.last_write_ms, Some(1_767_225_600_100.0));
-    assert_eq!(h.writer.statistics().len(), 1);
     let generations = h.writer.write_generations_for_workbook(WORKBOOK);
     assert_eq!(generations, [(key, 2)]);
 }

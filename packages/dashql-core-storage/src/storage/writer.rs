@@ -417,7 +417,6 @@ enum Effect {
     ArmTimer { seq: u64, timer: u64, ms: f64 },
     CancelTimer(CancelHandle),
     RunChain(String),
-    Statistics(String, WriteStatistics),
     Status(WriterStatus),
     Log(LogLevel, String, Vec<(String, String)>),
 }
@@ -916,10 +915,7 @@ impl State {
     }
 
     fn register_scheduled_write(&mut self, key: &str) {
-        let stats = self.statistics.entry(key.to_string()).or_default();
-        stats.scheduled_writes += 1;
-        let stats = stats.clone();
-        self.effects.push(Effect::Statistics(key.to_string(), stats));
+        self.statistics.entry(key.to_string()).or_default().scheduled_writes += 1;
     }
 
     fn register_write(&mut self, path: &str, bytes: usize, duration_ms: f64, now: f64) {
@@ -932,8 +928,6 @@ impl State {
         stats.written_bytes += bytes as u64;
         stats.write_time_ms += duration_ms;
         stats.last_write_ms = Some(now);
-        let stats = stats.clone();
-        self.effects.push(Effect::Statistics(path.to_string(), stats));
     }
 }
 
@@ -970,7 +964,6 @@ fn apply<H: StorageHost>(shared: &Rc<Shared<H>>, effects: Vec<Effect>) {
                 let task = run_chain(shared.clone(), chain);
                 shared.host.spawn(Box::pin(task));
             }
-            Effect::Statistics(key, statistics) => shared.host.statistics_changed(&key, &statistics),
             Effect::Status(status) => shared.host.status_changed(&status),
             Effect::Log(level, message, details) => {
                 let details: Vec<(&str, &str)> = details.iter().map(|(k, v)| (k.as_str(), v.as_str())).collect();

@@ -19,7 +19,7 @@ use dashql_core_storage::restore::{
     script_connection_of, AppRestore, LiveConnection, RestoreHost, RestoreOptions, RestoreProgress, RestoredState,
 };
 use dashql_core_storage::storage::{
-    ConnectionsUpdate, Expect, FileStamp, FolderListing, NamedStamp, StorageHost, StorageWriter, WriteStatistics,
+    ConnectionsUpdate, Expect, FileStamp, FolderListing, NamedStamp, StorageHost, StorageWriter,
 };
 use dashql_core_storage::workbook_format::bundle::{DataFileData, ScriptData, WorkbookBundle};
 use dashql_core_storage::workbook_format::data::WorkbookData;
@@ -206,8 +206,6 @@ impl StorageHost for FakeHost {
     async fn delete_workbook(&self, _workbook_id: &str) -> Result<(), HostError> {
         Ok(())
     }
-
-    fn statistics_changed(&self, _key: &str, _statistics: &WriteStatistics) {}
 }
 
 impl RestoreHost for FakeHost {
@@ -217,6 +215,10 @@ impl RestoreHost for FakeHost {
 
     async fn list_workbooks(&self) -> Result<Vec<String>, HostError> {
         Ok(self.store.borrow().tree.clone())
+    }
+
+    async fn load_workbook(&self, workbook_id: &str) -> Result<Value, HostError> {
+        StorageHost::load_workbook(self, workbook_id).await
     }
 
     async fn load_manifest_connections(&self) -> Result<Option<Vec<Value>>, HostError> {
@@ -458,8 +460,7 @@ fn restores_a_bundle_into_memory_without_reading_storage() {
     };
     let host = BundleHost { host: fixture.host.clone(), bundle };
     let options = RestoreOptions { offset_unit: EditorOffsetUnit::UTF16_CODE_UNITS, new_uuid: Box::new(|| None) };
-    let restore: AppRestore<BundleHost<FakeHost, Vec<u8>>, BundleHost<FakeHost, Vec<u8>>> =
-        AppRestore::in_memory(host, options);
+    let restore: AppRestore<BundleHost<FakeHost, Vec<u8>>, FakeHost> = AppRestore::in_memory(host, options);
     let restored = fixture.run(restore.restore_workbook(WORKBOOK)).unwrap();
     assert_eq!(script_names(&restored, WORKBOOK), vec!["2_first.sql", "10_last.sql"]);
     assert_eq!(connection_ids(&restored), vec![CONNECTION]);

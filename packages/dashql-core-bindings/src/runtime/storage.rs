@@ -447,6 +447,10 @@ impl RestoreHost for JsStorage {
         Ok(workbook_entries(&self.platform).await?.iter().filter_map(entry_path).map(str::to_string).collect())
     }
 
+    async fn load_workbook(&self, workbook_id: &str) -> Result<Value, HostError> {
+        load_workbook(&self.platform, &self.state.stamps, workbook_id).await
+    }
+
     async fn load_manifest_connections(&self) -> Result<Option<Vec<Value>>, HostError> {
         match JsonValue::of(&self.call("loadManifestConnections", &[]).await?).0 {
             Value::Array(entries) => Ok(Some(entries)),

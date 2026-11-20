@@ -9,12 +9,8 @@ use dashql_core_runtime::host::{Host, HostError, OnHost};
 use serde_json::Value;
 
 use super::{RestoreHost, RestoreProgress};
-use crate::storage::{ConnectionsUpdate, Expect, FileStamp, StorageHost};
 use crate::workbook_format::bundle::WorkbookBundle;
 use crate::workbook_format::layout::{STORAGE_CATALOG_FUNCTIONS, STORAGE_CATALOG_RELATIONS};
-
-/// What a bundle refuses, it is read only
-const READ_ONLY: &str = "a workbook opened into memory writes no files";
 
 /// The bytes of a file of a bundle, e.g. a handle of the platform or the bytes themselves
 pub trait BundleFile {
@@ -56,68 +52,6 @@ impl<H: Host, B: 'static> OnHost for BundleHost<H, B> {
     }
 }
 
-impl<H: Host, B: 'static> StorageHost for BundleHost<H, B> {
-    async fn load_workbook(&self, workbook_id: &str) -> Result<Value, HostError> {
-        self.check(workbook_id)?;
-        Ok(self.bundle.workbook.to_json())
-    }
-
-    async fn save_workbook(
-        &self,
-        _workbook_id: &str,
-        _workbook: &Value,
-        _expect: Expect,
-    ) -> Result<Option<FileStamp>, HostError> {
-        Err(HostError::new(READ_ONLY))
-    }
-
-    async fn save_script(
-        &self,
-        _workbook_id: &str,
-        _file_name: &str,
-        _text: &str,
-        _expect: Expect,
-    ) -> Result<Option<FileStamp>, HostError> {
-        Err(HostError::new(READ_ONLY))
-    }
-
-    async fn delete_script(&self, _workbook_id: &str, _file_name: &str, _expect: Expect) -> Result<(), HostError> {
-        Err(HostError::new(READ_ONLY))
-    }
-
-    async fn rename_script(
-        &self,
-        _workbook_id: &str,
-        _from: &str,
-        _to: &str,
-        _expect_from: Expect,
-        _expect_to: Expect,
-    ) -> Result<(), HostError> {
-        Err(HostError::new(READ_ONLY))
-    }
-
-    async fn list_attachments(&self, workbook_id: &str) -> Result<Vec<String>, HostError> {
-        self.check(workbook_id)?;
-        Ok(self.bundle.data.iter().map(|file| file.name.clone()).collect())
-    }
-
-    async fn update_connections(&self, _update: ConnectionsUpdate) -> Result<(), HostError> {
-        Err(HostError::new(READ_ONLY))
-    }
-
-    async fn save_connection_file(&self, _connection_id: &str, _file_name: &str, _text: &str) -> Result<(), HostError> {
-        Err(HostError::new(READ_ONLY))
-    }
-
-    async fn delete_connection_files(&self, _connection_id: &str) -> Result<(), HostError> {
-        Err(HostError::new(READ_ONLY))
-    }
-
-    async fn delete_workbook(&self, _workbook_id: &str) -> Result<(), HostError> {
-        Err(HostError::new(READ_ONLY))
-    }
-}
-
 impl<H: Host, B: BundleFile + 'static> RestoreHost for BundleHost<H, B> {
     /// The connections of the bundle are the copies in its workbook file, there is no app manifest
     fn owns_connections(&self) -> bool {
@@ -126,6 +60,11 @@ impl<H: Host, B: BundleFile + 'static> RestoreHost for BundleHost<H, B> {
 
     async fn list_workbooks(&self) -> Result<Vec<String>, HostError> {
         Ok(vec![self.workbook_id().to_string()])
+    }
+
+    async fn load_workbook(&self, workbook_id: &str) -> Result<Value, HostError> {
+        self.check(workbook_id)?;
+        Ok(self.bundle.workbook.to_json())
     }
 
     async fn load_manifest_connections(&self) -> Result<Option<Vec<Value>>, HostError> {

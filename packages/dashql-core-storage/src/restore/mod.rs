@@ -34,20 +34,22 @@ use crate::workbook_format::validation::{
 use catalog::{apply_catalog_files, load_catalog_files, CatalogRestore};
 use dashql_core_runtime::attachments::DataFile;
 use dashql_core_runtime::connections::{ConnectionAction, ConnectionParams, ConnectionState, ConnectionStateOptions};
-use dashql_core_runtime::host::{HostError, LogLevel};
+use dashql_core_runtime::host::{Host, HostError, LogLevel};
 use dashql_core_runtime::time::iso_timestamp_f64;
 use dashql_core_runtime::workbook::{new_catalog, ScriptConnection, Workbook, WorkbookOrigin};
 
-/// What the restore asks of the platform on top of the storage operations of the writer: the workbook tree, the
-/// scripts and attachments of a workbook, the connections of the app manifest and the files of a connection. Stored
-/// files are untrusted, the restore reads them leniently.
+/// What the restore asks of the platform: the workbook tree, the workbook file, the scripts and attachments of a
+/// workbook, the connections of the app manifest and the files of a connection. Stored files are untrusted, the restore
+/// reads them leniently.
 #[allow(async_fn_in_trait)] // The futures hold values of the host and run on its thread, they are not Send
-pub trait RestoreHost: StorageHost {
+pub trait RestoreHost: Host {
     /// Does the storage own the connections? A storage of a single workbook folder doesn't, it has no app manifest and
     /// no files of connections.
     fn owns_connections(&self) -> bool;
     /// The workbooks of the workbook tree in the order of the sidebar, as their ids
     async fn list_workbooks(&self) -> std::result::Result<Vec<String>, HostError>;
+    /// The workbook file of a workbook as JSON
+    async fn load_workbook(&self, workbook_id: &str) -> std::result::Result<Value, HostError>;
     /// The connection entries of the app manifest, none if the manifest has none
     async fn load_manifest_connections(&self) -> std::result::Result<Option<Vec<Value>>, HostError>;
     /// The script files of a workbook as (file name, text)

@@ -87,8 +87,6 @@ pub trait StorageHost: Host {
     /// Delete a workbook with its files
     async fn delete_workbook(&self, workbook_id: &str) -> Result<(), HostError>;
 
-    /// The statistics of a key changed
-    fn statistics_changed(&self, _key: &str, _statistics: &WriteStatistics) {}
     /// The holds or the failed writes changed, e.g. a write that would overwrite a change outside the app holds its
     /// workbook
     fn status_changed(&self, _status: &WriterStatus) {}

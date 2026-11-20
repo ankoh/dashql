@@ -778,7 +778,7 @@ impl Restorer {
         };
         let host = BundleHost { host: archives::ImportHost(self.platform.clone()), bundle };
         type ImportBundle = BundleHost<archives::ImportHost, archives::HostFile>;
-        let mut restore: AppRestore<ImportBundle, ImportBundle> = AppRestore::in_memory(host, options);
+        let mut restore: AppRestore<ImportBundle, JsStorage> = AppRestore::in_memory(host, options);
         for live in self.live_connections() {
             restore.add_live_connection(live);
         }
