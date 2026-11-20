@@ -13,14 +13,13 @@ use dashql_core_runtime::connections::label::{self, ConnectionLabelParts};
 use dashql_core_runtime::connections::registry::ListedConnection;
 use dashql_core_runtime::connections::{
     self as rt, CatalogUpdateTask, ConnectionChannel, ConnectionDetails, ConnectionParams, ConnectionState,
-    ConnectorDetails, DetailedError, JsonObject, RelationName, SetupTimings,
+    ConnectorDetails, DetailedError, JsonObject, RelationName,
 };
 use dashql_core_runtime::hyper::link as rt_link;
 use dashql_core_runtime::hyper::local_cloud::embedded_cloud_databases;
 use dashql_core_runtime::query::QueryExecutionHistory;
 use dashql_core_storage::storage::WriteOutcome;
 
-use crate::query_history::view::QueryHistoryMetrics;
 use serde::{Deserialize, Serialize};
 use tsify::Tsify;
 use wasm_bindgen::prelude::*;
@@ -204,7 +203,6 @@ pub struct ConnectionTokenSummary {
     pub instance_url: Option<String>,
     /// The tenant or org that the token names, e.g. the audience of the Data Cloud JWT
     pub tenant_id: Option<String>,
-    pub issued_at: Option<String>,
     pub expires_at: Option<String>,
 }
 
@@ -218,7 +216,6 @@ fn token_summary(token: &Option<String>) -> Option<ConnectionTokenSummary> {
         scope: text("/scope"),
         instance_url: text("/instanceUrl"),
         tenant_id: text("/jwt/payload/audienceTenantId"),
-        issued_at: text("/issuedAt").or_else(|| text("/createdAt")),
         expires_at: text("/expiresAt"),
     })
 }
@@ -243,17 +240,6 @@ fn channel_tokens(details: &ConnectionDetails) -> ConnectionSecrets {
     }
 }
 
-/// The parameters of the OAuth flow of a Salesforce connection
-#[derive(Clone, Debug, Serialize, Tsify)]
-#[serde(rename_all = "camelCase")]
-#[tsify(missing_as_null)]
-pub struct ConnectionSalesforceOAuthParams {
-    pub instance_url: String,
-    pub app_consumer_key: String,
-    pub requested_at: f64,
-    pub expires_at: f64,
-}
-
 /// The OAuth flow of a Trino connection, the steps that didn't happen yet are null. The PKCE verifier, the code and
 /// the token stay in the runtime.
 #[derive(Clone, Debug, Serialize, Tsify)]
@@ -262,8 +248,6 @@ pub struct ConnectionSalesforceOAuthParams {
 pub struct ConnectionTrinoOAuthState {
     /// Was the PKCE challenge generated?
     pub pkce_generated: bool,
-    /// When the code arrived
-    pub auth_code_received_at: Option<String>,
     pub access_token: Option<ConnectionTokenSummary>,
 }
 
@@ -273,11 +257,8 @@ pub struct ConnectionTrinoOAuthState {
 #[serde(rename_all = "camelCase")]
 #[tsify(missing_as_null)]
 pub struct ConnectionSalesforceOAuthState {
-    pub oauth_params: Option<ConnectionSalesforceOAuthParams>,
     /// Was the PKCE challenge generated?
     pub pkce_generated: bool,
-    /// When the code of the core login arrived
-    pub core_auth_code_received_at: Option<String>,
     pub core_access_token: Option<ConnectionTokenSummary>,
     pub data_cloud_access_token: Option<ConnectionTokenSummary>,
 }
@@ -322,7 +303,6 @@ impl From<&ConnectionDetails> for ConnectionConnectorDetails {
                 schema_resolution_error: error(&trino.schema_resolution_error),
                 oauth_state: trino.oauth_state.as_ref().map(|state| ConnectionTrinoOAuthState {
                     pkce_generated: state.pkce_generated,
-                    auth_code_received_at: state.auth_code_received_at.clone(),
                     access_token: token_summary(&tokens.access_token),
                 }),
             },
@@ -330,14 +310,7 @@ impl From<&ConnectionDetails> for ConnectionConnectorDetails {
                 Self::Salesforce {
                     setup_error: error(&salesforce.setup_error),
                     oauth_state: salesforce.oauth_state.as_ref().map(|state| ConnectionSalesforceOAuthState {
-                        oauth_params: state.oauth_params.as_ref().map(|p| ConnectionSalesforceOAuthParams {
-                            instance_url: p.instance_url.clone(),
-                            app_consumer_key: p.app_consumer_key.clone(),
-                            requested_at: p.requested_at,
-                            expires_at: p.expires_at,
-                        }),
                         pkce_generated: state.pkce_generated,
-                        core_auth_code_received_at: state.core_auth_code_received_at.clone(),
                         core_access_token: token_summary(&tokens.core_access_token),
                         data_cloud_access_token: token_summary(&tokens.data_cloud_access_token),
                     }),
@@ -347,48 +320,11 @@ impl From<&ConnectionDetails> for ConnectionConnectorDetails {
     }
 }
 
-/// When the steps of the setup happened, by the name of the step, only the steps that happened
-fn setup_timings(t: &SetupTimings) -> BTreeMap<&'static str, f64> {
-    let steps = [
-        ("channelSetupStartedAt", t.channel_setup_started_at),
-        ("channelSetupCancelledAt", t.channel_setup_cancelled_at),
-        ("channelSetupFailedAt", t.channel_setup_failed_at),
-        ("channelReadyAt", t.channel_ready_at),
-        ("healthCheckStartedAt", t.health_check_started_at),
-        ("healthCheckCancelledAt", t.health_check_cancelled_at),
-        ("healthCheckFailedAt", t.health_check_failed_at),
-        ("healthCheckSucceededAt", t.health_check_succeeded_at),
-        ("authStartedAt", t.auth_started_at),
-        ("authCancelledAt", t.auth_cancelled_at),
-        ("authFailedAt", t.auth_failed_at),
-        ("openedNativeAuthLinkAt", t.opened_native_auth_link_at),
-        ("openedWebAuthWindowAt", t.opened_web_auth_window_at),
-        ("closedWebAuthWindowAt", t.closed_web_auth_window_at),
-        ("coreAccessTokenRequestedAt", t.core_access_token_requested_at),
-        ("coreAccessTokenReceivedAt", t.core_access_token_received_at),
-        ("dataCloudAccessTokenRequestedAt", t.data_cloud_access_token_requested_at),
-        ("dataCloudAccessTokenReceivedAt", t.data_cloud_access_token_received_at),
-        ("oauthStartedAt", t.oauth_started_at),
-        ("oauthCancelledAt", t.oauth_cancelled_at),
-        ("oauthFailedAt", t.oauth_failed_at),
-        ("oauthBrowserOpenedAt", t.oauth_browser_opened_at),
-        ("accessTokenRequestedAt", t.access_token_requested_at),
-        ("accessTokenReceivedAt", t.access_token_received_at),
-        ("pkceGenStartedAt", t.pkce_gen_started_at),
-        ("pkceGenFinishedAt", t.pkce_gen_finished_at),
-        ("oauthCodeReceivedAt", t.oauth_code_received_at),
-    ];
-    steps.into_iter().filter_map(|(step, at)| at.map(|at| (step, at))).collect()
-}
-
 /// The details of the setup of a connection
 #[derive(Clone, Debug, Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 #[tsify(missing_as_null, hashmap_as_object)]
 pub struct ConnectionDetailsView {
-    /// When the steps of the setup happened, by the name of the step, e.g. `channelReadyAt`
-    #[tsify(type = "Record<string, number>")]
-    pub setup_timings: BTreeMap<&'static str, f64>,
     /// The params of the connector that the setup uses, without the field of the connector
     #[tsify(type = "Record<string, unknown> | null")]
     pub setup_params: Option<JsonObject>,
@@ -403,7 +339,6 @@ pub struct ConnectionDetailsView {
 impl From<&ConnectionDetails> for ConnectionDetailsView {
     fn from(details: &ConnectionDetails) -> Self {
         ConnectionDetailsView {
-            setup_timings: setup_timings(&details.setup_timings),
             setup_params: details.setup_params.clone(),
             channel_error: error(&details.channel_error),
             health_check_error: error(&details.health_check_error),
@@ -460,21 +395,10 @@ pub struct ConnectionCatalogUpdates {
     pub current_full_refresh: Option<u32>,
     /// The relations that executed statements touched and that no update has answered yet
     pub touched_relations: Vec<ConnectionRelationName>,
-    /// The updates in a row that failed to answer them
-    pub touched_failures: u32,
     /// Might the catalog miss what executed statements did, since asking the connection failed too often?
     pub out_of_date: bool,
     /// Is the current full refresh running?
     pub refresh_running: bool,
-}
-
-/// The database and schema of the relations that unqualified statements of a connection create or drop
-#[derive(Clone, Debug, Serialize, Tsify)]
-#[serde(rename_all = "camelCase")]
-#[tsify(missing_as_null)]
-pub struct ConnectionNameDefaults {
-    pub database_name: String,
-    pub schema_name: String,
 }
 
 /// The state of saving a connection: whether it saves and the outcome of the last save
@@ -581,20 +505,10 @@ pub struct ConnectionView {
     pub catalog_updates: ConnectionCatalogUpdates,
     /// The catalog entry of the relations of the connection
     pub catalog_relation_entry_id: u32,
-    /// The database and schema of the relations that unqualified statements create or drop
-    pub catalog_name_defaults: ConnectionNameDefaults,
-    /// The script with the functions of the connection, null once it is deleted
-    pub function_script_entry_id: Option<u32>,
-    /// The metrics of the finished queries
-    pub metrics: QueryHistoryMetrics,
     /// The active queries in the order they started
     pub queries_active_ordered: Vec<u64>,
-    /// The active queries that run on the connection, not the queries of the computations that it only tracks
-    pub queries_running: u32,
     /// The finished queries in the order they finished
     pub queries_finished_ordered: Vec<u64>,
-    /// Changes whenever a query starts or finishes
-    pub snapshot_queries_active_finished: u64,
     /// The workbooks that use the connection
     pub workbooks: Vec<String>,
     /// Saving the connection
@@ -603,8 +517,6 @@ pub struct ConnectionView {
     pub can_refresh: bool,
     /// Does a setup of the connection run?
     pub setup_running: bool,
-    /// Counts the announcements of a new catalog: the scripts that use the connection are analyzed again with it
-    pub catalog_version: u64,
     /// The identity of the catalog of the connection: a connection that is created again under the same id has another
     /// catalog, a handle of the catalog (`Runtime.catalog`) goes with its identity
     pub catalog_id: u64,
@@ -619,7 +531,6 @@ impl ConnectionView {
         save: ConnectionSaveView,
     ) -> Self {
         let updates = state.catalog_updates();
-        let metrics = queries.metrics();
         ConnectionView {
             connection_id: state.connection_id().to_string(),
             active: state.active(),
@@ -657,37 +568,16 @@ impl ConnectionView {
                 described: updates.described,
                 current_full_refresh: updates.current_full_refresh,
                 touched_relations: relations(&updates.touched_relations),
-                touched_failures: updates.touched_failures,
                 out_of_date: updates.is_out_of_date(),
                 refresh_running: updates.is_refresh_running(),
             },
             catalog_relation_entry_id: state.relation_entry_id(),
-            catalog_name_defaults: {
-                let defaults = state.details().catalog_name_defaults();
-                ConnectionNameDefaults { database_name: defaults.database_name, schema_name: defaults.schema_name }
-            },
-            function_script_entry_id: state.function_script().map(|script| script.catalog_entry_id()),
-            metrics: QueryHistoryMetrics {
-                successful_queries: (&metrics.successful_queries).into(),
-                canceled_queries: (&metrics.canceled_queries).into(),
-                failed_queries: (&metrics.failed_queries).into(),
-            },
             queries_active_ordered: queries.active_ids().to_vec(),
-            queries_running: queries
-                .active_ids()
-                .iter()
-                .filter_map(|id| queries.query(*id))
-                .filter(|query| {
-                    query.query_metadata.query_type != dashql_core_runtime::query::QueryType::InternalSqlframe
-                })
-                .count() as u32,
             queries_finished_ordered: queries.finished_ids().to_vec(),
-            snapshot_queries_active_finished: queries.snapshot_queries_active_finished(),
             workbooks: workbooks.to_vec(),
             save,
             can_refresh: state.can_refresh_catalog(),
             setup_running: false,
-            catalog_version: 0,
             catalog_id: 0,
         }
     }

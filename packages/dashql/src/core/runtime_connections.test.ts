@@ -448,7 +448,6 @@ describe('The queries of the runtime', () => {
         expect(platform.requests[0].headers).toContainEqual(['X-Trino-User', 'u']);
         const connection = viewOf(runtime, 'connection', 'trino')!;
         expect(connection.queriesFinishedOrdered).toEqual([...before.queriesFinishedOrdered, ticket.queryId]);
-        expect(connection.metrics.successfulQueries.totalQueries).toBe(before.metrics.successfulQueries.totalQueries + 1);
         // The statement touched a relation that the catalog loader asks about
         expect(connection.catalogUpdates.touchedRelations).toMatchObject([{ databaseName: 'tpch', tableName: 't' }]);
         expect(viewOf(runtime, 'query', ticket.queryId)).toMatchObject({

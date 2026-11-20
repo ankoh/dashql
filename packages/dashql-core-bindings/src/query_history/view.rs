@@ -12,8 +12,7 @@
 use dashql_buffers::profile as fb;
 use dashql_core_runtime::query::progress::QueryProfileProgress;
 use dashql_core_runtime::query::{
-    self as rt, ConnectionQueryMetrics, QueryExecutionMetrics, QueryExecutionProgress, QueryExecutionState,
-    QueryMetadata,
+    self as rt, QueryExecutionMetrics, QueryExecutionProgress, QueryExecutionState, QueryMetadata,
 };
 use serde::{Deserialize, Serialize};
 use tsify::Tsify;
@@ -419,38 +418,4 @@ impl QueryView {
             handle: query.handle,
         }
     }
-}
-
-/// The metrics of the finished queries of one outcome
-#[derive(Clone, Debug, Serialize, Tsify)]
-#[serde(rename_all = "camelCase")]
-#[tsify(missing_as_null)]
-pub struct QueryOutcomeMetrics {
-    pub total_queries: u64,
-    pub total_batches_received: u64,
-    pub total_rows_received: u64,
-    pub accumulated_time_until_first_batch: i64,
-    pub accumulated_query_duration: i64,
-}
-
-impl From<&ConnectionQueryMetrics> for QueryOutcomeMetrics {
-    fn from(m: &ConnectionQueryMetrics) -> Self {
-        QueryOutcomeMetrics {
-            total_queries: m.total_queries,
-            total_batches_received: m.total_batches_received,
-            total_rows_received: m.total_rows_received,
-            accumulated_time_until_first_batch: m.accumulated_time_until_first_batch,
-            accumulated_query_duration: m.accumulated_query_duration,
-        }
-    }
-}
-
-/// The metrics of the finished queries of a history, internal queries don't count
-#[derive(Clone, Debug, Serialize, Tsify)]
-#[serde(rename_all = "camelCase")]
-#[tsify(missing_as_null)]
-pub struct QueryHistoryMetrics {
-    pub successful_queries: QueryOutcomeMetrics,
-    pub canceled_queries: QueryOutcomeMetrics,
-    pub failed_queries: QueryOutcomeMetrics,
 }

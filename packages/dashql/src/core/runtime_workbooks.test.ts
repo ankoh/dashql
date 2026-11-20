@@ -203,12 +203,11 @@ describe('The workbooks of the runtime', () => {
         runtime.dispatch({ workbook: 'w' }, { kind: 'createScript', value: { text: 'select x from t', base: 'beta' } });
         runtime.takeChanges();
         const derived = viewOf(runtime, 'workbookDerived', 'w')!;
-        // The scripts share the connection of the runtime: new params reach them and the script list of the workbook,
-        // the derived view derives again and keeps its slice, its buffers stay the same
+        // The scripts share the connection of the runtime: new params reach them and the workbook changes, the derived
+        // view derives again and keeps its slice, its buffers stay the same
         const saved = await runtime.saveConnection('main', { hyper: { protocol: 'WASM', endpoint: 'moved' } });
         expect(saved.manifest.status).toBe('written');
         expect(changesOf(runtime, ['workbook', 'workbookDerived'])).toEqual(['workbook:w']);
-        expect(viewOf(runtime, 'workbook', 'w')!.scriptList.connections[0].params).toContain('moved');
         expect(viewOf(runtime, 'workbookDerived', 'w')!.dataflow).toEqual(derived.dataflow);
         runtime.free();
     });

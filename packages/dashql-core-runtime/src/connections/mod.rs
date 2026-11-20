@@ -7,7 +7,7 @@
 //! updates of a connection that is reset. The host applies them before anything else runs, a pending publication into
 //! the catalog then fails before it publishes into the cleared catalog.
 //!
-//! The query executions of a connection, its metrics and the query actions are the history of `crate::query`, the
+//! The query executions of a connection and the query actions are the history of `crate::query`, the
 //! binding of the core module holds both and clears the history on `ConnectionEffect::StopQueries`.
 
 mod catalog_updates;
@@ -126,8 +126,8 @@ impl fmt::Display for ConnectionHealth {
 pub enum ConnectionEffect {
     /// Cancel the setup of the connection that is running, e.g. an OAuth flow
     CancelSetup,
-    /// Drop the queries of the connection and the metrics: the holder of the history clears it, which aborts the
-    /// active queries with the reason and releases the handles of all queries
+    /// Drop the queries of the connection: the holder of the history clears it, which aborts the active queries with
+    /// the reason and releases the handles of all queries
     StopQueries { reason: &'static str },
     /// Cancel a running catalog update of the catalog loader, it ends as cancelled with the reason
     CancelCatalogUpdate { task_id: u32, reason: &'static str },

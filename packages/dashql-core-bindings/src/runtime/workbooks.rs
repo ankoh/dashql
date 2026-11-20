@@ -94,8 +94,6 @@ pub(crate) struct WorkbookEntry {
     pub workbook: Rc<RefCell<Workbook>>,
     /// The metadata of the workbook file that the workbook doesn't keep: its origin and the whole link to a cloud
     pub metadata: Value,
-    /// Changes with the metadata
-    pub metadata_revision: u64,
 }
 
 /// A new workbook
@@ -567,7 +565,6 @@ impl Workbooks {
             id: workbook_id.clone(),
             workbook: Rc::new(RefCell::new(workbook)),
             metadata: Value::Object(metadata),
-            metadata_revision: next_revision(),
         });
 
         // The workbook file right away, then its script list. The later writes of the workbook file wait for it.
@@ -587,12 +584,7 @@ impl Workbooks {
     /// Take a workbook that the restore created. A workbook with the same id is replaced.
     pub fn adopt(&self, workbook: Workbook, metadata: Value) {
         let id = workbook.id().to_string();
-        let entry = WorkbookEntry {
-            id: id.clone(),
-            workbook: Rc::new(RefCell::new(workbook)),
-            metadata,
-            metadata_revision: next_revision(),
-        };
+        let entry = WorkbookEntry { id: id.clone(), workbook: Rc::new(RefCell::new(workbook)), metadata };
         let replaced = {
             let mut entries = self.entries.borrow_mut();
             match entries.iter_mut().find(|held| held.id == id) {
@@ -693,7 +685,6 @@ impl Workbooks {
                     None => metadata.remove("cloud"),
                 };
             }
-            entry.metadata_revision = next_revision();
         }
         Ok(self.settle(workbook_id, &workbook, outcome, Changed::Workbook))
     }
@@ -775,7 +766,6 @@ impl Workbooks {
                 workbook_id: entry.id.clone(),
                 name: workbook.name().map(str::to_string),
                 ephemeral: workbook.ephemeral(),
-                cloud_preview: workbook.is_read_only(),
             });
         }
         let Ok(invalid) = self.invalid.try_borrow() else { return Read::Busy };
@@ -816,7 +806,6 @@ pub(crate) fn workbook_view(entry: &WorkbookEntry, workbook: &Workbook) -> Workb
         attachments: workbook
             .attachments()
             .map(|attachments| attachments.iter().map(WorkbookAttachmentView::from).collect()),
-        script_list: workbook.script_list().into(),
         script_keys: scripts.iter().map(|script| script.key()).collect(),
         script_order: scripts.iter().map(|script| script.file_name().to_string()).collect(),
         script_connections: scripts.iter().map(|script| script.connection().connection_id.clone()).collect(),

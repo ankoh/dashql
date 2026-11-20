@@ -186,22 +186,10 @@ impl Connections {
 
     /// Announce a new catalog of a connection in its view
     pub(crate) fn announce_catalog(&self, connection_id: &str) {
-        {
-            let mut versions = self.catalog_versions.borrow_mut();
-            match versions.iter_mut().find(|(id, _)| id == connection_id) {
-                Some((_, version)) => *version += 1,
-                None => versions.push((connection_id.to_string(), 1)),
-            }
-        }
         let listener = self.catalog_listener.borrow().clone();
         if let Some(listener) = listener {
             listener(connection_id);
         }
         self.platform.changed(super::changes::Slice::Connection(connection_id), true);
-    }
-
-    /// The number of the announcements of a new catalog of a connection
-    pub(crate) fn catalog_version(&self, connection_id: &str) -> u64 {
-        self.catalog_versions.borrow().iter().find(|(id, _)| id == connection_id).map_or(0, |(_, version)| *version)
     }
 }

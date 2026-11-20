@@ -287,7 +287,7 @@ fn active_queries_keep_the_profile_progress_of_an_earlier_update() {
 }
 
 #[test]
-fn queries_count_for_the_metrics_of_the_connection_by_their_outcome() {
+fn finished_queries_keep_their_durations_and_stream_metrics() {
     let mut history = QueryExecutionHistory::new();
     start(&mut history, 1, metadata(QueryType::UserProvided, None));
     history.apply(QueryExecutionAction::QueryRunning { query_id: 1, now: NOW + 100 }).unwrap();
@@ -319,15 +319,6 @@ fn queries_count_for_the_metrics_of_the_connection_by_their_outcome() {
     assert_eq!(cancelled.metrics.query_duration_ms, Some(50));
     assert_eq!(cancelled.metrics.stream_metrics, cancelled_metrics);
 
-    let metrics = history.metrics();
-    assert_eq!(metrics.successful_queries.total_queries, 1);
-    assert_eq!(metrics.successful_queries.total_batches_received, 2);
-    assert_eq!(metrics.successful_queries.total_rows_received, 10);
-    assert_eq!(metrics.successful_queries.accumulated_time_until_first_batch, 30);
-    assert_eq!(metrics.successful_queries.accumulated_query_duration, 200);
-    assert_eq!(metrics.canceled_queries.total_queries, 1);
-    assert_eq!(metrics.canceled_queries.accumulated_query_duration, 50);
-    assert_eq!(metrics.failed_queries.total_queries, 0);
     assert_eq!(history.snapshot_queries_active_finished(), 4);
 }
 
@@ -430,16 +421,6 @@ fn tracked_queries_record_failures_once() {
     let query = history.finished(1).unwrap();
     assert_eq!(query.status, QueryExecutionStatus::Failed);
     assert_eq!(query.error.as_ref().map(|e| e.message.as_str()), Some("boom"));
-    assert_eq!(history.metrics().failed_queries.total_queries, 0);
-}
-
-#[test]
-fn tracked_queries_do_not_count_internal_executions_as_connector_metrics() {
-    let mut history = QueryExecutionHistory::new();
-    start_tracked(&mut history, 1, "SELECT 1");
-    history.apply(QueryExecutionAction::QuerySucceeded { query_id: 1, now: NOW }).unwrap();
-    assert_eq!(history.metrics().successful_queries.total_queries, 0);
-    assert_eq!(history.finished_ids().len(), 1);
 }
 
 // The progress of queries
@@ -888,7 +869,6 @@ fn clearing_aborts_the_active_queries_and_releases_their_handles() {
     );
     assert!(history.query(1).is_none() && history.query(2).is_none());
     assert!(history.active_ids().is_empty() && history.finished_ids().is_empty());
-    assert_eq!(history.metrics().successful_queries.total_queries, 0);
     assert!(history.snapshot_queries_active_finished() > snapshot);
     assert!(history.revision() > revision);
 }

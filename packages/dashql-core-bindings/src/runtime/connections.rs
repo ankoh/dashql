@@ -98,8 +98,6 @@ pub(crate) struct Connections {
     pub loader: RefCell<Option<CatalogLoader>>,
     /// Is the catalog loader asked to follow the registry at the end of the task?
     pub follow_requested: Cell<bool>,
-    /// The number of the announcements of a new catalog by connection
-    pub catalog_versions: RefCell<Vec<(String, u64)>>,
     /// The identities of the catalogs of the connections, see `catalog_id`
     pub catalog_ids: RefCell<Vec<(String, u64, Weak<RefCell<dashql_core::catalog::Catalog>>)>>,
     /// Hears the announcements of a new catalog of a connection, the workbooks analyze the scripts on it again
@@ -131,7 +129,6 @@ impl Connections {
             open_setups: RefCell::new(OpenSetups::new()),
             loader: RefCell::new(None),
             follow_requested: Cell::new(false),
-            catalog_versions: RefCell::new(Vec::new()),
             catalog_ids: RefCell::new(Vec::new()),
             catalog_listener: RefCell::new(None),
             follow_listener: RefCell::new(None),
@@ -285,14 +282,12 @@ impl Connections {
         };
         let free = self.saves.try_borrow().is_ok()
             && self.setups.try_borrow().is_ok()
-            && self.catalog_versions.try_borrow().is_ok()
             && self.catalog_ids.try_borrow_mut().is_ok();
         if !free {
             return Read::Busy;
         }
         let mut view =
             ConnectionView::of(&state, &queries, registry.workbooks_of(connection_id), self.save_view(connection_id));
-        view.catalog_version = self.catalog_version(connection_id);
         view.setup_running = self.setup_running(connection_id);
         view.catalog_id = self.catalog_id(connection_id, state.catalog());
         Read::Value(view)
@@ -341,7 +336,7 @@ impl Connections {
             _ => ConnectionChange::Other,
         };
         let now = self.now();
-        // The workbooks that use the connection show its params and derive with its catalog
+        // The workbooks that use the connection derive with its params and its catalog
         let workbooks = self.registry.borrow().workbooks_of(connection_id).to_vec();
         let profile = connection.as_ref().and_then(|connection| {
             connection.state.try_borrow().ok().map(|state| state.script_connection().profile().clone())
@@ -371,7 +366,6 @@ impl Connections {
         }
         if outcome.deleted {
             self.saves.borrow_mut().retain(|(id, _)| id != connection_id);
-            self.catalog_versions.borrow_mut().retain(|(id, _)| id != connection_id);
             self.catalog_ids.borrow_mut().retain(|(id, _, _)| id != connection_id);
         }
         let (Some(connection), Some(prev)) = (connection, prev) else { return Ok(outcome) };

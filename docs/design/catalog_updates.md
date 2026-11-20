@@ -48,8 +48,8 @@ columns keep the order of the connection.
    gone. The names of a run are merged.
 4. **The answer updates the catalog** (`Catalog::replace_tables`): a relation with rows has a new table in the place of the
    old one, a relation without rows is gone. An answer that changes nothing keeps the catalog version. An answer that
-   changed the catalog raises the `catalogVersion` of the view of the connection, the scripts that use the connection
-   are analyzed again.
+   changed the catalog is announced (`Connections::announce_catalog`): the view of the connection changes, the scripts
+   that use the connection are analyzed again.
 
 | Statement | Asks about |
 |---|---|

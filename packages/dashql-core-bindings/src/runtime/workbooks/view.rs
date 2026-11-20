@@ -6,7 +6,7 @@
 //! key. A payload crosses only when its key differs from the one that the host holds.
 
 use dashql_core_runtime::attachments::{DataFile, WorkbookAttachment};
-use dashql_core_runtime::workbook::{ExternalChanges, ScriptList, TextChange, WorkbookOrigin, WorkbookScript};
+use dashql_core_runtime::workbook::{ExternalChanges, TextChange, WorkbookOrigin, WorkbookScript};
 use serde::{Deserialize, Serialize};
 use tsify::Tsify;
 
@@ -68,50 +68,6 @@ impl From<WorkbookDataFile> for DataFile {
     }
 }
 
-/// A script as the workbook file lists it: its name and the connection it names
-#[derive(Clone, Debug, PartialEq, Serialize, Tsify)]
-#[serde(rename_all = "camelCase")]
-#[tsify(missing_as_null)]
-pub struct WorkbookScriptListEntry {
-    pub name: String,
-    pub connection_id: String,
-}
-
-/// A copy of a connection that the workbook file holds, its params are JSON
-#[derive(Clone, Debug, PartialEq, Serialize, Tsify)]
-#[serde(rename_all = "camelCase")]
-#[tsify(missing_as_null)]
-pub struct WorkbookConnectionCopy {
-    pub connection_id: String,
-    pub params: String,
-}
-
-/// The script list of the workbook file
-#[derive(Clone, Debug, PartialEq, Serialize, Tsify)]
-#[serde(rename_all = "camelCase")]
-#[tsify(missing_as_null)]
-pub struct WorkbookScriptList {
-    pub scripts: Vec<WorkbookScriptListEntry>,
-    pub connections: Vec<WorkbookConnectionCopy>,
-}
-
-impl From<ScriptList> for WorkbookScriptList {
-    fn from(list: ScriptList) -> Self {
-        WorkbookScriptList {
-            scripts: list
-                .scripts
-                .into_iter()
-                .map(|s| WorkbookScriptListEntry { name: s.name, connection_id: s.connection_id })
-                .collect(),
-            connections: list
-                .connections
-                .into_iter()
-                .map(|c| WorkbookConnectionCopy { connection_id: c.connection_id, params: c.params })
-                .collect(),
-        }
-    }
-}
-
 /// An attachment of a workbook
 #[derive(Clone, Debug, PartialEq, Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
@@ -152,8 +108,6 @@ pub struct WorkbookView {
     pub cloud: Option<WorkbookCloudLink>,
     /// Null until storage listed the files of the workbook
     pub attachments: Option<Vec<WorkbookAttachmentView>>,
-    /// The script list of the workbook file
-    pub script_list: WorkbookScriptList,
     /// The keys of the scripts in feed order
     pub script_keys: Vec<u32>,
     /// The file names of the scripts in feed order
@@ -174,8 +128,6 @@ pub struct WorkbookListEntry {
     pub workbook_id: String,
     pub name: Option<String>,
     pub ephemeral: bool,
-    /// Is the workbook a read-only look at a version of a published workbook?
-    pub cloud_preview: bool,
 }
 
 /// The workbooks in the order they were registered and the workbooks that were refused a load

@@ -1,9 +1,8 @@
 //! The executions of the queries of a connection and the actions on them.
 //!
 //! A query moves from requested to sending, queued, running and receiving its batches to succeeded, failed or
-//! cancelled. The history holds the active queries and the finished ones, and the metrics of the connection that the
-//! finished queries add up to. An action changes the history in place and returns the effects that the host applies
-//! afterwards: the handles that it lets go of. The result tables are Arrow tables that stay with the host, the history
+//! cancelled. The history holds the active queries and the finished ones. An action changes the history in place and
+//! returns the effects that the host applies afterwards: the handles that it lets go of. The result tables are Arrow tables that stay with the host, the history
 //! knows them and what the host keeps of a query (its record) by their handles (`crate::handles`).
 
 pub mod progress;
@@ -160,7 +159,7 @@ pub enum QueryType {
     CatalogQueryHyperCloud,
     /// A health check of the connection
     HealthCheck,
-    /// An internal query of SQLFrame, it counts for no metrics of the connection
+    /// An internal query of SQLFrame
     InternalSqlframe,
     /// A query of a cloud store
     CloudStore,
@@ -313,46 +312,6 @@ impl QueryExecutionState {
     }
 }
 
-/// The metrics of the finished queries of a connection of one outcome
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub struct ConnectionQueryMetrics {
-    /// The queries
-    pub total_queries: u64,
-    /// The batches received
-    pub total_batches_received: u64,
-    /// The rows received
-    pub total_rows_received: u64,
-    /// The time until the first batch in milliseconds, added up
-    pub accumulated_time_until_first_batch: i64,
-    /// The query durations in milliseconds, added up
-    pub accumulated_query_duration: i64,
-}
-
-impl ConnectionQueryMetrics {
-    /// Add a finished query
-    fn add(&mut self, query: &QueryMetrics) {
-        let stream = &query.stream_metrics;
-        self.total_queries = self.total_queries.saturating_add(1);
-        self.total_batches_received = self.total_batches_received.saturating_add(stream.total_batches_received);
-        self.total_rows_received = self.total_rows_received.saturating_add(stream.total_rows_received);
-        self.accumulated_time_until_first_batch =
-            self.accumulated_time_until_first_batch.saturating_add(stream.duration_until_first_batch_ms.unwrap_or(0));
-        self.accumulated_query_duration =
-            self.accumulated_query_duration.saturating_add(query.query_duration_ms.unwrap_or(0));
-    }
-}
-
-/// The metrics of the finished queries of a connection, internal queries of SQLFrame don't count
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub struct ConnectionMetrics {
-    /// The queries that succeeded
-    pub successful_queries: ConnectionQueryMetrics,
-    /// The queries that were cancelled
-    pub canceled_queries: ConnectionQueryMetrics,
-    /// The queries that failed
-    pub failed_queries: ConnectionQueryMetrics,
-}
-
 /// An action on the query executions. Every action carries the time it happened at, the history reads no clock.
 #[derive(Clone, Debug, PartialEq)]
 pub enum QueryExecutionAction {
@@ -447,8 +406,6 @@ pub struct QueryExecutionHistory {
     queries_finished_ordered: Vec<QueryId>,
     /// Changes whenever a query starts or finishes
     snapshot_queries_active_finished: u64,
-    /// The metrics of the finished queries
-    metrics: ConnectionMetrics,
     /// The revision of the history, it changes with every change
     revision: u64,
     /// The finished internal queries that the history keeps
@@ -475,7 +432,6 @@ impl QueryExecutionHistory {
             queries_finished: HashMap::new(),
             queries_finished_ordered: Vec::new(),
             snapshot_queries_active_finished: 0,
-            metrics: ConnectionMetrics::default(),
             revision: 0,
             internal_limit,
         }
@@ -509,11 +465,6 @@ impl QueryExecutionHistory {
     /// A counter that changes whenever a query starts or finishes
     pub fn snapshot_queries_active_finished(&self) -> u64 {
         self.snapshot_queries_active_finished
-    }
-
-    /// The metrics of the finished queries
-    pub fn metrics(&self) -> &ConnectionMetrics {
-        &self.metrics
     }
 
     /// The revision of the history, it changes with every change
@@ -562,7 +513,7 @@ impl QueryExecutionHistory {
         Ok(outcome)
     }
 
-    /// Drop every query and the metrics, e.g. of a connection that is reset or deleted. The active queries are
+    /// Drop every query, e.g. of a connection that is reset or deleted. The active queries are
     /// aborted with the reason, the host stops them at the backend, and the handles of all queries are released.
     pub fn clear(&mut self, reason: &'static str) -> QueryExecutionOutcome {
         let active = std::mem::take(&mut self.queries_active_ordered);
@@ -578,7 +529,6 @@ impl QueryExecutionHistory {
                 query.release(&mut outcome.effects);
             }
         }
-        self.metrics = ConnectionMetrics::default();
         self.snapshot_queries_active_finished += 1;
         self.revision = next_revision();
         outcome
@@ -760,15 +710,6 @@ impl QueryExecutionHistory {
                     outcome.superseded.push(query_id);
                 }
             }
-        }
-
-        // Internal queries of SQLFrame don't count for the connection
-        match query.status {
-            _ if query.query_metadata.query_type == QueryType::InternalSqlframe => {}
-            QueryExecutionStatus::Succeeded => self.metrics.successful_queries.add(&query.metrics),
-            QueryExecutionStatus::Cancelled => self.metrics.canceled_queries.add(&query.metrics),
-            QueryExecutionStatus::Failed => self.metrics.failed_queries.add(&query.metrics),
-            _ => {}
         }
 
         self.queries_finished.insert(query_id, query);

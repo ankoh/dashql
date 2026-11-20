@@ -7,11 +7,9 @@ import type * as glue from '@akohn/dashql-wasm/dashql_core.js';
 export type {
     ProfileLayoutView,
     QueryErrorView,
-    QueryHistoryMetrics,
     QueryLatestProgressView,
     QueryMetadataView,
     QueryMetricsView,
-    QueryOutcomeMetrics,
     QueryProfileKeys,
     QueryProfileProgressView,
     QueryProgressView,
