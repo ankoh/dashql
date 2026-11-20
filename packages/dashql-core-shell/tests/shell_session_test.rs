@@ -6,7 +6,7 @@ use dashql_core_shell::vt100;
 use dashql_core_shell::{
     EffectCompletionStatus, PromptInputAction, PromptInputKey as Key, ShellStatus, TerminalOutput,
 };
-use dashql_core_shell::{EffectType, ShellSession};
+use dashql_core_shell::{EffectType, ShellEffect, ShellOperation, ShellSession};
 
 #[path = "support/test_shell.rs"]
 mod support;
@@ -17,8 +17,6 @@ use support::{SharedCatalog, TestShell as Shell};
 const EFFECT_SUCCESS: EffectCompletionStatus = EffectCompletionStatus::Success;
 const EFFECT_ERROR: EffectCompletionStatus = EffectCompletionStatus::Error;
 const EFFECT_CANCELLED: EffectCompletionStatus = EffectCompletionStatus::Cancelled;
-/// The size of the header of an effect envelope
-const ENVELOPE_HEADER: usize = 16;
 
 fn new_shell(columns: u32) -> Shell {
     let catalog: SharedCatalog = Rc::new(RefCell::new(Catalog::new()));
@@ -33,12 +31,20 @@ fn consume(shell: &mut Shell, key: Key, input: &str) -> TerminalOutput {
     shell.consume_terminal_input(key, input.as_bytes())
 }
 
-fn effect_id(data: &[u8]) -> u64 {
-    u64::from_le_bytes(data[8..16].try_into().unwrap())
+fn effect(operation: &ShellOperation) -> &ShellEffect {
+    operation.effect.as_ref().expect("a pending operation has an effect")
 }
 
-fn effect_type(data: &[u8]) -> u32 {
-    u32::from_le_bytes(data[4..8].try_into().unwrap())
+fn effect_id(operation: &ShellOperation) -> u64 {
+    effect(operation).id
+}
+
+fn effect_type(operation: &ShellOperation) -> EffectType {
+    effect(operation).effect_type
+}
+
+fn payload(operation: &ShellOperation) -> &[u8] {
+    &effect(operation).payload
 }
 
 fn history(entries: &[&str]) -> Vec<u8> {
@@ -272,10 +278,10 @@ fn submitting_remembers_distinct_prompts_once() {
     shell.set_prompt(b"select 1");
     let first = shell.submit_prompt();
     assert_eq!(first.status, ShellStatus::Pending);
-    assert_eq!(shell.complete_effect(effect_id(&first.data), EFFECT_CANCELLED, &[]).status, ShellStatus::Ok);
+    assert_eq!(shell.complete_effect(effect_id(&first), EFFECT_CANCELLED, &[]).status, ShellStatus::Ok);
     shell.set_prompt(b"select 1");
     let second = shell.submit_prompt();
-    assert_eq!(shell.complete_effect(effect_id(&second.data), EFFECT_CANCELLED, &[]).status, ShellStatus::Ok);
+    assert_eq!(shell.complete_effect(effect_id(&second), EFFECT_CANCELLED, &[]).status, ShellStatus::Ok);
     assert_eq!(shell.export_history(), history(&["select 1"]));
 }
 
@@ -295,11 +301,11 @@ fn dot_commands_suspend_on_a_command_effect() {
     shell.set_prompt(b"  .tables now ");
     let operation = shell.submit_prompt();
     assert_eq!(operation.status, ShellStatus::Pending);
-    assert_eq!(effect_type(&operation.data), 2);
-    assert_eq!(&operation.data[ENVELOPE_HEADER..], b".tables now ");
+    assert_eq!(effect_type(&operation), EffectType::ExecuteCommand);
+    assert_eq!(payload(&operation), b".tables now ");
 
     // The first byte of the result tells the terminal to clear
-    let id = effect_id(&operation.data);
+    let id = effect_id(&operation);
     let result = shell.complete_effect(id, EFFECT_SUCCESS, b"\x00output");
     assert_eq!(result.status, ShellStatus::Ok);
     assert_eq!(result.data, b"output");
@@ -313,7 +319,7 @@ fn command_results_can_clear_the_terminal() {
     let output = consume(&mut shell, Key::Enter, "");
     assert_eq!(output.action, PromptInputAction::Submit);
     let operation = shell.submit_prompt();
-    let result = shell.complete_effect(effect_id(&operation.data), EFFECT_SUCCESS, b"\x01ignored");
+    let result = shell.complete_effect(effect_id(&operation), EFFECT_SUCCESS, b"\x01ignored");
     assert_eq!(result.status, ShellStatus::Ok);
     let finished = shell.finish_terminal_query(&result.data, false);
     let finished = text(&finished);
@@ -330,7 +336,7 @@ fn empty_command_results_are_internal_errors() {
     let mut shell = new_shell(80);
     shell.set_prompt(b".x");
     let operation = shell.submit_prompt();
-    let result = shell.complete_effect(effect_id(&operation.data), EFFECT_SUCCESS, b"");
+    let result = shell.complete_effect(effect_id(&operation), EFFECT_SUCCESS, b"");
     assert_eq!(result.status, ShellStatus::InternalError);
     assert_eq!(String::from_utf8_lossy(&result.data), "invalid shell command result");
 }
@@ -340,23 +346,25 @@ fn queries_suspend_on_a_query_effect() {
     let mut shell = new_shell(80);
     let operation = shell.start_query(b"select 1");
     assert_eq!(operation.status, ShellStatus::Pending);
-    assert_eq!(effect_type(&operation.data), 1);
-    assert_eq!(u32::from_le_bytes(operation.data[0..4].try_into().unwrap()), 1);
-    assert_eq!(&operation.data[ENVELOPE_HEADER..], b"select 1");
+    assert_eq!(effect_type(&operation), EffectType::ExecuteQuery);
+    assert_eq!(payload(&operation), b"select 1");
 
     // Only one operation at a time
     let busy = shell.start_query(b"select 2");
     assert_eq!(busy.status, ShellStatus::Busy);
     assert_eq!(String::from_utf8_lossy(&busy.data), "the shell already has an active operation");
+    // Also for dot commands
+    shell.set_prompt(b".tables");
+    assert_eq!(shell.submit_prompt().status, ShellStatus::Busy);
 }
 
 #[test]
 fn effect_ids_are_unique() {
     let mut shell = new_shell(80);
     let first = shell.start_query(b"select 1");
-    shell.complete_effect(effect_id(&first.data), EFFECT_CANCELLED, &[]);
+    shell.complete_effect(effect_id(&first), EFFECT_CANCELLED, &[]);
     let second = shell.start_query(b"select 2");
-    assert_ne!(effect_id(&first.data), effect_id(&second.data));
+    assert_ne!(effect_id(&first), effect_id(&second));
 }
 
 #[test]
@@ -375,7 +383,7 @@ fn completing_unknown_effects_is_stale() {
     let result = shell.complete_effect(42, EFFECT_SUCCESS, &[]);
     assert_eq!(result.status, ShellStatus::StaleEffect);
     let operation = shell.start_query(b"select 1");
-    let id = effect_id(&operation.data);
+    let id = effect_id(&operation);
     assert_eq!(shell.cancel_effect(id + 1).status, ShellStatus::StaleEffect);
     // Effects complete once
     assert_eq!(shell.cancel_effect(id).status, ShellStatus::Ok);
@@ -393,16 +401,16 @@ fn invalid_completion_statuses_are_rejected() {
 fn failed_and_cancelled_effects_render_messages() {
     let mut shell = new_shell(80);
     let operation = shell.start_query(b"select 1");
-    let result = shell.complete_effect(effect_id(&operation.data), EFFECT_ERROR, b"relation does not exist");
+    let result = shell.complete_effect(effect_id(&operation), EFFECT_ERROR, b"relation does not exist");
     assert_eq!(result.status, ShellStatus::Ok);
     assert_eq!(String::from_utf8_lossy(&result.data), "relation does not exist");
 
     let operation = shell.start_query(b"select 1");
-    let result = shell.complete_effect(effect_id(&operation.data), EFFECT_ERROR, b"");
+    let result = shell.complete_effect(effect_id(&operation), EFFECT_ERROR, b"");
     assert_eq!(String::from_utf8_lossy(&result.data), "query failed");
 
     let operation = shell.start_query(b"select 1");
-    let result = shell.cancel_effect(effect_id(&operation.data));
+    let result = shell.cancel_effect(effect_id(&operation));
     assert_eq!(String::from_utf8_lossy(&result.data), "Cancelled");
 }
 
@@ -410,7 +418,7 @@ fn failed_and_cancelled_effects_render_messages() {
 fn query_results_are_the_text_of_the_host() {
     let mut shell = new_shell(80);
     let operation = shell.start_query(b"select 1");
-    let result = shell.complete_effect(effect_id(&operation.data), EFFECT_SUCCESS, b"\x00Query completed (1 row)\r\n");
+    let result = shell.complete_effect(effect_id(&operation), EFFECT_SUCCESS, b"\x00Query completed (1 row)\r\n");
     assert_eq!(result.status, ShellStatus::Ok);
     assert_eq!(result.data, b"Query completed (1 row)\r\n");
 }
@@ -588,8 +596,8 @@ fn suspends_dot_command_as_effect() {
 
     let pending = session.submit_prompt(&catalog);
     assert_eq!(pending.status, ShellStatus::Pending);
-    assert_eq!(effect_type(&pending.data), EffectType::ExecuteCommand as u32);
-    assert_eq!(&pending.data[16..], b".help");
+    assert_eq!(effect_type(&pending), EffectType::ExecuteCommand);
+    assert_eq!(payload(&pending), b".help");
 }
 
 #[test]
@@ -654,7 +662,7 @@ fn compiles_plain_sql_before_execution() {
     let query = b"  SELECT 42; -- context\n";
     let pending = session.start_query(query, &catalog);
     assert_eq!(pending.status, ShellStatus::Pending);
-    assert_eq!(&pending.data[16..], query);
+    assert_eq!(payload(&pending), query);
 }
 
 #[test]
@@ -664,7 +672,7 @@ fn runs_vis_tags_as_plain_queries() {
     let query = b"/* @vis vegalite {\"mark\": \"bar\"} */\nSELECT 1 AS value";
     let pending = session.start_query(query, &catalog);
     assert_eq!(pending.status, ShellStatus::Pending);
-    assert_eq!(&pending.data[16..], query);
+    assert_eq!(payload(&pending), query);
 }
 
 #[test]
@@ -673,7 +681,7 @@ fn rejects_concurrent_queries_and_stale_completions() {
     let mut session = ShellSession::new(&catalog, 80, false);
     let pending = session.start_query(b"SELECT 1", &catalog);
     assert_eq!(pending.status, ShellStatus::Pending);
-    let pending_id = effect_id(&pending.data);
+    let pending_id = effect_id(&pending);
 
     assert_eq!(session.start_query(b"SELECT 2", &catalog).status, ShellStatus::Busy);
     assert_eq!(session.cancel_effect(pending_id).data, b"Cancelled");
@@ -686,7 +694,7 @@ fn converts_query_errors_to_output() {
     let mut session = ShellSession::new(&catalog, 80, false);
     let pending = session.start_query(b"SELECT * FROM missing_table", &catalog);
     assert_eq!(pending.status, ShellStatus::Pending);
-    let complete = session.complete_effect(effect_id(&pending.data), EffectCompletionStatus::Error, b"syntax error");
+    let complete = session.complete_effect(effect_id(&pending), EffectCompletionStatus::Error, b"syntax error");
     assert_eq!(complete.status, ShellStatus::Ok);
     assert_eq!(complete.data, b"syntax error");
 }

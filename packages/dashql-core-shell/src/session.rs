@@ -451,7 +451,7 @@ struct PendingEffect {
 /// An interactive shell session
 ///
 /// Queries and dot commands suspend once on their effect and finish when it completes. They are
-/// pending effects: starting one encodes its envelope, completing it renders the result.
+/// pending effects: starting one returns its effect, completing it renders the result. One effect is pending at a time.
 pub struct ShellSession {
     /// The prompt
     prompt: PromptBuffer,
@@ -467,8 +467,8 @@ pub struct ShellSession {
     kill_buffer: String,
     /// The id of the next effect
     next_effect_id: u64,
-    /// The effects that wait for the host
-    pending_effects: Vec<PendingEffect>,
+    /// The effect that waits for the host
+    pending_effect: Option<PendingEffect>,
     /// Clear the screen when the terminal query finishes, requested by the last command
     clear_terminal_after_command: bool,
     /// Complete tables of non-default databases with their qualified name?
@@ -507,7 +507,7 @@ impl ShellSession {
             history_draft: String::new(),
             kill_buffer: String::new(),
             next_effect_id: 1,
-            pending_effects: Vec::new(),
+            pending_effect: None,
             clear_terminal_after_command: false,
             auto_qualify_non_default_database_tables,
             keyword_case: 0,
@@ -1352,11 +1352,8 @@ impl ShellSession {
         ShellStatus::Ok
     }
 
-    /// Start a query: returns the effect envelope of the query
+    /// Start a query: returns the effect of the query
     pub fn start_query(&mut self, query: &[u8], _catalog: &Catalog) -> ShellOperation {
-        if !self.pending_effects.is_empty() {
-            return ShellOperation::new(ShellStatus::Busy, "the shell already has an active operation");
-        }
         if query.is_empty() {
             return ShellOperation::new(ShellStatus::InvalidArgument, "query must not be empty");
         }
@@ -1367,25 +1364,22 @@ impl ShellSession {
         self.suspend_effect(EffectType::ExecuteQuery, query.to_vec())
     }
 
-    /// Suspend an operation on an effect and encode its envelope
+    /// Suspend an operation on an effect, unless another effect is pending
     fn suspend_effect(&mut self, effect_type: EffectType, payload: Vec<u8>) -> ShellOperation {
+        if self.pending_effect.is_some() {
+            return ShellOperation::new(ShellStatus::Busy, "the shell already has an active operation");
+        }
         let id = self.next_effect_id;
         self.next_effect_id += 1;
-        let mut encoded = Vec::with_capacity(EFFECT_ENVELOPE_HEADER_SIZE + payload.len());
-        encoded.extend_from_slice(&EFFECT_ENVELOPE_VERSION.to_le_bytes());
-        encoded.extend_from_slice(&(effect_type as u32).to_le_bytes());
-        encoded.extend_from_slice(&id.to_le_bytes());
-        encoded.extend_from_slice(&payload);
-        self.pending_effects.push(PendingEffect { id, effect_type });
-        ShellOperation::new(ShellStatus::Pending, encoded)
+        self.pending_effect = Some(PendingEffect { id, effect_type });
+        ShellOperation::pending(ShellEffect { effect_type, id, payload })
     }
 
     /// Resume the operation of an effect with its result
     pub fn complete_effect(&mut self, effect_id: u64, status: EffectCompletionStatus, data: &[u8]) -> ShellOperation {
-        let Some(index) = self.pending_effects.iter().position(|e| e.id == effect_id) else {
+        let Some(effect) = self.pending_effect.take_if(|e| e.id == effect_id) else {
             return ShellOperation::new(ShellStatus::StaleEffect, "effect is no longer pending");
         };
-        let effect = self.pending_effects.remove(index);
         match (effect.effect_type, status) {
             (EffectType::ExecuteQuery, EffectCompletionStatus::Success) => self.render_query_result(data),
             (EffectType::ExecuteCommand, EffectCompletionStatus::Success) => {

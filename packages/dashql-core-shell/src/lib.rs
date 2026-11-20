@@ -2,7 +2,7 @@
 //! terminal renderer, and the execution protocol of queries and dot commands.
 //!
 //! Queries and commands are pending effects: starting an operation returns
-//! [`ShellStatus::Pending`] with an effect envelope (version, type, id, payload), and the host
+//! [`ShellStatus::Pending`] with an effect (type, id, payload), and the host
 //! completes or cancels the effect by id, which yields the rendered output.
 //!
 //! The session does not own its catalog, operations that read it take `&Catalog` (see [`ShellSession`]).
@@ -156,22 +156,39 @@ pub enum PromptInputAction {
     Exit = 3,
 }
 
-/// The result of an operation: rendered output, an effect envelope or an error message
+/// An effect that the host performs for a pending operation
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ShellEffect {
+    /// The kind of the effect
+    pub effect_type: EffectType,
+    /// The effect id that the host passes back on completion
+    pub id: u64,
+    /// The query or the dot command
+    pub payload: Vec<u8>,
+}
+
+/// The result of an operation: rendered output, an effect or an error message
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ShellOperation {
     /// The status of the operation
     pub status: ShellStatus,
-    /// The rendered output, the encoded effect envelope or the error message
+    /// The rendered output or the error message, empty if the operation is pending
     pub data: Vec<u8>,
+    /// The effect of a pending operation
+    pub effect: Option<ShellEffect>,
 }
 
 impl ShellOperation {
     pub fn new(status: ShellStatus, data: impl Into<Vec<u8>>) -> Self {
-        Self { status, data: data.into() }
+        Self { status, data: data.into(), effect: None }
     }
 
     pub fn ok(data: impl Into<Vec<u8>>) -> Self {
         Self::new(ShellStatus::Ok, data)
+    }
+
+    pub fn pending(effect: ShellEffect) -> Self {
+        Self { status: ShellStatus::Pending, data: Vec::new(), effect: Some(effect) }
     }
 }
 
@@ -240,8 +257,3 @@ pub struct PromptSnapshot {
     /// What the host should do after the edit
     pub action: PromptInputAction,
 }
-
-/// The version of the effect envelope
-pub const EFFECT_ENVELOPE_VERSION: u32 = 1;
-/// The size of the effect envelope header: version (u32), type (u32), id (u64), all little-endian
-pub const EFFECT_ENVELOPE_HEADER_SIZE: usize = 16;

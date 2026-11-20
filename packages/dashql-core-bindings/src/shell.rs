@@ -96,18 +96,6 @@ pub struct ShellOperation {
     inner: CoreOperation,
 }
 
-impl ShellOperation {
-    fn effect_header(&self) -> Option<(u32, u64)> {
-        if self.inner.status != dashql_core_shell::ShellStatus::Pending {
-            return None;
-        }
-        let data = &self.inner.data;
-        let kind = data.get(4..8)?.try_into().ok()?;
-        let id = data.get(8..16)?.try_into().ok()?;
-        Some((u32::from_le_bytes(kind), u64::from_le_bytes(id)))
-    }
-}
-
 #[wasm_bindgen]
 impl ShellOperation {
     /// The `DashQLShellStatus`, `PENDING` if the operation waits for an effect
@@ -125,20 +113,19 @@ impl ShellOperation {
     /// The effect type of a pending operation (`DashQLShellEffectType`)
     #[wasm_bindgen(getter, js_name = effectType)]
     pub fn effect_type(&self) -> Option<u32> {
-        self.effect_header().map(|(t, _)| t)
+        self.inner.effect.as_ref().map(|e| e.effect_type as u32)
     }
 
     /// The effect id of a pending operation
     #[wasm_bindgen(getter, js_name = effectId)]
     pub fn effect_id(&self) -> Option<u64> {
-        self.effect_header().map(|(_, id)| id)
+        self.inner.effect.as_ref().map(|e| e.id)
     }
 
     /// The effect payload of a pending operation: the query or the dot command
     #[wasm_bindgen(getter, js_name = effectPayload)]
     pub fn effect_payload(&self) -> Option<String> {
-        self.effect_header()
-            .map(|_| String::from_utf8_lossy(self.inner.data.get(16..).unwrap_or_default()).into_owned())
+        self.inner.effect.as_ref().map(|e| String::from_utf8_lossy(&e.payload).into_owned())
     }
 }
 

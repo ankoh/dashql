@@ -6,7 +6,7 @@ error output, and the tables of the first rows of results. It deliberately does 
 query results, or browser APIs.
 
 Asynchronous shell workflows are explicit pending effects. An operation that needs the host returns a pending status
-with an effect envelope (version, type, id, payload); JavaScript performs the Promise-based operation and resumes the
+with an effect (type, id, payload), one at a time; JavaScript performs the Promise-based operation and resumes the
 workflow through `Shell.completeEffect` or `Shell.cancelEffect`. This avoids Asyncify and JSPI while keeping workflow
 ownership in Rust.
 

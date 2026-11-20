@@ -203,10 +203,6 @@ fn formats_values_with_arrow_cast() {
     );
 }
 
-fn read_u64(data: &[u8], offset: usize) -> u64 {
-    u64::from_le_bytes(data[offset..offset + 8].try_into().unwrap())
-}
-
 /// The data of a query effect with a preview: the tag, the length of the status line, the status line and the IPC
 fn preview(status: &str, ipc: &[u8]) -> Vec<u8> {
     let mut data = vec![QueryResultTag::Preview as u8];
@@ -219,8 +215,8 @@ fn preview(status: &str, ipc: &[u8]) -> Vec<u8> {
 fn complete_query(session: &mut ShellSession, data: &[u8]) -> ShellOperation {
     let catalog = Catalog::new();
     let pending = session.start_query(b"SELECT 42", &catalog);
-    assert_eq!(pending.status, ShellStatus::Pending);
-    session.complete_effect(read_u64(&pending.data, 8), EffectCompletionStatus::Success, data)
+    let id = pending.effect.expect("a pending query has an effect").id;
+    session.complete_effect(id, EffectCompletionStatus::Success, data)
 }
 
 #[test]

@@ -115,8 +115,7 @@ fn edits_and_submits_prompt() {
 
     let operation = shell.submit_prompt();
     assert_eq!(operation.status, ShellStatus::Pending);
-    assert!(operation.data.len() >= 16);
-    assert_eq!(&operation.data[16..], b"select 01");
+    assert_eq!(operation.effect.as_ref().map(|e| e.payload.as_slice()), Some(&b"select 01"[..]));
 }
 
 #[test]
@@ -129,8 +128,7 @@ fn strips_trailing_semicolon_when_submitting_prompt() {
 
     let operation = shell.submit_prompt();
     assert_eq!(operation.status, ShellStatus::Pending);
-    assert!(operation.data.len() >= 16);
-    assert_eq!(&operation.data[16..], b"SELECT ';' AS value");
+    assert_eq!(operation.effect.as_ref().map(|e| e.payload.as_slice()), Some(&b"SELECT ';' AS value"[..]));
 
     let history = shell.export_history();
     assert!(history.len() >= 4);
@@ -210,8 +208,7 @@ fn submits_semicolon_terminated_prompt_with_local_parse_errors() {
 
     let operation = shell.submit_prompt();
     assert_eq!(operation.status, ShellStatus::Pending);
-    assert!(operation.data.len() >= 16);
-    assert_eq!(&operation.data[16..], b"fooo");
+    assert_eq!(operation.effect.as_ref().map(|e| e.payload.as_slice()), Some(&b"fooo"[..]));
 }
 
 #[test]
