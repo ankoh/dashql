@@ -1,6 +1,6 @@
 import type * as core from '@akohn/dashql';
 import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
-import type { SessionConnections } from '@akohn/dashql/platform/session/workbook_journal';
+import type { SessionConnections } from '@akohn/dashql/platform/session/session_folder';
 
 import { listedConnections } from '../connections/connection_tree.js';
 

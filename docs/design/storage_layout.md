@@ -176,8 +176,9 @@ empty `logs/` folder at startup, before the instance settings apply.
 The command line tool keeps its files in a folder of its own with the same layout: `cache/`,
 `workbooks/<id>/attachments/` and `instances/<id>/`. The folder is `DASHQL_HOME`, else the `.dashql/` of the workspace
 (the invoking directory or `--workspace`), which `dashql connect` creates in the folder of its session next to the
-journal of the session (`docs/design/agent_session.md`), else `~/.dashql`. In a session the files of a project stay in
-the project, where the commands in the sandbox of a harness may write; `.dashql/` ignores itself. The modules of the runtime reach it through the handles of
+folders of its sessions (`docs/design/agent_session.md`), else `~/.dashql`. The files of a project stay in the
+project, where the commands in the sandbox of a harness may write; `.dashql/` ignores itself. The modules of the
+runtime reach it through the handles of
 `node/node_directory_handle.ts` instead of `navigator.storage`, and the Node build of hyperdb-wasm mounts it at `/mnt/fs`,
 so the Hyper paths are the ones of the browser. `dashql run` mirrors the attachments of a workbook folder into it and
 removes its instance folder when it ends. It is not the root of the app: a viewer that shows results of the command line

@@ -9,32 +9,34 @@ describe('dashql describe', () => {
     it('tells how to work on workbooks and lists the workbooks that the tabs copied', async () => {
         const workbook = { name: 'Orders', connections: [{ connectionId: 'c1', name: 'Trino prod' }, { connectionId: 'hyper' }] };
         const workspace = testFiles([
-            ['.dashql/workbooks/w1/dashql-workbook.json', JSON.stringify(workbook)],
-            ['.dashql/workbooks/w1/scripts/a.sql', 'select 1'],
-            ['.dashql/workbooks/w1/scripts/b.sql', 'select 2'],
-            ['.dashql/workbooks/w1/attachments/prices.parquet', 'PAR1'],
-            ['.dashql/workbooks/w2/dashql-workbook.json', '{}'],
-            // The mirror of the attachments of a workbook of dashql run has no workbook file
-            ['.dashql/workbooks/w3/attachments/t.parquet', 'PAR1'],
+            ['.dashql/sessions/s1/workbooks/w1/dashql-workbook.json', JSON.stringify(workbook)],
+            ['.dashql/sessions/s1/workbooks/w1/scripts/a.sql', 'select 1'],
+            ['.dashql/sessions/s1/workbooks/w1/scripts/b.sql', 'select 2'],
+            ['.dashql/sessions/s1/workbooks/w1/attachments/prices.parquet', 'PAR1'],
+            ['.dashql/sessions/s1/workbooks/w2/dashql-workbook.json', '{}'],
+            // A copy that the tab is writing has no workbook file yet
+            ['.dashql/sessions/s1/workbooks/w3/attachments/t.parquet', 'PAR1'],
         ]);
-        const output = await describeIn(path.join(workspace));
+        const output = await describeIn(workspace, ['--workspace', '.', '--session', 's1']);
         expect(output.code).toBe(0);
         expect(output.stdout.startsWith(`${DESCRIBE_TEXT}\n\n`)).toBe(true);
         expect(output.stdout.endsWith([
-            'Workbooks of DashQL in this folder, the tab shows them (work on these folders, not on copies of them):',
-            '  .dashql/workbooks/w1/  "Orders", 2 scripts, attachments: :prices, connections: Trino prod (c1), hyper',
+            'Workbooks of DashQL in this session, the tab shows them (work on these folders, not on copies of them):',
+            '  .dashql/sessions/s1/workbooks/w1/  "Orders", 2 scripts, attachments: :prices, connections: Trino prod (c1), hyper',
             // A workbook without attachments says so, the agent reads none
-            '  .dashql/workbooks/w2/  "w2", 0 scripts, attachments: none',
+            '  .dashql/sessions/s1/workbooks/w2/  "w2", 0 scripts, attachments: none',
             '',
         ].join('\n'))).toBe(true);
 
         // A workspace that the invoking directory is not
-        expect((await describeIn(path.join(workspace, '.dashql'), ['--workspace', '..'])).stdout).toBe(output.stdout);
+        expect((await describeIn(path.join(workspace, '.dashql'), ['--workspace', '..', '--session', 's1'])).stdout).toBe(output.stdout);
+        // Without a session no workbooks
+        expect((await describeIn(workspace)).stdout.endsWith('Workbooks of DashQL: --workspace and --session name a session of dashql connect, its workbooks are listed then.\n')).toBe(true);
     });
 
     it('says when no tab copied a workbook yet and checks its arguments', async () => {
-        const output = await describeIn(testFiles([]));
-        expect(output.stdout).toContain('Workbooks of DashQL in this folder: none yet.');
+        const output = await describeIn(testFiles([['.dashql/sessions/s1/server.json', '{}']]), ['--workspace', '.', '--session', 's1']);
+        expect(output.stdout).toContain('Workbooks of DashQL in this session: none yet.');
         expect((await describeIn(testFiles([]), ['--help'])).stdout).toBe(`${DESCRIBE_USAGE}\n`);
         const wrong = await describeIn(testFiles([]), ['orders']);
         expect(wrong.code).toBe(2);
@@ -46,7 +48,7 @@ describe('dashql describe', () => {
         const workspace = testFiles([
             ['.dashql/sessions/51001/connections.json', JSON.stringify(allowed)],
             ['.dashql/sessions/51002/connections.json', '{"connections":[]}'],
-            ['.dashql/sessions/51003/journal.jsonl', ''],
+            ['.dashql/sessions/51003/server.json', '{}'],
         ]);
         const inSession = (session: string) => describeIn(workspace, ['--workspace', '.', '--session', session]);
         expect((await inSession('51001')).stdout.endsWith(`

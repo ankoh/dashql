@@ -11,7 +11,7 @@ import { CONNECTED_AGENT_GUIDE, DESCRIBE_TEXT } from './describe_command.js';
 import { connectedSessionStart, connectedSessionStartText, runSession, shellWord } from './session_command.js';
 import { runWith } from './test_process.js';
 
-/// The folder of the session, the server writes its journal there
+/// The folder that the harness works in, the server keeps the folder of its session there
 const W = mkdtempSync(path.join(process.env.TEST_TMPDIR ?? tmpdir(), 'dashql-connect-'));
 /// The id of the session that connect picks in the tests
 const SESSION = '0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0';
@@ -63,8 +63,6 @@ describe('dashql connect', () => {
             // The agent runs dashql like the hooks
             expect(readFileSync(path.join(bin, 'dashql'), 'utf8')).toBe(`#!/bin/sh\nexec /usr/bin/node '/opt/dash ql/dashql.js' "$@"\n`);
             expect(statSync(path.join(bin, 'dashql')).mode & 0o111).not.toBe(0);
-            // The journal of the session is its own, named by its id
-            expect(existsSync(path.join(W, '.dashql', 'sessions', SESSION, 'journal.jsonl'))).toBe(true);
             // The page follows the server like the tab that showed the line
             following = followAgentSession({ endpoint: `http://127.0.0.1:${port}`, token: 's3cret' }, state => states.push(state), new AbortController().signal);
             const { hooks } = JSON.parse(harnessArgs[harnessArgs.indexOf('--settings') + 1]);
@@ -72,8 +70,8 @@ describe('dashql connect', () => {
             expect(command('SessionStart')).toContain(` --workspace ${W} --session ${SESSION}`);
             const start = await runHook(command('SessionStart'), { session_id: 'c1', cwd: W });
             // Claude Code has the guide in its system prompt, the hook tells the session and the workbooks of the folder
-            expect(start.stdout).toBe(`${connectedSessionStartText(W, SESSION)}\n\nWorkbooks of DashQL in this folder: none yet. The tab of DashQL copies the workbook that it shows into
-.dashql/workbooks/<id>/ once it reaches the session.
+            expect(start.stdout).toBe(`${connectedSessionStartText(W, SESSION)}\n\nWorkbooks of DashQL in this session: none yet. The tab of DashQL copies the workbook that it shows into the
+session once it reaches it.
 `);
             expect(start.stdout).toBe(connectedSessionStart('claude', W, SESSION));
             expect(harnessArgs[harnessArgs.indexOf('--append-system-prompt') + 1]).toBe(CONNECTED_AGENT_GUIDE);
@@ -118,9 +116,12 @@ describe('dashql connect', () => {
             const write = (file: string) => runHook(pre, { session_id: 'c1', cwd: W, tool_name: 'Write', tool_input: { file_path: file, content: 'select 1' } });
             const refused = await write(path.join(W, 'notes.sql'));
             expect(refused.code).toBe(2);
-            expect(refused.stderr).toBe(`DashQL lets you write only into the workbooks of this session, .dashql/workbooks/<id>/, not ${path.join(W, 'notes.sql')}. Put the SQL into a script of the workbook.\n`);
-            expect((await write('.dashql/workbooks/w1/scripts/a.sql')).code).toBe(0);
-            expect((await write('.dashql/workbooks/w1/../../../escape.sql')).code).toBe(2);
+            const copies = path.join(W, '.dashql', 'sessions', SESSION, 'workbooks');
+            expect(refused.stderr).toBe(`DashQL lets you write only into the workbooks of this session, ${copies}/<id>/, not ${path.join(W, 'notes.sql')}. Put the SQL into a script of the workbook.\n`);
+            expect((await write(`.dashql/sessions/${SESSION}/workbooks/w1/scripts/a.sql`)).code).toBe(0);
+            expect((await write(`.dashql/sessions/${SESSION}/workbooks/w1/../../../escape.sql`)).code).toBe(2);
+            // Another session is outside
+            expect((await write('.dashql/sessions/other/workbooks/w1/scripts/a.sql')).code).toBe(2);
             // Reads and the shell are left to the harness
             expect((await runHook(pre, { session_id: 'c1', cwd: W, tool_name: 'Bash', tool_input: { command: 'echo > x.sql' } })).code).toBe(0);
             // A patch of Codex names its files
@@ -128,10 +129,10 @@ describe('dashql connect', () => {
             expect((await runHook(pre, { session_id: 'c1', cwd: W, tool_name: 'apply_patch', tool_input: { command: patch } })).code).toBe(2);
             // In a shell that changed into a copy, its relative paths are in the copy, the workbooks stay those of the
             // folder of the session
-            const copy = path.join(W, '.dashql', 'workbooks', 'w1');
+            const copy = path.join(copies, 'w1');
             const writeIn = (cwd: string, file: string) => runHook(pre, { session_id: 'c1', cwd, tool_name: 'Write', tool_input: { file_path: file, content: 'select 1' } });
             expect((await writeIn(copy, 'scripts/b.sql')).code).toBe(0);
-            expect((await writeIn(copy, '../../../notes.sql')).code).toBe(2);
+            expect((await writeIn(copy, '../../notes.sql')).code).toBe(2);
             return 0;
         });
         const output = await connect(env, ['--launch', 'claude', '--port', String(port), '--secret', 's', '--workbook-only']);

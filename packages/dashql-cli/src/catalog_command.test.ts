@@ -73,9 +73,9 @@ CREATE TABLE tpch.tiny.customer (custkey bigint, name varchar);
         // A session needs its folder, a copy of a tab needs the session
         expect((await catalogIn(dir, ['--session', '51001', '.'])).stderr).toBe('error: --session needs --workspace, the folder of the session\n');
         expect((await catalogIn(dir, ['--workspace', '.', '--session', '51009', '.'])).stderr).toBe(`error: no session 51009 runs in ${dir}\n`);
-        const workspace = testFiles([['.dashql/workbooks/w1/dashql-workbook.json', JSON.stringify(WORKBOOK)]]);
-        const copy = await catalogIn(workspace, ['.dashql/workbooks/w1']);
+        const workspace = testFiles([['.dashql/sessions/s1/workbooks/w1/dashql-workbook.json', JSON.stringify(WORKBOOK)]]);
+        const copy = await catalogIn(workspace, ['.dashql/sessions/s1/workbooks/w1']);
         expect(copy.code).toBe(2);
-        expect(copy.stderr).toBe('error: .dashql/workbooks/w1 is the copy of a workbook of the tab of DashQL, pass --workspace <folder> --session <id> as the start of the session says\n');
+        expect(copy.stderr).toBe('error: .dashql/sessions/s1/workbooks/w1 is the copy of a workbook of the tab of DashQL, pass --workspace <folder> --session <id> as the start of the session says\n');
     });
 });

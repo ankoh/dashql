@@ -1,7 +1,7 @@
 import { STORAGE_ATTACHMENTS_FOLDER, STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE } from '../storage/storage_backend.js';
 import { fetchAgentSession } from './agent_session_protocol.js';
 import type { AgentSessionState } from './agent_session_state.js';
-import type { SessionConnections } from './workbook_journal.js';
+import type { SessionConnections } from './session_folder.js';
 
 /// Where a page finds the server of a session: the one of `dashql connect` on this machine
 export interface AgentSessionTarget {

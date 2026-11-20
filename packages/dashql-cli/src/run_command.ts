@@ -15,7 +15,7 @@ import { LogLevel, type LogRecord } from '@akohn/dashql/platform/logger/log_buff
 import { LoggableException, Logger } from '@akohn/dashql/platform/logger/logger';
 import { createRuntime, type Runtime } from '@akohn/dashql/runtime/runtime';
 import { describeRunError, runScriptsOf, runWorkbookReported, type ReportedRunEnd } from '@akohn/dashql/runtime/workbook_run_report';
-import { isWorkbookCopyId, JOURNAL_TARGET, SESSION_JOURNAL_FOLDER, SESSION_WORKBOOK_COPIES, journalFilesMarker, workbookCopyPath } from '@akohn/dashql/platform/session/workbook_journal';
+import { DASHQL_FOLDER } from '@akohn/dashql/platform/session/session_folder';
 import { NativeStorageBackend } from '@akohn/dashql/platform/storage/native_storage_backend';
 import { QUERY_RESULT_CACHE_DIRECTORY } from '@akohn/dashql/platform/storage/opfs_query_result_cache';
 import { STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE } from '@akohn/dashql/platform/storage/storage_backend';
@@ -29,7 +29,7 @@ import type { RunEvent, RunReporter } from './run_events.js';
 import { LiveRunReporter } from './run_live.js';
 import { PlainRunReporter } from './run_output.js';
 import { runInTab } from './run_tab.js';
-import { commandSession, openSessionJournal, readSessionConnections, readSessionServer, workbookFolderPaths, type CommandSession, type SessionJournal } from './session_journal.js';
+import { commandSession, copiedWorkbookId, readSessionServer, sessionCopiesFolder, type CommandSession } from './session_folder.js';
 
 const RUN_USAGE = `Usage: dashql run [--rows <n>] [--refresh] [--plain] [--workspace <dir> --session <id>] [--verbose] <workbook-dir> [<script>...]
 
@@ -52,15 +52,15 @@ connection that can't be set up are not run.
 The files of DashQL are in a folder with the layout of the storage of the app: the query result cache in cache/, the
 attachments of the workbooks in workbooks/<id>/attachments. It is DASHQL_HOME, or the .dashql/ of the workspace, which
 dashql connect creates in the folder of its session, or ~/.dashql. The workspace is --workspace, else the invoking
-directory. --workspace and --session name the session of dashql connect, as the start of the session tells the agent;
-run appends its log to the journal of the session.
+directory.
 
 Connections: Trino with basic auth and the embedded Hyper. DASHQL_TRINO_USER and DASHQL_TRINO_PASSWORD override the
 user and the password of the workbook.
 
-In a session of dashql connect, a workbook that the tab of DashQL copied into the session (.dashql/workbooks/<id>) runs
-in the tab: on the connections of the tab that the agent may use, as far as the browser reaches them, and the tab shows
-the run. The run fails when no tab follows the session.
+--workspace and --session name a session of dashql connect, as the start of the session tells the agent. In a session
+only the copies of the workbooks of the tab run (.dashql/sessions/<id>/workbooks/<workbook id>), and they run in the
+tab: on the connections of the tab that the agent may use, as far as the browser reaches them, and the tab shows the
+run. The run fails when no tab follows the session.
 
 --verbose prints the log of the runtime to stderr.`;
 
@@ -140,12 +140,9 @@ function parseRunArgs(args: string[]): RunArgs | string {
     return { workbook, workspace, session, scripts, rows, refresh, plain, verbose };
 }
 
-/// The logger of a run: prints the records with --verbose, writes them from info on into the journal of a session
+/// The logger of a run: prints the records with --verbose
 class RunLogger extends Logger {
-    constructor(
-        private readonly print: ((record: LogRecord) => void) | null,
-        private readonly journal: SessionJournal | null,
-    ) {
+    constructor(private readonly print: ((record: LogRecord) => void) | null) {
         super();
     }
 
@@ -157,7 +154,6 @@ class RunLogger extends Logger {
         for (const record of pending) {
             this.outputBuffer.push(record);
             this.print?.(record);
-            if (record.level >= LogLevel.Info) this.journal?.write(record);
         }
     }
 }
@@ -208,8 +204,8 @@ async function finishSetup(rt: Runtime, conn: ConnectionState, channelParams: co
 /// The root of the files of DashQL of a workspace: its `.dashql/`, which `dashql connect` creates in the folder of
 /// its session, or `~/.dashql` outside a session
 function dashqlRootOf(workspace: string): string {
-    const root = path.join(workspace, SESSION_JOURNAL_FOLDER);
-    return existsSync(root) ? root : path.join(homedir(), SESSION_JOURNAL_FOLDER);
+    const root = path.join(workspace, DASHQL_FOLDER);
+    return existsSync(root) ? root : path.join(homedir(), DASHQL_FOLDER);
 }
 
 /// Load the workbook of a folder into the runtime: the storage of the runtime is the folder, the runtime restores its
@@ -228,18 +224,6 @@ async function loadWorkbook(rt: Runtime, storage: NativeStorageBackend): Promise
 /// The exit code of how a run ended
 function exitCode(end: ReportedRunEnd): number {
     return end === 'ok' ? EXIT_OK : end === 'interrupted' ? EXIT_INTERRUPTED : EXIT_FAILED;
-}
-
-/// The id of the workbook of a folder that a tab copied into the session of the workspace, `.dashql/workbooks/<id>`,
-/// null for any other folder
-function copiedWorkbookId(workspace: string, dir: string): string | null {
-    const id = path.basename(dir);
-    return isWorkbookCopyId(id) && path.resolve(workspace, workbookCopyPath(id)) === path.resolve(dir) ? id : null;
-}
-
-/// Why a run in a session runs in this process: the folder is no copy of the tab in the folder of the session
-export function notACopyNote(workbook: string, workspace: string): string {
-    return `note: ${workbook} is no workbook that the tab of DashQL copied into ${path.join(workspace, SESSION_JOURNAL_FOLDER, SESSION_WORKBOOK_COPIES)}/, it runs here and the tab does not show it`;
 }
 
 /// Run `dashql run` with its arguments, returns the exit code
@@ -319,8 +303,9 @@ export interface WorkbookFolderRun {
     chart?: AgentSessionChartSize | null;
 }
 
-/// Run the scripts of a workbook folder and report the events of the run: in the tab of DashQL for a workbook that the
-/// tab copied into the session of dashql connect, else in this process. Returns the exit code, errors go to stderr.
+/// Run the scripts of a workbook folder and report the events of the run: in a session of dashql connect, a copy of
+/// the tab runs in the tab and nothing else runs; outside a session the folder runs in this process. Returns the exit
+/// code, errors go to stderr.
 export async function runWorkbookFolder(
     run: WorkbookFolderRun,
     dir: string,
@@ -332,43 +317,41 @@ export async function runWorkbookFolder(
     live = false,
 ): Promise<number> {
     const { workspace } = session;
-    // A workbook that the tab of a session of dashql connect copied runs in the tab
-    const server = readSessionServer(workspace, session.session);
-    const copied = session.session == null ? null : copiedWorkbookId(workspace, dir);
-    if (copied != null) {
-        if (server == null) {
-            cli.stderr(`error: the session ${session.session} has no server in ${workspace}, it ended\n`);
-            return EXIT_FAILED;
-        }
-        try {
-            const request = { workbookId: copied, label: run.workbook, scripts: run.scripts, refresh: run.refresh, rows: run.rows };
-            const end = await runInTab(server, run.chart == null ? request : { ...request, chart: run.chart }, signal, emit);
-            if (end === 'interrupted') cli.stderr('interrupted\n');
-            return exitCode(end);
-        } catch (error) {
-            cli.stderr(`error: ${describeRunError(error)}\n`);
-            return EXIT_FAILED;
-        }
+    if (session.session == null) return await runHere(run, dir, workspace, env, cli, signal, emit, live);
+    // In a session the agent runs the copies of the tab, the tab runs them
+    const copied = copiedWorkbookId(session, dir);
+    if (copied == null) {
+        cli.stderr(`error: ${run.workbook} is no copy of a workbook of the tab of DashQL, the copies of the session are in ${sessionCopiesFolder(workspace, session.session)}/\n`);
+        return EXIT_USAGE;
     }
-    // In a session, say that the tab doesn't show this run: the agent may have meant a copy of the tab
-    if (session.session != null) cli.stderr(`${notACopyNote(run.workbook, workspace)}\n`);
-    return await runHere(run, dir, session, env, cli, signal, emit, live);
+    const server = readSessionServer(workspace, session.session);
+    if (server == null) {
+        cli.stderr(`error: the session ${session.session} has no server in ${workspace}, it ended\n`);
+        return EXIT_FAILED;
+    }
+    try {
+        const request = { workbookId: copied, label: run.workbook, scripts: run.scripts, refresh: run.refresh, rows: run.rows };
+        const end = await runInTab(server, run.chart == null ? request : { ...request, chart: run.chart }, signal, emit);
+        if (end === 'interrupted') cli.stderr('interrupted\n');
+        return exitCode(end);
+    } catch (error) {
+        cli.stderr(`error: ${describeRunError(error)}\n`);
+        return EXIT_FAILED;
+    }
 }
 
 /// Run a workbook folder with a runtime of this process
 async function runHere(
     parsed: WorkbookFolderRun,
     dir: string,
-    { workspace, session }: CommandSession,
+    workspace: string,
     env: RunEnvironment,
     cli: CliProcess,
     signal: AbortSignal,
     emit: (event: RunEvent) => void,
     live: boolean,
 ): Promise<number> {
-    // In a session the log of the run goes into its journal, with the files of the folder
-    const journal = openSessionJournal(workspace, dir, session);
-    const logger = new RunLogger(parsed.verbose ? record => { if (record.level >= LogLevel.Info) cli.stderr(logLine(record)); } : null, journal);
+    const logger = new RunLogger(parsed.verbose ? record => { if (record.level >= LogLevel.Info) cli.stderr(logLine(record)); } : null);
     const storage = new NativeStorageBackend(dir, NODE_FILE_SYSTEM);
     // The embedded Hyper writes the results into the query result cache of the root and reads the results of other
     // connections and the attachments. Without it the scripts on Trino still run, nothing is written.
@@ -411,22 +394,13 @@ async function runHere(
         }
         // The embedded Hyper reads the attachments from the root, like the app reads them from its storage
         if (hyper != null) await mirrorWorkbookAttachments(storage, workbook.workbookId);
-        if (journal != null) {
-            // The files of the folder, the agent may have changed them
-            const { message, keyValues } = journalFilesMarker({ workbook: journal.workbook, workbookId: workbook.workbookId }, await workbookFolderPaths(storage));
-            logger.info(message, keyValues, JOURNAL_TARGET);
-        }
-        // The tab of the session lets the agent use the connections that the user picked
-        const allowed = readSessionConnections(workspace, session);
         const end = await runWorkbookReported(runtime, workbook, {
             label: parsed.workbook,
             scripts: parsed.scripts,
             refresh: parsed.refresh,
             signal,
             progressIntervalMs: live ? LIVE_PROGRESS_INTERVAL_MS : null,
-            prepareConnection: async conn => allowed != null && !allowed.connections.some(other => other.connectionId === conn.connectionId)
-                ? 'the tab of DashQL does not let the agent use this connection, the user can allow it in the prompt'
-                : await setupConnection(runtime, conn, env, hyper, signal),
+            prepareConnection: conn => setupConnection(runtime, conn, env, hyper, signal),
             resultFile: async key => {
                 const entry = hyper == null ? null : await hyper.resultCache.lookup(key);
                 return entry == null ? null : path.join(hyper!.root, QUERY_RESULT_CACHE_DIRECTORY, entry.name);

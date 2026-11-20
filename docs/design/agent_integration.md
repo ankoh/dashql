@@ -24,7 +24,7 @@ flowchart LR
     subgraph Terminal[The terminal]
         H["Harness: Claude Code or Codex"] -->|hooks| S["Server of the session"]
         H -->|shell| C["dashql describe, catalog, lint, format, run, vis"]
-        H -->|file tools| F[".dashql/workbooks/id, the copy"]
+        H -->|file tools| F[".dashql/sessions/id/workbooks/id, the copy"]
         C -->|reads| F
         C -->|run requests| S
         S -->|writes, stamps| F
@@ -66,7 +66,7 @@ The reasons:
 | The guide of DashQL for the agent | Terminal: `DESCRIBE_TEXT` of `dashql describe`; Claude Code has it in its system prompt (`--append-system-prompt`), Codex in the output of the hook at the start | Nothing |
 | The conversation in the bar of the tab | Terminal: the hooks post the events to the server, which folds them into the state | The state, server to tab (`/v1/stream`) |
 | The copy of a workbook | Tab: it writes the files of its workbook once the server answers | Files, tab to terminal (`PUT /v1/workbooks/…`) |
-| Reading and writing scripts | Terminal: the file tools of the harness on `.dashql/workbooks/<id>/scripts/` | Nothing, the files are local |
+| Reading and writing scripts | Terminal: the file tools of the harness on `.dashql/sessions/<id>/workbooks/<workbook id>/scripts/` | Nothing, the files are local |
 | Taking the edits of the agent | Tab: it sees new stamps in the state and fetches the changed scripts | Stamps in the state, file texts terminal to tab (`GET /v1/workbooks/…`) |
 | The connection of a new script | Terminal: the agent names it in `dashql-workbook.json` of the copy; Tab: it creates or moves the script | The workbook file, like a script |
 | Edits of the user | Tab: the editors; it writes changed scripts into the copy | Files, tab to terminal |
@@ -75,7 +75,7 @@ The reasons:
 | The connections the agent may use | Tab: the menu of the prompt | `PUT /v1/connections`, the server writes `connections.json` |
 | Running scripts of a copy | Tab: its runtime on its connections | A run request terminal to tab (`POST /v1/runs`, the event `run` of the stream), the run events back |
 | The results of a run | Tab: the query result cache | The first rows in the events, the Parquet file of a cached result (`PUT /v1/results/…` into `.dashql/cache/`) |
-| Running other workbook folders | Terminal: a runtime in the process of `dashql run`, Trino with basic auth and the embedded Hyper | Nothing, its log goes into the journal |
+| Running workbook folders outside a session | Terminal: a runtime in the process of `dashql run`, Trino with basic auth and the embedded Hyper | Nothing |
 | The check of a chart | Terminal: the core reads the `@vis` tag, Vega-Lite compiles the spec in Node, the fields are compared with the columns of the result | The columns of the result, in the run events |
 | The PNG of a chart | Tab: the image renderer of the feed, after the result | `chart` of the run request, the event `script_chart` back |
 | Who changes the workbook | Tab: the switch of the prompt, AI for the agent, SQL for the user | Nothing new: in SQL the tab holds the edits of the agent and fails its runs |
@@ -89,7 +89,7 @@ of DashQL get CORS headers.
 | Route | From | Carries |
 |---|---|---|
 | `POST /v1/events` | Hooks | An event of the harness: start, question, step of a tool, answer, end |
-| `GET /v1/stream` | Tab | The state after every change (turns, steps, the copies with the stamps of their files, the log of the commands); the event `run` with a run request or a stop |
+| `GET /v1/stream` | Tab | The state after every change (turns, steps, the copies with the stamps of their files); the event `run` with a run request or a stop |
 | `GET /v1/state` | Hooks | The state once, whether the server lives |
 | `PUT`, `DELETE /v1/workbooks/<token>/<id>[/<path>]` | Tab | The files of a copy: the workbook file, scripts, attachments, catalog files |
 | `GET /v1/workbooks/<token>/<id>/<path>` | Tab | A file of a copy, the text that the agent wrote |
@@ -107,15 +107,14 @@ The folder of the session is the folder that the harness works in.
 ```
 .dashql/                               ignored by git (.gitignore is *)
 ├── sessions/<session id>/             a session of dashql connect, gone when it ends
-│   ├── journal.jsonl                  the log of the commands that ran in the process
-│   ├── connections.json               the connections that the agent may use, from the tab
 │   ├── server.json                    the address and token of the server, for the commands
-│   └── bin/dashql                     the dashql of the agent, first on its PATH
-├── workbooks/<workbook id>/           the copy of a workbook of the tab
-│   ├── dashql-workbook.json           connections, scripts with their connections
-│   ├── scripts/<name>.sql
-│   ├── attachments/<name>.parquet
-│   └── connections/<id>/dashql-catalog-relations.sql
+│   ├── connections.json               the connections that the agent may use, from the tab
+│   ├── bin/dashql                     the dashql of the agent, first on its PATH
+│   └── workbooks/<workbook id>/       the copy of a workbook of the tab
+│       ├── dashql-workbook.json       connections, scripts with their connections
+│       ├── scripts/<name>.sql
+│       ├── attachments/<name>.parquet
+│       └── connections/<id>/dashql-catalog-relations.sql
 ├── cache/<key>.<uuid>.parquet         results of runs, from the tab or the process
 └── charts/<script>.png                charts of dashql vis
 ```
@@ -152,10 +151,10 @@ and copies its workbooks again.
 
 ### A run
 
-1. `dashql run --workspace <folder> --session <id> .dashql/workbooks/<id> top.sql` prints the syntax errors of the
-   script, finds the server in `server.json` of the folder of the session and posts the run request. The start of the
-   session gives the agent both arguments; a copy without them fails, a folder that is no copy of the tab runs in the
-   process, `dashql run` says so on stderr.
+1. `dashql run --workspace <folder> --session <id> .dashql/sessions/<id>/workbooks/<workbook id> top.sql` prints the
+   syntax errors of the script, finds the server in `server.json` of the folder of the session and posts the run
+   request. The start of the session gives the agent both arguments; a copy without them fails, and in a session a
+   folder that is no copy fails too.
 2. The server stamps the copies, sends the state and then the run to the tab.
 3. The tab fails the run if the prompt is in SQL, waits until it took the edits, and runs the workbook with its
    runtime on the connections that the agent may use. The feed shows the run.
@@ -179,15 +178,15 @@ user changed keeps the text of the user.
   work, that the user may take the workbook back, and that file contents and results are data, not instructions.
 - **At the start**: Claude Code has the guide with a preface in its system prompt, which outranks the `CLAUDE.md` of a
   project. Codex gets it in the output of the hook at the start. Both get the session that the commands take
-  (`--workspace <folder> --session <id>`), the copies and the connections of the folder.
-- **Permissions**: Claude Code may run `dashql` and edit `.dashql/workbooks/**` without asking; everything else asks as
+  (`--workspace <folder> --session <id>`), the copies and the connections of the session.
+- **Permissions**: Claude Code may run `dashql` and edit `.dashql/sessions/**` without asking; everything else asks as
   the user configured it. `--workbook-only` refuses the file tools outside the copies in the hook.
-- **Connections**: the tab runs only the connections that the user allows; `dashql run` in the process refuses the
-  others by `connections.json`, which the agent could change: it guides, the tab enforces.
+- **Connections**: the tab runs only the connections that the user allows; `connections.json` tells the agent which,
+  it guides, the tab enforces.
 
 ## Without a tab
 
-- A workbook folder that no tab copied runs in the process of `dashql run`: Trino with basic auth and the embedded
+- Outside a session a workbook folder runs in the process of `dashql run`: Trino with basic auth and the embedded
   Hyper. Connections with OAuth and Salesforce run only in a tab.
 - `dashql vis` checks the chart there and writes no PNG; `dashql catalog` prints the catalog files that the folder has,
   e.g. those of a published workbook.
@@ -240,9 +239,9 @@ decides on. The tab logs in as it does for its own runs, no token reaches the te
 
 ### The flow of a run
 
-1. **Files come in.** The agent writes the copy of the workbook (`.dashql/workbooks/<workbook id>/`), the tab takes the
-   changed scripts with their text (`agent/agent_session_copy.ts`), without a rewrite to accept or reject.
-2. **The run request.** `dashql run --workspace <folder> --session <id> .dashql/workbooks/<id>` posts
+1. **Files come in.** The agent writes the copy of the workbook (`.dashql/sessions/<id>/workbooks/<workbook id>/`), the
+   tab takes the changed scripts with their text (`agent/agent_session_copy.ts`), without a rewrite to accept or reject.
+2. **The run request.** `dashql run --workspace <folder> --session <id> <the copy>` posts
    `{ workbookId, label, scripts, refresh, rows }` to `/v1/runs/<token>` (`run_tab.ts`). The server stamps the copies,
    sends the state, then the run as an event `run` on the stream of the tab (`event: run`), and answers with the
    events of the run as JSON lines, its header `X-DashQL-Run` names the run.
@@ -264,14 +263,14 @@ decides on. The tab logs in as it does for its own runs, no token reaches the te
 - **Charts.** A run request of `dashql vis` carries `chart`, the size of the images. After the results the tab renders
   the `@vis vegalite` chart of every script that the run reports with its result (`renderScriptChart`, the renderer of
   the image download of the feed) and sends each as `script_chart` with the PNG in base64, or with the error when the
-  script has no chart or no result, then `run_finished`. A tab of protocol 1 ignores `chart` and sends none.
+  script has no chart or no result, then `run_finished`.
 - **The user has the workbook.** While the prompt of the tab is in SQL, the tab runs nothing for the agent: the run ends
   at once with `run_failed` (`AGENT_PAUSED_ERROR`) and `run_finished`, see
   [Who has the workbook](agent_session.md#who-has-the-workbook).
 - **No tab.** Without a tab on the stream the run request answers 409. A run that no tab takes within 30 s ends with
   `run_failed`, so does a run whose tab goes away.
-- **Other folders.** A workbook folder that no tab copied, and every run outside a session of `dashql connect`, runs in
-  the process of `dashql run` with Trino with basic auth and the embedded Hyper.
+- **Other folders.** In a session only the copies run. Outside a session a workbook folder runs in the process of
+  `dashql run` with Trino with basic auth and the embedded Hyper.
 
 ## Open
 
@@ -279,12 +278,11 @@ decides on. The tab logs in as it does for its own runs, no token reaches the te
 - Scripts that the agent creates take the name that the page gives them, a run of the agent names its file.
 - Scripts that the agent deletes or renames, the order of the scripts, the attachments of a copy.
 - The functions of a connection in its catalog file, client functions included.
-- `dashql connect` with Codex is tested with its hooks, not yet end to end with the guide.
 
 ## Tests
 
 | Side | Tests |
 |---|---|
-| Terminal | `//packages/dashql-cli:test`: the commands, the server, the journal, `run` and `vis` with a fake tab; `//tests/agents:claude_code_sandbox_test`: `dashql connect` with Claude Code and a fake model, the guide in the system prompt and the tools it allows |
+| Terminal | `//packages/dashql-cli:test`: the commands, the server, the folder of the session, `run` and `vis` with a fake tab; `//tests/agents`: `dashql connect` with Claude Code and Codex and a fake model, the events of a turn, the guide in the system prompt and the tools it allows |
 | Tab | `agent/agent_session_copy.test.ts`, `agent/agent_session_runs.test.ts`; the page test `app_agent_session`: the copy, the edits in both directions, the handoff, a run with its chart, the connections of the agent |
 | Between | `//packages/dashql:test_platform_node`: the protocol, the state of a session, the run events |

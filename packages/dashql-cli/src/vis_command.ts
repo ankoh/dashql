@@ -14,13 +14,13 @@ import {
     compileProblems,
     type VegaLiteCompile,
 } from '@akohn/dashql/platform/workbook/chart_config';
-import { SESSION_JOURNAL_FOLDER } from '@akohn/dashql/platform/session/workbook_journal';
+import { DASHQL_FOLDER } from '@akohn/dashql/platform/session/session_folder';
 import { STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE } from '@akohn/dashql/platform/storage/storage_backend';
 import type { RunEvent } from '@akohn/dashql/platform/workbook/run_events';
 
 import { EXIT_FAILED, EXIT_INTERRUPTED, EXIT_OK, EXIT_USAGE, type CliProcess } from './cli_process.js';
 import { processRunEnvironment, runWorkbookFolder, type RunEnvironment } from './run_command.js';
-import { commandSession } from './session_journal.js';
+import { commandSession } from './session_folder.js';
 
 export const VIS_USAGE = `Usage: dashql vis [--out <file.png>] [--width <n>] [--height <n>] [--scale <n>] [--refresh]
                  [--workspace <dir> --session <id>] <workbook-dir> <script>
@@ -162,8 +162,8 @@ function scriptFileName(name: string): string {
 
 /// The root of the files of DashQL of a workspace: its `.dashql/`, else `~/.dashql`
 function dashqlRootOf(workspace: string): string {
-    const root = path.join(workspace, SESSION_JOURNAL_FOLDER);
-    return existsSync(root) ? root : path.join(homedir(), SESSION_JOURNAL_FOLDER);
+    const root = path.join(workspace, DASHQL_FOLDER);
+    return existsSync(root) ? root : path.join(homedir(), DASHQL_FOLDER);
 }
 
 /// Run `dashql vis` with its arguments, returns the exit code

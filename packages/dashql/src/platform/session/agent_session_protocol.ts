@@ -1,28 +1,22 @@
 /// The protocol between the server of `dashql connect` and its clients: the page that follows a session, the hooks of a
-/// harness and the runs of `dashql run` in it (docs/design/agent_session.md#protocol). A client names its protocol on
-/// every request, the server names its own and the oldest one of a client that it answers on every answer.
+/// harness and the runs of `dashql run` in it (docs/design/agent_session.md#protocol). Every request and every answer
+/// names it, both sides speak exactly one: the line of the tab runs the `dashql-cli` of the build of the page.
 ///
-/// Raise AGENT_SESSION_PROTOCOL with every change of what goes over the wire: a route, a request, a field of the
-/// state, also one that is only added. Raise AGENT_SESSION_MIN_PROTOCOL to the new protocol as well when this side no
-/// longer works with a peer of an older one: a route or a field that it needs, a meaning that changed. Both sides read
-/// the same two numbers, the server as the oldest client it answers, a client as the oldest server it talks to.
+/// Raise it with every change of what goes over the wire: a route, a request, a field of the state.
 ///
 /// 1: the routes of `/v1`, the state with turns and their steps, workbooks and log, the runs that the tab runs
 /// 2: `chart` of a run request, the tab renders the charts of the run and sends them as the event `script_chart`
 /// 3: `id` of the state, a new one for every server: the tab copies its workbooks again into a new session on the port
-export const AGENT_SESSION_PROTOCOL = 3;
-/// The oldest protocol of a peer that this side still works with
-export const AGENT_SESSION_MIN_PROTOCOL = 1;
+/// 4: no log and no paths of workbooks in the state, the copies of the tab are its workbooks
+export const AGENT_SESSION_PROTOCOL = 4;
 
 /// The protocol of the sender, on every request and every answer
 export const AGENT_SESSION_PROTOCOL_HEADER = 'X-DashQL-Protocol';
-/// The oldest protocol of a client that the server answers, on every answer
-export const AGENT_SESSION_MIN_PROTOCOL_HEADER = 'X-DashQL-Min-Protocol';
 
-/// The side that is too old for the other: the server, `dashql-cli` that runs it, or the client
+/// The side that is older than the other: the server, `dashql-cli` that runs it, or the client
 export type AgentSessionOutdated = 'server' | 'client';
 
-/// A client and the server of a session don't speak with each other
+/// A client and the server of a session speak different protocols
 export class AgentSessionProtocolError extends Error {
     constructor(
         /// The side that has to be updated
@@ -31,8 +25,8 @@ export class AgentSessionProtocolError extends Error {
         readonly serverProtocol: number | null,
     ) {
         super(outdated === 'server'
-            ? `the server of the session speaks protocol ${serverProtocol ?? 'none'}, this client needs ${AGENT_SESSION_MIN_PROTOCOL} or newer: update dashql-cli`
-            : `the server of the session speaks protocol ${serverProtocol ?? 'none'} and needs a newer client than protocol ${AGENT_SESSION_PROTOCOL}`);
+            ? `the server of the session speaks protocol ${serverProtocol ?? 'none'}, this client ${AGENT_SESSION_PROTOCOL}: update dashql-cli`
+            : `the server of the session speaks protocol ${serverProtocol}, this client ${AGENT_SESSION_PROTOCOL}: update the client`);
         this.name = 'AgentSessionProtocolError';
     }
 }
@@ -43,24 +37,18 @@ export function parseAgentSessionProtocol(value: string | readonly string[] | nu
     return Number(value);
 }
 
-/// Does the server answer a client of a protocol? A client that names none is too old.
-export function serverAcceptsAgentSessionClient(clientProtocol: number | null): boolean {
-    return clientProtocol != null && clientProtocol >= AGENT_SESSION_MIN_PROTOCOL;
+/// The side that is older by the protocol of the other side, null if both speak the same. A side that names none is
+/// the older one.
+export function outdatedAgentSessionSide(serverProtocol: number | null): AgentSessionOutdated | null {
+    if (serverProtocol === AGENT_SESSION_PROTOCOL) return null;
+    return serverProtocol == null || serverProtocol < AGENT_SESSION_PROTOCOL ? 'server' : 'client';
 }
 
-/// The side that is too old by the protocols that an answer of a server names, null if client and server speak with
-/// each other. A server that names none is older than the protocol.
-export function outdatedAgentSessionSide(serverProtocol: number | null, serverMinProtocol: number | null): AgentSessionOutdated | null {
-    if (serverProtocol == null || serverMinProtocol == null || serverProtocol < AGENT_SESSION_MIN_PROTOCOL) return 'server';
-    if (AGENT_SESSION_PROTOCOL < serverMinProtocol) return 'client';
-    return null;
-}
-
-/// Check the protocols of an answer of the server of a session, throws an AgentSessionProtocolError if the client and
-/// the server don't speak with each other. Any answer of the server names them, also one with an error status.
+/// Check the protocol of an answer of the server of a session, throws an AgentSessionProtocolError if the client and
+/// the server speak different ones. Any answer of the server names it, also one with an error status.
 export function checkAgentSessionAnswer(response: Response): void {
     const serverProtocol = parseAgentSessionProtocol(response.headers.get(AGENT_SESSION_PROTOCOL_HEADER));
-    const outdated = outdatedAgentSessionSide(serverProtocol, parseAgentSessionProtocol(response.headers.get(AGENT_SESSION_MIN_PROTOCOL_HEADER)));
+    const outdated = outdatedAgentSessionSide(serverProtocol);
     if (outdated != null) throw new AgentSessionProtocolError(outdated, serverProtocol);
 }
 

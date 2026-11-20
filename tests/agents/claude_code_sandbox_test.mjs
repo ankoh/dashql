@@ -207,11 +207,11 @@ test('dashql connect gives Claude Code the guide of DashQL and lets it run dashq
     const home = join(dir, 'home');
     const work = join(dir, 'work');
     mkdirSync(home, { recursive: true });
-    mkdirSync(join(work, '.dashql', 'workbooks', 'w1', 'scripts'), { recursive: true });
+    mkdirSync(join(work, '.dashql', 'sessions', 's1', 'workbooks', 'w1', 'scripts'), { recursive: true });
     // The model runs dashql, writes a script of the copy and a file of the project, one after the other
     const calls = [
         toolUse('Bash', { command: 'dashql describe', description: 'read the guide' }),
-        toolUse('Write', { file_path: join(work, '.dashql', 'workbooks', 'w1', 'scripts', 'orders.sql'), content: 'select 1\n' }),
+        toolUse('Write', { file_path: join(work, '.dashql', 'sessions', 's1', 'workbooks', 'w1', 'scripts', 'orders.sql'), content: 'select 1\n' }),
         toolUse('Write', { file_path: join(work, 'notes.md'), content: 'notes\n' }),
     ];
     const model = await startFakeAnthropic({
@@ -237,7 +237,7 @@ test('dashql connect gives Claude Code the guide of DashQL and lets it run dashq
         assert.match(content(results[0]), /^DashQL works on workbooks/);
         // A script of the copy is written without asking, a file of the project needs an approval
         assert.equal(results[1].is_error === true, false, content(results[1]));
-        assert.equal(readFileSync(join(work, '.dashql', 'workbooks', 'w1', 'scripts', 'orders.sql'), 'utf8'), 'select 1\n');
+        assert.equal(readFileSync(join(work, '.dashql', 'sessions', 's1', 'workbooks', 'w1', 'scripts', 'orders.sql'), 'utf8'), 'select 1\n');
         assert.equal(results[2].is_error, true, content(results[2]));
         assert.equal(existsSync(join(work, 'notes.md')), false);
         // The guide is in the system prompt of the main conversation

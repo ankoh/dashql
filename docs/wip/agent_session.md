@@ -19,11 +19,8 @@ In both cases the agent works on files on disk and the page follows them, the di
 - Scripts that the agent deletes or renames, the order of the workbook file of the copy, the attachments, the
   functions of a connection in its catalog file.
 - A native workbook has its folder on disk already, the agent could work in that folder.
-- When the session ends, the tab has everything, the copy is a cache: removed with the journal, or kept to start the
-  next session faster.
 - **Keep in project** moves the copy to a visible folder of the project and registers it as a native workbook (the
   desktop app). From then on the folder is the truth, as in case B.
-- The journal can replace `PostToolUse` for the edits of the agent.
 
 ## Connections travel with the workbook
 

@@ -1,5 +1,5 @@
 import { createAgentSessionState, type AgentSessionState } from '@akohn/dashql/platform/session/agent_session_state';
-import type { JournalFile, SessionWorkbook } from '@akohn/dashql/platform/session/workbook_journal';
+import type { CopyFile, SessionWorkbook } from '@akohn/dashql/platform/session/session_folder';
 import type { Logger } from '@akohn/dashql/platform/logger/logger';
 
 import { AgentSessionCopies, catalogRelationsPath, changedCopyScripts, copyScriptConnections, type AgentSessionCopyHost, type CopyCatalog, type PageScript } from './agent_session_copy.js';
@@ -41,8 +41,8 @@ class Fixture {
 
     /// The state of the session that names the copy
     state(): AgentSessionState {
-        const files: JournalFile[] = [...this.copy].map(([path, file]) => ({ path, size: file.text.length, mtimeMs: file.mtimeMs }));
-        return { ...createAgentSessionState('claude', '/work'), workbooks: [{ path: '.dashql/workbooks/w1', workbookId: 'w1', files }] };
+        const files: CopyFile[] = [...this.copy].map(([path, file]) => ({ path, size: file.text.length, mtimeMs: file.mtimeMs }));
+        return { ...createAgentSessionState('claude', '/work'), workbooks: [{ workbookId: 'w1', files }] };
     }
 
     readonly host: AgentSessionCopyHost = {
@@ -96,9 +96,9 @@ const tick = () => new Promise(resolve => setTimeout(resolve, 0));
 describe('the copies of the workbooks of a page in a session', () => {
     it('finds the scripts that changed since the page saw the copy', () => {
         const seen = new Map([['dashql-workbook.json', '10:1'], ['scripts/a.sql', '10:1'], ['scripts/b.sql', '10:1']]);
-        const file = (path: string, mtimeMs: number): JournalFile => ({ path, size: 10, mtimeMs });
+        const file = (path: string, mtimeMs: number): CopyFile => ({ path, size: 10, mtimeMs });
         const next: SessionWorkbook = {
-            path: '.dashql/workbooks/w1', workbookId: 'w1',
+            workbookId: 'w1',
             files: [file('dashql-workbook.json', 2), file('scripts/a.sql', 1), file('scripts/b.sql', 2), file('scripts/c.sql', 2), file('attachments/t.parquet', 2)],
         };
         expect(changedCopyScripts(seen, next)).toEqual(['scripts/b.sql', 'scripts/c.sql']);
@@ -257,15 +257,15 @@ describe('the copies of the workbooks of a page in a session', () => {
         expect(fixture.page.get('a.sql')?.text).toBe('select 111');
     });
 
-    it('copies nothing of a workbook without a folder in OPFS and leaves other workbook folders alone', async () => {
+    it('copies nothing of a workbook without a folder in OPFS and leaves the copies of other workbooks alone', async () => {
         const fixture = new Fixture({ 'a.sql': 'select 1' });
         const copies = new AgentSessionCopies(fixture.host, logger);
         await copies.copy('native');
         expect(copies.has('native')).toBe(true);
         expect(fixture.copy.size).toBe(0);
-        // A workbook folder of the agent elsewhere in the project
+        // The copy of a workbook that this page did not copy
         const state = fixture.state();
-        await copies.update({ ...state, workbooks: [{ ...state.workbooks[0], path: 'orders' }] });
+        await copies.update({ ...state, workbooks: [{ ...state.workbooks[0], workbookId: 'other' }] });
         expect(fixture.taken).toEqual([]);
     });
 });

@@ -13,7 +13,6 @@ import type { ConnectionState } from '@akohn/dashql/platform/connections/connect
 import { useOptionalRuntime } from '@akohn/dashql-react/hooks';
 import { Store } from '../utils/store.js';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
-import { usePlatformEventListener } from '../host/events/event_listener_provider.js';
 import { useLogger } from '../host/logger_provider.js';
 import { agentSessionOf, DASHQL_RUN, type AgentSession, type AgentSessionArgs, type FollowedAgentSession } from './agent_session.js';
 import { ComposerMode, newAgentConnectTarget, type ConnectHarness } from './agent_connect.js';
@@ -62,9 +61,9 @@ function writeTabTarget(target: AgentSessionTarget): void {
     }
 }
 
-/// The id of the session that a server sends, empty from a server before protocol 3
+/// The id of the session that a server sends
 function sessionIdOf(state: FollowedAgentSession['state']): string {
-    return state.id ?? '';
+    return state.id;
 }
 
 /// The workbooks that the tab copied into a session on a target before a reload. A new session on the target gets
@@ -159,11 +158,10 @@ const FOLLOWED_CTX = React.createContext<Store<FollowedAgentSession | null> | nu
 const SHOWN_CTX = React.createContext<ShownWorkbooks | null>(null);
 const CONNECT_CTX = React.createContext<AgentConnect | null>(null);
 
-/// Follows the session of the latest link to a session, or of the target that the tab picked for the line of the
-/// prompt: the server sends its state with every event of the harness, and the runs that `dashql run` asks the tab for.
-/// A server that is not there yet or was lost is tried again until it ends the session.
+/// Follows the session of the target that the tab picked for the line of the prompt, `dashql connect`: the server sends
+/// its state with every event of the harness, and the runs that `dashql run` asks the tab for. A server that is not
+/// there yet or was lost is tried again until it ends the session.
 export const AgentSessionProvider: React.FC<React.PropsWithChildren> = (props) => {
-    const appEvents = usePlatformEventListener();
     const logger = useLogger();
     const runtime = useOptionalRuntime();
     const resultCache = useQueryResultCache();
@@ -187,7 +185,6 @@ export const AgentSessionProvider: React.FC<React.PropsWithChildren> = (props) =
             return next;
         });
     }, []);
-    React.useEffect(() => appEvents?.subscribeAgentSessions(follow), [appEvents, follow]);
 
     // The workbooks that the page shows and the ones that the server of the session got, per target and session: the
     // line runs again on the same port once a harness ended its session. The changes of the agent in the copies come
@@ -421,7 +418,7 @@ export function useAgentSession(args: AgentSessionArgs): AgentSession | null {
     const workbookId = args.workbookScripts.workbookId;
     React.useEffect(() => shown?.show(workbookId), [shown, workbookId]);
     // The turns that the user dismissed, of the session that the page follows: a new session counts its turns from 1
-    const sessionId = followed == null ? null : followed.state.id ?? '';
+    const sessionId = followed == null ? null : followed.state.id;
     const [dismissedOf, setDismissed] = React.useState<{ session: string | null; turns: ReadonlySet<number> }>(() => ({ session: sessionId, turns: new Set() }));
     const dismissed = dismissedOf.session === sessionId ? dismissedOf.turns : NO_TURNS;
     const dismiss = React.useCallback((questionId: number) => setDismissed(prev => ({

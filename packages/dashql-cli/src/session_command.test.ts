@@ -6,7 +6,7 @@ import { connectedSessionStart, runSession } from './session_command.js';
 import { startSessionServer } from './session_server.js';
 import { runWith } from './test_process.js';
 
-/// The folder of the session, the server writes its journal and its address there
+/// The folder that the harness works in, the server writes the address of the session there
 const W = mkdtempSync(path.join(process.env.TEST_TMPDIR ?? tmpdir(), 'dashql-workspace-'));
 const SESSION = '0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0';
 

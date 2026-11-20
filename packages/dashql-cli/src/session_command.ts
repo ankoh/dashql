@@ -4,7 +4,7 @@ import type { AgentSessionEvent } from '@akohn/dashql/platform/session/agent_ses
 import { EXIT_OK, EXIT_USAGE, type CliProcess } from './cli_process.js';
 import { CONNECTED_AGENT_GUIDE, describeWorkspace } from './describe_command.js';
 import { sessionEventOf, workbookOnlyRefusal } from './session_hook.js';
-import { readSessionServer } from './session_journal.js';
+import { readSessionServer, sessionCopiesFolder } from './session_folder.js';
 
 export const SESSION_USAGE = `Usage:
   dashql session hook <event> --harness <name> --workspace <dir> --session <id> [--workbook-only]
@@ -31,10 +31,11 @@ export function sessionArgs(workspace: string, session: string): string {
 /// the copies and the session that the commands take
 export function connectedSessionStartText(workspace: string, session: string): string {
     const args = sessionArgs(workspace, session);
+    const copies = shellWord(`${sessionCopiesFolder(workspace, session)}/`);
     return `DashQL shows this session live in the browser tab that started it. The tab copies its workbook into
-.dashql/workbooks/<id>/ of this folder, work on that folder as the guide of DashQL says. Pass this session to dashql
-catalog, describe, run and vis, they fail without it on a copy of the tab: ${args}
-For example: dashql run ${args} ${shellWord(`${workspace}/.dashql/workbooks/`)}<id>`;
+${copies}<id>/, work on that folder as the guide of DashQL says. Pass this session to dashql catalog, describe, run
+and vis, they fail without it on a copy of the tab: ${args}
+For example: dashql run ${args} ${copies}<id>`;
 }
 
 /// What the hook at the start of a session of `dashql connect` prints for a harness: the guide unless the harness has
@@ -105,7 +106,7 @@ async function hook(args: string[], cli: CliProcess): Promise<number> {
     if (event == null) return EXIT_OK;
     // A harness that may write only into the workbooks: the hook refuses the tool, the agent reads why. Relative paths
     // are relative to the directory of the agent, the `cwd` of the payload.
-    const refusal = set.has('workbook-only') && event.event === 'PreToolUse' ? workbookOnlyRefusal(payload, workspace, event.folder || cli.cwd) : null;
+    const refusal = set.has('workbook-only') && event.event === 'PreToolUse' ? workbookOnlyRefusal(payload, sessionCopiesFolder(workspace, session), event.folder || cli.cwd) : null;
     if (refusal != null) {
         cli.stderr(`${refusal}\n`);
         return EXIT_REFUSED;

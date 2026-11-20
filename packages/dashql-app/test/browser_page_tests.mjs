@@ -168,7 +168,6 @@ async function testAppWorkbook(page, navigate) {
     await scriptEditor(page, 'select 43 as answer').waitFor();
 }
 
-/// A server of the session of an agent, like the one of `dashql connect`, that streams the states that the test pushes
 /// Wait until a condition in the test process holds, e.g. a request reached a server of the test
 async function waitUntil(condition, timeout = PAGE_TIMEOUT) {
     const end = Date.now() + timeout;
@@ -178,12 +177,11 @@ async function waitUntil(condition, timeout = PAGE_TIMEOUT) {
     }
 }
 
-/// A server of a session like the one of dashql. It speaks protocol 1 (agent_session_protocol.ts), the page speaks
-/// with it until the page needs a newer server; `protocol: null` is a server older than the protocol. An `id` is the
-/// id of the session of protocol 3, a server without one is older.
-async function startSessionServer({ port = 0, token = 'secret', protocol = 1, id = null } = {}) {
+/// A server of a session like the one of dashql connect. It speaks the protocol of the page, 4
+/// (agent_session_protocol.ts); `protocol: null` is a server older than the protocol.
+async function startSessionServer({ port = 0, token = 'secret', protocol = 4, id = 'session' } = {}) {
     const streams = new Set();
-    let state = { ...(id != null ? { id } : {}), harness: 'claude', folder: '/work', ended: false, turns: [], workbooks: [], log: [], version: 0 };
+    let state = { id, harness: 'claude', folder: '/work', ended: false, turns: [], workbooks: [], version: 0 };
     // The files that the page wrote into the copy of its workbook, in the order of the writes
     const writes = [];
     const broadcast = () => { for (const stream of streams) stream.write(`data: ${JSON.stringify(state)}\n\n`); };
@@ -198,7 +196,7 @@ async function startSessionServer({ port = 0, token = 'secret', protocol = 1, id
     let clock = 0;
     const announce = workbookId => {
         const named = files.has('dashql-workbook.json')
-            ? [{ path: `.dashql/workbooks/${workbookId}`, workbookId, files: [...files].map(([path, file]) => ({ path, size: file.body.length, mtimeMs: file.mtimeMs })) }]
+            ? [{ workbookId, files: [...files].map(([path, file]) => ({ path, size: file.body.length, mtimeMs: file.mtimeMs })) }]
             : [];
         state = { ...state, workbooks: named, version: state.version + 1 };
         broadcast();
@@ -207,8 +205,7 @@ async function startSessionServer({ port = 0, token = 'secret', protocol = 1, id
         response.setHeader('Access-Control-Allow-Origin', request.headers.origin ?? '*');
         if (protocol != null) {
             response.setHeader('X-DashQL-Protocol', String(protocol));
-            response.setHeader('X-DashQL-Min-Protocol', String(protocol));
-            response.setHeader('Access-Control-Expose-Headers', 'X-DashQL-Protocol, X-DashQL-Min-Protocol');
+            response.setHeader('Access-Control-Expose-Headers', 'X-DashQL-Protocol');
         }
         if (request.method === 'OPTIONS') {
             // The preflight of the server of dashql
@@ -303,18 +300,19 @@ async function startSessionServer({ port = 0, token = 'secret', protocol = 1, id
     };
 }
 
-/// A link of `dashql session hook SessionStart` makes the page follow the session of an agent in the terminal: the bar
-/// shows the harness and its questions, the prompt switches to AI and back to SQL. The switch to AI shows the line of
-/// `dashql connect`, the page waits on its port and secret.
+/// The switch to AI shows the line of `dashql connect`, the page waits on its port and secret and follows the session
+/// of the agent in the terminal: the bar shows the harness and its questions, the prompt switches between AI and SQL.
 async function testAppAgentSession(page, navigate) {
-    const session = await startSessionServer();
+    await navigate('/');
+    // The page tries the port of the line before the server listens
+    await page.context().route(url => url.hostname === '127.0.0.1' && url.port !== new URL(page.url()).port, route => route.continue());
+    await page.locator('[data-testid="composer-mode"][data-mode="ai"]').click();
+    const line = page.getByTestId('composer-connect');
+    const session = await startSessionServer({ port: Number(await line.getAttribute('data-port')), token: await line.getAttribute('data-secret'), id: 'zero' });
     try {
-        await page.context().route(url => url.port === String(session.port), route => route.continue());
         const steps = [{ label: 'dashql lint scripts/orders.sql', toolUseId: 't1', startedAt: Date.now(), endedAt: null, failed: false }];
         const turn = { turnId: 1, question: 'how many orders', status: 'dashql lint scripts/orders.sql', error: null, note: null, files: ['scripts/orders.sql'], steps };
         session.push({ turns: [turn] });
-        const data = Buffer.from(JSON.stringify({ agentSession: { endpoint: `http://127.0.0.1:${session.port}`, token: 'secret' } })).toString('base64url');
-        await navigate(`/?data=${data}`);
         await page.getByTestId('composer-connect-status').getByText('Claude Code works on this workbook in the terminal').waitFor();
         assert.equal(await page.getByTestId('composer-send').count(), 0);
         await page.locator('[data-testid="workbook-agent-state"][data-state="working"]').waitFor();
@@ -342,8 +340,7 @@ async function testAppAgentSession(page, navigate) {
     // A workbook with a script, the next session gets a copy of it
     await sendFromComposer(page, 'select 42 as copied_answer');
 
-    // AI waits on a new port with a new secret, `dashql connect` starts the server there. The page tries the port before.
-    await page.context().route(url => url.hostname === '127.0.0.1' && url.port !== new URL(page.url()).port, route => route.continue());
+    // AI waits on a new port with a new secret, `dashql connect` starts the server there
     await page.locator('[data-testid="composer-mode"][data-mode="ai"]').click();
     await page.getByTestId('composer-connect-renew').click();
     await page.locator('[data-testid="composer-connect-harness"][data-harness="codex"]').click();

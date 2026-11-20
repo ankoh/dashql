@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 
 import type { AgentSessionEvent, AgentSessionEventName } from '@akohn/dashql/platform/session/agent_session_state';
-import { SESSION_JOURNAL_FOLDER, SESSION_WORKBOOK_COPIES } from '@akohn/dashql/platform/session/workbook_journal';
+import { DASHQL_FOLDER, SESSION_WORKBOOK_COPIES, SESSIONS_FOLDER } from '@akohn/dashql/platform/session/session_folder';
 
 const EVENTS = new Set<AgentSessionEventName>(['SessionStart', 'UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'Stop', 'SessionEnd']);
 /// The hook of Claude Code after a tool that failed, a PostToolUse with the error for a session
@@ -47,8 +47,8 @@ export function lastAssistantText(transcript: string): string | null {
 
 const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-/// The prefix of a path in the copy of a workbook of a page, `.dashql/workbooks/<workbook id>/`
-const WORKBOOK_COPY = new RegExp(`(^|[\\s"'=])${escapeRegExp(`${SESSION_JOURNAL_FOLDER}/${SESSION_WORKBOOK_COPIES}/`)}[^/\\s"']+/`, 'g');
+/// The prefix of a path in the copy of a workbook of a page, `.dashql/sessions/<id>/workbooks/<workbook id>/`
+const WORKBOOK_COPY = new RegExp(`(^|[\\s"'=])${escapeRegExp(`${DASHQL_FOLDER}/${SESSIONS_FOLDER}/`)}[^/\\s"']+/${SESSION_WORKBOOK_COPIES}/[^/\\s"']+/`, 'g');
 
 /// The paths in a text as the page shows them: relative to the folder of the session, and in a copy of a workbook
 /// relative to the copy
@@ -145,13 +145,14 @@ function writtenFiles(payload: unknown): string[] | null {
     return [...patch.matchAll(PATCH_FILE), ...patch.matchAll(PATCH_MOVE)].map(match => match[1].trim());
 }
 
-/// Why a harness of `dashql connect --workbook-only` may not use a tool: the tool writes files outside the workbooks
-/// of the session, `.dashql/workbooks/` of the folder. A relative path is relative to `cwd`, the directory of the agent.
-/// Null for a tool that it may use. Commands of the shell are left to the permissions and the sandbox of the harness.
-export function workbookOnlyRefusal(payload: unknown, folder: string, cwd: string = folder): string | null {
+/// Why a harness of `dashql connect --workbook-only` may not use a tool: the tool writes files outside `copies`, the
+/// absolute folder of the copies of the workbooks of the session. A relative path is relative to `cwd`, the directory
+/// of the agent. Null for a tool that it may use. Commands of the shell are left to the permissions and the sandbox of
+/// the harness.
+export function workbookOnlyRefusal(payload: unknown, copies: string, cwd: string): string | null {
     const files = writtenFiles(payload);
-    if (files == null || folder.length === 0) return null;
-    const root = `${folder.replace(/\/+$/, '')}/${SESSION_JOURNAL_FOLDER}/${SESSION_WORKBOOK_COPIES}/`;
+    if (files == null || copies.length === 0) return null;
+    const root = `${copies.replace(/\/+$/, '')}/`;
     const outside = files.filter(file => {
         const absolute = file.startsWith('/') ? file : `${cwd.replace(/\/+$/, '')}/${file}`;
         // A path that climbs out of the workbooks is outside
@@ -163,5 +164,5 @@ export function workbookOnlyRefusal(payload: unknown, folder: string, cwd: strin
         return !`/${parts.join('/')}`.startsWith(root);
     });
     if (outside.length === 0) return null;
-    return `DashQL lets you write only into the workbooks of this session, ${SESSION_JOURNAL_FOLDER}/${SESSION_WORKBOOK_COPIES}/<id>/, not ${outside.join(', ')}. Put the SQL into a script of the workbook.`;
+    return `DashQL lets you write only into the workbooks of this session, ${root}<id>/, not ${outside.join(', ')}. Put the SQL into a script of the workbook.`;
 }

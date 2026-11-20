@@ -6,10 +6,10 @@ import path from 'node:path';
 import { followAgentSession, parseAgentSessionTarget, readWorkbookFolderFiles } from '../session/agent_session_client.js';
 import { openNodeRoot } from './node_directory_handle.js';
 import { createAgentSessionState, type AgentSessionState } from '../session/agent_session_state.js';
-import { AGENT_SESSION_MIN_PROTOCOL, AGENT_SESSION_PROTOCOL, AgentSessionProtocolError } from '../session/agent_session_protocol.js';
+import { AGENT_SESSION_PROTOCOL, AgentSessionProtocolError } from '../session/agent_session_protocol.js';
 
-/// The protocols that a server of the session names on its answers
-const PROTOCOL_HEADERS = { 'X-DashQL-Protocol': String(AGENT_SESSION_PROTOCOL), 'X-DashQL-Min-Protocol': String(AGENT_SESSION_MIN_PROTOCOL) };
+/// The protocol that a server of the session names on its answers
+const PROTOCOL_HEADERS = { 'X-DashQL-Protocol': String(AGENT_SESSION_PROTOCOL) };
 
 describe('the client of an agent session', () => {
     it('takes only servers on this machine with a token', () => {

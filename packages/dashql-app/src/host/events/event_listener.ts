@@ -4,7 +4,6 @@ import { BASE64URL_CODEC } from '@akohn/dashql/platform/utils/base64';
 import { LEGACY_WORKBOOK_QUERY_PARAMETERS, migrateAppEventData } from './legacy_links.js';
 import { Logger } from '@akohn/dashql/platform/logger/logger';
 import { PlatformDragDropEventVariant, SETUP_WORKBOOK, SETUP_WORKBOOK_URL, SetupEventVariant } from './event.js';
-import { parseAgentSessionTarget, type AgentSessionTarget } from '@akohn/dashql/platform/session/agent_session_client';
 import { ZIP_QUERY_PARAMETER } from '../../workbook/persistence/workbook_link.js';
 
 const LOG_CTX = "event_listener";
@@ -96,10 +95,6 @@ export abstract class PlatformEventListener {
     private hyperLinkSubscriber: ((target: HyperLinkEvent) => void) | null = null;
     /// The latest Hyper link that arrived without a subscriber
     private queuedHyperLink: HyperLinkEvent | null = null;
-    /// The subscriber for the links to sessions of agents
-    private agentSessionSubscriber: ((target: AgentSessionTarget) => void) | null = null;
-    /// The latest link to a session that arrived without a subscriber
-    private queuedAgentSession: AgentSessionTarget | null = null;
 
     /// Constructor
     constructor(logger: Logger) {
@@ -144,11 +139,6 @@ export abstract class PlatformEventListener {
             const { endpoint, token } = (event.hyperLink ?? {}) as { endpoint?: unknown; token?: unknown };
             if (typeof endpoint !== 'string' || typeof token !== 'string') this.logger.warn("Ignoring an invalid Hyper link", {}, LOG_CTX);
             else this.dispatchHyperLink({ endpoint, token });
-        } else if ('agentSession' in event) {
-            const { endpoint, token } = (event.agentSession ?? {}) as { endpoint?: unknown; token?: unknown };
-            const target = parseAgentSessionTarget(endpoint, token);
-            if (target == null) this.logger.warn("Ignoring an invalid link to the session of an agent", {}, LOG_CTX);
-            else this.dispatchAgentSession(target);
         } else if ('session' in event) {
             // Links of older versions carry the workbook ZIP in the app event, see dispatchWorkbookZip
             this.dispatchWorkbookZip(event.session);
@@ -190,26 +180,6 @@ export abstract class PlatformEventListener {
         if (queued != null) handler(queued);
         return () => {
             if (this.hyperLinkSubscriber === handler) this.hyperLinkSubscriber = null;
-        };
-    }
-
-    /// Received a link to the session of an agent, e.g. of `dashql session hook SessionStart`
-    protected dispatchAgentSession(target: AgentSessionTarget): void {
-        if (this.agentSessionSubscriber == null) {
-            this.queuedAgentSession = target;
-        } else {
-            this.agentSessionSubscriber(target);
-        }
-    }
-
-    /// Subscribe to links to sessions of agents, a link that arrived before is delivered right away
-    public subscribeAgentSessions(handler: (target: AgentSessionTarget) => void): () => void {
-        this.agentSessionSubscriber = handler;
-        const queued = this.queuedAgentSession;
-        this.queuedAgentSession = null;
-        if (queued != null) handler(queued);
-        return () => {
-            if (this.agentSessionSubscriber === handler) this.agentSessionSubscriber = null;
         };
     }
 

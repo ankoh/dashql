@@ -8,7 +8,7 @@ import {
     type AgentSessionWorkbookFile,
 } from '@akohn/dashql/platform/session/agent_session_client';
 import type { AgentSessionState } from '@akohn/dashql/platform/session/agent_session_state';
-import { workbookCopyPath, type SessionWorkbook } from '@akohn/dashql/platform/session/workbook_journal';
+import type { SessionWorkbook } from '@akohn/dashql/platform/session/session_folder';
 import { STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE, STORAGE_WORKBOOKS_FOLDER } from '@akohn/dashql/platform/storage/storage_backend';
 import { getOPFSRoot } from '@akohn/dashql/platform/opfs_root';
 import { stringifyError, type Logger } from '@akohn/dashql/platform/logger/logger';
@@ -284,7 +284,7 @@ export class AgentSessionCopies {
         }
         for (const workbook of state.workbooks ?? []) {
             const copy = this.copies.get(workbook.workbookId);
-            if (copy == null || workbook.path !== workbookCopyPath(workbook.workbookId)) continue;
+            if (copy == null) continue;
             const seen = copy.seen;
             copy.seen = stampsOf(workbook);
             if (seen == null && copy.adopted) {

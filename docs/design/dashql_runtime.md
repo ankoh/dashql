@@ -522,7 +522,7 @@ line tool), and `run` mirrors the attachments of a workbook folder into the root
   too. Node 22 can't run it (V8 rejects the tables), nor can Bun or Safari
   (JavaScriptCore has no memory64). The CLI loads `hyperdb-wasm` only in commands that need it, so the commands without
   Hyper run on Node 22 (`engines: node >=22`).
-- **Agent sessions.** The server of `dashql connect` and the journal of a session are in
+- **Agent sessions.** The server of `dashql connect` and the folder of a session are in
   [agent_session.md](agent_session.md).
 
 ## The package on npm

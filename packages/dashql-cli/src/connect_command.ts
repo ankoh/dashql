@@ -3,12 +3,12 @@ import { randomUUID } from 'node:crypto';
 import { chmodSync, mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
-import { SESSION_JOURNAL_FOLDER } from '@akohn/dashql/platform/session/workbook_journal';
+import { DASHQL_FOLDER, SESSIONS_FOLDER } from '@akohn/dashql/platform/session/session_folder';
 
 import { EXIT_FAILED, EXIT_OK, EXIT_USAGE, type CliProcess } from './cli_process.js';
 import { CONNECTED_AGENT_GUIDE } from './describe_command.js';
 import { options, postSessionEvent, shellWord, type SessionTarget } from './session_command.js';
-import { sessionFolder } from './session_journal.js';
+import { sessionFolder } from './session_folder.js';
 import { startSessionServer } from './session_server.js';
 
 export const CONNECT_USAGE = `Usage:
@@ -115,8 +115,9 @@ function hookCommand(dashql: string[], event: string, harness: string, session: 
     ].map(shellWord).join(' ');
 }
 
-/// What Claude Code may do in a session without asking: run dashql and edit the workbooks that the tab copied
-export const CLAUDE_ALLOWED_TOOLS = ['Bash(dashql:*)', `Edit(./${SESSION_JOURNAL_FOLDER}/workbooks/**)`];
+/// What Claude Code may do in a session without asking: run dashql and edit the files of the sessions, the copies of
+/// the workbooks of the tab
+export const CLAUDE_ALLOWED_TOOLS = ['Bash(dashql:*)', `Edit(./${DASHQL_FOLDER}/${SESSIONS_FOLDER}/**)`];
 
 /// The arguments that give Claude Code the session: settings that it loads in addition to its own, with the hooks of
 /// the session and the tools it may use without asking, and the guide of DashQL in its system prompt

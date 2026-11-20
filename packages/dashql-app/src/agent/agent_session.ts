@@ -146,7 +146,7 @@ export function agentSessionOf(
         };
     });
     return {
-        id: state.id ?? '',
+        id: state.id,
         harness: state.harness,
         folder: state.folder,
         connected: followed.connected && !state.ended,

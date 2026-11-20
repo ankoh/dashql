@@ -7,7 +7,7 @@ import path from 'node:path';
 import { STORAGE_ATTACHMENTS_FOLDER, STORAGE_WORKBOOK_FILE } from '@akohn/dashql/platform/storage/storage_backend';
 
 import { EXIT_FAILED, EXIT_OK, EXIT_USAGE, type CliProcess } from './cli_process.js';
-import { commandSession, readSessionConnections } from './session_journal.js';
+import { commandSession, readSessionConnections } from './session_folder.js';
 
 export const CATALOG_USAGE = `Usage: dashql catalog [--workspace <dir> --session <id>] [--max-chars <n>] <workbook-dir> [<connection>...]
 

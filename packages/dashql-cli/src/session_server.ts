@@ -1,14 +1,12 @@
 import http from 'node:http';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { createReadStream, createWriteStream, existsSync, mkdirSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
-import { open } from 'node:fs/promises';
 import path from 'node:path';
 
-import { LogLevel, type LogRecord } from '@akohn/dashql/platform/logger/log_buffer';
 import {
     createAgentSessionState,
+    reduceAgentSessionCopy,
     reduceAgentSessionEvent,
-    reduceAgentSessionJournal,
     type AgentSessionEvent,
     type AgentSessionState,
 } from '@akohn/dashql/platform/session/agent_session_state';
@@ -18,34 +16,18 @@ import {
     type AgentSessionRunMessage,
     type AgentSessionRunRequest,
 } from '@akohn/dashql/platform/session/agent_session_client';
+import { AGENT_SESSION_PROTOCOL, AGENT_SESSION_PROTOCOL_HEADER, parseAgentSessionProtocol } from '@akohn/dashql/platform/session/agent_session_protocol';
 import {
-    AGENT_SESSION_MIN_PROTOCOL,
-    AGENT_SESSION_MIN_PROTOCOL_HEADER,
-    AGENT_SESSION_PROTOCOL,
-    AGENT_SESSION_PROTOCOL_HEADER,
-    parseAgentSessionProtocol,
-    serverAcceptsAgentSessionClient,
-} from '@akohn/dashql/platform/session/agent_session_protocol';
-import {
+    DASHQL_FOLDER,
     isWorkbookCopyId,
     parseSessionConnections,
     SESSION_CONNECTIONS_FILE,
-    JOURNAL_KEYS,
-    JOURNAL_TARGET,
-    journalFilePaths,
-    journalFilesMarker,
-    parseJournalLines,
-    sessionJournalPath,
-    SESSION_JOURNAL_FOLDER,
-    workbookCopyPath,
-    type JournalFile,
-} from '@akohn/dashql/platform/session/workbook_journal';
+    type CopyFile,
+} from '@akohn/dashql/platform/session/session_folder';
 import { STORAGE_ATTACHMENTS_FOLDER, STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE } from '@akohn/dashql/platform/storage/storage_backend';
 
-import { SESSION_SERVER_FILE } from './session_journal.js';
+import { sessionCopiesFolder, sessionFolder as sessionFolderOf, SESSION_SERVER_FILE } from './session_folder.js';
 
-/// The headers of an answer that a page reads
-const EXPOSED_HEADERS = `${AGENT_SESSION_PROTOCOL_HEADER}, ${AGENT_SESSION_MIN_PROTOCOL_HEADER}`;
 /// How long a run waits for the first event of the tab
 const RUN_CLAIM_TIMEOUT_MS = 30_000;
 
@@ -68,7 +50,7 @@ export interface SessionServerOptions {
     /// The token, a random one by default
     token?: string;
     /// The id of the session of `dashql connect`: the id of its state and its folder `.dashql/sessions/<id>/`, with the
-    /// journal and the address of the server for the commands
+    /// address of the server for the commands and the copies of the workbooks of the tab
     session: string;
     /// The pages that may follow the session, besides requests without an origin
     origins?: string[];
@@ -85,8 +67,6 @@ export interface SessionServer {
     close: () => Promise<void>;
 }
 
-/// How often the server looks for lines that were appended to the journal
-const JOURNAL_READ_INTERVAL_MS = 200;
 /// The folder of the query result cache in the root of the session (docs/design/storage_layout.md)
 const RESULT_CACHE_FOLDER = 'cache';
 /// The files of a workbook folder that the server hands out: what a published workbook holds (workbook_publishing.md)
@@ -108,13 +88,6 @@ function pathToken(url: URL): string | null {
     return parts[1] === 'v1' && routes.includes(parts[2] ?? '') ? decodePart(parts[3] ?? '') : null;
 }
 
-/// A workbook folder of the journal, only inside the folder of the session: the server hands out no other files
-function workbookFolder(sessionFolder: string, relative: string): string {
-    const folder = path.resolve(sessionFolder, relative);
-    const root = path.resolve(sessionFolder);
-    return folder === root || folder.startsWith(root + path.sep) ? folder : path.join(root, '\0outside');
-}
-
 /// A file of a workbook folder by its path in the folder, null unless the folder holds it and the server hands it out
 function workbookFile(folder: string, parts: string[]): string | null {
     const relative = parts.join('/');
@@ -129,7 +102,7 @@ function workbookFile(folder: string, parts: string[]): string | null {
 }
 
 /// The stamps of files of a workbook folder, files that are gone are left out
-function stampFiles(folder: string, paths: string[]): JournalFile[] {
+function stampFiles(folder: string, paths: string[]): CopyFile[] {
     return paths.flatMap(file => {
         const target = workbookFile(folder, file.split('/'));
         if (target == null) return [];
@@ -175,97 +148,40 @@ export async function startSessionServer(options: SessionServerOptions): Promise
 
     const send = (response: http.ServerResponse) => response.write(`data: ${JSON.stringify(state)}\n\n`);
     const broadcast = () => { for (const stream of streams) send(stream); };
-    /// The copy of the workbook of a page changed: once it has its workbook file, the state names its files like the
-    /// files of a workbook folder of the journal
-    const stampCopy = (workbookId: string) => {
-        const relative = workbookCopyPath(workbookId);
-        const copy = path.join(options.folder, ...relative.split('/'));
-        const paths = listWorkbookFiles(copy);
-        const { message, keyValues } = journalFilesMarker({ workbook: relative, workbookId }, paths);
-        const marker: LogRecord = { timestamp: Date.now(), level: LogLevel.Info, target: JOURNAL_TARGET, message, context: null, tracing: null, keyValues };
-        state = reduceAgentSessionJournal(state, marker, stampFiles(copy, paths));
-    };
-    const announceCopy = (workbookId: string, copy: string) => {
-        if (!existsSync(path.join(copy, STORAGE_WORKBOOK_FILE))) return;
-        stampCopy(workbookId);
-        broadcast();
-    };
-    /// Stamp the copies of the state again, the caller broadcasts
-    const announceCopies = () => {
-        for (const workbook of state.workbooks) {
-            if (workbook.path === workbookCopyPath(workbook.workbookId)) stampCopy(workbook.workbookId);
-        }
+    // The folder of the session holds the address of the server and the copies, it goes when the session ends. The
+    // folder of DashQL ignores itself, it is no part of a repository of the folder. A folder that the server can't
+    // write to has no session folder, the page still follows the conversation.
+    const dashqlFolder = path.join(options.folder, DASHQL_FOLDER);
+    const sessionFolder = sessionFolderOf(options.folder, options.session);
+    const copies = sessionCopiesFolder(options.folder, options.session);
+    let writable = true;
+    try {
+        mkdirSync(sessionFolder, { recursive: true });
+        writeFileSync(path.join(dashqlFolder, '.gitignore'), '*\n');
+    } catch {
+        writable = false;
+    }
+    const removeSessionFolder = () => {
+        if (writable) rmSync(sessionFolder, { force: true, recursive: true });
     };
 
-    // The journal of the session starts empty, dashql commands below the folder append to it. The folder ignores
-    // itself, it is no part of a repository of the folder.
-    // A folder that the server can't write to has no journal, the page still follows the conversation.
-    const journalFolder = path.join(options.folder, SESSION_JOURNAL_FOLDER);
-    let journal: string | null = path.join(journalFolder, ...sessionJournalPath(options.session));
-    // The session removes its folder when it stops
-    const sessionFolder = path.dirname(journal);
-    try {
-        mkdirSync(path.dirname(journal), { recursive: true });
-        writeFileSync(path.join(journalFolder, '.gitignore'), '*\n');
-        writeFileSync(journal, '');
-    } catch {
-        journal = null;
-    }
-    let journalOffset = 0;
-    // The bytes of a line that is not complete yet, a character may span two reads
-    let journalRest = Buffer.alloc(0);
-    let journalReading = false;
-    /// Read what was appended to the journal since the last read
-    const readJournal = async () => {
-        if (journal == null || journalReading) return;
-        journalReading = true;
-        try {
-            const size = statSync(journal).size;
-            // A journal that started over is read again
-            if (size < journalOffset) {
-                journalOffset = 0;
-                journalRest = Buffer.alloc(0);
-            }
-            if (size === journalOffset) return;
-            const file = await open(journal, 'r');
-            try {
-                const bytes = Buffer.alloc(size - journalOffset);
-                const { bytesRead } = await file.read(bytes, 0, bytes.length, journalOffset);
-                journalOffset += bytesRead;
-                const chunk = Buffer.concat([journalRest, bytes.subarray(0, bytesRead)]);
-                const end = chunk.lastIndexOf(0x0a);
-                journalRest = Buffer.from(chunk.subarray(end + 1));
-                const records = parseJournalLines(chunk.subarray(0, end + 1).toString('utf8'));
-                for (const record of records) {
-                    // The marker names the files of a folder, the server reads their stamps
-                    const paths = journalFilePaths(record);
-                    const workbook = record.keyValues[JOURNAL_KEYS.workbook];
-                    const files = paths == null || typeof workbook !== 'string' ? [] : stampFiles(workbookFolder(options.folder, workbook), paths);
-                    state = reduceAgentSessionJournal(state, record, files);
-                }
-                if (records.length > 0) broadcast();
-            } finally {
-                await file.close();
-            }
-        } catch {
-            // The journal is gone or unreadable, the next read tries again
-        } finally {
-            journalReading = false;
-        }
+    /// Stamp the files of the copy of the workbook of a page once it has its workbook file, the caller broadcasts
+    const stampCopy = (workbookId: string) => {
+        const copy = path.join(copies, workbookId);
+        if (!existsSync(path.join(copy, STORAGE_WORKBOOK_FILE))) return;
+        state = reduceAgentSessionCopy(state, workbookId, stampFiles(copy, listWorkbookFiles(copy)));
     };
-    const removeJournal = () => {
-        if (journal == null) return;
-        rmSync(sessionFolder, { force: true, recursive: true });
+    /// Stamp the copies of the state again, the caller broadcasts
+    const stampCopies = () => {
+        for (const workbook of state.workbooks) stampCopy(workbook.workbookId);
     };
-    const journalTimer = setInterval(() => void readJournal(), JOURNAL_READ_INTERVAL_MS);
-    journalTimer.unref();
     const cors = (request: http.IncomingMessage, response: http.ServerResponse): boolean => {
         const origin = request.headers.origin;
         if (origin == null) return true;
         if (!origins.has(origin)) return false;
         response.setHeader('Access-Control-Allow-Origin', origin);
         response.setHeader('Vary', 'Origin');
-        response.setHeader('Access-Control-Expose-Headers', EXPOSED_HEADERS);
+        response.setHeader('Access-Control-Expose-Headers', AGENT_SESSION_PROTOCOL_HEADER);
         return true;
     };
     // The files of the workbooks and the results carry the token in their path, so the relative URLs of a workbook
@@ -322,11 +238,11 @@ export async function startSessionServer(options: SessionServerOptions): Promise
             return sendJson(response, 400, { error: 'the run names no workbook that a tab copied into the session' });
         }
         if (streams.size === 0) return sendJson(response, 409, { error: 'no tab of DashQL follows the session, open it with the line of dashql connect' });
-        if (!state.workbooks.some(workbook => workbook.workbookId === run.workbookId && workbook.path === workbookCopyPath(run.workbookId))) {
+        if (!state.workbooks.some(workbook => workbook.workbookId === run.workbookId)) {
             return sendJson(response, 409, { error: 'the tab of DashQL did not copy this workbook into the session' });
         }
         // The tab takes the files of the copy before it runs: the stamps go first on the same stream
-        announceCopies();
+        stampCopies();
         broadcast();
         const runId = randomBytes(8).toString('hex');
         response.writeHead(200, { 'Content-Type': 'application/x-ndjson', 'Cache-Control': 'no-store', [AGENT_SESSION_RUN_HEADER]: runId });
@@ -365,9 +281,8 @@ export async function startSessionServer(options: SessionServerOptions): Promise
 
     const handle = (request: http.IncomingMessage, response: http.ServerResponse) => {
         const url = new URL(request.url ?? '/', 'http://127.0.0.1');
-        // Every answer names the protocol of the server, a client tells by it whether one of the two is too old
+        // Every answer names the protocol of the server, a client tells by it which of the two is older
         response.setHeader(AGENT_SESSION_PROTOCOL_HEADER, String(AGENT_SESSION_PROTOCOL));
-        response.setHeader(AGENT_SESSION_MIN_PROTOCOL_HEADER, String(AGENT_SESSION_MIN_PROTOCOL));
         if (!cors(request, response)) {
             response.writeHead(403).end();
             return;
@@ -385,10 +300,10 @@ export async function startSessionServer(options: SessionServerOptions): Promise
             response.writeHead(401).end();
             return;
         }
-        // A client that is too old for the server, or names no protocol, gets nothing else
+        // A client of another protocol, or of none, gets nothing else
         const clientProtocol = parseAgentSessionProtocol(request.headers[AGENT_SESSION_PROTOCOL_HEADER.toLowerCase()]);
-        if (!serverAcceptsAgentSessionClient(clientProtocol)) {
-            sendJson(response, 426, { error: `the server of the session speaks protocol ${AGENT_SESSION_PROTOCOL} with clients of protocol ${AGENT_SESSION_MIN_PROTOCOL} or newer, the client speaks ${clientProtocol ?? 'none'}` });
+        if (clientProtocol !== AGENT_SESSION_PROTOCOL) {
+            sendJson(response, 426, { error: `the server of the session speaks protocol ${AGENT_SESSION_PROTOCOL}, the client ${clientProtocol ?? 'none'}` });
             return;
         }
         if (request.method === 'POST' && url.pathname === '/v1/events') {
@@ -406,7 +321,7 @@ export async function startSessionServer(options: SessionServerOptions): Promise
                 state = reduceAgentSessionEvent(state, event, Date.now());
                 // The tools of the harness edit the files of a copy without a dashql command, the page sees their
                 // edits after the tool
-                if (event.event === 'PostToolUse' || event.event === 'Stop') announceCopies();
+                if (event.event === 'PostToolUse' || event.event === 'Stop') stampCopies();
                 for (const stream of streams) send(stream);
                 response.writeHead(204).end();
                 if (state.ended) options.onEnd?.();
@@ -428,8 +343,8 @@ export async function startSessionServer(options: SessionServerOptions): Promise
             return void response.writeHead(404).end();
         }
         if (request.method === 'PUT' && url.pathname.split('/').length === 4 && url.pathname.startsWith('/v1/connections/')) {
-            // /v1/connections/<token>: the connections that the tab lets the agent use, next to the journal, where
-            // the commands of the session read them
+            // /v1/connections/<token>: the connections that the tab lets the agent use, in the folder of the session,
+            // where the commands of the session read them
             let body = '';
             request.setEncoding('utf8');
             request.on('data', chunk => { body += chunk; });
@@ -440,8 +355,8 @@ export async function startSessionServer(options: SessionServerOptions): Promise
                     return;
                 }
                 try {
-                    if (journal == null) throw new Error('the session has no folder');
-                    writeFileSync(path.join(path.dirname(journal), SESSION_CONNECTIONS_FILE), `${JSON.stringify(connections, null, 2)}\n`);
+                    if (!writable) throw new Error('the session has no folder');
+                    writeFileSync(path.join(sessionFolder, SESSION_CONNECTIONS_FILE), `${JSON.stringify(connections, null, 2)}\n`);
                 } catch {
                     response.writeHead(500).end();
                     return;
@@ -458,11 +373,11 @@ export async function startSessionServer(options: SessionServerOptions): Promise
                 response.writeHead(400).end();
                 return;
             }
-            const copy = path.join(options.folder, ...workbookCopyPath(workbookId).split('/'));
+            const copy = path.join(copies, workbookId);
             if (parts.length === 0) {
                 // The whole copy goes, the page writes it again
                 rmSync(copy, { recursive: true, force: true });
-                state = { ...state, workbooks: state.workbooks.filter(workbook => workbook.workbookId !== workbookId), version: state.version + 1 };
+                state = reduceAgentSessionCopy(state, workbookId, null);
                 broadcast();
                 response.writeHead(204).end();
                 return;
@@ -475,7 +390,8 @@ export async function startSessionServer(options: SessionServerOptions): Promise
             const file = path.join(copy, ...(parts as string[]));
             if (request.method === 'DELETE') {
                 rmSync(file, { force: true });
-                announceCopy(workbookId, copy);
+                stampCopy(workbookId);
+                broadcast();
                 response.writeHead(204).end();
                 return;
             }
@@ -497,7 +413,8 @@ export async function startSessionServer(options: SessionServerOptions): Promise
                     fail();
                     return;
                 }
-                announceCopy(workbookId, copy);
+                stampCopy(workbookId);
+                broadcast();
                 response.writeHead(204).end();
             });
             request.pipe(out);
@@ -508,7 +425,7 @@ export async function startSessionServer(options: SessionServerOptions): Promise
             // session as a new file of the key, where the agent reads it
             const key = url.pathname.split('/')[4];
             if (!/^[0-9a-f]{64}$/.test(key)) return void response.writeHead(400).end();
-            const cache = path.join(journalFolder, RESULT_CACHE_FOLDER);
+            const cache = path.join(dashqlFolder, RESULT_CACHE_FOLDER);
             const file = path.join(cache, `${key}.${randomUUID()}.parquet`);
             const part = `${file}.part`;
             mkdirSync(cache, { recursive: true });
@@ -537,7 +454,7 @@ export async function startSessionServer(options: SessionServerOptions): Promise
             const decoded = url.pathname.split('/').slice(4).map(decodePart);
             const [workbookId, ...parts] = decoded;
             const workbook = decoded.includes(null) ? null : state.workbooks.find(other => other.workbookId === workbookId);
-            const file = workbook == null ? null : workbookFile(workbookFolder(options.folder, workbook.path), parts as string[]);
+            const file = workbook == null ? null : workbookFile(path.join(copies, workbook.workbookId), parts as string[]);
             if (file == null) {
                 response.writeHead(404).end();
                 return;
@@ -581,30 +498,22 @@ export async function startSessionServer(options: SessionServerOptions): Promise
             server.listen(options.port ?? 0, '127.0.0.1', () => resolve());
         });
     } catch (error) {
-        // A port that is taken leaves no journal behind
+        // A port that is taken leaves no session folder behind
         clearInterval(keepAlive);
-        clearInterval(journalTimer);
-        removeJournal();
+        removeSessionFolder();
         throw error;
     }
     const port = (server.address() as { port: number }).port;
     // The commands of the agent find the server in the folder of the session, readable by the user only
-    if (journal != null) {
-        try {
-            writeFileSync(path.join(sessionFolder, SESSION_SERVER_FILE), `${JSON.stringify({ endpoint: `http://127.0.0.1:${port}`, token })}\n`, { mode: 0o600 });
-        } catch {
-            // A folder that can't be written has no journal either, the page still follows the conversation
-        }
-    }
+    if (writable) writeFileSync(path.join(sessionFolder, SESSION_SERVER_FILE), `${JSON.stringify({ endpoint: `http://127.0.0.1:${port}`, token })}\n`, { mode: 0o600 });
     return {
         port,
         token,
         state: () => state,
         close: () => new Promise<void>(resolve => {
             clearInterval(keepAlive);
-            clearInterval(journalTimer);
-            // The commands of a later run find no session and append nothing
-            removeJournal();
+            // The commands of a later run find no session, the copies go with it
+            removeSessionFolder();
             for (const runId of [...runs.keys()]) endRun(runId, { type: 'run_failed', error: 'the session ended' });
             for (const stream of streams) stream.end();
             server.close(() => resolve());

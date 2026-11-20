@@ -3,17 +3,16 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
-import { SESSION_JOURNAL_FOLDER, SESSION_WORKBOOK_COPIES } from '@akohn/dashql/platform/session/workbook_journal';
 import { STORAGE_ATTACHMENTS_FOLDER, STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE } from '@akohn/dashql/platform/storage/storage_backend';
 
 import { EXIT_OK, EXIT_USAGE, type CliProcess } from './cli_process.js';
-import { commandSession, readSessionConnections } from './session_journal.js';
+import { commandSession, readSessionConnections, sessionCopiesFolder } from './session_folder.js';
 
-export const DESCRIBE_USAGE = `Usage: dashql describe [--workspace <dir> [--session <id>]]
+export const DESCRIBE_USAGE = `Usage: dashql describe [--workspace <dir> --session <id>]
 
-Prints how to work on the workbooks of DashQL with the commands of dashql, and the workbooks that the tabs of DashQL
-copied into the workspace (.dashql/workbooks/), the invoking directory unless --workspace names it. --session names
-the session of dashql connect, whose connections it lists.`;
+Prints how to work on the workbooks of DashQL with the commands of dashql. With --workspace and --session of a session
+of dashql connect, also the workbooks that the tab copied into the session and the connections that it lets the agent
+use.`;
 
 export const DESCRIBE_TEXT = `DashQL works on workbooks: folders of SQL scripts that run on connections. The tab of DashQL in the browser shows
 the workbooks of this session live: the scripts, their runs, their results and their charts. Work on a workbook
@@ -143,9 +142,9 @@ interface CopiedWorkbook {
     connections: string[];
 }
 
-/// The workbooks in `.dashql/workbooks/` of a workspace that have a workbook file, the copies of the tabs
-export function copiedWorkbooks(workspace: string): CopiedWorkbook[] {
-    const root = path.join(workspace, SESSION_JOURNAL_FOLDER, SESSION_WORKBOOK_COPIES);
+/// The copies of the workbooks of the tab in a session that have a workbook file
+export function copiedWorkbooks(workspace: string, session: string): CopiedWorkbook[] {
+    const root = sessionCopiesFolder(workspace, session);
     let ids: string[];
     try {
         ids = readdirSync(root).sort();
@@ -158,7 +157,7 @@ export function copiedWorkbooks(workspace: string): CopiedWorkbook[] {
         try {
             workbook = JSON.parse(readFileSync(path.join(folder, STORAGE_WORKBOOK_FILE), 'utf8'));
         } catch {
-            // The mirror of the attachments of a workbook, or a copy that is being written
+            // A copy that is being written
             return [];
         }
         let scripts = 0;
@@ -189,11 +188,11 @@ export function copiedWorkbooks(workspace: string): CopiedWorkbook[] {
     });
 }
 
-/// The section of the workbooks of the tabs
+/// The section of the workbooks of the tab in a session
 export function describeCopiedWorkbooks(workbooks: CopiedWorkbook[]): string {
     if (workbooks.length === 0) {
-        return `Workbooks of DashQL in this folder: none yet. The tab of DashQL copies the workbook that it shows into
-.dashql/workbooks/<id>/ once it reaches the session.`;
+        return `Workbooks of DashQL in this session: none yet. The tab of DashQL copies the workbook that it shows into the
+session once it reaches it.`;
     }
     const lines = workbooks.map(workbook => {
         const connections = workbook.connections.length > 0 ? `, connections: ${workbook.connections.join(', ')}` : '';
@@ -201,7 +200,7 @@ export function describeCopiedWorkbooks(workbooks: CopiedWorkbook[]): string {
         const attachments = `, attachments: ${workbook.attachments.length > 0 ? workbook.attachments.join(', ') : 'none'}`;
         return `  ${workbook.folder}/  "${workbook.name}", ${workbook.scripts} script${workbook.scripts === 1 ? '' : 's'}${attachments}${connections}`;
     });
-    return `Workbooks of DashQL in this folder, the tab shows them (work on these folders, not on copies of them):
+    return `Workbooks of DashQL in this session, the tab shows them (work on these folders, not on copies of them):
 ${lines.join('\n')}`;
 }
 
@@ -250,6 +249,7 @@ export function runDescribe(args: string[], cli: CliProcess): number {
 
 /// The workbooks that the tabs copied into a workspace and the connections that the agent may use
 export function describeWorkspace(workspace: string, session: string | null): string {
+    if (session == null) return 'Workbooks of DashQL: --workspace and --session name a session of dashql connect, its workbooks are listed then.\n';
     const connections = describeSessionConnections(workspace, session);
-    return `${describeCopiedWorkbooks(copiedWorkbooks(workspace))}\n${connections == null ? '' : `\n${connections}\n`}`;
+    return `${describeCopiedWorkbooks(copiedWorkbooks(workspace, session))}\n${connections == null ? '' : `\n${connections}\n`}`;
 }
