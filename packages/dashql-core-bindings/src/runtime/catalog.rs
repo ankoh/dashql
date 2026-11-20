@@ -175,13 +175,7 @@ impl Connections {
             let registry = self.registry.borrow();
             registry.connections().map(|(id, connection)| (id.to_string(), connection.clone())).collect()
         };
-        for (connection_id, connection) in &followed {
-            if !loader.follows(connection_id, &connection.state) {
-                loader.follow(connection_id, connection);
-            }
-        }
-        let ids: Vec<String> = followed.into_iter().map(|(id, _)| id).collect();
-        loader.observe(&ids);
+        loader.observe(&followed);
     }
 
     /// Announce a new catalog of a connection in its view

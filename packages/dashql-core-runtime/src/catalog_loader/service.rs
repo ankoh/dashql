@@ -208,38 +208,33 @@ impl<H: CatalogLoaderHost> CatalogLoaderService<H> {
         state.connections.iter().find(|(id, _)| id == connection_id).and_then(|(_, followed)| followed.upgrade())
     }
 
-    /// Follow a connection of the registry under its id, it replaces another connection of the id
-    pub fn follow(&self, connection_id: &str, connection: &FollowedConnection) {
-        let followed =
-            Followed { state: Rc::downgrade(&connection.state), queries: Rc::downgrade(&connection.queries) };
-        let mut state = self.state.borrow_mut();
-        match state.connections.iter_mut().find(|(id, _)| id == connection_id) {
-            Some((_, current)) => *current = followed,
-            None => state.connections.push((connection_id.to_string(), followed)),
-        }
-    }
-
     /// Is a connection followed with this state?
-    pub fn follows(&self, connection_id: &str, connection: &Rc<RefCell<ConnectionState>>) -> bool {
+    fn follows(&self, connection_id: &str, connection: &Rc<RefCell<ConnectionState>>) -> bool {
         self.connection(connection_id).is_some_and(|followed| Rc::ptr_eq(&followed.state, connection))
     }
 
-    /// The registry changed and holds the connections of the ids, in their order. The loader forgets the others,
-    /// registers the client functions of the connectors, describes the connections that came online and schedules.
-    pub fn observe(&self, connection_ids: &[String]) {
+    /// The registry changed and holds these connections by their ids, in their order. The loader follows them weakly
+    /// and forgets the others, registers the client functions of the connectors, describes the connections that came
+    /// online and schedules.
+    pub fn observe(&self, connections: &[(String, FollowedConnection)]) {
         {
             let mut state = self.state.borrow_mut();
-            let mut connections = std::mem::take(&mut state.connections);
-            let mut ordered = Vec::with_capacity(connection_ids.len());
-            for id in connection_ids {
-                if let Some(index) = connections.iter().position(|(followed, _)| followed == id) {
-                    ordered.push(connections.swap_remove(index));
-                }
+            let gone: Vec<String> = state
+                .connections
+                .iter()
+                .filter(|(id, _)| !connections.iter().any(|(followed, _)| followed == id))
+                .map(|(id, _)| id.clone())
+                .collect();
+            for id in gone {
+                state.registrations.forget(&id);
             }
-            for (gone, _) in connections {
-                state.registrations.forget(&gone);
-            }
-            state.connections = ordered;
+            state.connections = connections
+                .iter()
+                .map(|(id, connection)| {
+                    let state = Rc::downgrade(&connection.state);
+                    (id.clone(), Followed { state, queries: Rc::downgrade(&connection.queries) })
+                })
+                .collect();
         }
         let connections = self.live_connections();
 

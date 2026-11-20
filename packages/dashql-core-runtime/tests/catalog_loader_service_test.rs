@@ -230,13 +230,10 @@ impl FakeHost {
     /// Hand the loader the connections, like the runtime does whenever the registry changed
     fn observe(&self) {
         let service = self.service();
-        let mut ids: Vec<String> = self.connections.borrow().keys().cloned().collect();
-        ids.sort();
-        for id in &ids {
-            let connection = self.connections.borrow().get(id).cloned().unwrap();
-            service.follow(id, &connection);
-        }
-        service.observe(&ids);
+        let mut connections: Vec<(String, FollowedConnection)> =
+            self.connections.borrow().iter().map(|(id, connection)| (id.clone(), connection.clone())).collect();
+        connections.sort_by(|(a, _), (b, _)| a.cmp(b));
+        service.observe(&connections);
         self.run();
     }
 
