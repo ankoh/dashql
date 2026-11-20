@@ -136,18 +136,17 @@ impl Drop for MemoryFiles {
     }
 }
 
-/// The copy of a connection in a workbook file, its params as JSON text
-pub(crate) fn connection_copy(connection_id: &str, params: Option<&str>) -> WorkbookConnection {
-    let params = params.and_then(|params| serde_json::from_str::<Value>(params).ok()).unwrap_or(Value::Null);
-    WorkbookConnection::new(connection_id, params)
+/// The copy of a connection in a workbook file, null params for a connection without
+pub(crate) fn connection_copy(connection_id: &str, params: Option<Value>) -> WorkbookConnection {
+    WorkbookConnection::new(connection_id, params.unwrap_or(Value::Null))
 }
 
 /// A workbook to write, `Persistence::create_workbook`
 pub(crate) struct CreatedWorkbook {
     pub workbook_id: String,
     pub name: Option<String>,
-    /// The connection of its first script, its id and its params as JSON text
-    pub connection: (String, Option<String>),
+    /// The connection of its first script, its id and its params
+    pub connection: (String, Option<Value>),
     pub ephemeral: bool,
     pub original_file_name: Option<String>,
 }
@@ -205,7 +204,7 @@ impl Persistence {
         let task = WriteTask::CreateWorkbook {
             workbook_id: created.workbook_id,
             name: created.name,
-            connection: Some(connection_copy(&connection_id, params.as_deref())),
+            connection: Some(connection_copy(&connection_id, params)),
             ephemeral: created.ephemeral,
             original_file_name: created.original_file_name,
         };
@@ -261,7 +260,7 @@ impl Persistence {
                     connections: list
                         .connections
                         .iter()
-                        .map(|c| connection_copy(&c.connection_id, Some(&c.params)))
+                        .map(|c| connection_copy(&c.connection_id, Some(c.params.clone())))
                         .collect(),
                 },
                 WorkbookEffect::WriteProperties { name, ephemeral, origin } => {
@@ -277,7 +276,7 @@ impl Persistence {
                     for from in replaces {
                         let task = WriteTask::PatchWorkbookConnection {
                             workbook_id: workbook_id.to_string(),
-                            copy: connection_copy(&connection_id, params.as_deref()),
+                            copy: connection_copy(&connection_id, params.clone()),
                             replaced: vec![from.clone()],
                         };
                         self.write(task, DEBOUNCE_MS);

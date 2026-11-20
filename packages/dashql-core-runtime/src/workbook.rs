@@ -61,7 +61,7 @@ pub struct ScriptConnectionProfile {
     /// Is the connection the embedded Hyper, which scans the results of scripts of other connections?
     pub local: bool,
     /// The params of the connection as the workbook file holds a copy of them, opaque JSON
-    pub params: Option<String>,
+    pub params: Option<serde_json::Value>,
     /// The database of relations without a database name
     pub default_database: String,
     /// The schema of relations without a schema name
@@ -94,7 +94,7 @@ impl ScriptConnection {
     pub fn local(&self) -> bool {
         self.profile.borrow().local
     }
-    pub fn params(&self) -> Option<String> {
+    pub fn params(&self) -> Option<serde_json::Value> {
         self.profile.borrow().params.clone()
     }
     pub fn has_params(&self) -> bool {
@@ -596,7 +596,7 @@ pub struct ConnectionCopy {
     /// The id of the connection
     pub connection_id: String,
     /// The params of the connection, opaque JSON
-    pub params: String,
+    pub params: serde_json::Value,
 }
 
 /// The script list of the workbook file: the scripts in feed order and the copies of their connections
@@ -624,7 +624,7 @@ pub enum WorkbookEffect {
     /// Write the properties of the workbook file: its name, whether it is ephemeral and its origin
     WriteProperties { name: Option<String>, ephemeral: bool, origin: Option<WorkbookOrigin> },
     /// Replace connections in the workbook file with another one
-    PatchConnection { connection_id: String, params: Option<String>, replaces: Vec<String> },
+    PatchConnection { connection_id: String, params: Option<serde_json::Value>, replaces: Vec<String> },
 }
 
 /// Names an editor update of a script: the session it came from and its serial (`WorkbookScript::editor_update_serial`)

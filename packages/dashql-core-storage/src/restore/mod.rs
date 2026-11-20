@@ -155,11 +155,6 @@ pub fn script_connection_of(state: &ConnectionState) -> Rc<ScriptConnection> {
     state.script_connection().clone()
 }
 
-/// The params of a connection state as a JSON value
-fn params_value(state: &ConnectionState) -> Value {
-    serde_json::from_str(&state.params().to_json()).unwrap_or(Value::Null)
-}
-
 /// Create the state of a stored connection. A restored connection is active. A draft that can't be read is dropped,
 /// the saved params stay. The runtime creates the connections of a workbook folder that changed outside the app with it.
 pub fn connection_state<H: RestoreHost>(
@@ -631,7 +626,7 @@ impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
             for entry in &pending.connection_entries {
                 let mut json = entry.to_json();
                 if let (Some(state), Some(fields)) = (self.state(&entry.id), json.as_object_mut()) {
-                    fields.insert("params".to_string(), params_value(state));
+                    fields.insert("params".to_string(), Value::Object(state.params().to_object()));
                 }
                 let task = WriteTask::WriteConnectionEntry { entry: json };
                 writes.push(PendingWrite { result: writer.write_durable(task), what: entry.id.clone() });
@@ -647,7 +642,7 @@ impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
         if copies {
             for (workbook_id, connection_id) in &pending.workbook_copies {
                 let Some(state) = self.state(connection_id) else { continue };
-                let copy = WorkbookConnection::new(connection_id.clone(), params_value(state));
+                let copy = WorkbookConnection::new(connection_id.clone(), Value::Object(state.params().to_object()));
                 let task =
                     WriteTask::PatchWorkbookConnection { workbook_id: workbook_id.clone(), copy, replaced: Vec::new() };
                 writes.push(PendingWrite {

@@ -12,13 +12,19 @@ use dashql_core_runtime::workbook::{
     ScriptConnectionProfile, ScriptKey, ScriptList, ScriptListEntry, StoredScript, TextChange, Workbook,
     WorkbookAction, WorkbookEffect, WorkbookOrigin,
 };
+use serde_json::Value;
+
+/// Connection params of their JSON text
+fn json_params(text: &str) -> Value {
+    serde_json::from_str(text).unwrap()
+}
 
 /// What the scripts read of a connection of a test
 fn profile(params: Option<&str>) -> ScriptConnectionProfile {
     ScriptConnectionProfile {
         dialect: FormattingDialect::HYPER,
         local: false,
-        params: params.map(str::to_string),
+        params: params.map(json_params),
         default_database: String::new(),
         default_schema: String::new(),
     }
@@ -118,7 +124,7 @@ fn creates_the_first_script_on_the_pending_connection() {
     let (mut workbook, main) = workbook(&[]);
     assert_eq!(
         workbook.script_list().connections,
-        [ConnectionCopy { connection_id: "main".into(), params: r#"{"hyper":{}}"#.into() }]
+        [ConnectionCopy { connection_id: "main".into(), params: json_params(r#"{"hyper":{}}"#) }]
     );
     create(&mut workbook, None, Some("select 1"), "first");
     assert_eq!(files(&workbook), ["first.sql"]);
@@ -188,7 +194,7 @@ fn reorders_through_the_script_list() {
         outcome.effects,
         [WorkbookEffect::WriteScriptList(ScriptList {
             scripts: vec![entry("gamma.sql"), entry("alpha.sql"), entry("beta.sql")],
-            connections: vec![ConnectionCopy { connection_id: "main".into(), params: r#"{"hyper":{}}"#.into() }],
+            connections: vec![ConnectionCopy { connection_id: "main".into(), params: json_params(r#"{"hyper":{}}"#) }],
         })]
     );
     // The same order changes nothing
@@ -532,7 +538,7 @@ fn moves_a_script_to_another_connection_under_its_key() {
         |name: &str, connection_id: &str| ScriptListEntry { name: name.into(), connection_id: connection_id.into() };
     let copy = |connection_id: &str, params: &str| ConnectionCopy {
         connection_id: connection_id.into(),
-        params: params.into(),
+        params: json_params(params),
     };
     // The workbook file takes a copy of the new connection
     assert_eq!(
@@ -577,7 +583,7 @@ fn keeps_the_connection_of_a_workbook_without_scripts_in_its_workbook_file() {
             scripts: vec![],
             connections: vec![ConnectionCopy {
                 connection_id: "server".into(),
-                params: r#"{"hyper":{"protocol":"V3_HTTP"}}"#.into()
+                params: json_params(r#"{"hyper":{"protocol":"V3_HTTP"}}"#)
             }],
         })]
     );
@@ -637,7 +643,7 @@ fn moves_the_scripts_and_the_pending_connection_of_a_merged_connection() {
         outcome.effects[0],
         WorkbookEffect::PatchConnection {
             connection_id: "target".into(),
-            params: Some(r#"{"hyper":{"protocol":"WASM"}}"#.into()),
+            params: Some(json_params(r#"{"hyper":{"protocol":"WASM"}}"#)),
             replaces: vec!["main".into()],
         }
     );

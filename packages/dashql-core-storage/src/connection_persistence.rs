@@ -31,17 +31,13 @@ pub struct PersistedConnection {
     pub cache_query_results: Option<bool>,
 }
 
-fn params_value(params: &ConnectionParams) -> Value {
-    serde_json::from_str(&params.to_json()).unwrap_or(Value::Null)
-}
-
 impl PersistedConnection {
     /// The persisted fields of a connection
     pub fn of_state(state: &ConnectionState) -> Self {
         Self {
             active: state.active(),
-            params: params_value(state.params()),
-            params_draft: state.params_draft().map(params_value),
+            params: Value::Object(state.params().to_object()),
+            params_draft: state.params_draft().map(|params| Value::Object(params.to_object())),
             name: state.name().map(str::to_string),
             cache_query_results: state.cache_query_results(),
         }
@@ -90,9 +86,9 @@ pub struct ConnectionWrites {
 pub fn connection_entry(connection_id: &str, state: &ConnectionState) -> Value {
     let mut entry = Map::new();
     entry.insert("id".into(), json!(connection_id));
-    entry.insert("params".into(), params_value(state.params()));
+    entry.insert("params".into(), Value::Object(state.params().to_object()));
     if let Some(draft) = state.params_draft() {
-        entry.insert("paramsDraft".into(), params_value(draft));
+        entry.insert("paramsDraft".into(), Value::Object(draft.to_object()));
     }
     if let Some(name) = state.name() {
         entry.insert("name".into(), json!(name));
@@ -114,7 +110,7 @@ fn params_writes(id: &str, next: &ConnectionState, workbook_ids: &[String], out:
         task: WriteTask::WriteConnectionEntry { entry: connection_entry(id, next) },
         debounce_ms: CONNECTION_WRITE_DEBOUNCE_MS,
     });
-    let copy = workbook_copy(id, &params_value(next.params()));
+    let copy = workbook_copy(id, &Value::Object(next.params().to_object()));
     for workbook_id in workbook_ids {
         out.push(ConnectionWrite {
             task: WriteTask::PatchWorkbookConnection {
@@ -156,8 +152,8 @@ pub fn connection_writes(
         return out;
     }
     if *change != ConnectionChange::ParamsCommitted {
-        let next_params = params_value(next.params());
-        let next_draft = next.params_draft().map(params_value);
+        let next_params = Value::Object(next.params().to_object());
+        let next_draft = next.params_draft().map(|params| Value::Object(params.to_object()));
         let activated = !prev.active && next.active();
         if !connection_params_share_equal(&prev.params, &next_params) || activated {
             params_writes(id, next, workbook_ids, &mut out.writes);
@@ -232,7 +228,7 @@ pub fn saved_entry(connection_id: &str, state: &ConnectionState, params: &Connec
     let mut entry = connection_entry(connection_id, state);
     if let Some(fields) = entry.as_object_mut() {
         fields.shift_remove("paramsDraft");
-        fields.insert("params".into(), params_value(params));
+        fields.insert("params".into(), Value::Object(params.to_object()));
     }
     entry
 }
