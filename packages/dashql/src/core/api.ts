@@ -795,19 +795,8 @@ export abstract class DashQLScriptSessionReader<O extends NativeScriptSession | 
         return new FlatBufferPtr(COMPLETION_TYPE, this.ptr.api, bytes, () => new buffers.completion.Completion());
     }
 
-    public compileQuery(
-        config: buffers.formatting.FormattingConfigT,
-        allowExtensions: boolean = true,
-        parseIfOutdated: boolean = true,
-    ): FlatBufferPtr<buffers.execution.ScriptCompilationResult> {
-        const bytes = this.ptr.assertNotNull().compileQuery(
-            config.dialect,
-            config.mode,
-            config.maxWidth,
-            config.indentationWidth,
-            allowExtensions,
-            parseIfOutdated,
-        );
+    public compileQuery(config: buffers.formatting.FormattingConfigT): FlatBufferPtr<buffers.execution.ScriptCompilationResult> {
+        const bytes = this.ptr.assertNotNull().compileQuery(config.dialect, config.mode, config.maxWidth, config.indentationWidth);
         return new FlatBufferPtr(SCRIPT_COMPILATION_TYPE, this.ptr.api, bytes, () => new buffers.execution.ScriptCompilationResult());
     }
 
@@ -1088,19 +1077,8 @@ export class DashQLScript {
         return { offset, length };
     }
     /// Compile the script into an executable query.
-    public compileQuery(
-        config: buffers.formatting.FormattingConfigT,
-        allowExtensions: boolean = true,
-        parseIfOutdated: boolean = true,
-    ): FlatBufferPtr<buffers.execution.ScriptCompilationResult> {
-        const bytes = this.ptr.assertNotNull().compileQuery(
-            config.dialect,
-            config.mode,
-            config.maxWidth,
-            config.indentationWidth,
-            allowExtensions,
-            parseIfOutdated,
-        );
+    public compileQuery(config: buffers.formatting.FormattingConfigT): FlatBufferPtr<buffers.execution.ScriptCompilationResult> {
+        const bytes = this.ptr.assertNotNull().compileQuery(config.dialect, config.mode, config.maxWidth, config.indentationWidth);
         return new FlatBufferPtr(SCRIPT_COMPILATION_TYPE, this.ptr.api, bytes, () => new buffers.execution.ScriptCompilationResult());
     }
     /// Parse the script

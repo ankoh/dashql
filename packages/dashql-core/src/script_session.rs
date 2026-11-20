@@ -21,7 +21,7 @@
 use crate::analyzer::{AnalyzedScript, ExpressionInner, TableReference};
 use crate::annotation::Annotation;
 use crate::catalog::{Catalog, CatalogEntryId, CatalogLayer, CatalogTableId, QualifiedTableName, PROTO_NULL_U32};
-use crate::compiler::{compile, CompilationOptions};
+use crate::compiler::compile;
 use crate::completion::is_symbol_kind_completable;
 use crate::cursor::CursorContext;
 use crate::error::{Error, Result};
@@ -1136,14 +1136,8 @@ impl ScriptSession {
     }
 
     /// Compile the current text into executable statements
-    pub fn compile_query(
-        &mut self,
-        catalog: &Catalog,
-        config: &FormattingConfigT,
-        allow_extensions: bool,
-        parse_if_outdated: bool,
-    ) -> ScriptCompilationResultT {
-        compile(&mut self.script, catalog, config, CompilationOptions { allow_extensions, parse_if_outdated })
+    pub fn compile_query(&mut self, catalog: &Catalog, config: &FormattingConfigT) -> ScriptCompilationResultT {
+        compile(&mut self.script, catalog, config)
     }
 
     /// Format the script into a new script with an entry id of `catalog`. The formatter can cut a

@@ -469,21 +469,11 @@ impl Script {
     }
 
     /// Compile the script into the packed `ScriptCompilationResult`
-    #[allow(clippy::too_many_arguments)]
     #[wasm_bindgen(js_name = compileQuery)]
-    pub fn compile_query(
-        &mut self,
-        dialect: u8,
-        mode: u8,
-        max_width: u32,
-        indentation_width: u32,
-        allow_extensions: bool,
-        parse_if_outdated: bool,
-    ) -> Vec<u8> {
+    pub fn compile_query(&mut self, dialect: u8, mode: u8, max_width: u32, indentation_width: u32) -> Vec<u8> {
         let config = formatting_config(dialect, mode, max_width, indentation_width, false, 0);
-        let options = dashql_core::compiler::CompilationOptions { allow_extensions, parse_if_outdated };
         let catalog = self.catalog.borrow();
-        finish!(dashql_core::compiler::compile(&mut self.inner, &catalog, &config, options))
+        finish!(dashql_core::compiler::compile(&mut self.inner, &catalog, &config))
     }
 
     /// The first parsed statement without its separator or surrounding trivia
@@ -718,22 +708,9 @@ impl ScriptSession {
 
     /// Compile the script, returns the packed `ScriptCompilationResult`
     #[wasm_bindgen(js_name = compileQuery)]
-    pub fn compile_query(
-        &self,
-        dialect: u8,
-        mode: u8,
-        max_width: u32,
-        indentation_width: u32,
-        allow_extensions: bool,
-        parse_if_outdated: bool,
-    ) -> Vec<u8> {
+    pub fn compile_query(&self, dialect: u8, mode: u8, max_width: u32, indentation_width: u32) -> Vec<u8> {
         let config = formatting_config(dialect, mode, max_width, indentation_width, false, 0);
-        finish!(self.inner.borrow_mut().compile_query(
-            &self.catalog.borrow(),
-            &config,
-            allow_extensions,
-            parse_if_outdated
-        ))
+        finish!(self.inner.borrow_mut().compile_query(&self.catalog.borrow(), &config))
     }
 
     /// Format the script into a new script of the session catalog
@@ -1021,12 +998,10 @@ impl WorkbookScriptSession {
         mode: u8,
         max_width: u32,
         indentation_width: u32,
-        allow_extensions: bool,
-        parse_if_outdated: bool,
     ) -> Result<Vec<u8>, JsError> {
         let config = formatting_config(dialect, mode, max_width, indentation_width, false, 0);
         let catalog = self.catalog()?;
-        Ok(finish!(self.parsed()?.compile_query(&catalog, &config, allow_extensions, parse_if_outdated)))
+        Ok(finish!(self.parsed()?.compile_query(&catalog, &config)))
     }
 
     /// Format the script into a new script of the session catalog

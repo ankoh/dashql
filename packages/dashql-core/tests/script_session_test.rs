@@ -59,13 +59,8 @@ impl Session {
         self.inner.complete(&self.catalog.borrow(), limit, keyword_case)
     }
 
-    fn compile_query(
-        &mut self,
-        config: &FormattingConfigT,
-        allow_extensions: bool,
-        parse_if_outdated: bool,
-    ) -> ScriptCompilationResultT {
-        self.inner.compile_query(&self.catalog.borrow(), config, allow_extensions, parse_if_outdated)
+    fn compile_query(&mut self, config: &FormattingConfigT) -> ScriptCompilationResultT {
+        self.inner.compile_query(&self.catalog.borrow(), config)
     }
 
     fn format(&mut self, config: &FormattingConfigT, parse_if_outdated: bool) -> dashql_core::error::Result<Script> {
@@ -963,7 +958,7 @@ fn compatibility_query_formatting_and_diff_apis() {
     session.replace_text(0, source_text);
     session.analyze();
 
-    let compiled = session.compile_query(&config(), true, true);
+    let compiled = session.compile_query(&config());
     assert_eq!(compiled.sql.as_deref(), Some(source_text));
     assert!(compiled.errors.as_ref().is_none_or(|e| e.is_empty()));
 

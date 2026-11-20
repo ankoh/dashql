@@ -513,8 +513,7 @@ impl WorkbookScript {
         let available = self.editor_update.as_ref().is_some_and(|update| update.analysis_available);
         let visualization = if available {
             let config = execution_compilation_config(self.connection.dialect());
-            let compiled =
-                self.session.borrow_mut().compile_query(&self.connection.catalog.borrow(), &config, true, true);
+            let compiled = self.session.borrow_mut().compile_query(&self.connection.catalog.borrow(), &config);
             let valid = compiled.errors.as_ref().is_none_or(Vec::is_empty)
                 && compiled.kind == ScriptCompilationStatementKind::VISUALIZE;
             match (valid, compiled.sql, compiled.visualization) {
@@ -565,7 +564,7 @@ impl Scratch {
     /// The statement that a chart of the text visualizes, the last statement. None without statements. Errors of the
     /// compilation, e.g. of other statements, don't matter, a rewrite of a tag refuses a script it can't parse.
     fn chart_statement_id(&mut self) -> Option<usize> {
-        let compiled = self.session.compile_query(&self.catalog, &chart_compilation_config(), true, true);
+        let compiled = self.session.compile_query(&self.catalog, &chart_compilation_config());
         (compiled.terminal_statement_id != NO_STATEMENT).then_some(compiled.terminal_statement_id as usize)
     }
 

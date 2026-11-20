@@ -9,7 +9,6 @@ use dashql_core::analyzer::{MarkdownSpec, VisualizationSpec};
 use dashql_core::catalog::{Catalog, PROTO_NULL_U32};
 use dashql_core::compiler::{
     compile, compile_visualization, produces_output, read_executable_text, read_executable_text_with,
-    CompilationOptions,
 };
 use dashql_core::script::Script;
 use dashql_parser::span::TextSpan;
@@ -21,15 +20,11 @@ fn config() -> FormattingConfigT {
     config
 }
 
-fn compile_with(text: &str, options: CompilationOptions) -> ScriptCompilationResultT {
+fn compile_text(text: &str) -> ScriptCompilationResultT {
     let catalog = Catalog::new();
     let mut script = Script::new(&catalog);
     script.replace_text(text);
-    compile(&mut script, &catalog, &config(), options)
-}
-
-fn compile_text(text: &str) -> ScriptCompilationResultT {
-    compile_with(text, CompilationOptions::default())
+    compile(&mut script, &catalog, &config())
 }
 
 fn error_codes(result: &ScriptCompilationResultT) -> Vec<ErrorCode> {
@@ -48,25 +43,11 @@ fn outputs(text: &str) -> Vec<bool> {
 }
 
 #[test]
-fn default_options_allow_extensions_and_parse() {
-    let options = CompilationOptions::default();
-    assert!(options.allow_extensions);
-    assert!(options.parse_if_outdated);
-}
-
-#[test]
 fn empty_script_is_an_error() {
     let result = compile_text("");
     assert_eq!(error_codes(&result), vec![ErrorCode::EMPTY_SCRIPT]);
     assert_eq!(result.terminal_statement_id, PROTO_NULL_U32);
     assert_eq!(result.sql.as_deref(), Some(""));
-}
-
-#[test]
-fn unparsed_script_without_parse_is_an_error() {
-    let result = compile_with("select 1", CompilationOptions { allow_extensions: true, parse_if_outdated: false });
-    assert_eq!(error_codes(&result), vec![ErrorCode::EMPTY_SCRIPT]);
-    assert_eq!(result.errors.as_ref().unwrap()[0].message.as_deref(), Some("script is not parsed"));
 }
 
 #[test]
@@ -76,7 +57,7 @@ fn outdated_parse_is_refreshed() {
     script.replace_text("select 1");
     script.parse();
     script.replace_text("select 2");
-    let result = compile(&mut script, &catalog, &config(), CompilationOptions::default());
+    let result = compile(&mut script, &catalog, &config());
     assert!(result.errors.as_ref().unwrap().is_empty());
     assert_eq!(result.sql.as_deref(), Some("select 2"));
 }
@@ -204,15 +185,6 @@ fn a_flow_position_is_no_visualization() {
     let result = compile_text("/* @vis table\n   @flow x=1 y=2 */\nselect 1 as a");
     assert_eq!(result.kind, StatementKind::VISUALIZE);
     assert_eq!(result.visualization.as_ref().unwrap().renderer.as_deref(), Some("table"));
-}
-
-#[test]
-fn vis_tags_are_plain_comments_in_the_shell() {
-    let text = "/* @vis table */ select 1";
-    let result = compile_with(text, CompilationOptions { allow_extensions: false, parse_if_outdated: true });
-    assert!(result.errors.as_ref().unwrap().is_empty(), "{:?}", result.errors);
-    assert_eq!(result.kind, StatementKind::QUERY);
-    assert!(result.visualization.is_none());
 }
 
 #[test]

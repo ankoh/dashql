@@ -20,21 +20,6 @@ use dashql_parser::parser::{ParsedScript, Statement};
 use dashql_parser::scanner::ScannedScript;
 use dashql_parser::span::TextSpan;
 
-/// Options of the compilation
-#[derive(Clone, Copy, Debug)]
-pub struct CompilationOptions {
-    /// Allow the DashQL extensions (the visualizations of `@vis` tags)
-    pub allow_extensions: bool,
-    /// Parse the script if the text changed
-    pub parse_if_outdated: bool,
-}
-
-impl Default for CompilationOptions {
-    fn default() -> Self {
-        Self { allow_extensions: true, parse_if_outdated: true }
-    }
-}
-
 fn error(
     code: ErrorCode,
     message: &str,
@@ -157,13 +142,8 @@ fn is_c_space(c: u8) -> bool {
     matches!(c, b' ' | b'\t' | b'\n' | b'\x0b' | b'\x0c' | b'\r')
 }
 
-/// Compile a script
-pub fn compile(
-    script: &mut Script,
-    catalog: &Catalog,
-    config: &FormattingConfigT,
-    options: CompilationOptions,
-) -> ScriptCompilationResultT {
+/// Compile a script, parsing it first if the text changed
+pub fn compile(script: &mut Script, catalog: &Catalog, config: &FormattingConfigT) -> ScriptCompilationResultT {
     let mut result = ScriptCompilationResultT::default();
     result.kind = StatementKind::QUERY;
     result.terminal_statement_id = PROTO_NULL_U32;
@@ -174,9 +154,7 @@ pub fn compile(
         result.errors = Some(errors);
         result
     };
-    if options.parse_if_outdated
-        && script.parsed.as_ref().is_none_or(|p| p.scanned.text_version != script.text_version())
-    {
+    if script.parsed.as_ref().is_none_or(|p| p.scanned.text_version != script.text_version()) {
         script.parse();
     }
     let Some(parsed) = script.parsed.clone() else {
@@ -212,9 +190,8 @@ pub fn compile(
     };
     let terminal_statement_id = parsed.statements.len() - 1;
     result.terminal_statement_id = terminal_statement_id as u32;
-    // A query with `@vis` tags is a visualization, the shell runs it as a plain query
-    let vis_tags = options.allow_extensions
-        && terminal_statement.statement_type == StatementType::SELECT
+    // A query with `@vis` tags is a visualization
+    let vis_tags = terminal_statement.statement_type == StatementType::SELECT
         && crate::analyzer::has_vis_tags(&parsed, terminal_statement_id);
     let descriptions = parsed.associate_descriptions();
     // There is one description per statement
