@@ -23,13 +23,14 @@ function trino(connectionId: string, health: ConnectionHealth): ConnectionState 
 describe('WorkbookConnectionButtons', () => {
     let container: HTMLDivElement;
     let root: Root;
-    let settingsProps: any;
+    type OverlayProps = React.ComponentProps<WorkbookConnectionButtonsDependencies['ConnectionSettingsOverlay']>;
+    let settingsProps: OverlayProps | null;
     const dependencies: WorkbookConnectionButtonsDependencies = {
-        ConnectionSettingsOverlay: ((props: any) => {
+        ConnectionSettingsOverlay: (props: OverlayProps) => {
             settingsProps = props;
             React.useEffect(() => () => { settingsProps = null; }, []);
             return null;
-        }) as any,
+        },
     };
 
     beforeEach(() => {
@@ -57,8 +58,8 @@ describe('WorkbookConnectionButtons', () => {
         // Nothing connects by itself
         expect(settingsProps).toBeNull();
         act(() => buttons[1].click());
-        expect(settingsProps.connectionId).toBe('warehouse');
-        act(() => settingsProps.onClose());
+        expect(settingsProps!.connectionId).toBe('warehouse');
+        act(() => settingsProps!.onClose());
         expect(settingsProps).toBeNull();
     });
 

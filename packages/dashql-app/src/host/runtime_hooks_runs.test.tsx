@@ -17,6 +17,7 @@ import { StorageProvider } from '../storage/storage_provider.js';
 import { analyzeWorkbook } from '@akohn/dashql/runtime/testing/test_runtime';
 import { useRuntime, useWorkbookExecution } from '@akohn/dashql-react/hooks';
 import { TestRuntime } from '../tests/test_runtime.js';
+import type { ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -63,7 +64,7 @@ function fixture(workbookId: string, deferStream = false) {
             if (runtime.connection(this.connectionId) != null) return;
             const state = await createTestConnection(runtime, {
                 connectionId: this.connectionId,
-                params: { hyper: {} } as any,
+                params: { hyper: {} } as ConnectionParams,
                 channel: this.online ? { executeQuery } : undefined,
             });
             runtime.flush();

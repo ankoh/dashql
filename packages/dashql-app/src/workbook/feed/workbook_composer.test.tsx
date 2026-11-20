@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as core from '@akohn/dashql';
 import { act } from '@akohn/dashql-react/testing/react_act';
 import { createRoot, type Root } from 'react-dom/client';
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import type { EditorView } from '@codemirror/view';
 
 import { WorkbookComposer, WorkbookComposerVariant } from './workbook_composer.js';
@@ -12,6 +12,8 @@ import { LoggerProvider } from '../../host/logger_provider.js';
 import * as styles from './workbook_composer.module.css';
 import { DashQLCompletionStartEffect, DashQLProcessorPlugin } from '../editor/dashql_processor.js';
 import { WorkbookConnectionAttentionContext } from '../connections/workbook_connection_attention.js';
+
+type Attention = NonNullable<React.ContextType<typeof WorkbookConnectionAttentionContext>>;
 import { ComposerMode, type ConnectHarness, DASHQL_CLI_COMMAND } from '../../agent/agent_connect.js';
 import { DASHQL_CLI_VERSION } from '../../globals.js';
 import type { AgentConnect } from '../../agent/agent_session_provider.js';
@@ -44,7 +46,8 @@ describe('Workbook composer', () => {
     let view: EditorView | null;
     let onSend: ReturnType<typeof vi.fn<(text: string) => void>>;
     let targetScript: React.RefObject<((name: string) => void) | null>;
-    let attention: { workbookId: string; active: boolean; request: ReturnType<typeof vi.fn> };
+    // The attention of the connections that the tests read, its request is a mock
+    let attention: Attention & { request: Mock<Attention['request']> };
 
     beforeEach(() => {
         container = document.createElement('div');
@@ -54,7 +57,7 @@ describe('Workbook composer', () => {
         view = null;
         onSend = vi.fn<(text: string) => void>();
         targetScript = { current: null };
-        attention = { workbookId: 'workbook', active: false, request: vi.fn() };
+        attention = { workbookId: 'workbook', active: false, request: vi.fn<Attention['request']>() };
     });
     afterEach(() => {
         act(() => root.unmount());
@@ -68,7 +71,7 @@ describe('Workbook composer', () => {
     async function render(variant = WorkbookComposerVariant.Docked, offlineWorkbookId: string | null = null, agentWorking = false, bar: React.ReactNode = undefined) {
         const snippets = buildSnippetRegistry(dql, { 'hyper/dates/month.sql': `/**\n * Text.\n */\nselect 42;` });
         act(() => root.render(<LoggerProvider>
-            <WorkbookConnectionAttentionContext.Provider value={attention as any}>
+            <WorkbookConnectionAttentionContext.Provider value={attention}>
                 <WorkbookComposer instance={dql} catalog={catalog} variant={variant}
                     snippetConnector={ConnectorType.HYPER} snippetRegistry={snippets}
                     scriptNames={['revenue', 'revenue-2']} targetScriptRef={targetScript} offlineWorkbookId={offlineWorkbookId} agentWorking={agentWorking} bar={bar}

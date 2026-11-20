@@ -10,6 +10,7 @@ import { WorkbookTestRegistry } from '@akohn/dashql/platform/testing/workbook_te
 import { StorageBackendType } from '@akohn/dashql/platform/storage/storage_backend';
 import { scriptSelectionOf } from '../scripts/script_selection.js';
 import { WorkbookWorkbenchSidebar, type WorkbookWorkbenchSidebarDependencies } from './workbook_workbench_sidebar.js';
+import type { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 
 vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
 
@@ -99,7 +100,7 @@ describe('WorkbookWorkbenchSidebar folders', () => {
 
     function render(currentWorkbookId: string = ROOT_WORKBOOK, onOpenScript?: (workbookId: string, fileName: string) => void): void {
         act(() => root.render(<WorkbookWorkbenchSidebar
-            workbookScripts={{ workbookId: currentWorkbookId, instance: {} } as any}
+            workbookScripts={{ workbookId: currentWorkbookId, instance: {} } as unknown as WorkbookScripts}
             onOpenScript={onOpenScript}
             dependencies={dependencies}
         />));

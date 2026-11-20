@@ -9,6 +9,7 @@ import { CONNECTOR_INFOS, ConnectorType } from '@akohn/dashql/platform/connectio
 import { WorkbookSetupStatus } from '../../app/loading/workbook_setup_status.js';
 import { SELECT_WORKBOOK } from '../../app/router.js';
 import { WorkbookWorkbenchSidebar, type WorkbookWorkbenchSidebarDependencies } from './workbook_workbench_sidebar.js';
+import type { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
 import { RuntimeContextProvider } from '@akohn/dashql-react/hooks';
 
@@ -229,7 +230,7 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
         act(() => root.render(<WithCatalogs><WorkbookWorkbenchSidebar workbookScripts={{
             workbookId: 'current-workbook',
             instance: {},
-        } as any} dependencies={dependencies} /></WithCatalogs>));
+        } as unknown as WorkbookScripts} dependencies={dependencies} /></WithCatalogs>));
     });
 
     afterEach(() => {
@@ -281,7 +282,7 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
         act(() => root.render(<WithCatalogs><WorkbookWorkbenchSidebar workbookScripts={{
             workbookId: 'current-workbook',
             instance: {},
-        } as any} dependencies={dependencies} /></WithCatalogs>));
+        } as unknown as WorkbookScripts} dependencies={dependencies} /></WithCatalogs>));
 
         expect(byTestId('workbook-count')?.textContent).toBe('1');
         expect(byTestId('connection-count')?.textContent).toBe('2');
@@ -300,7 +301,7 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
         state.workbookAttachedDatabases = { main, attached: [] };
         act(() => root.render(<WithCatalogs><WorkbookWorkbenchSidebar workbookScripts={{
             workbookId: 'current-workbook', instance: {},
-        } as any} dependencies={dependencies} /></WithCatalogs>));
+        } as unknown as WorkbookScripts} dependencies={dependencies} /></WithCatalogs>));
         click('connection-row-menu');
         act(() => {
             (document.querySelector('[data-testid="connection-menu-item"][data-action="settings"]') as HTMLButtonElement).click();
@@ -365,7 +366,7 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
         act(() => root.render(<WithCatalogs><WorkbookWorkbenchSidebar workbookScripts={{
             workbookId: 'current-workbook',
             instance: {},
-        } as any} dependencies={dependencies} /></WithCatalogs>));
+        } as unknown as WorkbookScripts} dependencies={dependencies} /></WithCatalogs>));
 
         act(() => {
             Array.from(container.querySelectorAll('button'))
@@ -396,7 +397,7 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
         act(() => root.render(<WithCatalogs><WorkbookWorkbenchSidebar workbookScripts={{
             workbookId,
             instance: {},
-        } as any} dependencies={dependencies} /></WithCatalogs>));
+        } as unknown as WorkbookScripts} dependencies={dependencies} /></WithCatalogs>));
 
         click('workbook-row-menu');
         const share = document.querySelector('[data-testid="workbook-menu-item"][data-action="share-url"]') as HTMLButtonElement;
@@ -423,7 +424,7 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
         act(() => root.render(<WithCatalogs><WorkbookWorkbenchSidebar workbookScripts={{
             workbookId,
             instance: {},
-        } as any} dependencies={dependencies} /></WithCatalogs>));
+        } as unknown as WorkbookScripts} dependencies={dependencies} /></WithCatalogs>));
 
         click('workbook-row-menu');
         act(() => (document.querySelector('[data-testid="workbook-menu-item"][data-action="rename"]') as HTMLButtonElement).click());
@@ -465,7 +466,7 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
         act(() => root.render(<WithCatalogs><WorkbookWorkbenchSidebar workbookScripts={{
             workbookId,
             instance: {},
-        } as any} dependencies={dependencies} /></WithCatalogs>));
+        } as unknown as WorkbookScripts} dependencies={dependencies} /></WithCatalogs>));
 
         const name = container.querySelector('[aria-label="Workbooks"] button[aria-current]') as HTMLButtonElement;
         act(() => name.dispatchEvent(new MouseEvent('dblclick', { bubbles: true })));
@@ -489,7 +490,7 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
         const render = (openOverviewId: string | null) => act(() => root.render(<WithCatalogs><WorkbookWorkbenchSidebar workbookScripts={{
             workbookId,
             instance: {},
-        } as any} openOverviewId={openOverviewId} onOpenOverview={() => {}} dependencies={dependencies} /></WithCatalogs>));
+        } as unknown as WorkbookScripts} openOverviewId={openOverviewId} onOpenOverview={() => {}} dependencies={dependencies} /></WithCatalogs>));
         const selected = () => document.querySelectorAll('ul[aria-label="Workbooks"] [aria-current="page"]').length;
 
         render(null);
@@ -514,7 +515,7 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
         act(() => root.render(<WithCatalogs><WorkbookWorkbenchSidebar workbookScripts={{
             workbookId,
             instance: {},
-        } as any} dependencies={dependencies} /></WithCatalogs>));
+        } as unknown as WorkbookScripts} dependencies={dependencies} /></WithCatalogs>));
 
         click('workbook-row-menu');
         const exportItem = document.querySelector('[data-testid="workbook-menu-item"][data-action="export"]') as HTMLButtonElement;
@@ -544,7 +545,7 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
         state.workbookAttachedDatabases = { main: state.local!, attached: [] };
         act(() => root.render(<WithCatalogs><WorkbookWorkbenchSidebar workbookScripts={{
             workbookId: 'current-workbook', instance: {},
-        } as any} dependencies={dependencies} /></WithCatalogs>));
+        } as unknown as WorkbookScripts} dependencies={dependencies} /></WithCatalogs>));
 
         // The shell connection is not referenced by a workbook of the registry
         expect(byTestId('connection-count')?.textContent).toBe('2');
@@ -563,7 +564,7 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
         state.workbookAttachedDatabases = { main: state.local!, attached: [] };
         act(() => root.render(<WithCatalogs><WorkbookWorkbenchSidebar workbookScripts={{
             workbookId: 'current-workbook', instance: {},
-        } as any} dependencies={dependencies} /></WithCatalogs>));
+        } as unknown as WorkbookScripts} dependencies={dependencies} /></WithCatalogs>));
 
         expect(groups()).toEqual(['workbook', 'other']);
         const rowLabel = (connectionId: string) => container
@@ -585,7 +586,7 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
         state.workbookAttachedDatabases = { main: state.local!, attached: [] };
         act(() => root.render(<WithCatalogs><WorkbookWorkbenchSidebar workbookScripts={{
             workbookId: 'current-workbook', instance: {},
-        } as any} dependencies={dependencies} /></WithCatalogs>));
+        } as unknown as WorkbookScripts} dependencies={dependencies} /></WithCatalogs>));
 
         // The unused connection is listed after the connections of other workbooks
         expect(groups()).toEqual(['workbook', 'other', 'unused']);
@@ -612,7 +613,7 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
         state.workbookAttachedDatabases = { main: server, attached: usesLocal ? [state.local!] : [] };
         act(() => root.render(<WithCatalogs><WorkbookWorkbenchSidebar workbookScripts={{
             workbookId: 'current-workbook', instance: {},
-        } as any} dependencies={dependencies} /></WithCatalogs>));
+        } as unknown as WorkbookScripts} dependencies={dependencies} /></WithCatalogs>));
         return server;
     }
 

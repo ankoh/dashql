@@ -92,7 +92,7 @@ describe('connections of the same connector', () => {
             { type: 'connection-group', key: 'g', label: 'This workbook' },
             { type: 'connection', key: 'a', database: hyper('a') },
             { type: 'connection-group', key: 'h', label: 'Other connections' },
-        ] as any;
+        ] as Parameters<typeof connectionTreeRowHeight>[1]['rows'];
         // A heading that follows another group keeps more space above it than the first one
         expect(connectionTreeRowHeight(0, { rows })).toBeLessThan(connectionTreeRowHeight(2, { rows }));
         expect(connectionTreeRowHeight(1, { rows })).toBeLessThan(connectionTreeRowHeight(2, { rows }));
@@ -124,7 +124,7 @@ describe('connection catalog tree', () => {
                 tables: (index: number) => tables[index],
                 columns: () => null,
             },
-        } as any;
+        } as unknown as Parameters<typeof flattenCatalogRows>[0];
         const database: CatalogNode = {
             key: 'catalog/database:0:hyper', name: 'hyper', kind: 'database', index: 0, childBegin: 0, childCount: 1,
         };

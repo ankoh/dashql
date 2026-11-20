@@ -8,16 +8,17 @@ import { connectionReplaceBlocker, connectionReplaceCandidates } from './connect
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { CONNECTOR_TYPES, ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { ConnectionRowMenu, type ConnectionRefreshDependencies } from './connection_tree.js';
+import type { ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
 
-const grpc = (endpoint: string) => ({ hyper: { protocol: 'V3_GRPC', endpoint } }) as any;
-const wasm = () => ({ hyper: { protocol: 'WASM', endpoint: '' } }) as any;
-const trino = (endpoint: string) => ({ trino: { endpoint } }) as any;
+const grpc = (endpoint: string) => ({ hyper: { protocol: 'V3_GRPC', endpoint } }) as ConnectionParams;
+const wasm = () => ({ hyper: { protocol: 'WASM', endpoint: '' } }) as ConnectionParams;
+const trino = (endpoint: string) => ({ trino: { endpoint } }) as ConnectionParams;
 
 /// A connection as far as the replacement looks at it
-function database(connectionId: string, params: any, options: { active?: boolean; queries?: number; workbooks?: string[] } = {}): ConnectionState {
+function database(connectionId: string, params: ConnectionParams, options: { active?: boolean; queries?: number; workbooks?: string[] } = {}): ConnectionState {
     const connectorType = 'hyper' in params ? ConnectorType.HYPER : ConnectorType.TRINO;
     return {
         connectionId,

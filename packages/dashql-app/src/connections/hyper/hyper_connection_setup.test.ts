@@ -4,6 +4,7 @@ import * as connection from '@akohn/dashql-jsonschema/connection.js';
 import { connectChannel, type ChannelClients } from './hyper_connection_setup.js';
 import { HyperDatabaseChannel, HyperDatabaseClient, HyperDatabaseConnectionContext } from '@akohn/dashql/platform/connections/hyper/hyperdb_grpc_client';
 import { connectionClientContext, type HyperLogMetrics } from './hyper_log_metrics.js';
+import type { EmbeddedComputeDatabase } from '@akohn/dashql/platform/embedded_database';
 
 /// The clients of a test, none by default
 function clients(overrides: Partial<ChannelClients>): ChannelClients {
@@ -16,7 +17,7 @@ describe('Hyper channels of the setups', () => {
         const session = {};
         const embedded = { connect: vi.fn(async () => session) };
         const params = { protocol: 'WASM', endpoint: '' } as connection.HyperConnectionParams;
-        const channel = await connectChannel(clients({ setupEmbeddedDatabase: vi.fn(async () => embedded as any) }), 'memory', { type: 'hyper', kind: 'embedded', params, session: { defaultDatabase: 'hyper', attachedDatabases: [] } });
+        const channel = await connectChannel(clients({ setupEmbeddedDatabase: vi.fn(async () => embedded as unknown as EmbeddedComputeDatabase) }), 'memory', { type: 'hyper', kind: 'embedded', params, session: { defaultDatabase: 'hyper', attachedDatabases: [] } });
         expect(channel).toBeInstanceOf(Object);
         expect(embedded.connect).toHaveBeenCalledWith(expect.objectContaining({ defaultDatabase: 'hyper', clientContext: connectionClientContext('memory') }));
     });

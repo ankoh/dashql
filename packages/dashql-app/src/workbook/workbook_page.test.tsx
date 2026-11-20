@@ -21,7 +21,7 @@ const state = {
 
 const DEFAULT_CONNECTION = { connectionId: 'database' };
 const OTHER_CONNECTION = { connectionId: 'other' };
-const CONNECTIONS = new Map([['database', DEFAULT_CONNECTION], ['other', OTHER_CONNECTION]]) as any;
+const CONNECTIONS = new Map([['database', DEFAULT_CONNECTION], ['other', OTHER_CONNECTION]]);
 
 const dependencies = {
     useWorkbookViewMode: () => ({ mode: state.mode }),

@@ -6,6 +6,12 @@ import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info
 import { createScriptFormatConfig, formattingDialectForConnector, isScriptFormattable } from './script_format.js';
 import { formatScriptEditor, measureScriptFormatWidth } from '../editor/script_format_editor.js';
 
+/// The fakes of the tests implement the parts of the script and the view that the formatting reads
+type FormattableScript = Parameters<typeof isScriptFormattable>[0];
+type FormatEditorView = Parameters<typeof formatScriptEditor>[0];
+type FormatEditorScript = Parameters<typeof formatScriptEditor>[1];
+type MeasuredView = Parameters<typeof measureScriptFormatWidth>[0];
+
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
 let dql: dashql.DashQL;
@@ -36,7 +42,7 @@ describe('script formatting', () => {
     it('passes the chosen dialect to formatability and editor formatting', () => {
         const dialect = formattingDialectForConnector(ConnectorType.TRINO);
         const isFullyFormattable = vi.fn((_config: dashql.buffers.formatting.FormattingConfigT) => true);
-        expect(isScriptFormattable({ scriptSession: { isFullyFormattable } } as any, dialect)).toBe(true);
+        expect(isScriptFormattable({ scriptSession: { isFullyFormattable } } as unknown as FormattableScript, dialect)).toBe(true);
         expect(isFullyFormattable.mock.calls[0][0].dialect).toBe(dialect);
 
         const format = vi.fn((_config: dashql.buffers.formatting.FormattingConfigT) =>
@@ -47,8 +53,8 @@ describe('script formatting', () => {
             defaultCharacterWidth: 8,
             scrollDOM: { clientWidth: 640 },
             focus: vi.fn(),
-        } as any;
-        expect(formatScriptEditor(editorView, { scriptSession: { format } } as any,
+        } as unknown as FormatEditorView;
+        expect(formatScriptEditor(editorView, { scriptSession: { format } } as unknown as FormatEditorScript,
             dashql.buffers.formatting.FormattingMode.PRETTY, onFormattedText, false,
             dashql.buffers.formatting.KeywordCase.LOWER, dialect)).toBe(true);
         expect(format.mock.calls[0][0].dialect).toBe(dialect);
@@ -58,11 +64,11 @@ describe('script formatting', () => {
         expect(measureScriptFormatWidth({
             defaultCharacterWidth: 8,
             scrollDOM: { clientWidth: 600 },
-        } as any)).toBe(75);
+        } as unknown as MeasuredView)).toBe(75);
         expect(measureScriptFormatWidth({
             defaultCharacterWidth: 8,
             scrollDOM: { clientWidth: 120 },
-        } as any)).toBe(24);
+        } as unknown as MeasuredView)).toBe(24);
     });
 
     it('keeps compact output distinct from pretty output', () => {
@@ -100,7 +106,7 @@ describe('script formatting', () => {
                 defaultCharacterWidth: 8,
                 scrollDOM: { clientWidth: 640 },
                 focus: vi.fn(),
-            } as any;
+            } as unknown as FormatEditorView;
             for (const [connector, arrayType] of [
                 [ConnectorType.TRINO, 'array(json)'],
                 [ConnectorType.HYPER, 'json[]'],
@@ -108,8 +114,8 @@ describe('script formatting', () => {
             ] as const) {
                 const dialect = formattingDialectForConnector(connector);
                 const onFormattedText = vi.fn();
-                expect(isScriptFormattable({ scriptSession: workbook } as any, dialect)).toBe(true);
-                expect(formatScriptEditor(editorView, { scriptSession: workbook } as any,
+                expect(isScriptFormattable({ scriptSession: workbook } as unknown as FormattableScript, dialect)).toBe(true);
+                expect(formatScriptEditor(editorView, { scriptSession: workbook } as unknown as FormatEditorScript,
                     dashql.buffers.formatting.FormattingMode.PRETTY, onFormattedText, false,
                     dashql.buffers.formatting.KeywordCase.LOWER, dialect)).toBe(true);
                 expect(onFormattedText).toHaveBeenCalledWith(`select cast(payload as ${arrayType})\nfrom events;`);
@@ -150,9 +156,9 @@ describe('script formatting', () => {
                 defaultCharacterWidth: 8,
                 scrollDOM: { clientWidth: 320 },
                 focus,
-            } as any;
+            } as unknown as FormatEditorView;
 
-            expect(formatScriptEditor(editorView, { scriptSession: workbook } as any,
+            expect(formatScriptEditor(editorView, { scriptSession: workbook } as unknown as FormatEditorScript,
                 dashql.buffers.formatting.FormattingMode.PRETTY, onFormattedText)).toBe(true);
             expect(onFormattedText).toHaveBeenCalledWith('select count(*)\nfrom items\nwhere value > 1;');
             expect(focus).toHaveBeenCalledOnce();
@@ -175,9 +181,9 @@ describe('script formatting', () => {
             defaultCharacterWidth: 8,
             scrollDOM: { clientWidth: 600 },
             focus,
-        } as any;
+        } as unknown as FormatEditorView;
 
-        expect(formatScriptEditor(editorView, { scriptSession: { format } } as any,
+        expect(formatScriptEditor(editorView, { scriptSession: { format } } as unknown as FormatEditorScript,
             dashql.buffers.formatting.FormattingMode.PRETTY, onFormattedText)).toBe(true);
         expect(format).toHaveBeenCalledOnce();
         expect(onFormattedText).toHaveBeenCalledWith('select 1;');

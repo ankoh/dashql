@@ -11,6 +11,7 @@ import { TASK_UPDATE_SCHEDULER } from '@akohn/dashql/runtime/store/update_schedu
 import type { HttpClient } from '@akohn/dashql/platform/http_client';
 import { PlatformType } from '../../host/platform_type.js';
 import { AppOAuthFlow } from '../../oauth/app_oauth_flow.js';
+import type { PlatformEventListener } from '../../host/events/event_listener.js';
 import { BASE64URL_CODEC } from '@akohn/dashql/platform/utils/base64';
 import { DATA_CLOUD_JWT, fakeSalesforceHttp } from './salesforce_test_http.js';
 import { mockSalesforceHttp, mockSalesforceOAuthFlow, type SalesforceConnectorMockConfig } from '@akohn/dashql/platform/connections/salesforce/salesforce_api_client_mock';
@@ -58,7 +59,7 @@ for (const connector of [ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.DBCO
                 return callback;
             }),
         };
-        const runtime = runtimeOf(http, new AppOAuthFlow(events as any, PlatformType.WEB));
+        const runtime = runtimeOf(http, new AppOAuthFlow(events as unknown as PlatformEventListener, PlatformType.WEB));
         const connectionParams = connectionParamsOf(CONNECTOR_DESCRIPTORS[connector], params);
         runtime.createConnection({ connectorType: connector, setupParams: params, params: connectionParams }, 'salesforce');
         const outcome = await runtime.setupConnection('salesforce', { oauthRedirect: 'https://example.com/callback' });

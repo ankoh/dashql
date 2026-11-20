@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { canShowWorkbook, deleteSurplusEphemeralWorkbooks, loadApp, selectStartupWorkbook, shouldFinishInitialNavigation } from './app_loading_logic.js';
+import type { TracedLogger } from '@akohn/dashql/platform/logger/logger';
+import { canShowWorkbook, deleteSurplusEphemeralWorkbooks, loadApp, selectStartupWorkbook, shouldFinishInitialNavigation, type AppStateRestorer } from './app_loading_logic.js';
 import type { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { AppLoadingStatus } from './app_loading_status.js';
 import { WorkbookSetupStatus } from './workbook_setup_status.js';
@@ -91,8 +92,8 @@ describe('loadApp', () => {
         };
 
         const result = await loadApp(
-            logger as any,
-            storage as any,
+            logger as unknown as TracedLogger,
+            storage as unknown as AppStateRestorer,
             vi.fn(),
         );
 
@@ -109,8 +110,8 @@ describe('loadApp', () => {
             invalidWorkbooks: new Map(),
         };
         const result = await loadApp(
-            { childSpan: () => ({ info: vi.fn() }) } as any,
-            { restoreAppState: vi.fn().mockResolvedValue(restored) } as any,
+            { childSpan: () => ({ info: vi.fn() }) } as unknown as TracedLogger,
+            { restoreAppState: vi.fn().mockResolvedValue(restored) } as unknown as AppStateRestorer,
             vi.fn(),
         );
         expect([...result.restoredWorkbooks.keys()]).toEqual(['second', 'first']);

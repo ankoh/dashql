@@ -6,6 +6,7 @@ import type { OAuthState } from '@akohn/dashql/platform/oauth_types';
 import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
 import { PlatformType } from '../../host/platform_type.js';
 import { AppOAuthFlow } from '../../oauth/app_oauth_flow.js';
+import type { PlatformEventListener } from '../../host/events/event_listener.js';
 import { BASE64URL_CODEC } from '@akohn/dashql/platform/utils/base64';
 import type { HttpClient } from '@akohn/dashql/platform/http_client';
 import { createRuntime } from '@akohn/dashql/runtime/runtime';
@@ -78,10 +79,12 @@ function decodeState(url: URL): OAuthState {
 }
 
 /// The redirect of the app hands back the callback with the state of the authorization URL
-function redirectWith(open: { mock: { calls: unknown[][] } }, callback: (state: OAuthState) => object = state => ({ state, code: 'authorization-code' })) {
-    return {
+/// App events that answer the wait for the OAuth redirect, the only call of the flow
+function redirectWith(open: { mock: { calls: unknown[][] } }, callback: (state: OAuthState) => object = state => ({ state, code: 'authorization-code' })): PlatformEventListener {
+    const events = {
         waitForOAuthRedirect: vi.fn().mockImplementation(async () => callback(decodeState(new URL(String(open.mock.calls[0][0]))))),
     };
+    return events as unknown as PlatformEventListener;
 }
 
 afterEach(() => {
@@ -101,7 +104,7 @@ describe('authenticateSalesforce', () => {
                 logger: new TestLogger(),
                 params,
                 authConfig,
-                oauthFlow: new AppOAuthFlow(redirectWith(open) as any, PlatformType.WEB),
+                oauthFlow: new AppOAuthFlow(redirectWith(open), PlatformType.WEB),
                 http: fakeSalesforceHttp(),
                 forceReLogin: false,
                 abortSignal: new AbortController().signal,
@@ -116,7 +119,7 @@ describe('authenticateSalesforce', () => {
         const popup = { closed: false, close: vi.fn(), focus: vi.fn() } as unknown as Window;
         const open = vi.spyOn(window, 'open').mockReturnValue(popup);
         await authenticateSalesforce({
-            logger: new TestLogger(), params, authConfig, oauthFlow: new AppOAuthFlow(redirectWith(open) as any, PlatformType.WEB),
+            logger: new TestLogger(), params, authConfig, oauthFlow: new AppOAuthFlow(redirectWith(open), PlatformType.WEB),
             http: fakeSalesforceHttp(), forceReLogin: true, abortSignal: new AbortController().signal,
         });
         const url = new URL(open.mock.calls[0][0]!.toString());
@@ -141,7 +144,7 @@ describe('authenticateSalesforce', () => {
             logger,
             params,
             authConfig,
-            oauthFlow: new AppOAuthFlow(redirectWith(open) as any, PlatformType.WEB),
+            oauthFlow: new AppOAuthFlow(redirectWith(open), PlatformType.WEB),
             http,
             forceReLogin: false,
             abortSignal: new AbortController().signal,
@@ -193,7 +196,7 @@ describe('authenticateSalesforce', () => {
             logger: new TestLogger(),
             params,
             authConfig,
-            oauthFlow: new AppOAuthFlow(redirectWith(openExternal) as any, PlatformType.DESKTOP),
+            oauthFlow: new AppOAuthFlow(redirectWith(openExternal), PlatformType.DESKTOP),
             http: fakeSalesforceHttp({ userInfo: null }),
             forceReLogin: false,
             abortSignal: new AbortController().signal,
@@ -218,7 +221,7 @@ describe('authenticateSalesforce', () => {
             logger: new TestLogger(),
             params,
             authConfig,
-            oauthFlow: new AppOAuthFlow(appEvents as any, PlatformType.WEB),
+            oauthFlow: new AppOAuthFlow(appEvents, PlatformType.WEB),
             http: null,
             forceReLogin: false,
             abortSignal: new AbortController().signal,
@@ -231,7 +234,7 @@ describe('authenticateSalesforce', () => {
         const open = vi.spyOn(window, 'open').mockReturnValue(popup);
         const appEvents = redirectWith(open, state => ({ state: { ...state, flowVariant: 'NATIVE_LINK_FLOW' }, code: 'authorization-code' }));
         await expect(authenticateSalesforce({
-            logger: new TestLogger(), params, authConfig, oauthFlow: new AppOAuthFlow(appEvents as any, PlatformType.WEB),
+            logger: new TestLogger(), params, authConfig, oauthFlow: new AppOAuthFlow(appEvents, PlatformType.WEB),
             http: null, forceReLogin: false, abortSignal: new AbortController().signal,
         })).rejects.toThrow('flow variant');
     });
@@ -248,7 +251,7 @@ describe('authenticateSalesforce', () => {
             },
         });
         await expect(authenticateSalesforce({
-            logger: new TestLogger(), params, authConfig, oauthFlow: new AppOAuthFlow(redirectWith(open) as any, PlatformType.WEB),
+            logger: new TestLogger(), params, authConfig, oauthFlow: new AppOAuthFlow(redirectWith(open), PlatformType.WEB),
             http, forceReLogin: false,
             abortSignal: abort.signal, onProgress: progress => stages.push(progress.stage),
         })).rejects.toThrow();
@@ -266,13 +269,13 @@ describe('authenticateSalesforce', () => {
                 abort.abort();
                 abort.signal.throwIfAborted();
             }),
-        };
+        } as unknown as PlatformEventListener;
 
         await expect(authenticateSalesforce({
             logger: new TestLogger(),
             params,
             authConfig,
-            oauthFlow: new AppOAuthFlow(appEvents as any, PlatformType.WEB),
+            oauthFlow: new AppOAuthFlow(appEvents, PlatformType.WEB),
             http: null,
             forceReLogin: false,
             abortSignal: abort.signal,

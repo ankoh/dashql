@@ -12,7 +12,7 @@ import { getGlobalLogger, LoggerProvider } from './logger_provider.js';
 function SetupConsumer(props: {
     context: string;
     onSetupProgress?: (progress: { bytesLoaded: number; bytesTotal: number }) => void;
-    onReady: (db: any) => void;
+    onReady: (db: EmbeddedComputeDatabase) => void;
 }) {
     const setup = useEmbeddedDatabaseSetup();
     React.useEffect(() => {
@@ -51,8 +51,8 @@ describe('EmbeddedDatabaseProvider', () => {
     });
 
     async function renderAndSetup(context: string) {
-        let resolveDb: ((db: any) => void) | null = null;
-        const dbPromise = new Promise<any>((resolve) => {
+        let resolveDb: ((db: EmbeddedComputeDatabase) => void) | null = null;
+        const dbPromise = new Promise<EmbeddedComputeDatabase>((resolve) => {
             resolveDb = resolve;
         });
 
@@ -86,8 +86,8 @@ describe('EmbeddedDatabaseProvider', () => {
 
     it('forwards setup progress to HyperDB setup', async () => {
         const onSetupProgress = vi.fn();
-        let resolveDb: ((db: any) => void) | null = null;
-        const dbPromise = new Promise<any>((resolve) => { resolveDb = resolve; });
+        let resolveDb: ((db: EmbeddedComputeDatabase) => void) | null = null;
+        const dbPromise = new Promise<EmbeddedComputeDatabase>((resolve) => { resolveDb = resolve; });
 
         await act(async () => {
             root.render(

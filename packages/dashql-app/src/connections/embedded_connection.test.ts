@@ -50,7 +50,7 @@ describe('new workbook connection', () => {
     const connections = () => {
         const embedded = runtime.createConnection(newDefaultHyperWasmConnection(), 'embedded');
         const linked = runtime.createConnection(newConnectionFromParams({ hyper: { protocol: 'V3_HTTP_LINK', endpoint: 'http://127.0.0.1:7484', tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' } } } as ConnectionParams), 'linked');
-        const cloud = runtime.createConnection(newConnectionFromParams({ hyper: { protocol: 'V3_HTTP', endpoint: 'http://localhost:7484', tls: {} } } as any), 'cloud');
+        const cloud = runtime.createConnection(newConnectionFromParams({ hyper: { protocol: 'V3_HTTP', endpoint: 'http://localhost:7484', tls: {} } } as ConnectionParams), 'cloud');
         return { embedded, linked, cloud, all: new Map([['embedded', embedded], ['linked', linked], ['cloud', cloud]]) };
     };
 

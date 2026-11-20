@@ -20,7 +20,7 @@ const TICKER = {
 };
 
 class FakeSocket {
-    sent: any[] = [];
+    sent: unknown[] = [];
     closed = false;
     onopen: (() => void) | null = null;
     onclose: (() => void) | null = null;

@@ -4,14 +4,14 @@ import { createRoot, type Root } from 'react-dom/client';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { WorkbookCommands, type WorkbookCommandsDependencies } from './workbook_commands.js';
-import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_state';
+import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { WorkbookConnectionAttentionContext } from '../connections/workbook_connection_attention.js';
 import { WorkbookViewMode } from '../workbook_view_mode.js';
 
 describe('global workbook execution feedback', () => {
     let container: HTMLDivElement;
     let root: Root;
-    let connection: any;
+    let connection: Pick<ConnectionState, 'connectionId' | 'connectionHealth'> | null;
     let attention: React.ContextType<typeof WorkbookConnectionAttentionContext>;
     const resolveMain = vi.fn();
     const workbookScripts = {

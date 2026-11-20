@@ -20,6 +20,7 @@ import { StorageProvider } from '../../storage/storage_provider.js';
 
 import { useMergeConnections } from './workbook_connection_merge.js';
 import { TestRuntime } from '../../tests/test_runtime.js';
+import type { ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -42,7 +43,7 @@ function connection(connectionId: string) {
     const database = async (runtime: Runtime) => {
         const state: ConnectionState = await createTestConnection(runtime, {
             connectionId,
-            params: { hyper: { protocol: 'V3_GRPC', endpoint: 'http://hyper' } } as any,
+            params: { hyper: { protocol: 'V3_GRPC', endpoint: 'http://hyper' } } as ConnectionParams,
             channel: { executeQuery: async () => stream, close: vi.fn() },
         });
         expect(state.connectionHealth).toBe(ConnectionHealth.ONLINE);

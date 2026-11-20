@@ -6,7 +6,8 @@ import { WorkbookFeedPage, type WorkbookFeedPageDependencies } from './workbook_
 import { WorkbookViewMode } from '../workbook_view_mode.js';
 import { SegmentedControl } from '@akohn/dashql-react/components/segmented_control';
 import { Button } from '@akohn/dashql-react/components/button';
-import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_state';
+import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
+import type { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { WorkbookConnectionAttentionContext } from '../connections/workbook_connection_attention.js';
 import { FlavorProvider } from '../../config/flavor_provider.js';
 import { DBCOM_FLAVOR } from '../../config/flavors.js';
@@ -14,54 +15,70 @@ import { scriptSelectionOf } from '../scripts/script_selection.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
+/// The props of a component of the dependencies
+type PropsOf<K extends keyof WorkbookFeedPageDependencies> = React.ComponentProps<Extract<WorkbookFeedPageDependencies[K], React.JSXElementConstructor<never>>>;
+/// The execution of the workbook as far as the page reads it, the tests set parts of it
+interface TestExecution {
+    state: { phase: string; completedScripts: number; error: string | null; [field: string]: unknown } | null;
+    busy: boolean;
+    ready?: boolean;
+    runActive?: boolean;
+    start: ReturnType<typeof vi.fn>;
+    stop: ReturnType<typeof vi.fn>;
+}
+
 const state = {
-    feedProps: null as any,
+    feedProps: null as PropsOf<'WorkbookFeed'> | null,
     mode: WorkbookViewMode.Workbook,
     setMode: vi.fn(),
-    dashboardProps: null as any,
-    dataflowProps: null as any,
-    shareProps: null as any,
-    exportProps: null as any,
-    sidebarProps: null as any,
-    attention: null as any,
-    connectionButtonsProps: null as any,
-    execution: { state: null, busy: false, ready: true, start: vi.fn(), stop: vi.fn() } as any,
+    dashboardProps: null as PropsOf<'Dashboard'> | null,
+    dataflowProps: null as PropsOf<'DataflowCanvas'> | null,
+    shareProps: null as PropsOf<'WorkbookURLShareOverlay'> | null,
+    exportProps: null as PropsOf<'WorkbookFileSaveOverlay'> | null,
+    sidebarProps: null as PropsOf<'WorkbookWorkbenchSidebar'> | null,
+    attention: null as React.ContextType<typeof WorkbookConnectionAttentionContext>,
+    connectionButtonsProps: null as PropsOf<'WorkbookConnectionButtons'> | null,
+    execution: { state: null, busy: false, ready: true, start: vi.fn(), stop: vi.fn() } as TestExecution,
 };
+/// A connection as far as the page reads it
+function testConnection(connectionId: string, connectionHealth: ConnectionHealth, queriesActiveOrdered: number[] = []): ConnectionState {
+    return { connectionId, connectionHealth, queriesActiveOrdered } as unknown as ConnectionState;
+}
 const dependencies = {
-    WorkbookFeed: (props: any) => {
+    WorkbookFeed: (props: PropsOf<'WorkbookFeed'>) => {
         state.attention = React.useContext(WorkbookConnectionAttentionContext);
         state.feedProps = props;
         return null;
     },
     ScriptEditorDialog: () => null,
-    WorkbookWorkbenchSidebar: (props: any) => {
+    WorkbookWorkbenchSidebar: (props: PropsOf<'WorkbookWorkbenchSidebar'>) => {
         state.sidebarProps = props;
         return null;
     },
     ConnectionOverviewPage: () => null,
     CloudOverviewPage: () => null,
-    WorkbookStatusBar: (props: any) => <div data-testid="workbook-status-bar" data-variant={props.variant} />,
+    WorkbookStatusBar: (props: PropsOf<'WorkbookStatusBar'>) => <div data-testid="workbook-status-bar" data-variant={props.variant} />,
     WorkbookNavigationDrawer: () => null,
     ThreeBarsIcon: () => null,
-    IconButton: React.forwardRef((props: any, ref: React.ForwardedRef<HTMLButtonElement>) => <button {...props} ref={ref} />),
+    IconButton: React.forwardRef((props: React.ButtonHTMLAttributes<HTMLButtonElement>, ref: React.ForwardedRef<HTMLButtonElement>) => <button {...props} ref={ref} />),
     Button,
-    WorkbookURLShareOverlay: (props: any) => {
+    WorkbookURLShareOverlay: (props: PropsOf<'WorkbookURLShareOverlay'>) => {
         state.shareProps = props;
         return null;
     },
-    WorkbookFileSaveOverlay: (props: any) => {
+    WorkbookFileSaveOverlay: (props: PropsOf<'WorkbookFileSaveOverlay'>) => {
         state.exportProps = props;
         return null;
     },
-    Dashboard: (props: any) => {
+    Dashboard: (props: PropsOf<'Dashboard'>) => {
         state.dashboardProps = props;
         return <div data-testid="dashboard" />;
     },
-    DataflowCanvas: (props: any) => {
+    DataflowCanvas: (props: PropsOf<'DataflowCanvas'>) => {
         state.dataflowProps = props;
         return <div data-testid="dataflow" />;
     },
-    WorkbookConnectionButtons: (props: any) => {
+    WorkbookConnectionButtons: (props: PropsOf<'WorkbookConnectionButtons'>) => {
         state.connectionButtonsProps = props;
         return null;
     },
@@ -89,7 +106,7 @@ function scripts() {
         scriptConnections: ['main'],
         connectionIds: ['main'],
         pendingConnectionId: null,
-    } as any;
+    } as unknown as WorkbookScripts;
 }
 
 describe('WorkbookFeedPage', () => {
@@ -131,29 +148,29 @@ describe('WorkbookFeedPage', () => {
 
     it('starts all scripts when idle', () => {
         const modify = vi.fn();
-        const render = (connection: any) => act(() => root.render(<WorkbookFeedPage
+        const render = (connection: ConnectionState | null) => act(() => root.render(<WorkbookFeedPage
             workbookScripts={scripts()} modifyWorkbookScripts={modify} connection={connection} active dependencies={dependencies} />));
         render(null);
         expect(container.querySelector<HTMLButtonElement>('[data-testid="execute-all"]')?.disabled).toBe(true);
-        render({ connectionId: 'main', connectionHealth: ConnectionHealth.ONLINE, queriesActiveOrdered: [] });
+        render(testConnection('main', ConnectionHealth.ONLINE));
         act(() => container.querySelector<HTMLButtonElement>('[data-testid="execute-all"]')!.click());
         expect(state.execution.start).toHaveBeenCalledWith();
-        render({ connectionId: 'main', connectionHealth: ConnectionHealth.ONLINE, queriesActiveOrdered: [1] });
+        render(testConnection('main', ConnectionHealth.ONLINE, [1]));
         expect(container.querySelector<HTMLButtonElement>('[data-testid="execute-all"]')?.disabled).toBe(true);
         // A connection that is connecting would join a moment later, the run waits for it
-        render({ connectionId: 'main', connectionHealth: ConnectionHealth.CONNECTING, queriesActiveOrdered: [] });
+        render(testConnection('main', ConnectionHealth.CONNECTING));
         expect(container.querySelector<HTMLButtonElement>('[data-testid="execute-all"]')?.disabled).toBe(true);
     });
 
     it('runs while the connections of the scripts are not connected, they serve their cached results', () => {
         const modify = vi.fn();
-        const main = { connectionId: 'main', connectionHealth: ConnectionHealth.ONLINE, queriesActiveOrdered: [] } as any;
-        const lake = { connectionId: 'lake', connectionHealth: ConnectionHealth.NOT_STARTED, queriesActiveOrdered: [] } as any;
-        const unused = { connectionId: 'unused', connectionHealth: ConnectionHealth.NOT_STARTED, queriesActiveOrdered: [] } as any;
+        const main = testConnection('main', ConnectionHealth.ONLINE);
+        const lake = testConnection('lake', ConnectionHealth.NOT_STARTED);
+        const unused = testConnection('unused', ConnectionHealth.NOT_STARTED);
         const workbook = scripts();
         workbook.scriptConnections = ['lake'];
         workbook.connectionIds = ['lake'];
-        const render = (connections: any[]) => act(() => root.render(<WorkbookFeedPage
+        const render = (connections: ConnectionState[]) => act(() => root.render(<WorkbookFeedPage
             workbookScripts={workbook} modifyWorkbookScripts={modify} connection={main}
             scriptConnections={new Map(connections.map(connection => [connection.connectionId, connection]))} active dependencies={dependencies} />));
         // The connection of the composer is online, the script runs on another one
@@ -162,7 +179,7 @@ describe('WorkbookFeedPage', () => {
         expect(button.disabled).toBe(false);
         expect(button.getAttribute('aria-label')).toBe('Execute All');
         // The top bar shows the connections of the workbook only
-        expect(state.connectionButtonsProps.connections).toEqual([lake]);
+        expect(state.connectionButtonsProps?.connections).toEqual([lake]);
         act(() => button.click());
         expect(state.execution.start).toHaveBeenCalledWith();
         // While a script of the workbook runs, the workbook doesn't run
@@ -176,7 +193,7 @@ describe('WorkbookFeedPage', () => {
     });
 
     it('points at the connections once a run skipped the scripts that need them', async () => {
-        const lake = { connectionId: 'lake', connectionHealth: ConnectionHealth.NOT_STARTED, queriesActiveOrdered: [] } as any;
+        const lake = testConnection('lake', ConnectionHealth.NOT_STARTED);
         const workbook = scripts();
         workbook.scriptConnections = ['lake'];
         workbook.connectionIds = ['lake'];
@@ -193,30 +210,30 @@ describe('WorkbookFeedPage', () => {
         // A run that settled before the page mounted points at nothing
         render('succeeded', 2);
         await new Promise(resolve => setTimeout(resolve, 0));
-        expect(state.attention.active).toBe(false);
+        expect(state.attention?.active).toBe(false);
         render('running', 2);
-        expect(state.attention.active).toBe(false);
+        expect(state.attention?.active).toBe(false);
         render('succeeded', 2);
         expect(status().textContent).toContain('3/5 completed · 2 need a connection');
         expect(status().getAttribute('title')).toBe('Need a connection: 2.sql, 3.sql');
         // The request lands with the commit of the settled run, the attention lasts a while
-        await vi.waitFor(() => expect(state.attention.active).toBe(true));
+        await vi.waitFor(() => expect(state.attention?.active).toBe(true));
         // The attention clears once the connection changes its health
         render('succeeded', 2, { ...lake, connectionHealth: ConnectionHealth.CONNECTING });
-        expect(state.attention.active).toBe(false);
+        expect(state.attention?.active).toBe(false);
         // A run that skipped nothing succeeded
         render('succeeded', 0);
         expect(status().textContent).toContain('3/5 succeeded');
     });
 
     it('shows the connection picked for the next script in the top bar without running it', () => {
-        const lake = { connectionId: 'lake', connectionHealth: ConnectionHealth.NOT_STARTED, queriesActiveOrdered: [] } as any;
+        const lake = testConnection('lake', ConnectionHealth.NOT_STARTED);
         // An empty workbook runs nothing yet, the composer drafts its first script on the picked connection
         const workbook = { ...scripts(), scriptRefs: {}, scriptOrder: [], scriptKeys: [], scriptConnections: [], connectionIds: ['lake'], pendingConnectionId: 'lake' };
         act(() => root.render(<WorkbookFeedPage
             workbookScripts={workbook} modifyWorkbookScripts={vi.fn()} connection={lake}
             scriptConnections={new Map([['lake', lake]])} active dependencies={dependencies} />));
-        expect(state.connectionButtonsProps.connections).toEqual([lake]);
+        expect(state.connectionButtonsProps?.connections).toEqual([lake]);
         const button = container.querySelector<HTMLButtonElement>('[data-testid="execute-all"]')!;
         expect(button.disabled).toBe(true);
         expect(button.getAttribute('aria-label')).toBe('Execute All');
@@ -294,14 +311,14 @@ describe('WorkbookFeedPage', () => {
         expect(executeButton.disabled).toBe(false);
         act(() => executeButton.click());
         expect(state.execution.stop).toHaveBeenCalledOnce();
-        state.execution.state.phase = 'stopping';
+        state.execution.state!.phase = 'stopping';
         render();
         expect(status()?.getAttribute('data-phase')).toBe('stopping');
         expect(container.querySelector<HTMLButtonElement>('[data-testid="stop-execution"]')?.disabled).toBe(true);
         expect(container.querySelector('[data-testid="stop-execution"]')).toBe(executeButton);
         state.execution.busy = false;
-        state.execution.state.phase = 'failed';
-        state.execution.state.error = 'Backend failure';
+        state.execution.state!.phase = 'failed';
+        state.execution.state!.error = 'Backend failure';
         render();
         expect(status()?.getAttribute('data-phase')).toBe('failed');
         expect(container.querySelector('[data-testid="stop-execution"]')).toBeNull();
@@ -313,9 +330,9 @@ describe('WorkbookFeedPage', () => {
         expect(details()?.textContent).toContain('3_customers.sql');
         closeDetails();
         expect(details()).toBeNull();
-        state.execution.state.phase = 'succeeded';
-        state.execution.state.completedScripts = 5;
-        state.execution.state.error = null;
+        state.execution.state!.phase = 'succeeded';
+        state.execution.state!.completedScripts = 5;
+        state.execution.state!.error = null;
         render();
         expect(status()?.getAttribute('data-phase')).toBe('succeeded');
         toggleDetails();
@@ -332,14 +349,14 @@ describe('WorkbookFeedPage', () => {
         render();
         const indicator = container.querySelector('[data-testid="execution-indicator"] svg');
         expect(indicator).not.toBeNull();
-        state.execution.state = { ...state.execution.state, completedScripts: 2, completedStatements: 4 };
+        state.execution.state = { ...state.execution.state!, completedScripts: 2, completedStatements: 4 };
         render();
         expect(container.querySelector('[data-testid="execution-indicator"] svg')).toBe(indicator);
     });
 
     it('uses one header for the workbench toggle, view switcher, and workbook actions', () => {
         const workbookScripts = scripts();
-        const connection = { connectionId: 'database' } as any;
+        const connection = { connectionId: 'database' } as ConnectionState;
         act(() => root.render(
             <WorkbookFeedPage
                 workbookScripts={workbookScripts}
@@ -362,12 +379,12 @@ describe('WorkbookFeedPage', () => {
 
         act(() => shareButton.click());
         expect(state.shareProps).toMatchObject({ workbookId: 'workbook', isOpen: true });
-        expect(state.shareProps.anchorRef.current).toBe(shareButton);
+        expect(state.shareProps?.anchorRef?.current).toBe(shareButton);
         expect(shareButton.getAttribute('aria-expanded')).toBe('true');
 
         act(() => exportButton.click());
         expect(state.exportProps).toMatchObject({ workbookScripts, isOpen: true });
-        expect(state.exportProps.anchorRef.current).toBe(exportButton);
+        expect(state.exportProps?.anchorRef?.current).toBe(exportButton);
         expect(exportButton.getAttribute('aria-expanded')).toBe('true');
         // Storage lives in the workbook row menu of the workbench
         expect(header.querySelector('[data-testid="workbook-storage"]')).toBeNull();
@@ -378,7 +395,7 @@ describe('WorkbookFeedPage', () => {
             <WorkbookFeedPage
                 workbookScripts={scripts()}
                 modifyWorkbookScripts={vi.fn()}
-                connection={{ connectionId: 'database' } as any}
+                connection={{ connectionId: 'database' } as ConnectionState}
                 active
                 dependencies={dependencies}
             />,
@@ -387,11 +404,11 @@ describe('WorkbookFeedPage', () => {
         const workbookControls = ['workbook-view-switch', 'execute-all', 'share-url'];
         for (const testId of workbookControls) expect(header.querySelector(`[data-testid="${testId}"]`)).not.toBeNull();
 
-        act(() => state.sidebarProps.onOpenOverview('database'));
+        act(() => state.sidebarProps!.onOpenOverview!('database'));
         for (const testId of workbookControls) expect(header.querySelector(`[data-testid="${testId}"]`)).toBeNull();
         expect(header.querySelector('[data-testid="open-workbench"]')).not.toBeNull();
 
-        act(() => state.sidebarProps.onOpenOverview(null));
+        act(() => state.sidebarProps!.onOpenOverview!(null));
         for (const testId of workbookControls) expect(header.querySelector(`[data-testid="${testId}"]`)).not.toBeNull();
     });
 
@@ -420,7 +437,7 @@ describe('WorkbookFeedPage', () => {
                 <WorkbookFeedPage
                     workbookScripts={scripts()}
                     modifyWorkbookScripts={vi.fn()}
-                    connection={{ connectionId: 'database' } as any}
+                    connection={{ connectionId: 'database' } as ConnectionState}
                     active
                     dependencies={dependencies}
                 />
@@ -465,7 +482,7 @@ describe('WorkbookFeedPage', () => {
 
         expect(container.querySelector('[data-testid="dashboard"]')).not.toBeNull();
         expect(state.dashboardProps).toMatchObject({ workbookScripts, modifyWorkbookScripts });
-        expect(state.feedProps.active).toBe(false);
+        expect(state.feedProps?.active).toBe(false);
         // The bar of Wobble stands alone below the dashboard, the feed has the bar on its prompt
         expect(container.querySelector('[data-testid="workbook-status-bar"]')?.getAttribute('data-variant')).toBe('standalone');
         const buttons = container.querySelectorAll<HTMLButtonElement>('[data-testid="workbook-view-switch"] button');
@@ -488,20 +505,20 @@ describe('WorkbookFeedPage', () => {
         state.mode = WorkbookViewMode.Dataflow;
         const workbookScripts = scripts();
         const modifyWorkbookScripts = vi.fn();
-        const ScriptEditorDialog = vi.fn((_props: any) => <div data-testid="script-editor-dialog" />);
+        const ScriptEditorDialog = vi.fn((_props: PropsOf<'ScriptEditorDialog'>) => <div data-testid="script-editor-dialog" />);
         act(() => root.render(
             <WorkbookFeedPage workbookScripts={workbookScripts} modifyWorkbookScripts={modifyWorkbookScripts} connection={null} active
                 dependencies={{ ...dependencies, ScriptEditorDialog } as unknown as WorkbookFeedPageDependencies} />,
         ));
         expect(container.querySelector('[data-testid="dataflow"]')).not.toBeNull();
         expect(state.dataflowProps).toMatchObject({ workbookScripts, modifyWorkbookScripts });
-        expect(state.feedProps.active).toBe(false);
+        expect(state.feedProps?.active).toBe(false);
         const buttons = container.querySelectorAll<HTMLButtonElement>('[data-testid="workbook-view-switch"] button');
         expect([...buttons].map(viewLabel)).toEqual(['Feed', 'Dashboard', 'Dataflow']);
         expect(buttons[2]?.getAttribute('aria-current')).toBe('true');
 
         expect(container.querySelector('[data-testid="script-editor-dialog"]')).toBeNull();
-        act(() => state.dataflowProps.onInspect(1));
+        act(() => state.dataflowProps!.onInspect!(1));
         expect(container.querySelector('[data-testid="script-editor-dialog"]')).not.toBeNull();
         expect(ScriptEditorDialog.mock.calls[ScriptEditorDialog.mock.calls.length - 1]?.[0].scriptKey).toBe(1);
         // The dialog selects its script, the commands of the workbook run it
@@ -517,7 +534,7 @@ describe('WorkbookFeedPage', () => {
             workbookScripts={{ ...scripts(), workbookId }} modifyWorkbookScripts={vi.fn()} connection={null} active
             dependencies={{ ...dependencies, ScriptEditorDialog } as unknown as WorkbookFeedPageDependencies} />));
         render('workbook');
-        act(() => state.dataflowProps.onInspect(1));
+        act(() => state.dataflowProps!.onInspect!(1));
         expect(container.querySelector('[data-testid="script-editor-dialog"]')).not.toBeNull();
         render('other');
         expect(container.querySelector('[data-testid="script-editor-dialog"]')).toBeNull();
@@ -529,11 +546,11 @@ describe('WorkbookFeedPage', () => {
     it('closes the dataflow editor dialog when its script is gone', () => {
         state.mode = WorkbookViewMode.Dataflow;
         const ScriptEditorDialog = vi.fn(() => <div data-testid="script-editor-dialog" />);
-        const render = (workbookScripts: any) => act(() => root.render(<WorkbookFeedPage
+        const render = (workbookScripts: WorkbookScripts) => act(() => root.render(<WorkbookFeedPage
             workbookScripts={workbookScripts} modifyWorkbookScripts={vi.fn()} connection={null} active
             dependencies={{ ...dependencies, ScriptEditorDialog } as unknown as WorkbookFeedPageDependencies} />));
         render(scripts());
-        act(() => state.dataflowProps.onInspect(1));
+        act(() => state.dataflowProps!.onInspect!(1));
         expect(container.querySelector('[data-testid="script-editor-dialog"]')).not.toBeNull();
         render({ ...scripts(), scriptRefs: {}, scriptOrder: [], scriptKeys: [], scriptConnections: [] });
         expect(container.querySelector('[data-testid="script-editor-dialog"]')).toBeNull();

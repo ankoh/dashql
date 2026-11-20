@@ -232,7 +232,7 @@ class RecordingLogger implements LoggerLike {
     info(message: string, keyValues: Record<string, string | null | undefined>) { this.records.push({ level: 'info', message, keyValues }); }
     warn(message: string, keyValues: Record<string, string | null | undefined>) { this.records.push({ level: 'warn', message, keyValues }); }
     error(message: string, keyValues: Record<string, string | null | undefined>) { this.records.push({ level: 'error', message, keyValues }); }
-    exception(_error: any) { }
+    exception(_error: unknown) { }
 }
 
 describe('shell file registry logging', () => {

@@ -29,6 +29,7 @@ import type { QueryExecutionArgs, QueryExecutor, WatchQueryProfile } from '@akoh
 import { useQuery, useQueryProfileDetail, useRuntime } from '@akohn/dashql-react/hooks';
 import { useQueryModel, type QueryModel } from '@akohn/dashql-react/models/query_model';
 import { TestRuntime } from '../tests/test_runtime.js';
+import type { ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -109,7 +110,7 @@ function createDatabase(executeQuery: unknown): (runtime: Runtime) => Promise<vo
     return async runtime => {
         const state = await createTestConnection(runtime, {
             connectionId: CONNECTION_ID,
-            params: { hyper: { protocol: 'V3_GRPC', endpoint: 'http://hyper' } } as any,
+            params: { hyper: { protocol: 'V3_GRPC', endpoint: 'http://hyper' } } as ConnectionParams,
             channel: { executeQuery, close: vi.fn() },
         });
         expect(state.connectionHealth).toBe(ConnectionHealth.ONLINE);

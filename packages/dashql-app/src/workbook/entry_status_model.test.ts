@@ -36,7 +36,7 @@ describe('getQueryStatusText', () => {
             },
             metrics: null,
             traceId: 42,
-        } as any);
+        } as unknown as QueryExecutionState);
 
         expect(status.message).toBe('relation does not exist');
         expect(status.errorDetail).toEqual({
@@ -59,7 +59,7 @@ describe('getQueryStatusText', () => {
             error: { message: 'connection lost', details: null },
             metrics: null,
             traceId: 42,
-        } as any);
+        } as unknown as QueryExecutionState);
 
         expect(status.errorDetail).toEqual({
             status: 'failed',

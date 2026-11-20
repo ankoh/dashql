@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { HttpWorkbookLoadResult } from './http_workbook_bundle.js';
 import { WorkbookImportCard, type WorkbookImportCardDependencies } from './workbook_import_card.js';
 import { testImportPreview } from './import_test_sources.js';
+import type { ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -18,7 +19,7 @@ const RESULT: HttpWorkbookLoadResult = {
         formatVersion: 11,
         workbookId: '11111111-2222-4333-8444-555555555555',
         name: 'Flat workbook',
-        connections: [{ connectionId: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee', params: { hyper: {} } as any }],
+        connections: [{ connectionId: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee', params: { hyper: {} } as ConnectionParams }],
         scripts: [{ name: '01_query.sql', connectionId: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee' }],
         attachments: [],
         metadata: { originType: 'HTTP', originalHttpUrl: 'https://example.com/dashql-workbook.json' },

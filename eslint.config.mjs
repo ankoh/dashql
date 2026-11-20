@@ -87,13 +87,7 @@ export default defineConfig(
     },
     {
         // The packages without explicit any, until all of them are
-        files: ['packages/dashql/**', 'packages/dashql-react/**', 'packages/dashql-slack/**'],
-        rules: { '@typescript-eslint/no-explicit-any': 'error' },
-    },
-    {
-        // The app without its tests
-        files: ['packages/dashql-app/**'],
-        ignores: ['**/*.test.ts', '**/*.test.tsx'],
+        files: ['packages/dashql/**', 'packages/dashql-app/**', 'packages/dashql-react/**', 'packages/dashql-slack/**'],
         rules: { '@typescript-eslint/no-explicit-any': 'error' },
     },
     {

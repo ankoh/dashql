@@ -9,7 +9,7 @@ describe('NativeHttpClient', () => {
     const logger = new TestLogger();
     const client = new NativeHttpClient({ proxyEndpoint: new URL('dashql-native://localhost') }, logger);
 
-    afterEach(() => { delete (globalThis as any).dashqlElectron; });
+    afterEach(() => { delete (globalThis as { dashqlElectron?: unknown }).dashqlElectron; });
 
     const setProxyResponses = (...responses: Response[]) => installNativeProxy(responses);
 

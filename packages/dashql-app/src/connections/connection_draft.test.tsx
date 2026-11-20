@@ -115,7 +115,7 @@ describe('durable connection drafts', () => {
             appRuntime = useRuntime();
             dispatch = useDispatch({ connection: TEST_CONNECTION_ID });
             [form, edit] = useConnectionDraftForm(TEST_CONNECTION_ID,
-                params => buildHyperConnectionPageState(params && 'hyper' in params ? params.hyper as any : undefined),
+                params => buildHyperConnectionPageState(params && 'hyper' in params ? params.hyper as Parameters<typeof buildHyperConnectionPageState>[0] : undefined),
                 value => ({ hyper: { ...buildHyperConnectionSetupParams(value), draftRows: { metadata: value.gRPCMetadata, queryParameters: value.queryParameters } } }));
             writer = useRuntime().storage;
             return null;

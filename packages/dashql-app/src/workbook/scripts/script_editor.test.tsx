@@ -6,15 +6,16 @@ import { EditorState } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 import { DashQLProcessorPlugin } from '../editor/dashql_processor.js';
 import { ScriptEditor, type ScriptEditorDependencies } from './script_editor.js';
+import type { CodeMirrorProps } from '../editor/codemirror.js';
 import { RuntimeContextProvider } from '@akohn/dashql-react/hooks';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
-const state = { codeMirrorProps: null as any };
+const state: { codeMirrorProps: CodeMirrorProps | null } = { codeMirrorProps: null };
 const dependencies = {
     createCodeMirrorExtensions: () => [],
-    CodeMirror: React.forwardRef((props: any, _ref) => {
+    CodeMirror: React.forwardRef((props: CodeMirrorProps, _ref) => {
         state.codeMirrorProps = props;
         return <div data-testid="codemirror" />;
     }),
@@ -55,8 +56,8 @@ describe('ScriptEditor', () => {
     it('seeds CodeMirror with the loaded script before its first layout', () => {
         act(() => root.render(<ScriptEditor workbookId="workbook" scriptKey={7} autoHeight dependencies={dependencies} />));
 
-        expect(state.codeMirrorProps.initialDoc).toBe('SELECT\n    1;');
-        expect(state.codeMirrorProps.style).toEqual({ height: 'auto' });
+        expect(state.codeMirrorProps?.initialDoc).toBe('SELECT\n    1;');
+        expect(state.codeMirrorProps?.style).toEqual({ height: 'auto' });
     });
 
     it('tells the runtime which script it shows, the runtime analyzes it when it is outdated', () => {
@@ -82,7 +83,7 @@ describe('ScriptEditor', () => {
         const realViewDependencies = {
             ...dependencies,
             createCodeMirrorExtensions: () => [DashQLProcessorPlugin],
-            CodeMirror: React.forwardRef<EditorView, any>((props, ref) => {
+            CodeMirror: React.forwardRef<EditorView, CodeMirrorProps>((props, ref) => {
                 const [node, setNode] = React.useState<HTMLDivElement | null>(null);
                 const createView = React.useEffectEvent((node: HTMLDivElement) => {
                     const view = new EditorView({

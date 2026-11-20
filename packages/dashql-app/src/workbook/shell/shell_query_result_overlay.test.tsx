@@ -12,6 +12,9 @@ import {
     ShellQueryResultOverlay,
     type ShellQueryResultOverlayDependencies,
 } from './shell_query_result_overlay.js';
+
+/// A query of the overlay, the tests set the fields that it reads
+type OverlayQuery = React.ComponentProps<typeof ShellQueryResultOverlay>['query'];
 import { tableFromArrays } from '@akohn/dashql/platform/testing/arrow_fixtures';
 import { queryModelOf, resultTableOf, WithResultTables } from '../../tests/result_tables.js';
 
@@ -78,7 +81,7 @@ describe('ShellQueryResultOverlay', () => {
             <>
                 <span data-testid="sibling" />
                 <WithResultTables><ShellQueryResultOverlay
-                    query={{ queryId: 42, status: QueryExecutionStatus.SUCCEEDED } as any}
+                    query={{ queryId: 42, status: QueryExecutionStatus.SUCCEEDED } as unknown as OverlayQuery}
                     onClose={onClose}
                     onError={onError}
                     dependencies={{ ...dependencies, QueryResultDetails: () => { throw error; } }}
@@ -96,7 +99,7 @@ describe('ShellQueryResultOverlay', () => {
         const onClose = vi.fn();
         act(() => root.render(
             <WithResultTables><ShellQueryResultOverlay
-                query={{ queryId: 42, status: QueryExecutionStatus.SUCCEEDED } as any}
+                query={{ queryId: 42, status: QueryExecutionStatus.SUCCEEDED } as unknown as OverlayQuery}
                 onClose={onClose}
                 dismissOnClickOutside={false}
                 dependencies={dependencies}
@@ -113,7 +116,7 @@ describe('ShellQueryResultOverlay', () => {
         const onClose = vi.fn();
         act(() => root.render(
             <WithResultTables><ShellQueryResultOverlay
-                query={{ queryId: 42, status: QueryExecutionStatus.SUCCEEDED } as any}
+                query={{ queryId: 42, status: QueryExecutionStatus.SUCCEEDED } as unknown as OverlayQuery}
                 onClose={onClose}
                 dependencies={dependencies}
             /></WithResultTables>,
@@ -127,7 +130,7 @@ describe('ShellQueryResultOverlay', () => {
     it('initially focuses the dialog rather than its close button', () => {
         act(() => root.render(
             <WithResultTables><ShellQueryResultOverlay
-                query={{ queryId: 42, status: QueryExecutionStatus.SUCCEEDED } as any}
+                query={{ queryId: 42, status: QueryExecutionStatus.SUCCEEDED } as unknown as OverlayQuery}
                 onClose={vi.fn()}
                 dependencies={dependencies}
             /></WithResultTables>,
@@ -144,7 +147,7 @@ describe('ShellQueryResultOverlay', () => {
                     queryId: 42,
                     status: QueryExecutionStatus.SUCCEEDED,
                     resultTable: resultTableOf(tableFromArrays({ value: [plan] })),
-                } as any}
+                } as unknown as OverlayQuery}
                 onClose={vi.fn()}
                 dependencies={dependencies}
             /></WithResultTables>,
@@ -180,7 +183,7 @@ describe('ShellQueryResultOverlay', () => {
                     queryId: 42,
                     status: QueryExecutionStatus.SUCCEEDED,
                     resultTable: resultTableOf(tableFromArrays({ value: ['{"key":1}'] })),
-                } as any}
+                } as unknown as OverlayQuery}
                 onClose={vi.fn()}
                 dependencies={dependencies}
             /></WithResultTables>,
@@ -200,7 +203,7 @@ describe('ShellQueryResultOverlay', () => {
                     queryId: 42,
                     status: QueryExecutionStatus.SUCCEEDED,
                     resultTable: resultTableOf(tableFromArrays({ value: [plan] })),
-                } as any}
+                } as unknown as OverlayQuery}
                 onClose={vi.fn()}
                 dependencies={dependencies}
             /></WithResultTables>,
@@ -239,7 +242,7 @@ describe('ShellQueryResultOverlay', () => {
                     queryId: 42,
                     status: QueryExecutionStatus.SUCCEEDED,
                     resultTable: resultTableOf(tableFromArrays({ value: [plan] })),
-                } as any}
+                } as unknown as OverlayQuery}
                 onClose={vi.fn()}
                 dependencies={dependencies}
             /></WithResultTables>,

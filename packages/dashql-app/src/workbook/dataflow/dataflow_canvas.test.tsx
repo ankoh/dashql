@@ -32,9 +32,9 @@ const dependencies: DataflowCanvasDependencies = {
     VisualizationPanel: () => <div data-testid="chart" />,
     useDataflowModule: () => ({ layout, error: null }),
     // The header of the feed entry needs the connections and the storage of the app
-    ScriptEntryHeader: ((props: any) => (
+    ScriptEntryHeader: ((props: React.ComponentProps<DataflowCanvasDependencies['ScriptEntryHeader']>) => (
         <div data-testid="entry-header" data-script={props.scriptKey}>
-            <button data-testid="script-delete" onClick={() => props.onDelete(scripts[props.scriptKey])} />
+            <button data-testid="script-delete" onClick={() => props.onDelete!(scripts[props.scriptKey])} />
             {props.onEdit != null && <button data-testid="script-edit" onClick={props.onEdit} />}
         </div>
     )) as unknown as DataflowCanvasDependencies['ScriptEntryHeader'],

@@ -9,6 +9,7 @@ import { createDefaultConnectionParamsForConnector } from '@akohn/dashql/platfor
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { CONNECTOR_INFOS, CONNECTOR_TYPES, ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { ConnectionRowMenu, type ConnectionRefreshDependencies } from './connection_tree.js';
+import type { ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 let dql: core.DashQL;
@@ -16,16 +17,16 @@ beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQ
 
 vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
 
-const grpc = (endpoint: string, token?: string) => ({ hyper: { protocol: 'V3_GRPC', endpoint, ...(token ? { metadata: { auth: token } } : {}) } }) as any;
-const trino = (endpoint: string) => ({ trino: { endpoint } }) as any;
+const grpc = (endpoint: string, token?: string) => ({ hyper: { protocol: 'V3_GRPC', endpoint, ...(token ? { metadata: { auth: token } } : {}) } }) as ConnectionParams;
+const trino = (endpoint: string) => ({ trino: { endpoint } }) as ConnectionParams;
 /// The embedded database as exported workbooks store it
 const wasm = () => ({ hyper: {
     protocol: 'WASM', endpoint: '', tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' },
     attachedDatabases: [], metadata: {}, queryParameters: {},
-} }) as any;
+} }) as ConnectionParams;
 
 /// A connection as far as the merge looks at it
-function database(connectionId: string, params: any, health = ConnectionHealth.NOT_STARTED, active = true): ConnectionState {
+function database(connectionId: string, params: ConnectionParams, health = ConnectionHealth.NOT_STARTED, active = true): ConnectionState {
     const connectorType = 'hyper' in params ? ConnectorType.HYPER : ConnectorType.TRINO;
     return {
         connectionId,

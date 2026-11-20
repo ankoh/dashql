@@ -120,7 +120,7 @@ describe('FeedEntryFooter', () => {
     });
 
     it('offers the chart as PNG in the visualization header', () => {
-        const vegaLiteSpec = { mark: 'bar', encoding: { x: { field: 'value', type: 'ordinal' } } } as any;
+        const vegaLiteSpec = { mark: 'bar', encoding: { x: { field: 'value', type: 'ordinal' } } } as Extract<ResolvedVisualizeQuery, { renderer: 'vegalite' }>['vegaLiteSpec'];
         renderFooter(tableFromArrays({ value: [10, 20, 30] }), { renderer: 'vegalite', sql: 'select 1', statementId: 0, vegaLiteSpec });
         expect(container.querySelector('[data-testid="download-query-result"]')).toBeNull();
         expect(container.querySelector<HTMLButtonElement>('[data-testid="download-chart-png"]')?.disabled).toBe(false);
@@ -131,7 +131,7 @@ describe('FeedEntryFooter', () => {
         renderFooter(resultTable);
         expect(container.querySelector('[data-testid="download-query-result"]')).not.toBeNull();
 
-        const vegaLiteSpec = { mark: 'bar', encoding: { x: { field: 'value', type: 'ordinal' } } } as any;
+        const vegaLiteSpec = { mark: 'bar', encoding: { x: { field: 'value', type: 'ordinal' } } } as Extract<ResolvedVisualizeQuery, { renderer: 'vegalite' }>['vegaLiteSpec'];
         renderFooter(resultTable, { renderer: 'vegalite', sql: 'select 1', statementId: 0, vegaLiteSpec });
 
         // The tab switches in an effect
@@ -140,7 +140,7 @@ describe('FeedEntryFooter', () => {
     });
 
     it('lists the usable tabs and switches the panel from the tab strip', () => {
-        const vegaLiteSpec = { mark: 'bar', encoding: { x: { field: 'value', type: 'ordinal' } } } as any;
+        const vegaLiteSpec = { mark: 'bar', encoding: { x: { field: 'value', type: 'ordinal' } } } as Extract<ResolvedVisualizeQuery, { renderer: 'vegalite' }>['vegaLiteSpec'];
         renderFooter(tableFromArrays({ value: [10, 20, 30] }), { renderer: 'vegalite', sql: 'select 1', statementId: 0, vegaLiteSpec });
         const tabs = Array.from(container.querySelectorAll<HTMLButtonElement>('[role="tab"]'));
         expect(tabs.map(tab => tab.getAttribute('aria-label'))).toEqual(['Execution log', 'Query results', 'Visualization']);

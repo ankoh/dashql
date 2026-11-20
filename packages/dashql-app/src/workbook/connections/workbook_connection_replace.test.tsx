@@ -17,7 +17,7 @@ import { StorageProvider } from '../../storage/storage_provider.js';
 import type { StorageCommands } from '@akohn/dashql/runtime/runtime_storage';
 import type { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import * as core from '@akohn/dashql';
-import { newConnectionFromParams } from '@akohn/dashql/platform/connections/connection_params';
+import { newConnectionFromParams, type ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
 import { useReplaceConnection } from './workbook_connection_replace.js';
 import { TestRuntime } from '../../tests/test_runtime.js';
 
@@ -29,11 +29,11 @@ beforeAll(async () => { await core.DashQL.create({ wasmBinary: await DASHQL_PREC
 
 const WORKBOOK_ID = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
 
-const SOURCE_PARAMS = { trino: { endpoint: 'http://old' } } as any;
-const TARGET_PARAMS = { trino: { endpoint: 'http://new' } } as any;
+const SOURCE_PARAMS = { trino: { endpoint: 'http://old' } } as ConnectionParams;
+const TARGET_PARAMS = { trino: { endpoint: 'http://new' } } as ConnectionParams;
 
 /// A Trino connection without a channel in the runtime of the test
-function connection(runtime: Runtime, connectionId: string, params: any): ConnectionState {
+function connection(runtime: Runtime, connectionId: string, params: ConnectionParams): ConnectionState {
     const state = runtime.createConnection(newConnectionFromParams(params, { active: true }), connectionId);
     expect(state.connectionHealth).toBe(ConnectionHealth.NOT_STARTED);
     return state;

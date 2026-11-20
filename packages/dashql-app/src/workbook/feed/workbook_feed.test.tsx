@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { act } from '@akohn/dashql-react/testing/react_act';
 import { createRoot, type Root } from 'react-dom/client';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 import * as dashql from '@akohn/dashql';
 import { ScriptFeedRow, type ScriptFeedRowDependencies } from './workbook_feed_row.js';
 import type { ScriptCardProps } from './script_card.js';
@@ -9,8 +9,10 @@ import { fakeScript, fakeScriptModel } from '@akohn/dashql-react/testing/fake_mo
 import type { ScriptModel } from '@akohn/dashql-react/models/script_model';
 import { ResizeObserverMock } from '@akohn/dashql-react/testing/resize_observer_mock';
 import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
-import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_state';
+import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { WorkbookConnectionAttentionContext } from '../connections/workbook_connection_attention.js';
+
+type Attention = NonNullable<React.ContextType<typeof WorkbookConnectionAttentionContext>>;
 import { WorkbookReadOnlyContext } from '../workbook_read_only.js';
 import { WorkbookDataCard, type WorkbookDataCardProps } from './workbook_data_card.js';
 import { LoggerProvider } from '../../host/logger_provider.js';
@@ -21,11 +23,12 @@ import { WorkbookComposerVariant, type WorkbookComposerProps } from './workbook_
 import type { AgentSession, AgentSessionArgs, AgentTurn } from '../../agent/agent_session.js';
 import { ComposerMode } from '../../agent/agent_connect.js';
 import type { AgentConnect } from '../../agent/agent_session_provider.js';
-import type { ScriptData, ScriptDataMap, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
+import type { ModifyWorkbookScripts, ScriptData, ScriptDataMap, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
+import type { EditorView } from '@codemirror/view';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
-const state = { sortableTransform: null as any, scripts: {} as { [key: number]: ScriptData } };
+const state = { sortableTransform: null as { x: number; y: number; scaleX: number; scaleY: number } | null, scripts: {} as { [key: number]: ScriptData } };
 const scriptModels = new WeakMap<ScriptData, ScriptModel>();
 // The row connects a card, the tests of the card are in script_card.test.tsx
 const dependencies: ScriptFeedRowDependencies = {
@@ -71,7 +74,7 @@ function baseProps() {
 /// Render a row of the feed over fake models of its scripts
 function renderRow(root: Root, props: ReturnType<typeof baseProps>, wrap: (row: React.ReactElement) => React.ReactElement = row => row) {
     state.scripts = props.scripts;
-    act(() => root.render(wrap(<ScriptFeedRow {...({ ...props, index: 0, style: {} } as any)} />)));
+    act(() => root.render(wrap(<ScriptFeedRow {...({ ...props, index: 0, style: {} } as unknown as React.ComponentProps<typeof ScriptFeedRow>)} />)));
 }
 
 describe('V2 workbook feed rows', () => {
@@ -84,14 +87,14 @@ describe('V2 workbook feed rows', () => {
         const workbookId = '12345678-1234-1234-1234-123456789abc';
         const props: WorkbookDataCardProps = {
             workbookId, attachment: { fileName: 'sales 2.parquet', name: 'sales 2', sizeBytes: 42 },
-            conn: null, storageReader: { backend: new WorkbookTestBackend() } as any, onRemoved: vi.fn(),
+            conn: null, storageReader: { backend: new WorkbookTestBackend() } as unknown as WorkbookDataCardProps['storageReader'], onRemoved: vi.fn(),
         };
         for (const conn of [null,
             { connectorType: ConnectorType.HYPER, details: { setupParams: { protocol: 'V3_HTTP' }, channel: null, connector: { kind: 'hyper' } } },
             { connectorType: ConnectorType.TRINO, details: { setupParams: null, channel: null, connector: { kind: 'trino' } } },
         ]) {
             act(() => root.render(<LoggerProvider>
-                <WorkbookDataCard {...props} conn={conn as any} />
+                <WorkbookDataCard {...props} conn={conn as unknown as WorkbookDataCardProps['conn']} />
             </LoggerProvider>));
             expect(container.textContent).toContain('sales 2.parquet');
             expect(container.querySelector('[data-testid="data-file-type"]')?.textContent).toContain('PARQUET');
@@ -109,10 +112,10 @@ describe('V2 workbook feed rows', () => {
     it('mentions and renames the table parameter of a Parquet attachment and flags a script of the same name', async () => {
         const onMention = vi.fn();
         const onRename = vi.fn();
-        const wasm = { connectorType: ConnectorType.HYPER, readsAttachments: true, details: { setupParams: { protocol: 'WASM' }, channel: null, connector: { kind: 'hyper' } } } as any;
+        const wasm = { connectorType: ConnectorType.HYPER, readsAttachments: true, details: { setupParams: { protocol: 'WASM' }, channel: null, connector: { kind: 'hyper' } } } as unknown as WorkbookDataCardProps['conn'];
         act(() => root.render(<LoggerProvider>
             <WorkbookDataCard workbookId="workbook" attachment={{ fileName: 'sales.parquet', name: 'sales', sizeBytes: 3 }} conn={wasm}
-                storageReader={{ backend: new WorkbookTestBackend() } as any} onRemoved={vi.fn()} onMention={onMention} onRename={onRename} collides />
+                storageReader={{ backend: new WorkbookTestBackend() } as unknown as WorkbookDataCardProps['storageReader']} onRemoved={vi.fn()} onMention={onMention} onRename={onRename} collides />
         </LoggerProvider>));
         const tag = container.querySelector<HTMLButtonElement>('[data-testid="script-mention"]')!;
         expect(tag.textContent).toBe(':sales');
@@ -141,8 +144,8 @@ describe('V2 workbook feed rows', () => {
             act(() => root.render(<LoggerProvider>
                 <HostProvider value={{ setupCore: null, downloadFile: download }}>
                     <WorkbookDataCard workbookId="workbook" attachment={{ fileName: 'sales.parquet', name: 'sales', sizeBytes: 3 }}
-                        conn={{ connectorType: ConnectorType.HYPER, readsAttachments: true, details: { setupParams: { protocol: 'WASM' }, channel: null, connector: { kind: 'hyper' } } } as any}
-                        storageReader={{ backend } as any} onRemoved={onRemoved} />
+                        conn={{ connectorType: ConnectorType.HYPER, readsAttachments: true, details: { setupParams: { protocol: 'WASM' }, channel: null, connector: { kind: 'hyper' } } } as unknown as WorkbookDataCardProps['conn']}
+                        storageReader={{ backend } as unknown as WorkbookDataCardProps['storageReader']} onRemoved={onRemoved} />
                 </HostProvider>
             </LoggerProvider>));
             const downloadButton = container.querySelector<HTMLButtonElement>('[data-testid="data-file-download"]');
@@ -242,8 +245,10 @@ describe('V2 workbook feed rows', () => {
 });
 
 describe('Workbook feed composer', () => {
+    /// The props of a row of the feed
+    type RowProps = React.ComponentProps<WorkbookFeedDependencies['ScriptFeedRow']>;
     const feedState = {
-        keyHandlers: [] as any[],
+        keyHandlers: [] as Parameters<WorkbookFeedDependencies['useKeyEvents']>[0],
         composerProps: null as WorkbookComposerProps | null,
         /// The props of the bar of Wobble above the composer, null while the feed shows none
         barProps: null as React.ComponentProps<WorkbookFeedDependencies['WorkbookStatusBar']> | null,
@@ -258,13 +263,13 @@ describe('Workbook feed composer', () => {
         connect: null as AgentConnect | null,
         sessionArgs: null as AgentSessionArgs | null,
         submit: vi.fn(),
-        view: null as any,
-        rowProps: null as any,
+        view: null as ReturnType<typeof fakeView> | null,
+        rowProps: null as RowProps | null,
         /// The heights of the text and the results of the scripts that the rows lay out
         rowLayouts: new Map<number, { text: number; result: number }>(),
     };
     // Stable like the storage contexts
-    const storageReader = { backend: {} } as any;
+    const storageReader = { backend: {} } as unknown as ReturnType<WorkbookFeedDependencies['useStorageReader']>;
     const attachmentCommands = {
         attachFiles: vi.fn(async (_workbookId: string, files: readonly { name: string }[]) => ({ attached: files.map(file => ({ name: file.name, fileName: file.name })), refused: [] as string[] })),
         refreshAttachments: vi.fn(async () => {}),
@@ -274,20 +279,21 @@ describe('Workbook feed composer', () => {
         useAttachmentCommands: () => attachmentCommands,
         usePickScriptConnection: () => vi.fn(),
         usePickPendingConnection: () => vi.fn(),
-        useKeyEvents: (handlers: any[]) => { feedState.keyHandlers = handlers; },
+        useKeyEvents: handlers => { feedState.keyHandlers = handlers; },
         useScriptRun: () => feedState.runScript,
         useWorkbookScriptMap: () => feedState.scripts,
         useWorkbookDerived: () => null,
         useLiveWorkbookReader: () => () => feedState.next,
         useLiveScriptReader: () => (key: number) => feedState.next?.scripts[key] ?? null,
-        useComposerCore: () => ({ instance: {} as any, catalog: {} as any, tableParameters: { attach: () => false }, connectorType: ConnectorType.HYPER }),
+        useComposerCore: () => ({ instance: {}, catalog: {}, tableParameters: { attach: () => false }, connectorType: ConnectorType.HYPER }) as unknown as ReturnType<WorkbookFeedDependencies['useComposerCore']>,
         useAgentSession: (args: AgentSessionArgs) => { feedState.sessionArgs = args; return feedState.session; },
         useAgentConnect: () => feedState.connect,
         WorkbookComposer: (props: WorkbookComposerProps) => {
             feedState.composerProps = props;
             if (props.submitRef) props.submitRef.current = feedState.submit;
             const { setView } = props;
-            React.useEffect(() => setView?.(feedState.view), [setView]);
+            // The composer reads the text, the focus and the dispatch of the view
+            React.useEffect(() => setView?.(feedState.view as unknown as EditorView | null), [setView]);
             return <div data-testid="composer">{props.bar}</div>;
         },
         WorkbookStatusBar: (props) => {
@@ -300,7 +306,7 @@ describe('Workbook feed composer', () => {
             }, []);
             return <div data-testid="workbook-status-bar" />;
         },
-        ScriptFeedRow: (props: any) => {
+        ScriptFeedRow: (props: RowProps) => {
             feedState.rowProps = props;
             const entry = props.entries[props.index];
             const layout = entry != null ? feedState.rowLayouts.get(entry.scriptId) : undefined;
@@ -319,7 +325,7 @@ describe('Workbook feed composer', () => {
         connectionId: 'database', connectionHealth: ConnectionHealth.ONLINE,
         connectorType: ConnectorType.HYPER, label: { name: 'Hyper', connector: 'Hyper', detail: 'Wasm', text: 'Hyper Wasm' },
         details: { setupParams: null, channel: null, connector: { kind: 'hyper' } },
-    } as any;
+    } as unknown as ConnectionState;
 
     /// A workbook of scripts on the connection `database`, with its scripts by key
     function workbook(fileNames: string[] = []): WorkbookScripts & { scripts: ScriptDataMap } {
@@ -330,7 +336,7 @@ describe('Workbook feed composer', () => {
             scriptRefs[fileName] = { scriptId: i + 1, fileName };
         });
         return {
-            workbookId: 'workbook', name: null, workbookMetadata: {} as any, pendingConnectionId: 'database', nextScriptConnectionId: 'database',
+            workbookId: 'workbook', name: null, workbookMetadata: {}, pendingConnectionId: 'database', nextScriptConnectionId: 'database',
             scriptKeys: fileNames.map((_, i) => i + 1), scriptConnections: fileNames.map(() => 'database'), connectionIds: ['database'],
             scripts, scriptRefs, scriptOrder: [...fileNames],
         } as unknown as WorkbookScripts & { scripts: ScriptDataMap };
@@ -350,7 +356,8 @@ describe('Workbook feed composer', () => {
 
     let container: HTMLDivElement;
     let root: Root;
-    let attention: { workbookId: string; active: boolean; request: ReturnType<typeof vi.fn> };
+    // The attention of the connections that the tests read, its request is a mock
+    let attention: Attention & { request: Mock<Attention['request']> };
     beforeEach(() => {
         feedState.keyHandlers = [];
         feedState.composerProps = null;
@@ -365,17 +372,17 @@ describe('Workbook feed composer', () => {
         feedState.scripts = {};
         feedState.next = null;
         feedState.view = fakeView('');
-        attention = { workbookId: 'workbook', active: false, request: vi.fn() };
+        attention = { workbookId: 'workbook', active: false, request: vi.fn<Attention['request']>() };
         container = document.createElement('div');
         document.body.appendChild(container);
         root = createRoot(container);
     });
     afterEach(() => { act(() => root.unmount()); container.remove(); });
 
-    function render(workbookScripts: WorkbookScripts & { scripts: ScriptDataMap }, modifyWorkbookScripts: any, conn: any = onlineConn, scriptConnections?: Map<string, any>) {
+    function render(workbookScripts: WorkbookScripts & { scripts: ScriptDataMap }, modifyWorkbookScripts: ModifyWorkbookScripts, conn: ConnectionState | null = onlineConn, scriptConnections?: Map<string, ConnectionState>) {
         feedState.scripts = workbookScripts.scripts;
         act(() => root.render(<LoggerProvider>
-            <WorkbookConnectionAttentionContext.Provider value={attention as any}>
+            <WorkbookConnectionAttentionContext.Provider value={attention}>
                 <WorkbookFeed workbookScripts={workbookScripts} modifyWorkbookScripts={modifyWorkbookScripts}
                     conn={conn} scriptConnections={scriptConnections} active={true} dependencies={feedDependencies} />
             </WorkbookConnectionAttentionContext.Provider>
@@ -437,14 +444,14 @@ describe('Workbook feed composer', () => {
     it('sends the draft on Ctrl+E only while the composer has focus', async () => {
         feedState.view = fakeView('select 2', false);
         render(workbook(['1_alpha.sql']), vi.fn());
-        const handler = feedState.keyHandlers.find(h => h.key === 'e' && h.ctrlKey && h.capture);
+        const handler = feedState.keyHandlers.find(h => h.key === 'e' && h.ctrlKey && h.capture)!;
         const event = { preventDefault: vi.fn(), stopPropagation: vi.fn() };
-        handler.callback(event);
+        handler.callback(event as unknown as KeyboardEvent);
         expect(event.stopPropagation).not.toHaveBeenCalled();
         expect(feedState.submit).not.toHaveBeenCalled();
 
-        feedState.view.hasFocus = true;
-        await act(async () => handler.callback(event));
+        feedState.view!.hasFocus = true;
+        await act(async () => handler.callback(event as unknown as KeyboardEvent));
         expect(event.stopPropagation).toHaveBeenCalledOnce();
         expect(feedState.submit).toHaveBeenCalledOnce();
     });
@@ -542,17 +549,17 @@ describe('Workbook feed composer', () => {
 
     it('keeps the rows in view in place when a row above the viewport changes its height', () => {
         render(workbook(['1_alpha.sql', '2_beta.sql', '3_gamma.sql']), vi.fn());
-        for (let i = 0; i < 3; ++i) act(() => feedState.rowProps.onRowHeightChange(i, 200));
+        for (let i = 0; i < 3; ++i) act(() => feedState.rowProps!.onRowHeightChange(i, 200));
         const list = container.querySelector<HTMLElement>('[data-testid="feed-list"] [role="list"]')!;
         // Scrolled into the second script
         Object.defineProperty(list, 'scrollTop', { value: 300, writable: true, configurable: true });
 
-        act(() => feedState.rowProps.onRowHeightChange(0, 285));
+        act(() => feedState.rowProps!.onRowHeightChange(0, 285));
         expect(list.scrollTop).toBe(385);
 
         // The script at the top of the viewport and the script below it move only the rows below them
-        act(() => feedState.rowProps.onRowHeightChange(1, 300));
-        act(() => feedState.rowProps.onRowHeightChange(2, 300));
+        act(() => feedState.rowProps!.onRowHeightChange(1, 300));
+        act(() => feedState.rowProps!.onRowHeightChange(2, 300));
         expect(list.scrollTop).toBe(385);
     });
 
@@ -570,10 +577,10 @@ describe('Workbook feed composer', () => {
             feedState.next = created;
             const modify = vi.fn(() => APPLIED);
             render(before, modify);
-            for (let i = 0; i < 3; ++i) act(() => feedState.rowProps.onRowHeightChange(i, 200));
+            for (let i = 0; i < 3; ++i) act(() => feedState.rowProps!.onRowHeightChange(i, 200));
             scrollTo.mockClear();
 
-            act(() => feedState.rowProps.feed.create(2));
+            act(() => feedState.rowProps!.feed.create(2));
             expect(modify).toHaveBeenCalledExactlyOnceWith({ kind: 'createScript', value: expect.objectContaining({ index: 2 }) });
             render(created, modify);
             await vi.waitFor(() => expect(scrollTo).toHaveBeenCalled());
@@ -588,13 +595,13 @@ describe('Workbook feed composer', () => {
         const clientHeight = vi.spyOn(Element.prototype, 'clientHeight', 'get').mockReturnValue(1000);
         try {
             // A row remembers the script that it mounted with
-            const ScriptFeedRow = (props: any) => {
+            const ScriptFeedRow = (props: RowProps) => {
                 const [mountedScriptId] = React.useState(() => props.entries[props.index]?.scriptId);
                 return <div style={props.style} data-testid="row" data-script-key={props.entries[props.index]?.scriptId}
                     data-mounted-script-key={mountedScriptId} />;
             };
             const renderFeed = (workbookScripts: WorkbookScripts & { scripts: ScriptDataMap }) => act(() => root.render(<LoggerProvider>
-                <WorkbookConnectionAttentionContext.Provider value={attention as any}>
+                <WorkbookConnectionAttentionContext.Provider value={attention}>
                     <WorkbookFeed workbookScripts={workbookScripts} modifyWorkbookScripts={vi.fn()} conn={onlineConn}
                         active={true} dependencies={{ ...feedDependencies, ScriptFeedRow }} />
                 </WorkbookConnectionAttentionContext.Provider>
@@ -625,8 +632,8 @@ describe('Workbook feed composer', () => {
         const lastTop = () => (scrollTo.mock.lastCall?.[0] as ScrollToOptions | undefined)?.top;
         try {
             render(workbook(['1_alpha.sql', '2_beta.sql']), vi.fn());
-            act(() => feedState.rowProps.onRowHeightChange(0, 400));
-            act(() => feedState.rowProps.onRowHeightChange(1, 400));
+            act(() => feedState.rowProps!.onRowHeightChange(0, 400));
+            act(() => feedState.rowProps!.onRowHeightChange(1, 400));
 
             // An edit shows the text of a script taller than the viewport, below the first script and the gap
             await act(async () => feedState.sessionArgs!.followScript(2, 'script'));
@@ -643,7 +650,7 @@ describe('Workbook feed composer', () => {
     it('leaves Enter and Escape to an open modal dialog instead of a staged rewrite', () => {
         const modify = vi.fn(() => APPLIED);
         const current = workbook(['1_alpha.sql']);
-        current.scripts[1] = { ...current.scripts[1], pendingDiff: { priorText: '', diffBuffer: {} } } as any;
+        current.scripts[1] = { ...current.scripts[1], pendingDiff: { priorText: '', diffBuffer: {} } } as unknown as ScriptData;
         render(current, modify);
         const press = (key: string) => {
             const event = new KeyboardEvent('keydown', { key, cancelable: true });
