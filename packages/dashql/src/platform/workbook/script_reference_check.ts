@@ -41,6 +41,14 @@ export interface ScriptReferenceReport {
     marks: ScriptReferenceMark[];
 }
 
+/// The kinds of references of the core by their value, a reference with errors is invalid in the core
+const REFERENCE_KINDS: Record<core.buffers.execution.ScriptReferenceKind, ScriptReferenceKind> = {
+    [core.buffers.execution.ScriptReferenceKind.INLINE]: ScriptReferenceKind.Inline,
+    [core.buffers.execution.ScriptReferenceKind.SCAN]: ScriptReferenceKind.Scan,
+    [core.buffers.execution.ScriptReferenceKind.INVALID]: ScriptReferenceKind.Invalid,
+    [core.buffers.execution.ScriptReferenceKind.ATTACHMENT]: ScriptReferenceKind.Attachment,
+};
+
 function sameReport(l: ScriptReferenceReport, r: ScriptReferenceReport): boolean {
     return l.textVersion === r.textVersion
         && l.marks.length === r.marks.length
@@ -74,23 +82,13 @@ export function readScriptReferenceReports(
         const marks = checked.references.map(reference => {
             const span = reference.textSpan;
             const from = span?.offset ?? 0;
-            let kind: ScriptReferenceKind;
-            if (reference.errors.length > 0 || reference.kind === core.buffers.execution.ScriptReferenceKind.INVALID) {
-                kind = ScriptReferenceKind.Invalid;
-            } else if (reference.kind === core.buffers.execution.ScriptReferenceKind.SCAN) {
-                kind = ScriptReferenceKind.Scan;
-            } else if (reference.kind === core.buffers.execution.ScriptReferenceKind.ATTACHMENT) {
-                kind = ScriptReferenceKind.Attachment;
-            } else {
-                kind = ScriptReferenceKind.Inline;
-            }
             return {
                 from,
                 to: from + (span?.length ?? 0),
                 parameter: String(reference.parameter ?? ''),
                 target: reference.script !== NONE ? files[reference.script] ?? null : null,
                 attachment: reference.attachment !== NONE ? attachments[reference.attachment] ?? null : null,
-                kind,
+                kind: REFERENCE_KINDS[reference.kind] ?? ScriptReferenceKind.Inline,
                 errors: reference.errors.map(String),
             };
         });

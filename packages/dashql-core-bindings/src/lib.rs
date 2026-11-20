@@ -1266,7 +1266,9 @@ pub(crate) fn pack_reference_check(core: &dashql_core_runtime::planner::SessionP
                         t.parameter = Some(r.parameter);
                         t.script = r.script.unwrap_or(u32::MAX);
                         t.attachment = r.attachment.unwrap_or(u32::MAX);
+                        // A reference with errors is invalid, whatever it would read
                         t.kind = match r.kind {
+                            _ if !r.errors.is_empty() => ScriptReferenceKind::INVALID,
                             ReferenceKind::Inline => ScriptReferenceKind::INLINE,
                             ReferenceKind::Scan => ScriptReferenceKind::SCAN,
                             ReferenceKind::Invalid => ScriptReferenceKind::INVALID,
