@@ -95,7 +95,7 @@ function CloudWatcher(props: { connection: ConnectionState; report: (state: Clou
     const online = connection.connectionHealth === ConnectionHealth.ONLINE;
     const connectionId = connection.connectionId;
     const query = useCloudQuery(online ? connectionId : null);
-    const database = cloudDatabaseOf(connection.params);
+    const database = cloudDatabaseOf(connection);
     const [look, setLook] = React.useState<LookState>(NO_LOOK);
     const running = React.useRef<AbortController | null>(null);
 

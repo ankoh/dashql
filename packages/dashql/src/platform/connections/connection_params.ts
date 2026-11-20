@@ -12,22 +12,11 @@ export type SalesforceConnectionParams = app_workbook.SalesforceConnectionParams
 export type TrinoConnectionParams = app_workbook.TrinoConnectionParams;
 
 // The defaults, the draft rows and the login hints of connection params come from the core module (`ConnectionParams`
-// of `dashql_core_runtime`). The helpers need the core of this copy of the package to be instantiated, as it is once a
-// runtime exists.
-
-/// The core that answers for the params, once it is instantiated
-let paramsCore: core.DashQL | null = null;
-
-/// The core of this copy of the package, throws before it is instantiated
-function instantiatedCore(): core.DashQL {
-    paramsCore ??= core.DashQL.instantiated();
-    if (paramsCore == null) throw new Error('The connection params need the core, which is not instantiated yet');
-    return paramsCore;
-}
+// of `dashql_core_runtime`), the caller passes the core, e.g. the one of its runtime (`Runtime.core`).
 
 /// Raw form rows belong only to the local draft, never to committed/runtime parameters.
-export function connectionParamsWithoutDraftRows(params: ConnectionParams): ConnectionParams {
-    return instantiatedCore().connectionParamsWithoutDraftRows(params);
+export function connectionParamsWithoutDraftRows(core: core.DashQL, params: ConnectionParams): ConnectionParams {
+    return core.connectionParamsWithoutDraftRows(params);
 }
 
 /// Sort the keys of an object so that its encoding doesn't depend on their order
@@ -49,8 +38,8 @@ export function getConnectionSetupParams(connection: Pick<ConnectionState, 'conn
 
 /// Whether the connection params carry a login hint (the resolved account username / login) that
 /// could be shared. Used to decide if the "share login hint" toggle should be offered at all.
-export function connectionParamsHaveLoginHint(params: ConnectionParams | null): boolean {
-    return params != null && instantiatedCore().connectionParamsLoginHint(params) != null;
+export function connectionParamsHaveLoginHint(core: core.DashQL, params: ConnectionParams | null): boolean {
+    return params != null && core.connectionParamsLoginHint(params) != null;
 }
 
 /// The options of a connection that is created with params: whether it is active and its name
@@ -62,25 +51,15 @@ export function newConnectionFromParams(params: ConnectionParams, options: NewCo
     return { connectorType: connector.info.connectorType, setupParams: connectorParams(connector, params), params, ...options };
 }
 
-/// A new connection to the embedded Hyper
+/// A new connection to the embedded Hyper: the runtime gives a connection without setup params the params of a new
+/// connection of its connector
 export function newDefaultHyperWasmConnection(options: NewConnectionOptions = {}): NewConnection {
-    return newConnectionFromParams(createDefaultConnectionParamsForConnector(CONNECTOR_INFOS[ConnectorType.HYPER]), options);
+    return { connectorType: ConnectorType.HYPER, ...options };
 }
 
 /// The params of a new connection of a connector
-export function createDefaultConnectionParamsForConnector(info: ConnectorInfo): ConnectionParams {
-    return instantiatedCore().defaultConnectionParams<ConnectionParams>(info.connectorType);
-}
-
-/// The database that the catalog of a Salesforce connection names its relations with, also the alias of the Hyper
-/// Cloud database of a Database.com connection
-export function salesforceCatalogDatabase(): string {
-    return instantiatedCore().salesforceCatalogDatabase();
-}
-
-/// The Hyper Cloud database of a Database.com connection that names none
-export function hyperCloudDefaultDatabaseName(): string {
-    return instantiatedCore().hyperCloudDefaultDatabaseName();
+export function createDefaultConnectionParamsForConnector(core: core.DashQL, info: ConnectorInfo): ConnectionParams {
+    return core.defaultConnectionParams<ConnectionParams>(info.connectorType);
 }
 
 /// The endpoint that a new connection to a Hyper server starts with
@@ -88,8 +67,8 @@ export const DEFAULT_HYPER_ENDPOINT = 'http://localhost:7484';
 
 /// The params of a new connection that the user attaches.
 /// The app holds a single connection to the embedded Hyper, an attached Hyper connection speaks to a server.
-export function createAttachedConnectionParamsForConnector(info: ConnectorInfo): ConnectionParams {
-    const params = createDefaultConnectionParamsForConnector(info);
+export function createAttachedConnectionParamsForConnector(core: core.DashQL, info: ConnectorInfo): ConnectionParams {
+    const params = createDefaultConnectionParamsForConnector(core, info);
     if (info.connectorType !== ConnectorType.HYPER || !('hyper' in params)) return params;
     return { ...params, hyper: { ...params.hyper, protocol: 'V3_HTTP', endpoint: DEFAULT_HYPER_ENDPOINT } };
 }

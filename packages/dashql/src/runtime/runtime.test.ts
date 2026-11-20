@@ -13,7 +13,6 @@ import type { TrinoConnectionParams } from '@akohn/dashql-jsonschema/connection.
 import type { WorkbookData } from '../platform/storage/storage_backend.js';
 import type { EmbeddedComputeDatabase } from '../platform/embedded_database.js';
 import type { ParquetDatabase } from '../platform/hyperdb/hyperdb_parquet_export.js';
-import { mountWorkbookAttachments } from '../platform/workbook/attachment_mounts.js';
 import { tableFromArrays } from '../platform/testing/arrow_fixtures.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
@@ -247,7 +246,7 @@ describe('the runtime', () => {
         const runtime = createRuntime({ ...testPlatform(new WorkbookTestBackend()), computeDatabase: async () => database as unknown as EmbeddedComputeDatabase });
         const connection = runtime.createConnection(newDefaultHyperWasmConnection({ active: false }));
         const workbook = runtime.createWorkbook(connection.connectionId, 'Mounted', false);
-        const path = await mountWorkbookAttachments(database, workbook.workbookId);
+        const path = await runtime.attachmentMounts.mount(database, workbook.workbookId);
         runtime.deleteWorkbook(workbook.workbookId);
         await vi.waitFor(() => expect(removed).toEqual([path]));
         await runtime.destroy();

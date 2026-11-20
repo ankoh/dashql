@@ -75,7 +75,7 @@ describe('connectionMergeCandidates', () => {
 
     it('lists the embedded database of an imported workbook next to the default one', () => {
         const { connections, list } = views([
-            database('default', createDefaultConnectionParamsForConnector(CONNECTOR_INFOS[ConnectorType.HYPER]), ConnectionHealth.ONLINE),
+            database('default', createDefaultConnectionParamsForConnector(dql, CONNECTOR_INFOS[ConnectorType.HYPER]), ConnectionHealth.ONLINE),
             // Exported workbooks carry every list and map, even when empty
             database('example', wasm(), ConnectionHealth.ONLINE),
         ]);

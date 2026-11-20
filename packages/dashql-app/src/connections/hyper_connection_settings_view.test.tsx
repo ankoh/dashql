@@ -29,7 +29,8 @@ type TestConnection = (runtime: Runtime) => Promise<ConnectionState>;
 let appRuntime: Runtime | null = null;
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
-beforeAll(async () => { await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
+let dql: core.DashQL;
+beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
 
 /// A connection on the Rust connection of the core, an online one has a channel
 function hyperDatabase(params: connection.HyperConnectionParams, health = ConnectionHealth.NOT_STARTED): TestConnection {
@@ -44,7 +45,7 @@ function hyperDatabase(params: connection.HyperConnectionParams, health = Connec
 }
 
 function embeddedParams(): connection.HyperConnectionParams {
-    const params = createDefaultConnectionParamsForConnector(CONNECTOR_INFOS[ConnectorType.HYPER]);
+    const params = createDefaultConnectionParamsForConnector(dql, CONNECTOR_INFOS[ConnectorType.HYPER]);
     if (!('hyper' in params)) throw new Error('no hyper params');
     return params.hyper as connection.HyperConnectionParams;
 }

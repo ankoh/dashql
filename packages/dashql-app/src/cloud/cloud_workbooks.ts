@@ -253,11 +253,12 @@ export function useCloudWorkbooks(): CloudWorkbooks {
 
     /// Read a version of a published workbook, the latest without one, into an import of the runtime
     const readVersion = React.useCallback(async (cloudId: string, cloudWorkbookId: string, versionId?: string) => {
+        if (runtime == null) throw new Error('the workbooks need a RuntimeProvider');
         const { query, database } = readyCloud(cloudId);
         const local = await archiveDatabase('cloud_read');
-        const { version, tables } = await readCloudWorkbook(query, local, cloudWorkbookId, { database, versionId });
+        const { version, tables } = await readCloudWorkbook(runtime.core, query, local, cloudWorkbookId, { database, versionId });
         return { version, tables, preview: await readTables(tables) };
-    }, [archiveDatabase, readTables, readyCloud]);
+    }, [archiveDatabase, readTables, readyCloud, runtime]);
 
     /// Import a version that was read as a local workbook of its own, linked to the version, with its query results.
     /// The import maps its connections to the connections of the app, a preview asks nothing. An import that is
@@ -397,7 +398,7 @@ export function useCloudWorkbooks(): CloudWorkbooks {
         const written: { version: CloudWorkbookVersion | null; results: number } = { version: null, results: 0 };
         const publishTables = (results: boolean) => runtime.exportTables(workbookId, { withCatalog: true, withLoginHint: false, results }, async tables => {
             written.results = tables.workbook_results.length;
-            written.version = await publishCloudWorkbook(query, local, tables, { database, workbookId: cloudWorkbookId, folderId });
+            written.version = await publishCloudWorkbook(runtime.core, query, local, tables, { database, workbookId: cloudWorkbookId, folderId });
         });
         const published = await publishTables(queryResultCache != null).catch(async error => {
             // Only the query results are left out, a workbook that is too large without them fails

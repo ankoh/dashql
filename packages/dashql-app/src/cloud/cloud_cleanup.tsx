@@ -45,7 +45,7 @@ export interface CloudCleanupLineProps {
 export function CloudCleanupLine(props: CloudCleanupLineProps): React.ReactElement {
     const { cloud } = props;
     const query = useCloudQuery(cloud.connectionId)!;
-    const database = cloudDatabaseOf(cloud.params);
+    const database = cloudDatabaseOf(cloud);
     const refresh = useCloudState(cloud.connectionId)?.refresh;
     const [running, setRunning] = React.useState(false);
     const [result, setResult] = React.useState<CloudCleanup | null>(null);

@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import * as core from '@akohn/dashql';
 
 import type { HyperDB, HyperDBConnection } from '@akohn/dashql/platform/hyperdb/hyperdb_wasm';
 import { createTestHyperDB, testDatabasePath } from '../tests/hyperdb_test_client.js';
@@ -28,7 +29,12 @@ let clients: CloudQuery[] = [];
 /// The statements that the clients sent
 let statements: string[];
 
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
+/// The core of the tests, the cloud store reads the workbook tables and the storage versions from it
+let dql: core.DashQL;
+
 beforeAll(async () => {
+    dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
     const test = await createTestHyperDB('dashql-cloud-store-schema');
     database = test.database;
     dispose = test.dispose;
@@ -81,7 +87,7 @@ describe('cloud store schema', () => {
 
     it('creates every column that the store uses', async () => {
         const state = await installCloudStore(clients[0]);
-        for (const [tableName, columns] of Object.entries(cloudColumnsUsed())) {
+        for (const [tableName, columns] of Object.entries(cloudColumnsUsed(dql))) {
             expect([...state.columns.get(tableName)!]).toEqual(expect.arrayContaining(columns));
             await connections[0].query(`SELECT ${columns.map(name => `CAST("${name}" AS text)`).join(', ')} FROM "dashql"."dashql"."${tableName}" LIMIT 0`);
         }

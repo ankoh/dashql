@@ -53,21 +53,9 @@ export type WorkbookTableColumnType = core.WorkbookTableColumnType;
 /// A column of a workbook table
 export type WorkbookTableColumn = core.WorkbookTableColumn;
 
-/// The workbook tables of the core with their columns, once a core gave them
-let schemas: core.WorkbookTableSchema[] | null = null;
-
-/// Read the workbook tables from a core, e.g. the core of a runtime. A core may come from another copy of the package,
-/// e.g. the one of the page that runs the browser tests.
-export function provideWorkbookTables(instance: core.DashQL): void {
-    schemas ??= instance.workbookTables();
-}
-
-/// The columns of a workbook table, as the core declares them. Needs a core: one that was provided, or the core of this
-/// copy of the package once it is instantiated.
-export function workbookTableColumns(name: WorkbookTableName): WorkbookTableColumn[] {
-    schemas ??= core.DashQL.instantiated()?.workbookTables() ?? null;
-    if (schemas == null) throw new Error('The columns of the workbook tables need the core, which is not instantiated yet');
-    const table = schemas.find(table => table.name === name);
+/// The columns of a workbook table, as the core declares them
+export function workbookTableColumns(instance: core.DashQL, name: WorkbookTableName): WorkbookTableColumn[] {
+    const table = instance.workbookTables().find(table => table.name === name);
     if (table == null) throw new Error(`Unknown workbook table ${name}`);
     return table.columns;
 }

@@ -126,8 +126,8 @@ export const WorkbookFileSaveOverlay: React.FC<Props> = (props: Props) => {
     }, [connections, withCatalog, withLoginHint, preserveUUIDs, props.workbookScripts, props.isOpen, runtime, logger]);
 
     const hasLoginHint = React.useMemo(
-        () => (connections ?? []).some(connection => connectionParamsHaveLoginHint(getConnectionSetupParams(connection))),
-        [connections],
+        () => runtime != null && (connections ?? []).some(connection => connectionParamsHaveLoginHint(runtime.core, getConnectionSetupParams(connection))),
+        [connections, runtime],
     );
 
     // A save with the results packs them, closing the overlay drops the archive

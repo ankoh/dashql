@@ -5,7 +5,6 @@ import { openTestHyperDB } from '../platform/testing/test_hyperdb.js';
 import { tableFromArrays } from '../platform/testing/arrow_fixtures.js';
 import { exportArrowTableAsParquet } from '../platform/hyperdb/hyperdb_parquet_export.js';
 import { newDefaultHyperWasmConnection } from '../platform/connections/connection_params.js';
-import { unmountWorkbookAttachments } from '../platform/workbook/attachment_mounts.js';
 
 // A runtime without storage, e.g. of an embed in a frame without the origin private file system, opens a shared
 // workbook into memory. The files of its attachments stay in memory with the workbook and the embedded Hyper mounts
@@ -43,7 +42,7 @@ describe('a runtime without storage', () => {
             target.deleteWorkbook(workbookId);
             expect(target.handles.size).toBe(handles - 1);
             // The mounts change one at a time, this one waits until the runtime unmounted the files of the workbook
-            await unmountWorkbookAttachments(workbookId);
+            await target.attachmentMounts.unmount(workbookId);
         } finally {
             await source.destroy();
             await target.destroy();

@@ -549,6 +549,9 @@ pub struct ConnectionView {
     pub local_cloud: bool,
     /// Can the connection be a cloud, does it keep the tables of DashQL?
     pub cloud_capable: bool,
+    /// The database of DashQL in the sessions of the connection when it is a cloud, e.g. `dashql`, null if it can't be
+    /// one
+    pub cloud_database: Option<String>,
     /// Does the connection offer an operational overview?
     pub supports_overview: bool,
     /// Does the connection speak to the Hyper of a link? Its token stays in the storage of the tab.
@@ -623,6 +626,7 @@ impl ConnectionView {
             embedded: label::is_hyper_wasm_connection(state),
             local_cloud: label::is_local_cloud(state.params()),
             cloud_capable: label::is_cloud_capable(state.params()),
+            cloud_database: label::cloud_database(state.params()).map(str::to_string),
             supports_overview: label::supports_connection_overview(state),
             hyper_link: rt_link::is_hyper_link_params(state.params()),
             cloud_databases: match state.params().connector {

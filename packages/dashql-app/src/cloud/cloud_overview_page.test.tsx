@@ -48,8 +48,11 @@ let database: HyperDB;
 let dispose: () => Promise<void>;
 let connection: HyperDBConnection;
 
+/// The core of the tests, the cloud store reads the workbook tables and the storage versions from it
+let dql: core.DashQL;
+
 beforeAll(async () => {
-    await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
+    dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
     const test = await createTestHyperDB('dashql-cloud-overview');
     database = test.database;
     dispose = test.dispose;
@@ -75,7 +78,7 @@ async function publish(name: string, folderId: string | null = null, sql = 'sele
         workbook: testWorkbook({ name, scripts: [{ name: 'a.sql', connectionId: TEST_CONNECTION_ID }] }),
         scripts: { 'a.sql': sql },
     });
-    return await publishCloudWorkbook(query, database, tables, { folderId: folderId ?? undefined });
+    return await publishCloudWorkbook(dql, query, database, tables, { folderId: folderId ?? undefined });
 }
 
 /// The local cloud as a connection of the runtime

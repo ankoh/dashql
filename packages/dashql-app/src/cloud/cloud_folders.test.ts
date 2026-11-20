@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import * as core from '@akohn/dashql';
 
 import type { HyperDB, HyperDBConnection } from '@akohn/dashql/platform/hyperdb/hyperdb_wasm';
 import { TEST_CONNECTION_ID, testWorkbook } from '@akohn/dashql/platform/testing/workbook_test_backend';
@@ -25,7 +26,12 @@ let dispose: () => Promise<void>;
 let connection: HyperDBConnection;
 let query: CloudQuery;
 
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
+/// The core of the tests, the cloud store reads the workbook tables and the storage versions from it
+let dql: core.DashQL;
+
 beforeAll(async () => {
+    dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
     const test = await createTestHyperDB('dashql-cloud-folders');
     database = test.database;
     dispose = test.dispose;
@@ -52,7 +58,7 @@ function tablesNamed(name: string, sql = 'select 1'): WorkbookTables {
 }
 
 async function publish(name: string, folderId?: string, sql?: string): Promise<CloudWorkbookVersion> {
-    return await publishCloudWorkbook(query, database, tablesNamed(name, sql), { folderId });
+    return await publishCloudWorkbook(dql, query, database, tablesNamed(name, sql), { folderId });
 }
 
 /// The entries of a listing, page by page, with the sizes of the pages
@@ -276,7 +282,7 @@ describe('cloud folders', () => {
         // A blank search lists the folder
         expect(names(await search('  '))).toEqual(['Sales Q3']);
         // Only the latest version counts
-        await publishCloudWorkbook(query, database, tablesNamed('Sales Q3'), { workbookId: sales.workbookId });
+        await publishCloudWorkbook(dql, query, database, tablesNamed('Sales Q3'), { workbookId: sales.workbookId });
         expect(names(await search('orders'))).toEqual(['Orders by region']);
         expect((await search('q3'))[0]).toMatchObject({ workbook: { version: 2 } });
     });
@@ -307,7 +313,7 @@ describe('cloud folders', () => {
         const gone = await createCloudFolder(query, 'Gone', null);
         await deleteCloudFolder(query, gone.folderId);
         const sales = await publish('Sales', reports.folderId);
-        const update = await publishCloudWorkbook(query, database, tablesNamed('Sales'), { workbookId: sales.workbookId });
+        const update = await publishCloudWorkbook(dql, query, database, tablesNamed('Sales'), { workbookId: sales.workbookId });
         const deleted = await publish('Deleted');
         await deleteCloudWorkbook(query, deleted.workbookId);
         // An upload that runs counts once it is ready

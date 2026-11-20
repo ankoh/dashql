@@ -15,7 +15,7 @@ import { CachePins } from '@akohn/dashql/runtime/query/cache_pins';
 import { HandleTable } from '@akohn/dashql/runtime/store/handles';
 import { createOPFSQueryResultCache, QUERY_RESULT_CACHE_MOUNT } from '@akohn/dashql/platform/storage/opfs_query_result_cache';
 import { getOPFSRoot } from '@akohn/dashql/platform/opfs_root';
-import { markWorkbookAttachmentsChanged, readAttachmentColumns, unmountWorkbookAttachments } from '@akohn/dashql/platform/workbook/attachment_mounts';
+import { AttachmentMounts } from '@akohn/dashql/platform/workbook/attachment_mounts';
 import { tableFromArrays, vectorFromArray } from '@akohn/dashql/platform/testing/arrow_fixtures';
 
 function toPlainObjects(table: arrow.Table): Record<string, unknown>[] {
@@ -344,6 +344,7 @@ describe('HyperDB embedded database integration', () => {
         const root = await getOPFSRoot();
         const workbooks = await root.getDirectoryHandle('workbooks', { create: true });
         const workbookId = crypto.randomUUID();
+        const mounts = new AttachmentMounts();
         const write = async (table: arrow.Table) => {
             const bytes = await exportArrowTableAsParquet(database!, table);
             const folder = await (await workbooks.getDirectoryHandle(workbookId, { create: true })).getDirectoryHandle('attachments', { create: true });
@@ -353,13 +354,13 @@ describe('HyperDB embedded database integration', () => {
         };
         try {
             await write(tableFromArrays({ region: ['eu'], amount: Int32Array.from([1]) }));
-            expect(await readAttachmentColumns(database!, workbookId, 'sales.parquet')).toEqual(['region', 'amount']);
+            expect(await mounts.readColumns(database!, workbookId, 'sales.parquet')).toEqual(['region', 'amount']);
             // A changed attachment is read again once the mount is marked stale
             await write(tableFromArrays({ id: Int32Array.from([1]) }));
-            markWorkbookAttachmentsChanged(workbookId);
-            expect(await readAttachmentColumns(database!, workbookId, 'sales.parquet')).toEqual(['id']);
+            mounts.changed(workbookId);
+            expect(await mounts.readColumns(database!, workbookId, 'sales.parquet')).toEqual(['id']);
         } finally {
-            await unmountWorkbookAttachments(workbookId);
+            await mounts.unmount(workbookId);
             await ignoreCleanupFailure(() => workbooks.removeEntry(workbookId, { recursive: true }));
         }
     }, 60_000);
@@ -441,7 +442,7 @@ describe('HyperDB embedded database integration', () => {
             await cache.writeTable(database!, table, cached);
             const handles = new HandleTable();
             const pins = new CachePins();
-            const mounts = createRunMounts(async () => database!, cache, handles, pins);
+            const mounts = createRunMounts(async () => database!, cache, handles, pins, new AttachmentMounts());
             const prefix = mounts.prefix();
             expect(prefix).toBe(QUERY_RESULT_CACHE_MOUNT);
             // The run pins and writes the result of another key and pins the cached one that it reads
@@ -486,7 +487,7 @@ describe('HyperDB embedded database integration', () => {
             const kept = cache.newFileName(KEY_B);
             await cache.writeTable(database!, tableFromArrays({ id: Int32Array.from([2]) }), kept);
             const pins = new CachePins();
-            const mounts = createRunMounts(async () => database!, cache, new HandleTable(), pins);
+            const mounts = createRunMounts(async () => database!, cache, new HandleTable(), pins, new AttachmentMounts());
             try {
                 await mounts.pin(`${mounts.prefix()}/${kept}`);
                 await cache.delete(KEY_A);

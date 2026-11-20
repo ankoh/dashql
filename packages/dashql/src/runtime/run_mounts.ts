@@ -6,7 +6,7 @@ import type { CachePins } from './query/cache_pins.js';
 import { supportsParquet, type ParquetDatabase } from '../platform/hyperdb/hyperdb_parquet_export.js';
 import type { EmbeddedComputeDatabase } from '../platform/embedded_database.js';
 import type { QueryResultCache } from '../platform/query/query_result_cache.js';
-import { mountWorkbookAttachments, readAttachmentColumns, unmountWorkbookAttachments, type AttachmentFiles } from '../platform/workbook/attachment_mounts.js';
+import type { AttachmentFiles, AttachmentMounts } from '../platform/workbook/attachment_mounts.js';
 
 /// The files of the runs of workbooks in the compute database, the `mounts` of the platform of the runtime.
 ///
@@ -30,7 +30,7 @@ function memoryFiles(handles: HandleTable, files: core.RuntimeMemoryFile[] | nul
     return blobs;
 }
 
-export function createRunMounts(computeDatabase: () => Promise<EmbeddedComputeDatabase>, cache: QueryResultCache | null, handles: HandleTable, pins: CachePins): core.RuntimeMounts {
+export function createRunMounts(computeDatabase: () => Promise<EmbeddedComputeDatabase>, cache: QueryResultCache | null, handles: HandleTable, pins: CachePins, attachments: AttachmentMounts): core.RuntimeMounts {
     const database = async (): Promise<ParquetDatabase> => {
         const database = await computeDatabase();
         if (!supportsParquet(database)) throw new Error('Scripts that read the results of other scripts or attachments need a compute database that reads Parquet files');
@@ -65,9 +65,9 @@ export function createRunMounts(computeDatabase: () => Promise<EmbeddedComputeDa
             return table.numRows;
         },
         attachments: async (workbookId, files) => {
-            await mountWorkbookAttachments(await database(), workbookId, memoryFiles(handles, files));
+            await attachments.mount(await database(), workbookId, memoryFiles(handles, files));
         },
-        attachmentColumns: async (workbookId, fileName, files) => readAttachmentColumns(await database(), workbookId, fileName, memoryFiles(handles, files)),
-        dropAttachments: workbookId => unmountWorkbookAttachments(workbookId),
+        attachmentColumns: async (workbookId, fileName, files) => attachments.readColumns(await database(), workbookId, fileName, memoryFiles(handles, files)),
+        dropAttachments: workbookId => attachments.unmount(workbookId),
     };
 }

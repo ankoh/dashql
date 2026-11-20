@@ -29,7 +29,7 @@ function allocator() {
 
 describe('embedded connection', () => {
     it('reuses the known connection to the embedded Hyper', () => {
-        const server = runtime.createConnection(newConnectionFromParams(createAttachedConnectionParamsForConnector(CONNECTOR_INFOS[ConnectorType.HYPER])), 'server');
+        const server = runtime.createConnection(newConnectionFromParams(createAttachedConnectionParamsForConnector(dql, CONNECTOR_INFOS[ConnectorType.HYPER])), 'server');
         const embedded = runtime.createConnection(newDefaultHyperWasmConnection(), 'embedded');
         const allocate = allocator();
         expect(findEmbeddedConnection([server])).toBeNull();

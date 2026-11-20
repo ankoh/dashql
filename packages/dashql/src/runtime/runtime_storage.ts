@@ -4,7 +4,7 @@ import { stringifyError } from '../platform/logger/logger.js';
 import type { ConnectionEntry, StorageBackend, WorkbookData, WorkbookEntry, WorkbookRegistryBackend } from '../platform/storage/storage_backend.js';
 import { isWorkbookRegistryBackend } from '../platform/storage/storage_backend.js';
 import { NativeStorageBackend } from '../platform/storage/native_storage_backend.js';
-import { markWorkbookAttachmentsChanged } from '../platform/workbook/attachment_mounts.js';
+import type { AttachmentMounts } from '../platform/workbook/attachment_mounts.js';
 
 /// The storage of the runtime: `storage` of the platform of the module over a storage backend, and the commands of the
 /// storage writer of the runtime (`packages/dashql-core-storage/src/storage`, docs/design/dashql_runtime.md). The
@@ -42,7 +42,7 @@ export interface NativeWorkbookRegistry {
 }
 
 /// `storage` of the platform over a storage backend: the reads and writes of the storage writer and of the restore
-export function createRuntimeStorage(backend: StorageBackend): core.RuntimeStorage {
+export function createRuntimeStorage(backend: StorageBackend, attachments: AttachmentMounts): core.RuntimeStorage {
     const registry = (): WorkbookRegistryBackend => {
         if (!isWorkbookRegistryBackend(backend)) throw new Error('the storage backend does not own a workbook registry');
         return backend;
@@ -80,7 +80,7 @@ export function createRuntimeStorage(backend: StorageBackend): core.RuntimeStora
         workbookFolder: workbookId => backend instanceof NativeStorageBackend
             ? backend
             : (backend as Partial<NativeWorkbookRegistry>).nativeWorkbookFolder?.(workbookId) ?? null,
-        attachmentsChanged: workbookId => markWorkbookAttachmentsChanged(workbookId),
+        attachmentsChanged: workbookId => attachments.changed(workbookId),
     };
 }
 

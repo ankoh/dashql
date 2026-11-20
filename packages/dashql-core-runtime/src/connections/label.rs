@@ -3,7 +3,7 @@
 use serde_json::Value;
 
 use super::params::string_field;
-use super::{ConnectionParams, ConnectionState, ConnectorType};
+use super::{ConnectionParams, ConnectionState, ConnectorType, SALESFORCE_CATALOG_DATABASE};
 use crate::hyper::local_cloud::{embedded_cloud_databases, LOCAL_CLOUD_DATABASE_ALIAS, LOCAL_CLOUD_DATABASE_PATH};
 
 /// The protocol of the setup params of a Hyper connection, the embedded Hyper without one
@@ -39,6 +39,16 @@ pub fn is_cloud_capable(params: &ConnectionParams) -> bool {
         }
         ConnectorType::SalesforceDataCloud | ConnectorType::Trino => false,
     }
+}
+
+/// The database of DashQL in the sessions of a connection that can be a cloud, by the alias that they attach it as:
+/// Database.com attaches the Hyper Cloud database of its settings as `lakehouse`, a Hyper server and the local cloud
+/// attach it as `dashql`. None for a connection that can't be a cloud.
+pub fn cloud_database(params: &ConnectionParams) -> Option<&'static str> {
+    if !is_cloud_capable(params) {
+        return None;
+    }
+    Some(if params.connector == ConnectorType::Dbcom { SALESFORCE_CATALOG_DATABASE } else { LOCAL_CLOUD_DATABASE_ALIAS })
 }
 
 /// Does a connection offer an operational overview?

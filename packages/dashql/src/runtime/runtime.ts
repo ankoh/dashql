@@ -27,10 +27,10 @@ import type { StorageBackend } from '../platform/storage/storage_backend.js';
 import { ScriptProjection, WORKBOOK_PROJECTION, WorkbookDerivedProjection } from './workbook_projection.js';
 import type { ScriptData, WorkbookScripts } from '../platform/workbook/workbook_scripts.js';
 import { createRunMounts } from './run_mounts.js';
+import { AttachmentMounts } from '../platform/workbook/attachment_mounts.js';
 import { CachePins } from './query/cache_pins.js';
 import { scriptRunEvent, workbookRunError, type ScriptRunEvent } from '../platform/workbook/workbook_execution.js';
-import { emptyWorkbookTables, provideWorkbookTables, WORKBOOK_TABLE_NAMES, type WorkbookTables } from '../platform/storage/workbook_tables.js';
-import { provideStorageVersions } from '../platform/storage/storage_versions.js';
+import { emptyWorkbookTables, WORKBOOK_TABLE_NAMES, type WorkbookTables } from '../platform/storage/workbook_tables.js';
 
 const LOG_CTX = 'runtime';
 
@@ -196,6 +196,9 @@ export class Runtime {
     private readonly queries: QueryChannels;
     /// The files of the query result cache that the runtime keeps
     private readonly pins = new CachePins();
+    /// The mounts of the attachments of the workbooks of the runtime in the compute database, removed when the runtime
+    /// is destroyed
+    readonly attachmentMounts = new AttachmentMounts();
     /// The catalogs of the connections by the identity of the catalog (`catalogId` of the view of a connection), one
     /// handle each that reads only. A catalog leaves the map with its connection; the handle is never destroyed, a
     /// component may still hold it, the finalizer of the module frees it once it is unreachable.
@@ -221,8 +224,6 @@ export class Runtime {
         this.tables = createRuntimeTables(this.handles);
         const database = this.computeDatabase.available ? () => this.computeDatabase.get() : null;
         this.queries = new QueryChannels({ logger: this.logger, handles: this.handles, tables: this.tables, computeDatabase: database, resultCache: options.resultCache ?? null, pins: this.pins });
-        provideWorkbookTables(this.core);
-        provideStorageVersions(this.core);
         this.module = this.core.createRuntime(this.modulePlatform(database));
         // The progress shows the plan in short panels, it grows left-to-right
         this.module.setProgressLayout(createProgressLayoutConfig());
@@ -273,14 +274,14 @@ export class Runtime {
                 hyperLinkToken: connectionId => platform.channels?.hyperLinkToken?.(connectionId) ?? null,
             },
             resultCache: this.queries.resultCache,
-            mounts: database == null ? null : createRunMounts(database, platform.resultCache ?? null, this.handles, this.pins),
+            mounts: database == null ? null : createRunMounts(database, platform.resultCache ?? null, this.handles, this.pins, this.attachmentMounts),
             crypto: {
                 randomUuid: () => crypto.randomUUID(),
                 sha256: async bytes => new Uint8Array(await crypto.subtle.digest('SHA-256', bytes as Uint8Array<ArrayBuffer>)),
             },
             oauth: this.requests.oauth(),
             extensions: { loadSpec: async extension => JSON.stringify(await loadClientFunctionSpec(extension)) },
-            storage: platform.storage == null ? null : createRuntimeStorage(platform.storage),
+            storage: platform.storage == null ? null : createRuntimeStorage(platform.storage, this.attachmentMounts),
             archives: platform.archives?.(this.handles) ?? null,
             changed: urgent => this.store.changed(urgent),
             settings: platform.settings ?? undefined,
@@ -765,6 +766,8 @@ export class Runtime {
         this.store.dispose();
         this.requests.abortAll();
         this.queries.dispose();
+        // A removal that fails leaves the mount, the database of a platform that is gone has none
+        await this.attachmentMounts.unmountAll();
         await this.pins.close();
     }
 }

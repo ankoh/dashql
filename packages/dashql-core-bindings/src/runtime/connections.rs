@@ -214,8 +214,11 @@ impl Connections {
             Some(id) => id,
             None => self.platform.random_uuid().map_err(|e| Error::invalid_argument(e.message().to_string()))?,
         };
+        // Without setup params the details start with the params of a new connection of the connector
         let mut details = ConnectionDetails::default_for(connection.connector);
-        details.setup_params = connection.setup_params;
+        if let Some(setup_params) = connection.setup_params {
+            details.setup_params = Some(setup_params);
+        }
         let options = ConnectionStateOptions { active: connection.active, params: connection.params, params_draft: connection.params_draft };
         let now = self.now();
         let mut state = ConnectionState::new(&connection_id, details, options, now);

@@ -68,8 +68,8 @@ export const WorkbookURLShareOverlay: React.FC<Props> = (props: Props) => {
     }, [runtime, settings, workbookScripts, connectionIds, props.isOpen]);
 
     const hasLoginHint = React.useMemo(
-        () => (connections ?? []).some(connection => connectionParamsHaveLoginHint(getConnectionSetupParams(connection))),
-        [connections],
+        () => runtime != null && (connections ?? []).some(connection => connectionParamsHaveLoginHint(runtime.core, getConnectionSetupParams(connection))),
+        [connections, runtime],
     );
 
     return (

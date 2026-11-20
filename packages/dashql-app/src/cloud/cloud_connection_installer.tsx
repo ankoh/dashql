@@ -22,7 +22,7 @@ export function CloudConnectionInstaller(props: CloudConnectionInstallerProps): 
     const { cloud, onInspected } = props;
     const cloudState = useCloudState(cloud.connectionId);
     const query = useCloudQuery(cloud.connectionId)!;
-    const database = cloudDatabaseOf(cloud.params);
+    const database = cloudDatabaseOf(cloud);
     const options = React.useMemo(() => ({ database }), [database]);
     const local = cloud.localCloud;
     const [installation, setInstallation] = React.useState<CloudInstallation | null>(null);

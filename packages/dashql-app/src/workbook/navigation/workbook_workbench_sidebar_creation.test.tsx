@@ -109,6 +109,8 @@ const runtime = {
     dispatch: (target: { connection?: string }, action: unknown) => state.dispatchDatabase(target.connection, action),
     createConnection: (...args: unknown[]) => state.allocateConnection(...args),
     store: { get: () => null },
+    // The params of a new connection come from the core
+    core: { defaultConnectionParams: () => ({ trino: { endpoint: '' } }), connectionParamsShareEqual: () => false },
 };
 
 const dependencies = {

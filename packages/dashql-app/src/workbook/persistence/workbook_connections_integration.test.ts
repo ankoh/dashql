@@ -7,7 +7,6 @@ import { CompositeStorageBackend } from '../../storage/composite_storage_backend
 import { WorkbookTestBackend, WorkbookTestRegistry } from '@akohn/dashql/platform/testing/workbook_test_backend';
 import type { ConnectionEntry, WorkbookData } from '@akohn/dashql/platform/storage/storage_backend';
 import { makeFsMock, resetFsStore } from '@akohn/dashql/platform/testing/test_fs_mock';
-import { storageVersions } from '@akohn/dashql/platform/storage/storage_versions';
 import type { ScriptData, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { createTestHyperDB } from '../../tests/hyperdb_test_client.js';
 import type { HyperDB } from '@akohn/dashql/platform/hyperdb/hyperdb_wasm';
@@ -40,12 +39,15 @@ const TRINO_PARAMS = { trino: { endpoint: 'https://trino.example' } } as Workboo
 /// A script of a seeded workbook: file name, connection id and text
 type SeedScript = [string, string, string];
 
+/// The version of the workbook format of the core
+let formatVersion = 0;
+
 /// Store a workbook with both connections in the manifest
 async function seedWorkbook(backend: WorkbookTestBackend, scripts: SeedScript[], connectionIds: string[] = [HYPER_ID, TRINO_ID]): Promise<void> {
     const params = new Map([[HYPER_ID, HYPER_PARAMS], [TRINO_ID, TRINO_PARAMS]]);
     backend.connections = [HYPER_ID, TRINO_ID].map(id => ({ id, params: params.get(id)! } as ConnectionEntry));
     await backend.saveWorkbookManifest(WORKBOOK_ID, {
-        formatVersion: storageVersions().formatVersion as WorkbookData['formatVersion'],
+        formatVersion: formatVersion as WorkbookData['formatVersion'],
         workbookId: WORKBOOK_ID,
         name: 'Connections',
         connections: connectionIds.map(connectionId => ({ connectionId, params: params.get(connectionId)! })),
@@ -61,7 +63,10 @@ async function seedWorkbook(backend: WorkbookTestBackend, scripts: SeedScript[],
 describe('Workbook connections', () => {
     let dql: core.DashQL;
 
-    beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
+    beforeAll(async () => {
+        dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
+        formatVersion = dql.storageVersions().formatVersion;
+    });
     afterEach(() => { dql.resetUnsafe(); });
 
     /// A runtime that restored the storage, every restoration starts a new app

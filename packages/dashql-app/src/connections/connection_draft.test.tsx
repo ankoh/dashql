@@ -29,7 +29,7 @@ beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQ
 
 /// A new connection of a connector in a runtime, by default a new one
 function database(type: ConnectorType, active = false, into: Runtime = testRuntime(dql)): ConnectionState {
-    const params = createDefaultConnectionParamsForConnector(CONNECTOR_INFOS[type]);
+    const params = createDefaultConnectionParamsForConnector(dql, CONNECTOR_INFOS[type]);
     const state = into.createConnection(newConnectionFromParams(params, { active }), TEST_CONNECTION_ID);
     expect(state.connectionStatus).toBe(ConnectionStatus.NOT_STARTED);
     expect(state.connectionHealth).toBe(ConnectionHealth.NOT_STARTED);

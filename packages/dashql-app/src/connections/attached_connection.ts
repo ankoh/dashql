@@ -13,7 +13,7 @@ export function useConnectionAttach(): (connector: ConnectorType) => ConnectionS
     const runtime = useOptionalRuntime();
     return React.useCallback((connector: ConnectorType) => {
         if (runtime == null) throw new Error('the connections need a RuntimeProvider');
-        const params = createAttachedConnectionParamsForConnector(CONNECTOR_INFOS[connector]);
+        const params = createAttachedConnectionParamsForConnector(runtime.core, CONNECTOR_INFOS[connector]);
         return runtime.createConnection(newConnectionFromParams(params, { active: true }));
     }, [runtime]);
 }

@@ -28,8 +28,9 @@ export function connectorInfoOf(connection: Pick<ConnectionState, 'connectorType
 /// A new connection: its connector, the params its setup starts with and what it is created with
 export interface NewConnection {
     connectorType: ConnectorType;
-    /// The params of the connector without its field, the details of the setup start with them
-    setupParams: unknown;
+    /// The params of the connector without its field, the details of the setup start with them. Without, the params
+    /// of a new connection of the connector.
+    setupParams?: unknown;
     /// Does the connection belong to a committed workbook or was it connected once?
     active?: boolean;
     /// The params, derived from the setup params by default

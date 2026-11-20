@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { createRunMounts } from './run_mounts.js';
+import { AttachmentMounts } from '../platform/workbook/attachment_mounts.js';
 import { CachePins } from './query/cache_pins.js';
 import { HandleTable } from './store/handles.js';
 import type { EmbeddedComputeDatabase } from '../platform/embedded_database.js';
@@ -39,7 +40,7 @@ describe('the files of the runs', () => {
         const { cache, pins } = testCache();
         const handles = new HandleTable();
         const kept = new CachePins();
-        const mounts = createRunMounts(async () => DATABASE, cache, handles, kept);
+        const mounts = createRunMounts(async () => DATABASE, cache, handles, kept, new AttachmentMounts());
         const path = `/mnt/cache/${mounts.fileName('a')}`;
         const pin = await mounts.pin(path);
         expect(await mounts.write(path, handles.register(tableFromArrays({ value: [1, 2] })))).toBe(2);
@@ -54,7 +55,7 @@ describe('the files of the runs', () => {
         const kept = new CachePins();
         let resolveDatabase!: (database: EmbeddedComputeDatabase) => void;
         const database = new Promise<EmbeddedComputeDatabase>(resolve => { resolveDatabase = resolve; });
-        const mounts = createRunMounts(() => database, cache, new HandleTable(), kept);
+        const mounts = createRunMounts(() => database, cache, new HandleTable(), kept, new AttachmentMounts());
         // One pin waits for the database, the other is a file that a run retained
         const late = mounts.pin(`/mnt/cache/${mounts.fileName(null)}`).catch((error: unknown) => error);
         kept.add((await cache.pin('cached.parquet')));

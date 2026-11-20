@@ -3,7 +3,7 @@ import * as arrow from 'apache-arrow';
 import { DASHQL_VERSION } from '../globals.js';
 import { exportArrowTableAsParquet } from '@akohn/dashql/platform/hyperdb/hyperdb_parquet_export';
 import { prepareHyperArrowInsert } from '@akohn/dashql/platform/hyperdb/hyperdb_arrow_insert';
-import { storageVersions } from '@akohn/dashql/platform/storage/storage_versions';
+import type * as core from '@akohn/dashql';
 import type { ParquetReadDatabase } from '@akohn/dashql/runtime/workbook_archives';
 import {
     ATTACHMENT_TABLE_PREFIX,
@@ -139,8 +139,8 @@ function selected(name: string): string {
 }
 
 /// The columns of a workbook table in the cloud, without the key
-function workbookColumns(tableName: WorkbookTableName): CloudColumn[] {
-    return workbookTableColumns(tableName).filter(column => column.name !== 'workbook_id').map(column => ({
+function workbookColumns(instance: core.DashQL, tableName: WorkbookTableName): CloudColumn[] {
+    return workbookTableColumns(instance, tableName).filter(column => column.name !== 'workbook_id').map(column => ({
         name: column.name,
         type: WORKBOOK_COLUMN_TYPES[column.type],
         nullable: column.nullable,
@@ -148,12 +148,12 @@ function workbookColumns(tableName: WorkbookTableName): CloudColumn[] {
 }
 
 /// The columns that this client reads and writes, by table. The migrations have to create them all.
-export function cloudColumnsUsed(): Record<string, string[]> {
+export function cloudColumnsUsed(instance: core.DashQL): Record<string, string[]> {
     const names = (columns: CloudColumn[]) => columns.map(column => column.name);
     const columns: Record<string, string[]> = {
-        [CLOUD_VERSIONS_TABLE]: [...names(KEY_COLUMNS), ...names(workbookColumns(WORKBOOK_TABLE)), 'state', 'created_at', 'ready_at', 'updated_at', 'published_by', 'app_version'],
+        [CLOUD_VERSIONS_TABLE]: [...names(KEY_COLUMNS), ...names(workbookColumns(instance, WORKBOOK_TABLE)), 'state', 'created_at', 'ready_at', 'updated_at', 'published_by', 'app_version'],
     };
-    for (const tableName of CLOUD_MERGED_TABLE_NAMES) columns[tableName] = [...names(KEY_COLUMNS), ...names(workbookColumns(tableName))];
+    for (const tableName of CLOUD_MERGED_TABLE_NAMES) columns[tableName] = [...names(KEY_COLUMNS), ...names(workbookColumns(instance, tableName))];
     columns[CLOUD_WORKBOOKS_TABLE] = ['workbook_id', 'folder_id', 'created_at', 'created_by', 'updated_at', 'deleted_at'];
     columns[CLOUD_FOLDERS_TABLE] = ['folder_id', 'parent_id', 'name', 'created_at', 'created_by', 'updated_at', 'deleted_at'];
     return columns;
@@ -226,6 +226,7 @@ function numberedVersions(rows: readonly CloudWorkbookVersion[]): CloudWorkbookV
 /// A failed publish removes what it wrote, also when a cleanup took its row away in the meantime. What a lost connection
 /// leaves behind stays `uploading` until a cleanup removes it. `local` reads the Parquet files of the data tables.
 export async function publishCloudWorkbook(
+    instance: core.DashQL,
     query: CloudQuery,
     local: ParquetReadDatabase,
     tables: WorkbookTables,
@@ -257,7 +258,7 @@ export async function publishCloudWorkbook(
 
     const createdRow = await ensureWorkbookRow(query, workbookId, options);
 
-    const versionColumns = workbookColumns(WORKBOOK_TABLE);
+    const versionColumns = workbookColumns(instance, WORKBOOK_TABLE);
     const versionValues = [quoteLiteral(workbookId), quoteLiteral(versionId), ...versionColumns.map(column => {
         const value = valueText((workbook as unknown as Record<string, unknown>)[column.name]);
         return value == null ? 'NULL' : `CAST(${quoteLiteral(value)} AS ${column.type})`;
@@ -268,11 +269,11 @@ export async function publishCloudWorkbook(
             + `${nullableLiteral(options.publishedBy)}, ${nullableLiteral(options.appVersion ?? DASHQL_VERSION)})`, signal);
         for (const tableName of CLOUD_MERGED_TABLE_NAMES) {
             if (tableName === ATTACHMENTS_TABLE || tableName === RESULTS_TABLE) continue;
-            const columns = workbookColumns(tableName);
+            const columns = workbookColumns(instance, tableName);
             await insertRows(query, cloudTable(tableName, options), [...KEY_COLUMNS, ...columns], versionRows(key, columns, tables[tableName]), maxLength, signal);
         }
         for (const [tableName, prefix] of [[ATTACHMENTS_TABLE, ATTACHMENT_TABLE_PREFIX], [RESULTS_TABLE, RESULT_TABLE_PREFIX]] as const) {
-            const columns = workbookColumns(tableName);
+            const columns = workbookColumns(instance, tableName);
             for (const row of tables[tableName]) {
                 const name = newDataTableName(prefix);
                 created.push(name);
@@ -485,6 +486,7 @@ function textColumn(table: arrow.Table, name: string): string[] {
 /// Read the tables of a version of a workbook, named by its id, the latest without one. `local` writes the attachment
 /// and result tables as Parquet files.
 export async function readCloudWorkbook(
+    instance: core.DashQL,
     query: CloudQuery,
     local: ParquetReadDatabase,
     workbookId: string,
@@ -501,7 +503,7 @@ export async function readCloudWorkbook(
             ? `The cloud holds no workbook ${workbookId}`
             : `The cloud holds no version ${options.versionId} of workbook ${workbookId}`);
     }
-    if (row.formatVersion > storageVersions().formatVersion) {
+    if (row.formatVersion > instance.storageVersions().formatVersion) {
         throw new Error(`The workbook ${workbookId} was published by a newer DashQL, update DashQL to read it`);
     }
     const tables: CloudWorkbookTables = { rows: {}, data: [] };
@@ -509,7 +511,7 @@ export async function readCloudWorkbook(
     // reads a missing column of a nullable field as null and a missing table as one without rows.
     const read = async (tableName: WorkbookTableName, cloudTableName: string): Promise<arrow.Table | null> => {
         const existing = view.columns.get(cloudTableName);
-        const columns = workbookTableColumns(tableName).filter(column => existing?.has(column.name)).map(column => column.name);
+        const columns = workbookTableColumns(instance, tableName).filter(column => existing?.has(column.name)).map(column => column.name);
         if (columns.length === 0) return null;
         const result = await query(`SELECT ${columns.map(selected).join(', ')} FROM ${cloudTable(cloudTableName, options)} `
             + `WHERE ${versionWhere(row)} ORDER BY ${columns.map(name => qualifiedName(name)).join(', ')}`, signal);

@@ -11,7 +11,8 @@ import { attachmentPath, attachmentPrefix } from './workbook_attachments.js';
 /// runtime without storage, e.g. an archive opened in an embed, keeps the files of its attachments in memory, they are
 /// mounted at the same path as a memory directory, so the scripts read them alike. A workbook is mounted before a plan
 /// scans its attachments. A change of the attachments marks a folder mount stale, the next use refreshes it, so the
-/// database looks up the files it opened again; a memory mount is mounted again when its files change.
+/// database looks up the files it opened again; a memory mount is mounted again when its files change. Every runtime
+/// keeps its own mounts (`AttachmentMounts`), and removes them when it is destroyed.
 interface AttachmentMount {
     /// The database that mounted the folder
     database: ParquetDatabase;
@@ -30,83 +31,87 @@ function sameFiles(left: AttachmentFiles | null, right: AttachmentFiles | null):
     return left.size === right.size && [...left].every(([name, file]) => right.get(name) === file);
 }
 
-const MOUNTS = new Map<string, AttachmentMount>();
-/// Mounts and refreshes run one after the other
-let pending: Promise<unknown> = Promise.resolve();
+/// The mounts of the attachments of the workbooks of one runtime. Mounts and refreshes run one after the other.
+export class AttachmentMounts {
+    private readonly mounts = new Map<string, AttachmentMount>();
+    private pending: Promise<unknown> = Promise.resolve();
 
-function serialize<T>(f: () => Promise<T>): Promise<T> {
-    const next = pending.then(f, f);
-    pending = next.catch(() => {});
-    return next;
-}
+    constructor(private readonly getRoot: () => Promise<FileSystemDirectoryHandle> = getOPFSRoot) { }
 
-/// Mount the attachments of a workbook in a database, refresh the mount if they changed. The attachments are in the
-/// folder of the workbook (`files` null) or in memory. Returns the mount path.
-export function mountWorkbookAttachments(
-    database: ParquetDatabase,
-    workbookId: string,
-    files: AttachmentFiles | null = null,
-    getRoot: () => Promise<FileSystemDirectoryHandle> = getOPFSRoot,
-): Promise<string> {
-    return serialize(async () => {
-        const path = attachmentPrefix(workbookId);
-        let mount = MOUNTS.get(workbookId);
-        if (mount != null && (mount.database !== database || !sameFiles(mount.files, files))) {
-            await mount.database.removeExternalDirectory(path).catch(() => {});
-            MOUNTS.delete(workbookId);
-            mount = undefined;
-        }
-        if (mount == null) {
-            if (files == null) {
-                const workbooks = await (await getRoot()).getDirectoryHandle(STORAGE_WORKBOOKS_FOLDER, { create: true });
-                const workbook = await workbooks.getDirectoryHandle(workbookId, { create: true });
-                const folder = await workbook.getDirectoryHandle(STORAGE_ATTACHMENTS_FOLDER, { create: true });
-                await database.registerExternalDirectory(folder, path, 'read');
-            } else {
-                if (!supportsMemoryDirectories(database)) throw new Error('The compute database can not mount the attachments of a workbook in memory');
-                await database.registerMemoryDirectory(Object.fromEntries(files), path);
+    private serialize<T>(f: () => Promise<T>): Promise<T> {
+        const next = this.pending.then(f, f);
+        this.pending = next.catch(() => {});
+        return next;
+    }
+
+    /// Mount the attachments of a workbook in a database, refresh the mount if they changed. The attachments are in
+    /// the folder of the workbook (`files` null) or in memory. Returns the mount path.
+    mount(database: ParquetDatabase, workbookId: string, files: AttachmentFiles | null = null): Promise<string> {
+        return this.serialize(async () => {
+            const path = attachmentPrefix(workbookId);
+            let mount = this.mounts.get(workbookId);
+            if (mount != null && (mount.database !== database || !sameFiles(mount.files, files))) {
+                await mount.database.removeExternalDirectory(path).catch(() => {});
+                this.mounts.delete(workbookId);
+                mount = undefined;
             }
-            MOUNTS.set(workbookId, { database, files, stale: false });
-        } else if (mount.stale && mount.files == null) {
-            // Changes during the refresh mark the mount stale again
-            mount.stale = false;
-            try {
-                await database.refreshExternalDirectory(path);
-            } catch (error) {
-                mount.stale = true;
-                throw error;
+            if (mount == null) {
+                if (files == null) {
+                    const workbooks = await (await this.getRoot()).getDirectoryHandle(STORAGE_WORKBOOKS_FOLDER, { create: true });
+                    const workbook = await workbooks.getDirectoryHandle(workbookId, { create: true });
+                    const folder = await workbook.getDirectoryHandle(STORAGE_ATTACHMENTS_FOLDER, { create: true });
+                    await database.registerExternalDirectory(folder, path, 'read');
+                } else {
+                    if (!supportsMemoryDirectories(database)) throw new Error('The compute database can not mount the attachments of a workbook in memory');
+                    await database.registerMemoryDirectory(Object.fromEntries(files), path);
+                }
+                this.mounts.set(workbookId, { database, files, stale: false });
+            } else if (mount.stale && mount.files == null) {
+                // Changes during the refresh mark the mount stale again
+                mount.stale = false;
+                try {
+                    await database.refreshExternalDirectory(path);
+                } catch (error) {
+                    mount.stale = true;
+                    throw error;
+                }
             }
+            return path;
+        });
+    }
+
+    /// The attachments of a workbook changed, the next use of the mount refreshes it
+    changed(workbookId: string): void {
+        const mount = this.mounts.get(workbookId);
+        if (mount != null) mount.stale = true;
+    }
+
+    /// Remove the mount of the attachments of a workbook
+    unmount(workbookId: string): Promise<void> {
+        return this.serialize(async () => {
+            const mount = this.mounts.get(workbookId);
+            if (mount == null) return;
+            this.mounts.delete(workbookId);
+            await mount.database.removeExternalDirectory(attachmentPrefix(workbookId)).catch(() => {});
+        });
+    }
+
+    /// Remove every mount, e.g. when the runtime is destroyed
+    async unmountAll(): Promise<void> {
+        for (const workbookId of [...this.mounts.keys()]) await this.unmount(workbookId);
+    }
+
+    /// Read the columns of a Parquet attachment with the embedded Hyper, the attachments in the folder of the workbook
+    /// (`files` null) or in memory
+    async readColumns(database: ParquetDatabase, workbookId: string, fileName: string, files: AttachmentFiles | null = null): Promise<string[]> {
+        await this.mount(database, workbookId, files);
+        const connection = await database.connect({ pooled: true });
+        try {
+            const path = attachmentPath(workbookId, fileName).replace(/'/g, "''");
+            const table = await connection.query(`select * from external('${path}', format => 'parquet') limit 0`);
+            return table.schema.fields.map(field => field.name);
+        } finally {
+            await connection.close();
         }
-        return path;
-    });
-}
-
-/// The attachments of a workbook changed, the next use of the mount refreshes it
-export function markWorkbookAttachmentsChanged(workbookId: string): void {
-    const mount = MOUNTS.get(workbookId);
-    if (mount != null) mount.stale = true;
-}
-
-/// Remove the mount of the attachments of a workbook
-export function unmountWorkbookAttachments(workbookId: string): Promise<void> {
-    return serialize(async () => {
-        const mount = MOUNTS.get(workbookId);
-        if (mount == null) return;
-        MOUNTS.delete(workbookId);
-        await mount.database.removeExternalDirectory(attachmentPrefix(workbookId)).catch(() => {});
-    });
-}
-
-/// Read the columns of a Parquet attachment with the embedded Hyper, the attachments in the folder of the workbook
-/// (`files` null) or in memory
-export async function readAttachmentColumns(database: ParquetDatabase, workbookId: string, fileName: string, files: AttachmentFiles | null = null): Promise<string[]> {
-    await mountWorkbookAttachments(database, workbookId, files);
-    const connection = await database.connect({ pooled: true });
-    try {
-        const path = attachmentPath(workbookId, fileName).replace(/'/g, "''");
-        const table = await connection.query(`select * from external('${path}', format => 'parquet') limit 0`);
-        return table.schema.fields.map(field => field.name);
-    } finally {
-        await connection.close();
     }
 }

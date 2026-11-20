@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import * as core from '@akohn/dashql';
 
 import { HyperDB } from '@akohn/dashql/platform/hyperdb/hyperdb_wasm';
 import { HyperDB as HyperDBEngine } from 'hyperdb-wasm';
@@ -7,21 +8,14 @@ import { TEST_CONNECTION_ID, testWorkbook } from '@akohn/dashql/platform/testing
 import { testWorkbookTables } from './cloud_test_tables.js';
 import { publishCloudWorkbook } from './cloud_store.js';
 import { createCloudFolder, listCloudEntries } from './cloud_folders.js';
-import { cloudDatabaseOf } from './cloud_query.js';
 import { dropCloudStore, inspectCloudStore, installCloudStore, type CloudQuery } from './cloud_store_schema.js';
-import type { ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
 
 // The local cloud: a connection of the embedded Hyper whose session attaches only the database of the local cloud, as
 // "dashql", like a connection to a Hyper server that attaches the database of DashQL. The database outlives the window.
 
-describe('local cloud', () => {
-    it('keeps the tables in the database that the cloud connection attaches', () => {
-        expect(cloudDatabaseOf({ hyper: { protocol: 'WASM' } } as unknown as ConnectionParams)).toBe('dashql');
-        expect(cloudDatabaseOf({ hyper: { protocol: 'V3_HTTP', endpoint: 'http://localhost:7484' } } as unknown as ConnectionParams)).toBe('dashql');
-        // Database.com attaches the Hyper Cloud database of its settings as "lakehouse"
-        expect(cloudDatabaseOf({ dbcom: { instanceUrl: 'https://example.my.salesforce.com' } } as unknown as ConnectionParams)).toBe('lakehouse');
-    });
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
+describe('local cloud', () => {
     it('keeps the published workbooks for the next window', async () => {
         const { client, shared } = await getTestHyperDBClient();
         const attachedDatabases = [{ path: await testDatabasePath(`dashql-local-cloud-${crypto.randomUUID()}.hyper`), alias: 'dashql' }];
@@ -70,6 +64,7 @@ describe('local cloud', () => {
     // The settings of the app keep a redo log, its replay keeps the NULLs of `deleted_at` and the folders and workbooks
     // stay alive, see host/hyperdb/integration/redo_log.test.ts
     it('keeps the published workbooks across a reload', async () => {
+        const dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
         const attachedDatabases = [{ path: await testDatabasePath(`dashql-local-cloud-${crypto.randomUUID()}.hyper`), alias: 'dashql' }];
         const first = await openTestHyperDBWindow(attachedDatabases);
         const query: CloudQuery = async (sql, signal) => await first.session.query(sql, signal);
@@ -79,7 +74,7 @@ describe('local cloud', () => {
             workbook: testWorkbook({ name: 'Sales', scripts: [{ name: 'a.sql', connectionId: TEST_CONNECTION_ID }] }),
             scripts: { 'a.sql': 'select 1' },
         });
-        const sales = await publishCloudWorkbook(query, first.database, tables, { folderId: reports.folderId });
+        const sales = await publishCloudWorkbook(dql, query, first.database, tables, { folderId: reports.folderId });
         // A reload: the worker goes away while the session attaches the database
         await first.reload();
 

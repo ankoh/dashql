@@ -1219,6 +1219,11 @@ fn clouds_among_connection_params() {
     ] {
         assert!(!is_cloud_capable(&params(incapable.clone())), "{incapable}");
     }
+    // The database of DashQL in the sessions of a cloud
+    assert_eq!(cloud_database(&local), Some("dashql"));
+    assert_eq!(cloud_database(&params(json!({ "hyper": { "protocol": "V3_HTTP", "endpoint": "http://localhost:7484" } }))), Some("dashql"));
+    assert_eq!(cloud_database(&params(json!({ "dbcom": { "instanceUrl": "https://example.my.salesforce.com" } }))), Some("lakehouse"));
+    assert_eq!(cloud_database(&params(json!({ "hyper": { "protocol": "WASM" } }))), None);
     // A server that attaches the database of the local cloud is no local cloud
     let attached = json!({ "path": LOCAL_CLOUD_DATABASE_PATH, "alias": LOCAL_CLOUD_DATABASE_ALIAS });
     assert!(!is_local_cloud(&params(json!({ "hyper": { "protocol": "V3_HTTP", "attachedDatabases": [attached] } }))));

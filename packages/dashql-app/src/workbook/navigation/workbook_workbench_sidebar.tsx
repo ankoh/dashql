@@ -1065,7 +1065,7 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
     /// Create a connection and open its settings, the next script of the current workbook runs on it
     const createConnection = React.useCallback((connector: ConnectorType) => {
         setCreateConnectionOpen(false);
-        const params = createAttachedConnectionParamsForConnector(CONNECTOR_INFOS[connector]);
+        const params = createAttachedConnectionParamsForConnector(runtime.core, CONNECTOR_INFOS[connector]);
         const database = runtime.createConnection(dependencies.newConnectionFromParams(params, { active: true }));
         modifyCurrentWorkbook({ kind: 'setPendingConnection', value: { connectionId: database.connectionId } });
         connectionSettingsAnchorRef.current = createConnectionButtonRef.current;

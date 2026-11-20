@@ -24,7 +24,6 @@ import { CONNECTOR_DESCRIPTORS, connectionParamsOf } from '@akohn/dashql/platfor
 import type { ConnectionDetailsView } from '@akohn/dashql';
 import type { DetailedError } from '@akohn/dashql/platform/utils/error';
 import { ConnectionInlineHeader } from './connection_inline_header.js';
-import { hyperCloudDefaultDatabaseName } from '@akohn/dashql/platform/connections/connection_params';
 
 const LOG_CTX = "sf_connector";
 
@@ -137,6 +136,8 @@ interface SalesforceConnectionSettingsPageProps {
     login: string;
     /// The Hyper Cloud database, only shown for Database.com connections
     databaseName?: string;
+    /// The Hyper Cloud database of a Database.com connection that names none
+    defaultDatabaseName?: string;
     coreAccessToken: string;
     dataCloudAccessToken: string;
     dataCloudInstanceUrl: string;
@@ -246,7 +247,7 @@ export const SalesforceConnectionSettingsPage: React.FC<SalesforceConnectionSett
                                 data-testid="hyper-cloud-database-name"
                                 caption="Hyper Cloud database that is queried"
                                 value={props.databaseName ?? ""}
-                                placeholder={hyperCloudDefaultDatabaseName()}
+                                placeholder={props.defaultDatabaseName ?? ''}
                                 leadingVisual={() => <div>DB</div>}
                                 onChange={props.updateDatabaseName}
                                 readOnly={props.freezeInput}
@@ -330,6 +331,7 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
     const connectionSetup = useConnectionSetup(props.connectionId);
     const { saving } = useConnectionSave(props.connectionId);
     const salesforceConnection = getSalesforceConnectionDetails(connectionState);
+    const defaultDatabaseName = useOptionalRuntime()?.core.hyperCloudDefaultDatabaseName() ?? '';
     const paramsKey = CONNECTOR_DESCRIPTORS[props.connector].paramsKey as 'salesforce' | 'dbcom';
     const isDbcomConnector = props.connector === ConnectorType.DBCOM;
     const editableParams = connectionState?.paramsDraft ?? connectionState?.params;
@@ -339,7 +341,7 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
         instanceUrl: params?.instanceUrl ?? "",
         appConsumerKey: params?.appConsumerKey ?? "",
         login: params?.login ?? "",
-        databaseName: params?.databaseName ?? hyperCloudDefaultDatabaseName(),
+        databaseName: params?.databaseName ?? defaultDatabaseName,
     });
     const [pageState, setPageState] = useConnectionDraftForm(props.connectionId,
         params => buildPageState(params && paramsKey in params ? (params as Record<typeof paramsKey, connection.SalesforceConnectionParams>)[paramsKey] : undefined),
@@ -437,6 +439,7 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
             appConsumerKey={pageState.appConsumerKey}
             login={pageState.login}
             databaseName={pageState.databaseName}
+            defaultDatabaseName={defaultDatabaseName}
             coreAccessToken={coreAccessToken?.accessToken ?? ''}
             dataCloudAccessToken={dcAccessToken?.jwt?.raw ?? ''}
             dataCloudInstanceUrl={dcSummary?.instanceUrl ?? ''}

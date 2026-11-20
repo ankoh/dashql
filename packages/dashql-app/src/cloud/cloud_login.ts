@@ -1,7 +1,6 @@
 import * as React from 'react';
 
-import { useConnection } from '@akohn/dashql-react/hooks';
-import { connectionParamsWithoutDraftRows } from '@akohn/dashql/platform/connections/connection_params';
+import { useConnection, useRuntime } from '@akohn/dashql-react/hooks';
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { useConnectionSetup } from '../connections/connection_setup.js';
 import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
@@ -26,6 +25,7 @@ export function useCloudLogin(connectionId: string | null): CloudLogin {
     const connectionState = useConnection(connectionId);
     const connectionSetup = useConnectionSetup(connectionId);
     const config = useAppConfig();
+    const runtime = useRuntime();
 
     const connector = connectionState?.connectorType;
     const available = connector === ConnectorType.HYPER ? config?.connectors?.hyper != null
@@ -36,8 +36,8 @@ export function useCloudLogin(connectionId: string | null): CloudLogin {
         if (connectionState == null || !available) return;
         // The runtime sets up the connection and checks its health, the view of the connection keeps a failure
         if (connectionState.connectionHealth !== ConnectionHealth.NOT_STARTED) connectionSetup.reset();
-        await connectionSetup.run(connectionParamsWithoutDraftRows(connectionState.params));
-    }, [available, connectionSetup, connectionState]);
+        await connectionSetup.run(runtime.core.connectionParamsWithoutDraftRows(connectionState.params));
+    }, [available, connectionSetup, connectionState, runtime]);
 
     return React.useMemo(() => ({ login, cancel: connectionSetup.cancel, available }), [available, connectionSetup.cancel, login]);
 }

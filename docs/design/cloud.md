@@ -42,7 +42,7 @@ themselves are ordinary connections of the manifest. All clouds are equal: none 
   (`cloudCapable` of the connection view, `is_cloud_capable` of `connections/label.rs` in the core runtime). All speak Hyper SQL, so a `.dashql` file, a hyperd, Database.com and the local cloud share one set
   of tables. The token of a Hyper link lives only in its tab, and Salesforce Data Cloud and Trino don't write.
 - **The database.** The cloud store keeps its tables in the database that the sessions of a cloud connection attach
-  for DashQL (`cloudDatabaseOf`): a Hyper server and the local cloud attach it as `dashql`, Database.com attaches the
+  for DashQL (`cloudDatabase` of the connection view, `cloud_database` of `connections/label.rs`): a Hyper server and the local cloud attach it as `dashql`, Database.com attaches the
   Hyper Cloud database of its settings as `lakehouse`. The store names the tables `"<database>"."dashql"."<table>"`.
 - **One database per session.** Hyper resolves no unqualified name in a session that attaches several databases, not
   even a read, and no search path helps: `CREATE TABLE t` fails with "create statement could not resolve the schema".

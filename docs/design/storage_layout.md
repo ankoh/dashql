@@ -209,9 +209,10 @@ Connections, the manifest, the workbook tree, the shell files and the instances 
 
 The embedded Hyper reads the attachments of a workbook from its OPFS folder `workbooks/<id>/attachments/` (of a
 native workbook, the mirror), mounted read-only at `/mnt/external/attachments/<id>`
-(`platform/workbook/attachment_mounts.ts` of `@akohn/dashql`). The app mounts the folder before a plan scans an attachment and before it
-reads the columns of a Parquet attachment. A change of the attachments, in the app or in a native folder, marks the
-mount stale, its next use refreshes it so Hyper looks up the files again. Closing the workbook removes the mount.
+(`AttachmentMounts` of `platform/workbook/attachment_mounts.ts` of `@akohn/dashql`, one per runtime). The runtime mounts the
+folder before a plan scans an attachment and before it reads the columns of a Parquet attachment. A change of the
+attachments, in the app or in a native folder, marks the mount stale, its next use refreshes it so Hyper looks up the
+files again. Deleting the workbook removes the mount, and so does destroying the runtime.
 
 ## Hyper paths
 
@@ -258,8 +259,7 @@ Two versions describe the stored data. Both migrations are steps of the runtime 
   Version 11 renames `dashql-session.json` as `dashql-workbook.json`, with `workbookId` and `workbookPath` in place of
   `sessionId` and `sessionPath`. The steps up to version 10 keep the names of sessions, the layout of their version.
 
-The current versions come from the core (`DashQL.storageVersions()`, `storageVersions()` of
-`platform/storage/storage_versions.ts`), the only source of them. A migration step spells out every file and
+The current versions come from the core (`DashQL.storageVersions()`), the only source of them. A migration step spells out every file and
 folder name it touches instead of using the storage constants of the app: the constants describe the current layout, a
 step the layout of its version. Steps are idempotent, because an interrupted migration repeats its last step: the tests
 of the core interrupt the migration at every write and run it again (`storage_migration_test.rs`). The step of version

@@ -45,8 +45,8 @@ export const ConnectionURLShareOverlay: React.FC<Props> = ({ database, isOpen, s
     }, [runtime, connectionId, params, name, settings.withLoginHint, isOpen]);
 
     const hasLoginHint = React.useMemo(
-        () => isOpen && connectionParamsHaveLoginHint(getConnectionSetupParams(database)),
-        [database, isOpen],
+        () => isOpen && runtime != null && connectionParamsHaveLoginHint(runtime.core, getConnectionSetupParams(database)),
+        [database, isOpen, runtime],
     );
 
     return (

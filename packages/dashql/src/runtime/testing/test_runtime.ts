@@ -9,7 +9,6 @@ import type { QueryResultCache } from '../../platform/query/query_result_cache.j
 import { createRuntime, type Runtime, type RuntimeOptions } from '../runtime.js';
 import { TASK_UPDATE_SCHEDULER } from '../store/update_scheduler.js';
 import type { StorageBackend, WorkbookData } from '../../platform/storage/storage_backend.js';
-import { storageVersions } from '../../platform/storage/storage_versions.js';
 import type { ScriptDataMap, WorkbookScripts } from '../../platform/workbook/workbook_scripts.js';
 import { TestLogger } from '../../platform/testing/test_logger.js';
 import { WorkbookTestBackend } from '../../platform/testing/workbook_test_backend.js';
@@ -107,7 +106,7 @@ async function storeTestWorkbook(
         return { connectionId, params: connection.params as WorkbookData['connections'][number]['params'] };
     });
     const workbook: WorkbookData = {
-        formatVersion: storageVersions().formatVersion,
+        formatVersion: runtime.core.storageVersions().formatVersion,
         workbookId,
         name: options.name ?? 'Test',
         connections,
