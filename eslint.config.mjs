@@ -96,10 +96,15 @@ export default defineConfig(
         plugins: { 'react-hooks': reactHooks },
         rules: {
             'react-hooks/rules-of-hooks': 'error',
-            // Off: 166 findings, most of them effects that run on mount or on one value by intent; a missing dependency
-            // changes when an effect runs, so every hook needs a review of its own before the rule can be an error
+            // Off until the hooks of a package are reviewed (the block below): a missing dependency changes when an
+            // effect runs, so every hook needs a review of its own before the rule can be an error
             'react-hooks/exhaustive-deps': 'off',
         },
+    },
+    {
+        // The React packages whose hooks are reviewed: every hook lists what it reads
+        files: ['packages/dashql-org/**'],
+        rules: { 'react-hooks/exhaustive-deps': 'error' },
     },
     {
         // Scripts of Node: tests, drivers, build scripts and the configs of the tools

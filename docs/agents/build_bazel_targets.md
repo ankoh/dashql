@@ -312,11 +312,11 @@ part of `//packages/...` and `//tests/agents/...`. Every finding fails the test,
   Assets keep their extension (`.css`, `.sql?raw`, `?url`)
 - `react-hooks/rules-of-hooks` in the app, `@akohn/dashql-react` and the website: a function that calls hooks is
   named `use…`
+- `react-hooks/exhaustive-deps` in the website: a hook lists every value it reads
 
 Off, with the reason in the config: `@typescript-eslint/no-explicit-any`, `no-control-regex`,
-`@typescript-eslint/no-namespace` and `react-hooks/exhaustive-deps` (166 findings when it was measured, most of them
-effects that run on mount by intent; a dependency added changes when an effect runs, so each hook needs a review before
-the rule can be on).
+`@typescript-eslint/no-namespace` and `react-hooks/exhaustive-deps` in the app and `@akohn/dashql-react` (a dependency
+added changes when an effect runs, so the hooks of a package need a review before the rule is on there).
 
 ```bash
 # One package
