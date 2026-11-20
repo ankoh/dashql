@@ -348,6 +348,9 @@ the rest, e.g. `runCatalogLoader`, `resultKeys`, `migrateWorkbookFolder`, `query
 **Reported runs.** `runWorkbookReported` (`src/runtime/workbook_run_report.ts`) runs the scripts of a workbook and
 reports what happens as `RunEvent`s (`src/platform/workbook/run_events.ts`): `dashql run` prints them, and a tab that
 runs a workbook for the agent of a session sends them back to `dashql run` (`docs/design/agent_integration.md`, "Runs in the tab").
+The core decides the report (`workbook_run/report.rs` of the core runtime): which scripts a run that names them reports
+(`runScripts`), what a connection is called in the events (`runConnectionLabel`), and how the run ended for its scripts
+(`finishRunReport`); the facade keeps the events in order and the timings.
 `Runtime.migrateStorage(root, log)` of the module is static: the app migrates its storage before a runtime exists.
 
 **Destroy.** From the call of `destroy` on the commands of the facade refuse: a command that returns a promise rejects

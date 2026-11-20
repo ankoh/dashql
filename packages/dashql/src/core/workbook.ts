@@ -28,9 +28,15 @@ export type {
 
 /// The runs of the workbooks of the runtime, declared by the module (`packages/dashql-core-bindings/src/runtime/runs/view.rs`)
 export type {
+    ReportedNotRun,
+    ReportedScript,
+    ReportedScriptOutcome,
     RunListener,
     RunOutcome,
+    RunReportEnd,
+    RunReportInput,
     RunScriptOptions,
+    RunScriptSelection,
     RunWorkbookOptions,
     WorkbookRunFailure,
     WorkbookRunFailureKind,

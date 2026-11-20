@@ -1453,6 +1453,33 @@ impl Runtime {
         dashql_core_runtime::connections::SALESFORCE_CATALOG_DATABASE.to_string()
     }
 
+    /// The scripts that a reported run reports, by their file names in the order of the workbook: a name names the
+    /// script of its base name, every script without names
+    #[wasm_bindgen(js_name = runScripts, unchecked_return_type = "RunScriptSelection")]
+    pub fn run_scripts(files: Vec<String>, names: Vec<String>) -> Result<JsValue, JsError> {
+        let selection: runs::view::RunScriptSelection = dashql_core_runtime::workbook_run::report::select_run_scripts(&files, &names).into();
+        Ok(to_js(&selection)?.into())
+    }
+
+    /// What a connection is in the events of a reported run, e.g. `trino http://localhost:8080`. Fails on params of an
+    /// unknown connector.
+    #[wasm_bindgen(js_name = runConnectionLabel)]
+    pub fn run_connection_label(
+        #[wasm_bindgen(unchecked_param_type = "Record<string, unknown>")] params: JsValue,
+    ) -> Result<String, JsError> {
+        let serde_json::Value::Object(fields) = JsonValue::of(&params).0 else {
+            return Err(JsError::new("connection params must be an object"));
+        };
+        let params = ConnectionParams::from_object(fields).map_err(js_error)?;
+        Ok(dashql_core_runtime::workbook_run::report::run_connection_label(&params))
+    }
+
+    /// The end of the report of a run: the error of the run, the scripts that didn't run, the counts and how it ended
+    #[wasm_bindgen(js_name = finishRunReport, unchecked_return_type = "RunReportEnd")]
+    pub fn finish_run_report(input: Ts<runs::view::RunReportInput>) -> Result<JsValue, JsError> {
+        Ok(to_js(&runs::view::RunReportEnd::of(from_js(&input)?))?.into())
+    }
+
     /// The params of a new local cloud: a connection of the embedded Hyper whose session attaches only the database of
     /// the local cloud, see docs/design/cloud.md
     #[wasm_bindgen(js_name = localCloudParams, unchecked_return_type = "Record<string, unknown>")]

@@ -2,6 +2,7 @@
 // workbook for the agent of a session (docs/design/agent_integration.md, "Runs in the tab")
 import type * as arrow from 'apache-arrow';
 
+import type * as core from '../core/index.js';
 import type { ConnectionState } from '../platform/connections/connection_state.js';
 import { LoggableException } from '../platform/logger/logger.js';
 import type { RunEvent } from '../platform/workbook/run_events.js';
@@ -23,22 +24,10 @@ export function describeRunError(error: unknown): string {
     return error.cause instanceof Error ? `${error.message}: ${error.cause.message}` : error.message;
 }
 
-/// What a connection is in the events of a run
-function runConnectionLabel(conn: ConnectionState): string {
-    const params = conn.params;
-    if ('trino' in params) return `trino ${params.trino.endpoint}`;
-    if ('hyper' in params) return params.hyper.protocol === 'WASM' ? 'the embedded hyper' : `hyper ${params.hyper.endpoint ?? ''}`.trim();
-    if ('salesforce' in params) return 'salesforce';
-    return 'dbcom';
-}
-
 /// The scripts of a run by their file names, `scripts/a.sql` names `a.sql`: every script without names. The names
-/// that the workbook doesn't have in `unknown`.
-export function runScriptsOf(workbook: WorkbookScripts, names: readonly string[]): { selected: string[]; requested: boolean; unknown: string[] } {
-    const files = [...workbook.scriptOrder];
-    const requested = new Set(names.map(name => name.split(/[\\/]/).pop() ?? name));
-    const unknown = [...requested].filter(file => !files.includes(file));
-    return { selected: requested.size === 0 ? files : files.filter(file => requested.has(file)), requested: requested.size > 0, unknown };
+/// that the workbook doesn't have in `unknown`. The core decides (`workbook_run/report.rs`).
+export function runScriptsOf(instance: core.DashQL, workbook: WorkbookScripts, names: readonly string[]): core.RunScriptSelection {
+    return instance.runScripts([...workbook.scriptOrder], [...names]);
 }
 
 export interface ReportedRunOptions {
@@ -60,18 +49,15 @@ export interface ReportedRunOptions {
     onReportError?: (error: unknown) => void;
 }
 
-/// What happened to a script, the summary counts it
-type ScriptOutcome = 'ok' | 'failed' | 'cancelled' | 'not run';
-
 /// How a reported run ended
-export type ReportedRunEnd = 'ok' | 'failed' | 'interrupted';
+export type ReportedRunEnd = core.RunReportEnd['end'];
 
 /// Run the scripts of a workbook and report what happens. The events arrive in order: a result is read before it is
 /// reported, so the reports wait for each other. The run ends with run_finished.
 export async function runWorkbookReported(runtime: Runtime, workbook: WorkbookScripts, options: ReportedRunOptions, emit: (event: RunEvent) => void): Promise<ReportedRunEnd> {
     const { workbookId } = workbook;
     const files = [...workbook.scriptOrder];
-    const { selected, requested } = runScriptsOf(workbook, options.scripts);
+    const { selected, requested } = runScriptsOf(runtime.core, workbook, options.scripts);
     // The script of a query by the owner of its result
     const scriptOfOwner = new Map(files.map(file => [scriptResultOwner(workbookId, workbook.scriptRefs[file].scriptId), file]));
     const { signal } = options;
@@ -84,7 +70,7 @@ export async function runWorkbookReported(runtime: Runtime, workbook: WorkbookSc
     const prepareConnection = prepare == null ? undefined : async (connectionId: string) => {
         const conn = runtime.connection(connectionId);
         if (conn == null) throw new Error(`the workbook has no connection ${connectionId}`);
-        const label = runConnectionLabel(conn);
+        const label = runtime.core.runConnectionLabel(conn.params);
         const started = performance.now();
         emit({ type: 'connection_setup', connection: label });
         const failure = await prepare(conn);
@@ -135,7 +121,9 @@ export async function runWorkbookReported(runtime: Runtime, workbook: WorkbookSc
     }
 
     try {
-        const outcomes = new Map<string, ScriptOutcome>();
+        // The outcomes of the scripts in the order of their events, the core sums them up
+        const outcomes: core.ReportedScript[] = [];
+        const settle = (script: string, outcome: core.ReportedScriptOutcome) => outcomes.push({ script, outcome });
         const startedAt = new Map<string, number>();
         const elapsed = (script: string) => performance.now() - (startedAt.get(script) ?? runStarted);
         let reports = Promise.resolve();
@@ -162,13 +150,13 @@ export async function runWorkbookReported(runtime: Runtime, workbook: WorkbookSc
                     break;
                 case 'cached':
                 case 'done': {
-                    outcomes.set(script, 'ok');
+                    settle(script, 'ok');
                     const cached = event.type === 'cached';
                     report(() => resultOf(script, event.queryId, event.key, cached));
                     break;
                 }
                 case 'failed': {
-                    outcomes.set(script, 'failed');
+                    settle(script, 'failed');
                     const ms = elapsed(script);
                     // The statement that failed, the error points into it
                     const statement = event.queryId == null ? null : queryOf(event.queryId)?.queryText ?? null;
@@ -176,13 +164,13 @@ export async function runWorkbookReported(runtime: Runtime, workbook: WorkbookSc
                     break;
                 }
                 case 'cancelled': {
-                    outcomes.set(script, 'cancelled');
+                    settle(script, 'cancelled');
                     const ms = elapsed(script);
                     report(async () => ({ type: 'script_cancelled', script, ms }));
                     break;
                 }
                 case 'skipped':
-                    outcomes.set(script, 'not run');
+                    settle(script, 'notRun');
                     report(async () => ({ type: 'script_not_run', script, reason: event.reason }));
                     break;
             }
@@ -208,29 +196,21 @@ export async function runWorkbookReported(runtime: Runtime, workbook: WorkbookSc
         stopProgress?.();
 
         const interrupted = signal.aborted;
-        // An error of the run itself, e.g. a script that can't be planned; a failed script reported its own
-        const scriptFailed = [...outcomes.values()].includes('failed');
-        let error: string | null = null;
-        if (!interrupted && !scriptFailed) {
-            if (run == null || run.outcome.refused != null) error = 'the workbook is running elsewhere';
-            else if (run.outcome.failure != null && run.outcome.failure.kind !== 'cancelled') error = run.outcome.failure.message;
-        }
-        if (error != null) emit({ type: 'run_failed', error });
-        // The scripts that the run reports and that didn't settle
-        for (const script of selected) {
-            if (outcomes.has(script)) continue;
-            outcomes.set(script, 'not run');
-            const reason = interrupted ? 'interrupted' : scriptFailed ? 'the run stopped' : 'the run failed';
-            emit({ type: 'script_not_run', script, reason });
-        }
-        const tally = (outcome: ScriptOutcome) => [...outcomes.entries()].filter(([script, value]) => value === outcome && (outcome !== 'ok' || selected.includes(script))).length;
+        const failure = run?.outcome.failure;
+        const end = runtime.core.finishRunReport({
+            selected,
+            outcomes,
+            interrupted,
+            refused: run == null || run.outcome.refused != null,
+            failure: failure != null && failure.kind !== 'cancelled' ? failure.message : undefined,
+        });
+        if (end.runError != null) emit({ type: 'run_failed', error: end.runError });
+        for (const { script, reason } of end.notRun) emit({ type: 'script_not_run', script, reason });
         emit({
             type: 'run_finished', ms: performance.now() - runStarted, interrupted,
-            ok: tally('ok'), failed: tally('failed'), cancelled: tally('cancelled'), notRun: tally('not run'),
+            ok: end.ok, failed: end.failed, cancelled: end.cancelled, notRun: end.notRunCount,
         });
-        if (interrupted) return 'interrupted';
-        const allOk = error == null && selected.every(script => outcomes.get(script) === 'ok') && tally('failed') + tally('cancelled') + tally('not run') === 0;
-        return allOk ? 'ok' : 'failed';
+        return end.end;
     } finally {
         stopProgress?.();
     }

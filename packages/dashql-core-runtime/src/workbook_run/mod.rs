@@ -13,6 +13,7 @@
 
 mod engine;
 pub mod plan;
+pub mod report;
 
 use std::future::Future;
 use std::pin::Pin;

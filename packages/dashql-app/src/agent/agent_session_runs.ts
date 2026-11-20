@@ -118,7 +118,7 @@ export class AgentSessionRuns {
             const { runtime } = this.host;
             const workbook = runtime.store.get('workbook', message.workbookId);
             if (workbook == null) return fail('the tab of DashQL has no such workbook');
-            const { unknown } = runScriptsOf(workbook, message.scripts);
+            const { unknown } = runScriptsOf(runtime.core, workbook, message.scripts);
             if (unknown.length > 0) return fail(`the workbook has no script ${unknown.join(', ')}, its scripts are ${workbook.scriptOrder.join(', ') || 'none'}`);
             await runWorkbookReported(runtime, workbook, {
                 label: message.label,

@@ -388,7 +388,7 @@ async function runHere(
             cli.stderr(`error: ${parsed.workbook} could not be loaded: ${describeRunError(error)}\n`);
             return EXIT_USAGE;
         }
-        const { unknown } = runScriptsOf(workbook, parsed.scripts);
+        const { unknown } = runScriptsOf(runtime.core, workbook, parsed.scripts);
         if (unknown.length > 0) {
             cli.stderr(`error: the workbook has no script ${unknown.join(', ')}, its scripts are ${workbook.scriptOrder.join(', ') || 'none'}\n`);
             return EXIT_USAGE;

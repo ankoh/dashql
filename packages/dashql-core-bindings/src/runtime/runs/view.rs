@@ -4,7 +4,7 @@
 
 use std::collections::BTreeMap;
 
-use dashql_core_runtime::workbook_run::{RunFailure, RunFailureKind, RunPhase, RunResult, RunState, ScriptEvent};
+use dashql_core_runtime::workbook_run::{report, RunFailure, RunFailureKind, RunPhase, RunResult, RunState, ScriptEvent};
 use serde::{Deserialize, Serialize};
 use tsify::Tsify;
 
@@ -257,5 +257,121 @@ impl RunOutcome {
             None => (None, wasm_bindgen::JsValue::UNDEFINED),
         };
         (RunOutcome { refused: None, outputs: result.outputs.clone(), failure, launched: result.launched }, value)
+    }
+}
+
+/// The scripts that a reported run reports, by their file names in the order of the workbook
+#[derive(Clone, Debug, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+#[tsify(missing_as_null)]
+pub struct RunScriptSelection {
+    pub selected: Vec<String>,
+    /// Did the run name scripts? A run without names reports every script.
+    pub requested: bool,
+    /// The names that no script of the workbook has
+    pub unknown: Vec<String>,
+}
+
+impl From<report::RunScriptSelection> for RunScriptSelection {
+    fn from(selection: report::RunScriptSelection) -> Self {
+        RunScriptSelection { selected: selection.selected, requested: selection.requested, unknown: selection.unknown }
+    }
+}
+
+/// What happened to a script of a reported run, as its events had it
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub enum ReportedScriptOutcome {
+    Ok,
+    Failed,
+    Cancelled,
+    NotRun,
+}
+
+impl From<ReportedScriptOutcome> for report::ReportedScriptOutcome {
+    fn from(outcome: ReportedScriptOutcome) -> Self {
+        match outcome {
+            ReportedScriptOutcome::Ok => report::ReportedScriptOutcome::Ok,
+            ReportedScriptOutcome::Failed => report::ReportedScriptOutcome::Failed,
+            ReportedScriptOutcome::Cancelled => report::ReportedScriptOutcome::Cancelled,
+            ReportedScriptOutcome::NotRun => report::ReportedScriptOutcome::NotRun,
+        }
+    }
+}
+
+/// The outcome of a script of a reported run
+#[derive(Clone, Debug, Deserialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct ReportedScript {
+    pub script: String,
+    pub outcome: ReportedScriptOutcome,
+}
+
+/// How a reported run ended, as the host saw it
+#[derive(Clone, Debug, Deserialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct RunReportInput {
+    /// The scripts that the run reports
+    pub selected: Vec<String>,
+    /// The outcomes of the scripts in the order of their events
+    pub outcomes: Vec<ReportedScript>,
+    /// Was the run stopped from outside?
+    pub interrupted: bool,
+    /// Did the run never start, e.g. because another run holds the workbook?
+    pub refused: bool,
+    /// The message of the failure of the run, null for a run that succeeded or was cancelled
+    #[serde(default)]
+    #[tsify(optional)]
+    pub failure: Option<String>,
+}
+
+/// A script that a reported run reports and that didn't run
+#[derive(Clone, Debug, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct ReportedNotRun {
+    pub script: String,
+    pub reason: String,
+}
+
+/// The end of the report of a run
+#[derive(Clone, Debug, Serialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+#[tsify(missing_as_null)]
+pub struct RunReportEnd {
+    /// The error of the run itself, e.g. a script that can't be planned; a failed script reports its own
+    pub run_error: Option<String>,
+    /// The scripts that the run reports and that didn't settle, with the reason
+    pub not_run: Vec<ReportedNotRun>,
+    pub ok: u32,
+    pub failed: u32,
+    pub cancelled: u32,
+    /// The scripts that didn't run, those of `notRun` included
+    pub not_run_count: u32,
+    /// How the run ended
+    #[tsify(type = "'ok' | 'failed' | 'interrupted'")]
+    pub end: String,
+}
+
+impl RunReportEnd {
+    /// The end of the report of a run as the host saw it
+    pub fn of(input: RunReportInput) -> Self {
+        let outcomes: Vec<(String, report::ReportedScriptOutcome)> =
+            input.outcomes.into_iter().map(|script| (script.script, script.outcome.into())).collect();
+        let end = report::RunEnd { refused: input.refused, failure: input.failure, interrupted: input.interrupted };
+        let report = report::finish_run_report(&input.selected, &outcomes, &end);
+        RunReportEnd {
+            run_error: report.run_error,
+            not_run: report.not_run.into_iter().map(|(script, reason)| ReportedNotRun { script, reason }).collect(),
+            ok: report.ok,
+            failed: report.failed,
+            cancelled: report.cancelled,
+            not_run_count: report.not_run_count,
+            end: match report.end {
+                report::ReportedRunEnd::Ok => "ok",
+                report::ReportedRunEnd::Failed => "failed",
+                report::ReportedRunEnd::Interrupted => "interrupted",
+            }
+            .to_string(),
+        }
     }
 }

@@ -468,6 +468,21 @@ export class DashQL {
         return this.bindings.Runtime.salesforceCatalogDatabase();
     }
 
+    /// The scripts that a reported run reports: a name names the script of its base name, every script without names
+    public runScripts(files: string[], names: string[]): glue.RunScriptSelection {
+        return this.bindings.Runtime.runScripts(files, names);
+    }
+
+    /// What a connection is in the events of a reported run, e.g. `trino http://localhost:8080`
+    public runConnectionLabel(params: object): string {
+        return this.bindings.Runtime.runConnectionLabel(params as Record<string, unknown>);
+    }
+
+    /// The end of the report of a run: the errors, the scripts that didn't run, the counts and how it ended
+    public finishRunReport(input: glue.RunReportInput): glue.RunReportEnd {
+        return this.bindings.Runtime.finishRunReport(input);
+    }
+
     /// The params of a new local cloud: a connection of the embedded Hyper whose session attaches only the database of
     /// the local cloud
     public localCloudParams<P extends object = Record<string, unknown>>(): P {
