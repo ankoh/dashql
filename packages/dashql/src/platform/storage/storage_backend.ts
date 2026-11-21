@@ -11,6 +11,8 @@ export const STORAGE_WORKBOOKS_FOLDER = 'workbooks';
 export const STORAGE_WORKBOOK_FILE = 'dashql-workbook.json';
 export const STORAGE_SCRIPTS_FOLDER = 'scripts';
 export const STORAGE_ATTACHMENTS_FOLDER = 'attachments';
+/// The `.gitignore` of a workbook folder, the runtime decides its entries (docs/design/workbook_results.md)
+export const STORAGE_GITIGNORE_FILE = '.gitignore';
 export const STORAGE_SHELL_FOLDER = 'shell';
 /// The folder that holds the files of the connections, e.g. `connections/<uuid>/…`
 export const STORAGE_CONNECTIONS_FOLDER = 'connections';
@@ -105,6 +107,10 @@ export interface StorageBackend {
     saveWorkbookManifest(workbookId: string, data: WorkbookData, expected?: ExpectedStamp): Promise<FileStamp | null | void>;
     /// Delete a workbook
     deleteWorkbook(workbookId: string): Promise<void>;
+    /// The text of the `.gitignore` of the folder of a workbook, null without one. A backend without folders has none.
+    loadGitignore?(workbookId: string): Promise<string | null>;
+    /// Write the `.gitignore` of the folder of a workbook
+    saveGitignore?(workbookId: string, text: string): Promise<void>;
 
     /// Load the workbook's flat, naturally ordered script files. The order of the feed is the order
     /// of the scripts in the workbook file.

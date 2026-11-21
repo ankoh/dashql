@@ -68,6 +68,14 @@ pub trait StorageHost: Host {
         expect_from: Expect,
         expect_to: Expect,
     ) -> Result<(), HostError>;
+    /// The text of the `.gitignore` of the folder of a workbook, none if it has none or the storage keeps none
+    async fn load_gitignore(&self, _workbook_id: &str) -> Result<Option<String>, HostError> {
+        Ok(None)
+    }
+    /// Save the `.gitignore` of the folder of a workbook, a storage without one keeps nothing
+    async fn save_gitignore(&self, _workbook_id: &str, _text: &str) -> Result<(), HostError> {
+        Ok(())
+    }
     /// The names of the attachments of a workbook in natural order, the order of the attachment list
     async fn list_attachments(&self, workbook_id: &str) -> Result<Vec<String>, HostError>;
     /// Save an attachment of a workbook, the file stays with the host. A storage without attachments refuses.

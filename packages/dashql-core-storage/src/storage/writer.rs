@@ -53,6 +53,7 @@ use crate::workbook_format::data::{
     WorkbookCloudLink, WorkbookConnection, WorkbookData, WorkbookScript, WORKBOOK_FORMAT_VERSION,
 };
 use crate::workbook_format::files::{file_name_key, patch_workbook_connection, with_workbook_scripts};
+use crate::workbook_format::layout::gitignore_with_entries;
 use dashql_core_runtime::host::signal::{cancellable, oneshot, CancelHandle, Receiver, Sender};
 use dashql_core_runtime::host::{HostError, LogLevel};
 use dashql_core_runtime::http::HostBytes;
@@ -936,6 +937,8 @@ struct Shared<H: StorageHost> {
     /// The stamps of the folders that may change outside the app
     stamps: Rc<FolderStamps>,
     state: RefCell<State>,
+    /// The workbooks whose `.gitignore` the writer checked
+    gitignores: RefCell<HashSet<String>>,
 }
 
 /// Change the state, then tell the host what changed
@@ -1072,7 +1075,32 @@ async fn save_workbook_file<H: StorageHost>(
     )
     .await?;
     shared.stamps.wrote_workbook(workbook_id, stamp);
+    ensure_gitignore(shared, workbook_id).await;
     Ok(())
+}
+
+/// Keep the results of the scripts and other generated files of a workbook folder out of version control: the first
+/// write of the workbook file of a workbook appends the missing entries to the `.gitignore` of its folder, the lines of
+/// the user stay. A failure only logs, the next writer checks again.
+async fn ensure_gitignore<H: StorageHost>(shared: &Rc<Shared<H>>, workbook_id: &str) {
+    if !shared.gitignores.borrow_mut().insert(workbook_id.to_string()) {
+        return;
+    }
+    let ensured = async {
+        let existing = shared.host.load_gitignore(workbook_id).await?;
+        match gitignore_with_entries(existing.as_deref()) {
+            Some(text) => shared.host.save_gitignore(workbook_id, &text).await,
+            None => Ok(()),
+        }
+    };
+    if let Err(error) = ensured.await {
+        log(
+            shared,
+            LogLevel::Warn,
+            "Failed to write the .gitignore of a workbook",
+            &[("workbookId", workbook_id), ("error", error.message())],
+        );
+    }
 }
 
 /// Save a script, expecting what the app wrote or acknowledged, and record the write
@@ -1281,7 +1309,14 @@ impl<H: StorageHost> Clone for StorageWriter<H> {
 impl<H: StorageHost> StorageWriter<H> {
     /// A writer that records the stamps of its writes in stamps that the host shares, e.g. with the checks of folders
     pub fn new(host: H, stamps: Rc<FolderStamps>) -> StorageWriter<H> {
-        StorageWriter { shared: Rc::new(Shared { host, stamps, state: RefCell::new(State::default()) }) }
+        StorageWriter {
+            shared: Rc::new(Shared {
+                host,
+                stamps,
+                state: RefCell::new(State::default()),
+                gitignores: RefCell::new(HashSet::new()),
+            }),
+        }
     }
 
     pub fn host(&self) -> &H {

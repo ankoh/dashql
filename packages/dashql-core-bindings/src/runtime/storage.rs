@@ -347,6 +347,14 @@ impl StorageHost for JsStorage {
         self.call("renameScript", &args).await.map(|_| ())
     }
 
+    async fn load_gitignore(&self, workbook_id: &str) -> Result<Option<String>, HostError> {
+        Ok(self.call("loadGitignore", &[text(workbook_id)]).await?.as_string())
+    }
+
+    async fn save_gitignore(&self, workbook_id: &str, gitignore: &str) -> Result<(), HostError> {
+        self.call("saveGitignore", &[text(workbook_id), text(gitignore)]).await.map(|_| ())
+    }
+
     async fn list_attachments(&self, workbook_id: &str) -> Result<Vec<String>, HostError> {
         let names = self.call("listAttachments", &[text(workbook_id)]).await?;
         if !Array::is_array(&names) {

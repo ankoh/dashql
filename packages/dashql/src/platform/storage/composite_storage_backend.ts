@@ -256,6 +256,15 @@ export class CompositeStorageBackend implements WorkbookRegistryBackend {
         return stamp;
     }
 
+    async loadGitignore(workbookId: string): Promise<string | null> {
+        const backend = await this.backendFor(workbookId);
+        return await backend.loadGitignore?.(workbookId) ?? null;
+    }
+
+    async saveGitignore(workbookId: string, text: string): Promise<void> {
+        await (await this.backendFor(workbookId)).saveGitignore?.(workbookId, text);
+    }
+
     /// Keep the registry entry of a workbook whose workbook file was written in sync
     private async registerSavedWorkbook(workbookId: string): Promise<void> {
         const loc = this.locationOf(workbookId);

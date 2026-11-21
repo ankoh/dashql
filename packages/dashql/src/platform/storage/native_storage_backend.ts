@@ -1,5 +1,4 @@
-import { type StorageBackend, type WorkbookData, type ScriptData, type WorkbookEntry, type AppSettings, StorageBackendType, STORAGE_WORKBOOK_FILE, STORAGE_SCRIPTS_FOLDER } from './storage_backend.js';
-import { GITIGNORE_FILE, gitignoreWithEntries } from './workbook_gitignore.js';
+import { type StorageBackend, type WorkbookData, type ScriptData, type WorkbookEntry, type AppSettings, StorageBackendType, STORAGE_WORKBOOK_FILE, STORAGE_SCRIPTS_FOLDER, STORAGE_GITIGNORE_FILE } from './storage_backend.js';
 import { type DataFile, type DataFileContent, type ExpectedStamp, ExternalScriptChangeError, STORAGE_ATTACHMENTS_FOLDER, WorkbookFolderMissingError, isAttachmentFileName, matchesExpectedStamp, validateDataFileName } from './storage_backend.js';
 
 import { joinPath, type FileStamp, type FileSystem } from '../file_system.js';
@@ -36,8 +35,6 @@ export interface WorkbookFolderStamps {
 export class NativeStorageBackend implements StorageBackend {
     /// The absolute directory on disk that holds this workbook's files
     private readonly dir: string;
-    /// Whether the .gitignore was already checked by this backend
-    private gitignoreChecked = false;
 
     constructor(dir: string, protected readonly fs: FileSystem) {
         this.dir = dir;
@@ -135,21 +132,18 @@ export class NativeStorageBackend implements StorageBackend {
         return JSON.parse(text) as WorkbookData;
     }
 
-    /// Ensure the workbook-level .gitignore holds our entries. Missing entries are appended, so a
-    /// user-authored .gitignore keeps its own lines and folders from older versions get new entries.
-    private async ensureGitignore(): Promise<void> {
-        if (this.gitignoreChecked) return;
-        const file = await this.abs(GITIGNORE_FILE);
-        const updated = gitignoreWithEntries((await this.fs.exists(file)) ? await this.fs.readTextFile(file) : null);
-        if (updated != null) await this.fs.writeTextFile(file, updated);
-        this.gitignoreChecked = true;
+    async loadGitignore(_workbookId: string): Promise<string | null> {
+        const file = await this.abs(STORAGE_GITIGNORE_FILE);
+        return await this.fs.exists(file) ? await this.fs.readTextFile(file) : null;
+    }
+
+    async saveGitignore(_workbookId: string, text: string): Promise<void> {
+        await this.fs.writeTextFile(await this.abs(STORAGE_GITIGNORE_FILE), text);
     }
 
     /// Write the workbook file atomically if it is what the write expects, returns its stamp
     async saveWorkbookManifest(workbookId: string, data: WorkbookData, expected?: ExpectedStamp): Promise<FileStamp> {
         await this.ensureDir('');
-        // Keep generated files out of version control as soon as the workbook folder is written
-        await this.ensureGitignore();
         const metaFile = await this.abs(STORAGE_WORKBOOK_FILE);
         await this.checkStamp(workbookId, STORAGE_WORKBOOK_FILE, metaFile, expected);
         return await this.fs.writeTextFile(metaFile, JSON.stringify(data, null, 2));

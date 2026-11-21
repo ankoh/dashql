@@ -103,6 +103,10 @@ export interface RuntimeStorage {
     deleteScript(workbookId: string, fileName: string, expected?: RuntimeFileStamp | null): Promise<void>;
     /** The file keeps its stamp, a missing source is renamed already */
     renameScript(workbookId: string, from: string, to: string, expectedFrom?: RuntimeFileStamp | null, expectedTo?: RuntimeFileStamp | null): Promise<void>;
+    /** The text of the `.gitignore` of the folder of a workbook, null without one. The runtime decides its entries. */
+    loadGitignore(workbookId: string): Promise<string | null>;
+    /** Write the `.gitignore` of the folder of a workbook */
+    saveGitignore(workbookId: string, text: string): Promise<void>;
     /** The names of the attachments, the runtime normalizes them to NFC and orders them naturally */
     listAttachments(workbookId: string): Promise<string[]>;
     /** Update the connection entries of the app manifest exclusively. The update gets the entries, null before the connections were migrated, and returns the new ones, null if nothing changed. */

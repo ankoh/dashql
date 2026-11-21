@@ -33,8 +33,9 @@ A script has at most one result. A write of a result of a script removes its oth
 for a moment a script may have two files: the newest one counts, by its modification time and then its name.
 
 The `.gitignore` of a workbook folder holds `results/`, together with the entries of native workbook folders
-(`cache/`, `*.hyper`). The storage writer writes it with the workbook file and appends missing entries to an existing
-one, the lines of the user stay (`gitignore_with_entries`). The results of a native workbook live in its folder of the
+(`cache/`, `*.hyper`). The storage writer of the core decides it: with the first write of the workbook file of a
+workbook it appends the missing entries (`gitignore_with_entries` of `workbook_format/layout.rs`), the lines of the user
+stay. The storage of the platform only loads and saves the file (`loadGitignore`, `saveGitignore`). The results of a native workbook live in its folder of the
 origin private file system, `workbooks/<id>/results/`, like the mirror of its attachments: the embedded Hyper mounts
 only folders of the origin private file system. The `.gitignore` of the native folder holds `results/` all the same.
 

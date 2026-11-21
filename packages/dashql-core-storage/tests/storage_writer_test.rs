@@ -130,6 +130,8 @@ struct Store {
     connection_files: BTreeMap<String, String>,
     /// The storage calls that changed something, in order
     calls: Vec<String>,
+    /// The `.gitignore` files of the workbook folders, none without `gitignore`
+    gitignores: Option<BTreeMap<String, String>>,
     /// Scripts changed outside the app, saving one fails until the change is resolved
     externally_changed: bool,
     /// Holds the next deletion of a script until the test releases it
@@ -242,6 +244,17 @@ impl StorageHost for FakeHost {
         let stamp = store.stamp(workbook.to_string().len());
         store.workbook_stamps.insert(workbook_id.to_string(), stamp);
         Ok(Some(stamp))
+    }
+
+    async fn load_gitignore(&self, workbook_id: &str) -> Result<Option<String>, HostError> {
+        Ok(self.store.borrow().gitignores.as_ref().and_then(|files| files.get(workbook_id).cloned()))
+    }
+
+    async fn save_gitignore(&self, workbook_id: &str, text: &str) -> Result<(), HostError> {
+        if let Some(files) = self.store.borrow_mut().gitignores.as_mut() {
+            files.insert(workbook_id.to_string(), text.to_string());
+        }
+        Ok(())
     }
 
     async fn save_script(
@@ -1663,4 +1676,22 @@ fn names_the_key_and_the_files_of_a_task() {
         renamed.files(),
         [format!("{WORKBOOK}/attachments/a.parquet"), format!("{WORKBOOK}/attachments/b.parquet")]
     );
+}
+
+#[test]
+fn appends_the_entries_of_the_app_to_the_gitignore_of_a_workbook_once() {
+    let h = Harness::new();
+    let mut user = BTreeMap::new();
+    user.insert(WORKBOOK.to_string(), "notes.txt\ncache/".to_string());
+    h.store.borrow_mut().gitignores = Some(user);
+    schedule(&h, creation(WORKBOOK, false), 0.0);
+    h.flush();
+    let gitignore = |h: &Harness| h.store.borrow().gitignores.as_ref().unwrap().get(WORKBOOK).cloned();
+    // The lines of the user stay, the missing entries follow them
+    assert_eq!(gitignore(&h).as_deref(), Some("notes.txt\ncache/\nresults/\n*.hyper\n"));
+    // The writer checks a workbook once, a .gitignore that the user edits later stays as it is
+    h.store.borrow_mut().gitignores.as_mut().unwrap().insert(WORKBOOK.to_string(), "mine\n".to_string());
+    schedule(&h, properties("renamed"), 0.0);
+    h.flush();
+    assert_eq!(gitignore(&h).as_deref(), Some("mine\n"));
 }
