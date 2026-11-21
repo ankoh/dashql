@@ -5,7 +5,7 @@ harness gets the answers of the app (`docs/design/dashql_runtime.md`):
 
 - **`dashql lint`** lints SQL files on disk.
 - **`dashql format`** pretty prints SQL files on disk.
-- **`dashql run`** runs the scripts of a workbook folder on Trino and the embedded Hyper, results go into the query result cache.
+- **`dashql run`** runs the scripts of a workbook folder on Trino and the embedded Hyper, results go into the results of the workbook.
 - **`dashql catalog`** prints the tables of the connections of a workbook folder as `CREATE TABLE` statements.
 - **`dashql vis`** checks the chart of a script against its result and renders it as PNG.
 - **`dashql connect`** launches Claude Code or Codex and shows its session live in the tab of DashQL that gave the
@@ -167,7 +167,7 @@ nations.sql  ok  25 rows  0.3 s
   0         | ALGERIA   | AFRICA
   1         | ARGENTINA | AMERICA
   … 23 more
-  .dashql/cache/5f0e…c2.8d1a…77.parquet
+  .dashql/workbooks/ab12…/results/nations.sql.5f0e…c2.8d1a77c0.parquet
 broken.sql  failed  0.4 s
   line 1:8: Column 'nope' cannot be resolved
   │ select nope from orders
@@ -178,20 +178,20 @@ customers.sql  not run  the run stopped
 ```
 
 Every result shows its schema, its row count, its first rows (`--rows`, 10 by default) and its Parquet file in the
-query result cache, relative to the invoking directory if it is below it. A failure shows the message of the engine
+results of the workbook, relative to the invoking directory if it is below it. A failure shows the message of the engine
 and, if it names a position, the line of the statement that was sent. The lines are in the order the scripts settle,
 which differs from the order of the workbook when scripts run at the same time. A script that didn't run says why:
 its connection could not be set up, it follows such a script, the run stopped or was interrupted. Referenced scripts
 that are not named show up only when they fail. `--verbose` prints the log of the runtime to stderr.
 
 - **The files of DashQL.** The workspace, with the layout of the storage of the app (`docs/design/storage_layout.md`):
-  the query result cache in `cache/`, the attachments of a workbook in `workbooks/<id>/attachments/`, mirrored from the
-  folder before the run, and a folder per run of the embedded Hyper in `instances/`, removed at its end or by the next
+  the attachments of a workbook in `workbooks/<id>/attachments/`, mirrored from the folder before the run, its stored
+  results in `workbooks/<id>/results/` (`<script>.<key>.<gen>.parquet`, one per script), and a folder per run of the embedded Hyper in `instances/`, removed at its end or by the next
   run once its process is gone. Nothing is searched for and nothing comes from the environment. Everything of a
   project stays in its `.dashql/`, which commands in the sandbox of a harness may write, next to the session of
   `dashql connect`. It is a root of its own, the app keeps its files in the storage of the browser.
-- **Cached results.** A script whose result is cached is not run again unless a script it follows runs, like in the
-  app; the result then says `from the cache` and its connection is not needed. `--refresh` runs every script. The
+- **Reused results.** A script whose stored result has its current key is not run again unless a script it follows
+  runs, like in the app; the result then says `reused` and its connection is not needed. `--refresh` runs every script. The
   workbook folder is not written.
 - **The workspace.** `--workspace <dir>`, `-w` for short, is the folder of the files of DashQL, `.dashql/` of the
   invoking directory by default, a workspace that `dashql init` or `dashql connect` set up: a folder without
@@ -203,7 +203,7 @@ that are not named show up only when they fail. `--verbose` prints the log of th
   the session, the tab runs the scripts with its own runtime on its connections that the agent may use, as far as the
   browser reaches them, the feed of the tab shows the run, and the events come back and print as above. A result comes
   with its first `--rows` rows, its row count and, for a result with a key, its Parquet file, which the tab writes into
-  `cache/` of the workspace. The run fails when no tab follows the session; Ctrl-C asks the tab to stop it
+  `workbooks/<id>/results/` of the workspace. The run fails when no tab follows the session; Ctrl-C asks the tab to stop it
   (`docs/design/agent_integration.md`, "Runs in the tab"). Every other workbook folder fails with a hint while the
   session runs, so nothing runs outside the tab; without a session a workbook folder runs in the process, a copy only
   with the workspace of its session.
@@ -297,7 +297,7 @@ dashql vis [-w <dir>] [--out <file.png>] [--width <n>] [--height <n>] [--scale <
 
 Checks the chart of a script, the `@vis` tag above its last query (`docs/design/vis_comments.md`), and gets it as PNG.
 The check is local: the core compiles the script and names the renderer and the Vega-Lite spec, Vega-Lite compiles the
-spec in Node. `vis` runs the script like `dashql run` (in the tab for a copy of a tab, a cached result is not run again)
+spec in Node. `vis` runs the script like `dashql run` (in the tab for a copy of a tab, a reused result is not run again)
 and takes the columns of the result from the event of the run, without its rows. It prints the renderer, the rows and
 the columns, and the problems: the errors and warnings of Vega-Lite, fields of the encodings that are no columns of the
 result nor made by a transform, and sizes that DashQL decides (`chartSpecProblems` of

@@ -83,7 +83,7 @@ value and a literal that the dialect can't express are errors of the plan, with 
 
 The signature of a planned script (`ExecutionGraphScript.signature`) is its AST signature followed by the literals it
 binds in the Hyper dialect, `:min=10` per line in name order. The result key of a script follows its values, and the
-keys of the scripts that reference it follow it (`query_cache.md`).
+keys of the scripts that reference it follow it (`workbook_results.md`).
 
 ## Running
 
@@ -93,7 +93,7 @@ change (`ScriptData.externalChanges`), it keeps its cursor and undoes it as one 
 scripts, derives the dataflow and plans the scripts that the change affects as targets (`affected_scripts` in `workbook_run/plan.rs` of the core runtime), the
 scripts that use one of the inputs and every script downstream of them by an inline, scan or table edge, except the
 scripts that run only on request (`@manual`, `DataflowScript.manual`); the scripts downstream of them are targets. The targets
-run with what they read, the scripts they scan are served from the query result cache when their keys are reusable.
+run with what they read, the scripts they scan are served from their stored results when their keys are reusable.
 A change that no script reads runs nothing. A run that holds the workbook stops, the run of the change starts once the
 workbook is free, with the inputs of every change since.
 

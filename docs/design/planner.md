@@ -57,7 +57,7 @@ is taken as it is, and script references with errors or to scripts that were not
 diagnostics keep their error flag, and a plan that left something out is not valid. An invalid request, e.g. two
 scripts of the same name, still stops it.
 
-Every run in the app executes a plan: a run of the session plans every script without a cached result, a run of one script plans
+Every run in the app executes a plan: a run of the session plans every script without a reusable stored result, a run of one script plans
 that script as the target (`script_references.md`). Scripts without names can't be referenced, so a plan of
 scripts without names is a plan of their statement dependencies.
 The runtime plans the runs of a workbook (`Workbook::plan_run`); the module exports no planning call of its own,

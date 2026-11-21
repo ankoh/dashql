@@ -11,7 +11,7 @@ the tests of the harnesses in [agent_integration_tests.md](agent_integration_tes
 
 | Side | What it is | Runs |
 |---|---|---|
-| **The tab** | The web app or the desktop app with its runtime (`docs/design/dashql_runtime.md`) | The workbooks as the user sees them, the connections with their logins, the catalog loader, the queries, the query result cache, the feed, the charts |
+| **The tab** | The web app or the desktop app with its runtime (`docs/design/dashql_runtime.md`) | The workbooks as the user sees them, the connections with their logins, the catalog loader, the queries, the stored results of the scripts, the feed, the charts |
 | **The terminal** | The machine of the agent, in the folder of a project | The harness and its hooks, the commands of `dashql` that the agent runs, the server of the session that `dashql connect` starts, the files in `.dashql/` |
 
 The server of the session (`dashql connect`, `session_server.ts`) belongs to the terminal. It is a relay on
@@ -74,7 +74,7 @@ The reasons:
 | The tables of a connection | Tab: the catalog loader, and the core renders the file (`catalogRelationsFile`); Terminal: `dashql catalog` reads it | The file `connections/<id>/dashql-catalog-relations.sql` of the copy, tab to terminal |
 | The connections the agent may use | Tab: the menu of the prompt | `PUT /v1/connections`, the server writes them into the session of `dashql-workspace.json` |
 | Running scripts of a copy | Tab: its runtime on its connections | A run request terminal to tab (`POST /v1/runs`, the event `run` of the stream), the run events back |
-| The results of a run | Tab: the query result cache | The first rows in the events, the Parquet file of a cached result (`PUT /v1/results/…` into `.dashql/cache/`) |
+| The results of a run | Tab: the stored results of the scripts | The first rows in the events, the Parquet file of a stored result (`PUT /v1/results/…` into `.dashql/workbooks/<id>/results/`) |
 | Running workbook folders outside a session | Terminal: a runtime in the process of `dashql run`, Trino with basic auth and the embedded Hyper | Nothing |
 | The check of a chart | Terminal: the core reads the `@vis` tag, Vega-Lite compiles the spec in Node, the fields are compared with the columns of the result | The columns of the result, in the run events |
 | The PNG of a chart | Tab: the image renderer of the feed, after the result | `chart` of the run request, the event `script_chart` back |
@@ -95,7 +95,7 @@ Every request carries the token of the session, every answer names the protocol 
 | `PUT /v1/connections/<token>` | Tab | The connections that the agent may use |
 | `POST /v1/runs/<token>` | `dashql run`, `dashql vis` | A run request: the copy, its scripts, refresh, the rows of a result, the size of the charts; the answer streams the run events |
 | `POST`, `DELETE /v1/runs/<token>/<run id>` | Tab, `dashql run` | An event of a run, or the stop of a run |
-| `PUT /v1/results/<token>/<key>` | Tab | The Parquet file of a cached result |
+| `PUT /v1/results/<token>/<workbook id>/<file name>` | Tab | The Parquet file of a stored result |
 
 The server keeps no workbook state of its own besides the files. A tab that reloads adopts the copy it wrote before.
 
@@ -117,8 +117,8 @@ app.
 │   ├── dashql-workbook.json           connections, scripts with their connections
 │   ├── scripts/<name>.sql
 │   ├── attachments/<name>.parquet
+│   ├── results/<script>.<key>.<gen>.parquet   the stored results of the scripts, from the tab or the process
 │   └── connections/<id>/dashql-catalog-relations.sql
-├── cache/<key>.<uuid>.parquet         results of runs, from the tab or the process
 └── charts/<script>.png                charts of dashql vis
 ```
 
@@ -161,8 +161,8 @@ and copies its workbooks again.
 2. The server stamps the copies, sends the state and then the run to the tab.
 3. The tab fails the run if the prompt is in SQL, waits until it took the edits, and runs the workbook with its
    runtime on the connections that the agent may use. The feed shows the run.
-4. The events go back through the server to `dashql run`, which prints them; a cached result comes as a Parquet file in
-   `.dashql/cache/`.
+4. The events go back through the server to `dashql run`, which prints them; a stored result comes as a Parquet file in
+   `.dashql/workbooks/<id>/results/`.
 
 `dashql vis` is the same run with `chart` in the request and no rows. It checks the chart while the run goes, and
 writes the PNG that the tab sends as `script_chart` before `run_finished`. The details are in
@@ -255,10 +255,10 @@ decides on. The tab logs in as it does for its own runs, no token reaches the te
    the feed show their table and chart only with the analysis; `dashql run` prints them and analyzes nothing. A
    connection that the agent may not use, or that is not online in the tab, fails before the first statement and its
    scripts don't run.
-4. **The results go into the session.** The cached result of a script with a key goes as its Parquet file to
-   `PUT /v1/results/<token>/<key>` before the script is reported: the server writes it into the query result cache of
-   the session, `.dashql/cache/<key>.<uuid>.parquet`, and answers with the path, where the agent reads the whole
-   result. A result without a key has no file, as in a run of the process.
+4. **The results go into the session.** The stored result of a script goes as its Parquet file to
+   `PUT /v1/results/<token>/<workbook id>/<file name>` before the script is reported (`sendStoredResult`): the server
+   writes it into the results of the copy, `.dashql/workbooks/<id>/results/<file name>`, and answers with the path,
+   where the agent reads the whole result. A result without a key has no file, as in a run of the process.
 5. **The events go back.** The tab posts every event to `/v1/runs/<token>/<run id>` (`encodeRunEvent`: the table of a
    result with its first `rows` rows as an Arrow IPC stream in base64, the file in the session), the server writes it
    to the answer, which ends with `run_finished`. `dashql run` prints them with its reporters.

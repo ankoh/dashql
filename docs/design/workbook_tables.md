@@ -38,9 +38,9 @@ in NFC.
 | `connection_catalog_functions` | `function_id`, `connection_id`, `database_name`, `schema_name`, `function_name`, `is_aggregate`, `return_type` |
 | `connection_catalog_function_params` | `function_id`, `position`, `param_name`, `param_type` |
 | `workbook_attachments` | `position`, `name`, `table_name` |
-| `workbook_results` | `cache_key`, `table_name` |
+| `workbook_results` | `cache_key`, `table_name`, `script_name` |
 | `workbook_attachment_<32 hex>` | the data of one attachment, no key |
-| `workbook_result_<32 hex>` | one cached query result, no key |
+| `workbook_result_<32 hex>` | the stored result of one script, no key |
 
 - **Names.** A table is named after what its rows belong to: the workbook or a connection of it. The cloud keeps the
   tables of all published workbooks side by side under the same names and columns (`cloud.md`), only its versions
@@ -50,9 +50,11 @@ in NFC.
   `version_id`, every export of a workbook is a version of its own. A reader takes the tables of exactly one version
   and refuses rows of another. A cloud gives a published version a key of its own (`cloud.md`), so the key of a file
   doesn't carry over into it. In a file the key is `text`, in a cloud `uuid`.
-- **Data tables.** Every attachment and every cached query result is a table of its own. `workbook_attachments` and
-  `workbook_results` name them, the name is unique across versions. The text columns are `text`, the ids of the
-  catalogs, `position` and `format_version` are `integer`, `is_aggregate` is `boolean`.
+- **Data tables.** Every attachment and every stored result of a script is a table of its own. `workbook_attachments`
+  and `workbook_results` name them, the name is unique across versions. A row of `workbook_results` names the file name
+  of its script and the key in the name of its file (`workbook_results.md`); archives of earlier versions name only the
+  key. The text columns are `text`, the ids of the catalogs, `position` and `format_version` are `integer`,
+  `is_aggregate` is `boolean`.
 - **Evolving.** A reader reads a missing nullable column as null and a missing table as one without rows, so a later
   version adds nullable columns and tables without breaking readers. A change that a reader must not ignore raises
   `format_version`, which a reader refuses when it is newer than it knows.
@@ -86,7 +88,7 @@ workbook_results.parquet                    (with query results only)
 workbook_result_<id>.parquet
 ```
 
-- **Writing.** The runtime reads the workbook from the storage and the cached results from the query result cache, and
+- **Writing.** The runtime reads the workbook from the storage and the stored results from the results of the workbook, and
   hands the platform the entries of the archive in order (`archives.write`): the rows of a table as Arrow IPC, which
   the embedded Hyper writes as Parquet (`exportArrowTableAsParquet`), and the attachments and results by handle, which
   are Parquet files already and go in unchanged. The core names the entries and their compression. Empty tables are
@@ -94,7 +96,7 @@ workbook_result_<id>.parquet
 - **Compression.** The entries are deflated. Hyper compresses the pages of a Parquet file with Snappy, but not its
   footer, which is most of a small table: deflate halves the workbook tables, and an attachment that Hyper wrote as
   well. Hyper takes no Parquet option but `codec`, and deflate over Snappy pages comes out smaller than over plain ones.
-  A query result stays stored, an import reads it as a slice of the archive (`query_cache.md`).
+  A query result stays stored, an import reads it as a slice of the archive (`workbook_results.md`).
 - **Reading.** The platform lists the entries (`archives.entries`), the core decides what each entry is
   (`plan_archive`). The embedded Hyper mounts every workbook table and scans it (`archives.readTable`), the core reads
   the rows of the Arrow IPC. The attachments and results stay with the platform by handle, a stored result as a slice

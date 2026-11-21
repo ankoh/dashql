@@ -43,7 +43,7 @@ the run, the node, the script and the position of the statement among the statem
 inlined scripts, the materialized results it scans, the file it writes and the edges it runs after. The query history
 shows it as title, e.g. `bar.sql 1/1 · inlines foo.sql · scans base.sql`, and description. The log target
 `workbook_execution` records the plan before it runs, every statement with its query id, the materialized results
-that are written, the cached results that a run reads instead of running a script, and the statements that fail.
+that are written, the stored results that a run reads instead of running a script, and the statements that fail.
 
 ## Scopes
 
@@ -251,7 +251,7 @@ A run of the session plans four nodes:
 | 3 | bar: `with foo as (select * from t) select count(*) from foo` | 1 (READ_AFTER_WRITE) |
 
 The run creates `t`, baz inserts a second row, foo returns two rows and bar counts 2. foo and bar both read after
-baz and run independently of each other. Neither of them serves a cached result: they follow baz, which runs.
+baz and run independently of each other. Neither of them serves a stored result: they follow baz, which runs.
 
 A run of bar plans one node, bar: `with foo as (select * from t) select count(*) from foo`. setup and baz are not
 part of the plan, the query of foo runs only inside bar. The run counts the rows of `t` as the backend has them,
@@ -260,7 +260,7 @@ have no side effects.
 
 A plan of targets orders its nodes by conflicts, barriers and MATERIALIZATION edges, and SEQUENCE edges within each
 script. A run of a script whose plan has materializations plans twice when the host mounts results: once without
-provided results, to compute the result keys, and again with the cached results of reusable keys as provided
+provided results, to compute the result keys, and again with the stored results of reusable keys as provided
 (`plan_and_run` in `workbook_run/engine.rs`).
 
 One run holds a workbook at a time (the `run` slice of the runtime), a run of the whole workbook or of one of its
@@ -273,8 +273,8 @@ of its materializations.
 A script is cacheable if it parses, has a statement and every statement is a SELECT or EXPLAIN
 (`ExecutionGraphScript.cacheable`). The scripts it references need no check: a referenced script is a single SELECT or a
 call that reads, anything else invalidates the plan. A call isn't cacheable, so the key of a script that reads one isn't
-reusable (`query_cache.md`). Whether a cached result is used also depends on the connections
-(`query_cache.md`, Cache Key).
+reusable (`workbook_results.md`). Whether a stored result is reused also depends on the connections
+(`workbook_results.md`, Result Keys).
 
 ## Outputs of a Target
 

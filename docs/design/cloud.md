@@ -29,7 +29,7 @@ a cloud come from a single statement.
 | Clouds in the sidebar, the overview of a cloud in place of the feed (`cloud/cloud_sidebar.tsx`, `cloud/cloud_overview_page.tsx`) | done, tested against the embedded Hyper |
 | Read-only previews, import with the link, publish over or as new, to a chosen cloud (`cloud/cloud_workbooks.ts`) | done |
 | A search of the workbooks with SQL in the overview | planned |
-| Publishing into a cloud folder, the login as `published_by`, a way to tell published results from local ones in the cache | planned |
+| Publishing into a cloud folder, the login as `published_by` | planned |
 | Restoring deleted workbooks and folders in the overview | planned |
 | The cloud link: log in to the connection, read the workbook, import it | planned |
 | The local cloud keeps its changes across reloads, with a redo log of Hyper | done, tested against the embedded Hyper |
@@ -225,8 +225,8 @@ groups the rows, its folders and workbooks are the top level of the workbook tre
 - **Previews.** A click on a published workbook opens its latest version, a click on a version that version
   (`useCloudWorkbooks().open`). A preview is a local workbook like any other, under a fresh id with `preview` in its
   link, loaded in a step of its own: the version is downloaded and imported like a `.dashql` file, its query results go
-  into the result cache. A card in place of the feed shows the steps like the card of an imported file: download,
-  resolve the connections, add the query results, save the scripts, save the attachments, open the workbook. A step
+  into the results of the preview workbook. A card in place of the feed shows the steps like the card of an imported
+  file: download, connections, scripts, attachments, results, open. A step
   that the version has nothing for is skipped, a failed step stays on the card until it is closed
   (`CloudWorkbookLoadingCard`, `cloud_workbook_loading.ts`). A preview is listed below its cloud and not in Local, its
   menu imports or closes it. One preview at a time: opening another discards the others, and a preview that was shown
@@ -239,9 +239,9 @@ groups the rows, its folders and workbooks are the top level of the workbook tre
   that the app manifest doesn't keep and no other workbook uses (`previewConnections`). The bar shows them greyed with
   a lock, they open nothing; the embedded Hyper is shown as it is.
 - **Running a preview.** Execute All runs a preview with no special case but one: only the embedded Hyper counts as
-  online (the runs of the runtime). The scripts of the other connections serve the published results from the
-  cache or are skipped, like the scripts of a connection that is not connected. The published results stay in the
-  cache after the preview is gone, the cache can't tell them from the results of local runs yet.
+  online (the runs of the runtime). The scripts of the other connections show the published results as stored
+  results, serve them to a run if their keys match, or are skipped, like the scripts of a connection that is not
+  connected. The results go with the preview when it is discarded.
 - **Read-only.** A preview changes nothing until it is imported. The feed page provides `WorkbookReadOnlyContext`: the
   cards have a dashed border and a lock where the run button is, no connection and no actions, the editors are
   read-only, and there is no composer, no adding of scripts or attachments, no agent and no dashboard or dataflow view.
@@ -257,8 +257,8 @@ groups the rows, its folders and workbooks are the top level of the workbook tre
 - **Publishing.** The menu of a local workbook offers Publish to Cloud, with several clouds Publish to <cloud> for each
   one. A workbook linked to a published workbook of a cloud offers Publish New Version and Publish as New Workbook for
   that cloud instead, naming the cloud when there are several. The workbook is exported like a shared `.dashql` file,
-  with the catalogs and the cached query results and without the login hints (`exportWorkbook` of the runtime with
-  the format `tables`, which retains the cached results until the publish sent them), and its link follows the
+  with the catalogs and the stored query results and without the login hints (`exportWorkbook` of the runtime with
+  the format `tables`, which retains the stored results until the publish sent them), and its link follows the
   published version and its cloud. Results that are too large
   to publish are left out. A publish to a deleted workbook fails, Publish as New Workbook publishes it again. A new
   workbook lands at the top of the cloud.
@@ -324,7 +324,8 @@ few that can each run again.
 Clients of different versions share the tables, an app that wasn't reloaded keeps the version it started with. The
 tables evolve by migrations (`CLOUD_MIGRATIONS`), a list that only grows, and the first one creates the tables. A
 migration declares the tables it creates and the columns it adds, so the columns of the tables follow from the number of
-migrations that ran (`cloudColumnsAfter`). The `cloud_store` table has one row:
+migrations that ran (`cloudColumnsAfter`). The second migration adds `script_name` to `workbook_results`, the script that
+a result belongs to; rows of the first version have none and are matched by their key. The `cloud_store` table has one row:
 
 | Column | Type | |
 |--------|------|-|

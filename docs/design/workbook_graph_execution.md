@@ -1,7 +1,7 @@
 # Workbook Graph Execution in the Core
 
 The runs of workbooks are a service of the core runtime (`packages/dashql-core-runtime/src/workbook_run/`): the
-preparation of the scripts, the plan, the cached results, the schedule of the plan across its connections and the
+preparation of the scripts, the plan, the stored results, the schedule of the plan across its connections and the
 writes of a run.
 
 | Area | Where |
@@ -21,13 +21,13 @@ order conflicting accesses. The run (`workbook_run`) executes that graph for a r
 
 ## The run
 
-A run is an async task on a `RunHost`. It analyzes the scripts on the workbook, plans them, serves the results that the
-query result cache holds, plans again with their files and runs the nodes: a node starts when its predecessors released
+A run is an async task on a `RunHost`. It analyzes the scripts on the workbook, plans them, serves the stored results of the
+workbook, plans again with their files and runs the nodes: a node starts when its predecessors released
 it, at most a number of statements of a connection run at once, a failed statement cancels the running ones. The run
 registers the queries, the results and the visualizations of the scripts on the workbook. See
 `docs/design/dashql_core.md`, Runs of workbooks.
 
-The platform keeps what is a JavaScript value: the result tables, the files of the query result cache and the mounts of
+The platform keeps what is a JavaScript value: the result tables, the files of the stored results and the mounts of
 the embedded Hyper. The holds of workbooks, the cancellation of the queries and the `run` views are Rust.
 
 ## Why the core runs it

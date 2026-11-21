@@ -85,7 +85,7 @@ loads the embed in the viewer's client.
 | | Server (the Slack app, Node, `hyperdb-edge`) | Embed (the viewer's browser) |
 |---|---|---|
 | Data file | schema, row count, size, a few rows, a chart rendered to an image | schema, paged rows, a chart, a SQL box |
-| Workbook | name, scripts, connections, the first cached result | the cached results, one script at a time, running self-contained workbooks |
+| Workbook | name, scripts, connections, the first stored result | the stored results, one script at a time, running self-contained workbooks |
 | Hyper script | the script, whether it parses, the first result | the terminal with the script, run, plan, format |
 
 The server can't run on Cloudflare Workers: Hyper needs threads and about 0.85 GB. It needs Node 24.15+ (or Node 24
@@ -114,7 +114,7 @@ The engine download (`hyperdb-wasm.wasm.br`, about 12 MB) is cached by the brows
 side panel in a host downloads it once.
 
 What the embed doesn't do: log in to connections. A workbook whose scripts need Trino, a Hyper server or Data Cloud
-shows its cached results, and running it is left to the full app.
+shows its stored results, and running it is left to the full app.
 
 ## Headers
 
@@ -173,7 +173,7 @@ The side panel is narrow, its width isn't documented. The views are one column:
 1. The DashQL mode for data files. It is useful alone, needs no credentials, and tests DIP in the real
    Slack clients (desktop, browser, Android).
 2. The Hyper mode with `script=` and `file=`.
-3. The workbook mode with cached results, which runs in every client.
+3. The workbook mode with stored results, which runs in every client.
 4. Running self-contained workbooks in the embed.
 5. Published workbooks of a cloud as Work Objects, with Slack's list of conversations as the discussion of a version.
 

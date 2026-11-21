@@ -22,7 +22,7 @@ start with `packages/` or `extensions/`.
   `design/core_completion_ranking.md`
 - Catalog: `design/catalog_updates.md` (following the connection), `design/catalog_batching.md` (SQL to descriptors)
 - Planner and runs: `design/planner.md`, `design/planner_dependencies.md`, `design/script_references.md` (`:foo`),
-  `design/workbook_graph_execution.md`, `design/query_cache.md` (query result cache)
+  `design/workbook_graph_execution.md`, `design/workbook_results.md` (stored results of the scripts)
 - Core and runtime: `design/dashql_core.md` (the Rust crates, the core module, the host, the rules),
   `design/dashql_runtime.md` (`@akohn/dashql`, views, dispatch, where tests go)
 - Workbooks: `design/workbook_inputs.md` (`@param`), `design/vis_comments.md` (`@vis`, `@board`, `@flow`),

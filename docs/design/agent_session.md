@@ -133,8 +133,9 @@ A conversation that starts in the page works on a copy: the site is the truth, t
 `<project>/.dashql/workbooks/<workbook id>/`, a workbook folder in the layout of OPFS
 (`dashql-workbook.json`, `scripts/`, `attachments/`). It goes with the session, the tab has everything.
 
-- `.dashql/`, the workspace, is also the root of Node of the session (`docs/design/storage_layout.md`, "The root of Node"): `cache/`,
-  `workbooks/<id>/attachments/` and `instances/` have the layout of OPFS, nothing is converted.
+- `.dashql/`, the workspace, is also the root of Node of the session (`docs/design/storage_layout.md`, "The root of Node"):
+  `workbooks/<id>/attachments/`, `workbooks/<id>/results/` and `instances/` have the layout of OPFS, nothing is
+  converted.
 - It is in the project, where the sandbox of Codex and the permissions of Claude Code let the agent write, a folder of
   the system for temporary files is not.
 - `.dashql/.gitignore` is `*`, the copy never reaches the repository of the user.
@@ -292,7 +293,7 @@ stays the one place the page talks to.
   the edits of the user into the copy, a copy adopted after a reload.
 - The page test `app_agent_session` also checks that the tab writes its workbook into the session once it connects,
   not again after a reload, that an edit reaches the copy, that the tab takes the text of the agent, that a run that
-  the server asks for runs in the tab and posts its events, that the result of a connection that caches results comes
-  with its Parquet file, which the tab writes into the cache of the session, and that the menu of the connections of
+  the server asks for runs in the tab and posts its events, that the stored result of a script comes
+  with its Parquet file, which the tab writes into the results of the copy, and that the menu of the connections of
   the agent sends the connections that stay ticked; that a session that ends leaves the line in the composer and no
   lost session, and that the next server on the same port gets a new copy.

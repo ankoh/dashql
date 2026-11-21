@@ -18,7 +18,7 @@ the rules that keep the module alive. The deep design docs are linked where a to
 | `dashql_core_profile` | `packages/dashql-core-profile` | The query profile: Hyper plans and Trino stages parsed into operators, edges, fragments and pipelines, their layout, and the progress of a running query as events | buffers |
 | `dashql_core_shell` | `packages/dashql-core-shell` | The shell: prompt, VT100 renderer, the tables of the first rows of results, the effect protocol of queries and dot commands (`SHELL.md`) | core, parser, buffers, `arrow-rs` |
 | `dashql_core_runtime` | `packages/dashql-core-runtime` | The runtime: workbooks, the planner across scripts, connections, queries, computations and the services, without I/O and without storage | core, profile, parser, buffers, `arrow-rs` |
-| `dashql_core_storage` | `packages/dashql-core-storage` | The storage of DashQL on the runtime: the storage writer, the restore, the workbook format (imports, exports, migrations, the eviction of the query result cache) and the saves of the connections. The runtime doesn't know it, the bindings wire it in | runtime, core, parser, buffers, `arrow-rs` |
+| `dashql_core_storage` | `packages/dashql-core-storage` | The storage of DashQL on the runtime: the storage writer, the restore, the workbook format (imports, exports, migrations, the names and garbage of the stored results) and the saves of the connections. The runtime doesn't know it, the bindings wire it in | runtime, core, parser, buffers, `arrow-rs` |
 | `dashql_core_bindings` | `packages/dashql-core-bindings` | The wasm-bindgen bindings of all of the above: the classes of the core and the `Runtime` of DashQL with its platform | all of the above |
 | `dashql_dataflow` | `packages/dashql-dataflow` | The layout of the dataflow canvas with ELK (elk-rs) | |
 | `dashql_dataflow_bindings` | `packages/dashql-dataflow/bindings` | The second module, for the layout only, loaded when the canvas opens, so the core module carries no ELK | dataflow |
@@ -82,10 +82,10 @@ that wants the composition would depend on that rather than copy it.
 | The query executor | `executor/`, `http/`, `trino/`, `hyper/`, `clfn/`, `salesforce/` | `queries.rs` |
 | Computations | `compute/` | `computation.rs`, `compute_tracking.rs` |
 | The catalog loader | `catalog_loader/` | `catalog.rs` |
-| Runs of workbooks | `workbook_run/` | `runs.rs`, `runs/cached_results.rs` |
+| Runs of workbooks | `workbook_run/` | `runs.rs`, `runs/stored_results.rs` |
 | The storage writer | `storage/` of `dashql-core-storage` | `storage.rs` |
 | Restore and the persistence of connections | `restore/`, `connection_persistence.rs` of `dashql-core-storage` | `storage.rs`, `src/runtime.rs` |
-| The workbook format: imports, exports, migrations, eviction | `workbook_format/` of `dashql-core-storage` | `imports.rs`, `exports.rs`, `archives.rs`, `migrations.rs`, `external.rs`, `src/host.rs` |
+| The workbook format: imports, exports, migrations, the naming of results | `workbook_format/` of `dashql-core-storage` | `imports.rs`, `exports.rs`, `archives.rs`, `migrations.rs`, `results.rs`, `external.rs`, `src/host.rs` |
 | Handles | `handles.rs` | `src/host.rs` |
 
 ### Workbooks and scripts
@@ -106,9 +106,9 @@ that wants the composition would depend on that rather than copy it.
   one of a run, settles in `Workbooks::settle`: the writes, the marks of the slices (the scripts and, when analyses
   changed, the derived view, after an editor event once the typing paused for 150 ms; the whole workbook only for a
   change of the workbook), the promotion, the references of
-  the connections, the check of the cached results and the analyses of the shown scripts.
+  the connections, the check of the stored results and the analyses of the shown scripts.
 - **Analyses.** `WorkbookScript::is_analysis_outdated` is the one predicate of runs, views (`analysisOutdated`), the
-  shown scripts and the cached results: the flag, a text that changed, or an analysis that is no longer current with the
+  shown scripts and the stored results: the flag, a text that changed, or an analysis that is no longer current with the
   catalog. The publish of a script itself leaves its analysis current, the planner takes it (`current_by_own_publish`).
   A busy session counts as outdated. A publish into the catalog that changes its version marks the other scripts on
   that catalog outdated, those of the other workbooks on the connection too: all workbooks on a connection share its
@@ -128,7 +128,7 @@ that wants the composition would depend on that rather than copy it.
 - **Sessions.** The host reads the session of a script through `WorkbookScriptSession` (`Runtime.scriptSession`), a
   handle without mutators that fails on a busy session instead of panicking. A script that moves to another connection
   moves into a new session and keeps its staged rewrite, its unresolved connection, its visualization, its statistics,
-  its queries, its cached result and its editor update until it analyzes again. A rewrite of the text by the workbook
+  its queries, its stored result and its editor update until it analyzes again. A rewrite of the text by the workbook
   (inputs, formatting, a chart spec, a rejected diff, renamed references) reaches a mounted editor as text changes
   (`externalChanges`).
 - **Profiles.** A change of what the scripts read of a connection (`ScriptConnectionProfile`: dialect, default database
@@ -143,12 +143,14 @@ that wants the composition would depend on that rather than copy it.
   workbook is the one list of its attachments. `renameAttachment` names a renamed one like a script, rewrites the
   references of the scripts and renames the file through the storage writer (`WriteTask::RenameDataFile`); a refused
   rename, e.g. of a cloud preview, changes nothing. The runs read their columns once per file and stamp.
-- **Cached results.** The view of a script shows the newest file of its reusable key (`cachedResult`,
-  `runs/cached_results.rs`). A workbook is looked up again once its changes pause, only if the stamp of what its keys
-  depend on moved: the analyses (by their serials), the attachments, the connections and their params, the cache keys of
-  the latest queries. A cursor move looks up nothing. A recorded or deleted cache entry looks up the workbooks of the
-  connection, the end of a run and an eviction of the cache (`JsPlatform::evict_cache` returns the removed files) every
-  workbook.
+- **Stored results.** The view of a script shows the file that holds its last result (`storedResult`: name, key, time
+  of writing and whether the key is the current reusable key, `runs/stored_results.rs`). A workbook is looked up again
+  once its changes pause, only if the stamp of what its keys depend on moved: the analyses (by their serials), the
+  attachments, the connections and their params, the result keys of the latest queries. A cursor move looks up
+  nothing. The end of a run and every write, rename or removal of a file of the workbook look it up again. The runtime
+  reads the stored results of a workbook that is shown (`showWorkbook`), and the logic of the files, the names, the
+  reads, the writes and the renames of scripts is `runs/results.rs` of the bindings. See
+  [workbook_results.md](workbook_results.md).
 
 ### Connections, setups and channels
 
@@ -167,7 +169,7 @@ that wants the composition would depend on that rather than copy it.
   of the connector (`hyper::connector`, `trino::connector`, `salesforce::connector`). It holds the params key, the
   display name, the features, the default params and their draft rows, the probe of the health check, the queries
   that run at once, whether the catalog outlives the app, the params that sharing keeps, the login hint, the parts of
-  a label, the names of unqualified relations, the signature of cached results, the update of the catalog and the
+  a label, the names of unqualified relations, the signature of the result keys, the update of the catalog and the
   binding of its client functions (`ClientFunctionBinding`, Data 360 on Salesforce Data Cloud). A call hands the
   binding the channel of its connection, which holds the credentials. A new decision of a connector is a method of
   the trait, not another match. The setups stay one match in the bindings crate (`runtime/setups.rs`): their hosts
@@ -225,23 +227,25 @@ that wants the composition would depend on that rather than copy it.
 - **Description in Rust.** `executeQuery` registers the query in the history of its connection and describes it
   (`queries.rs`): the target on the channel of the connection, the key of its result, whether the statement touches
   relations, and the options of the caller (`QueryOptions`: analyze, publish, throw on error, a client function call,
-  the read timeout, the cache). The platform describes only a channel of the host by its handle (`channels.describe`),
+  the read timeout, the stored result of its script). The platform describes only a channel of the host by its handle (`channels.describe`),
   the targets of the channels that the module speaks come from the connection.
-- **The cache key** is the lowercase hex SHA-256 of the signature of the connection (`connection_cache_signature`) and
-  the semantic signature of the script (`executor/cache_key.rs`); the digest comes from `crypto.sha256` of the platform.
-  See [query_cache.md](query_cache.md).
+- **The result key** is the lowercase hex SHA-256 of the signature of the connection (`connection_cache_signature`)
+  and the semantic signature of the script (`executor/cache_key.rs`); the digest comes from `crypto.sha256` of the
+  platform. It names the file of the stored result of the script and tells whether a run may reuse it. See
+  [workbook_results.md](workbook_results.md).
 - **One run object per query.** `QueryRun` of `queries.rs` lives from the registration of a query to the end of its
-  last follow-up (the write of the result into the cache, the touch of a cached entry). It is the run of the executor
+  last follow-up (the write of its stored result). It is the run of the executor
   (`ExecutorHost::Run`, `ExecutorRun`): the executor gets it with the request and hands it to every call of its host,
   the host never looks a query up by its id. Its token is the one cancellation of the query: `cancelQuery`, a reset
   of the connection, a catalog update that is cancelled and a caller that stops waiting cancel it while the query is
-  described, loads the spec of its client functions, waits for the cache, runs or is analyzed. A channel of the host
+  described, loads the spec of its client functions, reads its stored result, runs or is analyzed. A channel of the host
   learns it from the executor (`channel_cancel`), also while it still opens the query, e.g. a query of the embedded
   Hyper that waits for the one before it. Its controls (`QueryControls`) count the views of its profile from the
   registration on. The run owns its result table, the history and the analysis take handles of their own.
-- **The executor** (`executor/`, `QueryExecutor::execute`) serves a result from the cache or sends the query, reports
-  `QueryEvent`s into the history, touches the relations of the statement (`touched_relations` of the core),
-  analyzes the result on the computations and writes it into the cache, also when only the analysis failed. The
+- **The executor** (`executor/`, `QueryExecutor::execute`) reads the file of a stored result or sends the query,
+  reports `QueryEvent`s into the history, touches the relations of the statement (`touched_relations` of the core),
+  analyzes the result on the computations and stores it as the file of its script, also when only the analysis
+  failed. The
   history applies the start and the end of a query as urgent changes, the rest with the next frame (see
   [Changes and the flush](dashql_runtime.md#changes-and-the-flush)). It decides the
   latest result of an owner and reports the superseded queries; the runtime deletes their computations. A query that
@@ -250,7 +254,7 @@ that wants the composition would depend on that rather than copy it.
   runs: no description, no spec, no check of the compute database.
 - **The seam of a query** is typed: the ticket and the outcome of `executeQuery` (`QueryTicket`, `QueryRunOutcome`,
   `QueryRunFailure`), the events of its caller (`QueryCallerEvent`), the channel that the platform describes
-  (`RuntimeChannelTarget`) and the table of a cached result (`RuntimeCachedTable`) are Rust types with generated
+  (`RuntimeChannelTarget`) and the table of a stored result (`RuntimeCachedTable`) are Rust types with generated
   declarations.
 - **The connectors are sans-IO state machines** driven by the executor over `HttpHost::fetch`: Trino (`TrinoQuery`,
   pages of up to 32 MB as Arrow batches, retries, the profile only while it shows, named time zones through
@@ -303,9 +307,9 @@ loader. See [catalog_updates.md](catalog_updates.md) and [catalog_batching.md](c
 
 - A run analyzes the outdated scripts and publishes their declarations until none is outdated
   (`Workbook::analyze_for_run`), plans with `planner::plan_session` (all scripts, targets with what they need, or the
-  scripts that a change of inputs affects, `plan::affected_scripts`), derives the result keys, serves the cached ones
+  scripts that a change of inputs affects, `plan::affected_scripts`), derives the result keys, serves the stored ones
   and plans again with their files. A script that changed its text or its signature between the two plans, e.g. typed
-  while the run looked up the cache, fails the run: its keys and files come from the first plan.
+  while the run looked up the stored results, fails the run: its keys and files come from the first plan.
 - A node starts once its predecessors released it, at most `max_concurrent_queries` statements of a connection at once
   (four for a Hyper server, one otherwise). A failed statement cancels the running ones; the nodes of a connection that
   can't run or be set up are skipped with what follows them.
@@ -317,10 +321,10 @@ loader. See [catalog_updates.md](catalog_updates.md) and [catalog_batching.md](c
 - A workbook that is deleted or replaced (a restore or an import under the same id) takes its `run` slice with it: the
   run that holds it stops, the inputs that wait are dropped, and a run changes the slice only while it holds it.
 - A listener may prepare connections (`prepareConnection`), which is how `dashql run` sets up its connections.
-- The run keeps its files: the cached files it retained and the pins of the files it scans and writes
+- The run keeps its files: the stored files it retained and the pins of the files it scans and writes
   (`RunHost::mount_pin`), by the ids of the host, and the names of its transient files. Once it settled, a failed run
-  after its running statements ended, it releases them (`cache_release`) and then removes the transient files
-  (`mount_remove`). A file that the cache retained while the run stopped is released with the others.
+  after its running statements ended, it releases them (`result_release`) and then removes the transient files
+  (`mount_remove`). A file that the run retained while the run stopped is released with the others.
 
 See [workbook_graph_execution.md](workbook_graph_execution.md).
 
@@ -375,13 +379,14 @@ See [workbook_graph_execution.md](workbook_graph_execution.md).
   workbooks.
 - **The workbook format** (`workbook_format/`) is the storage format without I/O: layout, the workbook file with its
   validation and migrations, file lists, the workbook tree, bundles, the workbook tables, the archives, the connections
-  of imports, the eviction of the query result cache and the storage migrations. Its steps read and write files over
-  `FolderHost`, `StorageRootHost` and `CacheHost`. See [storage_layout.md](storage_layout.md),
+  of imports, the naming and garbage of the stored results (`results.rs`) and the storage migrations. Its steps read and
+  write files over `FolderHost` and `StorageRootHost`. See [storage_layout.md](storage_layout.md),
   [workbook_tables.md](workbook_tables.md) and [native_file_sync.md](native_file_sync.md).
 - **Commands over the format.** `exportWorkbook`, `exportConnection`, `readImport`, `commitImport`, `dropImport`
   (archives through `archives` of the platform, results by handle), the static `migrateStorage`,
   `migrateWorkbookFolder`, `checkWorkbookFolders` with `answerExternalChange` for folders that change outside the app,
-  and the eviction after every write of a cached result (`JsPlatform::evict_cache` over `evict_to_fit`).
+  and `retainStoredResult` and `releaseStoredResult`, which keep the stored result of a script while the command line
+  tool or the tab of an agent session hands its file on (`workbook_results.md`).
 
 ## The host
 
@@ -397,11 +402,11 @@ the log may differ. A service adds a trait for its I/O:
 | `http::HttpHost` | `fetch` with a `CancellationToken` |
 | `storage::StorageHost`, `restore::RestoreHost` (`dashql_core_storage`) | The operations of the storage backend, the reads of the restore |
 | `connection_setup::OAuthHost`, `SetupHost` | The OAuth flows, PKCE and random ids; connecting and closing channels, the token of a Hyper link, the probe of a health check |
-| `executor::ExecutorHost` | The run of a query (`ExecutorHost::Run`) that every call gets: the events of a query, the parts of its result, the query result cache, the analysis of a result, host channels, time zones |
+| `executor::ExecutorHost` | The run of a query (`ExecutorHost::Run`) that every call gets: the events of a query, the parts of its result, the stored results of the workbook, the analysis of a result, host channels, time zones |
 | `catalog_loader::CatalogLoaderHost` | The start and end of updates, metadata queries, the specs of client functions |
-| `workbook_run::RunHost` | Statements, the result keys, preparing connections, cached results, the files of a run (mounts), the workbook |
+| `workbook_run::RunHost` | Statements, the result keys, preparing connections, stored results, the files of a run (mounts), the workbook |
 | `compute::host::ComputeHost` | The compute database by handle |
-| `workbook_format` (`dashql_core_storage`): `FolderHost`, `StorageRootHost`, `CacheHost` | Folders, the storage root, the files of the cache |
+| `workbook_format` (`dashql_core_storage`): `FolderHost`, `StorageRootHost` | Folders and the storage root |
 
 A host call that fails returns a `HostError`, the error of the task: it keeps what the host failed with and hands it
 back unchanged. A call that was cancelled fails with `HostError::cancelled()`, the code asks `is_cancelled()` and
@@ -409,8 +414,8 @@ never matches the text of a message. How errors reach the callers is in
 [Errors](dashql_runtime.md#errors). A `CancellationToken` keeps one waker per future that waits for it and drops it
 with the future, so a token that lives long gathers nothing. `host::signal` has a value sent once and a future that can be cancelled.
 
-**Shutdown.** `Runtime::shutdown` of the module stops the runs and the catalog loader, waits for the writes into the
-query result cache and the pending writes of the storage, drops the imports and the checks of folders that change
+**Shutdown.** `Runtime::shutdown` of the module stops the runs and the catalog loader, waits for the writes of the
+stored results (`flushResultWrites`) and the pending writes of the storage, drops the imports and the checks of folders that change
 outside the app, cancels the setups and the queries, deletes
 the computations and fences `JsPlatform` (`fence`): from then on every call of the platform fails, a timer never fires
 and a task that wakes up later ends at its next call. The host takes the last changes and frees the module.
@@ -491,7 +496,7 @@ See "Clippy" in [build_bazel_targets.md](../agents/build_bazel_targets.md).
 Logic that fits semantically into the core is Rust in the module, see [core_first.md](../agents/core_first.md). The
 DOM, I/O and things that cross per value stay in TypeScript: fetch, OPFS, Web Locks, the embedded Hyper, ZIP
 archives (zip.js), the compilation of chart specs (vega-lite), the formatting of cells (`Intl`), React and CodeMirror.
-Bookkeeping stays in Rust: the platform maps the ids of the runtime to its objects, e.g. a pin of the cache, but which
+Bookkeeping stays in Rust: the platform maps the ids of the runtime to its objects, e.g. a pin of a result file, but which
 of them a run holds and when they go is the runtime's (see [Commands](dashql_runtime.md#commands)).
 A port to Rust crosses per operation, never per value; never panics on engine input; names its offset unit (the editor
 APIs count UTF-16 code units, the core UTF-8 bytes); and keeps within the budget of the main thread, since a call into
@@ -516,7 +521,7 @@ analyzer and the planner. The targets and how to run them are in
   [script_references.md](script_references.md), [dataflow.md](dataflow.md), [workbook_inputs.md](workbook_inputs.md),
   [workbook_graph_execution.md](workbook_graph_execution.md).
 - Connections and queries: [catalog_updates.md](catalog_updates.md), [catalog_batching.md](catalog_batching.md),
-  [client_functions.md](client_functions.md), [query_cache.md](query_cache.md), [trino_plan.md](trino_plan.md),
+  [client_functions.md](client_functions.md), [workbook_results.md](workbook_results.md), [trino_plan.md](trino_plan.md),
   [oauth_salesforce.md](oauth_salesforce.md), [hyper_links.md](hyper_links.md).
 - Storage: [storage_layout.md](storage_layout.md), [workbook_tables.md](workbook_tables.md),
   [native_file_sync.md](native_file_sync.md), [cloud.md](cloud.md), [workbook_publishing.md](workbook_publishing.md).

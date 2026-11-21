@@ -18,9 +18,10 @@ startup (see Versions and migrations).
 │   └── <folder>/dashql-folder.json            workbooks of a folder, folders nest
 ├── workbooks/<workbook-id>/                     OPFS workbooks
 │   ├── dashql-workbook.json                    workbook metadata
+│   ├── .gitignore                             keeps results/ out of version control
 │   ├── scripts/<script-name>                  script text
-│   └── attachments/<name>.parquet             attached Parquet files
-├── cache/<hash>.<uuid>.parquet[.last_access]  query result cache of the app
+│   ├── attachments/<name>.parquet             attached Parquet files
+│   └── results/<script>.<key>.<gen>.parquet   the stored result of each script
 ├── connections/<connection-id>/               files of a global connection
 │   ├── dashql-catalog-relations.sql           relations of the catalog, written and read as SQL
 │   ├── dashql-catalog-functions.sql
@@ -42,18 +43,16 @@ startup (see Versions and migrations).
 |------|------------|----------|-------------------------|
 | `dashql-manifest.json` | `OPFSStorageBackend` | persistent | no |
 | `workbooktree/` | `OPFSStorageBackend` | persistent | no |
-| `workbooks/<id>/` | `OPFSStorageBackend` | until the workbook is deleted | yes |
+| `workbooks/<id>/` | `OPFSStorageBackend`, the results by `createWorkbookResultFiles` | until the workbook is deleted | yes, without `results/`; `.dashql` files carry the results on request, as result tables (`workbook_results.md`, `workbook_tables.md`) |
 | `connections/<id>/` | `OPFSStorageBackend`, `HyperLogMetrics` | until the connection is deleted | catalog files only |
 | `shell/` | `SalesforceLoginHistoryStore` | persistent | no |
 | `clouds/` | the embedded Hyper, when a local cloud attaches its database | until the connection of the local cloud is deleted | no |
 | `instances/<id>/` | `createHyperDBOPFSInstance` | one app window | no |
-| `cache/` | `createOPFSQueryResultCache` | until evicted | `.dashql` files on request, as result tables (`query_cache.md`, `workbook_tables.md`) |
 | `exports/<id>/` | `exportArrowTableAsParquet` | one export | no |
 
 "Clear all data" drops the databases of the local clouds through the embedded Hyper, removes `workbooktree/`, resets the
-manifest, removes `workbooks/`, `connections/`, `shell/` and `clouds/` and clears
-`cache/`, except the files that other windows read right now. It keeps `instances/`, because the running window owns
-its instance.
+manifest, removes `workbooks/` with the results of the scripts, `connections/`, `shell/` and `clouds/`. It keeps
+`instances/`, because the running window owns its instance.
 
 ### The manifest
 
@@ -61,8 +60,8 @@ its instance.
 
 - `storageVersion`, the version of this layout, see [Versions and migrations](#versions-and-migrations).
 - `connections`, the global connections: `id`, `name`, `params`, `paramsDraft`, `createdAt` and
-  `cacheQueryResults`, whether the [query result cache](query_cache.md) keeps their results, absent for the default
-  of the connector.
+  `cacheQueryResults`, whether runs reuse the [stored results](workbook_results.md) of their scripts, absent for the
+  default of the connector.
 - `appSettings`.
 
 Writers hold the Web Lock of the manifest, which all tabs of the app share.
@@ -116,14 +115,15 @@ italic name "New Workbook" and no menu, and the create button of the workbooks j
 Every launch ends with exactly one: it creates a missing one and deletes all but the first in restore order. A marked
 workbook that holds scripts stopped before its promotion was written, the restore finishes the promotion.
 
-### The query result cache
+### The results of the scripts
 
-`cache/` holds the [query result cache](query_cache.md) of the app, for every workbook and connection: one Parquet
-file per result named `<hash>.<uuid>.parquet`, and an empty `.last_access` marker whose mtime makes the eviction
-least-recently-used. The materialized results of runs are files of their keys too, or transient files
-(`<uuid>.transient.parquet`) if their keys aren't reusable. hyperdb-wasm mounts the folder read-write at
-`/mnt/external/cache`. A `.dashql` file carries the cached results of its scripts when the export asks for them, an
-import adds them to the folder (see Exported Results in `query_cache.md`).
+`workbooks/<id>/results/` holds the [stored results](workbook_results.md) of the scripts of the workbook: one Parquet
+file per script named `<script>.<key>.<gen>.parquet`, and the transient files of runs (`<uuid>.transient.parquet`).
+Workbooks never share results. hyperdb-wasm mounts the folder read-write at `/mnt/external/results/<id>`. The
+`.gitignore` of the workbook folder holds `results/`. A native workbook keeps its results here as well, next to the
+mirror of its attachments. A `.dashql` file carries the results of its scripts when the export asks for them, an
+import adds them to the folder (see Exported and Published Results in `workbook_results.md`). Up to storage version 9
+the app kept one query result cache for every workbook in `cache/`; the migration to version 10 removes it.
 
 ### Connections
 
@@ -173,7 +173,7 @@ empty `logs/` folder at startup, before the instance settings apply.
 
 ## The root of Node
 
-The command line tool keeps its files in a folder of its own with the same layout: `cache/`,
+The command line tool keeps its files in a folder of its own with the same layout: `workbooks/<id>/results/`,
 `workbooks/<id>/attachments/` and `instances/<id>/`. The folder is the workspace that the command takes
 (`--workspace`, `.dashql/` of the invoking directory by default), which `dashql init` or `dashql connect` set up, the
 folder that also holds the session of `dashql connect`, in its workspace file and with its copies in `workbooks/`
@@ -183,7 +183,7 @@ runtime reach it through the handles of
 `node/node_directory_handle.ts` instead of `navigator.storage`, and the Node build of hyperdb-wasm mounts it at `/mnt/fs`,
 so the Hyper paths are the ones of the browser. `dashql run` mirrors the attachments of a workbook folder into it and
 removes its instance folder when it ends. It is not the root of the app: a viewer that shows results of the command line
-tool copies them into its own storage. The Web Locks of its query result cache span one process, see
+tool copies them into its own storage. The Web Locks of its stored results span one process, see
 `docs/design/dashql_runtime.md`.
 
 ## Native workbooks
@@ -225,7 +225,7 @@ files again. Deleting the workbook removes the mount, and so does destroying the
 |------------|-----------|
 | `/mnt/fs/...` | the OPFS root |
 | `/mnt/external/<name>` | browser files and directories registered with `registerExternalFile` and `registerExternalDirectory`, e.g. shell file mounts and Parquet exports |
-| `/mnt/external/cache` | the folder `cache/` of the query result cache (`createOPFSQueryResultCache`), mounted read-write while a run or a cache read uses it |
+| `/mnt/external/results/<id>` | the folder `workbooks/<id>/results/` of the stored results of a workbook (`createWorkbookResultFiles`), mounted read-write once a run or a read of a stored result uses it |
 
 `/mnt/external/` paths only exist while they are registered and are not stored.
 

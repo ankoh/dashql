@@ -422,7 +422,7 @@ This is the write-up [core_parser.md](core_parser.md#changing-the-parse-tree) as
 **The planner** treats a call in a namespace with a spec as a barrier, so it stays in workbook order. Its node carries the description in `client_function_call`, with the values of the workbook's [inputs](workbook_inputs.md) in place of `bindings`, and `sql` only tells what the statement says. Any other `CALL` is an ordinary barrier that runs as written.
 
 - **No backend judges a call,** so an error of its [checks](#checks) fails the plan, where the same error on a backend statement is only a diagnostic. A warning doesn't.
-- **A script with a call isn't cacheable,** `EXPLAIN` included, since it asks a service and not the backend. The result cache never sees it.
+- **A script with a call isn't cacheable,** `EXPLAIN` included, since it asks a service and not the backend. A run never reuses a stored result of it.
 
 **The executor** gets the description as `clientFunctionCall` of its arguments and runs the call itself instead of sending it over the connector's channel. The rest is the path of any query: the query history, cancellation, and the result in the same table and analysis.
 
@@ -470,7 +470,7 @@ CALL d360.connection_create (connector_type => 'SNOWFLAKE', label => 'Snowflake 
 Agents run no calls: `dashql run` reaches Trino and the embedded Hyper only, a call needs a Salesforce connection.
 
 - **No script reads its result,** see [Running calls](#running-calls).
-- **Its result is never cached.** A script with a call isn't cacheable, and the shell runs nothing from the cache.
+- **Its result is never reused.** A script with a call isn't cacheable, and the shell reuses no stored result.
 - **The statements before it have run** when a write fails, and there is no rollback: a script is a sequence of requests.
 - **Credentials are literals.** A `:param` value is in the script's `@param` tag and the request.
 

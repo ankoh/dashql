@@ -24,7 +24,7 @@ root `tsconfig.json` and the Vite config of the app for editors and the dev serv
 |---|---|---|
 | `src/core` | `@akohn/dashql`, `/buffers`, `/browser-worker`, `/batch-worker`; the Wasm and its glue as `/wasm`, `/dataflow-wasm`, `/wasm/glue` | The bindings of the core module: the API over the Wasm (`api.ts`), the `Runtime` class of the module (`runtime.ts`), the batch worker, `readFlatBuffer` and `FlatBufferCache` (`flatbuffer_view.ts`), the generated FlatBuffers |
 | `src/runtime` | `@akohn/dashql/runtime/<path>` | The facade (`runtime.ts`), the store of the views (`store/`), the view projections, and the adapters that build the platform object of the module from the objects of the platform |
-| `src/platform` | `@akohn/dashql/platform/<path>` | The platforms of the browser, the desktop app and Node; the storage backends (OPFS, the composite of OPFS and native workbook folders, native folders) and the storage root, the query result cache in OPFS, the embedded Hyper (`platform/hyperdb/`), HTTP, the logger, OAuth, the connector clients and channels, the types of the views as the app reads them, UI helpers that more than the app uses, and the session support that the command line tool shares with the app |
+| `src/platform` | `@akohn/dashql/platform/<path>` | The platforms of the browser, the desktop app and Node; the storage backends (OPFS, the composite of OPFS and native workbook folders, native folders) and the storage root, the stored results of the workbooks (`platform/workbook/`), the embedded Hyper (`platform/hyperdb/`), HTTP, the logger, OAuth, the connector clients and channels, the types of the views as the app reads them, UI helpers that more than the app uses, and the session support that the command line tool shares with the app |
 
 Only the generated parts are outputs of Bazel, folders in `dependencies/` of `bazel-bin/packages/dashql`, and the
 sources import them by name: `@akohn/dashql-wasm` (`:dep_wasm`, the wasm-bindgen glue and the Wasm of the core and of
@@ -43,9 +43,9 @@ the module, supplies its I/O and holds the views, see [core_first.md](../agents/
   table, the Arrow tables by handle, `update_scheduler.ts`), the projections of the workbook and script views
   (`workbook_projection.ts`) and of the query views (`query/query_projection.ts`), and the adapters
   that turn platform objects into the platform of the core: `query/query_channels.ts` (the channels of the host and the
-  query result cache), `query/query_result_stream.ts`, `compute_platform.ts`, `compute_database.ts`
+  stored results), `query/query_result_stream.ts`, `compute_platform.ts`, `compute_database.ts`
   (the compute database of the platform and whether it is ready), `run_mounts.ts`,
-  `query/cache_pins.ts` (the releases of the files of the cache that the runtime keeps, by id),
+  `query/cache_pins.ts` (the releases of the pins of the result files that the runtime keeps, by id),
   `runtime_storage.ts` (the storage of the platform and `StorageCommands`, the commands of the storage writer),
   `workbook_archives.ts`, `platform_requests.ts` (the fetches and OAuth flows that `destroy` aborts),
   `embedded_session.ts` (the session of the shell on a connection to the embedded Hyper) and
@@ -117,8 +117,8 @@ of the module that the runtime builds from it):
 | `http` | no | The `HttpClient` of fetches, the executor and the setups send through it |
 | `oauthFlow` | no | The `OAuthFlow`: opens the authorization page and receives the redirect |
 | `channels` | no | A `ChannelConnector` that connects the channels of the host that setups ask for (the embedded Hyper, Hyper over gRPC), and the token of a Hyper link that the page holds. The runtime speaks Trino, Hyper over HTTP and the Hyper of Salesforce itself |
-| `computeDatabase` | no | A provider, `() => Promise<EmbeddedComputeDatabase>`: the runtime calls it when a computation, a run or the query result cache first needs the database and waits until the platform set it up. `runtime.computeDatabase` (`compute_database.ts`) wraps it: it is `ready` once the provider resolved, until a call fails, and the app reads that (`useComputeReady`) |
-| `resultCache` | no | The `QueryResultCache` |
+| `computeDatabase` | no | A provider, `() => Promise<EmbeddedComputeDatabase>`: the runtime calls it when a computation, a run or the stored results first need the database and waits until the platform set it up. `runtime.computeDatabase` (`compute_database.ts`) wraps it: it is `ready` once the provider resolved, until a call fails, and the app reads that (`useComputeReady`) |
+| `results` | no | The `WorkbookResultFiles` of the stored results of the scripts (`createWorkbookResultFiles`, `platform/workbook/workbook_result_files.ts`), the runtime adapts it to `RuntimeResults` |
 | `archives` | no | A factory over the handle table that reads and writes `.dashql` archives (`createRuntimeArchives` of `workbook_archives.ts`: zip.js, Parquet through the embedded Hyper) |
 | `catalogLoader` | no | Run the catalog loader, true by default. `dashql run` and most tests turn it off |
 | `queryCommands` | no | Stand in for `execute`, `cancel` and `watchProfile` of the facade, e.g. in the tests of components. The services of the runtime keep the executor of the module |
@@ -141,8 +141,8 @@ declared in `packages/dashql-core-bindings/src/host.rs`) from the members above,
 | `compute` | The compute database: import a table by handle, create a table from a SELECT, query into Arrow IPC or into a table, drop, cancel a run | `compute_platform.ts` |
 | `http` | `fetch` and `abort` by id | `platform_requests.ts` |
 | `channels` | `connect` a setup's channel of the host, `hyperLinkToken`, and the queries of host channels: `describe` (keeps a record of the query until `forget`), `open`, `next`, `cancel` (also of a query that `open` still opens), `forget` | `query/query_channels.ts` |
-| `resultCache` | `lookup`, `read`, `touch`, `write`, `retain`, `release` (of a retained file or a pin), `file`, `import`, `capacity`, `files`, `remove` | `query/query_channels.ts`, the pins in `query/cache_pins.ts` |
-| `mounts` | The files of runs in the compute database: `prefix`, `fileName`, `pin`, `write`; and the attachments, unmounted when their workbook is deleted. The runtime keeps the pins of a run and releases them | `run_mounts.ts` |
+| `results` | `mountPath`, `mount`, `unmount`, `files`, `pin`, `release`, `read`, `write`, `file`, `import`, `move`, `remove`: the Parquet files of `workbooks/<id>/results/` ([workbook_results.md](workbook_results.md)) | `query/query_channels.ts`, the pins in `query/cache_pins.ts` |
+| `mounts` | The attachments of the workbooks in the compute database, unmounted when their workbook is deleted | `run_mounts.ts` |
 | `crypto` | `randomUuid`, `sha256` (the core has no randomness and no SHA-256) | `crypto` of the platform |
 | `oauth` | PKCE, flow info, loopback and redirect-page authorization, abort | `platform_requests.ts` |
 | `extensions` | `loadSpec`, the JSON of a client function spec | `loadClientFunctionSpec` |
@@ -188,7 +188,7 @@ view belongs to a slice, a kind and an id (`RuntimeViews` in `runtime.rs`):
 | `query` | query id | Status, metadata, metrics, error, the latest progress with the structured progress as FlatBuffers by key, the result table as a handle |
 | `workbookList` | `'root'` | The workbooks with their names, the invalid workbooks with their reasons |
 | `workbook` | workbook id | Name, metadata, script keys and file names in feed order, attachments, cloud link, connections |
-| `script` | script key | The fields of a script, its editor update, staged diff, visualization and statistics as FlatBuffers by key, `cachedResult` |
+| `script` | script key | The fields of a script, its editor update, staged diff, visualization and statistics as FlatBuffers by key, `storedResult` |
 | `workbookDerived` | workbook id | The checked references, the dataflow and the inputs as FlatBuffers, with the hash of each |
 | `storage` | `'root'` | Holds, held workbooks, failed writes, questions about external changes |
 | `run` | workbook id | `held`, the state of the last run of the whole workbook, the inputs that wait |
@@ -315,7 +315,7 @@ than the module returns: the flush of the store after the command, handles for t
 The facade and the adapters of the platform decide nothing: the order of a handover, which files a run keeps and when
 it lets go of them, how ids of workbooks compare, the NFC of names, the defaults of options and the log of refused
 actions are the module's. What stays in TypeScript is the JavaScript side of a call: an object by the id that Rust
-names it with (the pins of the cache, the fetches, the OAuth flows, the records of the queries of host channels, the
+names it with (the pins of the result files, the fetches, the OAuth flows, the records of the queries of host channels, the
 abort controllers of compute runs), the errors of JavaScript that a failure becomes, and the identity of the objects
 that React holds (a catalog per `catalogId`, the arrays of an analysis that an editor update left out). Each command
 is a typed method with its contract rather than a generated table, the app reads its types and docs.
@@ -356,10 +356,10 @@ The core decides the report (`workbook_run/report.rs` of the core runtime): whic
 **Destroy.** From the call of `destroy` on the commands of the facade refuse: a command that returns a promise rejects
 with `the runtime was destroyed`, `execute` returns a rejected promise, `dispatch` fails, a command without a result
 does nothing, and the storage commands do nothing. A wait for a compute database that never came up ends. `shutdown()` of the module owns the order: the
-runs stop, the catalog loader stops, the writes into the query result cache and the pending writes of the storage
+runs stop, the catalog loader stops, the writes of the stored results and the pending writes of the storage
 finish, then the imports are dropped, the setups and queries cancelled and the computations deleted, and the platform is
 fenced. The store then takes the last changes, the projection of the scripts destroys its session handles, the module is
-freed, the fetches and OAuth flows are aborted, and the pins of the files of the cache that are left are released
+freed, the fetches and OAuth flows are aborted, and the pins of the result files that are left are released
 (`CachePins.close`); a pin that arrives later is released at once.
 
 ### Handles
@@ -492,8 +492,8 @@ it over, and only the latest lease resets the connection when it closes.
 4. The flush of a keystroke is two crossings, `takeChanges` and the view of the script (the facade holds the update, its
    bytes don't cross again), and costs the same with any number of scripts. Only the subscribers of that script render;
    those of the derived view once it moved after the pause.
-5. The cached results of the workbook are looked up once the typing paused, a move of the cursor looks up none
-   (`runs/cached_results.rs`).
+5. The stored results of the workbook are looked up once the typing paused, a move of the cursor looks up none
+   (`runs/stored_results.rs`).
 
 The editors tell the runtime which scripts they show (`showScript`, `hideScript`): an outdated selected script is
 analyzed right away, the other shown ones once the changes pause, see
@@ -503,7 +503,7 @@ analyzed right away, the other shown ones once the changes pause, see
 
 The Node `dashql` (`packages/dashql-cli`, see its [README](../../packages/dashql-cli/README.md)) runs on the same
 runtime: `dashql run` creates a runtime over `createNodePlatform` with a `NativeStorageBackend` of the workbook folder,
-the embedded Hyper as its compute database and result cache, and the catalog loader off; it restores the folder with
+the embedded Hyper as its compute database and its stored results, and the catalog loader off; it restores the folder with
 `restoreWorkbook`, sets up its connections with `setupConnection` (the credentials of the environment as
 `channelParams`, never written), runs with `runWorkbook` and a listener of script events, and reads the progress from
 the `query` views. `lint` and `format` use the bindings and no runtime (`sql_lint.ts`, `sql_format.ts` and `sql_report.ts` of the command
@@ -559,7 +559,7 @@ and the package on npm, and the browser tests of the app run the tests of `src/r
   imports only the platform, the bindings and `src/platform/testing/`. The logic in Rust is tested in its crates first,
   see [dashql_core.md](dashql_core.md#tests).
 - **Helpers.** `createTestRuntime()` (`src/runtime/testing/test_runtime.ts`) is a runtime on an in-memory platform
-  with an optional compute database and result cache, its catalog loader stopped unless asked for;
+  with an optional compute database and stored results, its catalog loader stopped unless asked for;
   `testing/connection_fixtures.ts` runs real setups over platforms that answer like the backend.
   `openTestHyperDB(context)` (`src/platform/testing/test_hyperdb.ts`) returns a HyperDB with databases of its own on an
   engine per test file: the browser tests of the app install it over their engine worker, `test/setup_node.mjs` over

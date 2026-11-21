@@ -51,10 +51,15 @@ It deliberately ignores:
 
 ```text
 connections/
+results/
 cache/
 .gitignore
 <any other file>
 ```
+
+The stored results of the scripts live in the mirror of the origin private file system, not in the native folder
+(`workbook_results.md`); its `.gitignore` lists `results/` for a folder that holds them anyway. `cache/` is the folder of
+earlier versions.
 
 Workbooks don't hold a catalog. The catalog belongs to the connection and lives in the app storage;
 workbook format version 7 removed the catalog copies from workbook folders. A folder that was exported

@@ -36,15 +36,15 @@ select id, amount from orders where amount > 10
 select count(*) from foo
 ```
 
-A scan reference scans a Parquet file of the query result cache, which the host names and mounts:
+A scan reference scans a Parquet file of the stored results of the workbook, which the host names and mounts:
 
 ```sql
-with foo as (select * from external('/mnt/external/cache/<key>.<uuid>.parquet', format => 'parquet'))
+with foo as (select * from external('/mnt/external/results/<workbook>/<script>.<key>.<gen>.parquet', format => 'parquet'))
 select count(*) from foo
 ```
 
-The host writes the result of foo.sql through hyperdb-wasm for every connection type, into the folder of the query
-result cache that is mounted read-write at `/mnt/external/cache`, not as a path below `/mnt/fs`.
+The host writes the result of foo.sql through hyperdb-wasm for every connection type, into the results folder of the
+workbook that is mounted read-write at `/mnt/external/results/<workbook>`, not as a path below `/mnt/fs`.
 
 ## Client Function Calls
 
@@ -117,38 +117,37 @@ The plan requests of a workbook hold its Parquet attachments and the mount of it
 An attachment is a file, not a query: it is no single SELECT and no part of a cycle, and a view may read it since the
 file outlives the statement. An inlined query that reads an attachment brings its common table expression along,
 before the ones of the scripts. The signature of a script covers the stamps of the attachments it reads
-(`query_cache.md`).
+(`workbook_results.md`).
 
 ## Planning
 
 The planner (`planner.md`, Script References) resolves the references, splices the common table expressions
 into the SQL of the nodes and orders the statements across connections. A run of the whole workbook plans every
-script whose result the cache doesn't provide, except the scripts that run on request. A run of one script plans the script and the queries of the scripts it materializes, unless the host
+script whose stored result is not reused, except the scripts that run on request. A run of one script plans the script and the queries of the scripts it materializes, unless the host
 already has their results; the queries it inlines are part of its statements.
 
 ## Running a Workbook
 
 A run of the workbook (`runWorkbook`) and a run of a script (`runScript`) run a plan the same way (`workbook_run` of the core runtime): they
 analyze every script, publish the declarations into the catalogs of their connections and plan every script, or the
-target with what it needs. The plan checks the scripts and gives the result keys. A script with a reusable cached
-result doesn't run unless it follows a script that runs: a script whose nodes follow a node of a script that runs, by
-an edge of the plan, runs too, whether its result is cached or not. Otherwise its result is served from the cache and
-the run plans the other scripts again with the served scripts as `materialized`: a plan of the workbook leaves them
-out, a plan of targets drops the served targets. A script that inlines a served script still runs its query, a script
-that scans it reads the cached file. A refresh (`refresh` of `runWorkbook` and `runScript`)
-reads no cached results and runs every script of the plan. The run (`run_graph`) starts a node once its predecessors are done,
+target with what it needs. The plan checks the scripts and gives the result keys. A script whose stored result has
+its reusable key doesn't run unless it follows a script that runs: a script whose nodes follow a node of a script that
+runs, by an edge of the plan, runs too, whether its result is stored or not. Otherwise its stored result is reused and
+the run plans the other scripts again with the reused scripts as `materialized`: a plan of the workbook leaves them
+out, a plan of targets drops the reused targets. A script that inlines a reused script still runs its query, a script
+that scans it reads the stored file. A refresh (`refresh` of `runWorkbook` and `runScript`)
+reuses no stored results and runs every script of the plan. The run (`run_graph`) starts a node once its predecessors are done,
 at most `RunHost::max_concurrent_queries` nodes of a connection run at once (four for a Hyper server, one otherwise), and nodes of different connections run side by
-side. The files of a run (`mounts` of the platform, `createRunMounts`) are files of the query result cache of the app
-(`query_cache.md`), the mount prefix of the plan is the mount of the cache. The host names the file of every
-materialized script (`materializationFile`): a result that a run materializes is a new file of the result key of its
-script, `<key>.<uuid>.parquet`, if the key is reusable, a transient file otherwise. The terminal node of a
-materialized script runs on its own connection, the host loads its result into the compute Hyper and writes it with
-`COPY ... TO '<prefix>/<file>'` before the nodes that scan it start (`mounts.pin`, `mounts.write`). A scan reads the
-byte ranges it needs from disk, nothing of a file is held in memory. The run pins every file it
-writes or reads (`mounts.pin`), so eviction and other windows leave them alone, and keeps the pins itself. Once it
-settled, a failed run after its running statements ended, it releases them; the files of keys stay in the cache, the
-transient files are removed (`resultCache.remove`). The terminal query of a script with a reusable key that runs writes its result as the
-newest file of its key.
+side. The files of a run are the stored results of the workbook (`results` of the platform, `workbook_results.md`),
+the mount prefix of the plan is the mount of the results of the workbook, `/mnt/external/results/<workbook>`. The host
+names the file of every materialized script (`materializationFile`): a result that a run materializes is the new file
+of its script, `<script>.<key>.<gen>.parquet`, a transient file without a key. The terminal node of a materialized
+script runs on its own connection, the host loads its result into the compute Hyper and writes it with
+`COPY ... TO '<prefix>/<file>'` before the nodes that scan it start (`mount_pin`, `mount_write` of the run host). A
+scan reads the byte ranges it needs from disk, nothing of a file is held in memory. The run pins every file it writes
+or reads, so other windows leave them alone, and keeps the pins itself. Once it settled, a failed run after its running
+statements ended, it releases them; the files of scripts stay with the workbook, the transient files are removed
+(`results.remove`). The terminal query of a script that runs stores its result as the new file of the script.
 
 ## Running a Script
 
@@ -160,18 +159,17 @@ script is a plan of its own statements. The statements run in their order and ke
 the last output of the script is its result and a query with `@vis` tags runs as written. An invalid plan fails the
 run with its errors, e.g. an unknown script, and so does a script without statements. The script records them as a
 failed query in the history of its connection, so they show where its result would be, like the error of a failed
-statement. The files of the runs are the `mounts` of the platform of the runtime over the compute database and the
-query result cache. Without them, a run mounts no results of other connections and caches nothing. A script connection knows whether it is the embedded
+statement. The files of the runs are the stored results of the workbook over the compute database (`results` of the
+platform). Without them, a run mounts no results of other connections and stores nothing. A script connection knows whether it is the embedded
 Hyper (`ScriptConnection.local`).
 
 The result key of a script covers the keys of the scripts it references (`result_keys` in `workbook_run/plan.rs` of the core runtime, see
-`query_cache.md`). When the key is reusable, i.e. the connections of the script and of the scripts it references
-cache results, a materialized script with a reusable cached key is served from the cache instead of running
-(`materialized` of the plan): the plan scans the newest file of its key. The cached result of the script is served
-when nothing it follows runs. Every other materialized script runs and writes its result as a new file of its key if
-the key is reusable, as a transient file otherwise (`fileName` of the `mounts` of the platform). A refresh of a script reads no cached
-results: the script and every script of its plan run, their results with reusable keys become the newest files of
-their keys.
+`workbook_results.md`). When the key is reusable, i.e. the connections of the script and of the scripts it references
+reuse results, a materialized script whose stored result has its key is reused instead of running (`materialized` of
+the plan): the plan scans the file of the script. The stored result of the script is reused when nothing it follows
+runs. Every other materialized script runs and writes its result as the new file of the script, as a transient file
+without a key (`mount_file_name` of the run host). A refresh of a script reuses no stored results: the script and
+every script of its plan run, their results replace the stored ones.
 
 ## Editing
 
