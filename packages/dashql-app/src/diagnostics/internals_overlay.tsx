@@ -36,11 +36,10 @@ const TAB_GROUP_DIAGNOSTICS = 'Diagnostics';
 const TAB_GROUP_CONNECTIONS = 'Connections';
 const TAB_GROUP_STORAGE = 'Storage';
 const TAB_GROUP_SETTINGS = 'Settings';
-const TAB_GROUP_TOOLS = 'Tools';
 
 export const InternalsViewer: React.FC<InternalsViewerProps> = (props: InternalsViewerProps) => {
     const [selectedTab, selectTab] = React.useState<TabKey>(TabKey.LogViewer);
-    const tabKeys = [TabKey.LogViewer, TabKey.HttpRequests, TabKey.QueryViewer, TabKey.QueryCache, TabKey.StorageBrowser, TabKey.StorageWriter, TabKey.AppSettings, TabKey.Tools];
+    const tabKeys = [TabKey.LogViewer, TabKey.HttpRequests, TabKey.QueryViewer, TabKey.QueryCache, TabKey.StorageBrowser, TabKey.StorageWriter, TabKey.Tools, TabKey.AppSettings];
 
     return (
         <VerticalTabs
@@ -113,7 +112,7 @@ export const InternalsViewer: React.FC<InternalsViewerProps> = (props: Internals
                 },
                 [TabKey.Tools]: {
                     tabId: TabKey.Tools,
-                    group: TAB_GROUP_TOOLS,
+                    group: TAB_GROUP_SETTINGS,
                     icon: `${icons}#tools_24`,
                     labelShort: 'Tools',
                     ariaLabel: 'Tools',

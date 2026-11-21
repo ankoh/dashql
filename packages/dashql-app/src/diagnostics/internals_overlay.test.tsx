@@ -113,8 +113,7 @@ describe('InternalsViewer', () => {
             ['Diagnostics', ['Application logs']],
             ['Connections', ['HTTP requests', 'Query execution history', 'Query result cache']],
             ['Storage', ['Storage browser', 'Storage writer']],
-            ['Settings', ['Application settings']],
-            ['Tools', ['Tools']],
+            ['Settings', ['Tools', 'Application settings']],
         ]);
         // The logs are shown first
         expect(tab('Application logs').getAttribute('aria-current')).toBe('page');
