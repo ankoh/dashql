@@ -7,7 +7,7 @@ import type { Runtime } from '@akohn/dashql/runtime/runtime';
 import type { HyperDB } from '@akohn/dashql/platform/hyperdb/hyperdb_wasm';
 import { exportArrowTableAsParquet } from '@akohn/dashql/platform/hyperdb/hyperdb_parquet_export';
 import { tableFromArrays } from '@akohn/dashql/platform/testing/arrow_fixtures';
-import { BlobWriter, TextReader, Uint8ArrayReader, ZipWriter } from '@akohn/dashql/platform/workbook/workbook_zip';
+import { BlobWriter, TextReader, Uint8ArrayReader, ZipReader, ZipWriter } from '@akohn/dashql/platform/workbook/workbook_zip';
 import { useRuntime } from '@akohn/dashql-react/hooks';
 import { createTestRoot } from '@akohn/dashql-react/testing/react_root';
 import { LoggerProvider } from '../../host/logger_provider.js';
@@ -139,6 +139,29 @@ describe('UnpackerPage', () => {
             await vi.waitFor(() => expect(computations()).toBe(0));
         });
         expect(card('workbook_scripts.parquet')!.querySelector('button')!.getAttribute('aria-expanded')).toBe('false');
+    }, 30_000);
+
+    it('reports a stored file whose bytes differ from its checksum', async () => {
+        // Flip a byte of the stored workbook_scripts.parquet, its CRC-32 in the archive stays
+        const archive = new Uint8Array(await (await testArchive()).arrayBuffer());
+        const reader = new ZipReader(new Uint8ArrayReader(archive));
+        const entry = (await reader.getEntries()).find(entry => entry.filename === 'workbook_scripts.parquet')!;
+        await reader.close();
+        const header = new DataView(archive.buffer, entry.offset);
+        const start = entry.offset + 30 + header.getUint16(26, true) + header.getUint16(28, true);
+        archive[start + Math.floor(entry.compressedSize / 2)] ^= 0xFF;
+
+        await drop(new File([archive], 'orders.dashql'));
+        await act(async () => {
+            await vi.waitFor(() => expect(card('workbook_scripts.parquet')).not.toBeNull());
+        });
+        await toggle('workbook_scripts.parquet');
+        await act(async () => {
+            await vi.waitFor(() => expect(card('workbook_scripts.parquet')!.querySelector('[role="alert"]')).not.toBeNull(), { timeout: 10_000 });
+        });
+        expect(card('workbook_scripts.parquet')!.querySelector('[role="alert"]')!.textContent)
+            .toContain('The checksum of workbook_scripts.parquet differs');
+        expect(computations()).toBe(0);
     }, 30_000);
 
     it('reports a file that is no archive', async () => {

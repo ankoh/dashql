@@ -1,4 +1,5 @@
-import { archiveError, BlobReader, BlobWriter, ZipReader, type FileEntry } from '@akohn/dashql/platform/workbook/workbook_zip';
+import { crc32CheckStream } from '@akohn/dashql/platform/utils/crc32';
+import { archiveError, BlobReader, BlobWriter, storedEntryBlob, ZipReader, type FileEntry } from '@akohn/dashql/platform/workbook/workbook_zip';
 
 // The entries of a `.dashql` file as the unpacker tool lists them. Only the ZIP container: the Parquet files are read
 // by the embedded Hyper when a card opens, see use_parquet_computation.ts.
@@ -17,7 +18,8 @@ export interface ArchiveFile {
     uncompressedSize: number;
     /// Is the file stored without compression?
     stored: boolean;
-    /// Read the file, checked against the CRC-32 of its entry
+    /// Read the file, checked against the CRC-32 of its entry. A stored file is a slice of the archive, a compressed one
+    /// is inflated into memory.
     read(): Promise<Blob>;
 }
 
@@ -35,6 +37,11 @@ export interface UnpackedArchive {
 /// Is a file of the archive a Parquet file?
 export const isParquetFile = (file: ArchiveFile): boolean => file.fileName.endsWith('.parquet');
 
+/// Check the CRC-32 of a stored file by streaming it, without holding its bytes
+async function checkCrc32(file: Blob, crc32: number, fileName: string): Promise<void> {
+    await file.stream().pipeThrough(crc32CheckStream(crc32, () => fileName)).pipeTo(new WritableStream());
+}
+
 /// Read the central directory of an archive
 export async function openArchive(file: File): Promise<UnpackedArchive> {
     const zip = new ZipReader(new BlobReader(file), { filenameValidation: 'tolerant' });
@@ -51,6 +58,14 @@ export async function openArchive(file: File): Promise<UnpackedArchive> {
                 stored: fileEntry.compressionMethod === STORED,
                 read: async () => {
                     try {
+                        // A stored file, e.g. a query result, stays a slice of the archive that Hyper reads in place,
+                        // like the import reads it (docs/design/workbook_results.md)
+                        const crc32 = fileEntry.crc32;
+                        const slice = crc32 != null ? await storedEntryBlob(file, fileEntry) : null;
+                        if (slice != null && crc32 != null) {
+                            await checkCrc32(slice, crc32, fileEntry.filename);
+                            return slice;
+                        }
                         return await fileEntry.getData(new BlobWriter(), { checkCrc32: true });
                     } catch (error) {
                         throw archiveError(error);

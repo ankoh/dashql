@@ -44,7 +44,7 @@ entries as other entries.
 |------|--------|
 | Providers: logger, embedded Hyper, core, `StandaloneRuntime` | `src/tools/unpacker/unpacker.tsx` |
 | Drop zone, file picker, the cards, the preview and the full table of a file (`TableDetails` of `@akohn/dashql-react`, the details of any analyzed table) | `unpacker_page.tsx` |
-| The ZIP container (zip.js): entries, sizes, the bytes of a file | `unpacker_archive.ts` |
+| The ZIP container (zip.js): entries, sizes, the bytes of a file. A stored file, e.g. a query result, is a slice of the archive like in the import, its CRC-32 checked by streaming it; a deflated one is inflated into memory | `unpacker_archive.ts` |
 | A Parquet file as a computation: Hyper scans it (`readParquetFile` of `platform/hyperdb/hyperdb_parquet_read.ts`, shared with the import), the runtime analyzes it (`analyzeTable`) | `use_parquet_computation.ts` |
 | The card of a file, a component with plain props and the table as a slot | `parquet_file_card.tsx` |
 
