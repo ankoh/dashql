@@ -8,25 +8,40 @@ use dashql_core::catalog::CatalogLayer;
 use dashql_core::script::Script;
 use std::sync::Arc;
 
-/// The fixture: a catalog with the tables t, u, v and w
+/// The fixture: a catalog with the tables t, u, v and w, and the tables k of the schemas s1 and s2
 struct NameResolutionTest {
     /// The catalog with the schema tables
     catalog: Catalog,
-    /// The schema script, kept alive while its tables are in the catalog
-    _schema: Script,
+    /// The schema scripts, kept alive while their tables are in the catalog
+    schemas: Vec<Script>,
 }
 
 impl NameResolutionTest {
     fn new() -> Self {
-        let mut catalog = Catalog::new();
-        let mut schema = Script::new(&catalog);
-        schema.insert_text_at(
-            0,
-            "create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);",
-        );
-        schema.analyze(&catalog, true).unwrap();
-        catalog.load_script(schema.analyzed.clone().unwrap(), CatalogLayer::SESSION).unwrap();
-        Self { catalog, _schema: schema }
+        let mut test = Self { catalog: Catalog::new(), schemas: Vec::new() };
+        test.publish(concat!(
+            "create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); ",
+            "create table w (id int, y int); create table s1.k (a int, b int); create table s2.k (c int); ",
+            "create table db1.s3.n (e int);",
+        ));
+        test
+    }
+
+    /// Publish the tables of a script to the catalog
+    fn publish(&mut self, sql: &str) {
+        let mut schema = Script::new(&self.catalog);
+        schema.insert_text_at(0, sql);
+        schema.analyze(&self.catalog, true).unwrap();
+        self.catalog.load_script(schema.analyzed.clone().unwrap(), CatalogLayer::SESSION).unwrap();
+        self.schemas.push(schema);
+    }
+
+    /// The columns of a published table
+    fn published_columns(&self, table_name: &str) -> Vec<String> {
+        let analyzed = self.schemas.iter().filter_map(|s| s.analyzed.as_ref());
+        let mut tables = analyzed.flat_map(|a| a.entry.table_declarations.iter());
+        let table = tables.find(|t| t.table_name.table_name.text() == table_name).expect("published table");
+        table.table_columns.iter().map(|c| c.column_name.text().to_string()).collect()
     }
 
     fn analyze(&self, sql: &str) -> Arc<AnalyzedScript> {
@@ -58,9 +73,15 @@ impl NameResolutionTest {
                     (_, None) => "local".to_string(),
                     (_, Some(ids)) => {
                         let (table_id, column) = ids.catalog_table_column_id.unpack_table_column_id();
-                        let table = self.catalog.table_by_id(table_id).expect("catalog table");
+                        let table = self
+                            .catalog
+                            .table_by_id(table_id)
+                            .or_else(|| analyzed.entry.table_by_id(table_id))
+                            .expect("table");
                         let column = table.column_by_id(column).expect("column");
-                        format!("{}.{}", table.table_name.table_name.text(), column.column_name.text())
+                        let schema = table.table_name.schema_name.text();
+                        let schema = if schema.is_empty() { String::new() } else { format!("{schema}.") };
+                        format!("{schema}{}.{}", table.table_name.table_name.text(), column.column_name.text())
                     }
                 };
                 format!("{spelled} -> {target}")
@@ -225,4 +246,128 @@ fn computed_columns_keep_their_position() {
         test.resolve("with c(p, q) as (select case when a > 0 then 1 end, b from t) select c.q from c"),
         ["a -> t.a", "b -> t.b", "c.q -> t.b"]
     );
+}
+
+#[test]
+fn qualified_table_names_do_not_name_ctes() {
+    let test = NameResolutionTest::new();
+    assert_eq!(test.resolve("with k as (select 1 as z) select z, a from s1.k"), ["z -> ?", "a -> s1.k.a"]);
+    assert_eq!(test.resolve("with k as (select 1 as z) select z from k"), ["z -> local"]);
+}
+
+#[test]
+fn unaliased_tables_of_different_schemas_share_their_name() {
+    let test = NameResolutionTest::new();
+    let analyzed = test.analyze("select a, c from s1.k, s2.k");
+    assert!(analyzed.errors.is_empty(), "{:?}", analyzed.errors);
+    assert_eq!(test.resolve("select a, c from s1.k, s2.k"), ["a -> s1.k.a", "c -> s2.k.c"]);
+    // The name qualifies the columns of both tables
+    assert_eq!(test.resolve("select k.a, k.c from s1.k, s2.k"), ["k.a -> s1.k.a", "k.c -> s2.k.c"]);
+    // The same table and the same alias stay duplicates
+    for sql in ["select 1 from t, t", "select 1 from s1.k x, s2.k x"] {
+        let analyzed = test.analyze(sql);
+        assert_eq!(analyzed.errors.len(), 1, "{sql}");
+        assert_eq!(analyzed.errors[0].error_type, AnalyzerErrorType::DUPLICATE_TABLE_ALIAS, "{sql}");
+    }
+}
+
+#[test]
+fn column_refs_qualify_tables_with_their_schema() {
+    let test = NameResolutionTest::new();
+    assert_eq!(test.resolve("select s1.k.a, s2.k.c from s1.k, s2.k"), ["k.a -> s1.k.a", "k.c -> s2.k.c"]);
+    assert_eq!(test.resolve("select db1.s3.n.e from db1.s3.n"), ["n.e -> s3.n.e"]);
+    // The schema of a table qualifies columns in subqueries
+    assert_eq!(test.resolve("select 1 from s1.k where exists (select s1.k.b)"), ["k.b -> s1.k.b"]);
+    // An alias hides the name of the table
+    assert_eq!(test.resolve("select s1.k.a from s1.k x"), ["s1.k -> ?"]);
+}
+
+#[test]
+fn qualified_column_refs_stop_at_the_scope_of_their_qualifier() {
+    let test = NameResolutionTest::new();
+    // The inner t has no column b, the outer t is hidden
+    assert_eq!(test.resolve("select * from t where exists (select 1 from u t where t.b = 1)"), ["t.b -> ?"]);
+    // The column belongs to the inner unresolved table
+    let sql = "select * from t where exists (select 1 from unknown_tbl t where t.b = 1)";
+    assert_eq!(test.resolve(sql), ["t.b -> ?"]);
+    let analyzed = test.analyze(sql);
+    let schema = analyzed.inferred_table_schemas.iter().find(|s| s.table_name.table_name.text() == "unknown_tbl");
+    let columns: Vec<_> = schema.expect("inferred").columns.iter().map(|c| c.column_name.text()).collect();
+    assert_eq!(columns, ["b"]);
+}
+
+#[test]
+fn create_table_keeps_the_column_order() {
+    let test = NameResolutionTest::new();
+    let sql = "create table q (b int, a int); select p from q as x(p)";
+    assert_eq!(test.resolve(sql), ["p -> q.b"]);
+    let analyzed = test.analyze(sql);
+    let columns: Vec<_> =
+        analyzed.entry.table_declarations[0].table_columns.iter().map(|c| c.column_name.text()).collect();
+    assert_eq!(columns, ["b", "a"]);
+}
+
+#[test]
+fn star_has_the_join_columns_of_using_once() {
+    let test = NameResolutionTest::new();
+    for join in ["v join w using (id)", "v natural join w"] {
+        assert_eq!(
+            test.resolve(&format!("select p, q, r from (select * from {join}) s(p, q, r)")),
+            ["p -> v.id", "q -> v.x", "r -> w.y"],
+            "{join}"
+        );
+    }
+    let mut test = NameResolutionTest::new();
+    test.publish("create table m2 as select * from (select x, id from v) vv join w using (id)");
+    assert_eq!(test.published_columns("m2"), ["id", "x", "y"]);
+}
+
+#[test]
+fn create_table_as_keeps_unnamed_columns() {
+    let mut test = NameResolutionTest::new();
+    test.publish("create table m as select a, count(*), b + 1, b from t");
+    assert_eq!(test.published_columns("m"), ["a", "count", "?column?", "b"]);
+    assert_eq!(test.resolve("select z from m as mm(w, x, y, z)"), ["z -> m.b"]);
+    // The declared names rename the leading columns
+    test.publish("create table m3(p) as select a, b from t");
+    assert_eq!(test.published_columns("m3"), ["p", "b"]);
+}
+
+#[test]
+fn later_statements_read_the_columns_of_views() {
+    let test = NameResolutionTest::new();
+    assert_eq!(test.resolve("create view vv as select a from t; select a from vv"), ["a -> t.a", "a -> vv.a"]);
+    assert_eq!(test.resolve("create table tt as select b from t; select b from tt"), ["b -> t.b", "b -> tt.b"]);
+}
+
+#[test]
+fn statements_read_the_declaration_before_them() {
+    let test = NameResolutionTest::new();
+    assert_eq!(
+        test.resolve("create table z (a int); select a from z; alter table z rename column a to b; select b from z"),
+        ["a -> z.a", "b -> z.b"]
+    );
+    assert_eq!(
+        test.resolve("create table r (a int); select a from r; drop table r; create table r (b int); select b from r"),
+        ["a -> r.a", "b -> r.b"]
+    );
+}
+
+#[test]
+fn column_aliases_of_a_from_item_rename_the_columns_of_a_cte() {
+    let test = NameResolutionTest::new();
+    assert_eq!(
+        test.resolve("with c(x, y) as (select a, b from t) select y, b from c as cc(p)"),
+        ["a -> t.a", "b -> t.b", "y -> t.b", "b -> ?"]
+    );
+}
+
+#[test]
+fn create_table_as_has_no_columns_of_its_subqueries() {
+    let mut test = NameResolutionTest::new();
+    test.publish("create table x2 as select * from unknown_tbl where a in (select b from t)");
+    assert!(test.published_columns("x2").is_empty());
+    // A parenthesized SELECT has the columns of the SELECT within
+    test.publish("create table x3 as (select a from t)");
+    assert_eq!(test.published_columns("x3"), ["a"]);
 }

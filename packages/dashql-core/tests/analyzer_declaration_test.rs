@@ -43,7 +43,7 @@ fn create_table_as_derives_named_select_columns() {
     let table = single_table(&script);
     assert_eq!(table.table_name.table_name.text(), "result");
     assert_eq!(table.ast_statement_id, Some(0));
-    expect_columns(table, &["amount", "id", "renamed"]);
+    expect_columns(table, &["id", "amount", "?column?", "renamed"]);
 }
 
 #[test]
@@ -86,7 +86,7 @@ fn select_into_declares_table_from_resolved_star() {
     let table = single_table(&script);
     assert_eq!(table.table_name.table_name.text(), "result");
     assert_eq!(table.ast_statement_id, Some(0));
-    expect_columns(table, &["amount", "id", "copied_id"]);
+    expect_columns(table, &["id", "amount", "copied_id", "?column?"]);
 }
 
 #[test]
@@ -95,7 +95,7 @@ fn ordinary_create_table_keeps_declared_columns_and_statement_id() {
     let script = analyze_single_table("create table result (z int, a int)", &catalog);
     let table = single_table(&script);
     assert_eq!(table.ast_statement_id, Some(0));
-    expect_columns(table, &["a", "z"]);
+    expect_columns(table, &["z", "a"]);
 }
 
 #[test]
@@ -135,7 +135,7 @@ fn derived_tables_keep_the_types_of_passed_through_columns() {
         single_table(&script).table_columns.iter().map(|c| (c.column_name.text(), c.column_type.as_deref())).collect();
     assert_eq!(
         types,
-        vec![("amount", Some("integer")), ("id", Some("integer")), ("next", None), ("renamed", Some("integer"))]
+        vec![("id", Some("integer")), ("amount", Some("integer")), ("next", None), ("renamed", Some("integer"))]
     );
 
     // Column aliases name the output columns by position
@@ -205,11 +205,14 @@ fn errors(text: &str) -> Vec<String> {
 
 #[test]
 fn alter_table_changes_the_declaration_of_the_script() {
-    assert_eq!(declared("create table t (a int); alter table t add column b int", None), [".t(a, b)"]);
-    assert_eq!(declared("create table t (a int, b int); alter table t drop column a", None), [".t(b)"]);
-    assert_eq!(declared("create table t (a int); alter table t rename column a to b", None), [".t(b)"]);
+    assert_eq!(declared("create table t (a int); alter table t add column b int", None), [".t(a)", ".t(a, b)"]);
+    assert_eq!(declared("create table t (a int, b int); alter table t drop column a", None), [".t(a, b)", ".t(b)"]);
+    assert_eq!(declared("create table t (a int); alter table t rename column a to b", None), [".t(a)", ".t(b)"]);
     // A column that is there stays, as with `if not exists`
-    assert_eq!(declared("create table t (a int); alter table t add column if not exists a text", None), [".t(a)"]);
+    assert_eq!(
+        declared("create table t (a int); alter table t add column if not exists a text", None),
+        [".t(a)", ".t(a)"]
+    );
 }
 
 #[test]
@@ -246,7 +249,7 @@ fn alter_table_of_a_table_of_the_catalog_waits_for_the_connection() {
 #[test]
 fn alter_table_reads_the_names_of_the_script_as_a_reference_does() {
     assert!(unresolved("create table s.t (a int); alter table t add column b int; select b from t", None).is_empty());
-    assert_eq!(declared("create table s.t (a int); alter table t add column b int", None), ["s.t(a, b)"]);
+    assert_eq!(declared("create table s.t (a int); alter table t add column b int", None), ["s.t(a)", "s.t(a, b)"]);
     assert_eq!(declared("create table t (a int); alter table o.t add column b int", None), [".t(a)"]);
     assert_eq!(declared("create table t (a int); alter table db.s.t add column b int", None), [".t(a)"]);
     assert!(errors("create table t (a int); alter table t alter column a type bigint using a::bigint").is_empty());
@@ -297,15 +300,21 @@ fn alter_table_of_another_script_does_not_make_its_table_ambiguous() {
 
 #[test]
 fn alter_table_applies_to_a_table_of_create_table_as() {
-    assert_eq!(declared("create table t as select 1 as a; alter table t add column b int", None), [".t(a, b)"]);
-    assert_eq!(declared("create table t as select 1 as a, 2 as c; alter table t drop column a", None), [".t(c)"]);
+    assert_eq!(
+        declared("create table t as select 1 as a; alter table t add column b int", None),
+        [".t(a)", ".t(a, b)"]
+    );
+    assert_eq!(
+        declared("create table t as select 1 as a, 2 as c; alter table t drop column a", None),
+        [".t(a, c)", ".t(c)"]
+    );
     // What waits for the columns moves along
     assert_eq!(
         declared("create table t as select 1 a, 2 b; alter table t drop column a; alter table t rename to u", None),
-        [".t(b)", ".u(b)"]
+        [".t(a, b)", ".t(b)", ".u(b)"]
     );
     assert_eq!(
         declared("create table t as select 1 a, 2 b; alter table t rename to u; alter table u drop column a", None),
-        [".t(a, b)", ".u(b)"]
+        [".t(a, b)", ".u(a, b)", ".u(b)"]
     );
 }

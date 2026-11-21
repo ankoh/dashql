@@ -13,11 +13,11 @@ completion-snapshots:
             text: "create tab..t, id int)"
             columns:
               - catalog-id: "256.65536.4294967296.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967296.1"
                 name: name
                 text: "name int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: id
+                text: "id int"
           - catalog-id: "256.65536.4294967297"
             name: u
             text: "create tab..t, nb int)"
@@ -85,7 +85,7 @@ completion-snapshots:
           objects:
             - score: 37
               type: column
-              id: "256.65536.4294967296.1"
+              id: "256.65536.4294967296.0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: t.name
               qualified-idx: 1
@@ -118,11 +118,11 @@ completion-snapshots:
             text: "create tab..t, id int)"
             columns:
               - catalog-id: "256.65536.4294967296.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967296.1"
                 name: name
                 text: "name int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: id
+                text: "id int"
           - catalog-id: "256.65536.4294967297"
             name: u
             text: "create tab..t, nb int)"
@@ -199,7 +199,7 @@ completion-snapshots:
           objects:
             - score: 47
               type: column
-              id: "256.65536.4294967296.1"
+              id: "256.65536.4294967296.0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: x.name
               qualified-idx: 1
@@ -247,11 +247,11 @@ completion-snapshots:
             text: "create tab..t, id int)"
             columns:
               - catalog-id: "256.65536.4294967296.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967296.1"
                 name: name
                 text: "name int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: id
+                text: "id int"
           - catalog-id: "256.65536.4294967297"
             name: u
             text: "create tab..t, nb int)"
@@ -322,7 +322,7 @@ completion-snapshots:
           objects:
             - score: 37
               type: column
-              id: "256.65536.4294967296.1"
+              id: "256.65536.4294967296.0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: t.name
               qualified-idx: 1
@@ -355,11 +355,11 @@ completion-snapshots:
             text: "create tab..t, id int)"
             columns:
               - catalog-id: "256.65536.4294967296.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967296.1"
                 name: name
                 text: "name int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: id
+                text: "id int"
           - catalog-id: "256.65536.4294967297"
             name: u
             text: "create tab..t, nb int)"
@@ -420,11 +420,11 @@ completion-snapshots:
             text: "create tab..t, id int)"
             columns:
               - catalog-id: "256.65536.4294967296.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967296.1"
                 name: name
                 text: "name int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: id
+                text: "id int"
           - catalog-id: "256.65536.4294967297"
             name: u
             text: "create tab..t, nb int)"
@@ -498,7 +498,7 @@ completion-snapshots:
           objects:
             - score: 47
               type: column
-              id: "256.65536.4294967296.1"
+              id: "256.65536.4294967296.0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: t.name
               qualified-idx: 1
@@ -544,11 +544,11 @@ completion-snapshots:
             text: "create tab..t, id int)"
             columns:
               - catalog-id: "256.65536.4294967296.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967296.1"
                 name: name
                 text: "name int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: id
+                text: "id int"
         touched-relations:
           - statement-id: 0
             name: t
@@ -582,11 +582,11 @@ completion-snapshots:
             text: "create tab..t, id int)"
             columns:
               - catalog-id: "256.65536.4294967296.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967296.1"
                 name: name
                 text: "name int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: id
+                text: "id int"
         touched-relations:
           - statement-id: 0
             name: t

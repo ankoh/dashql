@@ -127,17 +127,18 @@ memory.
 ## Within a script
 
 An `ALTER` changes the declaration of a table that its script creates, so that later statements read the table as it leaves
-it, before the script ran. It adds, drops and renames the columns of the declaration. One that moves a relation declares the
-new name and keeps the old one for the statements before it. A table of `CREATE TABLE AS` gets its actions once its columns
-are known. All of this is intent and lives in the session layer.
+it, before the script ran. It declares a new version of the table that the actions change: one that moves a relation under
+the new name, one that adds, drops or renames columns under the same name. The old declaration stays for the statements
+before the `ALTER`. A table of `CREATE TABLE AS` gets its actions once its columns are known. All of this is intent and lives
+in the session layer.
 
 An `ALTER` of a table that the script doesn't declare changes nothing in the script: the table stays what the connection
 reports, and the connection answers once the statement ran. Until then, a later statement of the script doesn't see the new
 column or name.
 
-A script has one table of a name. Its last declaration wins, for the script and for other scripts, and it carries all the
-`ALTER`s of the script. A statement in front of an `ALTER` that drops or renames a column of a table of the same script reads
-the table as it ends up, and reports the old name as unresolved.
+A statement reads the last declaration of a name before it, as the database would when the script runs: `select a from t`
+in front of `alter table t rename column a to b` resolves `a`, the same statement after it resolves `b`. Other scripts read
+the last declaration of the script, which carries all of its `ALTER`s.
 
 The planner doesn't model these statements, they are barriers and run in workbook order.
 

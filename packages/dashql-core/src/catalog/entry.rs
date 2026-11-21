@@ -453,6 +453,22 @@ impl CatalogEntryData {
         }
     }
 
+    /// The declaration of a table that a statement of the script reads: the last declaration of the name before the
+    /// statement. `ALTER` and a new `CREATE` declare a name again. A statement before all declarations of the name
+    /// reads the declaration at the index, the last one.
+    pub fn table_declared_before(&self, index: usize, statement: u32) -> usize {
+        let Some(name) = self.table_declarations.get(index).map(|t| &t.table_name) else { return index };
+        let same_name = |other: &QualifiedTableName| {
+            other.table_name.text == name.table_name.text
+                && other.schema_name.text == name.schema_name.text
+                && other.database_name.text == name.database_name.text
+        };
+        self.table_declarations
+            .iter()
+            .rposition(|t| t.ast_statement_id.is_some_and(|s| s < statement) && same_name(&t.table_name))
+            .unwrap_or(index)
+    }
+
     /// Resolve a table by schema and name across databases
     pub fn resolve_table_in_schema(&self, schema_name: &str, table_name: &str, out: &mut Vec<TableLoc>, limit: usize) {
         let lower = (Arc::<str>::from(schema_name), Arc::<str>::from(""));

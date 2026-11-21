@@ -12,14 +12,14 @@ visualize-snapshots:
             text: "create tab..wth float)"
             columns:
               - catalog-id: "256.65536.4294967296.0"
-                name: growth
-                text: "growth float"
-              - catalog-id: "256.65536.4294967296.1"
                 name: product
                 text: "product text"
-              - catalog-id: "256.65536.4294967296.2"
+              - catalog-id: "256.65536.4294967296.1"
                 name: revenue
                 text: "revenue decimal"
+              - catalog-id: "256.65536.4294967296.2"
+                name: growth
+                text: "growth float"
         touched-relations:
           - statement-id: 0
             name: product_summary

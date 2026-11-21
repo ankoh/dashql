@@ -106,6 +106,8 @@ enum Lookup {
     Resolved,
     Ambiguous,
     Missing,
+    /// The qualifier names a FROM item of the scope that has no such column, the parent scopes are not searched
+    Bound,
 }
 
 /// How a column ref sees the output columns of its own scope
@@ -175,6 +177,14 @@ pub(super) struct NameResolutionPass {
     using_joins: HashMap<ScopeId, Vec<UsingJoin>>,
     /// The column refs that were reported as ambiguous
     ambiguous_column_refs: HashSet<ExprId>,
+    /// The names of the column refs with more than two names, `s.t.a` is the column a of the table s.t, or the
+    /// field a of the column t of the table s
+    column_paths: HashMap<ExprId, Vec<Name>>,
+    /// The number of names that qualify the column of a column ref with a schema-qualified table
+    table_qualifiers: HashMap<ExprId, usize>,
+    /// The column refs whose qualifier names a FROM item without the column, with the unresolved table that
+    /// owns the column
+    bound_column_refs: HashMap<ExprId, Option<InferenceCandidate>>,
 }
 
 impl NameResolutionPass {
@@ -193,6 +203,9 @@ impl NameResolutionPass {
             pending_alters: Vec::new(),
             using_joins: HashMap::default(),
             ambiguous_column_refs: HashSet::default(),
+            column_paths: HashMap::default(),
+            table_qualifiers: HashMap::default(),
+            bound_column_refs: HashMap::default(),
         }
     }
 
@@ -341,23 +354,36 @@ impl NameResolutionPass {
                     if moved.database_name.text.is_empty() {
                         moved.database_name = source.database_name.clone();
                     }
-                    table = self.move_declaration(state, table, &moved, node_id);
+                    table = self.move_declaration(state, table, &moved, node_id, true);
                 }
-                _ => match self.pending_derived_tables.iter().find(|p| p.table == table) {
-                    Some(_) => self.pending_alters.push((table, state.node_id(action))),
-                    None => Self::apply_column_action(state, table, action),
-                },
+                _ => {
+                    // The statements before the `ALTER` read the table as it was
+                    let statement = state.find_statement_id(node_id);
+                    let declared = state.out.entry.table_declarations.get(table as usize);
+                    if let Some(name) =
+                        declared.filter(|t| t.ast_statement_id != statement).map(|t| t.table_name.clone())
+                    {
+                        table = self.move_declaration(state, table, &name, node_id, false);
+                    }
+                    match self.pending_derived_tables.iter().find(|p| p.table == table) {
+                        Some(_) => self.pending_alters.push((table, state.node_id(action))),
+                        None => Self::apply_column_action(state, table, action),
+                    }
+                }
             }
         }
     }
 
-    /// The declaration of a relation under its new name, the old one stays for the statements before the `ALTER`
+    /// The declaration of a relation under its new name, or a new version under the same name that the `ALTER`
+    /// changes. The old one stays for the statements before the `ALTER`. The names of a new version have their
+    /// objects already.
     fn move_declaration(
         &mut self,
         state: &mut AnalysisState,
         table: u32,
         name: &QualifiedTableName,
         node_id: u32,
+        renamed: bool,
     ) -> u32 {
         let Some(source) = state.out.entry.table_declarations.get(table as usize) else { return table };
         let (is_view, source_columns) = (source.is_view, source.table_columns.clone());
@@ -376,16 +402,20 @@ impl NameResolutionPass {
                 table: Some(table_id),
                 ..source.clone()
             });
-            state.resolve_name(
-                &source.column_name,
-                CatalogObjectRef::Column(ColumnLoc {
-                    table: TableLoc { entry: state.entry_id, index },
-                    column: column_index as u32,
-                }),
-            );
+            if renamed {
+                state.resolve_name(
+                    &source.column_name,
+                    CatalogObjectRef::Column(ColumnLoc {
+                        table: TableLoc { entry: state.entry_id, index },
+                        column: column_index as u32,
+                    }),
+                );
+            }
         }
         state.entry_mut().table_declarations.push(moved);
-        state.resolve_name(&name.table_name, CatalogObjectRef::Table(TableLoc { entry: state.entry_id, index }));
+        if renamed {
+            state.resolve_name(&name.table_name, CatalogObjectRef::Table(TableLoc { entry: state.entry_id, index }));
+        }
         // A table of `CREATE TABLE AS` gets its columns from the same query
         if let Some(pending) = self.pending_derived_tables.iter().find(|p| p.table == table) {
             let pending = PendingDerivedTable {
@@ -581,24 +611,31 @@ impl NameResolutionPass {
     /// Materialize a pending declaration after its SELECT scope has output columns
     fn populate_derived_table(state: &mut AnalysisState, pending: &PendingDerivedTable, scope: ScopeId) {
         let Some(s) = state.out.scope(scope) else { return };
-        let output_scope = match (s.output_columns.is_empty(), s.child_scopes.first()) {
-            (true, Some(&left)) => left,
+        // A SELECT without result targets that has no output columns wraps the SELECT of its child scope. The other
+        // child scopes are subqueries, their columns are not those of the table.
+        let output_scope = match (s.output_columns.is_empty() && s.result_targets.is_empty(), s.child_scopes.first()) {
+            (true, Some(&child)) => child,
             _ => scope,
         };
         let Some(outputs) = state.out.scope(output_scope).map(|s| &s.output_columns) else { return };
-        // The names of the columns with their output columns
-        let columns: Vec<(Name, u32)> = if !pending.column_aliases.is_empty() {
-            pending.column_aliases.iter().take(outputs.len()).cloned().zip(0..).collect()
-        } else {
-            // A declared table has unique column names
-            let mut seen = HashSet::default();
-            outputs
-                .iter()
-                .zip(0..)
-                .filter(|(o, _)| !o.column_name.text.is_empty() && seen.insert(o.column_name.text.clone()))
-                .map(|(o, output)| (o.column_name.clone(), output))
-                .collect()
-        };
+        // The names of the columns with their output columns. Every output column is a column of the table, the
+        // declared names rename the leading ones, and an unnamed one is named like Postgres does.
+        let columns: Vec<(Name, u32)> = outputs
+            .iter()
+            .zip(0..)
+            .map(|(output, column)| {
+                let name = match pending.column_aliases.get(column as usize) {
+                    Some(alias) => alias.clone(),
+                    None if !output.column_name.text.is_empty() => output.column_name.clone(),
+                    None => Name {
+                        entry: state.entry_id,
+                        id: state.out.empty_name,
+                        text: Self::unnamed_column_name(state, output),
+                    },
+                };
+                (name, column)
+            })
+            .collect();
         let table_index = pending.table;
         let Some(table_id) = state.out.entry.table_declarations.get(table_index as usize).map(|t| t.table_id()) else {
             return;
@@ -626,8 +663,24 @@ impl NameResolutionPass {
                 table: TableLoc { entry: state.entry_id, index: table_index },
                 column: column_index as u32,
             };
-            state.resolve_name(&column_name, CatalogObjectRef::Column(loc));
+            // A generated name is no name of the script
+            if column_name.id != state.out.empty_name {
+                state.resolve_name(&column_name, CatalogObjectRef::Column(loc));
+            }
         }
+    }
+
+    /// The name of an unnamed output column in a table: the name of a called function, `?column?` otherwise
+    fn unnamed_column_name(state: &AnalysisState, column: &ScopeColumn) -> Arc<str> {
+        let ScopeColumnSource::Expression(expr) = column.source else { return Arc::from("?column?") };
+        let function = match state.out.expression(expr).map(|e| &e.inner) {
+            Some(ExpressionInner::FunctionCall(call)) => match &call.function_name {
+                FunctionName::Qualified(name) => Some(name.function_name.text.clone()),
+                FunctionName::Known(known) => known.variant_name().map(|n| Arc::from(n.to_ascii_lowercase())),
+            },
+            _ => None,
+        };
+        function.filter(|name| !name.is_empty()).unwrap_or_else(|| Arc::from("?column?"))
     }
 
     /// The alias under which a table reference is registered in its scope
@@ -717,6 +770,7 @@ impl NameResolutionPass {
             name: Some(alias.map(|(alias, _)| alias.text).unwrap_or(name)),
             column_aliases,
             table: ReferencedTable::Table(TableLoc { entry: TABLE_PARAMETERS_ENTRY_ID, index: index as u32 }),
+            table_name: None,
         };
         Some((source, id))
     }
@@ -726,10 +780,18 @@ impl NameResolutionPass {
         matches!(source.table, ReferencedTable::Table(loc) if loc.entry == TABLE_PARAMETERS_ENTRY_ID)
     }
 
-    /// Add a FROM item to a scope, unless its name is taken
+    /// Add a FROM item to a scope, unless its name is taken. Tables without alias of different schemas share their
+    /// name, a column ref qualifies them with the schema.
     fn add_source(state: &mut AnalysisState, scope: ScopeId, source: ScopeSource) {
         let Some(s) = state.out.scope(scope) else { return };
-        if let Some(name) = source.name.as_ref().filter(|name| s.source(name).is_some()) {
+        let collides = |other: &ScopeSource| {
+            other.name == source.name
+                && match (&other.table_name, &source.table_name) {
+                    (Some(l), Some(r)) => l.key() == r.key(),
+                    _ => true,
+                }
+        };
+        if let Some(name) = source.name.as_ref().filter(|_| s.sources.iter().any(collides)) {
             let message = format!("duplicate table alias {}", quote_identifier(name));
             state.add_error(
                 AnalyzerErrorType::DUPLICATE_TABLE_ALIAS,
@@ -750,6 +812,7 @@ impl NameResolutionPass {
         let Some(s) = state.out.scope_mut(scope) else { return };
         let mut sources = std::mem::take(&mut s.sources);
         let table_refs = s.table_references.clone();
+        let statement = s.ast_statement_id;
         for table_ref_id in table_refs {
             let Some(table_ref) = state.out.table_ref(table_ref_id) else { continue };
             let Some(relation) = &table_ref.inner else { continue };
@@ -765,16 +828,20 @@ impl NameResolutionPass {
             let role = table_ref.role;
             let Some(reference) = state.node(table_ref.ast_node_id) else { continue };
             let reference_offset = reference.symbol_span().offset();
-            let source = |table_ref: &TableReference, name: Arc<str>, table: ReferencedTable| ScopeSource {
+            // A table without alias can be named with its schema
+            let source = |table_ref: &TableReference, name: Arc<str>, table: ReferencedTable, table_name| ScopeSource {
                 ast_node_id: table_ref.ast_node_id,
                 name: Some(name),
                 column_aliases: table_ref.column_aliases.clone(),
                 table,
+                table_name: if table_ref.alias.is_none() { table_name } else { None },
             };
 
-            // Does the table ref match a CTE definition in this or any parent scope?
+            // Does the table ref match a CTE definition in this or any parent scope? A CTE has no schema, a
+            // qualified name never names one.
             let mut matched_cte = None;
-            let mut s = Some(scope);
+            let unqualified = table_name.schema_name.text.is_empty() && table_name.database_name.text.is_empty();
+            let mut s = Some(scope).filter(|_| unqualified);
             while let Some(sid) = s {
                 let Some(candidate) = state.out.scope(sid) else { break };
                 if let Some(index) = candidate.cte_definitions.get_index(&ref_name) {
@@ -796,13 +863,21 @@ impl NameResolutionPass {
             }
             if let (Some(cte), TableRole::Read) = (matched_cte, role) {
                 let Some(table_ref) = state.out.table_ref(table_ref_id) else { continue };
-                sources.push(source(table_ref, Self::table_ref_alias(table_ref, &ref_name), ReferencedTable::Cte(cte)));
+                let alias = Self::table_ref_alias(table_ref, &ref_name);
+                sources.push(source(table_ref, alias, ReferencedTable::Cte(cte), None));
                 continue;
             }
 
-            // Resolve as a table of the own script, then through the catalog
+            // Resolve as a table of the own script, then through the catalog. A statement of the script reads the
+            // declaration of a name that the statements before it leave.
             let mut resolved = Vec::new();
             state.out.entry.resolve_table(&table_name, &mut resolved, MAX_TABLE_REF_AMBIGUITY);
+            if let Some(statement) = statement {
+                let entry = &state.out.entry;
+                for loc in &mut resolved {
+                    loc.index = entry.table_declared_before(loc.index as usize, statement) as u32;
+                }
+            }
             if resolved.is_empty() {
                 state.catalog.resolve_table(&table_name, state.entry_id, &mut resolved, MAX_TABLE_REF_AMBIGUITY);
             }
@@ -820,6 +895,7 @@ impl NameResolutionPass {
                 // A location that the catalog doesn't hold keeps the referenced name
                 let best_name =
                     entries.first().map_or_else(|| ref_name.clone(), |e| e.table_name.table_name.text.clone());
+                let qualified_name = entries.first().map(|e| e.table_name.clone());
                 if let Some(relation) = state.out.table_ref_mut(table_ref_id).and_then(|t| t.inner.as_mut()) {
                     let mut entries = entries.into_iter();
                     relation.resolved_table = entries.next();
@@ -830,6 +906,7 @@ impl NameResolutionPass {
                     table_ref,
                     Self::table_ref_alias(table_ref, &best_name),
                     ReferencedTable::Table(best_loc),
+                    qualified_name,
                 ));
                 continue;
             }
@@ -837,8 +914,11 @@ impl NameResolutionPass {
             // Neither a CTE nor in the catalog. Register an unresolved relation so that columns used
             // against it can be associated for schema inference.
             let Some(table_ref) = state.out.table_ref(table_ref_id) else { continue };
-            let unresolved = ReferencedTable::Unresolved(UnresolvedRelation { table_ref: table_ref_id, table_name });
-            sources.push(source(table_ref, Self::table_ref_alias(table_ref, &ref_name), unresolved));
+            let unresolved = ReferencedTable::Unresolved(UnresolvedRelation {
+                table_ref: table_ref_id,
+                table_name: table_name.clone(),
+            });
+            sources.push(source(table_ref, Self::table_ref_alias(table_ref, &ref_name), unresolved, Some(table_name)));
         }
         // Register the FROM items in FROM order, table refs follow the nodes of earlier FROM items in
         // the post-order AST
@@ -899,9 +979,15 @@ impl NameResolutionPass {
                 let Some(child) = cte.child_scope else {
                     return ColumnResolution::Unresolved;
                 };
-                let aliases =
-                    if source.column_aliases.is_empty() { &cte.column_aliases } else { &source.column_aliases };
-                Self::resolve_scope_column(state, child, aliases, column_name)
+                // The column names of the CTE rename the leading columns, the aliases of the FROM item rename them again
+                if source.column_aliases.is_empty() {
+                    return Self::resolve_scope_column(state, child, &cte.column_aliases, column_name);
+                }
+                let count = source.column_aliases.len().max(cte.column_aliases.len());
+                let aliases: Vec<Name> = (0..count)
+                    .filter_map(|i| source.column_aliases.get(i).or_else(|| cte.column_aliases.get(i)).cloned())
+                    .collect();
+                Self::resolve_scope_column(state, child, &aliases, column_name)
             }
             ReferencedTable::Subquery(child) => {
                 Self::resolve_scope_column(state, *child, &source.column_aliases, column_name)
@@ -933,6 +1019,115 @@ impl NameResolutionPass {
         })
     }
 
+    /// Report an ambiguous column ref with the FROM items that have the column
+    fn report_ambiguous(
+        &mut self,
+        state: &mut AnalysisState,
+        expr: ExprId,
+        column_name: &str,
+        sources: &[Option<Arc<str>>],
+    ) {
+        let mut message = String::from("column reference is ambiguous, candidates: ");
+        for (i, table_name) in sources.iter().enumerate() {
+            if i > 0 {
+                message.push_str(", ");
+            }
+            match table_name {
+                Some(table_name) => message.push_str(&quote_identifier(table_name)),
+                None => message.push_str("(subquery)"),
+            }
+            message.push('.');
+            message.push_str(&quote_identifier(column_name));
+        }
+        if let Some(node_id) = state.out.expression(expr).map(|e| e.ast_node_id) {
+            state.add_error(AnalyzerErrorType::COLUMN_REF_AMBIGUOUS, AnalyzerErrorSeverity::ERROR, node_id, message);
+        }
+        self.ambiguous_column_refs.insert(expr);
+    }
+
+    /// Resolve a qualified column ref against the FROM items that its qualifier names. A FROM item without the
+    /// column binds the column ref, it is not searched in the parent scopes.
+    fn resolve_qualified_column(
+        &mut self,
+        state: &mut AnalysisState,
+        expr: ExprId,
+        sources: &[ScopeSource],
+        column_name: &str,
+    ) -> Lookup {
+        if sources.is_empty() {
+            return Lookup::Missing;
+        }
+        let candidates: Vec<(Option<Arc<str>>, ColumnResolution)> = sources
+            .iter()
+            .map(|source| (source.name.clone(), Self::resolve_column(state, source, column_name)))
+            .filter(|(_, resolution)| resolution.is_resolved())
+            .collect();
+        match candidates.as_slice() {
+            [] => {
+                // The column of an unresolved table is inferred
+                let owner = sources.iter().find_map(|source| match &source.table {
+                    ReferencedTable::Unresolved(rel) => {
+                        Some(InferenceCandidate { table_name: rel.table_name.clone(), table_ref: rel.table_ref })
+                    }
+                    _ => None,
+                });
+                self.bound_column_refs.insert(expr, owner);
+                Lookup::Bound
+            }
+            [(_, resolution)] => {
+                let resolution = *resolution;
+                if let Some(column_ref) = state.out.expression_mut(expr).and_then(Expression::column_ref_mut) {
+                    column_ref.resolved = resolution;
+                }
+                Lookup::Resolved
+            }
+            _ => {
+                let names: Vec<Option<Arc<str>>> = candidates.into_iter().map(|(name, _)| name).collect();
+                self.report_ambiguous(state, expr, column_name, &names);
+                Lookup::Ambiguous
+            }
+        }
+    }
+
+    /// Look up a column ref with more than two names as a column of a schema-qualified table, `s.t.a` or `d.s.t.a`.
+    /// The longest qualifier that names a FROM item wins, None if none does.
+    fn try_resolve_table_qualified_column(
+        &mut self,
+        state: &mut AnalysisState,
+        expr: ExprId,
+        target: ScopeId,
+        visibility: SourceVisibility,
+    ) -> Option<Lookup> {
+        let path = self.column_paths.get(&expr)?.clone();
+        let scope = state.out.scope(target)?;
+        for qualifiers in (2..path.len().min(4)).rev() {
+            let (Some(schema), Some(table), Some(column)) =
+                (path.get(qualifiers - 2), path.get(qualifiers - 1), path.get(qualifiers))
+            else {
+                continue;
+            };
+            let database = path.first().filter(|_| qualifiers == 3);
+            let names_table = |name: &QualifiedTableName| {
+                name.table_name.text == table.text
+                    && name.schema_name.text == schema.text
+                    && database.is_none_or(|d| name.database_name.text == d.text)
+            };
+            let sources: Vec<ScopeSource> = scope
+                .sources
+                .iter()
+                .filter(|s| visibility.sees(s) && s.table_name.as_ref().is_some_and(names_table))
+                .cloned()
+                .collect();
+            if sources.is_empty() {
+                continue;
+            }
+            let column_name = column.text.clone();
+            self.table_qualifiers.insert(expr, qualifiers);
+            return Some(self.resolve_qualified_column(state, expr, &sources, &column_name));
+        }
+        None
+    }
+
     /// Look up a column ref in the visible FROM items of a scope
     fn try_resolve_column_in_scope(
         &mut self,
@@ -946,24 +1141,25 @@ impl NameResolutionPass {
         };
         let column_name = column_ref.column_name.column_name.text.clone();
         let alias = column_ref.column_name.table_alias.as_ref().map(|a| a.text.clone());
-        let Some(scope) = state.out.scope(target) else { return Lookup::Missing };
-        let mut sources = scope.sources.iter().filter(|s| visibility.sees(s));
 
         if let Some(alias) = alias {
-            let Some(source) = sources.find(|s| s.name.as_deref() == Some(&*alias)) else { return Lookup::Missing };
-            let resolution = Self::resolve_column(state, source, &column_name);
-            if !resolution.is_resolved() {
-                return Lookup::Missing;
+            if let Some(lookup) = self.try_resolve_table_qualified_column(state, expr, target, visibility) {
+                return lookup;
             }
-            if let Some(column_ref) = state.out.expression_mut(expr).and_then(Expression::column_ref_mut) {
-                column_ref.resolved = resolution;
-            }
-            return Lookup::Resolved;
+            let Some(scope) = state.out.scope(target) else { return Lookup::Missing };
+            let sources: Vec<ScopeSource> = scope
+                .sources
+                .iter()
+                .filter(|s| visibility.sees(s) && s.name.as_deref() == Some(&*alias))
+                .cloned()
+                .collect();
+            return self.resolve_qualified_column(state, expr, &sources, &column_name);
         }
 
         // No table alias, scan all FROM items for the column and check for ambiguity
+        let Some(scope) = state.out.scope(target) else { return Lookup::Missing };
         let mut candidates = Vec::new();
-        for source in sources {
+        for source in scope.sources.iter().filter(|s| visibility.sees(s)) {
             let resolution = Self::resolve_column(state, source, &column_name);
             if resolution.is_resolved() {
                 candidates.push((source.ast_node_id, source.name.clone(), resolution));
@@ -984,27 +1180,8 @@ impl NameResolutionPass {
                 *resolution
             }
             _ => {
-                let mut message = String::from("column reference is ambiguous, candidates: ");
-                for (i, (_, table_name, _)) in candidates.iter().enumerate() {
-                    if i > 0 {
-                        message.push_str(", ");
-                    }
-                    match table_name {
-                        Some(table_name) => message.push_str(&quote_identifier(table_name)),
-                        None => message.push_str("(subquery)"),
-                    }
-                    message.push('.');
-                    message.push_str(&quote_identifier(&column_name));
-                }
-                if let Some(node_id) = state.out.expression(expr).map(|e| e.ast_node_id) {
-                    state.add_error(
-                        AnalyzerErrorType::COLUMN_REF_AMBIGUOUS,
-                        AnalyzerErrorSeverity::ERROR,
-                        node_id,
-                        message,
-                    );
-                }
-                self.ambiguous_column_refs.insert(expr);
+                let names: Vec<Option<Arc<str>>> = candidates.into_iter().map(|(_, name, _)| name).collect();
+                self.report_ambiguous(state, expr, &column_name, &names);
                 return Lookup::Ambiguous;
             }
         };
@@ -1088,7 +1265,10 @@ impl NameResolutionPass {
     fn resolve_column_refs_from_parents(&mut self, state: &mut AnalysisState, scope: ScopeId) {
         let Some(exprs) = state.out.scope(scope).map(|s| s.expressions.clone()) else { return };
         for expr in exprs {
-            if Self::is_unresolved_column_ref(state, expr) && !self.ambiguous_column_refs.contains(&expr) {
+            if Self::is_unresolved_column_ref(state, expr)
+                && !self.ambiguous_column_refs.contains(&expr)
+                && !self.bound_column_refs.contains_key(&expr)
+            {
                 self.resolve_from_parent_chain(state, expr, scope);
             }
         }
@@ -1102,7 +1282,7 @@ impl NameResolutionPass {
             let (Some(parent), false) = (s.parent_scope, s.column_correlation_barrier) else { return false };
             match self.try_resolve_column_in_scope(state, expr, parent, s.parent_visibility) {
                 Lookup::Resolved => return true,
-                Lookup::Ambiguous => return false,
+                Lookup::Ambiguous | Lookup::Bound => return false,
                 Lookup::Missing => current = parent,
             }
         }
@@ -1162,7 +1342,11 @@ impl NameResolutionPass {
         let Some(exprs) = state.out.scope(scope).map(|s| s.expressions.clone()) else { return };
         for expr in exprs {
             let Some(column_ref) = state.out.expression(expr).and_then(Expression::column_ref) else { continue };
-            if column_ref.resolved.is_resolved() {
+            // A qualifier that names a FROM item is no column
+            if column_ref.resolved.is_resolved()
+                || self.bound_column_refs.contains_key(&expr)
+                || self.ambiguous_column_refs.contains(&expr)
+            {
                 continue;
             }
             let Some(qualifier) = column_ref.column_name.table_alias.clone() else { continue };
@@ -1188,7 +1372,7 @@ impl NameResolutionPass {
     }
 
     /// Associate still-unresolved column refs with unresolved tables in scope
-    fn associate_unresolved_columns(state: &mut AnalysisState, scope: ScopeId) {
+    fn associate_unresolved_columns(&self, state: &mut AnalysisState, scope: ScopeId) {
         let Some(s) = state.out.scope(scope) else { return };
         // The unresolved relations of this scope in FROM order
         let local_unresolved: Vec<InferenceCandidate> = s
@@ -1209,7 +1393,18 @@ impl NameResolutionPass {
                 continue;
             }
             let column_name = column_ref.column_name.column_name.clone();
+            let bound = self.bound_column_refs.get(&expr);
             let constraint = match &column_ref.column_name.table_alias {
+                // The qualifier names a FROM item without the column, the column belongs to an unresolved one
+                Some(_) if bound.is_some() => {
+                    let Some(Some(owner)) = bound else { continue };
+                    InferenceConstraint {
+                        kind: InferenceConstraintKind::Forced,
+                        expression_id: expression.expression_id,
+                        column_name,
+                        candidates: vec![owner.clone()],
+                    }
+                }
                 // Alias-qualified, the owner is pinned to whatever the alias refers to
                 Some(alias) => {
                     let Some(ReferencedTable::Unresolved(rel)) =
@@ -1287,6 +1482,94 @@ impl NameResolutionPass {
         columns
     }
 
+    /// The columns of an unqualified star: the columns of the FROM items in FROM order, a join with USING or NATURAL
+    /// has its join columns once, before the other columns of its inputs
+    fn star_columns(state: &AnalysisState, scope: &NameScope) -> Vec<ScopeColumn> {
+        let flat = || scope.sources.iter().flat_map(|source| Self::source_columns(state, source)).collect();
+        let Some(node) = state.node(scope.ast_node_id) else { return flat() };
+        let [from] = attrs!(state.children(node), [K::SQL_SELECT_FROM]);
+        let Some(from) = from.filter(|n| n.node_type() == NodeType::ARRAY) else { return flat() };
+        let mut columns = Vec::new();
+        let mut covered = 0;
+        for item in state.children(from) {
+            columns.extend(Self::from_item_columns(state, scope, item, &mut covered));
+        }
+        // A FROM item outside of the join trees, forward the FROM items in order
+        if covered != scope.sources.len() {
+            return flat();
+        }
+        columns
+    }
+
+    /// The columns of a FROM item or a join, counting the FROM items it covers
+    fn from_item_columns(
+        state: &AnalysisState,
+        scope: &NameScope,
+        item: &Node,
+        covered: &mut usize,
+    ) -> Vec<ScopeColumn> {
+        let item_id = state.node_id(item);
+        if item.node_type() != NodeType::OBJECT_SQL_JOINED_TABLE {
+            if let Some(source) = scope.sources.iter().find(|s| s.ast_node_id == item_id) {
+                *covered += 1;
+                return Self::source_columns(state, source);
+            }
+            // A parenthesized join
+            let [table] = attrs!(state.children(item), [K::SQL_TABLEREF_TABLE]);
+            return match table.filter(|t| t.node_type() == NodeType::OBJECT_SQL_JOINED_TABLE) {
+                Some(join) => Self::from_item_columns(state, scope, join, covered),
+                None => Vec::new(),
+            };
+        }
+        let [inputs, join_type, using] =
+            attrs!(state.children(item), [K::SQL_JOIN_INPUT, K::SQL_JOIN_TYPE, K::SQL_JOIN_USING]);
+        let Some(inputs) = inputs.filter(|n| n.node_type() == NodeType::ARRAY) else { return Vec::new() };
+        let mut sides =
+            state.children(inputs).iter().map(|input| Self::from_item_columns(state, scope, input, covered));
+        let (Some(left), Some(right)) = (sides.next(), sides.next()) else { return Vec::new() };
+        let join_columns: Vec<Arc<str>> = match using.filter(|n| n.node_type() == NodeType::ARRAY) {
+            Some(using) => state
+                .children(using)
+                .iter()
+                .filter(|c| c.node_type() == NodeType::NAME)
+                .map(|c| state.node_name(c).text)
+                .collect(),
+            // NATURAL joins the columns that both inputs have, in the order of the left input
+            None if join_type.is_some_and(|t| t.children_begin_or_value() as u8 & JoinType::NATURAL_.0 != 0) => left
+                .iter()
+                .map(|c| c.column_name.text.clone())
+                .filter(|name| !name.is_empty() && right.iter().any(|r| r.column_name.text == *name))
+                .collect(),
+            None => Vec::new(),
+        };
+        if join_columns.is_empty() {
+            return left.into_iter().chain(right).collect();
+        }
+        // A join column is the column of the left input
+        let mut columns = Vec::new();
+        let (mut left_used, mut right_used) = (vec![false; left.len()], vec![false; right.len()]);
+        for name in &join_columns {
+            let l = left.iter().zip(&left_used).position(|(c, used)| !used && c.column_name.text == *name);
+            let r = right.iter().zip(&right_used).position(|(c, used)| !used && c.column_name.text == *name);
+            if let Some(used) = r.and_then(|r| right_used.get_mut(r)) {
+                *used = true;
+            }
+            match (l, r) {
+                (Some(l), _) => {
+                    if let Some(used) = left_used.get_mut(l) {
+                        *used = true;
+                    }
+                    columns.extend(left.get(l).cloned());
+                }
+                (None, Some(r)) => columns.extend(right.get(r).cloned()),
+                (None, None) => {}
+            }
+        }
+        columns.extend(left.iter().zip(&left_used).filter(|(_, used)| !**used).map(|(c, _)| c.clone()));
+        columns.extend(right.iter().zip(&right_used).filter(|(_, used)| !**used).map(|(c, _)| c.clone()));
+        columns
+    }
+
     /// Populate the output columns of a scope from its result targets
     fn populate_output_columns(state: &mut AnalysisState, scope: ScopeId) {
         let mut columns = Vec::new();
@@ -1317,10 +1600,13 @@ impl NameResolutionPass {
             if rt.is_star {
                 // Forward the columns of all FROM items, or of the qualified one
                 let Some(s) = state.out.scope(scope) else { continue };
-                for source in &s.sources {
-                    if rt.star_qualifier.as_ref().is_none_or(|q| source.name.as_deref() == Some(q.text())) {
-                        columns.extend(Self::source_columns(state, source));
+                match &rt.star_qualifier {
+                    Some(q) => {
+                        for source in s.sources.iter().filter(|source| source.name.as_deref() == Some(q.text())) {
+                            columns.extend(Self::source_columns(state, source));
+                        }
                     }
+                    None => columns.extend(Self::star_columns(state, s)),
                 }
                 continue;
             }
@@ -1352,10 +1638,82 @@ impl NameResolutionPass {
         }
     }
 
-    /// Resolve all names
+    /// Resolve all names. The statements resolve in order, a statement reads the tables and views with the columns
+    /// that the statements before it derive.
     fn resolve_names(&mut self, state: &mut AnalysisState) {
-        let roots = self.root_scopes.values.clone();
+        let mut roots = self.root_scopes.values.clone();
+        let statement_of =
+            |state: &AnalysisState, scope: ScopeId| state.out.scope(scope).and_then(|s| s.ast_statement_id);
+        // The sort is stable, the roots of a statement keep their order
+        roots.sort_by_key(|&root| statement_of(state, root).unwrap_or(u32::MAX));
+        let mut pending: Vec<Option<PendingDerivedTable>> =
+            std::mem::take(&mut self.pending_derived_tables).into_iter().map(Some).collect();
+        let mut begin = 0;
+        while let Some(&first) = roots.get(begin) {
+            let statement = statement_of(state, first);
+            let end = roots
+                .iter()
+                .skip(begin)
+                .position(|&root| statement_of(state, root) != statement)
+                .map_or(roots.len(), |n| begin + n);
+            self.resolve_roots(state, roots.get(begin..end).unwrap_or_default());
+            begin = end;
+            // The tables that the statements so far derive get their columns
+            let Some(statement) = statement else { continue };
+            for slot in pending.iter_mut() {
+                let scope = slot.as_ref().and_then(|p| state.out.name_scopes_by_root_node.get(&p.select_node_id));
+                if scope.is_some_and(|&scope| statement_of(state, scope).is_some_and(|s| s <= statement)) {
+                    if let Some(table) = slot.take() {
+                        self.derive_table(state, &table);
+                    }
+                }
+            }
+        }
+        for table in pending.into_iter().flatten() {
+            self.derive_table(state, &table);
+        }
 
+        // A column ref of a schema-qualified table names the table and the column
+        for (&expr, &qualifiers) in &self.table_qualifiers {
+            let Some(path) = self.column_paths.get(&expr) else { continue };
+            let (Some(table), Some(column)) = (path.get(qualifiers - 1), path.get(qualifiers)) else { continue };
+            if let Some(schema) = qualifiers.checked_sub(2).and_then(|i| path.get(i)) {
+                state.tag(schema, NameTag::SCHEMA_NAME);
+            }
+            if let Some(database) = path.first().filter(|_| qualifiers == 3) {
+                state.tag(database, NameTag::DATABASE_NAME);
+            }
+            state.tag(table, NameTag::TABLE_NAME);
+            let Some(column_ref) = state.out.expression_mut(expr).and_then(Expression::column_ref_mut) else {
+                continue;
+            };
+            column_ref.column_name.table_alias = Some(table.clone());
+            column_ref.column_name.column_name = column.clone();
+        }
+
+        // Pass 3: associate the remaining unresolved columns with unresolved tables, in scope order
+        for scope in 0..state.out.name_scopes.len() {
+            self.associate_unresolved_columns(state, scope as ScopeId);
+        }
+    }
+
+    /// Derive the columns of a table or view from its SELECT, then apply the `ALTER` statements that wait for them
+    fn derive_table(&mut self, state: &mut AnalysisState, pending: &PendingDerivedTable) {
+        if let Some(&scope) = state.out.name_scopes_by_root_node.get(&pending.select_node_id) {
+            Self::populate_derived_table(state, pending, scope);
+        }
+        for &(table, action) in &self.pending_alters {
+            if table != pending.table {
+                continue;
+            }
+            if let Some(action) = state.node(action) {
+                Self::apply_column_action(state, table, action);
+            }
+        }
+    }
+
+    /// Resolve the names of the scopes below some root scopes
+    fn resolve_roots(&mut self, state: &mut AnalysisState, roots: &[ScopeId]) {
         // Pass 1, bottom-up: resolve the table refs, populate the output columns for the parent, then
         // resolve the column refs against the own scope
         let mut dfs: Vec<(ScopeId, bool)> = roots.iter().map(|&r| (r, false)).collect();
@@ -1376,7 +1734,7 @@ impl NameResolutionPass {
         }
 
         // Pass 2, top-down: resolve the remaining column refs through the parent scopes
-        let mut dfs: Vec<ScopeId> = roots.clone();
+        let mut dfs: Vec<ScopeId> = roots.to_vec();
         while let Some(scope) = dfs.pop() {
             // Recursive CTE outputs are available only after the bottom-up pass
             for expr in state.out.scope(scope).map(|s| s.expressions.clone()).unwrap_or_default() {
@@ -1389,11 +1747,6 @@ impl NameResolutionPass {
             if let Some(s) = state.out.scope(scope) {
                 dfs.extend(s.child_scopes.iter().copied());
             }
-        }
-
-        // Pass 3: associate the remaining unresolved columns with unresolved tables, in scope order
-        for scope in 0..state.out.name_scopes.len() {
-            Self::associate_unresolved_columns(state, scope as ScopeId);
         }
     }
 
@@ -1463,6 +1816,10 @@ impl NameResolutionPass {
                     return;
                 }
                 let [path] = attrs!(state.children(node), [K::SQL_COLUMN_REF_PATH]);
+                // More than two names may qualify the column with the schema of its table
+                let names = path.map(|p| state.read_name_path(p)).unwrap_or_default();
+                let names: Vec<Name> =
+                    if names.len() > 2 { names.into_iter().map(|id| state.name(id)).collect() } else { Vec::new() };
                 if let Some(column_name) = state.read_qualified_column_name(path) {
                     let column_ref = ColumnRef {
                         column_name,
@@ -1474,6 +1831,9 @@ impl NameResolutionPass {
                     let expr =
                         state.add_expression(node_id, *node.symbol_span(), ExpressionInner::ColumnRef(column_ref));
                     node_state.column_references.push(expr);
+                    if !names.is_empty() {
+                        self.column_paths.insert(expr, names);
+                    }
                     state.set_expression_of(node_id, expr);
                     state.mark(node_id, SemanticNodeMarkerType::COLUMN_REFERENCE);
                 }
@@ -1530,6 +1890,7 @@ impl NameResolutionPass {
                             name: alias.map(|(name, _)| name.text),
                             column_aliases,
                             table: ReferencedTable::Subquery(child),
+                            table_name: None,
                         });
                     }
                 }
@@ -1735,10 +2096,8 @@ impl NameResolutionPass {
                         node_state.merge(elements);
                     }
                 }
-                let mut columns = std::mem::take(&mut node_state.table_columns);
-                // Sort the columns by name.
-                // The sort is stable, duplicate names keep their declaration order.
-                columns.sort_by(|l, r| l.column_name.text.as_bytes().cmp(r.column_name.text.as_bytes()));
+                // The columns keep their declaration order, column aliases rename them by position
+                let columns = std::mem::take(&mut node_state.table_columns);
                 self.create_scope(state, node_state, node_id);
 
                 let name = table_name.table_name.clone();
@@ -1887,18 +2246,8 @@ impl NameResolutionPass {
             }
         }
 
-        // Resolve all names
+        // Resolve all names, derive the columns of the tables of `CREATE TABLE AS` and of the views
         self.resolve_names(state);
-
-        for pending in std::mem::take(&mut self.pending_derived_tables) {
-            if let Some(&scope) = state.out.name_scopes_by_root_node.get(&pending.select_node_id) {
-                Self::populate_derived_table(state, &pending, scope);
-            }
-        }
-        for (table, action) in std::mem::take(&mut self.pending_alters) {
-            let Some(action) = state.node(action) else { continue };
-            Self::apply_column_action(state, table, action);
-        }
 
         // Assign statement ids, the objects are ordered by their AST nodes
         if let Some(first) = state.parsed.statements.first() {

@@ -290,10 +290,13 @@ creates a `NameScope` and links it to its parent. Declarations are registered as
 
 `finish` then:
 1. indexes the script's declarations (`index_declarations`)
-2. resolves names in three sweeps over the scope tree: bottom-up (tables against CTEs, the script and
-   the catalog; columns against the tables and child outputs of the scope), top-down (correlated
-   references from parent scopes), then the remaining unresolved columns against the unresolved tables
-3. materializes derived tables from the output columns of their defining scopes
+2. resolves names statement by statement, the roots stable-sorted by their statement, in two sweeps over
+   the scope tree: bottom-up (tables against CTEs, the script and the catalog; columns against the
+   tables and child outputs of the scope), top-down (correlated references from parent scopes). After
+   the statements of a declaration, it materializes the tables of `CREATE TABLE AS`, `CREATE VIEW` and
+   `SELECT INTO` from the output columns of their defining scopes and applies their pending `ALTER`s,
+   so that later statements read their columns
+3. resolves the remaining unresolved columns against the unresolved tables
 4. assigns statement ids
 5. solves schema inference: columns referenced on tables that are not in the catalog become
    `InferredTableSchema`s with a confidence
@@ -308,6 +311,25 @@ enum ColumnResolution { Unresolved, TableColumn(ColumnLoc), ScopeColumn { scope,
 
 `TableLoc { entry, index }` and `ColumnLoc { table, column }` point into the declarations of an
 entry: the script itself or any catalog entry.
+
+The rules follow PostgreSQL and Hyper:
+
+- **CTEs** match unqualified table names only: `s.k` never names the CTE `k`.
+- **FROM items without alias** are named by their table, but keyed by the qualified name:
+  `from s1.k, s2.k` is legal, and `k.a` looks into both. The same table twice, or the same alias twice,
+  is a `DUPLICATE_TABLE_ALIAS`.
+- **Qualified column refs** try the longest qualifier first: `db.s.t.c`, `s.t.c`, `t.c`. A qualifier
+  that names a FROM item binds the ref to it, even if the item has no such column: the parent scopes
+  aren't searched, the ref stays unresolved, and schema inference gives the column to that item.
+- **Script tables** resolve to the last declaration of the name before the referencing statement. An
+  `ALTER` declares a new version, see `catalog_updates.md`.
+- **Columns of `CREATE TABLE`** keep their declaration order, column aliases rename by position.
+- **Output columns** of a derived table keep their positions: unnamed outputs are named as PostgreSQL
+  does, by the function name or `?column?`. Column aliases rename the leading columns, of a derived
+  table, a table and a CTE alike. A derived table has the columns of its own result targets, never those
+  of an expression subquery.
+- **`*` over a join** lists the `USING` and `NATURAL` columns once, first, then the other columns of
+  the left and the right side.
 
 ### The snapshot of an analysis
 

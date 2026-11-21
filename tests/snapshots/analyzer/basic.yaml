@@ -1163,11 +1163,11 @@ analyzer-snapshots:
             text: "create tab..gion text)"
             columns:
               - catalog-id: "256.65536.4294967296.0"
-                name: amount
-                text: "amount int"
-              - catalog-id: "256.65536.4294967296.1"
                 name: product
                 text: "product text"
+              - catalog-id: "256.65536.4294967296.1"
+                name: amount
+                text: "amount int"
               - catalog-id: "256.65536.4294967296.2"
                 name: region
                 text: "region text"
@@ -1187,7 +1187,7 @@ analyzer-snapshots:
       expressions:
         - expression-idx: 0
           type: colref/catalog
-          catalog: "256.65536.4294967296.1"
+          catalog: "256.65536.4294967296.0"
           statement-id: 0
           text: "product"
         - expression-idx: 1
@@ -1198,17 +1198,17 @@ analyzer-snapshots:
           text: "total"
         - expression-idx: 2
           type: colref/catalog
-          catalog: "256.65536.4294967296.1"
+          catalog: "256.65536.4294967296.0"
           statement-id: 0
           text: "product"
         - expression-idx: 3
           type: colref/catalog
-          catalog: "256.65536.4294967296.0"
+          catalog: "256.65536.4294967296.1"
           statement-id: 0
           text: "amount"
         - expression-idx: 4
           type: colref/catalog
-          catalog: "256.65536.4294967296.1"
+          catalog: "256.65536.4294967296.0"
           statement-id: 0
           text: "product"
         - expression-idx: 5
@@ -1269,11 +1269,11 @@ analyzer-snapshots:
             text: "create tab..gion text)"
             columns:
               - catalog-id: "256.65536.4294967296.0"
-                name: amount
-                text: "amount int"
-              - catalog-id: "256.65536.4294967296.1"
                 name: product
                 text: "product text"
+              - catalog-id: "256.65536.4294967296.1"
+                name: amount
+                text: "amount int"
               - catalog-id: "256.65536.4294967296.2"
                 name: region
                 text: "region text"
@@ -1296,22 +1296,22 @@ analyzer-snapshots:
       expressions:
         - expression-idx: 0
           type: colref/catalog
-          catalog: "256.65536.4294967296.1"
+          catalog: "256.65536.4294967296.0"
           statement-id: 0
           text: "product"
         - expression-idx: 1
           type: colref/catalog
-          catalog: "256.65536.4294967296.0"
+          catalog: "256.65536.4294967296.1"
           statement-id: 0
           text: "amount"
         - expression-idx: 2
           type: colref/catalog
-          catalog: "256.65536.4294967296.1"
+          catalog: "256.65536.4294967296.0"
           statement-id: 0
           text: "product"
         - expression-idx: 3
           type: colref/catalog
-          catalog: "256.65536.4294967296.1"
+          catalog: "256.65536.4294967296.0"
           statement-id: 0
           text: "product"
         - expression-idx: 4
@@ -1364,11 +1364,11 @@ analyzer-snapshots:
             text: "create tab..gion text)"
             columns:
               - catalog-id: "256.65536.4294967296.0"
-                name: amount
-                text: "amount int"
-              - catalog-id: "256.65536.4294967296.1"
                 name: product
                 text: "product text"
+              - catalog-id: "256.65536.4294967296.1"
+                name: amount
+                text: "amount int"
               - catalog-id: "256.65536.4294967296.2"
                 name: region
                 text: "region text"
@@ -1391,22 +1391,22 @@ analyzer-snapshots:
       expressions:
         - expression-idx: 0
           type: colref/catalog
-          catalog: "256.65536.4294967296.1"
+          catalog: "256.65536.4294967296.0"
           statement-id: 0
           text: "product"
         - expression-idx: 1
           type: colref/catalog
-          catalog: "256.65536.4294967296.0"
+          catalog: "256.65536.4294967296.1"
           statement-id: 0
           text: "amount"
         - expression-idx: 2
           type: colref/catalog
-          catalog: "256.65536.4294967296.1"
+          catalog: "256.65536.4294967296.0"
           statement-id: 0
           text: "product"
         - expression-idx: 3
           type: colref/catalog
-          catalog: "256.65536.4294967296.1"
+          catalog: "256.65536.4294967296.0"
           statement-id: 0
           text: "item"
         - expression-idx: 4
@@ -1459,11 +1459,11 @@ analyzer-snapshots:
             text: "create tab..atus text)"
             columns:
               - catalog-id: "256.65536.4294967296.0"
-                name: amount
-                text: "amount int"
-              - catalog-id: "256.65536.4294967296.1"
                 name: customer_id
                 text: "customer_id int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: amount
+                text: "amount int"
               - catalog-id: "256.65536.4294967296.2"
                 name: status
                 text: "status text"
@@ -1493,12 +1493,12 @@ analyzer-snapshots:
       expressions:
         - expression-idx: 0
           type: colref/catalog
-          catalog: "256.65536.4294967296.1"
+          catalog: "256.65536.4294967296.0"
           statement-id: 0
           text: "customer_id"
         - expression-idx: 1
           type: colref/catalog
-          catalog: "256.65536.4294967296.0"
+          catalog: "256.65536.4294967296.1"
           statement-id: 0
           text: "amount"
         - expression-idx: 2
@@ -1508,22 +1508,22 @@ analyzer-snapshots:
           text: "status"
         - expression-idx: 3
           type: colref/catalog
-          catalog: "256.65536.4294967296.1"
+          catalog: "256.65536.4294967296.0"
           statement-id: 0
           text: "customer_id"
         - expression-idx: 4
           type: colref/catalog
-          catalog: "256.65536.4294967296.0"
+          catalog: "256.65536.4294967296.1"
           statement-id: 0
           text: "amount"
         - expression-idx: 5
           type: colref/catalog
-          catalog: "256.65536.4294967296.1"
+          catalog: "256.65536.4294967296.0"
           statement-id: 0
           text: "customer_id"
         - expression-idx: 6
           type: colref/catalog
-          catalog: "256.65536.4294967296.1"
+          catalog: "256.65536.4294967296.0"
           statement-id: 0
           text: "customer_id"
         - expression-idx: 7

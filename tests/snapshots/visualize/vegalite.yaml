@@ -15,11 +15,11 @@ visualize-snapshots:
                 name: category
                 text: "category text"
               - catalog-id: "256.65536.4294967296.1"
-                name: date
-                text: "date timestamp"
-              - catalog-id: "256.65536.4294967296.2"
                 name: revenue
                 text: "revenue int"
+              - catalog-id: "256.65536.4294967296.2"
+                name: date
+                text: "date timestamp"
         touched-relations:
           - statement-id: 0
             name: sales
@@ -80,11 +80,11 @@ visualize-snapshots:
                 name: category
                 text: "category text"
               - catalog-id: "256.65536.4294967296.1"
-                name: date
-                text: "date timestamp"
-              - catalog-id: "256.65536.4294967296.2"
                 name: revenue
                 text: "revenue int"
+              - catalog-id: "256.65536.4294967296.2"
+                name: date
+                text: "date timestamp"
         touched-relations:
           - statement-id: 0
             name: sales

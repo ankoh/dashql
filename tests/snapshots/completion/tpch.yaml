@@ -19,216 +19,216 @@ completion-snapshots:
             text: "create tab.._partkey))"
             columns:
               - catalog-id: "256.65536.4294967296.0"
-                name: p_brand
-                text: "p_brand ch..) not null"
-              - catalog-id: "256.65536.4294967296.1"
-                name: p_comment
-                text: "p_comment ..) not null"
-              - catalog-id: "256.65536.4294967296.2"
-                name: p_container
-                text: "p_containe..) not null"
-              - catalog-id: "256.65536.4294967296.3"
-                name: p_mfgr
-                text: "p_mfgr cha..) not null"
-              - catalog-id: "256.65536.4294967296.4"
-                name: p_name
-                text: "p_name var..) not null"
-              - catalog-id: "256.65536.4294967296.5"
                 name: p_partkey
                 text: "p_partkey ..r not null"
-              - catalog-id: "256.65536.4294967296.6"
-                name: p_retailprice
-                text: "p_retailpr..) not null"
-              - catalog-id: "256.65536.4294967296.7"
-                name: p_size
-                text: "p_size int..r not null"
-              - catalog-id: "256.65536.4294967296.8"
+              - catalog-id: "256.65536.4294967296.1"
+                name: p_name
+                text: "p_name var..) not null"
+              - catalog-id: "256.65536.4294967296.2"
+                name: p_mfgr
+                text: "p_mfgr cha..) not null"
+              - catalog-id: "256.65536.4294967296.3"
+                name: p_brand
+                text: "p_brand ch..) not null"
+              - catalog-id: "256.65536.4294967296.4"
                 name: p_type
                 text: "p_type var..) not null"
+              - catalog-id: "256.65536.4294967296.5"
+                name: p_size
+                text: "p_size int..r not null"
+              - catalog-id: "256.65536.4294967296.6"
+                name: p_container
+                text: "p_containe..) not null"
+              - catalog-id: "256.65536.4294967296.7"
+                name: p_retailprice
+                text: "p_retailpr..) not null"
+              - catalog-id: "256.65536.4294967296.8"
+                name: p_comment
+                text: "p_comment ..) not null"
           - catalog-id: "256.65536.4294967297"
             name: supplier
             text: "create tab.._suppkey))"
             columns:
               - catalog-id: "256.65536.4294967297.0"
-                name: s_acctbal
-                text: "s_acctbal ..) not null"
-              - catalog-id: "256.65536.4294967297.1"
-                name: s_address
-                text: "s_address ..) not null"
-              - catalog-id: "256.65536.4294967297.2"
-                name: s_comment
-                text: "s_comment ..) not null"
-              - catalog-id: "256.65536.4294967297.3"
-                name: s_name
-                text: "s_name cha..) not null"
-              - catalog-id: "256.65536.4294967297.4"
-                name: s_nationkey
-                text: "s_nationke..r not null"
-              - catalog-id: "256.65536.4294967297.5"
-                name: s_phone
-                text: "s_phone ch..) not null"
-              - catalog-id: "256.65536.4294967297.6"
                 name: s_suppkey
                 text: "s_suppkey ..r not null"
+              - catalog-id: "256.65536.4294967297.1"
+                name: s_name
+                text: "s_name cha..) not null"
+              - catalog-id: "256.65536.4294967297.2"
+                name: s_address
+                text: "s_address ..) not null"
+              - catalog-id: "256.65536.4294967297.3"
+                name: s_nationkey
+                text: "s_nationke..r not null"
+              - catalog-id: "256.65536.4294967297.4"
+                name: s_phone
+                text: "s_phone ch..) not null"
+              - catalog-id: "256.65536.4294967297.5"
+                name: s_acctbal
+                text: "s_acctbal ..) not null"
+              - catalog-id: "256.65536.4294967297.6"
+                name: s_comment
+                text: "s_comment ..) not null"
           - catalog-id: "256.65536.4294967298"
             name: partsupp
             text: "create tab.._suppkey))"
             columns:
               - catalog-id: "256.65536.4294967298.0"
-                name: ps_availqty
-                text: "ps_availqt..r not null"
-              - catalog-id: "256.65536.4294967298.1"
-                name: ps_comment
-                text: "ps_comment..) not null"
-              - catalog-id: "256.65536.4294967298.2"
                 name: ps_partkey
                 text: "ps_partkey..r not null"
-              - catalog-id: "256.65536.4294967298.3"
+              - catalog-id: "256.65536.4294967298.1"
                 name: ps_suppkey
                 text: "ps_suppkey..r not null"
-              - catalog-id: "256.65536.4294967298.4"
+              - catalog-id: "256.65536.4294967298.2"
+                name: ps_availqty
+                text: "ps_availqt..r not null"
+              - catalog-id: "256.65536.4294967298.3"
                 name: ps_supplycost
                 text: "ps_supplyc..) not null"
+              - catalog-id: "256.65536.4294967298.4"
+                name: ps_comment
+                text: "ps_comment..) not null"
           - catalog-id: "256.65536.4294967299"
             name: customer
             text: "create tab.._custkey))"
             columns:
               - catalog-id: "256.65536.4294967299.0"
-                name: c_acctbal
-                text: "c_acctbal ..) not null"
-              - catalog-id: "256.65536.4294967299.1"
-                name: c_address
-                text: "c_address ..) not null"
-              - catalog-id: "256.65536.4294967299.2"
-                name: c_comment
-                text: "c_comment ..) not null"
-              - catalog-id: "256.65536.4294967299.3"
                 name: c_custkey
                 text: "c_custkey ..r not null"
-              - catalog-id: "256.65536.4294967299.4"
-                name: c_mktsegment
-                text: "c_mktsegme..) not null"
-              - catalog-id: "256.65536.4294967299.5"
+              - catalog-id: "256.65536.4294967299.1"
                 name: c_name
                 text: "c_name var..) not null"
-              - catalog-id: "256.65536.4294967299.6"
+              - catalog-id: "256.65536.4294967299.2"
+                name: c_address
+                text: "c_address ..) not null"
+              - catalog-id: "256.65536.4294967299.3"
                 name: c_nationkey
                 text: "c_nationke..r not null"
-              - catalog-id: "256.65536.4294967299.7"
+              - catalog-id: "256.65536.4294967299.4"
                 name: c_phone
                 text: "c_phone ch..) not null"
+              - catalog-id: "256.65536.4294967299.5"
+                name: c_acctbal
+                text: "c_acctbal ..) not null"
+              - catalog-id: "256.65536.4294967299.6"
+                name: c_mktsegment
+                text: "c_mktsegme..) not null"
+              - catalog-id: "256.65536.4294967299.7"
+                name: c_comment
+                text: "c_comment ..) not null"
           - catalog-id: "256.65536.4294967300"
             name: orders
             text: "create tab..orderkey))"
             columns:
               - catalog-id: "256.65536.4294967300.0"
-                name: o_clerk
-                text: "o_clerk ch..) not null"
-              - catalog-id: "256.65536.4294967300.1"
-                name: o_comment
-                text: "o_comment ..) not null"
-              - catalog-id: "256.65536.4294967300.2"
-                name: o_custkey
-                text: "o_custkey ..r not null"
-              - catalog-id: "256.65536.4294967300.3"
-                name: o_orderdate
-                text: "o_orderdat..e not null"
-              - catalog-id: "256.65536.4294967300.4"
                 name: o_orderkey
                 text: "o_orderkey..r not null"
+              - catalog-id: "256.65536.4294967300.1"
+                name: o_custkey
+                text: "o_custkey ..r not null"
+              - catalog-id: "256.65536.4294967300.2"
+                name: o_orderstatus
+                text: "o_ordersta..) not null"
+              - catalog-id: "256.65536.4294967300.3"
+                name: o_totalprice
+                text: "o_totalpri..) not null"
+              - catalog-id: "256.65536.4294967300.4"
+                name: o_orderdate
+                text: "o_orderdat..e not null"
               - catalog-id: "256.65536.4294967300.5"
                 name: o_orderpriority
                 text: "o_orderpri..) not null"
               - catalog-id: "256.65536.4294967300.6"
-                name: o_orderstatus
-                text: "o_ordersta..) not null"
+                name: o_clerk
+                text: "o_clerk ch..) not null"
               - catalog-id: "256.65536.4294967300.7"
                 name: o_shippriority
                 text: "o_shipprio..r not null"
               - catalog-id: "256.65536.4294967300.8"
-                name: o_totalprice
-                text: "o_totalpri..) not null"
+                name: o_comment
+                text: "o_comment ..) not null"
           - catalog-id: "256.65536.4294967301"
             name: lineitem
             text: "create tab..nenumber))"
             columns:
               - catalog-id: "256.65536.4294967301.0"
-                name: l_comment
-                text: "l_comment ..) not null"
-              - catalog-id: "256.65536.4294967301.1"
-                name: l_commitdate
-                text: "l_commitda..e not null"
-              - catalog-id: "256.65536.4294967301.2"
-                name: l_discount
-                text: "l_discount..) not null"
-              - catalog-id: "256.65536.4294967301.3"
-                name: l_extendedprice
-                text: "l_extended..) not null"
-              - catalog-id: "256.65536.4294967301.4"
-                name: l_linenumber
-                text: "l_linenumb..r not null"
-              - catalog-id: "256.65536.4294967301.5"
-                name: l_linestatus
-                text: "l_linestat..) not null"
-              - catalog-id: "256.65536.4294967301.6"
                 name: l_orderkey
                 text: "l_orderkey..r not null"
-              - catalog-id: "256.65536.4294967301.7"
+              - catalog-id: "256.65536.4294967301.1"
                 name: l_partkey
                 text: "l_partkey ..r not null"
-              - catalog-id: "256.65536.4294967301.8"
-                name: l_quantity
-                text: "l_quantity..) not null"
-              - catalog-id: "256.65536.4294967301.9"
-                name: l_receiptdate
-                text: "l_receiptd..e not null"
-              - catalog-id: "256.65536.4294967301.10"
-                name: l_returnflag
-                text: "l_returnfl..) not null"
-              - catalog-id: "256.65536.4294967301.11"
-                name: l_shipdate
-                text: "l_shipdate..e not null"
-              - catalog-id: "256.65536.4294967301.12"
-                name: l_shipinstruct
-                text: "l_shipinst..) not null"
-              - catalog-id: "256.65536.4294967301.13"
-                name: l_shipmode
-                text: "l_shipmode..) not null"
-              - catalog-id: "256.65536.4294967301.14"
+              - catalog-id: "256.65536.4294967301.2"
                 name: l_suppkey
                 text: "l_suppkey ..r not null"
-              - catalog-id: "256.65536.4294967301.15"
+              - catalog-id: "256.65536.4294967301.3"
+                name: l_linenumber
+                text: "l_linenumb..r not null"
+              - catalog-id: "256.65536.4294967301.4"
+                name: l_quantity
+                text: "l_quantity..) not null"
+              - catalog-id: "256.65536.4294967301.5"
+                name: l_extendedprice
+                text: "l_extended..) not null"
+              - catalog-id: "256.65536.4294967301.6"
+                name: l_discount
+                text: "l_discount..) not null"
+              - catalog-id: "256.65536.4294967301.7"
                 name: l_tax
                 text: "l_tax deci..) not null"
+              - catalog-id: "256.65536.4294967301.8"
+                name: l_returnflag
+                text: "l_returnfl..) not null"
+              - catalog-id: "256.65536.4294967301.9"
+                name: l_linestatus
+                text: "l_linestat..) not null"
+              - catalog-id: "256.65536.4294967301.10"
+                name: l_shipdate
+                text: "l_shipdate..e not null"
+              - catalog-id: "256.65536.4294967301.11"
+                name: l_commitdate
+                text: "l_commitda..e not null"
+              - catalog-id: "256.65536.4294967301.12"
+                name: l_receiptdate
+                text: "l_receiptd..e not null"
+              - catalog-id: "256.65536.4294967301.13"
+                name: l_shipinstruct
+                text: "l_shipinst..) not null"
+              - catalog-id: "256.65536.4294967301.14"
+                name: l_shipmode
+                text: "l_shipmode..) not null"
+              - catalog-id: "256.65536.4294967301.15"
+                name: l_comment
+                text: "l_comment ..) not null"
           - catalog-id: "256.65536.4294967302"
             name: nation
             text: "create tab..ationkey))"
             columns:
               - catalog-id: "256.65536.4294967302.0"
-                name: n_comment
-                text: "n_comment ..) not null"
+                name: n_nationkey
+                text: "n_nationke..r not null"
               - catalog-id: "256.65536.4294967302.1"
                 name: n_name
                 text: "n_name cha..) not null"
               - catalog-id: "256.65536.4294967302.2"
-                name: n_nationkey
-                text: "n_nationke..r not null"
-              - catalog-id: "256.65536.4294967302.3"
                 name: n_regionkey
                 text: "n_regionke..r not null"
+              - catalog-id: "256.65536.4294967302.3"
+                name: n_comment
+                text: "n_comment ..) not null"
           - catalog-id: "256.65536.4294967303"
             name: region
             text: "create tab..egionkey))"
             columns:
               - catalog-id: "256.65536.4294967303.0"
-                name: r_comment
-                text: "r_comment ..) not null"
+                name: r_regionkey
+                text: "r_regionke..r not null"
               - catalog-id: "256.65536.4294967303.1"
                 name: r_name
                 text: "r_name cha..) not null"
               - catalog-id: "256.65536.4294967303.2"
-                name: r_regionkey
-                text: "r_regionke..r not null"
+                name: r_comment
+                text: "r_comment ..) not null"
         touched-relations:
           - statement-id: 0
             name: part
@@ -612,7 +612,7 @@ completion-snapshots:
           objects:
             - score: 37
               type: column
-              id: "256.65536.4294967297.2"
+              id: "256.65536.4294967297.6"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: supplier.s_comment
               qualified-idx: 1
@@ -627,7 +627,7 @@ completion-snapshots:
           objects:
             - score: 32
               type: column
-              id: "256.65536.4294967298.1"
+              id: "256.65536.4294967298.4"
               candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: partsupp.ps_comment
               qualified-idx: 1
@@ -654,216 +654,216 @@ completion-snapshots:
             text: "create tab.._partkey))"
             columns:
               - catalog-id: "256.65536.4294967296.0"
-                name: p_brand
-                text: "p_brand ch..) not null"
-              - catalog-id: "256.65536.4294967296.1"
-                name: p_comment
-                text: "p_comment ..) not null"
-              - catalog-id: "256.65536.4294967296.2"
-                name: p_container
-                text: "p_containe..) not null"
-              - catalog-id: "256.65536.4294967296.3"
-                name: p_mfgr
-                text: "p_mfgr cha..) not null"
-              - catalog-id: "256.65536.4294967296.4"
-                name: p_name
-                text: "p_name var..) not null"
-              - catalog-id: "256.65536.4294967296.5"
                 name: p_partkey
                 text: "p_partkey ..r not null"
-              - catalog-id: "256.65536.4294967296.6"
-                name: p_retailprice
-                text: "p_retailpr..) not null"
-              - catalog-id: "256.65536.4294967296.7"
-                name: p_size
-                text: "p_size int..r not null"
-              - catalog-id: "256.65536.4294967296.8"
+              - catalog-id: "256.65536.4294967296.1"
+                name: p_name
+                text: "p_name var..) not null"
+              - catalog-id: "256.65536.4294967296.2"
+                name: p_mfgr
+                text: "p_mfgr cha..) not null"
+              - catalog-id: "256.65536.4294967296.3"
+                name: p_brand
+                text: "p_brand ch..) not null"
+              - catalog-id: "256.65536.4294967296.4"
                 name: p_type
                 text: "p_type var..) not null"
+              - catalog-id: "256.65536.4294967296.5"
+                name: p_size
+                text: "p_size int..r not null"
+              - catalog-id: "256.65536.4294967296.6"
+                name: p_container
+                text: "p_containe..) not null"
+              - catalog-id: "256.65536.4294967296.7"
+                name: p_retailprice
+                text: "p_retailpr..) not null"
+              - catalog-id: "256.65536.4294967296.8"
+                name: p_comment
+                text: "p_comment ..) not null"
           - catalog-id: "256.65536.4294967297"
             name: supplier
             text: "create tab.._suppkey))"
             columns:
               - catalog-id: "256.65536.4294967297.0"
-                name: s_acctbal
-                text: "s_acctbal ..) not null"
-              - catalog-id: "256.65536.4294967297.1"
-                name: s_address
-                text: "s_address ..) not null"
-              - catalog-id: "256.65536.4294967297.2"
-                name: s_comment
-                text: "s_comment ..) not null"
-              - catalog-id: "256.65536.4294967297.3"
-                name: s_name
-                text: "s_name cha..) not null"
-              - catalog-id: "256.65536.4294967297.4"
-                name: s_nationkey
-                text: "s_nationke..r not null"
-              - catalog-id: "256.65536.4294967297.5"
-                name: s_phone
-                text: "s_phone ch..) not null"
-              - catalog-id: "256.65536.4294967297.6"
                 name: s_suppkey
                 text: "s_suppkey ..r not null"
+              - catalog-id: "256.65536.4294967297.1"
+                name: s_name
+                text: "s_name cha..) not null"
+              - catalog-id: "256.65536.4294967297.2"
+                name: s_address
+                text: "s_address ..) not null"
+              - catalog-id: "256.65536.4294967297.3"
+                name: s_nationkey
+                text: "s_nationke..r not null"
+              - catalog-id: "256.65536.4294967297.4"
+                name: s_phone
+                text: "s_phone ch..) not null"
+              - catalog-id: "256.65536.4294967297.5"
+                name: s_acctbal
+                text: "s_acctbal ..) not null"
+              - catalog-id: "256.65536.4294967297.6"
+                name: s_comment
+                text: "s_comment ..) not null"
           - catalog-id: "256.65536.4294967298"
             name: partsupp
             text: "create tab.._suppkey))"
             columns:
               - catalog-id: "256.65536.4294967298.0"
-                name: ps_availqty
-                text: "ps_availqt..r not null"
-              - catalog-id: "256.65536.4294967298.1"
-                name: ps_comment
-                text: "ps_comment..) not null"
-              - catalog-id: "256.65536.4294967298.2"
                 name: ps_partkey
                 text: "ps_partkey..r not null"
-              - catalog-id: "256.65536.4294967298.3"
+              - catalog-id: "256.65536.4294967298.1"
                 name: ps_suppkey
                 text: "ps_suppkey..r not null"
-              - catalog-id: "256.65536.4294967298.4"
+              - catalog-id: "256.65536.4294967298.2"
+                name: ps_availqty
+                text: "ps_availqt..r not null"
+              - catalog-id: "256.65536.4294967298.3"
                 name: ps_supplycost
                 text: "ps_supplyc..) not null"
+              - catalog-id: "256.65536.4294967298.4"
+                name: ps_comment
+                text: "ps_comment..) not null"
           - catalog-id: "256.65536.4294967299"
             name: customer
             text: "create tab.._custkey))"
             columns:
               - catalog-id: "256.65536.4294967299.0"
-                name: c_acctbal
-                text: "c_acctbal ..) not null"
-              - catalog-id: "256.65536.4294967299.1"
-                name: c_address
-                text: "c_address ..) not null"
-              - catalog-id: "256.65536.4294967299.2"
-                name: c_comment
-                text: "c_comment ..) not null"
-              - catalog-id: "256.65536.4294967299.3"
                 name: c_custkey
                 text: "c_custkey ..r not null"
-              - catalog-id: "256.65536.4294967299.4"
-                name: c_mktsegment
-                text: "c_mktsegme..) not null"
-              - catalog-id: "256.65536.4294967299.5"
+              - catalog-id: "256.65536.4294967299.1"
                 name: c_name
                 text: "c_name var..) not null"
-              - catalog-id: "256.65536.4294967299.6"
+              - catalog-id: "256.65536.4294967299.2"
+                name: c_address
+                text: "c_address ..) not null"
+              - catalog-id: "256.65536.4294967299.3"
                 name: c_nationkey
                 text: "c_nationke..r not null"
-              - catalog-id: "256.65536.4294967299.7"
+              - catalog-id: "256.65536.4294967299.4"
                 name: c_phone
                 text: "c_phone ch..) not null"
+              - catalog-id: "256.65536.4294967299.5"
+                name: c_acctbal
+                text: "c_acctbal ..) not null"
+              - catalog-id: "256.65536.4294967299.6"
+                name: c_mktsegment
+                text: "c_mktsegme..) not null"
+              - catalog-id: "256.65536.4294967299.7"
+                name: c_comment
+                text: "c_comment ..) not null"
           - catalog-id: "256.65536.4294967300"
             name: orders
             text: "create tab..orderkey))"
             columns:
               - catalog-id: "256.65536.4294967300.0"
-                name: o_clerk
-                text: "o_clerk ch..) not null"
-              - catalog-id: "256.65536.4294967300.1"
-                name: o_comment
-                text: "o_comment ..) not null"
-              - catalog-id: "256.65536.4294967300.2"
-                name: o_custkey
-                text: "o_custkey ..r not null"
-              - catalog-id: "256.65536.4294967300.3"
-                name: o_orderdate
-                text: "o_orderdat..e not null"
-              - catalog-id: "256.65536.4294967300.4"
                 name: o_orderkey
                 text: "o_orderkey..r not null"
+              - catalog-id: "256.65536.4294967300.1"
+                name: o_custkey
+                text: "o_custkey ..r not null"
+              - catalog-id: "256.65536.4294967300.2"
+                name: o_orderstatus
+                text: "o_ordersta..) not null"
+              - catalog-id: "256.65536.4294967300.3"
+                name: o_totalprice
+                text: "o_totalpri..) not null"
+              - catalog-id: "256.65536.4294967300.4"
+                name: o_orderdate
+                text: "o_orderdat..e not null"
               - catalog-id: "256.65536.4294967300.5"
                 name: o_orderpriority
                 text: "o_orderpri..) not null"
               - catalog-id: "256.65536.4294967300.6"
-                name: o_orderstatus
-                text: "o_ordersta..) not null"
+                name: o_clerk
+                text: "o_clerk ch..) not null"
               - catalog-id: "256.65536.4294967300.7"
                 name: o_shippriority
                 text: "o_shipprio..r not null"
               - catalog-id: "256.65536.4294967300.8"
-                name: o_totalprice
-                text: "o_totalpri..) not null"
+                name: o_comment
+                text: "o_comment ..) not null"
           - catalog-id: "256.65536.4294967301"
             name: lineitem
             text: "create tab..nenumber))"
             columns:
               - catalog-id: "256.65536.4294967301.0"
-                name: l_comment
-                text: "l_comment ..) not null"
-              - catalog-id: "256.65536.4294967301.1"
-                name: l_commitdate
-                text: "l_commitda..e not null"
-              - catalog-id: "256.65536.4294967301.2"
-                name: l_discount
-                text: "l_discount..) not null"
-              - catalog-id: "256.65536.4294967301.3"
-                name: l_extendedprice
-                text: "l_extended..) not null"
-              - catalog-id: "256.65536.4294967301.4"
-                name: l_linenumber
-                text: "l_linenumb..r not null"
-              - catalog-id: "256.65536.4294967301.5"
-                name: l_linestatus
-                text: "l_linestat..) not null"
-              - catalog-id: "256.65536.4294967301.6"
                 name: l_orderkey
                 text: "l_orderkey..r not null"
-              - catalog-id: "256.65536.4294967301.7"
+              - catalog-id: "256.65536.4294967301.1"
                 name: l_partkey
                 text: "l_partkey ..r not null"
-              - catalog-id: "256.65536.4294967301.8"
-                name: l_quantity
-                text: "l_quantity..) not null"
-              - catalog-id: "256.65536.4294967301.9"
-                name: l_receiptdate
-                text: "l_receiptd..e not null"
-              - catalog-id: "256.65536.4294967301.10"
-                name: l_returnflag
-                text: "l_returnfl..) not null"
-              - catalog-id: "256.65536.4294967301.11"
-                name: l_shipdate
-                text: "l_shipdate..e not null"
-              - catalog-id: "256.65536.4294967301.12"
-                name: l_shipinstruct
-                text: "l_shipinst..) not null"
-              - catalog-id: "256.65536.4294967301.13"
-                name: l_shipmode
-                text: "l_shipmode..) not null"
-              - catalog-id: "256.65536.4294967301.14"
+              - catalog-id: "256.65536.4294967301.2"
                 name: l_suppkey
                 text: "l_suppkey ..r not null"
-              - catalog-id: "256.65536.4294967301.15"
+              - catalog-id: "256.65536.4294967301.3"
+                name: l_linenumber
+                text: "l_linenumb..r not null"
+              - catalog-id: "256.65536.4294967301.4"
+                name: l_quantity
+                text: "l_quantity..) not null"
+              - catalog-id: "256.65536.4294967301.5"
+                name: l_extendedprice
+                text: "l_extended..) not null"
+              - catalog-id: "256.65536.4294967301.6"
+                name: l_discount
+                text: "l_discount..) not null"
+              - catalog-id: "256.65536.4294967301.7"
                 name: l_tax
                 text: "l_tax deci..) not null"
+              - catalog-id: "256.65536.4294967301.8"
+                name: l_returnflag
+                text: "l_returnfl..) not null"
+              - catalog-id: "256.65536.4294967301.9"
+                name: l_linestatus
+                text: "l_linestat..) not null"
+              - catalog-id: "256.65536.4294967301.10"
+                name: l_shipdate
+                text: "l_shipdate..e not null"
+              - catalog-id: "256.65536.4294967301.11"
+                name: l_commitdate
+                text: "l_commitda..e not null"
+              - catalog-id: "256.65536.4294967301.12"
+                name: l_receiptdate
+                text: "l_receiptd..e not null"
+              - catalog-id: "256.65536.4294967301.13"
+                name: l_shipinstruct
+                text: "l_shipinst..) not null"
+              - catalog-id: "256.65536.4294967301.14"
+                name: l_shipmode
+                text: "l_shipmode..) not null"
+              - catalog-id: "256.65536.4294967301.15"
+                name: l_comment
+                text: "l_comment ..) not null"
           - catalog-id: "256.65536.4294967302"
             name: nation
             text: "create tab..ationkey))"
             columns:
               - catalog-id: "256.65536.4294967302.0"
-                name: n_comment
-                text: "n_comment ..) not null"
+                name: n_nationkey
+                text: "n_nationke..r not null"
               - catalog-id: "256.65536.4294967302.1"
                 name: n_name
                 text: "n_name cha..) not null"
               - catalog-id: "256.65536.4294967302.2"
-                name: n_nationkey
-                text: "n_nationke..r not null"
-              - catalog-id: "256.65536.4294967302.3"
                 name: n_regionkey
                 text: "n_regionke..r not null"
+              - catalog-id: "256.65536.4294967302.3"
+                name: n_comment
+                text: "n_comment ..) not null"
           - catalog-id: "256.65536.4294967303"
             name: region
             text: "create tab..egionkey))"
             columns:
               - catalog-id: "256.65536.4294967303.0"
-                name: r_comment
-                text: "r_comment ..) not null"
+                name: r_regionkey
+                text: "r_regionke..r not null"
               - catalog-id: "256.65536.4294967303.1"
                 name: r_name
                 text: "r_name cha..) not null"
               - catalog-id: "256.65536.4294967303.2"
-                name: r_regionkey
-                text: "r_regionke..r not null"
+                name: r_comment
+                text: "r_comment ..) not null"
         touched-relations:
           - statement-id: 0
             name: part
@@ -1290,216 +1290,216 @@ completion-snapshots:
             text: "create tab.._partkey))"
             columns:
               - catalog-id: "256.65536.4294967296.0"
-                name: p_brand
-                text: "p_brand ch..) not null"
-              - catalog-id: "256.65536.4294967296.1"
-                name: p_comment
-                text: "p_comment ..) not null"
-              - catalog-id: "256.65536.4294967296.2"
-                name: p_container
-                text: "p_containe..) not null"
-              - catalog-id: "256.65536.4294967296.3"
-                name: p_mfgr
-                text: "p_mfgr cha..) not null"
-              - catalog-id: "256.65536.4294967296.4"
-                name: p_name
-                text: "p_name var..) not null"
-              - catalog-id: "256.65536.4294967296.5"
                 name: p_partkey
                 text: "p_partkey ..r not null"
-              - catalog-id: "256.65536.4294967296.6"
-                name: p_retailprice
-                text: "p_retailpr..) not null"
-              - catalog-id: "256.65536.4294967296.7"
-                name: p_size
-                text: "p_size int..r not null"
-              - catalog-id: "256.65536.4294967296.8"
+              - catalog-id: "256.65536.4294967296.1"
+                name: p_name
+                text: "p_name var..) not null"
+              - catalog-id: "256.65536.4294967296.2"
+                name: p_mfgr
+                text: "p_mfgr cha..) not null"
+              - catalog-id: "256.65536.4294967296.3"
+                name: p_brand
+                text: "p_brand ch..) not null"
+              - catalog-id: "256.65536.4294967296.4"
                 name: p_type
                 text: "p_type var..) not null"
+              - catalog-id: "256.65536.4294967296.5"
+                name: p_size
+                text: "p_size int..r not null"
+              - catalog-id: "256.65536.4294967296.6"
+                name: p_container
+                text: "p_containe..) not null"
+              - catalog-id: "256.65536.4294967296.7"
+                name: p_retailprice
+                text: "p_retailpr..) not null"
+              - catalog-id: "256.65536.4294967296.8"
+                name: p_comment
+                text: "p_comment ..) not null"
           - catalog-id: "256.65536.4294967297"
             name: supplier
             text: "create tab.._suppkey))"
             columns:
               - catalog-id: "256.65536.4294967297.0"
-                name: s_acctbal
-                text: "s_acctbal ..) not null"
-              - catalog-id: "256.65536.4294967297.1"
-                name: s_address
-                text: "s_address ..) not null"
-              - catalog-id: "256.65536.4294967297.2"
-                name: s_comment
-                text: "s_comment ..) not null"
-              - catalog-id: "256.65536.4294967297.3"
-                name: s_name
-                text: "s_name cha..) not null"
-              - catalog-id: "256.65536.4294967297.4"
-                name: s_nationkey
-                text: "s_nationke..r not null"
-              - catalog-id: "256.65536.4294967297.5"
-                name: s_phone
-                text: "s_phone ch..) not null"
-              - catalog-id: "256.65536.4294967297.6"
                 name: s_suppkey
                 text: "s_suppkey ..r not null"
+              - catalog-id: "256.65536.4294967297.1"
+                name: s_name
+                text: "s_name cha..) not null"
+              - catalog-id: "256.65536.4294967297.2"
+                name: s_address
+                text: "s_address ..) not null"
+              - catalog-id: "256.65536.4294967297.3"
+                name: s_nationkey
+                text: "s_nationke..r not null"
+              - catalog-id: "256.65536.4294967297.4"
+                name: s_phone
+                text: "s_phone ch..) not null"
+              - catalog-id: "256.65536.4294967297.5"
+                name: s_acctbal
+                text: "s_acctbal ..) not null"
+              - catalog-id: "256.65536.4294967297.6"
+                name: s_comment
+                text: "s_comment ..) not null"
           - catalog-id: "256.65536.4294967298"
             name: partsupp
             text: "create tab.._suppkey))"
             columns:
               - catalog-id: "256.65536.4294967298.0"
-                name: ps_availqty
-                text: "ps_availqt..r not null"
-              - catalog-id: "256.65536.4294967298.1"
-                name: ps_comment
-                text: "ps_comment..) not null"
-              - catalog-id: "256.65536.4294967298.2"
                 name: ps_partkey
                 text: "ps_partkey..r not null"
-              - catalog-id: "256.65536.4294967298.3"
+              - catalog-id: "256.65536.4294967298.1"
                 name: ps_suppkey
                 text: "ps_suppkey..r not null"
-              - catalog-id: "256.65536.4294967298.4"
+              - catalog-id: "256.65536.4294967298.2"
+                name: ps_availqty
+                text: "ps_availqt..r not null"
+              - catalog-id: "256.65536.4294967298.3"
                 name: ps_supplycost
                 text: "ps_supplyc..) not null"
+              - catalog-id: "256.65536.4294967298.4"
+                name: ps_comment
+                text: "ps_comment..) not null"
           - catalog-id: "256.65536.4294967299"
             name: customer
             text: "create tab.._custkey))"
             columns:
               - catalog-id: "256.65536.4294967299.0"
-                name: c_acctbal
-                text: "c_acctbal ..) not null"
-              - catalog-id: "256.65536.4294967299.1"
-                name: c_address
-                text: "c_address ..) not null"
-              - catalog-id: "256.65536.4294967299.2"
-                name: c_comment
-                text: "c_comment ..) not null"
-              - catalog-id: "256.65536.4294967299.3"
                 name: c_custkey
                 text: "c_custkey ..r not null"
-              - catalog-id: "256.65536.4294967299.4"
-                name: c_mktsegment
-                text: "c_mktsegme..) not null"
-              - catalog-id: "256.65536.4294967299.5"
+              - catalog-id: "256.65536.4294967299.1"
                 name: c_name
                 text: "c_name var..) not null"
-              - catalog-id: "256.65536.4294967299.6"
+              - catalog-id: "256.65536.4294967299.2"
+                name: c_address
+                text: "c_address ..) not null"
+              - catalog-id: "256.65536.4294967299.3"
                 name: c_nationkey
                 text: "c_nationke..r not null"
-              - catalog-id: "256.65536.4294967299.7"
+              - catalog-id: "256.65536.4294967299.4"
                 name: c_phone
                 text: "c_phone ch..) not null"
+              - catalog-id: "256.65536.4294967299.5"
+                name: c_acctbal
+                text: "c_acctbal ..) not null"
+              - catalog-id: "256.65536.4294967299.6"
+                name: c_mktsegment
+                text: "c_mktsegme..) not null"
+              - catalog-id: "256.65536.4294967299.7"
+                name: c_comment
+                text: "c_comment ..) not null"
           - catalog-id: "256.65536.4294967300"
             name: orders
             text: "create tab..orderkey))"
             columns:
               - catalog-id: "256.65536.4294967300.0"
-                name: o_clerk
-                text: "o_clerk ch..) not null"
-              - catalog-id: "256.65536.4294967300.1"
-                name: o_comment
-                text: "o_comment ..) not null"
-              - catalog-id: "256.65536.4294967300.2"
-                name: o_custkey
-                text: "o_custkey ..r not null"
-              - catalog-id: "256.65536.4294967300.3"
-                name: o_orderdate
-                text: "o_orderdat..e not null"
-              - catalog-id: "256.65536.4294967300.4"
                 name: o_orderkey
                 text: "o_orderkey..r not null"
+              - catalog-id: "256.65536.4294967300.1"
+                name: o_custkey
+                text: "o_custkey ..r not null"
+              - catalog-id: "256.65536.4294967300.2"
+                name: o_orderstatus
+                text: "o_ordersta..) not null"
+              - catalog-id: "256.65536.4294967300.3"
+                name: o_totalprice
+                text: "o_totalpri..) not null"
+              - catalog-id: "256.65536.4294967300.4"
+                name: o_orderdate
+                text: "o_orderdat..e not null"
               - catalog-id: "256.65536.4294967300.5"
                 name: o_orderpriority
                 text: "o_orderpri..) not null"
               - catalog-id: "256.65536.4294967300.6"
-                name: o_orderstatus
-                text: "o_ordersta..) not null"
+                name: o_clerk
+                text: "o_clerk ch..) not null"
               - catalog-id: "256.65536.4294967300.7"
                 name: o_shippriority
                 text: "o_shipprio..r not null"
               - catalog-id: "256.65536.4294967300.8"
-                name: o_totalprice
-                text: "o_totalpri..) not null"
+                name: o_comment
+                text: "o_comment ..) not null"
           - catalog-id: "256.65536.4294967301"
             name: lineitem
             text: "create tab..nenumber))"
             columns:
               - catalog-id: "256.65536.4294967301.0"
-                name: l_comment
-                text: "l_comment ..) not null"
-              - catalog-id: "256.65536.4294967301.1"
-                name: l_commitdate
-                text: "l_commitda..e not null"
-              - catalog-id: "256.65536.4294967301.2"
-                name: l_discount
-                text: "l_discount..) not null"
-              - catalog-id: "256.65536.4294967301.3"
-                name: l_extendedprice
-                text: "l_extended..) not null"
-              - catalog-id: "256.65536.4294967301.4"
-                name: l_linenumber
-                text: "l_linenumb..r not null"
-              - catalog-id: "256.65536.4294967301.5"
-                name: l_linestatus
-                text: "l_linestat..) not null"
-              - catalog-id: "256.65536.4294967301.6"
                 name: l_orderkey
                 text: "l_orderkey..r not null"
-              - catalog-id: "256.65536.4294967301.7"
+              - catalog-id: "256.65536.4294967301.1"
                 name: l_partkey
                 text: "l_partkey ..r not null"
-              - catalog-id: "256.65536.4294967301.8"
-                name: l_quantity
-                text: "l_quantity..) not null"
-              - catalog-id: "256.65536.4294967301.9"
-                name: l_receiptdate
-                text: "l_receiptd..e not null"
-              - catalog-id: "256.65536.4294967301.10"
-                name: l_returnflag
-                text: "l_returnfl..) not null"
-              - catalog-id: "256.65536.4294967301.11"
-                name: l_shipdate
-                text: "l_shipdate..e not null"
-              - catalog-id: "256.65536.4294967301.12"
-                name: l_shipinstruct
-                text: "l_shipinst..) not null"
-              - catalog-id: "256.65536.4294967301.13"
-                name: l_shipmode
-                text: "l_shipmode..) not null"
-              - catalog-id: "256.65536.4294967301.14"
+              - catalog-id: "256.65536.4294967301.2"
                 name: l_suppkey
                 text: "l_suppkey ..r not null"
-              - catalog-id: "256.65536.4294967301.15"
+              - catalog-id: "256.65536.4294967301.3"
+                name: l_linenumber
+                text: "l_linenumb..r not null"
+              - catalog-id: "256.65536.4294967301.4"
+                name: l_quantity
+                text: "l_quantity..) not null"
+              - catalog-id: "256.65536.4294967301.5"
+                name: l_extendedprice
+                text: "l_extended..) not null"
+              - catalog-id: "256.65536.4294967301.6"
+                name: l_discount
+                text: "l_discount..) not null"
+              - catalog-id: "256.65536.4294967301.7"
                 name: l_tax
                 text: "l_tax deci..) not null"
+              - catalog-id: "256.65536.4294967301.8"
+                name: l_returnflag
+                text: "l_returnfl..) not null"
+              - catalog-id: "256.65536.4294967301.9"
+                name: l_linestatus
+                text: "l_linestat..) not null"
+              - catalog-id: "256.65536.4294967301.10"
+                name: l_shipdate
+                text: "l_shipdate..e not null"
+              - catalog-id: "256.65536.4294967301.11"
+                name: l_commitdate
+                text: "l_commitda..e not null"
+              - catalog-id: "256.65536.4294967301.12"
+                name: l_receiptdate
+                text: "l_receiptd..e not null"
+              - catalog-id: "256.65536.4294967301.13"
+                name: l_shipinstruct
+                text: "l_shipinst..) not null"
+              - catalog-id: "256.65536.4294967301.14"
+                name: l_shipmode
+                text: "l_shipmode..) not null"
+              - catalog-id: "256.65536.4294967301.15"
+                name: l_comment
+                text: "l_comment ..) not null"
           - catalog-id: "256.65536.4294967302"
             name: nation
             text: "create tab..ationkey))"
             columns:
               - catalog-id: "256.65536.4294967302.0"
-                name: n_comment
-                text: "n_comment ..) not null"
+                name: n_nationkey
+                text: "n_nationke..r not null"
               - catalog-id: "256.65536.4294967302.1"
                 name: n_name
                 text: "n_name cha..) not null"
               - catalog-id: "256.65536.4294967302.2"
-                name: n_nationkey
-                text: "n_nationke..r not null"
-              - catalog-id: "256.65536.4294967302.3"
                 name: n_regionkey
                 text: "n_regionke..r not null"
+              - catalog-id: "256.65536.4294967302.3"
+                name: n_comment
+                text: "n_comment ..) not null"
           - catalog-id: "256.65536.4294967303"
             name: region
             text: "create tab..egionkey))"
             columns:
               - catalog-id: "256.65536.4294967303.0"
-                name: r_comment
-                text: "r_comment ..) not null"
+                name: r_regionkey
+                text: "r_regionke..r not null"
               - catalog-id: "256.65536.4294967303.1"
                 name: r_name
                 text: "r_name cha..) not null"
               - catalog-id: "256.65536.4294967303.2"
-                name: r_regionkey
-                text: "r_regionke..r not null"
+                name: r_comment
+                text: "r_comment ..) not null"
         touched-relations:
           - statement-id: 0
             name: part
@@ -1882,7 +1882,7 @@ completion-snapshots:
           objects:
             - score: 42
               type: column
-              id: "256.65536.4294967301.6"
+              id: "256.65536.4294967301.0"
               candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: lineitem.l_orderkey
               qualified-idx: 1
@@ -1897,7 +1897,7 @@ completion-snapshots:
           objects:
             - score: 42
               type: column
-              id: "256.65536.4294967301.7"
+              id: "256.65536.4294967301.1"
               candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: lineitem.l_partkey
               qualified-idx: 1
@@ -1912,7 +1912,7 @@ completion-snapshots:
           objects:
             - score: 42
               type: column
-              id: "256.65536.4294967301.14"
+              id: "256.65536.4294967301.2"
               candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: lineitem.l_suppkey
               qualified-idx: 1

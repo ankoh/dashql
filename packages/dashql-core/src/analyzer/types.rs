@@ -475,6 +475,9 @@ pub struct ScopeSource {
     pub column_aliases: Vec<Name>,
     /// The table-like source
     pub table: ReferencedTable,
+    /// The qualified name of the table of a table ref without alias, a column ref can qualify a column with the
+    /// schema and the database of the table (`s.t.a`). Unaliased tables of different schemas share their name.
+    pub table_name: Option<QualifiedTableName>,
 }
 
 /// The FROM items of a scope that column refs can see

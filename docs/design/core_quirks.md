@@ -48,7 +48,8 @@ entry when you find another one. The headings name where the behavior lives.
 - **Unreadable qualified function names fail the analysis** with the error "bad optional access"
   (`function_calls.rs`).
 - **Root scopes iterate in insertion order, and erasing moves the last element into the hole**
-  (`RootScopes`). Name resolution visits the roots in that order.
+  (`RootScopes`). Name resolution stable-sorts the roots by their statement, so the order only holds within a
+  statement.
 
 ## Completion (`packages/dashql-core/src/completion.rs`)
 

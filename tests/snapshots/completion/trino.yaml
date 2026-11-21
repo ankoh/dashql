@@ -19,23 +19,23 @@ completion-snapshots:
             text: "create tab..imestamp\n)"
             columns:
               - catalog-id: "256.65536.4294967296.0"
-                name: event
-                text: "event text"
-              - catalog-id: "256.65536.4294967296.1"
-                name: event_timestamp
-                text: "event_time.. timestamp"
-              - catalog-id: "256.65536.4294967296.2"
-                name: query
-                text: "query text"
-              - catalog-id: "256.65536.4294967296.3"
                 name: query_hash
                 text: "query_hash text"
-              - catalog-id: "256.65536.4294967296.4"
-                name: query_metrics
-                text: "query_metrics text"
-              - catalog-id: "256.65536.4294967296.5"
+              - catalog-id: "256.65536.4294967296.1"
+                name: query
+                text: "query text"
+              - catalog-id: "256.65536.4294967296.2"
                 name: tenant
                 text: "tenant text"
+              - catalog-id: "256.65536.4294967296.3"
+                name: query_metrics
+                text: "query_metrics text"
+              - catalog-id: "256.65536.4294967296.4"
+                name: event
+                text: "event text"
+              - catalog-id: "256.65536.4294967296.5"
+                name: event_timestamp
+                text: "event_time.. timestamp"
         touched-relations:
           - statement-id: 0
             name: iceberg.some_events.some_queries
@@ -52,7 +52,7 @@ completion-snapshots:
       expressions:
         - expression-idx: 0
           type: colref/catalog
-          catalog: "256.65536.4294967296.0"
+          catalog: "256.65536.4294967296.4"
           statement-id: 0
           text: "event"
     cursor:
@@ -74,7 +74,7 @@ completion-snapshots:
           objects:
             - score: 62
               type: column
-              id: "256.65536.4294967296.0"
+              id: "256.65536.4294967296.4"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE,EXACT_MATCH]
               qualified: iceberg.some_events.some_queries.event
               qualified-idx: 3
@@ -95,7 +95,7 @@ completion-snapshots:
           objects:
             - score: 47
               type: column
-              id: "256.65536.4294967296.1"
+              id: "256.65536.4294967296.5"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: iceberg.some_events.some_queries.event_timestamp
               qualified-idx: 3

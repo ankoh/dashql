@@ -17,14 +17,14 @@ analyzer-snapshots:
           text: "create tab..omer text)"
           columns:
             - catalog-id: "256.65536.4294967296.0"
-              name: amount
-              text: "amount double"
-            - catalog-id: "256.65536.4294967296.1"
-              name: customer
-              text: "customer text"
-            - catalog-id: "256.65536.4294967296.2"
               name: id
               text: "id int"
+            - catalog-id: "256.65536.4294967296.1"
+              name: amount
+              text: "amount double"
+            - catalog-id: "256.65536.4294967296.2"
+              name: customer
+              text: "customer text"
         - catalog-id: "256.65537.4294967297"
           name: totals
           text: "create tab..rom orders"
@@ -86,27 +86,27 @@ analyzer-snapshots:
       expressions:
         - expression-idx: 0
           type: colref/internal
-          catalog: "256.65536.4294967296.2"
+          catalog: "256.65536.4294967296.0"
           statement-id: 1
           text: "id"
         - expression-idx: 1
           type: colref/internal
-          catalog: "256.65536.4294967296.0"
+          catalog: "256.65536.4294967296.1"
           statement-id: 1
           text: "amount"
         - expression-idx: 2
           type: colref/internal
-          catalog: "256.65536.4294967296.2"
+          catalog: "256.65536.4294967296.0"
           statement-id: 2
           text: "id"
         - expression-idx: 3
           type: colref/internal
-          catalog: "256.65536.4294967296.0"
+          catalog: "256.65536.4294967296.1"
           statement-id: 2
           text: "amount"
         - expression-idx: 4
           type: colref/internal
-          catalog: "256.65536.4294967296.2"
+          catalog: "256.65536.4294967296.0"
           statement-id: 3
           text: "id"
         - expression-idx: 5
@@ -375,6 +375,8 @@ analyzer-snapshots:
           columns:
             - catalog-id: "256.65536.8589934593.0"
               name: x
+            - catalog-id: "256.65536.8589934593.1"
+              name: b
       touched-relations:
         - statement-id: 0
           name: derived
@@ -482,20 +484,30 @@ analyzer-snapshots:
           name: t
           text: "create tab..nt, b int)"
           columns:
-            - catalog-id: "257.65537.8589934592.3"
+            - catalog-id: "257.65537.8589934592.0"
+              name: a
+              text: "a int"
+            - catalog-id: "257.65537.8589934592.1"
+              name: b
+              text: "b int"
+        - catalog-id: "257.65537.8589934593"
+          name: t
+          text: "alter tabl..umn b to d"
+          columns:
+            - catalog-id: "257.65537.8589934593.3"
               name: d
               text: "b int"
-            - catalog-id: "257.65537.8589934592.2"
+            - catalog-id: "257.65537.8589934593.2"
               name: c
               text: "c int"
-        - catalog-id: "257.65537.8589934593"
+        - catalog-id: "257.65537.8589934594"
           name: u
           text: "alter tabl..ename to u"
           columns:
-            - catalog-id: "257.65537.8589934593.0"
+            - catalog-id: "257.65537.8589934594.0"
               name: d
               text: "b int"
-            - catalog-id: "257.65537.8589934593.1"
+            - catalog-id: "257.65537.8589934594.1"
               name: c
               text: "c int"
       touched-relations:
@@ -512,7 +524,7 @@ analyzer-snapshots:
       errors: []
       table-refs:
         - type: name/internal
-          catalog-id: "257.65537.8589934593"
+          catalog-id: "257.65537.8589934594"
           statement-id: 3
           text: "u"
         - type: name/catalog
@@ -522,12 +534,12 @@ analyzer-snapshots:
       expressions:
         - expression-idx: 0
           type: colref/internal
-          catalog: "257.65537.8589934593.1"
+          catalog: "257.65537.8589934594.1"
           statement-id: 3
           text: "c"
         - expression-idx: 1
           type: colref/internal
-          catalog: "257.65537.8589934593.0"
+          catalog: "257.65537.8589934594.0"
           statement-id: 3
           text: "d"
         - expression-idx: 2
