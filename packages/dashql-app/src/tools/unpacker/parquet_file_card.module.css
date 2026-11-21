@@ -39,6 +39,16 @@
     background-color: var(--color_bg_hover);
 }
 
+/* The header keeps the focus after a click, Chrome then rings it on any key, e.g. Ctrl while scrolling the table. The
+   card clips the ring to its border, so the row counts as hovered while focused instead. */
+.header:focus {
+    outline: none;
+}
+
+.header_row:has(.header:focus-visible) {
+    background-color: var(--color_bg_hover);
+}
+
 .show_table {
     flex-shrink: 0;
     margin: 0 8px 0 4px;
