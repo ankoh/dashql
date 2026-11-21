@@ -6028,3 +6028,3302 @@ analyzer-snapshots:
             - name: k
               expression: 0
           text: "select * f...q as k) s"
+
+  - name: cte_qualified_name_names_no_cte
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: t
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65536.4294967297"
+            name: u
+            text: "create tab..nt, c int)"
+            columns:
+              - catalog-id: "256.65536.4294967297.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967297.1"
+                name: c
+                text: "c int"
+          - catalog-id: "256.65536.4294967298"
+            name: v
+            text: "create tab..nt, x int)"
+            columns:
+              - catalog-id: "256.65536.4294967298.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967298.1"
+                name: x
+                text: "x int"
+          - catalog-id: "256.65536.4294967299"
+            name: w
+            text: "create tab..nt, y int)"
+            columns:
+              - catalog-id: "256.65536.4294967299.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967299.1"
+                name: y
+                text: "y int"
+          - catalog-id: "256.65537.4294967300"
+            name: k
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65537.4294967300.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65537.4294967300.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65538.4294967301"
+            name: k
+            text: "create tab...k (c int)"
+            columns:
+              - catalog-id: "256.65538.4294967301.0"
+                name: c
+                text: "c int"
+          - catalog-id: "257.65539.4294967302"
+            name: n
+            text: "create tab...n (e int)"
+            columns:
+              - catalog-id: "257.65539.4294967302.0"
+                name: e
+                text: "e int"
+        touched-relations:
+          - statement-id: 0
+            name: t
+          - statement-id: 1
+            name: u
+          - statement-id: 2
+            name: v
+          - statement-id: 3
+            name: w
+          - statement-id: 4
+            name: s1.k
+          - statement-id: 5
+            name: s2.k
+          - statement-id: 6
+            name: db1.s3.n
+        errors: []
+    script:
+      input: with k as (select 1 as z) select z, a from s1.k
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65537.4294967300"
+          statement-id: 0
+          text: "s1.k"
+      expressions:
+        - expression-idx: 0
+          type: colref/unresolved
+          statement-id: 0
+          text: "z"
+        - expression-idx: 1
+          type: colref/catalog
+          catalog: "256.65537.4294967300.0"
+          statement-id: 0
+          text: "a"
+        - expression-idx: 2
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 2
+          text: "1"
+      name-scopes:
+        - scope-id: 0
+          parent: 1
+          parent-sources: none
+          columns:
+            - name: z
+              expression: 2
+          text: "select 1 as z"
+        - scope-id: 1
+          sources:
+            - type: table
+              name: k
+              text: "s1.k"
+          columns:
+            - name: z
+              expression: 0
+            - name: a
+              expression: 1
+          text: "with k as .. from s1.k"
+
+  - name: cte_unqualified_name_names_cte
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: t
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65536.4294967297"
+            name: u
+            text: "create tab..nt, c int)"
+            columns:
+              - catalog-id: "256.65536.4294967297.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967297.1"
+                name: c
+                text: "c int"
+          - catalog-id: "256.65536.4294967298"
+            name: v
+            text: "create tab..nt, x int)"
+            columns:
+              - catalog-id: "256.65536.4294967298.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967298.1"
+                name: x
+                text: "x int"
+          - catalog-id: "256.65536.4294967299"
+            name: w
+            text: "create tab..nt, y int)"
+            columns:
+              - catalog-id: "256.65536.4294967299.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967299.1"
+                name: y
+                text: "y int"
+          - catalog-id: "256.65537.4294967300"
+            name: k
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65537.4294967300.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65537.4294967300.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65538.4294967301"
+            name: k
+            text: "create tab...k (c int)"
+            columns:
+              - catalog-id: "256.65538.4294967301.0"
+                name: c
+                text: "c int"
+          - catalog-id: "257.65539.4294967302"
+            name: n
+            text: "create tab...n (e int)"
+            columns:
+              - catalog-id: "257.65539.4294967302.0"
+                name: e
+                text: "e int"
+        touched-relations:
+          - statement-id: 0
+            name: t
+          - statement-id: 1
+            name: u
+          - statement-id: 2
+            name: v
+          - statement-id: 3
+            name: w
+          - statement-id: 4
+            name: s1.k
+          - statement-id: 5
+            name: s2.k
+          - statement-id: 6
+            name: db1.s3.n
+        errors: []
+    script:
+      input: with k as (select 1 as z) select z from k
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/unresolved
+          statement-id: 0
+          text: "k"
+      expressions:
+        - expression-idx: 0
+          type: colref/local
+          scope: 0
+          column: 0
+          statement-id: 0
+          text: "z"
+        - expression-idx: 1
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 1
+          text: "1"
+      name-scopes:
+        - scope-id: 0
+          parent: 1
+          parent-sources: none
+          columns:
+            - name: z
+              expression: 1
+          text: "select 1 as z"
+        - scope-id: 1
+          sources:
+            - type: cte
+              name: k
+              scope: 0
+              text: "k"
+          columns:
+            - name: z
+              expression: 0
+          text: "with k as ..t z from k"
+
+  - name: tables_of_different_schemas_share_their_name
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: t
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65536.4294967297"
+            name: u
+            text: "create tab..nt, c int)"
+            columns:
+              - catalog-id: "256.65536.4294967297.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967297.1"
+                name: c
+                text: "c int"
+          - catalog-id: "256.65536.4294967298"
+            name: v
+            text: "create tab..nt, x int)"
+            columns:
+              - catalog-id: "256.65536.4294967298.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967298.1"
+                name: x
+                text: "x int"
+          - catalog-id: "256.65536.4294967299"
+            name: w
+            text: "create tab..nt, y int)"
+            columns:
+              - catalog-id: "256.65536.4294967299.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967299.1"
+                name: y
+                text: "y int"
+          - catalog-id: "256.65537.4294967300"
+            name: k
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65537.4294967300.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65537.4294967300.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65538.4294967301"
+            name: k
+            text: "create tab...k (c int)"
+            columns:
+              - catalog-id: "256.65538.4294967301.0"
+                name: c
+                text: "c int"
+          - catalog-id: "257.65539.4294967302"
+            name: n
+            text: "create tab...n (e int)"
+            columns:
+              - catalog-id: "257.65539.4294967302.0"
+                name: e
+                text: "e int"
+        touched-relations:
+          - statement-id: 0
+            name: t
+          - statement-id: 1
+            name: u
+          - statement-id: 2
+            name: v
+          - statement-id: 3
+            name: w
+          - statement-id: 4
+            name: s1.k
+          - statement-id: 5
+            name: s2.k
+          - statement-id: 6
+            name: db1.s3.n
+        errors: []
+    script:
+      input: select a, c, k.a, k.c from s1.k, s2.k
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65537.4294967300"
+          statement-id: 0
+          text: "s1.k"
+        - type: name/catalog
+          catalog-id: "256.65538.4294967301"
+          statement-id: 0
+          text: "s2.k"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65537.4294967300.0"
+          statement-id: 0
+          text: "a"
+        - expression-idx: 1
+          type: colref/catalog
+          catalog: "256.65538.4294967301.0"
+          statement-id: 0
+          text: "c"
+        - expression-idx: 2
+          type: colref/catalog
+          catalog: "256.65537.4294967300.0"
+          statement-id: 0
+          text: "k.a"
+        - expression-idx: 3
+          type: colref/catalog
+          catalog: "256.65538.4294967301.0"
+          statement-id: 0
+          text: "k.c"
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - type: table
+              name: k
+              text: "s1.k"
+            - type: table
+              name: k
+              text: "s2.k"
+          columns:
+            - name: a
+              expression: 0
+            - name: c
+              expression: 1
+            - name: a
+              expression: 2
+            - name: c
+              expression: 3
+          text: "select a, ..s1.k, s2.k"
+
+  - name: same_table_twice_is_duplicate
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: t
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65536.4294967297"
+            name: u
+            text: "create tab..nt, c int)"
+            columns:
+              - catalog-id: "256.65536.4294967297.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967297.1"
+                name: c
+                text: "c int"
+          - catalog-id: "256.65536.4294967298"
+            name: v
+            text: "create tab..nt, x int)"
+            columns:
+              - catalog-id: "256.65536.4294967298.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967298.1"
+                name: x
+                text: "x int"
+          - catalog-id: "256.65536.4294967299"
+            name: w
+            text: "create tab..nt, y int)"
+            columns:
+              - catalog-id: "256.65536.4294967299.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967299.1"
+                name: y
+                text: "y int"
+          - catalog-id: "256.65537.4294967300"
+            name: k
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65537.4294967300.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65537.4294967300.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65538.4294967301"
+            name: k
+            text: "create tab...k (c int)"
+            columns:
+              - catalog-id: "256.65538.4294967301.0"
+                name: c
+                text: "c int"
+          - catalog-id: "257.65539.4294967302"
+            name: n
+            text: "create tab...n (e int)"
+            columns:
+              - catalog-id: "257.65539.4294967302.0"
+                name: e
+                text: "e int"
+        touched-relations:
+          - statement-id: 0
+            name: t
+          - statement-id: 1
+            name: u
+          - statement-id: 2
+            name: v
+          - statement-id: 3
+            name: w
+          - statement-id: 4
+            name: s1.k
+          - statement-id: 5
+            name: s2.k
+          - statement-id: 6
+            name: db1.s3.n
+        errors: []
+    script:
+      input: select 1 from t, t
+      catalog-id: 2
+      errors:
+        - type: DUPLICATE_TABLE_ALIAS
+          message: duplicate table alias t
+          text: "t"
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "t"
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "t"
+      expressions:
+        - expression-idx: 0
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 0
+          text: "1"
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - type: table
+              name: t
+              text: "t"
+          columns:
+            - name: '?'
+              expression: 0
+          text: "select 1 from t, t"
+
+  - name: same_alias_of_different_schemas_is_duplicate
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: t
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65536.4294967297"
+            name: u
+            text: "create tab..nt, c int)"
+            columns:
+              - catalog-id: "256.65536.4294967297.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967297.1"
+                name: c
+                text: "c int"
+          - catalog-id: "256.65536.4294967298"
+            name: v
+            text: "create tab..nt, x int)"
+            columns:
+              - catalog-id: "256.65536.4294967298.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967298.1"
+                name: x
+                text: "x int"
+          - catalog-id: "256.65536.4294967299"
+            name: w
+            text: "create tab..nt, y int)"
+            columns:
+              - catalog-id: "256.65536.4294967299.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967299.1"
+                name: y
+                text: "y int"
+          - catalog-id: "256.65537.4294967300"
+            name: k
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65537.4294967300.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65537.4294967300.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65538.4294967301"
+            name: k
+            text: "create tab...k (c int)"
+            columns:
+              - catalog-id: "256.65538.4294967301.0"
+                name: c
+                text: "c int"
+          - catalog-id: "257.65539.4294967302"
+            name: n
+            text: "create tab...n (e int)"
+            columns:
+              - catalog-id: "257.65539.4294967302.0"
+                name: e
+                text: "e int"
+        touched-relations:
+          - statement-id: 0
+            name: t
+          - statement-id: 1
+            name: u
+          - statement-id: 2
+            name: v
+          - statement-id: 3
+            name: w
+          - statement-id: 4
+            name: s1.k
+          - statement-id: 5
+            name: s2.k
+          - statement-id: 6
+            name: db1.s3.n
+        errors: []
+    script:
+      input: select 1 from s1.k x, s2.k x
+      catalog-id: 2
+      errors:
+        - type: DUPLICATE_TABLE_ALIAS
+          message: duplicate table alias x
+          text: "s2.k x"
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65537.4294967300"
+          statement-id: 0
+          text: "s1.k x"
+        - type: name/catalog
+          catalog-id: "256.65538.4294967301"
+          statement-id: 0
+          text: "s2.k x"
+      expressions:
+        - expression-idx: 0
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 0
+          text: "1"
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - type: table
+              name: x
+              text: "s1.k x"
+          columns:
+            - name: '?'
+              expression: 0
+          text: "select 1 f.. x, s2.k x"
+
+  - name: column_ref_schema_qualified
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: t
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65536.4294967297"
+            name: u
+            text: "create tab..nt, c int)"
+            columns:
+              - catalog-id: "256.65536.4294967297.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967297.1"
+                name: c
+                text: "c int"
+          - catalog-id: "256.65536.4294967298"
+            name: v
+            text: "create tab..nt, x int)"
+            columns:
+              - catalog-id: "256.65536.4294967298.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967298.1"
+                name: x
+                text: "x int"
+          - catalog-id: "256.65536.4294967299"
+            name: w
+            text: "create tab..nt, y int)"
+            columns:
+              - catalog-id: "256.65536.4294967299.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967299.1"
+                name: y
+                text: "y int"
+          - catalog-id: "256.65537.4294967300"
+            name: k
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65537.4294967300.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65537.4294967300.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65538.4294967301"
+            name: k
+            text: "create tab...k (c int)"
+            columns:
+              - catalog-id: "256.65538.4294967301.0"
+                name: c
+                text: "c int"
+          - catalog-id: "257.65539.4294967302"
+            name: n
+            text: "create tab...n (e int)"
+            columns:
+              - catalog-id: "257.65539.4294967302.0"
+                name: e
+                text: "e int"
+        touched-relations:
+          - statement-id: 0
+            name: t
+          - statement-id: 1
+            name: u
+          - statement-id: 2
+            name: v
+          - statement-id: 3
+            name: w
+          - statement-id: 4
+            name: s1.k
+          - statement-id: 5
+            name: s2.k
+          - statement-id: 6
+            name: db1.s3.n
+        errors: []
+    script:
+      input: select s1.k.a, s2.k.c from s1.k, s2.k
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65537.4294967300"
+          statement-id: 0
+          text: "s1.k"
+        - type: name/catalog
+          catalog-id: "256.65538.4294967301"
+          statement-id: 0
+          text: "s2.k"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65537.4294967300.0"
+          statement-id: 0
+          text: "s1.k.a"
+        - expression-idx: 1
+          type: colref/catalog
+          catalog: "256.65538.4294967301.0"
+          statement-id: 0
+          text: "s2.k.c"
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - type: table
+              name: k
+              text: "s1.k"
+            - type: table
+              name: k
+              text: "s2.k"
+          columns:
+            - name: k
+              expression: 0
+            - name: k
+              expression: 1
+          text: "select s1...s1.k, s2.k"
+
+  - name: column_ref_database_qualified
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: t
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65536.4294967297"
+            name: u
+            text: "create tab..nt, c int)"
+            columns:
+              - catalog-id: "256.65536.4294967297.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967297.1"
+                name: c
+                text: "c int"
+          - catalog-id: "256.65536.4294967298"
+            name: v
+            text: "create tab..nt, x int)"
+            columns:
+              - catalog-id: "256.65536.4294967298.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967298.1"
+                name: x
+                text: "x int"
+          - catalog-id: "256.65536.4294967299"
+            name: w
+            text: "create tab..nt, y int)"
+            columns:
+              - catalog-id: "256.65536.4294967299.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967299.1"
+                name: y
+                text: "y int"
+          - catalog-id: "256.65537.4294967300"
+            name: k
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65537.4294967300.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65537.4294967300.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65538.4294967301"
+            name: k
+            text: "create tab...k (c int)"
+            columns:
+              - catalog-id: "256.65538.4294967301.0"
+                name: c
+                text: "c int"
+          - catalog-id: "257.65539.4294967302"
+            name: n
+            text: "create tab...n (e int)"
+            columns:
+              - catalog-id: "257.65539.4294967302.0"
+                name: e
+                text: "e int"
+        touched-relations:
+          - statement-id: 0
+            name: t
+          - statement-id: 1
+            name: u
+          - statement-id: 2
+            name: v
+          - statement-id: 3
+            name: w
+          - statement-id: 4
+            name: s1.k
+          - statement-id: 5
+            name: s2.k
+          - statement-id: 6
+            name: db1.s3.n
+        errors: []
+    script:
+      input: select db1.s3.n.e from db1.s3.n
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "257.65539.4294967302"
+          statement-id: 0
+          text: "db1.s3.n"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "257.65539.4294967302.0"
+          statement-id: 0
+          text: "db1.s3.n.e"
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - type: table
+              name: n
+              text: "db1.s3.n"
+          columns:
+            - name: s3
+              expression: 0
+          text: "select db1..m db1.s3.n"
+
+  - name: column_ref_schema_qualified_in_subquery
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: t
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65536.4294967297"
+            name: u
+            text: "create tab..nt, c int)"
+            columns:
+              - catalog-id: "256.65536.4294967297.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967297.1"
+                name: c
+                text: "c int"
+          - catalog-id: "256.65536.4294967298"
+            name: v
+            text: "create tab..nt, x int)"
+            columns:
+              - catalog-id: "256.65536.4294967298.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967298.1"
+                name: x
+                text: "x int"
+          - catalog-id: "256.65536.4294967299"
+            name: w
+            text: "create tab..nt, y int)"
+            columns:
+              - catalog-id: "256.65536.4294967299.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967299.1"
+                name: y
+                text: "y int"
+          - catalog-id: "256.65537.4294967300"
+            name: k
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65537.4294967300.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65537.4294967300.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65538.4294967301"
+            name: k
+            text: "create tab...k (c int)"
+            columns:
+              - catalog-id: "256.65538.4294967301.0"
+                name: c
+                text: "c int"
+          - catalog-id: "257.65539.4294967302"
+            name: n
+            text: "create tab...n (e int)"
+            columns:
+              - catalog-id: "257.65539.4294967302.0"
+                name: e
+                text: "e int"
+        touched-relations:
+          - statement-id: 0
+            name: t
+          - statement-id: 1
+            name: u
+          - statement-id: 2
+            name: v
+          - statement-id: 3
+            name: w
+          - statement-id: 4
+            name: s1.k
+          - statement-id: 5
+            name: s2.k
+          - statement-id: 6
+            name: db1.s3.n
+        errors: []
+    script:
+      input: select 1 from s1.k where exists (select s1.k.b)
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65537.4294967300"
+          statement-id: 0
+          text: "s1.k"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65537.4294967300.1"
+          statement-id: 0
+          text: "s1.k.b"
+        - expression-idx: 1
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 1
+          text: "1"
+      name-scopes:
+        - scope-id: 0
+          parent: 1
+          columns:
+            - name: k
+              expression: 0
+          text: "(select s1.k.b)"
+        - scope-id: 1
+          sources:
+            - type: table
+              name: k
+              text: "s1.k"
+          columns:
+            - name: '?'
+              expression: 1
+          text: "select 1 f..ct s1.k.b)"
+
+  - name: column_ref_schema_qualified_alias_hides_table
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: t
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65536.4294967297"
+            name: u
+            text: "create tab..nt, c int)"
+            columns:
+              - catalog-id: "256.65536.4294967297.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967297.1"
+                name: c
+                text: "c int"
+          - catalog-id: "256.65536.4294967298"
+            name: v
+            text: "create tab..nt, x int)"
+            columns:
+              - catalog-id: "256.65536.4294967298.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967298.1"
+                name: x
+                text: "x int"
+          - catalog-id: "256.65536.4294967299"
+            name: w
+            text: "create tab..nt, y int)"
+            columns:
+              - catalog-id: "256.65536.4294967299.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967299.1"
+                name: y
+                text: "y int"
+          - catalog-id: "256.65537.4294967300"
+            name: k
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65537.4294967300.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65537.4294967300.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65538.4294967301"
+            name: k
+            text: "create tab...k (c int)"
+            columns:
+              - catalog-id: "256.65538.4294967301.0"
+                name: c
+                text: "c int"
+          - catalog-id: "257.65539.4294967302"
+            name: n
+            text: "create tab...n (e int)"
+            columns:
+              - catalog-id: "257.65539.4294967302.0"
+                name: e
+                text: "e int"
+        touched-relations:
+          - statement-id: 0
+            name: t
+          - statement-id: 1
+            name: u
+          - statement-id: 2
+            name: v
+          - statement-id: 3
+            name: w
+          - statement-id: 4
+            name: s1.k
+          - statement-id: 5
+            name: s2.k
+          - statement-id: 6
+            name: db1.s3.n
+        errors: []
+    script:
+      input: select s1.k.a from s1.k x
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65537.4294967300"
+          statement-id: 0
+          text: "s1.k x"
+      expressions:
+        - expression-idx: 0
+          type: colref/unresolved
+          statement-id: 0
+          text: "s1.k.a"
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - type: table
+              name: x
+              text: "s1.k x"
+          columns:
+            - name: k
+              expression: 0
+          text: "select s1...rom s1.k x"
+
+  - name: qualifier_hides_outer_table
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: t
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65536.4294967297"
+            name: u
+            text: "create tab..nt, c int)"
+            columns:
+              - catalog-id: "256.65536.4294967297.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967297.1"
+                name: c
+                text: "c int"
+          - catalog-id: "256.65536.4294967298"
+            name: v
+            text: "create tab..nt, x int)"
+            columns:
+              - catalog-id: "256.65536.4294967298.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967298.1"
+                name: x
+                text: "x int"
+          - catalog-id: "256.65536.4294967299"
+            name: w
+            text: "create tab..nt, y int)"
+            columns:
+              - catalog-id: "256.65536.4294967299.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967299.1"
+                name: y
+                text: "y int"
+          - catalog-id: "256.65537.4294967300"
+            name: k
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65537.4294967300.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65537.4294967300.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65538.4294967301"
+            name: k
+            text: "create tab...k (c int)"
+            columns:
+              - catalog-id: "256.65538.4294967301.0"
+                name: c
+                text: "c int"
+          - catalog-id: "257.65539.4294967302"
+            name: n
+            text: "create tab...n (e int)"
+            columns:
+              - catalog-id: "257.65539.4294967302.0"
+                name: e
+                text: "e int"
+        touched-relations:
+          - statement-id: 0
+            name: t
+          - statement-id: 1
+            name: u
+          - statement-id: 2
+            name: v
+          - statement-id: 3
+            name: w
+          - statement-id: 4
+            name: s1.k
+          - statement-id: 5
+            name: s2.k
+          - statement-id: 6
+            name: db1.s3.n
+        errors: []
+    script:
+      input: select * from t where exists (select 1 from u t where t.b = 1)
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967297"
+          statement-id: 0
+          text: "u t"
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "t"
+      expressions:
+        - expression-idx: 0
+          type: colref/unresolved
+          statement-id: 0
+          text: "t.b"
+        - expression-idx: 1
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+        - expression-idx: 2
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 1
+          text: "1"
+        - expression: 2
+          text: "1"
+      name-scopes:
+        - scope-id: 0
+          parent: 1
+          sources:
+            - type: table
+              name: t
+              text: "u t"
+          columns:
+            - name: '?'
+              expression: 1
+          text: "(select 1 ..e t.b = 1)"
+        - scope-id: 1
+          sources:
+            - type: table
+              name: t
+              text: "t"
+          columns:
+            - name: a
+              table-column: "256.65536.4294967296.0"
+            - name: b
+              table-column: "256.65536.4294967296.1"
+          text: "select * f..e t.b = 1)"
+
+  - name: qualifier_of_unresolved_table_infers_column
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: t
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65536.4294967297"
+            name: u
+            text: "create tab..nt, c int)"
+            columns:
+              - catalog-id: "256.65536.4294967297.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967297.1"
+                name: c
+                text: "c int"
+          - catalog-id: "256.65536.4294967298"
+            name: v
+            text: "create tab..nt, x int)"
+            columns:
+              - catalog-id: "256.65536.4294967298.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967298.1"
+                name: x
+                text: "x int"
+          - catalog-id: "256.65536.4294967299"
+            name: w
+            text: "create tab..nt, y int)"
+            columns:
+              - catalog-id: "256.65536.4294967299.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967299.1"
+                name: y
+                text: "y int"
+          - catalog-id: "256.65537.4294967300"
+            name: k
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65537.4294967300.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65537.4294967300.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65538.4294967301"
+            name: k
+            text: "create tab...k (c int)"
+            columns:
+              - catalog-id: "256.65538.4294967301.0"
+                name: c
+                text: "c int"
+          - catalog-id: "257.65539.4294967302"
+            name: n
+            text: "create tab...n (e int)"
+            columns:
+              - catalog-id: "257.65539.4294967302.0"
+                name: e
+                text: "e int"
+        touched-relations:
+          - statement-id: 0
+            name: t
+          - statement-id: 1
+            name: u
+          - statement-id: 2
+            name: v
+          - statement-id: 3
+            name: w
+          - statement-id: 4
+            name: s1.k
+          - statement-id: 5
+            name: s2.k
+          - statement-id: 6
+            name: db1.s3.n
+        errors: []
+    script:
+      input: select * from t where exists (select 1 from unknown_tbl t where t.b = 1)
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/unresolved
+          statement-id: 0
+          text: "unknown_tbl t"
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "t"
+      expressions:
+        - expression-idx: 0
+          type: colref/unresolved
+          statement-id: 0
+          text: "t.b"
+        - expression-idx: 1
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+        - expression-idx: 2
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 1
+          text: "1"
+        - expression: 2
+          text: "1"
+      name-scopes:
+        - scope-id: 0
+          parent: 1
+          sources:
+            - type: unresolved
+              name: t
+              text: "unknown_tbl t"
+          columns:
+            - name: '?'
+              expression: 1
+          text: "(select 1 ..e t.b = 1)"
+        - scope-id: 1
+          sources:
+            - type: table
+              name: t
+              text: "t"
+          columns:
+            - name: a
+              table-column: "256.65536.4294967296.0"
+            - name: b
+              table-column: "256.65536.4294967296.1"
+          text: "select * f..e t.b = 1)"
+      inferred-tables:
+        - name: unknown_tbl
+          confidence: confident
+          columns:
+            - name: b
+              confidence: confident
+
+  - name: create_table_column_order
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: t
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65536.4294967297"
+            name: u
+            text: "create tab..nt, c int)"
+            columns:
+              - catalog-id: "256.65536.4294967297.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967297.1"
+                name: c
+                text: "c int"
+          - catalog-id: "256.65536.4294967298"
+            name: v
+            text: "create tab..nt, x int)"
+            columns:
+              - catalog-id: "256.65536.4294967298.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967298.1"
+                name: x
+                text: "x int"
+          - catalog-id: "256.65536.4294967299"
+            name: w
+            text: "create tab..nt, y int)"
+            columns:
+              - catalog-id: "256.65536.4294967299.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967299.1"
+                name: y
+                text: "y int"
+          - catalog-id: "256.65537.4294967300"
+            name: k
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65537.4294967300.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65537.4294967300.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65538.4294967301"
+            name: k
+            text: "create tab...k (c int)"
+            columns:
+              - catalog-id: "256.65538.4294967301.0"
+                name: c
+                text: "c int"
+          - catalog-id: "257.65539.4294967302"
+            name: n
+            text: "create tab...n (e int)"
+            columns:
+              - catalog-id: "257.65539.4294967302.0"
+                name: e
+                text: "e int"
+        touched-relations:
+          - statement-id: 0
+            name: t
+          - statement-id: 1
+            name: u
+          - statement-id: 2
+            name: v
+          - statement-id: 3
+            name: w
+          - statement-id: 4
+            name: s1.k
+          - statement-id: 5
+            name: s2.k
+          - statement-id: 6
+            name: db1.s3.n
+        errors: []
+    script:
+      input: create table q (b int, a int); select p from q as x(p)
+      catalog-id: 2
+      tables:
+        - catalog-id: "256.65536.8589934592"
+          name: q
+          text: "create tab..nt, a int)"
+          columns:
+            - catalog-id: "256.65536.8589934592.0"
+              name: b
+              text: "b int"
+            - catalog-id: "256.65536.8589934592.1"
+              name: a
+              text: "a int"
+      touched-relations:
+        - statement-id: 0
+          name: q
+      errors: []
+      table-refs:
+        - type: name/internal
+          catalog-id: "256.65536.8589934592"
+          statement-id: 1
+          text: "q as x(p)"
+      expressions:
+        - expression-idx: 0
+          type: colref/internal
+          catalog: "256.65536.8589934592.0"
+          statement-id: 1
+          text: "p"
+      name-scopes:
+        - scope-id: 1
+          sources:
+            - type: table
+              name: x
+              column-aliases:
+                - p
+              text: "q as x(p)"
+          columns:
+            - name: p
+              expression: 0
+          text: "select p f.. q as x(p)"
+
+  - name: star_join_using_once
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: t
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65536.4294967297"
+            name: u
+            text: "create tab..nt, c int)"
+            columns:
+              - catalog-id: "256.65536.4294967297.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967297.1"
+                name: c
+                text: "c int"
+          - catalog-id: "256.65536.4294967298"
+            name: v
+            text: "create tab..nt, x int)"
+            columns:
+              - catalog-id: "256.65536.4294967298.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967298.1"
+                name: x
+                text: "x int"
+          - catalog-id: "256.65536.4294967299"
+            name: w
+            text: "create tab..nt, y int)"
+            columns:
+              - catalog-id: "256.65536.4294967299.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967299.1"
+                name: y
+                text: "y int"
+          - catalog-id: "256.65537.4294967300"
+            name: k
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65537.4294967300.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65537.4294967300.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65538.4294967301"
+            name: k
+            text: "create tab...k (c int)"
+            columns:
+              - catalog-id: "256.65538.4294967301.0"
+                name: c
+                text: "c int"
+          - catalog-id: "257.65539.4294967302"
+            name: n
+            text: "create tab...n (e int)"
+            columns:
+              - catalog-id: "257.65539.4294967302.0"
+                name: e
+                text: "e int"
+        touched-relations:
+          - statement-id: 0
+            name: t
+          - statement-id: 1
+            name: u
+          - statement-id: 2
+            name: v
+          - statement-id: 3
+            name: w
+          - statement-id: 4
+            name: s1.k
+          - statement-id: 5
+            name: s2.k
+          - statement-id: 6
+            name: db1.s3.n
+        errors: []
+    script:
+      input: select p, q, r from (select * from v join w using (id)) s(p, q, r)
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967298"
+          statement-id: 0
+          text: "v"
+        - type: name/catalog
+          catalog-id: "256.65536.4294967299"
+          statement-id: 0
+          text: "w"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967298.0"
+          statement-id: 0
+          text: "p"
+        - expression-idx: 1
+          type: colref/catalog
+          catalog: "256.65536.4294967298.1"
+          statement-id: 0
+          text: "q"
+        - expression-idx: 2
+          type: colref/catalog
+          catalog: "256.65536.4294967299.1"
+          statement-id: 0
+          text: "r"
+      name-scopes:
+        - scope-id: 0
+          parent: 1
+          parent-sources: none
+          sources:
+            - type: table
+              name: v
+              text: "v"
+            - type: table
+              name: w
+              text: "w"
+          columns:
+            - name: id
+              table-column: "256.65536.4294967298.0"
+            - name: x
+              table-column: "256.65536.4294967298.1"
+            - name: y
+              table-column: "256.65536.4294967299.1"
+          text: "(select * ..sing (id))"
+        - scope-id: 1
+          sources:
+            - type: subquery
+              name: s
+              scope: 0
+              column-aliases:
+                - p
+                - q
+                - r
+              text: "(select * ..s(p, q, r)"
+          columns:
+            - name: p
+              expression: 0
+            - name: q
+              expression: 1
+            - name: r
+              expression: 2
+          text: "select p, ..s(p, q, r)"
+
+  - name: star_join_natural_once
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: t
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65536.4294967297"
+            name: u
+            text: "create tab..nt, c int)"
+            columns:
+              - catalog-id: "256.65536.4294967297.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967297.1"
+                name: c
+                text: "c int"
+          - catalog-id: "256.65536.4294967298"
+            name: v
+            text: "create tab..nt, x int)"
+            columns:
+              - catalog-id: "256.65536.4294967298.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967298.1"
+                name: x
+                text: "x int"
+          - catalog-id: "256.65536.4294967299"
+            name: w
+            text: "create tab..nt, y int)"
+            columns:
+              - catalog-id: "256.65536.4294967299.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967299.1"
+                name: y
+                text: "y int"
+          - catalog-id: "256.65537.4294967300"
+            name: k
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65537.4294967300.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65537.4294967300.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65538.4294967301"
+            name: k
+            text: "create tab...k (c int)"
+            columns:
+              - catalog-id: "256.65538.4294967301.0"
+                name: c
+                text: "c int"
+          - catalog-id: "257.65539.4294967302"
+            name: n
+            text: "create tab...n (e int)"
+            columns:
+              - catalog-id: "257.65539.4294967302.0"
+                name: e
+                text: "e int"
+        touched-relations:
+          - statement-id: 0
+            name: t
+          - statement-id: 1
+            name: u
+          - statement-id: 2
+            name: v
+          - statement-id: 3
+            name: w
+          - statement-id: 4
+            name: s1.k
+          - statement-id: 5
+            name: s2.k
+          - statement-id: 6
+            name: db1.s3.n
+        errors: []
+    script:
+      input: select p, q, r from (select * from v natural join w) s(p, q, r)
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967298"
+          statement-id: 0
+          text: "v"
+        - type: name/catalog
+          catalog-id: "256.65536.4294967299"
+          statement-id: 0
+          text: "w"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967298.0"
+          statement-id: 0
+          text: "p"
+        - expression-idx: 1
+          type: colref/catalog
+          catalog: "256.65536.4294967298.1"
+          statement-id: 0
+          text: "q"
+        - expression-idx: 2
+          type: colref/catalog
+          catalog: "256.65536.4294967299.1"
+          statement-id: 0
+          text: "r"
+      name-scopes:
+        - scope-id: 0
+          parent: 1
+          parent-sources: none
+          sources:
+            - type: table
+              name: v
+              text: "v"
+            - type: table
+              name: w
+              text: "w"
+          columns:
+            - name: id
+              table-column: "256.65536.4294967298.0"
+            - name: x
+              table-column: "256.65536.4294967298.1"
+            - name: y
+              table-column: "256.65536.4294967299.1"
+          text: "(select * ..al join w)"
+        - scope-id: 1
+          sources:
+            - type: subquery
+              name: s
+              scope: 0
+              column-aliases:
+                - p
+                - q
+                - r
+              text: "(select * ..s(p, q, r)"
+          columns:
+            - name: p
+              expression: 0
+            - name: q
+              expression: 1
+            - name: r
+              expression: 2
+          text: "select p, ..s(p, q, r)"
+
+  - name: create_table_as_star_join_using
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: t
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65536.4294967297"
+            name: u
+            text: "create tab..nt, c int)"
+            columns:
+              - catalog-id: "256.65536.4294967297.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967297.1"
+                name: c
+                text: "c int"
+          - catalog-id: "256.65536.4294967298"
+            name: v
+            text: "create tab..nt, x int)"
+            columns:
+              - catalog-id: "256.65536.4294967298.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967298.1"
+                name: x
+                text: "x int"
+          - catalog-id: "256.65536.4294967299"
+            name: w
+            text: "create tab..nt, y int)"
+            columns:
+              - catalog-id: "256.65536.4294967299.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967299.1"
+                name: y
+                text: "y int"
+          - catalog-id: "256.65537.4294967300"
+            name: k
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65537.4294967300.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65537.4294967300.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65538.4294967301"
+            name: k
+            text: "create tab...k (c int)"
+            columns:
+              - catalog-id: "256.65538.4294967301.0"
+                name: c
+                text: "c int"
+          - catalog-id: "257.65539.4294967302"
+            name: n
+            text: "create tab...n (e int)"
+            columns:
+              - catalog-id: "257.65539.4294967302.0"
+                name: e
+                text: "e int"
+        touched-relations:
+          - statement-id: 0
+            name: t
+          - statement-id: 1
+            name: u
+          - statement-id: 2
+            name: v
+          - statement-id: 3
+            name: w
+          - statement-id: 4
+            name: s1.k
+          - statement-id: 5
+            name: s2.k
+          - statement-id: 6
+            name: db1.s3.n
+        errors: []
+    script:
+      input: create table m2 as select * from (select x, id from v) vv join w using (id)
+      catalog-id: 2
+      tables:
+        - catalog-id: "256.65536.8589934592"
+          name: m2
+          text: "create tab..using (id)"
+          columns:
+            - catalog-id: "256.65536.8589934592.0"
+              name: id
+            - catalog-id: "256.65536.8589934592.1"
+              name: x
+            - catalog-id: "256.65536.8589934592.2"
+              name: y
+      touched-relations:
+        - statement-id: 0
+          name: m2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967298"
+          statement-id: 0
+          text: "v"
+        - type: name/catalog
+          catalog-id: "256.65536.4294967299"
+          statement-id: 0
+          text: "w"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967298.1"
+          statement-id: 0
+          text: "x"
+        - expression-idx: 1
+          type: colref/catalog
+          catalog: "256.65536.4294967298.0"
+          statement-id: 0
+          text: "id"
+      name-scopes:
+        - scope-id: 0
+          parent: 1
+          parent-sources: none
+          sources:
+            - type: table
+              name: v
+              text: "v"
+          columns:
+            - name: x
+              expression: 0
+            - name: id
+              expression: 1
+          text: "(select x,..id from v)"
+        - scope-id: 1
+          sources:
+            - type: subquery
+              name: vv
+              scope: 0
+              text: "(select x,..from v) vv"
+            - type: table
+              name: w
+              text: "w"
+          columns:
+            - name: id
+              expression: 1
+            - name: x
+              expression: 0
+            - name: y
+              table-column: "256.65536.4294967299.1"
+          text: "select * f..using (id)"
+
+  - name: create_table_as_unnamed_columns
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: t
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65536.4294967297"
+            name: u
+            text: "create tab..nt, c int)"
+            columns:
+              - catalog-id: "256.65536.4294967297.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967297.1"
+                name: c
+                text: "c int"
+          - catalog-id: "256.65536.4294967298"
+            name: v
+            text: "create tab..nt, x int)"
+            columns:
+              - catalog-id: "256.65536.4294967298.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967298.1"
+                name: x
+                text: "x int"
+          - catalog-id: "256.65536.4294967299"
+            name: w
+            text: "create tab..nt, y int)"
+            columns:
+              - catalog-id: "256.65536.4294967299.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967299.1"
+                name: y
+                text: "y int"
+          - catalog-id: "256.65537.4294967300"
+            name: k
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65537.4294967300.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65537.4294967300.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65538.4294967301"
+            name: k
+            text: "create tab...k (c int)"
+            columns:
+              - catalog-id: "256.65538.4294967301.0"
+                name: c
+                text: "c int"
+          - catalog-id: "257.65539.4294967302"
+            name: n
+            text: "create tab...n (e int)"
+            columns:
+              - catalog-id: "257.65539.4294967302.0"
+                name: e
+                text: "e int"
+        touched-relations:
+          - statement-id: 0
+            name: t
+          - statement-id: 1
+            name: u
+          - statement-id: 2
+            name: v
+          - statement-id: 3
+            name: w
+          - statement-id: 4
+            name: s1.k
+          - statement-id: 5
+            name: s2.k
+          - statement-id: 6
+            name: db1.s3.n
+        errors: []
+    script:
+      input: create table m as select a, count(*), b + 1, b from t; select z from m as mm(w, x, y, z)
+      catalog-id: 2
+      tables:
+        - catalog-id: "256.65536.8589934592"
+          name: m
+          text: "create tab.., b from t"
+          columns:
+            - catalog-id: "256.65536.8589934592.0"
+              name: a
+            - catalog-id: "256.65536.8589934592.1"
+              name: count
+            - catalog-id: "256.65536.8589934592.2"
+              name: '?column?'
+            - catalog-id: "256.65536.8589934592.3"
+              name: b
+      touched-relations:
+        - statement-id: 0
+          name: m
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "t"
+        - type: name/internal
+          catalog-id: "256.65536.8589934592"
+          statement-id: 1
+          text: "m as mm(w, x, y, z)"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          statement-id: 0
+          text: "a"
+        - expression-idx: 1
+          type: colref/catalog
+          catalog: "256.65536.4294967296.1"
+          statement-id: 0
+          text: "b"
+        - expression-idx: 2
+          type: colref/catalog
+          catalog: "256.65536.4294967296.1"
+          statement-id: 0
+          text: "b"
+        - expression-idx: 3
+          type: colref/internal
+          catalog: "256.65536.8589934592.3"
+          statement-id: 1
+          text: "z"
+        - expression-idx: 4
+          type: function
+          name: count
+          text: "count(*)"
+        - expression-idx: 5
+          type: literal/integer
+          is-const: true
+          text: "1"
+      constants:
+        - expression: 5
+          text: "1"
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - type: table
+              name: t
+              text: "t"
+          columns:
+            - name: a
+              expression: 0
+            - name: '?'
+              expression: 4
+            - name: '?'
+              computed: true
+            - name: b
+              expression: 2
+          text: "select a, .., b from t"
+        - scope-id: 1
+          sources:
+            - type: table
+              name: mm
+              column-aliases:
+                - w
+                - x
+                - y
+                - z
+              text: "m as mm(w, x, y, z)"
+          columns:
+            - name: z
+              expression: 3
+          text: "select z f.., x, y, z)"
+
+  - name: create_table_as_declared_names_rename_leading_columns
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: t
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65536.4294967297"
+            name: u
+            text: "create tab..nt, c int)"
+            columns:
+              - catalog-id: "256.65536.4294967297.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967297.1"
+                name: c
+                text: "c int"
+          - catalog-id: "256.65536.4294967298"
+            name: v
+            text: "create tab..nt, x int)"
+            columns:
+              - catalog-id: "256.65536.4294967298.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967298.1"
+                name: x
+                text: "x int"
+          - catalog-id: "256.65536.4294967299"
+            name: w
+            text: "create tab..nt, y int)"
+            columns:
+              - catalog-id: "256.65536.4294967299.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967299.1"
+                name: y
+                text: "y int"
+          - catalog-id: "256.65537.4294967300"
+            name: k
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65537.4294967300.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65537.4294967300.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65538.4294967301"
+            name: k
+            text: "create tab...k (c int)"
+            columns:
+              - catalog-id: "256.65538.4294967301.0"
+                name: c
+                text: "c int"
+          - catalog-id: "257.65539.4294967302"
+            name: n
+            text: "create tab...n (e int)"
+            columns:
+              - catalog-id: "257.65539.4294967302.0"
+                name: e
+                text: "e int"
+        touched-relations:
+          - statement-id: 0
+            name: t
+          - statement-id: 1
+            name: u
+          - statement-id: 2
+            name: v
+          - statement-id: 3
+            name: w
+          - statement-id: 4
+            name: s1.k
+          - statement-id: 5
+            name: s2.k
+          - statement-id: 6
+            name: db1.s3.n
+        errors: []
+    script:
+      input: create table m3(p) as select a, b from t
+      catalog-id: 2
+      tables:
+        - catalog-id: "256.65536.8589934592"
+          name: m3
+          text: "create tab.., b from t"
+          columns:
+            - catalog-id: "256.65536.8589934592.0"
+              name: p
+            - catalog-id: "256.65536.8589934592.1"
+              name: b
+      touched-relations:
+        - statement-id: 0
+          name: m3
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "t"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          statement-id: 0
+          text: "a"
+        - expression-idx: 1
+          type: colref/catalog
+          catalog: "256.65536.4294967296.1"
+          statement-id: 0
+          text: "b"
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - type: table
+              name: t
+              text: "t"
+          columns:
+            - name: a
+              expression: 0
+            - name: b
+              expression: 1
+          text: "select a, b from t"
+
+  - name: later_statement_reads_view
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: t
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65536.4294967297"
+            name: u
+            text: "create tab..nt, c int)"
+            columns:
+              - catalog-id: "256.65536.4294967297.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967297.1"
+                name: c
+                text: "c int"
+          - catalog-id: "256.65536.4294967298"
+            name: v
+            text: "create tab..nt, x int)"
+            columns:
+              - catalog-id: "256.65536.4294967298.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967298.1"
+                name: x
+                text: "x int"
+          - catalog-id: "256.65536.4294967299"
+            name: w
+            text: "create tab..nt, y int)"
+            columns:
+              - catalog-id: "256.65536.4294967299.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967299.1"
+                name: y
+                text: "y int"
+          - catalog-id: "256.65537.4294967300"
+            name: k
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65537.4294967300.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65537.4294967300.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65538.4294967301"
+            name: k
+            text: "create tab...k (c int)"
+            columns:
+              - catalog-id: "256.65538.4294967301.0"
+                name: c
+                text: "c int"
+          - catalog-id: "257.65539.4294967302"
+            name: n
+            text: "create tab...n (e int)"
+            columns:
+              - catalog-id: "257.65539.4294967302.0"
+                name: e
+                text: "e int"
+        touched-relations:
+          - statement-id: 0
+            name: t
+          - statement-id: 1
+            name: u
+          - statement-id: 2
+            name: v
+          - statement-id: 3
+            name: w
+          - statement-id: 4
+            name: s1.k
+          - statement-id: 5
+            name: s2.k
+          - statement-id: 6
+            name: db1.s3.n
+        errors: []
+    script:
+      input: create view vv as select a from t; select a from vv
+      catalog-id: 2
+      tables:
+        - catalog-id: "256.65536.8589934592"
+          name: vv
+          text: "create vie..t a from t"
+          columns:
+            - catalog-id: "256.65536.8589934592.0"
+              name: a
+      touched-relations:
+        - statement-id: 0
+          name: vv
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "t"
+        - type: name/internal
+          catalog-id: "256.65536.8589934592"
+          statement-id: 1
+          text: "vv"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          statement-id: 0
+          text: "a"
+        - expression-idx: 1
+          type: colref/internal
+          catalog: "256.65536.8589934592.0"
+          statement-id: 1
+          text: "a"
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - type: table
+              name: t
+              text: "t"
+          columns:
+            - name: a
+              expression: 0
+          text: "select a from t"
+        - scope-id: 1
+          sources:
+            - type: table
+              name: vv
+              text: "vv"
+          columns:
+            - name: a
+              expression: 1
+          text: "select a from vv"
+
+  - name: later_statement_reads_create_table_as
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: t
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65536.4294967297"
+            name: u
+            text: "create tab..nt, c int)"
+            columns:
+              - catalog-id: "256.65536.4294967297.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967297.1"
+                name: c
+                text: "c int"
+          - catalog-id: "256.65536.4294967298"
+            name: v
+            text: "create tab..nt, x int)"
+            columns:
+              - catalog-id: "256.65536.4294967298.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967298.1"
+                name: x
+                text: "x int"
+          - catalog-id: "256.65536.4294967299"
+            name: w
+            text: "create tab..nt, y int)"
+            columns:
+              - catalog-id: "256.65536.4294967299.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967299.1"
+                name: y
+                text: "y int"
+          - catalog-id: "256.65537.4294967300"
+            name: k
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65537.4294967300.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65537.4294967300.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65538.4294967301"
+            name: k
+            text: "create tab...k (c int)"
+            columns:
+              - catalog-id: "256.65538.4294967301.0"
+                name: c
+                text: "c int"
+          - catalog-id: "257.65539.4294967302"
+            name: n
+            text: "create tab...n (e int)"
+            columns:
+              - catalog-id: "257.65539.4294967302.0"
+                name: e
+                text: "e int"
+        touched-relations:
+          - statement-id: 0
+            name: t
+          - statement-id: 1
+            name: u
+          - statement-id: 2
+            name: v
+          - statement-id: 3
+            name: w
+          - statement-id: 4
+            name: s1.k
+          - statement-id: 5
+            name: s2.k
+          - statement-id: 6
+            name: db1.s3.n
+        errors: []
+    script:
+      input: create table tt as select b from t; select b from tt
+      catalog-id: 2
+      tables:
+        - catalog-id: "256.65536.8589934592"
+          name: tt
+          text: "create tab..t b from t"
+          columns:
+            - catalog-id: "256.65536.8589934592.0"
+              name: b
+      touched-relations:
+        - statement-id: 0
+          name: tt
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "t"
+        - type: name/internal
+          catalog-id: "256.65536.8589934592"
+          statement-id: 1
+          text: "tt"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.1"
+          statement-id: 0
+          text: "b"
+        - expression-idx: 1
+          type: colref/internal
+          catalog: "256.65536.8589934592.0"
+          statement-id: 1
+          text: "b"
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - type: table
+              name: t
+              text: "t"
+          columns:
+            - name: b
+              expression: 0
+          text: "select b from t"
+        - scope-id: 1
+          sources:
+            - type: table
+              name: tt
+              text: "tt"
+          columns:
+            - name: b
+              expression: 1
+          text: "select b from tt"
+
+  - name: statement_reads_table_before_alter
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: t
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65536.4294967297"
+            name: u
+            text: "create tab..nt, c int)"
+            columns:
+              - catalog-id: "256.65536.4294967297.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967297.1"
+                name: c
+                text: "c int"
+          - catalog-id: "256.65536.4294967298"
+            name: v
+            text: "create tab..nt, x int)"
+            columns:
+              - catalog-id: "256.65536.4294967298.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967298.1"
+                name: x
+                text: "x int"
+          - catalog-id: "256.65536.4294967299"
+            name: w
+            text: "create tab..nt, y int)"
+            columns:
+              - catalog-id: "256.65536.4294967299.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967299.1"
+                name: y
+                text: "y int"
+          - catalog-id: "256.65537.4294967300"
+            name: k
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65537.4294967300.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65537.4294967300.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65538.4294967301"
+            name: k
+            text: "create tab...k (c int)"
+            columns:
+              - catalog-id: "256.65538.4294967301.0"
+                name: c
+                text: "c int"
+          - catalog-id: "257.65539.4294967302"
+            name: n
+            text: "create tab...n (e int)"
+            columns:
+              - catalog-id: "257.65539.4294967302.0"
+                name: e
+                text: "e int"
+        touched-relations:
+          - statement-id: 0
+            name: t
+          - statement-id: 1
+            name: u
+          - statement-id: 2
+            name: v
+          - statement-id: 3
+            name: w
+          - statement-id: 4
+            name: s1.k
+          - statement-id: 5
+            name: s2.k
+          - statement-id: 6
+            name: db1.s3.n
+        errors: []
+    script:
+      input: create table z (a int); select a from z; alter table z rename column a to b; select b from z
+      catalog-id: 2
+      tables:
+        - catalog-id: "256.65536.8589934592"
+          name: z
+          text: "create tab.. z (a int)"
+          columns:
+            - catalog-id: "256.65536.8589934592.0"
+              name: a
+              text: "a int"
+        - catalog-id: "256.65536.8589934593"
+          name: z
+          text: "alter tabl..umn a to b"
+          columns:
+            - catalog-id: "256.65536.8589934593.1"
+              name: b
+              text: "a int"
+      touched-relations:
+        - statement-id: 0
+          name: z
+        - statement-id: 2
+          name: z
+      errors: []
+      table-refs:
+        - type: name/internal
+          catalog-id: "256.65536.8589934592"
+          statement-id: 1
+          text: "z"
+        - type: name/internal
+          catalog-id: "256.65536.8589934593"
+          statement-id: 3
+          text: "z"
+      expressions:
+        - expression-idx: 0
+          type: colref/internal
+          catalog: "256.65536.8589934592.0"
+          statement-id: 1
+          text: "a"
+        - expression-idx: 1
+          type: colref/internal
+          catalog: "256.65536.8589934593.1"
+          statement-id: 3
+          text: "b"
+      name-scopes:
+        - scope-id: 1
+          sources:
+            - type: table
+              name: z
+              text: "z"
+          columns:
+            - name: a
+              expression: 0
+          text: "select a from z"
+        - scope-id: 2
+          sources:
+            - type: table
+              name: z
+              text: "z"
+          columns:
+            - name: b
+              expression: 1
+          text: "select b from z"
+
+  - name: statement_reads_table_before_drop_and_create
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: t
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65536.4294967297"
+            name: u
+            text: "create tab..nt, c int)"
+            columns:
+              - catalog-id: "256.65536.4294967297.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967297.1"
+                name: c
+                text: "c int"
+          - catalog-id: "256.65536.4294967298"
+            name: v
+            text: "create tab..nt, x int)"
+            columns:
+              - catalog-id: "256.65536.4294967298.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967298.1"
+                name: x
+                text: "x int"
+          - catalog-id: "256.65536.4294967299"
+            name: w
+            text: "create tab..nt, y int)"
+            columns:
+              - catalog-id: "256.65536.4294967299.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967299.1"
+                name: y
+                text: "y int"
+          - catalog-id: "256.65537.4294967300"
+            name: k
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65537.4294967300.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65537.4294967300.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65538.4294967301"
+            name: k
+            text: "create tab...k (c int)"
+            columns:
+              - catalog-id: "256.65538.4294967301.0"
+                name: c
+                text: "c int"
+          - catalog-id: "257.65539.4294967302"
+            name: n
+            text: "create tab...n (e int)"
+            columns:
+              - catalog-id: "257.65539.4294967302.0"
+                name: e
+                text: "e int"
+        touched-relations:
+          - statement-id: 0
+            name: t
+          - statement-id: 1
+            name: u
+          - statement-id: 2
+            name: v
+          - statement-id: 3
+            name: w
+          - statement-id: 4
+            name: s1.k
+          - statement-id: 5
+            name: s2.k
+          - statement-id: 6
+            name: db1.s3.n
+        errors: []
+    script:
+      input: create table r (a int); select a from r; drop table r; create table r (b int); select b from r
+      catalog-id: 2
+      tables:
+        - catalog-id: "256.65536.8589934592"
+          name: r
+          text: "create tab.. r (a int)"
+          columns:
+            - catalog-id: "256.65536.8589934592.0"
+              name: a
+              text: "a int"
+        - catalog-id: "256.65536.8589934593"
+          name: r
+          text: "create tab.. r (b int)"
+          columns:
+            - catalog-id: "256.65536.8589934593.0"
+              name: b
+              text: "b int"
+      touched-relations:
+        - statement-id: 0
+          name: r
+        - statement-id: 2
+          name: r
+        - statement-id: 3
+          name: r
+      errors: []
+      table-refs:
+        - type: name/internal
+          catalog-id: "256.65536.8589934592"
+          statement-id: 1
+          text: "r"
+        - type: name/internal
+          catalog-id: "256.65536.8589934593"
+          statement-id: 4
+          text: "r"
+      expressions:
+        - expression-idx: 0
+          type: colref/internal
+          catalog: "256.65536.8589934592.0"
+          statement-id: 1
+          text: "a"
+        - expression-idx: 1
+          type: colref/internal
+          catalog: "256.65536.8589934593.0"
+          statement-id: 4
+          text: "b"
+      name-scopes:
+        - scope-id: 1
+          sources:
+            - type: table
+              name: r
+              text: "r"
+          columns:
+            - name: a
+              expression: 0
+          text: "select a from r"
+        - scope-id: 3
+          sources:
+            - type: table
+              name: r
+              text: "r"
+          columns:
+            - name: b
+              expression: 1
+          text: "select b from r"
+
+  - name: cte_from_item_column_aliases
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: t
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65536.4294967297"
+            name: u
+            text: "create tab..nt, c int)"
+            columns:
+              - catalog-id: "256.65536.4294967297.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967297.1"
+                name: c
+                text: "c int"
+          - catalog-id: "256.65536.4294967298"
+            name: v
+            text: "create tab..nt, x int)"
+            columns:
+              - catalog-id: "256.65536.4294967298.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967298.1"
+                name: x
+                text: "x int"
+          - catalog-id: "256.65536.4294967299"
+            name: w
+            text: "create tab..nt, y int)"
+            columns:
+              - catalog-id: "256.65536.4294967299.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967299.1"
+                name: y
+                text: "y int"
+          - catalog-id: "256.65537.4294967300"
+            name: k
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65537.4294967300.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65537.4294967300.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65538.4294967301"
+            name: k
+            text: "create tab...k (c int)"
+            columns:
+              - catalog-id: "256.65538.4294967301.0"
+                name: c
+                text: "c int"
+          - catalog-id: "257.65539.4294967302"
+            name: n
+            text: "create tab...n (e int)"
+            columns:
+              - catalog-id: "257.65539.4294967302.0"
+                name: e
+                text: "e int"
+        touched-relations:
+          - statement-id: 0
+            name: t
+          - statement-id: 1
+            name: u
+          - statement-id: 2
+            name: v
+          - statement-id: 3
+            name: w
+          - statement-id: 4
+            name: s1.k
+          - statement-id: 5
+            name: s2.k
+          - statement-id: 6
+            name: db1.s3.n
+        errors: []
+    script:
+      input: with c(x, y) as (select a, b from t) select y, b from c as cc(p)
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "t"
+        - type: name/unresolved
+          statement-id: 0
+          text: "c as cc(p)"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          statement-id: 0
+          text: "a"
+        - expression-idx: 1
+          type: colref/catalog
+          catalog: "256.65536.4294967296.1"
+          statement-id: 0
+          text: "b"
+        - expression-idx: 2
+          type: colref/catalog
+          catalog: "256.65536.4294967296.1"
+          statement-id: 0
+          text: "y"
+        - expression-idx: 3
+          type: colref/unresolved
+          statement-id: 0
+          text: "b"
+      name-scopes:
+        - scope-id: 0
+          parent: 1
+          parent-sources: none
+          sources:
+            - type: table
+              name: t
+              text: "t"
+          columns:
+            - name: a
+              expression: 0
+            - name: b
+              expression: 1
+          text: "select a, b from t"
+        - scope-id: 1
+          sources:
+            - type: cte
+              name: cc
+              scope: 0
+              column-aliases:
+                - p
+              text: "c as cc(p)"
+          columns:
+            - name: y
+              expression: 2
+            - name: b
+              expression: 3
+          text: "with c(x, ..c as cc(p)"
+
+  - name: create_table_as_no_subquery_columns
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: t
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65536.4294967297"
+            name: u
+            text: "create tab..nt, c int)"
+            columns:
+              - catalog-id: "256.65536.4294967297.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967297.1"
+                name: c
+                text: "c int"
+          - catalog-id: "256.65536.4294967298"
+            name: v
+            text: "create tab..nt, x int)"
+            columns:
+              - catalog-id: "256.65536.4294967298.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967298.1"
+                name: x
+                text: "x int"
+          - catalog-id: "256.65536.4294967299"
+            name: w
+            text: "create tab..nt, y int)"
+            columns:
+              - catalog-id: "256.65536.4294967299.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967299.1"
+                name: y
+                text: "y int"
+          - catalog-id: "256.65537.4294967300"
+            name: k
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65537.4294967300.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65537.4294967300.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65538.4294967301"
+            name: k
+            text: "create tab...k (c int)"
+            columns:
+              - catalog-id: "256.65538.4294967301.0"
+                name: c
+                text: "c int"
+          - catalog-id: "257.65539.4294967302"
+            name: n
+            text: "create tab...n (e int)"
+            columns:
+              - catalog-id: "257.65539.4294967302.0"
+                name: e
+                text: "e int"
+        touched-relations:
+          - statement-id: 0
+            name: t
+          - statement-id: 1
+            name: u
+          - statement-id: 2
+            name: v
+          - statement-id: 3
+            name: w
+          - statement-id: 4
+            name: s1.k
+          - statement-id: 5
+            name: s2.k
+          - statement-id: 6
+            name: db1.s3.n
+        errors: []
+    script:
+      input: create table x2 as select * from unknown_tbl where a in (select b from t)
+      catalog-id: 2
+      tables:
+        - catalog-id: "256.65536.8589934592"
+          name: x2
+          text: "create tab.. b from t)"
+          columns: []
+      touched-relations:
+        - statement-id: 0
+          name: x2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "t"
+        - type: name/unresolved
+          statement-id: 0
+          text: "unknown_tbl"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.1"
+          statement-id: 0
+          text: "b"
+        - expression-idx: 1
+          type: colref/unresolved
+          statement-id: 0
+          text: "a"
+      name-scopes:
+        - scope-id: 0
+          parent: 1
+          sources:
+            - type: table
+              name: t
+              text: "t"
+          columns:
+            - name: b
+              expression: 0
+          text: "(select b from t)"
+        - scope-id: 1
+          sources:
+            - type: unresolved
+              name: unknown_tbl
+              text: "unknown_tbl"
+          text: "select * f.. b from t)"
+      inferred-tables:
+        - name: unknown_tbl
+          confidence: confident
+          columns:
+            - name: a
+              confidence: confident
+
+  - name: create_table_as_parenthesized_select
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: t
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65536.4294967297"
+            name: u
+            text: "create tab..nt, c int)"
+            columns:
+              - catalog-id: "256.65536.4294967297.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967297.1"
+                name: c
+                text: "c int"
+          - catalog-id: "256.65536.4294967298"
+            name: v
+            text: "create tab..nt, x int)"
+            columns:
+              - catalog-id: "256.65536.4294967298.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967298.1"
+                name: x
+                text: "x int"
+          - catalog-id: "256.65536.4294967299"
+            name: w
+            text: "create tab..nt, y int)"
+            columns:
+              - catalog-id: "256.65536.4294967299.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967299.1"
+                name: y
+                text: "y int"
+          - catalog-id: "256.65537.4294967300"
+            name: k
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65537.4294967300.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65537.4294967300.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65538.4294967301"
+            name: k
+            text: "create tab...k (c int)"
+            columns:
+              - catalog-id: "256.65538.4294967301.0"
+                name: c
+                text: "c int"
+          - catalog-id: "257.65539.4294967302"
+            name: n
+            text: "create tab...n (e int)"
+            columns:
+              - catalog-id: "257.65539.4294967302.0"
+                name: e
+                text: "e int"
+        touched-relations:
+          - statement-id: 0
+            name: t
+          - statement-id: 1
+            name: u
+          - statement-id: 2
+            name: v
+          - statement-id: 3
+            name: w
+          - statement-id: 4
+            name: s1.k
+          - statement-id: 5
+            name: s2.k
+          - statement-id: 6
+            name: db1.s3.n
+        errors: []
+    script:
+      input: create table x3 as (select a from t)
+      catalog-id: 2
+      tables:
+        - catalog-id: "256.65536.8589934592"
+          name: x3
+          text: "create tab.. a from t)"
+          columns:
+            - catalog-id: "256.65536.8589934592.0"
+              name: a
+      touched-relations:
+        - statement-id: 0
+          name: x3
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "t"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          statement-id: 0
+          text: "a"
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - type: table
+              name: t
+              text: "t"
+          columns:
+            - name: a
+              expression: 0
+          text: "(select a from t)"

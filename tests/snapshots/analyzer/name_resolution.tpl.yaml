@@ -406,3 +406,181 @@ analyzer-snapshots:
     script:
       input: select * from missing m, (select m.q as k) s
 
+  # CTEs match unqualified table names only
+  - name: cte_qualified_name_names_no_cte
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+    script:
+      input: with k as (select 1 as z) select z, a from s1.k
+
+  - name: cte_unqualified_name_names_cte
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+    script:
+      input: with k as (select 1 as z) select z from k
+
+  # Unaliased tables are keyed by their qualified name
+  - name: tables_of_different_schemas_share_their_name
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+    script:
+      input: select a, c, k.a, k.c from s1.k, s2.k
+
+  - name: same_table_twice_is_duplicate
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+    script:
+      input: select 1 from t, t
+
+  - name: same_alias_of_different_schemas_is_duplicate
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+    script:
+      input: select 1 from s1.k x, s2.k x
+
+  # Column refs try the longest qualifier first
+  - name: column_ref_schema_qualified
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+    script:
+      input: select s1.k.a, s2.k.c from s1.k, s2.k
+
+  - name: column_ref_database_qualified
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+    script:
+      input: select db1.s3.n.e from db1.s3.n
+
+  - name: column_ref_schema_qualified_in_subquery
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+    script:
+      input: select 1 from s1.k where exists (select s1.k.b)
+
+  - name: column_ref_schema_qualified_alias_hides_table
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+    script:
+      input: select s1.k.a from s1.k x
+
+  # A qualifier that names a FROM item stops the outward lookup
+  - name: qualifier_hides_outer_table
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+    script:
+      input: select * from t where exists (select 1 from u t where t.b = 1)
+
+  - name: qualifier_of_unresolved_table_infers_column
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+    script:
+      input: select * from t where exists (select 1 from unknown_tbl t where t.b = 1)
+
+  # CREATE TABLE keeps the declared column order
+  - name: create_table_column_order
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+    script:
+      input: create table q (b int, a int); select p from q as x(p)
+
+  # Star over a join lists the USING and NATURAL columns once
+  - name: star_join_using_once
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+    script:
+      input: select p, q, r from (select * from v join w using (id)) s(p, q, r)
+
+  - name: star_join_natural_once
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+    script:
+      input: select p, q, r from (select * from v natural join w) s(p, q, r)
+
+  - name: create_table_as_star_join_using
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+    script:
+      input: create table m2 as select * from (select x, id from v) vv join w using (id)
+
+  # CREATE TABLE AS keeps unnamed columns, named by the function or ?column?
+  - name: create_table_as_unnamed_columns
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+    script:
+      input: create table m as select a, count(*), b + 1, b from t; select z from m as mm(w, x, y, z)
+
+  - name: create_table_as_declared_names_rename_leading_columns
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+    script:
+      input: create table m3(p) as select a, b from t
+
+  # Later statements read the columns of views and CREATE TABLE AS
+  - name: later_statement_reads_view
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+    script:
+      input: create view vv as select a from t; select a from vv
+
+  - name: later_statement_reads_create_table_as
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+    script:
+      input: create table tt as select b from t; select b from tt
+
+  # A statement reads the declaration before it
+  - name: statement_reads_table_before_alter
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+    script:
+      input: create table z (a int); select a from z; alter table z rename column a to b; select b from z
+
+  - name: statement_reads_table_before_drop_and_create
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+    script:
+      input: create table r (a int); select a from r; drop table r; create table r (b int); select b from r
+
+  # Column aliases of a FROM item rename the columns of a CTE
+  - name: cte_from_item_column_aliases
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+    script:
+      input: with c(x, y) as (select a, b from t) select y, b from c as cc(p)
+
+  # A derived table has no columns of its expression subqueries
+  - name: create_table_as_no_subquery_columns
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+    script:
+      input: create table x2 as select * from unknown_tbl where a in (select b from t)
+
+  - name: create_table_as_parenthesized_select
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+    script:
+      input: create table x3 as (select a from t)
