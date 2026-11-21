@@ -168,6 +168,31 @@ describe('script formatting', () => {
         }
     });
 
+    it('writes the layout of the formatter as comments in the debug mode', () => {
+        const catalog = dql.createCatalog();
+        const workbook = dql.createScriptSession(catalog);
+        const onFormattedText = vi.fn();
+        try {
+            workbook.replaceText(0n, 'select count(*) from items where value > 1');
+            const text = workbook.getText();
+            const editorView = {
+                state: { doc: { length: text.length, toString: () => text } },
+                defaultCharacterWidth: 8,
+                scrollDOM: { clientWidth: 320 },
+                focus: vi.fn(),
+            } as unknown as FormatEditorView;
+
+            expect(formatScriptEditor(editorView, { scriptSession: workbook } as unknown as FormatEditorScript,
+                dashql.buffers.formatting.FormattingMode.PRETTY, onFormattedText, true)).toBe(true);
+            // The settings of the layout lead, every line break names the width of the line before it
+            expect(onFormattedText).toHaveBeenCalledWith(
+                '/* indentation=4, max_width=40 */\nselect count(*) /*15*/\nfrom items /*10*/\nwhere value > 1;');
+        } finally {
+            workbook.destroy();
+            catalog.destroy();
+        }
+    });
+
     it('passes the current editor width to the formatter', () => {
         const onFormattedText = vi.fn();
         const focus = vi.fn();

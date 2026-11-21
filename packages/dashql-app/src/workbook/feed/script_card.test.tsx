@@ -21,7 +21,7 @@ vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect()
 const formatScriptEditor = vi.fn();
 const DEPENDENCIES: ScriptCardDependencies = {
     ScriptDiagnosticsButton: () => <button>diagnostics</button>,
-    ScriptStatisticsBar: () => null,
+    ScriptStatisticsBar: () => <div data-testid="script-statistics" />,
     ChartBuilderOverlay: () => null,
     isScriptFormattable: () => true,
     formatScriptEditor: (...args: Parameters<ScriptCardDependencies['formatScriptEditor']>) => {
@@ -163,6 +163,21 @@ describe('the card of a script', () => {
         expect(feed.moveDown).toHaveBeenCalledWith('01_alpha.sql');
         click('script-delete');
         expect(feed.delete).toHaveBeenCalledWith('01_alpha.sql');
+    });
+
+    it('shows the statistics in the script debug mode and formats in the formatting debug mode of the settings', () => {
+        const { props } = cardProps();
+        render({ ...props, connection: connection() });
+        expect(container.querySelector('[data-testid="script-statistics"]')).toBeNull();
+
+        render({ ...props, connection: connection(), display: { ...props.display, scriptDebugMode: true, formattingDebugMode: true } });
+        expect(container.querySelector('[data-testid="script-statistics"]')).not.toBeNull();
+        click('script-more-actions');
+        act(() => document.querySelector<HTMLButtonElement>('[data-testid="script-menu-item"][data-action="format-pretty"]')!.click());
+        expect(formatScriptEditor).toHaveBeenCalledWith(
+            expect.anything(), props.model.script, dashql.buffers.formatting.FormattingMode.PRETTY, expect.any(Function), true,
+            dashql.buffers.formatting.KeywordCase.UPPER, dashql.buffers.formatting.FormattingDialect.TRINO,
+        );
     });
 
     it('folds the result with the status bar and folds a result without rows by itself', () => {
