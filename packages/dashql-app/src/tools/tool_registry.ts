@@ -14,8 +14,8 @@ export interface ToolEntry {
 /// The tools, in the order of the list
 export const TOOLS: readonly ToolEntry[] = [
     {
-        id: 'unpack',
-        title: 'Unpack',
+        id: 'unpacker',
+        title: 'Unpacker',
         description: 'Drop a .dashql file and look into the tables of its Parquet files.',
     },
     {

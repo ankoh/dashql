@@ -854,11 +854,11 @@ async function testEmbed(page, navigate) {
     if (!probe.steps.some(step => step.detail.includes('n=5000000'))) throw new Error(`Hyper returned ${JSON.stringify(probe.steps)}`);
 }
 
-/// The unpack tool on its own page, served without the extension like Pages serves it. The browser tests of the app
+/// The unpacker tool on its own page, served without the extension like Pages serves it. The browser tests of the app
 /// read real archives, the page only boots and reports a file that is no archive.
-async function testUnpackTool(page, navigate) {
-    await navigate('/tools/unpack');
-    await page.getByRole('heading', { name: 'Unpack' }).waitFor();
+async function testUnpackerTool(page, navigate) {
+    await navigate('/tools/unpacker');
+    await page.getByRole('heading', { name: 'Unpacker' }).waitFor();
     await page.getByRole('button', { name: /Drop a \.dashql file/ }).waitFor();
     await page.getByLabel('Open a .dashql file').setInputFiles({ name: 'script.sql', mimeType: 'text/plain', buffer: Buffer.from('select 1;') });
     await page.getByRole('alert').filter({ hasText: 'script.sql is not a ZIP archive' }).waitFor();
@@ -896,7 +896,7 @@ const PAGE_TESTS = [
     { name: 'shell', options: DESKTOP, test: testShell },
     { name: 'demos', options: DESKTOP, test: testDemos },
     { name: 'embed', options: NARROW, test: testEmbed },
-    { name: 'tools_unpack', options: DESKTOP, test: testUnpackTool },
+    { name: 'tools_unpacker', options: DESKTOP, test: testUnpackerTool },
     { name: 'tools_analyzer', options: DESKTOP, test: testAnalyzerTool },
     { name: 'oauth', options: DESKTOP, test: testOAuth },
 ];

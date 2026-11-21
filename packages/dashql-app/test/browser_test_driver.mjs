@@ -75,8 +75,8 @@ function responseHeaders(pathname, file, size) {
 // The URL of the test frame of a shard lists its files
 const server = createServer({ maxHeaderSize: 1024 * 1024 }, (request, response) => {
     const pathname = decodeURIComponent(new URL(request.url ?? '/', 'http://localhost').pathname);
-    // Pages serves a page without its extension, /tools/unpack is tools/unpack.html, and the app for the routes of its
-    // router, since the bundle has no 404.html
+    // Pages serves a page without its extension, /tools/unpacker is tools/unpacker.html, and the app for the routes of
+    // its router, since the bundle has no 404.html
     const page = extname(pathname) === '' && pathname !== '/' ? `${pathname.slice(1)}.html` : null;
     const relative = normalize(page != null && existsSync(join(root, page)) ? page
         : pathname === '/' || extname(pathname) === '' ? 'index.html' : pathname.slice(1));

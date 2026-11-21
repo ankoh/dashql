@@ -14,7 +14,7 @@ import { LoggerProvider } from '../../host/logger_provider.js';
 import { EmbeddedDatabaseProvider } from '../../host/embedded_database_provider.js';
 import { StandaloneRuntime } from '../../host/standalone_runtime.js';
 import { createTestHyperDB, withoutTermination } from '../../tests/hyperdb_test_client.js';
-import { UnpackPage } from './unpack_page.js';
+import { UnpackerPage } from './unpacker_page.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 beforeAll(async () => { await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
@@ -24,7 +24,7 @@ vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 let database: HyperDB;
 let disposeDatabase: (() => Promise<void>) | null = null;
 beforeAll(async () => {
-    ({ database, dispose: disposeDatabase } = await createTestHyperDB('dashql-unpack'));
+    ({ database, dispose: disposeDatabase } = await createTestHyperDB('dashql-unpacker'));
 }, 60_000);
 afterAll(async () => {
     await disposeDatabase?.();
@@ -49,7 +49,7 @@ async function testArchive(): Promise<File> {
     return new File([await zip.close()], 'orders.dashql');
 }
 
-describe('UnpackPage', () => {
+describe('UnpackerPage', () => {
     let root: ReturnType<typeof createTestRoot>;
     let runtime: Runtime | null;
 
@@ -67,7 +67,7 @@ describe('UnpackPage', () => {
                 <EmbeddedDatabaseProvider setupDatabase={async () => withoutTermination(database)}>
                     <StandaloneRuntime>
                         <Capture />
-                        <UnpackPage />
+                        <UnpackerPage />
                     </StandaloneRuntime>
                 </EmbeddedDatabaseProvider>
             </LoggerProvider>,

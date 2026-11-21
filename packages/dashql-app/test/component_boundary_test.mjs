@@ -14,7 +14,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 /// The modules of the components that show a model
 const COMPONENTS = [
     'src/workbook/feed/script_card.tsx',
-    'src/tools/unpack/parquet_file_card.tsx',
+    'src/tools/unpacker/parquet_file_card.tsx',
     'src/tools/analyzer/analyzer_card.tsx',
     'src/tools/analyzer/script_phases.tsx',
     'src/tools/analyzer/format_menu.tsx',

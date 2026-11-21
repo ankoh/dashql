@@ -27,18 +27,18 @@ in a new tab of the same origin, the desktop app opens it on dashql.app in the b
   without storage and connections, without an HTTP client if the page sends no requests, for the hooks, models and
   components of `@akohn/dashql-react`. A tool without computations or scripts needs no core at all.
 
-## Unpack
+## Unpacker
 
-`/tools/unpack` shows what a `.dashql` file holds ([workbook_tables.md](workbook_tables.md)): a card per Parquet file of
-the archive, and the other entries in a list below. A card reads its file when it first opens, and the data table of
+`/tools/unpacker` shows what a `.dashql` file holds ([workbook_tables.md](workbook_tables.md)): a card per Parquet file
+of the archive, and the other entries in a list below. A card reads its file when it first opens, and the data table of
 `@akohn/dashql-react` shows its rows. Only archives of the current format have Parquet files, an archive of an older
 version shows its entries as other entries.
 
 | Part | Module |
 |------|--------|
-| Providers: logger, embedded Hyper, core, `StandaloneRuntime` | `src/tools/unpack/unpack.tsx` |
-| Drop zone, file picker, the cards | `unpack_page.tsx` |
-| The ZIP container (zip.js): entries, sizes, the bytes of a file | `unpack_archive.ts` |
+| Providers: logger, embedded Hyper, core, `StandaloneRuntime` | `src/tools/unpacker/unpacker.tsx` |
+| Drop zone, file picker, the cards | `unpacker_page.tsx` |
+| The ZIP container (zip.js): entries, sizes, the bytes of a file | `unpacker_archive.ts` |
 | A Parquet file as a computation: Hyper scans it (`readParquetFile` of `platform/hyperdb/hyperdb_parquet_read.ts`, shared with the import), the runtime analyzes it (`analyzeTable`) | `use_parquet_computation.ts` |
 | The card of a file, a component with plain props and the table as a slot | `parquet_file_card.tsx` |
 
@@ -46,8 +46,8 @@ The computation of a file stays while its archive is shown, a card that opens ag
 replaces the cards and deletes their computations. The table shows no column plots, the analysis skips the column
 aggregates. The page loads no client function specs, no flavor and no cell detail with its editor.
 
-`src/tools/unpack/unpack_page.test.tsx` writes an archive with Hyper and zip.js, drops it on the page and reads a table.
-The page test boots the real page and drops a file that is no archive.
+`src/tools/unpacker/unpacker_page.test.tsx` writes an archive with Hyper and zip.js, drops it on the page and reads a
+table. The page test boots the real page and drops a file that is no archive.
 
 ## Analyzer
 

@@ -9,9 +9,9 @@ import { useComputation } from '@akohn/dashql-react/hooks';
 import { useComputationModel } from '@akohn/dashql-react/models/computation_model';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { ParquetFileCard } from './parquet_file_card.js';
-import { isParquetFile, openArchive, type ArchiveFile, type UnpackedArchive } from './unpack_archive.js';
+import { isParquetFile, openArchive, type ArchiveFile, type UnpackedArchive } from './unpacker_archive.js';
 import { useParquetComputation } from './use_parquet_computation.js';
-import * as styles from './unpack_page.module.css';
+import * as styles from './unpacker_page.module.css';
 
 /// The tallest a table of a card grows before it scrolls
 const TABLE_MAX_HEIGHT = 480;
@@ -85,8 +85,8 @@ function ArchiveFiles(props: { archive: UnpackedArchive }) {
     );
 }
 
-/// The unpack tool: drop a `.dashql` file and look into the tables of its Parquet files, see docs/design/tools.md
-export function UnpackPage() {
+/// The unpacker tool: drop a `.dashql` file and look into the tables of its Parquet files, see docs/design/tools.md
+export function UnpackerPage() {
     const [archive, setArchive] = React.useState<UnpackedArchive | null>(null);
     // Every opened file gets cards of its own, also a file that is opened again
     const [generation, setGeneration] = React.useState(0);
@@ -160,7 +160,7 @@ export function UnpackPage() {
             <div className={styles.content}>
                 <header className={styles.header}>
                     <div>
-                        <h1 className={styles.title}>Unpack</h1>
+                        <h1 className={styles.title}>Unpacker</h1>
                         <div className={styles.subtitle}>What a .dashql file holds, a table per Parquet file</div>
                     </div>
                     <Button

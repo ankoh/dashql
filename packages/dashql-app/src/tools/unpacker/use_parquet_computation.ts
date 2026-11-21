@@ -3,7 +3,7 @@ import * as React from 'react';
 import { useRuntime } from '@akohn/dashql-react/hooks';
 import { readParquetFile } from '@akohn/dashql/platform/hyperdb/hyperdb_parquet_read';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
-import type { ArchiveFile } from './unpack_archive.js';
+import type { ArchiveFile } from './unpacker_archive.js';
 import type { ParquetTableState } from './parquet_file_card.js';
 
 /// The table of a Parquet file of an archive as a computation of the runtime, for the data table. The file is read
