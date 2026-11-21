@@ -14,7 +14,6 @@ import { createTrace } from '../../platform/logger/trace_context.js';
 import { LoggableException, stringifyError, type Logger } from '../../platform/logger/logger.js';
 import type { LogRecord } from '../../platform/logger/log_buffer.js';
 import type { EmbeddedComputeDatabase } from '../../platform/embedded_database.js';
-import { supportsParquet, type ParquetDatabase } from '../../platform/hyperdb/hyperdb_parquet_export.js';
 
 /// The compute database of the platform, it resolves once the platform set it up
 type ComputeDatabase = () => Promise<EmbeddedComputeDatabase>;
@@ -145,10 +144,9 @@ export class QueryChannels {
 
     /// The query result cache over the compute database
     private createResultCache(cache: QueryResultCache, computeDatabase: ComputeDatabase | null): core.RuntimeResultCache {
-        const database = async (): Promise<ParquetDatabase> => {
-            const database = await computeDatabase?.() ?? null;
-            if (!supportsParquet(database)) throw new Error('The compute database reads no Parquet files');
-            return database;
+        const database = async (): Promise<EmbeddedComputeDatabase> => {
+            if (computeDatabase == null) throw new Error('The query result cache needs a compute database');
+            return await computeDatabase();
         };
         return {
             lookup: async key => {

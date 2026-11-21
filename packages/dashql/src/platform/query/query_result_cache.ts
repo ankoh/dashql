@@ -1,6 +1,6 @@
 import type * as arrow from 'apache-arrow';
 
-import type { ParquetDatabase } from '../hyperdb/hyperdb_parquet_export.js';
+import type { EmbeddedComputeDatabase } from '../embedded_database.js';
 
 /// The error of a query that may only read a cached result, see `cacheOnly` of the query execution args
 export class QueryCacheMissError extends Error {
@@ -74,12 +74,12 @@ export interface QueryResultCache {
     newTransientFileName(): string;
     /// Mount the files in a database. The mount is shared and stays, after files were removed it is refreshed, so
     /// the database forgets the files it opened. Queries that read files keep reading them.
-    mount(database: ParquetDatabase): Promise<void>;
+    mount(database: EmbeddedComputeDatabase): Promise<void>;
     /// Write a table as file `name` while the files are mounted in the database. The file of a key is written under
     /// another name and moved in place once it is complete, the older files of the key are removed. Returns the file.
-    writeTable(database: ParquetDatabase, table: arrow.Table, name: string): Promise<File>;
+    writeTable(database: EmbeddedComputeDatabase, table: arrow.Table, name: string): Promise<File>;
     /// Read a file into a table while it is pinned and mounted in the database
-    readTable(database: ParquetDatabase, name: string): Promise<arrow.Table>;
+    readTable(database: EmbeddedComputeDatabase, name: string): Promise<arrow.Table>;
     /// The bytes of a file, the caller pins it while it reads them, e.g. to export them with a workbook
     readFile(name: string): Promise<Blob>;
     /// Add a result of a key as a new file of the key, e.g. a result that an exported workbook carries. The bytes are

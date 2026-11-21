@@ -12,7 +12,7 @@ import type { StorageBackend, WorkbookData } from '../../platform/storage/storag
 import type { ScriptDataMap, WorkbookScripts } from '../../platform/workbook/workbook_scripts.js';
 import { TestLogger } from '../../platform/testing/test_logger.js';
 import { WorkbookTestBackend } from '../../platform/testing/workbook_test_backend.js';
-import { createRuntimeArchives, type ParquetReadDatabase } from '../workbook_archives.js';
+import { createRuntimeArchives } from '../workbook_archives.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -33,7 +33,7 @@ export interface TestRuntimeOptions {
     /// The cache of query results, none by default
     resultCache?: QueryResultCache | null;
     /// The database that writes and scans the Parquet files of `.dashql` archives, none by default
-    archiveDatabase?: (context: string) => Promise<ParquetReadDatabase>;
+    archiveDatabase?: (context: string) => Promise<EmbeddedComputeDatabase>;
     /// Keep the catalog loader running. It asks connections that come online about their catalogs, the tests of other
     /// services stop it.
     catalogLoader?: boolean;

@@ -2,7 +2,7 @@ import type * as arrow from 'apache-arrow';
 import type * as core from '../../core/index.js';
 import type * as pb from '../proto.js';
 
-import type { EmbeddedClientContext, EmbeddedConnection, EmbeddedDatabase, EmbeddedResultStream } from '../embedded_database.js';
+import type { EmbeddedClientContext, EmbeddedComputeDatabase, EmbeddedConnection, EmbeddedResultStream } from '../embedded_database.js';
 import { embeddedAttachedDatabasePath } from '../hyperdb/hyperdb_opfs_instance.js';
 import {
     createQueryResponseStreamMetrics,
@@ -102,7 +102,7 @@ export class EmbeddedDatabaseChannel {
     /// One connection keeps the workbook state of the scripts, such as settings and attached databases.
     private previousQuery: Promise<void> = Promise.resolve();
 
-    constructor(private readonly connection: EmbeddedConnection) {}
+    constructor(private readonly connection: Pick<EmbeddedConnection, 'queryStream' | 'close'>) {}
 
     /// Wait for the turn of a query, returns what ends it. The next query waits for this one as well, this query may be
     /// cancelled while it waits.
@@ -161,7 +161,7 @@ export class EmbeddedHyperDatabaseChannel implements HyperDatabaseChannel {
 /// channel request): the database of the instance, or the databases of the clouds folder that a local cloud attaches
 /// like a Hyper server. The Hyper log attributes the queries of the session to the client context.
 export async function connectEmbeddedHyper(
-    database: EmbeddedDatabase,
+    database: Pick<EmbeddedComputeDatabase, 'connect'>,
     session: core.EmbeddedHyperSession | null,
     clientContext?: EmbeddedClientContext,
 ): Promise<EmbeddedHyperDatabaseChannel> {

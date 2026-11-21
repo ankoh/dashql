@@ -4,7 +4,7 @@ DashQL caches successful user-query results in Parquet files of the origin priva
 
 ## Scope
 
-The cache stores a result table as Parquet file, written and read by the compute database (hyperdb-wasm) whatever connection ran the query. The cache needs a compute database that mounts directories (`supportsParquet`) and a `QueryResultCache` that the platform passes to `createRuntime` as `resultCache` (the app takes it from `QueryResultCacheProvider`, `useQueryResultCache()`), and it applies only when the caller opts in through `QueryExecutionArgs.cacheable` and passes the script signature of the key (`cacheSignature`). Without a cache nothing is cached.
+The cache stores a result table as Parquet file, written and read by the compute database (hyperdb-wasm) whatever connection ran the query. The cache needs the compute database and a `QueryResultCache` that the platform passes to `createRuntime` as `resultCache` (the app takes it from `QueryResultCacheProvider`, `useQueryResultCache()`), and it applies only when the caller opts in through `QueryExecutionArgs.cacheable` and passes the script signature of the key (`cacheSignature`). Without a cache nothing is cached.
 
 Every connection decides whether its query results are cached: the toggle **Cache query results** in the connection settings, applied right away (`setQueryResultCaching`). The app manifest keeps the choice in the connection entry (`cacheQueryResults`); without a choice the connector decides (`ConnectorFeatures` of `connections/params.rs` in the core runtime: off for Hyper, on for Salesforce, Database.com and Trino), and the view of the connection carries the decision (`cachesQueryResults`).
 

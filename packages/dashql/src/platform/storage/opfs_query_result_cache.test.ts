@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { ParquetDatabase } from '../hyperdb/hyperdb_parquet_export.js';
+import type { EmbeddedComputeDatabase } from '../embedded_database.js';
 import { getOPFSRoot } from '../opfs_root.js';
 import { Crc32 } from '../utils/crc32.js';
 import { cacheFileKey, createOPFSQueryResultCache, isTransientCacheFile, QUERY_RESULT_CACHE_DIRECTORY, QUERY_RESULT_CACHE_MOUNT } from './opfs_query_result_cache.js';
@@ -258,7 +258,7 @@ describe('OPFS query result cache', () => {
         });
         const c = cache();
         const first = fakeDatabase();
-        const database = first as unknown as ParquetDatabase;
+        const database = first as unknown as EmbeddedComputeDatabase;
         await c.mount(database);
         await c.mount(database);
         expect(first.registerExternalDirectory).toHaveBeenCalledTimes(1);
@@ -284,7 +284,7 @@ describe('OPFS query result cache', () => {
         expect(first.refreshExternalDirectory).toHaveBeenCalledTimes(3);
         // Another database, e.g. after a restart of the engine, gets its own mount
         const second = fakeDatabase();
-        await c.mount(second as unknown as ParquetDatabase);
+        await c.mount(second as unknown as EmbeddedComputeDatabase);
         expect(first.removeExternalDirectory).toHaveBeenCalledWith(QUERY_RESULT_CACHE_MOUNT);
         expect(second.registerExternalDirectory).toHaveBeenCalledTimes(1);
         expect(second.refreshExternalDirectory).not.toHaveBeenCalled();

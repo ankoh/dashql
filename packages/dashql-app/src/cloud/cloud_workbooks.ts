@@ -26,7 +26,7 @@ import {
 import { useLogger } from '../host/logger_provider.js';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { SELECT_WORKBOOK, useRouteContext, useRouterNavigate } from '../app/router.js';
-import { useWorkbookArchiveDatabase } from '../workbook/persistence/workbook_archive_database.js';
+import { useEmbeddedDatabaseSetup } from '../host/embedded_database_provider.js';
 import {
     isCloudPreview,
     workbookCloudLink,
@@ -193,7 +193,7 @@ export function useCloudWorkbooks(): CloudWorkbooks {
         if (!cloud.online) throw new Error(cloud.connection.name == null ? 'The cloud is not online' : `The cloud ${cloud.connection.name} is not online`);
         return { cloud, query: queryOf(cloudId), database: cloud.database };
     }, [queryOf]);
-    const archiveDatabase = useWorkbookArchiveDatabase();
+    const archiveDatabase = useEmbeddedDatabaseSetup();
     const workbookImport = useWorkbookImport();
     const navigate = useRouterNavigate();
     const runtime = useOptionalRuntime();

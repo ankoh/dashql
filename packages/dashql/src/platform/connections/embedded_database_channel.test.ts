@@ -42,7 +42,7 @@ function produceAll(stream: QueryExecutionResponseStream): Promise<arrow.RecordB
 function createExclusiveConnection() {
     const running: { resolve: (table: arrow.Table) => void; reject: (error: Error) => void }[] = [];
     let active = false;
-    const connection: EmbeddedConnection = {
+    const connection: Pick<EmbeddedConnection, 'close' | 'query' | 'execute' | 'queryStream'> = {
         close: vi.fn().mockResolvedValue(undefined),
         query: vi.fn(),
         execute: vi.fn(),
@@ -156,7 +156,7 @@ describe('EmbeddedDatabaseChannel', () => {
 
     it('streams the result batches to the query response stream', async () => {
         const table = tableFromArrays({ value: [1, 2, 3] });
-        const connection: EmbeddedConnection = {
+        const connection: Pick<EmbeddedConnection, 'close' | 'query' | 'execute' | 'queryStream'> = {
             close: vi.fn().mockResolvedValue(undefined),
             query: vi.fn(),
             execute: vi.fn(),
@@ -175,7 +175,7 @@ describe('EmbeddedDatabaseChannel', () => {
     });
 
     it('honors an already-aborted query and closes the logical connection', async () => {
-        const connection: EmbeddedConnection = {
+        const connection: Pick<EmbeddedConnection, 'close' | 'query' | 'execute' | 'queryStream'> = {
             close: vi.fn().mockResolvedValue(undefined),
             query: vi.fn(),
             execute: vi.fn(),
@@ -193,7 +193,7 @@ describe('EmbeddedDatabaseChannel', () => {
 
     it('forwards cancellation while a query is running', async () => {
         let signal: AbortSignal | undefined;
-        const connection: EmbeddedConnection = {
+        const connection: Pick<EmbeddedConnection, 'close' | 'query' | 'execute' | 'queryStream'> = {
             close: vi.fn().mockResolvedValue(undefined),
             query: vi.fn(),
             execute: vi.fn(),

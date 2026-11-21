@@ -6,7 +6,7 @@ import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info
 import type { HyperDatabaseChannel } from '@akohn/dashql/platform/connections/hyper/hyperdb_grpc_client';
 import { useOptionalRuntime } from '@akohn/dashql-react/hooks';
 import { useHyperLogMetrics } from './hyper/hyper_log_metrics_provider.js';
-import { dropsAttachedDatabases } from '@akohn/dashql/platform/embedded_database';
+import type { EmbeddedComputeDatabase } from '@akohn/dashql/platform/embedded_database';
 import { useEmbeddedDatabaseSetup } from '../host/embedded_database_provider.js';
 import { embeddedAttachedDatabasePath } from '@akohn/dashql/platform/hyperdb/hyperdb_opfs_instance';
 import { useLogger } from '../host/logger_provider.js';
@@ -54,8 +54,7 @@ export function useDeleteConnection(): DeleteConnection {
 }
 
 /// Drop databases of the clouds folder through the embedded Hyper, the sessions that attach them must be closed
-async function dropCloudDatabases(embedded: object, paths: readonly string[], logger: Logger): Promise<void> {
-    if (!dropsAttachedDatabases(embedded)) return;
+async function dropCloudDatabases(embedded: EmbeddedComputeDatabase, paths: readonly string[], logger: Logger): Promise<void> {
     for (const path of paths) {
         try {
             await embedded.dropAttachedDatabase(await embeddedAttachedDatabasePath(path));

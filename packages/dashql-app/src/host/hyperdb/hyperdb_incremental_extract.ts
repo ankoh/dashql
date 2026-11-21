@@ -5,7 +5,6 @@ import type {
     EmbeddedClientContext,
     EmbeddedComputeDatabase,
     EmbeddedConnection,
-    EmbeddedTableImportConnection,
 } from '@akohn/dashql/platform/embedded_database';
 
 /// A column of a query result or table.
@@ -178,7 +177,7 @@ export class HyperDBIncrementalExtract {
         /// The sink connection with the attached extract database
         private readonly sink: EmbeddedConnection,
         /// The sink connection that stages transfers, Arrow inserts need a connection with a single database
-        private readonly stager: EmbeddedTableImportConnection,
+        private readonly stager: EmbeddedConnection,
         /// The name of the staging table of transfers in the sink
         private readonly stagingTable: string,
         /// The options of the extract
@@ -195,7 +194,7 @@ export class HyperDBIncrementalExtract {
     static async open(options: HyperDBIncrementalExtractOptions): Promise<HyperDBIncrementalExtract> {
         const { source, clientContext } = options;
         let sink: EmbeddedConnection | null = null;
-        let stager: EmbeddedTableImportConnection | null = null;
+        let stager: EmbeddedConnection | null = null;
         let reader: HyperDBSourceConnection | null = null;
         try {
             // Open the source first, a source that cannot be read leaves no extract file behind
@@ -451,7 +450,7 @@ async function describeQuery(connection: HyperDBSourceConnection, query: string,
 /// Append the fetched rows that are new to the extract to all extract tables, in one transaction of the extract.
 async function transfer(
     sink: EmbeddedConnection,
-    stager: EmbeddedTableImportConnection,
+    stager: EmbeddedConnection,
     stagingTable: string,
     options: HyperDBIncrementalExtractOptions,
     names: ExtractNames,

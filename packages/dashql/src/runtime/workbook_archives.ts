@@ -1,8 +1,8 @@
 import * as arrow from 'apache-arrow';
 import type * as core from '../core/index.js';
 
-import type { EmbeddedComputeDatabase, EmbeddedExternalFileDatabase } from '../platform/embedded_database.js';
-import { exportArrowTableAsParquet, supportsParquetExport, type ParquetExportDatabase } from '../platform/hyperdb/hyperdb_parquet_export.js';
+import type { EmbeddedComputeDatabase } from '../platform/embedded_database.js';
+import { exportArrowTableAsParquet } from '../platform/hyperdb/hyperdb_parquet_export.js';
 import type { HandleTable } from './store/handles.js';
 import {
     archiveError,
@@ -22,16 +22,8 @@ import {
 // the platform keeps the ZIP container (zip.js) and the Parquet files of the workbook tables (the embedded Hyper). The
 // rows of a workbook table cross as Arrow IPC, the attachments and results by handle.
 
-/// A database that reads Parquet files: the embedded Hyper mounts a file and scans it
-export type ParquetReadDatabase = ParquetExportDatabase & EmbeddedExternalFileDatabase;
-
-/// Can the database read Parquet files?
-export function supportsParquetRead(database: EmbeddedComputeDatabase | null): database is ParquetReadDatabase {
-    return supportsParquetExport(database) && 'registerExternalFile' in database && 'removeExternalFile' in database;
-}
-
 /// Scan a Parquet file with the embedded Hyper
-async function readParquet(database: ParquetReadDatabase, file: Blob): Promise<arrow.Table> {
+async function readParquet(database: EmbeddedComputeDatabase, file: Blob): Promise<arrow.Table> {
     // Every read mounts the file under a name of its own, reads of several archives may run at the same time
     const path = await database.registerExternalFile(`${crypto.randomUUID()}.parquet`, file);
     try {
@@ -55,7 +47,7 @@ interface ArchiveReader {
 
 /// `archives` of the platform over the handle table and the embedded database that writes and scans the Parquet files.
 /// The database is set up when an archive first needs it.
-export function createRuntimeArchives(handles: HandleTable, database: (context: string) => Promise<ParquetReadDatabase>): core.RuntimeArchives {
+export function createRuntimeArchives(handles: HandleTable, database: (context: string) => Promise<EmbeddedComputeDatabase>): core.RuntimeArchives {
     const readers = new Map<number, ArchiveReader>();
     const blobOf = (handle: number): Blob => {
         const blob = handles.get<unknown>(handle);

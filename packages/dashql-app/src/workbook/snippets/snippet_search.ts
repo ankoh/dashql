@@ -1,6 +1,6 @@
 import * as arrow from 'apache-arrow';
 
-import type { EmbeddedComputeDatabase, EmbeddedTableImportConnection } from '@akohn/dashql/platform/embedded_database';
+import type { EmbeddedComputeDatabase, EmbeddedConnection } from '@akohn/dashql/platform/embedded_database';
 import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { utf8Vector } from '@akohn/dashql/platform/utils/arrow_vectors';
 import type { SnippetRegistry } from './snippet_registry.js';
@@ -41,7 +41,7 @@ export class SnippetSearch {
     /// The last statement sequence, the next one starts after it
     private operation: Promise<unknown> = Promise.resolve();
 
-    constructor(private readonly connection: EmbeddedTableImportConnection) {}
+    constructor(private readonly connection: EmbeddedConnection) {}
 
     /// Connect to the snippet database of a database instance
     static async connect(database: EmbeddedComputeDatabase): Promise<SnippetSearch> {

@@ -11,15 +11,12 @@ import type {
 
 import type {
     EmbeddedAttachedDatabase,
-    EmbeddedAttachedDatabases,
     EmbeddedComputeDatabase,
+    EmbeddedConnection,
     EmbeddedConnectionOptions,
     EmbeddedDatabaseAlias,
-    EmbeddedExternalFileDatabase,
-    EmbeddedMemoryDirectoryDatabase,
     EmbeddedResultStream,
     ExternalDirectoryMode,
-    EmbeddedTableImportConnection,
     EmbeddedTableInsertOptions,
 } from '../embedded_database.js';
 import { prepareHyperArrowInsert } from './hyperdb_arrow_insert.js';
@@ -110,7 +107,7 @@ function poolKey(alias: string | null, attached: readonly EmbeddedAttachedDataba
     return clientContext == null ? databases : `${databases}:${clientContext}`;
 }
 
-export class HyperDB implements EmbeddedComputeDatabase, EmbeddedExternalFileDatabase, EmbeddedMemoryDirectoryDatabase, EmbeddedAttachedDatabases {
+export class HyperDB implements EmbeddedComputeDatabase {
     private readonly sessions = new Set<HyperDBSession>();
     /// The idle pooled sessions by default database alias and client context, see poolKey()
     private readonly idleSessions = new Map<string, HyperDBSession[]>();
@@ -451,7 +448,7 @@ function throwIfAborted(signal?: AbortSignal): void {
 /// A connection lease handed out by HyperDB.connect().
 /// Closing it releases the physical session, which HyperDB may hand to the next lease.
 /// The lease stays closed, so a stale reference cannot run statements on a reused session.
-export class HyperDBConnection implements EmbeddedTableImportConnection {
+export class HyperDBConnection implements EmbeddedConnection {
     private closed = false;
 
     constructor(

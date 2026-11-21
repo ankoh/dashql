@@ -3,7 +3,6 @@ import type * as core from '../core/index.js';
 
 import type { HandleTable } from './store/handles.js';
 import type { CachePins } from './query/cache_pins.js';
-import { supportsParquet, type ParquetDatabase } from '../platform/hyperdb/hyperdb_parquet_export.js';
 import type { EmbeddedComputeDatabase } from '../platform/embedded_database.js';
 import type { QueryResultCache } from '../platform/query/query_result_cache.js';
 import type { AttachmentFiles, AttachmentMounts } from '../platform/workbook/attachment_mounts.js';
@@ -30,12 +29,7 @@ function memoryFiles(handles: HandleTable, files: core.RuntimeMemoryFile[] | nul
     return blobs;
 }
 
-export function createRunMounts(computeDatabase: () => Promise<EmbeddedComputeDatabase>, cache: QueryResultCache | null, handles: HandleTable, pins: CachePins, attachments: AttachmentMounts): core.RuntimeMounts {
-    const database = async (): Promise<ParquetDatabase> => {
-        const database = await computeDatabase();
-        if (!supportsParquet(database)) throw new Error('Scripts that read the results of other scripts or attachments need a compute database that reads Parquet files');
-        return database;
-    };
+export function createRunMounts(database: () => Promise<EmbeddedComputeDatabase>, cache: QueryResultCache | null, handles: HandleTable, pins: CachePins, attachments: AttachmentMounts): core.RuntimeMounts {
     const requireCache = () => {
         if (cache == null) throw new Error('Scripts that read the results of other scripts need the query result cache');
         return cache;

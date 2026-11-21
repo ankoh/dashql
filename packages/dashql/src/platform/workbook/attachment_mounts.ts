@@ -1,6 +1,5 @@
 import { getOPFSRoot } from '../opfs_root.js';
-import type { ParquetDatabase } from '../hyperdb/hyperdb_parquet_export.js';
-import { supportsMemoryDirectories } from '../embedded_database.js';
+import type { EmbeddedComputeDatabase } from '../embedded_database.js';
 import { STORAGE_ATTACHMENTS_FOLDER, STORAGE_WORKBOOKS_FOLDER } from '../storage/storage_backend.js';
 import { attachmentPath, attachmentPrefix } from './workbook_attachments.js';
 
@@ -15,7 +14,7 @@ import { attachmentPath, attachmentPrefix } from './workbook_attachments.js';
 /// keeps its own mounts (`AttachmentMounts`), and removes them when it is destroyed.
 interface AttachmentMount {
     /// The database that mounted the folder
-    database: ParquetDatabase;
+    database: EmbeddedComputeDatabase;
     /// The files of a memory mount, null for the folder
     files: AttachmentFiles | null;
     /// Did the attachments change since the mount or its last refresh?
@@ -46,7 +45,7 @@ export class AttachmentMounts {
 
     /// Mount the attachments of a workbook in a database, refresh the mount if they changed. The attachments are in
     /// the folder of the workbook (`files` null) or in memory. Returns the mount path.
-    mount(database: ParquetDatabase, workbookId: string, files: AttachmentFiles | null = null): Promise<string> {
+    mount(database: EmbeddedComputeDatabase, workbookId: string, files: AttachmentFiles | null = null): Promise<string> {
         return this.serialize(async () => {
             const path = attachmentPrefix(workbookId);
             let mount = this.mounts.get(workbookId);
@@ -62,7 +61,6 @@ export class AttachmentMounts {
                     const folder = await workbook.getDirectoryHandle(STORAGE_ATTACHMENTS_FOLDER, { create: true });
                     await database.registerExternalDirectory(folder, path, 'read');
                 } else {
-                    if (!supportsMemoryDirectories(database)) throw new Error('The compute database can not mount the attachments of a workbook in memory');
                     await database.registerMemoryDirectory(Object.fromEntries(files), path);
                 }
                 this.mounts.set(workbookId, { database, files, stale: false });
@@ -103,7 +101,7 @@ export class AttachmentMounts {
 
     /// Read the columns of a Parquet attachment with the embedded Hyper, the attachments in the folder of the workbook
     /// (`files` null) or in memory
-    async readColumns(database: ParquetDatabase, workbookId: string, fileName: string, files: AttachmentFiles | null = null): Promise<string[]> {
+    async readColumns(database: EmbeddedComputeDatabase, workbookId: string, fileName: string, files: AttachmentFiles | null = null): Promise<string[]> {
         await this.mount(database, workbookId, files);
         const connection = await database.connect({ pooled: true });
         try {

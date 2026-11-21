@@ -1,7 +1,7 @@
 import type * as arrow from 'apache-arrow';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import type { EmbeddedComputeDatabase, EmbeddedTableImportConnection } from '@akohn/dashql/platform/embedded_database';
+import type { EmbeddedComputeDatabase, EmbeddedConnection } from '@akohn/dashql/platform/embedded_database';
 import { setupWebHyperDB } from '../../host/hyperdb/hyperdb_provider_web.js';
 import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
 import { bindSqlTemplate } from '../shared/sql_template.js';
@@ -20,7 +20,7 @@ function plainRows(table: arrow.Table): Record<string, unknown>[] {
 
 describe('Stock Analysis SQL in HyperDB WASM', () => {
     let database: EmbeddedComputeDatabase;
-    let conn: EmbeddedTableImportConnection;
+    let conn: EmbeddedConnection;
     let now: number;
 
     beforeAll(async () => {

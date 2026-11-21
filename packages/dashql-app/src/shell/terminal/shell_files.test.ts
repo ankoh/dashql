@@ -1,9 +1,5 @@
 // @vitest-environment node
-import type {
-    EmbeddedExternalDirectoryDatabase,
-    EmbeddedExternalFileDatabase,
-    ExternalDirectoryMode,
-} from '@akohn/dashql/platform/embedded_database';
+import type { EmbeddedComputeDatabase, ExternalDirectoryMode } from '@akohn/dashql/platform/embedded_database';
 import type { LoggerLike } from '@akohn/dashql/platform/logger/logger';
 import {
     createShellFilesCommand,
@@ -18,7 +14,7 @@ function sourceFile(name: string): File {
     return new File([new Uint8Array([1, 2, 3])], name);
 }
 
-class MockExternalFiles implements EmbeddedExternalFileDatabase, EmbeddedExternalDirectoryDatabase {
+class MockExternalFiles implements Pick<EmbeddedComputeDatabase, 'registerExternalFile' | 'removeExternalFile' | 'registerExternalDirectory' | 'removeExternalDirectory'> {
     readonly files = new Map<string, Blob>();
     readonly directories = new Map<string, ExternalDirectoryMode>();
 

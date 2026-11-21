@@ -27,6 +27,10 @@ export interface EmbeddedConnection {
     queryStream(query: string, abort?: AbortSignal): Promise<EmbeddedResultStream>;
     /// Run a statement without a result, returns the affected rows of COPY, DELETE, FETCH, INSERT, MERGE and UPDATE.
     execute(statement: string, abort?: AbortSignal): Promise<bigint | null>;
+    /// Insert an Arrow table into a table, created first with `create`
+    insertArrowTable(table: arrow.Table, options: EmbeddedTableInsertOptions): Promise<void>;
+    /// Create a table with the result of a query
+    createTableAs(name: string, query: string, abort?: AbortSignal): Promise<void>;
 }
 
 /// A JSON object that describes the client of the queries of a connection
@@ -49,7 +53,7 @@ export interface EmbeddedConnectionOptions {
     defaultDatabase?: EmbeddedDatabaseAlias | null;
     /// Databases that the session attaches after its default database. Unlike the databases of the instance they
     /// outlive it: a database is created when a session first attaches it, unless it exists, and only dropped on request
-    /// (EmbeddedAttachedDatabases). Hyper
+    /// (dropAttachedDatabase). Hyper
     /// resolves unqualified names only in a session with a single database, a session that attaches one has no default
     /// database.
     attachedDatabases?: readonly EmbeddedAttachedDatabase[];
@@ -62,58 +66,33 @@ export interface EmbeddedConnectionOptions {
     clientContext?: EmbeddedClientContext;
 }
 
-export interface EmbeddedTableImportConnection extends EmbeddedConnection {
-    insertArrowTable(table: arrow.Table, options: EmbeddedTableInsertOptions): Promise<void>;
-    createTableAs(name: string, query: string, abort?: AbortSignal): Promise<void>;
-}
-
-export interface EmbeddedExternalFileDatabase {
-    registerExternalFile(name: string, blob: Blob, path?: string, signal?: AbortSignal): Promise<string>;
-    removeExternalFile(path: string): Promise<void>;
-}
-
 export type ExternalDirectoryMode = 'read' | 'readwrite';
 
-/// Drop a database that sessions attached, e.g. of a local cloud that is deleted
-export interface EmbeddedAttachedDatabases {
-    /// Drop the database file, unless it doesn't exist. Fails while a session attaches it.
-    dropAttachedDatabase(path: string): Promise<void>;
-}
+/// The embedded database (hyperdb-wasm): its connections, and the files and directories that its queries read and write
+export interface EmbeddedComputeDatabase {
+    terminate(): void | Promise<void>;
+    getVersion(): Promise<string>;
+    connect(options?: EmbeddedConnectionOptions): Promise<EmbeddedConnection>;
 
-/// Can the database drop the databases that its sessions attached?
-export function dropsAttachedDatabases(database: object): database is EmbeddedAttachedDatabases {
-    return typeof (database as Partial<EmbeddedAttachedDatabases>).dropAttachedDatabase === 'function';
-}
-
-/** Optional capability: mount files in memory as a directory, e.g. the attachments of a workbook of a runtime without storage. */
-export interface EmbeddedMemoryDirectoryDatabase extends EmbeddedExternalDirectoryDatabase {
-    /// Mount files in memory as a read-only directory at a path below `/mnt/external/`, by their paths in it. The
-    /// names of the files may be any, the path of the directory is ASCII. `removeExternalDirectory` unmounts it.
-    registerMemoryDirectory(files: Readonly<Record<string, Blob>>, path: string): Promise<string>;
-}
-
-/** Can a database mount files in memory as a directory? */
-export function supportsMemoryDirectories(database: EmbeddedExternalDirectoryDatabase): database is EmbeddedMemoryDirectoryDatabase {
-    return typeof (database as Partial<EmbeddedMemoryDirectoryDatabase>).registerMemoryDirectory === 'function';
-}
-
-/** Optional browser directory registration capability. */
-export interface EmbeddedExternalDirectoryDatabase {
+    /// Mount a file, returns its path
+    registerExternalFile(name: string, blob: Blob, path?: string, signal?: AbortSignal): Promise<string>;
+    removeExternalFile(path: string): Promise<void>;
+    /// Mount a directory of the browser, returns its path
     registerExternalDirectory(
         handle: FileSystemDirectoryHandle,
         path: string | undefined,
         mode: ExternalDirectoryMode,
     ): Promise<string>;
+    /// Mount files in memory as a read-only directory at a path below `/mnt/external/`, by their paths in it, e.g. the
+    /// attachments of a workbook of a runtime without storage. The names of the files may be any, the path of the
+    /// directory is ASCII. `removeExternalDirectory` unmounts it.
+    registerMemoryDirectory(files: Readonly<Record<string, Blob>>, path: string): Promise<string>;
     removeExternalDirectory(path: string): Promise<void>;
     /// Forget the files that the database opened below a mounted directory, the next access looks them up again.
     /// Running queries keep reading the files they opened.
     refreshExternalDirectory(path: string): Promise<void>;
-}
 
-export interface EmbeddedDatabase<Connection extends EmbeddedConnection = EmbeddedConnection> {
-    terminate(): void | Promise<void>;
-    getVersion(): Promise<string>;
-    connect(options?: EmbeddedConnectionOptions): Promise<Connection>;
+    /// Drop a database file that sessions attached, e.g. of a local cloud that is deleted, unless it doesn't exist.
+    /// Fails while a session attaches it.
+    dropAttachedDatabase(path: string): Promise<void>;
 }
-
-export type EmbeddedComputeDatabase = EmbeddedDatabase<EmbeddedTableImportConnection>;

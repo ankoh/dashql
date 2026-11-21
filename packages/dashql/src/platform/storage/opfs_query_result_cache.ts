@@ -1,7 +1,8 @@
 import type * as arrow from 'apache-arrow';
 
 import type { CacheFileStat, QueryResultCache, QueryResultCacheEntry } from '../query/query_result_cache.js';
-import { copyArrowTableAsParquet, type ParquetDatabase } from '../hyperdb/hyperdb_parquet_export.js';
+import type { EmbeddedComputeDatabase } from '../embedded_database.js';
+import { copyArrowTableAsParquet } from '../hyperdb/hyperdb_parquet_export.js';
 import { getOPFSRoot } from '../opfs_root.js';
 import { crc32CheckStream } from '../utils/crc32.js';
 
@@ -95,7 +96,7 @@ export function createOPFSQueryResultCache(options: OPFSQueryResultCacheOptions 
     });
 
     // The compute database that the files are mounted in, shared by the readers and writers of this window
-    let mountedIn: ParquetDatabase | null = null;
+    let mountedIn: EmbeddedComputeDatabase | null = null;
     // Did this window remove files since the mount was refreshed? The database still knows the files it opened.
     let mountStale = false;
     let mountChain: Promise<unknown> = Promise.resolve();
@@ -133,7 +134,7 @@ export function createOPFSQueryResultCache(options: OPFSQueryResultCacheOptions 
             });
         }));
     });
-    const mount = (database: ParquetDatabase) => serialize(async () => {
+    const mount = (database: EmbeddedComputeDatabase) => serialize(async () => {
         if (mountedIn != null && mountedIn !== database) {
             await mountedIn.removeExternalDirectory(QUERY_RESULT_CACHE_MOUNT).catch(() => {});
             mountedIn = null;
@@ -238,7 +239,7 @@ export function createOPFSQueryResultCache(options: OPFSQueryResultCacheOptions 
         newFileName: key => `${key}.${crypto.randomUUID()}.parquet`,
         newTransientFileName: () => `${crypto.randomUUID()}${TRANSIENT_SUFFIX}`,
         mount,
-        writeTable: async (database: ParquetDatabase, table: arrow.Table, name: string) => {
+        writeTable: async (database: EmbeddedComputeDatabase, table: arrow.Table, name: string) => {
             await mount(database);
             const dir = await directory();
             const key = cacheFileKey(name);
@@ -267,7 +268,7 @@ export function createOPFSQueryResultCache(options: OPFSQueryResultCacheOptions 
         },
         capacity: { maxBytes, maxFiles },
         fileStats: listFiles,
-        readTable: async (database: ParquetDatabase, name: string) => {
+        readTable: async (database: EmbeddedComputeDatabase, name: string) => {
             const release = await pin(name);
             try {
                 // The file may have been removed between the lookup and the pin

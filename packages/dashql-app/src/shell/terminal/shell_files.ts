@@ -1,8 +1,4 @@
-import type {
-    EmbeddedExternalDirectoryDatabase,
-    EmbeddedExternalFileDatabase,
-    ExternalDirectoryMode,
-} from '@akohn/dashql/platform/embedded_database';
+import type { EmbeddedComputeDatabase, ExternalDirectoryMode } from '@akohn/dashql/platform/embedded_database';
 import { stringifyError, type LoggerLike } from '@akohn/dashql/platform/logger/logger';
 import type { DashQLShellCommand } from './api.js';
 
@@ -21,23 +17,27 @@ export interface ShellFileListing {
     readonly directoryMode?: ExternalDirectoryMode;
 }
 
+/// The mounts of files and of directories of a database
+type ExternalFiles = Pick<EmbeddedComputeDatabase, 'registerExternalFile' | 'removeExternalFile'>;
+type ExternalDirectories = Pick<EmbeddedComputeDatabase, 'registerExternalDirectory' | 'removeExternalDirectory'>;
+
 interface FileOperationOptions {
     readonly signal?: AbortSignal;
     readonly onProgress?: (message: string) => void;
 }
 
 /// The external file registration of a database, if it supports it
-export function externalFileDatabase(database: unknown): EmbeddedExternalFileDatabase | undefined {
+export function externalFileDatabase(database: unknown): ExternalFiles | undefined {
     if (database == null || typeof database !== 'object') return undefined;
     if (!('registerExternalFile' in database) || !('removeExternalFile' in database)) return undefined;
-    return database as EmbeddedExternalFileDatabase;
+    return database as ExternalFiles;
 }
 
 /// The external directory registration of a database, if it supports it
-export function externalDirectoryDatabase(database: unknown): EmbeddedExternalDirectoryDatabase | undefined {
+export function externalDirectoryDatabase(database: unknown): ExternalDirectories | undefined {
     if (database == null || typeof database !== 'object') return undefined;
     if (!('registerExternalDirectory' in database) || !('removeExternalDirectory' in database)) return undefined;
-    return database as EmbeddedExternalDirectoryDatabase;
+    return database as ExternalDirectories;
 }
 
 export class ShellFileRegistry {
@@ -48,8 +48,8 @@ export class ShellFileRegistry {
 
     constructor(
         private readonly logger?: LoggerLike,
-        private readonly externalFiles?: EmbeddedExternalFileDatabase,
-        private readonly externalDirectories?: EmbeddedExternalDirectoryDatabase,
+        private readonly externalFiles?: ExternalFiles,
+        private readonly externalDirectories?: ExternalDirectories,
     ) {}
 
     async list(): Promise<readonly string[]> {

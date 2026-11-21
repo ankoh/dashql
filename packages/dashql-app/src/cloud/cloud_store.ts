@@ -4,7 +4,7 @@ import { DASHQL_VERSION } from '../globals.js';
 import { exportArrowTableAsParquet } from '@akohn/dashql/platform/hyperdb/hyperdb_parquet_export';
 import { prepareHyperArrowInsert } from '@akohn/dashql/platform/hyperdb/hyperdb_arrow_insert';
 import type * as core from '@akohn/dashql';
-import type { ParquetReadDatabase } from '@akohn/dashql/runtime/workbook_archives';
+import type { EmbeddedComputeDatabase } from '@akohn/dashql/platform/embedded_database';
 import {
     ATTACHMENT_TABLE_PREFIX,
     ATTACHMENTS_TABLE,
@@ -226,7 +226,7 @@ function numberedVersions(rows: readonly CloudWorkbookVersion[]): CloudWorkbookV
 export async function publishCloudWorkbook(
     instance: core.DashQL,
     query: CloudQuery,
-    local: ParquetReadDatabase,
+    local: EmbeddedComputeDatabase,
     tables: WorkbookTables,
     options: CloudPublishOptions = {},
 ): Promise<CloudWorkbookVersion> {
@@ -328,7 +328,7 @@ function nullableLiteral(value: string | null | undefined): string {
 }
 
 /// Read a data table to publish, with an error that names it if the embedded Hyper can't read it
-async function readDataTable(local: ParquetReadDatabase, what: string, file: Blob, signal?: AbortSignal): ReturnType<typeof readParquetAsText> {
+async function readDataTable(local: EmbeddedComputeDatabase, what: string, file: Blob, signal?: AbortSignal): ReturnType<typeof readParquetAsText> {
     try {
         return await readParquetAsText(local, file, signal);
     } catch (error) {
@@ -350,7 +350,7 @@ async function insertRows(
     }
 }
 /// The columns of a Parquet file and its rows as the text of their values, read by the embedded Hyper
-export async function readParquetAsText(local: ParquetReadDatabase, file: Blob, signal?: AbortSignal): Promise<{ columns: CloudColumn[]; rows: Array<Array<string | null>> }> {
+export async function readParquetAsText(local: EmbeddedComputeDatabase, file: Blob, signal?: AbortSignal): Promise<{ columns: CloudColumn[]; rows: Array<Array<string | null>> }> {
     const path = await local.registerExternalFile(`${crypto.randomUUID()}.parquet`, file, undefined, signal);
     try {
         const connection = await local.connect({ pooled: true });
@@ -486,7 +486,7 @@ function textColumn(table: arrow.Table, name: string): string[] {
 export async function readCloudWorkbook(
     instance: core.DashQL,
     query: CloudQuery,
-    local: ParquetReadDatabase,
+    local: EmbeddedComputeDatabase,
     workbookId: string,
     options: CloudStoreOptions & { versionId?: string } = {},
 ): Promise<{ version: CloudWorkbookVersion; tables: CloudWorkbookTables }> {

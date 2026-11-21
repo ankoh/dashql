@@ -1,7 +1,7 @@
 import * as arrow from 'apache-arrow';
 import type * as core from '../core/index.js';
 
-import type { EmbeddedClientContext, EmbeddedComputeDatabase, EmbeddedTableImportConnection } from '../platform/embedded_database.js';
+import type { EmbeddedClientContext, EmbeddedComputeDatabase, EmbeddedConnection } from '../platform/embedded_database.js';
 import { appendRowNumbers, isArrowTable } from './store/runtime_tables.js';
 
 /// The client context of the opaque JSON of the runtime
@@ -47,7 +47,7 @@ export function createComputePlatform(database: () => Promise<EmbeddedComputeDat
             if (controllers.size === 0) runs.delete(run);
         }
     };
-    const withConnection = async <T>(clientContext: EmbeddedClientContext | null, fn: (conn: EmbeddedTableImportConnection) => Promise<T>): Promise<T> => {
+    const withConnection = async <T>(clientContext: EmbeddedClientContext | null, fn: (conn: EmbeddedConnection) => Promise<T>): Promise<T> => {
         const conn = await (await database()).connect({ pooled: true, clientContext: clientContext ?? undefined });
         try {
             return await fn(conn);

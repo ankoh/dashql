@@ -23,7 +23,6 @@ import { useStorageReader } from '../storage/storage_provider.js';
 import { useAppHandOver } from './app_hand_over.js';
 import { FRAME_UPDATE_SCHEDULER } from '../utils/store_hooks.js';
 import { useDashQLCore } from './core_provider.js';
-import { useWorkbookArchiveDatabase } from '../workbook/persistence/workbook_archive_database.js';
 
 const NO_HTTP: HttpClient = {
     fetch: () => Promise.reject(new Error('the app has no http client')),
@@ -62,12 +61,11 @@ function AppRuntime(props: { core: core.DashQL; catalogLoader?: boolean; queryCo
     const logMetrics = useCreateHyperLogMetrics();
     // The platform owns what it passes to the runtime for the lifetime of the runtime. The parts that the providers
     // above set up later or change with the settings are read when the runtime asks: the mock of Salesforce that the
-    // config may choose, the clients of the channels, the embedded database and the database of the archives.
+    // config may choose, the clients of the channels and the embedded database.
     const latest = {
         salesforceMock: useSalesforceMock(),
         grpcClient: useHyperGrpcClient(),
         setupEmbeddedDatabase: useEmbeddedDatabaseSetup(),
-        archiveDatabase: useWorkbookArchiveDatabase(),
         queryCommands: props.queryCommands,
     };
     const ref = React.useRef(latest);
@@ -90,7 +88,7 @@ function AppRuntime(props: { core: core.DashQL; catalogLoader?: boolean; queryCo
             // The embedded database starts once the settings loaded, the runtime waits for it
             computeDatabase: ref.current.setupEmbeddedDatabase == null ? null : () => ref.current.setupEmbeddedDatabase('compute'),
             resultCache,
-            archives: handles => createRuntimeArchives(handles, context => ref.current.archiveDatabase(context)),
+            archives: handles => createRuntimeArchives(handles, context => ref.current.setupEmbeddedDatabase(context)),
             catalogLoader: props.catalogLoader,
             // The commands that a test replaces are read when they are called
             queryCommands: {
