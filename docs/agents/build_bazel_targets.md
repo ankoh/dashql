@@ -186,8 +186,12 @@ bazel run //:trino [-- --port 8080]
 `test_chromium` and `test_firefox` split the test files over several browser pages that run at the same time, one page
 per four cores and at most four. Every page has its own browser context and Hyper. `coverage_chromium` stays on one page.
 `getBrowserTestShard` in `packages/dashql-app/src/tests/test_modules.ts` picks the files of a page, so a test can run
-after any other test file: tests have to clean up the globals they set. A suite claims four cores (the `cpu:4` tag of
-`BROWSER_TEST_TAGS` in its `BUILD.bazel`): on a CI runner with four cores it runs alone, the two suites side by side timed tests out.
+after any other test file: tests have to clean up the globals they set. Its `SLOW_TEST_FILE_SECONDS` balance the pages,
+refresh them from `browser_test_summary.json` in the test outputs when a file gets much slower. With several pages, the
+page tests (below) run next to them, half as many at once. A suite claims twelve cores (the `cpu:12` tag of
+`BROWSER_TEST_TAGS` in its `BUILD.bazel`), so two suites don't share a host with sixteen; Bazel runs it alone on a smaller
+host. A CI runner with four cores runs one page at a time, then the page tests one by one: two pages on four cores timed
+tests out.
 
 ```bash
 # Choose the number of pages
@@ -196,12 +200,13 @@ bazel test //packages/dashql-app:test_chromium --test_env=DASHQL_BROWSER_TEST_SH
 
 `tests.html` on the dev server runs all files on one page.
 
-After the test files, the driver runs `packages/dashql-app/test/browser_page_tests.mjs`: Playwright boots the real pages of
+Next to the test files, or after them on a single page, the driver runs `packages/dashql-app/test/browser_page_tests.mjs`: Playwright boots the real pages of
 the bundle (`index.html`, `shell.html`, `demos.html`, `embed.html`, `oauth.html`, the tools) in browser contexts of their own, with the headers and
 the Content-Security-Policy of the deployment and without WebGL, and walks through them. Their entry points can't be
 imported by a test, and nothing else renders the real composition of the providers. A page test fails if the page logs a
 console error, or if it sends a request to another origin that the test does not stub. On a failure the driver writes
-`page_<name>.png` to the test outputs. A run of a single test file leaves them out.
+`page_<name>.png` to the test outputs, and `browser_test_summary.json` holds the seconds of every test file and page test.
+A run of a single test file leaves them out.
 
 ```bash
 # Only the page tests

@@ -26,6 +26,11 @@ const executablePath = executableRoot
 const shardCount = requestedFile || collectCoverage
     ? 1
     : Number.parseInt(process.env.DASHQL_BROWSER_TEST_SHARDS ?? String(Math.min(4, Math.max(1, Math.floor(availableParallelism() / 4)))), 10);
+// With several shards, the page tests run next to them, half as many at once: at most six pages, the cpu tag of the
+// suites in BUILD.bazel. A single shard (a runner of CI with four cores, coverage) runs them one by one after it, two
+// pages on four cores timed tests out.
+const pageTestsAlongside = shardCount > 1;
+const pageTestConcurrency = pageTestsAlongside ? Math.ceil(shardCount / 2) : 1;
 
 const mimeTypes = {
     '.br': 'application/octet-stream',
@@ -161,11 +166,14 @@ async function runShard(shard) {
 
 try {
     const startedAt = performance.now();
-    const shards = pageTestsOnly ? [] : await Promise.all(Array.from({ length: shardCount }, (_, shard) => runShard(shard)));
+    const runShards = async () => pageTestsOnly ? [] : await Promise.all(Array.from({ length: shardCount }, (_, shard) => runShard(shard)));
     // A run of a single test file leaves out the pages
-    const pages = requestedFile
-        ? { failures: [], scriptCoverages: [] }
-        : await runPageTests(browser, `http://127.0.0.1:${address.port}`, { collectCoverage, outputs });
+    const runPages = async () => requestedFile
+        ? { durations: {}, failures: [], scriptCoverages: [] }
+        : await runPageTests(browser, `http://127.0.0.1:${address.port}`, { collectCoverage, concurrency: pageTestConcurrency, outputs });
+    const [shards, pages] = pageTestsAlongside
+        ? await Promise.all([runShards(), runPages()])
+        : [await runShards(), await runPages()];
     if (collectCoverage) {
         const coverage = mapCoverage(root, [...shards.flatMap(shard => shard.scriptCoverages), ...pages.scriptCoverages]);
         const coverageSummary = toSummary(coverage);
@@ -184,6 +192,7 @@ try {
         skipped: sum('skipped'),
         status: shards.every(shard => shard.summary.status === 'passed') && pages.failures.length === 0 ? 'passed' : 'failed',
         pageFailures: pages.failures,
+        pageSeconds: pages.durations,
         total: sum('total'),
     };
     const browserErrors = shards.flatMap(shard => shard.browserErrors);
@@ -204,7 +213,7 @@ try {
         return [...fileFailure, ...testFailures];
     });
 
-    console.log(`${summary.files.length} files, ${summary.passed} passed, ${summary.failed} failed, ${summary.skipped} skipped in ${(summary.duration / 1000).toFixed(2)}s on ${shardCount} ${shardCount === 1 ? 'page' : 'pages'}`);
+    console.log(`${summary.files.length} files, ${summary.passed} passed, ${summary.failed} failed, ${summary.skipped} skipped in ${(summary.duration / 1000).toFixed(2)}s on ${shardCount} ${shardCount === 1 ? 'page' : 'pages'} and ${pageTestConcurrency} for the page tests`);
     if (failures.length > 0) console.error(`\n${failures.join('\n\n')}`);
     if (browserErrors.length > 0) console.error(`\nBrowser errors:\n${browserErrors.join('\n')}`);
     if (pages.failures.length > 0) console.error(`\nPage tests:\n${pages.failures.join('\n\n')}`);

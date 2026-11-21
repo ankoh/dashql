@@ -372,9 +372,11 @@ BROWSER_TEST_DATA = [
     "test/browser_page_tests.mjs",
 ]
 
-# A suite runs a browser with an embedded Hyper per page, one page per four cores. A runner with four cores runs it
-# alone, two suites on the same cores timed tests out.
-BROWSER_TEST_TAGS = ["cpu:4"]
+# A suite runs a browser with an embedded Hyper per page, about two cores each: a shard of the test files per four cores
+# (at most four) and, with several shards, half as many pages for the page tests next to them, see
+# test/browser_test_driver.mjs. Twelve cores for the six pages of a host with sixteen, so two suites don't share them;
+# two suites on the same cores timed tests out. A runner of CI with four cores runs a suite alone on one page at a time.
+BROWSER_TEST_TAGS = ["cpu:12"]
 
 browser_test(
     name = "test_chromium",

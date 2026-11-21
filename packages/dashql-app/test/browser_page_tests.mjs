@@ -912,65 +912,84 @@ const RELEASE_MANIFEST = JSON.stringify({
     bundles: [],
 });
 
-/// Run the tests of the pages.
-/// Returns the failures and the V8 coverage of the pages if `collectCoverage` is set.
-export async function runPageTests(browser, origin, { collectCoverage, outputs }) {
-    const failures = [];
+/// Run the tests of the pages, `concurrency` of them at once.
+/// Every test has a browser context of its own, and the servers of the sessions listen on random ports.
+/// Returns the failures in the order of the tests, the seconds of every test, and the V8 coverage of the pages if
+/// `collectCoverage` is set.
+export async function runPageTests(browser, origin, { collectCoverage, concurrency = 1, outputs }) {
+    const results = new Array(PAGE_TESTS.length);
+    let next = 0;
+    const lane = async () => {
+        while (next < PAGE_TESTS.length) {
+            const index = next++;
+            results[index] = await runPageTest(browser, origin, PAGE_TESTS[index], { collectCoverage, outputs });
+        }
+    };
+    await Promise.all(Array.from({ length: Math.max(1, concurrency) }, lane));
+    return {
+        durations: Object.fromEntries(results.map(({ duration }, index) => [PAGE_TESTS[index].name, duration])),
+        failures: results.flatMap(({ failure }) => failure == null ? [] : [failure]),
+        scriptCoverages: results.flatMap(({ scriptCoverages }) => scriptCoverages),
+    };
+}
+
+/// Run a test of a page in a browser context of its own
+async function runPageTest(browser, origin, { name, options, test }, { collectCoverage, outputs }) {
+    const startedAt = performance.now();
     const scriptCoverages = [];
-    for (const { name, options, test } of PAGE_TESTS) {
-        const context = await browser.newContext(options);
-        await context.addInitScript(() => {
-            const getContext = HTMLCanvasElement.prototype.getContext;
-            HTMLCanvasElement.prototype.getContext = function (kind, ...args) {
-                return kind.startsWith('webgl') ? null : getContext.call(this, kind, ...args);
-            };
-        });
-        const page = await context.newPage();
-        page.setDefaultTimeout(PAGE_TIMEOUT);
-        const errors = [];
-        await context.route(url => url.origin !== origin, route => {
-            const url = new URL(route.request().url());
-            if (url.hostname === 'get.dashql.app') {
-                return route.fulfill({ contentType: 'application/json', headers: { 'Access-Control-Allow-Origin': '*' }, body: RELEASE_MANIFEST });
-            }
-            errors.push(`Unexpected request: ${route.request().url()}`);
-            return route.abort();
-        });
-        page.on('console', message => {
-            if (message.type() !== 'error') return;
-            // A page in AI waits on the server of a session that `dashql connect` starts later on another port of
-            // this machine, its attempts fail until then. Chrome names the request in the location of the message,
-            // Firefox in its text.
-            const text = message.text();
-            const source = /http:\/\/127\.0\.0\.1:\d+\/v1\/stream\S*/.exec(text)?.[0] ?? message.location().url;
-            const waiting = /^Failed to load resource|CORS request did not succeed/.test(text)
-                && source.startsWith('http://127.0.0.1:') && new URL(source).origin !== origin;
-            if (!waiting) errors.push(text);
-        });
-        page.on('pageerror', error => errors.push(error.stack ?? error.message));
-        const profiler = collectCoverage ? await context.newCDPSession(page) : null;
-        if (profiler) {
-            await profiler.send('Profiler.enable');
-            await profiler.send('Profiler.startPreciseCoverage', { callCount: true, detailed: true });
-        }
-        // The counters of the scripts of a document are gone after it navigated, so they are taken before
-        const takeCoverage = async () => {
-            if (profiler) scriptCoverages.push(...(await profiler.send('Profiler.takePreciseCoverage')).result);
+    let failure = null;
+    const context = await browser.newContext(options);
+    await context.addInitScript(() => {
+        const getContext = HTMLCanvasElement.prototype.getContext;
+        HTMLCanvasElement.prototype.getContext = function (kind, ...args) {
+            return kind.startsWith('webgl') ? null : getContext.call(this, kind, ...args);
         };
-        /// Load a path of the origin, or reload the page without a path
-        const navigate = async path => {
-            await takeCoverage();
-            await (path == null ? page.reload() : page.goto(`${origin}${path}`));
-        };
-        try {
-            await test(page, navigate);
-            if (errors.length > 0) failures.push(`${name}: the page logged errors:\n${errors.join('\n')}`);
-        } catch (error) {
-            if (outputs) await page.screenshot({ path: join(outputs, `page_${name}.png`) }).catch(() => { });
-            failures.push(`${name}: ${error.stack ?? error.message}${errors.length > 0 ? `\nThe page logged errors:\n${errors.join('\n')}` : ''}`);
+    });
+    const page = await context.newPage();
+    page.setDefaultTimeout(PAGE_TIMEOUT);
+    const errors = [];
+    await context.route(url => url.origin !== origin, route => {
+        const url = new URL(route.request().url());
+        if (url.hostname === 'get.dashql.app') {
+            return route.fulfill({ contentType: 'application/json', headers: { 'Access-Control-Allow-Origin': '*' }, body: RELEASE_MANIFEST });
         }
-        await takeCoverage();
-        await context.close();
+        errors.push(`Unexpected request: ${route.request().url()}`);
+        return route.abort();
+    });
+    page.on('console', message => {
+        if (message.type() !== 'error') return;
+        // A page in AI waits on the server of a session that `dashql connect` starts later on another port of
+        // this machine, its attempts fail until then. Chrome names the request in the location of the message,
+        // Firefox in its text.
+        const text = message.text();
+        const source = /http:\/\/127\.0\.0\.1:\d+\/v1\/stream\S*/.exec(text)?.[0] ?? message.location().url;
+        const waiting = /^Failed to load resource|CORS request did not succeed/.test(text)
+            && source.startsWith('http://127.0.0.1:') && new URL(source).origin !== origin;
+        if (!waiting) errors.push(text);
+    });
+    page.on('pageerror', error => errors.push(error.stack ?? error.message));
+    const profiler = collectCoverage ? await context.newCDPSession(page) : null;
+    if (profiler) {
+        await profiler.send('Profiler.enable');
+        await profiler.send('Profiler.startPreciseCoverage', { callCount: true, detailed: true });
     }
-    return { failures, scriptCoverages };
+    // The counters of the scripts of a document are gone after it navigated, so they are taken before
+    const takeCoverage = async () => {
+        if (profiler) scriptCoverages.push(...(await profiler.send('Profiler.takePreciseCoverage')).result);
+    };
+    /// Load a path of the origin, or reload the page without a path
+    const navigate = async path => {
+        await takeCoverage();
+        await (path == null ? page.reload() : page.goto(`${origin}${path}`));
+    };
+    try {
+        await test(page, navigate);
+        if (errors.length > 0) failure = `${name}: the page logged errors:\n${errors.join('\n')}`;
+    } catch (error) {
+        if (outputs) await page.screenshot({ path: join(outputs, `page_${name}.png`) }).catch(() => { });
+        failure = `${name}: ${error.stack ?? error.message}${errors.length > 0 ? `\nThe page logged errors:\n${errors.join('\n')}` : ''}`;
+    }
+    await takeCoverage();
+    await context.close();
+    return { duration: (performance.now() - startedAt) / 1000, failure, scriptCoverages };
 }

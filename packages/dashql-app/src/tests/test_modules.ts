@@ -39,19 +39,28 @@ export const BROWSER_TEST_FILES = [
 
 export const BLOCKED_BROWSER_TEST_FILES: readonly string[] = [];
 
-/// The test files that take seconds in a run. A shard should get as much of them as of the many short files, they only
-/// balance the shards, so a stale number just makes a run a bit slower.
+/// The test files that take seconds in a run, from browser_test_summary.json of a run with two shards next to the page
+/// tests. A shard should get as much of them as of the many short files, they only balance the shards, so a stale number
+/// just makes a run a bit slower.
 const SLOW_TEST_FILE_SECONDS = new Map([
-    ['src/connections/hyper/hyper_log_metrics.test.ts', 15],
-    ['src/host/hyperdb/integration/hyper_log_extract.test.ts', 13],
-    ['src/host/hyperdb/integration/hyper_resource_metrics.test.ts', 5],
-    ['src/host/hyperdb/integration/redo_log.test.ts', 5],
-    ['src/workbook/snippets/snippet_execution.test.ts', 4.5],
-    ['src/host/hyperdb/hyperdb_wasm.integration.test.ts', 3.5],
-    ['src/cloud/local_cloud.test.ts', 3.5],
-    ['src/diagnostics/http_request_viewer.test.tsx', 2],
-    ['src/workbook/shell/workbook_shell_page.test.tsx', 2],
-    ['src/host/hyperdb/integration/experimental_wasm_backend.test.ts', 1.5],
+    ['src/host/hyperdb/integration/hyper_log_extract.test.ts', 24.5],
+    ['src/connections/hyper/hyper_log_metrics.test.ts', 18],
+    ['src/cloud/cloud_store.test.ts', 16],
+    ['dashql/src/runtime/workbook_runs.test.ts', 12],
+    ['src/host/hyperdb/hyperdb_wasm.integration.test.ts', 9.5],
+    ['src/host/hyperdb/integration/redo_log.test.ts', 8],
+    ['src/cloud/cloud_folders.test.ts', 7.5],
+    ['src/workbook/snippets/snippet_execution.test.ts', 7],
+    ['src/host/hyperdb/integration/hyper_resource_metrics.test.ts', 6.5],
+    ['dashql/src/runtime/runtime_computations.test.ts', 4],
+    ['src/workbook/shell/workbook_shell_page.test.tsx', 4],
+    ['src/host/hyperdb/integration/iceberg.test.ts', 3],
+    ['src/cloud/cloud_store_schema.test.ts', 3],
+    ['src/connections/hyper/hyper_log_query_sql.test.ts', 3],
+    ['src/cloud/local_cloud.test.ts', 3],
+    ['src/cloud/cloud_overview_page.test.tsx', 2.5],
+    ['src/host/hyperdb/integration/experimental_wasm_backend.test.ts', 2.5],
+    ['src/cloud/cloud_setup_page.test.tsx', 2],
 ]);
 const SHORT_TEST_FILE_SECONDS = 0.1;
 
