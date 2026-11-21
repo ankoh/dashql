@@ -93,8 +93,8 @@ impl QueryControls {
         self.state.borrow().profile_viewers > 0
     }
 
-    /// A view starts (`delta` 1) or stops (-1) showing the profile. The task of the query learns it and tells a channel
-    /// of the host.
+    /// A view starts (`delta` 1) or stops (-1) showing the profile. The task of a Trino query learns it and fetches the
+    /// plan and its statistics only then.
     pub fn watch_profile(&self, delta: i32) {
         let waker = {
             let mut state = self.state.borrow_mut();

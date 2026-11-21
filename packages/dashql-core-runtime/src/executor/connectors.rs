@@ -687,8 +687,6 @@ async fn run_host_channel<H: ExecutorHost>(context: &mut StreamContext<H>) -> Re
         return Err(QueryFailure::cancelled());
     }
     context.running();
-    run.controls().clear_changed();
-    host.channel_profile_detail(&run, run.controls().profile_shown());
     let mut pending: TaskSet<(), Result<ChannelMessage, HostError>> = TaskSet::new();
     loop {
         if pending.is_empty() {
@@ -701,7 +699,7 @@ async fn run_host_channel<H: ExecutorHost>(context: &mut StreamContext<H>) -> Re
                 pending.settle().await;
                 return Err(QueryFailure::cancelled());
             }
-            Wake::Control => host.channel_profile_detail(&run, run.controls().profile_shown()),
+            Wake::Control => {}
             Wake::Done((), Ok(ChannelMessage::Progress(progress))) => context.progress(*progress),
             Wake::Done((), Ok(ChannelMessage::Batch { metrics })) => {
                 context.metrics = metrics;

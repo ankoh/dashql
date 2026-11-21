@@ -352,8 +352,6 @@ pub trait ExecutorHost: HttpHost {
     fn channel_next(&self, run: &Self::Run) -> impl Future<Output = Result<ChannelMessage, HostError>> + 'static;
     /// Cancel the query of a channel: one that the channel still opens, or its stream at the backend
     fn channel_cancel(&self, run: &Self::Run) -> impl Future<Output = Result<(), HostError>> + 'static;
-    /// Is the profile of the query shown? A channel fetches the plan and its statistics only then.
-    fn channel_profile_detail(&self, run: &Self::Run, wanted: bool);
 
     /// The auth headers of the channel of a Hyper query over HTTP as they are now, asked before every round of requests
     /// of its result. None keeps the headers that the query started with.

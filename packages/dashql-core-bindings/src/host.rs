@@ -368,8 +368,6 @@ export interface RuntimeChannels {
     next(queryId: number): Promise<RuntimeChannelMessage>;
     /** Cancel the query of a channel: one that `open` still opens, the open then fails or returns a stream that the next cancel stops, or its stream at the backend */
     cancel(queryId: number): Promise<void>;
-    /** Is the profile of the query shown? A channel fetches the plan and its statistics only then. */
-    profileDetail(queryId: number, shown: boolean): void;
 }
 
 /** The query result cache of the platform, Parquet files that the compute database reads and writes */
@@ -1209,11 +1207,6 @@ impl JsPlatform {
     pub fn channel_cancel(&self, query_id: f64) -> impl Future<Output = Result<(), HostError>> + 'static {
         let call = self.channels("cancel", &[JsValue::from_f64(query_id)]);
         async move { settled(call).await.map(|_| ()) }
-    }
-
-    /// Is the profile of a query on a channel shown?
-    pub fn channel_profile_detail(&self, query_id: f64, shown: bool) {
-        let _ = self.channels("profileDetail", &[JsValue::from_f64(query_id), JsValue::from_bool(shown)]);
     }
 
     /// Look up a key in the query result cache

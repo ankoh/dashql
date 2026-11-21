@@ -140,7 +140,7 @@ declared in `packages/dashql-core-bindings/src/host.rs`) from the members above,
 | `tables` | Arrow tables by handle: `open`, `push`, `finish` of a streamed result, `begin`, `append`, `read`, `describe` | `store/runtime_tables.ts` |
 | `compute` | The compute database: import a table by handle, create a table from a SELECT, query into Arrow IPC or into a table, drop, cancel a run | `compute_platform.ts` |
 | `http` | `fetch` and `abort` by id | `platform_requests.ts` |
-| `channels` | `connect` a setup's channel of the host, `hyperLinkToken`, and the queries of host channels: `describe` (keeps a record of the query until `forget`), `open`, `next`, `cancel` (also of a query that `open` still opens), `profileDetail`, `forget` | `query/query_channels.ts` |
+| `channels` | `connect` a setup's channel of the host, `hyperLinkToken`, and the queries of host channels: `describe` (keeps a record of the query until `forget`), `open`, `next`, `cancel` (also of a query that `open` still opens), `forget` | `query/query_channels.ts` |
 | `resultCache` | `lookup`, `read`, `touch`, `write`, `retain`, `release` (of a retained file or a pin), `file`, `import`, `capacity`, `files`, `remove` | `query/query_channels.ts`, the pins in `query/cache_pins.ts` |
 | `mounts` | The files of runs in the compute database: `prefix`, `fileName`, `pin`, `write`; and the attachments, unmounted when their workbook is deleted. The runtime keeps the pins of a run and releases them | `run_mounts.ts` |
 | `crypto` | `randomUuid`, `sha256` (the core has no randomness and no SHA-256) | `crypto` of the platform |

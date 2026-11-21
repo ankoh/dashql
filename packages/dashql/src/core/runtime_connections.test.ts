@@ -96,7 +96,6 @@ class TestPlatform {
             open: async () => false,
             next: () => Promise.reject(new Error('no channel')),
             cancel: async () => { },
-            profileDetail: () => { },
         },
         resultCache: null,
         crypto: {

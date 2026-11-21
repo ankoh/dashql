@@ -553,10 +553,6 @@ impl ExecutorHost for FakeHost {
         std::future::ready(if fails { Err(HostError::new("backend gone")) } else { Ok(()) })
     }
 
-    fn channel_profile_detail(&self, _run: &FakeRun, wanted: bool) {
-        self.state.borrow_mut().channel_calls.push(format!("profile:{wanted}"));
-    }
-
     fn channel_auth(&self, _run: &FakeRun) -> impl Future<Output = Result<Option<Headers>, HostError>> + 'static {
         std::future::ready(Ok(self.state.borrow().hyper_auth.clone()))
     }
@@ -1264,7 +1260,7 @@ fn a_channel_of_the_host_keeps_its_batches() {
             "succeeded"
         ]
     );
-    assert_eq!(host.state.borrow().channel_calls, ["open", "profile:false"]);
+    assert_eq!(host.state.borrow().channel_calls, ["open"]);
     // Nothing of the result crossed
     assert_eq!(part_count(&host, 1), 0);
     assert_eq!(host.state.borrow().results.get(&1), Some(&3));
@@ -1296,7 +1292,7 @@ fn a_channel_without_a_result_succeeds_without_a_table() {
 }
 
 #[test]
-fn a_channel_is_cancelled_at_the_backend_and_follows_the_profile() {
+fn a_channel_is_cancelled_at_the_backend() {
     let host = FakeHost::new();
     host.state.borrow_mut().channel_cancel_fails = true;
     let executor = QueryExecutor::new(host.clone());
@@ -1304,28 +1300,17 @@ fn a_channel_is_cancelled_at_the_backend_and_follows_the_profile() {
     let run = query.run.clone();
     let outcome = start(&host, &executor, query);
     host.advance(0);
-    // The task tells the channel of the views
-    run.controls.watch_profile(1);
+    // A view of the profile doesn't reach the channel
     run.controls.watch_profile(1);
     host.advance(0);
-    run.controls.watch_profile(-1);
-    host.advance(0);
-    assert_eq!(host.state.borrow().channel_calls.last().map(String::as_str), Some("profile:true"));
     run.controls.watch_profile(-1);
     host.advance(0);
     run.token.cancel();
     host.advance(0);
     assert_eq!(resolved(outcome.borrow().as_ref().unwrap()), Some(false));
-    assert_eq!(
-        host.state.borrow().channel_calls,
-        ["open", "profile:false", "profile:true", "profile:true", "profile:false", "cancel"]
-    );
+    assert_eq!(host.state.borrow().channel_calls, ["open", "cancel"]);
     assert!(host.log_messages().contains(&"Failed to cancel query at the backend".to_string()));
     assert_eq!(host.events(), ["sending", "running", "cancelled"]);
-    // A query that ended ignores a view
-    run.controls.watch_profile(1);
-    host.advance(0);
-    assert_eq!(host.state.borrow().channel_calls.len(), 6);
 }
 
 #[test]

@@ -176,7 +176,6 @@ export function testPlatform(storage: MemoryStorage = new MemoryStorage()): { pl
             open: () => Promise.reject(new Error('no channels')),
             next: () => Promise.reject(new Error('no channels')),
             cancel: async () => { },
-            profileDetail: () => { },
         },
         resultCache: null,
         crypto: {

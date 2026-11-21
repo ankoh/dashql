@@ -45,7 +45,6 @@ function batchOf(values: number[]): arrow.RecordBatch {
 /// A result stream under the control of a test
 class TestStream implements QueryExecutionResponseStream {
     readonly cancel = vi.fn(async () => { this.rejectProduce?.(new DOMException('cancelled', 'AbortError')); });
-    readonly setProfileDetail = vi.fn<(wanted: boolean) => void>();
     readonly metrics = createQueryResponseStreamMetrics();
     private rejectProduce: ((error: unknown) => void) | null = null;
     private finishProduce: (() => void) | null = null;

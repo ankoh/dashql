@@ -85,7 +85,7 @@ function platform() {
         tables: { begin: none, append: none, finish: none, read: none, open: none, push: none },
         compute: null,
         http: { fetch: none, abort: () => { } },
-        channels: { connect: none, hyperLinkToken: () => null, open: none, next: none, cancel: async () => { }, profileDetail: () => { } },
+        channels: { connect: none, hyperLinkToken: () => null, open: none, next: none, cancel: async () => { } },
         queries: { describe: none, forget: () => { } },
         resultCache: null,
         crypto: { randomUuid: () => `00000000-0000-4000-8000-${(++uuid).toString().padStart(12, '0')}` },

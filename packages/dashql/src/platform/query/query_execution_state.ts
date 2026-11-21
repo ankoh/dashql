@@ -51,8 +51,6 @@ export type QueryStreamItem =
 export interface QueryExecutionResponseStream {
     /// Ask the backend to stop the query, when the connector supports explicit cancellation.
     cancel?(): Promise<void>;
-    /// Is the profile of the query shown? Connectors fetch the plan and its statistics only then (Trino).
-    setProfileDetail?(wanted: boolean): void;
     /// Get the stream metrics
     getMetrics(): QueryExecutionMetrics;
     /// Await the schema message

@@ -51,7 +51,6 @@ function platform() {
             open: () => Promise.reject(new Error('no channels')),
             next: () => Promise.reject(new Error('no channels')),
             cancel: async () => { },
-            profileDetail: () => { },
         },
         resultCache: null,
         crypto: { randomUuid: () => 'uuid', sha256: () => Promise.reject(new Error('no digests')) },

@@ -95,7 +95,7 @@ export class QueryChannels {
     }
 
     /// The channels of the platform by query
-    readonly channels: Pick<core.RuntimeChannels, 'describe' | 'forget' | 'open' | 'next' | 'cancel' | 'profileDetail'> = {
+    readonly channels: Pick<core.RuntimeChannels, 'describe' | 'forget' | 'open' | 'next' | 'cancel'> = {
         describe: async (queryId, handle, query) => {
             // The runtime describes only the channels of the host, the platform keeps the channel for the query
             const record = newRecord();
@@ -133,9 +133,6 @@ export class QueryChannels {
                 record.streamCancel ??= Promise.resolve(record.stream.cancel?.());
                 await record.streamCancel;
             }
-        },
-        profileDetail: (queryId, shown) => {
-            this.records.get(queryId)?.stream?.setProfileDetail?.(shown);
         },
     };
 

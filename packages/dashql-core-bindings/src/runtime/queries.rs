@@ -820,10 +820,6 @@ impl ExecutorHost for QueryHost {
         self.platform.channel_cancel(run.query_id as f64)
     }
 
-    fn channel_profile_detail(&self, run: &QueryRun, wanted: bool) {
-        self.platform.channel_profile_detail(run.query_id as f64, wanted);
-    }
-
     fn channel_auth(&self, run: &QueryRun) -> impl Future<Output = Result<Option<Headers>, HostError>> + 'static {
         // The headers of the Hyper of Salesforce follow the tokens of the channel, e.g. after a refresh
         let auth = self
