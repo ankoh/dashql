@@ -63,6 +63,12 @@ export const AppConfigProvider: React.FC<Props> = (props: Props) => {
         }
     }, [logger, flavor]);
 
+    // The log level of the settings applies from the start, e.g. to the debug log of the setup of the embedded Hyper
+    const minLogLevel = config?.settings?.minLogLevel ?? null;
+    React.useEffect(() => {
+        if (minLogLevel != null) logger.buffer.setMinLogLevel(minLogLevel);
+    }, [minLogLevel, logger]);
+
     const reconfigure = React.useCallback((mapper: ReconfigureStateFn) => {
         logger.info(`Reconfiguring application`, {}, "app_config");
         setConfig(c => mapper(c));

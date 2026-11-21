@@ -21,6 +21,7 @@ import type {
 } from '../embedded_database.js';
 import { prepareHyperArrowInsert } from './hyperdb_arrow_insert.js';
 import { quoteIdentifier, quoteLiteral } from '../utils/sql_quote.js';
+import type { Logger } from '../logger/logger.js';
 
 export type { HyperDBSettings } from 'hyperdb-wasm';
 /// The engine of hyperdb-wasm. The browser build mounts files and directory handles, the build of Node folders of the
@@ -58,6 +59,33 @@ export interface HyperDBOptions {
     /// Mount a file of a statement, e.g. the Arrow IPC of an insert, or a registered file. The browser build mounts the
     /// file itself (the default), the build of Node mounts only files of the host (`node/node_hyperdb.ts`).
     mountFile?: MountFile;
+    /// Logs every statement and every opened session at debug level, with the times of Hyper
+    logger?: Logger | null;
+}
+
+/// The target of the debug log of the statements and sessions of the embedded Hyper
+const QUERY_LOG_TARGET = 'hyperdb_query';
+/// The characters of a statement and of a client context that the debug log keeps
+const QUERY_LOG_TEXT_LENGTH = 300;
+
+/// A text for the debug log: whitespace collapsed, cut after QUERY_LOG_TEXT_LENGTH characters
+function logText(text: string): string {
+    const collapsed = text.replace(/\s+/g, ' ').trim();
+    return collapsed.length <= QUERY_LOG_TEXT_LENGTH ? collapsed : `${collapsed.slice(0, QUERY_LOG_TEXT_LENGTH)}…`;
+}
+
+/// Milliseconds of seconds that Hyper reports, empty without
+function hyperMs(seconds: number | null | undefined): string {
+    return seconds == null ? '' : (seconds * 1000).toFixed(1);
+}
+
+/// What the debug log of a session names it by
+interface HyperDBSessionLog {
+    logger: Logger;
+    /// The alias of the default database, empty without
+    database: string;
+    /// The client context as JSON, empty without
+    client: string;
 }
 
 /// Mount a file in the engine at a path
@@ -126,6 +154,7 @@ export class HyperDB implements EmbeddedComputeDatabase {
     private readonly attachedDatabaseCreations = new Map<string, Promise<void>>();
     private readonly externalFiles = new Map<string, MountedResource>();
     private readonly externalDirectories = new Map<string, MountedResource>();
+    private readonly logger: Logger | null;
 
     constructor(
         private readonly engine: HyperDBEngine,
@@ -136,6 +165,12 @@ export class HyperDB implements EmbeddedComputeDatabase {
         this.snippetsDatabasePath = options.snippetsDatabasePath ?? null;
         this.terminateEngine = options.terminateEngine ?? true;
         this.mountFileIn = options.mountFile ?? MOUNT_FILE;
+        this.logger = options.logger ?? null;
+    }
+
+    /// How the debug log names a session, null without a logger
+    private sessionLog(database: string, client: string | null): HyperDBSessionLog | null {
+        return this.logger == null ? null : { logger: this.logger, database, client: client ?? '' };
     }
 
     static async create(engine: HyperDBEngine, options?: HyperDBOptions): Promise<HyperDB> {
@@ -219,17 +254,20 @@ export class HyperDB implements EmbeddedComputeDatabase {
     /// A termination waits for the opening sessions, they close themselves if it started while they were attaching.
     private async openSession(databasePath: string | null, alias: string, attached: readonly EmbeddedAttachedDatabase[], clientContext: string | null): Promise<HyperDBSession> {
         // Hyper logs the client context as ctx.client of the query events of the session
+        const started = performance.now();
         const connection = await this.engine.connect(clientContext == null
             ? undefined
             : { settings: { external_client_context: clientContext } });
+        const connected = performance.now();
         if (this.termination || this.terminated) {
             await connection.close();
             throw new Error('database is terminated');
         }
 
+        const log = this.sessionLog(alias, clientContext);
         const session = new HyperDBSession(connection, this.mountFile, () => {
             this.sessions.delete(session);
-        }, databasePath == null ? undefined : alias);
+        }, databasePath == null ? undefined : alias, log);
         try {
             if (databasePath != null) {
                 await session.execute(`ATTACH DATABASE ${quoteIdentifier(databasePath)} AS ${quoteIdentifier(alias)}`);
@@ -245,6 +283,13 @@ export class HyperDB implements EmbeddedComputeDatabase {
             throw error;
         }
         this.sessions.add(session);
+        log?.logger.debug('Opened a Hyper session', {
+            database: alias,
+            attached: attached.map(database => database.alias).join(','),
+            client: log.client === '' ? '' : logText(log.client),
+            connectMs: (connected - started).toFixed(1),
+            attachMs: (performance.now() - connected).toFixed(1),
+        }, QUERY_LOG_TARGET);
         return session;
     }
 
@@ -388,10 +433,16 @@ export class HyperDB implements EmbeddedComputeDatabase {
         }
         if (!this.initialization) {
             this.initialization = (async () => {
+                const started = performance.now();
                 await this.engine.ready();
+                const ready = performance.now();
                 for (const path of this.databasePaths()) {
                     await this.executeDatabaseStatement(`CREATE DATABASE ${quoteIdentifier(path)}`);
                 }
+                this.logger?.debug('Initialized the embedded Hyper', {
+                    readyMs: (ready - started).toFixed(1),
+                    createDatabasesMs: (performance.now() - ready).toFixed(1),
+                }, QUERY_LOG_TARGET);
             })().catch(error => {
                 this.initialization = null;
                 throw error;
@@ -414,7 +465,7 @@ export class HyperDB implements EmbeddedComputeDatabase {
     }
 
     private async executeDatabaseStatement(statement: string): Promise<void> {
-        const session = new HyperDBSession(await this.engine.connect(), this.mountFile, () => {});
+        const session = new HyperDBSession(await this.engine.connect(), this.mountFile, () => {}, undefined, this.sessionLog('', null));
         try {
             await session.execute(statement);
         } finally {
@@ -563,6 +614,8 @@ class HyperDBSession {
         private readonly mountFile: (file: File, path: string) => Promise<MountedResource>,
         private readonly onClose: () => void,
         private readonly databaseAlias?: string,
+        /// Logs every statement of the session at debug level, null without
+        private readonly log: HyperDBSessionLog | null = null,
     ) {}
 
     async close(): Promise<void> {
@@ -682,6 +735,7 @@ class HyperDBSession {
     }
 
     private async *readChunks(query: string, signal: AbortSignal): AsyncGenerator<Uint8Array, QueryInfo | undefined> {
+        const started = performance.now();
         const stream = this.connection.queryStreamIPC(query, { signal });
         const chunks = stream[Symbol.asyncIterator]();
         try {
@@ -699,7 +753,36 @@ class HyperDBSession {
                 this.reusable = false;
             }
             this.finishQuery();
+            if (this.log != null) this.logQuery(this.log, query, performance.now() - started, stream.info);
         }
+    }
+
+    /// Log a statement that ended: the time until the app read its end (wallMs) and the times of Hyper. The difference
+    /// of wallMs and elapsedMs is time outside of the engine, e.g. a busy main thread or the messages to the worker;
+    /// scheduleMs is the time the statement waited inside Hyper for a thread.
+    private logQuery(log: HyperDBSessionLog, query: string, wallMs: number, info: Promise<QueryInfo>): void {
+        const details = {
+            database: log.database,
+            client: log.client === '' ? '' : logText(log.client),
+            sql: logText(query),
+            wallMs: wallMs.toFixed(1),
+        };
+        void info.then(info => {
+            const timings = info.timings;
+            log.logger.debug('Hyper statement ended', {
+                ...details,
+                status: info.status,
+                elapsedMs: hyperMs(timings.elapsedSeconds),
+                scheduleMs: hyperMs(timings.timeToScheduleSeconds),
+                parseMs: hyperMs(timings.parsingSeconds),
+                compileMs: hyperMs(timings.compilationSeconds),
+                executeMs: hyperMs(timings.executionSeconds),
+                firstResultMs: hyperMs(timings.timeToFirstResultSeconds),
+                rows: info.rowCount?.toString() ?? '',
+            }, QUERY_LOG_TARGET);
+        }, error => {
+            log.logger.debug('Hyper statement ended without its information', { ...details, error: String(error) }, QUERY_LOG_TARGET);
+        });
     }
 
     private begin(): void {

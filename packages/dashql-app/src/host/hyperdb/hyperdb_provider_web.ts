@@ -114,8 +114,17 @@ export async function setupWebHyperDB(
     const initStart = performance.now();
     try {
         logger.info('Creating HyperDB WASM engine', { context }, 'hyperdb');
+        // The steps of the setup, in the debug log
+        let stepStart = performance.now();
+        const step = (name: string) => {
+            const now = performance.now();
+            logger.debug('Set up a step of HyperDB WASM', { context, step: name, durationMs: (now - stepStart).toFixed(1) }, 'hyperdb');
+            stepStart = now;
+        };
         await cleanupStaleHyperDBOPFSInstances();
+        step('remove stale OPFS instances');
         const instance = await createHyperDBOPFSInstance();
+        step('create OPFS instance');
         let engine: HyperDBEngine | null = null;
         try {
             engine = await createWebHyperDBEngineWithOptions(
@@ -125,11 +134,14 @@ export async function setupWebHyperDB(
                 options,
                 onSetupProgress,
             );
+            step('start engine');
             const database = await HyperDB.create(engine, {
                 computeDatabasePath: instance.computeDatabasePath,
                 defaultDatabasePath: instance.userDatabasePath,
                 snippetsDatabasePath: instance.snippetsDatabasePath,
+                logger,
             });
+            step('create databases');
             const terminate = database.terminate.bind(database);
             database.terminate = async () => {
                 await terminate();
