@@ -6,7 +6,6 @@ import { useFocusTrap } from '@akohn/dashql-react/dom/focus';
 import { Overlay, OverlaySize } from '@akohn/dashql-react/components/overlay';
 import { FileDirectoryIcon, FileIcon, XIcon } from '@akohn/dashql-react/components/symbol_icon';
 import { TextInput } from '@akohn/dashql-react/components/text_input';
-import type { PlatformFile } from '../../host/file.js';
 import * as styles from './filesystem_mount_dialog.module.css';
 
 export interface MountDialogController {
@@ -27,7 +26,7 @@ export interface MountDialogActions {
 export type MountSelection = {
     readonly name: string;
     readonly kind: 'file';
-    readonly file: PlatformFile;
+    readonly file: File;
 } | {
     readonly name: string;
     readonly kind: 'directory';

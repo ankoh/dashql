@@ -38,6 +38,17 @@ const ShellRuntime = (props: { children?: React.ReactNode }) => {
 export const Shell: React.FC = () => {
     const [engineVersion, setEngineVersion] = React.useState<string | null>(null);
     const [shellGeneration, setShellGeneration] = React.useState(0);
+
+    // A file dropped on the page doesn't open in place of the shell
+    React.useEffect(() => {
+        const ignore = (event: DragEvent) => event.preventDefault();
+        window.addEventListener('dragover', ignore);
+        window.addEventListener('drop', ignore);
+        return () => {
+            window.removeEventListener('dragover', ignore);
+            window.removeEventListener('drop', ignore);
+        };
+    }, []);
     const resetShell = () => {
         setEngineVersion(null);
         setShellGeneration(generation => generation + 1);

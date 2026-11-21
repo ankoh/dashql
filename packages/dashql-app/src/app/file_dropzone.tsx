@@ -1,11 +1,11 @@
 import * as React from 'react';
 import * as styles from './file_dropzone.module.css';
 
-import { DRAG_EVENT, DRAG_STOP_EVENT, DROP_EVENT, PlatformDragDropEventVariant } from '../host/events/event.js';
-import { PlatformFile } from '../host/file.js';
-import { usePlatformEventListener } from '../host/events/event_listener_provider.js';
-import { FileLoader } from './file_loader.js';
+import { FileLoader, type FileLoaderDependencies } from './file_loader.js';
 import { FlavorLogo } from '../config/flavor_provider.js';
+
+/// A drag stops when no drag over event follows within this time
+const DRAG_TIMEOUT = 100;
 
 function FileDropzoneArea() {
     return (
@@ -19,35 +19,51 @@ function FileDropzoneArea() {
     );
 }
 
-export function FileDropzone(props: { children: React.ReactElement }) {
-    const appEvents = usePlatformEventListener();
-    const [droppedFile, setDroppedFile] = React.useState<PlatformFile | null>(null);
-    const [dragOngoing, setDragOngoing] = React.useState<Date | null>(null);
+/// Shows the dropzone while a file is dragged over the window and loads the first dropped file
+export function FileDropzone(props: { children: React.ReactElement; fileLoader?: FileLoaderDependencies }) {
+    const [droppedFile, setDroppedFile] = React.useState<File | null>(null);
+    const [dragOngoing, setDragOngoing] = React.useState(false);
 
-    // Callback to drop file
-    const onDropFile = React.useCallback(async (file: PlatformFile) => setDroppedFile(file), []);
-    // Callback for drag/drop events
-    const onDragDrop = React.useCallback((event: PlatformDragDropEventVariant) => {
-        switch (event.type) {
-            case DRAG_EVENT:
-                setDragOngoing(new Date());
-                break;
-            case DRAG_STOP_EVENT:
-                setDragOngoing(null);
-                break;
-            case DROP_EVENT: {
-                onDropFile(event.value.file);
-                setDragOngoing(null);
-                break;
-            }
-        }
-    }, [onDropFile]);
-
-    // Subscribe drag/drop events
+    // The listeners capture the events, so that the stale listeners of a hot reload don't process the same file
     React.useEffect(() => {
-        appEvents.subscribeDragDropEvents("dropzone", onDragDrop);
-        return () => appEvents.unsubscribeDragDropEvents("dropzone");
-    }, [appEvents, onDragDrop]);
+        let dragTimeout: ReturnType<typeof setTimeout> | null = null;
+        const clearDragTimeout = () => {
+            if (dragTimeout == null) return;
+            clearTimeout(dragTimeout);
+            dragTimeout = null;
+        };
+        const onDragOver = (event: DragEvent) => {
+            event.preventDefault();
+            clearDragTimeout();
+            setDragOngoing(true);
+            dragTimeout = setTimeout(() => {
+                dragTimeout = null;
+                setDragOngoing(false);
+            }, DRAG_TIMEOUT);
+        };
+        const onDragEnd = (event: DragEvent) => {
+            event.preventDefault();
+            clearDragTimeout();
+            setDragOngoing(false);
+        };
+        const onDrop = (event: DragEvent) => {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            clearDragTimeout();
+            setDragOngoing(false);
+            const file = event.dataTransfer?.files.item(0);
+            if (file != null) setDroppedFile(file);
+        };
+        window.addEventListener('dragover', onDragOver, true);
+        window.addEventListener('dragend', onDragEnd, true);
+        window.addEventListener('drop', onDrop, true);
+        return () => {
+            window.removeEventListener('dragover', onDragOver, true);
+            window.removeEventListener('dragend', onDragEnd, true);
+            window.removeEventListener('drop', onDrop, true);
+            clearDragTimeout();
+        };
+    }, []);
 
     // On-done handler to close the dropzone again
     const closeDropzone = React.useCallback(() => {
@@ -57,7 +73,7 @@ export function FileDropzone(props: { children: React.ReactElement }) {
     // Determine content
     let content: React.ReactElement = props.children;
     if (droppedFile != null) {
-        content = <FileLoader file={droppedFile} onDone={closeDropzone} />;
+        content = <FileLoader file={droppedFile} onDone={closeDropzone} dependencies={props.fileLoader} />;
     } else if (dragOngoing) {
         content = <FileDropzoneArea />;
     }

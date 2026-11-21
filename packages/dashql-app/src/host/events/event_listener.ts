@@ -3,7 +3,7 @@ import * as app_event from '@akohn/dashql-jsonschema/app_event.js';
 import { BASE64URL_CODEC } from '@akohn/dashql/platform/utils/base64';
 import { LEGACY_WORKBOOK_QUERY_PARAMETERS, migrateAppEventData } from './legacy_links.js';
 import { Logger } from '@akohn/dashql/platform/logger/logger';
-import { PlatformDragDropEventVariant, SETUP_WORKBOOK, SETUP_WORKBOOK_URL, SetupEventVariant } from './event.js';
+import { SETUP_WORKBOOK, SETUP_WORKBOOK_URL, SetupEventVariant } from './event.js';
 import { ZIP_QUERY_PARAMETER } from '../../workbook/persistence/workbook_link.js';
 
 const LOG_CTX = "event_listener";
@@ -87,8 +87,6 @@ export abstract class PlatformEventListener {
     private clipboardEventHandler: (e: ClipboardEvent) => void;
     /// Whether global event listeners are installed
     private isSetup: boolean;
-    /// The drag event subscriber
-    private dragDropEventSubscribers: Map<string, (e: PlatformDragDropEventVariant) => void>;
     /// Subscribers for pasted text not handled as an app event
     private fallbackPasteSubscribers: Set<(text: string) => void>;
     /// The subscriber for Hyper links
@@ -103,7 +101,6 @@ export abstract class PlatformEventListener {
         this.setupSubscriber = null;
         this.queuedSetupEvent = null;
         this.clipboardEventHandler = this.processClipboardEvent.bind(this);
-        this.dragDropEventSubscribers = new Map();
         this.fallbackPasteSubscribers = new Set();
         this.isSetup = false;
     }
@@ -121,7 +118,6 @@ export abstract class PlatformEventListener {
         this.isSetup = false;
         document.removeEventListener("paste", this.clipboardEventHandler, true);
         this.stopListeningForAppEvents();
-        this.dragDropEventSubscribers.clear();
         this.fallbackPasteSubscribers.clear();
     }
 
@@ -208,13 +204,6 @@ export abstract class PlatformEventListener {
             }
         }
     }
-    /// Dispatch a drag/drop event to all subscribers
-    protected dispatchDragDrop(event: PlatformDragDropEventVariant) {
-        for (const [_k, v] of this.dragDropEventSubscribers) {
-            v(event);
-        }
-    }
-
     /// Wait for the oauth code to arrive
     public async waitForOAuthRedirect(
         signal: AbortSignal,
@@ -276,15 +265,6 @@ export abstract class PlatformEventListener {
         } else {
             this.setupSubscriber = null;
         }
-    }
-
-    /// Subscribe drag-drop events
-    public subscribeDragDropEvents(key: string, handler: (data: PlatformDragDropEventVariant) => void): void {
-        this.dragDropEventSubscribers.set(key, handler);
-    }
-    /// Unsubscribe drag-drop events
-    public unsubscribeDragDropEvents(key: string): void {
-        this.dragDropEventSubscribers.delete(key);
     }
 
     /// Subscribe to pasted text that is not recognized as an app event

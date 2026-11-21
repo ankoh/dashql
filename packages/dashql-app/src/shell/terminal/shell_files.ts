@@ -3,7 +3,6 @@ import type {
     EmbeddedExternalFileDatabase,
     ExternalDirectoryMode,
 } from '@akohn/dashql/platform/embedded_database';
-import type { PlatformFile } from '../../host/file.js';
 import { stringifyError, type LoggerLike } from '@akohn/dashql/platform/logger/logger';
 import type { DashQLShellCommand } from './api.js';
 
@@ -68,35 +67,34 @@ export class ShellFileRegistry {
         return files.sort((a, b) => a.path.localeCompare(b.path));
     }
 
-    async mountFile(file: PlatformFile, path?: string, options: FileOperationOptions = {}): Promise<string> {
+    async mountFile(file: File, path?: string, options: FileOperationOptions = {}): Promise<string> {
         this.checkUsable();
         if (this.externalFiles == null) throw new Error('external browser files are not supported');
-        if (file.blob == null) throw new Error(`file cannot be mounted directly: ${file.path}`);
         throwIfAborted(options.signal);
 
         const startedAt = Date.now();
-        const name = fileName(file.path);
-        this.logger?.info('Mounting shell file', logDetails(file.path, undefined, file.size, 'register_external_file', startedAt), LOG_CTX);
+        const name = file.name;
+        this.logger?.info('Mounting shell file', logDetails(file.name, undefined, file.size, 'register_external_file', startedAt), LOG_CTX);
         let mountedPath: string | null = null;
         try {
             options.onProgress?.(`Mounting ${name}`);
-            mountedPath = await this.externalFiles.registerExternalFile(name, file.blob, path, options.signal);
+            mountedPath = await this.externalFiles.registerExternalFile(name, file, path, options.signal);
             if (this.disposed || options.signal?.aborted) {
                 await this.externalFiles.removeExternalFile(mountedPath);
                 throw options.signal?.reason ?? new DOMException('The operation was aborted', 'AbortError');
             }
             const entry: ShellFileEntry = {
                 path: mountedPath,
-                size: async () => file.size ?? file.blob!.size,
+                size: async () => file.size,
                 drop: () => this.externalFiles!.removeExternalFile(mountedPath!),
             };
             this.files.set(mountedPath, entry);
             this.mountedPaths.add(mountedPath);
-            this.logger?.info('Mounted shell file', logDetails(file.path, mountedPath, file.size, 'complete', startedAt), LOG_CTX);
+            this.logger?.info('Mounted shell file', logDetails(file.name, mountedPath, file.size, 'complete', startedAt), LOG_CTX);
             return mountedPath;
         } catch (error) {
             this.logger?.error('Failed to mount shell file', {
-                ...logDetails(file.path, mountedPath ?? undefined, file.size, 'register_external_file', startedAt),
+                ...logDetails(file.name, mountedPath ?? undefined, file.size, 'register_external_file', startedAt),
                 error: stringifyError(error),
                 error_name: error instanceof Error ? error.name : undefined,
             }, LOG_CTX);
@@ -228,14 +226,13 @@ function logDetails(
     };
 }
 
-export async function selectPlatformFiles(signal?: AbortSignal): Promise<readonly PlatformFile[]> {
-    const { WebFile } = await import('../../host/web_file.js');
+export async function selectPlatformFiles(signal?: AbortSignal): Promise<readonly File[]> {
     return await new Promise((resolve, reject) => {
         const input = document.createElement('input');
         input.type = 'file';
         input.multiple = true;
         let settled = false;
-        const finish = (files?: readonly PlatformFile[], error?: unknown) => {
+        const finish = (files?: readonly File[], error?: unknown) => {
             if (settled) return;
             settled = true;
             signal?.removeEventListener('abort', onAbort);
@@ -245,7 +242,7 @@ export async function selectPlatformFiles(signal?: AbortSignal): Promise<readonl
         };
         const onAbort = () => finish(undefined, signal?.reason ?? new DOMException('The operation was aborted', 'AbortError'));
         input.addEventListener('change', () => {
-            finish(Array.from(input.files ?? [], file => new WebFile(file, file.name)));
+            finish(Array.from(input.files ?? []));
         }, { once: true });
         input.addEventListener('cancel', () => finish([]), { once: true });
         if (signal?.aborted) {
@@ -269,8 +266,4 @@ export async function selectPlatformDirectory(mode: ExternalDirectoryMode): Prom
 
 function throwIfAborted(signal?: AbortSignal): void {
     if (signal?.aborted) throw signal.reason ?? new DOMException('The operation was aborted', 'AbortError');
-}
-
-function fileName(path: string): string {
-    return path.split(/[\\/]/).pop() || 'file';
 }

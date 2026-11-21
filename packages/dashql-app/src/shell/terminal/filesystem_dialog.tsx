@@ -97,7 +97,7 @@ export function useShellFiles(registryRef: React.RefObject<ShellFileRegistry | n
             const files = await selectPlatformFiles(signal);
             if (files.length === 0) return null;
             if (files.length !== 1) throw new Error('select exactly one file to choose a mount path');
-            return { kind: 'file', name: files[0].path, file: files[0] };
+            return { kind: 'file', name: files[0].name, file: files[0] };
         },
         selectDirectory: async mode => {
             const handle = await selectPlatformDirectory(mode);

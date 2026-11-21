@@ -2,7 +2,6 @@ import * as React from 'react';
 
 import type * as core from '@akohn/dashql';
 
-import { PlatformFile } from '../host/file.js';
 import { importedWorkbook, useWorkbookImport, type ConflictChoice, type PreparedImport, type WorkbookImportProgress } from '../workbook/persistence/workbook_import_provider.js';
 import { WorkbookImportCard, type WorkbookFileStepStatus, type WorkbookImportCardDependencies } from '../workbook/persistence/workbook_import_card.js';
 import { IndicatorStatus } from '@akohn/dashql-react/components/status_indicator';
@@ -56,7 +55,7 @@ const DEFAULT_DEPENDENCIES: FileLoaderDependencies = {
 const LOG_CTX = 'file_loader';
 
 interface Props {
-    file: PlatformFile;
+    file: File;
     onDone(): void;
     dependencies?: FileLoaderDependencies;
 }
@@ -67,30 +66,27 @@ export function FileLoader({ file, onDone, dependencies = DEFAULT_DEPENDENCIES }
     const { readImport, prepareImport, commitImport, dropImport } = dependencies.useWorkbookImport();
     const [attempt, setAttempt] = React.useState(0);
     const [state, setState] = React.useState<FileLoadState>({ phase: 'reading' });
-    const prepareFile = React.useEffectEvent(async (input: PlatformFile, signal: AbortSignal) => {
+    const prepareFile = React.useEffectEvent(async (input: File, signal: AbortSignal) => {
         try {
             setState({ phase: 'reading' });
             // A dropped file is read in place, the query results it carries stay on disk until the import streams them
-            const zipBlob = input.blob ?? new Blob([await input.readAsArrayBuffer() as Uint8Array<ArrayBuffer>], { type: 'application/zip' });
-            signal.throwIfAborted();
-
-            setState({ phase: 'validating', fileByteCount: zipBlob.size });
-            const preview = await readImport({ archive: zipBlob });
+            setState({ phase: 'validating', fileByteCount: input.size });
+            const preview = await readImport({ archive: input });
             if (signal.aborted) {
                 dropImport(preview);
                 return;
             }
             logger?.info('Read a workbook file', {
-                file: input.path, bytes: zipBlob.size.toString(), inPlace: (input.blob != null).toString(),
+                file: input.name, bytes: input.size.toString(),
                 scripts: preview.scriptCount.toString(), connections: importedWorkbook(preview).connections.length.toString(),
                 results: preview.results.count.toString(), resultBytes: preview.results.bytes.toString(),
             }, LOG_CTX);
 
             // The connections are resolved right away, the user may be asked which existing connections to use
-            setState({ phase: 'resolving', preview, fileByteCount: zipBlob.size });
+            setState({ phase: 'resolving', preview, fileByteCount: input.size });
             const prepared = await prepareImport(preview);
             if (prepared == null) {
-                logger?.info('Cancelled the import of a workbook file while resolving its connections', { file: input.path }, LOG_CTX);
+                logger?.info('Cancelled the import of a workbook file while resolving its connections', { file: input.name }, LOG_CTX);
                 if (!signal.aborted) onDone();
                 return;
             }
@@ -98,10 +94,10 @@ export function FileLoader({ file, onDone, dependencies = DEFAULT_DEPENDENCIES }
                 dropImport(preview);
                 return;
             }
-            setState({ phase: 'ready', prepared, preview, fileByteCount: zipBlob.size });
+            setState({ phase: 'ready', prepared, preview, fileByteCount: input.size });
         } catch (error) {
             if (signal.aborted) return;
-            logger?.warn('Preparing a workbook file failed', { file: input.path, error: stringifyError(error) }, LOG_CTX);
+            logger?.warn('Preparing a workbook file failed', { file: input.name, error: stringifyError(error) }, LOG_CTX);
             setState(current => ({
                 phase: 'failed',
                 failedPhase: current.phase === 'validating' || current.phase === 'resolving' ? current.phase : 'reading',
@@ -147,7 +143,7 @@ export function FileLoader({ file, onDone, dependencies = DEFAULT_DEPENDENCIES }
             const results = progress.results;
             if (results != null && missingResults(results) > 0) {
                 logger?.info('Kept the import card open, some query results were not added', {
-                    file: file.path, workbookId, results: results.total.toString(), missing: missingResults(results).toString(),
+                    file: file.name, workbookId, results: results.total.toString(), missing: missingResults(results).toString(),
                 }, LOG_CTX);
                 setState({ phase: 'imported', preview, fileByteCount, workbookId, results });
                 return;
@@ -155,7 +151,7 @@ export function FileLoader({ file, onDone, dependencies = DEFAULT_DEPENDENCIES }
             navigate({ type: OPEN_LINK_WORKBOOK, value: workbookId });
             onDone();
         } catch (error) {
-            logger?.warn('Importing a workbook file failed', { file: file.path, step: progress.step, error: stringifyError(error) }, LOG_CTX);
+            logger?.warn('Importing a workbook file failed', { file: file.name, step: progress.step, error: stringifyError(error) }, LOG_CTX);
             setState({
                 phase: 'failed',
                 failedPhase: 'importing',
@@ -174,23 +170,23 @@ export function FileLoader({ file, onDone, dependencies = DEFAULT_DEPENDENCIES }
     const card = dependencies.workbookImportCard;
     switch (state.phase) {
         case 'reading':
-            return <WorkbookImportCard phase="file-loading" sourcePath={file.path} stage="reading" steps={steps} fileByteCount={null} preview={null} onClose={requestClose} dependencies={card} />;
+            return <WorkbookImportCard phase="file-loading" sourcePath={file.name} stage="reading" steps={steps} fileByteCount={null} preview={null} onClose={requestClose} dependencies={card} />;
         case 'validating':
-            return <WorkbookImportCard phase="file-loading" sourcePath={file.path} stage="validating" steps={steps} fileByteCount={state.fileByteCount} preview={null} onClose={requestClose} dependencies={card} />;
+            return <WorkbookImportCard phase="file-loading" sourcePath={file.name} stage="validating" steps={steps} fileByteCount={state.fileByteCount} preview={null} onClose={requestClose} dependencies={card} />;
         case 'resolving':
-            return <WorkbookImportCard phase="file-loading" sourcePath={file.path} stage="resolving" steps={steps} fileByteCount={state.fileByteCount} preview={state.preview} onClose={requestClose} dependencies={card} />;
+            return <WorkbookImportCard phase="file-loading" sourcePath={file.name} stage="resolving" steps={steps} fileByteCount={state.fileByteCount} preview={state.preview} onClose={requestClose} dependencies={card} />;
         case 'ready':
         case 'importing':
-            return <WorkbookImportCard phase="file-ready" sourcePath={file.path} fileByteCount={state.fileByteCount} preview={state.preview} steps={steps}
+            return <WorkbookImportCard phase="file-ready" sourcePath={file.name} fileByteCount={state.fileByteCount} preview={state.preview} steps={steps}
                 conflict={state.prepared.conflict} busy={state.phase === 'importing'}
                 onImport={() => requestImport(null)} onReplace={() => requestImport('replace')} onCreateNew={() => requestImport('create-new')}
                 onClose={requestClose} dependencies={card} />;
         case 'imported':
-            return <WorkbookImportCard phase="file-imported" sourcePath={file.path} fileByteCount={state.fileByteCount}
+            return <WorkbookImportCard phase="file-imported" sourcePath={file.name} fileByteCount={state.fileByteCount}
                 preview={state.preview} steps={steps} warning={resultsWarning(state.results)} warningDetail={state.results.error}
                 onOpen={openImported} onClose={requestClose} dependencies={card} />;
         case 'failed':
-            return <WorkbookImportCard phase="file-error" sourcePath={file.path} fileByteCount={state.fileByteCount} preview={state.preview} steps={steps}
+            return <WorkbookImportCard phase="file-error" sourcePath={file.name} fileByteCount={state.fileByteCount} preview={state.preview} steps={steps}
                 failedStage={state.failedPhase} errorMessage={state.error.message} onRetry={retry} onClose={requestClose} dependencies={card} />;
     }
 }

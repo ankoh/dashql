@@ -5,7 +5,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type * as core from '@akohn/dashql';
 
-import type { PlatformFile } from '../host/file.js';
 import type { PreparedImport, WorkbookCommitOptions } from '../workbook/persistence/workbook_import_provider.js';
 
 const state = {
@@ -59,12 +58,8 @@ function prepared(preview: core.ImportPreview, conflict: PreparedImport['conflic
     return { preview, connections: {}, unasked: false, conflict };
 }
 
-function file(readAsArrayBuffer: PlatformFile['readAsArrayBuffer'] = vi.fn().mockResolvedValue(new Uint8Array([1, 2, 3]))): PlatformFile {
-    return {
-        path: '/tmp/Explain.dashql',
-        stream: () => new Blob().stream(),
-        readAsArrayBuffer,
-    };
+function file(): File {
+    return new File([new Uint8Array([1, 2, 3])], 'Explain.dashql');
 }
 
 function button(container: HTMLElement, testId: 'workbook-import-confirm' | 'workbook-import-retry' | 'workbook-import-replace' | 'workbook-import-open'): HTMLButtonElement | null {
@@ -124,30 +119,22 @@ describe('FileLoader', () => {
     });
 
     it('reads a dropped file in place', async () => {
-        const blob = new Blob([new Uint8Array([1, 2, 3])]);
-        const read = vi.fn();
-        await act(async () => root.render(<FileLoader file={{ ...file(read), blob }} onDone={() => {}} dependencies={dependencies} />));
+        const input = file();
+        await act(async () => root.render(<FileLoader file={input} onDone={() => {}} dependencies={dependencies} />));
 
         await vi.waitFor(() => expect(button(container, 'workbook-import-confirm')).not.toBeNull());
-        expect(state.readImport).toHaveBeenCalledWith({ archive: blob });
-        expect(read).not.toHaveBeenCalled();
+        expect(state.readImport).toHaveBeenCalledWith({ archive: input });
     });
 
-    it('shows the stages while reading, validating and resolving', async () => {
-        let finishRead!: (bytes: Uint8Array) => void;
+    it('shows the stages while validating and resolving', async () => {
         let finishValidation!: (preview: core.ImportPreview) => void;
         let finishResolving!: (prepared: PreparedImport) => void;
-        const read = new Promise<Uint8Array>(resolve => { finishRead = resolve; });
         state.readImport.mockReturnValue(new Promise<core.ImportPreview>(resolve => { finishValidation = resolve; }));
         state.prepareImport.mockReturnValue(new Promise<PreparedImport>(resolve => { finishResolving = resolve; }));
 
-        act(() => root.render(<FileLoader file={file(() => read)} onDone={() => {}} dependencies={dependencies} />));
+        act(() => root.render(<FileLoader file={file()} onDone={() => {}} dependencies={dependencies} />));
         const stage = () => container.querySelector('[data-testid="workbook-import-file-status"]')?.getAttribute('data-stage');
         expect(card(container)?.getAttribute('aria-busy')).toBe('true');
-        expect(stage()).toBe('reading');
-        expect(steps(container)).toEqual({ read: 'Running', check: 'None' });
-
-        await act(async () => finishRead(new Uint8Array([1, 2, 3])));
         await vi.waitFor(() => expect(stage()).toBe('validating'));
         expect(steps(container)).toEqual({ read: 'Succeeded', check: 'Running' });
 
@@ -161,16 +148,16 @@ describe('FileLoader', () => {
         await vi.waitFor(() => expect(button(container, 'workbook-import-confirm')).not.toBeNull());
     });
 
-    it('ignores a cancelled stale read when callbacks change', async () => {
-        let finishRead!: (bytes: Uint8Array) => void;
-        const read = new Promise<Uint8Array>(resolve => { finishRead = resolve; });
-        const input = file(() => read);
+    it('reads the file once when callbacks change', async () => {
+        let finishValidation!: (preview: core.ImportPreview) => void;
+        state.readImport.mockReturnValue(new Promise<core.ImportPreview>(resolve => { finishValidation = resolve; }));
+        const input = file();
         const onDone = vi.fn();
 
         act(() => root.render(<FileLoader file={input} onDone={onDone} dependencies={dependencies} />));
         await act(async () => {
             root.render(<FileLoader file={input} onDone={() => onDone()} dependencies={dependencies} />);
-            finishRead(new Uint8Array([1, 2, 3]));
+            finishValidation(PREVIEW);
         });
 
         await vi.waitFor(() => expect(button(container, 'workbook-import-confirm')).not.toBeNull());

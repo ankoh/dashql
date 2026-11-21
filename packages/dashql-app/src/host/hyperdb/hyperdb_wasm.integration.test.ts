@@ -1,7 +1,6 @@
 import * as arrow from 'apache-arrow';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { WebFile } from '../web_file.js';
 import { ShellFileRegistry } from '../../shell/terminal/shell_files.js';
 import { setupWebHyperDB } from './hyperdb_provider_web.js';
 import { createTestHyperDBClient, testDatabasePath } from '../../tests/hyperdb_test_client.js';
@@ -514,7 +513,7 @@ describe('HyperDB embedded database integration', () => {
     it('queries a shell-mounted file', async () => {
         const connection = await database!.connect();
         const name = `values-${crypto.randomUUID()}.csv`;
-        const file = new WebFile(new File(['value,name\n1,alpha\n2,beta\n'], name, { type: 'text/csv' }), name);
+        const file = new File(['value,name\n1,alpha\n2,beta\n'], name, { type: 'text/csv' });
         const registry = new ShellFileRegistry(undefined, database!);
         let mounted: string | null = null;
         try {

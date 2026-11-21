@@ -4,7 +4,6 @@ import type {
     EmbeddedExternalFileDatabase,
     ExternalDirectoryMode,
 } from '@akohn/dashql/platform/embedded_database';
-import type { PlatformFile } from '../../host/file.js';
 import type { LoggerLike } from '@akohn/dashql/platform/logger/logger';
 import {
     createShellFilesCommand,
@@ -15,14 +14,8 @@ import {
     ShellFileRegistry,
 } from './shell_files.js';
 
-function sourceFile(path: string): PlatformFile {
-    return {
-        path,
-        size: 3,
-        blob: new Blob([new Uint8Array([1, 2, 3])]),
-        stream: () => new ReadableStream(),
-        readAsArrayBuffer: async () => new Uint8Array([1, 2, 3]),
-    };
+function sourceFile(name: string): File {
+    return new File([new Uint8Array([1, 2, 3])], name);
 }
 
 class MockExternalFiles implements EmbeddedExternalFileDatabase, EmbeddedExternalDirectoryDatabase {
@@ -61,7 +54,7 @@ class MockExternalFiles implements EmbeddedExternalFileDatabase, EmbeddedExterna
 describe('shell files command', () => {
     it('mounts browser files without reading or streaming them', async () => {
         const external = new MockExternalFiles();
-        const file = sourceFile('input/data.csv');
+        const file = sourceFile('data.csv');
         const stream = vi.spyOn(file, 'stream');
         const registry = new ShellFileRegistry(undefined, external);
 
@@ -179,7 +172,7 @@ describe('selectPlatformFiles', () => {
             this.dispatchEvent(new Event('change'));
         });
         const files = await selectPlatformFiles();
-        expect(files.map(file => file.path)).toEqual(['data.csv']);
+        expect(files.map(file => file.name)).toEqual(['data.csv']);
         expect(files[0].size).toBe(3);
     });
 
@@ -242,20 +235,20 @@ describe('shell file registry logging', () => {
         const logger = new RecordingLogger();
         const registry = new ShellFileRegistry(logger, new MockExternalFiles());
         const progress: string[] = [];
-        await registry.mountFile(sourceFile('input/data.csv'), undefined, { onProgress: message => progress.push(message) });
+        await registry.mountFile(sourceFile('data.csv'), undefined, { onProgress: message => progress.push(message) });
         expect(progress).toEqual(['Mounting data.csv']);
         expect(logger.records.map(r => [r.level, r.message])).toEqual([
             ['info', 'Mounting shell file'],
             ['info', 'Mounted shell file'],
         ]);
         expect(logger.records[0].keyValues).toMatchObject({
-            source_path: 'input/data.csv',
+            source_path: 'data.csv',
             target_path: undefined,
             size_bytes: '3',
             stage: 'register_external_file',
         });
         expect(logger.records[1].keyValues).toMatchObject({
-            source_path: 'input/data.csv',
+            source_path: 'data.csv',
             target_path: '/mnt/external/data.csv',
             stage: 'complete',
         });
@@ -275,11 +268,10 @@ describe('shell file registry logging', () => {
         expect(failure.keyValues.error).toContain('denied');
     });
 
-    it('rejects files without support or without a blob', async () => {
+    it('rejects files without support', async () => {
         const file = sourceFile('data.csv');
         await expect(new ShellFileRegistry().mountFile(file)).rejects.toThrow('not supported');
         const registry = new ShellFileRegistry(undefined, new MockExternalFiles());
-        await expect(registry.mountFile({ ...file, blob: undefined })).rejects.toThrow('cannot be mounted directly');
         await expect(registry.mountFile(file, undefined, { signal: AbortSignal.abort(new Error('stop')) })).rejects.toThrow('stop');
     });
 
