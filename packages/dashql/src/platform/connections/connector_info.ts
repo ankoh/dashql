@@ -1,4 +1,5 @@
 import { ConnectorType } from '../../core/index.js';
+import type { ConnectionParams } from './connection_params.js';
 
 /// The connectors, a numeric enum of the module
 export { ConnectorType };
@@ -9,9 +10,20 @@ export const CONNECTOR_TYPES: ConnectorType[] = [
     ConnectorType.DBCOM,
 ];
 
+/// The field of the connection params that holds the params of a connector, e.g. `{ hyper: ... }`. Database.com
+/// connections share the params of Salesforce Data Cloud connections.
+export type ConnectorParamsKey = 'hyper' | 'salesforce' | 'dbcom' | 'trino';
+
+/// What the connection layer knows about a connector.
+///
+/// The params and details of the connection state always hold the params of the connector under its key, generic
+/// operations convert between them through `paramsKey`. The defaults, the draft rows and the login hint of the params
+/// are in the core module (`ConnectionParams` of `dashql_core_runtime`).
 export interface ConnectorInfo {
     /// The connector type
     connectorType: ConnectorType;
+    /// The field of the connection params that holds the params of the connector
+    paramsKey: ConnectorParamsKey;
     /// The connector name
     names: {
         displayLong: string;
@@ -29,6 +41,7 @@ export interface ConnectorInfo {
 export const CONNECTOR_INFOS: ConnectorInfo[] = [
     {
         connectorType: ConnectorType.HYPER,
+        paramsKey: 'hyper',
         names: {
             displayShort: 'Hyper',
             displayLong: 'Hyper',
@@ -42,6 +55,7 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
     },
     {
         connectorType: ConnectorType.SALESFORCE_DATA_CLOUD,
+        paramsKey: 'salesforce',
         names: {
             displayShort: 'Salesforce',
             displayLong: 'Salesforce Data Cloud',
@@ -55,6 +69,7 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
     },
     {
         connectorType: ConnectorType.TRINO,
+        paramsKey: 'trino',
         names: {
             displayShort: 'Trino',
             displayLong: 'Trino',
@@ -69,6 +84,7 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
     {
         // Database.com connections behave like Salesforce Data Cloud connections for now, but can write to their database
         connectorType: ConnectorType.DBCOM,
+        paramsKey: 'dbcom',
         names: {
             displayShort: 'Database.com',
             displayLong: 'Database.com',
@@ -82,10 +98,11 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
     },
 ];
 
-export function getConnectorInfoForParams(params: { hyper?: unknown; salesforce?: unknown; dbcom?: unknown; trino?: unknown }): ConnectorInfo | null {
-    if ("hyper" in params) return CONNECTOR_INFOS[ConnectorType.HYPER];
-    if ("salesforce" in params) return CONNECTOR_INFOS[ConnectorType.SALESFORCE_DATA_CLOUD];
-    if ("dbcom" in params) return CONNECTOR_INFOS[ConnectorType.DBCOM];
-    if ("trino" in params) return CONNECTOR_INFOS[ConnectorType.TRINO];
-    return null;
+/// The connector of connection params
+export function connectorInfoOfParams(params: ConnectionParams): ConnectorInfo {
+    const connector = CONNECTOR_INFOS.find(connector => connector.paramsKey in params);
+    if (connector == null) {
+        throw new Error(`Unknown connector of the connection params with the keys [${Object.keys(params).join(', ')}]`);
+    }
+    return connector;
 }

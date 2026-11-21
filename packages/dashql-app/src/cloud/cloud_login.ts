@@ -27,9 +27,7 @@ export function useCloudLogin(connectionId: string | null): CloudLogin {
     const runtime = useRuntime();
 
     const connector = connectionState?.connectorType;
-    const available = connector === ConnectorType.HYPER ? config?.connectors?.hyper != null
-        : connector === ConnectorType.DBCOM ? config?.connectors?.salesforce != null
-        : false;
+    const available = config != null && (connector === ConnectorType.HYPER || connector === ConnectorType.DBCOM);
 
     const login = React.useCallback(async () => {
         if (connectionState == null || !available) return;

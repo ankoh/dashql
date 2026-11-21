@@ -1,6 +1,6 @@
 import { ConnectionHealth, type ConnectionState } from '../../platform/connections/connection_state.js';
 import { newConnectionFromParams, type ConnectionParams } from '../../platform/connections/connection_params.js';
-import { connectorOfParams } from '../../platform/connections/connector_descriptor.js';
+import { connectorInfoOfParams } from '../../platform/connections/connector_info.js';
 import { ConnectorType } from '../../platform/connections/connector_info.js';
 import type { HttpClient, HttpFetchResult } from '../../platform/http_client.js';
 import { createQueryResponseStreamMetrics, type QueryExecutionResponseStream } from '../../platform/query/query_execution_state.js';
@@ -190,7 +190,7 @@ async function hyperProbe(setup: TestSetup): Promise<HttpFetchResult> {
 export async function setupTestConnection(runtime: Runtime, connectionId: string, options: { channel?: object; health?: ConnectionHealth; error?: string } = {}): Promise<ConnectionState> {
     const current = runtime.connection(connectionId);
     if (current == null) throw new Error(`the runtime has no connection ${connectionId}`);
-    const connector = connectorOfParams(current.params).info.connectorType;
+    const connector = connectorInfoOfParams(current.params).connectorType;
     if (connector === ConnectorType.SALESFORCE_DATA_CLOUD || connector === ConnectorType.DBCOM) {
         throw new Error('the connections of tests set up no Salesforce');
     }

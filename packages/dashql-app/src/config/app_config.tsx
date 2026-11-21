@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { ConnectorConfigs, readConnectorConfigs } from '@akohn/dashql/platform/connections/connector_configs';
+import type { ConnectorConfigs } from '@akohn/dashql/platform/connections/connector_configs';
 import { useLogger } from '../host/logger_provider.js';
 import { Logger } from '@akohn/dashql/platform/logger/logger';
 import { createTrace } from '@akohn/dashql/platform/logger/trace_context';
@@ -17,13 +17,6 @@ export interface AppConfig {
     connectors?: ConnectorConfigs;
 }
 
-function readAppConfig(object: AppConfig): AppConfig {
-    if (object.connectors) {
-        object.connectors = readConnectorConfigs(object.connectors);
-    }
-    return object;
-}
-
 export interface AppConfigResult {
     config: AppConfig;
     traceId: number;
@@ -35,7 +28,7 @@ export async function downloadAppConfig(logger: Logger, flavor: AppFlavor): Prom
     try {
         const resp = await fetch(CONFIG_URL as unknown as string);
         const body = await resp.json();
-        const config = readAppConfig(body);
+        const config = body as AppConfig;
         config.settings = applyFlavorSettings(config.settings, flavor);
         traced.info("Loaded app config", {}, "app_config");
         return { config, traceId: trace.traceId };

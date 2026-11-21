@@ -1,15 +1,26 @@
 import type * as app_workbook from '@akohn/dashql-jsonschema/app_workbook.js';
 
 import * as core from '../../core/index.js';
-import { ConnectorType, ConnectorInfo } from './connector_info.js';
-import type { ConnectionState, NewConnection } from './connection_state.js';
-import { connectionParamsOf, connectorOf, connectorOfParams, connectorParams } from './connector_descriptor.js';
+import { ConnectorType, ConnectorInfo, connectorInfoOfParams } from './connector_info.js';
+import { connectorInfoOf, type ConnectionState, type NewConnection } from './connection_state.js';
 
 // Re-export connection param types from JSON Schema
 export type ConnectionParams = app_workbook.ConnectionParams;
 export type HyperConnectionParams = app_workbook.HyperConnectionParams;
 export type SalesforceConnectionParams = app_workbook.SalesforceConnectionParams;
 export type TrinoConnectionParams = app_workbook.TrinoConnectionParams;
+/// The params of a connector, under its key in the connection params
+export type ConnectorParams = HyperConnectionParams | SalesforceConnectionParams | TrinoConnectionParams;
+
+/// The params of the connector of connection params
+export function connectorParams(connector: ConnectorInfo, params: ConnectionParams): ConnectorParams {
+    return (params as Partial<Record<ConnectorInfo['paramsKey'], ConnectorParams>>)[connector.paramsKey]!;
+}
+
+/// The connection params that hold the params of a connector
+export function connectionParamsOf(connector: ConnectorInfo, params: ConnectorParams): ConnectionParams {
+    return { [connector.paramsKey]: params } as unknown as ConnectionParams;
+}
 
 // The defaults, the draft rows and the login hints of connection params come from the core module (`ConnectionParams`
 // of `dashql_core_runtime`), the caller passes the core, e.g. the one of its runtime (`Runtime.core`).
@@ -33,7 +44,7 @@ export function connectionParamsKey(params: ConnectionParams | undefined): strin
 /// The params of the setup of a connection, null before a setup
 export function getConnectionSetupParams(connection: Pick<ConnectionState, 'connectorType' | 'details'>): ConnectionParams | null {
     const setupParams = connection.details.setupParams;
-    return setupParams ? connectionParamsOf(connectorOf(connection), setupParams as never) : null;
+    return setupParams ? connectionParamsOf(connectorInfoOf(connection), setupParams as never) : null;
 }
 
 /// Whether the connection params carry a login hint (the resolved account username / login) that
@@ -47,8 +58,8 @@ export type NewConnectionOptions = Pick<NewConnection, 'active' | 'name'>;
 
 /// A new connection with params, its setup starts with them
 export function newConnectionFromParams(params: ConnectionParams, options: NewConnectionOptions = {}): NewConnection {
-    const connector = connectorOfParams(params);
-    return { connectorType: connector.info.connectorType, setupParams: connectorParams(connector, params), params, ...options };
+    const connector = connectorInfoOfParams(params);
+    return { connectorType: connector.connectorType, setupParams: connectorParams(connector, params), params, ...options };
 }
 
 /// A new connection to the embedded Hyper: the runtime gives a connection without setup params the params of a new

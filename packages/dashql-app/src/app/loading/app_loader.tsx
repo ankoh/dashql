@@ -23,16 +23,16 @@ export const AppLoader: React.FC<React.PropsWithChildren> = (props: React.PropsW
     const runtime = useOptionalRuntime();
     // The runtime sets up the connections of the opened workbook that need nothing of the user: the embedded Hyper, and
     // the Hyper of a link once the tab holds its token. It considers every connection once (`open_setup` of the runtime
-    // crate). The Hyper connector of the config enables it.
-    const hyperEnabled = config?.connectors?.hyper != null;
+    // crate), once the config is loaded.
+    const configLoaded = config != null;
     const openedWorkbook = useWorkbook(routeContext.workbookId ?? null);
     const openedWorkbookId = openedWorkbook?.workbookId ?? null;
     const openedConnections = openedWorkbook?.connectionIds.join(' ') ?? null;
     const hyperLinks = useHyperLinkTabState();
     React.useEffect(() => {
-        if (runtime == null || !hyperEnabled || openedWorkbookId == null) return;
+        if (runtime == null || !configLoaded || openedWorkbookId == null) return;
         runtime.setUpOpenedWorkbook(openedWorkbookId);
-    }, [runtime, hyperEnabled, openedWorkbookId, openedConnections, hyperLinks]);
+    }, [runtime, configLoaded, openedWorkbookId, openedConnections, hyperLinks]);
 
     // The import of a workbook that the app was started with, the setup then doesn't open another one
     const initialImport = React.useRef<Promise<boolean> | null>(null);

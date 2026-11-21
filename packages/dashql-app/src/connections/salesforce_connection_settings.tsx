@@ -20,7 +20,7 @@ import { IndicatorStatus } from '@akohn/dashql-react/components/status_indicator
 import { classNames } from '@akohn/dashql-react/dom/classnames';
 import { Logger } from '@akohn/dashql/platform/logger/logger';
 import { CONNECTOR_INFOS, ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
-import { CONNECTOR_DESCRIPTORS, connectionParamsOf } from '@akohn/dashql/platform/connections/connector_descriptor';
+import { connectionParamsOf } from '@akohn/dashql/platform/connections/connection_params';
 import type { ConnectionDetailsView } from '@akohn/dashql';
 import type { DetailedError } from '@akohn/dashql/platform/utils/error';
 import { ConnectionInlineHeader } from './connection_inline_header.js';
@@ -332,7 +332,7 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
     const { saving } = useConnectionSave(props.connectionId);
     const salesforceConnection = getSalesforceConnectionDetails(connectionState);
     const defaultDatabaseName = useOptionalRuntime()?.core.hyperCloudDefaultDatabaseName() ?? '';
-    const paramsKey = CONNECTOR_DESCRIPTORS[props.connector].paramsKey as 'salesforce' | 'dbcom';
+    const paramsKey = CONNECTOR_INFOS[props.connector].paramsKey as 'salesforce' | 'dbcom';
     const isDbcomConnector = props.connector === ConnectorType.DBCOM;
     const editableParams = connectionState?.paramsDraft ?? connectionState?.params;
     const salesforceParams = editableParams && paramsKey in editableParams ? (editableParams as Record<typeof paramsKey, connection.SalesforceConnectionParams>)[paramsKey] : undefined;
@@ -345,7 +345,7 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
     });
     const [pageState, setPageState] = useConnectionDraftForm(props.connectionId,
         params => buildPageState(params && paramsKey in params ? (params as Record<typeof paramsKey, connection.SalesforceConnectionParams>)[paramsKey] : undefined),
-        ({ databaseName, ...form }) => connectionParamsOf(CONNECTOR_DESCRIPTORS[props.connector], {
+        ({ databaseName, ...form }) => connectionParamsOf(CONNECTOR_INFOS[props.connector], {
             ...salesforceParams,
             ...form,
             appConsumerSecret: salesforceParams?.appConsumerSecret ?? '',
@@ -393,7 +393,7 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
         }
         if (!validationSucceeded) return;
         // The setup updates the connection state with the failure details
-        await connectionSetup.run(connectionParamsOf(CONNECTOR_DESCRIPTORS[props.connector], setupParams));
+        await connectionSetup.run(connectionParamsOf(CONNECTOR_INFOS[props.connector], setupParams));
     };
     const cancelSetup = connectionSetup.cancel;
     const resetSetup = connectionSetup.reset;

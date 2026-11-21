@@ -6,7 +6,8 @@ import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
 import { createRuntime } from '@akohn/dashql/runtime/runtime';
 import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_state';
 import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
-import { connectionParamsOf, CONNECTOR_DESCRIPTORS } from '@akohn/dashql/platform/connections/connector_descriptor';
+import { CONNECTOR_INFOS } from '@akohn/dashql/platform/connections/connector_info';
+import { connectionParamsOf } from '@akohn/dashql/platform/connections/connection_params';
 import { TASK_UPDATE_SCHEDULER } from '@akohn/dashql/runtime/store/update_scheduler';
 import type { HttpClient } from '@akohn/dashql/platform/http_client';
 import { PlatformType } from '../../host/platform_type.js';
@@ -60,7 +61,7 @@ for (const connector of [ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.DBCO
             }),
         };
         const runtime = runtimeOf(http, new AppOAuthFlow(events as unknown as PlatformEventListener, PlatformType.WEB));
-        const connectionParams = connectionParamsOf(CONNECTOR_DESCRIPTORS[connector], params);
+        const connectionParams = connectionParamsOf(CONNECTOR_INFOS[connector], params);
         runtime.createConnection({ connectorType: connector, setupParams: params, params: connectionParams }, 'salesforce');
         const outcome = await runtime.setupConnection('salesforce', { oauthRedirect: 'https://example.com/callback' });
 
@@ -95,7 +96,7 @@ describe('the setup of Salesforce', () => {
     const params = { instanceUrl: 'https://example.my.salesforce.com', appConsumerKey: 'key' } as connection.SalesforceConnectionParams;
     const create = (connector: ConnectorType) => {
         const runtime = runtimeOf({ fetch: () => Promise.reject(new Error('no network')) }, new AppOAuthFlow({} as never, PlatformType.WEB));
-        runtime.createConnection({ connectorType: connector, setupParams: params, params: connectionParamsOf(CONNECTOR_DESCRIPTORS[connector], params) }, 'salesforce');
+        runtime.createConnection({ connectorType: connector, setupParams: params, params: connectionParamsOf(CONNECTOR_INFOS[connector], params) }, 'salesforce');
         return runtime;
     };
 
@@ -145,7 +146,7 @@ describe('the mock of Salesforce of the config', () => {
         });
         runtime.module.runCatalogLoader(false);
         const params = { instanceUrl: 'https://mock.my.salesforce.com', appConsumerKey: 'key', appConsumerSecret: '', login: '' } as connection.SalesforceConnectionParams;
-        const connector = CONNECTOR_DESCRIPTORS[ConnectorType.SALESFORCE_DATA_CLOUD];
+        const connector = CONNECTOR_INFOS[ConnectorType.SALESFORCE_DATA_CLOUD];
         runtime.createConnection({ connectorType: ConnectorType.SALESFORCE_DATA_CLOUD, setupParams: params, params: connectionParamsOf(connector, params) }, 'salesforce');
         const outcome = await runtime.setupConnection('salesforce', { oauthRedirect: 'https://dashql.app/oauth.html' });
 
