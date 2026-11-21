@@ -10,7 +10,7 @@ writes into Hyper, and the components of the UI foundations. Each page brings it
 
 ```text
 packages/dashql-app/
-  demos.html                     # the entrypoint, loads src/demos/demos.tsx
+  entrypoints/demos.html         # the entrypoint, loads src/demos/demos.tsx, served as /demos.html
   src/demos/
     demos.tsx                    # providers, the index and the route of every demo
     demo_registry.ts             # the demos: id, title, description, load()

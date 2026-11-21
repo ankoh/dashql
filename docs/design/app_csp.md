@@ -7,7 +7,7 @@ Wasm runs. This document lists where each policy comes from, how they combine, a
 
 | Source | Covers | Defined in |
 |--------|--------|------------|
-| `<meta http-equiv="Content-Security-Policy">` | the html entry page that carries it | `packages/dashql-app/*.html` |
+| `<meta http-equiv="Content-Security-Policy">` | the html entry page that carries it | `packages/dashql-app/entrypoints/*.html` |
 | `Content-Security-Policy` header on `/static/js/*` | workers on Cloudflare Pages | `packages/dashql-app/_headers` |
 | `Content-Security-Policy` header on every response | pages and workers in Electron | `packages/dashql-native/src/app_protocol.ts` |
 
