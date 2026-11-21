@@ -12,8 +12,10 @@ import { connectedSessionStart, connectedSessionStartText, runSession, shellWord
 import { startSessionServer } from './session_server.js';
 import { runWith } from './test_process.js';
 
-/// The folder that the harness works in, the server keeps the folder of its session there
+/// The folder that the harness works in, the server keeps the folder of its session in its workspace
 const W = mkdtempSync(path.join(process.env.TEST_TMPDIR ?? tmpdir(), 'dashql-connect-'));
+/// The workspace of the session, the .dashql/ of the folder
+const WS = path.join(W, '.dashql');
 /// The id of the session that connect picks in the tests
 const SESSION = '0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0';
 /// dashql as the hooks call it
@@ -54,12 +56,12 @@ describe('dashql connect', () => {
             program = harnessProgram;
             args = harnessArgs;
             expect(cwd).toBe(W);
-            const bin = path.join(W, '.dashql', 'session', 'bin');
+            const bin = path.join(W, '.dashql', 'bin');
             // The session goes to the harness in the arguments of the hooks, the environment has only the dashql of
             // the agent
             expect(harnessEnv).toEqual({ PATH: `${bin}:/usr/bin` });
             // The commands of the agent find the server in the folder of the session
-            expect(JSON.parse(readFileSync(path.join(W, '.dashql', 'session', 'session.json'), 'utf8'))).toEqual({ id: SESSION, endpoint: `http://127.0.0.1:${port}`, token: 's3cret' });
+            expect(JSON.parse(readFileSync(path.join(WS, 'dashql-workspace.json'), 'utf8'))).toEqual({ formatVersion: 1, session: { id: SESSION, endpoint: `http://127.0.0.1:${port}`, token: 's3cret' } });
             // The agent runs dashql like the hooks
             expect(readFileSync(path.join(bin, 'dashql'), 'utf8')).toBe(`#!/bin/sh\nexec /usr/bin/node '/opt/dash ql/dashql.js' "$@"\n`);
             expect(statSync(path.join(bin, 'dashql')).mode & 0o111).not.toBe(0);
@@ -67,13 +69,13 @@ describe('dashql connect', () => {
             following = followAgentSession({ endpoint: `http://127.0.0.1:${port}`, token: 's3cret' }, state => states.push(state), new AbortController().signal);
             const { hooks } = JSON.parse(harnessArgs[harnessArgs.indexOf('--settings') + 1]);
             const command = (event: string) => hooks[event][0].hooks[0].command as string;
-            expect(command('SessionStart').endsWith(` --workspace ${W}`)).toBe(true);
+            expect(command('SessionStart').endsWith(` --workspace ${WS}`)).toBe(true);
             const start = await runHook(command('SessionStart'), { session_id: 'c1', cwd: W });
             // Claude Code has the guide in its system prompt, the hook tells the session and the workbooks of the folder
-            expect(start.stdout).toBe(`${connectedSessionStartText(W)}\n\nWorkbooks of DashQL in this session: none yet. The tab of DashQL copies the workbook that it shows into the
+            expect(start.stdout).toBe(`${connectedSessionStartText(WS)}\n\nWorkbooks of DashQL in this session: none yet. The tab of DashQL copies the workbook that it shows into the
 session once it reaches it.
 `);
-            expect(start.stdout).toBe(connectedSessionStart('claude', W));
+            expect(start.stdout).toBe(connectedSessionStart('claude', WS, W));
             expect(harnessArgs[harnessArgs.indexOf('--append-system-prompt') + 1]).toBe(CONNECTED_AGENT_GUIDE);
             // The agent runs dashql and edits the copies without asking
             expect(JSON.parse(harnessArgs[harnessArgs.indexOf('--settings') + 1]).permissions).toEqual({ allow: CLAUDE_ALLOWED_TOOLS });
@@ -97,23 +99,25 @@ session once it reaches it.
         });
         // The server is gone, with the folder of its session
         await expect(fetch(`http://127.0.0.1:${port}/v1/state`)).rejects.toThrow();
-        expect(existsSync(path.join(W, '.dashql', 'session'))).toBe(false);
+        expect(existsSync(path.join(W, '.dashql', 'workbooks'))).toBe(false);
+        expect(existsSync(path.join(W, '.dashql', 'bin'))).toBe(false);
+        expect(JSON.parse(readFileSync(path.join(WS, 'dashql-workspace.json'), 'utf8'))).toEqual({ formatVersion: 1 });
     });
 
     it('gives Codex the guide at the start of the session', () => {
-        const start = connectedSessionStart('codex', W);
-        expect(start.startsWith(`${CONNECTED_AGENT_GUIDE}\n\n${connectedSessionStartText(W)}\n\n`)).toBe(true);
+        const start = connectedSessionStart('codex', WS, W);
+        expect(start.startsWith(`${CONNECTED_AGENT_GUIDE}\n\n${connectedSessionStartText(WS)}\n\n`)).toBe(true);
         expect(CONNECTED_AGENT_GUIDE.endsWith(DESCRIBE_TEXT)).toBe(true);
-        expect(codexHookArgs(DASHQL, W)).not.toContain('--append-system-prompt');
+        expect(codexHookArgs(DASHQL, WS)).not.toContain('--append-system-prompt');
     });
 
     it('gives Codex the hooks as a config override, without SessionEnd', () => {
-        const [flag, value] = codexHookArgs(DASHQL, W);
+        const [flag, value] = codexHookArgs(DASHQL, WS);
         expect(flag).toBe('-c');
-        expect(value.startsWith(`hooks={SessionStart=[{hooks=[{type="command",command="/usr/bin/node '/opt/dash ql/dashql.js' session hook SessionStart --harness codex --workspace ${W}"}]}],`)).toBe(true);
+        expect(value.startsWith(`hooks={SessionStart=[{hooks=[{type="command",command="/usr/bin/node '/opt/dash ql/dashql.js' session hook SessionStart --harness codex --workspace ${WS}"}]}],`)).toBe(true);
         expect(value).toContain('Stop=[');
         expect(value).not.toContain('SessionEnd');
-        const [settingsFlag, settings] = claudeHookArgs(DASHQL, W);
+        const [settingsFlag, settings] = claudeHookArgs(DASHQL, WS);
         expect(settingsFlag).toBe('--settings');
         const hooks = JSON.parse(settings).hooks;
         for (const event of ['PreToolUse', 'PostToolUse', 'PostToolUseFailure']) expect(hooks[event][0].matcher).toBe('*');

@@ -16,46 +16,49 @@ describe('the session server', () => {
         server = null;
     });
 
-    it('keeps the file of the session at its fixed path, which goes with the session', async () => {
+    it('names the session in the workspace file, the session goes from it when it ends', async () => {
         const folder = temp('dashql-session-');
-        const sessionFolder = path.join(folder, '.dashql', 'session');
         server = await startSessionServer({ harness: 'claude', folder, session: '51001' });
         expect(readFileSync(path.join(folder, '.dashql', '.gitignore'), 'utf8')).toBe('*\n');
         // The hooks and the commands of the agent find the session there, only the user reads it
-        const file = path.join(sessionFolder, 'session.json');
-        expect(JSON.parse(readFileSync(file, 'utf8'))).toEqual({ id: '51001', endpoint: `http://127.0.0.1:${server.port}`, token: server.token });
+        const file = path.join(folder, '.dashql', 'dashql-workspace.json');
+        expect(JSON.parse(readFileSync(file, 'utf8'))).toEqual({ formatVersion: 1, session: { id: '51001', endpoint: `http://127.0.0.1:${server.port}`, token: server.token } });
         expect(statSync(file).mode & 0o077).toBe(0);
         // The server names its session by its id, a page tells the next session on a port by it
         expect(server.state().id).toBe('51001');
         await server.close();
         server = null;
-        expect(existsSync(sessionFolder)).toBe(false);
+        // The copies go with the session
+        expect(existsSync(path.join(folder, '.dashql', 'workbooks'))).toBe(false);
+        expect(JSON.parse(readFileSync(file, 'utf8'))).toEqual({ formatVersion: 1 });
     });
 
-    it('runs one session in a folder and takes over the folder of a session that ended without removing it', async () => {
+    it('runs one session in a folder and takes over the workspace of a session that ended without removing itself', async () => {
         const folder = temp('dashql-session-');
-        const sessionFolder = path.join(folder, '.dashql', 'session');
+        const copies = path.join(folder, '.dashql', 'workbooks');
+        const sessionId = () => JSON.parse(readFileSync(path.join(folder, '.dashql', 'dashql-workspace.json'), 'utf8')).session?.id;
         server = await startSessionServer({ harness: 'claude', folder, session: '51001' });
         // A second session fails while the server of the first answers, and leaves the first alone
         await expect(startSessionServer({ harness: 'codex', folder, session: '51002' })).rejects.toMatchObject({ code: 'ESESSIONRUNS' });
-        expect(JSON.parse(readFileSync(path.join(sessionFolder, 'session.json'), 'utf8')).id).toBe('51001');
-        // A session whose server is gone, e.g. after a crash, leaves its folder behind; the next one takes it over
+        expect(sessionId()).toBe('51001');
+        // A session whose server is gone, e.g. after a crash, leaves its copies and its name behind; the next one takes
+        // them over
         const port = server.port;
         await server.close();
         server = null;
-        mkdirSync(path.join(sessionFolder, 'workbooks', 'w1'), { recursive: true });
-        writeFileSync(path.join(sessionFolder, 'session.json'), JSON.stringify({ id: '51001', endpoint: `http://127.0.0.1:${port}`, token: 't' }));
+        mkdirSync(path.join(copies, 'w1'), { recursive: true });
+        writeFileSync(path.join(folder, '.dashql', 'dashql-workspace.json'), JSON.stringify({ formatVersion: 1, session: { id: '51001', endpoint: `http://127.0.0.1:${port}`, token: 't' } }));
         server = await startSessionServer({ harness: 'codex', folder, session: '51002' });
-        expect(JSON.parse(readFileSync(path.join(sessionFolder, 'session.json'), 'utf8')).id).toBe('51002');
-        expect(existsSync(path.join(sessionFolder, 'workbooks', 'w1'))).toBe(false);
+        expect(sessionId()).toBe('51002');
+        expect(existsSync(path.join(copies, 'w1'))).toBe(false);
     });
 
     it('keeps the copy of the workbook of a page in its folder and hands out its files', async () => {
         const folder = temp('dashql-session-');
         server = await startSessionServer({ harness: 'claude', folder, session: '51003' });
         const target = { endpoint: `http://127.0.0.1:${server.port}`, token: server.token };
-        // The copies are in the folder of the session
-        const copy = path.join(folder, '.dashql', 'session', 'workbooks', 'w1');
+        // The copies are the workbooks of the workspace
+        const copy = path.join(folder, '.dashql', 'workbooks', 'w1');
         const parquet = new Uint8Array([0x50, 0x41, 0x52, 0x31]);
         await writeAgentSessionWorkbook(target, 'w1', [
             { path: 'dashql-workbook.json', content: '{"scripts":[]}' },
@@ -111,19 +114,19 @@ describe('the session server', () => {
         expect(server.state().workbooks).toEqual([]);
     });
 
-    it('keeps the connections that the tab lets the agent use in the folder of the session', async () => {
+    it('keeps the connections that the tab lets the agent use in the session of the workspace file', async () => {
         const folder = temp('dashql-session-');
         server = await startSessionServer({ harness: 'claude', folder, session: '51005' });
         const target = { endpoint: `http://127.0.0.1:${server.port}`, token: server.token };
         await writeAgentSessionConnections(target, { connections: [{ connectionId: 'c1', name: 'Trino prod' }] });
-        const file = path.join(folder, '.dashql', 'session', 'connections.json');
-        expect(JSON.parse(readFileSync(file, 'utf8'))).toEqual({ connections: [{ connectionId: 'c1', name: 'Trino prod' }] });
+        const connections = () => JSON.parse(readFileSync(path.join(folder, '.dashql', 'dashql-workspace.json'), 'utf8')).session.connections;
+        expect(connections()).toEqual([{ connectionId: 'c1', name: 'Trino prod' }]);
         const base = `http://127.0.0.1:${server.port}/v1/connections`;
         expect((await fetchAgentSession(`${base}/${server.token}`, { method: 'PUT', body: '{"connections":7}' })).status).toBe(400);
         expect((await fetchAgentSession(`${base}/wrong`, { method: 'PUT', body: '{"connections":[]}' })).status).toBe(401);
         // None is a choice as well
         await writeAgentSessionConnections(target, { connections: [] });
-        expect(JSON.parse(readFileSync(file, 'utf8'))).toEqual({ connections: [] });
+        expect(connections()).toEqual([]);
     });
 
     it('serves the state only with the token and to the pages of DashQL', async () => {

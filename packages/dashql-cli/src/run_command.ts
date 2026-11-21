@@ -27,10 +27,9 @@ import type { RunEvent, RunReporter } from './run_events.js';
 import { LiveRunReporter } from './run_live.js';
 import { PlainRunReporter } from './run_output.js';
 import { runInTab } from './run_tab.js';
-import { copiedWorkbookId, dashqlRoot, isWorkbookCopyFolder, isWorkspace, noWorkspace, readSession, sessionCopiesFolder } from './session_folder.js';
+import { copiedWorkbookId, DEFAULT_WORKSPACE, isWorkbookCopyFolder, isWorkspace, noWorkspace, readSession, sessionCopiesFolder } from './session_folder.js';
 
-const RUN_USAGE = `Usage: dashql run [-w <dir>] [--rows <n>] [--refresh] [--plain] [--home <dir>] [--verbose] <workbook-dir>
-                  [<script>...]
+const RUN_USAGE = `Usage: dashql run [-w <dir>] [--rows <n>] [--refresh] [--plain] [--verbose] <workbook-dir> [<script>...]
 
 Runs the scripts of a workbook folder on their connections like the Run of the workbook in DashQL, all of them by
 default, the named ones with the scripts they reference otherwise. Scripts of different connections run at the same
@@ -48,18 +47,17 @@ A script whose result is cached is not run again unless a script it follows runs
 connections that statements run on are set up first, a result that the cache serves needs none. The scripts of a
 connection that can't be set up are not run.
 
-The files of DashQL are in a folder with the layout of the storage of the app: the query result cache in cache/, the
-attachments of the workbooks in workbooks/<id>/attachments. It is --home, else the .dashql/ of the workspace, which
-the run creates and which ignores itself.
+The files of DashQL are in the workspace, with the layout of the storage of the app: the query result cache in
+cache/, the attachments of the workbooks in workbooks/<id>/attachments.
 
 Connections: Trino with basic auth and the embedded Hyper. DASHQL_TRINO_USER and DASHQL_TRINO_PASSWORD override the
 user and the password of the workbook.
 
---workspace (-w) is the folder that you work in, the invoking directory by default: a workspace that dashql init or
-dashql connect set up, another folder fails. While a session of dashql connect runs there
-(.dashql/session/session.json), only the copies of the workbooks of its tab run
-(.dashql/session/workbooks/<workbook id>), and they run in the tab: on the connections of the tab that the agent may
-use, as far as the browser reaches them, and the tab shows the run. Every other folder fails, so nothing runs outside
+--workspace (-w) is the folder of the files of DashQL, .dashql/ of the invoking directory by default: a workspace
+that dashql init or dashql connect set up, another folder fails. While a session of dashql connect runs there
+(dashql-workspace.json), only the copies of the workbooks of its tab run (workbooks/<workbook id>), and they run in
+the tab: on the connections of the tab that the agent may use, as far as the browser reaches them, and the tab shows
+the run. Every other folder fails, so nothing runs outside
 the tab. The run fails when no tab follows the session. Without a session the folder runs in this process, a copy of a
 tab only with the workspace of its session.
 
@@ -89,7 +87,6 @@ interface RunArgs {
     scripts: string[];
     rows: number;
     refresh: boolean;
-    home: string | null;
     /// Print lines also on a terminal
     plain: boolean;
     verbose: boolean;
@@ -101,8 +98,7 @@ function parseRunArgs(args: string[]): RunArgs | string {
     let verbose = false;
     let refresh = false;
     let plain = false;
-    let home: string | null = null;
-    let workspace = '.';
+    let workspace = DEFAULT_WORKSPACE;
     const positional: string[] = [];
     for (let i = 0; i < args.length; ++i) {
         const arg = args[i];
@@ -116,10 +112,6 @@ function parseRunArgs(args: string[]): RunArgs | string {
             refresh = true;
         } else if (arg === '--plain') {
             plain = true;
-        } else if (arg === '--home') {
-            const value = args[++i];
-            if (value == null || value.startsWith('-')) return '--home takes a folder';
-            home = value;
         } else if (arg === '--workspace' || arg === '-w') {
             const value = args[++i];
             if (value == null || value.startsWith('-')) return '--workspace takes a folder';
@@ -132,7 +124,7 @@ function parseRunArgs(args: string[]): RunArgs | string {
     }
     if (positional.length === 0) return 'missing the workbook folder';
     const [workbook, ...scripts] = positional;
-    return { workbook, workspace, scripts, rows, refresh, home, plain, verbose };
+    return { workbook, workspace, scripts, rows, refresh, plain, verbose };
 }
 
 /// The logger of a run: prints the records with --verbose
@@ -249,7 +241,7 @@ export async function runRun(args: string[], cli: CliProcess, env: RunEnvironmen
     const emit = (event: RunEvent) => { for (const reporter of reporters) reporter.event(event); };
     try {
         await printSyntaxErrors(dir, parsed.scripts, cli);
-        const run = { ...parsed, workspace, home: parsed.home == null ? null : path.resolve(cli.cwd, parsed.home) };
+        const run = { ...parsed, workspace };
         return await runWorkbookFolder(run, dir, env, cli, stop.signal, emit, live);
     } finally {
         for (const reporter of reporters) reporter.close();
@@ -287,10 +279,9 @@ export interface WorkbookFolderRun {
     rows: number;
     refresh: boolean;
     verbose: boolean;
-    /// The folder that the agent works in, absolute: the session of `dashql connect` there decides where it runs
+    /// The workspace, the folder of the files of DashQL, absolute: the session of `dashql connect` there decides where it
+    /// runs
     workspace: string;
-    /// The folder of the files of DashQL, absolute, null for the `.dashql/` of the workspace (`dashqlRoot`)
-    home: string | null;
     /// The size of the charts that the tab renders after the results, `dashql vis`; a run in this process renders none
     chart?: AgentSessionChartSize | null;
 }
@@ -349,7 +340,7 @@ async function runHere(
     // connections and the attachments. Without it the scripts on Trino still run, nothing is written.
     let hyper: NodeComputeDatabase | null = null;
     try {
-        hyper = await openNodeComputeDatabase(dashqlRoot(parsed.workspace, parsed.home));
+        hyper = await openNodeComputeDatabase(parsed.workspace);
     } catch (error) {
         cli.stderr(`warning: the embedded Hyper did not start, results are not written: ${describeRunError(error)}\n`);
     }

@@ -3,12 +3,12 @@ import { randomUUID } from 'node:crypto';
 import { chmodSync, mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
-import { SESSION_FOLDER_PATH } from '@akohn/dashql/platform/session/session_folder';
+import { DASHQL_FOLDER, SESSION_WORKBOOK_COPIES } from '@akohn/dashql/platform/session/session_folder';
 
 import { EXIT_FAILED, EXIT_OK, EXIT_USAGE, type CliProcess } from './cli_process.js';
 import { CONNECTED_AGENT_GUIDE } from './describe_command.js';
 import { options, shellWord } from './session_command.js';
-import { sessionFolder } from './session_folder.js';
+import { sessionBinFolder } from './session_folder.js';
 import { SESSION_RUNS_ERROR, startSessionServer } from './session_server.js';
 
 export const CONNECT_USAGE = `Usage:
@@ -19,7 +19,8 @@ export const CONNECT_USAGE = `Usage:
       hooks that send its events there, and ends the session when the harness exits. The arguments after -- go to
       the harness. --command runs another program of the harness than claude or codex on the PATH.
       Codex asks to trust the hooks of DashQL once, at its start. One session runs in a folder (--folder, else this
-      one), a second fails while the server of the first answers.
+      one), a second fails while the server of the first answers. The workspace of the session is the .dashql/ of
+      the folder.
 
       The harness learns how to work on the workbooks of DashQL at its start: Claude Code in its system prompt,
       Codex from the output of the hook. Claude Code runs the commands of dashql and edits the workbooks of the
@@ -85,11 +86,11 @@ export function processConnectEnvironment(): ConnectEnvironment {
 /// The numbers of the signals that end a harness, for the exit code like a shell reports it
 const signalNumbers: Record<string, number> = { SIGHUP: 1, SIGINT: 2, SIGKILL: 9, SIGTERM: 15 };
 
-/// Put a `dashql` that runs this dashql into the folder of the session, the agent of a harness that `npx` launched
-/// has none on its path. Returns the folder of the command, null if it can't be written. The folder of the session
-/// goes when the session ends.
-export function writeDashqlCommand(folder: string, dashql: string[]): string | null {
-    const bin = path.join(sessionFolder(folder), 'bin');
+/// Put a `dashql` that runs this dashql into `bin/` of the workspace of a session, the agent of a harness that `npx`
+/// launched has none on its path. Returns the folder of the command, null if it can't be written. It goes when the
+/// session ends.
+export function writeDashqlCommand(workspace: string, dashql: string[]): string | null {
+    const bin = sessionBinFolder(workspace);
     try {
         mkdirSync(bin, { recursive: true });
         const command = path.join(bin, 'dashql');
@@ -101,7 +102,7 @@ export function writeDashqlCommand(folder: string, dashql: string[]): string | n
     }
 }
 
-/// The command of a hook of a harness, the folder of the session in its arguments
+/// The command of a hook of a harness, the workspace of the session in its arguments
 function hookCommand(dashql: string[], event: string, harness: string, workspace: string): string {
     return [...dashql, 'session', 'hook', event, '--harness', harness, '--workspace', workspace].map(shellWord).join(' ');
 }
@@ -111,8 +112,8 @@ function hookCommand(dashql: string[], event: string, harness: string, workspace
 const AGENT_COMMANDS = ['describe', 'catalog', 'run', 'vis', 'move', 'lint', 'format'];
 
 /// What Claude Code may do in a session without asking: run the commands of dashql of the agent and edit the files of
-/// the session, the copies of the workbooks of the tab
-export const CLAUDE_ALLOWED_TOOLS = [...AGENT_COMMANDS.map(command => `Bash(dashql ${command}:*)`), `Edit(./${SESSION_FOLDER_PATH}/**)`];
+/// the session, the copies of the workbooks of the tab in the workspace of the folder of the harness
+export const CLAUDE_ALLOWED_TOOLS = [...AGENT_COMMANDS.map(command => `Bash(dashql ${command}:*)`), `Edit(./${DASHQL_FOLDER}/${SESSION_WORKBOOK_COPIES}/**)`];
 
 /// The arguments that give Claude Code the session: settings that it loads in addition to its own, with the hooks of
 /// the session and the tools it may use without asking, and the guide of DashQL in its system prompt
@@ -158,6 +159,8 @@ export async function runConnect(argv: string[], cli: CliProcess, env: ConnectEn
     if (secret.length === 0) return usage('--secret needs the secret that DashQL shows');
 
     const folder = path.resolve(cli.cwd, named.get('folder') ?? '.');
+    // The workspace of the session, where the hooks and the commands of the agent find it
+    const workspace = path.join(folder, DASHQL_FOLDER);
     // The id of the session names its state, the file of the session holds it
     const session = env.sessionId();
     let server: Awaited<ReturnType<typeof startSessionServer>>;
@@ -173,12 +176,12 @@ export async function runConnect(argv: string[], cli: CliProcess, env: ConnectEn
         return EXIT_FAILED;
     }
     const program = named.get('command') ?? harness;
-    const args = [...(harness === 'claude' ? claudeHookArgs(env.dashql, folder) : codexHookArgs(env.dashql, folder)), ...rest];
+    const args = [...(harness === 'claude' ? claudeHookArgs(env.dashql, workspace) : codexHookArgs(env.dashql, workspace)), ...rest];
     cli.stdout(`DashQL follows this session on 127.0.0.1:${server.port}\n`);
     // The session goes to the harness in the arguments of its hooks, the agent learns it at the start: nothing in the
     // environment but the `dashql` of the agent, which runs this dashql like the hooks do
     const harnessEnv: Record<string, string> = {};
-    const bin = env.posix ? writeDashqlCommand(folder, env.dashql) : null;
+    const bin = env.posix ? writeDashqlCommand(workspace, env.dashql) : null;
     if (bin != null) harnessEnv.PATH = env.searchPath.length > 0 ? `${bin}${path.delimiter}${env.searchPath}` : bin;
     let code: number;
     try {

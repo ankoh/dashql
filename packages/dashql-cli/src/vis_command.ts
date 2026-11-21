@@ -18,10 +18,10 @@ import type { RunEvent } from '@akohn/dashql/platform/workbook/run_events';
 
 import { EXIT_FAILED, EXIT_INTERRUPTED, EXIT_OK, EXIT_USAGE, type CliProcess } from './cli_process.js';
 import { processRunEnvironment, runWorkbookFolder, type RunEnvironment } from './run_command.js';
-import { dashqlRoot, isWorkspace, noWorkspace } from './session_folder.js';
+import { DEFAULT_WORKSPACE, isWorkspace, noWorkspace } from './session_folder.js';
 
 export const VIS_USAGE = `Usage: dashql vis [-w <dir>] [--out <file.png>] [--width <n>] [--height <n>] [--scale <n>]
-                 [--refresh] [--home <dir>] <workbook-dir> <script>
+                 [--refresh] <workbook-dir> <script>
 
 Checks the chart of a script and renders it as PNG to look at. The chart is the @vis tag in the comment above the
 last query of the script, the result of the script is its data. vis runs the script like dashql run, a result that is
@@ -29,11 +29,10 @@ cached is not run again. It prints the renderer, the columns and the rows of the
 Vega-Lite chart: errors and warnings of Vega-Lite, fields that are no columns of the result, sizes that DashQL decides.
 
 The tab of DashQL renders the PNG with the result, as it runs the script: for a workbook that it copied into a
-session of dashql connect, .dashql/session/workbooks/<workbook id> of --workspace. It has the theme of DashQL, ${CHART_IMAGE_WIDTH}x${CHART_IMAGE_HEIGHT} at scale ${CHART_IMAGE_SCALE} unless given otherwise.
+session of dashql connect, workbooks/<workbook id> of --workspace. It has the theme of DashQL, ${CHART_IMAGE_WIDTH}x${CHART_IMAGE_HEIGHT} at scale ${CHART_IMAGE_SCALE} unless given otherwise.
 Check a narrow card too, e.g. --width 400 --height 400: the cards of the feed, the dashboard and the dataflow differ
-in aspect ratio. --workspace (-w) is the folder that you work in, the invoking directory by default, as for dashql
-run. The file is charts/<script>.png in the folder of the files of DashQL unless --out names it: --home, else the
-.dashql/ of the workspace. vis runs where dashql run runs: in a session only the copies of the tab, without one any
+in aspect ratio. --workspace (-w) is the folder of the files of DashQL, .dashql/ of the invoking directory by default,
+as for dashql run. The file is charts/<script>.png in the workspace unless --out names it. vis runs where dashql run runs: in a session only the copies of the tab, without one any
 workbook folder, which gets the check only.
 
 Exits with 0 when the chart has no problems, 1 when it has some or the script has no chart or no result, 2 on usage
@@ -47,7 +46,6 @@ interface VisArgs {
     height: number;
     scale: number;
     refresh: boolean;
-    home: string | null;
     workspace: string;
 }
 
@@ -59,9 +57,8 @@ function parseVisArgs(args: string[]): VisArgs | string {
         height: CHART_IMAGE_HEIGHT,
         scale: CHART_IMAGE_SCALE,
         refresh: false,
-        home: null,
     };
-    let workspace = '.';
+    let workspace = DEFAULT_WORKSPACE;
     const positional: string[] = [];
     const number = (name: string, value: string | undefined, max: number): number | string => {
         const parsed = Number(value);
@@ -80,10 +77,6 @@ function parseVisArgs(args: string[]): VisArgs | string {
             const value = args[++i];
             if (value == null || value.startsWith('-')) return '--out takes a file';
             out.out = value;
-        } else if (arg === '--home') {
-            const value = args[++i];
-            if (value == null || value.startsWith('-')) return '--home takes a folder';
-            out.home = value;
         } else if (arg === '--workspace' || arg === '-w') {
             const value = args[++i];
             if (value == null || value.startsWith('-')) return '--workspace takes a folder';
@@ -172,7 +165,6 @@ export async function runVis(args: string[], cli: CliProcess, env: RunEnvironmen
         return EXIT_USAGE;
     }
     const dir = path.resolve(cli.cwd, parsed.workbook);
-    const home = parsed.home == null ? null : path.resolve(cli.cwd, parsed.home);
     const workspace = path.resolve(cli.cwd, parsed.workspace);
     if (!isWorkspace(workspace)) {
         cli.stderr(`error: ${noWorkspace(parsed.workspace)}\n`);
@@ -211,7 +203,7 @@ export async function runVis(args: string[], cli: CliProcess, env: RunEnvironmen
     const failures: string[] = [];
     let code: number;
     // The columns of the result are enough here, the tab renders the chart with all of it
-    const run = { workbook: parsed.workbook, workspace, scripts: [fileName], rows: 0, refresh: parsed.refresh, verbose: false, home };
+    const run = { workbook: parsed.workbook, workspace, scripts: [fileName], rows: 0, refresh: parsed.refresh, verbose: false };
     // The tab renders the PNG of a Vega-Lite chart after the result
     const chartSize = tag.spec == null ? null : { width: parsed.width, height: parsed.height, scale: parsed.scale };
     try {
@@ -255,7 +247,7 @@ export async function runVis(args: string[], cli: CliProcess, env: RunEnvironmen
     const rendered = image as Extract<RunEvent, { type: 'script_chart' }> | null;
     let wrote: string | null = null;
     if (rendered?.png != null) {
-        const out = parsed.out != null ? path.resolve(cli.cwd, parsed.out) : path.join(dashqlRoot(workspace, home), 'charts', `${name}.png`);
+        const out = parsed.out != null ? path.resolve(cli.cwd, parsed.out) : path.join(workspace, 'charts', `${name}.png`);
         mkdirSync(path.dirname(out), { recursive: true });
         writeFileSync(out, rendered.png);
         wrote = `${path.relative(cli.cwd, out) || out} (${rendered.width}x${rendered.height} pixels)`;

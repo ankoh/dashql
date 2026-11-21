@@ -12,7 +12,7 @@ export const SESSION_USAGE = `Usage:
   dashql session hook <event> --harness <name> --workspace <dir>
       The hooks that dashql connect gives the harness. Called with the payload of the hook on stdin: SessionStart,
       UserPromptSubmit, PreToolUse, PostToolUse, PostToolUseFailure, Notification, Stop, StopFailure or SessionEnd.
-      Sends the event to the server of the session that runs in --workspace (.dashql/session/session.json).
+      Sends the event to the server of the session that runs in --workspace (dashql-workspace.json).
       SessionStart prints how to work on the workbooks of the session. Never fails the harness.`;
 
 /// A word of a POSIX shell command
@@ -31,10 +31,11 @@ catalog, describe, run and vis, for example: dashql run --workspace ${folder} ${
 }
 
 /// What the hook at the start of a session of `dashql connect` prints for a harness: the guide unless the harness has
-/// it in its system prompt, then the session, the workbooks and the connections of the folder
-export function connectedSessionStart(harness: string, workspace: string): string {
+/// it in its system prompt, then the session, the workbooks and the connections of the folder, relative to the folder
+/// of the hook
+export function connectedSessionStart(harness: string, workspace: string, cwd: string): string {
     const guide = harness === 'claude' ? '' : `${CONNECTED_AGENT_GUIDE}\n\n`;
-    return `${guide}${connectedSessionStartText(workspace)}\n\n${describeSession(workspace)}`;
+    return `${guide}${connectedSessionStartText(workspace)}\n\n${describeSession(workspace, cwd)}`;
 }
 
 /// The server of a session that a hook sends to
@@ -86,7 +87,7 @@ async function hook(args: string[], cli: CliProcess): Promise<number> {
     const harness = named.get('harness');
     const folder = named.get('workspace');
     if (harness == null) throw '--harness names the harness of the hook';
-    if (folder == null) throw '--workspace names the folder of the session of dashql connect';
+    if (folder == null) throw '--workspace names the workspace of the session of dashql connect';
     const workspace = path.resolve(cli.cwd, folder);
     let payload: unknown = {};
     try {
@@ -107,7 +108,7 @@ async function hook(args: string[], cli: CliProcess): Promise<number> {
     } catch (error) {
         cli.stderr(`dashql: the session did not take the event: ${String(error)}\n`);
     }
-    if (event.event === 'SessionStart') cli.stdout(connectedSessionStart(harness, workspace));
+    if (event.event === 'SessionStart') cli.stdout(connectedSessionStart(harness, workspace, cli.cwd));
     return EXIT_OK;
 }
 

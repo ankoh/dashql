@@ -15,7 +15,7 @@ connect`. `dashql run` in the sandboxes and opencode are planned.
 | `//tests/agents:hyperdb_edge_claude_code_test` and `hyperdb_edge_codex_test`: hyperdb-edge in both sandboxes, see [hyperdb_edge.md](../wip/hyperdb_edge.md#harness-tests) | Done |
 | `//tests/agents:hyperdb_edge_tool_runner_test` and `hyperdb_edge_agent_sdk_test`: the tools of hyperdb-edge in the Tool Runner and the Claude Agent SDK, see [hyperdb_edge.md](../wip/hyperdb_edge.md#in-process-tools). The fake Messages API follows the message threads of the Tool Runner | Done |
 | The hooks of `dashql connect` in both harnesses: its server holds the question, the command and the final message | Done |
-| `dashql run` in both sandboxes outside a session: the embedded Hyper, its root in the `.dashql/` of the workspace | Planned |
+| `dashql run` in both sandboxes outside a session: the embedded Hyper, its root in the workspace, `.dashql/` | Planned |
 | opencode | Planned |
 | The job `agent_integration` of `build_trusted.yml` and `build_untrusted.yml` | Added; the first run on GitHub failed on AppArmor (see [Findings](#findings)), the fix not yet run |
 
@@ -103,8 +103,8 @@ below the temporary folder, which the sandbox may allow.
 
 ## Next
 
-- **`dashql run` in the sandboxes:** outside a session the embedded Hyper starts there, its root is the `.dashql/` of
-  the workspace, which the sandboxes may write.
+- **`dashql run` in the sandboxes:** outside a session the embedded Hyper starts there, its root is the workspace, the
+  `.dashql/` of the project, which the sandboxes may write.
 - **opencode:** its plugins run in its process and see every event.
 - **CI:** the job `agent_integration` installs `bubblewrap` and `socat` on `ubuntu-26.04`, lifts the restriction of
   unprivileged user namespaces of Ubuntu, removes the AppArmor profiles `bwrap` and `unpriv_bwrap`, and runs

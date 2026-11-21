@@ -174,10 +174,11 @@ empty `logs/` folder at startup, before the instance settings apply.
 ## The root of Node
 
 The command line tool keeps its files in a folder of its own with the same layout: `cache/`,
-`workbooks/<id>/attachments/` and `instances/<id>/`. The folder is `--home`, else the `.dashql/` of the workspace
-that the command takes (`--workspace`), which `dashql init` or `dashql connect` set up, the folder that also holds the
-session of `dashql connect` (`docs/design/agent_session.md`). The files of a project stay in the project, where the commands in the sandbox of a
-harness may write; `.dashql/` ignores itself. The modules of the
+`workbooks/<id>/attachments/` and `instances/<id>/`. The folder is the workspace that the command takes
+(`--workspace`, `.dashql/` of the invoking directory by default), which `dashql init` or `dashql connect` set up, the
+folder that also holds the session of `dashql connect`, in its workspace file and with its copies in `workbooks/`
+(`docs/design/agent_session.md`). The files of a project stay in the project, where the commands in the sandbox of a
+harness may write; the workspace ignores itself. The modules of the
 runtime reach it through the handles of
 `node/node_directory_handle.ts` instead of `navigator.storage`, and the Node build of hyperdb-wasm mounts it at `/mnt/fs`,
 so the Hyper paths are the ones of the browser. `dashql run` mirrors the attachments of a workbook folder into it and

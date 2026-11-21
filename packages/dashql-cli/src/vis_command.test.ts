@@ -57,7 +57,7 @@ ${REVENUE};
 const BAR = { mark: 'bar', encoding: { x: { field: 'region', type: 'nominal' }, y: { field: 'revenue', type: 'quantitative' } } };
 
 const vis = (dir: string, args: string[], env: RunEnvironment = {}) =>
-    runWith((visArgs, cli) => { initWorkspace(dir); return runVis(['-w', '.', ...visArgs], cli, env); }, dir, args);
+    runWith((visArgs, cli) => { initWorkspace(path.join(dir, '.dashql')); return runVis(visArgs, cli, env); }, dir, args);
 
 /// The bytes of a PNG as a tab sends them
 const PNG = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3]);
@@ -117,7 +117,7 @@ No PNG: the tab of DashQL renders it, for a workbook that it copied into a sessi
                 { path: 'dashql-workbook.json', content: workbookFile(['revenue.sql']) },
                 { path: 'scripts/revenue.sql', content: charted(BAR) },
             ]);
-            const output = await vis(folder, [`.dashql/session/workbooks/${WORKBOOK_ID}`, 'revenue', '--width', '400', '--height', '300', '--scale', '1']);
+            const output = await vis(folder, [`.dashql/workbooks/${WORKBOOK_ID}`, 'revenue', '--width', '400', '--height', '300', '--scale', '1']);
             expect(output.stderr).toBe('');
             expect(output.stdout).toBe(`revenue.sql: @vis vegalite, 2 rows, columns region, revenue
 No problems.

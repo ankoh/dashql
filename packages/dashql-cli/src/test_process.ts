@@ -30,7 +30,7 @@ export function testFiles(files: Array<string | [string, string | Uint8Array]>):
 
 /// A workspace with files, as `dashql init` sets it up
 export function testWorkspace(files: Array<string | [string, string | Uint8Array]>): string {
-    return testFiles([['.dashql/.gitignore', '*\n'], ...files]);
+    return testFiles([['.dashql/.gitignore', '*\n'], ['.dashql/dashql-workspace.json', '{"formatVersion":1}\n'], ...files]);
 }
 
 /// Run a command with the process of a test, without colors

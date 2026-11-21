@@ -1,6 +1,6 @@
 import http from 'node:http';
 import { randomBytes, randomUUID } from 'node:crypto';
-import { createReadStream, createWriteStream, existsSync, mkdirSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { createReadStream, createWriteStream, existsSync, mkdirSync, readdirSync, renameSync, rmSync, statSync } from 'node:fs';
 import path from 'node:path';
 
 import {
@@ -18,16 +18,15 @@ import {
 } from '@akohn/dashql/platform/session/agent_session_client';
 import { AGENT_SESSION_PROTOCOL, AGENT_SESSION_PROTOCOL_HEADER } from '@akohn/dashql/platform/session/agent_session_protocol';
 import {
+    DASHQL_FOLDER,
     isWorkbookCopyId,
     parseSessionConnections,
-    SESSION_CONNECTIONS_FILE,
-    SESSION_FILE,
     type CopyFile,
-    type SessionFile,
+    type WorkspaceSession,
 } from '@akohn/dashql/platform/session/session_folder';
 import { STORAGE_ATTACHMENTS_FOLDER, STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE } from '@akohn/dashql/platform/storage/storage_backend';
 
-import { dashqlRoot, initWorkspace, readSession, sessionCopiesFolder, sessionFolder as sessionFolderOf } from './session_folder.js';
+import { initWorkspace, readSession, sessionBinFolder, sessionCopiesFolder, writeSession } from './session_folder.js';
 
 /// How long a run waits for the first event of the tab
 const RUN_CLAIM_TIMEOUT_MS = 30_000;
@@ -37,7 +36,7 @@ export const SESSION_RUNS_ERROR = 'ESESSIONRUNS';
 
 /// Does the server of a session answer? Every answer of a server of a session carries the protocol, before its token
 /// is checked.
-async function sessionAnswers({ endpoint }: SessionFile): Promise<boolean> {
+async function sessionAnswers({ endpoint }: WorkspaceSession): Promise<boolean> {
     try {
         const response = await fetch(`${endpoint}/v1/state`, { signal: AbortSignal.timeout(1000) });
         await response.body?.cancel();
@@ -60,13 +59,14 @@ export const SESSION_PAGE_ORIGINS = ['https://dashql.app', 'https://stable.dashq
 
 export interface SessionServerOptions {
     harness: string;
+    /// The folder that the harness works in, the workspace of the session is its `.dashql/`
     folder: string;
     /// The port, 0 picks a free one
     port?: number;
     /// The token, a random one by default
     token?: string;
-    /// The id of the session of `dashql connect`, the id of its state. Its folder is `.dashql/session/`, with the file of
-    /// the session for the hooks and the commands and the copies of the workbooks of the tab.
+    /// The id of the session of `dashql connect`, the id of its state. The workspace file names it for the hooks and the
+    /// commands, the copies of the workbooks of the tab are in `workbooks/` of the workspace.
     session: string;
 }
 
@@ -81,7 +81,7 @@ export interface SessionServer {
     close: () => Promise<void>;
 }
 
-/// The folder of the query result cache in the root of the session (docs/design/storage_layout.md)
+/// The folder of the query result cache in the workspace of the session (docs/design/storage_layout.md)
 const RESULT_CACHE_FOLDER = 'cache';
 /// The files of a workbook folder that the server hands out: what a published workbook holds (workbook_publishing.md)
 const WORKBOOK_FILE = /^(dashql-workbook\.json|(scripts|attachments)\/[^/]+|connections\/[^/]+\/dashql-catalog-[a-z]+\.sql)$/;
@@ -201,24 +201,33 @@ export async function startSessionServer(options: SessionServerOptions): Promise
 
     const send = (response: http.ServerResponse) => response.write(`data: ${JSON.stringify(state)}\n\n`);
     const broadcast = () => { for (const stream of streams) send(stream); };
-    // The folder of the session holds the file of the session and the copies, it goes when the session ends. The
-    // session sets up the folder as a workspace, whose `.dashql/` ignores itself. The hooks find the server only
-    // there, a folder that the server can't write to has no session. One session runs in a folder: a session whose
-    // server answers keeps it, the folder of a session that ended without removing it goes.
-    const sessionFolder = sessionFolderOf(options.folder);
-    const copies = sessionCopiesFolder(options.folder);
-    const running = readSession(options.folder);
+    // The session sets up the `.dashql/` of the folder as its workspace, which ignores itself, and works in its root: it
+    // names itself in the workspace file, where the hooks find the server, and the copies of the tab are the workbooks
+    // of the workspace, next to the `dashql` of the agent. A folder that the server can't write to has no session. One
+    // session runs in a workspace: a session whose server answers keeps it, a session that ended without removing
+    // itself, e.g. after a crash, goes with its copies. The workbooks of the workspace are the copies and the
+    // attachments that a run mirrors, which it mirrors again.
+    const workspace = path.join(options.folder, DASHQL_FOLDER);
+    const copies = sessionCopiesFolder(workspace);
+    const bin = sessionBinFolder(workspace);
+    const running = readSession(workspace);
     if (running != null && await sessionAnswers(running)) {
         throw Object.assign(new Error(`a session of dashql connect already runs in ${options.folder}`), { code: SESSION_RUNS_ERROR });
     }
+    const removeSessionFiles = () => {
+        rmSync(copies, { force: true, recursive: true });
+        rmSync(bin, { force: true, recursive: true });
+    };
     try {
-        initWorkspace(options.folder);
-        rmSync(sessionFolder, { force: true, recursive: true });
-        mkdirSync(sessionFolder, { recursive: true });
+        initWorkspace(workspace);
+        writeSession(workspace, null);
+        removeSessionFiles();
+        mkdirSync(copies, { recursive: true });
     } catch {
-        throw new Error(`cannot write ${sessionFolder}`);
+        throw new Error(`cannot write ${workspace}`);
     }
-    const removeSessionFolder = () => rmSync(sessionFolder, { force: true, recursive: true });
+    /// The session in the workspace file, once the server listens
+    let entry: WorkspaceSession | null = null;
 
     /// Stamp the files of the copy of the workbook of a page once it has its workbook file, the caller broadcasts
     const stampCopy = (workbookId: string) => {
@@ -264,13 +273,14 @@ export async function startSessionServer(options: SessionServerOptions): Promise
         response.writeHead(204).end();
     };
 
-    /// PUT /v1/connections/<token>: the connections that the tab lets the agent use, in the folder of the session, where
-    /// the commands of the session read them
+    /// PUT /v1/connections/<token>: the connections that the tab lets the agent use, in the session of the workspace file,
+    /// where the commands of the session read them
     const putConnections = async (request: http.IncomingMessage, response: http.ServerResponse) => {
         const connections = parseSessionConnections((await readBody(request)).toString('utf8'));
-        if (connections == null) return void response.writeHead(400).end();
+        if (connections == null || entry == null) return void response.writeHead(400).end();
         try {
-            writeFileSync(path.join(sessionFolder, SESSION_CONNECTIONS_FILE), `${JSON.stringify(connections, null, 2)}\n`);
+            entry = { ...entry, connections: connections.connections };
+            writeSession(workspace, entry);
         } catch {
             return void response.writeHead(500).end();
         }
@@ -437,7 +447,7 @@ export async function startSessionServer(options: SessionServerOptions): Promise
             // session as a new file of the key, where the agent reads it
             const key = url.pathname.split('/')[4];
             if (!/^[0-9a-f]{64}$/.test(key)) return void response.writeHead(400).end();
-            const cache = path.join(dashqlRoot(options.folder, null), RESULT_CACHE_FOLDER);
+            const cache = path.join(workspace, RESULT_CACHE_FOLDER);
             const file = path.join(cache, `${key}.${randomUUID()}.parquet`);
             mkdirSync(cache, { recursive: true });
             writeAtomically(request, file).then(() => sendJson(response, 200, { file }), () => failWrite(response)).catch(() => response.destroy());
@@ -492,16 +502,15 @@ export async function startSessionServer(options: SessionServerOptions): Promise
             server.listen(options.port ?? 0, '127.0.0.1', () => resolve());
         });
     } catch (error) {
-        // A port that is taken leaves no session folder behind
+        // A port that is taken leaves no copies behind
         clearInterval(keepAlive);
-        removeSessionFolder();
+        removeSessionFiles();
         throw error;
     }
     const port = (server.address() as { port: number }).port;
-    // The hooks and the commands of the agent find the session at the fixed path in its folder, readable by the user
-    // only
-    const file: SessionFile = { id: options.session, endpoint: `http://127.0.0.1:${port}`, token };
-    writeFileSync(path.join(sessionFolder, SESSION_FILE), `${JSON.stringify(file)}\n`, { mode: 0o600 });
+    // The hooks and the commands of the agent find the session in the workspace file, readable by the user only
+    entry = { id: options.session, endpoint: `http://127.0.0.1:${port}`, token };
+    writeSession(workspace, entry);
     return {
         port,
         token,
@@ -514,7 +523,12 @@ export async function startSessionServer(options: SessionServerOptions): Promise
         close: () => new Promise<void>(resolve => {
             clearInterval(keepAlive);
             // The commands of a later run find no session, the copies go with it
-            removeSessionFolder();
+            try {
+                if (readSession(workspace)?.id === options.session) writeSession(workspace, null);
+            } catch {
+                // A workspace that is gone has no session either
+            }
+            removeSessionFiles();
             for (const runId of [...runs.keys()]) endRun(runId, { type: 'run_failed', error: 'the session ended' });
             for (const stream of streams) stream.end();
             server.close(() => resolve());

@@ -41,16 +41,19 @@ its draft for SQL.
 
 ## The session
 
-- **One session per folder.** `dashql connect` runs one session in a folder, `.dashql/session/`. A second `connect`
-  in the folder fails while the server of the first answers; the folder of a session whose server is gone, e.g. after
-  a crash, goes at the next start. The session has an id, a new UUID: the `id` of the state that the tab follows, kept
-  in `.dashql/session/session.json` with the address and the token of the server.
-- **The workspace in every command.** The hooks and the commands of the agent take the folder that the harness works
-  in, `--workspace <folder>` (the commands default to the invoking directory), and read `session.json` at its fixed
-  path; `connect` sets no variable for them but the `PATH` of the `dashql` of the agent. A workspace is a folder that
-  `dashql init` or `dashql connect` set up, the commands fail on any other.
+- **One session per folder.** `dashql connect` runs one session in a folder, in its workspace `.dashql/`. A second
+  `connect` in the folder fails while the server of the first answers; a session whose server is gone, e.g. after a
+  crash, goes with its folder at the next start. The session has an id, a new UUID: the `id` of the state that the tab
+  follows, kept in the workspace file `.dashql/dashql-workspace.json` (`session`) with the address and the token of the
+  server, and removed from it when the session ends.
+- **The workspace in every command.** The hooks and the commands of the agent take the workspace, the `.dashql/` of
+  the folder that the harness works in, `--workspace <folder>/.dashql` (the commands default to `.dashql/` of the
+  invoking directory), and read the session from its workspace file; `connect` sets no variable for them but the
+  `PATH` of the `dashql` of the agent. A workspace is a folder that `dashql init` or `dashql connect` set up, with a
+  workspace file; the commands fail on any other, also on the project folder around it. `dashql init` gives a
+  `.dashql/` from before the workspace file, whose `.gitignore` ignores all of it, the file.
 - **Hooks carry the events.** Every hook that `connect` gives the harness runs `dashql session hook <event> --harness
-  <name> --workspace <folder>` and sends the event to the server that `session.json` names: `SessionStart`,
+  <name> --workspace <folder>/.dashql` and sends the event to the server that the workspace file names: `SessionStart`,
   `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `Stop` and `SessionEnd`, the page reads them from there. Claude Code
   sends three more: `PostToolUseFailure` goes as a `PostToolUse` with the error, `StopFailure` (a turn that an error
   ended) as a `Stop`, and `Notification` for an approval that the agent waits for in the terminal (`permission_prompt`)
@@ -98,23 +101,26 @@ of the tab runs the `dashql-cli` of the build of the page, so both sides speak e
   add a line to the list in the module. The fake server of the page test `app_agent_session` speaks the protocol of the
   page.
 
-## The folder of the session
+## The session in the workspace
 
-The server of `dashql connect` creates `.dashql/session/` in the folder that the harness works in, a folder that it
-can't write fails the start; the folder of DashQL ignores itself (`.dashql/.gitignore` is `*`). It holds everything of
-the session and goes when the session ends:
+One session runs in a workspace, and it works in its root. The server of `dashql connect` sets up `.dashql/` in the
+folder that the harness works in, a folder that it can't write fails the start; the workspace ignores itself
+(`.dashql/.gitignore` is `*`). The session keeps in it:
 
-- `session.json`: the id of the session and the address and the token of the server, readable by the user only, where
-  the hooks and the commands find it.
-- `connections.json`: the connections that the tab lets the agent use.
-- `workbooks/<workbook id>/`: the copies of the workbooks of the tab, see below.
-- `bin/dashql`: the `dashql` of the agent, first on its `PATH`.
+- `dashql-workspace.json`, the workspace file, `session`: its id and the address and the token of the server, readable
+  by the user only, where the hooks and the commands find it, and `connections`, the connections that the tab lets
+  the agent use. The agent may not edit it without asking. The session goes from it when it ends.
+- `workbooks/<workbook id>/`: the copies of the workbooks of the tab, see below, the workbooks of the workspace as in
+  the storage of the app. They go when the session ends, with the attachments that a run without a session mirrors
+  there, which it mirrors again.
+- `bin/dashql`: the `dashql` of the agent, first on its `PATH`, gone when the session ends.
 
-`catalog`, `describe`, `run` and `vis` take the workspace, `--workspace <folder>`, which the start of the session gives
-the agent; nothing comes from the environment and nothing is searched for. A path that names a folder without
-`.dashql/`, also a relative one after the shell of the agent changed into another folder, fails. Only the user sets up a
+`catalog`, `describe`, `run` and `vis` take the workspace, `--workspace <folder>/.dashql`, which the start of the
+session gives the agent; nothing comes from the environment and nothing is searched for. A path that names no
+workspace, the project folder around it or a relative one after the shell of the agent changed into another folder,
+fails. Only the user sets up a
 workspace with `dashql init`: the guide tells the agent not to, Claude Code asks before it runs it. While
-`session.json` is there, `dashql run` and `dashql vis` run only the copies, in the tab, and refuse every other workbook folder, in `.dashql/` or outside of
+the workspace file names a session, `dashql run` and `dashql vis` run only the copies, in the tab, and refuse every other workbook folder, in `.dashql/` or outside of
 it, which would otherwise run in the process without the tab noticing. A copy runs only with the workspace of its
 session. The edits of the agent reach the tab through the stamps of the copies, which the server
 takes after every tool and before every run; the page fetches the files at `/v1/workbooks/<token>/<workbook id>/<path>`.
@@ -123,10 +129,10 @@ The token is part of the path, so the relative paths of a workbook folder keep i
 ## The copies of the workbooks
 
 A conversation that starts in the page works on a copy: the site is the truth, the disk holds a copy for the agent in
-`<project>/.dashql/session/workbooks/<workbook id>/`, a workbook folder in the layout of OPFS
+`<project>/.dashql/workbooks/<workbook id>/`, a workbook folder in the layout of OPFS
 (`dashql-workbook.json`, `scripts/`, `attachments/`). It goes with the session, the tab has everything.
 
-- `.dashql/` is also the root of Node of the session (`docs/design/storage_layout.md`, "The root of Node"): `cache/`,
+- `.dashql/`, the workspace, is also the root of Node of the session (`docs/design/storage_layout.md`, "The root of Node"): `cache/`,
   `workbooks/<id>/attachments/` and `instances/` have the layout of OPFS, nothing is converted.
 - It is in the project, where the sandbox of Codex and the permissions of Claude Code let the agent write, a folder of
   the system for temporary files is not.
@@ -177,9 +183,9 @@ of their own after the other connections. Every connection but a cloud is allowe
 one; a cloud keeps the published workbooks and is allowed only once the user ticks it. The tab keeps what the user
 ticked and unticked per target in the storage of the tab. Once the server answers and after every change, the page
 sends the allowed connections with their labels (`PUT /v1/connections/<token>`), the server writes them into the
-folder of the session, `.dashql/session/connections.json`. A run in the tab takes only the allowed connections,
+session of the workspace file, `connections` in `.dashql/dashql-workspace.json`. A run in the tab takes only the allowed connections,
 the tab decides. `dashql describe` and `dashql catalog` tell the agent which connections it may use. The file is
-guidance for the agent, not a boundary: the agent can write it.
+guidance for the agent, not a boundary: the tab decides.
 
 **Logins stay in the tab.** The tab logs in as it does for its own runs, a run of the agent in the tab uses its
 connections as they are. No token or password reaches `dashql connect` or a process of the agent.

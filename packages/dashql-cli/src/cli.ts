@@ -30,9 +30,9 @@ Commands:
   vis [-w <dir>] <workbook-dir> <script>
                                       Check the chart of a script with its result and render it as PNG, see dashql vis --help
 
---workspace (-w) is the folder that you work in, the invoking directory by default, a workspace that dashql init or
-dashql connect set up: while a session of dashql connect runs there, run and vis run only the copies of the workbooks
-of its tab, in the tab.`;
+--workspace (-w) is the folder of the files of DashQL, .dashql/ of the invoking directory by default, a workspace that
+dashql init or dashql connect set up: while a session of dashql connect runs there, run and vis run only the copies
+of the workbooks of its tab, in the tab.`;
 
 /// Run dashql with its arguments, returns the exit code
 export async function runDashQL(argv: string[], process: CliProcess): Promise<number> {

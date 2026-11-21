@@ -6,13 +6,13 @@ import path from 'node:path';
 import { STORAGE_ATTACHMENTS_FOLDER, STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE } from '@akohn/dashql/platform/storage/storage_backend';
 
 import { EXIT_OK, EXIT_USAGE, type CliProcess } from './cli_process.js';
-import { isWorkspace, noWorkspace, readSession, readSessionConnections, sessionCopiesFolder } from './session_folder.js';
+import { DEFAULT_WORKSPACE, isWorkspace, noWorkspace, readSession, readSessionConnections, sessionCopiesFolder } from './session_folder.js';
 
 export const DESCRIBE_USAGE = `Usage: dashql describe [-w <dir>]
 
 Prints how to work on the workbooks of DashQL with the commands of dashql. While a session of dashql connect runs in
-the workspace, --workspace (-w) or the invoking directory, also the workbooks that the tab copied into the session and
-the connections that it lets the agent use.`;
+the workspace, --workspace (-w) or .dashql/ of the invoking directory, also the workbooks that the tab copied into the
+session and the connections that it lets the agent use.`;
 
 export const DESCRIBE_TEXT = `DashQL works on workbooks: folders of SQL scripts that run on connections. The tab of DashQL in the browser shows
 the workbooks of this session live: the scripts, their runs, their results and their charts. Work on a workbook
@@ -30,7 +30,7 @@ A workbook folder:
                                 that you put here.
   connections/<id>/             The tables of the connections, dashql catalog prints them.
 
-Commands, <workspace> is the folder that you work in, the start of the session names it. catalog, describe, run and
+Commands, <workspace> is the folder of the files of DashQL, the start of the session names it. catalog, describe, run and
 vis need it: while the session runs there, run and vis run only the copies of the tab, in the tab. Only the user sets
 up a workspace: never run dashql init, a command that says that a folder is no workspace names the wrong folder.
   dashql catalog --workspace <workspace> <workbook-dir> [<connection>...]
@@ -149,8 +149,9 @@ interface CopiedWorkbook {
     connections: string[];
 }
 
-/// The copies of the workbooks of the tab in a session that have a workbook file
-export function copiedWorkbooks(workspace: string): CopiedWorkbook[] {
+/// The copies of the workbooks of the tab in a session that have a workbook file, their folders relative to the
+/// folder of the command
+export function copiedWorkbooks(workspace: string, cwd: string): CopiedWorkbook[] {
     const root = sessionCopiesFolder(workspace);
     let ids: string[];
     try {
@@ -186,7 +187,7 @@ export function copiedWorkbooks(workspace: string): CopiedWorkbook[] {
             return [typeof connection.name === 'string' && connection.name.length > 0 && connection.name !== id ? `${connection.name} (${id})` : id];
         });
         return [{
-            folder: path.relative(workspace, folder).split(path.sep).join('/'),
+            folder: path.relative(cwd, folder).split(path.sep).join('/'),
             name: typeof workbook.name === 'string' && workbook.name.length > 0 ? workbook.name : id,
             scripts,
             attachments,
@@ -230,7 +231,7 @@ export function runDescribe(args: string[], cli: CliProcess): number {
         cli.stdout(`${DESCRIBE_USAGE}\n`);
         return EXIT_OK;
     }
-    let value = '.';
+    let value = DEFAULT_WORKSPACE;
     for (let i = 0; i < args.length; ++i) {
         if ((args[i] === '--workspace' || args[i] === '-w') && i + 1 < args.length && !args[i + 1].startsWith('-')) {
             value = args[++i];
@@ -246,13 +247,13 @@ export function runDescribe(args: string[], cli: CliProcess): number {
     }
     const workbooks = readSession(workspace) == null
         ? `Workbooks of DashQL: no session of dashql connect runs in ${workspace}.\n`
-        : describeSession(workspace);
+        : describeSession(workspace, cli.cwd);
     cli.stdout(`${DESCRIBE_TEXT}\n\n${workbooks}`);
     return EXIT_OK;
 }
 
 /// The workbooks that the tab copied into a session and the connections that the agent may use
-export function describeSession(workspace: string): string {
+export function describeSession(workspace: string, cwd: string): string {
     const connections = describeSessionConnections(workspace);
-    return `${describeCopiedWorkbooks(copiedWorkbooks(workspace))}\n${connections == null ? '' : `\n${connections}\n`}`;
+    return `${describeCopiedWorkbooks(copiedWorkbooks(workspace, cwd))}\n${connections == null ? '' : `\n${connections}\n`}`;
 }

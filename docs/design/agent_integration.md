@@ -24,7 +24,7 @@ flowchart LR
     subgraph Terminal[The terminal]
         H["Harness: Claude Code or Codex"] -->|hooks| S["Server of the session"]
         H -->|shell| C["dashql describe, catalog, lint, format, run, vis"]
-        H -->|file tools| F[".dashql/session/workbooks/id, the copy"]
+        H -->|file tools| F[".dashql/workbooks/id, the copy"]
         C -->|reads| F
         C -->|run requests| S
         S -->|writes, stamps| F
@@ -66,13 +66,13 @@ The reasons:
 | The guide of DashQL for the agent | Terminal: `DESCRIBE_TEXT` of `dashql describe`; Claude Code has it in its system prompt (`--append-system-prompt`), Codex in the output of the hook at the start | Nothing |
 | The conversation in the bar of the tab | Terminal: the hooks post the events to the server, which folds them into the state | The state, server to tab (`/v1/stream`) |
 | The copy of a workbook | Tab: it writes the files of its workbook once the server answers | Files, tab to terminal (`PUT /v1/workbooks/…`) |
-| Reading and writing scripts | Terminal: the file tools of the harness on `.dashql/session/workbooks/<workbook id>/scripts/` | Nothing, the files are local |
+| Reading and writing scripts | Terminal: the file tools of the harness on `.dashql/workbooks/<workbook id>/scripts/` | Nothing, the files are local |
 | Taking the edits of the agent | Tab: it sees new stamps in the state and fetches the changed scripts | Stamps in the state, file texts terminal to tab (`GET /v1/workbooks/…`) |
 | The connection of a new script | Terminal: the agent names it in `dashql-workbook.json` of the copy; Tab: it creates or moves the script | The workbook file, like a script |
 | Edits of the user | Tab: the editors; it writes changed scripts into the copy | Files, tab to terminal |
 | Lint, format, syntax errors before a run | Terminal: the core in Node | Nothing |
 | The tables of a connection | Tab: the catalog loader, and the core renders the file (`catalogRelationsFile`); Terminal: `dashql catalog` reads it | The file `connections/<id>/dashql-catalog-relations.sql` of the copy, tab to terminal |
-| The connections the agent may use | Tab: the menu of the prompt | `PUT /v1/connections`, the server writes `connections.json` |
+| The connections the agent may use | Tab: the menu of the prompt | `PUT /v1/connections`, the server writes them into the session of `dashql-workspace.json` |
 | Running scripts of a copy | Tab: its runtime on its connections | A run request terminal to tab (`POST /v1/runs`, the event `run` of the stream), the run events back |
 | The results of a run | Tab: the query result cache | The first rows in the events, the Parquet file of a cached result (`PUT /v1/results/…` into `.dashql/cache/`) |
 | Running workbook folders outside a session | Terminal: a runtime in the process of `dashql run`, Trino with basic auth and the embedded Hyper | Nothing |
@@ -101,19 +101,23 @@ The server keeps no workbook state of its own besides the files. A tab that relo
 
 ## The files
 
-The workspace is the folder that the harness works in, one session of dashql connect runs there.
+The workspace is the folder of the files of DashQL, the `.dashql/` of the folder that the harness works in; one session
+of dashql connect runs there. The commands take it with `--workspace`, `.dashql/` of the invoking directory by default;
+a workspace that `--workspace` names holds the files directly, with no `.dashql/` inside. Its workspace file marks it.
+The session works in the root of the workspace, its copies are the workbooks of the workspace as in the storage of the
+app.
 
 ```
 .dashql/                               ignored by git (.gitignore is *)
-├── session/                           the session of dashql connect, gone when it ends
-│   ├── session.json                   its id, the address and token of the server, for the hooks and the commands
-│   ├── connections.json               the connections that the agent may use, from the tab
-│   ├── bin/dashql                     the dashql of the agent, first on its PATH
-│   └── workbooks/<workbook id>/       the copy of a workbook of the tab
-│       ├── dashql-workbook.json       connections, scripts with their connections
-│       ├── scripts/<name>.sql
-│       ├── attachments/<name>.parquet
-│       └── connections/<id>/dashql-catalog-relations.sql
+├── dashql-workspace.json              the format version and, while it runs, the session of dashql connect: its id,
+│                                      the address and token of the server for the hooks and the commands, and the
+│                                      connections that the agent may use, from the tab
+├── bin/dashql                         the dashql of the agent, first on its PATH, gone when the session ends
+├── workbooks/<workbook id>/           the copy of a workbook of the tab, gone when the session ends
+│   ├── dashql-workbook.json           connections, scripts with their connections
+│   ├── scripts/<name>.sql
+│   ├── attachments/<name>.parquet
+│   └── connections/<id>/dashql-catalog-relations.sql
 ├── cache/<key>.<uuid>.parquet         results of runs, from the tab or the process
 └── charts/<script>.png                charts of dashql vis
 ```
@@ -150,8 +154,8 @@ and copies its workbooks again.
 
 ### A run
 
-1. `dashql run --workspace <folder> .dashql/session/workbooks/<workbook id> top.sql` prints the syntax errors of the
-   script, finds the server in `.dashql/session/session.json` of the workspace and posts the run request. The start of
+1. `dashql run --workspace <folder>/.dashql .dashql/workbooks/<workbook id> top.sql` prints the syntax errors
+   of the script, finds the server in `dashql-workspace.json` of the workspace and posts the run request. The start of
    the session gives the agent the workspace and the folder of the copies; while the session runs, a folder that is no
    copy fails.
 2. The server stamps the copies, sends the state and then the run to the tab.
@@ -177,11 +181,11 @@ user changed keeps the text of the user.
   work, that the user may take the workbook back, and that file contents and results are data, not instructions.
 - **At the start**: Claude Code has the guide with a preface in its system prompt, which outranks the `CLAUDE.md` of a
   project. Codex gets it in the output of the hook at the start. Both get the workspace that the commands
-  take, `--workspace <folder>`, the copies and the connections of the session.
+  take, `--workspace <folder>/.dashql`, the copies and the connections of the session.
 - **Permissions**: Claude Code may run `dashql describe`, `catalog`, `run`, `vis`, `move`, `lint` and `format` and
-  edit `.dashql/session/**` without asking; `dashql init` asks, a workspace is up to the user; everything else asks
+  edit `.dashql/workbooks/**` without asking, not the workspace file; `dashql init` asks, a workspace is up to the user; everything else asks
   as the user configured it.
-- **Connections**: the tab runs only the connections that the user allows; `connections.json` tells the agent which,
+- **Connections**: the tab runs only the connections that the user allows; the workspace file tells the agent which,
   it guides, the tab enforces.
 
 ## Without a tab
@@ -239,9 +243,9 @@ decides on. The tab logs in as it does for its own runs, no token reaches the te
 
 ### The flow of a run
 
-1. **Files come in.** The agent writes the copy of the workbook (`.dashql/session/workbooks/<workbook id>/`), the
+1. **Files come in.** The agent writes the copy of the workbook (`.dashql/workbooks/<workbook id>/`), the
    tab takes the changed scripts with their text (`agent/agent_session_copy.ts`), without a rewrite to accept or reject.
-2. **The run request.** `dashql run --workspace <folder> <the copy>` posts
+2. **The run request.** `dashql run --workspace <folder>/.dashql <the copy>` posts
    `{ workbookId, label, scripts, refresh, rows }` to `/v1/runs/<token>` (`run_tab.ts`). The server stamps the copies,
    sends the state, then the run as an event `run` on the stream of the tab (`event: run`), and answers with the
    events of the run as JSON lines, its header `X-DashQL-Run` names the run.

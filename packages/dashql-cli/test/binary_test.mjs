@@ -70,7 +70,7 @@ test('runs a workbook with the runtime and names the connection it can not reach
     }));
     mkdirSync(join(dir, 'scripts'));
     writeFileSync(join(dir, 'scripts', 'a.sql'), 'select 1\n');
-    // A workbook folder that is its own workspace
+    // A workbook folder with a workspace in its .dashql/
     const init = dashql(dir, ['init']);
     assert.equal(init.status, 0, init.stderr);
     assert.equal(init.stdout, 'Set up the workspace .dashql/\n');

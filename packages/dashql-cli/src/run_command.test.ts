@@ -23,7 +23,7 @@ import { startSessionServer } from './session_server.js';
 import { runWith, testFiles } from './test_process.js';
 
 /// What a command says to a folder that is no workspace, after its name
-const NO_WORKSPACE = 'is no workspace of DashQL, it has no .dashql/. Pass the workspace that the start of the session of dashql connect names. Only the user sets up a workspace.';
+const NO_WORKSPACE = 'is no workspace of DashQL, it has no dashql-workspace.json. Pass the workspace that the start of the session of dashql connect names. Only the user sets up a workspace.';
 
 const WORKBOOK_ID = '6f1c2a4e-8b3d-4c5e-9f70-1a2b3c4d5e6f';
 const CONNECTION_ID = '0d9e8f7a-6b5c-4d3e-8f21-0a1b2c3d4e5f';
@@ -157,15 +157,22 @@ const ORDERS: [string, string] = ['01_orders.sql', 'select id, name from orders\
 const BROKEN: [string, string] = ['02_broken.sql', 'select fail from orders\n'];
 const PASSWORD: Partial<RunEnvironment> = { trinoPassword: 'pw' };
 
-/// A folder for the files of DashQL
-const tempHome = () => mkdtempSync(path.join(process.env.TEST_TMPDIR ?? tmpdir(), 'dashql-home-'));
+/// A workspace of its own, as dashql init sets it up
+const tempWorkspace = () => {
+    const workspace = mkdtempSync(path.join(process.env.TEST_TMPDIR ?? tmpdir(), 'dashql-workspace-'));
+    initWorkspace(workspace);
+    return workspace;
+};
 
-/// A run in the workbook folder, which is its workspace
-const run = (dir: string, args: string[], env: RunEnvironment = PASSWORD, home: string | null = tempHome()) =>
-    runWith((runArgs, cli) => { initWorkspace(dir); return runRun(['-w', '.', ...(home == null ? [] : ['--home', home]), ...runArgs], cli, env); }, dir, args);
+/// A run in the workbook folder with a workspace of its own, null for the .dashql/ of the folder
+const run = (dir: string, args: string[], env: RunEnvironment = PASSWORD, workspace: string | null = tempWorkspace()) =>
+    runWith((runArgs, cli) => {
+        if (workspace == null) initWorkspace(path.join(dir, '.dashql'));
+        return runRun([...(workspace == null ? [] : ['-w', workspace]), ...runArgs], cli, env);
+    }, dir, args);
 
-/// The Parquet files of the query result cache of a home
-const cacheFiles = (home: string) => readdirSync(path.join(home, 'cache')).filter(file => file.endsWith('.parquet'));
+/// The Parquet files of the query result cache of a workspace
+const cacheFiles = (workspace: string) => readdirSync(path.join(workspace, 'cache')).filter(file => file.endsWith('.parquet'));
 
 describe('dashql run', () => {
     let trino: FakeTrino;
@@ -180,24 +187,24 @@ describe('dashql run', () => {
 
     it('runs a script on Trino and prints the schema, the row count and the rows', async () => {
         const dir = trinoWorkbook(trino.endpoint, [ORDERS, BROKEN]);
-        const home = tempHome();
-        const output = await run(dir, ['.', 'scripts/01_orders.sql'], PASSWORD, home);
+        const workspace = tempWorkspace();
+        const output = await run(dir, ['.', 'scripts/01_orders.sql'], PASSWORD, workspace);
         expect(output.stderr).toBe('');
         expect(output.code).toBe(0);
         expect(output.stdout).toMatch(/^01_orders\.sql {2}ok {2}3 rows {2}\d+\.\d s\n/);
-        const [cached] = cacheFiles(home);
+        const [cached] = cacheFiles(workspace);
         expect(output.stdout.split('\n').slice(1).join('\n')).toBe(`  id Int32, name Utf8
   id | name
   ---+------
   1  | apple
   2  | pear
   3  | NULL
-  ${path.join(home, 'cache', cached)}
+  ${path.join(workspace, 'cache', cached)}
 
 1 ok
 `);
         // The instance of the embedded Hyper is gone, the cache stays
-        expect(readdirSync(path.join(home, 'instances'))).toEqual([]);
+        expect(readdirSync(path.join(workspace, 'instances'))).toEqual([]);
         // The health check, then the script; the user of the workbook with the password of the environment
         expect(trino.statements).toHaveLength(2);
         expect(trino.statements[1]).toContain('from orders');
@@ -230,62 +237,62 @@ describe('dashql run', () => {
 
     it('serves a cached result unless a refresh runs the script again', async () => {
         const dir = trinoWorkbook(trino.endpoint, [ORDERS]);
-        const home = tempHome();
-        expect((await run(dir, ['.'], PASSWORD, home)).code).toBe(0);
-        const [first] = cacheFiles(home);
+        const workspace = tempWorkspace();
+        expect((await run(dir, ['.'], PASSWORD, workspace)).code).toBe(0);
+        const [first] = cacheFiles(workspace);
         expect(trino.statements.filter(text => text.includes('orders'))).toHaveLength(1);
 
         // The cache serves the result, the run doesn't reach Trino at all, not even to check the connection
         const before = trino.statements.length;
-        const again = await run(dir, ['.'], { trinoPassword: 'wrong' }, home);
+        const again = await run(dir, ['.'], { trinoPassword: 'wrong' }, workspace);
         expect(again.code).toBe(0);
         expect(again.stdout).toMatch(/^01_orders\.sql {2}ok {2}3 rows {2}\d+\.\d s {2}from the cache\n/);
-        expect(again.stdout).toContain(path.join(home, 'cache', first));
+        expect(again.stdout).toContain(path.join(workspace, 'cache', first));
         expect(trino.statements).toHaveLength(before);
 
-        const refreshed = await run(dir, ['--refresh', '.'], PASSWORD, home);
+        const refreshed = await run(dir, ['--refresh', '.'], PASSWORD, workspace);
         expect(refreshed.code).toBe(0);
         expect(refreshed.stdout).not.toContain('from the cache');
         expect(trino.statements.filter(text => text.includes('orders'))).toHaveLength(2);
         // The newer file of the key replaced the older one
-        expect(cacheFiles(home)).toHaveLength(1);
-        expect(cacheFiles(home)).not.toEqual([first]);
+        expect(cacheFiles(workspace)).toHaveLength(1);
+        expect(cacheFiles(workspace)).not.toEqual([first]);
     });
 
     it('scans the result of a script on Trino from a script on the embedded Hyper', async () => {
         // A reference names a script by an identifier
         const dir = trinoWorkbook(trino.endpoint, [['orders.sql', ORDERS[1]]]);
         withHyperScripts(dir, [['02_count.sql', 'select count(*) as n, count(name) as named from :orders\n']]);
-        const home = tempHome();
-        const output = await run(dir, ['.', '02_count.sql'], PASSWORD, home);
+        const workspace = tempWorkspace();
+        const output = await run(dir, ['.', '02_count.sql'], PASSWORD, workspace);
         expect(output.stderr).toBe('');
         expect(output.stdout).toMatch(/^02_count\.sql {2}ok {2}1 row {2}\d+\.\d s\n {2}n Int64, named Int64\n {2}n \| named\n {2}--\+------\n {2}3 \| 2\n/);
         expect(output.code).toBe(0);
         // The result of the Trino script was materialized into the cache and scanned
         expect(trino.statements.filter(text => text.includes('orders'))).toHaveLength(1);
-        expect(cacheFiles(home).length).toBeGreaterThanOrEqual(1);
+        expect(cacheFiles(workspace).length).toBeGreaterThanOrEqual(1);
     });
 
     it('reads the attachments of the workbook folder from the embedded Hyper', async () => {
         const dir = trinoWorkbook(trino.endpoint, [ORDERS]);
-        const home = tempHome();
-        expect((await run(dir, ['.'], PASSWORD, home)).code).toBe(0);
+        const workspace = tempWorkspace();
+        expect((await run(dir, ['.'], PASSWORD, workspace)).code).toBe(0);
         // A Parquet file as attachment, the cached result of the Trino script
         mkdirSync(path.join(dir, 'attachments'));
-        copyFileSync(path.join(home, 'cache', cacheFiles(home)[0]), path.join(dir, 'attachments', 'fruits.parquet'));
+        copyFileSync(path.join(workspace, 'cache', cacheFiles(workspace)[0]), path.join(dir, 'attachments', 'fruits.parquet'));
         withHyperScripts(dir, [['02_fruits.sql', "select name from :fruits where id = 2\n"]]);
-        const output = await run(dir, ['.', '02_fruits.sql'], PASSWORD, home);
+        const output = await run(dir, ['.', '02_fruits.sql'], PASSWORD, workspace);
         expect(output.stderr).toBe('');
         expect(output.code).toBe(0);
         expect(output.stdout).toContain('  pear\n');
-        expect(readdirSync(path.join(home, 'workbooks', WORKBOOK_ID, 'attachments'))).toEqual(['fruits.parquet']);
+        expect(readdirSync(path.join(workspace, 'workbooks', WORKBOOK_ID, 'attachments'))).toEqual(['fruits.parquet']);
     });
 
-    it('keeps its files in the .dashql/ of the workspace', async () => {
+    it('keeps its files in the .dashql/ of the invoking directory by default', async () => {
         const dir = trinoWorkbook(trino.endpoint, [ORDERS, BROKEN]);
-        // Without --home the files of DashQL go into the .dashql/ of the workspace, which ignores itself
+        // Without --workspace the files of DashQL go into the .dashql/ of the invoking directory, which ignores itself
         expect((await run(dir, ['.'], PASSWORD, null)).code).toBe(1);
-        expect(readdirSync(path.join(dir, '.dashql')).sort()).toEqual(['.gitignore', 'cache', 'instances', 'logs', 'workbooks']);
+        expect(readdirSync(path.join(dir, '.dashql')).sort()).toEqual(['.gitignore', 'cache', 'dashql-workspace.json', 'instances', 'logs', 'workbooks']);
         expect(readFileSync(path.join(dir, '.dashql', '.gitignore'), 'utf8')).toBe('*\n');
     });
 
@@ -348,18 +355,17 @@ describe('dashql run', () => {
 
     it('stops when interrupted, cancels the running query and removes its instance', async () => {
         const dir = trinoWorkbook(trino.endpoint, [['slow.sql', "select id, name from orders where 'slow' = 'slow'\n"], ORDERS]);
-        initWorkspace(dir);
-        const home = tempHome();
+        const workspace = tempWorkspace();
         // Interrupted while the slow query runs on Trino
         const interrupt = new AbortController();
         const watch = setInterval(() => { if (trino.statements.some(text => text.includes("'slow'"))) interrupt.abort(); }, 20);
-        const output = await runWith((runArgs, cli) => runRun(runArgs, { ...cli, interrupt: interrupt.signal }, PASSWORD), dir, ['--workspace', '.', '--home', home, '.']);
+        const output = await runWith((runArgs, cli) => runRun(runArgs, { ...cli, interrupt: interrupt.signal }, PASSWORD), dir, ['--workspace', workspace, '.']);
         clearInterval(watch);
         expect(output.code).toBe(130);
         expect(output.stderr).toBe('interrupted\n');
         expect(output.stdout).toBe('slow.sql  cancelled\n01_orders.sql  not run  interrupted\n\n1 cancelled, 1 not run\n');
         expect(trino.statements.filter(text => text.includes('orders'))).toHaveLength(1);
-        expect(readdirSync(path.join(home, 'instances'), { withFileTypes: true }).filter(entry => entry.isDirectory())).toEqual([]);
+        expect(readdirSync(path.join(workspace, 'instances'), { withFileTypes: true }).filter(entry => entry.isDirectory())).toEqual([]);
     });
 
     it('refuses unknown scripts, folders without a workbook and missing arguments', async () => {
@@ -379,7 +385,9 @@ describe('dashql run', () => {
 
 describe('dashql run in a session of dashql connect', () => {
     const SESSION = '0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0';
-    const COPY = `.dashql/session/workbooks/${WORKBOOK_ID}`;
+    const COPY = `.dashql/workbooks/${WORKBOOK_ID}`;
+    /// The workspace of a session in a folder, its .dashql/
+    const ws = (folder: string) => path.join(folder, '.dashql');
 
     /// A session with a tab that follows it: the tab copied the workbook and answers its runs
     async function sessionWithTab(answer: (message: Extract<AgentSessionRunMessage, { type: 'run' }>, send: (event: RunEvent) => Promise<void>, stopped: Promise<void>, target: AgentSessionTarget) => Promise<void>) {
@@ -421,7 +429,7 @@ describe('dashql run in a session of dashql connect', () => {
             await send({ type: 'run_finished', ms: 1300, ok: 1, failed: 0, cancelled: 0, notRun: 0, interrupted: false });
         });
         try {
-            const output = await runWith((args, cli) => runRun(args, cli), session.folder, ['--workspace', session.folder, '--rows', '2', COPY]);
+            const output = await runWith((args, cli) => runRun(args, cli), session.folder, ['--workspace', ws(session.folder), '--rows', '2', COPY]);
             expect(output.stderr).toBe('');
             expect(output.code).toBe(0);
             // The table of the result came with its first rows, the count with all of them, the file is in the cache of
@@ -446,17 +454,22 @@ describe('dashql run in a session of dashql connect', () => {
         });
         try {
             const copy = path.join(session.folder, ...COPY.split('/'));
-            const output = await runWith((args, cli) => runRun(args, cli), copy, ['--workspace', session.folder, '.']);
+            const output = await runWith((args, cli) => runRun(args, cli), copy, ['--workspace', ws(session.folder), '.']);
             expect(output.stderr).toBe('');
             expect(output.code).toBe(0);
             expect(session.runs).toEqual([{ type: 'run', runId: expect.any(String), workbookId: WORKBOOK_ID, label: '.', scripts: [], refresh: false, rows: 10 }]);
-            // The invoking directory is the workspace by default: the copy is none, the run fails instead of running
-            // outside the tab
+            // The .dashql/ of the invoking directory is the workspace by default: the copy has none, the run fails
+            // instead of running outside the tab
             const bare = await runWith((args, cli) => runRun(args, cli), copy, ['.']);
             expect(bare.code).toBe(2);
-            expect(bare.stderr).toBe(`error: . ${NO_WORKSPACE}\n`);
-            // A relative workspace works like an absolute one, and the folder of the session is the workspace by default
-            const relative = await runWith((args, cli) => runRun(args, cli), copy, ['--workspace', '../../../..', '.']);
+            expect(bare.stderr).toBe(`error: .dashql ${NO_WORKSPACE}\n`);
+            // Nor is the folder around the workspace one
+            const around = await runWith((args, cli) => runRun(args, cli), copy, ['--workspace', '../../..', '.']);
+            expect(around.code).toBe(2);
+            expect(around.stderr).toBe(`error: ../../.. ${NO_WORKSPACE}\n`);
+            // A relative workspace works like an absolute one, and the .dashql/ of the folder of the session is the
+            // workspace by default
+            const relative = await runWith((args, cli) => runRun(args, cli), copy, ['--workspace', '../..', '.']);
             expect(relative.stderr).toBe('');
             expect(relative.code).toBe(0);
             const here = await runWith((args, cli) => runRun(args, cli), session.folder, [COPY]);
@@ -478,7 +491,7 @@ describe('dashql run in a session of dashql connect', () => {
         });
         try {
             const interrupt = new AbortController();
-            const running = runWith((args, cli) => runRun(args, { ...cli, interrupt: interrupt.signal }), session.folder, ['--workspace', session.folder, COPY]);
+            const running = runWith((args, cli) => runRun(args, { ...cli, interrupt: interrupt.signal }), session.folder, ['--workspace', ws(session.folder), COPY]);
             await vi.waitFor(() => expect(session.runs).toHaveLength(1));
             interrupt.abort();
             const output = await running;
@@ -498,27 +511,27 @@ describe('dashql run in a session of dashql connect', () => {
             const workbook = trinoWorkbook('http://trino.invalid', [ORDERS]);
             mkdirSync(path.join(copy, 'scripts'), { recursive: true });
             for (const file of ['dashql-workbook.json', `scripts/${ORDERS[0]}`]) copyFileSync(path.join(workbook, file), path.join(copy, file));
-            const output = await runWith((a, cli) => runRun(a, cli), folder, ['--workspace', folder, COPY]);
+            const output = await runWith((a, cli) => runRun(a, cli), folder, ['--workspace', ws(folder), COPY]);
             expect(output.code).toBe(1);
             expect(output.stderr).toBe('error: no tab of DashQL follows the session, open it with the line of dashql connect\n');
             // While the session runs, a workbook folder that the tab did not copy runs nowhere: in the session folder
             // and outside of it
-            const own = path.join(folder, '.dashql', 'session', 'own');
+            const own = path.join(folder, '.dashql', 'own');
             mkdirSync(path.join(own, 'scripts'), { recursive: true });
             for (const file of ['dashql-workbook.json', `scripts/${ORDERS[0]}`]) copyFileSync(path.join(workbook, file), path.join(own, file));
-            const refused = (name: string) => `error: ${name} is no copy of a workbook of the tab of DashQL and would run outside the tab, the session of dashql connect in ${folder} runs only its copies in ${folder}/.dashql/session/workbooks/\n`;
+            const refused = (name: string) => `error: ${name} is no copy of a workbook of the tab of DashQL and would run outside the tab, the session of dashql connect in ${ws(folder)} runs only its copies in ${ws(folder)}/workbooks/\n`;
             for (const dir of [own, workbook]) {
-                const other = await runWith((a, cli) => runRun(a, cli), dir, ['--workspace', folder, '.']);
+                const other = await runWith((a, cli) => runRun(a, cli), dir, ['--workspace', ws(folder), '.']);
                 expect(other.code).toBe(2);
                 expect(other.stdout).toBe('');
                 expect(other.stderr).toBe(refused('.'));
             }
             // A shell that changed into another folder names it with a relative workspace, which nobody set up: the run
             // fails instead of running outside the tab
-            const relative = await runWith((a, cli) => runRun(a, cli), workbook, ['--workspace', '.', '.']);
+            const relative = await runWith((a, cli) => runRun(a, cli), workbook, ['--workspace', '.dashql', '.']);
             expect(relative.code).toBe(2);
             expect(relative.stdout).toBe('');
-            expect(relative.stderr).toBe(`error: . ${NO_WORKSPACE}\n`);
+            expect(relative.stderr).toBe(`error: .dashql ${NO_WORKSPACE}\n`);
         } finally {
             await server.close();
         }
