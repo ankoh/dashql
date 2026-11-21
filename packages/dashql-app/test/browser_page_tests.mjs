@@ -438,7 +438,7 @@ async function testAppAgentSession(page, navigate) {
         assert.match(done.key ?? '', /^[0-9a-f]{64}$/, JSON.stringify(done));
         const uploaded = connected.results.find(result => result.key === done.key && result.workbookId === script.workbookId);
         assert.ok(uploaded != null, JSON.stringify(connected.results.map(result => result.name)));
-        assert.ok(uploaded.name.startsWith(`${done.script}.${done.key}.`), uploaded.name);
+        assert.ok(uploaded.name.startsWith(`${done.script.replace(/\.sql$/, '')}.${done.key}.`), uploaded.name);
         assert.equal(uploaded.bytes.subarray(0, 4).toString('latin1'), 'PAR1');
         assert.equal(uploaded.bytes.subarray(-4).toString('latin1'), 'PAR1');
         assert.equal(done.file, `/work/.dashql/workbooks/${script.workbookId}/results/${uploaded.name}`);
