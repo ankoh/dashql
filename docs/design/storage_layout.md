@@ -59,9 +59,9 @@ manifest, removes `workbooks/` with the results of the scripts, `connections/`, 
 `dashql-manifest.json` (schema `proto/json/dashql/app_manifest.json`) holds:
 
 - `storageVersion`, the version of this layout, see [Versions and migrations](#versions-and-migrations).
-- `connections`, the global connections: `id`, `name`, `params`, `paramsDraft`, `createdAt` and
-  `cacheQueryResults`, whether runs reuse the [stored results](workbook_results.md) of their scripts, absent for the
-  default of the connector.
+- `connections`, the global connections: `id`, `name`, `params`, `paramsDraft` and `createdAt`. The
+  `cacheQueryResults` of earlier versions, whether runs reused the [stored results](workbook_results.md) of their
+  scripts, is read and dropped: every connection reuses them.
 - `appSettings`.
 
 Writers hold the Web Lock of the manifest, which all tabs of the app share.
@@ -97,8 +97,7 @@ the lock of the manifest.
 
 A workbook folder holds `dashql-workbook.json` (schema `proto/json/dashql/app_workbook.json`: `formatVersion`,
 `workbookId`, `name`, `connections`, `scripts`, `attachments`, `metadata`) and
-the files it lists. Format 8 and older kept `settings.cacheQueryResults`, format 9 drops it: connections decide
-whether their results are cached.
+the files it lists. Format 8 and older kept `settings.cacheQueryResults`, format 9 drops it.
 
 - `scripts/` holds one file per script, named by the script. Names compare in NFC and without case: two names that
   differ only there denote the same file. A name holds no `/`, `\`, NUL or `:` (an alternate data stream on NTFS).

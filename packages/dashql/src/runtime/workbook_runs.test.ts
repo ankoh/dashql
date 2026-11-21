@@ -444,7 +444,6 @@ describe('the runs of scripts of the runtime', () => {
         });
         const connectionId = crypto.randomUUID();
         await rt.addConnection({ connectionId, params: { hyper: { protocol: 'V3_GRPC', endpoint: 'http://hyper' } } as ConnectionParams, channel: { executeQuery } });
-        if (options.cache) rt.dispatch({ connection: connectionId }, { kind: 'setQueryResultCaching', value: { caching: true } });
         const workbook = rt.addWorkbook(connectionId, entries, { name: 'scripts' });
         const core = rt;
         /// A script of the workbook as the store holds it now

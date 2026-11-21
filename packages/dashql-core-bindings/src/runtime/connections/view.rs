@@ -482,10 +482,6 @@ pub struct ConnectionView {
     pub hyper_link: bool,
     /// The databases of the clouds folder that the params attach to the embedded Hyper, dropped with the connection
     pub cloud_databases: Vec<ConnectionCloudDatabase>,
-    /// Does the connection cache query results? Null for the default of the connector.
-    pub cache_query_results: Option<bool>,
-    /// Does the connection cache query results, the choice of the user or the default of the connector?
-    pub caches_query_results: bool,
     /// Is the connection connected or connecting? An open connection keeps its protocol and can't be merged.
     pub open: bool,
     /// The health as the app prints it, e.g. `Not Started`
@@ -552,8 +548,6 @@ impl ConnectionView {
                     .collect(),
                 _ => Vec::new(),
             },
-            cache_query_results: state.cache_query_results(),
-            caches_query_results: state.caches_query_results(),
             open: state.health().is_open(),
             health_label: state.health().to_string(),
             reads_attachments: dashql_core_runtime::hyper::descriptor::reads_attachments(state.details()),

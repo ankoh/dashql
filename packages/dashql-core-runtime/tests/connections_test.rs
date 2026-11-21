@@ -254,28 +254,6 @@ fn rename_trims_keeps_the_same_name_and_clears_a_blank_name() {
     assert!(!hyper().apply(ConnectionAction::Rename(String::new()), NOW).unwrap().changed);
 }
 
-#[test]
-fn caches_query_results_by_default_of_the_connector() {
-    for (connector, caching) in
-        [(ConnectorType::Hyper, false), (ConnectorType::Trino, true), (ConnectorType::SalesforceDataCloud, true)]
-    {
-        let connection = connection(ConnectionParams::default_for(connector));
-        assert_eq!(connection.cache_query_results(), None);
-        assert_eq!(connection.caches_query_results(), caching, "{connector:?}");
-    }
-}
-
-#[test]
-fn keeps_the_choice_whether_a_connection_caches_query_results() {
-    let mut connection = hyper();
-    apply(&mut connection, ConnectionAction::SetQueryResultCaching(false));
-    // The choice is kept also when it matches the default of the connector
-    assert_eq!(connection.cache_query_results(), Some(false));
-    assert!(!connection.apply(ConnectionAction::SetQueryResultCaching(false), NOW).unwrap().changed);
-    apply(&mut connection, ConnectionAction::SetQueryResultCaching(true));
-    assert!(connection.caches_query_results());
-}
-
 // Connector type switches
 
 #[test]

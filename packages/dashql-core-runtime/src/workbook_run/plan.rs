@@ -400,11 +400,11 @@ fn set_key(keys: &mut [Option<Option<ResultKey>>], index: usize, key: Option<Res
 pub struct ResultKey {
     /// The key, the file of the result of the script is named after it
     pub key: String,
-    /// The signature that the key derives from: the signature of the script and the keys of the scripts it
+    /// The signature that the key derives from: the signature of the script and the keys and files of the scripts it
     /// references, one per line
     pub signature: String,
-    /// May a run read the stored result of the script instead of running it, if the file has this key? The script is
-    /// cacheable, its connection reuses results and so do the scripts it references.
+    /// May a run read the stored result of the script instead of running it, if the file has this key? The script and
+    /// the scripts it references are cacheable.
     pub reusable: bool,
 }
 
@@ -414,16 +414,10 @@ pub struct ResultKey {
 /// connection has no key or that reference such a script. A plan that is invalid for one script keeps the keys of the
 /// others.
 ///
-/// `key_of` derives the key of a script from its signature, `reuses_results` tells whether the connection of a script
-/// reuses results. `file_of` settles the file of the result of a script once its key is known, before the keys of the
+/// `key_of` derives the key of a script from its signature. `file_of` settles the file of the result of a script once its key is known, before the keys of the
 /// scripts downstream of it: the stored file that it keeps or reuses, or the new file that it writes, none without one.
 /// The scripts settle in the order of their references.
-pub async fn result_keys<F, Fut, S, SFut>(
-    graph: &ExecutionGraphT,
-    key_of: F,
-    reuses_results: impl Fn(u32) -> bool,
-    file_of: S,
-) -> Vec<Option<ResultKey>>
+pub async fn result_keys<F, Fut, S, SFut>(graph: &ExecutionGraphT, key_of: F, file_of: S) -> Vec<Option<ResultKey>>
 where
     F: Fn(u32, String) -> Fut,
     Fut: Future<Output = Option<String>>,
@@ -466,7 +460,7 @@ where
             let key = key_of(index as u32, signature.clone()).await.map(|key| ResultKey {
                 key,
                 signature,
-                reusable: script.cacheable && reuses_results(index as u32) && referenced.iter().all(|r| r.reusable),
+                reusable: script.cacheable && referenced.iter().all(|r| r.reusable),
             });
             if let Some(key) = &key {
                 let file = file_of(index as u32, key.clone()).await;

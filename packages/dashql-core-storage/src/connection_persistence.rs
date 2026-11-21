@@ -28,7 +28,6 @@ pub struct PersistedConnection {
     pub params: Value,
     pub params_draft: Option<Value>,
     pub name: Option<String>,
-    pub cache_query_results: Option<bool>,
 }
 
 impl PersistedConnection {
@@ -39,7 +38,6 @@ impl PersistedConnection {
             params: Value::Object(state.params().to_object()),
             params_draft: state.params_draft().map(|params| Value::Object(params.to_object())),
             name: state.name().map(str::to_string),
-            cache_query_results: state.cache_query_results(),
         }
     }
 }
@@ -92,9 +90,6 @@ pub fn connection_entry(connection_id: &str, state: &ConnectionState) -> Value {
     }
     if let Some(name) = state.name() {
         entry.insert("name".into(), json!(name));
-    }
-    if let Some(caching) = state.cache_query_results() {
-        entry.insert("cacheQueryResults".into(), json!(caching));
     }
     Value::Object(entry)
 }
@@ -157,10 +152,7 @@ pub fn connection_writes(
         let activated = !prev.active && next.active();
         if !connection_params_share_equal(&prev.params, &next_params) || activated {
             params_writes(id, next, workbook_ids, &mut out.writes);
-        } else if !same_params(prev.params_draft.as_ref(), next_draft.as_ref())
-            || prev.name.as_deref() != next.name()
-            || prev.cache_query_results != next.cache_query_results()
-        {
+        } else if !same_params(prev.params_draft.as_ref(), next_draft.as_ref()) || prev.name.as_deref() != next.name() {
             out.writes.push(ConnectionWrite {
                 task: WriteTask::WriteConnectionEntry { entry: connection_entry(id, next) },
                 debounce_ms: CONNECTION_DRAFT_WRITE_DEBOUNCE_MS,

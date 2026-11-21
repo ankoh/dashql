@@ -383,8 +383,6 @@ pub struct ConnectionEntry {
     pub name: Option<String>,
     /// When the connection was created
     pub created_at: Option<String>,
-    /// Are the results of the connection cached? None for the default of the connector.
-    pub cache_query_results: Option<bool>,
     /// Fields the schema doesn't know
     pub extra: JsonObject,
 }
@@ -392,15 +390,7 @@ pub struct ConnectionEntry {
 impl ConnectionEntry {
     /// An entry with params
     pub fn new(id: impl Into<String>, params: Value) -> Self {
-        Self {
-            id: id.into(),
-            params,
-            params_draft: None,
-            name: None,
-            created_at: None,
-            cache_query_results: None,
-            extra: JsonObject::new(),
-        }
+        Self { id: id.into(), params, params_draft: None, name: None, created_at: None, extra: JsonObject::new() }
     }
 
     /// Read an entry, None if it has no string `id`
@@ -414,7 +404,8 @@ impl ConnectionEntry {
                 "paramsDraft" => entry.params_draft = (!value.is_null()).then(|| value.clone()),
                 "name" => entry.name = value.as_str().map(str::to_string),
                 "createdAt" => entry.created_at = value.as_str().map(str::to_string),
-                "cacheQueryResults" => entry.cache_query_results = value.as_bool(),
+                // The choice of earlier versions whether to reuse the results, every connection reuses them now
+                "cacheQueryResults" => {}
                 _ => {
                     entry.extra.insert(key.clone(), value.clone());
                 }
@@ -436,9 +427,6 @@ impl ConnectionEntry {
         }
         if let Some(at) = &self.created_at {
             object.insert("createdAt".into(), json!(at));
-        }
-        if let Some(cache) = self.cache_query_results {
-            object.insert("cacheQueryResults".into(), json!(cache));
         }
         append_extra(&mut object, &self.extra);
         Value::Object(object)

@@ -91,8 +91,6 @@ struct HostState {
     generations: u32,
     /// The connections that can't run
     offline: BTreeSet<String>,
-    /// The connections that reuse no query results
-    uncached: BTreeSet<String>,
     /// The connections without a key of their results
     unkeyed: BTreeSet<String>,
     /// The texts of statements that fail
@@ -203,9 +201,6 @@ impl RunHost for FakeHost {
     fn result_key(&self, connection_id: &str, signature: &str) -> impl Future<Output = Option<String>> + 'static {
         let keyed = !self.state.borrow().unkeyed.contains(connection_id);
         std::future::ready(keyed.then(|| format!("{connection_id}:{signature}")))
-    }
-    fn reuses_results(&self, connection_id: &str) -> bool {
-        !self.state.borrow().uncached.contains(connection_id)
     }
     fn can_run(&self, connection_id: &str) -> bool {
         !self.state.borrow().offline.contains(connection_id)

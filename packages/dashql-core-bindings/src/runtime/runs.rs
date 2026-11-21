@@ -940,17 +940,6 @@ impl Runs {
             (workbook.plan_run(&request), scripts)
         };
         let (scripts, names): (Vec<String>, Vec<String>) = scripts.into_iter().unzip();
-        let reuses: Vec<bool> = {
-            let registry = self.connections.registry.borrow();
-            scripts
-                .iter()
-                .map(|id| {
-                    registry.get(id).is_some_and(|connection| {
-                        connection.state.try_borrow().is_ok_and(|state| state.caches_query_results())
-                    })
-                })
-                .collect()
-        };
         let connections = self.connections.clone();
         let scripts = Rc::new(scripts);
         let platform = self.platform.clone();
@@ -975,7 +964,6 @@ impl Runs {
                         &signature,
                     )
                 },
-                |script| reuses.get(script as usize).copied().unwrap_or(false),
                 |script, _key| std::future::ready(files.get(script as usize).cloned().flatten()),
             )
             .await
@@ -1092,10 +1080,6 @@ impl RunHost for RuntimeRunHost {
 
     fn result_key(&self, connection_id: &str, signature: &str) -> impl Future<Output = Option<String>> + 'static {
         self.connections.result_key(connection_id, signature)
-    }
-
-    fn reuses_results(&self, connection_id: &str) -> bool {
-        self.with_connection(connection_id, |state| state.caches_query_results()).unwrap_or(false)
     }
 
     fn can_run(&self, connection_id: &str) -> bool {

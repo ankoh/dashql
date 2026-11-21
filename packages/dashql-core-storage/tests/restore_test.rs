@@ -830,7 +830,6 @@ fn restores_an_imported_workbook_against_the_live_connections() {
             params: trino("https://known"),
             params_draft: None,
             name: None,
-            cache_query_results: None,
         },
         script_connection: script_connection_of(&live_state),
     };

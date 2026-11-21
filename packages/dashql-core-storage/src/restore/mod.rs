@@ -184,9 +184,6 @@ pub fn connection_state<H: RestoreHost>(
     if let Some(name) = &connection.name {
         state.apply(ConnectionAction::Rename(name.clone()), now)?;
     }
-    if let Some(caching) = connection.cache_query_results {
-        state.apply(ConnectionAction::SetQueryResultCaching(caching), now)?;
-    }
     Ok(state)
 }
 

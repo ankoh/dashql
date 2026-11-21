@@ -39,8 +39,6 @@ export interface NewConnection {
     paramsDraft?: ConnectionParams;
     /// The name the user gave the connection
     name?: string;
-    /// Does the connection cache query results? The default of the connector without.
-    cacheQueryResults?: boolean;
 }
 
 /// Create a connection, with a fixed id or a new one, e.g. `Runtime.createConnection`
@@ -71,7 +69,6 @@ export function createConnectionAction(connection: NewConnection, connectionId?:
             params: connection.params as core.JsonParams | undefined,
             paramsDraft: connection.paramsDraft as core.JsonParams | undefined,
             name: connection.name,
-            cacheQueryResults: connection.cacheQueryResults,
         },
     };
 }

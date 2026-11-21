@@ -140,7 +140,6 @@ describe('The changes of the runtime', () => {
             ['setDraft', connection('main', { kind: 'setDraft', value: { params: { hyper: { protocol: 'WASM', endpoint: 'draft' } } } })],
             ['discardDraft', connection('main', { kind: 'discardDraft' })],
             ['rename', connection('main', { kind: 'rename', value: { name: 'Main' } })],
-            ['setQueryResultCaching', connection('main', { kind: 'setQueryResultCaching', value: { caching: false } })],
             ['saveConnection', rt => rt.saveConnection('main', { hyper: { protocol: 'WASM', endpoint: 'saved' } })],
             // A query whose plan failed is in the history of its connection, it fails without running
             ['executeQuery', async rt => {

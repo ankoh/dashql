@@ -118,8 +118,6 @@ pub trait RunHost: Host {
 
     /// The result key of a signature on a connection, none if the connection has no key
     fn result_key(&self, connection_id: &str, signature: &str) -> impl Future<Output = Option<String>> + 'static;
-    /// Does a connection reuse query results? A run reuses the stored results whose keys are reusable and match.
-    fn reuses_results(&self, connection_id: &str) -> bool;
     /// Can the statements of a connection run? The scripts of one that can't reuse their stored results, the others
     /// are skipped with the scripts that follow them.
     fn can_run(&self, connection_id: &str) -> bool;

@@ -54,7 +54,7 @@ impl Connector for SalesforceConnector {
 
     /// Data Cloud only reads, a Hyper Cloud database of Database.com is written as well
     fn features(&self) -> ConnectorFeatures {
-        ConnectorFeatures { query_result_caching: true, read_only: !self.is_dbcom() }
+        ConnectorFeatures { read_only: !self.is_dbcom() }
     }
 
     fn default_params(&self) -> JsonObject {

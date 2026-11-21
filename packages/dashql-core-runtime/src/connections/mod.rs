@@ -147,9 +147,6 @@ pub enum ConnectionAction {
     CommitParams(ConnectionParams),
     /// Rename the connection, a blank name removes the name
     Rename(String),
-    /// Choose whether the connection caches query results. The connection keeps the choice, also when it matches the
-    /// default of the connector.
-    SetQueryResultCaching(bool),
     /// Stop the connection and drop its catalog. The registry refuses to delete connections that workbooks use.
     Delete,
     /// Stop the connection and clear its catalog
@@ -243,8 +240,6 @@ pub struct ConnectionState {
     health: ConnectionHealth,
     /// The name the user gave the connection, the label falls back to the connector without it
     name: Option<String>,
-    /// Does the connection cache query results? None for the default of the connector.
-    cache_query_results: Option<bool>,
     /// The details of the setup, they name the connector
     details: ConnectionDetails,
     /// The params of the last successful setup, the initial ones until then
@@ -308,7 +303,6 @@ impl ConnectionState {
             status: ConnectionStatus::NotStarted,
             health: ConnectionHealth::NotStarted,
             name: None,
-            cache_query_results: None,
             details,
             params,
             params_draft: options.params_draft,
@@ -383,9 +377,6 @@ impl ConnectionState {
     pub fn name(&self) -> Option<&str> {
         self.name.as_deref()
     }
-    pub fn cache_query_results(&self) -> Option<bool> {
-        self.cache_query_results
-    }
     pub fn details(&self) -> &ConnectionDetails {
         &self.details
     }
@@ -431,11 +422,6 @@ impl ConnectionState {
         self.setup_epoch
     }
 
-    /// Does the connection cache query results? The connector decides unless the user chose.
-    pub fn caches_query_results(&self) -> bool {
-        self.cache_query_results.unwrap_or(self.connector_type().connector().features().query_result_caching)
-    }
-
     /// Apply an action that happened at a time. A failed action leaves the connection unchanged.
     pub fn apply(&mut self, action: ConnectionAction, now: Timestamp) -> Result<ConnectionOutcome> {
         let mut outcome = ConnectionOutcome::default();
@@ -463,12 +449,6 @@ impl ConnectionState {
                 let name = Some(name.trim().to_string()).filter(|name| !name.is_empty());
                 if name != self.name {
                     self.name = name;
-                    outcome.changed = true;
-                }
-            }
-            ConnectionAction::SetQueryResultCaching(caching) => {
-                if self.cache_query_results != Some(caching) {
-                    self.cache_query_results = Some(caching);
                     outcome.changed = true;
                 }
             }

@@ -44,7 +44,7 @@ impl Connector for HyperConnector {
     }
 
     fn features(&self) -> ConnectorFeatures {
-        ConnectorFeatures { query_result_caching: false, read_only: false }
+        ConnectorFeatures { read_only: false }
     }
 
     fn default_params(&self) -> JsonObject {

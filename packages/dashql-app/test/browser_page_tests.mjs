@@ -416,13 +416,6 @@ async function testAppAgentSession(page, navigate) {
         await scriptEditor(page, 'from_agent').waitFor();
         assert.equal(await page.getByTestId('diff-accept').count(), 0);
 
-        // The connection of the script reuses its results, its result has a reusable key
-        await page.getByTestId('workbook-connection').first().click();
-        const caching = page.getByRole('switch', { name: 'Reuse query results' });
-        await caching.click();
-        await page.locator('[role="switch"][aria-checked="true"]').waitFor();
-        await page.keyboard.press('Escape');
-
         // dashql run asks the tab to run the workbook: the tab runs it, the feed shows the result, the events go back
         // dashql vis asks for the charts of the run: the tab renders them as PNG before the run finishes
         connected.askRun({ runId: 'r1', workbookId: script.workbookId, label: `.dashql/workbooks/${script.workbookId}`, scripts: [], refresh: true, rows: 3, chart: { width: 400, height: 300, scale: 1 } });

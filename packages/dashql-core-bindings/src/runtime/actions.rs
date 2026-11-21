@@ -63,9 +63,6 @@ pub enum AppAction {
         #[serde(default)]
         #[tsify(optional)]
         name: Option<String>,
-        #[serde(default)]
-        #[tsify(optional)]
-        cache_query_results: Option<bool>,
     },
     /// Create a workbook without scripts on a connection and write it, the outcome names its id
     CreateWorkbook {
@@ -215,8 +212,6 @@ pub enum ConnectionAction {
     DiscardDraft,
     /// Rename the connection, a blank name removes the name
     Rename { name: String },
-    /// Choose whether the connection caches query results
-    SetQueryResultCaching { caching: bool },
     /// Stop the connection and drop it with its catalog. A connection that workbooks use is never deleted.
     DeleteConnection,
     /// Stop the connection and clear its catalog and queries

@@ -32,7 +32,7 @@ impl Connector for TrinoConnector {
     }
 
     fn features(&self) -> ConnectorFeatures {
-        ConnectorFeatures { query_result_caching: true, read_only: true }
+        ConnectorFeatures { read_only: true }
     }
 
     fn default_params(&self) -> JsonObject {

@@ -535,7 +535,6 @@ impl ExternalChanges {
             params: copy.params.clone(),
             params_draft: copy.params_draft.clone(),
             name: copy.name.clone(),
-            cache_query_results: copy.extra.get("cacheQueryResults").and_then(Value::as_bool),
         };
         let host = JsStorage { platform: self.platform.clone(), state: self.storage.clone() };
         let catalog = dashql_core_runtime::workbook::new_catalog();

@@ -540,7 +540,6 @@ impl Runtime {
             },
             A::DiscardDraft => ConnectionAction::DiscardDraft,
             A::Rename { name } => ConnectionAction::Rename(name),
-            A::SetQueryResultCaching { caching } => ConnectionAction::SetQueryResultCaching(caching),
             A::DeleteConnection => ConnectionAction::Delete,
             A::ResetConnection => ConnectionAction::Reset,
             A::RelationsTouched { names } => {
@@ -571,16 +570,7 @@ impl Runtime {
         use actions::AppAction as A;
         let connections = &self.connections;
         match action {
-            A::CreateConnection {
-                connection_id,
-                connector_type,
-                setup_params,
-                active,
-                params,
-                params_draft,
-                name,
-                cache_query_results,
-            } => {
+            A::CreateConnection { connection_id, connector_type, setup_params, active, params, params_draft, name } => {
                 let parse = |params: Option<JsonParams>| -> Result<Option<ConnectionParams>, String> {
                     params.map(|params| params.connection_params().map_err(error_text)).transpose()
                 };
@@ -596,7 +586,6 @@ impl Runtime {
                     params,
                     params_draft,
                     name,
-                    cache_query_results,
                 });
                 match created {
                     Ok(id) => DispatchOutcome::created(SliceId::Text(id)),
@@ -758,13 +747,8 @@ impl Restorer {
         for (connection_id, connection) in self.connections.registry.borrow().connections() {
             let Ok(state) = connection.state.try_borrow() else { continue };
             let params = serde_json::Value::Object(state.params().to_object());
-            let connection = RestoreConnection {
-                connection_id: connection_id.to_string(),
-                params,
-                params_draft: None,
-                name: None,
-                cache_query_results: None,
-            };
+            let connection =
+                RestoreConnection { connection_id: connection_id.to_string(), params, params_draft: None, name: None };
             live.push(LiveConnection { connection, script_connection: script_connection_of(&state) });
         }
         live

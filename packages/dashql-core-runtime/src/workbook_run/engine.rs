@@ -490,13 +490,7 @@ impl<H: RunHost> Run<H> {
     /// The result keys of the scripts of a plan that reads their stored results, the keys downstream of a script cover
     /// its stored file
     async fn stored_keys(self: &Rc<Self>, graph: &ExecutionGraphT) -> Vec<Option<ResultKey>> {
-        result_keys(
-            graph,
-            self.key_of(),
-            |script| self.host.reuses_results(self.connection_of(script)),
-            |script, _key| self.keep_stored(script),
-        )
-        .await
+        result_keys(graph, self.key_of(), |script, _key| self.keep_stored(script)).await
     }
 
     /// The result keys of the scripts of a plan that runs and what the run does with their results, in the order of
@@ -526,13 +520,7 @@ impl<H: RunHost> Run<H> {
             reuse: !self.options.refresh && self.host.has_results(),
             settled: &settled,
         };
-        let keys = result_keys(
-            graph,
-            self.key_of(),
-            |script| self.host.reuses_results(self.connection_of(script)),
-            |script, key| self.settle_result(&plan, script, key),
-        )
-        .await;
+        let keys = result_keys(graph, self.key_of(), |script, key| self.settle_result(&plan, script, key)).await;
         let mut settled = settled.into_inner();
         match settled.failure.take() {
             Some(failure) => Err(failure),

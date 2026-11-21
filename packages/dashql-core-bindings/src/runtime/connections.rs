@@ -71,7 +71,6 @@ pub(crate) struct NewConnection {
     pub params: Option<ConnectionParams>,
     pub params_draft: Option<ConnectionParams>,
     pub name: Option<String>,
-    pub cache_query_results: Option<bool>,
 }
 
 /// The connections, the histories and the executor of a runtime
@@ -231,9 +230,6 @@ impl Connections {
         let mut state = ConnectionState::new(&connection_id, details, options, now);
         if let Some(name) = connection.name {
             state.apply(ConnectionAction::Rename(name), now)?;
-        }
-        if let Some(caching) = connection.cache_query_results {
-            state.apply(ConnectionAction::SetQueryResultCaching(caching), now)?;
         }
         let entry = state.active().then(|| connection_entry(&connection_id, &state));
         self.registry.borrow_mut().insert(state)?;

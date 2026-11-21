@@ -31,8 +31,6 @@ pub const CONNECTOR_TYPES: [ConnectorType; 4] =
 /// What a connector supports
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ConnectorFeatures {
-    /// Do new connections cache query results?
-    pub query_result_caching: bool,
     /// Do connections only run queries, no DDL or DML?
     pub read_only: bool,
 }

@@ -1800,7 +1800,6 @@ fn restores_an_imported_workbook_against_the_live_connections() {
         params: known.clone(),
         params_draft: None,
         name: None,
-        cache_query_results: None,
     });
     let workbook = test_workbook_json(json!({
         "connections": [
@@ -1882,4 +1881,11 @@ fn decodes_the_connections_of_a_workbook_file() {
         ConnectionState::new("c1", details, ConnectionStateOptions { active: true, ..Default::default() }, 0.0);
     assert!(restored.active());
     assert_eq!(restored.params().params, json_object(json!({ "protocol": "V3_HTTP" })));
+}
+
+#[test]
+fn drops_the_choice_of_earlier_versions_whether_a_connection_reuses_results() {
+    let stored = json!({ "id": "c1", "params": { "hyper": {} }, "name": "Main", "cacheQueryResults": false });
+    let entry = ConnectionEntry::from_json(&stored).unwrap();
+    assert_eq!(entry.to_json(), json!({ "id": "c1", "params": { "hyper": {} }, "name": "Main" }));
 }

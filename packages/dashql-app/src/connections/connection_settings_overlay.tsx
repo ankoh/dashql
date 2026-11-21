@@ -8,11 +8,10 @@ import { Button, ButtonSize, ButtonVariant } from '@akohn/dashql-react/component
 import { SymbolIcon } from '@akohn/dashql-react/components/symbol_icon';
 import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { useConnectionDraft } from './connection_draft.js';
-import { useConnection, useDispatch } from '@akohn/dashql-react/hooks';
+import { useConnection } from '@akohn/dashql-react/hooks';
 import { connectionSaveSucceeded, failedWorkbookCopies, useConnectionSave, type ConnectionSaveResult } from './connection_persistence.js';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
-import { ToggleSwitch } from '@akohn/dashql-react/components/toggle_switch';
 import { HyperConnectorSettings } from './hyper_connection_settings.js';
 import { TrinoConnectorSettings } from './trino_connection_settings.js';
 import { SalesforceConnectorSettings } from './salesforce_connection_settings.js';
@@ -34,7 +33,6 @@ interface Props {
 
 export const ConnectionSettingsOverlay: React.FC<Props> = (props: Props) => {
     const conn = useConnection(props.connectionId);
-    const modifyConn = useDispatch(props.connectionId == null ? null : { connection: props.connectionId });
     const { paramsDraft, discard } = useConnectionDraft(props.connectionId);
     const { saving, result: saveResult, save, retry } = useConnectionSave(props.connectionId);
     const connecting = conn?.connectionHealth === ConnectionHealth.CONNECTING;
@@ -92,13 +90,6 @@ export const ConnectionSettingsOverlay: React.FC<Props> = (props: Props) => {
                     {currentConnectorType === ConnectorType.SALESFORCE_DATA_CLOUD && <SalesforceConnectorSettings connectionId={props.connectionId} connector={ConnectorType.SALESFORCE_DATA_CLOUD} onClose={saving ? undefined : props.onClose} />}
                     {currentConnectorType === ConnectorType.DBCOM && <SalesforceConnectorSettings connectionId={props.connectionId} connector={ConnectorType.DBCOM} onClose={saving ? undefined : props.onClose} />}
                 </div>
-                <QueryResultCachingRow
-                    caching={conn?.cachesQueryResults ?? false}
-                    disabled={conn == null}
-                    toggle={() => {
-                        if (conn != null) modifyConn({ kind: 'setQueryResultCaching', value: { caching: !conn.cachesQueryResults } });
-                    }}
-                />
                 <ConnectionSaveBar
                     dirty={paramsDraft != null}
                     saving={saving}
@@ -115,21 +106,6 @@ export const ConnectionSettingsOverlay: React.FC<Props> = (props: Props) => {
         </AnchoredOverlay>
     );
 };
-
-/// Does the connection reuse the stored results of its scripts? The choice applies right away, it is no connection
-/// parameter. Every script stores its result whatever the choice (docs/design/workbook_results.md).
-function QueryResultCachingRow(props: { caching: boolean; disabled: boolean; toggle: () => void }) {
-    const labelId = React.useId();
-    return (
-        <div className={styles.caching}>
-            <div className={styles.caching_text}>
-                <div id={labelId} className={styles.caching_label}>Reuse query results</div>
-                <div className={styles.caching_caption}>Reuse the stored results of unchanged scripts instead of querying the connection again</div>
-            </div>
-            <ToggleSwitch size="small" checked={props.caching} disabled={props.disabled} onClick={props.toggle} aria-labelledby={labelId} />
-        </div>
-    );
-}
 
 export interface CloseOnConnectProps {
     /// Is the overlay open?

@@ -173,8 +173,7 @@ that wants the composition would depend on that rather than copy it.
   binding the channel of its connection, which holds the credentials. A new decision of a connector is a method of
   the trait, not another match. The setups stay one match in the bindings crate (`runtime/setups.rs`): their hosts
   return `impl Future` and are no trait objects, and the bindings pick the connectors of a module.
-- **The rules of the connectors are Rust** and show in the view: whether a connection caches query results
-  (`cachesQueryResults`), whether it is open, the label of its health, whether its queries read attachments, whether
+- **The rules of the connectors are Rust** and show in the view: whether a connection is open, the label of its health, whether its queries read attachments, whether
   its catalog can be refreshed (`canRefresh`). The labels of connections (`connections/label.rs`) are in the view: the
   connection carries its `label` and the list of the connections the label with the ordinal that tells the listed
   connections of a connector apart; an import names the params of its connections (`paramsLabel`). So are whether a

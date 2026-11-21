@@ -41,8 +41,6 @@ pub struct RestoreConnection {
     pub params_draft: Option<Value>,
     /// The name the user gave the connection
     pub name: Option<String>,
-    /// Are its results cached? None for the default of the connector.
-    pub cache_query_results: Option<bool>,
 }
 
 impl RestoreConnection {
@@ -53,7 +51,6 @@ impl RestoreConnection {
             params: entry.params.clone(),
             params_draft: entry.params_draft.clone(),
             name: entry.name.clone(),
-            cache_query_results: entry.cache_query_results,
         }
     }
 
@@ -229,7 +226,6 @@ impl RestorePlanner {
             params: copy.params.clone(),
             params_draft: copy.params_draft.clone(),
             name: copy.name.clone(),
-            cache_query_results: None,
         };
         self.connections.push(connection.clone());
         self.new_connections.push(connection_id.clone());

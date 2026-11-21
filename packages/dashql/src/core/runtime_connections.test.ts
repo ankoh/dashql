@@ -192,14 +192,11 @@ describe('The connections of the runtime', () => {
         const platform = new TestPlatform();
         const runtime = createRuntime(platform);
         const main = viewOf(runtime, 'connection', 'main')!;
-        // The embedded Hyper reads the attachments of workbooks and caches no results
-        expect(main).toMatchObject({ open: false, healthLabel: 'Not Started', readsAttachments: true, cachesQueryResults: false, cacheQueryResults: null });
+        // The embedded Hyper reads the attachments of workbooks
+        expect(main).toMatchObject({ open: false, healthLabel: 'Not Started', readsAttachments: true });
         expect((await runtime.setupConnection('trino', { params: { trino: { endpoint: TRINO } } })).status).toBe('succeeded');
         const trino = viewOf(runtime, 'connection', 'trino')!;
-        expect(trino).toMatchObject({ open: true, healthLabel: 'Online', readsAttachments: false, cachesQueryResults: true });
-        // The choice of the user wins over the connector
-        runtime.dispatch({ connection: 'trino' }, { kind: 'setQueryResultCaching', value: { caching: false } });
-        expect(viewOf(runtime, 'connection', 'trino')!.cachesQueryResults).toBe(false);
+        expect(trino).toMatchObject({ open: true, healthLabel: 'Online', readsAttachments: false });
         // A connection without OAuth has no tokens
         expect(runtime.revealConnectionSecrets('trino')).toEqual({ accessToken: null, coreAccessToken: null, dataCloudAccessToken: null });
         expect(runtime.revealConnectionSecrets('gone')).toBeNull();

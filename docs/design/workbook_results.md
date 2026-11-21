@@ -122,16 +122,14 @@ shown all the same and runs again once the user runs it.
 
 ## Reuse
 
-A key is reusable if the script is cacheable, its connection reuses results and the keys of the scripts it references
-are reusable. Only scripts whose statements are all `SELECT` or `EXPLAIN` are cacheable: a reuse skips the complete
+A key is reusable if the script is cacheable and the keys of the scripts it references are reusable. Only scripts whose statements are all `SELECT` or `EXPLAIN` are cacheable: a reuse skips the complete
 script, so a script with commands before its terminal query, such as `CREATE TABLE t AS ...; SELECT * FROM t`, always
 executes. A referenced call of a client function is never cacheable.
 
-Every connection decides whether its results are reused: the toggle **Reuse query results** in the connection
-settings, applied right away (`setQueryResultCaching`). The app manifest keeps the choice in the connection entry
-(`cacheQueryResults`); without a choice the connector decides (`ConnectorFeatures` of `connections/params.rs`: off for
-Hyper, on for Salesforce, Database.com and Trino), and the view of the connection carries the decision
-(`cachesQueryResults`). The toggle only decides reuse, every connection stores the results of its scripts.
+Every connection reuses results the same way, there is no choice per connection: **Run**, **Execute All** and a
+change of inputs reuse a stored result whose key fits, only **Refresh** computes a result anew. A refresh outdates the
+results downstream of the script, the next run computes them anew (Result Keys above). The app manifest of earlier
+versions kept a choice per connection, `cacheQueryResults` of a connection entry: it is read and dropped.
 
 A run reuses the result of a script if the key in the name of its file equals the reusable key of the script. A run of
 a script executes a plan of the script like a run of the workbook executes the plan of every script
