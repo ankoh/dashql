@@ -178,9 +178,9 @@ user changed keeps the text of the user.
 - **At the start**: Claude Code has the guide with a preface in its system prompt, which outranks the `CLAUDE.md` of a
   project. Codex gets it in the output of the hook at the start. Both get the workspace that the commands
   take, `--workspace <folder>`, the copies and the connections of the session.
-- **Permissions**: Claude Code may run `dashql describe`, `catalog`, `run`, `vis`, `lint` and `format` and edit
-  `.dashql/session/**` without asking; `dashql init` asks, a workspace is up to the user; everything else asks as
-  the user configured it.
+- **Permissions**: Claude Code may run `dashql describe`, `catalog`, `run`, `vis`, `move`, `lint` and `format` and
+  edit `.dashql/session/**` without asking; `dashql init` asks, a workspace is up to the user; everything else asks
+  as the user configured it.
 - **Connections**: the tab runs only the connections that the user allows; `connections.json` tells the agent which,
   it guides, the tab enforces.
 

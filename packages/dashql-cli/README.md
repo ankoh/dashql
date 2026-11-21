@@ -94,6 +94,20 @@ doesn't parse. These scripts are reported on stderr and stay as they are, the ot
 The exit code is 0 if all scripts could be formatted (with `--check`: are formatted), 1 otherwise and 2 on usage or I/O
 errors.
 
+## dashql move
+
+```
+dashql move <workbook-dir> <script> (--before <script> | --after <script> | --first | --last)
+```
+
+Moves a script of a workbook folder in the feed: the order of the scripts in `dashql-workbook.json`, which the feed of
+DashQL shows. A script is named like `orders`, `orders.sql` or `scripts/orders.sql`. A script file that the workbook
+file doesn't list yet goes in with the connection of the script before it. The other fields of the file stay, the
+command prints the new order. The tab of a session takes the order of a workbook that it copied
+(`docs/design/agent_session.md`), and puts a new script of the agent after the scripts that it reads and before the
+ones that read it, so the agent moves scripts only to put them elsewhere. Agents move scripts with it instead of
+editing the list of the workbook file, which they get wrong.
+
 ## dashql init
 
 ```
@@ -234,8 +248,8 @@ request to the workbooks) in its system prompt (`--append-system-prompt`), Codex
 which the harness puts into the context of the agent. That hook also gives both the workspace that the commands
 take, the folder where the tab copies its workbook, and the workbooks and the connections of the session. The settings
 of Claude Code let it run the commands of `dashql` that it needs and edit the files of the session in
-`.dashql/session/` without asking (`permissions.allow`: `Bash(dashql describe:*)`, `catalog`, `run`, `vis`, `lint`,
-`format`, and `Edit(./.dashql/session/**)`); `dashql init` and everything else asks as the user configured it,
+`.dashql/session/` without asking (`permissions.allow`: `Bash(dashql describe:*)`, `catalog`, `run`, `vis`, `move`,
+`lint`, `format`, and `Edit(./.dashql/session/**)`); `dashql init` and everything else asks as the user configured it,
 and Codex keeps its sandbox. `//tests/agents` runs `connect` with Claude Code and Codex and a fake model:
 the events of a turn, the guide in the system prompt, `dashql` and a script of the copy without approval, a file of the
 project only with one, and a run of a workbook folder of the project fails. The agent of a harness that `npx`

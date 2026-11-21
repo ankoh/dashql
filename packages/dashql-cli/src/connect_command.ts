@@ -108,7 +108,7 @@ function hookCommand(dashql: string[], event: string, harness: string, workspace
 
 /// The commands of dashql that the agent runs. Not init: a workspace is up to the user, an agent that set up the
 /// folder of a wrong path would run it outside the tab.
-const AGENT_COMMANDS = ['describe', 'catalog', 'run', 'vis', 'lint', 'format'];
+const AGENT_COMMANDS = ['describe', 'catalog', 'run', 'vis', 'move', 'lint', 'format'];
 
 /// What Claude Code may do in a session without asking: run the commands of dashql of the agent and edit the files of
 /// the session, the copies of the workbooks of the tab

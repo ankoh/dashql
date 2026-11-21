@@ -155,7 +155,7 @@ export function scriptChart(dql: core.DashQL, text: string): ScriptChart {
 }
 
 /// The file name of a script that the user named: `orders`, `orders.sql` or `scripts/orders.sql`
-function scriptFileName(name: string): string {
+export function scriptFileName(name: string): string {
     const base = name.split(/[\\/]/).pop() ?? name;
     return base.endsWith('.sql') ? base : `${base}.sql`;
 }

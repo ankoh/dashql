@@ -6,6 +6,7 @@ import { runDescribe } from './describe_command.js';
 import { runFormat } from './format_command.js';
 import { runInit } from './init_command.js';
 import { runLint } from './lint_command.js';
+import { runMove } from './move_command.js';
 import { runRun } from './run_command.js';
 import { runSession } from './session_command.js';
 import { runVis } from './vis_command.js';
@@ -21,6 +22,8 @@ Commands:
   format <file.sql|dir|->...          Pretty print SQL files on disk with dashql-core, see dashql format --help
   init [<dir>]                        Set up a folder as a workspace of DashQL
   lint <file.sql|dir|->...            Lint SQL files on disk with dashql-core, see dashql lint --help
+  move <workbook-dir> <script> --after <script>
+                                      Move a script in the feed, see dashql move --help
   run [-w <dir>] <workbook-dir> [<script>...]
                                       Run the scripts of a workbook folder on their connections, see dashql run --help
   session hook <event>                The hooks that dashql connect gives the harness, see dashql session --help
@@ -37,6 +40,8 @@ export async function runDashQL(argv: string[], process: CliProcess): Promise<nu
     switch (command) {
         case 'lint':
             return await runLint(args, process);
+        case 'move':
+            return runMove(args, process);
         case 'format':
             return await runFormat(args, process);
         case 'init':

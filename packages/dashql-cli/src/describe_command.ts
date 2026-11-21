@@ -43,6 +43,9 @@ up a workspace: never run dashql init, a command that says that a folder is no w
                                 runs it.
   dashql vis --workspace <workspace> <workbook-dir> <script>
                                 Check the chart of a script against its result and render it as PNG.
+  dashql move <workbook-dir> <script> --after <script>
+                                Move a script in the feed, also --before <script>, --first and --last. Don't edit
+                                the order in dashql-workbook.json by hand.
   dashql lint <file.sql|dir>... Check scripts without running them.
   dashql format --write <file.sql|dir>...
                                 Pretty print scripts in place.
@@ -111,6 +114,8 @@ How to work:
    workbook folder, not a copy of it: the tab follows the folder. A workbook that the tab copied runs in the tab, on
    the connections that the user lets you use, and the user watches the run there.
 3. Chart a result that a chart explains better than a table, and check it with dashql vis.
+   The tab puts a new script after the scripts that it reads and before the ones that read it. Move a script with
+   dashql move only to put it elsewhere, e.g. next to the scripts of its topic.
 4. The user watches the scripts change and run. Do not recap your steps, the queries or the results: end with one
    plain sentence that answers the request, or with nothing if the results already answer it.
 
