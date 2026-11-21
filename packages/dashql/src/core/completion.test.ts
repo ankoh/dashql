@@ -36,13 +36,13 @@ describe('DashQL Completion', () => {
             'select',
             'set',
             'savepoint',
+            'show',
             'start',
+            'analyse',
+            'close',
             'insert',
             'release',
-            'values',
-            'with',
-            'abort',
-            'alter'
+            'reset'
         ]));
     });
 

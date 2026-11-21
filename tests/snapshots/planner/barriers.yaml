@@ -529,6 +529,7 @@ planner-snapshots:
           analyzed-text-version: 1
           analyzed-catalog-revision: 1
           cacheable: false
+          terminal-statement-id: 0
       entities: []
       unresolved-references: []
       nodes: []
@@ -537,9 +538,6 @@ planner-snapshots:
         - script: queries
           error: true
           message: 'parser: syntax error, unexpected SEMICOLON'
-        - script: queries
-          error: true
-          message: 'unsupported SQL: parser produced no statements'
 
   - name: ExplainOptions
     catalog: |
