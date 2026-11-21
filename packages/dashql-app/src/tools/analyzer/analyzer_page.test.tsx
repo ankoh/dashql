@@ -63,14 +63,12 @@ describe('AnalyzerPage', () => {
     it('shows the facts of the analysis by their kind', async () => {
         // No JSON, rows of facts
         expect(phase('Editor Script', 'Analyzer').textContent).not.toContain('{');
-        // The table references resolve, their facts name the resolved tables
-        const tables = factTexts('Table refs');
-        expect(tables.map(text => text!.match(/^[a-z]+/)![0])).toEqual(['partsupp', 'supplier', 'nation', 'region']);
-        expect(tables.some(text => text!.includes('unresolved'))).toBe(false);
-        // The columns resolve and name their tables
+        // The table references resolve in the catalog, their facts name the kind of the resolution
+        expect(factTexts('Table refs')).toEqual(['partsuppcatalog', 'suppliercatalog', 'nationcatalog', 'regioncatalog']);
+        // The columns resolve and name the table refs that they read
         const columns = factTexts('Column refs');
         expect(columns.some(text => text!.includes('unresolved'))).toBe(false);
-        expect(columns.find(text => text!.startsWith('r_name'))).toContain('region');
+        expect(columns.find(text => text!.startsWith('r_name'))).toContain('catalog region');
         // The analyzer records the call, the column refs and the constants, no row of other expressions such as the ANDs
         expect(factTexts('Calls')).toEqual(['min(ps_supplycost)']);
         expect(facts('Expressions')).toEqual([]);
@@ -97,27 +95,56 @@ describe('AnalyzerPage', () => {
         });
     });
 
-    it('follows the pointers of the node under the pointer', async () => {
+    it('names references to CTEs and highlights the table refs of column refs', async () => {
+        await act(async () => {
+            const view = editor('Editor Script');
+            view.dispatch({
+                changes: { from: 0, to: view.state.doc.length, insert: 'with d as (select r_name from region) select d.r_name, r_name from d' },
+                userEvent: 'input.paste',
+            });
+        });
+        await act(async () => {
+            await vi.waitFor(() => expect(phase('Editor Script', 'Analyzer').textContent).toContain('2 table refs (2 resolved)'));
+        });
+        expect(factTexts('Table refs')).toEqual(['regioncatalog', 'dcte']);
+        expect(factTexts('Column refs').sort()).toEqual(['d.r_namecte d', 'r_namecatalog region', 'r_namecte d']);
+
+        // A column ref under the pointer highlights its table ref, a table ref all column refs that read it
+        const linked = () => [...phase('Editor Script', 'Analyzer').querySelectorAll('[data-linked]')].map(fact => fact.textContent).sort();
+        expect(linked()).toEqual([]);
+        await hover(facts('Column refs').find(fact => fact.textContent!.startsWith('d.r_name'))!);
+        await act(async () => {
+            await vi.waitFor(() => expect(linked()).toEqual(['dcte']));
+        });
+        await hover(facts('Table refs')[1]);
+        await act(async () => {
+            await vi.waitFor(() => expect(linked()).toEqual(['d.r_namecte d', 'r_namecte d']));
+        });
+        await hover(facts('Table refs')[0]);
+        await act(async () => {
+            await vi.waitFor(() => expect(linked()).toEqual(['r_namecatalog region']));
+        });
+    });
+
+    it('highlights the children and the parent of the node under the pointer', async () => {
         const parser = phase('Editor Script', 'Parser');
         const nodes = [...parser.querySelectorAll<HTMLElement>('[data-node]')];
-        const edges = () => parser.querySelectorAll('svg path').length;
         const roles = () => nodes.map(node => node.getAttribute('data-role')).filter(role => role != null).sort().join(',');
-        // The root of the statement comes last, it has children and no parent: an edge to its first child
+        // The root of the statement comes last, it has children and no parent
         await hover(nodes[nodes.length - 1]);
         await act(async () => {
             await vi.waitFor(() => expect(roles()).toMatch(/^(child,)+focus$/));
         });
-        expect(edges()).toBe(1);
+        expect(parser.querySelectorAll('svg').length).toBe(0);
         expect(parser.textContent).toContain('r_name');
         // The scanner highlights the tokens of the node, the root has all but the semicolon
         const focused = () => focusedTokens().length;
         expect(focusedTokens()).toEqual(tokens('Editor Script').slice(0, -1));
-        // A node in between has a parent too, edges to its first child and its parent
+        // A node in between has a parent too
         await hover(nodes.find(node => node.textContent!.endsWith('TABLEREF'))!);
         await act(async () => {
             await vi.waitFor(() => expect(roles()).toMatch(/^(child,)+focus,parent$/));
         });
-        expect(edges()).toBe(2);
         expect(focused()).toBe(1);
     });
 

@@ -118,6 +118,16 @@
     border-style: dashed;
 }
 
+/* Chips */
+
+/* A chip centers the capitals of its text, not its line box: each part is trimmed to the cap height and the
+   baseline. Without text-box the parts keep their line boxes, centered in the same height. */
+.statement_label > span,
+.node > span,
+.fact > span {
+    text-box: trim-both cap alphabetic;
+}
+
 /* Parser */
 
 .focus_detail {
@@ -158,6 +168,8 @@
 
 .statement_label {
     display: inline-flex;
+    align-items: center;
+    height: 18px;
     column-gap: 4px;
     padding: 0 5px;
     border-radius: 3px;
@@ -174,6 +186,8 @@
 
 .node {
     display: inline-flex;
+    align-items: center;
+    height: 18px;
     column-gap: 4px;
     padding: 0 4px;
     border: 1px solid var(--color_border);
@@ -213,25 +227,6 @@
     border-color: var(--color_attention_fg);
 }
 
-.edges {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    overflow: visible;
-    pointer-events: none;
-}
-
-.edge {
-    fill: none;
-    stroke: var(--color_success_fg);
-    stroke-width: 1.5;
-}
-
-.edge_parent {
-    stroke: var(--color_attention_fg);
-}
-
 /* Analyzer */
 
 .analysis {
@@ -264,6 +259,8 @@
 
 .fact {
     display: inline-flex;
+    align-items: center;
+    height: 18px;
     column-gap: 5px;
     padding: 0 5px;
     border: 1px solid var(--color_border);
@@ -294,4 +291,11 @@
 .fact_focus {
     background-color: var(--color_accent_muted);
     border-color: var(--color_accent_fg);
+}
+
+/* The table ref that the column ref under the pointer reads, or the column refs that read the table ref under it. A
+   color of its own: green marks the children of a node in the parser, and a resolved fact */
+.fact_linked {
+    background-color: var(--color_done_muted);
+    border-color: var(--color_done_fg);
 }

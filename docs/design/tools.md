@@ -63,15 +63,17 @@ script is a section per phase:
 - **Scanner.** The tokens of the parse as a wrapping line, colored by their type, the comments between them.
 - **Parser.** The nodes of the AST as a wrapping line of chips in the order of the array of the parser, a label at the
   start of each statement. A chip shows the attribute key and the type of its node, a leaf also its text. The node
-  under the pointer highlights its children and its parent, draws edges to its first child and its parent, and a line
-  below shows its children or value, its parent and its text.
+  under the pointer highlights its children (green) and its parent (amber), and a line below shows its children or
+  value, its parent and its text.
 - **Analyzer.** The errors of the analysis, and its facts as rows of chips by their kind: the declared tables, the table
-  references with the tables they resolve to, the column references with their tables, the function calls, the roots of
-  the constant subtrees with their kind, the function references, the parameters, the inferred schemas and the name
-  scopes, the rarer parts by their count. The analyzer records only these expressions: column references, calls and
-  constant subtrees. An AND or a comparison of columns is none, so there is no row of "expressions". An unresolved
-  reference is marked. A fact under the pointer highlights its AST node and its tokens, a node under the pointer in the
-  AST its facts.
+  references with the kind of their resolution (`catalog`, `script`, `parameter`, `cte`), the column references with
+  the table reference they read (`catalog region`, `cte d`), a derived table (`subquery`) or an output column of their
+  own SELECT (`output`), the function calls, the roots of the constant subtrees with their kind, the function
+  references, the parameters, the inferred schemas and the name scopes, the rarer parts by their count. The analyzer
+  records only these expressions: column references, calls and constant subtrees. An AND or a comparison of columns is
+  none, so there is no row of "expressions". An unresolved reference is marked. A fact under the pointer highlights its
+  AST node and its tokens, a node under the pointer in the AST its facts. A column reference under the pointer
+  highlights its table reference in purple, a table reference the column references that read it.
 
 Both sessions share a catalog. A new analysis of the catalog script loads it into the catalog (`loadIntoCatalog`), and
 the editor of the editor script analyzes it again. The page reads the phases from the session (`getParsed`,

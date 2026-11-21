@@ -213,7 +213,7 @@ const NodeChip = React.memo(function NodeChip({ id, node, role, text }: NodeChip
             data-role={role === NodeRole.Focus ? 'focus' : role === NodeRole.Child ? 'child' : role === NodeRole.Parent ? 'parent' : undefined}
         >
             {key != null && <span className={styles.node_key}>{key}</span>}
-            {shortNodeType(node.nodeType)}
+            <span>{shortNodeType(node.nodeType)}</span>
             {leaf && text.length > 0 && (
                 <span className={styles.node_text}>{text.length > LEAF_TEXT_LENGTH ? `${text.slice(0, LEAF_TEXT_LENGTH)}…` : text}</span>
             )}
@@ -221,43 +221,11 @@ const NodeChip = React.memo(function NodeChip({ id, node, role, text }: NodeChip
     );
 });
 
-/// An edge from the node under the pointer to its first child or its parent
-interface NodeEdge {
-    key: 'child' | 'parent';
-    path: string;
-}
-
-/// The edges of a node, arcs from the top of its chip to the tops of the chips of its first child and its parent,
-/// measured in the layout of the line
-function measureEdges(line: HTMLElement, focus: number, node: dashql.buffers.parser.NodeT): NodeEdge[] {
-    const origin = line.getBoundingClientRect();
-    const chip = (id: number) => line.querySelector<HTMLElement>(`[data-node="${id}"]`)?.getBoundingClientRect() ?? null;
-    const from = chip(focus);
-    if (from == null) return [];
-    const edges: NodeEdge[] = [];
-    const edge = (key: NodeEdge['key'], target: number) => {
-        const to = chip(target);
-        if (to == null) return;
-        const x1 = from.left + from.width / 2 - origin.left;
-        const y1 = from.top - origin.top;
-        const x2 = to.left + to.width / 2 - origin.left;
-        const y2 = to.top - origin.top;
-        // An arc above both chips, higher for chips further apart
-        const top = Math.min(y1, y2) - Math.min(24, 6 + Math.abs(x2 - x1) / 24);
-        edges.push({ key, path: `M ${x1} ${y1} C ${x1} ${top}, ${x2} ${top}, ${x2} ${y2}` });
-    };
-    if (hasChildren(node.nodeType) && node.childrenCount > 0) edge('child', node.childrenBeginOrValue);
-    if (node.parent !== focus) edge('parent', node.parent);
-    return edges;
-}
-
 /// The nodes of the AST as a wrapping line in the order of the array of the parser, a label at the start of every
-/// statement. The node under the pointer highlights its children and its parent, draws edges to its first child and its
-/// parent, and shows its fields and text below the line.
+/// statement. The node under the pointer highlights its children and its parent in their colors, and shows its fields
+/// and text below the line.
 function ParserSection(props: { parsed: dashql.buffers.parser.ParsedScriptT; bytes: ScriptBytes; focus: number | null; setFocus: (focus: number | null) => void }) {
     const { parsed, bytes, focus, setFocus } = props;
-    const line = React.useRef<HTMLDivElement>(null);
-    const [edges, setEdges] = React.useState<NodeEdge[]>([]);
 
     const texts = React.useMemo(() => parsed.nodes.map(node => symbolText(parsed, bytes, node.symbolSpan)), [parsed, bytes]);
     const statementAt = React.useMemo(() => {
@@ -267,9 +235,6 @@ function ParserSection(props: { parsed: dashql.buffers.parser.ParsedScriptT; byt
     }, [parsed]);
 
     const focusNode = focus != null ? parsed.nodes[focus] ?? null : null;
-    React.useLayoutEffect(() => {
-        setEdges(line.current == null || focus == null || focusNode == null ? [] : measureEdges(line.current, focus, focusNode));
-    }, [focus, focusNode]);
 
     const roleOf = (id: number): NodeRole => {
         if (focus == null || focusNode == null) return NodeRole.None;
@@ -289,7 +254,7 @@ function ParserSection(props: { parsed: dashql.buffers.parser.ParsedScriptT; byt
     return (
         <Section title="Parser" summary={summary}>
             <ErrorList errors={parsed.parserErrors} bytes={bytes} />
-            <div className={styles.ast} ref={line} onPointerOver={onPointerOver} onPointerLeave={() => setFocus(null)}>
+            <div className={styles.ast} onPointerOver={onPointerOver} onPointerLeave={() => setFocus(null)}>
                 {parsed.nodes.map((node, id) => {
                     const statement = statementAt.get(id);
                     const cell = <NodeChip key={id} id={id} node={node} role={roleOf(id)} text={texts[id]} />;
@@ -298,20 +263,13 @@ function ParserSection(props: { parsed: dashql.buffers.parser.ParsedScriptT; byt
                     return (
                         <React.Fragment key={id}>
                             <span className={styles.statement_label}>
-                                {statement}
+                                <span>{statement}</span>
                                 <span className={styles.statement_type}>{type}</span>
                             </span>
                             {cell}
                         </React.Fragment>
                     );
                 })}
-                {edges.length > 0 && (
-                    <svg className={styles.edges} aria-hidden="true">
-                        {edges.map(edge => (
-                            <path key={edge.key} d={edge.path} className={classNames(styles.edge, edge.key === 'parent' && styles.edge_parent)} />
-                        ))}
-                    </svg>
-                )}
             </div>
             <div className={styles.focus_detail} aria-live="polite">
                 {focusNode != null && (
@@ -354,8 +312,8 @@ interface AnalysisFact {
     resolved?: boolean;
 }
 
-/// A row of facts of one kind
-function FactRow(props: { title: string; facts: AnalysisFact[]; focus: number | null }) {
+/// A row of facts of one kind, the facts linked to the one under the pointer are highlighted in their own color
+function FactRow(props: { title: string; facts: AnalysisFact[]; focus: number | null; linked?: Set<number> }) {
     if (props.facts.length === 0) return null;
     return (
         <div className={styles.fact_row} aria-label={props.title}>
@@ -364,6 +322,7 @@ function FactRow(props: { title: string; facts: AnalysisFact[]; focus: number | 
                 {props.facts.map(fact => {
                     const text = fact.text.replace(/\s+/g, ' ');
                     const focused = fact.node != null && fact.node === props.focus;
+                    const linked = fact.node != null && props.linked?.has(fact.node) === true;
                     return (
                         <span
                             key={fact.key}
@@ -372,13 +331,15 @@ function FactRow(props: { title: string; facts: AnalysisFact[]; focus: number | 
                                 fact.resolved === true && styles.fact_resolved,
                                 fact.resolved === false && styles.fact_unresolved,
                                 focused && styles.fact_focus,
+                                linked && styles.fact_linked,
                             )}
                             data-ast-node={fact.node ?? undefined}
                             data-fact={props.title}
                             data-focus={focused || undefined}
+                            data-linked={linked || undefined}
                         >
                             {fact.kind != null && <span className={styles.fact_kind}>{fact.kind}</span>}
-                            {text.length > FACT_TEXT_LENGTH ? `${text.slice(0, FACT_TEXT_LENGTH)}…` : text}
+                            <span>{text.length > FACT_TEXT_LENGTH ? `${text.slice(0, FACT_TEXT_LENGTH)}…` : text}</span>
                             {fact.detail != null && <span className={styles.fact_detail}>{fact.detail}</span>}
                         </span>
                     );
@@ -386,6 +347,24 @@ function FactRow(props: { title: string; facts: AnalysisFact[]; focus: number | 
             </div>
         </div>
     );
+}
+
+/// The null id of the buffers
+const NONE = 0xFFFFFFFF;
+
+/// The kinds of resolved table references as their chips name them, an unresolved one has none
+const TABLE_RESOLUTIONS: Record<dashql.buffers.analyzer.TableResolutionType, string | null> = {
+    [dashql.buffers.analyzer.TableResolutionType.UNRESOLVED]: null,
+    [dashql.buffers.analyzer.TableResolutionType.CATALOG]: 'catalog',
+    [dashql.buffers.analyzer.TableResolutionType.SCRIPT]: 'script',
+    [dashql.buffers.analyzer.TableResolutionType.TABLE_PARAMETER]: 'parameter',
+    [dashql.buffers.analyzer.TableResolutionType.CTE]: 'cte',
+};
+
+/// A column ref and the table ref that it reads, by their AST nodes
+interface FactLink {
+    column: number;
+    table: number;
 }
 
 /// The kinds of constant expressions as their chips name them
@@ -408,12 +387,23 @@ const CONSTANT_KINDS: Partial<Record<dashql.buffers.algebra.ExpressionSubType, s
 function analysisFacts(analyzed: dashql.buffers.analyzer.AnalyzedScriptT, parsed: dashql.buffers.parser.ParsedScriptT | null, bytes: ScriptBytes) {
     const text = (span: dashql.buffers.parser.SymbolSpanT | null) => parsed == null ? '' : symbolText(parsed, bytes, span);
     const nodeText = (node: number) => text(parsed?.nodes[node]?.symbolSpan ?? null);
-    // The names of the tables that the table references resolved to, a resolved column names its table by its id
-    const resolvedTables = new Map<bigint, string>();
-    for (const ref of analyzed.tableReferences) {
-        if (ref.resolvedTable != null) resolvedTables.set(ref.resolvedTable.catalogTableId, qualifiedTableName(ref.resolvedTable.tableName));
-    }
+    // The table references with the kind of their resolution, the resolved name only if the reference reads differently
+    const tableRefsByNode = new Map<number, { kind: string | null; name: string }>();
+    const tableReferences = analyzed.tableReferences.map((ref, i): AnalysisFact => {
+        const refText = text(ref.symbolSpan) || qualifiedTableName(ref.tableName);
+        const kind = TABLE_RESOLUTIONS[ref.resolution] ?? null;
+        const resolvedName = ref.resolvedTable == null ? null : qualifiedTableName(ref.resolvedTable.tableName);
+        tableRefsByNode.set(ref.astNodeId, { kind, name: resolvedName ?? qualifiedTableName(ref.tableName) });
+        return {
+            key: `r${i}`,
+            node: ref.astNodeId,
+            text: refText,
+            detail: kind == null ? 'unresolved' : resolvedName == null || resolvedName === refText ? kind : `${kind} ${resolvedName}`,
+            resolved: kind != null,
+        };
+    });
     const columns: AnalysisFact[] = [];
+    const links: FactLink[] = [];
     const calls: AnalysisFact[] = [];
     analyzed.expressions.forEach((expression, i) => {
         if (expression.innerType === dashql.buffers.algebra.ExpressionSubType.FunctionCallExpression) {
@@ -424,13 +414,18 @@ function analysisFacts(analyzed: dashql.buffers.analyzer.AnalyzedScriptT, parsed
                 detail: expression.isConstexpr ? 'const' : undefined,
             });
         } else if (expression.innerType === dashql.buffers.algebra.ExpressionSubType.ColumnRefExpression) {
-            const resolved = (expression.inner as dashql.buffers.algebra.ColumnRefExpressionT).resolvedColumn;
+            // A column names the table ref that it reads, a derived table, or an output column of its own scope
+            const column = expression.inner as dashql.buffers.algebra.ColumnRefExpressionT;
+            const resolved = column.resolution !== dashql.buffers.algebra.ColumnResolutionType.UNRESOLVED;
+            const source = column.resolvedSourceAstNodeId;
+            const table = source === NONE ? null : tableRefsByNode.get(source) ?? null;
+            if (table != null) links.push({ column: expression.astNodeId, table: source });
             columns.push({
                 key: `c${i}`,
                 node: expression.astNodeId,
                 text: text(expression.symbolSpan),
-                detail: resolved == null ? 'unresolved' : resolvedTables.get(resolved.catalogTableId) ?? `table ${resolved.catalogTableId}`,
-                resolved: resolved != null,
+                detail: !resolved ? 'unresolved' : source === NONE ? 'output' : table == null ? 'subquery' : `${table.kind} ${table.name}`,
+                resolved,
             });
         }
     });
@@ -449,19 +444,9 @@ function analysisFacts(analyzed: dashql.buffers.analyzer.AnalyzedScriptT, parsed
             text: qualifiedTableName(table.tableName),
             detail: `${table.tableColumns.length} ${table.tableColumns.length === 1 ? 'column' : 'columns'}`,
         })),
-        tableReferences: analyzed.tableReferences.map((ref, i): AnalysisFact => {
-            const refText = text(ref.symbolSpan) || qualifiedTableName(ref.tableName);
-            // A resolved reference is marked, the resolved name only shows if the reference reads differently
-            const resolvedName = ref.resolvedTable == null ? null : qualifiedTableName(ref.resolvedTable.tableName);
-            return {
-                key: `r${i}`,
-                node: ref.astNodeId,
-                text: refText,
-                detail: resolvedName == null ? 'unresolved' : resolvedName === refText ? undefined : resolvedName,
-                resolved: resolvedName != null,
-            };
-        }),
+        tableReferences,
         columns,
+        links,
         calls,
         functions: analyzed.functionReferences.map((ref, i): AnalysisFact => ({
             key: `f${i}`,
@@ -503,6 +488,18 @@ function analysisFacts(analyzed: dashql.buffers.analyzer.AnalyzedScriptT, parsed
     };
 }
 
+/// The facts linked to the node under the pointer: the table ref that a column ref reads, or the column refs that read
+/// a table ref
+function linkedFacts(focus: number | null, links: FactLink[]): Set<number> {
+    const linked = new Set<number>();
+    if (focus == null) return linked;
+    for (const link of links) {
+        if (link.column === focus) linked.add(link.table);
+        if (link.table === focus) linked.add(link.column);
+    }
+    return linked;
+}
+
 /// The analysis: its errors, and its facts as rows of chips by their kind. A fact is highlighted with its AST node,
 /// the node of the fact under the pointer is highlighted in the AST and its tokens in the scanner.
 function AnalyzerSection(props: {
@@ -514,7 +511,9 @@ function AnalyzerSection(props: {
 }) {
     const { analyzed, parsed, bytes, focus, setFocus } = props;
     const facts = React.useMemo(() => analysisFacts(analyzed, parsed, bytes), [analyzed, parsed, bytes]);
-    const resolved = analyzed.resolvedTableReferencesById.length;
+    const linked = React.useMemo(() => linkedFacts(focus, facts.links), [focus, facts]);
+    // References to CTEs count as resolved, they have no catalog ids and are not in the index of the resolved tables
+    const resolved = facts.tableReferences.filter(fact => fact.resolved).length;
     const summary = [
         `${analyzed.tables.length} ${analyzed.tables.length === 1 ? 'table' : 'tables'}`,
         `${analyzed.tableReferences.length} table refs (${resolved} resolved)`,
@@ -533,8 +532,8 @@ function AnalyzerSection(props: {
             <ErrorList errors={analyzed.errors} bytes={bytes} />
             <div className={styles.analysis} onPointerOver={onPointerOver} onPointerLeave={() => setFocus(null)}>
                 <FactRow title="Tables" facts={facts.tables} focus={focus} />
-                <FactRow title="Table refs" facts={facts.tableReferences} focus={focus} />
-                <FactRow title="Column refs" facts={facts.columns} focus={focus} />
+                <FactRow title="Table refs" facts={facts.tableReferences} focus={focus} linked={linked} />
+                <FactRow title="Column refs" facts={facts.columns} focus={focus} linked={linked} />
                 <FactRow title="Calls" facts={facts.calls} focus={focus} />
                 <FactRow title="Constants" facts={facts.constants} focus={focus} />
                 <FactRow title="Function refs" facts={facts.functions} focus={focus} />
