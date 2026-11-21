@@ -126,6 +126,8 @@ export class AgentSessionRuns {
                 refresh: message.refresh,
                 signal: controller.signal,
                 progressIntervalMs: null,
+                // The feed shows the results of the run as those of its own runs
+                analyze: true,
                 prepareConnection: async conn => {
                     if (!this.host.isConnectionAllowed(conn.connectionId)) return 'the tab of DashQL does not let the agent use this connection, the user can allow it in the prompt';
                     if (conn.connectionHealth !== ConnectionHealth.ONLINE) return 'the connection is not set up in the tab of DashQL, set it up there';

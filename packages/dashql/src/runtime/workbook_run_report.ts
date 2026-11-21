@@ -40,6 +40,9 @@ export interface ReportedRunOptions {
     signal: AbortSignal;
     /// How often the progress of the running queries is read, null for none
     progressIntervalMs: number | null;
+    /// Analyze the results like a run of the feed, so the feed shows them: a tab, not the command line tool that only
+    /// prints them
+    analyze: boolean;
     /// Set up a connection before the first statement, an error message if it can't be used. Without, the run takes
     /// the connections that can run.
     prepareConnection?: (conn: ConnectionState) => Promise<string | null>;
@@ -185,8 +188,7 @@ export async function runWorkbookReported(runtime: Runtime, workbook: WorkbookSc
                 run = await runtime.runWorkbook(workbookId, {
                     targets: requested ? selected.map(file => files.indexOf(file)) : undefined,
                     refresh: options.refresh,
-                    // The results are reported, the run doesn't analyze them
-                    analyze: false,
+                    analyze: options.analyze,
                 }, { onScript, prepareConnection });
             }
         } finally {

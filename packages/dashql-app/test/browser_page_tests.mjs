@@ -446,6 +446,9 @@ async function testAppAgentSession(page, navigate) {
         assert.equal(Buffer.from(chart.png, 'base64').subarray(1, 4).toString('latin1'), 'PNG');
         assert.equal(events.indexOf(chart), events.length - 2);
         await waitForQuery(page);
+        // The feed shows the result of the run of the agent as one of its own: the card opens its chart, no play needed
+        const card = page.getByTestId('script-feed-item').filter({ has: scriptEditor(page, 'from_agent') });
+        await card.locator('[role="tab"][data-tab="2"][aria-selected="true"]').waitFor();
 
         // The agent may use every connection, the user unticks one
         await waitUntil(() => connected.connectionLists.length > 0);

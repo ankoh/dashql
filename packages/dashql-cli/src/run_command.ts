@@ -392,6 +392,8 @@ async function runHere(
             refresh: parsed.refresh,
             signal,
             progressIntervalMs: live ? LIVE_PROGRESS_INTERVAL_MS : null,
+            // The results are printed, nothing shows their analysis
+            analyze: false,
             prepareConnection: conn => setupConnection(runtime, conn, env, hyper, signal),
             resultFile: async key => {
                 const entry = hyper == null ? null : await hyper.resultCache.lookup(key);

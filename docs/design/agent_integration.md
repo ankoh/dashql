@@ -247,8 +247,10 @@ decides on. The tab logs in as it does for its own runs, no token reaches the te
    events of the run as JSON lines, its header `X-DashQL-Run` names the run.
 3. **The tab runs.** `AgentSessionRuns` (`agent/agent_session_runs.ts`) waits until the changes of the agent are in the
    workbook, then runs it with `runWorkbookReported` of the runtime (`runtime/workbook_run_report.ts`), the same code
-   that `dashql run` runs without a tab. A connection that the agent may not use, or that is not online in the tab,
-   fails before the first statement and its scripts don't run.
+   that `dashql run` runs without a tab. The tab analyzes the results like a run of its own (`analyze`), the cards of
+   the feed show their table and chart only with the analysis; `dashql run` prints them and analyzes nothing. A
+   connection that the agent may not use, or that is not online in the tab, fails before the first statement and its
+   scripts don't run.
 4. **The results go into the session.** The cached result of a script with a key goes as its Parquet file to
    `PUT /v1/results/<token>/<key>` before the script is reported: the server writes it into the query result cache of
    the session, `.dashql/cache/<key>.<uuid>.parquet`, and answers with the path, where the agent reads the whole
