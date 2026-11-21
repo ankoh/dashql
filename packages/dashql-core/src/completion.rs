@@ -148,8 +148,9 @@ fn keyword_prevalence(keyword: SymbolKind) -> CandidateTag {
     match keyword {
         S_SELECT | S_FROM | S_WHERE => CandidateTag::KEYWORD_A,
         S_AND | S_GROUP_P | S_ORDER => CandidateTag::KEYWORD_B,
-        S_AS | S_ASC_P | S_BY | S_CASE | S_CAST | S_DESC_P | S_END_P | S_LIKE | S_LIMIT | S_OFFSET | S_OR | S_SET
-        | S_THEN | S_WHEN | S_WITH => CandidateTag::KEYWORD_C,
+        // Not END, it also begins a statement and would come before SET and WITH there
+        S_AS | S_ASC_P | S_BY | S_CASE | S_CAST | S_DESC_P | S_LIKE | S_LIMIT | S_OFFSET | S_OR | S_SET | S_THEN
+        | S_WHEN | S_WITH => CandidateTag::KEYWORD_C,
         _ => CandidateTag::KEYWORD_D,
     }
 }

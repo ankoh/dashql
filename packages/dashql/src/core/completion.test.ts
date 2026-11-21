@@ -35,14 +35,14 @@ describe('DashQL Completion', () => {
         it('s', () => test('s', 1, [
             'select',
             'set',
+            'savepoint',
+            'start',
             'insert',
+            'release',
             'values',
             'with',
-            'alter',
-            'attach',
-            'create',
-            'delete',
-            'drop'
+            'abort',
+            'alter'
         ]));
     });
 

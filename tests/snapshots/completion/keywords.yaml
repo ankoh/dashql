@@ -26,10 +26,9 @@ completion-snapshots:
           location: "s"
           location-qualified: "s"
           objects: []
-        - score: 50
-          value: insert
-          keyword-continuation: into
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
+        - score: 55
+          value: savepoint
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "s"
           location-qualified: "s"
           objects: []
