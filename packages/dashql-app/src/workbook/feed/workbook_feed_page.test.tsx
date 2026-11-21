@@ -4,8 +4,6 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { WorkbookFeedPage, type WorkbookFeedPageDependencies } from './workbook_feed_page.js';
 import { WorkbookViewMode } from '../workbook_view_mode.js';
-import { SegmentedControl } from '@akohn/dashql-react/components/segmented_control';
-import { Button } from '@akohn/dashql-react/components/button';
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import type { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { WorkbookConnectionAttentionContext } from '../connections/workbook_connection_attention.js';
@@ -43,7 +41,7 @@ const state = {
 function testConnection(connectionId: string, connectionHealth: ConnectionHealth, queriesActiveOrdered: number[] = []): ConnectionState {
     return { connectionId, connectionHealth, queriesActiveOrdered } as unknown as ConnectionState;
 }
-const dependencies = {
+const dependencies: WorkbookFeedPageDependencies = {
     WorkbookFeed: (props: PropsOf<'WorkbookFeed'>) => {
         state.feedProps = props;
         return null;
@@ -57,9 +55,6 @@ const dependencies = {
     CloudOverviewPage: () => null,
     WorkbookStatusBar: (props: PropsOf<'WorkbookStatusBar'>) => <div data-testid="workbook-status-bar" data-variant={props.variant} />,
     WorkbookNavigationDrawer: () => null,
-    ThreeBarsIcon: () => null,
-    IconButton: React.forwardRef((props: React.ButtonHTMLAttributes<HTMLButtonElement>, ref: React.ForwardedRef<HTMLButtonElement>) => <button {...props} ref={ref} />),
-    Button,
     WorkbookURLShareOverlay: (props: PropsOf<'WorkbookURLShareOverlay'>) => {
         state.shareProps = props;
         return null;
@@ -81,10 +76,10 @@ const dependencies = {
         return null;
     },
     useWorkbookViewMode: () => ({ mode: state.mode, setMode: state.setMode }),
-    SegmentedControl,
-    useWorkbookExecution: () => state.execution,
+    // The tests set the parts of the execution that the page reads
+    useWorkbookExecution: () => state.execution as unknown as ReturnType<WorkbookFeedPageDependencies['useWorkbookExecution']>,
     CloudWorkbookLoadingCard: () => null,
-} as unknown as WorkbookFeedPageDependencies;
+};
 
 /// The label of a button of the view switch, its tooltip
 function viewLabel(button: HTMLButtonElement): string | null {

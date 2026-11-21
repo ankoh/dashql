@@ -58,19 +58,13 @@ export interface WorkbookFeedPageDependencies {
     WorkbookStatusBar: typeof WorkbookStatusBar;
     CloudOverviewPage: typeof CloudOverviewPage;
     WorkbookNavigationDrawer: typeof WorkbookNavigationDrawer;
-    ThreeBarsIcon: typeof ThreeBarsIcon;
-    IconButton: typeof IconButton;
-    Button: typeof Button;
     Dashboard: typeof Dashboard;
     DataflowCanvas: typeof DataflowCanvas;
     WorkbookURLShareOverlay: typeof WorkbookURLShareOverlay;
     WorkbookFileSaveOverlay: typeof WorkbookFileSaveOverlay;
     WorkbookConnectionButtons: typeof WorkbookConnectionButtons;
     useWorkbookViewMode: typeof useWorkbookViewMode;
-    SegmentedControl: typeof SegmentedControl;
     useWorkbookExecution: typeof useWorkbookExecution;
-    CloudPreviewActions: typeof CloudPreviewActions;
-    CloudPreviewBadge: typeof CloudPreviewBadge;
     CloudWorkbookLoadingCard: typeof CloudWorkbookLoadingCard;
 }
 
@@ -82,19 +76,13 @@ const DEFAULT_DEPENDENCIES: WorkbookFeedPageDependencies = {
     WorkbookStatusBar,
     CloudOverviewPage,
     WorkbookNavigationDrawer,
-    ThreeBarsIcon,
-    IconButton,
-    Button,
     Dashboard,
     DataflowCanvas,
     WorkbookURLShareOverlay,
     WorkbookFileSaveOverlay,
     WorkbookConnectionButtons,
     useWorkbookViewMode,
-    SegmentedControl,
     useWorkbookExecution,
-    CloudPreviewActions,
-    CloudPreviewBadge,
     CloudWorkbookLoadingCard,
 };
 
@@ -306,13 +294,13 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
             </main>
             {/* After the feed in the DOM, so that no-drag rows scrolled behind the bar do not cut holes into its drag region, see docs/design/electron.md */}
             <header className={styles.view_bar} data-electron-drag-region>
-                <dependencies.IconButton className={styles.mobile_menu_button} ref={navigationDrawerTriggerRef} variant={ButtonVariant.Default} aria-label="Open workbook workbench" data-testid="open-workbench" onClick={() => setNavigationDrawerOpen(true)}>
-                    <dependencies.ThreeBarsIcon />
-                </dependencies.IconButton>
+                <IconButton className={styles.mobile_menu_button} ref={navigationDrawerTriggerRef} variant={ButtonVariant.Default} aria-label="Open workbook workbench" data-testid="open-workbench" onClick={() => setNavigationDrawerOpen(true)}>
+                    <ThreeBarsIcon />
+                </IconButton>
                 {/* A connection overview is not part of the workbook, its controls are hidden */}
                 {!overviewActive && <>
                     {/* A preview shows its scripts only, it runs nothing until it is imported */}
-                    {!ephemeral && !preview && <dependencies.SegmentedControl
+                    {!ephemeral && !preview && <SegmentedControl
                         aria-label="Workbook view"
                         data-testid="workbook-view-switch"
                         size={SegmentedControlSize.Small}
@@ -324,7 +312,7 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
                         }}
                     >
                         {WORKBOOK_VIEWS.map(([view, label, Icon]) => (
-                            <dependencies.SegmentedControl.IconButton
+                            <SegmentedControl.IconButton
                                 key={view}
                                 className={styles.view_switch_button}
                                 aria-label={label}
@@ -332,9 +320,9 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
                                 selected={activeView === view}
                             />
                         ))}
-                    </dependencies.SegmentedControl>}
+                    </SegmentedControl>}
                     {!ephemeral && <div className={styles.execution_controls}>
-                        <dependencies.Button ref={executeRef} size={ButtonSize.Small} variant={ButtonVariant.Invisible}
+                        <Button ref={executeRef} size={ButtonSize.Small} variant={ButtonVariant.Invisible}
                             leadingVisual={execution.busy ? SquareFillIcon : PaperAirplaneIcon}
                             aria-label={execution.busy ? 'Stop workbook execution' : 'Execute All'}
                             data-testid={execution.busy ? 'stop-execution' : 'execute-all'}
@@ -343,27 +331,27 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
                                 || execution.runActive || props.workbookScripts.scriptOrder.length === 0}
                             onClick={() => execution.busy ? execution.stop() : execution.start()}>
                             <span className={styles.action_label}>{execution.busy ? run?.phase === 'stopping' ? 'Stopping' : 'Stop' : 'Execute All'}</span>
-                        </dependencies.Button>
+                        </Button>
                         <div className={styles.execution_status} role="status" aria-live="polite" aria-atomic="true" data-testid="execution-status" data-phase={run?.phase}
                             title={run?.error ?? skippedTitle} aria-label={run?.error ? `${statusText}: ${run.error}` : undefined}>
                             {run && <>
                                 <AnchoredOverlay
                                     open={executionDetailsOpen} onOpen={() => setExecutionDetailsOpen(true)} onClose={() => setExecutionDetailsOpen(false)}
                                     side={AnchorSide.OutsideBottom} align={AnchorAlignment.Start} anchorOffset={4}
-                                    renderAnchor={anchorProps => <dependencies.Button {...anchorProps}
+                                    renderAnchor={anchorProps => <Button {...anchorProps}
                                         size={ButtonSize.Small} variant={ButtonVariant.Invisible} aria-label="Show workbook execution details" data-testid="execution-details-toggle"
                                         leadingVisual={<span className={styles.execution_indicator} aria-hidden="true" data-testid="execution-indicator"><StatusIndicator width="16px" height="16px" status={execution.busy
                                             ? IndicatorStatus.Running : run.phase === 'failed' ? IndicatorStatus.Failed
                                                 : run.phase === 'succeeded' ? IndicatorStatus.Succeeded : IndicatorStatus.Skip} /></span>}>
                                         <span className={styles.execution_progress}>{statusText}</span>
-                                    </dependencies.Button>}>
+                                    </Button>}>
                                     <section className={styles.execution_error_card} role="dialog" aria-label="Workbook execution details" data-testid="execution-details">
                                         <header className={styles.execution_error_header}>
                                             <h2 className={styles.execution_details_title}>{run.phase === 'failed' ? 'Execution failed' : 'Workbook execution'}</h2>
-                                            <dependencies.IconButton size={ButtonSize.Small} variant={ButtonVariant.Invisible}
+                                            <IconButton size={ButtonSize.Small} variant={ButtonVariant.Invisible}
                                                 aria-label="Close workbook execution details" data-testid="execution-details-close" onClick={() => setExecutionDetailsOpen(false)}>
                                                 <CloseIcon size={16} />
-                                            </dependencies.IconButton>
+                                            </IconButton>
                                         </header>
                                         <div className={styles.execution_details_body}>
                                             <div>{statusText}</div>
@@ -377,27 +365,27 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
                         </div>
                     </div>}
                     {/* A preview says it is read-only next to Execute All */}
-                    {preview && <dependencies.CloudPreviewBadge labelClassName={styles.action_label} />}
+                    {preview && <CloudPreviewBadge labelClassName={styles.action_label} />}
                     <div className={styles.header_actions}>
                         {/* The connections of the workbook, the user sees which one is not connected */}
                         {/* A preview shows its connections locked, the import maps them */}
                         <dependencies.WorkbookConnectionButtons connections={barConnections} attention={connectionAttention?.active === true} />
-                        {preview && <dependencies.CloudPreviewActions workbookId={props.workbookScripts.workbookId} labelClassName={styles.action_label} />}
-                        {!ephemeral && !preview && <dependencies.Button ref={shareTriggerRef} size={ButtonSize.Small} variant={ButtonVariant.Invisible} leadingVisual={LinkIcon} aria-label="Share as URL" data-testid="share-url" aria-expanded={shareOpen} onClick={() => {
+                        {preview && <CloudPreviewActions workbookId={props.workbookScripts.workbookId} labelClassName={styles.action_label} />}
+                        {!ephemeral && !preview && <Button ref={shareTriggerRef} size={ButtonSize.Small} variant={ButtonVariant.Invisible} leadingVisual={LinkIcon} aria-label="Share as URL" data-testid="share-url" aria-expanded={shareOpen} onClick={() => {
                             setExportOpen(false);
                             setShareOpen(value => !value);
                         }}>
                             <span className={styles.action_label}>Share as URL</span>
-                        </dependencies.Button>}
+                        </Button>}
                         <dependencies.WorkbookURLShareOverlay workbookId={props.workbookScripts.workbookId} isOpen={shareOpen} setIsOpen={setShareOpen} anchorRef={shareTriggerRef} />
                         {archiveExport && !ephemeral && !preview && (
                             <>
-                                <dependencies.Button ref={exportTriggerRef} size={ButtonSize.Small} variant={ButtonVariant.Invisible} leadingVisual={FileZipIcon} aria-label="Export .dashql" data-testid="export-workbook" aria-expanded={exportOpen} onClick={() => {
+                                <Button ref={exportTriggerRef} size={ButtonSize.Small} variant={ButtonVariant.Invisible} leadingVisual={FileZipIcon} aria-label="Export .dashql" data-testid="export-workbook" aria-expanded={exportOpen} onClick={() => {
                                     setShareOpen(false);
                                     setExportOpen(value => !value);
                                 }}>
                                     <span className={styles.action_label}>Export .dashql</span>
-                                </dependencies.Button>
+                                </Button>
                                 <dependencies.WorkbookFileSaveOverlay
                                     isOpen={exportOpen}
                                     setIsOpen={setExportOpen}
