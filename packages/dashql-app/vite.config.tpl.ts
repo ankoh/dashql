@@ -215,9 +215,16 @@ export default vite.defineConfig(({ mode, command }) => {
     // The browser resolves the ../src and ../static of a page against its URL, /oauth.html points to /src, which the dev
     // server would look up in the root. The dev server reads files outside of the root under /@fs instead. A build
     // resolves them against the file of the page. A page of a subfolder climbs further, tools/unpack.html with ../../src.
+    // A deployment serves static/ at /static, like /static/config.json, the dev server does that too.
     const entrypointFiles = {
         name: 'dashql-entrypoint-files',
         apply: 'serve' as const,
+        configureServer(server: vite.ViteDevServer): void {
+            server.middlewares.use((req, _res, next) => {
+                if (req.url?.startsWith('/static/')) req.url = `/@fs${rootDir}${req.url}`;
+                next();
+            });
+        },
         transformIndexHtml: {
             order: 'pre' as const,
             handler(html: string): string {
