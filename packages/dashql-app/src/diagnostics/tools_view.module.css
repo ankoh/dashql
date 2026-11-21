@@ -54,8 +54,15 @@
     text-decoration: none;
 }
 
-.tool:hover {
-    border-color: var(--color_accent_fg);
+.tool:focus {
+    outline: none;
+}
+
+/* Neutral, no accent: the title is the only color of a tool */
+.tool:hover,
+.tool:focus-visible {
+    border-color: var(--color_border_strong);
+    background-color: var(--color_bg_subtle);
 }
 
 .tool_title {
