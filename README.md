@@ -92,12 +92,8 @@ bazel test --config=release //packages/dashql:all \
 - Any commit pushed to the branch `dev` deploys to [dev.dashql.app](https://dev.dashql.app), for integrations under development
 - Native apps and update bundles are published to **get.dashql.app**
 - We're maintaining release manifests under [get.dashql.app/stable.json](https://get.dashql.app/stable.json) and [get.dashql.app/latest.json](https://get.dashql.app/latest.json)
-- The npm packages `@akohn/dashql` and `@akohn/dashql-cli` are published by CI with every deploy, before the pages and the desktop app (`npm_publish` in `publish.yml`). The job `deploy_gate` runs right before the deploys: it checks again that the commit is still the tip of main, so a re-run days later doesn't put an older page over a newer one, and it waits until the registry serves both packages of the build, so a page never names a version that npx can't find yet. The artifacts of a build are kept 7 days for such a re-run
-    - The pages and the desktop app show `npx ... @akohn/dashql-cli@<version of their build>`, so the line of `dashql connect` runs the command of the same commit; the dev server shows `@latest`
-    - The version is the one of the app with the commit, `0.0.19-dev.255.ge8e09a80c`, or `0.0.19` on a tag: the build stamps it into both manifests (`DASHQL_VERSION_NPM` of `@dashql_app_version`), the version in `npm/package.json` is not used. CI describes the commit once per run (the job `version` of `build_trusted.yml`) and gives every job that runs Bazel the result in `DASHQL_GIT_DESCRIBE`, so the pages, the npm packages and the Electron packages of a run have the same version, even when a tag arrives meanwhile. With the commit, a commit of `dev` that isn't on main can't take a version that main needs later
-    - Dist-tags: `latest` from main (what `npx @akohn/dashql-cli` installs), `dev` from `dev`, `stable` from a release tag. A version that is on npm already is skipped, so a re-run passes
-    - Trusted publishing, no npm token: npm takes the OIDC token of the run. Both packages on npmjs.com have a trusted publisher for each calling workflow, `on_push_main.yml`, `on_push_dev.yml` and `on_push_tag.yml` (owner `ankoh`, repository `dashql`, no environment), and the callers grant `id-token: write`
-    - Only these two go to npm: they inline `hyperdb-edge` and the generated packages, `hyperdb-wasm` is on npm already
+- The npm packages `@akohn/dashql` and `@akohn/dashql-cli` are published for the branches `main`, `stable`, `dev`
+- The app references these published npm packages for the agent integration
 - Hosted test datasets are published to **data.dashql.app** (R2 bucket `dashql-data`)
     - Built hermetically by `//tools/datasets` (hash-pinned sources -> DuckDB CLI) and mirrored with `bazel run //tools/datasets:sync`
     - Immutable versioned paths `data.dashql.app/<dataset>/v<version>/<file>.parquet`, plus a mutable `data.dashql.app/index.json` registry
