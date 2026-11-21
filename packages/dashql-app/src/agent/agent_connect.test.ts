@@ -20,8 +20,8 @@ describe('agent connect', () => {
     });
 
     it('runs the command line tool of its own build from the public registry', () => {
-        // A build pins the npm version of its commit, only the dev server takes the latest
-        expect(DASHQL_CLI_VERSION).toMatch(/^\d+\.\d+\.\d+(-dev\.\d+\.g[0-9a-f]+)?$/);
+        // A build pins the npm version of its commit, only the dev server, which has import.meta.hot, takes the latest
+        expect(DASHQL_CLI_VERSION).toMatch(import.meta.hot ? /^latest$/ : /^\d+\.\d+\.\d+(-dev\.\d+\.g[0-9a-f]+)?$/);
         expect(DASHQL_CLI_COMMAND).toBe(`npx -y --registry=https://registry.npmjs.org/ --min-release-age=0 @akohn/dashql-cli@${DASHQL_CLI_VERSION}`);
     });
 
