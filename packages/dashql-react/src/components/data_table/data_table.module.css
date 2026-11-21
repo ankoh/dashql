@@ -27,6 +27,44 @@
     overflow: hidden;
 }
 
+/* The row under a cut preview, it counts the rows that the preview leaves out. It covers the bottom border of the last
+   row with its own, the lines would double without a horizontal scrollbar between them. */
+.more_rows {
+    flex-shrink: 0;
+    position: relative;
+    z-index: 3;
+    margin-top: -1px;
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    border: none;
+    border-top: 1px solid var(--color_border);
+    background-color: var(--data_table_bg, var(--color_bg_card));
+    color: var(--color_fg_muted);
+    font: inherit;
+    font-size: var(--font_size_compact);
+    text-align: left;
+}
+
+.more_rows_clickable {
+    cursor: pointer;
+}
+
+.more_rows_clickable:hover {
+    background-color: var(--color_bg_hover);
+    color: var(--color_fg);
+}
+
+/* The row counts as hovered while focused, without a ring of its own, also when the closed table hands the focus back */
+.more_rows_clickable:focus {
+    outline: none;
+}
+
+.more_rows_clickable:focus-visible {
+    background-color: var(--color_bg_hover);
+    color: var(--color_fg);
+}
+
 /* The pointer is on a column border, the cells must not override the resize cursor */
 .column_resize_hover,
 .column_resize_hover * {

@@ -75,6 +75,8 @@ const COLUMN_HEADER_PLOTS_HEIGHT = 76;
 /// The row of the column plots shrinks to a strip that still holds its toggle
 const COLUMN_HEADER_PLOTS_COLLAPSED_HEIGHT = 18;
 const ROW_HEIGHT = 26;
+/// The row under a preview that `maxRows` cuts, it counts the rows that the preview leaves out
+const MORE_ROWS_HEIGHT = 24;
 const GRID_OVERSCAN_COUNT = 10;
 const NOOP_BRUSHING = () => { };
 
@@ -159,6 +161,7 @@ function DataTableGrid(props: Props & { dataTable: arrow.Table }) {
     // When an indirection table is active, show only the derived visible rows
     const totalRowCount = visibleRowIndices?.length ?? dataTable.numRows;
     const dataRowCount = props.maxRows != null ? Math.min(totalRowCount, props.maxRows) : totalRowCount;
+    const hiddenRowCount = totalRowCount - dataRowCount;
     // Header configuration
     const headerRowCount = columnHeader === TableColumnHeader.WithColumnPlots ? 2 : 1;
     const visibleColumnGroups = React.useMemo(() => {
@@ -433,7 +436,8 @@ function DataTableGrid(props: Props & { dataTable: arrow.Table }) {
             data-electron-drag-region="false"
             style={{
                 ...(props.cellBackground ? { '--data_table_bg': props.cellBackground } : {}),
-                ...(props.fitHeight ? { height: gridContainerHeight } : {}),
+                // The row of the hidden rows overlaps the bottom border of the last row by a pixel
+                ...(props.fitHeight ? { height: gridContainerHeight + (hiddenRowCount > 0 ? MORE_ROWS_HEIGHT - 1 : 0) } : {}),
             } as React.CSSProperties}
         >
             <div className={styles.grid_container} ref={gridContainerElement} {...columnResize}>
@@ -480,6 +484,7 @@ function DataTableGrid(props: Props & { dataTable: arrow.Table }) {
                     gridData={gridData}
                 />
             </div>
+            {hiddenRowCount > 0 && <MoreRows count={hiddenRowCount} onShowTable={props.onShowTable} />}
             {props.cellDetail && <props.cellDetail
                 isOpen={cellDetail != null}
                 onClose={() => setCellDetail(null)}
@@ -491,5 +496,23 @@ function DataTableGrid(props: Props & { dataTable: arrow.Table }) {
                 onNavigate={onNavigateCell}
             />}
         </div>
+    );
+}
+
+/// The row under a cut preview: the count of the rows it leaves out, a button that opens the full table if there is one
+function MoreRows(props: { count: number; onShowTable?: () => void }): React.ReactElement {
+    const label = `${props.count.toLocaleString()} more ${props.count === 1 ? 'row' : 'rows'}`;
+    if (props.onShowTable == null) {
+        return <div className={styles.more_rows} style={{ height: MORE_ROWS_HEIGHT }}>{label}</div>;
+    }
+    return (
+        <button
+            type="button"
+            className={classNames(styles.more_rows, styles.more_rows_clickable)}
+            style={{ height: MORE_ROWS_HEIGHT }}
+            onClick={props.onShowTable}
+        >
+            {label}
+        </button>
     );
 }
