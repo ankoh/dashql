@@ -2,6 +2,7 @@ import type * as arrow from 'apache-arrow';
 import * as React from 'react';
 
 import { useComputation, useComputeReady, useRuntime } from '@akohn/dashql-react/hooks';
+import { useComputationModel } from '@akohn/dashql-react/models/computation_model';
 import type { EmbeddedClientContext } from '@akohn/dashql/platform/embedded_database';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { useLogger } from '../host/logger_provider.js';
@@ -104,11 +105,11 @@ export interface QueryTableProps {
 /// The result of a query in the data table of query results, e.g. to sort it or to show the SQL of a query
 export const QueryTable: React.FC<QueryTableProps> = ({ sql, clientContext, runQuery, refreshes = 0 }) => {
     const tableId = useQueryComputation(sql, runQuery, clientContext, refreshes);
-    const computation = useComputation(tableId);
-    if (computation == null) return null;
+    const model = useComputationModel(useComputation(tableId));
+    if (model == null) return null;
     return (
         <DataTableView
-            table={computation}
+            model={model}
             debugMode={false}
             columnHeader={TableColumnHeader.OnlyColumnName}
             compact

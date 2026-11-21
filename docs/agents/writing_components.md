@@ -19,7 +19,7 @@ The hooks of the runtime, the models and the components that other hosts share a
 `src/components` with their stylesheets, their helpers in `src/dom`, imported as `@akohn/dashql-react/components/button`
 and `@akohn/dashql-react/dom/anchored_position`. The largest is the data table (`components/data_table/data_table`, its
 entry module exports what a host uses): it shows a computation model, takes the column header as a prop and the detail
-of a cell as a slot; the app wraps it in `DataTableView` (`results/data_table_view.tsx`), which adds the
+of a cell as a slot; the app wraps it in `DataTableView` (`results/data_table_view.tsx`) of the same model, with the
 column plots of the settings and its cell overlay. The result of a query (`components/query_result`: header, panel,
 details, the card of the full table, the search, the download, the action menu and the detail of a cell), the progress
 panel, the query profile, the profile of a plan text (`query_profile/engine_profile_view`) and history views, the

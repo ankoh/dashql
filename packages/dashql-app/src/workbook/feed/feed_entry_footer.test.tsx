@@ -18,7 +18,8 @@ import { projectQueryProgress } from '@akohn/dashql/platform/query/query_progres
 import { HostProvider, type DownloadFile } from '@akohn/dashql-react/host';
 import type { QueryModel } from '@akohn/dashql-react/models/query_model';
 import { fakeComputationModel, fakeQueryModel } from '@akohn/dashql-react/testing/fake_models';
-import { mockTableComputation } from '@akohn/dashql-react/testing/computation_mocks';
+import { mockTableComputation, valueColumn } from '@akohn/dashql-react/testing/computation_mocks';
+import { ORDINAL_COLUMN, ROWNUMBER_COLUMN } from '@akohn/dashql/platform/compute/computation_types';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -27,10 +28,17 @@ vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 const download = vi.fn<DownloadFile>();
 const onShowTable = vi.fn();
 
-/// The model of query 42 that succeeded with a result, analyzed by its computation
+/// The model of query 42 that succeeded with a result of a column `value`, analyzed by its computation: the data frame
+/// with the row numbers that the result table shows
 function succeeded(resultTable: arrow.Table): QueryModel {
     const query = { queryId: 42, traceId: 9, status: QueryExecutionStatus.SUCCEEDED, queryMetadata: {}, resultTable: { id: 1, rows: resultTable.numRows } } as unknown as QueryExecutionState;
-    const computation = fakeComputationModel(mockTableComputation([], { dataTableRows: resultTable.numRows }), new Map([[1, resultTable]]));
+    const rownum = tableFromArrays({ rownum: Int32Array.from({ length: resultTable.numRows }, (_, row) => row) }).getChild('rownum')!;
+    const dataFrame = new arrow.Table({ rownum, value: resultTable.getChild('value')! });
+    const columnGroups: dashql.ComputationColumnGroup[] = [
+        { type: ROWNUMBER_COLUMN, value: { rowNumberFieldName: 'rownum' } },
+        { type: ORDINAL_COLUMN, value: valueColumn('value', String(resultTable.schema.fields[0].type)) },
+    ];
+    const computation = fakeComputationModel(mockTableComputation(columnGroups, { dataTableRows: resultTable.numRows }), new Map([[1, dataFrame]]));
     return fakeQueryModel(query, { result: resultTable, computation });
 }
 

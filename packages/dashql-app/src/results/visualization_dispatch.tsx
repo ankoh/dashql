@@ -26,7 +26,7 @@ export function VisualizationDispatch(props: Props): React.ReactElement {
             {...props}
             table={() => (
                 <QueryResultView
-                    query={props.model?.query ?? null}
+                    model={props.model}
                     debugMode={false}
                     columnHeader={TableColumnHeader.OnlyColumnName}
                     fitHeight={false}

@@ -34,7 +34,7 @@ export function QueryResultDetails({ model, debugMode, actions, fitHeight, maxHe
             maxHeight={maxHeight}
             table={layout => (
                 <QueryResultView
-                    query={model.query}
+                    model={model}
                     debugMode={debugMode}
                     compact
                     fitHeight={layout.fitHeight}
