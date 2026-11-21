@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as styles from './workbook_status_bar.module.css';
 
-import { Wobble, WobbleMode, type WobbleGaze } from '../../agent/wobble.js';
+import { Wobble, WobbleMode, type WobbleGaze, type WobbleTuning } from '../../agent/wobble.js';
 import { AgentPromptPanel } from '../../agent/agent_prompt_panel.js';
 import { harnessLabel, isAgentWaiting, isAgentWorking, type AgentSession } from '../../agent/agent_session.js';
 import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
@@ -72,6 +72,11 @@ function LogLine(props: { record: LogRecord; selected: boolean; onSelect: () => 
     );
 }
 
+/// Wobble while the agent works: the face moves faster and the eyes dart around, it reads along
+const WOBBLE_AGENT_WORKING: Partial<WobbleTuning> = { wobble: 0.04, wobbleSpeed: 2.4, glanceIntervalMs: 700 };
+/// Wobble while the agent waits for the user in the terminal: the eyes hold still and look out at the user
+const WOBBLE_AGENT_WAITING: Partial<WobbleTuning> = { glanceAmplitude: 0, blinkIntervalMs: 1600 };
+
 /// The bar of Wobble. Wobble leads it and tells the status of the workbook next to it: what runs, what needs the user,
 /// else what happened last. The dot of Wobble tells that something runs, a failure is red, the status has no dot of its
 /// own. The agent sits at the right end.
@@ -86,6 +91,7 @@ export function WorkbookStatusBar(props: WorkbookStatusBarProps): React.ReactEle
     const agentWorking = session != null
         ? isAgentWorking(session)
         : live.some(s => s.source === WorkbookStatusSource.Agent && s.tone === WorkbookStatusTone.Progress);
+    const agentWaiting = session != null && isAgentWaiting(session);
     const [open, setOpen] = React.useState(false);
     const bubbleId = React.useId();
     const log = useWorkbookLog(props.workbookId, wobble && open);
@@ -114,8 +120,11 @@ export function WorkbookStatusBar(props: WorkbookStatusBarProps): React.ReactEle
                     data-testid="workbook-wobble"
                     onClick={() => setOpen(o => !o)}
                 >
-                    <Wobble className={styles.wobble} aria-hidden="true" mode={WobbleMode.Face} paused={props.paused} gaze={props.gaze} lastInput={props.lastInput} />
-                    {busy && <span className={styles.busy_dot} aria-hidden="true" data-testid="workbook-wobble-dot" />}
+                    <Wobble className={styles.wobble} aria-hidden="true" mode={WobbleMode.Face} paused={props.paused}
+                        tuning={agentWaiting ? WOBBLE_AGENT_WAITING : agentWorking ? WOBBLE_AGENT_WORKING : undefined}
+                        gaze={agentWaiting ? undefined : props.gaze} lastInput={props.lastInput} />
+                    {(busy || agentWaiting) && <span className={styles.busy_dot} aria-hidden="true" data-testid="workbook-wobble-dot"
+                        data-state={agentWaiting ? 'waiting' : 'busy'} />}
                 </button>
             )}
             <span className={styles.status} role="status" aria-live="polite" data-testid="workbook-status"
@@ -127,7 +136,7 @@ export function WorkbookStatusBar(props: WorkbookStatusBarProps): React.ReactEle
             </span>
             {session != null && (
                 <div className={styles.agent_controls}>
-                    <AgentState session={session} working={agentWorking} waiting={isAgentWaiting(session)} />
+                    <AgentState session={session} working={agentWorking} waiting={agentWaiting} />
                 </div>
             )}
             {wobble && open && (

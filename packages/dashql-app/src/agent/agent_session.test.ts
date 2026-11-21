@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { agentActivity, agentSessionOf, formatAgentDuration } from './agent_session.js';
-import { createAgentSessionState } from '@akohn/dashql/platform/session/agent_session_state';
+import { agentActivity, agentDocumentTitle, AgentSessionActivity, agentSessionActivity, agentSessionOf, formatAgentDuration } from './agent_session.js';
+import { createAgentSessionState, reduceAgentSessionEvent } from '@akohn/dashql/platform/session/agent_session_state';
 import type { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 
 const workbook = {
@@ -56,5 +56,20 @@ describe('the session of an agent in the bar of a workbook', () => {
         expect(agentActivity({ ...question, steps: [step(2), step(null)] })).toEqual({ kind: 'tool', text: 'Edit a.sql' });
         expect(agentActivity({ ...question, steps: [step(null)], waiting: 'an approval' })).toEqual({ kind: 'waiting', text: 'an approval' });
         expect(agentActivity({ ...question, status: null })).toBeNull();
+    });
+
+    it('marks the title of the browser tab while the agent works or waits for the user', () => {
+        let state = createAgentSessionState('claude', '/w', 's1');
+        expect(agentSessionActivity(state)).toBe(AgentSessionActivity.Idle);
+        state = reduceAgentSessionEvent(state, { event: 'UserPromptSubmit', prompt: 'q' });
+        expect(agentSessionActivity(state)).toBe(AgentSessionActivity.Working);
+        state = reduceAgentSessionEvent(state, { event: 'Notification', notification: 'permission' });
+        expect(agentSessionActivity(state)).toBe(AgentSessionActivity.Waiting);
+        expect(agentSessionActivity({ ...state, ended: true })).toBe(AgentSessionActivity.Idle);
+        state = reduceAgentSessionEvent(state, { event: 'Stop' });
+        expect(agentSessionActivity(state)).toBe(AgentSessionActivity.Idle);
+        expect(agentDocumentTitle('DashQL', AgentSessionActivity.Working)).toBe('\u25CF DashQL');
+        expect(agentDocumentTitle('DashQL', AgentSessionActivity.Waiting)).toBe('(!) DashQL');
+        expect(agentDocumentTitle('DashQL', AgentSessionActivity.Idle)).toBe('DashQL');
     });
 });

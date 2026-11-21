@@ -14,11 +14,21 @@ import { useOptionalRuntime } from '@akohn/dashql-react/hooks';
 import { Store } from '../utils/store.js';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { useLogger } from '../host/logger_provider.js';
-import { agentSessionOf, DASHQL_RUN, type AgentSession, type AgentSessionArgs, type FollowedAgentSession } from './agent_session.js';
+import {
+    agentDocumentTitle,
+    AgentSessionActivity,
+    agentSessionActivity,
+    agentSessionOf,
+    DASHQL_RUN,
+    type AgentSession,
+    type AgentSessionArgs,
+    type FollowedAgentSession,
+} from './agent_session.js';
 import { ComposerMode, newAgentConnectTarget, type ConnectHarness } from './agent_connect.js';
 import { AgentSessionCopies, agentSessionCopyHost } from './agent_session_copy.js';
 import { agentConnections, isAgentConnectionAllowed, type AgentConnectionChoices } from './agent_connections.js';
 import { useCloudConnectionIds } from '../connections/cloud_connection.js';
+import { useAppFlavor } from '../config/flavor_provider.js';
 import { AgentSessionRuns, renderScriptChart, sendCachedResult } from './agent_session_runs.js';
 import { useQueryResultCache } from '../storage/query_result_cache_provider.js';
 
@@ -381,10 +391,26 @@ export const AgentSessionProvider: React.FC<React.PropsWithChildren> = (props) =
     return (
         <FOLLOWED_CTX.Provider value={store}>
             <SHOWN_CTX.Provider value={shownValue}>
-                <CONNECT_CTX.Provider value={connectValue}>{props.children}</CONNECT_CTX.Provider>
+                <CONNECT_CTX.Provider value={connectValue}>
+                    <AgentDocumentTitle />
+                    {props.children}
+                </CONNECT_CTX.Provider>
             </SHOWN_CTX.Provider>
         </FOLLOWED_CTX.Provider>
     );
+};
+
+/// Marks the title of the browser tab while the agent of the followed session works or waits for the user
+const AgentDocumentTitle: React.FC = () => {
+    const followed = useFollowedAgentSession();
+    const title = useAppFlavor().displayName;
+    const activity = followed == null || !followed.connected ? AgentSessionActivity.Idle : agentSessionActivity(followed.state);
+    React.useEffect(() => {
+        if (activity === AgentSessionActivity.Idle) return;
+        document.title = agentDocumentTitle(title, activity);
+        return () => { document.title = title; };
+    }, [title, activity]);
+    return null;
 };
 
 /// How the prompt connects an agent in the terminal, null outside of the provider

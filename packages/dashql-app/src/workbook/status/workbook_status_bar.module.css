@@ -72,6 +72,12 @@
     animation: dot_pulse 1.2s ease-in-out infinite;
 }
 
+/* The agent waits for the user in the terminal: a steady dot in the color of attention */
+.busy_dot[data-state="waiting"] {
+    background-color: var(--color_attention_fg);
+    animation: none;
+}
+
 /* What Wobble tells */
 .status {
     flex: 1 1 auto;

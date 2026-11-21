@@ -65,6 +65,33 @@ export interface AgentSession {
     onShowScript: (scriptKey: number) => void;
 }
 
+/// What the agent of a followed session does for the title of the browser tab: it works on a question, it waits for
+/// the user in the terminal, or nothing
+export enum AgentSessionActivity {
+    Idle = 'idle',
+    Working = 'working',
+    Waiting = 'waiting',
+}
+
+/// What the agent of a session does, from the state of its server
+export function agentSessionActivity(state: AgentSessionState): AgentSessionActivity {
+    const open = state.ended ? null : state.turns.find(turn => turn.status != null) ?? null;
+    if (open == null) return AgentSessionActivity.Idle;
+    return open.waiting != null ? AgentSessionActivity.Waiting : AgentSessionActivity.Working;
+}
+
+/// The title of the browser tab with a mark of what the agent does, which a user in the terminal next to it sees
+export function agentDocumentTitle(title: string, activity: AgentSessionActivity): string {
+    switch (activity) {
+        case AgentSessionActivity.Working:
+            return `\u25CF ${title}`;
+        case AgentSessionActivity.Waiting:
+            return `(!) ${title}`;
+        default:
+            return title;
+    }
+}
+
 /// The step of a shell command that runs scripts with `dashql run`, e.g. `DASHQL_TRINO_PASSWORD=… dashql run tpch`
 export const DASHQL_RUN = /(^|[\s/])dashql run\b/;
 

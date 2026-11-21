@@ -316,6 +316,8 @@ async function testAppAgentSession(page, navigate) {
         await page.getByTestId('composer-connect-status').getByText('Claude Code works on this workbook in the terminal').waitFor();
         assert.equal(await page.getByTestId('composer-send').count(), 0);
         await page.locator('[data-testid="workbook-agent-state"][data-state="working"]').waitFor();
+        // The title of the browser tab tells it to a user in the terminal next to it
+        await page.waitForFunction(() => document.title.startsWith('\u25CF '));
         // The status line tells the step, the log stays closed and leaves the feed to the scripts of the agent
         await page.getByRole('status').getByText('dashql lint scripts/orders.sql').first().waitFor();
         assert.equal(await page.getByTestId('workbook-bubble').count(), 0);
@@ -323,6 +325,7 @@ async function testAppAgentSession(page, navigate) {
         session.push({ turns: [{ ...turn, waiting: 'Claude needs your permission to use Bash' }] });
         await page.locator('[data-testid="workbook-agent-state"][data-state="waiting"]').waitFor();
         await page.getByRole('status').getByText('Claude Code waits for you in the terminal').first().waitFor();
+        await page.waitForFunction(() => document.title.startsWith('(!) '));
         session.push({ turns: [turn] });
         await page.locator('[data-testid="workbook-agent-state"][data-state="working"]').waitFor();
         // A click on Wobble shows the question in the log
@@ -332,6 +335,7 @@ async function testAppAgentSession(page, navigate) {
         session.push({ turns: [{ ...turn, status: null, waiting: null, interrupted: false, note: 'There are 42 orders' }] });
         await page.getByRole('note').getByText('There are 42 orders').waitFor();
         await page.locator('[data-testid="workbook-agent-state"][data-state="connected"]').waitFor();
+        await page.waitForFunction(() => !document.title.startsWith('\u25CF ') && !document.title.startsWith('(!) '));
 
         // SQL opens the prompt, the empty workbook greets again although the tab keeps the session
         session.push({ ended: true });

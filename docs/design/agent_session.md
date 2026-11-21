@@ -216,6 +216,13 @@ stays the one place the page talks to.
   repeat them. A step is a use of a tool: `PreToolUse` starts it at the time of the server, the
   `PostToolUse` with the same `tool_use_id` (else the oldest open step of the same line) ends it, a failed tool ends it
   as failed, `Stop` and `SessionEnd` end the open ones. A turn keeps its latest 30 steps.
+- **What the agent does** the tab derives from the open turn (`agentActivity` of `agent/agent_session.ts`): it waits
+  for the user in the terminal, a tool runs, or it thinks between its tools, where no hook fires. The bar of Wobble
+  names the running tool or thinking; while the agent waits, the line, the agent at its end and the dot on Wobble turn
+  to the color of attention and stop pulsing, the frame of the prompt holds still. Wobble reads along while the agent
+  works (a faster wobble, darting eyes) and looks out at the user while it waits. The title of the browser tab starts
+  with `●` while the agent works and with `(!)` while it waits, for a user in the terminal next to the tab. The feed has
+  no entry of the agent: it may only edit the cards that are there.
 - **The line of a step** comes from the hook (`session_hook.ts`): the command of a shell, else the tool with its file,
   its pattern, query, URL or description, else the tool. Paths are relative to the folder of the session, paths in a
   copy of a workbook relative to the copy, a leading `cd <folder> &&` is dropped. Hooks post to `/v1/events`, pages

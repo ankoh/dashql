@@ -151,6 +151,10 @@ describe('Workbook status bar', () => {
         render({ session: agentSession([waiting]) });
         expect(agentState()!.dataset.state).toBe('waiting');
         expect(agentState()!.querySelector('[data-status]')).toBeNull();
+        // Wobble shows a steady dot in the color of attention instead of the pulse of a run
+        expect(busyDot()!.getAttribute('data-state')).toBe('waiting');
+        render({ session: agentSession([working]) });
+        expect(busyDot()?.getAttribute('data-state') ?? null).not.toBe('waiting');
     });
 
     it('tells that the page lost the session, and one that ended', () => {
