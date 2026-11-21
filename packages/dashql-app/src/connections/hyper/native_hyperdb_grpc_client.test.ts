@@ -6,18 +6,12 @@ import * as pb from '@akohn/dashql/platform/proto';
 import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
 import { readStreamTable } from '@akohn/dashql/platform/query/query_execution_state';
 import { installNativeGrpcProxy, nativeStreamBatch } from '../../tests/mocks/native_proxy.js';
-import type { HyperDatabaseConnectionContext } from '@akohn/dashql/platform/connections/hyper/hyperdb_grpc_client';
 import { NativeHyperDatabaseClient } from './native_hyperdb_grpc_client.js';
 import { tableFromArrays } from '@akohn/dashql/platform/testing/arrow_fixtures';
 
 const hyper = pb.salesforce_hyperdb_grpc_v1.pb;
-const PROXY = { proxyEndpoint: new URL('dashql-native://localhost') };
-const CONTEXT: HyperDatabaseConnectionContext = {
-    getRequestMetadata: async () => ({}),
-    getAttachedDatabases: () => [buf.create(hyper.AttachedDatabaseSchema, { path: '/data/db.hyper', alias: 'db' })],
-    getQueryParameters: () => ({ lc_time: 'en_US' }),
-    getClientContext: () => ({ app: 'dashql' }) as never,
-};
+const PARAMS = { endpoint: 'http://localhost:7484', attachedDatabases: [{ path: '/data/db.hyper', alias: 'db' }], queryParameters: { lc_time: 'en_US' } } as never;
+const CLIENT_CONTEXT = { app: 'dashql' };
 
 /// The gRPC messages of a query result: a header and the Arrow IPC stream of the table
 function resultMessages(table: arrow.Table): Uint8Array[] {
@@ -37,7 +31,7 @@ describe('NativeHyperDatabaseClient', () => {
     it('executes a query with the attached databases and parameters and reads the Arrow batches', async () => {
         const table = tableFromArrays({ a: Int32Array.from([1, 2, 3]) });
         const { seen } = installNativeGrpcProxy([nativeStreamBatch('StreamFinished', resultMessages(table))]);
-        const channel = await new NativeHyperDatabaseClient(PROXY, new TestLogger()).connect({ endpoint: 'http://localhost:7484' } as never, CONTEXT);
+        const channel = await new NativeHyperDatabaseClient(new TestLogger()).connect(PARAMS, CLIENT_CONTEXT);
         expect(seen[0].headers.get('dashql-tls')).toBeNull();
 
         const stream = await channel.executeQuery('select 1');
@@ -55,15 +49,15 @@ describe('NativeHyperDatabaseClient', () => {
 
     it('connects with TLS to https endpoints and rejects TLS files without https', async () => {
         const { seen } = installNativeGrpcProxy([]);
-        const client = new NativeHyperDatabaseClient(PROXY, new TestLogger());
-        await client.connect({ endpoint: 'https://hyper:7484', tls: { caCertsPath: '/ca' } } as never, CONTEXT);
+        const client = new NativeHyperDatabaseClient(new TestLogger());
+        await client.connect({ endpoint: 'https://hyper:7484', tls: { caCertsPath: '/ca' } } as never, null);
         expect([seen[0].headers.get('dashql-tls'), seen[0].headers.get('dashql-tls-cacerts')]).toEqual(['1', '/ca']);
-        await expect(client.connect({ endpoint: 'http://hyper:7484', tls: { caCertsPath: '/ca' } } as never, CONTEXT)).rejects.toThrow('https://');
+        await expect(client.connect({ endpoint: 'http://hyper:7484', tls: { caCertsPath: '/ca' } } as never, null)).rejects.toThrow('https://');
     });
 
     it('starts no stream for an aborted query and closes the channel', async () => {
         const { requests } = installNativeGrpcProxy([]);
-        const channel = await new NativeHyperDatabaseClient(PROXY, new TestLogger()).connect({ endpoint: 'http://localhost:7484' } as never, CONTEXT);
+        const channel = await new NativeHyperDatabaseClient(new TestLogger()).connect(PARAMS, CLIENT_CONTEXT);
         await expect(channel.executeQuery('select 1', AbortSignal.abort())).rejects.toThrow();
         expect(requests).toEqual(['POST /grpc/channels']);
         await channel.close();
@@ -73,7 +67,7 @@ describe('NativeHyperDatabaseClient', () => {
     it('rejects qsv1 result chunks', async () => {
         const qsv1 = buf.toBinary(hyper.QueryResultSchema$, buf.create(hyper.QueryResultSchema$, { result: { case: 'qsv1Chunk', value: {} } }));
         installNativeGrpcProxy([nativeStreamBatch('StreamFinished', [qsv1])]);
-        const channel = await new NativeHyperDatabaseClient(PROXY, new TestLogger()).connect({ endpoint: 'http://localhost:7484' } as never, CONTEXT);
+        const channel = await new NativeHyperDatabaseClient(new TestLogger()).connect(PARAMS, CLIENT_CONTEXT);
         const stream = await channel.executeQuery('select 1');
         await expect(readStreamTable(stream)).rejects.toThrow('qsv1Chunk');
     });

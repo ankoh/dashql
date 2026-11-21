@@ -6,13 +6,12 @@ import * as connection from '@akohn/dashql-jsonschema/connection.js';
 import {
     HyperDatabaseChannel,
     HyperDatabaseClient,
-    HyperDatabaseConnectionContext,
     HyperQueryExecutionOptions,
 } from '@akohn/dashql/platform/connections/hyper/hyperdb_grpc_client';
+import type { EmbeddedClientContext } from '@akohn/dashql/platform/embedded_database';
 import {
     NativeGrpcChannel,
     NativeGrpcClient,
-    NativeGrpcProxyConfig,
     NativeGrpcServerStream,
     NativeGrpcServerStreamMessageIterator,
 } from '../../host/native_grpc_client.js';
@@ -84,7 +83,7 @@ export class NativeHyperQueryResultStream implements QueryExecutionResponseStrea
     /// The schema Promise
     resultSchema: AsyncValue<arrow.Schema, Error>;
 
-    constructor(stream: NativeGrpcServerStream, _connection: HyperDatabaseConnectionContext, logger: Logger) {
+    constructor(stream: NativeGrpcServerStream, logger: Logger) {
         this.resultReader = new QueryResultReader(stream, logger);
         this.resultSchema = new AsyncValue();
     }
@@ -144,44 +143,41 @@ export class NativeHyperQueryResultStream implements QueryExecutionResponseStrea
 
 /// A native Hyper database connection
 class NativeHyperDatabaseChannel implements HyperDatabaseChannel {
-    /// A gRPC channel
-    grpcChannel: NativeGrpcChannel;
-    /// The connection context
-    connection: HyperDatabaseConnectionContext;
-    /// A logger
-    logger: Logger;
-
-    constructor(channel: NativeGrpcChannel, connection: HyperDatabaseConnectionContext, logger: Logger) {
-        this.grpcChannel = channel;
-        this.connection = connection;
-        this.logger = logger;
-    }
+    constructor(
+        /// The gRPC channel
+        private readonly grpcChannel: NativeGrpcChannel,
+        /// The params of the connection: the attached databases and the query parameters of every query
+        private readonly params: connection.HyperConnectionParams,
+        /// The client context of every query
+        private readonly clientContext: EmbeddedClientContext | null,
+        private readonly logger: Logger,
+    ) {}
 
     /// Execute a query against Hyper
     public async executeQuery(query: string, abort?: AbortSignal, options?: HyperQueryExecutionOptions): Promise<QueryExecutionResponseStream> {
         abort?.throwIfAborted();
-        const params = buf.create(pb.salesforce_hyperdb_grpc_v1.pb.QueryParamSchema, {
+        const param = buf.create(pb.salesforce_hyperdb_grpc_v1.pb.QueryParamSchema, {
             query,
             outputFormat: pb.salesforce_hyperdb_grpc_v1.pb.QueryParam_OutputFormat.ARROW_STREAM,
         });
-        for (const db of this.connection.getAttachedDatabases()) {
-            params.database.push(buf.create(pb.salesforce_hyperdb_grpc_v1.pb.AttachedDatabaseSchema, db));
+        // The settings store the attached databases as objects of a path and an alias
+        for (const db of (this.params.attachedDatabases ?? []) as { path: string; alias?: string }[]) {
+            param.database.push(buf.create(pb.salesforce_hyperdb_grpc_v1.pb.AttachedDatabaseSchema, db));
         }
-        for (const [key, value] of Object.entries(this.connection.getQueryParameters())) {
-            params.params[key] = value;
+        for (const [key, value] of Object.entries(this.params.queryParameters ?? {})) {
+            param.params[key] = value;
         }
-        const clientContext = this.connection.getClientContext?.();
-        if (clientContext != null) params.params.external_client_context = JSON.stringify(clientContext);
+        if (this.clientContext != null) param.params.external_client_context = JSON.stringify(this.clientContext);
         const stream = await this.grpcChannel.startServerStream({
             path: "/salesforce.hyperdb.grpc.v1.HyperService/ExecuteQuery",
-            body: buf.toBinary(pb.salesforce_hyperdb_grpc_v1.pb.QueryParamSchema, params),
+            body: buf.toBinary(pb.salesforce_hyperdb_grpc_v1.pb.QueryParamSchema, param),
             readTimeoutMs: options?.readTimeoutMs,
         });
         if (abort?.aborted) {
             await stream.destroy();
             abort.throwIfAborted();
         }
-        return new NativeHyperQueryResultStream(stream, this.connection, this.logger);
+        return new NativeHyperQueryResultStream(stream, this.logger);
     }
 
     /// Close the connection
@@ -197,13 +193,13 @@ export class NativeHyperDatabaseClient implements HyperDatabaseClient {
     /// A native Hyper client
     client: NativeGrpcClient;
 
-    constructor(config: NativeGrpcProxyConfig, logger: Logger) {
+    constructor(logger: Logger) {
         this.logger = logger;
-        this.client = new NativeGrpcClient(config, logger);
+        this.client = new NativeGrpcClient(logger);
     }
 
-    /// Create a database connection
-    public async connect(hyperArgs: connection.HyperConnectionParams, connection: HyperDatabaseConnectionContext): Promise<NativeHyperDatabaseChannel> {
+    /// Create a database connection, its requests carry the metadata of the params
+    public async connect(hyperArgs: connection.HyperConnectionParams, clientContext: EmbeddedClientContext | null): Promise<NativeHyperDatabaseChannel> {
         const tls = hyperArgs.tls;
         const isHttps = new URL(hyperArgs.endpoint).protocol === "https:";
         const useTls = isHttps || Boolean(
@@ -220,7 +216,7 @@ export class NativeHyperDatabaseClient implements HyperDatabaseClient {
                 caPath: tls?.caCertsPath,
             } : undefined
         };
-        const channel = await this.client.connect(args, connection);
-        return new NativeHyperDatabaseChannel(channel, connection, this.logger);
+        const channel = await this.client.connect(args, hyperArgs.metadata ?? {});
+        return new NativeHyperDatabaseChannel(channel, hyperArgs, clientContext, this.logger);
     }
 }

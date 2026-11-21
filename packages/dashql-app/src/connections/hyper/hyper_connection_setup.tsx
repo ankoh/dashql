@@ -7,7 +7,6 @@ import { connectEmbeddedHyper } from '@akohn/dashql/platform/connections/embedde
 import { connectionClientContext, type HyperLogMetrics } from './hyper_log_metrics.js';
 import type { EmbeddedDatabaseSetupFn } from '../../host/embedded_database_provider.js';
 import { HyperChannelDatabase } from './hyper_channel_database.js';
-import { hyperConnectionContext } from './hyper_connection_context.js';
 import { getHyperLinkTabState } from './hyper_link_tab.js';
 
 // The runtime sets up the connections (`connection_setup/` of the Rust runtime): it picks the channel of the params and
@@ -34,9 +33,9 @@ export async function connectChannel(clients: ChannelClients, connectionId: stri
     }
     const client = clients.grpcClient;
     if (!client) throw new Error(`gRPC client is not available (required for protocol ${params.protocol})`);
-    const channel = await client.connect(params, hyperConnectionContext(params, clientContext));
+    const channel = await client.connect(params, clientContext);
     // Every query of a remote channel runs in a session of its own
-    const database = new HyperChannelDatabase(context => client.connect(params, hyperConnectionContext(params, context)));
+    const database = new HyperChannelDatabase(context => client.connect(params, context));
     clients.logMetrics?.watch({ database, sessions: false }, connectionId);
     return channel;
 }

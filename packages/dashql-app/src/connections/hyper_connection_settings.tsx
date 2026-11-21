@@ -15,7 +15,6 @@ import {
     VALIDATION_UNKNOWN,
 } from '@akohn/dashql-react/components/text_field';
 import { useLogger } from '../host/logger_provider.js';
-import { useHyperGrpcClient } from './hyper/hyperdb_grpc_client_provider.js';
 import { flattenKeyValueList, KeyValueListBuilder, KeyValueListElement, UpdateKeyValueList } from '@akohn/dashql-react/components/keyvalue_list';
 import { Dispatch } from '@akohn/dashql/platform/utils/variant';
 import { useConnectionDraftForm } from './connection_draft.js';
@@ -94,7 +93,6 @@ interface Props {
 
 export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
     const logger = useLogger();
-    const grpcClient = useHyperGrpcClient();
 
     // Can we use the connector here?
     const connectorInfo = CONNECTOR_INFOS[ConnectorType.HYPER];
@@ -168,8 +166,8 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
         }
         setClientIdentityValidation({ type: VALIDATION_UNKNOWN, value: null });
 
-        // Is there a Hyper client? The runtime speaks the HTTP API itself.
-        if (isGrpc && !grpcClient) {
+        // Only the desktop app speaks gRPC, the runtime speaks the HTTP API itself
+        if (isGrpc && !isDesktopHost()) {
             logger.error("Hyper connector is unavailable", {}, LOG_CTX);
             return;
         }

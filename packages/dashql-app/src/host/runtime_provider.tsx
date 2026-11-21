@@ -12,7 +12,8 @@ import { useSalesforceMock } from '../connections/salesforce/salesforce_connecto
 import { mockSalesforceHttp, mockSalesforceOAuthFlow } from '@akohn/dashql/platform/connections/salesforce/salesforce_api_client_mock';
 import { createChannelConnector, type ChannelClients } from '../connections/hyper/hyper_connection_setup.js';
 import { HyperLogMetricsProvider, useCreateHyperLogMetrics } from '../connections/hyper/hyper_log_metrics_provider.js';
-import { useHyperGrpcClient } from '../connections/hyper/hyperdb_grpc_client_provider.js';
+import { NativeHyperDatabaseClient } from '../connections/hyper/native_hyperdb_grpc_client.js';
+import { isDesktopHost } from '@akohn/dashql-react/dom/app_host';
 import { useEmbeddedDatabaseSetup } from './embedded_database_provider.js';
 import { usePlatformEventListener } from './events/event_listener_provider.js';
 import { useHttpClient } from './http/http_client_provider.js';
@@ -61,10 +62,9 @@ function AppRuntime(props: { core: core.DashQL; catalogLoader?: boolean; queryCo
     const logMetrics = useCreateHyperLogMetrics();
     // The platform owns what it passes to the runtime for the lifetime of the runtime. The parts that the providers
     // above set up later or change with the settings are read when the runtime asks: the mock of Salesforce that the
-    // config may choose, the clients of the channels and the embedded database.
+    // config may choose and the embedded database.
     const latest = {
         salesforceMock: useSalesforceMock(),
-        grpcClient: useHyperGrpcClient(),
         setupEmbeddedDatabase: useEmbeddedDatabaseSetup(),
         queryCommands: props.queryCommands,
     };
@@ -72,8 +72,10 @@ function AppRuntime(props: { core: core.DashQL; catalogLoader?: boolean; queryCo
     ref.current = latest;
 
     const runtime = useOwnedRuntime(() => {
+        // The desktop app speaks Hyper over gRPC through its native proxy, the runtime speaks Hyper over HTTP itself
+        const grpcClient = isDesktopHost() ? new NativeHyperDatabaseClient(logger) : null;
         const clients = (): ChannelClients => ({
-            grpcClient: ref.current.grpcClient,
+            grpcClient,
             setupEmbeddedDatabase: ref.current.setupEmbeddedDatabase,
             logMetrics,
         });

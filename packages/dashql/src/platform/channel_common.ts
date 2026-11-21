@@ -41,9 +41,3 @@ export class ChannelError extends LoggableException {
         this.headers = headers ?? null;
     }
 }
-
-export interface ChannelMetadataProvider {
-    /// Get additional request metadata.
-    /// Retrieving the request metadata might involve refreshing the OAuth token, thus the promise.
-    getRequestMetadata(): Promise<Record<string, string>>;
-}

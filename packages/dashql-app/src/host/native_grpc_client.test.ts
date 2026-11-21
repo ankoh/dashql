@@ -5,8 +5,7 @@ import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
 import { installNativeGrpcProxy, nativeStreamBatch } from '../tests/mocks/native_proxy.js';
 import { NativeGrpcClient, NativeGrpcServerStreamBatchEvent, NativeGrpcServerStreamMessageIterator } from './native_grpc_client.js';
 
-const PROXY = { proxyEndpoint: new URL('dashql-native://localhost') };
-const METADATA = { getRequestMetadata: async () => ({ authorization: 'Bearer token' }) };
+const METADATA = { authorization: 'Bearer token' };
 
 const batch = (event: NativeGrpcServerStreamBatchEvent, messages: string[], count?: number) =>
     nativeStreamBatch(event, messages, { count, headers: { 'x-trailer': event } });
@@ -24,7 +23,7 @@ describe('NativeGrpcClient', () => {
 
     it('opens a channel with the endpoint, the TLS files and the request metadata', async () => {
         const { seen } = installNativeGrpcProxy([]);
-        const channel = await new NativeGrpcClient(PROXY, new TestLogger()).connect(
+        const channel = await new NativeGrpcClient(new TestLogger()).connect(
             { endpoint: 'https://hyper:7484', tls: { keyPath: '/key', pubPath: '/pub', caPath: '/ca' } },
             METADATA,
         );
@@ -39,7 +38,7 @@ describe('NativeGrpcClient', () => {
             batch(NativeGrpcServerStreamBatchEvent.FlushAfterBytes, ['a', 'bc']),
             batch(NativeGrpcServerStreamBatchEvent.StreamFinished, ['def']),
         ]);
-        const channel = await new NativeGrpcClient(PROXY, new TestLogger()).connect({ endpoint: 'https://hyper' }, METADATA);
+        const channel = await new NativeGrpcClient(new TestLogger()).connect({ endpoint: 'https://hyper' }, METADATA);
         const stream = await channel.startServerStream({ path: '/salesforce.hyperdb.grpc.v1.HyperService/ExecuteQuery', body: new Uint8Array([1]) });
         const messages = new NativeGrpcServerStreamMessageIterator(stream, new TestLogger());
 
@@ -56,7 +55,7 @@ describe('NativeGrpcClient', () => {
 
     it('drops a stream with a corrupt batch', async () => {
         const { requests } = installNativeGrpcProxy([batch(NativeGrpcServerStreamBatchEvent.FlushAfterBytes, ['a'], 2)]);
-        const channel = await new NativeGrpcClient(PROXY, new TestLogger()).connect({ endpoint: 'https://hyper' }, METADATA);
+        const channel = await new NativeGrpcClient(new TestLogger()).connect({ endpoint: 'https://hyper' }, METADATA);
         const stream = await channel.startServerStream({ path: '/p', body: new Uint8Array() });
         await expect(stream.read()).rejects.toThrow('batch message count mismatch');
         expect(requests[requests.length - 1]).toBe('DELETE /grpc/channel/3/stream/7');
@@ -67,7 +66,7 @@ describe('NativeGrpcClient', () => {
             batch(NativeGrpcServerStreamBatchEvent.StreamFailed, []),
             new Response(JSON.stringify({ message: 'unavailable' }), { status: 400, headers: { 'dashql-error': 'true', 'dashql-grpc-status': '14' } }),
         ]);
-        const channel = await new NativeGrpcClient(PROXY, new TestLogger()).connect({ endpoint: 'https://hyper' }, METADATA);
+        const channel = await new NativeGrpcClient(new TestLogger()).connect({ endpoint: 'https://hyper' }, METADATA);
         const failed = await channel.startServerStream({ path: '/p', body: new Uint8Array() });
         await expect(failed.next()).rejects.toThrow('stream failed');
         expect(await failed.next()).toEqual({ value: undefined, done: true });
@@ -80,7 +79,7 @@ describe('NativeGrpcClient', () => {
 
     it('drops an unfinished stream on destroy', async () => {
         const { requests } = installNativeGrpcProxy([]);
-        const channel = await new NativeGrpcClient(PROXY, new TestLogger()).connect({ endpoint: 'https://hyper' }, METADATA);
+        const channel = await new NativeGrpcClient(new TestLogger()).connect({ endpoint: 'https://hyper' }, METADATA);
         const stream = await channel.startServerStream({ path: '/p', body: new Uint8Array() });
         await stream.destroy();
         expect(requests[requests.length - 1]).toBe('DELETE /grpc/channel/3/stream/7');

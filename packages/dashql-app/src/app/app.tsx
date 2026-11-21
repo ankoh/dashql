@@ -18,7 +18,6 @@ import { GitHubTheme } from '../styles/github_theme.js';
 import { HttpClientProvider } from '../host/http/http_client_provider.js';
 import { CloudStateProvider } from '../cloud/cloud_state.js';
 import { CloudPreviewCleanup } from '../cloud/cloud_workbooks.js';
-import { HyperDatabaseClientProvider } from '../connections/hyper/hyperdb_grpc_client_provider.js';
 import { LoggerToast } from '../diagnostics/logger_toast.js';
 import { NavBarContainer } from './navbar.js';
 import { PlatformEventListenerProvider } from '../host/events/event_listener_provider.js';
@@ -101,15 +100,13 @@ const AppProviders = (props: { children: React.ReactElement }) => (
                                 <StorageProvider>
                                     <HttpClientProvider>
                                         <AppSettingsSync>
-                                            <HyperDatabaseClientProvider>
-                                                <AppEmbeddedDatabaseProvider>
-                                                    <QueryResultCacheProvider>
-                                                        <WorkbookProviders>
-                                                            {props.children}
-                                                        </WorkbookProviders>
-                                                    </QueryResultCacheProvider>
-                                                </AppEmbeddedDatabaseProvider>
-                                            </HyperDatabaseClientProvider>
+                                            <AppEmbeddedDatabaseProvider>
+                                                <QueryResultCacheProvider>
+                                                    <WorkbookProviders>
+                                                        {props.children}
+                                                    </WorkbookProviders>
+                                                </QueryResultCacheProvider>
+                                            </AppEmbeddedDatabaseProvider>
                                         </AppSettingsSync>
                                     </HttpClientProvider>
                                 </StorageProvider>

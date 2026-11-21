@@ -12,7 +12,6 @@ import { CONNECTOR_INFOS, ConnectorType } from '@akohn/dashql/platform/connectio
 import { createDefaultConnectionParamsForConnector, type ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
 import type { QueryExecutor } from '@akohn/dashql/platform/connections/query_execution_args';
 import { type TestQueryExecutorFunctions, TestRuntime } from '../tests/test_runtime.js';
-import { HyperDatabaseClientProvider } from './hyper/hyperdb_grpc_client_provider.js';
 import { HYPERDB_WASM_ENGINE_SETTING_ELEMENTS, HyperConnectorSettings } from './hyper_connection_settings.js';
 import { HttpClientProvider } from '../host/http/http_client_provider.js';
 import { LoggerProvider } from '../host/logger_provider.js';
@@ -96,7 +95,7 @@ describe('HyperConnectorSettings', () => {
     }
 
     interface RenderOptions {
-        /// Provide the gRPC and HTTP clients of Hyper
+        /// Provide the HTTP client
         clients?: boolean;
     }
 
@@ -113,7 +112,7 @@ describe('HyperConnectorSettings', () => {
                     <StorageProvider backend={new WorkbookTestBackend()}>
                         <TestRuntime {...executor}>
                             {options.clients
-                                ? <HttpClientProvider><HyperDatabaseClientProvider>{settings}</HyperDatabaseClientProvider></HttpClientProvider>
+                                ? <HttpClientProvider>{settings}</HttpClientProvider>
                                 : settings}
                         </TestRuntime>
                     </StorageProvider>

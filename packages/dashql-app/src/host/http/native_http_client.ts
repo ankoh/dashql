@@ -2,7 +2,7 @@ import { getProxyErrorData, RawProxyError } from '@akohn/dashql/platform/channel
 import { HttpClient, HttpFetchResult } from '@akohn/dashql/platform/http_client';
 import { Logger, LoggableException } from '@akohn/dashql/platform/logger/logger';
 import { HEADER_NAME_BATCH_BYTES, HEADER_NAME_BATCH_EVENT, HEADER_NAME_BATCH_TIMEOUT, HEADER_NAME_ENDPOINT, HEADER_NAME_ERROR, HEADER_NAME_METHOD, HEADER_NAME_PATH, HEADER_NAME_READ_TIMEOUT, HEADER_NAME_RESPONSE_STARTED, HEADER_NAME_SEARCH_PARAMS, HEADER_NAME_STREAM_ID } from '../native_proxy_headers.js';
-import { nativeProxyFetch } from '../electron_native_fetch.js';
+import { NATIVE_PROXY_ENDPOINT, nativeProxyFetch } from '../electron_native_fetch.js';
 
 export enum NativeHttpServerStreamBatchEvent {
     StreamFailed = "StreamFailed",
@@ -11,11 +11,6 @@ export enum NativeHttpServerStreamBatchEvent {
     FlushAfterTimeout = "FlushAfterTimeout",
     FlushAfterBytes = "FlushAfterBytes",
 }
-
-export interface NativeHttpProxyConfig {
-    /// The endpoint URL
-    proxyEndpoint: URL;
-};
 
 export class NativeHttpError extends LoggableException {
     /// The data
@@ -30,8 +25,6 @@ export class NativeHttpError extends LoggableException {
 }
 
 export class NativeHttpServerStream implements HttpFetchResult {
-    /// The endpoint
-    endpoint: NativeHttpProxyConfig;
     /// The stream id
     streamId: number | null;
     /// The headers
@@ -52,11 +45,10 @@ export class NativeHttpServerStream implements HttpFetchResult {
     signal: AbortSignal | null;
 
     /// Constructor
-    constructor(endpoint: NativeHttpProxyConfig, streamId: number | null, headers: Headers, status: number, statusText: string, logger: Logger, signal: AbortSignal | null = null) {
+    constructor(streamId: number | null, headers: Headers, status: number, statusText: string, logger: Logger, signal: AbortSignal | null = null) {
         this.headers = headers;
         this.status = status;
         this.statusText = statusText;
-        this.endpoint = endpoint;
         this.streamId = streamId;
         this.logger = logger;
         this.textDecoder = new TextDecoder();
@@ -71,7 +63,7 @@ export class NativeHttpServerStream implements HttpFetchResult {
     async drop(): Promise<void> {
         if (this.streamId == null || !this.fetchNext) return;
         this.fetchNext = false;
-        const url = new URL(this.endpoint.proxyEndpoint);
+        const url = new URL(NATIVE_PROXY_ENDPOINT);
         url.pathname = `/http/stream/${this.streamId}`;
         try {
             await nativeProxyFetch(new Request(url, { method: 'DELETE' }));
@@ -96,7 +88,7 @@ export class NativeHttpServerStream implements HttpFetchResult {
 
     private async readNextBatch(): Promise<{ response: Response; buffer: ArrayBuffer }> {
         this.signal?.throwIfAborted();
-        const url = new URL(this.endpoint.proxyEndpoint);
+        const url = new URL(NATIVE_PROXY_ENDPOINT);
         url.pathname = `/http/stream/${this.streamId}`;
         const headers = new Headers();
         headers.set(HEADER_NAME_BATCH_BYTES, "4000000"); // 4 MB
@@ -207,15 +199,12 @@ export class NativeHttpServerStream implements HttpFetchResult {
 export class NativeHttpClient implements HttpClient {
     /// The logger
     logger: Logger;
-    /// The endpoint
-    endpoint: NativeHttpProxyConfig;
     /// The text encoder
     encoder: TextEncoder;
 
     /// Constructor
-    constructor(proxy: NativeHttpProxyConfig, logger: Logger) {
+    constructor(logger: Logger) {
         this.logger = logger;
-        this.endpoint = proxy;
         this.encoder = new TextEncoder();
     }
 
@@ -226,7 +215,7 @@ export class NativeHttpClient implements HttpClient {
         }
         const signal = init?.signal ?? null;
         signal?.throwIfAborted();
-        const url = new URL(this.endpoint.proxyEndpoint);
+        const url = new URL(NATIVE_PROXY_ENDPOINT);
         url.pathname = `/http/streams`;
         const remote = `${inputUrl.protocol}//${inputUrl.host}`;
 
@@ -257,7 +246,7 @@ export class NativeHttpClient implements HttpClient {
             }
             streamId = Number.parseInt(streamIdText);
 
-            const stream = new NativeHttpServerStream(this.endpoint, streamId, response.headers, response.status, response.statusText, this.logger, signal);
+            const stream = new NativeHttpServerStream(streamId, response.headers, response.status, response.statusText, this.logger, signal);
             // The request may have been aborted while the stream started
             if (signal?.aborted) await stream.drop();
             await stream.initialize();
@@ -266,7 +255,7 @@ export class NativeHttpClient implements HttpClient {
             if (response.headers.get(HEADER_NAME_ERROR) ?? false) {
                 throw new NativeHttpError(await response.json() as RawProxyError);
             }
-            return new NativeHttpServerStream(this.endpoint, streamId, response.headers, response.status, response.statusText, this.logger);
+            return new NativeHttpServerStream(streamId, response.headers, response.status, response.statusText, this.logger);
         }
     }
 }

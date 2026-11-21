@@ -21,7 +21,7 @@ export const HttpClientProvider: React.FC<Props> = (props: Props) => {
     const logger = useLogger();
     const [requestLog] = React.useState(() => new HttpRequestLog());
     const client = React.useMemo<HttpClient>(() => new RecordingHttpClient(isDesktopHost()
-        ? new NativeHttpClient({ proxyEndpoint: new URL("dashql-native://localhost") }, logger)
+        ? new NativeHttpClient(logger)
         : new WebHttpClient(), requestLog), [logger, requestLog]);
     return (
         <REQUEST_LOG_CTX.Provider value={requestLog}>

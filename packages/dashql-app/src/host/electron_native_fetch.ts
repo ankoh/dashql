@@ -1,3 +1,6 @@
+/// The endpoint of the native proxy of the desktop app
+export const NATIVE_PROXY_ENDPOINT = 'dashql-native://localhost';
+
 export async function nativeProxyFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
     const request = new Request(input, init);
     const bridge = globalThis.dashqlElectron;
