@@ -310,3 +310,23 @@ enum GroupByItemType: uint8 {
     GROUPING_SETS,
 }
 
+
+// The command of a transaction control statement. The aliases END and ABORT keep their own values.
+enum TransactionCommand: uint8 {
+    BEGIN,
+    START,
+    COMMIT,
+    END,
+    ROLLBACK,
+    ABORT,
+    SAVEPOINT,
+    RELEASE,
+    PREPARE,
+}
+
+enum TransactionIsolationLevel: uint8 {
+    READ_UNCOMMITTED,
+    READ_COMMITTED,
+    REPEATABLE_READ,
+    SERIALIZABLE,
+}

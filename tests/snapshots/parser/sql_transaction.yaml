@@ -22,8 +22,8 @@ parser-snapshots:
             text: "begin"
             children:
               - key: SQL_TRANSACTION_COMMAND
-                type: NAME
-                text: "begin"
+                type: ENUM_SQL_TRANSACTION_COMMAND
+                value: BEGIN
         - type: TRANSACTION
           ast-begin: 2
           ast-size: 2
@@ -36,8 +36,8 @@ parser-snapshots:
             text: "begin work"
             children:
               - key: SQL_TRANSACTION_COMMAND
-                type: NAME
-                text: "begin"
+                type: ENUM_SQL_TRANSACTION_COMMAND
+                value: BEGIN
         - type: TRANSACTION
           ast-begin: 4
           ast-size: 2
@@ -50,8 +50,8 @@ parser-snapshots:
             text: "begin transaction"
             children:
               - key: SQL_TRANSACTION_COMMAND
-                type: NAME
-                text: "begin"
+                type: ENUM_SQL_TRANSACTION_COMMAND
+                value: BEGIN
         - type: TRANSACTION
           ast-begin: 6
           ast-size: 2
@@ -64,8 +64,8 @@ parser-snapshots:
             text: "start transaction"
             children:
               - key: SQL_TRANSACTION_COMMAND
-                type: NAME
-                text: "start"
+                type: ENUM_SQL_TRANSACTION_COMMAND
+                value: START
         - type: TRANSACTION
           ast-begin: 8
           ast-size: 2
@@ -78,8 +78,8 @@ parser-snapshots:
             text: "commit"
             children:
               - key: SQL_TRANSACTION_COMMAND
-                type: NAME
-                text: "commit"
+                type: ENUM_SQL_TRANSACTION_COMMAND
+                value: COMMIT
         - type: TRANSACTION
           ast-begin: 10
           ast-size: 2
@@ -92,8 +92,8 @@ parser-snapshots:
             text: "commit work"
             children:
               - key: SQL_TRANSACTION_COMMAND
-                type: NAME
-                text: "commit"
+                type: ENUM_SQL_TRANSACTION_COMMAND
+                value: COMMIT
         - type: TRANSACTION
           ast-begin: 12
           ast-size: 2
@@ -106,8 +106,8 @@ parser-snapshots:
             text: "commit transaction"
             children:
               - key: SQL_TRANSACTION_COMMAND
-                type: NAME
-                text: "commit"
+                type: ENUM_SQL_TRANSACTION_COMMAND
+                value: COMMIT
         - type: TRANSACTION
           ast-begin: 14
           ast-size: 2
@@ -120,8 +120,8 @@ parser-snapshots:
             text: "end"
             children:
               - key: SQL_TRANSACTION_COMMAND
-                type: NAME
-                text: "end"
+                type: ENUM_SQL_TRANSACTION_COMMAND
+                value: END
         - type: TRANSACTION
           ast-begin: 16
           ast-size: 2
@@ -134,8 +134,8 @@ parser-snapshots:
             text: "end work"
             children:
               - key: SQL_TRANSACTION_COMMAND
-                type: NAME
-                text: "end"
+                type: ENUM_SQL_TRANSACTION_COMMAND
+                value: END
         - type: TRANSACTION
           ast-begin: 18
           ast-size: 2
@@ -148,8 +148,8 @@ parser-snapshots:
             text: "end transaction"
             children:
               - key: SQL_TRANSACTION_COMMAND
-                type: NAME
-                text: "end"
+                type: ENUM_SQL_TRANSACTION_COMMAND
+                value: END
         - type: TRANSACTION
           ast-begin: 20
           ast-size: 2
@@ -162,8 +162,8 @@ parser-snapshots:
             text: "rollback"
             children:
               - key: SQL_TRANSACTION_COMMAND
-                type: NAME
-                text: "rollback"
+                type: ENUM_SQL_TRANSACTION_COMMAND
+                value: ROLLBACK
         - type: TRANSACTION
           ast-begin: 22
           ast-size: 2
@@ -176,8 +176,8 @@ parser-snapshots:
             text: "rollback work"
             children:
               - key: SQL_TRANSACTION_COMMAND
-                type: NAME
-                text: "rollback"
+                type: ENUM_SQL_TRANSACTION_COMMAND
+                value: ROLLBACK
         - type: TRANSACTION
           ast-begin: 24
           ast-size: 2
@@ -190,8 +190,8 @@ parser-snapshots:
             text: "rollback t..ransaction"
             children:
               - key: SQL_TRANSACTION_COMMAND
-                type: NAME
-                text: "rollback"
+                type: ENUM_SQL_TRANSACTION_COMMAND
+                value: ROLLBACK
         - type: TRANSACTION
           ast-begin: 26
           ast-size: 2
@@ -204,8 +204,8 @@ parser-snapshots:
             text: "abort"
             children:
               - key: SQL_TRANSACTION_COMMAND
-                type: NAME
-                text: "abort"
+                type: ENUM_SQL_TRANSACTION_COMMAND
+                value: ABORT
         - type: TRANSACTION
           ast-begin: 28
           ast-size: 2
@@ -218,8 +218,8 @@ parser-snapshots:
             text: "abort work"
             children:
               - key: SQL_TRANSACTION_COMMAND
-                type: NAME
-                text: "abort"
+                type: ENUM_SQL_TRANSACTION_COMMAND
+                value: ABORT
         - type: TRANSACTION
           ast-begin: 30
           ast-size: 2
@@ -232,8 +232,8 @@ parser-snapshots:
             text: "abort transaction"
             children:
               - key: SQL_TRANSACTION_COMMAND
-                type: NAME
-                text: "abort"
+                type: ENUM_SQL_TRANSACTION_COMMAND
+                value: ABORT
       scanner-errors: []
       parser-errors: []
       line-breaks:
@@ -266,8 +266,8 @@ parser-snapshots:
             text: "begin isol..ncommitted"
             children:
               - key: SQL_TRANSACTION_COMMAND
-                type: NAME
-                text: "begin"
+                type: ENUM_SQL_TRANSACTION_COMMAND
+                value: BEGIN
               - key: SQL_TRANSACTION_MODES
                 type: ARRAY
                 text: "isolation ..ncommitted"
@@ -276,8 +276,8 @@ parser-snapshots:
                     text: "isolation ..ncommitted"
                     children:
                       - key: SQL_TRANSACTION_ISOLATION_LEVEL
-                        type: NAME
-                        text: "read uncommitted"
+                        type: ENUM_SQL_TRANSACTION_ISOLATION_LEVEL
+                        value: READ_UNCOMMITTED
         - type: TRANSACTION
           ast-begin: 5
           ast-size: 5
@@ -290,8 +290,8 @@ parser-snapshots:
             text: "begin work.. committed"
             children:
               - key: SQL_TRANSACTION_COMMAND
-                type: NAME
-                text: "begin"
+                type: ENUM_SQL_TRANSACTION_COMMAND
+                value: BEGIN
               - key: SQL_TRANSACTION_MODES
                 type: ARRAY
                 text: "isolation .. committed"
@@ -300,8 +300,8 @@ parser-snapshots:
                     text: "isolation .. committed"
                     children:
                       - key: SQL_TRANSACTION_ISOLATION_LEVEL
-                        type: NAME
-                        text: "read committed"
+                        type: ENUM_SQL_TRANSACTION_ISOLATION_LEVEL
+                        value: READ_COMMITTED
         - type: TRANSACTION
           ast-begin: 10
           ast-size: 5
@@ -314,8 +314,8 @@ parser-snapshots:
             text: "begin tran..table read"
             children:
               - key: SQL_TRANSACTION_COMMAND
-                type: NAME
-                text: "begin"
+                type: ENUM_SQL_TRANSACTION_COMMAND
+                value: BEGIN
               - key: SQL_TRANSACTION_MODES
                 type: ARRAY
                 text: "isolation ..table read"
@@ -324,8 +324,8 @@ parser-snapshots:
                     text: "isolation ..table read"
                     children:
                       - key: SQL_TRANSACTION_ISOLATION_LEVEL
-                        type: NAME
-                        text: "repeatable read"
+                        type: ENUM_SQL_TRANSACTION_ISOLATION_LEVEL
+                        value: REPEATABLE_READ
         - type: TRANSACTION
           ast-begin: 15
           ast-size: 5
@@ -338,8 +338,8 @@ parser-snapshots:
             text: "start tran..rializable"
             children:
               - key: SQL_TRANSACTION_COMMAND
-                type: NAME
-                text: "start"
+                type: ENUM_SQL_TRANSACTION_COMMAND
+                value: START
               - key: SQL_TRANSACTION_MODES
                 type: ARRAY
                 text: "isolation ..rializable"
@@ -348,8 +348,8 @@ parser-snapshots:
                     text: "isolation ..rializable"
                     children:
                       - key: SQL_TRANSACTION_ISOLATION_LEVEL
-                        type: NAME
-                        text: "serializable"
+                        type: ENUM_SQL_TRANSACTION_ISOLATION_LEVEL
+                        value: SERIALIZABLE
       scanner-errors: []
       parser-errors: []
       line-breaks:
@@ -383,8 +383,8 @@ parser-snapshots:
             text: "begin read only"
             children:
               - key: SQL_TRANSACTION_COMMAND
-                type: NAME
-                text: "begin"
+                type: ENUM_SQL_TRANSACTION_COMMAND
+                value: BEGIN
               - key: SQL_TRANSACTION_MODES
                 type: ARRAY
                 text: "read only"
@@ -407,8 +407,8 @@ parser-snapshots:
             text: "begin read write"
             children:
               - key: SQL_TRANSACTION_COMMAND
-                type: NAME
-                text: "begin"
+                type: ENUM_SQL_TRANSACTION_COMMAND
+                value: BEGIN
               - key: SQL_TRANSACTION_MODES
                 type: ARRAY
                 text: "read write"
@@ -431,8 +431,8 @@ parser-snapshots:
             text: "begin deferrable"
             children:
               - key: SQL_TRANSACTION_COMMAND
-                type: NAME
-                text: "begin"
+                type: ENUM_SQL_TRANSACTION_COMMAND
+                value: BEGIN
               - key: SQL_TRANSACTION_MODES
                 type: ARRAY
                 text: "deferrable"
@@ -455,8 +455,8 @@ parser-snapshots:
             text: "begin not ..deferrable"
             children:
               - key: SQL_TRANSACTION_COMMAND
-                type: NAME
-                text: "begin"
+                type: ENUM_SQL_TRANSACTION_COMMAND
+                value: BEGIN
               - key: SQL_TRANSACTION_MODES
                 type: ARRAY
                 text: "not deferrable"
@@ -479,8 +479,8 @@ parser-snapshots:
             text: "start tran..deferrable"
             children:
               - key: SQL_TRANSACTION_COMMAND
-                type: NAME
-                text: "start"
+                type: ENUM_SQL_TRANSACTION_COMMAND
+                value: START
               - key: SQL_TRANSACTION_MODES
                 type: ARRAY
                 text: "isolation ..deferrable"
@@ -489,8 +489,8 @@ parser-snapshots:
                     text: "isolation ..rializable"
                     children:
                       - key: SQL_TRANSACTION_ISOLATION_LEVEL
-                        type: NAME
-                        text: "serializable"
+                        type: ENUM_SQL_TRANSACTION_ISOLATION_LEVEL
+                        value: SERIALIZABLE
                   - type: OBJECT_SQL_TRANSACTION_MODE
                     text: "read only"
                     children:
@@ -515,8 +515,8 @@ parser-snapshots:
             text: "begin read.. committed"
             children:
               - key: SQL_TRANSACTION_COMMAND
-                type: NAME
-                text: "begin"
+                type: ENUM_SQL_TRANSACTION_COMMAND
+                value: BEGIN
               - key: SQL_TRANSACTION_MODES
                 type: ARRAY
                 text: "read write.. committed"
@@ -537,8 +537,8 @@ parser-snapshots:
                     text: "isolation .. committed"
                     children:
                       - key: SQL_TRANSACTION_ISOLATION_LEVEL
-                        type: NAME
-                        text: "read committed"
+                        type: ENUM_SQL_TRANSACTION_ISOLATION_LEVEL
+                        value: READ_COMMITTED
         - type: TRANSACTION
           ast-begin: 38
           ast-size: 13
@@ -551,8 +551,8 @@ parser-snapshots:
             text: "begin read..deferrable"
             children:
               - key: SQL_TRANSACTION_COMMAND
-                type: NAME
-                text: "begin"
+                type: ENUM_SQL_TRANSACTION_COMMAND
+                value: BEGIN
               - key: SQL_TRANSACTION_MODES
                 type: ARRAY
                 text: "read only,..deferrable"
@@ -623,8 +623,8 @@ parser-snapshots:
             text: "savepoint ..checkpoint"
             children:
               - key: SQL_TRANSACTION_COMMAND
-                type: NAME
-                text: "savepoint"
+                type: ENUM_SQL_TRANSACTION_COMMAND
+                value: SAVEPOINT
               - key: SQL_TRANSACTION_TARGET
                 type: NAME
                 text: "checkpoint"
@@ -640,8 +640,8 @@ parser-snapshots:
             text: "release sa..checkpoint"
             children:
               - key: SQL_TRANSACTION_COMMAND
-                type: NAME
-                text: "release"
+                type: ENUM_SQL_TRANSACTION_COMMAND
+                value: RELEASE
               - key: SQL_TRANSACTION_TARGET
                 type: NAME
                 text: "checkpoint"
@@ -657,8 +657,8 @@ parser-snapshots:
             text: "release checkpoint"
             children:
               - key: SQL_TRANSACTION_COMMAND
-                type: NAME
-                text: "release"
+                type: ENUM_SQL_TRANSACTION_COMMAND
+                value: RELEASE
               - key: SQL_TRANSACTION_TARGET
                 type: NAME
                 text: "checkpoint"
@@ -674,8 +674,8 @@ parser-snapshots:
             text: "rollback t..checkpoint"
             children:
               - key: SQL_TRANSACTION_COMMAND
-                type: NAME
-                text: "rollback"
+                type: ENUM_SQL_TRANSACTION_COMMAND
+                value: ROLLBACK
               - key: SQL_TRANSACTION_TARGET
                 type: NAME
                 text: "checkpoint"
@@ -691,8 +691,8 @@ parser-snapshots:
             text: "rollback t..checkpoint"
             children:
               - key: SQL_TRANSACTION_COMMAND
-                type: NAME
-                text: "rollback"
+                type: ENUM_SQL_TRANSACTION_COMMAND
+                value: ROLLBACK
               - key: SQL_TRANSACTION_TARGET
                 type: NAME
                 text: "checkpoint"
@@ -708,8 +708,8 @@ parser-snapshots:
             text: "rollback w..checkpoint"
             children:
               - key: SQL_TRANSACTION_COMMAND
-                type: NAME
-                text: "rollback"
+                type: ENUM_SQL_TRANSACTION_COMMAND
+                value: ROLLBACK
               - key: SQL_TRANSACTION_TARGET
                 type: NAME
                 text: "checkpoint"
@@ -725,8 +725,8 @@ parser-snapshots:
             text: "rollback t..checkpoint"
             children:
               - key: SQL_TRANSACTION_COMMAND
-                type: NAME
-                text: "rollback"
+                type: ENUM_SQL_TRANSACTION_COMMAND
+                value: ROLLBACK
               - key: SQL_TRANSACTION_TARGET
                 type: NAME
                 text: "checkpoint"
@@ -768,8 +768,8 @@ parser-snapshots:
             text: "savepoint savepoint"
             children:
               - key: SQL_TRANSACTION_COMMAND
-                type: NAME
-                text: "savepoint"
+                type: ENUM_SQL_TRANSACTION_COMMAND
+                value: SAVEPOINT
               - key: SQL_TRANSACTION_TARGET
                 type: NAME
                 text: "savepoint"
@@ -785,8 +785,8 @@ parser-snapshots:
             text: "release savepoint"
             children:
               - key: SQL_TRANSACTION_COMMAND
-                type: NAME
-                text: "release"
+                type: ENUM_SQL_TRANSACTION_COMMAND
+                value: RELEASE
               - key: SQL_TRANSACTION_TARGET
                 type: NAME
                 text: "savepoint"
@@ -802,8 +802,8 @@ parser-snapshots:
             text: "release sa.. savepoint"
             children:
               - key: SQL_TRANSACTION_COMMAND
-                type: NAME
-                text: "release"
+                type: ENUM_SQL_TRANSACTION_COMMAND
+                value: RELEASE
               - key: SQL_TRANSACTION_TARGET
                 type: NAME
                 text: "savepoint"
@@ -819,8 +819,8 @@ parser-snapshots:
             text: "rollback t.. savepoint"
             children:
               - key: SQL_TRANSACTION_COMMAND
-                type: NAME
-                text: "rollback"
+                type: ENUM_SQL_TRANSACTION_COMMAND
+                value: ROLLBACK
               - key: SQL_TRANSACTION_TARGET
                 type: NAME
                 text: "savepoint"
@@ -836,8 +836,8 @@ parser-snapshots:
             text: "rollback t.. savepoint"
             children:
               - key: SQL_TRANSACTION_COMMAND
-                type: NAME
-                text: "rollback"
+                type: ENUM_SQL_TRANSACTION_COMMAND
+                value: ROLLBACK
               - key: SQL_TRANSACTION_TARGET
                 type: NAME
                 text: "savepoint"
@@ -853,8 +853,8 @@ parser-snapshots:
             text: "savepoint begin"
             children:
               - key: SQL_TRANSACTION_COMMAND
-                type: NAME
-                text: "savepoint"
+                type: ENUM_SQL_TRANSACTION_COMMAND
+                value: SAVEPOINT
               - key: SQL_TRANSACTION_TARGET
                 type: NAME
                 text: "begin"
@@ -870,8 +870,8 @@ parser-snapshots:
             text: "rollback to begin"
             children:
               - key: SQL_TRANSACTION_COMMAND
-                type: NAME
-                text: "rollback"
+                type: ENUM_SQL_TRANSACTION_COMMAND
+                value: ROLLBACK
               - key: SQL_TRANSACTION_TARGET
                 type: NAME
                 text: "begin"
@@ -887,8 +887,8 @@ parser-snapshots:
             text: "savepoint ..ixed Case\""
             children:
               - key: SQL_TRANSACTION_COMMAND
-                type: NAME
-                text: "savepoint"
+                type: ENUM_SQL_TRANSACTION_COMMAND
+                value: SAVEPOINT
               - key: SQL_TRANSACTION_TARGET
                 type: NAME
                 text: "\"Mixed Case\""
@@ -904,8 +904,8 @@ parser-snapshots:
             text: "release \"M..ixed Case\""
             children:
               - key: SQL_TRANSACTION_COMMAND
-                type: NAME
-                text: "release"
+                type: ENUM_SQL_TRANSACTION_COMMAND
+                value: RELEASE
               - key: SQL_TRANSACTION_TARGET
                 type: NAME
                 text: "\"Mixed Case\""
@@ -943,8 +943,8 @@ parser-snapshots:
             text: "prepare tr..on 'batch'"
             children:
               - key: SQL_TRANSACTION_COMMAND
-                type: NAME
-                text: "prepare"
+                type: ENUM_SQL_TRANSACTION_COMMAND
+                value: PREPARE
               - key: SQL_TRANSACTION_TARGET
                 type: LITERAL_STRING
                 text: "'batch'"
@@ -963,8 +963,8 @@ parser-snapshots:
             text: "commit pre..ed 'batch'"
             children:
               - key: SQL_TRANSACTION_COMMAND
-                type: NAME
-                text: "commit"
+                type: ENUM_SQL_TRANSACTION_COMMAND
+                value: COMMIT
               - key: SQL_TRANSACTION_TARGET
                 type: LITERAL_STRING
                 text: "'batch'"
@@ -983,8 +983,8 @@ parser-snapshots:
             text: "rollback p..tch''s id'"
             children:
               - key: SQL_TRANSACTION_COMMAND
-                type: NAME
-                text: "rollback"
+                type: ENUM_SQL_TRANSACTION_COMMAND
+                value: ROLLBACK
               - key: SQL_TRANSACTION_TARGET
                 type: LITERAL_STRING
                 text: "'batch''s id'"
@@ -1024,8 +1024,8 @@ parser-snapshots:
             text: "BEGIN TRANSACTION"
             children:
               - key: SQL_TRANSACTION_COMMAND
-                type: NAME
-                text: "BEGIN"
+                type: ENUM_SQL_TRANSACTION_COMMAND
+                value: BEGIN
         - type: INSERT
           ast-begin: 2
           ast-size: 8
@@ -1072,8 +1072,8 @@ parser-snapshots:
             text: "SAVEPOINT ..heckpoint\""
             children:
               - key: SQL_TRANSACTION_COMMAND
-                type: NAME
-                text: "SAVEPOINT"
+                type: ENUM_SQL_TRANSACTION_COMMAND
+                value: SAVEPOINT
               - key: SQL_TRANSACTION_TARGET
                 type: NAME
                 text: "\"Checkpoint\""
@@ -1123,8 +1123,8 @@ parser-snapshots:
             text: "ROLLBACK W..heckpoint\""
             children:
               - key: SQL_TRANSACTION_COMMAND
-                type: NAME
-                text: "ROLLBACK"
+                type: ENUM_SQL_TRANSACTION_COMMAND
+                value: ROLLBACK
               - key: SQL_TRANSACTION_TARGET
                 type: NAME
                 text: "\"Checkpoint\""
@@ -1140,8 +1140,8 @@ parser-snapshots:
             text: "COMMIT"
             children:
               - key: SQL_TRANSACTION_COMMAND
-                type: NAME
-                text: "COMMIT"
+                type: ENUM_SQL_TRANSACTION_COMMAND
+                value: COMMIT
       scanner-errors: []
       parser-errors: []
       line-breaks:
@@ -1307,8 +1307,8 @@ parser-snapshots:
             text: "rollback"
             children:
               - key: SQL_TRANSACTION_COMMAND
-                type: NAME
-                text: "rollback"
+                type: ENUM_SQL_TRANSACTION_COMMAND
+                value: ROLLBACK
         - type: SELECT
           ast-begin: 2
           ast-size: 4

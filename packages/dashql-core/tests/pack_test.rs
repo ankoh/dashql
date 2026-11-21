@@ -165,6 +165,37 @@ fn tokens_are_typed() {
     }
 }
 
+/// The types of the word tokens of a script
+fn word_token_types(text: &str) -> Vec<(String, ScannerTokenType)> {
+    let (script, _) = parsed(text);
+    let tokens = pack_tokens(script.parsed.as_ref().unwrap());
+    let offsets = tokens.token_offsets.unwrap();
+    let lengths = tokens.token_lengths.unwrap();
+    let types = tokens.token_types.unwrap();
+    offsets
+        .iter()
+        .zip(&lengths)
+        .zip(&types)
+        .map(|((&o, &l), &t)| (text[o as usize..(o + l) as usize].to_string(), t))
+        .filter(|(word, _)| word.chars().all(|c| c.is_ascii_alphabetic()))
+        .collect()
+}
+
+#[test]
+fn transaction_keywords_are_keyword_tokens() {
+    let words = word_token_types("begin transaction isolation level serializable;\n\nend transaction;");
+    assert_eq!(words.len(), 7);
+    for (word, t) in words {
+        assert_eq!(t, ScannerTokenType::KEYWORD, "{word}");
+    }
+}
+
+#[test]
+fn keywords_used_as_names_are_identifier_tokens() {
+    let words = word_token_types("select begin from t");
+    assert_eq!(words[1], ("begin".to_string(), ScannerTokenType::IDENTIFIER));
+}
+
 #[test]
 fn analyzed_scripts_pack_vis_tags() {
     let catalog = Catalog::new();

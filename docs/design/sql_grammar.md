@@ -93,19 +93,20 @@ begins and ends in one script (`analyzer/transactions.rs`, see `core_analysis_ca
 planner runs the statements of a transaction as barriers (`planner_dependencies.md`).
 
 The parse tree adds `StatementType::TRANSACTION`, `OBJECT_SQL_TRANSACTION` and
-`OBJECT_SQL_TRANSACTION_MODE`. The statement has a `SQL_TRANSACTION_COMMAND` keyword `NAME`
-(`begin`, `start`, `commit`, `end`, `rollback`, `abort`, `savepoint`, `release`, or `prepare`), optional
-`SQL_TRANSACTION_MODES`, and an optional `SQL_TRANSACTION_TARGET`: a `NAME` for a savepoint, or a
-string literal for a prepared transaction. `SQL_TRANSACTION_PREPARED` is true for the three prepared
-forms. A rollback with a savepoint target is `ROLLBACK TO`, so it stays distinct from a full rollback.
+`OBJECT_SQL_TRANSACTION_MODE`. The statement has a `SQL_TRANSACTION_COMMAND` enum
+(`ENUM_SQL_TRANSACTION_COMMAND`, a `TransactionCommand`: `BEGIN`, `START`, `COMMIT`, `END`, `ROLLBACK`, `ABORT`,
+`SAVEPOINT`, `RELEASE`, or `PREPARE`), optional `SQL_TRANSACTION_MODES`, and an optional `SQL_TRANSACTION_TARGET`: a
+`NAME` for a savepoint, or a string literal for a prepared transaction. `SQL_TRANSACTION_PREPARED` is true for the
+three prepared forms. A rollback with a savepoint target is `ROLLBACK TO`, so it stays distinct from a full rollback.
 `WORK`/`TRANSACTION` and the optional `SAVEPOINT` keyword have no semantic difference and are omitted.
 
-Each mode object holds exactly one attribute: `SQL_TRANSACTION_ISOLATION_LEVEL` (a keyword `NAME`
-with the canonical phrase `read uncommitted`, `read committed`, `repeatable read`, or `serializable`),
-`SQL_TRANSACTION_READ_ONLY` (a boolean), or `SQL_TRANSACTION_DEFERRABLE` (a boolean). Keyword names
-use the parser's name registry, as other keyword-valued attributes do. These additions append node,
-attribute and statement types without changing existing values or existing parse trees. All command
-kinds, targets and mode values remain distinguishable; aliases retain their command keyword.
+Each mode object holds exactly one attribute: `SQL_TRANSACTION_ISOLATION_LEVEL` (an
+`ENUM_SQL_TRANSACTION_ISOLATION_LEVEL`, a `TransactionIsolationLevel`: `READ_UNCOMMITTED`, `READ_COMMITTED`,
+`REPEATABLE_READ`, or `SERIALIZABLE`), `SQL_TRANSACTION_READ_ONLY` (a boolean), or `SQL_TRANSACTION_DEFERRABLE` (a
+boolean). The command and the isolation level are enums and not keyword `NAME`s: the highlighting colors a keyword
+under a single-symbol `NAME` as an identifier (a keyword used as a column name), so a `NAME` would color `begin` and
+`serializable` as identifiers. All command kinds, targets and mode values remain distinguishable; aliases retain their
+command value.
 
 ## Other Deviations
 

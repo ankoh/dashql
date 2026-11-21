@@ -36,6 +36,8 @@ pub fn enum_text(node: &Node) -> &'static str {
         NodeType::ENUM_SQL_SUBQUERY_QUANTIFIER => by_index!(SubqueryQuantifier),
         NodeType::ENUM_SQL_TABLE_CONSTRAINT => by_index!(TableConstraint),
         NodeType::ENUM_SQL_TEMP_TYPE => by_index!(TempType),
+        NodeType::ENUM_SQL_TRANSACTION_COMMAND => by_index!(TransactionCommand),
+        NodeType::ENUM_SQL_TRANSACTION_ISOLATION_LEVEL => by_index!(TransactionIsolationLevel),
         NodeType::ENUM_SQL_TRIM_TARGET => by_index!(TrimDirection),
         NodeType::ENUM_SQL_WINDOW_BOUND_DIRECTION => by_index!(WindowBoundDirection),
         NodeType::ENUM_SQL_WINDOW_BOUND_MODE => by_index!(WindowBoundMode),

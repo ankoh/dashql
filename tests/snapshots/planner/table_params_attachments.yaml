@@ -26,7 +26,7 @@ planner-snapshots:
           analyzed-catalog-revision: 1
           cacheable: true
           terminal-statement-id: 0
-          signature: "3ef57da9975031ed10487edbd0b49dee\nattachment sales.parquet=1"
+          signature: "34ec10472d5749674ba10e3fe6aa8324\nattachment sales.parquet=1"
       entities: []
       unresolved-references: []
       nodes:
@@ -89,7 +89,7 @@ planner-snapshots:
           analyzed-catalog-revision: 2
           cacheable: true
           terminal-statement-id: 0
-          signature: "cd1394451a0eb868a2c214b222274a19\nattachment sales.parquet=1"
+          signature: "a3f9a28dd35bf695945182fb7df9a2c6\nattachment sales.parquet=1"
       entities:
         - catalog-id: 'local/256.65536.4294967296'
           type: TABLE
@@ -154,7 +154,7 @@ planner-snapshots:
           analyzed-catalog-revision: 1
           cacheable: true
           terminal-statement-id: 0
-          signature: "82df8d1f834302fe349f1efab32d41d7\nattachment sales.parquet=1"
+          signature: "6519b60ee4cc9a448ca05bad4435ff41\nattachment sales.parquet=1"
       entities: []
       unresolved-references: []
       nodes: []
@@ -201,7 +201,7 @@ planner-snapshots:
           analyzed-catalog-revision: 1
           cacheable: false
           terminal-statement-id: 0
-          signature: "58907827de39ff274b1bc63d233649fc"
+          signature: "65f41dcc2eeb65cb07e6df58435b67e0"
       entities: []
       unresolved-references: []
       nodes: []
@@ -251,7 +251,7 @@ planner-snapshots:
           analyzed-catalog-revision: 1
           cacheable: true
           terminal-statement-id: 0
-          signature: "1eb30f7c26bd60a8b4d4c790560f2a31"
+          signature: "2f44cef39f1b3bb05cecc93f4fb46591"
         - name: bar
           connection: local
           text-version: 1
@@ -259,7 +259,7 @@ planner-snapshots:
           analyzed-catalog-revision: 1
           cacheable: true
           terminal-statement-id: 0
-          signature: "82df8d1f834302fe349f1efab32d41d7"
+          signature: "6519b60ee4cc9a448ca05bad4435ff41"
       entities: []
       unresolved-references: []
       nodes: []
@@ -309,7 +309,7 @@ planner-snapshots:
           analyzed-catalog-revision: 1
           cacheable: true
           terminal-statement-id: 0
-          signature: "82df8d1f834302fe349f1efab32d41d7\nattachment Sales.parquet=1"
+          signature: "6519b60ee4cc9a448ca05bad4435ff41\nattachment Sales.parquet=1"
       entities: []
       unresolved-references: []
       nodes:
@@ -374,7 +374,7 @@ planner-snapshots:
           analyzed-catalog-revision: 1
           cacheable: true
           terminal-statement-id: 0
-          signature: "d474cae2ea3f28fc99536b09cc76fb51\nattachment sales.parquet=1"
+          signature: "dc01853e017d7d1fbbd115b50b724c1c\nattachment sales.parquet=1"
         - name: bar
           connection: local
           text-version: 1
@@ -382,7 +382,7 @@ planner-snapshots:
           analyzed-catalog-revision: 1
           cacheable: true
           terminal-statement-id: 0
-          signature: "cddaa8812c02564db28aceb91cd63f4e"
+          signature: "fefb161081dee4b4ba26f0ddccafc869"
           references: [foo]
       entities: []
       unresolved-references: []
@@ -472,7 +472,7 @@ planner-snapshots:
           analyzed-catalog-revision: 2
           cacheable: false
           terminal-statement-id: 0
-          signature: "b7b197bbc7be741327fe0ef31604780c\nattachment sales.parquet=1"
+          signature: "717e3fff7d385745364132c08a6377f2\nattachment sales.parquet=1"
       entities:
         - catalog-id: 'local/256.65536.4294967296'
           type: TABLE
@@ -539,7 +539,7 @@ planner-snapshots:
           analyzed-catalog-revision: 1
           cacheable: true
           terminal-statement-id: 0
-          signature: "82df8d1f834302fe349f1efab32d41d7\nattachment sales.parquet=1700000000-42"
+          signature: "6519b60ee4cc9a448ca05bad4435ff41\nattachment sales.parquet=1700000000-42"
       entities: []
       unresolved-references: []
       nodes:

@@ -8,7 +8,8 @@ pub use dashql_buffers::parser::{
     ExpressionOperator, ExtractTarget, GroupByItemType, IntervalType, JoinType, KeyActionCommand, KeyActionTrigger,
     KeyMatch, KnownFunction, Node, NodeType, NumericType, OnCommitOption, OrderDirection, OrderNullRule,
     RowLockingBlockBehavior, RowLockingStrength, SampleCountUnit, SubqueryQuantifier, SymbolSpan, TableConstraint,
-    TempType, TrimDirection, WindowBoundDirection, WindowBoundMode, WindowExclusionMode, WindowRangeMode,
+    TempType, TransactionCommand, TransactionIsolationLevel, TrimDirection, WindowBoundDirection, WindowBoundMode,
+    WindowExclusionMode, WindowRangeMode,
 };
 
 /// Attribute keys, as the grammar actions call them
@@ -144,6 +145,8 @@ enum_node_types! {
     SubqueryQuantifier => ENUM_SQL_SUBQUERY_QUANTIFIER,
     TableConstraint => ENUM_SQL_TABLE_CONSTRAINT,
     TempType => ENUM_SQL_TEMP_TYPE,
+    TransactionCommand => ENUM_SQL_TRANSACTION_COMMAND,
+    TransactionIsolationLevel => ENUM_SQL_TRANSACTION_ISOLATION_LEVEL,
     TrimDirection => ENUM_SQL_TRIM_TARGET,
     WindowBoundDirection => ENUM_SQL_WINDOW_BOUND_DIRECTION,
     WindowBoundMode => ENUM_SQL_WINDOW_BOUND_MODE,

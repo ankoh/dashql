@@ -11,7 +11,7 @@ use dashql_parser::parser::context::resolve_text_span;
 use dashql_parser::parser::ParsedScript;
 
 /// The version of the signature encoding
-const SCRIPT_SIGNATURE_VERSION: u8 = 2;
+const SCRIPT_SIGNATURE_VERSION: u8 = 3;
 
 fn is_enum_node(node_type: NodeType) -> bool {
     let id = node_type.0;

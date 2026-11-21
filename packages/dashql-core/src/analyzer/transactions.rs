@@ -21,7 +21,7 @@
 
 use super::state::AnalysisState;
 use dashql_buffers::analyzer::{AnalyzerErrorSeverity, AnalyzerErrorType};
-use dashql_buffers::parser::{AttributeKey as K, Node, NodeType, StatementType};
+use dashql_buffers::parser::{AttributeKey as K, Node, NodeType, StatementType, TransactionCommand};
 use dashql_parser::attrs;
 use dashql_parser::names::NameId;
 
@@ -137,18 +137,19 @@ fn read_command(state: &AnalysisState, root: &Node) -> Option<Command> {
         parsed.children(root),
         [K::SQL_TRANSACTION_COMMAND, K::SQL_TRANSACTION_TARGET, K::SQL_TRANSACTION_PREPARED]
     );
-    let command = command.filter(|c| c.node_type() == NodeType::NAME)?;
+    let command = command.filter(|c| c.node_type() == NodeType::ENUM_SQL_TRANSACTION_COMMAND)?;
+    let command = TransactionCommand(u8::try_from(command.children_begin_or_value()).ok()?);
     let name = target.filter(|t| t.node_type() == NodeType::NAME).map(|t| t.children_begin_or_value());
     let prepared = prepared.is_some_and(|p| p.children_begin_or_value() != 0);
-    Some(match (state.out.name_text(command.children_begin_or_value()), target.is_some(), prepared) {
-        ("prepare", _, _) => Command::End("prepare"),
+    Some(match (command, target.is_some(), prepared) {
+        (TransactionCommand::PREPARE, _, _) => Command::End("prepare"),
         (_, _, true) => Command::Standalone,
-        ("begin" | "start", _, _) => Command::Begin,
-        ("commit" | "end", false, _) => Command::End("commit"),
-        ("rollback" | "abort", false, _) => Command::End("roll back"),
-        ("rollback", true, _) => Command::ToSavepoint { name, release: false },
-        ("release", _, _) => Command::ToSavepoint { name, release: true },
-        ("savepoint", _, _) => Command::Savepoint(name),
+        (TransactionCommand::BEGIN | TransactionCommand::START, _, _) => Command::Begin,
+        (TransactionCommand::COMMIT | TransactionCommand::END, false, _) => Command::End("commit"),
+        (TransactionCommand::ROLLBACK | TransactionCommand::ABORT, false, _) => Command::End("roll back"),
+        (TransactionCommand::ROLLBACK, true, _) => Command::ToSavepoint { name, release: false },
+        (TransactionCommand::RELEASE, _, _) => Command::ToSavepoint { name, release: true },
+        (TransactionCommand::SAVEPOINT, _, _) => Command::Savepoint(name),
         _ => return None,
     })
 }
