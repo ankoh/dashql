@@ -63,8 +63,7 @@ script is a section per phase:
 - **Scanner.** The tokens of the parse as a wrapping line, colored by their type, the comments between them.
 - **Parser.** The nodes of the AST as a wrapping line of chips in the order of the array of the parser, a label at the
   start of each statement. A chip shows the attribute key and the type of its node, a leaf also its text. The node
-  under the pointer highlights its children (green) and its parent (amber), and a line below shows its children or
-  value, its parent and its text.
+  under the pointer highlights its children (green) and its parent (amber).
 - **Analyzer.** The errors of the analysis, and its facts as rows of chips by their kind: the declared tables, the table
   references with the kind of their resolution (`catalog`, `script`, `parameter`, `cte`), the column references with
   the table reference they read (`catalog region`, `cte d`), a derived table (`subquery`) or an output column of their

@@ -172,18 +172,6 @@ const enum NodeRole {
 /// The text of a leaf in its chip, at most this many characters
 const LEAF_TEXT_LENGTH = 24;
 
-/// How a node reads in the line of the node under the pointer: its type, its attribute key, its
-/// children or its value, and its parent
-function describeNode(id: number, node: dashql.buffers.parser.NodeT): string {
-    const key = node.attributeKey === dashql.buffers.parser.AttributeKey.NONE ? null : enumName(dashql.buffers.parser.AttributeKey, node.attributeKey);
-    return [
-        `#${id} ${enumName(dashql.buffers.parser.NodeType, node.nodeType)}`,
-        key,
-        hasChildren(node.nodeType) ? `children ${node.childrenBeginOrValue}+${node.childrenCount}` : `value ${node.childrenBeginOrValue}`,
-        node.parent === id ? 'root' : `parent #${node.parent}`,
-    ].filter(part => part != null).join(' · ');
-}
-
 interface NodeChipProps {
     id: number;
     node: dashql.buffers.parser.NodeT;
@@ -222,8 +210,7 @@ const NodeChip = React.memo(function NodeChip({ id, node, role, text }: NodeChip
 });
 
 /// The nodes of the AST as a wrapping line in the order of the array of the parser, a label at the start of every
-/// statement. The node under the pointer highlights its children and its parent in their colors, and shows its fields
-/// and text below the line.
+/// statement. The node under the pointer highlights its children and its parent in their colors.
 function ParserSection(props: { parsed: dashql.buffers.parser.ParsedScriptT; bytes: ScriptBytes; focus: number | null; setFocus: (focus: number | null) => void }) {
     const { parsed, bytes, focus, setFocus } = props;
 
@@ -270,14 +257,6 @@ function ParserSection(props: { parsed: dashql.buffers.parser.ParsedScriptT; byt
                         </React.Fragment>
                     );
                 })}
-            </div>
-            <div className={styles.focus_detail} aria-live="polite">
-                {focusNode != null && (
-                    <>
-                        <span className={styles.focus_type}>{describeNode(focus!, focusNode)}</span>
-                        {texts[focus!].length > 0 && <code className={styles.focus_text}>{texts[focus!]}</code>}
-                    </>
-                )}
             </div>
         </Section>
     );

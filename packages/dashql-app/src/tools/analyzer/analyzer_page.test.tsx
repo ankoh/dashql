@@ -135,8 +135,9 @@ describe('AnalyzerPage', () => {
         await act(async () => {
             await vi.waitFor(() => expect(roles()).toMatch(/^(child,)+focus$/));
         });
+        // Colors only, no edges and no line of the node below the AST
         expect(parser.querySelectorAll('svg').length).toBe(0);
-        expect(parser.textContent).toContain('r_name');
+        expect(parser.querySelector('[aria-live]')).toBeNull();
         // The scanner highlights the tokens of the node, the root has all but the semicolon
         const focused = () => focusedTokens().length;
         expect(focusedTokens()).toEqual(tokens('Editor Script').slice(0, -1));

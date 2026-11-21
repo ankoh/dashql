@@ -130,31 +130,7 @@
 
 /* Parser */
 
-.focus_detail {
-    display: flex;
-    flex-direction: row;
-    align-items: baseline;
-    column-gap: 12px;
-    min-height: 18px;
-    font-size: 12px;
-    color: var(--color_fg_muted);
-    overflow: hidden;
-    white-space: nowrap;
-}
-
-.focus_type {
-    font-family: var(--font_family_mono);
-    color: var(--color_fg);
-}
-
-.focus_text {
-    font-family: var(--font_family_mono);
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
 .ast {
-    position: relative;
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
