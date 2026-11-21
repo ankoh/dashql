@@ -382,16 +382,19 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "t"
           statement-id: 0
           text: "a"
         - expression-idx: 1
           type: colref/catalog
           catalog: "256.65536.4294967296.1"
+          source: "t"
           statement-id: 0
           text: "b"
         - expression-idx: 2
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "t"
           statement-id: 0
           text: "a"
         - expression-idx: 3
@@ -689,6 +692,7 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "t"
           statement-id: 0
           text: "a"
         - expression-idx: 1
@@ -1260,11 +1264,13 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "t"
           statement-id: 0
           text: "a"
         - expression-idx: 1
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "t"
           statement-id: 0
           text: "a"
         - expression-idx: 2
@@ -1274,11 +1280,13 @@ analyzer-snapshots:
         - expression-idx: 3
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "t"
           statement-id: 0
           text: "a"
         - expression-idx: 4
           type: colref/catalog
           catalog: "256.65536.4294967296.1"
+          source: "t"
           statement-id: 0
           text: "b"
         - expression-idx: 5
@@ -1379,11 +1387,13 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "t"
           statement-id: 0
           text: "a"
         - expression-idx: 1
           type: colref/catalog
           catalog: "256.65536.4294967296.1"
+          source: "t"
           statement-id: 0
           text: "b"
         - expression-idx: 2

@@ -197,6 +197,9 @@ pub fn encode_script(script: &AnalyzedScript, is_main: bool, scope_catalog: Scop
                 let mut m = Map::new();
                 if let Some(relation) = &table_ref.inner {
                     match &relation.resolved_table {
+                        None if relation.resolved_cte.is_some() => {
+                            m.plain("type", "name/cte");
+                        }
                         None => {
                             m.plain("type", "name/unresolved");
                         }
@@ -295,6 +298,10 @@ pub fn encode_script(script: &AnalyzedScript, is_main: bool, scope_catalog: Scop
                                     m.plain("type", if internal { "colref/internal" } else { "colref/catalog" });
                                     m.quoted("catalog", &format!("{db}.{schema}.{}.{column}", table_id.pack()));
                                 }
+                            }
+                            // The FROM item that the column ref reads, none for an output column of the own scope
+                            if let Some(source) = column_ref.resolved_source {
+                                e.location(&mut m, source, "source");
                             }
                         }
                     }

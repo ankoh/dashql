@@ -100,6 +100,8 @@ pub struct RelationExpression {
     pub resolved_table: Option<ResolvedTableEntry>,
     /// The ambiguous matches
     pub resolved_alternatives: Vec<ResolvedTableEntry>,
+    /// The CTE that a read resolves to, a CTE has no catalog ids and leaves `resolved_table` empty
+    pub resolved_cte: Option<CteLoc>,
 }
 
 /// A table reference
@@ -222,6 +224,9 @@ pub struct ColumnRef {
     pub ast_scope_root: Option<u32>,
     /// What the column ref resolved to
     pub resolved: ColumnResolution,
+    /// The AST node of the FROM item that the column ref reads, a table ref or a derived table. None for an output
+    /// column of the own scope, e.g. an alias in ORDER BY.
+    pub resolved_source: Option<u32>,
     /// The catalog ids behind the resolution, computed once the analysis is done
     /// (scope columns are followed through their source expressions)
     pub resolved_ids: Option<ResolvedColumnIds>,

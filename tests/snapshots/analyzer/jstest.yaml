@@ -85,6 +85,7 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.3"
+          source: "table1"
           statement-id: 0
           text: "col4"
       name-scopes:

@@ -50,11 +50,13 @@ completion-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "t"
           statement-id: 0
           text: "a"
         - expression-idx: 1
           type: colref/catalog
           catalog: "256.65536.4294967296.1"
+          source: "t"
           statement-id: 0
           text: "b"
         - expression-idx: 2
@@ -759,6 +761,7 @@ completion-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "t"
           statement-id: 0
           text: "a"
     cursor:
@@ -1013,6 +1016,7 @@ completion-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "t"
           statement-id: 0
           text: "a"
     cursor:
@@ -1077,11 +1081,13 @@ completion-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "t"
           statement-id: 0
           text: "a"
         - expression-idx: 1
           type: colref/catalog
           catalog: "256.65536.4294967296.1"
+          source: "t"
           statement-id: 0
           text: "b"
     cursor:
@@ -1146,11 +1152,13 @@ completion-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "t"
           statement-id: 0
           text: "a"
         - expression-idx: 1
           type: colref/catalog
           catalog: "256.65536.4294967296.1"
+          source: "t"
           statement-id: 0
           text: "b"
     cursor:
@@ -1215,6 +1223,7 @@ completion-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "t"
           statement-id: 0
           text: "a"
     cursor:
@@ -1376,6 +1385,7 @@ completion-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967297.1"
+          source: "u"
           statement-id: 0
           text: "u.c"
         - expression-idx: 1
@@ -1487,7 +1497,7 @@ completion-snapshots:
           catalog-id: "256.65536.4294967296"
           statement-id: 0
           text: "t"
-        - type: name/unresolved
+        - type: name/cte
           statement-id: 0
           text: "c"
       expressions:
@@ -1905,6 +1915,7 @@ completion-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.2"
+          source: "t"
           statement-id: 0
           text: "name"
         - expression-idx: 1
@@ -2012,6 +2023,7 @@ completion-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "t"
           statement-id: 0
           text: "a"
     cursor:
@@ -2110,6 +2122,7 @@ completion-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "t"
           statement-id: 0
           text: "t.a"
         - expression-idx: 1
@@ -2778,6 +2791,7 @@ completion-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "t"
           statement-id: 1
           text: "a"
         - expression-idx: 1

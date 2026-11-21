@@ -33,11 +33,13 @@ completion-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "tbl"
           statement-id: 0
           text: "a"
         - expression-idx: 1
           type: colref/catalog
           catalog: "256.65536.4294967296.1"
+          source: "tbl"
           statement-id: 0
           text: "b"
     cursor:
@@ -128,6 +130,7 @@ completion-snapshots:
         - expression-idx: 1
           type: colref/catalog
           catalog: "256.65536.4294967296.1"
+          source: "tbl"
           statement-id: 0
           text: "b"
     cursor:
@@ -205,11 +208,13 @@ completion-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "tbl"
           statement-id: 0
           text: "a"
         - expression-idx: 1
           type: colref/catalog
           catalog: "256.65536.4294967296.1"
+          source: "tbl"
           statement-id: 0
           text: "b"
         - expression-idx: 2
@@ -751,6 +756,7 @@ completion-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "tbl gro"
           statement-id: 0
           text: "a"
     cursor:
@@ -895,11 +901,13 @@ completion-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "tbl gro"
           statement-id: 0
           text: "a"
         - expression-idx: 1
           type: colref/catalog
           catalog: "256.65536.4294967296.1"
+          source: "tbl gro"
           statement-id: 0
           text: "b"
         - expression-idx: 2

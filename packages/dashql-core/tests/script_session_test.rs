@@ -605,6 +605,21 @@ fn projects_analyzer_errors_and_resolved_and_unresolved_references() {
 }
 
 #[test]
+fn projects_references_to_ctes_as_resolved() {
+    let catalog = new_catalog();
+    let _schema = load_schema(&catalog, "create table region (r_name text)");
+    let mut session = session(&catalog, UTF8);
+    let text = "with d as (select * from region) select * from d";
+    let update = analyze(&mut session, text);
+    let region = find_semantic_span(&update, text, EditorSemanticReferenceKind::TABLE, "region").unwrap();
+    let d = find_semantic_span(&update, text, EditorSemanticReferenceKind::TABLE, "d").unwrap();
+    assert_eq!(region.resolution, EditorSemanticResolution::RESOLVED);
+    // A CTE has no catalog ids
+    assert_eq!(d.resolution, EditorSemanticResolution::RESOLVED);
+    assert_eq!(d.catalog_table_id, 0);
+}
+
+#[test]
 fn projects_function_reference_spans() {
     let catalog = new_catalog();
     let _schema = load_schema(&catalog, "create table items (id int)");

@@ -347,6 +347,7 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/internal
           catalog: "256.65536.4294967296.0"
+          source: "foo f"
           statement-id: 0
           text: "f.x"
       name-scopes:
@@ -366,7 +367,7 @@ analyzer-snapshots:
       catalog-id: 1
       errors: []
       table-refs:
-        - type: name/unresolved
+        - type: name/cte
           statement-id: 0
           text: "cte c"
       expressions:
@@ -374,6 +375,7 @@ analyzer-snapshots:
           type: colref/local
           scope: 0
           column: 0
+          source: "cte c"
           statement-id: 0
           text: "c.x"
         - expression-idx: 1

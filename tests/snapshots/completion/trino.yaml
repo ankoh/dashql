@@ -53,6 +53,7 @@ completion-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.4"
+          source: "iceberg.so..me_queries"
           statement-id: 0
           text: "event"
     cursor:

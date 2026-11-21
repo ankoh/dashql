@@ -57,11 +57,13 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "A"
           statement-id: 0
           text: "a"
         - expression-idx: 1
           type: colref/catalog
           catalog: "256.65536.4294967296.1"
+          source: "A"
           statement-id: 0
           text: "b"
       name-scopes:
@@ -135,16 +137,19 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "A"
           statement-id: 0
           text: "a"
         - expression-idx: 1
           type: colref/catalog
           catalog: "256.65536.4294967297.0"
+          source: "B"
           statement-id: 0
           text: "d"
         - expression-idx: 2
           type: colref/catalog
           catalog: "256.65536.4294967297.1"
+          source: "B"
           statement-id: 0
           text: "e"
       name-scopes:
@@ -218,21 +223,25 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "A"
           statement-id: 0
           text: "a"
         - expression-idx: 1
           type: colref/catalog
           catalog: "256.65536.4294967297.0"
+          source: "B"
           statement-id: 0
           text: "d"
         - expression-idx: 2
           type: colref/catalog
           catalog: "256.65536.4294967296.1"
+          source: "A"
           statement-id: 0
           text: "b"
         - expression-idx: 3
           type: colref/catalog
           catalog: "256.65536.4294967297.1"
+          source: "B"
           statement-id: 0
           text: "e"
       name-scopes:
@@ -306,36 +315,43 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "A"
           statement-id: 0
           text: "a"
         - expression-idx: 1
           type: colref/catalog
           catalog: "256.65536.4294967297.0"
+          source: "B"
           statement-id: 0
           text: "d"
         - expression-idx: 2
           type: colref/catalog
           catalog: "256.65536.4294967296.1"
+          source: "A"
           statement-id: 0
           text: "b"
         - expression-idx: 3
           type: colref/catalog
           catalog: "256.65536.4294967297.1"
+          source: "B"
           statement-id: 0
           text: "e"
         - expression-idx: 4
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "A"
           statement-id: 0
           text: "a"
         - expression-idx: 5
           type: colref/catalog
           catalog: "256.65536.4294967297.0"
+          source: "B"
           statement-id: 0
           text: "d"
         - expression-idx: 6
           type: colref/catalog
           catalog: "256.65536.4294967297.0"
+          source: "B"
           statement-id: 0
           text: "d"
         - expression-idx: 7
@@ -417,11 +433,13 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967297.0"
+          source: "B"
           statement-id: 0
           text: "d"
         - expression-idx: 1
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "A"
           statement-id: 0
           text: "a"
         - expression-idx: 2
@@ -503,11 +521,13 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "A"
           statement-id: 0
           text: "a"
         - expression-idx: 1
           type: colref/catalog
           catalog: "256.65536.4294967296.1"
+          source: "A"
           statement-id: 0
           text: "b"
       name-scopes:
@@ -580,6 +600,7 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "A"
           statement-id: 0
           text: "a"
         - expression-idx: 1
@@ -659,6 +680,7 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "A"
           statement-id: 0
           text: "a"
         - expression-idx: 1
@@ -807,11 +829,13 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "A"
           statement-id: 0
           text: "a"
         - expression-idx: 1
           type: colref/catalog
           catalog: "256.65536.4294967297.0"
+          source: "B"
           statement-id: 0
           text: "d"
       name-scopes:
@@ -894,11 +918,13 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "A"
           statement-id: 0
           text: "a"
         - expression-idx: 1
           type: colref/catalog
           catalog: "256.65536.4294967297.0"
+          source: "B"
           statement-id: 0
           text: "d"
       name-scopes:
@@ -984,21 +1010,25 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967297.1"
+          source: "customer"
           statement-id: 0
           text: "c_name"
         - expression-idx: 1
           type: colref/catalog
           catalog: "256.65536.4294967296.1"
+          source: "orders"
           statement-id: 0
           text: "o_totalprice"
         - expression-idx: 2
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "orders"
           statement-id: 0
           text: "o_custkey"
         - expression-idx: 3
           type: colref/catalog
           catalog: "256.65536.4294967297.0"
+          source: "customer"
           statement-id: 0
           text: "c_custkey"
         - expression-idx: 4
@@ -1097,21 +1127,25 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "A"
           statement-id: 0
           text: "a"
         - expression-idx: 1
           type: colref/catalog
           catalog: "256.65536.4294967297.0"
+          source: "B"
           statement-id: 0
           text: "d"
         - expression-idx: 2
           type: colref/catalog
           catalog: "256.65536.4294967298.0"
+          source: "C"
           statement-id: 0
           text: "f"
         - expression-idx: 3
           type: colref/catalog
           catalog: "256.65536.4294967297.0"
+          source: "B"
           statement-id: 0
           text: "d"
       name-scopes:
@@ -1188,33 +1222,39 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "(select pr..duct) as s"
           statement-id: 0
           text: "product"
         - expression-idx: 1
           type: colref/local
           scope: 0
           column: 1
+          source: "(select pr..duct) as s"
           statement-id: 0
           text: "total"
         - expression-idx: 2
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "sales"
           statement-id: 0
           text: "product"
         - expression-idx: 3
           type: colref/catalog
           catalog: "256.65536.4294967296.1"
+          source: "sales"
           statement-id: 0
           text: "amount"
         - expression-idx: 4
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "sales"
           statement-id: 0
           text: "product"
         - expression-idx: 5
           type: colref/local
           scope: 0
           column: 1
+          source: "(select pr..duct) as s"
           statement-id: 0
           text: "total"
         - expression-idx: 6
@@ -1290,34 +1330,39 @@ analyzer-snapshots:
           catalog-id: "256.65536.4294967296"
           statement-id: 0
           text: "sales"
-        - type: name/unresolved
+        - type: name/cte
           statement-id: 0
           text: "totals"
       expressions:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "sales"
           statement-id: 0
           text: "product"
         - expression-idx: 1
           type: colref/catalog
           catalog: "256.65536.4294967296.1"
+          source: "sales"
           statement-id: 0
           text: "amount"
         - expression-idx: 2
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "sales"
           statement-id: 0
           text: "product"
         - expression-idx: 3
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "totals"
           statement-id: 0
           text: "product"
         - expression-idx: 4
           type: colref/local
           scope: 0
           column: 1
+          source: "totals"
           statement-id: 0
           text: "total"
         - expression-idx: 5
@@ -1385,34 +1430,39 @@ analyzer-snapshots:
           catalog-id: "256.65536.4294967296"
           statement-id: 0
           text: "sales"
-        - type: name/unresolved
+        - type: name/cte
           statement-id: 0
           text: "totals"
       expressions:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "sales"
           statement-id: 0
           text: "product"
         - expression-idx: 1
           type: colref/catalog
           catalog: "256.65536.4294967296.1"
+          source: "sales"
           statement-id: 0
           text: "amount"
         - expression-idx: 2
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "sales"
           statement-id: 0
           text: "product"
         - expression-idx: 3
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "totals"
           statement-id: 0
           text: "item"
         - expression-idx: 4
           type: colref/local
           scope: 0
           column: 1
+          source: "totals"
           statement-id: 0
           text: "revenue"
         - expression-idx: 5
@@ -1484,52 +1534,60 @@ analyzer-snapshots:
           catalog-id: "256.65536.4294967296"
           statement-id: 0
           text: "orders"
-        - type: name/unresolved
+        - type: name/cte
           statement-id: 0
           text: "completed"
-        - type: name/unresolved
+        - type: name/cte
           statement-id: 0
           text: "summary"
       expressions:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "orders"
           statement-id: 0
           text: "customer_id"
         - expression-idx: 1
           type: colref/catalog
           catalog: "256.65536.4294967296.1"
+          source: "orders"
           statement-id: 0
           text: "amount"
         - expression-idx: 2
           type: colref/catalog
           catalog: "256.65536.4294967296.2"
+          source: "orders"
           statement-id: 0
           text: "status"
         - expression-idx: 3
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "completed"
           statement-id: 0
           text: "customer_id"
         - expression-idx: 4
           type: colref/catalog
           catalog: "256.65536.4294967296.1"
+          source: "completed"
           statement-id: 0
           text: "amount"
         - expression-idx: 5
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "completed"
           statement-id: 0
           text: "customer_id"
         - expression-idx: 6
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "summary"
           statement-id: 0
           text: "customer_id"
         - expression-idx: 7
           type: colref/local
           scope: 1
           column: 1
+          source: "summary"
           statement-id: 0
           text: "total"
         - expression-idx: 8

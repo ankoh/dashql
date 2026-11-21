@@ -51,11 +51,13 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "db1.schema1.A x"
           statement-id: 0
           text: "x.a"
         - expression-idx: 1
           type: colref/catalog
           catalog: "257.65537.4294967297.0"
+          source: "db2.schema2.A y"
           statement-id: 0
           text: "c"
       name-scopes:
@@ -132,6 +134,7 @@ analyzer-snapshots:
         - expression-idx: 1
           type: colref/catalog
           catalog: "257.65537.4294967297.0"
+          source: "db2.schema2.A"
           statement-id: 0
           text: "c"
       name-scopes:
@@ -255,6 +258,7 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "db1.schema1.A"
           statement-id: 0
           text: "a"
         - expression-idx: 1
@@ -322,6 +326,7 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "db1.schema1.A"
           statement-id: 0
           text: "a"
         - expression-idx: 1

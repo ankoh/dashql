@@ -56,21 +56,25 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.1"
+          source: "orders o"
           statement-id: 0
           text: "product"
         - expression-idx: 1
           type: colref/catalog
           catalog: "256.65536.4294967296.1"
+          source: "orders o"
           statement-id: 0
           text: "o.product"
         - expression-idx: 2
           type: colref/catalog
           catalog: "256.65536.4294967296.1"
+          source: "orders o"
           statement-id: 0
           text: "o.product.name"
         - expression-idx: 3
           type: colref/catalog
           catalog: "256.65536.4294967296.1"
+          source: "orders o"
           statement-id: 0
           text: "product.quantity"
       name-scopes:
@@ -138,6 +142,7 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "product"
           statement-id: 0
           text: "product.name"
       name-scopes:
@@ -205,16 +210,19 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "orders"
           statement-id: 0
           text: "id"
         - expression-idx: 1
           type: colref/catalog
           catalog: "256.65536.4294967297.0"
+          source: "stock"
           statement-id: 0
           text: "stock.name"
         - expression-idx: 2
           type: colref/catalog
           catalog: "256.65536.4294967296.1"
+          source: "orders"
           statement-id: 0
           text: "product.name"
         - expression-idx: 3
@@ -279,21 +287,25 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "orders"
           statement-id: 0
           text: "id"
         - expression-idx: 1
           type: colref/catalog
           catalog: "256.65536.4294967296.1"
+          source: "orders"
           statement-id: 0
           text: "product.name"
         - expression-idx: 2
           type: colref/catalog
           catalog: "256.65536.4294967296.1"
+          source: "orders"
           statement-id: 0
           text: "product"
         - expression-idx: 3
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "orders"
           statement-id: 0
           text: "id"
         - expression-idx: 4
@@ -390,6 +402,7 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "(select id.. orders) s"
           statement-id: 0
           text: "s.id"
         - expression-idx: 1
@@ -399,6 +412,7 @@ analyzer-snapshots:
         - expression-idx: 2
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "orders"
           statement-id: 0
           text: "id"
       name-scopes:

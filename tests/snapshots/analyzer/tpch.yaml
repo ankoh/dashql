@@ -1201,151 +1201,181 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967297.5"
+          source: "supplier"
           statement-id: 0
           text: "s_acctbal"
         - expression-idx: 1
           type: colref/catalog
           catalog: "256.65536.4294967297.1"
+          source: "supplier"
           statement-id: 0
           text: "s_name"
         - expression-idx: 2
           type: colref/catalog
           catalog: "256.65536.4294967302.1"
+          source: "nation"
           statement-id: 0
           text: "n_name"
         - expression-idx: 3
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "part"
           statement-id: 0
           text: "p_partkey"
         - expression-idx: 4
           type: colref/catalog
           catalog: "256.65536.4294967296.2"
+          source: "part"
           statement-id: 0
           text: "p_mfgr"
         - expression-idx: 5
           type: colref/catalog
           catalog: "256.65536.4294967297.2"
+          source: "supplier"
           statement-id: 0
           text: "s_address"
         - expression-idx: 6
           type: colref/catalog
           catalog: "256.65536.4294967297.4"
+          source: "supplier"
           statement-id: 0
           text: "s_phone"
         - expression-idx: 7
           type: colref/catalog
           catalog: "256.65536.4294967297.6"
+          source: "supplier"
           statement-id: 0
           text: "s_comment"
         - expression-idx: 8
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "part"
           statement-id: 0
           text: "p_partkey"
         - expression-idx: 9
           type: colref/catalog
           catalog: "256.65536.4294967298.0"
+          source: "partsupp"
           statement-id: 0
           text: "ps_partkey"
         - expression-idx: 10
           type: colref/catalog
           catalog: "256.65536.4294967297.0"
+          source: "supplier"
           statement-id: 0
           text: "s_suppkey"
         - expression-idx: 11
           type: colref/catalog
           catalog: "256.65536.4294967298.1"
+          source: "partsupp"
           statement-id: 0
           text: "ps_suppkey"
         - expression-idx: 12
           type: colref/catalog
           catalog: "256.65536.4294967296.5"
+          source: "part"
           statement-id: 0
           text: "p_size"
         - expression-idx: 13
           type: colref/catalog
           catalog: "256.65536.4294967296.4"
+          source: "part"
           statement-id: 0
           text: "p_type"
         - expression-idx: 14
           type: colref/catalog
           catalog: "256.65536.4294967297.3"
+          source: "supplier"
           statement-id: 0
           text: "s_nationkey"
         - expression-idx: 15
           type: colref/catalog
           catalog: "256.65536.4294967302.0"
+          source: "nation"
           statement-id: 0
           text: "n_nationkey"
         - expression-idx: 16
           type: colref/catalog
           catalog: "256.65536.4294967302.2"
+          source: "nation"
           statement-id: 0
           text: "n_regionkey"
         - expression-idx: 17
           type: colref/catalog
           catalog: "256.65536.4294967303.0"
+          source: "region"
           statement-id: 0
           text: "r_regionkey"
         - expression-idx: 18
           type: colref/catalog
           catalog: "256.65536.4294967303.1"
+          source: "region"
           statement-id: 0
           text: "r_name"
         - expression-idx: 19
           type: colref/catalog
           catalog: "256.65536.4294967298.3"
+          source: "partsupp"
           statement-id: 0
           text: "ps_supplycost"
         - expression-idx: 20
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "part"
           statement-id: 0
           text: "p_partkey"
         - expression-idx: 21
           type: colref/catalog
           catalog: "256.65536.4294967298.0"
+          source: "partsupp"
           statement-id: 0
           text: "ps_partkey"
         - expression-idx: 22
           type: colref/catalog
           catalog: "256.65536.4294967297.0"
+          source: "supplier"
           statement-id: 0
           text: "s_suppkey"
         - expression-idx: 23
           type: colref/catalog
           catalog: "256.65536.4294967298.1"
+          source: "partsupp"
           statement-id: 0
           text: "ps_suppkey"
         - expression-idx: 24
           type: colref/catalog
           catalog: "256.65536.4294967297.3"
+          source: "supplier"
           statement-id: 0
           text: "s_nationkey"
         - expression-idx: 25
           type: colref/catalog
           catalog: "256.65536.4294967302.0"
+          source: "nation"
           statement-id: 0
           text: "n_nationkey"
         - expression-idx: 26
           type: colref/catalog
           catalog: "256.65536.4294967302.2"
+          source: "nation"
           statement-id: 0
           text: "n_regionkey"
         - expression-idx: 27
           type: colref/catalog
           catalog: "256.65536.4294967303.0"
+          source: "region"
           statement-id: 0
           text: "r_regionkey"
         - expression-idx: 28
           type: colref/catalog
           catalog: "256.65536.4294967303.1"
+          source: "region"
           statement-id: 0
           text: "r_name"
         - expression-idx: 29
           type: colref/catalog
           catalog: "256.65536.4294967298.3"
+          source: "partsupp"
           statement-id: 0
           text: "ps_supplycost"
         - expression-idx: 30
@@ -2064,76 +2094,91 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967301.0"
+          source: "lineitem"
           statement-id: 0
           text: "l_orderkey"
         - expression-idx: 1
           type: colref/catalog
           catalog: "256.65536.4294967301.6"
+          source: "lineitem"
           statement-id: 0
           text: "l_discount"
         - expression-idx: 2
           type: colref/catalog
           catalog: "256.65536.4294967301.5"
+          source: "lineitem"
           statement-id: 0
           text: "l_extendedprice"
         - expression-idx: 3
           type: colref/catalog
           catalog: "256.65536.4294967300.4"
+          source: "orders"
           statement-id: 0
           text: "o_orderdate"
         - expression-idx: 4
           type: colref/catalog
           catalog: "256.65536.4294967300.7"
+          source: "orders"
           statement-id: 0
           text: "o_shippriority"
         - expression-idx: 5
           type: colref/catalog
           catalog: "256.65536.4294967299.6"
+          source: "customer"
           statement-id: 0
           text: "c_mktsegment"
         - expression-idx: 6
           type: colref/catalog
           catalog: "256.65536.4294967299.0"
+          source: "customer"
           statement-id: 0
           text: "c_custkey"
         - expression-idx: 7
           type: colref/catalog
           catalog: "256.65536.4294967300.1"
+          source: "orders"
           statement-id: 0
           text: "o_custkey"
         - expression-idx: 8
           type: colref/catalog
           catalog: "256.65536.4294967301.0"
+          source: "lineitem"
           statement-id: 0
           text: "l_orderkey"
         - expression-idx: 9
           type: colref/catalog
           catalog: "256.65536.4294967300.0"
+          source: "orders"
           statement-id: 0
           text: "o_orderkey"
         - expression-idx: 10
           type: colref/catalog
           catalog: "256.65536.4294967300.4"
+          source: "orders"
           statement-id: 0
           text: "o_orderdate"
         - expression-idx: 11
           type: colref/catalog
           catalog: "256.65536.4294967301.10"
+          source: "lineitem"
           statement-id: 0
           text: "l_shipdate"
         - expression-idx: 12
           type: colref/catalog
           catalog: "256.65536.4294967301.0"
+          source: "lineitem"
           statement-id: 0
           text: "l_orderkey"
         - expression-idx: 13
           type: colref/catalog
           catalog: "256.65536.4294967300.4"
+          source: "orders"
           statement-id: 0
           text: "o_orderdate"
         - expression-idx: 14
           type: colref/catalog
           catalog: "256.65536.4294967300.7"
+          source: "orders"
           statement-id: 0
           text: "o_shippriority"
         - expression-idx: 15
@@ -2827,41 +2872,49 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967300.5"
+          source: "orders"
           statement-id: 0
           text: "o_orderpriority"
         - expression-idx: 1
           type: colref/catalog
           catalog: "256.65536.4294967300.4"
+          source: "orders"
           statement-id: 0
           text: "o_orderdate"
         - expression-idx: 2
           type: colref/catalog
           catalog: "256.65536.4294967300.4"
+          source: "orders"
           statement-id: 0
           text: "o_orderdate"
         - expression-idx: 3
           type: colref/catalog
           catalog: "256.65536.4294967301.0"
+          source: "lineitem"
           statement-id: 0
           text: "l_orderkey"
         - expression-idx: 4
           type: colref/catalog
           catalog: "256.65536.4294967300.0"
+          source: "orders"
           statement-id: 0
           text: "o_orderkey"
         - expression-idx: 5
           type: colref/catalog
           catalog: "256.65536.4294967301.11"
+          source: "lineitem"
           statement-id: 0
           text: "l_commitdate"
         - expression-idx: 6
           type: colref/catalog
           catalog: "256.65536.4294967301.12"
+          source: "lineitem"
           statement-id: 0
           text: "l_receiptdate"
         - expression-idx: 7
           type: colref/catalog
           catalog: "256.65536.4294967300.5"
+          source: "orders"
           statement-id: 0
           text: "o_orderpriority"
         - expression-idx: 8
@@ -3577,96 +3630,115 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967302.1"
+          source: "nation"
           statement-id: 0
           text: "n_name"
         - expression-idx: 1
           type: colref/catalog
           catalog: "256.65536.4294967301.6"
+          source: "lineitem"
           statement-id: 0
           text: "l_discount"
         - expression-idx: 2
           type: colref/catalog
           catalog: "256.65536.4294967301.5"
+          source: "lineitem"
           statement-id: 0
           text: "l_extendedprice"
         - expression-idx: 3
           type: colref/catalog
           catalog: "256.65536.4294967299.0"
+          source: "customer"
           statement-id: 0
           text: "c_custkey"
         - expression-idx: 4
           type: colref/catalog
           catalog: "256.65536.4294967300.1"
+          source: "orders"
           statement-id: 0
           text: "o_custkey"
         - expression-idx: 5
           type: colref/catalog
           catalog: "256.65536.4294967301.0"
+          source: "lineitem"
           statement-id: 0
           text: "l_orderkey"
         - expression-idx: 6
           type: colref/catalog
           catalog: "256.65536.4294967300.0"
+          source: "orders"
           statement-id: 0
           text: "o_orderkey"
         - expression-idx: 7
           type: colref/catalog
           catalog: "256.65536.4294967301.2"
+          source: "lineitem"
           statement-id: 0
           text: "l_suppkey"
         - expression-idx: 8
           type: colref/catalog
           catalog: "256.65536.4294967297.0"
+          source: "supplier"
           statement-id: 0
           text: "s_suppkey"
         - expression-idx: 9
           type: colref/catalog
           catalog: "256.65536.4294967299.3"
+          source: "customer"
           statement-id: 0
           text: "c_nationkey"
         - expression-idx: 10
           type: colref/catalog
           catalog: "256.65536.4294967297.3"
+          source: "supplier"
           statement-id: 0
           text: "s_nationkey"
         - expression-idx: 11
           type: colref/catalog
           catalog: "256.65536.4294967297.3"
+          source: "supplier"
           statement-id: 0
           text: "s_nationkey"
         - expression-idx: 12
           type: colref/catalog
           catalog: "256.65536.4294967302.0"
+          source: "nation"
           statement-id: 0
           text: "n_nationkey"
         - expression-idx: 13
           type: colref/catalog
           catalog: "256.65536.4294967302.2"
+          source: "nation"
           statement-id: 0
           text: "n_regionkey"
         - expression-idx: 14
           type: colref/catalog
           catalog: "256.65536.4294967303.0"
+          source: "region"
           statement-id: 0
           text: "r_regionkey"
         - expression-idx: 15
           type: colref/catalog
           catalog: "256.65536.4294967303.1"
+          source: "region"
           statement-id: 0
           text: "r_name"
         - expression-idx: 16
           type: colref/catalog
           catalog: "256.65536.4294967300.4"
+          source: "orders"
           statement-id: 0
           text: "o_orderdate"
         - expression-idx: 17
           type: colref/catalog
           catalog: "256.65536.4294967300.4"
+          source: "orders"
           statement-id: 0
           text: "o_orderdate"
         - expression-idx: 18
           type: colref/catalog
           catalog: "256.65536.4294967302.1"
+          source: "nation"
           statement-id: 0
           text: "n_name"
         - expression-idx: 19
@@ -4337,31 +4409,37 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967301.5"
+          source: "lineitem"
           statement-id: 0
           text: "l_extendedprice"
         - expression-idx: 1
           type: colref/catalog
           catalog: "256.65536.4294967301.6"
+          source: "lineitem"
           statement-id: 0
           text: "l_discount"
         - expression-idx: 2
           type: colref/catalog
           catalog: "256.65536.4294967301.10"
+          source: "lineitem"
           statement-id: 0
           text: "l_shipdate"
         - expression-idx: 3
           type: colref/catalog
           catalog: "256.65536.4294967301.10"
+          source: "lineitem"
           statement-id: 0
           text: "l_shipdate"
         - expression-idx: 4
           type: colref/catalog
           catalog: "256.65536.4294967301.6"
+          source: "lineitem"
           statement-id: 0
           text: "l_discount"
         - expression-idx: 5
           type: colref/catalog
           catalog: "256.65536.4294967301.4"
+          source: "lineitem"
           statement-id: 0
           text: "l_quantity"
         - expression-idx: 6
@@ -5100,139 +5178,166 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967302.1"
+          source: "(\n        ..s shipping"
           statement-id: 0
           text: "supp_nation"
         - expression-idx: 1
           type: colref/catalog
           catalog: "256.65536.4294967302.1"
+          source: "(\n        ..s shipping"
           statement-id: 0
           text: "cust_nation"
         - expression-idx: 2
           type: colref/local
           scope: 0
           column: 2
+          source: "(\n        ..s shipping"
           statement-id: 0
           text: "l_year"
         - expression-idx: 3
           type: colref/local
           scope: 0
           column: 3
+          source: "(\n        ..s shipping"
           statement-id: 0
           text: "volume"
         - expression-idx: 4
           type: colref/catalog
           catalog: "256.65536.4294967302.1"
+          source: "nation n1"
           statement-id: 0
           text: "n1.n_name"
         - expression-idx: 5
           type: colref/catalog
           catalog: "256.65536.4294967302.1"
+          source: "nation n2"
           statement-id: 0
           text: "n2.n_name"
         - expression-idx: 6
           type: colref/catalog
           catalog: "256.65536.4294967301.10"
+          source: "lineitem"
           statement-id: 0
           text: "l_shipdate"
         - expression-idx: 7
           type: colref/catalog
           catalog: "256.65536.4294967301.6"
+          source: "lineitem"
           statement-id: 0
           text: "l_discount"
         - expression-idx: 8
           type: colref/catalog
           catalog: "256.65536.4294967301.5"
+          source: "lineitem"
           statement-id: 0
           text: "l_extendedprice"
         - expression-idx: 9
           type: colref/catalog
           catalog: "256.65536.4294967297.0"
+          source: "supplier"
           statement-id: 0
           text: "s_suppkey"
         - expression-idx: 10
           type: colref/catalog
           catalog: "256.65536.4294967301.2"
+          source: "lineitem"
           statement-id: 0
           text: "l_suppkey"
         - expression-idx: 11
           type: colref/catalog
           catalog: "256.65536.4294967300.0"
+          source: "orders"
           statement-id: 0
           text: "o_orderkey"
         - expression-idx: 12
           type: colref/catalog
           catalog: "256.65536.4294967301.0"
+          source: "lineitem"
           statement-id: 0
           text: "l_orderkey"
         - expression-idx: 13
           type: colref/catalog
           catalog: "256.65536.4294967299.0"
+          source: "customer"
           statement-id: 0
           text: "c_custkey"
         - expression-idx: 14
           type: colref/catalog
           catalog: "256.65536.4294967300.1"
+          source: "orders"
           statement-id: 0
           text: "o_custkey"
         - expression-idx: 15
           type: colref/catalog
           catalog: "256.65536.4294967297.3"
+          source: "supplier"
           statement-id: 0
           text: "s_nationkey"
         - expression-idx: 16
           type: colref/catalog
           catalog: "256.65536.4294967302.0"
+          source: "nation n1"
           statement-id: 0
           text: "n1.n_nationkey"
         - expression-idx: 17
           type: colref/catalog
           catalog: "256.65536.4294967299.3"
+          source: "customer"
           statement-id: 0
           text: "c_nationkey"
         - expression-idx: 18
           type: colref/catalog
           catalog: "256.65536.4294967302.0"
+          source: "nation n2"
           statement-id: 0
           text: "n2.n_nationkey"
         - expression-idx: 19
           type: colref/catalog
           catalog: "256.65536.4294967302.1"
+          source: "nation n1"
           statement-id: 0
           text: "n1.n_name"
         - expression-idx: 20
           type: colref/catalog
           catalog: "256.65536.4294967302.1"
+          source: "nation n2"
           statement-id: 0
           text: "n2.n_name"
         - expression-idx: 21
           type: colref/catalog
           catalog: "256.65536.4294967302.1"
+          source: "nation n1"
           statement-id: 0
           text: "n1.n_name"
         - expression-idx: 22
           type: colref/catalog
           catalog: "256.65536.4294967302.1"
+          source: "nation n2"
           statement-id: 0
           text: "n2.n_name"
         - expression-idx: 23
           type: colref/catalog
           catalog: "256.65536.4294967301.10"
+          source: "lineitem"
           statement-id: 0
           text: "l_shipdate"
         - expression-idx: 24
           type: colref/catalog
           catalog: "256.65536.4294967302.1"
+          source: "(\n        ..s shipping"
           statement-id: 0
           text: "supp_nation"
         - expression-idx: 25
           type: colref/catalog
           catalog: "256.65536.4294967302.1"
+          source: "(\n        ..s shipping"
           statement-id: 0
           text: "cust_nation"
         - expression-idx: 26
           type: colref/local
           scope: 0
           column: 2
+          source: "(\n        ..s shipping"
           statement-id: 0
           text: "l_year"
         - expression-idx: 27
@@ -6019,134 +6124,160 @@ analyzer-snapshots:
           type: colref/local
           scope: 0
           column: 0
+          source: "(\n        ..ll_nations"
           statement-id: 0
           text: "o_year"
         - expression-idx: 1
           type: colref/catalog
           catalog: "256.65536.4294967302.1"
+          source: "(\n        ..ll_nations"
           statement-id: 0
           text: "nation"
         - expression-idx: 2
           type: colref/local
           scope: 0
           column: 1
+          source: "(\n        ..ll_nations"
           statement-id: 0
           text: "volume"
         - expression-idx: 3
           type: colref/local
           scope: 0
           column: 1
+          source: "(\n        ..ll_nations"
           statement-id: 0
           text: "volume"
         - expression-idx: 4
           type: colref/catalog
           catalog: "256.65536.4294967300.4"
+          source: "orders"
           statement-id: 0
           text: "o_orderdate"
         - expression-idx: 5
           type: colref/catalog
           catalog: "256.65536.4294967301.6"
+          source: "lineitem"
           statement-id: 0
           text: "l_discount"
         - expression-idx: 6
           type: colref/catalog
           catalog: "256.65536.4294967301.5"
+          source: "lineitem"
           statement-id: 0
           text: "l_extendedprice"
         - expression-idx: 7
           type: colref/catalog
           catalog: "256.65536.4294967302.1"
+          source: "nation n2"
           statement-id: 0
           text: "n2.n_name"
         - expression-idx: 8
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "part"
           statement-id: 0
           text: "p_partkey"
         - expression-idx: 9
           type: colref/catalog
           catalog: "256.65536.4294967301.1"
+          source: "lineitem"
           statement-id: 0
           text: "l_partkey"
         - expression-idx: 10
           type: colref/catalog
           catalog: "256.65536.4294967297.0"
+          source: "supplier"
           statement-id: 0
           text: "s_suppkey"
         - expression-idx: 11
           type: colref/catalog
           catalog: "256.65536.4294967301.2"
+          source: "lineitem"
           statement-id: 0
           text: "l_suppkey"
         - expression-idx: 12
           type: colref/catalog
           catalog: "256.65536.4294967301.0"
+          source: "lineitem"
           statement-id: 0
           text: "l_orderkey"
         - expression-idx: 13
           type: colref/catalog
           catalog: "256.65536.4294967300.0"
+          source: "orders"
           statement-id: 0
           text: "o_orderkey"
         - expression-idx: 14
           type: colref/catalog
           catalog: "256.65536.4294967300.1"
+          source: "orders"
           statement-id: 0
           text: "o_custkey"
         - expression-idx: 15
           type: colref/catalog
           catalog: "256.65536.4294967299.0"
+          source: "customer"
           statement-id: 0
           text: "c_custkey"
         - expression-idx: 16
           type: colref/catalog
           catalog: "256.65536.4294967299.3"
+          source: "customer"
           statement-id: 0
           text: "c_nationkey"
         - expression-idx: 17
           type: colref/catalog
           catalog: "256.65536.4294967302.0"
+          source: "nation n1"
           statement-id: 0
           text: "n1.n_nationkey"
         - expression-idx: 18
           type: colref/catalog
           catalog: "256.65536.4294967302.2"
+          source: "nation n1"
           statement-id: 0
           text: "n1.n_regionkey"
         - expression-idx: 19
           type: colref/catalog
           catalog: "256.65536.4294967303.0"
+          source: "region"
           statement-id: 0
           text: "r_regionkey"
         - expression-idx: 20
           type: colref/catalog
           catalog: "256.65536.4294967303.1"
+          source: "region"
           statement-id: 0
           text: "r_name"
         - expression-idx: 21
           type: colref/catalog
           catalog: "256.65536.4294967297.3"
+          source: "supplier"
           statement-id: 0
           text: "s_nationkey"
         - expression-idx: 22
           type: colref/catalog
           catalog: "256.65536.4294967302.0"
+          source: "nation n2"
           statement-id: 0
           text: "n2.n_nationkey"
         - expression-idx: 23
           type: colref/catalog
           catalog: "256.65536.4294967300.4"
+          source: "orders"
           statement-id: 0
           text: "o_orderdate"
         - expression-idx: 24
           type: colref/catalog
           catalog: "256.65536.4294967296.4"
+          source: "part"
           statement-id: 0
           text: "p_type"
         - expression-idx: 25
           type: colref/local
           scope: 0
           column: 0
+          source: "(\n        ..ll_nations"
           statement-id: 0
           text: "o_year"
         - expression-idx: 26
@@ -6914,124 +7045,148 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967302.1"
+          source: "(\n        .. as profit"
           statement-id: 0
           text: "nation"
         - expression-idx: 1
           type: colref/local
           scope: 0
           column: 1
+          source: "(\n        .. as profit"
           statement-id: 0
           text: "o_year"
         - expression-idx: 2
           type: colref/local
           scope: 0
           column: 2
+          source: "(\n        .. as profit"
           statement-id: 0
           text: "amount"
         - expression-idx: 3
           type: colref/catalog
           catalog: "256.65536.4294967302.1"
+          source: "nation"
           statement-id: 0
           text: "n_name"
         - expression-idx: 4
           type: colref/catalog
           catalog: "256.65536.4294967300.4"
+          source: "orders"
           statement-id: 0
           text: "o_orderdate"
         - expression-idx: 5
           type: colref/catalog
           catalog: "256.65536.4294967301.6"
+          source: "lineitem"
           statement-id: 0
           text: "l_discount"
         - expression-idx: 6
           type: colref/catalog
           catalog: "256.65536.4294967301.5"
+          source: "lineitem"
           statement-id: 0
           text: "l_extendedprice"
         - expression-idx: 7
           type: colref/catalog
           catalog: "256.65536.4294967298.3"
+          source: "partsupp"
           statement-id: 0
           text: "ps_supplycost"
         - expression-idx: 8
           type: colref/catalog
           catalog: "256.65536.4294967301.4"
+          source: "lineitem"
           statement-id: 0
           text: "l_quantity"
         - expression-idx: 9
           type: colref/catalog
           catalog: "256.65536.4294967297.0"
+          source: "supplier"
           statement-id: 0
           text: "s_suppkey"
         - expression-idx: 10
           type: colref/catalog
           catalog: "256.65536.4294967301.2"
+          source: "lineitem"
           statement-id: 0
           text: "l_suppkey"
         - expression-idx: 11
           type: colref/catalog
           catalog: "256.65536.4294967298.1"
+          source: "partsupp"
           statement-id: 0
           text: "ps_suppkey"
         - expression-idx: 12
           type: colref/catalog
           catalog: "256.65536.4294967301.2"
+          source: "lineitem"
           statement-id: 0
           text: "l_suppkey"
         - expression-idx: 13
           type: colref/catalog
           catalog: "256.65536.4294967298.0"
+          source: "partsupp"
           statement-id: 0
           text: "ps_partkey"
         - expression-idx: 14
           type: colref/catalog
           catalog: "256.65536.4294967301.1"
+          source: "lineitem"
           statement-id: 0
           text: "l_partkey"
         - expression-idx: 15
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "part"
           statement-id: 0
           text: "p_partkey"
         - expression-idx: 16
           type: colref/catalog
           catalog: "256.65536.4294967301.1"
+          source: "lineitem"
           statement-id: 0
           text: "l_partkey"
         - expression-idx: 17
           type: colref/catalog
           catalog: "256.65536.4294967300.0"
+          source: "orders"
           statement-id: 0
           text: "o_orderkey"
         - expression-idx: 18
           type: colref/catalog
           catalog: "256.65536.4294967301.0"
+          source: "lineitem"
           statement-id: 0
           text: "l_orderkey"
         - expression-idx: 19
           type: colref/catalog
           catalog: "256.65536.4294967297.3"
+          source: "supplier"
           statement-id: 0
           text: "s_nationkey"
         - expression-idx: 20
           type: colref/catalog
           catalog: "256.65536.4294967302.0"
+          source: "nation"
           statement-id: 0
           text: "n_nationkey"
         - expression-idx: 21
           type: colref/catalog
           catalog: "256.65536.4294967296.1"
+          source: "part"
           statement-id: 0
           text: "p_name"
         - expression-idx: 22
           type: colref/catalog
           catalog: "256.65536.4294967302.1"
+          source: "(\n        .. as profit"
           statement-id: 0
           text: "nation"
         - expression-idx: 23
           type: colref/local
           scope: 0
           column: 1
+          source: "(\n        .. as profit"
           statement-id: 0
           text: "o_year"
         - expression-idx: 24
@@ -7720,126 +7875,151 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967299.0"
+          source: "customer"
           statement-id: 0
           text: "c_custkey"
         - expression-idx: 1
           type: colref/catalog
           catalog: "256.65536.4294967299.1"
+          source: "customer"
           statement-id: 0
           text: "c_name"
         - expression-idx: 2
           type: colref/catalog
           catalog: "256.65536.4294967301.6"
+          source: "lineitem"
           statement-id: 0
           text: "l_discount"
         - expression-idx: 3
           type: colref/catalog
           catalog: "256.65536.4294967301.5"
+          source: "lineitem"
           statement-id: 0
           text: "l_extendedprice"
         - expression-idx: 4
           type: colref/catalog
           catalog: "256.65536.4294967299.5"
+          source: "customer"
           statement-id: 0
           text: "c_acctbal"
         - expression-idx: 5
           type: colref/catalog
           catalog: "256.65536.4294967302.1"
+          source: "nation"
           statement-id: 0
           text: "n_name"
         - expression-idx: 6
           type: colref/catalog
           catalog: "256.65536.4294967299.2"
+          source: "customer"
           statement-id: 0
           text: "c_address"
         - expression-idx: 7
           type: colref/catalog
           catalog: "256.65536.4294967299.4"
+          source: "customer"
           statement-id: 0
           text: "c_phone"
         - expression-idx: 8
           type: colref/catalog
           catalog: "256.65536.4294967299.7"
+          source: "customer"
           statement-id: 0
           text: "c_comment"
         - expression-idx: 9
           type: colref/catalog
           catalog: "256.65536.4294967299.0"
+          source: "customer"
           statement-id: 0
           text: "c_custkey"
         - expression-idx: 10
           type: colref/catalog
           catalog: "256.65536.4294967300.1"
+          source: "orders"
           statement-id: 0
           text: "o_custkey"
         - expression-idx: 11
           type: colref/catalog
           catalog: "256.65536.4294967301.0"
+          source: "lineitem"
           statement-id: 0
           text: "l_orderkey"
         - expression-idx: 12
           type: colref/catalog
           catalog: "256.65536.4294967300.0"
+          source: "orders"
           statement-id: 0
           text: "o_orderkey"
         - expression-idx: 13
           type: colref/catalog
           catalog: "256.65536.4294967300.4"
+          source: "orders"
           statement-id: 0
           text: "o_orderdate"
         - expression-idx: 14
           type: colref/catalog
           catalog: "256.65536.4294967300.4"
+          source: "orders"
           statement-id: 0
           text: "o_orderdate"
         - expression-idx: 15
           type: colref/catalog
           catalog: "256.65536.4294967301.8"
+          source: "lineitem"
           statement-id: 0
           text: "l_returnflag"
         - expression-idx: 16
           type: colref/catalog
           catalog: "256.65536.4294967299.3"
+          source: "customer"
           statement-id: 0
           text: "c_nationkey"
         - expression-idx: 17
           type: colref/catalog
           catalog: "256.65536.4294967302.0"
+          source: "nation"
           statement-id: 0
           text: "n_nationkey"
         - expression-idx: 18
           type: colref/catalog
           catalog: "256.65536.4294967299.0"
+          source: "customer"
           statement-id: 0
           text: "c_custkey"
         - expression-idx: 19
           type: colref/catalog
           catalog: "256.65536.4294967299.1"
+          source: "customer"
           statement-id: 0
           text: "c_name"
         - expression-idx: 20
           type: colref/catalog
           catalog: "256.65536.4294967299.5"
+          source: "customer"
           statement-id: 0
           text: "c_acctbal"
         - expression-idx: 21
           type: colref/catalog
           catalog: "256.65536.4294967299.4"
+          source: "customer"
           statement-id: 0
           text: "c_phone"
         - expression-idx: 22
           type: colref/catalog
           catalog: "256.65536.4294967302.1"
+          source: "nation"
           statement-id: 0
           text: "n_name"
         - expression-idx: 23
           type: colref/catalog
           catalog: "256.65536.4294967299.2"
+          source: "customer"
           statement-id: 0
           text: "c_address"
         - expression-idx: 24
           type: colref/catalog
           catalog: "256.65536.4294967299.7"
+          source: "customer"
           statement-id: 0
           text: "c_comment"
         - expression-idx: 25
@@ -8561,91 +8741,109 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967298.0"
+          source: "partsupp"
           statement-id: 0
           text: "ps_partkey"
         - expression-idx: 1
           type: colref/catalog
           catalog: "256.65536.4294967298.3"
+          source: "partsupp"
           statement-id: 0
           text: "ps_supplycost"
         - expression-idx: 2
           type: colref/catalog
           catalog: "256.65536.4294967298.2"
+          source: "partsupp"
           statement-id: 0
           text: "ps_availqty"
         - expression-idx: 3
           type: colref/catalog
           catalog: "256.65536.4294967298.1"
+          source: "partsupp"
           statement-id: 0
           text: "ps_suppkey"
         - expression-idx: 4
           type: colref/catalog
           catalog: "256.65536.4294967297.0"
+          source: "supplier"
           statement-id: 0
           text: "s_suppkey"
         - expression-idx: 5
           type: colref/catalog
           catalog: "256.65536.4294967297.3"
+          source: "supplier"
           statement-id: 0
           text: "s_nationkey"
         - expression-idx: 6
           type: colref/catalog
           catalog: "256.65536.4294967302.0"
+          source: "nation"
           statement-id: 0
           text: "n_nationkey"
         - expression-idx: 7
           type: colref/catalog
           catalog: "256.65536.4294967302.1"
+          source: "nation"
           statement-id: 0
           text: "n_name"
         - expression-idx: 8
           type: colref/catalog
           catalog: "256.65536.4294967298.0"
+          source: "partsupp"
           statement-id: 0
           text: "ps_partkey"
         - expression-idx: 9
           type: colref/catalog
           catalog: "256.65536.4294967298.3"
+          source: "partsupp"
           statement-id: 0
           text: "ps_supplycost"
         - expression-idx: 10
           type: colref/catalog
           catalog: "256.65536.4294967298.2"
+          source: "partsupp"
           statement-id: 0
           text: "ps_availqty"
         - expression-idx: 11
           type: colref/catalog
           catalog: "256.65536.4294967298.3"
+          source: "partsupp"
           statement-id: 0
           text: "ps_supplycost"
         - expression-idx: 12
           type: colref/catalog
           catalog: "256.65536.4294967298.2"
+          source: "partsupp"
           statement-id: 0
           text: "ps_availqty"
         - expression-idx: 13
           type: colref/catalog
           catalog: "256.65536.4294967298.1"
+          source: "partsupp"
           statement-id: 0
           text: "ps_suppkey"
         - expression-idx: 14
           type: colref/catalog
           catalog: "256.65536.4294967297.0"
+          source: "supplier"
           statement-id: 0
           text: "s_suppkey"
         - expression-idx: 15
           type: colref/catalog
           catalog: "256.65536.4294967297.3"
+          source: "supplier"
           statement-id: 0
           text: "s_nationkey"
         - expression-idx: 16
           type: colref/catalog
           catalog: "256.65536.4294967302.0"
+          source: "nation"
           statement-id: 0
           text: "n_nationkey"
         - expression-idx: 17
           type: colref/catalog
           catalog: "256.65536.4294967302.1"
+          source: "nation"
           statement-id: 0
           text: "n_name"
         - expression-idx: 18
@@ -9349,76 +9547,91 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967301.14"
+          source: "lineitem"
           statement-id: 0
           text: "l_shipmode"
         - expression-idx: 1
           type: colref/catalog
           catalog: "256.65536.4294967300.5"
+          source: "orders"
           statement-id: 0
           text: "o_orderpriority"
         - expression-idx: 2
           type: colref/catalog
           catalog: "256.65536.4294967300.5"
+          source: "orders"
           statement-id: 0
           text: "o_orderpriority"
         - expression-idx: 3
           type: colref/catalog
           catalog: "256.65536.4294967300.5"
+          source: "orders"
           statement-id: 0
           text: "o_orderpriority"
         - expression-idx: 4
           type: colref/catalog
           catalog: "256.65536.4294967300.5"
+          source: "orders"
           statement-id: 0
           text: "o_orderpriority"
         - expression-idx: 5
           type: colref/catalog
           catalog: "256.65536.4294967300.0"
+          source: "orders"
           statement-id: 0
           text: "o_orderkey"
         - expression-idx: 6
           type: colref/catalog
           catalog: "256.65536.4294967301.0"
+          source: "lineitem"
           statement-id: 0
           text: "l_orderkey"
         - expression-idx: 7
           type: colref/catalog
           catalog: "256.65536.4294967301.14"
+          source: "lineitem"
           statement-id: 0
           text: "l_shipmode"
         - expression-idx: 8
           type: colref/catalog
           catalog: "256.65536.4294967301.11"
+          source: "lineitem"
           statement-id: 0
           text: "l_commitdate"
         - expression-idx: 9
           type: colref/catalog
           catalog: "256.65536.4294967301.12"
+          source: "lineitem"
           statement-id: 0
           text: "l_receiptdate"
         - expression-idx: 10
           type: colref/catalog
           catalog: "256.65536.4294967301.10"
+          source: "lineitem"
           statement-id: 0
           text: "l_shipdate"
         - expression-idx: 11
           type: colref/catalog
           catalog: "256.65536.4294967301.11"
+          source: "lineitem"
           statement-id: 0
           text: "l_commitdate"
         - expression-idx: 12
           type: colref/catalog
           catalog: "256.65536.4294967301.12"
+          source: "lineitem"
           statement-id: 0
           text: "l_receiptdate"
         - expression-idx: 13
           type: colref/catalog
           catalog: "256.65536.4294967301.12"
+          source: "lineitem"
           statement-id: 0
           text: "l_receiptdate"
         - expression-idx: 14
           type: colref/catalog
           catalog: "256.65536.4294967301.14"
+          source: "lineitem"
           statement-id: 0
           text: "l_shipmode"
         - expression-idx: 15
@@ -10155,42 +10368,50 @@ analyzer-snapshots:
           type: colref/local
           scope: 0
           column: 1
+          source: "(\n        ..s c_orders"
           statement-id: 0
           text: "c_count"
         - expression-idx: 1
           type: colref/catalog
           catalog: "256.65536.4294967299.0"
+          source: "customer"
           statement-id: 0
           text: "c_custkey"
         - expression-idx: 2
           type: colref/catalog
           catalog: "256.65536.4294967300.0"
+          source: "orders"
           statement-id: 0
           text: "o_orderkey"
         - expression-idx: 3
           type: colref/catalog
           catalog: "256.65536.4294967299.0"
+          source: "customer"
           statement-id: 0
           text: "c_custkey"
         - expression-idx: 4
           type: colref/catalog
           catalog: "256.65536.4294967300.1"
+          source: "orders"
           statement-id: 0
           text: "o_custkey"
         - expression-idx: 5
           type: colref/catalog
           catalog: "256.65536.4294967300.8"
+          source: "orders"
           statement-id: 0
           text: "o_comment"
         - expression-idx: 6
           type: colref/catalog
           catalog: "256.65536.4294967299.0"
+          source: "customer"
           statement-id: 0
           text: "c_custkey"
         - expression-idx: 7
           type: colref/local
           scope: 0
           column: 1
+          source: "(\n        ..s c_orders"
           statement-id: 0
           text: "c_count"
         - expression-idx: 8
@@ -10861,46 +11082,55 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.4"
+          source: "part"
           statement-id: 0
           text: "p_type"
         - expression-idx: 1
           type: colref/catalog
           catalog: "256.65536.4294967301.6"
+          source: "lineitem"
           statement-id: 0
           text: "l_discount"
         - expression-idx: 2
           type: colref/catalog
           catalog: "256.65536.4294967301.5"
+          source: "lineitem"
           statement-id: 0
           text: "l_extendedprice"
         - expression-idx: 3
           type: colref/catalog
           catalog: "256.65536.4294967301.6"
+          source: "lineitem"
           statement-id: 0
           text: "l_discount"
         - expression-idx: 4
           type: colref/catalog
           catalog: "256.65536.4294967301.5"
+          source: "lineitem"
           statement-id: 0
           text: "l_extendedprice"
         - expression-idx: 5
           type: colref/catalog
           catalog: "256.65536.4294967301.1"
+          source: "lineitem"
           statement-id: 0
           text: "l_partkey"
         - expression-idx: 6
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "part"
           statement-id: 0
           text: "p_partkey"
         - expression-idx: 7
           type: colref/catalog
           catalog: "256.65536.4294967301.10"
+          source: "lineitem"
           statement-id: 0
           text: "l_shipdate"
         - expression-idx: 8
           type: colref/catalog
           catalog: "256.65536.4294967301.10"
+          source: "lineitem"
           statement-id: 0
           text: "l_shipdate"
         - expression-idx: 9
@@ -11564,93 +11794,108 @@ analyzer-snapshots:
           catalog-id: "256.65536.4294967301"
           statement-id: 0
           text: "lineitem"
-        - type: name/unresolved
+        - type: name/cte
           statement-id: 0
           text: "revenue"
         - type: name/catalog
           catalog-id: "256.65536.4294967297"
           statement-id: 0
           text: "supplier"
-        - type: name/unresolved
+        - type: name/cte
           statement-id: 0
           text: "revenue"
       expressions:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967301.2"
+          source: "lineitem"
           statement-id: 0
           text: "l_suppkey"
         - expression-idx: 1
           type: colref/catalog
           catalog: "256.65536.4294967301.6"
+          source: "lineitem"
           statement-id: 0
           text: "l_discount"
         - expression-idx: 2
           type: colref/catalog
           catalog: "256.65536.4294967301.5"
+          source: "lineitem"
           statement-id: 0
           text: "l_extendedprice"
         - expression-idx: 3
           type: colref/catalog
           catalog: "256.65536.4294967301.10"
+          source: "lineitem"
           statement-id: 0
           text: "l_shipdate"
         - expression-idx: 4
           type: colref/catalog
           catalog: "256.65536.4294967301.10"
+          source: "lineitem"
           statement-id: 0
           text: "l_shipdate"
         - expression-idx: 5
           type: colref/catalog
           catalog: "256.65536.4294967301.2"
+          source: "lineitem"
           statement-id: 0
           text: "l_suppkey"
         - expression-idx: 6
           type: colref/catalog
           catalog: "256.65536.4294967297.0"
+          source: "supplier"
           statement-id: 0
           text: "s_suppkey"
         - expression-idx: 7
           type: colref/catalog
           catalog: "256.65536.4294967297.1"
+          source: "supplier"
           statement-id: 0
           text: "s_name"
         - expression-idx: 8
           type: colref/catalog
           catalog: "256.65536.4294967297.2"
+          source: "supplier"
           statement-id: 0
           text: "s_address"
         - expression-idx: 9
           type: colref/catalog
           catalog: "256.65536.4294967297.4"
+          source: "supplier"
           statement-id: 0
           text: "s_phone"
         - expression-idx: 10
           type: colref/local
           scope: 0
           column: 1
+          source: "revenue"
           statement-id: 0
           text: "total_revenue"
         - expression-idx: 11
           type: colref/catalog
           catalog: "256.65536.4294967297.0"
+          source: "supplier"
           statement-id: 0
           text: "s_suppkey"
         - expression-idx: 12
           type: colref/catalog
           catalog: "256.65536.4294967301.2"
+          source: "revenue"
           statement-id: 0
           text: "supplier_no"
         - expression-idx: 13
           type: colref/local
           scope: 0
           column: 1
+          source: "revenue"
           statement-id: 0
           text: "total_revenue"
         - expression-idx: 14
           type: colref/local
           scope: 0
           column: 1
+          source: "revenue"
           statement-id: 0
           text: "total_revenue"
         - expression-idx: 15
@@ -12366,76 +12611,91 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.3"
+          source: "part"
           statement-id: 0
           text: "p_brand"
         - expression-idx: 1
           type: colref/catalog
           catalog: "256.65536.4294967296.4"
+          source: "part"
           statement-id: 0
           text: "p_type"
         - expression-idx: 2
           type: colref/catalog
           catalog: "256.65536.4294967296.5"
+          source: "part"
           statement-id: 0
           text: "p_size"
         - expression-idx: 3
           type: colref/catalog
           catalog: "256.65536.4294967298.1"
+          source: "partsupp"
           statement-id: 0
           text: "ps_suppkey"
         - expression-idx: 4
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "part"
           statement-id: 0
           text: "p_partkey"
         - expression-idx: 5
           type: colref/catalog
           catalog: "256.65536.4294967298.0"
+          source: "partsupp"
           statement-id: 0
           text: "ps_partkey"
         - expression-idx: 6
           type: colref/catalog
           catalog: "256.65536.4294967296.3"
+          source: "part"
           statement-id: 0
           text: "p_brand"
         - expression-idx: 7
           type: colref/catalog
           catalog: "256.65536.4294967296.4"
+          source: "part"
           statement-id: 0
           text: "p_type"
         - expression-idx: 8
           type: colref/catalog
           catalog: "256.65536.4294967296.5"
+          source: "part"
           statement-id: 0
           text: "p_size"
         - expression-idx: 9
           type: colref/catalog
           catalog: "256.65536.4294967297.0"
+          source: "supplier"
           statement-id: 0
           text: "s_suppkey"
         - expression-idx: 10
           type: colref/catalog
           catalog: "256.65536.4294967297.6"
+          source: "supplier"
           statement-id: 0
           text: "s_comment"
         - expression-idx: 11
           type: colref/catalog
           catalog: "256.65536.4294967298.1"
+          source: "partsupp"
           statement-id: 0
           text: "ps_suppkey"
         - expression-idx: 12
           type: colref/catalog
           catalog: "256.65536.4294967296.3"
+          source: "part"
           statement-id: 0
           text: "p_brand"
         - expression-idx: 13
           type: colref/catalog
           catalog: "256.65536.4294967296.4"
+          source: "part"
           statement-id: 0
           text: "p_type"
         - expression-idx: 14
           type: colref/catalog
           catalog: "256.65536.4294967296.5"
+          source: "part"
           statement-id: 0
           text: "p_size"
         - expression-idx: 15
@@ -13188,46 +13448,55 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967301.5"
+          source: "lineitem"
           statement-id: 0
           text: "l_extendedprice"
         - expression-idx: 1
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "part"
           statement-id: 0
           text: "p_partkey"
         - expression-idx: 2
           type: colref/catalog
           catalog: "256.65536.4294967301.1"
+          source: "lineitem"
           statement-id: 0
           text: "l_partkey"
         - expression-idx: 3
           type: colref/catalog
           catalog: "256.65536.4294967296.3"
+          source: "part"
           statement-id: 0
           text: "p_brand"
         - expression-idx: 4
           type: colref/catalog
           catalog: "256.65536.4294967296.6"
+          source: "part"
           statement-id: 0
           text: "p_container"
         - expression-idx: 5
           type: colref/catalog
           catalog: "256.65536.4294967301.4"
+          source: "lineitem"
           statement-id: 0
           text: "l_quantity"
         - expression-idx: 6
           type: colref/catalog
           catalog: "256.65536.4294967301.1"
+          source: "lineitem"
           statement-id: 0
           text: "l_partkey"
         - expression-idx: 7
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "part"
           statement-id: 0
           text: "p_partkey"
         - expression-idx: 8
           type: colref/catalog
           catalog: "256.65536.4294967301.4"
+          source: "lineitem"
           statement-id: 0
           text: "l_quantity"
         - expression-idx: 9
@@ -13896,96 +14165,115 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967299.1"
+          source: "customer"
           statement-id: 0
           text: "c_name"
         - expression-idx: 1
           type: colref/catalog
           catalog: "256.65536.4294967299.0"
+          source: "customer"
           statement-id: 0
           text: "c_custkey"
         - expression-idx: 2
           type: colref/catalog
           catalog: "256.65536.4294967300.0"
+          source: "orders"
           statement-id: 0
           text: "o_orderkey"
         - expression-idx: 3
           type: colref/catalog
           catalog: "256.65536.4294967300.4"
+          source: "orders"
           statement-id: 0
           text: "o_orderdate"
         - expression-idx: 4
           type: colref/catalog
           catalog: "256.65536.4294967300.3"
+          source: "orders"
           statement-id: 0
           text: "o_totalprice"
         - expression-idx: 5
           type: colref/catalog
           catalog: "256.65536.4294967301.4"
+          source: "lineitem"
           statement-id: 0
           text: "l_quantity"
         - expression-idx: 6
           type: colref/catalog
           catalog: "256.65536.4294967301.0"
+          source: "lineitem"
           statement-id: 0
           text: "l_orderkey"
         - expression-idx: 7
           type: colref/catalog
           catalog: "256.65536.4294967301.0"
+          source: "lineitem"
           statement-id: 0
           text: "l_orderkey"
         - expression-idx: 8
           type: colref/catalog
           catalog: "256.65536.4294967301.4"
+          source: "lineitem"
           statement-id: 0
           text: "l_quantity"
         - expression-idx: 9
           type: colref/catalog
           catalog: "256.65536.4294967300.0"
+          source: "orders"
           statement-id: 0
           text: "o_orderkey"
         - expression-idx: 10
           type: colref/catalog
           catalog: "256.65536.4294967299.0"
+          source: "customer"
           statement-id: 0
           text: "c_custkey"
         - expression-idx: 11
           type: colref/catalog
           catalog: "256.65536.4294967300.1"
+          source: "orders"
           statement-id: 0
           text: "o_custkey"
         - expression-idx: 12
           type: colref/catalog
           catalog: "256.65536.4294967300.0"
+          source: "orders"
           statement-id: 0
           text: "o_orderkey"
         - expression-idx: 13
           type: colref/catalog
           catalog: "256.65536.4294967301.0"
+          source: "lineitem"
           statement-id: 0
           text: "l_orderkey"
         - expression-idx: 14
           type: colref/catalog
           catalog: "256.65536.4294967299.1"
+          source: "customer"
           statement-id: 0
           text: "c_name"
         - expression-idx: 15
           type: colref/catalog
           catalog: "256.65536.4294967299.0"
+          source: "customer"
           statement-id: 0
           text: "c_custkey"
         - expression-idx: 16
           type: colref/catalog
           catalog: "256.65536.4294967300.0"
+          source: "orders"
           statement-id: 0
           text: "o_orderkey"
         - expression-idx: 17
           type: colref/catalog
           catalog: "256.65536.4294967300.4"
+          source: "orders"
           statement-id: 0
           text: "o_orderdate"
         - expression-idx: 18
           type: colref/catalog
           catalog: "256.65536.4294967300.3"
+          source: "orders"
           statement-id: 0
           text: "o_totalprice"
         - expression-idx: 19
@@ -14690,146 +14978,175 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967301.6"
+          source: "lineitem"
           statement-id: 0
           text: "l_discount"
         - expression-idx: 1
           type: colref/catalog
           catalog: "256.65536.4294967301.5"
+          source: "lineitem"
           statement-id: 0
           text: "l_extendedprice"
         - expression-idx: 2
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "part"
           statement-id: 0
           text: "p_partkey"
         - expression-idx: 3
           type: colref/catalog
           catalog: "256.65536.4294967301.1"
+          source: "lineitem"
           statement-id: 0
           text: "l_partkey"
         - expression-idx: 4
           type: colref/catalog
           catalog: "256.65536.4294967296.3"
+          source: "part"
           statement-id: 0
           text: "p_brand"
         - expression-idx: 5
           type: colref/catalog
           catalog: "256.65536.4294967296.6"
+          source: "part"
           statement-id: 0
           text: "p_container"
         - expression-idx: 6
           type: colref/catalog
           catalog: "256.65536.4294967301.4"
+          source: "lineitem"
           statement-id: 0
           text: "l_quantity"
         - expression-idx: 7
           type: colref/catalog
           catalog: "256.65536.4294967301.4"
+          source: "lineitem"
           statement-id: 0
           text: "l_quantity"
         - expression-idx: 8
           type: colref/catalog
           catalog: "256.65536.4294967296.5"
+          source: "part"
           statement-id: 0
           text: "p_size"
         - expression-idx: 9
           type: colref/catalog
           catalog: "256.65536.4294967301.14"
+          source: "lineitem"
           statement-id: 0
           text: "l_shipmode"
         - expression-idx: 10
           type: colref/catalog
           catalog: "256.65536.4294967301.13"
+          source: "lineitem"
           statement-id: 0
           text: "l_shipinstruct"
         - expression-idx: 11
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "part"
           statement-id: 0
           text: "p_partkey"
         - expression-idx: 12
           type: colref/catalog
           catalog: "256.65536.4294967301.1"
+          source: "lineitem"
           statement-id: 0
           text: "l_partkey"
         - expression-idx: 13
           type: colref/catalog
           catalog: "256.65536.4294967296.3"
+          source: "part"
           statement-id: 0
           text: "p_brand"
         - expression-idx: 14
           type: colref/catalog
           catalog: "256.65536.4294967296.6"
+          source: "part"
           statement-id: 0
           text: "p_container"
         - expression-idx: 15
           type: colref/catalog
           catalog: "256.65536.4294967301.4"
+          source: "lineitem"
           statement-id: 0
           text: "l_quantity"
         - expression-idx: 16
           type: colref/catalog
           catalog: "256.65536.4294967301.4"
+          source: "lineitem"
           statement-id: 0
           text: "l_quantity"
         - expression-idx: 17
           type: colref/catalog
           catalog: "256.65536.4294967296.5"
+          source: "part"
           statement-id: 0
           text: "p_size"
         - expression-idx: 18
           type: colref/catalog
           catalog: "256.65536.4294967301.14"
+          source: "lineitem"
           statement-id: 0
           text: "l_shipmode"
         - expression-idx: 19
           type: colref/catalog
           catalog: "256.65536.4294967301.13"
+          source: "lineitem"
           statement-id: 0
           text: "l_shipinstruct"
         - expression-idx: 20
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "part"
           statement-id: 0
           text: "p_partkey"
         - expression-idx: 21
           type: colref/catalog
           catalog: "256.65536.4294967301.1"
+          source: "lineitem"
           statement-id: 0
           text: "l_partkey"
         - expression-idx: 22
           type: colref/catalog
           catalog: "256.65536.4294967296.3"
+          source: "part"
           statement-id: 0
           text: "p_brand"
         - expression-idx: 23
           type: colref/catalog
           catalog: "256.65536.4294967296.6"
+          source: "part"
           statement-id: 0
           text: "p_container"
         - expression-idx: 24
           type: colref/catalog
           catalog: "256.65536.4294967301.4"
+          source: "lineitem"
           statement-id: 0
           text: "l_quantity"
         - expression-idx: 25
           type: colref/catalog
           catalog: "256.65536.4294967301.4"
+          source: "lineitem"
           statement-id: 0
           text: "l_quantity"
         - expression-idx: 26
           type: colref/catalog
           catalog: "256.65536.4294967296.5"
+          source: "part"
           statement-id: 0
           text: "p_size"
         - expression-idx: 27
           type: colref/catalog
           catalog: "256.65536.4294967301.14"
+          source: "lineitem"
           statement-id: 0
           text: "l_shipmode"
         - expression-idx: 28
           type: colref/catalog
           catalog: "256.65536.4294967301.13"
+          source: "lineitem"
           statement-id: 0
           text: "l_shipinstruct"
         - expression-idx: 29
@@ -15806,91 +16123,109 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967297.1"
+          source: "supplier"
           statement-id: 0
           text: "s_name"
         - expression-idx: 1
           type: colref/catalog
           catalog: "256.65536.4294967297.2"
+          source: "supplier"
           statement-id: 0
           text: "s_address"
         - expression-idx: 2
           type: colref/catalog
           catalog: "256.65536.4294967298.1"
+          source: "partsupp"
           statement-id: 0
           text: "ps_suppkey"
         - expression-idx: 3
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "part"
           statement-id: 0
           text: "p_partkey"
         - expression-idx: 4
           type: colref/catalog
           catalog: "256.65536.4294967296.1"
+          source: "part"
           statement-id: 0
           text: "p_name"
         - expression-idx: 5
           type: colref/catalog
           catalog: "256.65536.4294967298.0"
+          source: "partsupp"
           statement-id: 0
           text: "ps_partkey"
         - expression-idx: 6
           type: colref/catalog
           catalog: "256.65536.4294967301.4"
+          source: "lineitem"
           statement-id: 0
           text: "l_quantity"
         - expression-idx: 7
           type: colref/catalog
           catalog: "256.65536.4294967301.1"
+          source: "lineitem"
           statement-id: 0
           text: "l_partkey"
         - expression-idx: 8
           type: colref/catalog
           catalog: "256.65536.4294967298.0"
+          source: "partsupp"
           statement-id: 0
           text: "ps_partkey"
         - expression-idx: 9
           type: colref/catalog
           catalog: "256.65536.4294967301.2"
+          source: "lineitem"
           statement-id: 0
           text: "l_suppkey"
         - expression-idx: 10
           type: colref/catalog
           catalog: "256.65536.4294967298.1"
+          source: "partsupp"
           statement-id: 0
           text: "ps_suppkey"
         - expression-idx: 11
           type: colref/catalog
           catalog: "256.65536.4294967301.10"
+          source: "lineitem"
           statement-id: 0
           text: "l_shipdate"
         - expression-idx: 12
           type: colref/catalog
           catalog: "256.65536.4294967301.10"
+          source: "lineitem"
           statement-id: 0
           text: "l_shipdate"
         - expression-idx: 13
           type: colref/catalog
           catalog: "256.65536.4294967298.2"
+          source: "partsupp"
           statement-id: 0
           text: "ps_availqty"
         - expression-idx: 14
           type: colref/catalog
           catalog: "256.65536.4294967297.0"
+          source: "supplier"
           statement-id: 0
           text: "s_suppkey"
         - expression-idx: 15
           type: colref/catalog
           catalog: "256.65536.4294967297.3"
+          source: "supplier"
           statement-id: 0
           text: "s_nationkey"
         - expression-idx: 16
           type: colref/catalog
           catalog: "256.65536.4294967302.0"
+          source: "nation"
           statement-id: 0
           text: "n_nationkey"
         - expression-idx: 17
           type: colref/catalog
           catalog: "256.65536.4294967302.1"
+          source: "nation"
           statement-id: 0
           text: "n_name"
         - expression-idx: 18
@@ -16596,111 +16931,133 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967297.1"
+          source: "supplier"
           statement-id: 0
           text: "s_name"
         - expression-idx: 1
           type: colref/catalog
           catalog: "256.65536.4294967297.0"
+          source: "supplier"
           statement-id: 0
           text: "s_suppkey"
         - expression-idx: 2
           type: colref/catalog
           catalog: "256.65536.4294967301.2"
+          source: "lineitem l1"
           statement-id: 0
           text: "l1.l_suppkey"
         - expression-idx: 3
           type: colref/catalog
           catalog: "256.65536.4294967300.0"
+          source: "orders"
           statement-id: 0
           text: "o_orderkey"
         - expression-idx: 4
           type: colref/catalog
           catalog: "256.65536.4294967301.0"
+          source: "lineitem l1"
           statement-id: 0
           text: "l1.l_orderkey"
         - expression-idx: 5
           type: colref/catalog
           catalog: "256.65536.4294967300.2"
+          source: "orders"
           statement-id: 0
           text: "o_orderstatus"
         - expression-idx: 6
           type: colref/catalog
           catalog: "256.65536.4294967301.12"
+          source: "lineitem l1"
           statement-id: 0
           text: "l1.l_receiptdate"
         - expression-idx: 7
           type: colref/catalog
           catalog: "256.65536.4294967301.11"
+          source: "lineitem l1"
           statement-id: 0
           text: "l1.l_commitdate"
         - expression-idx: 8
           type: colref/catalog
           catalog: "256.65536.4294967301.0"
+          source: "lineitem l2"
           statement-id: 0
           text: "l2.l_orderkey"
         - expression-idx: 9
           type: colref/catalog
           catalog: "256.65536.4294967301.0"
+          source: "lineitem l1"
           statement-id: 0
           text: "l1.l_orderkey"
         - expression-idx: 10
           type: colref/catalog
           catalog: "256.65536.4294967301.2"
+          source: "lineitem l2"
           statement-id: 0
           text: "l2.l_suppkey"
         - expression-idx: 11
           type: colref/catalog
           catalog: "256.65536.4294967301.2"
+          source: "lineitem l1"
           statement-id: 0
           text: "l1.l_suppkey"
         - expression-idx: 12
           type: colref/catalog
           catalog: "256.65536.4294967301.0"
+          source: "lineitem l3"
           statement-id: 0
           text: "l3.l_orderkey"
         - expression-idx: 13
           type: colref/catalog
           catalog: "256.65536.4294967301.0"
+          source: "lineitem l1"
           statement-id: 0
           text: "l1.l_orderkey"
         - expression-idx: 14
           type: colref/catalog
           catalog: "256.65536.4294967301.2"
+          source: "lineitem l3"
           statement-id: 0
           text: "l3.l_suppkey"
         - expression-idx: 15
           type: colref/catalog
           catalog: "256.65536.4294967301.2"
+          source: "lineitem l1"
           statement-id: 0
           text: "l1.l_suppkey"
         - expression-idx: 16
           type: colref/catalog
           catalog: "256.65536.4294967301.12"
+          source: "lineitem l3"
           statement-id: 0
           text: "l3.l_receiptdate"
         - expression-idx: 17
           type: colref/catalog
           catalog: "256.65536.4294967301.11"
+          source: "lineitem l3"
           statement-id: 0
           text: "l3.l_commitdate"
         - expression-idx: 18
           type: colref/catalog
           catalog: "256.65536.4294967297.3"
+          source: "supplier"
           statement-id: 0
           text: "s_nationkey"
         - expression-idx: 19
           type: colref/catalog
           catalog: "256.65536.4294967302.0"
+          source: "nation"
           statement-id: 0
           text: "n_nationkey"
         - expression-idx: 20
           type: colref/catalog
           catalog: "256.65536.4294967302.1"
+          source: "nation"
           statement-id: 0
           text: "n_name"
         - expression-idx: 21
           type: colref/catalog
           catalog: "256.65536.4294967297.1"
+          source: "supplier"
           statement-id: 0
           text: "s_name"
         - expression-idx: 22
@@ -17480,62 +17837,74 @@ analyzer-snapshots:
           type: colref/local
           scope: 2
           column: 0
+          source: "(\n        ..s custsale"
           statement-id: 0
           text: "cntrycode"
         - expression-idx: 1
           type: colref/catalog
           catalog: "256.65536.4294967299.5"
+          source: "(\n        ..s custsale"
           statement-id: 0
           text: "c_acctbal"
         - expression-idx: 2
           type: colref/catalog
           catalog: "256.65536.4294967299.4"
+          source: "customer"
           statement-id: 0
           text: "c_phone"
         - expression-idx: 3
           type: colref/catalog
           catalog: "256.65536.4294967299.5"
+          source: "customer"
           statement-id: 0
           text: "c_acctbal"
         - expression-idx: 4
           type: colref/catalog
           catalog: "256.65536.4294967299.4"
+          source: "customer"
           statement-id: 0
           text: "c_phone"
         - expression-idx: 5
           type: colref/catalog
           catalog: "256.65536.4294967299.5"
+          source: "customer"
           statement-id: 0
           text: "c_acctbal"
         - expression-idx: 6
           type: colref/catalog
           catalog: "256.65536.4294967299.5"
+          source: "customer"
           statement-id: 0
           text: "c_acctbal"
         - expression-idx: 7
           type: colref/catalog
           catalog: "256.65536.4294967299.4"
+          source: "customer"
           statement-id: 0
           text: "c_phone"
         - expression-idx: 8
           type: colref/catalog
           catalog: "256.65536.4294967299.5"
+          source: "customer"
           statement-id: 0
           text: "c_acctbal"
         - expression-idx: 9
           type: colref/catalog
           catalog: "256.65536.4294967300.1"
+          source: "orders"
           statement-id: 0
           text: "o_custkey"
         - expression-idx: 10
           type: colref/catalog
           catalog: "256.65536.4294967299.0"
+          source: "customer"
           statement-id: 0
           text: "c_custkey"
         - expression-idx: 11
           type: colref/local
           scope: 2
           column: 0
+          source: "(\n        ..s custsale"
           statement-id: 0
           text: "cntrycode"
         - expression-idx: 12

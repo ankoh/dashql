@@ -872,6 +872,9 @@ impl ScriptSession {
                 span.catalog_schema_id = resolved.schema_id;
                 span.catalog_table_id = resolved.table_id;
                 span.referenced_catalog_version = resolved.catalog_version;
+            } else if reference.inner.as_ref().is_some_and(|r| r.resolved_cte.is_some()) {
+                // A CTE has no catalog ids
+                span.resolution = EditorSemanticResolution::RESOLVED;
             }
             semantic_spans.push(span);
         }

@@ -9,8 +9,8 @@
 use crate::analyzer::*;
 use crate::catalog::*;
 use dashql_buffers::algebra::{
-    BinaryExpressionT, ColumnRefExpressionT, ComparisonT, ConstIntervalCastT, ExpressionSubTypeT, ExpressionT,
-    FunctionCallExpressionT, LiteralT, ResolvedColumnT,
+    BinaryExpressionT, ColumnRefExpressionT, ColumnResolutionType, ComparisonT, ConstIntervalCastT, ExpressionSubTypeT,
+    ExpressionT, FunctionCallExpressionT, LiteralT, ResolvedColumnT,
 };
 use dashql_buffers::analyzer::{
     AnalyzedScriptT, AnalyzerErrorT, ClientFunctionCallT, ClientFunctionEffect as PackedClientFunctionEffect,
@@ -18,7 +18,7 @@ use dashql_buffers::analyzer::{
     InferredColumnT, InferredTableSchemaT, InsertStatementT, InsertTargetColumnT, NameScopeT,
     ParameterKind as PackedParameterKind, ParameterT, QualifiedColumnNameT, QualifiedFunctionNameT,
     QualifiedTableNameT, ResolvedTableT, SqlTypeKind as PackedSqlTypeKind, SqlTypeT, TableColumnT, TableReferenceRole,
-    TableReferenceT, TableT, VisualizationSpecT,
+    TableReferenceT, TableResolutionType, TableT, VisualizationSpecT,
 };
 use dashql_buffers::parser::{
     AttachDatabaseStatementT, AttributeKey, CommentBlockT, ErrorT, Node, NodeT, NodeType, ParsedScriptT,
@@ -460,6 +460,12 @@ fn pack_expression(script: &AnalyzedScript, expr: &Expression) -> ExpressionT {
                 ast_scope_root: c.ast_scope_root.unwrap_or(u32::MAX),
                 column_name: Some(Box::new(qualified_column_name(&c.column_name))),
                 resolved_column: c.resolved_ids.as_ref().map(|ids| Box::new(resolved_column(ids))),
+                resolution: match c.resolved {
+                    ColumnResolution::Unresolved => ColumnResolutionType::UNRESOLVED,
+                    ColumnResolution::TableColumn(_) => ColumnResolutionType::TABLE_COLUMN,
+                    ColumnResolution::ScopeColumn { .. } => ColumnResolutionType::SCOPE_COLUMN,
+                },
+                resolved_source_ast_node_id: c.resolved_source.unwrap_or(PROTO_NULL_U32),
             })))
         }
         ExpressionInner::Literal(l) => {
@@ -525,6 +531,20 @@ fn pack_expression(script: &AnalyzedScript, expr: &Expression) -> ExpressionT {
     })
 }
 
+/// What a table reference resolved to
+fn table_resolution(script: &AnalyzedScript, table_ref: &TableReference) -> TableResolutionType {
+    let Some(relation) = &table_ref.inner else { return TableResolutionType::UNRESOLVED };
+    if relation.resolved_cte.is_some() {
+        return TableResolutionType::CTE;
+    }
+    let Some(resolved) = &relation.resolved_table else { return TableResolutionType::UNRESOLVED };
+    match resolved.catalog_table_id.unpack_table_id().origin {
+        crate::table_parameters::TABLE_PARAMETERS_ENTRY_ID => TableResolutionType::TABLE_PARAMETER,
+        origin if origin == script.entry.catalog_entry_id => TableResolutionType::SCRIPT,
+        _ => TableResolutionType::CATALOG,
+    }
+}
+
 /// Pack an analyzed script
 pub fn pack_analyzed_script(script: &AnalyzedScript) -> AnalyzedScriptT {
     let entry = &script.entry;
@@ -552,6 +572,7 @@ pub fn pack_analyzed_script(script: &AnalyzedScript) -> AnalyzedScriptT {
                     }))
                 }),
                 role: if r.role == TableRole::Write { TableReferenceRole::WRITE } else { TableReferenceRole::READ },
+                resolution: table_resolution(script, r),
             })
         })
         .collect();

@@ -121,6 +121,19 @@ fn table_column_aliases_rename_by_position() {
 }
 
 #[test]
+fn table_refs_resolve_to_ctes_by_unqualified_names() {
+    let test = NameResolutionTest::new();
+    let analyzed = test.analyze("with t as (select 1 as k) select * from t, public.t");
+    let relations: Vec<_> = analyzed.table_references.iter().filter_map(|r| r.inner.as_ref()).collect();
+    let [cte, qualified] = relations.as_slice() else { panic!("two table refs expected") };
+    // The CTE has no catalog table, the reference names the CTE instead
+    assert!(cte.resolved_cte.is_some());
+    assert!(cte.resolved_table.is_none());
+    // A qualified name never reads a CTE
+    assert!(qualified.resolved_cte.is_none());
+}
+
+#[test]
 fn values_columns_are_named_by_the_column_aliases() {
     let test = NameResolutionTest::new();
     assert_eq!(test.resolve("select r.k, r.l from (values (1, 2)) r(k, l)"), ["r.k -> local", "r.l -> local"]);

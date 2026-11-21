@@ -51,6 +51,7 @@ completion-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967297.0"
+          source: "u"
           statement-id: 0
           text: "na"
     cursor:
@@ -281,13 +282,14 @@ completion-snapshots:
           catalog-id: "256.65536.4294967296"
           statement-id: 0
           text: "t"
-        - type: name/unresolved
+        - type: name/cte
           statement-id: 0
           text: "c"
       expressions:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967297.0"
+          source: "u"
           statement-id: 0
           text: "na"
     cursor:
@@ -458,6 +460,7 @@ completion-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967297.0"
+          source: "u"
           statement-id: 0
           text: "na"
         - expression-idx: 1

@@ -35,7 +35,7 @@ use dashql_buffers::execution::{
 };
 use dashql_buffers::formatting::FormattingDialect;
 use dashql_buffers::parser::{AttributeKey as Key, NodeType, StatementType as Type, TempType, TextSpanT};
-use dashql_core::analyzer::{AnalyzedScript, ReferencedTable, RelationExpression, TableRole};
+use dashql_core::analyzer::{AnalyzedScript, RelationExpression, TableRole};
 use dashql_core::catalog::{
     Catalog, CatalogEntryId, CatalogEntryRef, QualifiedCatalogObjectId, QualifiedTableName, TableDeclaration,
 };
@@ -892,7 +892,7 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
                     barrier!("ambiguous relation reference");
                 }
                 // References to CTEs are no relation accesses
-                if is_cte_reference(analyzed, table_ref) {
+                if is_cte_reference(table_ref) {
                     continue;
                 }
                 let (name, table) = c.resolve(relation);
@@ -933,7 +933,7 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
                 };
                 for table_ref in &producer_analyzed.table_references {
                     if table_ref.ast_statement_id != Some(producer_statement)
-                        || is_cte_reference(producer_analyzed, table_ref)
+                        || is_cte_reference(table_ref)
                         || table_ref.reads_table_parameter()
                     {
                         continue;
@@ -1218,26 +1218,8 @@ pub(crate) fn script_label(request: &SessionPlanRequest, script: u32) -> String 
 }
 
 /// Does a table reference read a common table expression?
-fn is_cte_reference(analyzed: &AnalyzedScript, table_ref: &dashql_core::analyzer::TableReference) -> bool {
-    let Some(relation) = &table_ref.inner else { return false };
-    if relation.resolved_table.is_some()
-        || table_ref.role != TableRole::Read
-        || !relation.table_name.database_name.text.is_empty()
-        || !relation.table_name.schema_name.text.is_empty()
-    {
-        return false;
-    }
-    let Some(&scope) = table_ref.ast_scope_root.and_then(|r| analyzed.name_scopes_by_root_node.get(&r)) else {
-        return false;
-    };
-    let alias = match &table_ref.alias {
-        Some((a, _)) => a.text.clone(),
-        None => relation.table_name.table_name.text.clone(),
-    };
-    matches!(
-        analyzed.name_scopes.get(scope as usize).and_then(|s| s.source(&alias)).map(|s| &s.table),
-        Some(ReferencedTable::Cte(_))
-    )
+fn is_cte_reference(table_ref: &dashql_core::analyzer::TableReference) -> bool {
+    table_ref.inner.as_ref().is_some_and(|r| r.resolved_cte.is_some())
 }
 
 fn text_span_t(span: TextSpan) -> TextSpanT {

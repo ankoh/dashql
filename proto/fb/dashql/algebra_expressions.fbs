@@ -140,13 +140,27 @@ table ResolvedColumn {
     referenced_catalog_version: uint32;
 }
 
+/// What a column ref resolved to
+enum ColumnResolutionType: uint8 {
+    UNRESOLVED = 0,
+    /// A column of a table of the catalog or of the script
+    TABLE_COLUMN = 1,
+    /// An output column of a scope: a CTE, a derived table, or the own SELECT
+    SCOPE_COLUMN = 2,
+}
+
 table ColumnRefExpression {
     // The root of the scope where this expression lives
     ast_scope_root: uint32;
     // The column name
     column_name: QualifiedColumnName;
-    // The resolved column
+    // The resolved column, a scope column is followed through its source expressions to a table column
     resolved_column: ResolvedColumn;
+    /// What the column ref resolved to
+    resolution: ColumnResolutionType = UNRESOLVED;
+    /// The AST node of the FROM item that the column ref reads, a table ref or a derived table. None for an output
+    /// column of the own scope, e.g. an alias in ORDER BY.
+    resolved_source_ast_node_id: uint32 = 4294967295;
 }
 
 union ExpressionSubType {

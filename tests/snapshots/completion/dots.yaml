@@ -386,6 +386,7 @@ completion-snapshots:
         - expression-idx: 0
           type: colref/internal
           catalog: "256.65536.4294967297.2"
+          source: "bar b"
           statement-id: 2
           text: "f."
     cursor:
@@ -500,6 +501,7 @@ completion-snapshots:
         - expression-idx: 0
           type: colref/internal
           catalog: "256.65536.4294967296.1"
+          source: "foo f"
           statement-id: 2
           text: "b."
     cursor:

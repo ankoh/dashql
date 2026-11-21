@@ -32,6 +32,7 @@ completion-snapshots:
         - expression-idx: 0
           type: colref/internal
           catalog: "256.65536.4294967296.1"
+          source: "similar_name_0"
           statement-id: 1
           text: "juice0"
         - expression-idx: 1

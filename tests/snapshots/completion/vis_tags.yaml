@@ -370,16 +370,19 @@ completion-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "sales"
           statement-id: 0
           text: "region"
         - expression-idx: 1
           type: colref/catalog
           catalog: "256.65536.4294967296.1"
+          source: "sales"
           statement-id: 0
           text: "revenue"
         - expression-idx: 2
           type: colref/catalog
           catalog: "256.65536.4294967296.2"
+          source: "sales"
           statement-id: 0
           text: "date"
       visualizations:
@@ -1061,11 +1064,13 @@ completion-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "sales"
           statement-id: 0
           text: "region"
         - expression-idx: 1
           type: colref/catalog
           catalog: "256.65536.4294967296.1"
+          source: "sales"
           statement-id: 0
           text: "revenue"
       visualizations:

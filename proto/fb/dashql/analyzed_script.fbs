@@ -119,6 +119,19 @@ enum TableReferenceRole: uint8 {
     WRITE = 1,
 }
 
+/// What a table reference resolved to
+enum TableResolutionType: uint8 {
+    UNRESOLVED = 0,
+    /// A table of another catalog entry
+    CATALOG = 1,
+    /// A table that the script declares itself
+    SCRIPT = 2,
+    /// The result of a script, a table parameter `:foo`
+    TABLE_PARAMETER = 3,
+    /// A CTE of the statement, it has no resolved table
+    CTE = 4,
+}
+
 table TableReference {
     // The id of the AST node that created this table reference
     ast_node_id: uint32;
@@ -136,6 +149,8 @@ table TableReference {
     resolved_table: ResolvedTable;
     /// Whether the relation is read from or written to
     role: TableReferenceRole = READ;
+    /// What the table reference resolved to
+    resolution: TableResolutionType = UNRESOLVED;
 }
 
 table InsertTargetColumn {

@@ -470,6 +470,7 @@ completion-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "foo"
           statement-id: 0
           text: "bar"
     cursor:
@@ -540,7 +541,7 @@ completion-snapshots:
           catalog-id: "256.65536.4294967296"
           statement-id: 0
           text: "foo"
-        - type: name/unresolved
+        - type: name/cte
           statement-id: 0
           text: "fo"
     cursor:

@@ -118,6 +118,7 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967297.0"
+          source: "B"
           statement-id: 0
           text: "a"
         - expression-idx: 1
@@ -203,6 +204,7 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967297.0"
+          source: "B"
           statement-id: 0
           text: "a"
         - expression-idx: 1
@@ -427,6 +429,7 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "foo"
           statement-id: 0
           text: "foo.a"
         - expression-idx: 1
@@ -482,6 +485,7 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "foo"
           statement-id: 0
           text: "foo.a"
         - expression-idx: 1
@@ -549,6 +553,7 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "foo"
           statement-id: 0
           text: "foo.a"
         - expression-idx: 1

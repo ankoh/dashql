@@ -41,11 +41,13 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "sales"
           statement-id: 0
           text: "region"
         - expression-idx: 1
           type: colref/catalog
           catalog: "256.65536.4294967296.1"
+          source: "sales"
           statement-id: 0
           text: "revenue"
       name-scopes:
@@ -109,16 +111,19 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.2"
+          source: "sales"
           statement-id: 0
           text: "date"
         - expression-idx: 1
           type: colref/catalog
           catalog: "256.65536.4294967296.1"
+          source: "sales"
           statement-id: 0
           text: "revenue"
         - expression-idx: 2
           type: colref/catalog
           catalog: "256.65536.4294967296.2"
+          source: "sales"
           statement-id: 0
           text: "date"
         - expression-idx: 3
@@ -319,16 +324,19 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
+          source: "sales"
           statement-id: 0
           text: "region"
         - expression-idx: 1
           type: colref/catalog
           catalog: "256.65536.4294967296.1"
+          source: "sales"
           statement-id: 0
           text: "revenue"
         - expression-idx: 2
           type: colref/catalog
           catalog: "256.65536.4294967296.2"
+          source: "sales"
           statement-id: 0
           text: "date"
       name-scopes:
@@ -755,6 +763,7 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/internal
           catalog: "256.65536.4294967296.0"
+          source: "t"
           statement-id: 1
           text: "a"
       name-scopes:
@@ -813,6 +822,7 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/internal
           catalog: "256.65536.4294967296.0"
+          source: "t"
           statement-id: 1
           text: "a"
       name-scopes:
@@ -1054,11 +1064,13 @@ analyzer-snapshots:
         - expression-idx: 0
           type: colref/internal
           catalog: "256.65536.4294967296.0"
+          source: "t"
           statement-id: 1
           text: "a"
         - expression-idx: 1
           type: colref/internal
           catalog: "256.65536.4294967296.0"
+          source: "t"
           statement-id: 2
           text: "a"
         - expression-idx: 2

@@ -761,6 +761,7 @@ impl NameResolutionPass {
                     referenced_catalog_version: table.catalog_version,
                 }),
                 resolved_alternatives: Vec::new(),
+                resolved_cte: None,
             }),
             role: TableRole::Read,
         });
@@ -862,6 +863,9 @@ impl NameResolutionPass {
                 s = candidate.parent_scope;
             }
             if let (Some(cte), TableRole::Read) = (matched_cte, role) {
+                if let Some(relation) = state.out.table_ref_mut(table_ref_id).and_then(|t| t.inner.as_mut()) {
+                    relation.resolved_cte = Some(cte);
+                }
                 let Some(table_ref) = state.out.table_ref(table_ref_id) else { continue };
                 let alias = Self::table_ref_alias(table_ref, &ref_name);
                 sources.push(source(table_ref, alias, ReferencedTable::Cte(cte), None));
@@ -1057,10 +1061,10 @@ impl NameResolutionPass {
         if sources.is_empty() {
             return Lookup::Missing;
         }
-        let candidates: Vec<(Option<Arc<str>>, ColumnResolution)> = sources
+        let candidates: Vec<(u32, Option<Arc<str>>, ColumnResolution)> = sources
             .iter()
-            .map(|source| (source.name.clone(), Self::resolve_column(state, source, column_name)))
-            .filter(|(_, resolution)| resolution.is_resolved())
+            .map(|source| (source.ast_node_id, source.name.clone(), Self::resolve_column(state, source, column_name)))
+            .filter(|(_, _, resolution)| resolution.is_resolved())
             .collect();
         match candidates.as_slice() {
             [] => {
@@ -1074,15 +1078,16 @@ impl NameResolutionPass {
                 self.bound_column_refs.insert(expr, owner);
                 Lookup::Bound
             }
-            [(_, resolution)] => {
-                let resolution = *resolution;
+            [(source_node, _, resolution)] => {
+                let (source_node, resolution) = (*source_node, *resolution);
                 if let Some(column_ref) = state.out.expression_mut(expr).and_then(Expression::column_ref_mut) {
                     column_ref.resolved = resolution;
+                    column_ref.resolved_source = Some(source_node);
                 }
                 Lookup::Resolved
             }
             _ => {
-                let names: Vec<Option<Arc<str>>> = candidates.into_iter().map(|(name, _)| name).collect();
+                let names: Vec<Option<Arc<str>>> = candidates.into_iter().map(|(_, name, _)| name).collect();
                 self.report_ambiguous(state, expr, column_name, &names);
                 Lookup::Ambiguous
             }
@@ -1165,11 +1170,11 @@ impl NameResolutionPass {
                 candidates.push((source.ast_node_id, source.name.clone(), resolution));
             }
         }
-        let resolution = match candidates.as_slice() {
+        let (source_node, resolution) = match candidates.as_slice() {
             [] => return Lookup::Missing,
-            [(_, _, resolution)] => *resolution,
+            [(source_node, _, resolution)] => (*source_node, *resolution),
             // A USING column resolves to the column of the first input
-            [(_, _, resolution), ..]
+            [(source_node, _, resolution), ..]
                 if self.is_using_column(
                     state,
                     target,
@@ -1177,7 +1182,7 @@ impl NameResolutionPass {
                     &column_name,
                 ) =>
             {
-                *resolution
+                (*source_node, *resolution)
             }
             _ => {
                 let names: Vec<Option<Arc<str>>> = candidates.into_iter().map(|(_, name, _)| name).collect();
@@ -1187,6 +1192,7 @@ impl NameResolutionPass {
         };
         if let Some(column_ref) = state.out.expression_mut(expr).and_then(Expression::column_ref_mut) {
             column_ref.resolved = resolution;
+            column_ref.resolved_source = Some(source_node);
         }
         Lookup::Resolved
     }
@@ -1825,6 +1831,7 @@ impl NameResolutionPass {
                         column_name,
                         ast_scope_root: None,
                         resolved: ColumnResolution::Unresolved,
+                        resolved_source: None,
                         resolved_ids: None,
                         inferred: None,
                     };
@@ -1864,6 +1871,7 @@ impl NameResolutionPass {
                             table_name: name,
                             resolved_table: None,
                             resolved_alternatives: Vec::new(),
+                            resolved_cte: None,
                         }),
                         role: TableRole::Read,
                     });
