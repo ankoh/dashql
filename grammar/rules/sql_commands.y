@@ -3105,7 +3105,7 @@ sql_function_param_fields:
     ;
 
 sql_cmd_func_arg_type:
-    sql_typename { $1 }
+    sql_function_param_type { $1 }
     | sql_cmd_table_column_type { $1 }
     | SETOF sql_cmd_table_column_type {
         ctx.object(

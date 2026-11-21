@@ -114,11 +114,58 @@ parser-snapshots:
     input: |-
       create function foo(a any) returns any
     expected:
-      statements: []
+      statements:
+        - type: CREATE_FUNCTION
+          ast-begin: 0
+          ast-size: 12
+          description:
+            text: "create fun..eturns any"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_CREATE_FUNCTION
+            text: "create fun..eturns any"
+            children:
+              - key: SQL_CREATE_FUNCTION_NAME
+                type: ARRAY
+                text: "foo"
+                children:
+                  - type: NAME
+                    text: "foo"
+              - key: SQL_CREATE_FUNCTION_PARAMS
+                type: ARRAY
+                text: "(a any)"
+                children:
+                  - type: OBJECT_SQL_FUNCTION_PARAM
+                    text: "a any"
+                    children:
+                      - key: SQL_FUNCTION_PARAM_NAME
+                        type: NAME
+                        text: "a"
+                      - key: SQL_FUNCTION_PARAM_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "any"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_GENERIC_TYPE
+                            text: "any"
+                            children:
+                              - key: SQL_GENERIC_TYPE_NAME
+                                type: NAME
+                                text: "any"
+              - key: SQL_CREATE_FUNCTION_RETURNS
+                type: OBJECT_SQL_TYPENAME
+                text: "any"
+                children:
+                  - key: SQL_TYPENAME_TYPE
+                    type: OBJECT_SQL_GENERIC_TYPE
+                    text: "any"
+                    children:
+                      - key: SQL_GENERIC_TYPE_NAME
+                        type: NAME
+                        text: "any"
       scanner-errors: []
-      parser-errors:
-        - message: 'syntax error, unexpected ANY'
-          text: "any"
+      parser-errors: []
       line-breaks: []
       comments: []
       comment-blocks: []
