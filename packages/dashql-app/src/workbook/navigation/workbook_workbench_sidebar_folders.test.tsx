@@ -51,7 +51,6 @@ const NO_CONNECTION_LIST = { connections: [], connectionsByType: [[], [], [], []
 
 const dependencies = {
     useRouterNavigate: () => state.navigate,
-    useRouteContext: () => ({ workbookId: ROOT_WORKBOOK, workbookSetupStatus: 0 }),
     useRuntime: () => runtime,
     useDispatch: () => state.modifyWorkbookScripts,
     useConnections: () => NO_CONNECTIONS,

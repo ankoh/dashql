@@ -1,6 +1,5 @@
 import * as React from 'react';
 
-import { AppLoadingStatus } from './app_loading_status.js';
 import { OPEN_LINK_WORKBOOK, useRouteContext, useRouterNavigate } from '../router.js';
 import { useDashQLCoreSetup } from '../../host/core_provider.js';
 import { useLogger } from '../../host/logger_provider.js';
@@ -149,7 +148,7 @@ export function useSharedWorkbookImport(
             return false;
         });
         // Normal startup must not replace the route selected by an inline workbook import
-        if (data.type === SETUP_WORKBOOK && routeContext.appLoadingStatus === AppLoadingStatus.NOT_STARTED) {
+        if (data.type === SETUP_WORKBOOK && !routeContext.setupDone) {
             initialImport.current = handling;
         }
         void handling;

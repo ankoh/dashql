@@ -7,7 +7,6 @@ import { useAppConfig, useAppReconfigure } from '../../config/app_config.js';
 import { useAppSettingsReady } from '../../config/app_settings_sync.js';
 import { useOptionalRuntime, useWorkbook } from '@akohn/dashql-react/hooks';
 import { useHyperLinkTabState } from '../../connections/hyper/hyper_link_tab.js';
-import { WorkbookSetupStatus } from './workbook_setup_status.js';
 import { NarrowScreenWarning, useNarrowScreenWarning } from '../narrow_screen_warning.js';
 import { useAppSetup } from './app_setup.js';
 import { useSharedWorkbookImport } from './shared_workbook_import.js';
@@ -45,10 +44,10 @@ export const AppLoader: React.FC<React.PropsWithChildren> = (props: React.PropsW
     useHyperLinks(setup.opened);
 
     React.useEffect(() => {
-        if (routeContext.workbookSetupStatus === WorkbookSetupStatus.OPENING && routeContext.workbookId != null) {
+        if (routeContext.openingWorkbook && routeContext.workbookId != null) {
             navigate({ type: SELECT_WORKBOOK, value: routeContext.workbookId });
         }
-    }, [navigate, routeContext.workbookId, routeContext.workbookSetupStatus]);
+    }, [navigate, routeContext.workbookId, routeContext.openingWorkbook]);
 
     if (showNarrowScreenWarning) {
         return <NarrowScreenWarning onEnable={() => reconfigure(value => value == null ? null : {

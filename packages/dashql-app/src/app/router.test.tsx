@@ -4,14 +4,8 @@ import { MemoryRouter, useLocation } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createTestRoot } from '@akohn/dashql-react/testing/react_root';
-import { AppLoadingStatus } from './loading/app_loading_status.js';
-import { WorkbookSetupStatus } from './loading/workbook_setup_status.js';
 import {
-    BEGIN_WORKBOOK_SETUP,
-    CANCEL_WORKBOOK_SETUP,
-    CHANGE_WORKBOOK,
     CONFIRM_FINISHED_SETUP,
-    FINISH_SETUP,
     OPEN_LINK_WORKBOOK,
     OPEN_WORKBOOK,
     type RouteContext,
@@ -20,8 +14,6 @@ import {
     WORKBOOK_PATH,
     workbookIdFromPathname,
     workbookPath,
-    SKIP_WORKBOOK_SETUP,
-    SKIP_SETUP,
     useRouteContext,
     useRouterNavigate,
 } from './router.js';
@@ -46,10 +38,10 @@ describe('useRouterNavigate', () => {
     });
 
     const LOADING_WORKBOOK: RouteContext = {
-        appLoadingStatus: AppLoadingStatus.LOAD_STORAGE,
+        setupDone: false,
         confirmedFinishedSetup: false,
         workbookId: 's0',
-        workbookSetupStatus: WorkbookSetupStatus.CONFIGURING,
+        openingWorkbook: true,
     };
 
     /// Navigate from the route of workbook s0 and return the path and the context of the next location.
@@ -75,17 +67,11 @@ describe('useRouterNavigate', () => {
     }
 
     it.each<[string, RouteTarget, string, Partial<RouteContext>]>([
-        ['a workbook path', { type: WORKBOOK_PATH, value: 's1' }, '/workbooks/s1', { workbookId: 's1', workbookSetupStatus: WorkbookSetupStatus.CONFIGURING }],
+        ['a workbook path', { type: WORKBOOK_PATH, value: 's1' }, '/workbooks/s1', { workbookId: 's1', openingWorkbook: true }],
         ['no workbook path', { type: WORKBOOK_PATH, value: null }, '/', { workbookId: null }],
-        ['finished setup', { type: FINISH_SETUP, value: null }, '/workbooks/s0', { appLoadingStatus: AppLoadingStatus.SETUP_DONE, workbookId: null }],
-        ['skipped setup', { type: SKIP_SETUP, value: null }, '/workbooks/s0', { appLoadingStatus: AppLoadingStatus.SETUP_DONE, workbookId: 's0' }],
-        ['a selected workbook', { type: SELECT_WORKBOOK, value: 's1' }, '/workbooks/s1', { workbookId: 's1', workbookSetupStatus: WorkbookSetupStatus.NONE }],
-        ['an opened workbook', { type: OPEN_WORKBOOK, value: 's1' }, '/workbooks/s1', { workbookSetupStatus: WorkbookSetupStatus.OPENING }],
-        ['a workbook change', { type: CHANGE_WORKBOOK, value: null }, '/', { workbookId: null, workbookSetupStatus: WorkbookSetupStatus.NONE }],
-        ['a begun workbook setup', { type: BEGIN_WORKBOOK_SETUP, value: 's1' }, '/workbooks/s1', { workbookSetupStatus: WorkbookSetupStatus.CONFIGURING }],
-        ['a cancelled workbook setup', { type: CANCEL_WORKBOOK_SETUP, value: null }, '/', { workbookId: null, workbookSetupStatus: WorkbookSetupStatus.NONE }],
-        ['a skipped workbook setup', { type: SKIP_WORKBOOK_SETUP, value: null }, '/workbooks/s0', { workbookId: 's0', workbookSetupStatus: WorkbookSetupStatus.NONE }],
-        ['a link workbook', { type: OPEN_LINK_WORKBOOK, value: 's1' }, '/workbooks/s1', { appLoadingStatus: AppLoadingStatus.SETUP_DONE, workbookSetupStatus: WorkbookSetupStatus.OPENING }],
+        ['a selected workbook', { type: SELECT_WORKBOOK, value: 's1' }, '/workbooks/s1', { workbookId: 's1', openingWorkbook: false }],
+        ['an opened workbook', { type: OPEN_WORKBOOK, value: 's1' }, '/workbooks/s1', { openingWorkbook: true }],
+        ['a link workbook', { type: OPEN_LINK_WORKBOOK, value: 's1' }, '/workbooks/s1', { setupDone: true, openingWorkbook: true }],
     ])('navigates to %s', async (_name, target, pathname, context) => {
         const next = await navigateFrom(LOADING_WORKBOOK, target);
         expect(next.pathname).toBe(pathname);
@@ -93,7 +79,7 @@ describe('useRouterNavigate', () => {
     });
 
     it('confirms only finished setups', async () => {
-        const finished = { ...LOADING_WORKBOOK, appLoadingStatus: AppLoadingStatus.SETUP_DONE };
+        const finished = { ...LOADING_WORKBOOK, setupDone: true };
         expect((await navigateFrom(finished, { type: CONFIRM_FINISHED_SETUP, value: true })).context?.confirmedFinishedSetup).toBe(true);
         root?.unmount();
         root = null;
@@ -109,10 +95,10 @@ describe('useRouterNavigate', () => {
         root = createTestRoot();
         root.render(<MemoryRouter initialEntries={['/workbooks/s2']}><Probe /></MemoryRouter>);
         expect(current.context).toEqual({
-            appLoadingStatus: AppLoadingStatus.NOT_STARTED,
+            setupDone: false,
             confirmedFinishedSetup: false,
             workbookId: 's2',
-            workbookSetupStatus: WorkbookSetupStatus.NONE,
+            openingWorkbook: false,
         });
     });
 });

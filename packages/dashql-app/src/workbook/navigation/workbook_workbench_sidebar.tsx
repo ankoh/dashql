@@ -47,8 +47,7 @@ import {
     PaperAirplaneIcon,
 } from '@akohn/dashql-react/components/symbol_icon';
 import { classNames } from '@akohn/dashql-react/dom/classnames';
-import { OPEN_WORKBOOK, SELECT_WORKBOOK, useRouteContext, useRouterNavigate } from '../../app/router.js';
-import { WorkbookSetupStatus } from '../../app/loading/workbook_setup_status.js';
+import { OPEN_WORKBOOK, SELECT_WORKBOOK, useRouterNavigate } from '../../app/router.js';
 import { findWorkbookQueries, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import {
     newConnectionFromParams,
@@ -203,7 +202,6 @@ interface Props {
 
 export interface WorkbookWorkbenchSidebarDependencies {
     useRouterNavigate: typeof useRouterNavigate;
-    useRouteContext: typeof useRouteContext;
     useRuntime: typeof useRuntime;
     useDispatch: typeof useDispatch;
     useWorkbooks: typeof useWorkbooks;
@@ -237,7 +235,6 @@ export interface WorkbookWorkbenchSidebarDependencies {
 
 const DEFAULT_WORKBOOK_WORKBENCH_SIDEBAR_DEPENDENCIES: WorkbookWorkbenchSidebarDependencies = {
     useRouterNavigate,
-    useRouteContext,
     useRuntime,
     useDispatch,
     useWorkbooks,
@@ -746,7 +743,6 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
     const connectorIcon = useConnectorIcon();
     const dependencies = props.dependencies ?? DEFAULT_WORKBOOK_WORKBENCH_SIDEBAR_DEPENDENCIES;
     const navigate = dependencies.useRouterNavigate();
-    const route = dependencies.useRouteContext();
     const runtime = dependencies.useRuntime();
     const connections = dependencies.useConnections();
     const connectionList = dependencies.useConnectionList();
@@ -794,16 +790,6 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
     const [renamingFolder, setRenamingFolder] = React.useState<string | null>(null);
     // Where would the dragged row land?
     const [drop, setDrop] = React.useState<WorkbookListDrop | null>(null);
-
-    React.useEffect(() => {
-        if (route.workbookSetupStatus !== WorkbookSetupStatus.CONFIGURING
-            || route.workbookId !== props.workbookScripts.workbookId) return;
-        const connectionId = scriptsRegistry.get(route.workbookId)?.connectionIds[0] ?? null;
-        if (connectionId != null) {
-            connectionSettingsAnchorRef.current = document.querySelector('[aria-label="Create workbook"]');
-            setConnectionOverlayDatabaseId(connectionId);
-        }
-    }, [scriptsRegistry, props.workbookScripts.workbookId, route.workbookId, route.workbookSetupStatus]);
 
     const workbookItems = React.useMemo<Map<string, WorkbookItem>>(() => {
         const items = new Map<string, WorkbookItem>();
@@ -1128,10 +1114,7 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
 
     const closeConnectionOverlay = React.useCallback(() => {
         setConnectionOverlayDatabaseId(null);
-        if (route.workbookSetupStatus === WorkbookSetupStatus.CONFIGURING && route.workbookId != null) {
-            navigate({ type: SELECT_WORKBOOK, value: route.workbookId });
-        }
-    }, [navigate, route.workbookId, route.workbookSetupStatus]);
+    }, []);
 
     const duplicateWorkbook = React.useCallback(async (item: WorkbookItem) => {
         const newWorkbookId = crypto.randomUUID();

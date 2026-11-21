@@ -3,15 +3,13 @@ import { describe, expect, it, vi } from 'vitest';
 import type { TracedLogger } from '@akohn/dashql/platform/logger/logger';
 import { canShowWorkbook, deleteSurplusEphemeralWorkbooks, loadApp, selectStartupWorkbook, shouldFinishInitialNavigation, type AppStateRestorer } from './app_loading_logic.js';
 import type { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
-import { AppLoadingStatus } from './app_loading_status.js';
-import { WorkbookSetupStatus } from './workbook_setup_status.js';
 
 describe('canShowWorkbook', () => {
-    it.each([WorkbookSetupStatus.OPENING, WorkbookSetupStatus.CONFIGURING, WorkbookSetupStatus.NONE])('shows an opened workbook without waiting for connection setup (%s)', workbookSetupStatus => {
+    it.each([true, false])('shows an opened workbook without waiting for connection setup (opening %s)', openingWorkbook => {
         expect(canShowWorkbook({
-            appLoadingStatus: AppLoadingStatus.SETUP_DONE,
+            setupDone: true,
             workbookId: 'offline-workbook',
-            workbookSetupStatus,
+            openingWorkbook,
             confirmedFinishedSetup: false,
         }, false)).toBe(true);
     });

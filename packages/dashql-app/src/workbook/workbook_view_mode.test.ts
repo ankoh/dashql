@@ -22,7 +22,7 @@ describe('workbook view URL state', () => {
     });
 
     it('preserves router state when replacing the view query parameter', () => {
-        const state = { appLoadingStatus: 2, workbookId: 'workbook' };
+        const state = { setupDone: true, workbookId: 'workbook' };
         expect(workbookViewNavigation({
             pathname: '/workbooks/workbook',
             search: '?foo=bar',

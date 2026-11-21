@@ -1,30 +1,22 @@
 import * as React from 'react';
 import { useLocation, useNavigate } from "react-router-dom";
 import { VariantKind } from "@akohn/dashql/platform/utils/variant";
-import { AppLoadingStatus } from './loading/app_loading_status.js';
-import { WorkbookSetupStatus } from './loading/workbook_setup_status.js';
 import { LoggableException } from '@akohn/dashql/platform/logger/logger';
 
 export interface RouteContext {
-    /// The app loading status
-    appLoadingStatus: AppLoadingStatus;
+    /// Did the setup of the app finish?
+    setupDone: boolean;
     /// Confirmed the finished setup?
     confirmedFinishedSetup: boolean;
     /// The focused workbook id
     workbookId: string | null;
-    /// The workbook setup status
-    workbookSetupStatus: WorkbookSetupStatus;
+    /// Is the workbook being opened? The app loader selects it once the app is set up.
+    openingWorkbook: boolean;
 }
 
 export const WORKBOOK_PATH = Symbol("NAVIGATE_WORKBOOK");
-export const FINISH_SETUP = Symbol("FINISH_SETUP");
 export const CONFIRM_FINISHED_SETUP = Symbol("CONFIRM_FINISHED_SETUP");
-export const SKIP_SETUP = Symbol("SKIP_SETUP");
 export const SELECT_WORKBOOK = Symbol("SELECT_WORKBOOK");
-export const CHANGE_WORKBOOK = Symbol("CHANGE_WORKBOOK");
-export const BEGIN_WORKBOOK_SETUP = Symbol("BEGIN_WORKBOOK_SETUP");
-export const CANCEL_WORKBOOK_SETUP = Symbol("CANCEL_WORKBOOK_SETUP");
-export const SKIP_WORKBOOK_SETUP = Symbol("SKIP_WORKBOOK_SETUP");
 export const OPEN_LINK_WORKBOOK = Symbol("OPEN_LINK_WORKBOOK");
 export const OPEN_WORKBOOK = Symbol("OPEN_WORKBOOK");
 export const OPEN_EPHEMERAL_WORKBOOK = Symbol("OPEN_EPHEMERAL_WORKBOOK");
@@ -46,14 +38,8 @@ export function workbookIdFromPathname(pathname: string): string | null {
 
 export type RouteTarget =
     VariantKind<typeof WORKBOOK_PATH, string | null>
-    | VariantKind<typeof FINISH_SETUP, null>
     | VariantKind<typeof CONFIRM_FINISHED_SETUP, boolean>
-    | VariantKind<typeof SKIP_SETUP, null>
     | VariantKind<typeof SELECT_WORKBOOK, string>
-    | VariantKind<typeof CHANGE_WORKBOOK, null>
-    | VariantKind<typeof BEGIN_WORKBOOK_SETUP, string>
-    | VariantKind<typeof CANCEL_WORKBOOK_SETUP, null>
-    | VariantKind<typeof SKIP_WORKBOOK_SETUP, null>
     | VariantKind<typeof OPEN_LINK_WORKBOOK, string>
     | VariantKind<typeof OPEN_WORKBOOK, string>
     | VariantKind<typeof OPEN_EPHEMERAL_WORKBOOK, string>
@@ -68,15 +54,15 @@ export function useRouteContext() {
     return React.useMemo(() => {
         if (!route) {
             return {
-                appLoadingStatus: AppLoadingStatus.NOT_STARTED,
+                setupDone: false,
                 confirmedFinishedSetup: false,
                 workbookId: workbookIdFromPathname(pathname),
-                workbookSetupStatus: WorkbookSetupStatus.NONE,
+                openingWorkbook: false,
             };
         } else {
             return {
                 ...route,
-                workbookSetupStatus: route.workbookSetupStatus ?? WorkbookSetupStatus.NONE,
+                openingWorkbook: route.openingWorkbook ?? false,
             };
         }
     }, [route, pathname]);
@@ -96,30 +82,12 @@ export function useRouterNavigate() {
                     }
                 });
                 break;
-            case SKIP_SETUP:
-                navigate(location.pathname, {
-                    state: {
-                        ...context,
-                        appLoadingStatus: AppLoadingStatus.SETUP_DONE,
-                    }
-                });
-                break;
-            case FINISH_SETUP:
-                navigate(location.pathname, {
-                    state: {
-                        appLoadingStatus: AppLoadingStatus.SETUP_DONE,
-                        confirmedFinishedSetup: false,
-                        workbookId: null,
-                        workbookSetupStatus: WorkbookSetupStatus.NONE,
-                    }
-                });
-                break;
             case SELECT_WORKBOOK:
                 navigate(workbookPath(route.value), {
                     state: {
                         ...context,
                         workbookId: route.value,
-                        workbookSetupStatus: WorkbookSetupStatus.NONE,
+                        openingWorkbook: false,
                     }
                 });
                 break;
@@ -128,42 +96,7 @@ export function useRouterNavigate() {
                     state: {
                         ...context,
                         workbookId: route.value,
-                        workbookSetupStatus: WorkbookSetupStatus.OPENING,
-                    }
-                });
-                break;
-            case CHANGE_WORKBOOK:
-                navigate("/", {
-                    state: {
-                        ...context,
-                        workbookId: null,
-                        workbookSetupStatus: WorkbookSetupStatus.NONE,
-                    }
-                });
-                break;
-            case BEGIN_WORKBOOK_SETUP:
-                navigate(workbookPath(route.value), {
-                    state: {
-                        ...context,
-                        workbookId: route.value,
-                        workbookSetupStatus: WorkbookSetupStatus.CONFIGURING,
-                    }
-                });
-                break;
-            case CANCEL_WORKBOOK_SETUP:
-                navigate("/", {
-                    state: {
-                        ...context,
-                        workbookId: null,
-                        workbookSetupStatus: WorkbookSetupStatus.NONE,
-                    }
-                });
-                break;
-            case SKIP_WORKBOOK_SETUP:
-                navigate(location.pathname, {
-                    state: {
-                        ...context,
-                        workbookSetupStatus: WorkbookSetupStatus.NONE,
+                        openingWorkbook: true,
                     }
                 });
                 break;
@@ -173,24 +106,24 @@ export function useRouterNavigate() {
                 // without briefly showing the connection setup screen.
                 navigate(workbookPath(route.value), {
                     state: {
-                        appLoadingStatus: AppLoadingStatus.SETUP_DONE,
+                        setupDone: true,
                         confirmedFinishedSetup: false,
                         workbookId: route.value,
-                        workbookSetupStatus: WorkbookSetupStatus.OPENING,
+                        openingWorkbook: true,
                     }
                 });
                 break;
             case OPEN_EPHEMERAL_WORKBOOK:
                 // The greeter stays at the root until a script promotes the workbook. The startup replaces its entry:
                 // going back to it would find a root without a route context and show the loading page.
-                // The status is not OPENING, the loader would open the path of the workbook.
+                // The workbook is not opening, the loader would open the path of the workbook.
                 navigate("/", {
                     replace: location.pathname === "/",
                     state: {
-                        appLoadingStatus: AppLoadingStatus.SETUP_DONE,
+                        setupDone: true,
                         confirmedFinishedSetup: context.confirmedFinishedSetup,
                         workbookId: route.value,
-                        workbookSetupStatus: WorkbookSetupStatus.NONE,
+                        openingWorkbook: false,
                     }
                 });
                 break;
@@ -201,18 +134,18 @@ export function useRouterNavigate() {
                     state: {
                         ...context,
                         workbookId: route.value,
-                        workbookSetupStatus: WorkbookSetupStatus.NONE,
+                        openingWorkbook: false,
                     }
                 });
                 break;
             case CONFIRM_FINISHED_SETUP:
-                if (context.appLoadingStatus != AppLoadingStatus.SETUP_DONE) {
+                if (!context.setupDone) {
                     throw new LoggableException("tried to confirm a non-finished setup");
                 }
                 navigate(location.pathname, {
                     state: {
                         ...context,
-                        appLoadingStatus: AppLoadingStatus.SETUP_DONE,
+                        setupDone: true,
                         confirmedFinishedSetup: route.value,
                     }
                 });

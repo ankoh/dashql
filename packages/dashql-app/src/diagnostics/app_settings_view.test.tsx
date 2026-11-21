@@ -18,14 +18,12 @@ import { memoryQueryResultCache } from '@akohn/dashql/platform/testing/memory_qu
 import { applyFlavorToDocument } from '../config/flavor_resolution.js';
 import { createTestRoot } from '@akohn/dashql-react/testing/react_root';
 import { type RouteContext } from '../app/router.js';
-import { AppLoadingStatus } from '../app/loading/app_loading_status.js';
-import { WorkbookSetupStatus } from '../app/loading/workbook_setup_status.js';
 
 const SETUP_DONE: RouteContext = {
-    appLoadingStatus: AppLoadingStatus.SETUP_DONE,
+    setupDone: true,
     confirmedFinishedSetup: true,
     workbookId: null,
-    workbookSetupStatus: WorkbookSetupStatus.NONE,
+    openingWorkbook: false,
 };
 
 describe('AppSettings', () => {
@@ -210,7 +208,7 @@ describe('AppSettings', () => {
         act(() => button('Restart').click());
         expect(config!.settings?.pauseAfterAppSetup).toBe(true);
         await vi.waitFor(() => expect(routeState?.confirmedFinishedSetup).toBe(false));
-        expect(routeState?.appLoadingStatus).toBe(AppLoadingStatus.SETUP_DONE);
+        expect(routeState?.setupDone).toBe(true);
     });
 
     it('does not reset a backend without clearAllStorage', async () => {

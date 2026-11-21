@@ -10,8 +10,6 @@ import { ElectronPlatformEventListener } from './electron_event_listener.js';
 import { AppHost, getAppHost } from '@akohn/dashql-react/dom/app_host';
 import { useLogger } from '../logger_provider.js';
 
-export const SKIP_EVENT_LISTENER = Symbol("SKIP_EVENT_LISTENER");
-
 const LISTENER_CTX = React.createContext<PlatformEventListener | null>(null);
 export const usePlatformEventListener = () => React.useContext(LISTENER_CTX)!;
 
@@ -58,7 +56,7 @@ export const PlatformEventListenerProvider: React.FC<Props> = (props: Props) => 
         const zip = searchParams.get(ZIP_QUERY_PARAMETER);
         const workbookUrl = readWorkbookUrlParameter(searchParams);
 
-        if ((!data && !zip && !workbookUrl) || location.state == SKIP_EVENT_LISTENER) {
+        if (!data && !zip && !workbookUrl) {
             return;
         }
 
@@ -80,7 +78,7 @@ export const PlatformEventListenerProvider: React.FC<Props> = (props: Props) => 
             // would dispatch the same workbook again and immediately reopen the conflict dialog.
             dropEventParameters(searchParams);
         }
-    }, [documentSearch, location.state, listener]);
+    }, [documentSearch, listener]);
 
     return (
         <LISTENER_CTX.Provider value={listener}>

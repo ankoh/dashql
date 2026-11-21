@@ -6,7 +6,6 @@ import * as core from '@akohn/dashql';
 
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { CONNECTOR_INFOS, ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
-import { WorkbookSetupStatus } from '../../app/loading/workbook_setup_status.js';
 import { SELECT_WORKBOOK } from '../../app/router.js';
 import { WorkbookWorkbenchSidebar, type WorkbookWorkbenchSidebarDependencies } from './workbook_workbench_sidebar.js';
 import type { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
@@ -128,7 +127,6 @@ const runtime = {
 
 const dependencies = {
     useRouterNavigate: () => state.navigate,
-    useRouteContext: () => ({ workbookId: 'current-workbook', workbookSetupStatus: WorkbookSetupStatus.NONE }),
     useRuntime: () => runtime,
     useDispatch: () => state.modifyWorkbookScripts,
     useConnections: connectionViews,
