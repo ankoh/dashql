@@ -1,8 +1,6 @@
 import type * as core from '@akohn/dashql';
-import { TracedLogger } from '@akohn/dashql/platform/logger/logger';
-import { AppLoadingProgress, AppLoadingProgressConsumer } from './app_loading_progress.js';
+import type { AppLoadingProgress } from './app_loading_progress.js';
 import { ProgressCounter } from '@akohn/dashql/platform/utils/progress';
-import type { InvalidWorkbook } from '../../workbook/workbook_lifecycle.js';
 import type { RouteContext } from '../router.js';
 import type { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 
@@ -41,22 +39,6 @@ export async function shouldFinishInitialNavigation(initialInlineSetup: Promise<
     return initialInlineSetup == null || !await initialInlineSetup;
 }
 
-/// What a restore of the persisted app state restored into the runtime
-export interface RestoredAppState {
-    /// The connections that the runtime took, in the order of the app manifest
-    connectionIds: string[];
-    /// The workbooks that the runtime took, in the order of the workbook tree
-    workbooks: ReadonlyMap<string, WorkbookScripts>;
-    /// The workbooks that were refused a load (keyed by bare UUID)
-    invalidWorkbooks: Map<string, InvalidWorkbook>;
-}
-
-/// Restores the persisted app state
-export interface AppStateRestorer {
-    /// Restore the connections and the workbooks into the runtime
-    restoreAppState(progressConsumer: (progress: AppLoadingProgress) => void): Promise<RestoredAppState>;
-}
-
 /// A counter of the progress of a restore of the runtime
 function progressCounter(counter: core.RestoreProgressCounter): ProgressCounter {
     const out = new ProgressCounter(counter.total);
@@ -71,51 +53,6 @@ function progressCounter(counter: core.RestoreProgressCounter): ProgressCounter 
 export function restoreProgress(progress: core.RestoreProgress): AppLoadingProgress {
     return {
         restoreConnections: progressCounter(progress.restoreConnections),
-        restoreCatalogs: progressCounter(progress.restoreCatalogs),
         restoreWorkbookScripts: progressCounter(progress.restoreWorkbookScripts),
-    };
-}
-
-/// Main logic to setup the application
-export async function loadApp(logger: TracedLogger, storage: AppStateRestorer, consumer: AppLoadingProgressConsumer) {
-    const traced = logger.childSpan();
-    traced.info("Loading application", {}, "app_loading");
-    const appLoadStartTime = performance.now();
-
-    let progress: AppLoadingProgress = {
-        restoreConnections: new ProgressCounter(),
-        restoreCatalogs: new ProgressCounter(),
-        restoreWorkbookScripts: new ProgressCounter(),
-    };
-    const partialProgressConsumer = (update: Partial<AppLoadingProgress>) => {
-        progress = {
-            ...progress,
-            ...update
-        };
-        consumer(progress);
-    };
-
-    traced.info("Restoring application state", {}, "app_loading");
-    const restoreStartTime = performance.now();
-
-    /// First restore the previous app state
-    const state = await storage.restoreAppState(partialProgressConsumer);
-
-    const restoreDuration = performance.now() - restoreStartTime;
-    traced.info("Restored application state", {
-        connections: state.connectionIds.length.toString(),
-        workbooks: state.workbooks.size.toString(),
-        durationMs: restoreDuration.toFixed(2)
-    }, "app_loading");
-
-    const totalAppLoadDuration = performance.now() - appLoadStartTime;
-    traced.info("Application loading complete", {
-        totalDurationMs: totalAppLoadDuration.toFixed(2)
-    }, "app_loading");
-
-    return {
-        invalidWorkbooks: state.invalidWorkbooks,
-        restoredWorkbooks: state.workbooks,
-        restoredConnections: state.connectionIds,
     };
 }

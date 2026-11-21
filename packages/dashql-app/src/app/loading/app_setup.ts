@@ -9,16 +9,14 @@ import { useDashQLCoreSetup } from '../../host/core_provider.js';
 import { useLogger } from '../../host/logger_provider.js';
 import { createTrace } from '@akohn/dashql/platform/logger/trace_context';
 import { useEphemeralWorkbook } from '../../workbook/workbook_creation.js';
-import { AppLoadingProgress } from './app_loading_progress.js';
-import { ProgressCounter } from '@akohn/dashql/platform/utils/progress';
-import { deleteSurplusEphemeralWorkbooks, loadApp, restoreProgress, selectStartupWorkbook, shouldFinishInitialNavigation } from './app_loading_logic.js';
+import { initialLoadingProgress, type AppLoadingProgress } from './app_loading_progress.js';
+import { deleteSurplusEphemeralWorkbooks, restoreProgress, selectStartupWorkbook, shouldFinishInitialNavigation } from './app_loading_logic.js';
 import { useAppConfig } from '../../config/app_config.js';
 import { useDeleteWorkbook } from '../../workbook/workbook_lifecycle.js';
 import { useEmbeddedDatabaseSetup } from '../../host/embedded_database_provider.js';
 import { getAppHost } from '@akohn/dashql-react/dom/app_host';
 import type { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
-import type { InvalidWorkbook } from '../../workbook/workbook_lifecycle.js';
 import { IndicatorStatus } from '@akohn/dashql-react/components/status_indicator';
 import { useAppSettingsReady } from '../../config/app_settings_sync.js';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
@@ -73,11 +71,7 @@ export function useAppSetup(initialImport: React.RefObject<Promise<boolean> | nu
     const setupEmbeddedDatabase = useEmbeddedDatabaseSetup();
 
     const [embeddedDatabaseStatus, setEmbeddedDatabaseStatus] = React.useState<IndicatorStatus>(IndicatorStatus.None);
-    const [progress, setProgress] = React.useState<AppLoadingProgress>(() => ({
-        restoreConnections: new ProgressCounter(),
-        restoreCatalogs: new ProgressCounter(),
-        restoreWorkbookScripts: new ProgressCounter(),
-    }));
+    const [progress, setProgress] = React.useState<AppLoadingProgress>(initialLoadingProgress);
     const [done, resolveDone] = React.useMemo(() => {
         let resolve: () => void;
         const promise = new Promise<void>(a => { resolve = a; });
@@ -134,32 +128,32 @@ export function useAppSetup(initialImport: React.RefObject<Promise<boolean> | nu
                 durationMs: coreDuration.toFixed(2)
             }, LOG_CTX);
 
-            // Load the app
-            traced.info("Loading application state and workbooks", {}, LOG_CTX);
-            const loaded = await trackInitialization(
+            // Restore the connections and the workbooks into the runtime, it writes through its writer
+            traced.info("Restoring application state", {}, LOG_CTX);
+            const restoreStartTime = performance.now();
+            const restored = await trackInitialization(
                 "Application state",
-                loadApp(traced, {
-                    restoreAppState: async progressConsumer => {
-                        // The connections and the workbooks restore into the runtime, it writes through its writer
-                        const restored = await runtime.restore(progress => progressConsumer(restoreProgress(progress)));
-                        progressConsumer(restoreProgress(restored.progress));
-                        const workbooks = new Map<string, WorkbookScripts>();
-                        for (const workbookId of restored.workbookIds) {
-                            const workbook = runtime.store.get('workbook', workbookId);
-                            if (workbook != null) workbooks.set(workbookId, workbook);
-                        }
-                        const invalidWorkbooks = new Map<string, InvalidWorkbook>(restored.invalidWorkbooks.map(invalid => [invalid.workbookId, invalid]));
-                        return { connectionIds: restored.connectionIds, workbooks, invalidWorkbooks };
-                    },
-                }, setProgress),
+                runtime.restore(progress => setProgress(restoreProgress(progress))),
             );
+            setProgress(restoreProgress(restored.progress));
+            // The workbooks that the runtime took, in the order of the workbook tree
+            const restoredWorkbooks = new Map<string, WorkbookScripts>();
+            for (const workbookId of restored.workbookIds) {
+                const workbook = runtime.store.get('workbook', workbookId);
+                if (workbook != null) restoredWorkbooks.set(workbookId, workbook);
+            }
+            traced.info("Restored application state", {
+                connections: restored.connectionIds.length.toString(),
+                workbooks: restoredWorkbooks.size.toString(),
+                durationMs: (performance.now() - restoreStartTime).toFixed(2),
+            }, LOG_CTX);
 
             // The list of the workbooks holds the workbooks that were refused a load. This is just an
             // aggregate count for the log — each refused workbook already logs a WARN with its path
             // and reason, so a second WARN here would only duplicate the diagnostic. Keep it at INFO.
-            if (loaded.invalidWorkbooks.size > 0) {
+            if (restored.invalidWorkbooks.length > 0) {
                 traced.info("Some workbooks were refused a load", {
-                    count: loaded.invalidWorkbooks.size.toString()
+                    count: restored.invalidWorkbooks.length.toString()
                 }, LOG_CTX);
             }
 
@@ -182,7 +176,7 @@ export function useAppSetup(initialImport: React.RefObject<Promise<boolean> | nu
             connections.set(embedded.connectionId, embedded);
 
             // The app holds exactly one ephemeral workbook, whatever it opens below
-            await deleteSurplusEphemeralWorkbooks(loaded.restoredWorkbooks.values(), async workbookId => {
+            await deleteSurplusEphemeralWorkbooks(restoredWorkbooks.values(), async workbookId => {
                 await storageWriter.deleteWorkbook(workbookId);
                 deleteWorkbookScripts(workbookId);
             }, (workbookId, error) => {
@@ -191,7 +185,7 @@ export function useAppSetup(initialImport: React.RefObject<Promise<boolean> | nu
             const greeter = ephemeralWorkbook(newWorkbookConnection(connections, allocateConnection, getHyperLinkTabState().current));
 
             if (await shouldFinishInitialNavigation(initialImport.current)) {
-                const workbookId = selectStartupWorkbook(workbookIdFromPathname(pathname), loaded.restoredWorkbooks);
+                const workbookId = selectStartupWorkbook(workbookIdFromPathname(pathname), restoredWorkbooks);
                 navigate(workbookId != null
                     ? { type: OPEN_LINK_WORKBOOK, value: workbookId }
                     : { type: OPEN_EPHEMERAL_WORKBOOK, value: greeter.workbookId });

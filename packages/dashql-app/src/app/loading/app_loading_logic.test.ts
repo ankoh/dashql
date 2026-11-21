@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { TracedLogger } from '@akohn/dashql/platform/logger/logger';
-import { canShowWorkbook, deleteSurplusEphemeralWorkbooks, loadApp, selectStartupWorkbook, shouldFinishInitialNavigation, type AppStateRestorer } from './app_loading_logic.js';
+import { canShowWorkbook, deleteSurplusEphemeralWorkbooks, selectStartupWorkbook, shouldFinishInitialNavigation } from './app_loading_logic.js';
 import type { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 
 describe('canShowWorkbook', () => {
@@ -72,46 +71,5 @@ describe('shouldFinishInitialNavigation', () => {
 
     it('finishes normal startup navigation without an inline setup', async () => {
         await expect(shouldFinishInitialNavigation(null)).resolves.toBe(true);
-    });
-});
-
-describe('loadApp', () => {
-    it('restores empty state without creating a connection or workbook', async () => {
-        const restored = {
-            connectionIds: [],
-            workbooks: new Map(),
-            invalidWorkbooks: new Map(),
-        };
-        const storage = { restoreAppState: vi.fn().mockResolvedValue(restored) };
-        const logger = {
-            childSpan: () => ({
-                info: vi.fn(),
-            }),
-        };
-
-        const result = await loadApp(
-            logger as unknown as TracedLogger,
-            storage as unknown as AppStateRestorer,
-            vi.fn(),
-        );
-
-        expect(result.restoredConnections).toEqual([]);
-        expect(storage.restoreAppState).toHaveBeenCalledOnce();
-        expect(result.invalidWorkbooks.size).toBe(0);
-        expect(result.restoredWorkbooks.size).toBe(0);
-    });
-
-    it('preserves the restored workbook manifest order', async () => {
-        const restored = {
-            connectionIds: [],
-            workbooks: new Map([['second', {}], ['first', {}]]),
-            invalidWorkbooks: new Map(),
-        };
-        const result = await loadApp(
-            { childSpan: () => ({ info: vi.fn() }) } as unknown as TracedLogger,
-            { restoreAppState: vi.fn().mockResolvedValue(restored) } as unknown as AppStateRestorer,
-            vi.fn(),
-        );
-        expect([...result.restoredWorkbooks.keys()]).toEqual(['second', 'first']);
     });
 });
