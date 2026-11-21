@@ -18,7 +18,7 @@ The prompt switches between SQL and AI. AI keeps the white card of the prompt, d
 shows in the place of the editor a line to run in the folder of a project, in a field to copy with a button for a new
 port: `npx -y --registry=https://registry.npmjs.org/ --min-release-age=0 @akohn/dashql-cli@<version> connect --launch claude --port <port> --secret <secret>`.
 The version is the one of the build of the page (`DASHQL_CLI_VERSION`, a release like `0.0.19` or a build of main like
-`0.0.19-dev.<commits>.g<commit>`): CI publishes the packages of a build to npm before it deploys the page, so the
+`0.0.20-latest.<commits>.g<commit>`, `-dev.` on dev.dashql.app): CI publishes the packages of a build to npm before it deploys the page, so the
 command is of the same commit, and npx caches each version by itself. The dev server shows `@latest`. `--registry` and
 `--min-release-age=0`, because a company's npm mirror or release-age policy would otherwise refuse a version published
 minutes ago. A fresh terminal starts in the home folder: there, `connect` runs the session in `~/.dashql` instead,

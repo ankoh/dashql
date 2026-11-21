@@ -15,6 +15,11 @@ on:
                 required: false
                 type: boolean
                 default: true
+            npm_tag:
+                description: The dist-tag of the npm packages, it names their version (bazel/versioning.bzl), empty when not published
+                required: false
+                type: string
+                default: ''
 
 jobs:
     # The version of the run, determined once: every job that runs Bazel gets the output of `git describe` of the commit
@@ -46,6 +51,7 @@ jobs:
         needs: [version]
         env:
             DASHQL_GIT_DESCRIBE: ${{ needs.version.outputs.describe }}
+            DASHQL_NPM_TAG: ${{ inputs.npm_tag }}
         steps:
             - uses: actions/checkout@v7
               with:
@@ -85,6 +91,7 @@ jobs:
         needs: [version]
         env:
             DASHQL_GIT_DESCRIBE: ${{ needs.version.outputs.describe }}
+            DASHQL_NPM_TAG: ${{ inputs.npm_tag }}
         steps:
             - uses: actions/checkout@v7
               with:
@@ -118,6 +125,7 @@ jobs:
         needs: [version, core_wasm_fastbuild]
         env:
             DASHQL_GIT_DESCRIBE: ${{ needs.version.outputs.describe }}
+            DASHQL_NPM_TAG: ${{ inputs.npm_tag }}
         steps:
             - uses: actions/checkout@v7
               with:
@@ -175,6 +183,7 @@ jobs:
         needs: [version]
         env:
             DASHQL_GIT_DESCRIBE: ${{ needs.version.outputs.describe }}
+            DASHQL_NPM_TAG: ${{ inputs.npm_tag }}
         steps:
             - uses: actions/checkout@v7
               with:
@@ -224,6 +233,7 @@ jobs:
         needs: [version, core_wasm_release]
         env:
             DASHQL_GIT_DESCRIBE: ${{ needs.version.outputs.describe }}
+            DASHQL_NPM_TAG: ${{ inputs.npm_tag }}
         steps:
             - uses: actions/checkout@v7
               with:
@@ -295,6 +305,7 @@ jobs:
         needs: [version, core_wasm_release]
         env:
             DASHQL_GIT_DESCRIBE: ${{ needs.version.outputs.describe }}
+            DASHQL_NPM_TAG: ${{ inputs.npm_tag }}
         steps:
             - uses: actions/checkout@v7
               with:
@@ -364,6 +375,7 @@ jobs:
         needs: [version, core_wasm_release]
         env:
             DASHQL_GIT_DESCRIBE: ${{ needs.version.outputs.describe }}
+            DASHQL_NPM_TAG: ${{ inputs.npm_tag }}
         steps:
             - uses: actions/checkout@v7
               with:
@@ -424,6 +436,7 @@ jobs:
         needs: [version, core_wasm_release]
         env:
             DASHQL_GIT_DESCRIBE: ${{ needs.version.outputs.describe }}
+            DASHQL_NPM_TAG: ${{ inputs.npm_tag }}
         steps:
             - uses: actions/checkout@v7
               with:

@@ -138,7 +138,9 @@ domain, such as the Slack app of development (`docs/wip/embeds.md`), without a t
 `on_push_dev.yml` builds the pushed commit unsigned and calls `publish.yml` with only `publish_dev_pages`. The
 `dev_pages_deploy` job uploads the `dashql_app_pages` artifact to a separate Direct Upload project with the same
 `PAGES_DASHQL_*` secrets. `publish_desktop_release: false` keeps the Electron release and the release manifests of
-`get.dashql.app` untouched, and `dashql.app`, `dashql.org` and the coverage report aren't deployed.
+`get.dashql.app` untouched, and `dashql.app`, `dashql.org` and the coverage report aren't deployed. The npm packages
+of dev are versions of their own with the dist-tag `dev` (`0.0.20-dev.125.ged768a7d4`, `bazel/versioning.bzl`), so a
+commit pushed to dev before main still gets its `latest` version from main.
 
 Set this up before the first push to `dev`:
 

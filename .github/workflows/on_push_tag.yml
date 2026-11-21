@@ -11,6 +11,7 @@ jobs:
         uses: ./.github/workflows/build_trusted.yml
         with:
             commit: ${{ github.sha }}
+            npm_tag: stable
             signed: true
         secrets: inherit
 

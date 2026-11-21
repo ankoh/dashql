@@ -4,6 +4,11 @@
 # jobs of a run build the same version, even when a tag arrives while it runs (see .github/workflows/build_trusted.yml)
 DESCRIBE_ENV = "DASHQL_GIT_DESCRIBE"
 
+# The npm dist-tag that the run publishes the packages with (latest, dev or stable), which CI gives every job of a
+# publishing run. main, dev and a tag can build the same commit, and their packages must not share a version: npm
+# publishes a version once, with the dist-tag of the first run, and trusted publishing cannot move a dist-tag afterwards.
+NPM_TAG_ENV = "DASHQL_NPM_TAG"
+
 def _dashql_app_version_repository_impl(repository_ctx):
     repo_root = str(repository_ctx.path(Label("//:MODULE.bazel")).dirname)
 
@@ -47,10 +52,15 @@ def _dashql_app_version_repository_impl(repository_ctx):
         if len(parts) >= 3:
             commit = parts[2].lstrip("g")
 
-    # The version of the packages on npm: a build between tags adds its commit, the same number of commits since the
-    # tag can belong to another commit on the branch dev, and a version on npm is published once
+    # The version of the packages on npm. A release (dist-tag stable) is the version of the tag. Any other channel is
+    # always a prerelease of the next patch named after its dist-tag, with the commit (the same number of commits since
+    # the tag can belong to another commit on the branch dev): 0.0.20-latest.125.ged768a7d4, 0.0.20-dev.125.ged768a7d4.
+    # A build that isn't published (no dist-tag) carries the commit only between tags.
+    npm_tag = (repository_ctx.getenv(NPM_TAG_ENV) or "").strip()
     npm_version = version
-    if dev > 0 and commit != "unknown":
+    if npm_tag != "" and npm_tag != "stable" and commit != "unknown":
+        npm_version = "{}.{}.{}-{}.{}.g{}".format(major, minor, patch + 1, npm_tag, dev, commit)
+    elif dev > 0 and commit != "unknown":
         npm_version = "{}.g{}".format(version, commit)
 
     # KEY=VALUE pairs that the genrules and package_macos.sh read with awk

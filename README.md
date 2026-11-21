@@ -75,7 +75,9 @@ bazel build //tools/datasets:datasets
 bazel run //tools/datasets:sync
 
 # Build and test the npm packages @akohn/dashql and @akohn/dashql-cli, CI publishes them (see Continuous Deployment).
-# Their version is the one of the commit, 0.0.19-dev.255.ge8e09a80c, whatever npm/package.json says.
+# Their version is the one of the commit, 0.0.19-dev.255.ge8e09a80c, whatever npm/package.json says. CI names it after
+# the dist-tag it publishes with (bazel/versioning.bzl): 0.0.20-latest.125.ged768a7d4 from main, 0.0.20-dev.125.ged768a7d4
+# from the branch dev, 0.0.19 from a tag.
 bazel build --config=release //packages/dashql:npm_tarball //packages/dashql-cli:npm_tarball
 bazel test --config=release //packages/dashql:all \
     //packages/dashql-cli:npm_package_test //packages/dashql-cli:binary_test
@@ -94,6 +96,7 @@ bazel test --config=release //packages/dashql:all \
 - Native apps and update bundles are published to **get.dashql.app**
 - We're maintaining release manifests under [get.dashql.app/stable.json](https://get.dashql.app/stable.json) and [get.dashql.app/latest.json](https://get.dashql.app/latest.json)
 - The npm packages `@akohn/dashql` and `@akohn/dashql-cli` are published for the branches `main`, `stable`, `dev`
+    - Each with versions of its own, named after the dist-tag: main and dev can build the same commit, and trusted publishing cannot move a dist-tag
 - The app references these published npm packages for the agent integration
 - Hosted test datasets are published to **data.dashql.app** (R2 bucket `dashql-data`)
     - Built hermetically by `//tools/datasets` (hash-pinned sources -> DuckDB CLI) and mirrored with `bazel run //tools/datasets:sync`
