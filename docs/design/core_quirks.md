@@ -12,10 +12,11 @@ entry when you find another one. The headings name where the behavior lives.
   errors.
 - **Case folding is ASCII only.** Bytes `\200-\377` are identifier bytes and keep their case, like in
   Postgres with a multi-byte encoding.
-- **Unimplemented forms.** No dollar-quoted strings, `E''`, `U&` or `N''`. Backslash has no special
-  meaning in `'...'`, and quoted strings continue across a line break only for bit and hex strings.
+- **Literal values are not decoded by the scanner.** Dollar-quoted strings, Unicode quoted
+  identifiers, and newline-continued strings are recognized. Backslash has no special meaning in
+  ordinary `'...'` strings. `E''`, `U&''`, and `N''` can still take generic expression paths.
   Consumers read literal values by stripping the outer quotes, so they neither unescape `''` nor join
-  continued bit and hex strings.
+  continued strings.
 - **Zero-length quoted identifiers still return an IDENT**, with an empty name, next to the error.
 
 ## Parser (`grammar/rules/`, `packages/dashql-parser/src/parser/`)

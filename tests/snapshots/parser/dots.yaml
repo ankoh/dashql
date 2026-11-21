@@ -7,7 +7,7 @@ parser-snapshots:
       statements:
         - type: SELECT
           ast-begin: 0
-          ast-size: 10
+          ast-size: 9
           description:
             text: "select * f..bname. foo"
             description-begin: 0
@@ -35,20 +35,14 @@ parser-snapshots:
                     children:
                       - key: SQL_TABLEREF_NAME
                         type: ARRAY
-                        text: "dbname."
+                        text: "dbname. foo"
                         children:
                           - type: NAME
                             text: "dbname"
-                          - type: OBJECT_EXT_TRAILING_DOT
-                            text: "."
-                            children: []
-                      - key: SQL_TABLEREF_ALIAS
-                        type: NAME
-                        text: "foo"
+                          - type: NAME
+                            text: "foo"
       scanner-errors: []
-      parser-errors:
-        - message: name has a trailing dot
-          text: "."
+      parser-errors: []
       line-breaks: []
       comments: []
       comment-blocks: []
@@ -82,24 +76,21 @@ parser-snapshots:
                         value: 1
               - key: SQL_SELECT_FROM
                 type: ARRAY
-                text: "from dbname."
+                text: "from dbname.  where"
                 children:
                   - type: OBJECT_SQL_TABLEREF
-                    text: "dbname."
+                    text: "dbname.  where"
                     children:
                       - key: SQL_TABLEREF_NAME
                         type: ARRAY
-                        text: "dbname."
+                        text: "dbname.  where"
                         children:
                           - type: NAME
                             text: "dbname"
-                          - type: OBJECT_EXT_TRAILING_DOT
-                            text: "."
-                            children: []
+                          - type: NAME
+                            text: "where"
       scanner-errors: []
-      parser-errors:
-        - message: name has a trailing dot
-          text: "."
+      parser-errors: []
       line-breaks: []
       comments: []
       comment-blocks: []
@@ -163,7 +154,7 @@ parser-snapshots:
       statements:
         - type: SELECT
           ast-begin: 0
-          ast-size: 18
+          ast-size: 7
           description:
             text: "select * f..here a = b"
             description-begin: 0
@@ -174,63 +165,18 @@ parser-snapshots:
             children:
               - key: SQL_SELECT_TARGETS
                 type: ARRAY
-                text: "*"
+                text: "* from dbn..here a = b"
                 children:
                   - type: OBJECT_SQL_RESULT_TARGET
-                    text: "*"
+                    text: "* from dbn..here a = b"
                     children:
-                      - key: SQL_RESULT_TARGET_STAR
-                        type: BOOL
-                        value: 1
-              - key: SQL_SELECT_FROM
-                type: ARRAY
-                text: "from dbname."
-                children:
-                  - type: OBJECT_SQL_TABLEREF
-                    text: "dbname."
-                    children:
-                      - key: SQL_TABLEREF_NAME
-                        type: ARRAY
-                        text: "dbname."
-                        children:
-                          - type: NAME
-                            text: "dbname"
-                          - type: OBJECT_EXT_TRAILING_DOT
-                            text: "."
-                            children: []
-              - key: SQL_SELECT_WHERE
-                type: OBJECT_SQL_NARY_EXPRESSION
-                text: "a = b"
-                children:
-                  - key: SQL_EXPRESSION_OPERATOR
-                    type: ENUM_SQL_EXPRESSION_OPERATOR
-                    value: EQUAL
-                  - key: SQL_EXPRESSION_ARGS
-                    type: ARRAY
-                    text: "a = b"
-                    children:
-                      - type: OBJECT_SQL_COLUMN_REF
-                        text: "a"
-                        children:
-                          - key: SQL_COLUMN_REF_PATH
-                            type: ARRAY
-                            text: "a"
-                            children:
-                              - type: NAME
-                                text: "a"
-                      - type: OBJECT_SQL_COLUMN_REF
+                      - key: SQL_RESULT_TARGET_NAME
+                        type: NAME
                         text: "b"
-                        children:
-                          - key: SQL_COLUMN_REF_PATH
-                            type: ARRAY
-                            text: "b"
-                            children:
-                              - type: NAME
-                                text: "b"
       scanner-errors: []
       parser-errors:
-        - message: name has a trailing dot
-          text: "."
+        - message: 'syntax error, unexpected EQUALS'
+          text: "="
       line-breaks: []
       comments: []
       comment-blocks: []

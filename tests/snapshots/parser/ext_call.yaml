@@ -1117,11 +1117,211 @@ parser-snapshots:
     input: |-
       SELECT $$x$$;
     expected:
-      statements: []
+      statements:
+        - type: SQL_SYNTAX
+          ast-begin: 0
+          ast-size: 59
+          description:
+            text: "SELECT $$x$$;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SYNTAX
+            text: "SELECT $$x$$"
+            children:
+              - key: SQL_SYNTAX_RULE
+                type: NAME
+                text: Stmt
+              - key: SQL_SYNTAX_CHILDREN
+                type: ARRAY
+                text: "SELECT $$x$$"
+                children:
+                  - type: OBJECT_SQL_SYNTAX
+                    text: "SELECT $$x$$"
+                    children:
+                      - key: SQL_SYNTAX_RULE
+                        type: NAME
+                        text: SelectStmt
+                      - key: SQL_SYNTAX_CHILDREN
+                        type: ARRAY
+                        text: "SELECT $$x$$"
+                        children:
+                          - type: OBJECT_SQL_SYNTAX
+                            text: "SELECT $$x$$"
+                            children:
+                              - key: SQL_SYNTAX_RULE
+                                type: NAME
+                                text: select_no_parens
+                              - key: SQL_SYNTAX_CHILDREN
+                                type: ARRAY
+                                text: "SELECT $$x$$"
+                                children:
+                                  - type: OBJECT_SQL_SYNTAX
+                                    text: "SELECT $$x$$"
+                                    children:
+                                      - key: SQL_SYNTAX_RULE
+                                        type: NAME
+                                        text: simple_select
+                                      - key: SQL_SYNTAX_CHILDREN
+                                        type: ARRAY
+                                        text: "SELECT $$x$$"
+                                        children:
+                                          - type: OPERATOR
+                                            text: "SELECT"
+                                          - type: OBJECT_SQL_SYNTAX
+                                            text: ""
+                                            children:
+                                              - key: SQL_SYNTAX_RULE
+                                                type: NAME
+                                                text: opt_with_aggregation_threshold
+                                              - key: SQL_SYNTAX_CHILDREN
+                                                type: ARRAY
+                                                text: ""
+                                                children: []
+                                          - type: OBJECT_SQL_SYNTAX
+                                            text: ""
+                                            children:
+                                              - key: SQL_SYNTAX_RULE
+                                                type: NAME
+                                                text: opt_all_clause
+                                              - key: SQL_SYNTAX_CHILDREN
+                                                type: ARRAY
+                                                text: ""
+                                                children: []
+                                          - type: OBJECT_SQL_SYNTAX
+                                            text: "$$x$$"
+                                            children:
+                                              - key: SQL_SYNTAX_RULE
+                                                type: NAME
+                                                text: opt_target_list
+                                              - key: SQL_SYNTAX_CHILDREN
+                                                type: ARRAY
+                                                text: "$$x$$"
+                                                children:
+                                                  - type: OBJECT_SQL_SYNTAX
+                                                    text: "$$x$$"
+                                                    children:
+                                                      - key: SQL_SYNTAX_RULE
+                                                        type: NAME
+                                                        text: target_list
+                                                      - key: SQL_SYNTAX_CHILDREN
+                                                        type: ARRAY
+                                                        text: "$$x$$"
+                                                        children:
+                                                          - type: OBJECT_SQL_SYNTAX
+                                                            text: "$$x$$"
+                                                            children:
+                                                              - key: SQL_SYNTAX_RULE
+                                                                type: NAME
+                                                                text: target_el
+                                                              - key: SQL_SYNTAX_CHILDREN
+                                                                type: ARRAY
+                                                                text: "$$x$$"
+                                                                children:
+                                                                  - type: OBJECT_SQL_SYNTAX
+                                                                    text: "$$x$$"
+                                                                    children:
+                                                                      - key: SQL_SYNTAX_RULE
+                                                                        type: NAME
+                                                                        text: a_expr
+                                                                      - key: SQL_SYNTAX_CHILDREN
+                                                                        type: ARRAY
+                                                                        text: "$$x$$"
+                                                                        children:
+                                                                          - type: OBJECT_SQL_SYNTAX
+                                                                            text: "$$x$$"
+                                                                            children:
+                                                                              - key: SQL_SYNTAX_RULE
+                                                                                type: NAME
+                                                                                text: c_expr
+                                                                              - key: SQL_SYNTAX_CHILDREN
+                                                                                type: ARRAY
+                                                                                text: "$$x$$"
+                                                                                children:
+                                                                                  - type: OBJECT_SQL_SYNTAX
+                                                                                    text: "$$x$$"
+                                                                                    children:
+                                                                                      - key: SQL_SYNTAX_RULE
+                                                                                        type: NAME
+                                                                                        text: AexprConst
+                                                                                      - key: SQL_SYNTAX_CHILDREN
+                                                                                        type: ARRAY
+                                                                                        text: "$$x$$"
+                                                                                        children:
+                                                                                          - type: OBJECT_SQL_SYNTAX
+                                                                                            text: "$$x$$"
+                                                                                            children:
+                                                                                              - key: SQL_SYNTAX_RULE
+                                                                                                type: NAME
+                                                                                                text: Sconst
+                                                                                              - key: SQL_SYNTAX_CHILDREN
+                                                                                                type: ARRAY
+                                                                                                text: "$$x$$"
+                                                                                                children:
+                                                                                                  - type: LITERAL_STRING
+                                                                                                    text: "$$x$$"
+                                          - type: OBJECT_SQL_SYNTAX
+                                            text: ""
+                                            children:
+                                              - key: SQL_SYNTAX_RULE
+                                                type: NAME
+                                                text: into_clause
+                                              - key: SQL_SYNTAX_CHILDREN
+                                                type: ARRAY
+                                                text: ""
+                                                children: []
+                                          - type: OBJECT_SQL_SYNTAX
+                                            text: ""
+                                            children:
+                                              - key: SQL_SYNTAX_RULE
+                                                type: NAME
+                                                text: from_clause
+                                              - key: SQL_SYNTAX_CHILDREN
+                                                type: ARRAY
+                                                text: ""
+                                                children: []
+                                          - type: OBJECT_SQL_SYNTAX
+                                            text: ""
+                                            children:
+                                              - key: SQL_SYNTAX_RULE
+                                                type: NAME
+                                                text: where_clause
+                                              - key: SQL_SYNTAX_CHILDREN
+                                                type: ARRAY
+                                                text: ""
+                                                children: []
+                                          - type: OBJECT_SQL_SYNTAX
+                                            text: ""
+                                            children:
+                                              - key: SQL_SYNTAX_RULE
+                                                type: NAME
+                                                text: group_clause
+                                              - key: SQL_SYNTAX_CHILDREN
+                                                type: ARRAY
+                                                text: ""
+                                                children: []
+                                          - type: OBJECT_SQL_SYNTAX
+                                            text: ""
+                                            children:
+                                              - key: SQL_SYNTAX_RULE
+                                                type: NAME
+                                                text: having_clause
+                                              - key: SQL_SYNTAX_CHILDREN
+                                                type: ARRAY
+                                                text: ""
+                                                children: []
+                                          - type: OBJECT_SQL_SYNTAX
+                                            text: ""
+                                            children:
+                                              - key: SQL_SYNTAX_RULE
+                                                type: NAME
+                                                text: window_clause
+                                              - key: SQL_SYNTAX_CHILDREN
+                                                type: ARRAY
+                                                text: ""
+                                                children: []
       scanner-errors: []
-      parser-errors:
-        - message: 'syntax error, unexpected dollar-quoted string'
-          text: "$$x$$"
+      parser-errors: []
       line-breaks: []
       comments: []
       comment-blocks: []

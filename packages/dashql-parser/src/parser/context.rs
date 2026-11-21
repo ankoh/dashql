@@ -218,7 +218,7 @@ impl<'a> ParseContext<'a> {
     }
 
     /// The text of a span of symbols
-    fn text_at(&self, span: SymbolSpan) -> &'a str {
+    pub(super) fn text_at(&self, span: SymbolSpan) -> &'a str {
         let ts = self.resolve_text_span(span);
         self.text.get(ts.offset as usize..ts.end() as usize).unwrap_or_default()
     }
@@ -530,9 +530,9 @@ impl<'a> ParseContext<'a> {
         let bits: i64 = digits.parse().unwrap_or(0);
         if bits < 1 {
             self.add_error(bits_loc, "precision for float type must be least 1 bit");
-        } else if bits < 24 {
+        } else if bits <= 24 {
             return NumericType::FLOAT4;
-        } else if bits < 53 {
+        } else if bits <= 53 {
             return NumericType::FLOAT8;
         } else {
             self.add_error(bits_loc, "precision for float type must be less than 54 bits");
@@ -590,6 +590,7 @@ impl<'a> ParseContext<'a> {
             NodeType::OBJECT_EXT_EXPLAIN => StatementType::EXPLAIN,
             NodeType::OBJECT_SQL_CALL => StatementType::CALL,
             NodeType::OBJECT_SQL_TRANSACTION => StatementType::TRANSACTION,
+            NodeType::OBJECT_SQL_SYNTAX => StatementType::SQL_SYNTAX,
             // The grammar reduces statements only to the roots above, another root drops the statement
             other => {
                 state.errors.push(ParseError {

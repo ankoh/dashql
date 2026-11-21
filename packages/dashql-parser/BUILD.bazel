@@ -24,14 +24,31 @@ genrule(
     cmd = "cp $< $@",
 )
 
+genrule(
+    name = "syntax_tables",
+    srcs = ["//grammar/hyper:tables"],
+    outs = ["src/parser/syntax_tables.rs"],
+    cmd = "cp $< $@",
+)
+
+genrule(
+    name = "syntax_keywords",
+    srcs = ["//grammar/hyper:keywords"],
+    outs = ["src/parser/syntax_keywords.rs"],
+    cmd = "cp $< $@",
+)
+
 rust_library(
     name = "dashql_parser",
     srcs = glob(["src/**/*.rs"]) + [
         ":dashql_parser_keywords_rs",
         ":dashql_parser_tables_rs",
+        ":syntax_tables",
+        ":syntax_keywords",
     ],
     crate_name = "dashql_parser",
     crate_root = "src/lib.rs",
+    compile_data = ["src/parser/hyper_aliases.txt"],
     edition = "2021",
     lint_config = "//bazel:rust_safety_lints",
     visibility = ["//visibility:public"],

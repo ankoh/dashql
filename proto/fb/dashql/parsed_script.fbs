@@ -167,6 +167,8 @@ enum NodeType: uint16 {
     OBJECT_SQL_ALTER_SCHEMA,
     OBJECT_SQL_TRANSACTION,
     OBJECT_SQL_TRANSACTION_MODE,
+    // Concrete syntax for SQL without a semantic projection yet.
+    OBJECT_SQL_SYNTAX,
 }
 
 enum AttributeKey: uint16 {
@@ -503,6 +505,8 @@ enum AttributeKey: uint16 {
     SQL_TRANSACTION_ISOLATION_LEVEL,
     SQL_TRANSACTION_READ_ONLY,
     SQL_TRANSACTION_DEFERRABLE,
+    SQL_SYNTAX_RULE,
+    SQL_SYNTAX_CHILDREN,
 }
 
 enum StatementType: uint8 {
@@ -527,6 +531,7 @@ enum StatementType: uint8 {
     DROP_SCHEMA = 19,
     ALTER_SCHEMA = 20,
     TRANSACTION = 21,
+    SQL_SYNTAX = 22,
 }
 
 enum StatementTargetType: uint8 {

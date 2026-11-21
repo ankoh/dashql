@@ -2,7 +2,7 @@
 
 use super::{encode_location_range, encode_location_text, Map};
 use crate::ryml::Node;
-use dashql_buffers::parser::{CommentBlockType, Node as AstNode, NodeType, StatementType};
+use dashql_buffers::parser::{AttributeKey, CommentBlockType, Node as AstNode, NodeType, StatementType};
 use dashql_parser::parser::context::resolve_text_span;
 use dashql_parser::parser::enums::enum_text;
 use dashql_parser::parser::ParsedScript;
@@ -28,6 +28,9 @@ fn encode_node(parsed: &ParsedScript, text: &str, node_id: usize) -> Node {
         map.insert("children", Node::seq(items));
     };
     match node.node_type() {
+        NodeType::NAME if node.attribute_key() == AttributeKey::SQL_SYNTAX_RULE => {
+            map.plain("text", &scanned.names.get(node.children_begin_or_value()).text);
+        }
         NodeType::NONE => {}
         NodeType::BOOL => {
             map.int("value", (node.children_begin_or_value() != 0) as i64);

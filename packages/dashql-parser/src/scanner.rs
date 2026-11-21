@@ -140,6 +140,12 @@ fn next_symbol(lexer: &mut Lexer, out: &mut ScannedScript, lookahead: &mut VecDe
         (S_NULLS_P, S_FIRST_P | S_LAST_P) => Symbol::new(S_NULLS_LA, current.location),
         (S_WITH, S_TIME | S_ORDINALITY) => Symbol::new(S_WITH_LA, current.location),
         (S_DOT, S_STAR) => Symbol::new(S_DOT_STAR_LA, current.location),
+        (S_DOT, _)
+            if current.location.end() < next.location.offset
+                && !matches!(next.value, SymbolValue::Name(_) | SymbolValue::Text(_)) =>
+        {
+            Symbol::new(S_DOT_TRAILING, current.location)
+        }
         _ => current,
     }
 }
@@ -201,9 +207,13 @@ enum Initial {
     #[regex(b"[xX]'", |_| State::Xh)]
     #[token("'", |_| State::Xq)]
     #[token("\"", |_| State::Xd)]
+    #[regex(b"[uU]&\"", |_| State::Xd)]
     #[token("`", |_| State::Xbt)]
     #[token("$$", |_| State::Xdq)]
     Begin(State),
+    /// A tagged dollar string has a delimiter chosen by the SQL text.
+    #[regex(br"\$[A-Za-z_\x80-\xff][A-Za-z_0-9\x80-\xff]*\$")]
+    TaggedDollarString,
     /// The operators and punctuation with a token of their own
     #[token("::", |_| S_TYPECAST)]
     #[token("..", |_| S_DOT_DOT)]
@@ -465,6 +475,25 @@ impl<'a> Lexer<'a> {
     /// Scan the next raw token (before the lookahead filter)
     fn lex(&mut self, out: &mut ScannedScript) -> Symbol {
         loop {
+            if self.state == State::Initial {
+                while let Some(c) = utf8(self.text.get(self.pos..).unwrap_or_default()).chars().next() {
+                    if !is_unicode_space(c) {
+                        break;
+                    }
+                    self.pos += c.len_utf8();
+                }
+                // A parameter number ends before a field dot, unlike a decimal literal: $1.x.
+                if self.pos > 0
+                    && self.text.get(self.pos - 1) == Some(&b'$')
+                    && self.text.get(self.pos).is_some_and(u8::is_ascii_digit)
+                {
+                    let begin = self.pos;
+                    while self.text.get(self.pos).is_some_and(u8::is_ascii_digit) {
+                        self.pos += 1;
+                    }
+                    return Symbol::new(S_ICONST, Self::span(begin, self.pos - begin));
+                }
+            }
             if self.pos >= self.text.len() {
                 let eof = self.eof_location();
                 let message = match self.state {
@@ -515,7 +544,13 @@ impl<'a> Lexer<'a> {
                     None => self.no_match(out),
                 },
                 State::Xq => match self.next_match::<Xq>() {
-                    Some((Xq::QuoteStop, loc)) => Some(self.quote_stop(loc)),
+                    Some((Xq::QuoteStop, loc)) => {
+                        if self.quote_continue(out) {
+                            None
+                        } else {
+                            Some(self.quote_stop(loc))
+                        }
+                    }
                     Some((Xq::Inside, _)) => None,
                     None => self.no_match(out),
                 },
@@ -578,10 +613,25 @@ impl<'a> Lexer<'a> {
                 self.state = state;
                 None
             }
+            Initial::TaggedDollarString => {
+                let delimiter = self.text.get(loc.offset as usize..loc.end() as usize).unwrap_or_default();
+                let rest = self.text.get(self.pos..).unwrap_or_default();
+                if let Some(end) = rest.windows(delimiter.len()).position(|part| part == delimiter) {
+                    self.pos += end + delimiter.len();
+                    Some(Symbol::new(S_DCONST, Self::span(loc.offset as usize, self.pos - loc.offset as usize)))
+                } else {
+                    out.errors.push(ScannerError {
+                        location: Self::span(loc.offset as usize, self.text.len() - loc.offset as usize),
+                        message: "unterminated dollar-quoted string".to_string(),
+                    });
+                    self.pos = self.text.len();
+                    None
+                }
+            }
             Initial::Token(kind) => Some(Symbol::new(kind, loc)),
             Initial::DotTrailing => {
                 self.yyless(&mut loc, 1);
-                Some(Symbol::new(S_DOT_TRAILING, loc))
+                Some(Symbol::new(S_DOT, loc))
             }
             // A standalone ? is an unnamed parameter. ?name, ?1 and ?"name" are not parameters of Hyper,
             // the grammar has no rule for QUESTION_MARK, so they are syntax errors.
@@ -599,7 +649,15 @@ impl<'a> Lexer<'a> {
                 self.yyless(&mut loc, keep);
                 Some(self.number(loc))
             }
-            Initial::Identifier => Some(self.read_identifier(out, loc)),
+            Initial::Identifier => {
+                if let Some((end, _)) = utf8(self.text.get(loc.offset as usize..loc.end() as usize).unwrap_or_default())
+                    .char_indices()
+                    .find(|(_, c)| is_unicode_space(*c))
+                {
+                    self.yyless(&mut loc, end);
+                }
+                Some(self.read_identifier(out, loc))
+            }
             Initial::Other => Some(Symbol::new(S_RAW_CHAR, loc)),
         }
     }
@@ -651,11 +709,77 @@ impl<'a> Lexer<'a> {
     /// The `{xdstop}` and `{xbtstop}` actions
     fn identifier_stop(&mut self, out: &mut ScannedScript, loc: TextSpan, quote: u8, message: &str) -> Symbol {
         let loc = self.ext_begin.cover(loc);
+        if self
+            .text
+            .get(loc.offset as usize..loc.offset as usize + 3)
+            .is_some_and(|prefix| prefix.eq_ignore_ascii_case(b"u&\""))
+        {
+            self.state = State::Initial;
+            return self.unicode_identifier(out, loc);
+        }
         if loc.length == 2 {
             out.errors.push(ScannerError { location: loc, message: message.to_string() });
         }
         self.state = State::Initial;
         self.read_quoted_identifier(out, loc, quote)
+    }
+
+    /// Read a Unicode delimited identifier and its optional UESCAPE clause.
+    fn unicode_identifier(&mut self, out: &mut ScannedScript, mut loc: TextSpan) -> Symbol {
+        let identifier_end = loc.end() as usize;
+        let mut escape = '\\';
+        let mut rest = self.pos;
+        while self.text.get(rest).is_some_and(u8::is_ascii_whitespace) {
+            rest += 1;
+        }
+        if self.text.get(rest..rest + 7).is_some_and(|s| s.eq_ignore_ascii_case(b"uescape")) {
+            rest += 7;
+            while self.text.get(rest).is_some_and(u8::is_ascii_whitespace) {
+                rest += 1;
+            }
+            if self.text.get(rest) == Some(&b'\'') && self.text.get(rest + 2) == Some(&b'\'') {
+                escape = self.text.get(rest + 1).copied().unwrap_or(b'\\') as char;
+                self.pos = rest + 3;
+                loc.length = (self.pos - loc.offset as usize) as u32;
+            }
+        }
+        let inner = utf8(self.text.get(loc.offset as usize + 3..identifier_end.saturating_sub(1)).unwrap_or_default());
+        let mut name = String::new();
+        let mut chars = inner.chars().peekable();
+        let mut valid = true;
+        while let Some(c) = chars.next() {
+            if c == '"' && chars.peek() == Some(&'"') {
+                chars.next();
+            } else if c == escape {
+                if chars.peek() == Some(&escape) {
+                    chars.next();
+                } else {
+                    let digits = if chars.peek() == Some(&'+') {
+                        chars.next();
+                        6
+                    } else {
+                        4
+                    };
+                    let hex: String = chars.by_ref().take(digits).collect();
+                    let decoded = u32::from_str_radix(&hex, 16).ok().and_then(char::from_u32);
+                    if hex.len() == digits {
+                        if let Some(c) = decoded {
+                            name.push(c);
+                            continue;
+                        }
+                    }
+                    valid = false;
+                    break;
+                }
+            }
+            name.push(c);
+        }
+        if !valid || name.is_empty() {
+            out.errors
+                .push(ScannerError { location: loc, message: "invalid Unicode delimited identifier".to_string() });
+        }
+        let id = out.names.register(&name, loc);
+        Symbol { kind: S_IDENT, location: loc, value: SymbolValue::Name(id) }
     }
 
     /// The token kind of the literal that the current start condition scans
@@ -773,6 +897,11 @@ fn utf8(bytes: &[u8]) -> &str {
     std::str::from_utf8(bytes).unwrap_or_default()
 }
 
+/// The non-ASCII whitespace accepted by Hyper, including zero-width separators and a BOM.
+fn is_unicode_space(c: char) -> bool {
+    matches!(c, '\u{a0}' | '\u{2000}'..='\u{200f}' | '\u{2028}' | '\u{2029}' | '\u{3000}' | '\u{feff}')
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -810,7 +939,7 @@ mod tests {
 
     #[test]
     fn scans_trailing_dots() {
-        assert_eq!(kinds("a. b"), vec![S_IDENT, S_DOT_TRAILING, S_IDENT, S_YYEOF]);
+        assert_eq!(kinds("a. b"), vec![S_IDENT, S_DOT, S_IDENT, S_YYEOF]);
         assert_eq!(spans("a. b")[1], (1, 1));
         let out = scan("a.\n", 0, 0);
         assert_eq!(out.line_breaks, vec![TextSpan::new(2, 1)]);
@@ -863,8 +992,8 @@ mod tests {
         assert_eq!(out.comments, vec![TextSpan::new(6, 4)]);
         // Without a line break, the next quote starts another literal
         assert_eq!(kinds("b'01' '1'"), vec![S_BCONST, S_SCONST, S_YYEOF]);
-        // Strings do not continue
-        assert_eq!(kinds("'a'\n'b'"), vec![S_SCONST, S_SCONST, S_YYEOF]);
+        // Ordinary strings also continue across a line break, following Hyper.
+        assert_eq!(kinds("'a'\n'b'"), vec![S_SCONST, S_YYEOF]);
     }
 
     #[test]

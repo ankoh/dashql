@@ -1,0 +1,776 @@
+parser-snapshots:
+
+  - name: hyper_syntax_update
+    input: |-
+      UPDATE t SET x = 1 RETURNING x;
+    expected:
+      statements:
+        - type: SQL_SYNTAX
+          ast-begin: 0
+          ast-size: 83
+          description:
+            text: "UPDATE t S..TURNING x;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SYNTAX
+            text: "UPDATE t S..ETURNING x"
+            children:
+              - key: SQL_SYNTAX_RULE
+                type: NAME
+                text: Stmt
+              - key: SQL_SYNTAX_CHILDREN
+                type: ARRAY
+                text: "UPDATE t S..ETURNING x"
+                children:
+                  - type: OBJECT_SQL_SYNTAX
+                    text: "UPDATE t S..ETURNING x"
+                    children:
+                      - key: SQL_SYNTAX_RULE
+                        type: NAME
+                        text: UpdateStmt
+                      - key: SQL_SYNTAX_CHILDREN
+                        type: ARRAY
+                        text: "UPDATE t S..ETURNING x"
+                        children:
+                          - type: OBJECT_SQL_SYNTAX
+                            text: ""
+                            children:
+                              - key: SQL_SYNTAX_RULE
+                                type: NAME
+                                text: opt_with_clause
+                              - key: SQL_SYNTAX_CHILDREN
+                                type: ARRAY
+                                text: ""
+                                children: []
+                          - type: OPERATOR
+                            text: "UPDATE"
+                          - type: OBJECT_SQL_SYNTAX
+                            text: "t"
+                            children:
+                              - key: SQL_SYNTAX_RULE
+                                type: NAME
+                                text: relation_expr_opt_alias
+                              - key: SQL_SYNTAX_CHILDREN
+                                type: ARRAY
+                                text: "t"
+                                children:
+                                  - type: OBJECT_SQL_SYNTAX
+                                    text: "t"
+                                    children:
+                                      - key: SQL_SYNTAX_RULE
+                                        type: NAME
+                                        text: relation_expr
+                                      - key: SQL_SYNTAX_CHILDREN
+                                        type: ARRAY
+                                        text: "t"
+                                        children:
+                                          - type: OBJECT_SQL_SYNTAX
+                                            text: "t"
+                                            children:
+                                              - key: SQL_SYNTAX_RULE
+                                                type: NAME
+                                                text: qualified_name
+                                              - key: SQL_SYNTAX_CHILDREN
+                                                type: ARRAY
+                                                text: "t"
+                                                children:
+                                                  - type: OBJECT_SQL_SYNTAX
+                                                    text: "t"
+                                                    children:
+                                                      - key: SQL_SYNTAX_RULE
+                                                        type: NAME
+                                                        text: ColId
+                                                      - key: SQL_SYNTAX_CHILDREN
+                                                        type: ARRAY
+                                                        text: "t"
+                                                        children:
+                                                          - type: NAME
+                                                            text: "t"
+                          - type: OPERATOR
+                            text: "SET"
+                          - type: OBJECT_SQL_SYNTAX
+                            text: "x = 1"
+                            children:
+                              - key: SQL_SYNTAX_RULE
+                                type: NAME
+                                text: set_clause_list
+                              - key: SQL_SYNTAX_CHILDREN
+                                type: ARRAY
+                                text: "x = 1"
+                                children:
+                                  - type: OBJECT_SQL_SYNTAX
+                                    text: "x = 1"
+                                    children:
+                                      - key: SQL_SYNTAX_RULE
+                                        type: NAME
+                                        text: set_clause
+                                      - key: SQL_SYNTAX_CHILDREN
+                                        type: ARRAY
+                                        text: "x = 1"
+                                        children:
+                                          - type: OBJECT_SQL_SYNTAX
+                                            text: "x = 1"
+                                            children:
+                                              - key: SQL_SYNTAX_RULE
+                                                type: NAME
+                                                text: single_set_clause
+                                              - key: SQL_SYNTAX_CHILDREN
+                                                type: ARRAY
+                                                text: "x = 1"
+                                                children:
+                                                  - type: OBJECT_SQL_SYNTAX
+                                                    text: "x"
+                                                    children:
+                                                      - key: SQL_SYNTAX_RULE
+                                                        type: NAME
+                                                        text: set_target
+                                                      - key: SQL_SYNTAX_CHILDREN
+                                                        type: ARRAY
+                                                        text: "x"
+                                                        children:
+                                                          - type: OBJECT_SQL_SYNTAX
+                                                            text: "x"
+                                                            children:
+                                                              - key: SQL_SYNTAX_RULE
+                                                                type: NAME
+                                                                text: ColId
+                                                              - key: SQL_SYNTAX_CHILDREN
+                                                                type: ARRAY
+                                                                text: "x"
+                                                                children:
+                                                                  - type: NAME
+                                                                    text: "x"
+                                                  - type: OPERATOR
+                                                    text: "="
+                                                  - type: OBJECT_SQL_SYNTAX
+                                                    text: "1"
+                                                    children:
+                                                      - key: SQL_SYNTAX_RULE
+                                                        type: NAME
+                                                        text: ctext_expr
+                                                      - key: SQL_SYNTAX_CHILDREN
+                                                        type: ARRAY
+                                                        text: "1"
+                                                        children:
+                                                          - type: OBJECT_SQL_SYNTAX
+                                                            text: "1"
+                                                            children:
+                                                              - key: SQL_SYNTAX_RULE
+                                                                type: NAME
+                                                                text: a_expr
+                                                              - key: SQL_SYNTAX_CHILDREN
+                                                                type: ARRAY
+                                                                text: "1"
+                                                                children:
+                                                                  - type: OBJECT_SQL_SYNTAX
+                                                                    text: "1"
+                                                                    children:
+                                                                      - key: SQL_SYNTAX_RULE
+                                                                        type: NAME
+                                                                        text: c_expr
+                                                                      - key: SQL_SYNTAX_CHILDREN
+                                                                        type: ARRAY
+                                                                        text: "1"
+                                                                        children:
+                                                                          - type: OBJECT_SQL_SYNTAX
+                                                                            text: "1"
+                                                                            children:
+                                                                              - key: SQL_SYNTAX_RULE
+                                                                                type: NAME
+                                                                                text: AexprConst
+                                                                              - key: SQL_SYNTAX_CHILDREN
+                                                                                type: ARRAY
+                                                                                text: "1"
+                                                                                children:
+                                                                                  - type: OBJECT_SQL_SYNTAX
+                                                                                    text: "1"
+                                                                                    children:
+                                                                                      - key: SQL_SYNTAX_RULE
+                                                                                        type: NAME
+                                                                                        text: Iconst
+                                                                                      - key: SQL_SYNTAX_CHILDREN
+                                                                                        type: ARRAY
+                                                                                        text: "1"
+                                                                                        children:
+                                                                                          - type: LITERAL_INTEGER
+                                                                                            text: "1"
+                          - type: OBJECT_SQL_SYNTAX
+                            text: ""
+                            children:
+                              - key: SQL_SYNTAX_RULE
+                                type: NAME
+                                text: where_or_current_clause
+                              - key: SQL_SYNTAX_CHILDREN
+                                type: ARRAY
+                                text: ""
+                                children: []
+                          - type: OBJECT_SQL_SYNTAX
+                            text: "RETURNING x"
+                            children:
+                              - key: SQL_SYNTAX_RULE
+                                type: NAME
+                                text: returning_clause
+                              - key: SQL_SYNTAX_CHILDREN
+                                type: ARRAY
+                                text: "RETURNING x"
+                                children:
+                                  - type: OPERATOR
+                                    text: "RETURNING"
+                                  - type: OBJECT_SQL_SYNTAX
+                                    text: "x"
+                                    children:
+                                      - key: SQL_SYNTAX_RULE
+                                        type: NAME
+                                        text: target_list
+                                      - key: SQL_SYNTAX_CHILDREN
+                                        type: ARRAY
+                                        text: "x"
+                                        children:
+                                          - type: OBJECT_SQL_SYNTAX
+                                            text: "x"
+                                            children:
+                                              - key: SQL_SYNTAX_RULE
+                                                type: NAME
+                                                text: target_el
+                                              - key: SQL_SYNTAX_CHILDREN
+                                                type: ARRAY
+                                                text: "x"
+                                                children:
+                                                  - type: OBJECT_SQL_SYNTAX
+                                                    text: "x"
+                                                    children:
+                                                      - key: SQL_SYNTAX_RULE
+                                                        type: NAME
+                                                        text: a_expr
+                                                      - key: SQL_SYNTAX_CHILDREN
+                                                        type: ARRAY
+                                                        text: "x"
+                                                        children:
+                                                          - type: OBJECT_SQL_SYNTAX
+                                                            text: "x"
+                                                            children:
+                                                              - key: SQL_SYNTAX_RULE
+                                                                type: NAME
+                                                                text: c_expr
+                                                              - key: SQL_SYNTAX_CHILDREN
+                                                                type: ARRAY
+                                                                text: "x"
+                                                                children:
+                                                                  - type: OBJECT_SQL_SYNTAX
+                                                                    text: "x"
+                                                                    children:
+                                                                      - key: SQL_SYNTAX_RULE
+                                                                        type: NAME
+                                                                        text: columnref
+                                                                      - key: SQL_SYNTAX_CHILDREN
+                                                                        type: ARRAY
+                                                                        text: "x"
+                                                                        children:
+                                                                          - type: OBJECT_SQL_SYNTAX
+                                                                            text: "x"
+                                                                            children:
+                                                                              - key: SQL_SYNTAX_RULE
+                                                                                type: NAME
+                                                                                text: ColId
+                                                                              - key: SQL_SYNTAX_CHILDREN
+                                                                                type: ARRAY
+                                                                                text: "x"
+                                                                                children:
+                                                                                  - type: NAME
+                                                                                    text: "x"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: hyper_syntax_mixed_script
+    input: |-
+      SELECT 1;
+      -- Copy a query result.
+      COPY (SELECT JSON_OBJECT('answer': 42)) TO NULL;
+      SELECT 2;
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 4
+          description:
+            text: "SELECT 1;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "SELECT 1"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "1"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "1"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: LITERAL_INTEGER
+                        text: "1"
+        - type: SQL_SYNTAX
+          ast-begin: 4
+          ast-size: 129
+          description:
+            text: "COPY (SELE..) TO NULL;"
+            description-begin: 0
+            description-count: 1
+            description-blocks: [0,1]
+          ast:
+            type: OBJECT_SQL_SYNTAX
+            text: "COPY (SELE..)) TO NULL"
+            children:
+              - key: SQL_SYNTAX_RULE
+                type: NAME
+                text: Stmt
+              - key: SQL_SYNTAX_CHILDREN
+                type: ARRAY
+                text: "COPY (SELE..)) TO NULL"
+                children:
+                  - type: OBJECT_SQL_SYNTAX
+                    text: "COPY (SELE..)) TO NULL"
+                    children:
+                      - key: SQL_SYNTAX_RULE
+                        type: NAME
+                        text: CopyStmt
+                      - key: SQL_SYNTAX_CHILDREN
+                        type: ARRAY
+                        text: "COPY (SELE..)) TO NULL"
+                        children:
+                          - type: OPERATOR
+                            text: "COPY"
+                          - type: OBJECT_SQL_SYNTAX
+                            text: "(SELECT JS..wer': 42))"
+                            children:
+                              - key: SQL_SYNTAX_RULE
+                                type: NAME
+                                text: select_with_parens
+                              - key: SQL_SYNTAX_CHILDREN
+                                type: ARRAY
+                                text: "(SELECT JS..wer': 42))"
+                                children:
+                                  - type: OPERATOR
+                                    text: "("
+                                  - type: OBJECT_SQL_SYNTAX
+                                    text: "SELECT JSO..swer': 42)"
+                                    children:
+                                      - key: SQL_SYNTAX_RULE
+                                        type: NAME
+                                        text: select_no_parens
+                                      - key: SQL_SYNTAX_CHILDREN
+                                        type: ARRAY
+                                        text: "SELECT JSO..swer': 42)"
+                                        children:
+                                          - type: OBJECT_SQL_SYNTAX
+                                            text: "SELECT JSO..swer': 42)"
+                                            children:
+                                              - key: SQL_SYNTAX_RULE
+                                                type: NAME
+                                                text: simple_select
+                                              - key: SQL_SYNTAX_CHILDREN
+                                                type: ARRAY
+                                                text: "SELECT JSO..swer': 42)"
+                                                children:
+                                                  - type: OPERATOR
+                                                    text: "SELECT"
+                                                  - type: OBJECT_SQL_SYNTAX
+                                                    text: ""
+                                                    children:
+                                                      - key: SQL_SYNTAX_RULE
+                                                        type: NAME
+                                                        text: opt_with_aggregation_threshold
+                                                      - key: SQL_SYNTAX_CHILDREN
+                                                        type: ARRAY
+                                                        text: ""
+                                                        children: []
+                                                  - type: OBJECT_SQL_SYNTAX
+                                                    text: ""
+                                                    children:
+                                                      - key: SQL_SYNTAX_RULE
+                                                        type: NAME
+                                                        text: opt_all_clause
+                                                      - key: SQL_SYNTAX_CHILDREN
+                                                        type: ARRAY
+                                                        text: ""
+                                                        children: []
+                                                  - type: OBJECT_SQL_SYNTAX
+                                                    text: "JSON_OBJEC..swer': 42)"
+                                                    children:
+                                                      - key: SQL_SYNTAX_RULE
+                                                        type: NAME
+                                                        text: opt_target_list
+                                                      - key: SQL_SYNTAX_CHILDREN
+                                                        type: ARRAY
+                                                        text: "JSON_OBJEC..swer': 42)"
+                                                        children:
+                                                          - type: OBJECT_SQL_SYNTAX
+                                                            text: "JSON_OBJEC..swer': 42)"
+                                                            children:
+                                                              - key: SQL_SYNTAX_RULE
+                                                                type: NAME
+                                                                text: target_list
+                                                              - key: SQL_SYNTAX_CHILDREN
+                                                                type: ARRAY
+                                                                text: "JSON_OBJEC..swer': 42)"
+                                                                children:
+                                                                  - type: OBJECT_SQL_SYNTAX
+                                                                    text: "JSON_OBJEC..swer': 42)"
+                                                                    children:
+                                                                      - key: SQL_SYNTAX_RULE
+                                                                        type: NAME
+                                                                        text: target_el
+                                                                      - key: SQL_SYNTAX_CHILDREN
+                                                                        type: ARRAY
+                                                                        text: "JSON_OBJEC..swer': 42)"
+                                                                        children:
+                                                                          - type: OBJECT_SQL_SYNTAX
+                                                                            text: "JSON_OBJEC..swer': 42)"
+                                                                            children:
+                                                                              - key: SQL_SYNTAX_RULE
+                                                                                type: NAME
+                                                                                text: a_expr
+                                                                              - key: SQL_SYNTAX_CHILDREN
+                                                                                type: ARRAY
+                                                                                text: "JSON_OBJEC..swer': 42)"
+                                                                                children:
+                                                                                  - type: OBJECT_SQL_SYNTAX
+                                                                                    text: "JSON_OBJEC..swer': 42)"
+                                                                                    children:
+                                                                                      - key: SQL_SYNTAX_RULE
+                                                                                        type: NAME
+                                                                                        text: c_expr
+                                                                                      - key: SQL_SYNTAX_CHILDREN
+                                                                                        type: ARRAY
+                                                                                        text: "JSON_OBJEC..swer': 42)"
+                                                                                        children:
+                                                                                          - type: OBJECT_SQL_SYNTAX
+                                                                                            text: "JSON_OBJEC..swer': 42)"
+                                                                                            children:
+                                                                                              - key: SQL_SYNTAX_RULE
+                                                                                                type: NAME
+                                                                                                text: func_expr
+                                                                                              - key: SQL_SYNTAX_CHILDREN
+                                                                                                type: ARRAY
+                                                                                                text: "JSON_OBJEC..swer': 42)"
+                                                                                                children:
+                                                                                                  - type: OBJECT_SQL_SYNTAX
+                                                                                                    text: "JSON_OBJEC..swer': 42)"
+                                                                                                    children:
+                                                                                                      - key: SQL_SYNTAX_RULE
+                                                                                                        type: NAME
+                                                                                                        text: func_expr_common_subexpr
+                                                                                                      - key: SQL_SYNTAX_CHILDREN
+                                                                                                        type: ARRAY
+                                                                                                        text: "JSON_OBJEC..swer': 42)"
+                                                                                                        children:
+                                                                                                          - type: OPERATOR
+                                                                                                            text: "JSON_OBJECT"
+                                                                                                          - type: OPERATOR
+                                                                                                            text: "("
+                                                                                                          - type: OBJECT_SQL_SYNTAX
+                                                                                                            text: "'answer': 42"
+                                                                                                            children:
+                                                                                                              - key: SQL_SYNTAX_RULE
+                                                                                                                type: NAME
+                                                                                                                text: json_name_and_value_list
+                                                                                                              - key: SQL_SYNTAX_CHILDREN
+                                                                                                                type: ARRAY
+                                                                                                                text: "'answer': 42"
+                                                                                                                children:
+                                                                                                                  - type: OBJECT_SQL_SYNTAX
+                                                                                                                    text: "'answer': 42"
+                                                                                                                    children:
+                                                                                                                      - key: SQL_SYNTAX_RULE
+                                                                                                                        type: NAME
+                                                                                                                        text: json_name_and_value
+                                                                                                                      - key: SQL_SYNTAX_CHILDREN
+                                                                                                                        type: ARRAY
+                                                                                                                        text: "'answer': 42"
+                                                                                                                        children:
+                                                                                                                          - type: OBJECT_SQL_SYNTAX
+                                                                                                                            text: "'answer'"
+                                                                                                                            children:
+                                                                                                                              - key: SQL_SYNTAX_RULE
+                                                                                                                                type: NAME
+                                                                                                                                text: a_expr
+                                                                                                                              - key: SQL_SYNTAX_CHILDREN
+                                                                                                                                type: ARRAY
+                                                                                                                                text: "'answer'"
+                                                                                                                                children:
+                                                                                                                                  - type: OBJECT_SQL_SYNTAX
+                                                                                                                                    text: "'answer'"
+                                                                                                                                    children:
+                                                                                                                                      - key: SQL_SYNTAX_RULE
+                                                                                                                                        type: NAME
+                                                                                                                                        text: c_expr
+                                                                                                                                      - key: SQL_SYNTAX_CHILDREN
+                                                                                                                                        type: ARRAY
+                                                                                                                                        text: "'answer'"
+                                                                                                                                        children:
+                                                                                                                                          - type: OBJECT_SQL_SYNTAX
+                                                                                                                                            text: "'answer'"
+                                                                                                                                            children:
+                                                                                                                                              - key: SQL_SYNTAX_RULE
+                                                                                                                                                type: NAME
+                                                                                                                                                text: AexprConst
+                                                                                                                                              - key: SQL_SYNTAX_CHILDREN
+                                                                                                                                                type: ARRAY
+                                                                                                                                                text: "'answer'"
+                                                                                                                                                children:
+                                                                                                                                                  - type: OBJECT_SQL_SYNTAX
+                                                                                                                                                    text: "'answer'"
+                                                                                                                                                    children:
+                                                                                                                                                      - key: SQL_SYNTAX_RULE
+                                                                                                                                                        type: NAME
+                                                                                                                                                        text: Sconst
+                                                                                                                                                      - key: SQL_SYNTAX_CHILDREN
+                                                                                                                                                        type: ARRAY
+                                                                                                                                                        text: "'answer'"
+                                                                                                                                                        children:
+                                                                                                                                                          - type: LITERAL_STRING
+                                                                                                                                                            text: "'answer'"
+                                                                                                                          - type: OPERATOR
+                                                                                                                            text: ":"
+                                                                                                                          - type: OBJECT_SQL_SYNTAX
+                                                                                                                            text: "42"
+                                                                                                                            children:
+                                                                                                                              - key: SQL_SYNTAX_RULE
+                                                                                                                                type: NAME
+                                                                                                                                text: json_value_expr
+                                                                                                                              - key: SQL_SYNTAX_CHILDREN
+                                                                                                                                type: ARRAY
+                                                                                                                                text: "42"
+                                                                                                                                children:
+                                                                                                                                  - type: OBJECT_SQL_SYNTAX
+                                                                                                                                    text: "42"
+                                                                                                                                    children:
+                                                                                                                                      - key: SQL_SYNTAX_RULE
+                                                                                                                                        type: NAME
+                                                                                                                                        text: a_expr
+                                                                                                                                      - key: SQL_SYNTAX_CHILDREN
+                                                                                                                                        type: ARRAY
+                                                                                                                                        text: "42"
+                                                                                                                                        children:
+                                                                                                                                          - type: OBJECT_SQL_SYNTAX
+                                                                                                                                            text: "42"
+                                                                                                                                            children:
+                                                                                                                                              - key: SQL_SYNTAX_RULE
+                                                                                                                                                type: NAME
+                                                                                                                                                text: c_expr
+                                                                                                                                              - key: SQL_SYNTAX_CHILDREN
+                                                                                                                                                type: ARRAY
+                                                                                                                                                text: "42"
+                                                                                                                                                children:
+                                                                                                                                                  - type: OBJECT_SQL_SYNTAX
+                                                                                                                                                    text: "42"
+                                                                                                                                                    children:
+                                                                                                                                                      - key: SQL_SYNTAX_RULE
+                                                                                                                                                        type: NAME
+                                                                                                                                                        text: AexprConst
+                                                                                                                                                      - key: SQL_SYNTAX_CHILDREN
+                                                                                                                                                        type: ARRAY
+                                                                                                                                                        text: "42"
+                                                                                                                                                        children:
+                                                                                                                                                          - type: OBJECT_SQL_SYNTAX
+                                                                                                                                                            text: "42"
+                                                                                                                                                            children:
+                                                                                                                                                              - key: SQL_SYNTAX_RULE
+                                                                                                                                                                type: NAME
+                                                                                                                                                                text: Iconst
+                                                                                                                                                              - key: SQL_SYNTAX_CHILDREN
+                                                                                                                                                                type: ARRAY
+                                                                                                                                                                text: "42"
+                                                                                                                                                                children:
+                                                                                                                                                                  - type: LITERAL_INTEGER
+                                                                                                                                                                    text: "42"
+                                                                                                                                  - type: OBJECT_SQL_SYNTAX
+                                                                                                                                    text: ""
+                                                                                                                                    children:
+                                                                                                                                      - key: SQL_SYNTAX_RULE
+                                                                                                                                        type: NAME
+                                                                                                                                        text: json_format_clause_opt
+                                                                                                                                      - key: SQL_SYNTAX_CHILDREN
+                                                                                                                                        type: ARRAY
+                                                                                                                                        text: ""
+                                                                                                                                        children: []
+                                                                                                          - type: OBJECT_SQL_SYNTAX
+                                                                                                            text: ""
+                                                                                                            children:
+                                                                                                              - key: SQL_SYNTAX_RULE
+                                                                                                                type: NAME
+                                                                                                                text: json_object_constructor_null_clause_opt
+                                                                                                              - key: SQL_SYNTAX_CHILDREN
+                                                                                                                type: ARRAY
+                                                                                                                text: ""
+                                                                                                                children: []
+                                                                                                          - type: OBJECT_SQL_SYNTAX
+                                                                                                            text: ""
+                                                                                                            children:
+                                                                                                              - key: SQL_SYNTAX_RULE
+                                                                                                                type: NAME
+                                                                                                                text: json_key_uniqueness_constraint_opt
+                                                                                                              - key: SQL_SYNTAX_CHILDREN
+                                                                                                                type: ARRAY
+                                                                                                                text: ""
+                                                                                                                children: []
+                                                                                                          - type: OPERATOR
+                                                                                                            text: ")"
+                                                  - type: OBJECT_SQL_SYNTAX
+                                                    text: ""
+                                                    children:
+                                                      - key: SQL_SYNTAX_RULE
+                                                        type: NAME
+                                                        text: into_clause
+                                                      - key: SQL_SYNTAX_CHILDREN
+                                                        type: ARRAY
+                                                        text: ""
+                                                        children: []
+                                                  - type: OBJECT_SQL_SYNTAX
+                                                    text: ""
+                                                    children:
+                                                      - key: SQL_SYNTAX_RULE
+                                                        type: NAME
+                                                        text: from_clause
+                                                      - key: SQL_SYNTAX_CHILDREN
+                                                        type: ARRAY
+                                                        text: ""
+                                                        children: []
+                                                  - type: OBJECT_SQL_SYNTAX
+                                                    text: ""
+                                                    children:
+                                                      - key: SQL_SYNTAX_RULE
+                                                        type: NAME
+                                                        text: where_clause
+                                                      - key: SQL_SYNTAX_CHILDREN
+                                                        type: ARRAY
+                                                        text: ""
+                                                        children: []
+                                                  - type: OBJECT_SQL_SYNTAX
+                                                    text: ""
+                                                    children:
+                                                      - key: SQL_SYNTAX_RULE
+                                                        type: NAME
+                                                        text: group_clause
+                                                      - key: SQL_SYNTAX_CHILDREN
+                                                        type: ARRAY
+                                                        text: ""
+                                                        children: []
+                                                  - type: OBJECT_SQL_SYNTAX
+                                                    text: ""
+                                                    children:
+                                                      - key: SQL_SYNTAX_RULE
+                                                        type: NAME
+                                                        text: having_clause
+                                                      - key: SQL_SYNTAX_CHILDREN
+                                                        type: ARRAY
+                                                        text: ""
+                                                        children: []
+                                                  - type: OBJECT_SQL_SYNTAX
+                                                    text: ""
+                                                    children:
+                                                      - key: SQL_SYNTAX_RULE
+                                                        type: NAME
+                                                        text: window_clause
+                                                      - key: SQL_SYNTAX_CHILDREN
+                                                        type: ARRAY
+                                                        text: ""
+                                                        children: []
+                                  - type: OPERATOR
+                                    text: ")"
+                          - type: OPERATOR
+                            text: "TO"
+                          - type: OBJECT_SQL_SYNTAX
+                            text: "NULL"
+                            children:
+                              - key: SQL_SYNTAX_RULE
+                                type: NAME
+                                text: copy_target_descriptor
+                              - key: SQL_SYNTAX_CHILDREN
+                                type: ARRAY
+                                text: "NULL"
+                                children:
+                                  - type: OPERATOR
+                                    text: "NULL"
+                          - type: OBJECT_SQL_SYNTAX
+                            text: ""
+                            children:
+                              - key: SQL_SYNTAX_RULE
+                                type: NAME
+                                text: opt_with
+                              - key: SQL_SYNTAX_CHILDREN
+                                type: ARRAY
+                                text: ""
+                                children: []
+                          - type: OBJECT_SQL_SYNTAX
+                            text: ""
+                            children:
+                              - key: SQL_SYNTAX_RULE
+                                type: NAME
+                                text: copy_options
+                              - key: SQL_SYNTAX_CHILDREN
+                                type: ARRAY
+                                text: ""
+                                children:
+                                  - type: OBJECT_SQL_SYNTAX
+                                    text: ""
+                                    children:
+                                      - key: SQL_SYNTAX_RULE
+                                        type: NAME
+                                        text: copy_opt_list
+                                      - key: SQL_SYNTAX_CHILDREN
+                                        type: ARRAY
+                                        text: ""
+                                        children: []
+                          - type: OBJECT_SQL_SYNTAX
+                            text: ""
+                            children:
+                              - key: SQL_SYNTAX_RULE
+                                type: NAME
+                                text: opt_partition_clause
+                              - key: SQL_SYNTAX_CHILDREN
+                                type: ARRAY
+                                text: ""
+                                children: []
+        - type: SELECT
+          ast-begin: 133
+          ast-size: 4
+          description:
+            text: "SELECT 2;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "SELECT 2"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "2"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "2"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: LITERAL_INTEGER
+                        text: "2"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [9,10]
+        - text: [33,34]
+        - text: [82,83]
+      comments:
+        - text: "-- Copy a ..ry result."
+      comment-blocks:
+        - type: COMMENT
+          text: "-- Copy a ..ry result."
+          comments: [0,1]
+          lines:
+            - "Copy a query result."
+      comment-warnings: []

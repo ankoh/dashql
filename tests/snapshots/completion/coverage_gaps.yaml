@@ -46,9 +46,6 @@ completion-snapshots:
           catalog-id: "256.65536.4294967296"
           statement-id: 0
           text: "t"
-        - type: name/unresolved
-          statement-id: 0
-          text: "c"
       expressions:
         - expression-idx: 0
           type: colref/catalog
@@ -63,7 +60,7 @@ completion-snapshots:
         - expression-idx: 2
           type: colref/unresolved
           statement-id: 0
-          text: "c."
+          text: "c. from"
     cursor:
       search:
         text: 'c.'
@@ -72,23 +69,9 @@ completion-snapshots:
       limit: 5
       strategy: COLUMN_REF
       dot: 1
-      symbol: OBJECT_EXT_TRAILING_DOT
+      symbol: ARRAY
       relative: END_OF_SYMBOL
-      entries:
-        - score: 32
-          value: b
-          name-tags: [COLUMN_NAME]
-          candidate-tags: [DOT_RESOLUTION_COLUMN,IN_NAME_SCOPE]
-          location: ""
-          location-qualified: "c."
-          objects: []
-        - score: 32
-          value: k
-          name-tags: [COLUMN_NAME]
-          candidate-tags: [DOT_RESOLUTION_COLUMN,IN_NAME_SCOPE]
-          location: ""
-          location-qualified: "c."
-          objects: []
+      entries: []
       text: "."
 
   - name: cov_dot_subquery_columns
@@ -132,51 +115,24 @@ completion-snapshots:
         select s. from (select a as k, b from t) s
       catalog-id: 2
       errors: []
-      table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
       expressions:
         - expression-idx: 0
-          type: colref/unresolved
+          type: function
+          name: s.from
+          is-const: true
           statement-id: 0
-          text: "s."
-        - expression-idx: 1
-          type: colref/catalog
-          catalog: "256.65536.4294967296.0"
-          statement-id: 0
-          text: "a"
-        - expression-idx: 2
-          type: colref/catalog
-          catalog: "256.65536.4294967296.1"
-          statement-id: 0
-          text: "b"
+          text: "s. from (s.. b from t)"
     cursor:
       search:
         text: 's.'
         index: 2
     completions:
       limit: 5
-      strategy: COLUMN_REF
+      strategy: DEFAULT
       dot: 1
-      symbol: OBJECT_EXT_TRAILING_DOT
+      symbol: ARRAY
       relative: END_OF_SYMBOL
-      entries:
-        - score: 32
-          value: b
-          name-tags: [COLUMN_NAME]
-          candidate-tags: [DOT_RESOLUTION_COLUMN,IN_NAME_SCOPE]
-          location: ""
-          location-qualified: "s."
-          objects: []
-        - score: 32
-          value: k
-          name-tags: [COLUMN_NAME]
-          candidate-tags: [DOT_RESOLUTION_COLUMN,IN_NAME_SCOPE]
-          location: ""
-          location-qualified: "s."
-          objects: []
+      entries: []
       text: "."
 
   - name: cov_dot_unresolved_source
@@ -220,30 +176,15 @@ completion-snapshots:
         select x. from nothing x
       catalog-id: 2
       errors: []
-      table-refs:
-        - type: name/unresolved
-          statement-id: 0
-          text: "nothing x"
-      expressions:
-        - expression-idx: 0
-          type: colref/unresolved
-          statement-id: 0
-          text: "x."
-      inferred-tables:
-        - name: nothing
-          confidence: confident
-          columns:
-            - name: x
-              confidence: confident
     cursor:
       search:
         text: 'x.'
         index: 2
     completions:
       limit: 5
-      strategy: COLUMN_REF
+      strategy: DEFAULT
       dot: 1
-      symbol: OBJECT_EXT_TRAILING_DOT
+      symbol: OBJECT_SQL_RESULT_TARGET
       relative: END_OF_SYMBOL
       entries: []
       text: "."
@@ -289,72 +230,19 @@ completion-snapshots:
         select x. from t x
       catalog-id: 2
       errors: []
-      table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t x"
       expressions:
         - expression-idx: 0
           type: colref/unresolved
-          statement-id: 0
-          text: "x."
+          text: "x. from"
     cursor:
       search:
         text: 'x.'
         index: 2
     completions:
       limit: 5
-      strategy: COLUMN_REF
+      strategy: DEFAULT
       dot: 1
-      symbol: OBJECT_EXT_TRAILING_DOT
-      relative: END_OF_SYMBOL
-      entries:
-        - score: 34
-          value: a
-          name-tags: [COLUMN_NAME]
-          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
-          location: ""
-          location-qualified: "x."
-          objects:
-            - score: 14
-              type: column
-              id: "256.65536.4294967296.0"
-              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
-              qualified: x.a
-              qualified-idx: 1
-              prefer-qualified: 1
-              detail: "integer · t"
-        - score: 34
-          value: b
-          name-tags: [COLUMN_NAME]
-          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
-          location: ""
-          location-qualified: "x."
-          objects:
-            - score: 14
-              type: column
-              id: "256.65536.4294967296.1"
-              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
-              qualified: x.b
-              qualified-idx: 1
-              prefer-qualified: 1
-              detail: "integer · t"
-        - score: 34
-          value: name
-          name-tags: [COLUMN_NAME]
-          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
-          location: ""
-          location-qualified: "x."
-          objects:
-            - score: 14
-              type: column
-              id: "256.65536.4294967296.2"
-              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
-              qualified: x.name
-              qualified-idx: 1
-              prefer-qualified: 1
-              detail: "text · t"
+      entries: []
       text: "."
 
   - name: cov_dot_two_tables
@@ -398,20 +286,15 @@ completion-snapshots:
         select u. from t, u
       catalog-id: 2
       errors: []
-      table-refs:
-        - type: name/catalog
-          catalog-id: "256.65536.4294967296"
-          statement-id: 0
-          text: "t"
-        - type: name/catalog
-          catalog-id: "256.65536.4294967297"
-          statement-id: 0
-          text: "u"
       expressions:
         - expression-idx: 0
           type: colref/unresolved
           statement-id: 0
-          text: "u."
+          text: "u. from"
+        - expression-idx: 1
+          type: colref/unresolved
+          statement-id: 0
+          text: "u"
     cursor:
       search:
         text: 'u.'
@@ -420,39 +303,9 @@ completion-snapshots:
       limit: 5
       strategy: COLUMN_REF
       dot: 1
-      symbol: OBJECT_EXT_TRAILING_DOT
+      symbol: ARRAY
       relative: END_OF_SYMBOL
-      entries:
-        - score: 34
-          value: a
-          name-tags: [COLUMN_NAME]
-          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
-          location: ""
-          location-qualified: "u."
-          objects:
-            - score: 14
-              type: column
-              id: "256.65536.4294967297.0"
-              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
-              qualified: u.a
-              qualified-idx: 1
-              prefer-qualified: 0
-              detail: "integer · u"
-        - score: 34
-          value: c
-          name-tags: [COLUMN_NAME]
-          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
-          location: ""
-          location-qualified: "u."
-          objects:
-            - score: 14
-              type: column
-              id: "256.65536.4294967297.1"
-              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
-              qualified: u.c
-              qualified-idx: 1
-              prefer-qualified: 0
-              detail: "integer · u"
+      entries: []
       text: "."
 
   - name: cov_dot_partial_column

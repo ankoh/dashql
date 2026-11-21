@@ -4,6 +4,30 @@
 DashQL's SQL grammar is derived from the PostgreSQL grammar.
 This document describes the notable deviations of the scanner and grammar from upstream PostgreSQL.
 
+## Syntax-only Hyper coverage
+
+The SQL accepted by Hyper also belongs to DashQL's language, including feature-gated and currently
+unimplemented Hyper syntax. The grammar under `grammar/hyper/` covers that syntax independently of
+the semantic projections of `grammar/rules/`. A statement that the existing grammar accepts keeps
+its existing tree. A complete statement that only the Hyper grammar accepts gets a concrete syntax
+tree; neither an error recovery rule nor an arbitrary token sequence can produce one.
+
+The schema appends `OBJECT_SQL_SYNTAX`, `SQL_SYNTAX_RULE`, `SQL_SYNTAX_CHILDREN`, and
+`StatementType::SQL_SYNTAX`. A syntax node records its grammar rule as a registered NAME and its
+ordered children as an ARRAY. Terminals retain their exact symbol spans (and identifiers their
+registered names). Empty productions retain an empty child array. The rule names, ordered children,
+and terminals distinguish all alternatives, including clause order, noise words, and duplicate
+options. Existing node and attribute ordinals are unchanged. This is an intentional additional tree
+representation for SQL that previously had errors, not a replacement for existing semantic trees.
+
+Each semicolon-delimited statement is retried independently after a failed parse, so a script can
+mix new SQL with DashQL-specific CALL values or other extensions. A failed retry leaves the original
+diagnostics in place; deliberate grammar-action validation errors are not retried, and the parser's
+nesting limit still applies. Syntax-only statements deliberately
+have their own statement type: analyzer, formatter, and runtime support are separate work. The grammar
+tables and keyword mapping are built with Bazel and need no Hyper checkout or process at build/run
+time. The audit and examples are in `docs/wip/hyper_grammar_compatibility.md`.
+
 ## Trailing Dots
 
 PostgreSQL's scanner emits a single `DOT` token for `.` regardless of context.
@@ -12,9 +36,11 @@ When a user is typing an incomplete qualified name like `schema.table.`, the par
 DashQL splits the dot into two tokens in the scanner:
 
 - **`DOT`** — a dot followed by a non-whitespace character (the common case: `a.b`)
-- **`DOT_TRAILING`** — a dot followed by whitespace
+- **`DOT_TRAILING`** — a dot followed by whitespace and no following identifier, keyword, or star
 
-The pattern `\.{space}` matches the trailing case in the scanner; the space is not consumed (the location is trimmed to length 1).
+The pattern `\.{space}` matches a possible trailing dot in the scanner; the space is not consumed
+(the location is trimmed to length 1). The lookahead filter keeps a normal dot when a name or star
+follows, so `schema. table` and `table. *` remain valid SQL.
 A helper rule `ext_dot_trailing` accepts either `DOT_TRAILING` or `DOT EOF` so both `a. ` and `a.<eof>` are covered.
 
 The grammar then accepts `ext_dot_trailing` as a `sql_indirection_el` (and in `sql_attrs`), producing an `OBJECT_EXT_TRAILING_DOT` node and the parse error "name has a trailing dot".

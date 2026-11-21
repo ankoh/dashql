@@ -151,6 +151,12 @@ The final `.y` file is composed in this order:
 | `ext_explain.y` | EXPLAIN wrapper |
 | `ext_call.y` | The generic CALL and its values, see `client_functions.md` |
 
+`grammar/hyper/sql.y` additionally specifies Hyper's complete statement syntax without semantic
+actions. `parser/syntax.rs` retries statements with LR syntax failures against those tables and
+emits `OBJECT_SQL_SYNTAX` concrete syntax trees. A retry must consume the complete statement.
+Existing successful semantic trees and deliberate grammar-action diagnostics are preserved. See
+[sql_grammar.md](sql_grammar.md#syntax-only-hyper-coverage) for the representation and scope.
+
 ### Type files (`.yh`)
 
 Each rule file has a companion `.yh` declaring the Bison `%type` for its nonterminals.
@@ -296,7 +302,7 @@ The scanner uses exclusive states for multi-character tokens:
 | `<xbt>` | Backtick-quoted identifiers |
 | `<xh>` | Hex string literals (`X'...'`) |
 | `<xq>` | Standard single-quoted strings |
-| `<xdq>` | Dollar-quoted strings (`$$...$$`), verbatim, only `CALL` values take them |
+| `<xdq>` | Dollar-quoted strings (`$$...$$`), verbatim; tagged delimiters are read directly |
 
 ### Identifier resolution
 
