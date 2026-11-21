@@ -1,8 +1,8 @@
 # Hyper SQL acceptance gaps
 
 Audit of Hyper SQL that DashQL rejected, excluding transaction control. The findings below describe
-the original behavior. They are now covered by the syntax-only grammar in `grammar/hyper/`, parser
-acceptance tests, and scanner fixes. Semantic analysis, formatting, and runtime support are separate
+the original behavior. They are now covered by productions in the primary `grammar/rules/` grammar, typed AST
+nodes, parser acceptance and structure tests, and scanner fixes. Semantic analysis, formatting, and runtime support are separate
 work. DashQL accepting additional dialects is outside the audit.
 
 ## Evidence

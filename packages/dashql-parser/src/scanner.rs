@@ -102,7 +102,38 @@ pub fn scan(text: &str, text_version: u64, external_id: u32) -> ScannedScript {
             break;
         }
     }
+    classify_quantified_operators(&mut out.symbols);
     out
+}
+
+/// A quantified comparison is distinct from a postfix operator followed by a keyword alias.
+#[allow(non_upper_case_globals)]
+fn classify_quantified_operators(symbols: &mut [Symbol]) {
+    for i in 0..symbols.len() {
+        let Some(symbol) = symbols.get(i).copied() else { continue };
+        let mut end = i + 1;
+        let kind = match symbol.kind {
+            S_Op | S_AMPERSAND | S_PIPE | S_EXCLAMATION_MARK => S_QUANTIFIED_OP,
+            S_OPERATOR => {
+                if symbols.get(end).is_none_or(|s| s.kind != S_LRB) {
+                    continue;
+                }
+                while symbols.get(end).is_some_and(|s| s.kind != S_RRB && s.kind != S_YYEOF) {
+                    end += 1;
+                }
+                end += 1;
+                S_QUANTIFIED_OPERATOR
+            }
+            _ => continue,
+        };
+        if symbols.get(end).is_some_and(|s| matches!(s.kind, S_ANY | S_SOME | S_ALL))
+            && symbols.get(end + 1).is_some_and(|s| s.kind == S_LRB)
+        {
+            if let Some(symbol) = symbols.get_mut(i) {
+                symbol.kind = kind;
+            }
+        }
+    }
 }
 
 /// Find the line breaks of a text, `\r\n` is one line break.
@@ -130,7 +161,7 @@ fn next_symbol(lexer: &mut Lexer, out: &mut ScannedScript, lookahead: &mut VecDe
         None => lexer.lex(out),
     };
     match current.kind {
-        S_NOT | S_NULLS_P | S_WITH | S_DOT => {}
+        S_NOT | S_NULLS_P | S_WITH | S_DOT | S_WITHOUT | S_ARRAY | S_FORMAT | S_SEMI | S_ANTI => {}
         _ => return current,
     }
     let next = lexer.lex(out);
@@ -138,7 +169,12 @@ fn next_symbol(lexer: &mut Lexer, out: &mut ScannedScript, lookahead: &mut VecDe
     match (current.kind, next.kind) {
         (S_NOT, S_BETWEEN | S_IN_P | S_LIKE | S_ILIKE | S_GLOB | S_SIMILAR) => Symbol::new(S_NOT_LA, current.location),
         (S_NULLS_P, S_FIRST_P | S_LAST_P) => Symbol::new(S_NULLS_LA, current.location),
-        (S_WITH, S_TIME | S_ORDINALITY) => Symbol::new(S_WITH_LA, current.location),
+        (S_WITH, S_TIME | S_ORDINALITY | S_AGGREGATION_THRESHOLD) => Symbol::new(S_WITH_LA, current.location),
+        (S_WITH, S_OPTIONS) => Symbol::new(S_WITH_OPTIONS_LA, current.location),
+        (S_WITHOUT, S_TIME) => Symbol::new(S_WITHOUT_LA, current.location),
+        (S_ARRAY, S_LRB | S_WRAPPER) => Symbol::new(S_ARRAY_LA, current.location),
+        (S_SEMI, S_JOIN) => Symbol::new(S_SEMI_JOIN_LA, current.location),
+        (S_ANTI, S_JOIN) => Symbol::new(S_ANTI_JOIN_LA, current.location),
         (S_DOT, S_STAR) => Symbol::new(S_DOT_STAR_LA, current.location),
         (S_DOT, _)
             if current.location.end() < next.location.offset

@@ -51,6 +51,31 @@ pub fn operator_node(loc: SymbolSpan) -> Node {
     Node::new(&loc, NodeType::OPERATOR, AttributeKey::NONE, NO_PARENT, 0, 0)
 }
 
+/// Change a node's source span without changing its semantic shape or materializing its children again.
+pub fn with_span(node: Node, loc: SymbolSpan) -> Node {
+    Node::new(
+        &loc,
+        node.node_type(),
+        node.attribute_key(),
+        node.parent(),
+        node.children_begin_or_value(),
+        node.children_count(),
+    )
+}
+
+/// Parameters use the same indirection model as parenthesized expressions.
+pub fn parameter_indirection(ctx: &ParseContext, loc: SymbolSpan, parameter: Node, path: NodeList) -> Node {
+    if ctx.list_is_empty(path) {
+        parameter
+    } else {
+        ctx.object(
+            loc,
+            NodeType::OBJECT_SQL_INDIRECTION,
+            &[attr(Key::SQL_INDIRECTION_VALUE, parameter), attr(Key::SQL_INDIRECTION_PATH, ctx.array(loc, path))],
+        )
+    }
+}
+
 /// A name from an identifier
 pub fn name_from_identifier(loc: SymbolSpan, name: NameId) -> Node {
     Node::new(&loc, NodeType::NAME, AttributeKey::NONE, NO_PARENT, name, 0)

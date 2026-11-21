@@ -1,5 +1,15 @@
 set_statement:
-    SET vararg_key_path EQUALS vararg_value {
-        let varargs = vararg_field(ctx, loc(&[@2, @3, @4]), $2, $4);
-        ctx.object(@$, NodeType::OBJECT_EXT_SET, &[attr(Key::EXT_SET_VARARGS, varargs)])
+SET sql_cmd_set_rest { with_span($2,@$) }
+ | SET LOCAL sql_cmd_set_rest {
+        ctx.object(
+            @$,
+            NodeType::OBJECT_SQL_SET_STATEMENT,
+            &[
+                attr(Key::SQL_SET_STATEMENT_LOCAL, bool_node(@2, true)),
+                attr(Key::SQL_SET_STATEMENT_ARG, $3),
+            ],
+        )
     }
+ | SET SESSION sql_cmd_set_rest { ctx.object(@$,NodeType::OBJECT_SQL_SET_STATEMENT,&[attr(Key::SQL_SET_STATEMENT_ARG,$3)]) }
+    ;
+sql_set_more_values: COMMA sql_cmd_var_list { $2 } | %empty { ctx.list(NO_NODES) };

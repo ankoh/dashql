@@ -69,33 +69,54 @@ parser-snapshots:
           ast-begin: 0
           ast-size: 7
           description:
-            text: "select 1 +..;\nselect 2"
+            text: "select 1 +;"
             description-begin: 0
             description-count: 0
           ast:
             type: OBJECT_SQL_SELECT
-            text: "select 1 +..;\nselect 2"
+            text: "select 1 +;"
             children:
               - key: SQL_SELECT_TARGETS
                 type: ARRAY
-                text: "1 +;\nselect 2"
+                text: "1 +;"
                 children:
                   - type: OBJECT_SQL_RESULT_TARGET
-                    text: "1 +;\nselect 2"
+                    text: "1 +;"
                     children:
                       - key: SQL_RESULT_TARGET_VALUE
                         type: OBJECT_SQL_NARY_EXPRESSION
-                        text: "1 +;\nselect 2"
+                        text: "1 +;"
                         children:
                           - key: SQL_EXPRESSION_OPERATOR
                             type: ENUM_SQL_EXPRESSION_OPERATOR
                             value: PLUS
                           - key: SQL_EXPRESSION_ARGS
                             type: ARRAY
-                            text: "1 +;\nselect 2"
+                            text: "1 +;"
                             children:
                               - type: LITERAL_INTEGER
                                 text: "1"
+        - type: SELECT
+          ast-begin: 7
+          ast-size: 4
+          description:
+            text: "select 2"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select 2"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "2"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "2"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: LITERAL_INTEGER
+                        text: "2"
       scanner-errors: []
       parser-errors:
         - message: 'syntax error, unexpected SEMICOLON'
@@ -253,7 +274,7 @@ parser-snapshots:
       statements:
         - type: SELECT
           ast-begin: 0
-          ast-size: 5
+          ast-size: 4
           description:
             text: "select * frm t;"
             description-begin: 0
@@ -272,12 +293,66 @@ parser-snapshots:
                       - key: SQL_RESULT_TARGET_NAME
                         type: NAME
                         text: "t"
+        - type: SELECT
+          ast-begin: 4
+          ast-size: 7
+          description:
+            text: "select 1 +..sert into;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select 1 +;"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "1 +;"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "1 +;"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "1 +;"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: PLUS
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "1 +;"
+                            children:
+                              - type: LITERAL_INTEGER
+                                text: "1"
+        - type: SELECT
+          ast-begin: 11
+          ast-size: 4
+          description:
+            text: "select 3"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select 3"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "3"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "3"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: LITERAL_INTEGER
+                        text: "3"
       scanner-errors: []
       parser-errors:
         - message: expected a table reference after FROM
           text: "from"
         - message: 'syntax error, unexpected identifier literal'
           text: "frm"
+        - message: 'syntax error, unexpected SEMICOLON'
+          text: ";"
         - message: 'syntax error, unexpected SEMICOLON'
           text: ";"
         - message: 'syntax error, unexpected SEMICOLON'
@@ -388,11 +463,72 @@ parser-snapshots:
       select * from a join;
       select * from a left outer
     expected:
-      statements: []
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 15
+          description:
+            text: "select * f..om a join;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select * f..join b on;"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "*"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "*"
+                    children:
+                      - key: SQL_RESULT_TARGET_STAR
+                        type: BOOL
+                        value: 1
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from a join b on;"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "a join b on;"
+                    children:
+                      - key: SQL_TABLEREF_TABLE
+                        type: OBJECT_SQL_JOINED_TABLE
+                        text: "a join b on;"
+                        children:
+                          - key: SQL_JOIN_TYPE
+                            type: ENUM_SQL_JOIN_TYPE
+                            value: INNER
+                          - key: SQL_JOIN_INPUT
+                            type: ARRAY
+                            text: "a join b on;"
+                            children:
+                              - type: OBJECT_SQL_TABLEREF
+                                text: "a"
+                                children:
+                                  - key: SQL_TABLEREF_NAME
+                                    type: ARRAY
+                                    text: "a"
+                                    children:
+                                      - type: NAME
+                                        text: "a"
+                              - type: OBJECT_SQL_TABLEREF
+                                text: "b"
+                                children:
+                                  - key: SQL_TABLEREF_NAME
+                                    type: ARRAY
+                                    text: "b"
+                                    children:
+                                      - type: NAME
+                                        text: "b"
       scanner-errors: []
       parser-errors:
         - message: 'syntax error, unexpected SEMICOLON'
           text: ";"
+        - message: 'syntax error, unexpected SEMICOLON'
+          text: ";"
+        - message: 'syntax error, unexpected EOF, expecting JOIN'
+          text: ""
       line-breaks:
         - text: [26,27]
         - text: [48,49]
@@ -605,7 +741,41 @@ parser-snapshots:
       select 1 union;
       select 1 union all select
     expected:
-      statements: []
+      statements:
+        - type: SELECT
+          ast-begin: 2
+          ast-size: 8
+          description:
+            text: "select 1 u..all select"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select 1 u..all select"
+            children:
+              - key: SQL_COMBINE_OPERATION
+                type: ENUM_SQL_COMBINE_OPERATION
+                value: UNION
+              - key: SQL_COMBINE_MODIFIER
+                type: ENUM_SQL_COMBINE_MODIFIER
+                value: ALL
+              - key: SQL_COMBINE_INPUT
+                type: ARRAY
+                text: "select 1 u..all select"
+                children:
+                  - type: OBJECT_SQL_SELECT
+                    text: "select 1"
+                    children:
+                      - key: SQL_SELECT_TARGETS
+                        type: ARRAY
+                        text: "1"
+                        children:
+                          - type: OBJECT_SQL_RESULT_TARGET
+                            text: "1"
+                            children:
+                              - key: SQL_RESULT_TARGET_VALUE
+                                type: LITERAL_INTEGER
+                                text: "1"
       scanner-errors: []
       parser-errors:
         - message: 'syntax error, unexpected SEMICOLON'
@@ -657,8 +827,10 @@ parser-snapshots:
       parser-errors:
         - message: 'syntax error, unexpected SEMICOLON'
           text: ";"
-        - message: 'syntax error, unexpected TO, expecting DOT or EQUALS'
-          text: "to"
+        - message: 'syntax error, unexpected SEMICOLON'
+          text: ";"
+        - message: 'syntax error, unexpected EOF'
+          text: ""
       line-breaks:
         - text: [5,6]
         - text: [15,16]
@@ -677,6 +849,8 @@ parser-snapshots:
       parser-errors:
         - message: 'syntax error, unexpected SEMICOLON'
           text: ";"
+        - message: 'syntax error, unexpected SELECT'
+          text: "select"
       line-breaks:
         - text: [8,9]
         - text: [35,36]
@@ -710,7 +884,9 @@ parser-snapshots:
                     text: "if"
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected SEMICOLON, expecting TABLE or SCHEMA or VIEW'
+        - message: 'syntax error, unexpected SEMICOLON'
+          text: ";"
+        - message: 'syntax error, unexpected SEMICOLON'
           text: ";"
       line-breaks:
         - text: [5,6]
@@ -724,11 +900,34 @@ parser-snapshots:
       delete from;
       delete from t where
     expected:
-      statements: []
+      statements:
+        - type: DELETE
+          ast-begin: 0
+          ast-size: 4
+          description:
+            text: "delete from t where"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_DELETE
+            text: "delete from t where"
+            children:
+              - key: SQL_DELETE_TARGET
+                type: OBJECT_SQL_TABLEREF
+                text: "t"
+                children:
+                  - key: SQL_TABLEREF_NAME
+                    type: ARRAY
+                    text: "t"
+                    children:
+                      - type: NAME
+                        text: "t"
       scanner-errors: []
       parser-errors:
         - message: 'syntax error, unexpected SEMICOLON'
           text: ";"
+        - message: 'syntax error, unexpected EOF'
+          text: ""
       line-breaks:
         - text: [12,13]
       comments: []
@@ -741,11 +940,47 @@ parser-snapshots:
       update t set a = ;
       update
     expected:
-      statements: []
+      statements:
+        - type: UPDATE
+          ast-begin: 2
+          ast-size: 8
+          description:
+            text: "update t set a = ;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_UPDATE
+            text: "update t set a = ;"
+            children:
+              - key: SQL_UPDATE_TARGET
+                type: OBJECT_SQL_TABLEREF
+                text: "t"
+                children:
+                  - key: SQL_TABLEREF_NAME
+                    type: ARRAY
+                    text: "t"
+                    children:
+                      - type: NAME
+                        text: "t"
+              - key: SQL_UPDATE_ASSIGNMENTS
+                type: ARRAY
+                text: "a = ;"
+                children:
+                  - type: OBJECT_SQL_ASSIGNMENT
+                    text: "a = ;"
+                    children:
+                      - key: SQL_ASSIGNMENT_KIND
+                        type: NAME
+                        text: "a = ;"
+                      - key: SQL_ASSIGNMENT_COLUMNS
+                        type: NAME
+                        text: "a"
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected UPDATE'
-          text: "update"
+        - message: 'syntax error, unexpected SEMICOLON'
+          text: ";"
+        - message: 'syntax error, unexpected SEMICOLON'
+          text: ";"
       line-breaks:
         - text: [13,14]
         - text: [32,33]
@@ -759,9 +994,7 @@ parser-snapshots:
     expected:
       statements: []
       scanner-errors: []
-      parser-errors:
-        - message: 'syntax error, unexpected SEMICOLON'
-          text: ";"
+      parser-errors: []
       line-breaks: []
       comments: []
       comment-blocks: []

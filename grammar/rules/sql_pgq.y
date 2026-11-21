@@ -497,8 +497,15 @@ sql_graph_pattern_quantifier:
       )
   }
   | LCB COMMA RCB { ctx.object_ex(@$, NodeType::OBJECT_SQL_GRAPH_QUANTIFIER, NO_NODES, false, false) }
+  | PARAM {
+        ctx.require_operator(@1, "?");
+        ctx.object(
+            @$,
+            NodeType::OBJECT_SQL_GRAPH_QUANTIFIER,
+            &[attr(Key::SQL_GRAPH_QUANTIFIER_OPTIONAL, bool_node(@1, true))],
+        )
+    }
     ;
-
 sql_opt_col_id:
     sql_col_id { $1 }
   | %empty     { null() }

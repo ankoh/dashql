@@ -4,12 +4,12 @@ sql_delete_stmt:
     ;
 
 sql_delete_body:
-    DELETE_P FROM sql_delete_target sql_delete_using_clause sql_where_clause sql_insert_returning_clause {
+    DELETE_P FROM sql_delete_target sql_delete_using_clause sql_cmd_where_or_current_clause sql_insert_returning_clause {
         ctx.list(
             &[
                 attr(Key::SQL_DELETE_TARGET, $3),
                 attr(Key::SQL_DELETE_USING, $4),
-                attr(Key::SQL_DELETE_WHERE, ctx.expression($5)),
+                attr(Key::SQL_DELETE_WHERE, $5),
                 attr(Key::SQL_DELETE_RETURNING, $6),
             ],
         )

@@ -43,31 +43,42 @@ sql_create_as_target:
     ;
     
 sql_create_stmt:
-    CREATE_P sql_opt_temp TABLE sql_qualified_name LRB sql_opt_table_element_list RRB sql_on_commit_option {
+    CREATE_P sql_opt_temp TABLE sql_qualified_name LRB sql_opt_table_element_list RRB sql_opt_definition sql_on_commit_option {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_CREATE,
             &[
                 attr(Key::SQL_CREATE_TABLE_TEMP, $2),
                 attr(Key::SQL_CREATE_TABLE_NAME, $4),
-                attr(Key::SQL_CREATE_TABLE_ELEMENTS, ctx.array(loc(&[@5, @6, @7]), $6)),
-                attr(Key::SQL_CREATE_TABLE_ON_COMMIT, $8),
+                attr(
+                    Key::SQL_CREATE_TABLE_ELEMENTS,
+                    ctx.array(loc(&[@5, @6, @7]), $6),
+                ),
+                attr(Key::SQL_CREATE_TABLE_OPTIONS, ctx.array(@8, $8)),
+                attr(Key::SQL_CREATE_TABLE_ON_COMMIT, $9),
             ],
         )
     }
-  | CREATE_P sql_opt_temp TABLE IF_P NOT EXISTS sql_qualified_name LRB sql_opt_table_element_list RRB sql_on_commit_option {
-      ctx.object(
-          @$,
-          NodeType::OBJECT_SQL_CREATE,
-          &[
-              attr(Key::SQL_CREATE_TABLE_TEMP, $2),
-              attr(Key::SQL_CREATE_TABLE_IF_NOT_EXISTS, bool_node(loc(&[@4, @5, @6]), true)),
-              attr(Key::SQL_CREATE_TABLE_NAME, $7),
-              attr(Key::SQL_CREATE_TABLE_ELEMENTS, ctx.array(loc(&[@8, @9, @10]), $9)),
-              attr(Key::SQL_CREATE_TABLE_ON_COMMIT, $11),
-          ],
-      )
-  }
+  | CREATE_P sql_opt_temp TABLE IF_P NOT EXISTS sql_qualified_name LRB sql_opt_table_element_list RRB sql_opt_definition sql_on_commit_option {
+        ctx.object(
+            @$,
+            NodeType::OBJECT_SQL_CREATE,
+            &[
+                attr(Key::SQL_CREATE_TABLE_TEMP, $2),
+                attr(
+                    Key::SQL_CREATE_TABLE_IF_NOT_EXISTS,
+                    bool_node(loc(&[@4, @5, @6]), true),
+                ),
+                attr(Key::SQL_CREATE_TABLE_NAME, $7),
+                attr(
+                    Key::SQL_CREATE_TABLE_ELEMENTS,
+                    ctx.array(loc(&[@8, @9, @10]), $9),
+                ),
+                attr(Key::SQL_CREATE_TABLE_OPTIONS, ctx.array(@11, $11)),
+                attr(Key::SQL_CREATE_TABLE_ON_COMMIT, $12),
+            ],
+        )
+    }
     ;
 
 sql_opt_table_element_list:
@@ -86,8 +97,17 @@ sql_table_element_list:
 sql_table_element:
     sql_column_def        { $1 }
   | sql_table_constraint  { $1 }
+  | LIKE sql_qualified_name sql_table_like_options {
+        ctx.object(
+            @$,
+            NodeType::OBJECT_SQL_TABLE_LIKE,
+            &[
+                attr(Key::SQL_TABLE_LIKE_TABLE, $2),
+                attr(Key::SQL_TABLE_LIKE_OPTIONS, ctx.array(@3, $3)),
+            ],
+        )
+    }
     ;
-
 sql_column_def:
     sql_col_id sql_typename sql_create_generic_options sql_col_qual_list {
         ctx.object(
@@ -226,8 +246,46 @@ sql_col_constraint_elem:
           ],
       )
   }
+  | ASSUMED UNIQUE sql_opt_definition {
+        let fields = {
+            ctx.list(&[
+                attr(Key::SQL_COLUMN_CONSTRAINT_TYPE, enum_node(@$, ColumnConstraint::UNIQUE)),
+                attr(Key::SQL_COLUMN_CONSTRAINT_DEFINITION, ctx.array(@3, $3)),
+            ])
+        };
+        ctx.push_back(fields, attr(Key::SQL_COLUMN_CONSTRAINT_ASSUMED, bool_node(@1, true)));
+        fields
+    }
+  | ASSUMED PRIMARY KEY sql_opt_definition {
+        let fields = {
+            ctx.list(&[
+                attr(Key::SQL_COLUMN_CONSTRAINT_TYPE, enum_node(@$, ColumnConstraint::PRIMARY_KEY)),
+                attr(Key::SQL_COLUMN_CONSTRAINT_DEFINITION, ctx.array(@4, $4)),
+            ])
+        };
+        ctx.push_back(fields, attr(Key::SQL_COLUMN_CONSTRAINT_ASSUMED, bool_node(@1, true)));
+        fields
+    }
+  | REFERENCES sql_qualified_name sql_opt_column_list sql_key_match sql_key_actions {
+        ctx.list(&[
+            attr(Key::SQL_COLUMN_CONSTRAINT_TYPE, enum_node(@$, ColumnConstraint::REFERENCES)),
+            attr(Key::SQL_COLUMN_CONSTRAINT_REFERENCES_NAME, $2),
+            attr(Key::SQL_COLUMN_CONSTRAINT_REFERENCES_COLUMNS, ctx.array(@3, $3)),
+            attr(Key::SQL_COLUMN_CONSTRAINT_KEY_MATCH, $4),
+            attr(Key::SQL_COLUMN_CONSTRAINT_KEY_ACTIONS, ctx.array(@5, $5)),
+        ])
+    }
+  | ASSUMED REFERENCES sql_qualified_name sql_opt_column_list sql_key_match sql_key_actions {
+        ctx.list(&[
+            attr(Key::SQL_COLUMN_CONSTRAINT_TYPE, enum_node(@$, ColumnConstraint::REFERENCES)),
+            attr(Key::SQL_COLUMN_CONSTRAINT_REFERENCES_NAME, $3),
+            attr(Key::SQL_COLUMN_CONSTRAINT_REFERENCES_COLUMNS, ctx.array(@4, $4)),
+            attr(Key::SQL_COLUMN_CONSTRAINT_KEY_MATCH, $5),
+            attr(Key::SQL_COLUMN_CONSTRAINT_KEY_ACTIONS, ctx.array(@6, $6)),
+            attr(Key::SQL_COLUMN_CONSTRAINT_ASSUMED, bool_node(@1, true)),
+        ])
+    }
     ;
-
 sql_opt_no_inherit:
     NO INHERIT  { bool_node(@1, true) }
   | %empty      { bool_node(@$, false) }
@@ -377,8 +435,73 @@ sql_table_constraint_elem:
           ],
       )
   }
+  | ASSUMED UNIQUE sql_existing_index sql_opt_definition sql_table_constraint_attr_list {
+        let fields = {
+            ctx.list(&[
+                attr(Key::SQL_TABLE_CONSTRAINT_TYPE, enum_node(@$, TableConstraint::UNIQUE)),
+                attr(Key::SQL_TABLE_CONSTRAINT_INDEX, $3),
+                attr(Key::SQL_TABLE_CONSTRAINT_DEFINITION, ctx.array(@4, $4)),
+                attr(Key::SQL_TABLE_CONSTRAINT_ATTRIBUTES, ctx.array(@5, $5)),
+            ])
+        };
+        ctx.push_back(fields, attr(Key::SQL_TABLE_CONSTRAINT_ASSUMED, bool_node(@1, true)));
+        fields
+    }
+  | ASSUMED UNIQUE sql_opt_column_list sql_opt_definition sql_table_constraint_attr_list {
+        let fields = {
+            ctx.list(&[
+                attr(Key::SQL_TABLE_CONSTRAINT_TYPE, enum_node(@2, TableConstraint::UNIQUE)),
+                attr(Key::SQL_TABLE_CONSTRAINT_COLUMNS, ctx.array(@3, $3)),
+                attr(Key::SQL_TABLE_CONSTRAINT_DEFINITION, ctx.array(@4, $4)),
+                attr(Key::SQL_TABLE_CONSTRAINT_ATTRIBUTES, ctx.array(@5, $5)),
+            ])
+        };
+        ctx.push_back(fields, attr(Key::SQL_TABLE_CONSTRAINT_ASSUMED, bool_node(@1, true)));
+        fields
+    }
+  | ASSUMED PRIMARY KEY sql_existing_index sql_opt_definition sql_table_constraint_attr_list {
+        let fields = {
+            ctx.list(&[
+                attr(Key::SQL_TABLE_CONSTRAINT_TYPE, enum_node(@$, TableConstraint::PRIMARY_KEY)),
+                attr(Key::SQL_TABLE_CONSTRAINT_INDEX, $4),
+                attr(Key::SQL_TABLE_CONSTRAINT_DEFINITION, ctx.array(@5, $5)),
+                attr(Key::SQL_TABLE_CONSTRAINT_ATTRIBUTES, ctx.array(@6, $6)),
+            ])
+        };
+        ctx.push_back(fields, attr(Key::SQL_TABLE_CONSTRAINT_ASSUMED, bool_node(@1, true)));
+        fields
+    }
+  | ASSUMED PRIMARY KEY sql_opt_column_list sql_opt_definition sql_table_constraint_attr_list {
+        let fields = {
+            ctx.list(&[
+                attr(Key::SQL_TABLE_CONSTRAINT_TYPE, enum_node(@$, TableConstraint::PRIMARY_KEY)),
+                attr(Key::SQL_TABLE_CONSTRAINT_COLUMNS, ctx.array(@4, $4)),
+                attr(Key::SQL_TABLE_CONSTRAINT_DEFINITION, ctx.array(@5, $5)),
+                attr(Key::SQL_TABLE_CONSTRAINT_ATTRIBUTES, ctx.array(@6, $6)),
+            ])
+        };
+        ctx.push_back(fields, attr(Key::SQL_TABLE_CONSTRAINT_ASSUMED, bool_node(@1, true)));
+        fields
+    }
+  | ASSUMED FOREIGN KEY sql_opt_column_list REFERENCES sql_qualified_name sql_opt_column_list sql_table_constraint_attr_list sql_key_match sql_key_actions {
+        let fields = {
+            ctx.list(&[
+                attr(
+                    Key::SQL_TABLE_CONSTRAINT_TYPE,
+                    enum_node(loc(&[@2, @3]), TableConstraint::FOREIGN_KEY),
+                ),
+                attr(Key::SQL_TABLE_CONSTRAINT_COLUMNS, ctx.array(@4, $4)),
+                attr(Key::SQL_TABLE_CONSTRAINT_REFERENCES_NAME, $6),
+                attr(Key::SQL_TABLE_CONSTRAINT_REFERENCES_COLUMNS, ctx.array(@7, $7)),
+                attr(Key::SQL_TABLE_CONSTRAINT_ATTRIBUTES, ctx.array(@8, $8)),
+                attr(Key::SQL_TABLE_CONSTRAINT_KEY_ACTIONS, ctx.array(@10, $10)),
+                attr(Key::SQL_TABLE_CONSTRAINT_KEY_MATCH, $9),
+            ])
+        };
+        ctx.push_back(fields, attr(Key::SQL_TABLE_CONSTRAINT_ASSUMED, bool_node(@1, true)));
+        fields
+    }
     ;
-
 sql_key_match:
     MATCH FULL      { enum_node(@$, KeyMatch::FULL) }
   | MATCH PARTIAL   { enum_node(@$, KeyMatch::PARTIAL) }
@@ -444,3 +567,25 @@ sql_table_constraint_attr_elem:
   | NOT VALID             { enum_node(@$, ConstraintAttribute::NOT_VALID) }
   | NO INHERIT            { enum_node(@$, ConstraintAttribute::NO_INHERIT) }
     ;
+
+sql_table_like_options: sql_table_like_options sql_table_like_option { ctx.push_back($1,$2); $1 } | %empty { ctx.list(NO_NODES) };
+sql_table_like_option: INCLUDING sql_table_like_kind {
+        ctx.object(
+            @$,
+            NodeType::OBJECT_SQL_TABLE_LIKE_OPTION,
+            &[
+                attr(Key::SQL_TABLE_LIKE_OPTION_NAME, $2),
+                attr(Key::SQL_TABLE_LIKE_OPTION_INCLUDE, bool_node(@1, true)),
+            ],
+        )
+    } | EXCLUDING sql_table_like_kind {
+        ctx.object(
+            @$,
+            NodeType::OBJECT_SQL_TABLE_LIKE_OPTION,
+            &[
+                attr(Key::SQL_TABLE_LIKE_OPTION_NAME, $2),
+                attr(Key::SQL_TABLE_LIKE_OPTION_INCLUDE, bool_node(@1, false)),
+            ],
+        )
+    };
+sql_table_like_kind: DEFAULTS { ctx.name_from_keyword(@1,$1) } | CONSTRAINTS { ctx.name_from_keyword(@1,$1) } | INDEXES { ctx.name_from_keyword(@1,$1) } | STORAGE { ctx.name_from_keyword(@1,$1) } | COMMENTS { ctx.name_from_keyword(@1,$1) } | ALL { ctx.name_from_keyword(@1,$1) };

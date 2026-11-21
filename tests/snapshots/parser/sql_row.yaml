@@ -679,191 +679,44 @@ parser-snapshots:
       create table t (p row())
     expected:
       statements:
-        - type: SQL_SYNTAX
+        - type: CREATE_TABLE
           ast-begin: 0
-          ast-size: 57
+          ast-size: 9
           description:
             text: "create tab.. (p row())"
             description-begin: 0
             description-count: 0
           ast:
-            type: OBJECT_SQL_SYNTAX
+            type: OBJECT_SQL_CREATE
             text: "create tab.. (p row())"
             children:
-              - key: SQL_SYNTAX_RULE
-                type: NAME
-                text: Stmt
-              - key: SQL_SYNTAX_CHILDREN
+              - key: SQL_CREATE_TABLE_NAME
                 type: ARRAY
-                text: "create tab.. (p row())"
+                text: "t"
                 children:
-                  - type: OBJECT_SQL_SYNTAX
-                    text: "create tab.. (p row())"
+                  - type: NAME
+                    text: "t"
+              - key: SQL_CREATE_TABLE_ELEMENTS
+                type: ARRAY
+                text: "(p row())"
+                children:
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "p row()"
                     children:
-                      - key: SQL_SYNTAX_RULE
+                      - key: SQL_COLUMN_DEF_NAME
                         type: NAME
-                        text: CreateTableStmt
-                      - key: SQL_SYNTAX_CHILDREN
-                        type: ARRAY
-                        text: "create tab.. (p row())"
+                        text: "p"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "row()"
                         children:
-                          - type: OPERATOR
-                            text: "create"
-                          - type: OBJECT_SQL_SYNTAX
-                            text: ""
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_ROW_TYPE
+                            text: "row()"
                             children:
-                              - key: SQL_SYNTAX_RULE
-                                type: NAME
-                                text: OptTemp
-                              - key: SQL_SYNTAX_CHILDREN
+                              - key: SQL_ROW_TYPE_FIELDS
                                 type: ARRAY
-                                text: ""
-                                children: []
-                          - type: OPERATOR
-                            text: "table"
-                          - type: OBJECT_SQL_SYNTAX
-                            text: "t"
-                            children:
-                              - key: SQL_SYNTAX_RULE
-                                type: NAME
-                                text: qualified_name
-                              - key: SQL_SYNTAX_CHILDREN
-                                type: ARRAY
-                                text: "t"
-                                children:
-                                  - type: OBJECT_SQL_SYNTAX
-                                    text: "t"
-                                    children:
-                                      - key: SQL_SYNTAX_RULE
-                                        type: NAME
-                                        text: ColId
-                                      - key: SQL_SYNTAX_CHILDREN
-                                        type: ARRAY
-                                        text: "t"
-                                        children:
-                                          - type: NAME
-                                            text: "t"
-                          - type: OPERATOR
-                            text: "("
-                          - type: OBJECT_SQL_SYNTAX
-                            text: "p row()"
-                            children:
-                              - key: SQL_SYNTAX_RULE
-                                type: NAME
-                                text: OptTableElementList
-                              - key: SQL_SYNTAX_CHILDREN
-                                type: ARRAY
-                                text: "p row()"
-                                children:
-                                  - type: OBJECT_SQL_SYNTAX
-                                    text: "p row()"
-                                    children:
-                                      - key: SQL_SYNTAX_RULE
-                                        type: NAME
-                                        text: TableElementList
-                                      - key: SQL_SYNTAX_CHILDREN
-                                        type: ARRAY
-                                        text: "p row()"
-                                        children:
-                                          - type: OBJECT_SQL_SYNTAX
-                                            text: "p row()"
-                                            children:
-                                              - key: SQL_SYNTAX_RULE
-                                                type: NAME
-                                                text: TableElement
-                                              - key: SQL_SYNTAX_CHILDREN
-                                                type: ARRAY
-                                                text: "p row()"
-                                                children:
-                                                  - type: OBJECT_SQL_SYNTAX
-                                                    text: "p row()"
-                                                    children:
-                                                      - key: SQL_SYNTAX_RULE
-                                                        type: NAME
-                                                        text: columnDef
-                                                      - key: SQL_SYNTAX_CHILDREN
-                                                        type: ARRAY
-                                                        text: "p row()"
-                                                        children:
-                                                          - type: OBJECT_SQL_SYNTAX
-                                                            text: "p"
-                                                            children:
-                                                              - key: SQL_SYNTAX_RULE
-                                                                type: NAME
-                                                                text: ColId
-                                                              - key: SQL_SYNTAX_CHILDREN
-                                                                type: ARRAY
-                                                                text: "p"
-                                                                children:
-                                                                  - type: NAME
-                                                                    text: "p"
-                                                          - type: OBJECT_SQL_SYNTAX
-                                                            text: "row()"
-                                                            children:
-                                                              - key: SQL_SYNTAX_RULE
-                                                                type: NAME
-                                                                text: Typename
-                                                              - key: SQL_SYNTAX_CHILDREN
-                                                                type: ARRAY
-                                                                text: "row()"
-                                                                children:
-                                                                  - type: OPERATOR
-                                                                    text: "row"
-                                                                  - type: OPERATOR
-                                                                    text: "("
-                                                                  - type: OBJECT_SQL_SYNTAX
-                                                                    text: ""
-                                                                    children:
-                                                                      - key: SQL_SYNTAX_RULE
-                                                                        type: NAME
-                                                                        text: OptTableFuncElementList
-                                                                      - key: SQL_SYNTAX_CHILDREN
-                                                                        type: ARRAY
-                                                                        text: ""
-                                                                        children: []
-                                                                  - type: OPERATOR
-                                                                    text: ")"
-                                                          - type: OBJECT_SQL_SYNTAX
-                                                            text: ""
-                                                            children:
-                                                              - key: SQL_SYNTAX_RULE
-                                                                type: NAME
-                                                                text: create_generic_options
-                                                              - key: SQL_SYNTAX_CHILDREN
-                                                                type: ARRAY
-                                                                text: ""
-                                                                children: []
-                                                          - type: OBJECT_SQL_SYNTAX
-                                                            text: ""
-                                                            children:
-                                                              - key: SQL_SYNTAX_RULE
-                                                                type: NAME
-                                                                text: ColQualList
-                                                              - key: SQL_SYNTAX_CHILDREN
-                                                                type: ARRAY
-                                                                text: ""
-                                                                children: []
-                          - type: OPERATOR
-                            text: ")"
-                          - type: OBJECT_SQL_SYNTAX
-                            text: ""
-                            children:
-                              - key: SQL_SYNTAX_RULE
-                                type: NAME
-                                text: OptWith
-                              - key: SQL_SYNTAX_CHILDREN
-                                type: ARRAY
-                                text: ""
-                                children: []
-                          - type: OBJECT_SQL_SYNTAX
-                            text: ""
-                            children:
-                              - key: SQL_SYNTAX_RULE
-                                type: NAME
-                                text: OptCommit
-                              - key: SQL_SYNTAX_CHILDREN
-                                type: ARRAY
-                                text: ""
+                                text: "row()"
                                 children: []
       scanner-errors: []
       parser-errors: []

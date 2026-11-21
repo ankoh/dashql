@@ -106,40 +106,46 @@ sql_select_clause:
 // However, this is not checked by the grammar; parse analysis must check it.
 
 sql_simple_select:
-    SELECT sql_opt_all_clause sql_opt_target_list
+    SELECT sql_opt_aggregation_threshold sql_opt_all_clause sql_opt_target_list
         sql_into_clause sql_from_clause sql_where_clause
         sql_group_clause sql_having_clause sql_window_clause sql_sample_clause {
-            ctx.list(
-                &[
-                    attr(Key::SQL_SELECT_ALL, $2),
-                    attr(Key::SQL_SELECT_TARGETS, ctx.array(@3, $3)),
-                    attr(Key::SQL_SELECT_INTO, $4),
-                    attr(Key::SQL_SELECT_FROM, ctx.array(@5, $5)),
-                    attr(Key::SQL_SELECT_WHERE, $6),
-                    attr(Key::SQL_SELECT_GROUPS, ctx.array(@7, $7)),
-                    attr(Key::SQL_SELECT_HAVING, $8),
-                    attr(Key::SQL_SELECT_WINDOWS, ctx.array(@9, $9)),
-                    attr(Key::SQL_SELECT_SAMPLE, $10),
-                ],
-            )
-        }
-  | SELECT sql_distinct_clause sql_target_list
+        ctx.concat3(
+            ctx.list(&[
+                attr(Key::SQL_SELECT_WITH_AGGREGATION_THRESHOLD, $2),
+                attr(Key::SQL_SELECT_ALL, $3),
+                attr(Key::SQL_SELECT_TARGETS, ctx.array(@4, $4)),
+                attr(Key::SQL_SELECT_INTO, $5),
+                attr(Key::SQL_SELECT_FROM, ctx.array(@6, $6)),
+                attr(Key::SQL_SELECT_WHERE, $7),
+            ]),
+            $8,
+            &[
+                attr(Key::SQL_SELECT_HAVING, $9),
+                attr(Key::SQL_SELECT_WINDOWS, ctx.array(@10, $10)),
+                attr(Key::SQL_SELECT_SAMPLE, $11),
+            ],
+        )
+    }
+  | SELECT sql_opt_aggregation_threshold sql_distinct_clause sql_target_list
         sql_into_clause sql_from_clause sql_where_clause
         sql_group_clause sql_having_clause sql_window_clause sql_sample_clause {
-            ctx.list(
-                &[
-                    attr(Key::SQL_SELECT_DISTINCT, $2),
-                    attr(Key::SQL_SELECT_TARGETS, ctx.array(@3, $3)),
-                    attr(Key::SQL_SELECT_INTO, $4),
-                    attr(Key::SQL_SELECT_FROM, ctx.array(@5, $5)),
-                    attr(Key::SQL_SELECT_WHERE, $6),
-                    attr(Key::SQL_SELECT_GROUPS, ctx.array(@7, $7)),
-                    attr(Key::SQL_SELECT_HAVING, $8),
-                    attr(Key::SQL_SELECT_WINDOWS, ctx.array(@9, $9)),
-                    attr(Key::SQL_SELECT_SAMPLE, $10),
-                ],
-            )
-        }
+        ctx.concat3(
+            ctx.list(&[
+                attr(Key::SQL_SELECT_WITH_AGGREGATION_THRESHOLD, $2),
+                attr(Key::SQL_SELECT_DISTINCT, $3),
+                attr(Key::SQL_SELECT_TARGETS, ctx.array(@4, $4)),
+                attr(Key::SQL_SELECT_INTO, $5),
+                attr(Key::SQL_SELECT_FROM, ctx.array(@6, $6)),
+                attr(Key::SQL_SELECT_WHERE, $7),
+            ]),
+            $8,
+            &[
+                attr(Key::SQL_SELECT_HAVING, $9),
+                attr(Key::SQL_SELECT_WINDOWS, ctx.array(@10, $10)),
+                attr(Key::SQL_SELECT_SAMPLE, $11),
+            ],
+        )
+    }
   | sql_values_clause { ctx.list(&[attr(Key::SQL_SELECT_VALUES, ctx.array(@1, $1))]) }
   | TABLE sql_relation_expr { ctx.list(&[attr(Key::SQL_SELECT_TABLE, ctx.object(@$, NodeType::OBJECT_SQL_TABLEREF, $2))]) }
   | sql_select_clause UNION sql_all_or_distinct sql_select_clause {
@@ -246,9 +252,11 @@ sql_into_clause:
 // XXX PreparableStmt: select | insert | update | delete
 sql_preparable_stmt:
     sql_select_stmt                 { ctx.object(@1, NodeType::OBJECT_SQL_SELECT, $1) }
+  | sql_insert_stmt { $1 }
+  | sql_delete_stmt { $1 }
+  | sql_cmd_update_stmt { $1 }
+  | sql_cmd_merge_stmt { $1 }
     ;
-
-
 // Redundancy here is needed to avoid shift/reduce conflicts,
 // since TEMP is not a reserved word.  See also OptTemp.
 sql_opt_temp_table_name:
@@ -323,8 +331,18 @@ sql_sortby:
           ],
       )
   }
+  | ALL sql_opt_asc_desc sql_opt_nulls_order {
+        ctx.object(
+            @$,
+            NodeType::OBJECT_SQL_ORDER,
+            &[
+                attr(Key::SQL_ORDER_ALL, bool_node(@1, true)),
+                attr(Key::SQL_ORDER_DIRECTION, $2),
+                attr(Key::SQL_ORDER_NULLRULE, $3),
+            ],
+        )
+    }
     ;
-
 sql_opt_asc_desc:
     ASC_P   { enum_node(@$, OrderDirection::ASCENDING) }
   | DESC_P  { enum_node(@$, OrderDirection::DESCENDING) }
@@ -361,8 +379,14 @@ sql_limit_clause:
     //  
   | FETCH sql_first_or_next sql_select_fetch_first_value sql_row_or_rows ONLY { ctx.list(&[attr(Key::SQL_SELECT_LIMIT, $3)]) }
   | FETCH sql_first_or_next sql_row_or_rows ONLY { ctx.list(&[attr(Key::SQL_SELECT_LIMIT, bool_node(@3, true))]) }
+  | FETCH sql_first_or_next sql_select_fetch_first_value sql_row_or_rows WITH TIES { ctx.list(&[attr(Key::SQL_SELECT_LIMIT, $3), attr(Key::SQL_SELECT_LIMIT_WITH_TIES, bool_node(@$,true))]) }
+  | FETCH sql_first_or_next sql_row_or_rows WITH TIES {
+        ctx.list(&[
+            attr(Key::SQL_SELECT_LIMIT, bool_node(@3, true)),
+            attr(Key::SQL_SELECT_LIMIT_WITH_TIES, bool_node(@$, true)),
+        ])
+    }
     ;
-
 sql_offset_clause:
     OFFSET sql_select_offset_value { ctx.list(&[attr(Key::SQL_SELECT_OFFSET, $2)]) }
   | OFFSET sql_select_fetch_first_value sql_row_or_rows { ctx.list(&[attr(Key::SQL_SELECT_OFFSET, $2)]) }
@@ -439,10 +463,17 @@ sql_first_or_next:
 // PGGroupingSet node of some type.
 
 sql_group_clause:
-    GROUP_P BY sql_group_by_list    { $3 }
-  | %empty                          { ctx.list(NO_NODES) }
+GROUP_P BY sql_group_by_list { ctx.list(&[attr(Key::SQL_SELECT_GROUPS, ctx.array(@$, $3))]) }
+  | GROUP_P BY ALL { ctx.list(&[attr(Key::SQL_SELECT_GROUP_ALL, bool_node(@3, true))]) }
+  | GROUP_P BY ALL sql_group_by_list { ctx.list(&[attr(Key::SQL_SELECT_GROUP_ALL, bool_node(@3, true)), attr(Key::SQL_SELECT_GROUPS, ctx.array(@$, $4))]) }
+  | GROUP_P BY DISTINCT sql_group_by_list {
+        ctx.list(&[
+            attr(Key::SQL_SELECT_GROUP_DISTINCT, bool_node(@3, true)),
+            attr(Key::SQL_SELECT_GROUPS, ctx.array(@$, $4)),
+        ])
+    }
+  | %empty { ctx.list(NO_NODES) }
     ;
-
 sql_group_by_list:
     sql_group_by_item                           { ctx.list(&[$1]) }
   | sql_group_by_list COMMA sql_group_by_item   {
@@ -489,7 +520,7 @@ sql_group_by_item:
           ],
       )
   }
-  | GROUPING SETS LRB sql_expr_list RRB {
+  | GROUPING SETS LRB sql_group_by_list RRB {
       ctx.object(
           @$,
           NodeType::OBJECT_SQL_GROUP_BY_ITEM,
@@ -612,59 +643,73 @@ sql_from_list:
 // table_ref is where an alias clause can be attached.
 // XXX Andre
 sql_table_ref:
-    sql_relation_expr sql_opt_alias_clause sql_opt_tablesample_clause {
+    sql_relation_expr sql_table_ordinality sql_table_ref_options sql_opt_alias_clause sql_opt_tablesample_clause {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_TABLEREF,
-            ctx.concat2($1, &[attr(Key::SQL_TABLEREF_ALIAS, $2), attr(Key::SQL_TABLEREF_SAMPLE, $3)]),
+            ctx.concat2(
+                $1,
+                &[
+                    attr(Key::SQL_TABLEREF_ORDINALITY, $2),
+                    attr(Key::SQL_TABLEREF_OPTIONS, $3),
+                    attr(Key::SQL_TABLEREF_ALIAS, $4),
+                    attr(Key::SQL_TABLEREF_SAMPLE, $5),
+                ],
+            ),
         )
     }
-  | sql_func_table sql_func_alias_clause sql_opt_tablesample_clause {
-      ctx.object(
-          @$,
-          NodeType::OBJECT_SQL_TABLEREF,
-          &[
-              attr(Key::SQL_TABLEREF_ALIAS, $2),
-              attr(Key::SQL_TABLEREF_SAMPLE, $3),
-              attr(Key::SQL_TABLEREF_TABLE, $1),
-          ],
-      )
-  }
-  | sql_select_with_parens sql_opt_alias_clause sql_opt_tablesample_clause {
-      let t = ctx.object(@1, NodeType::OBJECT_SQL_SELECT, $1);
-      ctx.object(
-          @$,
-          NodeType::OBJECT_SQL_TABLEREF,
-          &[
-              attr(Key::SQL_TABLEREF_ALIAS, $2),
-              attr(Key::SQL_TABLEREF_SAMPLE, $3),
-              attr(Key::SQL_TABLEREF_TABLE, t),
-          ],
-      )
-  }
-  | LATERAL_P sql_func_table sql_func_alias_clause {
-      ctx.object(
-          @$,
-          NodeType::OBJECT_SQL_TABLEREF,
-          &[
-              attr(Key::SQL_TABLEREF_LATERAL, bool_node(@1, true)),
-              attr(Key::SQL_TABLEREF_ALIAS, $3),
-              attr(Key::SQL_TABLEREF_TABLE, $2),
-          ],
-      )
-  }
-  | LATERAL_P sql_select_with_parens sql_opt_alias_clause {
-      let t = ctx.object(@1, NodeType::OBJECT_SQL_SELECT, $2);
-      ctx.object(
-          @$,
-          NodeType::OBJECT_SQL_TABLEREF,
-          &[
-              attr(Key::SQL_TABLEREF_LATERAL, bool_node(@1, true)),
-              attr(Key::SQL_TABLEREF_ALIAS, $3),
-              attr(Key::SQL_TABLEREF_TABLE, t),
-          ],
-      )
-  }
+  | sql_func_table sql_table_ref_options sql_func_alias_clause sql_opt_tablesample_clause {
+        ctx.object(
+            @$,
+            NodeType::OBJECT_SQL_TABLEREF,
+            &[
+                attr(Key::SQL_TABLEREF_OPTIONS, $2),
+                attr(Key::SQL_TABLEREF_ALIAS, $3),
+                attr(Key::SQL_TABLEREF_SAMPLE, $4),
+                attr(Key::SQL_TABLEREF_TABLE, $1),
+            ],
+        )
+    }
+  | sql_select_with_parens sql_table_ordinality sql_table_ref_options sql_opt_alias_clause sql_opt_tablesample_clause {
+        let t = ctx.object(@1, NodeType::OBJECT_SQL_SELECT, $1);
+        ctx.object(
+            @$,
+            NodeType::OBJECT_SQL_TABLEREF,
+            &[
+                attr(Key::SQL_TABLEREF_OPTIONS, $3),
+                attr(Key::SQL_TABLEREF_ORDINALITY, $2),
+                attr(Key::SQL_TABLEREF_ALIAS, $4),
+                attr(Key::SQL_TABLEREF_SAMPLE, $5),
+                attr(Key::SQL_TABLEREF_TABLE, t),
+            ],
+        )
+    }
+  | LATERAL_P sql_func_table sql_table_ref_options sql_func_alias_clause {
+        ctx.object(
+            @$,
+            NodeType::OBJECT_SQL_TABLEREF,
+            &[
+                attr(Key::SQL_TABLEREF_OPTIONS, $3),
+                attr(Key::SQL_TABLEREF_LATERAL, bool_node(@1, true)),
+                attr(Key::SQL_TABLEREF_ALIAS, $4),
+                attr(Key::SQL_TABLEREF_TABLE, $2),
+            ],
+        )
+    }
+  | LATERAL_P sql_select_with_parens sql_table_ordinality sql_table_ref_options sql_opt_alias_clause {
+        let t = ctx.object(@1, NodeType::OBJECT_SQL_SELECT, $2);
+        ctx.object(
+            @$,
+            NodeType::OBJECT_SQL_TABLEREF,
+            &[
+                attr(Key::SQL_TABLEREF_OPTIONS, $4),
+                attr(Key::SQL_TABLEREF_ORDINALITY, $3),
+                attr(Key::SQL_TABLEREF_LATERAL, bool_node(@1, true)),
+                attr(Key::SQL_TABLEREF_ALIAS, $5),
+                attr(Key::SQL_TABLEREF_TABLE, t),
+            ],
+        )
+    }
   | sql_joined_table {
       let t = ctx.object(@1, NodeType::OBJECT_SQL_JOINED_TABLE, $1);
       ctx.object(@$, NodeType::OBJECT_SQL_TABLEREF, &[attr(Key::SQL_TABLEREF_TABLE, t)])
@@ -684,9 +729,38 @@ sql_table_ref:
           &[attr(Key::SQL_TABLEREF_ALIAS, $2), attr(Key::SQL_TABLEREF_TABLE, $1)],
       )
   }
+  | TABLE LRB sql_func_table RRB sql_table_ref_options sql_func_alias_clause {
+        ctx.object(
+            @$,
+            NodeType::OBJECT_SQL_TABLEREF,
+            &[
+                attr(Key::SQL_TABLEREF_TABLE, $3),
+                attr(Key::SQL_TABLEREF_OPTIONS, $5),
+                attr(Key::SQL_TABLEREF_ALIAS, $6),
+            ],
+        )
+    }
+  | EXTERNAL STREAM sql_qualified_name sql_cardinality_hint sql_opt_alias_clause {
+        ctx.object(
+            @$,
+            NodeType::OBJECT_SQL_TABLEREF,
+            &[
+                attr(
+                    Key::SQL_TABLEREF_TABLE,
+                    ctx.object(
+                        @$,
+                        NodeType::OBJECT_SQL_EXTERNAL_STREAM,
+                        &[
+                            attr(Key::SQL_EXTERNAL_STREAM_NAME, $3),
+                            attr(Key::SQL_EXTERNAL_STREAM_CARDINALITY, $4),
+                        ],
+                    ),
+                ),
+                attr(Key::SQL_TABLEREF_ALIAS, $5),
+            ],
+        )
+    }
     ;
-
-
 // It may seem silly to separate joined_table from table_ref, but there is
 // method in SQL's madness: if you don't do it this way you get reduce-
 // reduce conflicts, because it's not clear to the parser generator whether
@@ -721,7 +795,7 @@ sql_joined_table:
           ],
       )
   }
-  | sql_table_ref SEMI JOIN sql_table_ref sql_join_qual {
+  | sql_table_ref SEMI_JOIN_LA JOIN sql_table_ref sql_join_qual {
       ctx.concat2(
           $5,
           &[
@@ -730,7 +804,7 @@ sql_joined_table:
           ],
       )
   }
-  | sql_table_ref ANTI JOIN sql_table_ref sql_join_qual {
+  | sql_table_ref ANTI_JOIN_LA JOIN sql_table_ref sql_join_qual {
       ctx.concat2(
           $5,
           &[
@@ -922,11 +996,11 @@ sql_sample_count:
     ;
 
 sql_tablesample_entry:
-	  sql_opt_sample_func LRB sql_sample_count_explicit RRB sql_opt_repeatable_clause {
-       ctx.push_back($3, attr(Key::SQL_SAMPLE_FUNCTION, $1));
-       ctx.push_back($3, attr(Key::SQL_SAMPLE_REPEAT, $5));
-       $3
-   }
+	  sql_opt_sample_func LRB sql_sample_count_explicit sql_sample_bounds RRB sql_opt_repeatable_clause {
+        ctx.push_back($3, attr(Key::SQL_SAMPLE_FUNCTION, $1));
+        ctx.push_back($3, attr(Key::SQL_SAMPLE_REPEAT, $6));
+        ctx.concat2($3, $4)
+    }
 	| sql_opt_sample_func LRB ICONST RRB sql_opt_repeatable_clause {
        // A count without a unit is a percentage for the sampling methods of the SQL standard
        let unit = ctx.bare_sample_unit(&$1, @3);
@@ -945,8 +1019,15 @@ sql_tablesample_entry:
      ctx.push_back($1, attr(Key::SQL_SAMPLE_SEED, const_node(@5, AConstType::INTEGER)));
      $1
  }
-	  ;
-
+  | sql_opt_sample_func LRB FCONST RRB sql_opt_repeatable_clause {
+        ctx.list(&[
+            attr(Key::SQL_SAMPLE_COUNT_VALUE, const_node(@3, AConstType::FLOAT)),
+            attr(Key::SQL_SAMPLE_COUNT_UNIT, enum_node(@3, SampleCountUnit::PERCENT)),
+            attr(Key::SQL_SAMPLE_FUNCTION, $1),
+            attr(Key::SQL_SAMPLE_REPEAT, $5),
+        ])
+    }
+    ;
 sql_tablesample_clause:
     TABLESAMPLE sql_tablesample_entry { ctx.object(@$, NodeType::OBJECT_SQL_TABLEREF_SAMPLE, $2) }
 		;
@@ -957,7 +1038,7 @@ sql_opt_tablesample_clause:
 		;
 
 sql_opt_repeatable_clause:
-    REPEATABLE LRB ICONST RRB   { const_node(@3, AConstType::INTEGER) }
+    REPEATABLE LRB sql_a_expr_const RRB { ctx.expression($3) }
   | %empty                      { null() }
 		;
 
@@ -973,25 +1054,30 @@ sql_opt_repeatable_clause:
 // as a whole, but that's handled by the table_ref production.
 
 sql_func_table:
-    sql_func_expr_windowless sql_opt_ordinality {
+    sql_func_expr_windowless sql_opt_ordinality sql_opt_ordinality_name {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_FUNCTION_TABLE,
-            &[attr(Key::SQL_FUNCTION_TABLE_FUNCTION, $1), attr(Key::SQL_FUNCTION_TABLE_WITH_ORDINALITY, $2)],
+            &[
+                attr(Key::SQL_FUNCTION_TABLE_FUNCTION, $1),
+                attr(Key::SQL_FUNCTION_TABLE_WITH_ORDINALITY, $2),
+                attr(Key::SQL_FUNCTION_TABLE_ORDINALITY_NAME, $3),
+            ],
         )
     }
-  | ROWS FROM LRB sql_rowsfrom_list RRB sql_opt_ordinality  {
-      ctx.object(
-          @$,
-          NodeType::OBJECT_SQL_FUNCTION_TABLE,
-          &[
-              attr(Key::SQL_FUNCTION_TABLE_WITH_ORDINALITY, $6),
-              attr(Key::SQL_FUNCTION_TABLE_ROWS_FROM, ctx.array(@4, $4)),
-          ],
-      )
-  }
+  | ROWS FROM LRB sql_rowsfrom_list RRB sql_opt_ordinality sql_opt_ordinality_name {
+        ctx.object(
+            @$,
+            NodeType::OBJECT_SQL_FUNCTION_TABLE,
+            &[
+                attr(Key::SQL_FUNCTION_TABLE_WITH_ORDINALITY, $6),
+                attr(Key::SQL_FUNCTION_TABLE_ORDINALITY_NAME, $7),
+                attr(Key::SQL_FUNCTION_TABLE_ROWS_FROM, ctx.array(@4, $4)),
+            ],
+        )
+    }
+  | sql_semantic_view { ctx.object(@$,NodeType::OBJECT_SQL_FUNCTION_TABLE,&[attr(Key::SQL_FUNCTION_TABLE_FUNCTION,$1)]) }
     ;
-
 sql_rowsfrom_item:
     sql_func_expr_windowless sql_opt_col_def_list {
         ctx.object(
@@ -1037,7 +1123,7 @@ sql_table_func_element_list:
     ;
 
 sql_table_func_element:
-    sql_col_id sql_typename sql_opt_collate_clause {
+    sql_col_id sql_typename sql_opt_collate_clause sql_opt_not_null {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_COLUMN_DEF,
@@ -1045,6 +1131,7 @@ sql_table_func_element:
                 attr(Key::SQL_COLUMN_DEF_NAME, $1),
                 attr(Key::SQL_COLUMN_DEF_TYPE, $2),
                 attr(Key::SQL_COLUMN_DEF_COLLATE, $3),
+                attr(Key::SQL_COLUMN_DEF_NOT_NULL, $4),
             ],
         )
     }
@@ -1147,7 +1234,7 @@ sql_opt_array_bounds:
 
 sql_simple_typename:
     sql_generic_type                    { $1 }
-  | ARRAY LRB sql_typename RRB {
+  | ARRAY_LA LRB sql_typename RRB {
       ctx.object(
           @$,
           NodeType::OBJECT_SQL_GENERIC_TYPE,
@@ -1177,8 +1264,20 @@ sql_simple_typename:
           &[attr(Key::SQL_INTERVAL_PRECISION, const_node(@3, AConstType::INTEGER))],
       )
   }
+  | ARRAY_LA LRB sql_typename NOT NULL_P RRB {
+        ctx.object(
+            @$,
+            NodeType::OBJECT_SQL_GENERIC_TYPE,
+            &[
+                attr(Key::SQL_GENERIC_TYPE_NAME, ctx.name_from_keyword(@1, "array")),
+                attr(Key::SQL_GENERIC_TYPE_MODIFIERS, ctx.array(@$, &[$3])),
+                attr(Key::SQL_TYPENAME_ELEMENT_NOT_NULL, bool_node(@4, true)),
+            ],
+        )
+    }
+  | ROW LRB RRB { ctx.object(@$,NodeType::OBJECT_SQL_ROW_TYPE,&[attr(Key::SQL_ROW_TYPE_FIELDS,ctx.array_ex(@$,NO_NODES,false,false))]) }
+  | JSON { ctx.object(@$,NodeType::OBJECT_SQL_GENERIC_TYPE,&[attr(Key::SQL_GENERIC_TYPE_NAME,ctx.name_from_keyword(@1,$1))]) }
     ;
-
 // We have a separate ConstTypename to allow defaulting fixed-length
 // types such as CHAR() and BIT() to an unspecified length.
 // SQL9x requires that these default to a length of one, but this
@@ -1195,8 +1294,8 @@ sql_const_typename:
   | sql_const_bit       { $1 }
   | sql_character       { $1 }
   | sql_const_datetime  { $1 }
+  | JSON { ctx.object(@$,NodeType::OBJECT_SQL_GENERIC_TYPE,&[attr(Key::SQL_GENERIC_TYPE_NAME,ctx.name_from_keyword(@1,$1))]) }
     ;
-
 // GenericType covers all type names that don't have special syntax mandated
 // by the standard, including qualified names.  We also allow type modifiers.
 // To avoid parsing conflicts against function invocations, the modifiers
@@ -1211,8 +1310,18 @@ sql_generic_type:
             &[attr(Key::SQL_GENERIC_TYPE_NAME, $1), attr(Key::SQL_GENERIC_TYPE_MODIFIERS, ctx.array(@2, $2))],
         )
     }
+  | sql_type_function_name sql_attrs sql_opt_type_modifiers {
+        ctx.object(
+            @$,
+            NodeType::OBJECT_SQL_GENERIC_TYPE,
+            &[
+                attr(Key::SQL_GENERIC_TYPE_NAME, $1),
+                attr(Key::SQL_GENERIC_TYPE_QUALIFIERS, ctx.array(@2, $2)),
+                attr(Key::SQL_GENERIC_TYPE_MODIFIERS, ctx.array(@3, $3)),
+            ],
+        )
+    }
     ;
-
 sql_opt_type_modifiers:
     LRB sql_expr_list RRB   { $2 }
   | %empty                  { ctx.list(NO_NODES) }
@@ -1421,7 +1530,7 @@ sql_const_interval:
 
 sql_opt_timezone:
     WITH_LA TIME ZONE { bool_node(@$, true) }
-  | WITHOUT TIME ZONE { bool_node(@$, false) }
+  | WITHOUT_LA TIME ZONE { bool_node(@$, false) }
   | %empty            { null() }
     ;
 
@@ -1563,10 +1672,7 @@ sql_interval_second:
 // you expect!  So we use %prec annotations freely to set precedences.
 
 sql_a_expr:
-    error      {
-        ctx.clear_lookahead();
-        null()
-    }
+    error { ctx.clear_lookahead(); null() }
   | sql_c_expr { $1 }
   | sql_a_expr TYPECAST sql_typename {
       ctx.object(
@@ -1710,8 +1816,17 @@ sql_a_expr:
       )
   }
   | DEFAULT { expr0(ctx, @$, enum_node(@1, ExprFunc::DEFAULT)) }
+  | UNIQUE sql_select_with_parens {
+        ctx.object(
+            @$,
+            NodeType::OBJECT_SQL_UNIQUE_EXPRESSION,
+            &[attr(
+                Key::SQL_UNIQUE_STATEMENT,
+                ctx.object(@2, NodeType::OBJECT_SQL_SELECT, $2),
+            )],
+        )
+    }
     ;
-
 // Restricted expressions
 //
 // b_expr is a subset of the complete expression syntax defined by a_expr.
@@ -1812,7 +1927,7 @@ sql_c_expr:
   | sql_a_expr_const  { $1 }
   | sql_explicit_row  { $1 }
   | sql_implicit_row  { $1 }
-  | sql_colon_param_ref { $1 }
+  | sql_colon_param_ref sql_opt_indirection { parameter_indirection(ctx,@$,$1,$2) }
   | LRB sql_a_expr RRB sql_opt_indirection {
       if ctx.list_is_empty($4) {
           // Keep boolean chains temporary so an enclosing AND/OR can merge them.
@@ -1849,33 +1964,23 @@ sql_c_expr:
       let s = ctx.object(@2, NodeType::OBJECT_SQL_SELECT, $2);
       ctx.object(@$, NodeType::OBJECT_SQL_EXISTS_EXPRESSION, &[attr(Key::SQL_EXISTS_EXPRESSION_STATEMENT, s)])
   }
-  | ARRAY sql_select_with_parens {
+  | ARRAY_LA sql_select_with_parens {
       let s = ctx.object(@2, NodeType::OBJECT_SQL_SELECT, $2);
       ctx.object(@$, NodeType::OBJECT_SQL_ARRAY_EXPRESSION, &[attr(Key::SQL_ARRAY_EXPRESSION_STATEMENT, s)])
   }
-  | ARRAY LSB sql_expr_list RSB {
-      ctx.object(@$, NodeType::OBJECT_SQL_ARRAY_EXPRESSION, &[attr(Key::SQL_ARRAY_EXPRESSION_VALUES, ctx.array(@3, $3))])
-  }
-  | ARRAY LSB RSB {
-      ctx.object(
-          @$,
-          NodeType::OBJECT_SQL_ARRAY_EXPRESSION,
-          &[attr(Key::SQL_ARRAY_EXPRESSION_VALUES, ctx.array_ex(loc(&[@2, @3]), ctx.list(NO_NODES), false, false))],
-      )
-  }
+  | ARRAY sql_array_constructor { with_span($2,@$) }
+  | sql_json_expr { $1 }
     ;
-
 sql_func_application:
     sql_func_name LRB RRB { ctx.list(&[attr(Key::SQL_FUNCTION_NAME, ctx.array(@1, $1))]) }
-  | sql_func_name LRB sql_func_arg_list sql_opt_sort_clause RRB {
-      ctx.list(
-          &[
-              attr(Key::SQL_FUNCTION_NAME, ctx.array(@1, $1)),
-              attr(Key::SQL_FUNCTION_ARGUMENTS, ctx.array(@3, $3)),
-              attr(Key::SQL_FUNCTION_ORDER, $4),
-          ],
-      )
-  }
+  | sql_func_name LRB sql_func_arg_list sql_opt_sort_clause sql_opt_null_on_null RRB {
+        ctx.list(&[
+            attr(Key::SQL_FUNCTION_NAME, ctx.array(@1, $1)),
+            attr(Key::SQL_FUNCTION_ARGUMENTS, ctx.array(@3, $3)),
+            attr(Key::SQL_FUNCTION_ORDER, $4),
+            attr(Key::SQL_FUNCTION_ABSENT_ON_NULL, $5),
+        ])
+    }
   | sql_func_name LRB VARIADIC sql_func_arg_expr sql_opt_sort_clause RRB {
       ctx.list(
           &[
@@ -1895,26 +2000,24 @@ sql_func_application:
           ],
       )
   }
-  | sql_func_name LRB ALL sql_func_arg_list sql_opt_sort_clause RRB {
-      ctx.list(
-          &[
-              attr(Key::SQL_FUNCTION_NAME, ctx.array(@1, $1)),
-              attr(Key::SQL_FUNCTION_ALL, bool_node(@3, true)),
-              attr(Key::SQL_FUNCTION_ARGUMENTS, ctx.array(@4, $4)),
-              attr(Key::SQL_FUNCTION_ORDER, $5),
-          ],
-      )
-  }
-  | sql_func_name LRB DISTINCT sql_func_arg_list sql_opt_sort_clause RRB {
-      ctx.list(
-          &[
-              attr(Key::SQL_FUNCTION_NAME, ctx.array(@1, $1)),
-              attr(Key::SQL_FUNCTION_DISTINCT, bool_node(@3, true)),
-              attr(Key::SQL_FUNCTION_ARGUMENTS, ctx.array(@4, $4)),
-              attr(Key::SQL_FUNCTION_ORDER, $5),
-          ],
-      )
-  }
+  | sql_func_name LRB ALL sql_func_arg_list sql_opt_sort_clause sql_opt_null_on_null RRB {
+        ctx.list(&[
+            attr(Key::SQL_FUNCTION_NAME, ctx.array(@1, $1)),
+            attr(Key::SQL_FUNCTION_ALL, bool_node(@3, true)),
+            attr(Key::SQL_FUNCTION_ARGUMENTS, ctx.array(@4, $4)),
+            attr(Key::SQL_FUNCTION_ORDER, $5),
+            attr(Key::SQL_FUNCTION_ABSENT_ON_NULL, $6),
+        ])
+    }
+  | sql_func_name LRB DISTINCT sql_func_arg_list sql_opt_sort_clause sql_opt_null_on_null RRB {
+        ctx.list(&[
+            attr(Key::SQL_FUNCTION_NAME, ctx.array(@1, $1)),
+            attr(Key::SQL_FUNCTION_DISTINCT, bool_node(@3, true)),
+            attr(Key::SQL_FUNCTION_ARGUMENTS, ctx.array(@4, $4)),
+            attr(Key::SQL_FUNCTION_ORDER, $5),
+            attr(Key::SQL_FUNCTION_ABSENT_ON_NULL, $6),
+        ])
+    }
   | sql_func_name LRB STAR RRB {
       ctx.list(
           &[
@@ -1935,23 +2038,39 @@ sql_func_application:
 // sense as functional index entries, but we ignore that consideration here.)
 
 sql_func_expr:
-    sql_func_application sql_within_group_clause sql_filter_clause sql_over_clause {
+    sql_func_application sql_opt_null_treatment sql_within_group_clause sql_filter_clause sql_over_clause {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_FUNCTION_EXPRESSION,
             ctx.concat2(
                 $1,
                 &[
-                    attr(Key::SQL_FUNCTION_WITHIN_GROUP, $2),
-                    attr(Key::SQL_FUNCTION_FILTER, $3),
-                    attr(Key::SQL_FUNCTION_OVER, $4),
+                    attr(Key::SQL_FUNCTION_IGNORE_NULLS, $2),
+                    attr(Key::SQL_FUNCTION_WITHIN_GROUP, $3),
+                    attr(Key::SQL_FUNCTION_FILTER, $4),
+                    attr(Key::SQL_FUNCTION_OVER, $5),
                 ],
             ),
         )
     }
   | sql_func_expr_common_subexpr { ctx.object(@$, NodeType::OBJECT_SQL_FUNCTION_EXPRESSION, $1) }
-        ;
-
+  | NTH_VALUE LRB sql_func_arg_list RRB sql_opt_from_last sql_opt_null_treatment sql_required_over_clause {
+        ctx.object(
+            @$,
+            NodeType::OBJECT_SQL_FUNCTION_EXPRESSION,
+            &[
+                attr(
+                    Key::SQL_FUNCTION_NAME,
+                    ctx.array(@1, &[ctx.name_from_keyword(@1, "nth_value")]),
+                ),
+                attr(Key::SQL_FUNCTION_ARGUMENTS, ctx.array(@3, $3)),
+                attr(Key::SQL_FUNCTION_FROM_LAST, $5),
+                attr(Key::SQL_FUNCTION_IGNORE_NULLS, $6),
+                attr(Key::SQL_FUNCTION_OVER, $7),
+            ],
+        )
+    }
+    ;
 // As func_expr but does not accept WINDOW functions directly
 // (but they can still be contained in arguments for functions etc).
 // Use this when window expressions are not allowed, where needed to
@@ -1960,8 +2079,8 @@ sql_func_expr:
 sql_func_expr_windowless:
     sql_func_application            { ctx.object(@$, NodeType::OBJECT_SQL_FUNCTION_EXPRESSION, $1) }
   | sql_func_expr_common_subexpr    { ctx.object(@$, NodeType::OBJECT_SQL_FUNCTION_EXPRESSION, $1) }
+  | sql_json_expr { $1 }
     ;
-
 // Special expressions that are considered to be functions.
 
 sql_func_expr_common_subexpr:
@@ -2153,8 +2272,79 @@ sql_func_expr_common_subexpr:
           ],
       )
   }
+  | CURRENT_DATE LRB RRB { ctx.list(&[attr(Key::SQL_FUNCTION_NAME,enum_node(@1,KnownFunction::CURRENT_DATE))]) }
+  | CAST LRB sql_a_expr AS sql_typename OR NULL_P RRB {
+        ctx.list(&[
+            attr(Key::SQL_FUNCTION_NAME, enum_node(@1, KnownFunction::CAST)),
+            attr(
+                Key::SQL_FUNCTION_CAST_ARGS,
+                ctx.object(
+                    @$,
+                    NodeType::OBJECT_SQL_FUNCTION_CAST_ARGS,
+                    &[
+                        attr(Key::SQL_FUNCTION_CAST_VALUE, ctx.expression($3)),
+                        attr(Key::SQL_FUNCTION_CAST_TYPE, $5),
+                        attr(Key::SQL_FUNCTION_CAST_OR_NULL, bool_node(@6, true)),
+                    ],
+                ),
+            ),
+        ])
+    }
+  | GREATEST LRB PRESERVE NULLS_P sql_expr_list RRB {
+        ctx.list(&[
+            attr(
+                Key::SQL_FUNCTION_NAME,
+                ctx.array(@1, &[ctx.name_from_keyword(@1, "greatest")]),
+            ),
+            attr(Key::SQL_FUNCTION_ARGUMENTS, ctx.array(@5, $5)),
+            attr(Key::SQL_FUNCTION_PRESERVE_NULLS, bool_node(@3, true)),
+        ])
+    }
+  | LEAST LRB PRESERVE NULLS_P sql_expr_list RRB {
+        ctx.list(&[
+            attr(
+                Key::SQL_FUNCTION_NAME,
+                ctx.array(@1, &[ctx.name_from_keyword(@1, "least")]),
+            ),
+            attr(Key::SQL_FUNCTION_ARGUMENTS, ctx.array(@5, $5)),
+            attr(Key::SQL_FUNCTION_PRESERVE_NULLS, bool_node(@3, true)),
+        ])
+    }
+  | GROUPING LRB sql_func_arg_list RRB {
+        ctx.list(&[
+            attr(
+                Key::SQL_FUNCTION_NAME,
+                ctx.array(@1, &[ctx.name_from_keyword(@1, "grouping")]),
+            ),
+            attr(Key::SQL_FUNCTION_ARGUMENTS, ctx.array(@3, $3)),
+        ])
+    }
+  | CURRENT_SCHEMA LRB RRB { ctx.list(&[attr(Key::SQL_FUNCTION_NAME,ctx.array(@1,&[ctx.name_from_keyword(@1,"current_schema")]))]) }
+  | GREATEST LRB sql_expr_list RRB {
+        ctx.list(&[
+            attr(
+                Key::SQL_FUNCTION_NAME,
+                ctx.array(@1, &[ctx.name_from_keyword(@1, "greatest")]),
+            ),
+            attr(
+                Key::SQL_FUNCTION_ARGUMENTS,
+                ctx.array(loc(&[@2, @3, @4]), $3),
+            ),
+        ])
+    }
+  | LEAST LRB sql_expr_list RRB {
+        ctx.list(&[
+            attr(
+                Key::SQL_FUNCTION_NAME,
+                ctx.array(@1, &[ctx.name_from_keyword(@1, "least")]),
+            ),
+            attr(
+                Key::SQL_FUNCTION_ARGUMENTS,
+                ctx.array(loc(&[@2, @3, @4]), $3),
+            ),
+        ])
+    }
     ;
-
 // We allow several variants for SQL and other compatibility. */
 //
 // Aggregate decoration clauses
@@ -2239,30 +2429,27 @@ sql_opt_partition_clause:
 // We don't support <window frame exclusion> yet.
 
 sql_opt_frame_clause:
-    RANGE sql_frame_extent {
-        ctx.list(
-            &[
-                attr(Key::SQL_WINDOW_FRAME_MODE, enum_node(@1, WindowRangeMode::RANGE)),
-                attr(Key::SQL_WINDOW_FRAME_BOUNDS, ctx.array(@2, $2)),
-            ],
-        )
+    RANGE sql_frame_extent sql_opt_window_exclusion {
+        ctx.list(&[
+            attr(Key::SQL_WINDOW_FRAME_MODE, enum_node(@1, WindowRangeMode::RANGE)),
+            attr(Key::SQL_WINDOW_FRAME_BOUNDS, ctx.array(@2, $2)),
+            attr(Key::SQL_WINDOW_FRAME_EXCLUDE, $3),
+        ])
     }
-  | ROWS sql_frame_extent {
-      ctx.list(
-          &[
-              attr(Key::SQL_WINDOW_FRAME_MODE, enum_node(@1, WindowRangeMode::ROWS)),
-              attr(Key::SQL_WINDOW_FRAME_BOUNDS, ctx.array(@2, $2)),
-          ],
-      )
-  }
-  | GROUPS sql_frame_extent {
-      ctx.list(
-          &[
-              attr(Key::SQL_WINDOW_FRAME_MODE, enum_node(@1, WindowRangeMode::GROUPS)),
-              attr(Key::SQL_WINDOW_FRAME_BOUNDS, ctx.array(@2, $2)),
-          ],
-      )
-  }
+  | ROWS sql_frame_extent sql_opt_window_exclusion {
+        ctx.list(&[
+            attr(Key::SQL_WINDOW_FRAME_MODE, enum_node(@1, WindowRangeMode::ROWS)),
+            attr(Key::SQL_WINDOW_FRAME_BOUNDS, ctx.array(@2, $2)),
+            attr(Key::SQL_WINDOW_FRAME_EXCLUDE, $3),
+        ])
+    }
+  | GROUPS sql_frame_extent sql_opt_window_exclusion {
+        ctx.list(&[
+            attr(Key::SQL_WINDOW_FRAME_MODE, enum_node(@1, WindowRangeMode::GROUPS)),
+            attr(Key::SQL_WINDOW_FRAME_BOUNDS, ctx.array(@2, $2)),
+            attr(Key::SQL_WINDOW_FRAME_EXCLUDE, $3),
+        ])
+    }
   | %empty { ctx.list(NO_NODES) }
     ;
 
@@ -2321,9 +2508,31 @@ sql_frame_bound:
           ],
       )
   }
+  | sql_a_expr PRECEDING OR NULL_P {
+        ctx.object(
+            @$,
+            NodeType::OBJECT_SQL_WINDOW_BOUND,
+            &[
+                attr(Key::SQL_WINDOW_BOUND_MODE, enum_node(@1, WindowBoundMode::VALUE)),
+                attr(Key::SQL_WINDOW_BOUND_DIRECTION, enum_node(@2, WindowBoundDirection::PRECEDING)),
+                attr(Key::SQL_WINDOW_BOUND_VALUE, ctx.expression($1)),
+                attr(Key::SQL_WINDOW_BOUND_OR_NULL, bool_node(@3, true)),
+            ],
+        )
+    }
+  | sql_a_expr FOLLOWING OR NULL_P {
+        ctx.object(
+            @$,
+            NodeType::OBJECT_SQL_WINDOW_BOUND,
+            &[
+                attr(Key::SQL_WINDOW_BOUND_MODE, enum_node(@1, WindowBoundMode::VALUE)),
+                attr(Key::SQL_WINDOW_BOUND_DIRECTION, enum_node(@2, WindowBoundDirection::FOLLOWING)),
+                attr(Key::SQL_WINDOW_BOUND_VALUE, ctx.expression($1)),
+                attr(Key::SQL_WINDOW_BOUND_OR_NULL, bool_node(@3, true)),
+            ],
+        )
+    }
     ;
-
-
 // Supporting nonterminals for expressions.
 
 // Explicit row production.
@@ -2338,7 +2547,7 @@ sql_row:
     ;
 
 sql_explicit_row:
-    ROW LRB sql_expr_list RRB {
+    ROW LRB sql_row_constructor_list RRB {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_ROW_EXPRESSION,
@@ -2422,14 +2631,15 @@ sql_qual_all_op:
 // is not ready for such a thing.
 
 sql_subquery_op:
-    sql_all_op      { $1 }
+    sql_math_op { $1 }
+  | QUANTIFIED_OP { operator_node(@1) }
   | LIKE            { enum_node(@1, ExpressionOperator::LIKE) }
   | NOT_LA LIKE     { enum_node(@1, ExpressionOperator::NOT_LIKE) }
   | GLOB            { enum_node(@1, ExpressionOperator::GLOB) }
   | NOT_LA GLOB     { enum_node(@1, ExpressionOperator::NOT_GLOB) }
   | ILIKE           { enum_node(@1, ExpressionOperator::ILIKE) }
   | NOT_LA ILIKE    { enum_node(@1, ExpressionOperator::NOT_ILIKE) }
-  | OPERATOR LRB sql_any_operator RRB   { ctx.array(@$, $3) }
+  | QUANTIFIED_OPERATOR LRB sql_any_operator RRB   { ctx.array(@$, $3) }
     ;
 
 sql_any_operator:
@@ -2504,16 +2714,61 @@ sql_func_arg_expr:
           &[attr(Key::SQL_FUNCTION_ARG_NAME, $1), attr(Key::SQL_FUNCTION_ARG_VALUE, $3)],
       )
   }
+  | sql_lambda_arg { ctx.object(@$,NodeType::OBJECT_SQL_FUNCTION_ARG,&[attr(Key::SQL_FUNCTION_ARG_VALUE,$1)]) }
+  | sql_param_name COLON_EQUALS sql_lambda_arg {
+        ctx.object(
+            @$,
+            NodeType::OBJECT_SQL_FUNCTION_ARG,
+            &[attr(Key::SQL_FUNCTION_ARG_NAME, $1), attr(Key::SQL_FUNCTION_ARG_VALUE, $3)],
+        )
+    }
+  | sql_param_name EQUALS_GREATER sql_lambda_arg {
+        ctx.object(
+            @$,
+            NodeType::OBJECT_SQL_FUNCTION_ARG,
+            &[attr(Key::SQL_FUNCTION_ARG_NAME, $1), attr(Key::SQL_FUNCTION_ARG_VALUE, $3)],
+        )
+    }
     ;
-
 sql_relation_arg:
-    TABLE LRB sql_qualified_name RRB { ctx.object(@$, NodeType::OBJECT_SQL_RELATION_EXPR, &[attr(Key::SQL_TABLEREF_NAME, $3)]) }
+TABLE LRB sql_qualified_name RRB sql_table_arg_correlation sql_table_arg_partition sql_table_arg_order {
+        ctx.object(
+            @$,
+            NodeType::OBJECT_SQL_RELATION_EXPR,
+            &[
+                attr(Key::SQL_TABLEREF_NAME, $3),
+                attr(Key::SQL_RELATION_ARG_ALIAS, $5),
+                attr(Key::SQL_RELATION_ARG_PARTITION, $6),
+                attr(Key::SQL_RELATION_ARG_ORDER, $7),
+            ],
+        )
+    }
+  | TABLE LRB sql_select_no_parens RRB sql_table_arg_correlation sql_table_arg_partition sql_table_arg_order {
+        ctx.object(
+            @$,
+            NodeType::OBJECT_SQL_RELATION_EXPR,
+            &[
+                attr(
+                    Key::SQL_RELATION_ARG_STATEMENT,
+                    ctx.object(@3, NodeType::OBJECT_SQL_SELECT, $3),
+                ),
+                attr(Key::SQL_RELATION_ARG_ALIAS, $5),
+                attr(Key::SQL_RELATION_ARG_PARTITION, $6),
+                attr(Key::SQL_RELATION_ARG_ORDER, $7),
+            ],
+        )
+    }
     ;
-
 sql_descriptor_arg:
-    DESCRIPTOR LRB sql_table_func_element_list RRB { ctx.object(@$, NodeType::OBJECT_SQL_DESCRIPTOR, &[attr(Key::SQL_DESCRIPTOR_COLUMNS, ctx.array(@3, $3))]) }
+DESCRIPTOR LRB sql_descriptor_list RRB { ctx.object(@$,NodeType::OBJECT_SQL_DESCRIPTOR,&[attr(Key::SQL_DESCRIPTOR_COLUMNS,ctx.array_ex(@3,$3,false,false))]) }
+  | DESCRIPTOR LRB RRB {
+        ctx.object(
+            @$,
+            NodeType::OBJECT_SQL_DESCRIPTOR,
+            &[attr(Key::SQL_DESCRIPTOR_COLUMNS, ctx.array_ex(@$, NO_NODES, false, false))],
+        )
+    }
     ;
-
 sql_type_list:
     sql_typename                        { ctx.list(&[$1]) }
   | sql_type_list COMMA sql_typename    {
@@ -2532,8 +2787,14 @@ sql_extract_list:
         )
     }
   | %empty  { ctx.list(NO_NODES) }
+  | sql_extract_arg FROM sql_a_expr COMMA sql_func_arg_list {
+        ctx.list(&[
+            attr(Key::SQL_FUNCTION_EXTRACT_TARGET, $1),
+            attr(Key::SQL_FUNCTION_EXTRACT_INPUT, ctx.expression($3)),
+            attr(Key::SQL_FUNCTION_EXTRA_ARGUMENTS, ctx.array(@5, $5)),
+        ])
+    }
     ;
-
 // Allow delimited string Sconst in extract_arg as an SQL extension.
 // - thomas 2001-04-12
 sql_extract_arg:
@@ -2591,8 +2852,14 @@ sql_position_list:
         )
     }
   | %empty { ctx.list(NO_NODES) }
+  | sql_b_expr IN_P sql_b_expr COMMA sql_func_arg_list {
+        ctx.list(&[
+            attr(Key::SQL_FUNCTION_POSITION_SEARCH, ctx.expression($1)),
+            attr(Key::SQL_FUNCTION_POSITION_INPUT, ctx.expression($3)),
+            attr(Key::SQL_FUNCTION_EXTRA_ARGUMENTS, ctx.array(@5, $5)),
+        ])
+    }
     ;
-
 // SUBSTRING() arguments
 // SQL9x defines a specific syntax for arguments to SUBSTRING():
 //  - substring(text from int for int)
@@ -2654,8 +2921,21 @@ sql_substr_list:
   }
   | sql_expr_list   { ctx.list(&[attr(Key::SQL_FUNCTION_ARGUMENTS, ctx.array(@1, $1))]) }
   | %empty          { ctx.list(NO_NODES) }
+  | sql_a_expr SIMILAR sql_a_expr ESCAPE sql_a_expr {
+        ctx.list(&[attr(
+            Key::SQL_FUNCTION_SUBSTRING_ARGS,
+            ctx.object(
+                @$,
+                NodeType::OBJECT_SQL_FUNCTION_SUBSTRING_ARGS,
+                &[
+                    attr(Key::SQL_FUNCTION_SUBSTRING_INPUT, ctx.expression($1)),
+                    attr(Key::SQL_FUNCTION_SUBSTRING_PATTERN, ctx.expression($3)),
+                    attr(Key::SQL_FUNCTION_SUBSTRING_ESCAPE, ctx.expression($5)),
+                ],
+            ),
+        )])
+    }
     ;
-
 sql_substr_from:
     FROM sql_a_expr   { ctx.expression($2) }
     ;
@@ -2813,29 +3093,40 @@ sql_target_el:
     // as an infix expression, which we accomplish by assigning
     // IDENT a precedence higher than POSTFIXOP.
 
-  | sql_a_expr IDENT {
+  | sql_a_expr sql_bare_col_label {
       ctx.object(
           @$,
           NodeType::OBJECT_SQL_RESULT_TARGET,
           &[
               attr(Key::SQL_RESULT_TARGET_VALUE, ctx.expression($1)),
-              attr(Key::SQL_RESULT_TARGET_NAME, name_from_identifier(@2, $2)),
+              attr(Key::SQL_RESULT_TARGET_NAME, $2),
           ],
       )
   }
-  | sql_a_expr  {
+  | sql_a_expr %prec POSTFIXOP {
       ctx.object(@$, NodeType::OBJECT_SQL_RESULT_TARGET, &[attr(Key::SQL_RESULT_TARGET_VALUE, ctx.expression($1))])
   }
-  | STAR {
-      ctx.object(@$, NodeType::OBJECT_SQL_RESULT_TARGET, &[attr(Key::SQL_RESULT_TARGET_STAR, bool_node(@1, true))])
-  }
-  | sql_columnref DOT_STAR_LA STAR {
-      ctx.object(
-          @$,
-          NodeType::OBJECT_SQL_RESULT_TARGET,
-          &[attr(Key::SQL_RESULT_TARGET_STAR, bool_node(@3, true)), attr(Key::SQL_RESULT_TARGET_VALUE, $1)],
-      )
-  }
+  | STAR sql_opt_star_exclude {
+        ctx.object(
+            @$,
+            NodeType::OBJECT_SQL_RESULT_TARGET,
+            &[
+                attr(Key::SQL_RESULT_TARGET_STAR, bool_node(@1, true)),
+                attr(Key::SQL_RESULT_TARGET_EXCLUDE, $2),
+            ],
+        )
+    }
+  | sql_columnref DOT_STAR_LA STAR sql_opt_star_exclude {
+        ctx.object(
+            @$,
+            NodeType::OBJECT_SQL_RESULT_TARGET,
+            &[
+                attr(Key::SQL_RESULT_TARGET_STAR, bool_node(@3, true)),
+                attr(Key::SQL_RESULT_TARGET_VALUE, $1),
+                attr(Key::SQL_RESULT_TARGET_EXCLUDE, $4),
+            ],
+        )
+    }
     ;
 
 
@@ -2901,7 +3192,7 @@ sql_a_expr_const:
   | SCONST  { const_node(@1, AConstType::STRING) }
   | BCONST  { const_node(@1, AConstType::STRING) }
   | XCONST  { const_node(@1, AConstType::STRING) }
-  | sql_param_ref { $1 }
+  | sql_param_ref sql_opt_indirection { parameter_indirection(ctx,@$,$1,$2) }
   | sql_const_typename SCONST {
       let t = ctx.object(@$, NodeType::OBJECT_SQL_TYPENAME, &[attr(Key::SQL_TYPENAME_TYPE, $1)]);
       ctx.object(
@@ -2938,7 +3229,7 @@ sql_a_expr_const:
           &[attr(Key::SQL_CONST_CAST_FUNC_NAME, ctx.array(@1, $1)), attr(Key::SQL_CONST_CAST_VALUE, $2)],
       )
   }
-  | sql_func_name LRB sql_func_arg_list sql_opt_sort_clause RRB SCONST {
+  | sql_func_name LRB sql_func_arg_list sql_opt_sort_clause sql_opt_null_on_null RRB SCONST {
       ctx.object(
           @$,
           NodeType::OBJECT_SQL_CONST_FUNCTION_CAST,
@@ -2946,7 +3237,7 @@ sql_a_expr_const:
               attr(Key::SQL_CONST_CAST_FUNC_NAME, ctx.array(@1, $1)),
               attr(Key::SQL_CONST_CAST_FUNC_ARGS_LIST, ctx.array(@3, $3)),
               attr(Key::SQL_CONST_CAST_FUNC_ARGS_ORDER, $4),
-              attr(Key::SQL_CONST_CAST_VALUE, const_node(@6, AConstType::STRING)),
+              attr(Key::SQL_CONST_CAST_VALUE, const_node(@7, AConstType::STRING)),
           ],
       )
   }
@@ -2990,8 +3281,8 @@ sql_a_expr_const:
   | TRUE_P    { bool_node(@1, true) }
   | FALSE_P   { bool_node(@1, false) }
   | NULL_P    { const_node(@1, AConstType::NULL_) }
+  | DCONST { const_node(@1,AConstType::STRING) }
     ;
-
 // Name classification hierarchy.
 //
 // IDENT is the lexeme returned by the lexer for identifiers that match
@@ -3019,7 +3310,6 @@ sql_col_id_or_string:
 sql_type_function_name:
     IDENT                       { name_from_identifier(@1, $1) }
   | sql_unreserved_keywords     { ctx.name_from_keyword(@1, $1) }
-  | GROUPING                    { ctx.name_from_keyword(@1, "grouping") }
   | sql_type_func_keywords      { ctx.name_from_keyword(@1, $1) }
     ;
 

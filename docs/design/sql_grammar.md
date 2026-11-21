@@ -4,29 +4,26 @@
 DashQL's SQL grammar is derived from the PostgreSQL grammar.
 This document describes the notable deviations of the scanner and grammar from upstream PostgreSQL.
 
-## Syntax-only Hyper coverage
+## Parser-only SQL coverage
 
-The SQL accepted by Hyper also belongs to DashQL's language, including feature-gated and currently
-unimplemented Hyper syntax. The grammar under `grammar/hyper/` covers that syntax independently of
-the semantic projections of `grammar/rules/`. A statement that the existing grammar accepts keeps
-its existing tree. A complete statement that only the Hyper grammar accepts gets a concrete syntax
-tree; neither an error recovery rule nor an arbitrary token sequence can produce one.
+All SQL constructs are parsed by the single grammar in `grammar/rules/`. Productions project to
+semantic AST nodes: SELECT clauses extend existing SELECT, target, grouping, table-reference, type,
+function, and window nodes; UPDATE, MERGE, COPY, prepared statements, session commands, cursors,
+database commands, and additional DDL use dedicated statement and clause nodes. There is no secondary
+recognizer, parse retry, generic rule node, or token-sequence fallback.
 
-The schema appends `OBJECT_SQL_SYNTAX`, `SQL_SYNTAX_RULE`, `SQL_SYNTAX_CHILDREN`, and
-`StatementType::SQL_SYNTAX`. A syntax node records its grammar rule as a registered NAME and its
-ordered children as an ARRAY. Terminals retain their exact symbol spans (and identifiers their
-registered names). Empty productions retain an empty child array. The rule names, ordered children,
-and terminals distinguish all alternatives, including clause order, noise words, and duplicate
-options. Existing node and attribute ordinals are unchanged. This is an intentional additional tree
-representation for SQL that previously had errors, not a replacement for existing semantic trees.
+The schema removes the unreleased generic syntax node/attributes and appends explicit SQL object,
+attribute, statement, and enum values. Existing semantic node and attribute values retain their
+ordinals. New flags and optional children are absent for old forms. Ordered lists preserve ordering,
+duplicate options, and all operands; command and clause variants remain distinguishable. The tests
+assert the statement and clause shapes, not just acceptance. Analyzer, formatter, and runtime support
+for newly modeled constructs remain separate work.
 
-Each semicolon-delimited statement is retried independently after a failed parse, so a script can
-mix new SQL with DashQL-specific CALL values or other extensions. A failed retry leaves the original
-diagnostics in place; deliberate grammar-action validation errors are not retried, and the parser's
-nesting limit still applies. Syntax-only statements deliberately
-have their own statement type: analyzer, formatter, and runtime support are separate work. The grammar
-tables and keyword mapping are built with Bazel and need no Hyper checkout or process at build/run
-time. The audit and examples are in `docs/wip/hyper_grammar_compatibility.md`.
+The main additions are typed UPDATE assignments and MERGE actions; COPY sources and options;
+PREPARE/EXECUTE/DEALLOCATE; settings and cursor operations; database and DDL objects; function bodies,
+parameters, and options; SQL/JSON values and behavior clauses; table-valued/lambda arguments; and
+SELECT attributes for grouping modifiers, star exclusion, limits, ordering, ordinality, and windows.
+All child SQL expressions and subqueries reuse the ordinary expression and SELECT nodes.
 
 ## Trailing Dots
 

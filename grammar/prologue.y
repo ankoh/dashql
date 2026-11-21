@@ -52,3 +52,7 @@ use crate::parser::actions::*;
  * NULLS_LA, WITH_LA, and DOT_STAR_LA are needed to make the grammar LALR(1).
  */
 %token        NOT_LA NULLS_LA WITH_LA DOT_STAR_LA
+
+%token ARRAY_LA WITHOUT_LA WITH_OPTIONS_LA SEMI_JOIN_LA ANTI_JOIN_LA
+
+%token QUANTIFIED_OP QUANTIFIED_OPERATOR

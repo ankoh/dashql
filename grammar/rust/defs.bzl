@@ -1,6 +1,6 @@
 """Run bison with the Rust table skeleton (//grammar/rust:tables.rs.m4)."""
 
-def bison_rust_tables(name, grammar, out, actions = False, **kwargs):
+def bison_rust_tables(name, grammar, out, actions = False, report = False, **kwargs):
     """Generate the LALR(1) tables of a bison grammar as a Rust module.
 
     Args:
@@ -9,12 +9,13 @@ def bison_rust_tables(name, grammar, out, actions = False, **kwargs):
         out: The generated Rust file.
         actions: Whether to emit the `reduce` function with the user actions of the grammar.
             The grammar actions must then be Rust block expressions.
+        report: Also emit Bison's state report for diagnosing grammar conflicts.
         **kwargs: Forwarded to the genrule.
     """
     native.genrule(
         name = name,
         srcs = [grammar, "//grammar/rust:tables.rs.m4"],
-        outs = [out],
+        outs = [out] + ([out + ".output"] if report else []),
         tools = ["@bison_src//:bison", "@m4_src//:m4"],
         # The prebuilt bison fails with a broken pipe to m4 inside the sandbox.
         local = 1,
@@ -23,8 +24,9 @@ def bison_rust_tables(name, grammar, out, actions = False, **kwargs):
             "$(location @bison_src//:bison) " +
             "--skeleton=$$PWD/$(location //grammar/rust:tables.rs.m4) " +
             "--define=api.rust.actions=" + ("true" if actions else "false") + " " +
-            "-Wno-other " +
-            "--output=$@ " +
+            "-Wno-other -Werror=conflicts-sr -Werror=conflicts-rr " +
+            ("--report=state --report-file=$(location " + out + ".output) " if report else "") +
+            "--output=$(location " + out + ") " +
             "$(location " + grammar + ")"
         ),
         **kwargs

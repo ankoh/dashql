@@ -1267,7 +1267,7 @@ parser-snapshots:
       statements: []
       scanner-errors: []
       parser-errors:
-        - message: 'syntax error, unexpected SEMICOLON, expecting string literal'
+        - message: 'syntax error, unexpected SEMICOLON, expecting string literal or LRB or AS'
           text: ";"
       line-breaks: []
       comments: []

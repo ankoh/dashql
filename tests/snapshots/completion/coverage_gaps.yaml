@@ -176,6 +176,10 @@ completion-snapshots:
         select x. from nothing x
       catalog-id: 2
       errors: []
+      expressions:
+        - expression-idx: 0
+          type: colref/unresolved
+          text: "x. from"
     cursor:
       search:
         text: 'x.'
@@ -184,8 +188,6 @@ completion-snapshots:
       limit: 5
       strategy: DEFAULT
       dot: 1
-      symbol: OBJECT_SQL_RESULT_TARGET
-      relative: END_OF_SYMBOL
       entries: []
       text: "."
 
@@ -1307,13 +1309,13 @@ completion-snapshots:
           location-qualified: "aaaaaaaaaa..aaaaaaaaaa"
           objects: []
         - score: 1
-          value: absolute
+          value: absent
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUFFIX_DEPTH_MANY]
           location: "aaaaaaaaaa..aaaaaaaaaa"
           location-qualified: "aaaaaaaaaa..aaaaaaaaaa"
           objects: []
         - score: 1
-          value: access
+          value: absolute
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUFFIX_DEPTH_MANY]
           location: "aaaaaaaaaa..aaaaaaaaaa"
           location-qualified: "aaaaaaaaaa..aaaaaaaaaa"
@@ -1743,7 +1745,7 @@ completion-snapshots:
           location-qualified: "u"
           objects: []
         - score: 55
-          value: unencrypted
+          value: unconditional
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "u"
           location-qualified: "u"
@@ -2226,13 +2228,13 @@ completion-snapshots:
           location-qualified: "a"
           objects: []
         - score: 55
-          value: absolute
+          value: absent
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "a"
           location-qualified: "a"
           objects: []
         - score: 55
-          value: access
+          value: absolute
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "a"
           location-qualified: "a"
@@ -2376,13 +2378,13 @@ completion-snapshots:
           location-qualified: "a"
           objects: []
         - score: 55
-          value: absolute
+          value: absent
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "a"
           location-qualified: "a"
           objects: []
         - score: 55
-          value: access
+          value: absolute
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "a"
           location-qualified: "a"
@@ -2515,7 +2517,7 @@ completion-snapshots:
           location-qualified: "a"
           objects: []
         - score: 55
-          value: absolute
+          value: absent
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "a"
           location-qualified: "a"

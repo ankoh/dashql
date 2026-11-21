@@ -65,14 +65,15 @@ completion-snapshots:
           location-qualified: ""
           objects: []
         - score: 4
-          value: where
+          value: select
+          keyword-continuation: into
           candidate-tags: [KEYWORD_A,EXPECTED_PARSER_SYMBOL]
           location: ""
           location-qualified: ""
           objects: []
-        - score: 3
-          value: and
-          candidate-tags: [KEYWORD_B,EXPECTED_PARSER_SYMBOL]
+        - score: 4
+          value: where
+          candidate-tags: [KEYWORD_A,EXPECTED_PARSER_SYMBOL]
           location: ""
           location-qualified: ""
           objects: []

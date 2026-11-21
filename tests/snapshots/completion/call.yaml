@@ -453,14 +453,6 @@ completion-snapshots:
           type: literal/string
           is-const: true
           text: "'a'"
-        - expression-idx: 1
-          type: literal/integer
-          is-const: true
-          statement-id: 0
-          text: "1"
-      constants:
-        - expression: 1
-          text: "1"
     cursor:
       search:
         text: "'a',"

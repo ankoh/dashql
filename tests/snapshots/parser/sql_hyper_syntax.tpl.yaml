@@ -1,9 +1,0 @@
-parser-snapshots:
-  - name: hyper_syntax_update
-    input: UPDATE t SET x = 1 RETURNING x;
-  - name: hyper_syntax_mixed_script
-    input: |
-      SELECT 1;
-      -- Copy a query result.
-      COPY (SELECT JSON_OBJECT('answer': 42)) TO NULL;
-      SELECT 2;

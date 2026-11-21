@@ -8,3 +8,4 @@
 %type<Node> sql_attach_database_value;
 %type<Node> sql_drop_table_stmt;
 %type<Node> sql_drop_view_stmt;
+%type<NodeList> sql_drop_more_names;

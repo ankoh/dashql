@@ -1,51 +1,23 @@
 sql_create_function_stmt:
-    CREATE_P FUNCTION sql_qualified_name LRB sql_opt_function_param_list RRB RETURNS sql_function_param_type {
+    sql_cmd_create_function_stmt { $1 }
+  | CREATE_P sql_opt_temp AGGREGATE sql_func_name sql_aggregate_signature RETURNS sql_function_param_type {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_CREATE_FUNCTION,
-            &[
-                attr(Key::SQL_CREATE_FUNCTION_NAME, $3),
-                attr(Key::SQL_CREATE_FUNCTION_PARAMS, ctx.array(loc(&[@4, @5, @6]), $5)),
-                attr(Key::SQL_CREATE_FUNCTION_RETURNS, $8),
-            ],
-        )
-    }
-  | CREATE_P AGGREGATE sql_qualified_name LRB sql_opt_function_param_list RRB RETURNS sql_function_param_type {
-      ctx.object(
-          @$,
-          NodeType::OBJECT_SQL_CREATE_FUNCTION,
-          &[
-              attr(Key::SQL_CREATE_FUNCTION_NAME, $3),
-              attr(Key::SQL_CREATE_FUNCTION_PARAMS, ctx.array(loc(&[@4, @5, @6]), $5)),
-              attr(Key::SQL_CREATE_FUNCTION_RETURNS, $8),
-              attr(Key::SQL_CREATE_FUNCTION_IS_AGGREGATE, bool_node(@2, true)),
-          ],
-      )
-  }
-    ;
-
-sql_opt_function_param_list:
-    sql_function_param_list     { $1 }
-  | %empty                      { ctx.list(NO_NODES) }
-    ;
-
-sql_function_param_list:
-    sql_function_param                                  { ctx.list(&[$1]) }
-  | sql_function_param_list COMMA sql_function_param    {
-      ctx.push_back($1, $3);
-      $1
-  }
-    ;
-
-sql_function_param:
-    sql_col_id sql_function_param_type {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_FUNCTION_PARAM,
-            &[attr(Key::SQL_FUNCTION_PARAM_NAME, $1), attr(Key::SQL_FUNCTION_PARAM_TYPE, $2)],
+            ctx.concat2(
+                $5,
+                &[
+                    attr(Key::SQL_CREATE_FUNCTION_NAME, ctx.array(@4, $4)),
+                    attr(Key::SQL_CREATE_FUNCTION_RETURNS, $7),
+                    attr(Key::SQL_CREATE_FUNCTION_TEMP, $2),
+                    attr(Key::SQL_CREATE_FUNCTION_IS_AGGREGATE, bool_node(@3, true)),
+                ],
+            ),
         )
     }
     ;
+
+
 
 sql_function_param_type:
     sql_typename    { $1 }
@@ -66,3 +38,16 @@ sql_function_param_type:
       )
   }
     ;
+
+sql_aggregate_signature:
+ LRB STAR RRB { ctx.list(&[attr(Key::SQL_CREATE_FUNCTION_STAR,bool_node(@2,true))]) }
+ | LRB RRB { ctx.list(&[attr(Key::SQL_CREATE_FUNCTION_PARAMS,ctx.array_ex(@$,NO_NODES,false,false))]) }
+ | LRB sql_cmd_aggr_args_list RRB { ctx.list(&[attr(Key::SQL_CREATE_FUNCTION_PARAMS,ctx.array(@$,$2))]) }
+ | LRB ORDER BY sql_cmd_aggr_args_list RRB { ctx.list(&[attr(Key::SQL_CREATE_FUNCTION_ORDER_PARAMS,ctx.array(@4,$4))]) }
+ | LRB sql_cmd_aggr_args_list ORDER BY sql_cmd_aggr_args_list RRB {
+        ctx.list(&[
+            attr(Key::SQL_CREATE_FUNCTION_PARAMS, ctx.array(@2, $2)),
+            attr(Key::SQL_CREATE_FUNCTION_ORDER_PARAMS, ctx.array(@5, $5)),
+        ])
+    }
+ ;

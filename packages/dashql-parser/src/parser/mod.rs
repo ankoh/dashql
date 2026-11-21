@@ -7,12 +7,6 @@ pub mod enums;
 pub mod probe;
 pub mod value;
 
-mod syntax;
-mod syntax_keywords;
-#[allow(dead_code, non_upper_case_globals)]
-#[rustfmt::skip]
-mod syntax_tables;
-
 use crate::comment_blocks::{group_comments, CommentBlocks};
 use crate::scanner::ScannedScript;
 use crate::span::TextSpan;
@@ -209,7 +203,6 @@ pub fn parse(scanned: Arc<ScannedScript>) -> ParsedScript {
         driver::parse(&mut ctx);
         ctx.into_state()
     };
-    let state = syntax::recover(&scanned, state);
     scanned.names = state.names;
 
     let comment_blocks = group_comments(&scanned.text, &scanned.comments);

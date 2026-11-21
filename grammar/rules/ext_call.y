@@ -38,8 +38,11 @@ call_arg:
             &[attr(Key::SQL_FUNCTION_ARG_NAME, $1), attr(Key::SQL_FUNCTION_ARG_VALUE, $3)],
         )
     }
+  | sql_a_expr { ctx.object(@$,NodeType::OBJECT_SQL_FUNCTION_ARG,&[attr(Key::SQL_FUNCTION_ARG_VALUE,ctx.expression($1))]) }
+  | sql_relation_arg { ctx.object(@$,NodeType::OBJECT_SQL_FUNCTION_ARG,&[attr(Key::SQL_FUNCTION_ARG_VALUE,$1)]) }
+  | sql_descriptor_arg { ctx.object(@$,NodeType::OBJECT_SQL_FUNCTION_ARG,&[attr(Key::SQL_FUNCTION_ARG_VALUE,$1)]) }
+  | sql_lambda_arg { ctx.object(@$,NodeType::OBJECT_SQL_FUNCTION_ARG,&[attr(Key::SQL_FUNCTION_ARG_VALUE,$1)]) }
     ;
-
 // An object is an ARRAY of fields like the values of SET, the empty object and the empty array are nodes as well
 call_value:
     call_scalar               { $1 }
@@ -99,4 +102,7 @@ call_scalar:
         let s = ctx.object(@1, NodeType::OBJECT_SQL_SELECT, $1);
         ctx.object(@$, NodeType::OBJECT_SQL_SELECT_EXPRESSION, &[attr(Key::SQL_SELECT_EXPRESSION_STATEMENT, s)])
     }
+  | sql_relation_arg { $1 }
+  | sql_descriptor_arg { $1 }
+  | sql_lambda_arg { $1 }
     ;

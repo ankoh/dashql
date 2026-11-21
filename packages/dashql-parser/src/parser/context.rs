@@ -571,7 +571,9 @@ impl<'a> ParseContext<'a> {
         let root = self.add_node(node);
         let mut state = self.state.borrow_mut();
         let statement_type = match node.node_type() {
-            NodeType::OBJECT_EXT_SET => StatementType::SET,
+            NodeType::OBJECT_EXT_SET | NodeType::OBJECT_SQL_SET | NodeType::OBJECT_SQL_SET_STATEMENT => {
+                StatementType::SET
+            }
             NodeType::OBJECT_SQL_CREATE_AS => StatementType::CREATE_TABLE_AS,
             NodeType::OBJECT_SQL_CREATE => StatementType::CREATE_TABLE,
             NodeType::OBJECT_SQL_VIEW => StatementType::CREATE_VIEW,
@@ -590,7 +592,45 @@ impl<'a> ParseContext<'a> {
             NodeType::OBJECT_EXT_EXPLAIN => StatementType::EXPLAIN,
             NodeType::OBJECT_SQL_CALL => StatementType::CALL,
             NodeType::OBJECT_SQL_TRANSACTION => StatementType::TRANSACTION,
-            NodeType::OBJECT_SQL_SYNTAX => StatementType::SQL_SYNTAX,
+            NodeType::OBJECT_SQL_ALTER_DATABASE => StatementType::ALTER_DATABASE,
+            NodeType::OBJECT_SQL_ALTER_ROLE => StatementType::ALTER_ROLE,
+            NodeType::OBJECT_SQL_ALTER_SEQUENCE => StatementType::ALTER_SEQUENCE,
+            NodeType::OBJECT_SQL_ANALYZE => StatementType::ANALYZE,
+            NodeType::OBJECT_SQL_CLOSE_CURSOR => StatementType::CLOSE_CURSOR,
+            NodeType::OBJECT_SQL_CLOSE_STREAM => StatementType::CLOSE_STREAM,
+            NodeType::OBJECT_SQL_COMMENT => StatementType::COMMENT,
+            NodeType::OBJECT_SQL_COPY => StatementType::COPY,
+            NodeType::OBJECT_SQL_CREATE_DATABASE => StatementType::CREATE_DATABASE,
+            NodeType::OBJECT_SQL_CREATE_DATABASE_COPY => StatementType::CREATE_DATABASE_COPY,
+            NodeType::OBJECT_SQL_CREATE_DEFINITION => StatementType::CREATE_DEFINITION,
+            NodeType::OBJECT_SQL_CREATE_EXTERNAL_STREAM => StatementType::CREATE_EXTERNAL_STREAM,
+            NodeType::OBJECT_SQL_CREATE_EXTERNAL_TABLE => StatementType::CREATE_EXTERNAL_TABLE,
+            NodeType::OBJECT_SQL_CREATE_INDEX => StatementType::CREATE_INDEX,
+            NodeType::OBJECT_SQL_CREATE_ROLE => StatementType::CREATE_ROLE,
+            NodeType::OBJECT_SQL_CREATE_SEQUENCE => StatementType::CREATE_SEQUENCE,
+            NodeType::OBJECT_SQL_DEALLOCATE => StatementType::DEALLOCATE,
+            NodeType::OBJECT_SQL_DECLARE_CURSOR => StatementType::DECLARE_CURSOR,
+            NodeType::OBJECT_SQL_DETACH_DATABASE => StatementType::DETACH_DATABASE,
+            NodeType::OBJECT_SQL_DROP => StatementType::DROP,
+            NodeType::OBJECT_SQL_DROP_DATABASE => StatementType::DROP_DATABASE,
+            NodeType::OBJECT_SQL_DROP_FUNCTION => StatementType::DROP_FUNCTION,
+            NodeType::OBJECT_SQL_DROP_ROLE => StatementType::DROP_ROLE,
+            NodeType::OBJECT_SQL_EXECUTE => StatementType::EXECUTE,
+            NodeType::OBJECT_SQL_FETCH => StatementType::FETCH,
+            NodeType::OBJECT_SQL_GRANT => StatementType::GRANT,
+            NodeType::OBJECT_SQL_GRANT_ROLE => StatementType::GRANT_ROLE,
+            NodeType::OBJECT_SQL_MERGE => StatementType::MERGE,
+            NodeType::OBJECT_SQL_PREPARE => StatementType::PREPARE,
+            NodeType::OBJECT_SQL_RENAME_OBJECT => StatementType::RENAME_OBJECT,
+            NodeType::OBJECT_SQL_RESET => StatementType::RESET,
+            NodeType::OBJECT_SQL_REVOKE => StatementType::REVOKE,
+            NodeType::OBJECT_SQL_REVOKE_ROLE => StatementType::REVOKE_ROLE,
+            NodeType::OBJECT_SQL_SHOW => StatementType::SHOW,
+            NodeType::OBJECT_SQL_TRUNCATE => StatementType::TRUNCATE,
+            NodeType::OBJECT_SQL_UNLOAD_DATABASE => StatementType::UNLOAD_DATABASE,
+            NodeType::OBJECT_SQL_UNLOAD_RELEASE => StatementType::UNLOAD_RELEASE,
+            NodeType::OBJECT_SQL_UPDATE => StatementType::UPDATE,
+            NodeType::OBJECT_SQL_VALIDATE_DATABASE => StatementType::VALIDATE_DATABASE,
             // The grammar reduces statements only to the roots above, another root drops the statement
             other => {
                 state.errors.push(ParseError {

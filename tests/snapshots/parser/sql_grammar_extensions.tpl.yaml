@@ -1,0 +1,42 @@
+parser-snapshots:
+  - name: typed_update
+    input: UPDATE t SET x = 1 RETURNING x;
+  - name: typed_mixed_script
+    input: |
+      SELECT 1;
+      -- Copy a query result.
+      COPY (SELECT JSON_OBJECT('answer': 42)) TO NULL;
+      SELECT 2;
+  - name: typed_merge_actions
+    input: >-
+      MERGE INTO t USING u ON t.x = u.x
+      WHEN MATCHED THEN UPDATE SET y=u.y
+      WHEN NOT MATCHED BY SOURCE THEN DELETE
+      WHEN NOT MATCHED THEN INSERT (x,y) VALUES (u.x,u.y);
+  - name: typed_prepare_update
+    input: PREPARE p(integer) AS UPDATE t SET x=$1 RETURNING x;
+  - name: typed_session_setting
+    input: SET LOCAL timezone TO 'UTC';
+  - name: typed_function_definition
+    input: >-
+      CREATE OR REPLACE FUNCTION f(IN x integer NOT NULL DEFAULT 2)
+      RETURNS integer NOT NULL LANGUAGE SQL AS 'select x';
+  - name: typed_json_value
+    input: >-
+      SELECT JSON_VALUE(doc FORMAT JSON, '$.x' RETURNING integer
+      DEFAULT 0 ON EMPTY ERROR ON ERROR) FROM t;
+  - name: typed_select_modifiers
+    input: >-
+      SELECT t.* EXCLUDE(x) FROM t GROUP BY DISTINCT GROUPING SETS ((y), ())
+      ORDER BY ALL DESC FETCH FIRST 2 ROWS WITH TIES;
+  - name: typed_table_arguments
+    input: >-
+      SELECT f(TABLE(t) AS t PARTITION BY x ORDER BY y, LAMBDA x: x+1);
+  - name: typed_constraints
+    input: CREATE TABLE t (x integer ASSUMED PRIMARY KEY, y integer REFERENCES u(x)) WITH (countnulls=1);
+  - name: typed_external_stream
+    input: SELECT * FROM EXTERNAL STREAM events (WITH (CARDINALITY 100));
+  - name: typed_create_database
+    input: CREATE DATABASE db;
+  - name: typed_cursor
+    input: DECLARE c SCROLL CURSOR FOR SELECT x FROM t;

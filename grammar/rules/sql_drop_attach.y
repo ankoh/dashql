@@ -1,23 +1,53 @@
 sql_drop_table_stmt:
-    DROP TABLE sql_qualified_name { ctx.object(@$, NodeType::OBJECT_SQL_DROP_TABLE, &[attr(Key::SQL_DROP_NAME, $3)]) }
-  | DROP TABLE IF_P EXISTS sql_qualified_name {
-      ctx.object(
-          @$,
-          NodeType::OBJECT_SQL_DROP_TABLE,
-          &[attr(Key::SQL_DROP_IF_EXISTS, bool_node(loc(&[@3, @4]), true)), attr(Key::SQL_DROP_NAME, $5)],
-      )
-  }
+    DROP TABLE sql_qualified_name sql_drop_more_names sql_alter_drop_behavior {
+        ctx.object(
+            @$,
+            NodeType::OBJECT_SQL_DROP_TABLE,
+            &[
+                attr(Key::SQL_DROP_NAME, $3),
+                attr(Key::SQL_DROP_MORE_NAMES, ctx.array(@4, $4)),
+                attr(Key::SQL_DROP_CASCADE, $5),
+            ],
+        )
+    }
+  | DROP TABLE IF_P EXISTS sql_qualified_name sql_drop_more_names sql_alter_drop_behavior {
+        ctx.object(
+            @$,
+            NodeType::OBJECT_SQL_DROP_TABLE,
+            &[
+                attr(Key::SQL_DROP_IF_EXISTS, bool_node(loc(&[@3, @4]), true)),
+                attr(Key::SQL_DROP_NAME, $5),
+                attr(Key::SQL_DROP_MORE_NAMES, ctx.array(@6, $6)),
+                attr(Key::SQL_DROP_CASCADE, $7),
+            ],
+        )
+    }
     ;
 
 sql_drop_view_stmt:
-    DROP VIEW sql_qualified_name { ctx.object(@$, NodeType::OBJECT_SQL_DROP_VIEW, &[attr(Key::SQL_DROP_NAME, $3)]) }
-  | DROP VIEW IF_P EXISTS sql_qualified_name {
-      ctx.object(
-          @$,
-          NodeType::OBJECT_SQL_DROP_VIEW,
-          &[attr(Key::SQL_DROP_IF_EXISTS, bool_node(loc(&[@3, @4]), true)), attr(Key::SQL_DROP_NAME, $5)],
-      )
-  }
+    DROP VIEW sql_qualified_name sql_drop_more_names sql_alter_drop_behavior {
+        ctx.object(
+            @$,
+            NodeType::OBJECT_SQL_DROP_VIEW,
+            &[
+                attr(Key::SQL_DROP_NAME, $3),
+                attr(Key::SQL_DROP_MORE_NAMES, ctx.array(@4, $4)),
+                attr(Key::SQL_DROP_CASCADE, $5),
+            ],
+        )
+    }
+  | DROP VIEW IF_P EXISTS sql_qualified_name sql_drop_more_names sql_alter_drop_behavior {
+        ctx.object(
+            @$,
+            NodeType::OBJECT_SQL_DROP_VIEW,
+            &[
+                attr(Key::SQL_DROP_IF_EXISTS, bool_node(loc(&[@3, @4]), true)),
+                attr(Key::SQL_DROP_NAME, $5),
+                attr(Key::SQL_DROP_MORE_NAMES, ctx.array(@6, $6)),
+                attr(Key::SQL_DROP_CASCADE, $7),
+            ],
+        )
+    }
     ;
 
 sql_attach_database_stmt:
@@ -88,3 +118,5 @@ sql_attach_database_value:
   | sql_type_func_keywords      { ctx.name_from_keyword(@1, $1) }
   | SCONST                      { const_node(@1, AConstType::STRING) }
     ;
+
+sql_drop_more_names: COMMA sql_qualified_name_list { $2 } | %empty { ctx.list(NO_NODES) };

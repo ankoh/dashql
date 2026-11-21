@@ -44,6 +44,9 @@ filegroup(
         "rules/sql_insert.yh",
         "rules/sql_pgq.yh",
         "rules/sql_select.yh",
+        "rules/sql_query_extensions.yh",
+        "rules/sql_json.yh",
+        "rules/sql_commands.yh",
         "rules/sql_transaction.yh",
         "rules/sql_view.yh",
         "rules/ext_call.yh",
@@ -65,6 +68,9 @@ filegroup(
         "rules/sql_insert.y",
         "rules/sql_pgq.y",
         "rules/sql_select.y",
+        "rules/sql_query_extensions.y",
+        "rules/sql_json.y",
+        "rules/sql_commands.y",
         "rules/sql_transaction.y",
         "rules/sql_view.y",
         "rules/ext_call.y",
@@ -110,6 +116,7 @@ genrule(
 bison_rust_tables(
     name = "parser_tables_rs",
     actions = True,
+    report = True,
     grammar = ":grammar_y",
     out = "gen/rust/parser_tables.rs",
 )

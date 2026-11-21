@@ -136,7 +136,10 @@ The final `.y` file is composed in this order:
 | File | Scope |
 |------|-------|
 | `ext_statement.y` | Top-level dispatch: `statement → sql_query_statement` |
-| `sql_select.y` | SELECT, set operations, expressions, types (~110 KB) |
+| `sql_select.y` | SELECT, set operations, expressions, types |
+| `sql_query_extensions.y` | Grouping, aliases, ordinality, table and lambda arguments, semantic view calls |
+| `sql_json.y` | SQL/JSON constructors, queries, path arguments, and behavior clauses |
+| `sql_commands.y` | UPDATE, MERGE, COPY, prepared statements, cursors, settings, database commands, and additional DDL |
 | `sql_create.y` | CREATE TABLE, CREATE TABLE AS |
 | `sql_view.y` | CREATE VIEW |
 | `sql_function.y` | CREATE FUNCTION, CREATE AGGREGATE |
@@ -151,11 +154,8 @@ The final `.y` file is composed in this order:
 | `ext_explain.y` | EXPLAIN wrapper |
 | `ext_call.y` | The generic CALL and its values, see `client_functions.md` |
 
-`grammar/hyper/sql.y` additionally specifies Hyper's complete statement syntax without semantic
-actions. `parser/syntax.rs` retries statements with LR syntax failures against those tables and
-emits `OBJECT_SQL_SYNTAX` concrete syntax trees. A retry must consume the complete statement.
-Existing successful semantic trees and deliberate grammar-action diagnostics are preserved. See
-[sql_grammar.md](sql_grammar.md#syntax-only-hyper-coverage) for the representation and scope.
+All supported SQL uses these productions and typed AST projections; see
+[sql_grammar.md](sql_grammar.md#parser-only-sql-coverage) for the additional statement and clause models.
 
 ### Type files (`.yh`)
 

@@ -1,0 +1,1152 @@
+parser-snapshots:
+
+  - name: typed_update
+    input: |-
+      UPDATE t SET x = 1 RETURNING x;
+    expected:
+      statements:
+        - type: UPDATE
+          ast-begin: 0
+          ast-size: 14
+          description:
+            text: "UPDATE t S..TURNING x;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_UPDATE
+            text: "UPDATE t S..ETURNING x"
+            children:
+              - key: SQL_UPDATE_TARGET
+                type: OBJECT_SQL_TABLEREF
+                text: "t"
+                children:
+                  - key: SQL_TABLEREF_NAME
+                    type: ARRAY
+                    text: "t"
+                    children:
+                      - type: NAME
+                        text: "t"
+              - key: SQL_UPDATE_ASSIGNMENTS
+                type: ARRAY
+                text: "x = 1"
+                children:
+                  - type: OBJECT_SQL_ASSIGNMENT
+                    text: "x = 1"
+                    children:
+                      - key: SQL_ASSIGNMENT_KIND
+                        type: NAME
+                        text: "x = 1"
+                      - key: SQL_ASSIGNMENT_COLUMNS
+                        type: NAME
+                        text: "x"
+                      - key: SQL_ASSIGNMENT_VALUE
+                        type: LITERAL_INTEGER
+                        text: "1"
+              - key: SQL_UPDATE_RETURNING
+                type: ARRAY
+                text: "x"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "x"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "x"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "x"
+                            children:
+                              - type: NAME
+                                text: "x"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: typed_mixed_script
+    input: |-
+      SELECT 1;
+      -- Copy a query result.
+      COPY (SELECT JSON_OBJECT('answer': 42)) TO NULL;
+      SELECT 2;
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 4
+          description:
+            text: "SELECT 1;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "SELECT 1"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "1"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "1"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: LITERAL_INTEGER
+                        text: "1"
+        - type: COPY
+          ast-begin: 4
+          ast-size: 12
+          description:
+            text: "COPY (SELE..) TO NULL;"
+            description-begin: 0
+            description-count: 1
+            description-blocks: [0,1]
+          ast:
+            type: OBJECT_SQL_COPY
+            text: "COPY (SELE..)) TO NULL"
+            children:
+              - key: SQL_COPY_KIND
+                type: NAME
+                text: "COPY (SELE..)) TO NULL"
+              - key: SQL_COPY_QUERY
+                type: OBJECT_SQL_SELECT
+                text: "(SELECT JS..wer': 42))"
+                children:
+                  - key: SQL_SELECT_TARGETS
+                    type: ARRAY
+                    text: "JSON_OBJEC..swer': 42)"
+                    children:
+                      - type: OBJECT_SQL_RESULT_TARGET
+                        text: "JSON_OBJEC..swer': 42)"
+                        children:
+                          - key: SQL_RESULT_TARGET_VALUE
+                            type: OBJECT_SQL_JSON_OBJECT
+                            text: "JSON_OBJEC..swer': 42)"
+                            children:
+                              - key: SQL_JSON_MEMBERS
+                                type: ARRAY
+                                text: "'answer': 42"
+                                children:
+                                  - type: OBJECT_SQL_JSON_MEMBER
+                                    text: "'answer': 42"
+                                    children:
+                                      - key: SQL_JSON_MEMBER_KEY
+                                        type: LITERAL_STRING
+                                        text: "'answer'"
+                                      - key: SQL_JSON_MEMBER_VALUE
+                                        type: OBJECT_SQL_JSON_INPUT
+                                        text: "42"
+                                        children:
+                                          - key: SQL_JSON_VALUE
+                                            type: LITERAL_INTEGER
+                                            text: "42"
+              - key: SQL_COPY_LOCATION
+                type: OBJECT_SQL_NULL_TARGET_DESCRIPTOR
+                text: "NULL"
+                children: []
+        - type: SELECT
+          ast-begin: 16
+          ast-size: 4
+          description:
+            text: "SELECT 2;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "SELECT 2"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "2"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "2"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: LITERAL_INTEGER
+                        text: "2"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [9,10]
+        - text: [33,34]
+        - text: [82,83]
+      comments:
+        - text: "-- Copy a ..ry result."
+      comment-blocks:
+        - type: COMMENT
+          text: "-- Copy a ..ry result."
+          comments: [0,1]
+          lines:
+            - "Copy a query result."
+      comment-warnings: []
+
+  - name: typed_merge_actions
+    input: |-
+      MERGE INTO t USING u ON t.x = u.x WHEN MATCHED THEN UPDATE SET y=u.y WHEN NOT MATCHED BY SOURCE THEN DELETE WHEN NOT MATCHED THEN INSERT (x,y) VALUES (u.x,u.y);
+    expected:
+      statements:
+        - type: MERGE
+          ast-begin: 0
+          ast-size: 51
+          description:
+            text: "MERGE INTO..(u.x,u.y);"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_MERGE
+            text: "MERGE INTO.. (u.x,u.y)"
+            children:
+              - key: SQL_MERGE_TARGET
+                type: OBJECT_SQL_TABLEREF
+                text: "t"
+                children:
+                  - key: SQL_TABLEREF_NAME
+                    type: ARRAY
+                    text: "t"
+                    children:
+                      - type: NAME
+                        text: "t"
+              - key: SQL_MERGE_SOURCE
+                type: OBJECT_SQL_TABLEREF
+                text: "u"
+                children:
+                  - key: SQL_TABLEREF_NAME
+                    type: ARRAY
+                    text: "u"
+                    children:
+                      - type: NAME
+                        text: "u"
+              - key: SQL_MERGE_CONDITION
+                type: OBJECT_SQL_NARY_EXPRESSION
+                text: "t.x = u.x"
+                children:
+                  - key: SQL_EXPRESSION_OPERATOR
+                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                    value: EQUAL
+                  - key: SQL_EXPRESSION_ARGS
+                    type: ARRAY
+                    text: "t.x = u.x"
+                    children:
+                      - type: OBJECT_SQL_COLUMN_REF
+                        text: "t.x"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "t.x"
+                            children:
+                              - type: NAME
+                                text: "t"
+                              - type: NAME
+                                text: "x"
+                      - type: OBJECT_SQL_COLUMN_REF
+                        text: "u.x"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "u.x"
+                            children:
+                              - type: NAME
+                                text: "u"
+                              - type: NAME
+                                text: "x"
+              - key: SQL_MERGE_CLAUSES
+                type: ARRAY
+                text: "WHEN MATCH.. (u.x,u.y)"
+                children:
+                  - type: OBJECT_SQL_MERGE_WHEN_CLAUSE
+                    text: "WHEN MATCH.. SET y=u.y"
+                    children:
+                      - key: SQL_MERGE_WHEN_CLAUSE_KIND
+                        type: NAME
+                        text: "WHEN MATCH.. SET y=u.y"
+                      - key: SQL_MERGE_WHEN_CLAUSE_ACTION
+                        type: OBJECT_SQL_MERGE_ACTION
+                        text: "UPDATE SET y=u.y"
+                        children:
+                          - key: SQL_MERGE_ACTION_KIND
+                            type: NAME
+                            text: "UPDATE SET y=u.y"
+                          - key: SQL_MERGE_ACTION_TARGET
+                            type: ARRAY
+                            text: "y=u.y"
+                            children:
+                              - type: OBJECT_SQL_ASSIGNMENT
+                                text: "y=u.y"
+                                children:
+                                  - key: SQL_ASSIGNMENT_KIND
+                                    type: NAME
+                                    text: "y=u.y"
+                                  - key: SQL_ASSIGNMENT_COLUMNS
+                                    type: NAME
+                                    text: "y"
+                                  - key: SQL_ASSIGNMENT_VALUE
+                                    type: OBJECT_SQL_COLUMN_REF
+                                    text: "u.y"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "u.y"
+                                        children:
+                                          - type: NAME
+                                            text: "u"
+                                          - type: NAME
+                                            text: "y"
+                  - type: OBJECT_SQL_MERGE_WHEN_CLAUSE
+                    text: "WHEN NOT M..HEN DELETE"
+                    children:
+                      - key: SQL_MERGE_WHEN_CLAUSE_KIND
+                        type: NAME
+                        text: "WHEN NOT M..HEN DELETE"
+                      - key: SQL_MERGE_WHEN_CLAUSE_ACTION
+                        type: OBJECT_SQL_MERGE_ACTION
+                        text: "DELETE"
+                        children:
+                          - key: SQL_MERGE_ACTION_KIND
+                            type: NAME
+                            text: "DELETE"
+                  - type: OBJECT_SQL_MERGE_WHEN_CLAUSE
+                    text: "WHEN NOT M.. (u.x,u.y)"
+                    children:
+                      - key: SQL_MERGE_WHEN_CLAUSE_KIND
+                        type: NAME
+                        text: "WHEN NOT M.. (u.x,u.y)"
+                      - key: SQL_MERGE_WHEN_CLAUSE_ACTION
+                        type: OBJECT_SQL_MERGE_ACTION
+                        text: "INSERT (x,.. (u.x,u.y)"
+                        children:
+                          - key: SQL_MERGE_ACTION_KIND
+                            type: NAME
+                            text: "INSERT (x,.. (u.x,u.y)"
+                          - key: SQL_MERGE_ACTION_COLUMNS
+                            type: ARRAY
+                            text: "x,y"
+                            children:
+                              - type: NAME
+                                text: "x"
+                              - type: NAME
+                                text: "y"
+                          - key: SQL_MERGE_ACTION_VALUES
+                            type: ARRAY
+                            text: "(u.x,u.y)"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "u.x"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "u.x"
+                                    children:
+                                      - type: NAME
+                                        text: "u"
+                                      - type: NAME
+                                        text: "x"
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "u.y"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "u.y"
+                                    children:
+                                      - type: NAME
+                                        text: "u"
+                                      - type: NAME
+                                        text: "y"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: typed_prepare_update
+    input: |-
+      PREPARE p(integer) AS UPDATE t SET x=$1 RETURNING x;
+    expected:
+      statements:
+        - type: PREPARE
+          ast-begin: 0
+          ast-size: 22
+          description:
+            text: "PREPARE p(..TURNING x;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_PREPARE
+            text: "PREPARE p(..ETURNING x"
+            children:
+              - key: SQL_PREPARE_NAME
+                type: NAME
+                text: "p"
+              - key: SQL_PREPARE_PARAMETER_TYPES
+                type: ARRAY
+                text: "(integer)"
+                children:
+                  - type: OBJECT_SQL_TYPENAME
+                    text: "integer"
+                    children:
+                      - key: SQL_TYPENAME_TYPE
+                        type: ENUM_SQL_NUMERIC_TYPE
+                        value: INT4
+              - key: SQL_PREPARE_STATEMENT
+                type: OBJECT_SQL_UPDATE
+                text: "UPDATE t S..ETURNING x"
+                children:
+                  - key: SQL_UPDATE_TARGET
+                    type: OBJECT_SQL_TABLEREF
+                    text: "t"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "t"
+                        children:
+                          - type: NAME
+                            text: "t"
+                  - key: SQL_UPDATE_ASSIGNMENTS
+                    type: ARRAY
+                    text: "x=$1"
+                    children:
+                      - type: OBJECT_SQL_ASSIGNMENT
+                        text: "x=$1"
+                        children:
+                          - key: SQL_ASSIGNMENT_KIND
+                            type: NAME
+                            text: "x=$1"
+                          - key: SQL_ASSIGNMENT_COLUMNS
+                            type: NAME
+                            text: "x"
+                          - key: SQL_ASSIGNMENT_VALUE
+                            type: OBJECT_SQL_PARAMETER_REF
+                            text: "$1"
+                            children:
+                              - key: SQL_PARAMETER_PREFIX
+                                type: OPERATOR
+                                text: "$"
+                              - key: SQL_PARAMETER_NAME
+                                type: ARRAY
+                                text: "1"
+                                children:
+                                  - type: NAME
+                                    text: "1"
+                  - key: SQL_UPDATE_RETURNING
+                    type: ARRAY
+                    text: "x"
+                    children:
+                      - type: OBJECT_SQL_RESULT_TARGET
+                        text: "x"
+                        children:
+                          - key: SQL_RESULT_TARGET_VALUE
+                            type: OBJECT_SQL_COLUMN_REF
+                            text: "x"
+                            children:
+                              - key: SQL_COLUMN_REF_PATH
+                                type: ARRAY
+                                text: "x"
+                                children:
+                                  - type: NAME
+                                    text: "x"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: typed_session_setting
+    input: |-
+      SET LOCAL timezone TO 'UTC';
+    expected:
+      statements:
+        - type: SET
+          ast-begin: 0
+          ast-size: 8
+          description:
+            text: "SET LOCAL .. TO 'UTC';"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SET_STATEMENT
+            text: "SET LOCAL ..e TO 'UTC'"
+            children:
+              - key: SQL_SET_STATEMENT_LOCAL
+                type: BOOL
+                value: 1
+              - key: SQL_SET_STATEMENT_ARG
+                type: OBJECT_SQL_SET
+                text: "timezone TO 'UTC'"
+                children:
+                  - key: SQL_SET_KIND
+                    type: NAME
+                    text: "timezone TO 'UTC'"
+                  - key: SQL_SET_NAME
+                    type: ARRAY
+                    text: "timezone"
+                    children:
+                      - type: NAME
+                        text: "timezone"
+                  - key: SQL_SET_ARGS
+                    type: ARRAY
+                    text: "'UTC'"
+                    children:
+                      - type: LITERAL_STRING
+                        text: "'UTC'"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: typed_function_definition
+    input: |-
+      CREATE OR REPLACE FUNCTION f(IN x integer NOT NULL DEFAULT 2) RETURNS integer NOT NULL LANGUAGE SQL AS 'select x';
+    expected:
+      statements:
+        - type: CREATE_FUNCTION
+          ast-begin: 0
+          ast-size: 22
+          description:
+            text: "CREATE OR ..select x';"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_CREATE_FUNCTION
+            text: "CREATE OR ..'select x'"
+            children:
+              - key: SQL_CREATE_FUNCTION_REPLACE
+                type: BOOL
+                value: 1
+              - key: SQL_CREATE_FUNCTION_NAME
+                type: ARRAY
+                text: "f"
+                children:
+                  - type: NAME
+                    text: "f"
+              - key: SQL_CREATE_FUNCTION_PARAMS
+                type: ARRAY
+                text: "(IN x inte..DEFAULT 2)"
+                children:
+                  - type: OBJECT_SQL_FUNCTION_PARAM
+                    text: "IN x integ.. DEFAULT 2"
+                    children:
+                      - key: SQL_FUNCTION_PARAM_NAME
+                        type: NAME
+                        text: "x"
+                      - key: SQL_FUNCTION_PARAM_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "integer"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_FUNCTION_PARAM_NOT_NULL
+                        type: BOOL
+                        value: 1
+                      - key: SQL_FUNCTION_PARAM_DEFAULT
+                        type: LITERAL_INTEGER
+                        text: "2"
+              - key: SQL_CREATE_FUNCTION_RETURNS
+                type: OBJECT_SQL_TYPENAME
+                text: "integer"
+                children:
+                  - key: SQL_TYPENAME_TYPE
+                    type: ENUM_SQL_NUMERIC_TYPE
+                    value: INT4
+              - key: SQL_CREATE_FUNCTION_RETURNS_NOT_NULL
+                type: BOOL
+                value: 1
+              - key: SQL_CREATE_FUNCTION_OPTIONS
+                type: ARRAY
+                text: "LANGUAGE S..'select x'"
+                children:
+                  - type: OBJECT_SQL_CREATE_FUNCTION_OPTION
+                    text: "LANGUAGE SQL"
+                    children:
+                      - key: SQL_CREATE_FUNCTION_OPTION_KIND
+                        type: NAME
+                        text: "LANGUAGE SQL"
+                      - key: SQL_CREATE_FUNCTION_OPTION_VALUE
+                        type: NAME
+                        text: "SQL"
+                  - type: OBJECT_SQL_CREATE_FUNCTION_OPTION
+                    text: "AS 'select x'"
+                    children:
+                      - key: SQL_CREATE_FUNCTION_OPTION_KIND
+                        type: NAME
+                        text: "AS 'select x'"
+                      - key: SQL_CREATE_FUNCTION_OPTION_VALUE
+                        type: ARRAY
+                        text: "'select x'"
+                        children:
+                          - type: LITERAL_STRING
+                            text: "'select x'"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: typed_json_value
+    input: |-
+      SELECT JSON_VALUE(doc FORMAT JSON, '$.x' RETURNING integer DEFAULT 0 ON EMPTY ERROR ON ERROR) FROM t;
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 22
+          description:
+            text: "SELECT JSO..R) FROM t;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "SELECT JSO..OR) FROM t"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "JSON_VALUE.. ON ERROR)"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "JSON_VALUE.. ON ERROR)"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_JSON_VALUE
+                        text: "JSON_VALUE.. ON ERROR)"
+                        children:
+                          - key: SQL_JSON_VALUE
+                            type: OBJECT_SQL_JSON_INPUT
+                            text: "doc FORMAT JSON"
+                            children:
+                              - key: SQL_JSON_VALUE
+                                type: OBJECT_SQL_COLUMN_REF
+                                text: "doc"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "doc"
+                                    children:
+                                      - type: NAME
+                                        text: "doc"
+                              - key: SQL_JSON_FORMAT
+                                type: BOOL
+                                value: 1
+                          - key: SQL_JSON_PATH
+                            type: LITERAL_STRING
+                            text: "'$.x'"
+                          - key: SQL_JSON_RETURNING
+                            type: OBJECT_SQL_TYPENAME
+                            text: "integer"
+                            children:
+                              - key: SQL_TYPENAME_TYPE
+                                type: ENUM_SQL_NUMERIC_TYPE
+                                value: INT4
+                          - key: SQL_JSON_BEHAVIORS
+                            type: OBJECT_SQL_JSON_BEHAVIORS
+                            text: "DEFAULT 0 ..R ON ERROR"
+                            children:
+                              - key: SQL_JSON_ON_EMPTY
+                                type: OBJECT_SQL_JSON_BEHAVIOR
+                                text: "DEFAULT 0"
+                                children:
+                                  - key: SQL_JSON_BEHAVIOR_KIND
+                                    type: NAME
+                                    text: "DEFAULT"
+                                  - key: SQL_JSON_BEHAVIOR_DEFAULT
+                                    type: LITERAL_INTEGER
+                                    text: "0"
+                              - key: SQL_JSON_ON_ERROR
+                                type: OBJECT_SQL_JSON_BEHAVIOR
+                                text: "ERROR"
+                                children:
+                                  - key: SQL_JSON_BEHAVIOR_KIND
+                                    type: NAME
+                                    text: "ERROR"
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "FROM t"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "t"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "t"
+                        children:
+                          - type: NAME
+                            text: "t"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: typed_select_modifiers
+    input: |-
+      SELECT t.* EXCLUDE(x) FROM t GROUP BY DISTINCT GROUPING SETS ((y), ()) ORDER BY ALL DESC FETCH FIRST 2 ROWS WITH TIES;
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 33
+          description:
+            text: "SELECT t.*..WITH TIES;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "SELECT t.*.. WITH TIES"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "t.* EXCLUDE(x)"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "t.* EXCLUDE(x)"
+                    children:
+                      - key: SQL_RESULT_TARGET_STAR
+                        type: BOOL
+                        value: 1
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "t"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "t"
+                            children:
+                              - type: NAME
+                                text: "t"
+                      - key: SQL_RESULT_TARGET_EXCLUDE
+                        type: ARRAY
+                        text: "EXCLUDE(x)"
+                        children:
+                          - type: OBJECT_SQL_COLUMN_REF
+                            text: "x"
+                            children:
+                              - key: SQL_COLUMN_REF_PATH
+                                type: ARRAY
+                                text: "x"
+                                children:
+                                  - type: NAME
+                                    text: "x"
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "FROM t"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "t"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "t"
+                        children:
+                          - type: NAME
+                            text: "t"
+              - key: SQL_SELECT_GROUP_DISTINCT
+                type: BOOL
+                value: 1
+              - key: SQL_SELECT_GROUPS
+                type: ARRAY
+                text: "GROUP BY D.. ((y), ())"
+                children:
+                  - type: OBJECT_SQL_GROUP_BY_ITEM
+                    text: "GROUPING S.. ((y), ())"
+                    children:
+                      - key: SQL_GROUP_BY_ITEM_TYPE
+                        type: ENUM_SQL_GROUP_BY_ITEM_TYPE
+                        value: GROUPING_SETS
+                      - key: SQL_GROUP_BY_ITEM_ARG
+                        type: ARRAY
+                        text: "(y), ()"
+                        children:
+                          - type: OBJECT_SQL_GROUP_BY_ITEM
+                            text: "(y)"
+                            children:
+                              - key: SQL_GROUP_BY_ITEM_TYPE
+                                type: ENUM_SQL_GROUP_BY_ITEM_TYPE
+                                value: EXPRESSION
+                              - key: SQL_GROUP_BY_ITEM_ARG
+                                type: OBJECT_SQL_COLUMN_REF
+                                text: "y"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "y"
+                                    children:
+                                      - type: NAME
+                                        text: "y"
+                          - type: OBJECT_SQL_GROUP_BY_ITEM
+                            text: "()"
+                            children:
+                              - key: SQL_GROUP_BY_ITEM_TYPE
+                                type: ENUM_SQL_GROUP_BY_ITEM_TYPE
+                                value: EMPTY
+              - key: SQL_SELECT_LIMIT
+                type: LITERAL_INTEGER
+                text: "2"
+              - key: SQL_SELECT_LIMIT_WITH_TIES
+                type: BOOL
+                value: 1
+              - key: SQL_SELECT_ORDER
+                type: ARRAY
+                text: "ORDER BY ALL DESC"
+                children:
+                  - type: OBJECT_SQL_ORDER
+                    text: "ALL DESC"
+                    children:
+                      - key: SQL_ORDER_ALL
+                        type: BOOL
+                        value: 1
+                      - key: SQL_ORDER_DIRECTION
+                        type: ENUM_SQL_ORDER_DIRECTION
+                        value: DESCENDING
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: typed_table_arguments
+    input: |-
+      SELECT f(TABLE(t) AS t PARTITION BY x ORDER BY y, LAMBDA x: x+1);
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 17
+          description:
+            text: "SELECT f(T..A x: x+1);"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "SELECT f(T..DA x: x+1)"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "f(TABLE(t)..DA x: x+1)"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "f(TABLE(t)..DA x: x+1)"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_FUNCTION_EXPRESSION
+                        text: "f(TABLE(t)..DA x: x+1)"
+                        children:
+                          - key: SQL_FUNCTION_NAME
+                            type: ARRAY
+                            text: "f"
+                            children:
+                              - type: NAME
+                                text: "f"
+                          - key: SQL_FUNCTION_ORDER
+                            type: ARRAY
+                            text: "ORDER BY y..BDA x: x+1"
+                            children:
+                              - type: OBJECT_SQL_ORDER
+                                text: "y"
+                                children:
+                                  - key: SQL_ORDER_VALUE
+                                    type: OBJECT_SQL_COLUMN_REF
+                                    text: "y"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "y"
+                                        children:
+                                          - type: NAME
+                                            text: "y"
+                              - type: OBJECT_SQL_ORDER
+                                text: "LAMBDA x: x+1"
+                                children:
+                                  - key: SQL_ORDER_VALUE
+                                    type: OBJECT_SQL_NARY_EXPRESSION
+                                    text: "LAMBDA x: x+1"
+                                    children:
+                                      - key: SQL_EXPRESSION_OPERATOR
+                                        type: ENUM_SQL_EXPRESSION_OPERATOR
+                                        value: PLUS
+                                      - key: SQL_EXPRESSION_ARGS
+                                        type: ARRAY
+                                        text: "LAMBDA x: x+1"
+                                        children:
+                                          - type: LITERAL_INTEGER
+                                            text: "1"
+      scanner-errors: []
+      parser-errors:
+        - message: 'syntax error, unexpected identifier literal, expecting LRB'
+          text: "x"
+        - message: 'syntax error, unexpected LAMBDA'
+          text: "LAMBDA"
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: typed_constraints
+    input: |-
+      CREATE TABLE t (x integer ASSUMED PRIMARY KEY, y integer REFERENCES u(x)) WITH (countnulls=1);
+    expected:
+      statements:
+        - type: CREATE_TABLE
+          ast-begin: 0
+          ast-size: 27
+          description:
+            text: "CREATE TAB..tnulls=1);"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_CREATE
+            text: "CREATE TAB..ntnulls=1)"
+            children:
+              - key: SQL_CREATE_TABLE_NAME
+                type: ARRAY
+                text: "t"
+                children:
+                  - type: NAME
+                    text: "t"
+              - key: SQL_CREATE_TABLE_ELEMENTS
+                type: ARRAY
+                text: "(x integer..NCES u(x))"
+                children:
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "x integer ..RIMARY KEY"
+                    children:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "x"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "integer"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: "ASSUMED PRIMARY KEY"
+                        children:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "ASSUMED PRIMARY KEY"
+                            children:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: PRIMARY_KEY
+                              - key: SQL_COLUMN_CONSTRAINT_ASSUMED
+                                type: BOOL
+                                value: 1
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "y integer ..ENCES u(x)"
+                    children:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "y"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "integer"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: "REFERENCES u(x)"
+                        children:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "REFERENCES u(x)"
+                            children:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: REFERENCES
+                              - key: SQL_COLUMN_CONSTRAINT_REFERENCES_NAME
+                                type: ARRAY
+                                text: "u"
+                                children:
+                                  - type: NAME
+                                    text: "u"
+                              - key: SQL_COLUMN_CONSTRAINT_REFERENCES_COLUMNS
+                                type: ARRAY
+                                text: "(x)"
+                                children:
+                                  - type: NAME
+                                    text: "x"
+              - key: SQL_CREATE_TABLE_OPTIONS
+                type: ARRAY
+                text: "WITH (countnulls=1)"
+                children:
+                  - type: OBJECT_SQL_DEF_ARG
+                    text: "countnulls=1"
+                    children:
+                      - key: SQL_DEFINITION_ARG_KEY
+                        type: NAME
+                        text: "countnulls"
+                      - key: SQL_DEFINITION_ARG_VALUE
+                        type: LITERAL_INTEGER
+                        text: "1"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: typed_external_stream
+    input: |-
+      SELECT * FROM EXTERNAL STREAM events (WITH (CARDINALITY 100));
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 10
+          description:
+            text: "SELECT * F..ITY 100));"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "SELECT * F..LITY 100))"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "*"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "*"
+                    children:
+                      - key: SQL_RESULT_TARGET_STAR
+                        type: BOOL
+                        value: 1
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "FROM EXTER..LITY 100))"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "EXTERNAL S..LITY 100))"
+                    children:
+                      - key: SQL_TABLEREF_TABLE
+                        type: OBJECT_SQL_EXTERNAL_STREAM
+                        text: "EXTERNAL S..LITY 100))"
+                        children:
+                          - key: SQL_EXTERNAL_STREAM_NAME
+                            type: ARRAY
+                            text: "events"
+                            children:
+                              - type: NAME
+                                text: "events"
+                          - key: SQL_EXTERNAL_STREAM_CARDINALITY
+                            type: LITERAL_INTEGER
+                            text: "100"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: typed_create_database
+    input: |-
+      CREATE DATABASE db;
+    expected:
+      statements:
+        - type: CREATE_DATABASE
+          ast-begin: 0
+          ast-size: 4
+          description:
+            text: "CREATE DATABASE db;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_CREATE_DATABASE
+            text: "CREATE DATABASE db"
+            children:
+              - key: SQL_CREATE_DATABASE_LOCALITY
+                type: OBJECT_SQL_DB_LOCALITY
+                text: ""
+                children:
+                  - key: SQL_DB_LOCALITY_KIND
+                    type: NAME
+                    text: ""
+              - key: SQL_CREATE_DATABASE_NAME
+                type: NAME
+                text: "db"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: typed_cursor
+    input: |-
+      DECLARE c SCROLL CURSOR FOR SELECT x FROM t;
+    expected:
+      statements:
+        - type: DECLARE_CURSOR
+          ast-begin: 0
+          ast-size: 15
+          description:
+            text: "DECLARE c .. x FROM t;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_DECLARE_CURSOR
+            text: "DECLARE c ..T x FROM t"
+            children:
+              - key: SQL_DECLARE_CURSOR_NAME
+                type: NAME
+                text: "c"
+              - key: SQL_DECLARE_CURSOR_OPTIONS
+                type: ARRAY
+                text: "SCROLL"
+                children:
+                  - type: OBJECT_SQL_CURSOR_OPTION
+                    text: "SCROLL"
+                    children:
+                      - key: SQL_CURSOR_OPTION_KIND
+                        type: NAME
+                        text: "SCROLL"
+              - key: SQL_DECLARE_CURSOR_QUERY
+                type: OBJECT_SQL_SELECT
+                text: "SELECT x FROM t"
+                children:
+                  - key: SQL_SELECT_TARGETS
+                    type: ARRAY
+                    text: "x"
+                    children:
+                      - type: OBJECT_SQL_RESULT_TARGET
+                        text: "x"
+                        children:
+                          - key: SQL_RESULT_TARGET_VALUE
+                            type: OBJECT_SQL_COLUMN_REF
+                            text: "x"
+                            children:
+                              - key: SQL_COLUMN_REF_PATH
+                                type: ARRAY
+                                text: "x"
+                                children:
+                                  - type: NAME
+                                    text: "x"
+                  - key: SQL_SELECT_FROM
+                    type: ARRAY
+                    text: "FROM t"
+                    children:
+                      - type: OBJECT_SQL_TABLEREF
+                        text: "t"
+                        children:
+                          - key: SQL_TABLEREF_NAME
+                            type: ARRAY
+                            text: "t"
+                            children:
+                              - type: NAME
+                                text: "t"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []

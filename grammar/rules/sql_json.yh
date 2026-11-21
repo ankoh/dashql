@@ -1,0 +1,17 @@
+%type<NodeList> sql_json_member_list;
+%type<NodeList> sql_json_value_list;
+%type<NodeList> sql_json_arguments;
+%type<Node> sql_json_expr;
+%type<Node> sql_json_value;
+%type<Node> sql_json_format;
+%type<Node> sql_json_unique;
+%type<Node> sql_json_member;
+%type<Node> sql_json_nulls;
+%type<Node> sql_json_passing;
+%type<Node> sql_json_argument;
+%type<Node> sql_json_returning;
+%type<Node> sql_json_wrapper;
+%type<Node> sql_json_quotes;
+%type<Node> sql_json_behavior;
+%type<Node> sql_json_behaviors;
+%type<Node> sql_json_on_error;

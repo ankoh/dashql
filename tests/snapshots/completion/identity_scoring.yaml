@@ -572,14 +572,14 @@ completion-snapshots:
           location-qualified: "fo"
           objects: []
         - score: 56
-          value: forward
+          value: forcefully
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "fo"
           location-qualified: "fo"
           objects: []
-        - score: 51
-          value: before
-          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
+        - score: 56
+          value: format
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "fo"
           location-qualified: "fo"
           objects: []

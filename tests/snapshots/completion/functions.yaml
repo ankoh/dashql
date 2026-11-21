@@ -47,26 +47,12 @@ completion-snapshots:
           objects:
             - score: 37
               type: function
-              id: "256.65536.4294967300"
+              id: "256.65536.4294967299"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: myagg
               qualified-idx: 0
               prefer-qualified: 0
               detail: "aggregate"
-        - score: 47
-          value: myany
-          name-tags: [FUNCTION_NAME]
-          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
-          location: "my"
-          location-qualified: "my"
-          objects:
-            - score: 37
-              type: function
-              id: "256.65536.4294967301"
-              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
-              qualified: myany
-              qualified-idx: 0
-              prefer-qualified: 0
         - score: 47
           value: mymax
           name-tags: [FUNCTION_NAME]
@@ -76,27 +62,12 @@ completion-snapshots:
           objects:
             - score: 37
               type: function
-              id: "256.65536.4294967299"
+              id: "256.65536.4294967298"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: mymax
               qualified-idx: 0
               prefer-qualified: 0
               detail: "(x int) → int · aggregate"
-        - score: 47
-          value: myproc
-          name-tags: [FUNCTION_NAME]
-          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
-          location: "my"
-          location-qualified: "my"
-          objects:
-            - score: 37
-              type: function
-              id: "256.65536.4294967298"
-              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
-              qualified: myproc
-              qualified-idx: 0
-              prefer-qualified: 0
-              detail: "(x int)"
         - score: 47
           value: mysum
           name-tags: [FUNCTION_NAME]
@@ -120,6 +91,18 @@ completion-snapshots:
               qualified-idx: 0
               prefer-qualified: 0
               detail: "(x int) → int"
+        - score: 37
+          value: myany
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+          location: "my"
+          location-qualified: "my"
+          objects: []
+        - score: 37
+          value: myproc
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+          location: "my"
+          location-qualified: "my"
+          objects: []
       text: "my"
 
   - name: table_and_column_details

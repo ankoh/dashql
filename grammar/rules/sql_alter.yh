@@ -9,3 +9,8 @@
 %type<Node> sql_drop_schema_stmt;
 %type<Node> sql_alter_drop_behavior;
 %type<Node> sql_alter_schema_stmt;
+%type<Node> sql_alter_only;
+%type<Node> sql_schema_if;
+%type<Node> sql_schema_authorization;
+%type<Node> sql_schema_statement;
+%type<NodeList> sql_schema_statements;

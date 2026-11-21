@@ -1,19 +1,24 @@
 sql_alter_table_stmt:
-    ALTER TABLE sql_qualified_name sql_alter_table_action_list {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_ALTER_TABLE,
-            &[attr(Key::SQL_ALTER_TABLE_NAME, $3), attr(Key::SQL_ALTER_TABLE_ACTIONS, ctx.array(@4, $4))],
-        )
-    }
-  | ALTER TABLE IF_P EXISTS sql_qualified_name sql_alter_table_action_list {
+    ALTER TABLE sql_alter_only sql_qualified_name sql_alter_table_action_list {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_ALTER_TABLE,
             &[
+                attr(Key::SQL_ALTER_TABLE_ONLY, $3),
+                attr(Key::SQL_ALTER_TABLE_NAME, $4),
+                attr(Key::SQL_ALTER_TABLE_ACTIONS, ctx.array(@5, $5)),
+            ],
+        )
+    }
+  | ALTER TABLE IF_P EXISTS sql_alter_only sql_qualified_name sql_alter_table_action_list {
+        ctx.object(
+            @$,
+            NodeType::OBJECT_SQL_ALTER_TABLE,
+            &[
+                attr(Key::SQL_ALTER_TABLE_ONLY, $5),
                 attr(Key::SQL_ALTER_TABLE_IF_EXISTS, bool_node(loc(&[@3, @4]), true)),
-                attr(Key::SQL_ALTER_TABLE_NAME, $5),
-                attr(Key::SQL_ALTER_TABLE_ACTIONS, ctx.array(@6, $6)),
+                attr(Key::SQL_ALTER_TABLE_NAME, $6),
+                attr(Key::SQL_ALTER_TABLE_ACTIONS, ctx.array(@7, $7)),
             ],
         )
     }
@@ -88,8 +93,39 @@ sql_alter_table_action:
             &[attr(Key::SQL_ALTER_ACTION_COLUMN, $3), attr(Key::SQL_ALTER_ACTION_TYPE, $7), attr(Key::SQL_ALTER_ACTION_USING, $8)],
         )
     }
+  | ADD_P sql_table_constraint { ctx.object(@$,NodeType::OBJECT_SQL_ALTER_ADD_CONSTRAINT,&[attr(Key::SQL_ALTER_ACTION_CONSTRAINT,$2)]) }
+  | DROP CONSTRAINT sql_col_id sql_alter_drop_behavior {
+        ctx.object(
+            @$,
+            NodeType::OBJECT_SQL_ALTER_DROP_CONSTRAINT,
+            &[
+                attr(Key::SQL_ALTER_ACTION_CONSTRAINT, $3),
+                attr(Key::SQL_ALTER_ACTION_CASCADE, $4),
+            ],
+        )
+    }
+  | DROP CONSTRAINT IF_P EXISTS sql_col_id sql_alter_drop_behavior {
+        ctx.object(
+            @$,
+            NodeType::OBJECT_SQL_ALTER_DROP_CONSTRAINT,
+            &[
+                attr(Key::SQL_ALTER_ACTION_CONSTRAINT, $5),
+                attr(Key::SQL_ALTER_ACTION_IF, bool_node(loc(&[@3, @4]), true)),
+                attr(Key::SQL_ALTER_ACTION_CASCADE, $6),
+            ],
+        )
+    }
+  | RENAME CONSTRAINT sql_col_id TO sql_col_id {
+        ctx.object(
+            @$,
+            NodeType::OBJECT_SQL_ALTER_RENAME_CONSTRAINT,
+            &[
+                attr(Key::SQL_ALTER_ACTION_CONSTRAINT, $3),
+                attr(Key::SQL_ALTER_ACTION_NEW_NAME, $5),
+            ],
+        )
+    }
     ;
-
 sql_alter_opt_column:
     COLUMN { null() }
   | %empty { null() }
@@ -127,28 +163,51 @@ sql_alter_relation_move:
     ;
 
 sql_create_schema_stmt:
-    CREATE_P SCHEMA sql_qualified_name { ctx.object(@$, NodeType::OBJECT_SQL_CREATE_SCHEMA, &[attr(Key::SQL_SCHEMA_NAME, $3)]) }
-  | CREATE_P SCHEMA IF_P NOT EXISTS sql_qualified_name {
+CREATE_P SCHEMA sql_schema_if sql_qualified_name sql_schema_authorization sql_schema_statements {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_CREATE_SCHEMA,
-            &[attr(Key::SQL_SCHEMA_IF, bool_node(loc(&[@3, @4, @5]), true)), attr(Key::SQL_SCHEMA_NAME, $6)],
+            &[
+                attr(Key::SQL_SCHEMA_IF, $3),
+                attr(Key::SQL_SCHEMA_NAME, $4),
+                attr(Key::SQL_SCHEMA_AUTHORIZATION, $5),
+                attr(Key::SQL_SCHEMA_STATEMENTS, ctx.array(@6, $6)),
+            ],
+        )
+    }
+ | CREATE_P SCHEMA sql_schema_if AUTHORIZATION sql_word_or_string sql_schema_statements {
+        ctx.object(
+            @$,
+            NodeType::OBJECT_SQL_CREATE_SCHEMA,
+            &[
+                attr(Key::SQL_SCHEMA_IF, $3),
+                attr(Key::SQL_SCHEMA_AUTHORIZATION, $5),
+                attr(Key::SQL_SCHEMA_STATEMENTS, ctx.array(@6, $6)),
+            ],
         )
     }
     ;
-
 sql_drop_schema_stmt:
-    DROP SCHEMA sql_qualified_name sql_alter_drop_behavior {
-        ctx.object(@$, NodeType::OBJECT_SQL_DROP_SCHEMA, &[attr(Key::SQL_SCHEMA_NAME, $3), attr(Key::SQL_SCHEMA_CASCADE, $4)])
+    DROP SCHEMA sql_qualified_name sql_drop_more_names sql_alter_drop_behavior {
+        ctx.object(
+            @$,
+            NodeType::OBJECT_SQL_DROP_SCHEMA,
+            &[
+                attr(Key::SQL_SCHEMA_NAME, $3),
+                attr(Key::SQL_SCHEMA_MORE_NAMES, ctx.array(@4, $4)),
+                attr(Key::SQL_SCHEMA_CASCADE, $5),
+            ],
+        )
     }
-  | DROP SCHEMA IF_P EXISTS sql_qualified_name sql_alter_drop_behavior {
+  | DROP SCHEMA IF_P EXISTS sql_qualified_name sql_drop_more_names sql_alter_drop_behavior {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_DROP_SCHEMA,
             &[
                 attr(Key::SQL_SCHEMA_IF, bool_node(loc(&[@3, @4]), true)),
                 attr(Key::SQL_SCHEMA_NAME, $5),
-                attr(Key::SQL_SCHEMA_CASCADE, $6),
+                attr(Key::SQL_SCHEMA_MORE_NAMES, ctx.array(@6, $6)),
+                attr(Key::SQL_SCHEMA_CASCADE, $7),
             ],
         )
     }
@@ -166,3 +225,10 @@ sql_alter_schema_stmt:
         ctx.object(@$, NodeType::OBJECT_SQL_ALTER_SCHEMA, &[attr(Key::SQL_SCHEMA_NAME, $3), attr(Key::SQL_SCHEMA_NEW_NAME, $6)])
     }
     ;
+
+sql_alter_only: ONLY { bool_node(@$,true) } | %empty %prec SET { null() };
+
+sql_schema_if: IF_P NOT EXISTS { bool_node(@$,true) } | %empty %prec SET { null() };
+sql_schema_authorization: AUTHORIZATION sql_word_or_string { $2 } | %empty { null() };
+sql_schema_statements: sql_schema_statements sql_schema_statement { ctx.push_back($1,$2); $1 } | %empty { ctx.list(NO_NODES) };
+sql_schema_statement: sql_create_stmt { $1 } | sql_create_as_stmt { $1 } | sql_view_stmt { $1 } | sql_cmd_create_index_stmt { $1 } | sql_cmd_create_seq_stmt { $1 } | sql_cmd_grant_stmt { $1 };

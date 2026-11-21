@@ -12,7 +12,7 @@ load("//grammar/rust:defs.bzl", "bison_rust_tables")
 # package, copy the generated modules of //grammar into the crate.
 genrule(
     name = "dashql_parser_tables_rs",
-    srcs = ["//grammar:parser_tables_rs"],
+    srcs = ["//grammar:gen/rust/parser_tables.rs"],
     outs = ["src/tables.rs"],
     cmd = "cp $< $@",
 )
@@ -24,27 +24,11 @@ genrule(
     cmd = "cp $< $@",
 )
 
-genrule(
-    name = "syntax_tables",
-    srcs = ["//grammar/hyper:tables"],
-    outs = ["src/parser/syntax_tables.rs"],
-    cmd = "cp $< $@",
-)
-
-genrule(
-    name = "syntax_keywords",
-    srcs = ["//grammar/hyper:keywords"],
-    outs = ["src/parser/syntax_keywords.rs"],
-    cmd = "cp $< $@",
-)
-
 rust_library(
     name = "dashql_parser",
     srcs = glob(["src/**/*.rs"]) + [
         ":dashql_parser_keywords_rs",
         ":dashql_parser_tables_rs",
-        ":syntax_tables",
-        ":syntax_keywords",
     ],
     crate_name = "dashql_parser",
     crate_root = "src/lib.rs",

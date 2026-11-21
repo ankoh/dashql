@@ -57,8 +57,12 @@ explainable_stmt:
   | EXPRESSIONS LRB sql_expr_list RRB {
       ctx.object(@$, NodeType::OBJECT_EXT_EXPLAIN_EXPRESSIONS, &[attr(Key::EXT_EXPLAIN_EXPRESSIONS, ctx.array(@3, $3))])
   }
+  | sql_cmd_update_stmt { $1 }
+  | sql_cmd_merge_stmt { $1 }
+  | sql_cmd_copy_stmt { $1 }
+  | sql_cmd_truncate_stmt { $1 }
+  | sql_cmd_execute_stmt { $1 }
     ;
-
 explain_option_list:
     explain_option_elem                                     { ctx.list(&[$1]) }
   | explain_option_list COMMA explain_option_elem           {

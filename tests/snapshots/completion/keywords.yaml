@@ -61,8 +61,7 @@ completion-snapshots:
           location-qualified: "se"
           objects: []
         - score: 50
-          value: insert
-          keyword-continuation: into
+          value: analyse
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
           location: "se"
           location-qualified: "se"
@@ -330,13 +329,13 @@ completion-snapshots:
           location-qualified: "w"
           objects: []
         - score: 55
-          value: whitespace
+          value: while
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "w"
           location-qualified: "w"
           objects: []
         - score: 55
-          value: window
+          value: whitespace
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "w"
           location-qualified: "w"
@@ -370,14 +369,14 @@ completion-snapshots:
           location-qualified: "wh"
           objects: []
         - score: 55
-          value: whitespace
+          value: while
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "wh"
           location-qualified: "wh"
           objects: []
-        - score: 50
-          value: wh
-          candidate-tags: [IDENTITY]
+        - score: 55
+          value: whitespace
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "wh"
           location-qualified: "wh"
           objects: []
@@ -451,7 +450,7 @@ completion-snapshots:
           location-qualified: "gr"
           objects: []
         - score: 55
-          value: global
+          value: glob
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "gr"
           location-qualified: "gr"
@@ -711,7 +710,7 @@ completion-snapshots:
           location-qualified: "li"
           objects: []
         - score: 50
-          value: conflict
+          value: cardinality
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
           location: "li"
           location-qualified: "li"

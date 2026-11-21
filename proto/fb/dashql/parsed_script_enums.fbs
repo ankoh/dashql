@@ -112,7 +112,8 @@ enum WindowRangeMode: uint8 {
 enum WindowExclusionMode: uint8 {
     CURRENT_ROW,
     GROUP,
-    TIES
+    TIES,
+    NO_OTHERS
 }
 
 enum OrderDirection: uint8 {
@@ -165,6 +166,7 @@ enum ColumnConstraint: uint8 {
     CHECK,
     DEFAULT,
     COLLATE,
+    REFERENCES,
 }
 
 enum TableConstraint: uint8 {

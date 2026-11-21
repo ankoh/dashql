@@ -38,3 +38,6 @@
 %type<Node> sql_table_constraint;
 %type<Node> sql_table_constraint_attr_elem;
 %type<Node> sql_table_element;
+%type<NodeList> sql_table_like_options;
+%type<Node> sql_table_like_option;
+%type<Node> sql_table_like_kind;

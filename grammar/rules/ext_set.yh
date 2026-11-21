@@ -1,1 +1,2 @@
 %type<Node> set_statement;
+%type<NodeList> sql_set_more_values;

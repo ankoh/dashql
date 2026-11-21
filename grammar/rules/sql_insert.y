@@ -1,18 +1,33 @@
 sql_insert_stmt:
-    INSERT INTO sql_insert_target sql_insert_rest sql_insert_returning_clause {
+    INSERT sql_insert_bulk INTO sql_insert_target sql_insert_rest sql_insert_returning_clause {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_INSERT,
-            ctx.concat2($4, &[attr(Key::SQL_INSERT_TARGET, $3), attr(Key::SQL_INSERT_RETURNING, $5)]),
+            ctx.concat2(
+                $5,
+                &[
+                    attr(Key::SQL_INSERT_TARGET, $4),
+                    attr(Key::SQL_INSERT_RETURNING, $6),
+                    attr(Key::SQL_INSERT_BULK, $2),
+                ],
+            ),
         )
     }
-  | sql_with_clause INSERT INTO sql_insert_target sql_insert_rest sql_insert_returning_clause {
-      ctx.object(
-          @$,
-          NodeType::OBJECT_SQL_INSERT,
-          ctx.concat3($1, $5, &[attr(Key::SQL_INSERT_TARGET, $4), attr(Key::SQL_INSERT_RETURNING, $6)]),
-      )
-  }
+  | sql_with_clause INSERT sql_insert_bulk INTO sql_insert_target sql_insert_rest sql_insert_returning_clause {
+        ctx.object(
+            @$,
+            NodeType::OBJECT_SQL_INSERT,
+            ctx.concat3(
+                $1,
+                $6,
+                &[
+                    attr(Key::SQL_INSERT_TARGET, $5),
+                    attr(Key::SQL_INSERT_RETURNING, $7),
+                    attr(Key::SQL_INSERT_BULK, $3),
+                ],
+            ),
+        )
+    }
     ;
 
 // The table that an INSERT writes, a table name or a table parameter
@@ -38,3 +53,5 @@ sql_insert_returning_clause:
     RETURNING sql_target_list { ctx.array(@2, $2) }
   | %empty                    { null() }
     ;
+
+sql_insert_bulk: BULK { bool_node(@$,true) } | %empty { null() };

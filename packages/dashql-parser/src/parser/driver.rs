@@ -386,7 +386,10 @@ pub fn parse(ctx: &mut ParseContext) -> bool {
                 error_range_begin = location;
                 match reduce(ctx, rule, &stack, location) {
                     Ok(value) => {
-                        if std::mem::take(&mut ctx.state.borrow_mut().clear_lookahead) {
+                        // Keep statement separators available to the recovery productions.
+                        if std::mem::take(&mut ctx.state.borrow_mut().clear_lookahead)
+                            && lookahead.is_none_or(|la| la.kind != S_SEMICOLON)
+                        {
                             lookahead = None;
                         }
                         stack.pop(len);
@@ -394,7 +397,10 @@ pub fn parse(ctx: &mut ParseContext) -> bool {
                         Label::NewState
                     }
                     Err(ReduceError::YyError) => {
-                        if std::mem::take(&mut ctx.state.borrow_mut().clear_lookahead) {
+                        // Keep statement separators available to the recovery productions.
+                        if std::mem::take(&mut ctx.state.borrow_mut().clear_lookahead)
+                            && lookahead.is_none_or(|la| la.kind != S_SEMICOLON)
+                        {
                             lookahead = None;
                         }
                         // yyerrorlab: do not reclaim the symbols of the rule
