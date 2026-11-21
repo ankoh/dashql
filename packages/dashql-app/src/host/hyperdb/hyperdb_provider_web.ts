@@ -130,7 +130,7 @@ export async function setupWebHyperDB(
             engine = await createWebHyperDBEngineWithOptions(
                 context,
                 logger,
-                { ...HYPERDB_WASM_ENGINE_SETTINGS, log_file_path: instance.logDirectoryPath },
+                { ...HYPERDB_WASM_ENGINE_SETTINGS, ...options.engineSettings, log_file_path: instance.logDirectoryPath },
                 options,
                 onSetupProgress,
             );

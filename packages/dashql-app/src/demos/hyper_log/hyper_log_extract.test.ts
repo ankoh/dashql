@@ -1,7 +1,7 @@
 import * as arrow from 'apache-arrow';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { createTestHyperDBClient, testDatabasePath } from '../../../tests/hyperdb_test_client.js';
+import { createTestHyperDBClient, testDatabasePath } from '../../tests/hyperdb_test_client.js';
 import { HyperDB, type HyperDBConnection, type HyperDBClient } from '@akohn/dashql/platform/hyperdb/hyperdb_wasm';
 import { HyperDB as HyperDBEngine } from 'hyperdb-wasm';
 import { quoteIdentifier } from '@akohn/dashql/platform/utils/sql_quote';
@@ -10,14 +10,14 @@ import {
     type HyperDBIncrementalExtractOptions,
     type HyperDBIncrementalExtractSource,
     type HyperDBSourceDatabase,
-} from '../hyperdb_incremental_extract.js';
+} from '../shared/hyperdb_incremental_extract.js';
 
 import {
     HYPER_LOG_EVENTS_TABLE,
     HYPER_LOG_QUERY_ENDS_TABLE,
     HyperDBLogSource,
     hyperLogQueryEndsTable,
-} from '../hyperdb_log_extract.js';
+} from './hyperdb_log_extract.js';
 
 function toPlainObjects(table: arrow.Table): Record<string, unknown>[] {
     return table.toArray().map(row => Object.fromEntries(Object.keys(row).map(key => [key, row[key]])));

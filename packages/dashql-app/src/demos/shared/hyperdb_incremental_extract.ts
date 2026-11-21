@@ -1,5 +1,6 @@
 import type * as arrow from 'apache-arrow';
 import { quoteIdentifier, quoteLiteral } from '@akohn/dashql/platform/utils/sql_quote';
+import type { Logger } from '@akohn/dashql/platform/logger/logger';
 
 import type {
     EmbeddedClientContext,
@@ -93,6 +94,21 @@ export interface HyperDBIncrementalExtractOptions {
     onError?: (error: unknown) => void;
     /// Receives why open() rebuilt an extract whose tables no longer match the source or the table queries
     onRebuild?: (reason: string) => void;
+    /// Logs the steps of open() and every poll at debug level, with their durations
+    logger?: Logger | null;
+}
+
+/// The target of the debug log of the extracts
+const LOG_TARGET = 'hyperdb_extract';
+
+/// Logs the steps of an operation of an extract at debug level, each with the time since the step before
+function stepLog(logger: Logger | null | undefined, operation: string): (step: string, details?: Record<string, string>) => void {
+    let last = performance.now();
+    return (step, details = {}) => {
+        const now = performance.now();
+        logger?.debug(`${operation}: ${step}`, { ...details, durationMs: (now - last).toFixed(1) }, LOG_TARGET);
+        last = now;
+    };
 }
 
 /// The row counts of one transfer from the source into the extract.
@@ -193,20 +209,25 @@ export class HyperDBIncrementalExtract {
     /// Open the extract, creating its tables when missing, and backfill since the watermark.
     static async open(options: HyperDBIncrementalExtractOptions): Promise<HyperDBIncrementalExtract> {
         const { source, clientContext } = options;
+        const step = stepLog(options.logger, 'Opening an extract');
         let sink: EmbeddedConnection | null = null;
         let stager: EmbeddedConnection | null = null;
         let reader: HyperDBSourceConnection | null = null;
         try {
             // Open the source first, a source that cannot be read leaves no extract file behind
             reader = await options.sourceDatabase.connect({ clientContext });
+            step('connected to the source');
             await source.open?.(reader);
+            step('opened the source', { relation: source.relation });
             sink = await options.sink.connect({ defaultDatabase: SINK_DEFAULT_DATABASE, clientContext });
             stager = await options.sink.connect({ defaultDatabase: SINK_DEFAULT_DATABASE, clientContext });
+            step('connected to the sink');
             const database = options.databasePath == null ? SINK_DEFAULT_DATABASE : options.databaseAlias ?? EXTRACT_ALIAS;
             if (options.databasePath != null) {
                 const path = quoteIdentifier(options.databasePath);
                 await sink.execute(`CREATE DATABASE IF NOT EXISTS ${path}`);
                 await sink.execute(`ATTACH DATABASE ${path} AS ${quoteIdentifier(database)}`);
+                step('attached the extract database');
             }
             const names = new ExtractNames(`${quoteIdentifier(database)}.${quoteIdentifier(options.schema ?? 'public')}`);
             if (options.schema != null) await sink.execute(`CREATE SCHEMA IF NOT EXISTS ${names.schema}`);
@@ -218,15 +239,19 @@ export class HyperDBIncrementalExtract {
                 if (prepared.outdated != null) throw new Error(`the rebuilt extract is outdated: ${prepared.outdated}`);
             }
             const { schemas } = prepared;
+            step('prepared the tables');
 
             await checkSourceQuery(reader, source, source.backfillQuery(null));
             const updateQuery = source.updateQuery?.();
             if (updateQuery != null) await checkSourceQuery(reader, source, updateQuery);
+            step('checked the source queries');
 
             // The first update reads the rows since the reader connected again, the sink skips them
             const stagingTable = `__hyper_extract_staging_${crypto.randomUUID().replace(/-/g, '_')}`;
             const rows = await readSource(reader, source, await backfillQuery(sink, names, options));
+            step('read the backfill', { rows: rows.numRows.toString() });
             const backfill = await transfer(sink, stager, stagingTable, options, names, schemas, rows);
+            step('transferred the backfill', { fetched: backfill.fetched.toString(), appended: backfill.appended.toString() });
             return new HyperDBIncrementalExtract(reader, sink, stager, stagingTable, options, names, schemas, backfill);
         } catch (error) {
             // Close every connection and keep the error that failed the open.
@@ -247,17 +272,24 @@ export class HyperDBIncrementalExtract {
         const poll = this.polling.catch(() => {}).then(async () => {
             if (this.stopped) throw new Error('extract is stopped');
             const { source, sourceDatabase, clientContext } = this.options;
+            const step = stepLog(this.options.logger, 'Polling an extract');
             const updateQuery = source.updateQuery?.();
             if (updateQuery == null) {
                 const rows = await readSource(this.reader, source, await backfillQuery(this.sink, this.names, this.options));
-                return await transfer(this.sink, this.stager, this.stagingTable, this.options, this.names, this.schemas, rows);
+                step('read the source from the watermark', { rows: rows.numRows.toString() });
+                const transferred = await transfer(this.sink, this.stager, this.stagingTable, this.options, this.names, this.schemas, rows);
+                step('transferred', { appended: transferred.appended.toString() });
+                return transferred;
             }
             // The next reader starts before the read, it replaces the current reader once the rows are transferred.
             // A failed poll keeps the current reader, the next poll reads its rows again.
             const next = await sourceDatabase.connect({ clientContext });
+            step('connected the next reader');
             try {
                 const rows = await readSource(this.reader, source, projectSourceQuery(source, updateQuery));
+                step('read the source', { rows: rows.numRows.toString() });
                 const transferred = await transfer(this.sink, this.stager, this.stagingTable, this.options, this.names, this.schemas, rows);
+                step('transferred', { appended: transferred.appended.toString() });
                 const previous = this.reader;
                 this.reader = next;
                 await previous.close().catch(() => {});

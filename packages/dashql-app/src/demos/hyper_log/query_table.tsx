@@ -5,8 +5,8 @@ import { useComputation, useComputeReady, useRuntime } from '@akohn/dashql-react
 import { useComputationModel } from '@akohn/dashql-react/models/computation_model';
 import type { EmbeddedClientContext } from '@akohn/dashql/platform/embedded_database';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
-import { useLogger } from '../host/logger_provider.js';
-import { DataTableView } from '../results/data_table_view.js';
+import { useLogger } from '../../host/logger_provider.js';
+import { DataTableView } from '../../results/data_table_view.js';
 import { TableColumnHeader } from '@akohn/dashql-react/components/data_table/data_table';
 
 const LOG_CTX = 'connection_overview';

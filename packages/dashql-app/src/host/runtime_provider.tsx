@@ -11,7 +11,6 @@ import { RuntimeContextProvider, useOwnedRuntime } from '@akohn/dashql-react/hoo
 import { useSalesforceMock } from '../connections/salesforce/salesforce_connector.js';
 import { mockSalesforceHttp, mockSalesforceOAuthFlow } from '@akohn/dashql/platform/connections/salesforce/salesforce_api_client_mock';
 import { createChannelConnector, type ChannelClients } from '../connections/hyper/hyper_connection_setup.js';
-import { HyperLogMetricsProvider, useCreateHyperLogMetrics } from '../connections/hyper/hyper_log_metrics_provider.js';
 import { NativeHyperDatabaseClient } from '../connections/hyper/native_hyperdb_grpc_client.js';
 import { isDesktopHost } from '@akohn/dashql-react/dom/app_host';
 import { useEmbeddedDatabaseSetup } from './embedded_database_provider.js';
@@ -59,7 +58,6 @@ function AppRuntime(props: { core: core.DashQL; catalogLoader?: boolean; queryCo
     const results = useWorkbookResults();
     const appEvents = usePlatformEventListener();
     const platformType = usePlatformType();
-    const logMetrics = useCreateHyperLogMetrics();
     // The platform owns what it passes to the runtime for the lifetime of the runtime. The parts that the providers
     // above set up later or change with the settings are read when the runtime asks: the mock of Salesforce that the
     // config may choose and the embedded database.
@@ -77,7 +75,6 @@ function AppRuntime(props: { core: core.DashQL; catalogLoader?: boolean; queryCo
         const clients = (): ChannelClients => ({
             grpcClient,
             setupEmbeddedDatabase: ref.current.setupEmbeddedDatabase,
-            logMetrics,
         });
         return createRuntime({
             logger,
@@ -100,12 +97,12 @@ function AppRuntime(props: { core: core.DashQL; catalogLoader?: boolean; queryCo
             },
         });
     });
-    return <AppRuntimeServices runtime={runtime} logMetrics={logMetrics}>{props.children}</AppRuntimeServices>;
+    return <AppRuntimeServices runtime={runtime}>{props.children}</AppRuntimeServices>;
 }
 
 /// What the app does with its runtime: the flushes of the storage writer and the handover to another tab
-function AppRuntimeServices(props: { runtime: Runtime; logMetrics: ReturnType<typeof useCreateHyperLogMetrics>; children?: React.ReactNode }) {
-    const { runtime, logMetrics } = props;
+function AppRuntimeServices(props: { runtime: Runtime; children?: React.ReactNode }) {
+    const { runtime } = props;
     const logger = useLogger();
 
     // The app shows whether runs can read results once the compute database is set up, it is set up right away
@@ -146,9 +143,7 @@ function AppRuntimeServices(props: { runtime: Runtime; logMetrics: ReturnType<ty
 
     return (
         <RuntimeContextProvider value={runtime}>
-            <HyperLogMetricsProvider metrics={logMetrics}>
-                <>{props.children}</>
-            </HyperLogMetricsProvider>
+            <>{props.children}</>
         </RuntimeContextProvider>
     );
 }

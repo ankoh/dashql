@@ -12,8 +12,6 @@ import { createQueryResponseStreamMetrics, QueryType, type QueryExecutionRespons
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
 import { useComputeReady, useConnections, useRuntime } from '@akohn/dashql-react/hooks';
-import type { HyperLogMetrics } from '../../connections/hyper/hyper_log_metrics.js';
-import { useHyperLogMetrics } from '../../connections/hyper/hyper_log_metrics_provider.js';
 import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
 import { StorageProvider } from '../../storage/storage_provider.js';
 
@@ -53,7 +51,6 @@ function connection(connectionId: string) {
 interface Api {
     execute: Runtime['execute'];
     merge: ReturnType<typeof useMergeConnections>;
-    logMetrics: HyperLogMetrics;
     connections: ReadonlyMap<string, ConnectionState>;
 }
 
@@ -62,7 +59,6 @@ function Capture(props: { databases: ((runtime: Runtime) => Promise<void>)[]; ca
     const runtime = useRuntime();
     const execute = runtime.execute.bind(runtime);
     const merge = useMergeConnections();
-    const logMetrics = useHyperLogMetrics()!;
     const compute = useComputeReady();
     const [created, setCreated] = React.useState(false);
     const createDatabases = React.useEffectEvent(async () => {
@@ -75,7 +71,7 @@ function Capture(props: { databases: ((runtime: Runtime) => Promise<void>)[]; ca
         })();
     }, [runtime]);
     React.useLayoutEffect(() => {
-        if (compute && created) props.capture({ execute, merge, logMetrics, connections });
+        if (compute && created) props.capture({ execute, merge, connections });
     });
     return null;
 }
@@ -121,22 +117,12 @@ describe('useMergeConnections', () => {
         const settled = execution.then(() => null, (error: unknown) => error);
         await vi.waitFor(() => expect(source.stream.read).toHaveBeenCalledTimes(1));
 
-        // The log monitor closes the monitoring database in the folder of the connection
-        let closeMonitor!: () => void;
-        const forget = vi.spyOn(api!.logMetrics, 'forget').mockImplementation(() => new Promise(resolve => { closeMonitor = resolve; }));
-        let merged = false;
-        const merging = api!.merge('target', ['source']).then(() => { merged = true; });
-        await vi.waitFor(() => expect(forget).toHaveBeenCalledWith('source'));
-        // The running query was cancelled at the backend and settled before
+        await act(async () => {
+            await api!.merge('target', ['source']);
+        });
+        // The running query was cancelled at the backend and settled before the connection went
         expect(source.stream.cancel).toHaveBeenCalledTimes(1);
         expect(await settled).toMatchObject({ name: 'AbortError' });
-        // The connection, and with it its folder, outlives the open monitoring database
-        expect(merged).toBe(false);
-        expect(api!.connections.has('source')).toBe(true);
-        await act(async () => {
-            closeMonitor();
-            await merging;
-        });
         await vi.waitFor(() => expect(api!.connections.has('source')).toBe(false));
         expect(api!.connections.has('target')).toBe(true);
     });

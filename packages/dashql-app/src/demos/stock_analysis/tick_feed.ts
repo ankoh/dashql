@@ -1,4 +1,4 @@
-import type { HyperDBSourceConnection } from '../../host/hyperdb/hyperdb_incremental_extract.js';
+import type { HyperDBSourceConnection } from '../shared/hyperdb_incremental_extract.js';
 import { sqlLiteral } from '../shared/sql_template.js';
 
 /// A trade of a symbol with the best bid and ask at its time, a row of the table `ticks`

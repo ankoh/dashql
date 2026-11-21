@@ -1,12 +1,12 @@
 import * as arrow from 'apache-arrow';
 import { describe, expect, it } from 'vitest';
 
-import { createTestHyperDBClient, testDatabasePath } from '../../../tests/hyperdb_test_client.js';
+import { createTestHyperDBClient, testDatabasePath } from '../../tests/hyperdb_test_client.js';
 import { HyperDB, type HyperDBConnection, type HyperDBSettings } from '@akohn/dashql/platform/hyperdb/hyperdb_wasm';
 import { HyperDB as HyperDBEngine } from 'hyperdb-wasm';
-import { HyperDBIncrementalExtract } from '../hyperdb_incremental_extract.js';
+import { HyperDBIncrementalExtract } from '../shared/hyperdb_incremental_extract.js';
 
-import { HYPER_LOG_RESOURCE_METRICS_TABLE, HyperDBLogSource } from '../hyperdb_log_extract.js';
+import { HYPER_LOG_RESOURCE_METRICS_TABLE, HyperDBLogSource } from './hyperdb_log_extract.js';
 import { quoteIdentifier } from '@akohn/dashql/platform/utils/sql_quote';
 
 function toPlainObjects(table: arrow.Table): Record<string, unknown>[] {

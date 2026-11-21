@@ -4,10 +4,9 @@ import { createTestHyperDBClient, testDatabasePath } from '../../tests/hyperdb_t
 import { HyperDB, type HyperDBClient, type HyperDBConnection, type HyperDBSettings } from '@akohn/dashql/platform/hyperdb/hyperdb_wasm';
 import { HyperDB as HyperDBEngine } from 'hyperdb-wasm';
 import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
-import type { HyperDBSourceDatabase } from '../../host/hyperdb/hyperdb_incremental_extract.js';
+import type { HyperDBSourceDatabase } from '../shared/hyperdb_incremental_extract.js';
 import { quoteIdentifier } from '@akohn/dashql/platform/utils/sql_quote';
 import {
-    connectionClientContext,
     HyperLogMetrics,
     HyperLogStatus,
     lastExtractRow,
@@ -15,9 +14,9 @@ import {
     readQueryEnds,
     readResourceSamples,
     resourceSamplesQuery,
-    sqlframeClientContext,
     type HyperQueryEnd,
 } from './hyper_log_metrics.js';
+import { connectionClientContext, sqlframeClientContext } from '../../connections/hyper/hyper_client_context.js';
 
 /// The offset of the clock of the embedded Hyper from UTC, the time zone of the app, 0 and not -0 in UTC
 const LOCAL_CLOCK_OFFSET_MS = 0 - new Date().getTimezoneOffset() * 60_000;
@@ -82,8 +81,8 @@ describe('Hyper log metrics', () => {
     const databases = new Map<string, string>();
 
     beforeAll(async () => {
-        // The settings of the app, which log the resource usage every second
-        client = await createTestHyperDBClient();
+        // The settings of the app with the resource usage logged every second, which the monitor reads
+        client = await createTestHyperDBClient(undefined, { log_resource_usage_interval: '1s', log_resource_usage_always: 1 });
         // The tests share the database, their connections and monitoring databases are unique per test
         database = await HyperDB.create(new HyperDBEngine(client), {
             computeDatabasePath: await testDatabasePath(`dashql-log-metrics-${nextDatabase++}.hyper`),

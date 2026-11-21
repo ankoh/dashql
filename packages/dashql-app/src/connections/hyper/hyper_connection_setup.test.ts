@@ -3,12 +3,12 @@ import * as connection from '@akohn/dashql-jsonschema/connection.js';
 
 import { connectChannel, type ChannelClients } from './hyper_connection_setup.js';
 import { HyperDatabaseChannel, HyperDatabaseClient } from '@akohn/dashql/platform/connections/hyper/hyperdb_grpc_client';
-import { connectionClientContext, type HyperLogMetrics } from './hyper_log_metrics.js';
+import { connectionClientContext } from './hyper_client_context.js';
 import type { EmbeddedClientContext, EmbeddedComputeDatabase } from '@akohn/dashql/platform/embedded_database';
 
 /// The clients of a test, none by default
 function clients(overrides: Partial<ChannelClients>): ChannelClients {
-    return { grpcClient: null, setupEmbeddedDatabase: vi.fn(), logMetrics: null, ...overrides };
+    return { grpcClient: null, setupEmbeddedDatabase: vi.fn(), ...overrides };
 }
 
 // The runtime sets up the connections and asks the app to connect their channels
@@ -44,33 +44,6 @@ describe('Hyper channels of the setups', () => {
         params.metadata!['ctx-tenant-id'] = 'edited-after-setup';
         expect(captured![0].metadata).toEqual({ 'ctx-tenant-id': 'tenant-123' });
         expect(captured![1]).toEqual(connectionClientContext('connection-1'));
-    });
-
-    it('attributes the queries of a remote channel and monitors its log without sessions', async () => {
-        const contexts: (EmbeddedClientContext | null)[] = [];
-        const client: HyperDatabaseClient = {
-            connect: vi.fn(async (_params, context) => {
-                contexts.push(context);
-                return { close: vi.fn() } as unknown as HyperDatabaseChannel;
-            }),
-        };
-        const logMetrics = { watch: vi.fn() };
-        const params = {
-            protocol: 'V3_GRPC',
-            endpoint: 'https://hyper.example.com',
-            tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' },
-        } as connection.HyperConnectionParams;
-
-        await connectChannel(clients({ grpcClient: client, logMetrics: logMetrics as unknown as HyperLogMetrics }), 'connection-1', { type: 'hyper', kind: 'grpc', session: null, params });
-
-        expect(contexts).toEqual([connectionClientContext('connection-1')]);
-        expect(logMetrics.watch).toHaveBeenCalledTimes(1);
-        const [origin, connectionId] = logMetrics.watch.mock.calls[0];
-        expect(connectionId).toBe('connection-1');
-        expect(origin.sessions).toBe(false);
-        // The monitor connects channels of its own, with its own client context
-        await origin.database.connect({ clientContext: { dashql: { connectionId: 'connection-1', queryType: 'monitor' } } });
-        expect(contexts[1]).toEqual({ dashql: { connectionId: 'connection-1', queryType: 'monitor' } });
     });
 
     it('fails without a client of the protocol', async () => {

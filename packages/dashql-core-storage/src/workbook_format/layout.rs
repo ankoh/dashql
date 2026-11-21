@@ -15,7 +15,8 @@ pub const STORAGE_SCRIPTS_FOLDER: &str = "scripts";
 pub const STORAGE_ATTACHMENTS_FOLDER: &str = "attachments";
 /// The folder that holds the files of the connections, `connections/<id>/`
 pub const STORAGE_CONNECTIONS_FOLDER: &str = "connections";
-/// The monitoring database of a connection, not part of workbook bundles
+/// The monitoring database that earlier versions kept in the folder of a connection, deleted with the folder and not
+/// part of workbook bundles
 pub const STORAGE_CONNECTION_MONITORING_FILE: &str = "monitoring.hyper";
 /// The relations of the catalog of a connection
 pub const STORAGE_CATALOG_RELATIONS: &str = "dashql-catalog-relations.sql";
@@ -91,12 +92,6 @@ pub fn validate_data_file_name(name: &str) -> Result<()> {
 /// the catalogs of their connections at the same paths.
 pub fn connection_file_path(connection_id: &str, file_name: &str) -> String {
     format!("{STORAGE_CONNECTIONS_FOLDER}/{connection_id}/{file_name}")
-}
-
-/// The Hyper path of the monitoring database of a connection, `hyper_root` is the mount of the OPFS root, e.g.
-/// `/mnt/fs`
-pub fn connection_monitoring_database_path(hyper_root: &str, connection_id: &str) -> String {
-    format!("{hyper_root}/{}", connection_file_path(connection_id, STORAGE_CONNECTION_MONITORING_FILE))
 }
 
 /// The `.gitignore` of a workbook folder with the entries of the app, None if it has them. Missing entries are

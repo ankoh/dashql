@@ -42,7 +42,7 @@ import {
     type SeriesKind,
 } from './hyper_log_chart_specs.js';
 import { recentQueriesSql, queryShapesSql } from './hyper_log_query_sql.js';
-import { QueryTable, type QueryTableProps } from '../connection_query_table.js';
+import { QueryTable, type QueryTableProps } from './query_table.js';
 import * as styles from './hyper_log_dashboard.module.css';
 
 /// The labels of the query scopes

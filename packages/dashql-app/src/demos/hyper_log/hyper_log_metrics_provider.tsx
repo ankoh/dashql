@@ -1,11 +1,7 @@
 import * as React from 'react';
 
-import { useEmbeddedDatabaseSetup } from '../../host/embedded_database_provider.js';
-import { useStorageReader } from '../../storage/storage_provider.js';
-import { connectionMonitoringDatabasePath, isWorkbookRegistryBackend } from '@akohn/dashql/platform/storage/storage_backend';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { useLogger } from '../../host/logger_provider.js';
-import { useOptionalRuntime } from '@akohn/dashql-react/hooks';
 import {
     CLOSED_LOG_STATE,
     HyperLogMetrics,
@@ -27,41 +23,15 @@ const LOG_METRICS_CTX = React.createContext<HyperLogMetrics | null>(null);
 const RETAINED_MS = 60 * 60_000;
 
 interface Props {
-    /// The metrics to provide, the ones of the runtime of the app whose channels they watch
+    /// The metrics to provide, the page stops them when it unmounts
     metrics: HyperLogMetrics;
     /// The children
     children: React.ReactElement;
 }
 
-/// The extracts of the Hyper logs of the connections in the monitoring databases in the folders of the connections
-export function useCreateHyperLogMetrics(): HyperLogMetrics {
-    const logger = useLogger();
-    const storage = useStorageReader();
-    const setupEmbeddedDatabase = useEmbeddedDatabaseSetup();
-    const [logMetrics] = React.useState(() => new HyperLogMetrics({
-        logger,
-        sink: () => setupEmbeddedDatabase('hyper_log_metrics'),
-        prepareDatabase: async connectionId => {
-            const backend = storage.backend;
-            if (!isWorkbookRegistryBackend(backend)) throw new Error('the storage keeps no connection folders');
-            await backend.createConnectionFolder(connectionId);
-            return connectionMonitoringDatabasePath(connectionId);
-        },
-    }));
-    return logMetrics;
-}
-
-/// Provides the extracts of the Hyper logs of the connections, in the monitoring databases in the folders of the
-/// connections. The Hyper connections start their monitors, the monitors of deleted connections are stopped.
-/// Must be nested in the runtime and the embedded database, which holds the monitoring databases.
+/// Provides the extracts of the Hyper logs that a page monitors, e.g. the Hyper log demo
 export const HyperLogMetricsProvider: React.FC<Props> = (props: Props) => {
-    const runtime = useOptionalRuntime();
     const logMetrics = props.metrics;
-    React.useEffect(() => {
-        const retain = () => logMetrics.retain(new Set(runtime?.store.all('connection').keys() ?? []));
-        retain();
-        return runtime?.store.subscribeKind('connection', retain);
-    }, [logMetrics, runtime]);
     React.useEffect(() => () => { void logMetrics.stop(); }, [logMetrics]);
     return <LOG_METRICS_CTX.Provider value={logMetrics}>{props.children}</LOG_METRICS_CTX.Provider>;
 };

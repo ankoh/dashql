@@ -3,7 +3,6 @@ import type * as app_workbook from '@akohn/dashql-jsonschema/app_workbook.js';
 import type { WorkbookEntry as WorkbookTreeEntry, WorkbookTreeFolder } from './workbook_tree.js';
 
 import type { FileStamp } from '../file_system.js';
-import { hyperOPFSRoot } from '../opfs_root.js';
 
 // Storage file and folder naming conventions
 export const STORAGE_MANIFEST_FILE = 'dashql-manifest.json';
@@ -16,14 +15,10 @@ export const STORAGE_GITIGNORE_FILE = '.gitignore';
 export const STORAGE_SHELL_FOLDER = 'shell';
 /// The folder that holds the files of the connections, e.g. `connections/<uuid>/…`
 export const STORAGE_CONNECTIONS_FOLDER = 'connections';
-/// The monitoring database of a connection with the extract of its Hyper log, e.g. `connections/<uuid>/monitoring.hyper`.
-/// It is deleted with the files of the connection, and it is not part of workbook bundles.
+/// The monitoring database with the extract of the Hyper log that earlier versions kept in the folder of a connection,
+/// e.g. `connections/<uuid>/monitoring.hyper`. The app writes it no more, it is deleted with the files of the connection
+/// and it is not part of workbook bundles.
 export const STORAGE_CONNECTION_MONITORING_FILE = 'monitoring.hyper';
-
-/// The Hyper path of the monitoring database of a connection, its folder must exist, see createConnectionFolder()
-export function connectionMonitoringDatabasePath(connectionId: string): string {
-    return `${hyperOPFSRoot()}/${STORAGE_CONNECTIONS_FOLDER}/${connectionId}/${STORAGE_CONNECTION_MONITORING_FILE}`;
-}
 
 /// The relations of the catalog, as the last catalog refresh described them
 export const STORAGE_CATALOG_RELATIONS = 'dashql-catalog-relations.sql';

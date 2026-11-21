@@ -7,7 +7,7 @@ import type { HyperLogError, HyperQueryEnd, HyperResourceSample } from './hyper_
 import { QueryScope } from './hyper_log_stats.js';
 import { HyperLogDashboardView, type HyperLogDashboardViewDependencies } from './hyper_log_dashboard.js';
 import { recentQueriesSql, queryShapesSql } from './hyper_log_query_sql.js';
-import type { QueryTableProps } from '../connection_query_table.js';
+import type { QueryTableProps } from './query_table.js';
 
 const NOW = 1_800_000_000_000;
 const MINUTE = 60_000;

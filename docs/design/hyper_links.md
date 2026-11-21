@@ -1,9 +1,9 @@
 # Hyper links
 
 A Hyper link points DashQL at a Hyper that speaks the HTTP v3 API: new workbooks, and with them their scripts and
-composer prompts, run on it. Compute (data frames, visualizations) and the monitoring databases stay in the embedded
-HyperDB WASM. The main producer is `hyperd run --ui`, which opens DashQL against the hyperd on the machine, but a link
-may also name a remote HTTP v3 server.
+composer prompts, run on it. Compute (data frames, visualizations) stays in the embedded HyperDB WASM. The main
+producer is `hyperd run --ui`, which opens DashQL against the hyperd on the machine, but a link may also name a remote
+HTTP v3 server.
 
 hyperd is not part of this repository. The first half of this document is the contract that hyperd implements, the
 second half describes the app.
@@ -61,9 +61,8 @@ DashQL (app):     dashql://localhost?data=<base64url>
 - **Host check**: requests whose `Host` is neither `127.0.0.1:<port>` nor `localhost:<port>` are refused, against DNS
   rebinding.
 - **Log**: `hyper_log()` is queryable on the listener, i.e. hyperd runs with
-  `experimental_hyper_introspection_functions`, and with `log_resource_usage_interval` for the resource samples. The
-  connection overview polls the log from a watermark into the monitoring database of the connection, which lives in the
-  embedded Hyper. Without the log the connection works, its monitor stays unavailable.
+  `experimental_hyper_introspection_functions`, and with `log_resource_usage_interval` for the resource samples. The app
+  doesn't read it, the Hyper log demo shows what it holds (`examples.md`). Without the log the connection works.
 
 ### CORS
 
@@ -91,9 +90,8 @@ local network. Safari blocks the request as mixed content, local hyperd links do
 ## App
 
 The connection to the Hyper of a link is an ordinary Hyper connection with the protocol `V3_HTTP_LINK`: it is stored in
-the app manifest and in the workbooks like every connection, with its endpoint, and its catalog and monitoring database
-live in its connection folder. Only the token is not stored. There can be several such connections, e.g. to two
-hyperd.
+the app manifest and in the workbooks like every connection, with its endpoint, and its catalog lives in its connection
+folder. Only the token is not stored. There can be several such connections, e.g. to two hyperd.
 
 - **Receiving**: the app event of a link arrives like every app event, from the address of the page, from the native
   app, or pasted (`PlatformEventListener.dispatchAppEvent`). The listener keeps the latest link until `useHyperLinks`
@@ -118,15 +116,14 @@ hyperd.
   connection of the latest link of the tab, otherwise on the embedded Hyper. A workbook has a single default
   connection, so the composer prompt and new scripts run on it. Detaching the connection falls back to the embedded
   Hyper. Workbooks that existed before keep their default connection.
-- **Compute and monitoring**: query results arrive as Arrow and are computed on in the embedded Hyper. The monitoring
-  database of the connection lives in the embedded Hyper as for every remote Hyper, see `HyperLogMetrics`.
+- **Compute**: query results arrive as Arrow and are computed on in the embedded Hyper.
 
 ## Manual test
 
 1. Build a hyperd that implements the contract, start it with `hyperd run --ui --ui-app-url <dev server> ...`.
 2. Open the printed browser link: a workbook on hyperd opens and its queries run. Open the printed app link with the
    native app closed and while it runs: the app opens a workbook on hyperd. Paste the link into the app: the same.
-3. The connection overview shows the queries of hyperd.
+3. The queries of the workbook show in the query viewer of the internals.
 4. Reload: new workbooks still start on hyperd.
 5. Open the app in a new tab without the link: new workbooks start on the embedded Hyper, the hyperd connection is
    listed and does not connect.

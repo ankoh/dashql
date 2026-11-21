@@ -3,7 +3,7 @@ import {
     type HyperDBExtractTable,
     type HyperDBIncrementalExtractSource,
     type HyperDBSourceConnection,
-} from './hyperdb_incremental_extract.js';
+} from '../shared/hyperdb_incremental_extract.js';
 import { quoteIdentifier, quoteLiteral } from '@akohn/dashql/platform/utils/sql_quote';
 
 /// The columns of hyper_log(), with ctx and v as JSON text.

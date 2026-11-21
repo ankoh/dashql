@@ -5,7 +5,6 @@ import type { ConnectionState } from '@akohn/dashql/platform/connections/connect
 import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import type { HyperDatabaseChannel } from '@akohn/dashql/platform/connections/hyper/hyperdb_grpc_client';
 import { useOptionalRuntime } from '@akohn/dashql-react/hooks';
-import { useHyperLogMetrics } from './hyper/hyper_log_metrics_provider.js';
 import type { EmbeddedComputeDatabase } from '@akohn/dashql/platform/embedded_database';
 import { useEmbeddedDatabaseSetup } from '../host/embedded_database_provider.js';
 import { embeddedAttachedDatabasePath } from '@akohn/dashql/platform/hyperdb/hyperdb_opfs_instance';
@@ -23,11 +22,10 @@ function connectionsOf(runtime: Runtime | null): ReadonlyMap<string, ConnectionS
 /// Delete a connection with its folder.
 ///
 /// The connection is shut down first: its running queries are cancelled, which also stops the workbook executions
-/// that wait for them, and its log monitor closes the monitoring database in its folder. The registry refuses to
-/// delete a connection that workbooks still use. A connection of the embedded Hyper that attaches databases of the
-/// clouds folder, a local cloud, takes them along once its session is closed, unless another connection attaches them.
+/// that wait for them. The registry refuses to delete a connection that workbooks still use. A connection of the
+/// embedded Hyper that attaches databases of the clouds folder, a local cloud, takes them along once its session is
+/// closed, unless another connection attaches them.
 export function useDeleteConnection(): DeleteConnection {
-    const logMetrics = useHyperLogMetrics();
     const setupEmbeddedDatabase = useEmbeddedDatabaseSetup();
     const logger = useLogger();
     const runtime = useOptionalRuntime();
@@ -37,7 +35,6 @@ export function useDeleteConnection(): DeleteConnection {
         const database = connectionsOf(runtime).get(connectionId);
         if (database == null) return;
         await Promise.all(database.queriesActiveOrdered.map(queryId => runtime.cancel(queryId)));
-        await logMetrics?.forget(connectionId);
         const hyper = database.connectorType === ConnectorType.HYPER ? { channel: runtime.channel<HyperDatabaseChannel>(database) } : null;
         // The runtime refuses to delete a connection that workbooks use, its databases stay then
         const deleted = (runtime.store.get('connection', connectionId)?.workbooks ?? []).length === 0;
@@ -50,7 +47,7 @@ export function useDeleteConnection(): DeleteConnection {
         const others = [...connectionsOf(runtime).values()].filter(other => other.connectionId !== connectionId);
         const attachedElsewhere = new Set(others.flatMap(other => other.cloudDatabases.map(database => database.path)));
         await dropCloudDatabases(await setupEmbeddedDatabase('hyper_wasm_connector'), attached.map(database => database.path).filter(path => !attachedElsewhere.has(path)), logger);
-    }, [logMetrics, logger, runtime, setupEmbeddedDatabase]);
+    }, [logger, runtime, setupEmbeddedDatabase]);
 }
 
 /// Drop databases of the clouds folder through the embedded Hyper, the sessions that attach them must be closed

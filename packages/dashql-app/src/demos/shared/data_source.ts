@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import type { EmbeddedComputeDatabase } from '@akohn/dashql/platform/embedded_database';
 import { useEmbeddedDatabaseSetup } from '../../host/embedded_database_provider.js';
-import type { HyperDBSourceDatabase } from '../../host/hyperdb/hyperdb_incremental_extract.js';
+import type { HyperDBSourceDatabase } from './hyperdb_incremental_extract.js';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { useLogger } from '../../host/logger_provider.js';
 

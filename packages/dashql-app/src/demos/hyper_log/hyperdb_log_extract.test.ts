@@ -2,7 +2,7 @@ import type * as arrow from 'apache-arrow';
 import { describe, expect, it } from 'vitest';
 
 import { HyperDBLogSource, HyperLogUnreadableError, isHyperLogFlushTimeout, isHyperLogRotationRace } from './hyperdb_log_extract.js';
-import type { HyperDBSourceConnection } from './hyperdb_incremental_extract.js';
+import type { HyperDBSourceConnection } from '../shared/hyperdb_incremental_extract.js';
 
 /// A connection whose log holds the end of the clock query after a number of reads
 function connectionLoggingAfter(reads: number | null, loggedAt: () => number): { connection: HyperDBSourceConnection; logReads: () => number } {

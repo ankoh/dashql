@@ -4,9 +4,8 @@ import * as connection from '@akohn/dashql-jsonschema/connection.js';
 import type { ChannelConnector } from '@akohn/dashql/runtime/runtime';
 import { HyperDatabaseClient } from '@akohn/dashql/platform/connections/hyper/hyperdb_grpc_client';
 import { connectEmbeddedHyper } from '@akohn/dashql/platform/connections/embedded_database_channel';
-import { connectionClientContext, type HyperLogMetrics } from './hyper_log_metrics.js';
+import { connectionClientContext } from './hyper_client_context.js';
 import type { EmbeddedDatabaseSetupFn } from '../../host/embedded_database_provider.js';
-import { HyperChannelDatabase } from './hyper_channel_database.js';
 import { getHyperLinkTabState } from './hyper_link_tab.js';
 
 // The runtime sets up the connections (`connection_setup/` of the Rust runtime): it picks the channel of the params and
@@ -17,7 +16,6 @@ import { getHyperLinkTabState } from './hyper_link_tab.js';
 export interface ChannelClients {
     grpcClient: HyperDatabaseClient | null;
     setupEmbeddedDatabase: EmbeddedDatabaseSetupFn;
-    logMetrics: HyperLogMetrics | null;
 }
 
 /// Connect a channel that a setup of a connection asks for
@@ -27,17 +25,11 @@ export async function connectChannel(clients: ChannelClients, connectionId: stri
     const params = request.params as connection.HyperConnectionParams;
     if (request.kind === 'embedded') {
         const database = await clients.setupEmbeddedDatabase('hyper_wasm_connector');
-        const channel = await connectEmbeddedHyper(database, request.session, clientContext);
-        clients.logMetrics?.watch({ database, sessions: true }, connectionId);
-        return channel;
+        return await connectEmbeddedHyper(database, request.session, clientContext);
     }
     const client = clients.grpcClient;
     if (!client) throw new Error(`gRPC client is not available (required for protocol ${params.protocol})`);
-    const channel = await client.connect(params, clientContext);
-    // Every query of a remote channel runs in a session of its own
-    const database = new HyperChannelDatabase(context => client.connect(params, context));
-    clients.logMetrics?.watch({ database, sessions: false }, connectionId);
-    return channel;
+    return await client.connect(params, clientContext);
 }
 
 /// What connects the channels of the setups of the runtime of the app, with the clients of the app as they are when a

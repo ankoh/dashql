@@ -4,7 +4,7 @@ import { act, waitForRender } from '@akohn/dashql-react/testing/react_act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import type { HyperDBSourceConnection, HyperDBSourceDatabase } from '../../host/hyperdb/hyperdb_incremental_extract.js';
+import type { HyperDBSourceConnection, HyperDBSourceDatabase } from './hyperdb_incremental_extract.js';
 import { NO_LIVE_QUERY_RESULT, useLiveQuery, type LiveQueryState } from './use_live_query.js';
 import { tableFromArrays } from '@akohn/dashql/platform/testing/arrow_fixtures';
 

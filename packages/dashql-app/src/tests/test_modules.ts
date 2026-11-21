@@ -43,8 +43,8 @@ export const BLOCKED_BROWSER_TEST_FILES: readonly string[] = [];
 /// tests. A shard should get as much of them as of the many short files, they only balance the shards, so a stale number
 /// just makes a run a bit slower.
 const SLOW_TEST_FILE_SECONDS = new Map([
-    ['src/host/hyperdb/integration/hyper_log_extract.test.ts', 24.5],
-    ['src/connections/hyper/hyper_log_metrics.test.ts', 18],
+    ['src/demos/hyper_log/hyper_log_extract.test.ts', 24.5],
+    ['src/demos/hyper_log/hyper_log_metrics.test.ts', 18],
     ['src/cloud/cloud_store.test.ts', 16],
     ['dashql/src/runtime/workbook_runs.test.ts', 12],
     ['src/host/hyperdb/hyperdb_wasm.integration.test.ts', 9.5],
@@ -56,7 +56,7 @@ const SLOW_TEST_FILE_SECONDS = new Map([
     ['src/workbook/shell/workbook_shell_page.test.tsx', 4],
     ['src/host/hyperdb/integration/iceberg.test.ts', 3],
     ['src/cloud/cloud_store_schema.test.ts', 3],
-    ['src/connections/hyper/hyper_log_query_sql.test.ts', 3],
+    ['src/demos/hyper_log/hyper_log_query_sql.test.ts', 3],
     ['src/cloud/local_cloud.test.ts', 3],
     ['src/cloud/cloud_overview_page.test.tsx', 2.5],
     ['src/host/hyperdb/integration/experimental_wasm_backend.test.ts', 2.5],

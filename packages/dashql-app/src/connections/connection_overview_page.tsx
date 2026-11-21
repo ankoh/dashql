@@ -5,13 +5,12 @@ import { useConnection, useConnectionList } from '@akohn/dashql-react/hooks';
 import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { connectionLabelOf, connectionLabels } from './connection_label.js';
 import { ConnectionLabelView } from './connection_label_view.js';
-import { HyperLogDashboard } from './hyper/hyper_log_dashboard.js';
 import { ConnectionEngineFacts } from './connection_engine_facts.js';
 import * as styles from './connection_overview_page.module.css';
 import { CONNECTOR_ICON_STYLE, useConnectorIcon } from './connector_icon.js';
 import { connectorInfoOf } from '@akohn/dashql/platform/connections/connection_state';
 
-/// Does a connection run its queries in a Hyper, whose log the metrics are read from?
+/// Does a connection run its queries in a Hyper?
 function isHyperConnection(connection: ConnectionState): boolean {
     return 'hyper' in connection.params;
 }
@@ -50,11 +49,12 @@ export const ConnectionOverviewPage: React.FC<Props> = ({ connectionId, onClose 
                     </h2>
                 </header>
                 <div>
+                    {/* The metrics of the Hyper log are a demo, demos.html#/hyper_log */}
                     {isHyperConnection(connection)
-                        ? <HyperLogDashboard connectionId={connectionId} engine={<ConnectionEngineFacts connection={connection} />} />
+                        ? <ConnectionEngineFacts connection={connection} />
                         : (
                             <p className={styles.unavailable} data-testid="connection-metrics-unavailable">
-                                Query metrics are available for Hyper connections.
+                                The overview shows the engine of Hyper connections.
                             </p>
                         )}
                 </div>

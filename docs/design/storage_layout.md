@@ -44,7 +44,7 @@ startup (see Versions and migrations).
 | `dashql-manifest.json` | `OPFSStorageBackend` | persistent | no |
 | `workbooktree/` | `OPFSStorageBackend` | persistent | no |
 | `workbooks/<id>/` | `OPFSStorageBackend`, the results by `createWorkbookResultFiles` | until the workbook is deleted | yes, without `results/`; `.dashql` files carry the results on request, as result tables (`workbook_results.md`, `workbook_tables.md`) |
-| `connections/<id>/` | `OPFSStorageBackend`, `HyperLogMetrics` | until the connection is deleted | catalog files only |
+| `connections/<id>/` | `OPFSStorageBackend` | until the connection is deleted | catalog files only |
 | `shell/` | `SalesforceLoginHistoryStore` | persistent | no |
 | `clouds/` | the embedded Hyper, when a local cloud attaches its database | until the connection of the local cloud is deleted | no |
 | `instances/<id>/` | `createHyperDBOPFSInstance` | one app window | no |
@@ -131,15 +131,10 @@ Connections are global and referenced by workbooks through `connectionId`. Their
 - The catalog files. They are a cache of the last catalog refresh and seed the completion before the
   connection comes online. Workbook bundles carry the catalogs of their connections as
   `connections/<id>/dashql-catalog-*.sql`, a `.dashql` file as the rows of its catalog tables (`workbook_tables.md`).
-- `monitoring.hyper`, the monitoring database of the connection (`connectionMonitoringDatabasePath`). The monitor of
-  the connection in `HyperLogMetrics` fills its tables `query_ends` and `resource_metrics` every 5 seconds with a
-  `HyperDBIncrementalExtract` of the Hyper log: the queries whose client context names the connection, its own reads
-  and writes included, and the resource samples of the Hyper process. The connection overview reads it on a reader
-  connection of the monitor, which attaches it as `monitoring`. It outlives app windows, so the overview keeps the
-  history of earlier windows, the tables keep the last 2 hours. A new monitor backfills the retained log from the
-  newest extracted timestamp. The file is derived from the log and has no migrations: when its tables no longer
-  match the columns of the app, the monitor drops them and backfills the retained log again. Deleting
-  the connection stops its monitor, which closes the file, and deletes it; it is never exported.
+- `monitoring.hyper` (`STORAGE_CONNECTION_MONITORING_FILE`), the monitoring database with the extract of the Hyper
+  log that earlier versions kept for the connection overview. The app writes it no more, the metrics of the Hyper log
+  are a demo (`examples.md`). A file of an earlier version stays until the connection is deleted with its folder; it
+  is never exported.
 
 ### Instances
 

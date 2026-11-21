@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { HashRouter, Link, Navigate, Route, Routes, useParams } from 'react-router-dom';
 
 import { LoggerProvider } from '../host/logger_provider.js';
-import { EmbeddedDatabaseProvider } from '../host/embedded_database_provider.js';
+import { EmbeddedDatabaseProvider, type EmbeddedDatabaseOptions } from '../host/embedded_database_provider.js';
 import { HttpClientProvider } from '../host/http/http_client_provider.js';
 import { GitHubTheme } from '../styles/github_theme.js';
 import { LoggerToast } from '../diagnostics/logger_toast.js';
@@ -19,6 +19,11 @@ import '@akohn/dashql-react/styles/tokens.css';
 import '../styles/globals.css';
 import '@akohn/dashql-react/styles/flavors/dbcom.css';
 import '../connections/bundled_clfn_specs.js';
+
+/// The HyperDB WASM of the page logs its resource usage every second, the Hyper log demo shows it
+const DEMO_DATABASE_OPTIONS: EmbeddedDatabaseOptions = {
+    engineSettings: { log_resource_usage_interval: '1s', log_resource_usage_always: 1 },
+};
 
 /// The pages of the demos, loaded when they are opened
 const PAGES = new Map(DEMOS.map(demo => [demo.id, React.lazy(demo.load)]));
@@ -61,7 +66,7 @@ export const Demos: React.FC = () => (
             <>
                 <LoggerToast />
                 <HttpClientProvider>
-                    <EmbeddedDatabaseProvider>
+                    <EmbeddedDatabaseProvider options={DEMO_DATABASE_OPTIONS}>
                         <GitHubTheme>
                             <div className={styles.root}>
                                 <Routes>

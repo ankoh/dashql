@@ -7,14 +7,15 @@ import {
     type HyperDBExtractTable,
     type HyperDBExtractTransfer,
     type HyperDBSourceDatabase,
-} from '../../host/hyperdb/hyperdb_incremental_extract.js';
+} from '../shared/hyperdb_incremental_extract.js';
 import {
     HYPER_LOG_RESOURCE_METRICS_TABLE,
     HyperDBLogSource,
     HyperLogUnreadableError,
     hyperLogQueryEndsTable,
     isHyperLogFlushTimeout,
-} from '../../host/hyperdb/hyperdb_log_extract.js';
+} from './hyperdb_log_extract.js';
+import type { DashQLClientContext } from '../../connections/hyper/hyper_client_context.js';
 import type { Logger } from '@akohn/dashql/platform/logger/logger';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { Store } from '../../utils/store.js';
@@ -76,29 +77,6 @@ export interface HyperQueryEnd {
     /// Did the app run the query and not the user? E.g. a computation (SQLFrame) on a pooled compute connection, or a
     /// read of the Hyper log.
     sentByApp: boolean;
-}
-
-/// The client context of the queries of a connection that Hyper logs as ctx.client
-interface DashQLClientContext {
-    /// The fields of the app
-    dashql: {
-        /// The connection that the queries are attributed to, none for the queries of the log monitor
-        connectionId?: string;
-        /// The kind of the queries: of the user on the sessions of the connection, of computations, of the
-        /// connection overview, or of the log monitor
-        queryType: 'user' | 'sqlframe' | 'overview' | 'monitor';
-    };
-}
-
-/// The client context of the queries of the user on the sessions of a connection
-export function connectionClientContext(connectionId: string): DashQLClientContext & Record<string, unknown> {
-    return { dashql: { connectionId, queryType: 'user' } };
-}
-
-/// The client context that attributes the queries of a computation to the connection of its table.
-/// The queries run on pooled compute connections, whose sessions are shared by all connections.
-export function sqlframeClientContext(connectionId: string): DashQLClientContext & Record<string, unknown> {
-    return { dashql: { connectionId, queryType: 'sqlframe' } };
 }
 
 /// The client context that attributes the queries of the overview of a connection to the connection
@@ -492,9 +470,19 @@ export class HyperLogMetrics {
         let extract: HyperDBIncrementalExtract | null = null;
         let reader: EmbeddedConnection | null = null;
         let clockOffsetMs: number;
+        // The steps of the open, in the debug log
+        const logger = this.options.logger;
+        let stepStart = performance.now();
+        const step = (name: string) => {
+            const now = performance.now();
+            logger.debug('Opening the Hyper log extract', { connectionId, step: name, durationMs: (now - stepStart).toFixed(1) }, LOG_CTX);
+            stepStart = now;
+        };
         try {
             const path = await this.options.prepareDatabase(connectionId);
+            step('prepared the monitoring database');
             const sink = await this.options.sink();
+            step('set up the embedded Hyper');
             extract = await HyperDBIncrementalExtract.open({
                 sourceDatabase: origin.database,
                 source,
@@ -506,6 +494,7 @@ export class HyperLogMetrics {
                 intervalMs: this.options.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS,
                 onTransfer: transfer => this.transferred(connectionId, transfer),
                 onRebuild: reason => this.options.logger.info('Rebuilding the extract of the Hyper log', { connectionId, reason }, LOG_CTX),
+                logger,
                 onError: error => {
                     // A Hyper that was terminated, e.g. by a hand-over to another tab, fails every poll.
                     // Setting up the connection again starts a new monitor.
@@ -515,14 +504,17 @@ export class HyperLogMetrics {
                     if (this.monitors.get(connectionId) === monitor) this.fail(connectionId, error);
                 },
             });
+            step('opened the extract');
             const clock = await origin.database.connect({ clientContext: monitorClientContext(connectionId) });
             try {
                 clockOffsetMs = await source.readClockOffset(clock);
             } finally {
                 await clock.close().catch(() => {});
             }
+            step('read the clock offset of the log');
             reader = await sink.connect({ clientContext: overviewClientContext(connectionId) });
             await reader.execute(`ATTACH DATABASE ${quoteIdentifier(path)} AS ${quoteIdentifier(MONITORING_ALIAS)}`);
+            step('attached the reader');
         } catch (error) {
             await reader?.close().catch(() => {});
             await extract?.stop().catch(() => {});

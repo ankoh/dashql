@@ -5,7 +5,8 @@ import { getTestHyperDBClient, testDatabasePath } from '../../tests/hyperdb_test
 import { HyperDB, type HyperDBClient, type HyperDBConnection } from '@akohn/dashql/platform/hyperdb/hyperdb_wasm';
 import { HyperDB as HyperDBEngine } from 'hyperdb-wasm';
 import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
-import { connectionClientContext, HyperLogMetrics, queryEndsQuery, readQueryEnds, sqlframeClientContext } from './hyper_log_metrics.js';
+import { HyperLogMetrics, queryEndsQuery, readQueryEnds } from './hyper_log_metrics.js';
+import { connectionClientContext, sqlframeClientContext } from '../../connections/hyper/hyper_client_context.js';
 import { QueryScope } from './hyper_log_stats.js';
 import { recentQueriesSql, queryShapesSql } from './hyper_log_query_sql.js';
 
