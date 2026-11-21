@@ -963,6 +963,18 @@ export class DashQLScriptSession extends DashQLScriptSessionReader<NativeScriptS
         return this.readUpdate(this.ptr.assertNotNull().analyze());
     }
 
+    /// The latest parse of the script, with the tokens of the scanner
+    public getParsed(): FlatBufferPtr<buffers.parser.ParsedScript> {
+        const bytes = this.ptr.assertNotNull().getParsed();
+        return new FlatBufferPtr(PARSED_SCRIPT_TYPE, this.ptr.api, bytes, () => new buffers.parser.ParsedScript());
+    }
+
+    /// The latest analysis of the script
+    public getAnalyzed(): FlatBufferPtr<buffers.analyzer.AnalyzedScript> {
+        const bytes = this.ptr.assertNotNull().getAnalyzed();
+        return new FlatBufferPtr(ANALYZED_SCRIPT_TYPE, this.ptr.api, bytes, () => new buffers.analyzer.AnalyzedScript());
+    }
+
     /// Publish the analysis into the session layer of the catalog
     public loadIntoCatalog(): void {
         this.ptr.assertNotNull().loadIntoCatalog();

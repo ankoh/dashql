@@ -110,6 +110,31 @@ describe('DashQL @vis tags', () => {
     });
 });
 
+describe('DashQL script sessions', () => {
+    it('give the parse and the analysis of their script', () => {
+        const catalog = dql!.createCatalog();
+        const schema = dql!.createScriptSession(catalog);
+        schema.replaceText(0n, 'create table t (a int)');
+        schema.analyze();
+        schema.loadIntoCatalog();
+        const session = dql!.createScriptSession(catalog);
+        expect(() => session.getParsed()).toThrow();
+        session.replaceText(0n, 'select a from t');
+        session.analyze();
+
+        const parsed = session.getParsed().read();
+        expect(parsed.statementsLength()).toBe(1);
+        expect(parsed.tokens()!.tokenTypesLength()).toBe(4);
+        expect(parsed.tokens()!.tokenTypes(0)).toBe(dashql.buffers.parser.ScannerTokenType.KEYWORD);
+        const analyzed = session.getAnalyzed().read();
+        expect(analyzed.tableReferencesLength()).toBe(1);
+        expect(analyzed.resolvedTableReferencesByIdLength()).toBe(1);
+        session.destroy();
+        schema.destroy();
+        catalog.destroy();
+    });
+});
+
 describe('DashQL planner', () => {
     const execution = dashql.buffers.execution;
     function prepare(catalog: dashql.DashQLCatalog, sql: string, publish = false): dashql.DashQLScriptSession {

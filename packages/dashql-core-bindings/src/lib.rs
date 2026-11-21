@@ -687,6 +687,30 @@ impl ScriptSession {
         finish!(self.inner.borrow_mut().analyze(&self.catalog.borrow()))
     }
 
+    /// The packed `ParsedScript` of the latest parse, with the tokens of the scanner
+    #[wasm_bindgen(js_name = getParsed)]
+    pub fn get_parsed(&self) -> Result<Vec<u8>, JsError> {
+        let session = self.inner.borrow();
+        let parsed = session
+            .script()
+            .parsed
+            .as_ref()
+            .ok_or_else(|| js_error(Error::status(dashql_buffers::status::StatusCode::SCRIPT_NOT_ANALYZED)))?;
+        Ok(finish!(dashql_core::pack::pack_parsed_script(parsed)))
+    }
+
+    /// The packed `AnalyzedScript` of the latest analysis
+    #[wasm_bindgen(js_name = getAnalyzed)]
+    pub fn get_analyzed(&self) -> Result<Vec<u8>, JsError> {
+        let session = self.inner.borrow();
+        let analyzed = session
+            .script()
+            .analyzed
+            .as_ref()
+            .ok_or_else(|| js_error(Error::status(dashql_buffers::status::StatusCode::SCRIPT_NOT_ANALYZED)))?;
+        Ok(finish!(dashql_core::pack::pack_analyzed_script(analyzed)))
+    }
+
     /// The named table parameters of the analysis that reference scripts, with the script that each finds among
     /// `names`: triples of the offset, the length and the script index (u32::MAX if none), in the offset unit
     #[wasm_bindgen(js_name = findScriptReferences)]
