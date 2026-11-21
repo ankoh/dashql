@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as styles from './json_view.module.css';
 
-import { useJsonViewerState } from './json_view_state.js';
+import { expandedInitially, useJsonViewerState } from './json_view_state.js';
 import { useNestedExpansionState } from './json_nested_state.js';
 import { useToolVisibilityDispatch } from './json_tool_state.js';
 import { JsonLiteral } from './json_literal.js';
@@ -21,36 +21,19 @@ interface KeyValuesProps<T extends object> {
 
 export function JsonKeyValues<T extends object>(props: KeyValuesProps<T>) {
     const value = props.value ?? {};
-    const { keyName, expandKey = '', level, keyPath: keyPath = [], parentValue } = props;
-    const { objectSortKeys, indentWidth, arrayPageSize = 0, collapsed, shouldExpandNodeInitially } = useJsonViewerState();
+    const { expandKey = '', level, keyPath: keyPath = [] } = props;
+    const { arrayPageSize, collapsed } = useJsonViewerState();
     const [arrayPage, setArrayPage] = React.useState({ value, itemCount: arrayPageSize });
 
     // Is expanded?
     const expands = useNestedExpansionState();
-    const defaultExpanded =
-        typeof collapsed === 'boolean' ? !collapsed : typeof collapsed === 'number' ? level <= collapsed : true;
-    const isExpanded = expands[expandKey] ?? (shouldExpandNodeInitially ? true : defaultExpanded);
-    const shouldExpand =
-        shouldExpandNodeInitially && shouldExpandNodeInitially(isExpanded, { value, keyPath, level, keyName, parentValue });
-
-    if (expands[expandKey] === undefined && !shouldExpand) {
-        return null;
-    }
-    if (!isExpanded) {
+    if (!(expands[expandKey] ?? expandedInitially(collapsed, level))) {
         return null;
     }
     const isMyArray = Array.isArray(value);
     let entries: [key: string | number, value: T][] = isMyArray
         ? Object.entries(value).map((m) => [Number(m[0]), m[1]])
         : Object.entries(value as T);
-    if (objectSortKeys) {
-        entries =
-            objectSortKeys === true
-                ? entries.sort(([a], [b]) => (typeof a === 'string' && typeof b === 'string' ? a.localeCompare(b) : 0))
-                : entries.sort(([a, valA], [b, valB]) =>
-                    typeof a === 'string' && typeof b === 'string' ? objectSortKeys(a, b, valA, valB) : 0,
-                );
-    }
     const visibleItemCount = arrayPage.value === value ? arrayPage.itemCount : arrayPageSize;
     const hiddenItemCount = isMyArray && arrayPageSize > 0
         ? Math.max(0, entries.length - visibleItemCount)
@@ -61,7 +44,7 @@ export function JsonKeyValues<T extends object>(props: KeyValuesProps<T>) {
 
     const style = {
         borderLeft: 'var(--w-rjv-border-left-width, 1px) var(--w-rjv-line-style, solid) var(--w-rjv-line-color, #ebebeb)',
-        paddingLeft: indentWidth,
+        paddingLeft: 15,
         marginLeft: 6,
     };
     return (

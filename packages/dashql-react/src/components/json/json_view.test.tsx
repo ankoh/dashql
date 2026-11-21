@@ -67,6 +67,16 @@ describe('JsonView array pagination', () => {
         expect(container.textContent).toContain('deep');
     });
 
+    it('collapses every value with collapsed set', () => {
+        act(() => root.render(<JsonView value={{ a: { b: 1 } }} collapsed />));
+        expect(container.textContent).not.toContain('a');
+        expect(container.textContent).toContain('1 item');
+
+        act(() => container.querySelector<HTMLButtonElement>('button[aria-expanded="false"]')!.click());
+        expect(container.textContent).toContain('a');
+        expect(container.textContent).not.toContain('b');
+    });
+
     it('shows the copy button of hovered values only', () => {
         act(() => root.render(<JsonView value={{ a: 1, b: 2 }} />));
         const copyButtons = '[data-testid="json-copy-value"]';

@@ -60,7 +60,7 @@ export function bigIntToString(bi?: bigint | string) {
 };
 
 function StringLiteral(props: { children: string }) {
-    const { variant, shortenTextAfterLength: length = 30, stringEllipsis = '...' } = useJsonViewerState();
+    const { variant, shortenTextAfterLength: length } = useJsonViewerState();
     const childrenStr = props.children as string;
     const [shorten, setShorten] = React.useState(length && childrenStr.length > length);
     React.useEffect(() => setShorten(length && childrenStr.length > length), [length, childrenStr.length]);
@@ -70,7 +70,7 @@ function StringLiteral(props: { children: string }) {
     } : {};
 
     const onClick = length > 0 && childrenStr.length > length ? () => setShorten(!shorten) : undefined;
-    const text = shorten ? `${childrenStr.slice(0, length)}${stringEllipsis}` : childrenStr;
+    const text = shorten ? `${childrenStr.slice(0, length)}...` : childrenStr;
     const cls = shorten ? styles.literal_string_short : styles.literal_string;
 
     // The explorer shows strings without quotes, so an empty string needs a placeholder

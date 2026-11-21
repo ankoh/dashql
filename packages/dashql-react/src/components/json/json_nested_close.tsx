@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as styles from './json_view.module.css';
 
-import { useJsonViewerState } from './json_view_state.js';
+import { expandedInitially, useJsonViewerState } from './json_view_state.js';
 import { useNestedExpansionState } from './json_nested_state.js';
 import { JsonBracketsClose } from './json_nested_open.js';
 
@@ -17,22 +17,8 @@ interface JsonNestedCloseProps {
 export function JsonNestedClose(props: JsonNestedCloseProps) {
     // Is the node expanded?
     const expands = useNestedExpansionState();
-    const { variant, collapsed, shouldExpandNodeInitially } = useJsonViewerState();
-    const defaultExpanded =
-        typeof collapsed === 'boolean' ? !collapsed : typeof collapsed === 'number' ? props.level <= collapsed : true;
-    const isExpanded = expands[props.expandKey] ?? (shouldExpandNodeInitially ? true : defaultExpanded);
-    const shouldExpand =
-        shouldExpandNodeInitially && shouldExpandNodeInitially(isExpanded, {
-            level: props.level,
-            keyPath: props.keyPath,
-            keyName: props.keyName,
-            value: props.value,
-            parentValue: props.parentValue,
-        });
-
-    if (expands[props.expandKey] === undefined && !shouldExpand) {
-        return null;
-    }
+    const { variant, collapsed } = useJsonViewerState();
+    const isExpanded = expands[props.expandKey] ?? expandedInitially(collapsed, props.level);
     // The explorer has no closing brackets
     if (variant === 'explorer') {
         return null;

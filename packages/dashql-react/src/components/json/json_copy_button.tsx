@@ -17,23 +17,15 @@ export interface SectionElementResult<T extends object, K = string | number> {
 
 export interface JsonCopyButtonProps<T extends object> extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'value'>, SectionElementResult<T> {
     expandKey: string;
-    beforeCopy?: (
-        copyText: string,
-        keyName?: string | number,
-        value?: T,
-        parentValue?: T,
-        expandKey?: string,
-        keyPath?: (number | string)[],
-    ) => string;
 }
 
 export function JsonCopyButton<T extends object>(props: JsonCopyButtonProps<T>) {
-    const { keyName, value, parentValue, expandKey, keyPath, beforeCopy, ...other } = props;
-    const { onCopied, enableClipboard, beforeCopy: globalBeforeCopy } = useJsonViewerState();
+    const { keyName, value, parentValue, expandKey, keyPath, ...other } = props;
+    const { beforeCopy } = useJsonViewerState();
     const isShowTools = useToolVisibility(expandKey);
     const [copied, setCopied] = React.useState(false);
 
-    if (enableClipboard === false || !isShowTools) return null;
+    if (!isShowTools) return null;
 
     const click = (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
         event.stopPropagation();
@@ -51,13 +43,10 @@ export function JsonCopyButton<T extends object>(props: JsonCopyButtonProps<T>) 
         }
 
         // Apply beforeCopy transformation if provided
-        // Priority: component prop > global prop
-        const finalBeforeCopy = beforeCopy || globalBeforeCopy;
-        if (finalBeforeCopy && typeof finalBeforeCopy === 'function') {
-            copyText = finalBeforeCopy(copyText, keyName, value, parentValue, expandKey, keyPath);
+        if (beforeCopy) {
+            copyText = beforeCopy(copyText, keyName, value, parentValue, expandKey, keyPath);
         }
 
-        onCopied?.(copyText, value);
         setCopied(true);
 
         const _clipboard = navigator.clipboard || {

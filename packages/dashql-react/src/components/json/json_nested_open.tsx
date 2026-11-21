@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as styles from './json_view.module.css';
 
 import { useNestedExpansionDispatch, useNestedExpansionState } from './json_nested_state.js';
-import { useJsonViewerState } from './json_view_state.js';
+import { expandedInitially, useJsonViewerState } from './json_view_state.js';
 import { JsonCopyButton } from './json_copy_button.js';
 import { JsonItemCount } from './json_item_count.js';
 import { JsonArrowSymbol } from './json_arrow_symbol.js';
@@ -23,28 +23,11 @@ export function JsonNestedOpen(props: NestedOpenProps) {
     // Is the node expanded?
     const nodeExpansions = useNestedExpansionState();
     const dispatchExpands = useNestedExpansionDispatch();
-    const { variant, onExpand, collapsed, shouldExpandNodeInitially } = useJsonViewerState();
-    const defaultExpanded =
-        typeof collapsed === 'boolean' ? !collapsed : typeof collapsed === 'number' ? props.level <= collapsed : true;
-    let isExpanded = nodeExpansions[props.expandKey] ?? (shouldExpandNodeInitially ? true : defaultExpanded);
-    const shouldExpand =
-        shouldExpandNodeInitially && shouldExpandNodeInitially(isExpanded, {
-            level: props.level,
-            keyName: props.keyName,
-            keyPath: props.keyPath,
-            value: props.value,
-            parentValue: props.parentValue
-        });
-    if (nodeExpansions[props.expandKey] === undefined && shouldExpandNodeInitially) {
-        isExpanded = shouldExpand === true;
-    }
+    const { variant, collapsed } = useJsonViewerState();
+    const isExpanded = nodeExpansions[props.expandKey] ?? expandedInitially(collapsed, props.level);
 
     // Click handler
-    const click = () => {
-        const opt = { expand: !isExpanded, value: props.value, keyName: props.keyName };
-        onExpand?.(opt);
-        dispatchExpands({ [props.expandKey]: opt.expand });
-    };
+    const click = () => dispatchExpands({ [props.expandKey]: !isExpanded });
 
     const style: React.CSSProperties = { display: 'inline-flex', alignItems: 'center' };
     const len = Object.keys(props.value ?? {}).length;

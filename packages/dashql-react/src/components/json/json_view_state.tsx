@@ -5,45 +5,30 @@ import { ToolVisibilityStore, ToolVisibilityStateProvider } from './json_tool_st
 import { useNestedExpansionReducer, NestedExpansionStateProvider } from './json_nested_state.js';
 
 export interface JsonViewerState {
-    value?: object;
-    variant?: JsonViewProps['variant'];
-    onExpand?: JsonViewProps['onExpand'];
-    onCopied?: JsonViewProps['onCopied'];
+    variant: NonNullable<JsonViewProps['variant']>;
+    arrayPageSize: number;
+    collapsed: boolean | number;
+    shortenTextAfterLength: number;
     beforeCopy?: JsonViewProps['beforeCopy'];
-    objectSortKeys?: JsonViewProps['objectSortKeys'];
-    displayObjectSize?: JsonViewProps['displayObjectSize'];
-    shortenTextAfterLength?: JsonViewProps['shortenTextAfterLength'];
-    stringEllipsis?: JsonViewProps['stringEllipsis'];
-    enableClipboard?: JsonViewProps['enableClipboard'];
-    highlightUpdates?: JsonViewProps['highlightUpdates'];
-    collapsed?: JsonViewProps['collapsed'];
-    shouldExpandNodeInitially?: JsonViewProps['shouldExpandNodeInitially'];
-    indentWidth?: number;
-    arrayPageSize?: number;
 }
 
-export const initialState: JsonViewerState = {
+const Context = React.createContext<JsonViewerState>({
     variant: 'json',
-    objectSortKeys: false,
-    indentWidth: 15,
-};
-
-export const Context = React.createContext<JsonViewerState>(initialState);
+    arrayPageSize: 0,
+    collapsed: false,
+    shortenTextAfterLength: 30,
+});
 
 export const useJsonViewerState = () => {
     return React.useContext(Context);
 };
 
-export interface JsonViewerStateProps {
-    initialState?: JsonViewerState;
+/// Is a node of a level expanded before the user expands or collapses it?
+export function expandedInitially(collapsed: boolean | number, level: number): boolean {
+    return typeof collapsed === 'number' ? level <= collapsed : !collapsed;
 }
 
-export const JsonViewerStateProvider = ({
-    children,
-    initialState: init,
-}: React.PropsWithChildren<JsonViewerStateProps>) => {
-    // The JsonView memoizes the state, so this only changes when one of its props changes
-    const state = React.useMemo(() => Object.assign({}, initialState, init), [init]);
+export const JsonViewerStateProvider = ({ children, state }: React.PropsWithChildren<{ state: JsonViewerState }>) => {
     const [toolStore] = React.useState(() => new ToolVisibilityStore());
     const [expands, expandsDispatch] = useNestedExpansionReducer();
     return (
