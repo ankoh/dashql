@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { chmodSync, mkdirSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, realpathSync, writeFileSync } from 'node:fs';
+import { homedir } from 'node:os';
 import path from 'node:path';
 
 import { DASHQL_FOLDER, SESSION_WORKBOOK_COPIES } from '@akohn/dashql/platform/session/session_folder';
@@ -19,8 +20,9 @@ export const CONNECT_USAGE = `Usage:
       hooks that send its events there, and ends the session when the harness exits. The arguments after -- go to
       the harness. --command runs another program of the harness than claude or codex on the PATH.
       Codex asks to trust the hooks of DashQL once, at its start. One session runs in a folder (--folder, else this
-      one), a second fails while the server of the first answers. The workspace of the session is the .dashql/ of
-      the folder.
+      one), a second fails while the server of the first answers. Without --folder in the home folder, the session
+      runs in ~/.dashql instead, the agent gets not all of home. The workspace of the session is the .dashql/ of the
+      folder.
 
       The harness learns how to work on the workbooks of DashQL at its start: Claude Code in its system prompt,
       Codex from the output of the hook. Claude Code runs the commands of dashql and edits the workbooks of the
@@ -46,6 +48,8 @@ export interface ConnectEnvironment {
     dashql: string[];
     /// The search path of the process, the harness gets a `dashql` in front of it
     searchPath: string;
+    /// The home folder of the user, a session started there runs in its `.dashql/`
+    home: string;
     /// Can the harness run a shell script as `dashql`? Not on Windows.
     posix: boolean;
     /// A new id of a session
@@ -58,6 +62,7 @@ export function processConnectEnvironment(): ConnectEnvironment {
     return {
         dashql: [process.execPath, process.argv[1]],
         searchPath: process.env.PATH ?? '',
+        home: homedir(),
         posix: process.platform !== 'win32',
         sessionId: () => randomUUID(),
         runHarness: (program, args, env, cwd) => new Promise<number>((resolve, reject) => {
@@ -85,6 +90,22 @@ export function processConnectEnvironment(): ConnectEnvironment {
 
 /// The numbers of the signals that end a harness, for the exit code like a shell reports it
 const signalNumbers: Record<string, number> = { SIGHUP: 1, SIGINT: 2, SIGKILL: 9, SIGTERM: 15 };
+
+/// Are two paths the same folder? Also through a symbolic link, e.g. a home folder whose path has one.
+function sameFolder(a: string, b: string): boolean {
+    if (path.resolve(a) === path.resolve(b)) return true;
+    try {
+        return realpathSync(a) === realpathSync(b);
+    } catch {
+        return false;
+    }
+}
+
+/// The folder of a session without --folder: the invoking directory, `~/.dashql` instead of the home folder. A fresh
+/// terminal starts in the home folder, and the harness would get all of it, every file of the user.
+export function defaultSessionFolder(cwd: string, home: string): string {
+    return sameFolder(cwd, home) ? path.join(home, DASHQL_FOLDER) : path.resolve(cwd);
+}
 
 /// Put a `dashql` that runs this dashql into `bin/` of the workspace of a session, the agent of a harness that `npx`
 /// launched has none on its path. Returns the folder of the command, null if it can't be written. It goes when the
@@ -158,7 +179,8 @@ export async function runConnect(argv: string[], cli: CliProcess, env: ConnectEn
     if (!Number.isInteger(port) || port < 1 || port > 65535) return usage('--port needs a port between 1 and 65535');
     if (secret.length === 0) return usage('--secret needs the secret that DashQL shows');
 
-    const folder = path.resolve(cli.cwd, named.get('folder') ?? '.');
+    const namedFolder = named.get('folder');
+    const folder = namedFolder != null ? path.resolve(cli.cwd, namedFolder) : defaultSessionFolder(cli.cwd, env.home);
     // The workspace of the session, where the hooks and the commands of the agent find it
     const workspace = path.join(folder, DASHQL_FOLDER);
     // The id of the session names its state, the file of the session holds it
@@ -177,6 +199,7 @@ export async function runConnect(argv: string[], cli: CliProcess, env: ConnectEn
     }
     const program = named.get('command') ?? harness;
     const args = [...(harness === 'claude' ? claudeHookArgs(env.dashql, workspace) : codexHookArgs(env.dashql, workspace)), ...rest];
+    if (namedFolder == null && folder !== path.resolve(cli.cwd)) cli.stdout(`dashql: runs the session in ${folder}, not in the home folder; --folder picks another\n`);
     cli.stdout(`DashQL follows this session on 127.0.0.1:${server.port}\n`);
     // The session goes to the harness in the arguments of its hooks, the agent learns it at the start: nothing in the
     // environment but the `dashql` of the agent, which runs this dashql like the hooks do

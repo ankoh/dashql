@@ -261,7 +261,9 @@ a shell script that runs this `dashql`) and puts that folder first on the `PATH`
 sets. Not on Windows.
 
 The workspace of the session is the `.dashql/` of the folder of the harness (`--folder`, else the invoking directory),
-and the session works in its root. It names itself in the workspace file, `.dashql/dashql-workspace.json` (`session`):
+and the session works in its root. Without `--folder` in the home folder, as in a fresh terminal, the folder of the
+harness is `~/.dashql` instead (its workspace `~/.dashql/.dashql/`), so the agent doesn't get every file of the user;
+`connect` says so. `--folder ~` still runs in the home folder. It names itself in the workspace file, `.dashql/dashql-workspace.json` (`session`):
 the id of the session and the address and the token of the server for the hooks and the commands, readable by the user
 only, and the connections that the agent may use, removed when the session ends. The copies of the workbooks of the tab
 are the workbooks of the workspace, `.dashql/workbooks/<workbook id>/`, and go when the session ends. The tab writes the workbook that it shows into the session once the server answers, with the

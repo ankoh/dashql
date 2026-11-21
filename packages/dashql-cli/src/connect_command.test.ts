@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, statSync, symlinkSync } from 'node:fs';
 import { createServer, type Server } from 'node:net';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -6,7 +6,7 @@ import path from 'node:path';
 import { followAgentSession } from '@akohn/dashql/platform/session/agent_session_client';
 import type { AgentSessionState } from '@akohn/dashql/platform/session/agent_session_state';
 
-import { CLAUDE_ALLOWED_TOOLS, claudeHookArgs, codexHookArgs, CONNECT_USAGE, runConnect, type ConnectEnvironment } from './connect_command.js';
+import { CLAUDE_ALLOWED_TOOLS, claudeHookArgs, codexHookArgs, CONNECT_USAGE, defaultSessionFolder, runConnect, type ConnectEnvironment } from './connect_command.js';
 import { CONNECTED_AGENT_GUIDE, DESCRIBE_TEXT } from './describe_command.js';
 import { connectedSessionStart, connectedSessionStartText, runSession, shellWord } from './session_command.js';
 import { startSessionServer } from './session_server.js';
@@ -40,7 +40,7 @@ function runHook(command: string, payload: object) {
 
 /// A connect environment whose harness is a function of the test
 function connectEnvironment(harness: ConnectEnvironment['runHarness']): ConnectEnvironment {
-    return { dashql: DASHQL, searchPath: '/usr/bin', posix: true, sessionId: () => SESSION, runHarness: harness };
+    return { dashql: DASHQL, searchPath: '/usr/bin', posix: true, home: path.join(W, 'no-home'), sessionId: () => SESSION, runHarness: harness };
 }
 
 const connect = (env: ConnectEnvironment, args: string[]) => runWith((a, cli) => runConnect(a, cli, env), W, args);
@@ -151,6 +151,31 @@ session once it reaches it.
         } finally {
             await first.close();
         }
+    });
+
+    it('runs the session in ~/.dashql instead of the home folder', async () => {
+        const home = mkdtempSync(path.join(process.env.TEST_TMPDIR ?? tmpdir(), 'dashql-home-'));
+        const folder = path.join(home, '.dashql');
+        let harnessCwd = '';
+        const env = { ...connectEnvironment(async (_program, _args, _env, cwd) => { harnessCwd = cwd; return 0; }), home };
+        const args = ['--launch', 'codex', '--port', String(await freePort()), '--secret', 's'];
+        const output = await runWith((a, cli) => runConnect(a, cli, env), home, args);
+        expect(output.code).toBe(0);
+        expect(harnessCwd).toBe(folder);
+        expect(output.stdout.startsWith(`dashql: runs the session in ${folder}, not in the home folder; --folder picks another\n`)).toBe(true);
+        // The workspace of the session is the .dashql/ of that folder
+        expect(existsSync(path.join(folder, '.dashql', 'dashql-workspace.json'))).toBe(true);
+        // --folder names the folder, also the home folder
+        const named = await runWith((a, cli) => runConnect(a, cli, env), W, [...args.slice(0, 3), String(await freePort()), ...args.slice(4), '--folder', home]);
+        expect(named.code).toBe(0);
+        expect(harnessCwd).toBe(home);
+        expect(named.stdout).not.toContain('not in the home folder');
+        // A home folder behind a symbolic link is the home folder too, other folders stay
+        const link = path.join(W, 'home-link');
+        symlinkSync(home, link);
+        expect(defaultSessionFolder(home, link)).toBe(path.join(link, '.dashql'));
+        expect(defaultSessionFolder(W, home)).toBe(W);
+        expect(defaultSessionFolder(path.join(home, 'project'), home)).toBe(path.join(home, 'project'));
     });
 
     it('checks its arguments', async () => {

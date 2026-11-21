@@ -21,7 +21,8 @@ The version is the one of the build of the page (`DASHQL_CLI_VERSION`, a release
 `0.0.19-dev.<commits>.g<commit>`): CI publishes the packages of a build to npm before it deploys the page, so the
 command is of the same commit, and npx caches each version by itself. The dev server shows `@latest`. `--registry` and
 `--min-release-age=0`, because a company's npm mirror or release-age policy would otherwise refuse a version published
-minutes ago. A switch between Claude Code and Codex follows the switch of SQL and AI while AI is on. The editor keeps
+minutes ago. A fresh terminal starts in the home folder: there, `connect` runs the session in `~/.dashql` instead,
+not with all of home in the folder of the agent (`defaultSessionFolder`). A switch between Claude Code and Codex follows the switch of SQL and AI while AI is on. The editor keeps
 its draft for SQL.
 
 - **The tab picks the address.** The first switch to AI picks a random port of 49152–65535 on `127.0.0.1` and a random
