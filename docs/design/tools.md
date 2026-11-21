@@ -29,8 +29,10 @@ in a new tab of the same origin, the desktop app opens it on dashql.app in the b
 
 ## Unpacker
 
-`/tools/unpacker` shows what a `.dashql` file holds ([workbook_tables.md](workbook_tables.md)): a card per Parquet file
-of the archive, and the other entries in a list below. A card reads its file when it first opens and shows a preview of
+`/tools/unpacker` shows what a `.dashql` file holds ([workbook_tables.md](workbook_tables.md)): a card of the file,
+and below it, indented, a card per Parquet file of the archive and the other entries in a list. A line from below the
+icon of the file turns to each of them with a round corner, drawn in CSS: the headers of the cards have a fixed height
+and the line turns to their middle. A card reads its file when it first opens and shows a preview of
 its rows in a fixed height, the first rows like the result of a feed entry. The button next to the header of a read file
 and the column names of the preview open the full table in the card of a feed entry's result (`ResultTableOverlay` of
 `@akohn/dashql-react`) with the search, the cross filters and a button to enlarge it to the window. The tables are the

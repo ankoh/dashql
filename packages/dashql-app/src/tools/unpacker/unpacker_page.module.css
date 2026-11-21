@@ -79,34 +79,107 @@
 }
 
 .notice {
+    --entry_turn: 18px;
     color: var(--color_fg_muted);
 }
 
-.summary {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    column-gap: 8px;
-    color: var(--color_fg_muted);
-}
-
-.summary_name {
-    font-family: var(--font_family_mono);
-    font-size: 13px;
-    color: var(--color_fg);
-}
-
-.summary_detail {
-    font-size: 12px;
-}
-
-.cards {
+/* The archive and below it its entries, set off from the header */
+.archive {
+    margin-top: 8px;
     display: flex;
     flex-direction: column;
     row-gap: 8px;
 }
 
+/* The card of the archive, like the header of the card of a Parquet file */
+.archive_card {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    column-gap: 8px;
+    box-sizing: content-box;
+    height: 36px;
+    padding: 0 12px;
+
+    border: 1px solid var(--color_border);
+    border-radius: var(--border_radius);
+    background-color: var(--color_bg_card);
+}
+
+.archive_icon {
+    color: var(--color_fg_muted);
+    flex-shrink: 0;
+}
+
+.archive_name {
+    font-family: var(--font_family_mono);
+    font-size: 13px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.archive_detail {
+    font-size: 12px;
+    color: var(--color_fg_muted);
+    white-space: nowrap;
+}
+
+.archive_size {
+    margin-left: auto;
+    font-family: var(--font_family_mono);
+    font-size: 12px;
+    color: var(--color_fg_muted);
+    white-space: nowrap;
+}
+
+/* The entries of the archive are indented. A line from below the icon of the archive card runs along them and turns
+   to each, round like the edges of the graphs. */
+.archive_entries {
+    --entry_indent: 12px;
+    --entry_gap: 8px;
+    display: flex;
+    flex-direction: column;
+    row-gap: var(--entry_gap);
+    margin-left: 20px;
+    padding-left: var(--entry_indent);
+}
+
+/* Where the line turns to an entry, from its top: the middle of the 36px header of a card below its border */
+.entry {
+    --entry_turn: 19px;
+    position: relative;
+}
+
+/* The turn, from the entry above or the archive card down to the entry */
+.entry::before {
+    content: '';
+    position: absolute;
+    left: calc(-1 * var(--entry_indent));
+    top: calc(-1 * var(--entry_gap));
+    box-sizing: border-box;
+    width: var(--entry_indent);
+    height: calc(var(--entry_gap) + var(--entry_turn) + 1px);
+    border-left: 1px solid var(--color_border);
+    border-bottom: 1px solid var(--color_border);
+    border-bottom-left-radius: 6px;
+    pointer-events: none;
+}
+
+/* The line runs on past an entry that is not the last */
+.entry:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: calc(-1 * var(--entry_indent));
+    top: 0;
+    bottom: 0;
+    border-left: 1px solid var(--color_border);
+    pointer-events: none;
+}
+
 .others {
+    --entry_turn: 8px;
     display: flex;
     flex-direction: column;
     row-gap: 6px;

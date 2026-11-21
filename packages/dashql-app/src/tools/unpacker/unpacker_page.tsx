@@ -96,42 +96,48 @@ function ParquetFileEntry(props: { file: ArchiveFile }) {
     );
 }
 
-/// The files of an opened archive: a card for every Parquet file, the other entries in a list below
+/// The files of an opened archive: a card of the archive, and below it, indented and joined to it by a line that turns
+/// to each of them, a card for every Parquet file and the other entries in a list
 function ArchiveFiles(props: { archive: UnpackedArchive }) {
     const parquetFiles = props.archive.files.filter(isParquetFile);
     const otherFiles = props.archive.files.filter(file => !isParquetFile(file));
     return (
-        <>
-            <div className={styles.summary}>
-                <FileIcon size={16} />
-                <span className={styles.summary_name}>{props.archive.name}</span>
-                <span className={styles.summary_detail}>
-                    {formatBytes(props.archive.size)}, {parquetFiles.length} Parquet {parquetFiles.length === 1 ? 'file' : 'files'}
+        <div className={styles.archive}>
+            <div className={styles.archive_card}>
+                <FileIcon size={16} className={styles.archive_icon} />
+                <span className={styles.archive_name}>{props.archive.name}</span>
+                <span className={styles.archive_detail}>
+                    {parquetFiles.length} Parquet {parquetFiles.length === 1 ? 'file' : 'files'}
                 </span>
+                <span className={styles.archive_size}>{formatBytes(props.archive.size)}</span>
             </div>
-            {parquetFiles.length === 0 && (
-                <div className={styles.notice} role="status">
-                    The file holds no Parquet files. Only .dashql files of the current format, with a Parquet file per
-                    table, can be unpacked.
-                </div>
-            )}
-            <div className={styles.cards}>
-                {parquetFiles.map(file => <ParquetFileEntry key={file.index} file={file} />)}
+            <div className={styles.archive_entries} role="group" aria-label={`Entries of ${props.archive.name}`}>
+                {parquetFiles.length === 0 && (
+                    <div className={classNames(styles.entry, styles.notice)} role="status">
+                        The file holds no Parquet files. Only .dashql files of the current format, with a Parquet file
+                        per table, can be unpacked.
+                    </div>
+                )}
+                {parquetFiles.map(file => (
+                    <div key={file.index} className={styles.entry}>
+                        <ParquetFileEntry file={file} />
+                    </div>
+                ))}
+                {otherFiles.length > 0 && (
+                    <div className={classNames(styles.entry, styles.others)}>
+                        <div className={styles.others_title}>Other entries</div>
+                        <ul className={styles.others_list}>
+                            {otherFiles.map(file => (
+                                <li key={file.index}>
+                                    <span className={styles.others_name}>{file.fileName}</span>
+                                    <span className={styles.others_size}>{formatBytes(file.uncompressedSize)}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
             </div>
-            {otherFiles.length > 0 && (
-                <div className={styles.others}>
-                    <div className={styles.others_title}>Other entries</div>
-                    <ul className={styles.others_list}>
-                        {otherFiles.map(file => (
-                            <li key={file.index}>
-                                <span className={styles.others_name}>{file.fileName}</span>
-                                <span className={styles.others_size}>{formatBytes(file.uncompressedSize)}</span>
-                            </li>
-                        ))}
-                    </ul>
-                </div>
-            )}
-        </>
+        </div>
     );
 }
 
@@ -211,7 +217,7 @@ export function UnpackerPage() {
                 <header className={styles.header}>
                     <div>
                         <h1 className={styles.title}>Unpacker</h1>
-                        <div className={styles.subtitle}>What a .dashql file holds, a table per Parquet file</div>
+                        <div className={styles.subtitle}>Inspect the contents of .dashql files</div>
                     </div>
                     <Button
                         variant={ButtonVariant.Default}
