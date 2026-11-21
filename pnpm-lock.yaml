@@ -284,7 +284,7 @@ importers:
         specifier: ^7.1.1
         version: 7.1.1(eslint@10.15.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)
       globals:
-        specifier: ^17.0.0
+        specifier: ^17.14.0
         version: 17.14.0
       hyperdb-wasm:
         specifier: 0.0.27368-dev.wasm.ge0a6b4a9
