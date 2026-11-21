@@ -580,6 +580,17 @@ describe('the runs of scripts of the runtime', () => {
         await vi.waitFor(() => expect(f.script('foo.sql').storedResult).toMatchObject({ name, key, current: false }));
     });
 
+    it('keeps the stored result of a script current while another script of the workbook can\'t be planned', async () => {
+        const broken = ['select * from :missing;', 'selec 1', '/** @param :x */\nselect :x;'];
+        const f = await scripts([['foo.sql', 'select 1 as a;'], ...broken.map((text, i): [string, string] => [`broken${i}.sql`, text])], { cache: true });
+        expect((await f.run('foo.sql')).outcome.failure).toBeNull();
+        await f.core.module.flushResultWrites();
+        const [key, ...others] = await f.core.module.resultKeys(f.workbookId);
+        expect(key).not.toBeNull();
+        expect(others).toEqual([expect.any(String), null, expect.any(String)]);
+        await vi.waitFor(() => expect(f.script('foo.sql').storedResult).toMatchObject({ key, current: true }));
+    });
+
     it('keeps the results of workbooks apart, also for the same script on the same connection', async () => {
         const f = await scripts([['foo.sql', 'select 1 as a;']], { cache: true });
         const other = f.rt.addWorkbook(f.connectionId, [['foo.sql', 'select 1 as a;']], { name: 'other' });

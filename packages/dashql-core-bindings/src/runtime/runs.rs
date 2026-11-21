@@ -913,8 +913,8 @@ impl Runs {
     }
 
     /// The result keys of the scripts of a workbook in feed order, the keys that a run checks the stored results with
-    /// and names their files after. A script without a key has none, all have none if the analyses as they are can't be
-    /// planned. Plans the targets with what they need, every script without, and analyzes nothing.
+    /// and names their files after. A script without a key has none, e.g. one that can't be planned; the other scripts
+    /// keep theirs. Plans the targets with what they need, every script without, and analyzes nothing.
     pub fn result_keys(
         &self,
         workbook_id: &str,
@@ -947,9 +947,6 @@ impl Runs {
         let connections = self.connections.clone();
         let scripts = Rc::new(scripts);
         Ok(Box::pin(async move {
-            if !graph.valid {
-                return scripts.iter().map(|_| None).collect();
-            }
             let key_scripts = scripts.clone();
             result_keys(
                 &graph,

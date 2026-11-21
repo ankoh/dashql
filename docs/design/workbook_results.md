@@ -181,7 +181,8 @@ result (`storedResult`: the name of the file, its key, when it was written, whet
 as it is now), which the runtime looks up (`runs/stored_results.rs` of the bindings) from the listing of the folder. A
 workbook is looked up once its changes paused: a change of the workbook (a move of the cursor is none), of a
 connection of its scripts, a result that a query of it recorded and the end of a run. A lookup plans the keys and lists
-the folder once, a workbook whose analyses are outdated waits for them.
+the folder once, a workbook whose analyses are outdated waits for them. A script that can't be planned, e.g. one with
+an unknown reference or an input without a value, leaves the keys of the other scripts alone.
 
 ## Renames and Deletes
 

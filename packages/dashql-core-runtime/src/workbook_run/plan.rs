@@ -409,8 +409,9 @@ pub struct ResultKey {
 }
 
 /// The result keys of the scripts of a plan. The key of a script covers its connection, its signature and the keys of
-/// the scripts it references (docs/design/workbook_results.md). None for scripts that aren't planned, whose connection has
-/// no key or that reference such a script. `key_of` derives the key of a script from its signature, `reuses_results`
+/// the scripts it references (docs/design/workbook_results.md). None for scripts that aren't planned or have no
+/// signature, whose connection has no key or that reference such a script. A plan that is invalid for one script keeps
+/// the keys of the others. `key_of` derives the key of a script from its signature, `reuses_results`
 /// tells whether the connection of a script reuses results.
 pub async fn result_keys<F, Fut>(
     graph: &ExecutionGraphT,
@@ -430,7 +431,7 @@ where
             if keys.get(index).is_some_and(Option::is_some) {
                 continue;
             }
-            if !script.planned {
+            if !script.planned || script.signature.is_none() {
                 set_key(&mut keys, index, None);
                 progressed = true;
                 continue;
