@@ -256,6 +256,18 @@ built after the scan:
 | 4 | Parameters (`parameters.rs`) | `parameters`, sorted by their position in the text, a scalar parameter with the structured type of its cast (`sql_types.rs`) |
 | - | Visualizations (`vis_tags.rs`, after the scan) | `VisualizationSpec`s of the `@vis` tags of queries, `flow` of the first `@flow` tag |
 | - | Inputs (`param_tags.rs`, after the scan) | `inputs`, the first `@param :name = <literal>` tag of every name, the literal read by `sql_literal` (see `workbook_inputs.md`) |
+| - | Transactions (`transactions.rs`, after the scan) | `transactions`, the statements that begin and end every transaction of the script, see below |
+
+A transaction begins and ends in one script: the scripts in between may run on other connections, in another order
+or not at all, and a run of one script would leave its transaction open. `transactions.rs` flags every transaction
+control statement without its counterpart in the script as `UNMATCHED_TRANSACTION_CONTROL`: a BEGIN or START
+TRANSACTION that the script doesn't end, a COMMIT, END, ROLLBACK, ABORT or PREPARE TRANSACTION without an open
+transaction, a second BEGIN in an open transaction, a SAVEPOINT outside of a transaction, and a RELEASE or ROLLBACK TO
+of a savepoint that the transaction doesn't hold (a RELEASE drops the later savepoints too, a ROLLBACK TO keeps the
+savepoint). COMMIT PREPARED and ROLLBACK PREPARED finish a transaction that was handed over and stand alone. A script
+with syntax errors is not checked, a statement that doesn't parse may be the counterpart. A transaction that the
+script doesn't end lasts until its end, the planner makes every statement of a transaction a barrier
+(`planner_dependencies.md`).
 
 `analyze_with(parsed, catalog, table_parameters)` also takes the `TableParameters` of the session
 (`table_parameters.rs`): the output columns of its single-SELECT scripts and of its attachments, declared as the tables of the

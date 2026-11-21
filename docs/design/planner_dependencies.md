@@ -131,6 +131,11 @@ of a view (a view of the catalog or one that a planned CREATE VIEW created), sin
 diagnostics of barriers are warnings in every scope, the statement runs as written in session order. A visualization
 that does not compile is an invalid barrier in every scope.
 
+Transaction control and the statements of a transaction (`AnalyzedScript.transactions`, from the BEGIN to the
+statement that ends it, or to the end of the script) are barriers without a diagnostic: the transaction runs its
+statements one after the other and no other statement of the connection runs in between. The statements after the
+transaction are ordered by their accesses again.
+
 Barriers order the nodes of their connection only. In node order, every node gets a BARRIER edge from the last
 barrier of its connection, and a barrier node also gets a BARRIER edge from every node of its connection since the
 previous barrier. A barrier thus runs after every earlier node of its connection, directly or through the previous

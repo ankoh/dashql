@@ -194,3 +194,35 @@ planner-snapshots:
           select * from graph_table(pg match (a)-[e]->(b) columns (a.name as from_name, b.name as to_name)) gt;
       - name: count
         input: select count(*) from people;
+
+  # The statements of a transaction are barriers: they run in order, nothing else of the connection runs in between.
+  # The statements after the transaction are ordered by their accesses again.
+  - name: TransactionBlock
+    catalog: |
+      create table items (id int);
+      create table other (id int);
+    scripts:
+      - name: before
+        input: |
+          select * from other;
+      - name: load
+        input: |
+          begin;
+          insert into items values (1);
+          delete from items where id = 2;
+          commit;
+          select * from other;
+      - name: after
+        input: |
+          select * from items;
+
+  # A transaction that the script doesn't end lasts until its end, the analyzer error is a warning of the plan
+  - name: TransactionNotEnded
+    catalog: |
+      create table items (id int);
+    scripts:
+      - name: load
+        input: |
+          begin;
+          insert into items values (1);
+          select * from items;

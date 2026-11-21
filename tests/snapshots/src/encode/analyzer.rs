@@ -150,6 +150,23 @@ pub fn encode_script(script: &AnalyzedScript, is_main: bool, scope_catalog: Scop
         .collect();
     out.insert("errors", Node::seq(errors));
 
+    // The transactions, by the statements that begin and end them
+    if !script.transactions.is_empty() {
+        let blocks = script
+            .transactions
+            .iter()
+            .map(|block| {
+                let mut m = Map::new();
+                m.int("begin", block.begin as i64);
+                if let Some(end) = block.end {
+                    m.int("end", end as i64);
+                }
+                m.into_node()
+            })
+            .collect();
+        out.insert("transactions", Node::seq(blocks));
+    }
+
     // The calls in a namespace with client functions, with their descriptions
     if !script.client_function_calls.is_empty() {
         let calls = script
@@ -615,8 +632,9 @@ fn encode_visualization(e: &Encoder, spec: &VisualizationSpec) -> Node {
 }
 
 /// The keys the analyzer snapshot test compares
-pub const COMPARED_KEYS: [&str; 12] = [
+pub const COMPARED_KEYS: [&str; 13] = [
     "errors",
+    "transactions",
     "client-function-calls",
     "tables",
     "catalog-changes",

@@ -71,6 +71,7 @@ impl<'a> AnalysisState<'a> {
             flow: None,
             param_values: Vec::new(),
             manual: false,
+            transactions: Vec::new(),
             inference_constraints: Vec::new(),
             inferred_table_schemas: Vec::new(),
             inferred_table_schemas_by_name: Default::default(),

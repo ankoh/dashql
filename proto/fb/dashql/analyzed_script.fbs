@@ -348,6 +348,8 @@ enum AnalyzerErrorType: uint8 {
     CLIENT_FUNCTION_DUPLICATE_OPTION,
     CLIENT_FUNCTION_UNSUPPORTED_OPTION,
     CLIENT_FUNCTION_INVALID_VALUE,
+    /// A transaction control statement without its counterpart in the script
+    UNMATCHED_TRANSACTION_CONTROL,
 }
 
 /// The severity of an analyzer error. WARNING-level diagnostics still carry a

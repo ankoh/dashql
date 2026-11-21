@@ -16,11 +16,13 @@ pub mod param_tags;
 mod parameters;
 pub mod sql_types;
 mod state;
+pub mod transactions;
 pub mod types;
 mod vis_tags;
 
 pub use clfn_calls::ClientFunctionCall;
 pub use sql_types::{SqlType, SqlTypeKind};
+pub use transactions::TransactionBlock;
 pub use types::*;
 pub use vis_tags::{has_vis_tags, statement_output_columns};
 
@@ -85,6 +87,8 @@ pub struct AnalyzedScript {
     pub param_values: Vec<ParamTag>,
     /// Does the script run only on request? A `@manual` tag on any statement
     pub manual: bool,
+    /// The transactions of the script in statement order, see `transactions`
+    pub transactions: Vec<TransactionBlock>,
     /// The schema-inference constraints
     pub inference_constraints: Vec<InferenceConstraint>,
     /// The inferred schemas of tables that are not in the catalog
@@ -223,6 +227,7 @@ pub fn analyze_with(
     param_tags::analyze(&mut state);
     manual_tag::analyze(&mut state);
     clfn_calls::analyze(&mut state);
+    transactions::analyze(&mut state);
 
     let mut out = state.into_script();
     // Malformed comment tags fall back to ordinary comments, warn so that they don't go unnoticed

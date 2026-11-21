@@ -777,12 +777,19 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
                 | Type::SELECT_INTO
                 | Type::DROP_TABLE
                 | Type::DROP_VIEW => {}
+                // Transaction control is a barrier without a diagnostic, see below
+                Type::TRANSACTION => {}
                 // A client function call doesn't run on the backend, see below
                 Type::CALL
                     if analyzed.client_function_calls.iter().any(|c| c.ast_statement_id == statement_id as u32) => {}
                 _ => {
                     barrier!("unsupported statement effects; backend session semantics are not guaranteed");
                 }
+            }
+            // A transaction holds its connection: the statements of a transaction of the script are barriers, so they run
+            // one after the other and no other statement of the connection runs in between
+            if analyzed.transactions.iter().any(|t| t.contains(statement_id as u32)) {
+                barrier = true;
             }
             // A spec shadows its namespace, a call in it never reaches the backend: the host runs its description, `sql`
             // only tells what the statement says. Any other call goes to the backend as written.

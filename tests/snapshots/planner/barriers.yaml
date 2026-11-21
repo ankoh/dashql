@@ -1221,3 +1221,223 @@ planner-snapshots:
           script: friends
           error: false
           message: 'unsupported session, locking, constraint, or graph effects'
+
+  - name: TransactionBlock
+    catalog: |
+      create table items (id int);
+      create table other (id int);
+    scripts:
+      - name: before
+        input: |
+          select * from other;
+      - name: load
+        input: |
+          begin;
+          insert into items values (1);
+          delete from items where id = 2;
+          commit;
+          select * from other;
+      - name: after
+        input: |
+          select * from items;
+    expected:
+      valid: true
+      scripts:
+        - name: before
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "cf353410ed6958f7481b9f67fd9b6190"
+        - name: load
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 4
+          signature: "48f3661fe692aa49dde65760d294df82"
+        - name: after
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: true
+          terminal-statement-id: 0
+          signature: "2959b7a4481eb7dfba17b5ba8f58ed10"
+      entities:
+        - catalog-id: '256.65536.4294967297'
+          type: TABLE
+          name: other
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: items
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: before
+          statement-id: 0
+          type: SELECT
+          sql: "select * from other"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967297'
+              mode: READ
+        - id: 1
+          script: load
+          statement-id: 0
+          type: TRANSACTION
+          sql: "begin"
+          produces-output: false
+          barrier: true
+          accesses: []
+        - id: 2
+          script: load
+          statement-id: 1
+          type: INSERT
+          sql: "insert into items values (1)"
+          produces-output: false
+          barrier: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: WRITE
+        - id: 3
+          script: load
+          statement-id: 2
+          type: DELETE
+          sql: "delete from items where id = 2"
+          produces-output: false
+          barrier: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: WRITE
+        - id: 4
+          script: load
+          statement-id: 3
+          type: TRANSACTION
+          sql: "commit"
+          produces-output: false
+          barrier: true
+          accesses: []
+        - id: 5
+          script: load
+          statement-id: 4
+          type: SELECT
+          sql: "select * from other"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967297'
+              mode: READ
+        - id: 6
+          script: after
+          statement-id: 0
+          type: SELECT
+          sql: "select * from items"
+          produces-output: true
+          barrier: false
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+      edges:
+        - from: 0
+          to: 1
+          reason: BARRIER
+        - from: 1
+          to: 2
+          reason: BARRIER
+        - from: 2
+          to: 3
+          reason: WRITE_AFTER_WRITE
+          entity: '256.65536.4294967296'
+        - from: 2
+          to: 3
+          reason: BARRIER
+        - from: 3
+          to: 4
+          reason: BARRIER
+        - from: 3
+          to: 6
+          reason: READ_AFTER_WRITE
+          entity: '256.65536.4294967296'
+        - from: 4
+          to: 5
+          reason: BARRIER
+        - from: 4
+          to: 6
+          reason: BARRIER
+      diagnostics: []
+
+  - name: TransactionNotEnded
+    catalog: |
+      create table items (id int);
+    scripts:
+      - name: load
+        input: |
+          begin;
+          insert into items values (1);
+          select * from items;
+    expected:
+      valid: true
+      scripts:
+        - name: load
+          text-version: 1
+          analyzed-text-version: 1
+          analyzed-catalog-revision: 2
+          cacheable: false
+          terminal-statement-id: 2
+          signature: "d18628ee723ddebf8d2dc32f5219091a"
+      entities:
+        - catalog-id: '256.65536.4294967296'
+          type: TABLE
+          name: items
+      unresolved-references: []
+      nodes:
+        - id: 0
+          script: load
+          statement-id: 0
+          type: TRANSACTION
+          sql: "begin"
+          produces-output: false
+          barrier: true
+          accesses: []
+        - id: 1
+          script: load
+          statement-id: 1
+          type: INSERT
+          sql: "insert into items values (1)"
+          produces-output: false
+          barrier: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: WRITE
+        - id: 2
+          script: load
+          statement-id: 2
+          type: SELECT
+          sql: "select * from items"
+          produces-output: true
+          barrier: true
+          script-result: true
+          accesses:
+            - entity: '256.65536.4294967296'
+              mode: READ
+      edges:
+        - from: 0
+          to: 1
+          reason: BARRIER
+        - from: 1
+          to: 2
+          reason: READ_AFTER_WRITE
+          entity: '256.65536.4294967296'
+        - from: 1
+          to: 2
+          reason: BARRIER
+      diagnostics:
+        - node: 0
+          script: load
+          error: false
+          message: 'analyzer: the transaction is not ended in this script, commit or roll it back'

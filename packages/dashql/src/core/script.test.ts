@@ -94,6 +94,20 @@ describe('DashQL scripts', () => {
         catalog.destroy();
     });
 
+    it('flags a transaction that the script does not end', () => {
+        const catalog = dql!.createCatalog();
+        const script = dql!.createScript(catalog);
+        script.insertTextAt(0, 'begin; select 1;');
+        script.analyze();
+        const analyzed = script.getAnalyzed();
+        const error = analyzed.read().errors(0);
+        expect(error?.errorType()).toBe(dashql.buffers.analyzer.AnalyzerErrorType.UNMATCHED_TRANSACTION_CONTROL);
+        expect(error?.message()).toBe('the transaction is not ended in this script, commit or roll it back');
+
+        script.destroy();
+        catalog.destroy();
+    });
+
     it('analyzes insert write targets through wasm', () => {
         const catalog = dql!.createCatalog();
         const schema = dql!.createScript(catalog);

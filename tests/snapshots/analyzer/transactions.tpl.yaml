@@ -1,0 +1,87 @@
+analyzer-snapshots:
+  # A transaction that the script begins and ends
+  - name: transaction_committed
+    catalog:
+      script:
+        input: create table items (id int);
+    script:
+      input: |
+        begin;
+        insert into items values (1);
+        commit;
+  # Every command that ends a transaction, every command that begins one
+  - name: transaction_aliases
+    script:
+      input: |
+        begin work; end;
+        start transaction read only; rollback;
+        begin isolation level serializable; abort;
+        begin; commit transaction;
+        begin; prepare transaction 'batch';
+  # The prepared transaction is finished elsewhere, it needs no BEGIN
+  - name: transaction_prepared_standalone
+    script:
+      input: |
+        commit prepared 'batch';
+        rollback prepared 'other';
+  # A BEGIN without its end, the transaction would stay open after the script
+  - name: transaction_not_ended
+    script:
+      input: |
+        begin;
+        select 1;
+  # An end without its BEGIN, the BEGIN in another script may have run on another connection
+  - name: transaction_not_begun
+    script:
+      input: |
+        select 1;
+        commit;
+        rollback;
+        prepare transaction 'batch';
+  # A second BEGIN in an open transaction
+  - name: transaction_nested_begin
+    script:
+      input: |
+        begin;
+        start transaction;
+        commit;
+  # Savepoints within a transaction, a release drops the later savepoints too
+  - name: transaction_savepoints
+    script:
+      input: |
+        begin;
+        savepoint a;
+        savepoint b;
+        rollback to savepoint a;
+        release b;
+        savepoint "A";
+        release a;
+        release "A";
+        commit;
+  # Savepoints outside of a transaction and unknown savepoints
+  - name: transaction_savepoints_unmatched
+    script:
+      input: |
+        savepoint a;
+        release a;
+        begin;
+        savepoint a;
+        rollback to b;
+        commit;
+        rollback to a;
+  # Two transactions in one script
+  - name: transaction_two_blocks
+    script:
+      input: |
+        begin;
+        select 1;
+        commit;
+        select 2;
+        begin;
+        select 3;
+  # A statement that doesn't parse might begin or end the transaction, the script is not checked
+  - name: transaction_syntax_error
+    script:
+      input: |
+        begin read invalid;
+        rollback;

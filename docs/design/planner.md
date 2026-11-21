@@ -243,9 +243,10 @@ barriers have warnings and run in session order, they don't invalidate the graph
 Stale inputs and malformed SQL invalidate it.
 
 This is relation-level planning, not a proof of arbitrary SQL side effects.
-Opaque function effects, triggers, backend search-path behavior, and transaction
-semantics require additional knowledge. A barrier alone does not guarantee
-backend session affinity. TypeScript scheduling and connector admission limits
+Opaque function effects, triggers and backend search-path behavior require
+additional knowledge. The statements of a transaction of a script are barriers,
+so they run in order and alone on their connection, but a barrier alone does not
+guarantee backend session affinity. TypeScript scheduling and connector admission limits
 remain separate work; notably, one embedded Hyper connection cannot execute
 concurrent operations.
 

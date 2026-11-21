@@ -63,9 +63,11 @@ ROLLBACK PREPARED 'id'
 
 Modes are `ISOLATION LEVEL { READ UNCOMMITTED | READ COMMITTED | REPEATABLE READ | SERIALIZABLE }`,
 `READ ONLY`, `READ WRITE`, `DEFERRABLE` and `NOT DEFERRABLE`. A list accepts commas, whitespace,
-or both as separators, and preserves mode order and duplicates. This is syntactic support: accepting
-a statement does not imply that an engine executes it. `SET TRANSACTION` and formatter and runtime
-support are outside this addition.
+or both as separators, and preserves mode order and duplicates. Accepting a statement does not
+imply that an engine executes it. `SET TRANSACTION` is not supported. The formatter writes the
+commands in a canonical form (`formatter/transaction.rs`), the analyzer checks that every transaction
+begins and ends in one script (`analyzer/transactions.rs`, see `core_analysis_catalog.md`), and the
+planner runs the statements of a transaction as barriers (`planner_dependencies.md`).
 
 The parse tree adds `StatementType::TRANSACTION`, `OBJECT_SQL_TRANSACTION` and
 `OBJECT_SQL_TRANSACTION_MODE`. The statement has a `SQL_TRANSACTION_COMMAND` keyword `NAME`
