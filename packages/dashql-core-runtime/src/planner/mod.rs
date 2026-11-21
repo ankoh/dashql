@@ -128,10 +128,11 @@ pub enum PlanScope<'a> {
     Session,
     /// The target scripts and what they need
     Targets(&'a [u32]),
-    /// Every statement of every script whose analysis is current with its text, for the dataflow of a session. Like a
-    /// plan of targets, but problems are diagnostics that don't stop the plan: a script without a current analysis is
-    /// left out, as are script references with errors or to scripts that were left out. An analysis of an earlier
-    /// catalog revision is planned as it is. A plan that left something out is not valid.
+    /// Every statement of every script whose analysis is current with its text, for the dataflow of a session and the
+    /// read of the stored results of a workbook, which execute nothing. Like a plan of targets, but problems are
+    /// diagnostics that don't stop the plan: a script without a current analysis is left out, as are script references
+    /// with errors or to scripts that were left out. An analysis of an earlier catalog revision is planned as it is. A
+    /// plan that left something out is not valid.
     Tolerant,
 }
 

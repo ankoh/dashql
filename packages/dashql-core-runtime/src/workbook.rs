@@ -800,6 +800,9 @@ pub struct RunPlanRequest<'a> {
     pub mount_prefix: &'a str,
     /// The files of the materialized results of scripts below the mount prefix, by script index
     pub materialization_files: &'a [(u32, String)],
+    /// Plan every script and leave out what can't be planned instead of failing (`PlanScope::Tolerant`), for a run
+    /// that executes nothing: the read of the stored results of a workbook that opened
+    pub tolerant: bool,
 }
 
 /// The scripts of a workbook
@@ -1087,9 +1090,10 @@ impl Workbook {
         let request = SessionPlanRequest {
             connections: &planner_connections,
             scripts: &planner_scripts,
-            scope: match run.targets {
-                Some(targets) => PlanScope::Targets(targets),
-                None => PlanScope::Session,
+            scope: match (run.targets, run.tolerant) {
+                (Some(targets), _) => PlanScope::Targets(targets),
+                (None, true) => PlanScope::Tolerant,
+                (None, false) => PlanScope::Session,
             },
             materialized: run.materialized,
             mount_prefix: run.mount_prefix,

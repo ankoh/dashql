@@ -642,6 +642,10 @@ describe('the runs of scripts of the runtime', () => {
         expect(f.core.table(query.resultTable?.id)?.getChild('a')?.toArray()).toEqual(Int32Array.from([41]));
         expect(f.script('bar.sql').latestResultQueryId).toBeNull();
         expect(f.executeQuery).not.toHaveBeenCalled();
+        // The read reports its progress like a run of the workbook, over the scripts that it looked at
+        await vi.waitFor(() => expect(f.core.store.get('run', f.workbookId)).toMatchObject({
+            held: null, state: { phase: 'succeeded', busy: false, completedScripts: 2, totalScripts: 2, skippedScripts: 0 },
+        }));
         await vi.waitFor(() => expect(f.script('foo.sql').storedResult).toMatchObject({ name, current: false }));
         // Showing it again reads nothing, a run computes the result of the outdated key anew
         f.core.showWorkbook(f.workbookId);

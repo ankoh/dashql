@@ -50,7 +50,9 @@ order. Syntax errors in a plan of the session, diagnostics of script references,
 plan), inputs without a value, visualizations that fail to compile and a referenced script that runs later are
 errors.
 
-A tolerant plan (`PlanScope::Tolerant`) is the plan of the [dataflow](dataflow.md) of a session, which is never run.
+A tolerant plan (`PlanScope::Tolerant`) is the plan of the [dataflow](dataflow.md) of a session, which is never run,
+and of the read of the stored results of a workbook that opened, which executes no statement and only reads the files
+of the results (`tolerant` of `RunPlanRequest`, see `workbook_results.md`).
 It plans every script like a plan of targets that targets all of them, but errors leave something out instead of
 stopping the plan: a script without a current analysis is not planned, an analysis of an earlier catalog revision
 is taken as it is, and script references with errors or to scripts that were not planned are not spliced. The

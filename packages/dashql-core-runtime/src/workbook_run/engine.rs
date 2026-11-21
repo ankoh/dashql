@@ -138,6 +138,8 @@ struct Settled {
     cached: BTreeMap<u32, String>,
     /// The names of the new files of the scripts that run
     names: BTreeMap<u32, String>,
+    /// The queries that read the stored results of the scripts that reused them
+    served: BTreeMap<u32, QueryId>,
     /// Why the run stopped while it reused a result, e.g. a cancel
     failure: Option<RunFailure>,
 }
@@ -151,6 +153,9 @@ struct Settling<'a> {
     follows: &'a [BTreeSet<u32>],
     /// May the scripts reuse their stored results?
     reuse: bool,
+    /// The scripts whose stored results a read of the stored results leaves alone: they show a result already or
+    /// their visualization doesn't decode
+    unread: &'a BTreeSet<u32>,
     settled: &'a RefCell<Settled>,
 }
 
@@ -450,9 +455,12 @@ impl<H: RunHost> Run<H> {
         if analyzed {
             self.host.workbook_changed(Vec::new(), true);
         }
-        let request = RunPlanRequest { targets, materialized: provided, mount_prefix, materialization_files: files };
+        // A read of the stored results plans what it can, a script that can't be planned leaves the others alone
+        let tolerant = self.options.stored;
+        let request =
+            RunPlanRequest { targets, materialized: provided, mount_prefix, materialization_files: files, tolerant };
         let graph = self.workbook.try_borrow().map_err(|_| busy())?.plan_run(&request);
-        if !graph.valid {
+        if !graph.valid && !tolerant {
             return Err(RunFailure::plan(describe_plan_errors(&graph, &self.files)));
         }
         Ok(graph)
@@ -460,22 +468,32 @@ impl<H: RunHost> Run<H> {
 
     /// The visualizations of the outputs of a plan, they must decode, also those of outputs that the run discards
     fn visualizations(&self, graph: &ExecutionGraphT) -> Result<Vec<Option<ScriptVisualization>>, RunFailure> {
-        nodes(graph)
+        let (visualizations, invalid) = Self::decoded_visualizations(graph);
+        if !invalid.is_empty() {
+            return Err(RunFailure::error("Invalid captured visualization metadata"));
+        }
+        Ok(visualizations)
+    }
+
+    /// The visualizations of the outputs of a plan and the scripts with a visualization that doesn't decode
+    fn decoded_visualizations(graph: &ExecutionGraphT) -> (Vec<Option<ScriptVisualization>>, BTreeSet<u32>) {
+        let mut invalid = BTreeSet::new();
+        let visualizations = nodes(graph)
             .iter()
             .map(|node| match (&node.visualization, node.produces_output) {
-                (Some(visualization), true) => {
-                    if !visualization_is_valid(visualization) {
-                        return Err(RunFailure::error("Invalid captured visualization metadata"));
-                    }
-                    Ok(Some(ScriptVisualization {
-                        sql: node.sql.clone().unwrap_or_default(),
-                        statement_id: node.statement_id,
-                        visualization: (**visualization).clone(),
-                    }))
+                (Some(visualization), true) if visualization_is_valid(visualization) => Some(ScriptVisualization {
+                    sql: node.sql.clone().unwrap_or_default(),
+                    statement_id: node.statement_id,
+                    visualization: (**visualization).clone(),
+                }),
+                (Some(_), true) => {
+                    invalid.insert(node.script);
+                    None
                 }
-                _ => Ok(None),
+                _ => None,
             })
-            .collect()
+            .collect();
+        (visualizations, invalid)
     }
 
     /// The key of the result of a script from its signature
@@ -487,29 +505,28 @@ impl<H: RunHost> Run<H> {
         }
     }
 
-    /// The result keys of the scripts of a plan that reads their stored results, the keys downstream of a script cover
-    /// its stored file
-    async fn stored_keys(self: &Rc<Self>, graph: &ExecutionGraphT) -> Vec<Option<ResultKey>> {
-        result_keys(graph, self.key_of(), |script, _key| self.keep_stored(script)).await
-    }
-
     /// The result keys of the scripts of a plan that runs and what the run does with their results, in the order of
     /// their references: a script whose key is reusable and matches its stored file reuses it unless it follows a
     /// script that runs, every other script with a result node writes a new file under a name that the run gives it
     /// now, and a script without one keeps its stored file, e.g. a script that another one inlines. The keys
     /// downstream of a script cover its file.
+    ///
+    /// A read of the stored results (`RunOptions::stored`) runs no script: it reads the stored file of every script
+    /// with a result node, whatever its key, except the scripts in `unread`.
     async fn settle_results(
         self: &Rc<Self>,
         graph: &ExecutionGraphT,
         visualizations: &[Option<ScriptVisualization>],
+        unread: &BTreeSet<u32>,
     ) -> Result<(Vec<Option<ResultKey>>, Settled), RunFailure> {
         let count = self.files.len();
         let statements = planned_statements(graph, &self.files, &self.options.run);
         let follows = script_follows(graph, count);
         // A script of a connection that can't run doesn't run, the scripts that follow it reuse their stored results:
         // the script can't change what they read during the run
+        let stored = self.options.stored;
         let settled = RefCell::new(Settled {
-            runs: self.connections.iter().map(|connection| self.host.can_run(connection)).collect(),
+            runs: self.connections.iter().map(|connection| !stored && self.host.can_run(connection)).collect(),
             ..Settled::default()
         });
         let plan = Settling {
@@ -518,6 +535,7 @@ impl<H: RunHost> Run<H> {
             visualizations,
             follows: &follows,
             reuse: !self.options.refresh && self.host.has_results(),
+            unread,
             settled: &settled,
         };
         let keys = result_keys(graph, self.key_of(), |script, key| self.settle_result(&plan, script, key)).await;
@@ -537,6 +555,21 @@ impl<H: RunHost> Run<H> {
         else {
             return self.keep_stored(script).await;
         };
+        // A read of the stored results reads the file of the script whatever its key and runs nothing
+        if self.options.stored {
+            if plan.unread.contains(&script) {
+                return self.keep_stored(script).await;
+            }
+            let name = match self.reuse_stored(plan, script, result_node, &key).await {
+                Ok(name) => name,
+                Err(failure) => {
+                    plan.settled.borrow_mut().failure = Some(failure);
+                    None
+                }
+            };
+            self.emit(|state| state.completed_scripts += 1);
+            return name;
+        }
         let blocked = plan.follows.get(script as usize).is_some_and(|earlier| {
             let settled = plan.settled.borrow();
             earlier.iter().any(|e| settled.runs.get(*e as usize) == Some(&true))
@@ -568,9 +601,10 @@ impl<H: RunHost> Run<H> {
         let host = self.host.clone();
         let file = self.file(script);
         let retained = host.result_retain(&file).await.ok().flatten();
-        // A file of another key is no result of the script as it is now, the script runs
+        // A file of another key is no result of the script as it is now, the script runs. A read of the stored
+        // results takes it all the same.
         let retained = match retained {
-            Some(retained) if retained.file.key != key.key => {
+            Some(retained) if retained.file.key != key.key && !self.options.stored => {
                 host.result_release(retained.id).await;
                 None
             }
@@ -594,8 +628,11 @@ impl<H: RunHost> Run<H> {
                 *run = false;
             }
             settled.cached.insert(script, retained.file.name.clone());
+            settled.served.insert(script, served);
         }
-        self.host.script_event(&file, &ScriptEvent::Cached { key: key.key.clone(), query_id: served });
+        if !self.options.stored {
+            self.host.script_event(&file, &ScriptEvent::Cached { key: key.key.clone(), query_id: served });
+        }
         self.cooperate().await?;
         Ok(Some(retained.file.name))
     }
@@ -735,7 +772,10 @@ impl<H: RunHost> Run<H> {
         if prepared != Ok(false) {
             host.workbook_changed(Vec::new(), true);
         }
-        prepared.map_err(RunFailure::error)?;
+        // A read of the stored results leaves a script that doesn't analyze out of its plan
+        if !self.options.stored {
+            prepared.map_err(RunFailure::error)?;
+        }
         self.cooperate().await?;
 
         // A change of inputs runs the scripts that it affects, with what they read
@@ -752,11 +792,11 @@ impl<H: RunHost> Run<H> {
             targets = Some(affected);
         }
         let mount_prefix = host.mount_prefix().unwrap_or_else(|| unique_mount_prefix(host.now()));
-        if self.options.stored {
-            return self.read_stored(&mount_prefix).await;
-        }
         // The plan of the targets checks the workbook and gives the result keys
         let mut graph = self.plan(targets.as_deref(), &[], &[], &mount_prefix)?;
+        if self.options.stored {
+            return self.read_stored(&graph).await;
+        }
         if let (PlanRun::Script(target), Some(targets)) = (&self.options.run, targets.as_deref()) {
             if targets.iter().all(|t| !nodes(&graph).iter().any(|node| node.script == *t)) {
                 return Err(RunFailure::plan(format!("{target} holds no statement")));
@@ -766,7 +806,7 @@ impl<H: RunHost> Run<H> {
         self.validate(&graph, true)?;
         self.check_cancelled()?;
         // The keys of the scripts, the stored results that they reuse and the names of the files that they write
-        let (keys, settled) = self.settle_results(&graph, &visualizations).await?;
+        let (keys, settled) = self.settle_results(&graph, &visualizations, &BTreeSet::new()).await?;
         let Settled { cached: cached_files, names, .. } = settled;
 
         // Scripts without statements are done right away, so are the scripts that reused their results
@@ -933,45 +973,31 @@ impl<H: RunHost> Run<H> {
     }
 
     /// Read the stored result of every script that shows no result yet, whatever its key, and run nothing: the workbook
-    /// opened. Every script is planned on its own, a script that can't be planned, e.g. one that names an unknown
-    /// script, leaves the others alone.
-    async fn read_stored(self: &Rc<Self>, mount_prefix: &str) -> Result<Vec<Option<QueryId>>, RunFailure> {
-        let host = self.host.clone();
+    /// opened. The plan is tolerant, a script that can't be planned, e.g. one that names an unknown script, leaves the
+    /// others alone. The results settle like those of a run whose connections can't run, see `settle_results`.
+    async fn read_stored(self: &Rc<Self>, graph: &ExecutionGraphT) -> Result<Vec<Option<QueryId>>, RunFailure> {
         let count = self.files.len();
-        let mut outputs = vec![None; count];
-        if !host.has_results() {
-            return Ok(outputs);
+        if !self.host.has_results() {
+            return Ok(vec![None; count]);
         }
-        for index in 0..count as u32 {
-            self.check_cancelled()?;
-            if self.shows_result(index) {
-                continue;
-            }
-            let Ok(graph) = self.plan(Some(&[index]), &[], &[], mount_prefix) else { continue };
-            let Some(result_node) = nodes(&graph).iter().position(|node| node.script == index && node.script_result)
-            else {
-                continue;
-            };
-            let Some(key) = self.stored_keys(&graph).await.get(index as usize).cloned().flatten() else { continue };
-            let Ok(visualizations) = self.visualizations(&graph) else { continue };
-            let statements = planned_statements(&graph, &self.files, &self.options.run);
-            let retained = host.result_retain(&self.file(index)).await.ok().flatten();
-            // A file that was retained is kept before a cancellation counts, the release of the run releases it
-            let Some(retained) = retained else { continue };
-            self.kept.borrow_mut().push(retained.id);
-            self.check_cancelled()?;
-            let served = self
-                .serve_cached(&graph, index, result_node, &key, &retained.file, &statements, &visualizations)
-                .await?;
-            if let Some(query_id) = served {
-                if let Some(output) = outputs.get_mut(index as usize) {
-                    *output = Some(query_id);
-                }
-                self.emit(|state| state.completed_scripts += 1);
-            }
-            self.cooperate().await?;
-        }
-        Ok(outputs)
+        let (visualizations, mut unread) = Self::decoded_visualizations(graph);
+        unread.extend((0..count as u32).filter(|script| self.shows_result(*script)));
+        let reads: BTreeSet<u32> = nodes(graph)
+            .iter()
+            .filter(|node| node.script_result && !unread.contains(&node.script))
+            .map(|node| node.script)
+            .collect();
+        let total = reads.len();
+        self.emit(|state| {
+            state.phase = RunPhase::Running;
+            state.total_scripts = total;
+        });
+        self.validate(graph, true)?;
+        self.check_cancelled()?;
+        let (_, settled) = self.settle_results(graph, &visualizations, &unread).await?;
+        // A script without a result key has no stored result to read
+        self.emit(|state| state.completed_scripts = total);
+        Ok((0..count as u32).map(|script| settled.served.get(&script).copied()).collect())
     }
 
     /// Does a script show a result already, e.g. of a run before the workbook opened?

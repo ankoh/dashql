@@ -614,7 +614,7 @@ fn an_opened_workbook_reads_the_stored_results_of_every_key_and_runs_nothing() {
         ("foo.sql", "select 1 as a", &main),
         ("bar.sql", "select 2", &main),
         ("baz.sql", "select 3", &main),
-        // A script that can't be planned leaves the others alone
+        // A script with an error shows its stored result too, the plan is tolerant
         ("broken.sql", "select * from :missing", &main),
     ]);
     let s = setup(true, None, 1);
@@ -626,13 +626,23 @@ fn an_opened_workbook_reads_the_stored_results_of_every_key_and_runs_nothing() {
         // Reading needs no connection
         state.offline.insert("main".into());
     }
-    let options = RunOptions { stored: true, reports_state: false, ..workbook_run() };
+    let options = RunOptions { stored: true, ..workbook_run() };
     let result = s.run(&workbook, options);
     assert!(result.failure.is_none(), "{:?}", result.failure);
     let statements = &s.state.borrow().statements;
-    assert_eq!(statements.len(), 2);
+    assert_eq!(statements.len(), 3);
     assert!(statements.iter().all(|s| matches!(s.request.result, StatementResult::Read { .. })));
-    assert_eq!(s.events("baz.sql"), Vec::<String>::new());
+    assert_eq!(result.outputs.iter().map(Option::is_some).collect::<Vec<_>>(), vec![true, true, false, true]);
+    // A read is neither a reuse by a run nor a skip
+    for file in ["foo.sql", "bar.sql", "baz.sql", "broken.sql"] {
+        assert_eq!(s.events(file), Vec::<String>::new(), "{file}");
+    }
+    // The read reports its progress over the scripts that it reads, the planned ones that show no result yet
+    let states = s.state.borrow().states.clone();
+    assert!(states.iter().any(|state| state.phase == RunPhase::Running && state.completed_scripts < 4));
+    let last = s.last_state();
+    assert_eq!((last.phase, last.completed_scripts, last.total_scripts), (RunPhase::Succeeded, 4, 4));
+    assert_eq!((last.skipped_scripts, last.total_statements), (0, 0));
 }
 
 #[test]

@@ -179,13 +179,20 @@ the run of the query owns the table that it read, then the query ends as cancell
 
 Loading a workbook doesn't read its results. Showing it does: the feed page tells the runtime that it shows a
 workbook (`showWorkbook(workbookId)`), and the first time a workbook is shown, the runtime reads the stored
-result of every script that has no result yet, one after the other once the compute database is set up: a run of the
-workbook that runs nothing (`stored` of the run options) and plans every script on its own, so a script that can't be
-planned leaves the others alone. Each read is a query of the connection of the script that only reads the file,
-whatever its key: the card shows the result like the result of a run, marked as stored. The status of the workbook
-logs no line for these reads. A workbook that a run holds when it is shown reads its results once the run ended. A
-script whose key differs from the key in the
-name of its file is marked as outdated; running it computes a new result.
+result of every script that has no result yet, one after the other once the compute database is set up. The read is a
+run of the workbook that runs nothing (`stored` of the run options) and goes the way of every run: it plans the
+workbook and settles the results of the scripts in the order of their references, like a run whose connections can't
+run, except that it takes the stored file of a script whatever its key. Its plan is tolerant (`PlanScope::Tolerant`,
+`planner.md`), so a script that can't be planned, e.g. one without a current analysis, is left out and leaves the
+others alone. A script whose plan has an error, e.g. an unknown reference, shows its stored result too. Each read is a
+query of the connection of the script that only reads the file: the card shows the result like the result of a run,
+marked as stored. A script whose key differs from the key in the name of its file is marked as outdated; running it
+computes a new result. A script whose visualization doesn't decode reads nothing.
+
+The read is a run of the workbook for the app as well: it holds the workbook (`held` of the run slice is `open`) and
+reports its state like Execute All (`state` of the run slice), counting the scripts that it looks at. The bar shows its
+progress and its Stop, and the status logs its end like the end of every run of the workbook. The read is no reuse by
+a run and skips no script. A workbook that a run holds when it is shown reads its results once the run ended.
 
 A script whose result was read stays as it is when the workbook is shown again. The view of a script carries its stored
 result (`storedResult`: the name of the file, its key, when it was written, whether the key is the key of the script

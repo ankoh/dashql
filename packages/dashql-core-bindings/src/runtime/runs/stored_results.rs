@@ -209,7 +209,7 @@ impl Runs {
             inputs: None,
             refresh: false,
             stored: true,
-            reports_state: false,
+            reports_state: true,
             analyze: true,
         };
         let (handle, run) = start_run(Rc::new(host), scope.workbook.clone(), options);
