@@ -267,8 +267,11 @@ pub enum ComputationSummaryAnalysis {
         total_count: i64,
         count_not_null: i64,
         count_null: i64,
+        /// An estimate within what the frequent values prove
         count_distinct: i64,
         is_unique: bool,
+        /// Are there values besides the frequent values? Exact.
+        has_more: bool,
         frequent_value_ids: Vec<i64>,
         frequent_value_counts: Vec<i64>,
         frequent_value_percentages: Vec<f64>,
@@ -305,6 +308,7 @@ impl From<&ColumnSummaryAnalysis> for ComputationSummaryAnalysis {
                 count_null: a.count_null,
                 count_distinct: a.count_distinct,
                 is_unique: a.is_unique,
+                has_more: a.has_more,
                 frequent_value_ids: a.frequent_value_ids.clone(),
                 frequent_value_counts: a.frequent_value_counts.clone(),
                 frequent_value_percentages: a.frequent_value_percentages.clone(),

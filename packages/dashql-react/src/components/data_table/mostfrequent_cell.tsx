@@ -57,7 +57,8 @@ function MostFrequentCellImpl(props: MostFrequentCellProps): React.ReactElement 
     const frequentValueCounts = props.columnAggregate.analysis.frequentValueCounts;
     const frequentValuePercentages = props.columnAggregate.analysis.frequentValuePercentages;
     const isUnique = props.columnAggregate.analysis.isUnique;
-    const hasMore = props.columnAggregate.analysis.countDistinct > props.columnAggregate.frequentValuesTable.numRows;
+    // Exact, the distinct count is an estimate
+    const hasMore = props.columnAggregate.analysis.hasMore;
 
     const moreButtonWidth = 8;
     const barWidth = Math.max(width - (hasMore ? moreButtonWidth : 0), 0);

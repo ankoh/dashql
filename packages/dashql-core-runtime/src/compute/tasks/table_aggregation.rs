@@ -1,6 +1,7 @@
 //! The statistics of all columns of a table: the row count, the counts, minimum and maximum of the ordinal columns
 //! and the counts and distinct counts of the string columns. A column of integers with a small domain gets one bin
-//! per value.
+//! per value. The distinct counts are estimates (`APPROX_COUNT_DISTINCT`), an exact count hashes every value of the
+//! column. The summary of a string column shows nothing that depends on them, see `analyze_string_column`.
 
 use arrow_schema::Schema;
 use dashql_core::error::Result;
@@ -60,7 +61,7 @@ pub fn plan_table_aggregation(task: &TableAggregationTask, output: DataFrameId) 
                 let distinct = format!("_{i}_countd");
                 let field = &column.input_field_name;
                 aggregates.push(GroupByAggregate::new(AggregateFunction::Count(field.clone()), count.clone()));
-                let count_distinct = AggregateFunction::CountDistinct(field.clone());
+                let count_distinct = AggregateFunction::ApproxCountDistinct(field.clone());
                 aggregates.push(GroupByAggregate::new(count_distinct, distinct.clone()));
                 let mut column = column.clone();
                 column.stats_fields = Some(ColumnStatsFields {

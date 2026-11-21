@@ -35,8 +35,8 @@ pub enum AggregateFunction {
     Avg(String),
     /// `COUNT(field)`
     Count(String),
-    /// `COUNT(DISTINCT field)`
-    CountDistinct(String),
+    /// `APPROX_COUNT_DISTINCT(field)`, an estimate that is exact for small counts
+    ApproxCountDistinct(String),
     /// `COUNT(*)`
     CountStar,
 }
@@ -210,7 +210,9 @@ fn format_aggregate(aggregate: &AggregateFunction) -> String {
         AggregateFunction::Max(field) => format!("MAX({})", quote_identifier(field)),
         AggregateFunction::Avg(field) => format!("AVG({})", quote_identifier(field)),
         AggregateFunction::Count(field) => format!("COUNT({})", quote_identifier(field)),
-        AggregateFunction::CountDistinct(field) => format!("COUNT(DISTINCT {})", quote_identifier(field)),
+        AggregateFunction::ApproxCountDistinct(field) => {
+            format!("APPROX_COUNT_DISTINCT({})", quote_identifier(field))
+        }
         AggregateFunction::CountStar => "COUNT(*)".to_string(),
     }
 }

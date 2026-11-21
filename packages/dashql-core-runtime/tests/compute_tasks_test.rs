@@ -10,7 +10,7 @@ use arrow_array::{
 };
 use arrow_schema::{DataType, Field, Schema, TimeUnit};
 
-use dashql_core_runtime::compute::tasks::analysis::BinBounds;
+use dashql_core_runtime::compute::tasks::analysis::{analyze_string_column, BinBounds};
 use dashql_core_runtime::compute::tasks::analyze_table::{
     column_aggregation_tasks, start_table_analysis, table_aggregation_task, AnalyzeTableOptions,
 };
@@ -568,7 +568,7 @@ fn table_aggregation_counts_and_names_the_statistics() {
     assert_eq!(plan.query.title, "Table aggregation");
     assert_eq!(
         plan.query.sql,
-        "WITH\n  __grouped AS (\n    SELECT COUNT(*) AS \"_count\", COUNT(\"score\") AS \"_0_count\", MIN(\"score\") AS \"_0_min\", MAX(\"score\") AS \"_0_max\", COUNT(\"name\") AS \"_1_count\", COUNT(DISTINCT \"name\") AS \"_1_countd\" FROM \"__df_10\"\n  )\nSELECT * FROM __grouped"
+        "WITH\n  __grouped AS (\n    SELECT COUNT(*) AS \"_count\", COUNT(\"score\") AS \"_0_count\", MIN(\"score\") AS \"_0_min\", MAX(\"score\") AS \"_0_max\", COUNT(\"name\") AS \"_1_count\", APPROX_COUNT_DISTINCT(\"name\") AS \"_1_countd\" FROM \"__df_10\"\n  )\nSELECT * FROM __grouped"
     );
     let ColumnGroup::String(name) = &plan.column_groups[1] else { panic!("a string column") };
     assert_eq!(name.stats_fields.as_ref().and_then(|f| f.distinct_count_field_name.as_deref()), Some("_1_countd"));
@@ -811,6 +811,33 @@ fn filtered_column_aggregation_counts_the_frequent_values_of_the_selected_rows()
     assert_eq!(analysis.frequent_value_strings, vec![Some("a".to_string()), Some("b".to_string())]);
     assert_eq!(analysis.frequent_value_ids, vec![1, 2]);
     assert_eq!(analysis.frequent_value_percentages, vec![0.8, 0.4]);
+}
+
+#[test]
+fn the_frequent_values_decide_what_the_estimated_distinct_count_can_not() {
+    // 10 rows, 8 names that aren't null, an estimate of 3 distinct names
+    let ColumnGroup::String(column) = name_column() else { panic!("a string column") };
+    let frequent = |keys: Vec<Option<&str>>, counts: Vec<i64>| {
+        let ids: Vec<i64> = (1..=keys.len() as i64).collect();
+        table(vec![
+            ("key", a(StringArray::from(keys))),
+            ("keyId", a(Int64Array::from(ids))),
+            ("count", a(Int64Array::from(counts))),
+        ])
+    };
+    let analyze = |frequent: &ResultTable, selection: Option<i64>| {
+        let analysis = analyze_string_column(&stats(), &column, frequent, selection).expect("an analysis");
+        (analysis.count_distinct, analysis.is_unique, analysis.has_more)
+    };
+    // The counts cover every row: these are all values, 2 whatever the estimate says
+    assert_eq!(analyze(&frequent(vec![Some("a"), Some("b"), None], vec![5, 3, 2]), None), (2, false, false));
+    // Rows are left out, the most frequent value occurs once: every value is distinct, one per name
+    assert_eq!(analyze(&frequent(vec![None, Some("a"), Some("b")], vec![2, 1, 1]), None), (8, true, true));
+    // Rows are left out: more than the 3 values shown, whatever the estimate says
+    let shown = frequent(vec![Some("a"), Some("b"), Some("c")], vec![3, 2, 1]);
+    assert_eq!(analyze(&shown, None), (4, false, true));
+    // A filtered summary counts the selection, the table has at least the values that it shows
+    assert_eq!(analyze(&frequent(vec![Some("a"), Some("b"), None], vec![3, 1, 1]), Some(5)), (3, false, false));
 }
 
 #[test]

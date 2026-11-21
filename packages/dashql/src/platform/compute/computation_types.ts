@@ -77,8 +77,11 @@ export interface StringColumnAnalysis {
     totalCount: number;
     countNotNull: number;
     countNull: number;
+    /// An estimate within what the frequent values prove, nothing that the summary shows depends on it
     countDistinct: number;
     isUnique: boolean;
+    /// Are there values besides the frequent values? Exact, the counts of the frequent values leave rows out.
+    hasMore: boolean;
     /// The frequent values, formatted
     frequentValueStrings: (string | null)[];
     /// The frequent value ids (for plotting)
@@ -302,6 +305,7 @@ function stringAnalysis(
         countNull: analysis.countNull,
         countDistinct: analysis.countDistinct,
         isUnique: analysis.isUnique,
+        hasMore: analysis.hasMore,
         frequentValueStrings,
         frequentValueIds: BigInt64Array.from(analysis.frequentValueIds, id => BigInt(id)),
         frequentValueCounts: BigInt64Array.from(analysis.frequentValueCounts, count => BigInt(count)),

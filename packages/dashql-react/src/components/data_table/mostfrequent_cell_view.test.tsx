@@ -372,6 +372,24 @@ describe('MostFrequentCell', () => {
         expect(onFilter).toHaveBeenCalledWith(table, 3, column, null);
     });
 
+    it('shows more values by the counts of the frequent values, not by the estimated distinct count', async () => {
+        // The rect of the more button is the one without a y attribute
+        const moreButtons = () => plotGroups()[0].querySelectorAll(':scope > g > rect:not([y])');
+        // The estimate says 3 distinct values, but the 3 values shown cover only 20 of 100 rows
+        const under = tableAggregate(100, 100, 3);
+        const fewer = await aggregate(under, frequentValues(['a', 'b', 'c'], [1n, 2n, 3n], [10n, 5n, 5n]));
+        await render({ column: fewer, table: under });
+        expect(fewer.analysis.hasMore).toBe(true);
+        expect(moreButtons()).toHaveLength(1);
+        // The estimate says 4 distinct values, but the 3 values shown cover every row
+        const over = tableAggregate(20, 20, 4);
+        const all = await aggregate(over, frequentValues(['a', 'b', 'c'], [1n, 2n, 3n], [10n, 5n, 5n]));
+        await render({ column: all, table: over });
+        expect(all.analysis.hasMore).toBe(false);
+        expect(totalBars()).toHaveLength(3);
+        expect(moreButtons()).toHaveLength(0);
+    });
+
     it('labels columns with distinct values', async () => {
         const table = tableAggregate(3, 3, 3);
         const column = await aggregate(table, frequentValues(['a', 'b', 'c'], [1n, 2n, 3n], [1n, 1n, 1n]));

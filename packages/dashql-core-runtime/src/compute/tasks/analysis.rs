@@ -72,10 +72,13 @@ pub struct StringColumnAnalysis {
     pub count_not_null: i64,
     /// The nulls
     pub count_null: i64,
-    /// The distinct values
+    /// The distinct values of the table, an estimate within what the frequent values prove, exact where they hold all
+    /// values of an unfiltered summary or every value occurs once
     pub count_distinct: i64,
-    /// Is every value distinct?
+    /// Is every value of the summary distinct? The most frequent value occurs once.
     pub is_unique: bool,
+    /// Are there values besides the frequent values? Exact: their counts leave rows of the summary out.
+    pub has_more: bool,
     /// The frequent values
     pub frequent_value_strings: Vec<Option<String>>,
     /// The ids of the frequent values, for the cross filters
@@ -144,8 +147,14 @@ pub fn analyze_ordinal_column(
     })
 }
 
-/// Analyze the frequent values of a string column: the rows `key`, `keyId` and `count`, most frequent first. A
-/// filtered summary counts the selected rows.
+/// Analyze the frequent values of a string column: the rows `key`, `keyId` and `count`, most frequent first. A filtered
+/// summary counts the selected rows.
+///
+/// The distinct count of the statistics is an estimate (`APPROX_COUNT_DISTINCT`), it may be above or below the true
+/// count. Nothing that the summary shows depends on it: the counts of the frequent values are exact. They tell whether
+/// values are left out (their counts, the nulls with them, sum up to fewer rows than the summary has) and whether every
+/// value is distinct (the most frequent value that isn't null occurs once). The distinct count is clamped to what they
+/// prove.
 pub fn analyze_string_column(
     stats: &TableStats,
     column: &StringColumnGroup,
@@ -157,7 +166,7 @@ pub fn analyze_string_column(
     let total_count = filtered_total_count.unwrap_or(unfiltered_total_count);
     let not_null_count = stats.count(&fields.count_field_name)?.unwrap_or(0);
     let distinct_field = fields.distinct_count_field_name.as_deref().unwrap_or_default();
-    let distinct_count = stats.count(distinct_field)?.unwrap_or(0);
+    let estimated_distinct_count = stats.count(distinct_field)?.unwrap_or(0);
 
     let key_column = frequent_values.column_index("key").unwrap_or(0);
     let frequent_value_strings = frequent_values.string_values(key_column)?;
@@ -171,13 +180,34 @@ pub fn analyze_string_column(
         .ok_or_else(|| Error::invalid_argument("Missing keyId column in frequent values table"))?;
     let frequent_value_ids = frequent_values.int64_values(key_ids)?.into_iter().map(|id| id.unwrap_or(0)).collect();
     let frequent_value_percentages = frequent_value_counts.iter().map(|count| share(*count, total_count)).collect();
+    // The counts of the values that aren't null, most frequent first
+    let values: Vec<i64> = frequent_value_strings
+        .iter()
+        .zip(&frequent_value_counts)
+        .filter(|(value, _)| value.is_some())
+        .map(|(_, count)| *count)
+        .collect();
+    let has_more = frequent_value_counts.iter().sum::<i64>() < total_count;
+    let is_unique = values.first().is_none_or(|count| *count <= 1);
+    let shown = values.len() as i64;
+    let distinct_count = match (filtered_total_count, has_more, is_unique) {
+        // The frequent values are all values of the column
+        (None, false, _) => shown,
+        // Every value of the column occurs once
+        (None, true, true) => not_null_count,
+        // More values than the frequent values, at most one per value that isn't null
+        (None, true, false) => estimated_distinct_count.min(not_null_count).max(shown + 1),
+        // A filtered summary names the values of the selection, the table has at least as many
+        (Some(_), _, _) => estimated_distinct_count.min(not_null_count).max(shown),
+    };
 
     Ok(StringColumnAnalysis {
         total_count,
         count_not_null: not_null_count,
         count_null: unfiltered_total_count - not_null_count,
         count_distinct: distinct_count,
-        is_unique: not_null_count == distinct_count,
+        is_unique,
+        has_more,
         frequent_value_strings,
         frequent_value_ids,
         frequent_value_counts,
