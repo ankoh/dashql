@@ -153,6 +153,40 @@ export interface OverlayProps {
 
 const SLIDE_ANIMATION_DISTANCE = 8;
 
+/// A bit longer than the fade-out of the backdrop in overlay.module.css
+const BACKDROP_FADE_OUT_FALLBACK_MS = 250;
+
+/// The backdrops that are shown and not fading out
+let shownBackdrops = 0;
+
+/// A slight dark shade behind the overlay that fades in when it opens and out when it closes.
+/// The overlay unmounts at once, the shade lives on in the portal root until its fade-out ends.
+/// It goes right before the portal of the overlay and paints below it, clicks pass through.
+/// An overlay over another overlay adds no second shade.
+function useOverlayBackdrop(overlayRef: React.RefObject<HTMLDivElement | null>, centered: boolean) {
+    React.useLayoutEffect(() => {
+        // The portal of the child mounted first, its element is in the portal root already
+        const overlay = overlayRef.current;
+        const portal = centered ? overlay?.parentElement?.parentElement : overlay?.parentElement;
+        const root = portal?.parentElement;
+        if (!portal || !root || shownBackdrops > 0) {
+            return;
+        }
+        const backdrop = document.createElement('div');
+        backdrop.className = styles.backdrop;
+        root.insertBefore(backdrop, portal);
+        shownBackdrops += 1;
+        return () => {
+            shownBackdrops -= 1;
+            backdrop.classList.add(styles.backdrop_closing);
+            const remove = () => backdrop.remove();
+            backdrop.addEventListener('animationend', remove, { once: true });
+            // Also without an animationend (jsdom, animations turned off)
+            setTimeout(remove, BACKDROP_FADE_OUT_FALLBACK_MS);
+        };
+    }, [overlayRef, centered]);
+}
+
 export const Overlay = React.forwardRef((props: OverlayProps, forwardedRef: React.ForwardedRef<HTMLDivElement>) => {
     // Use a ref as forwarded ref
     const overlayRef = React.useRef<HTMLDivElement>(null);
@@ -173,6 +207,7 @@ export const Overlay = React.forwardRef((props: OverlayProps, forwardedRef: Reac
         initialFocusRef: props.initialFocusRef,
         preventFocusOnOpen: props.preventFocusOnOpen,
     });
+    useOverlayBackdrop(overlayRef, props.centered === true);
 
     React.useLayoutEffect(() => {
         if (!overlayRef.current?.animate || props.visibility === OverlayVisibility.Hidden) {

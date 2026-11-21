@@ -22,6 +22,32 @@
     to   { opacity: 1; transform: scale(1); }
 }
 
+/* The shade behind an overlay, see useOverlayBackdrop. It lets clicks through so an outside click still reaches the
+   page and closes the overlay. The closing class swaps the animation, the element goes when the fade-out ends.
+   Over the page, below the portal of the overlay that follows it (both at z-index 1000). */
+.backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    pointer-events: none;
+    background-color: light-dark(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.44));
+    animation: backdrop-fade-in 200ms ease-out forwards;
+}
+
+.backdrop.backdrop_closing {
+    animation: backdrop-fade-out 160ms ease-in forwards;
+}
+
+@keyframes backdrop-fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+@keyframes backdrop-fade-out {
+    from { opacity: 1; }
+    to   { opacity: 0; }
+}
+
 .centered_container {
     position: fixed;
     top: 0;
