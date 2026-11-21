@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { LoggerProvider } from '../../host/logger_provider.js';
 import { ElectronVersionCheck } from '../../host/version/electron_version_check.js';
-import { useVersionCheckRefresh } from '../../host/version/version_check.js';
+import { useVersionCheck } from '../../host/version/version_check.js';
 import { WebVersionCheck } from '../../host/version/web_version_check.js';
 import { VersionInfoOverlay } from './version_viewer.js';
 
@@ -24,7 +24,7 @@ function renderAnchor(props: object) {
 }
 
 function RefreshState(props: {onChange: (refreshing: boolean) => void}) {
-    const state = useVersionCheckRefresh();
+    const state = useVersionCheck().refresh;
     const refreshing = state?.isRefreshing ?? false;
     const onChange = React.useEffectEvent(props.onChange);
     React.useEffect(() => onChange(refreshing), [refreshing]);

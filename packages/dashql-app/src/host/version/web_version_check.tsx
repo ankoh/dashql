@@ -5,7 +5,7 @@ import { awaitAndSet, Result } from '../../utils/result.js';
 import { Logger, stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { createTrace } from '@akohn/dashql/platform/logger/trace_context';
 import { DASHQL_LATEST_RELEASE_MANIFEST, DASHQL_STABLE_RELEASE_MANIFEST } from '../../globals.js';
-import { LATEST_RELEASE_MANIFEST_CTX, LATEST_UPDATE_MANIFEST_CTX, INSTALLATION_STATUS_CTX, STABLE_RELEASE_MANIFEST_CTX, STABLE_UPDATE_MANIFEST_CTX, VERSION_CHECK_CTX, VERSION_CHECK_REFRESH_CTX, VersionCheckStatusCode, useVersionCheckRefreshState } from './version_check.js';
+import { VersionCheckProvider, VersionCheckStatusCode, useVersionCheckRefreshState, type VersionCheckState } from './version_check.js';
 
 const LOG_CTX = "version_check";
 
@@ -158,21 +158,13 @@ export const WebVersionCheck: React.FC<Props> = (props: Props) => {
     }, [logger]);
     const refresh = useVersionCheckRefreshState(check);
 
-    return (
-        <VERSION_CHECK_CTX.Provider value={VersionCheckStatusCode.Disabled}>
-            <VERSION_CHECK_REFRESH_CTX.Provider value={refresh}>
-                <INSTALLATION_STATUS_CTX.Provider value={null}>
-                    <STABLE_RELEASE_MANIFEST_CTX.Provider value={stableRelease}>
-                        <STABLE_UPDATE_MANIFEST_CTX.Provider value={null}>
-                            <LATEST_RELEASE_MANIFEST_CTX.Provider value={latestRelease}>
-                                <LATEST_UPDATE_MANIFEST_CTX.Provider value={null}>
-                                    {props.children}
-                                </LATEST_UPDATE_MANIFEST_CTX.Provider>
-                            </LATEST_RELEASE_MANIFEST_CTX.Provider>
-                        </STABLE_UPDATE_MANIFEST_CTX.Provider>
-                    </STABLE_RELEASE_MANIFEST_CTX.Provider>
-                </INSTALLATION_STATUS_CTX.Provider>
-            </VERSION_CHECK_REFRESH_CTX.Provider>
-        </VERSION_CHECK_CTX.Provider>
-    );
+    // The web installs no updates, it only shows the releases
+    const state = React.useMemo<VersionCheckState>(() => ({
+        status: VersionCheckStatusCode.Disabled,
+        refresh,
+        installation: null,
+        stable: { release: stableRelease, update: null },
+        latest: { release: latestRelease, update: null },
+    }), [refresh, stableRelease, latestRelease]);
+    return <VersionCheckProvider value={state}>{props.children}</VersionCheckProvider>;
 };

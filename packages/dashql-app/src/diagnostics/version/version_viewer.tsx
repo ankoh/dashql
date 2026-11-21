@@ -10,13 +10,7 @@ import {
     InstallableUpdate,
     InstallationStatusCode,
     InstallationState,
-    useLatestReleaseManifest,
-    useLatestUpdateManifest,
-    useInstallationStatus,
-    useStableReleaseManifest,
-    useStableUpdateManifest,
     useVersionCheck,
-    useVersionCheckRefresh,
     VersionCheckStatusCode,
 } from '../../host/version/version_check.js';
 import { Button, ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
@@ -80,7 +74,7 @@ const UpdateChannel: React.FC<UpdateChannelProps> = (props: UpdateChannelProps) 
                 }
             } else {
                 // Does the current installation refer to this channel?
-                if (props.installationStatus.update == props.updateManifest.value) {
+                if (props.installationStatus.channel == props.channel) {
                     console.log(props.installationStatus);
                     // Do we know the total bytes already?
                     // Render a query_status bar then.
@@ -135,18 +129,13 @@ interface VersionViewerProps {
 export const VersionInfo: React.FC<VersionViewerProps> = (props: VersionViewerProps) => {
     const platformType = usePlatformType();
     const isWebPlatform = platformType == PlatformType.WEB;
-    const stableReleaseManifest = useStableReleaseManifest();
-    const stableUpdateManifest = useStableUpdateManifest();
-    const latestReleaseManifest = useLatestReleaseManifest();
-    const latestUpdateManifest = useLatestUpdateManifest();
-    const installationStatus = useInstallationStatus();
-    const versionCheck = useVersionCheck();
+    const { status, installation, stable, latest } = useVersionCheck();
     const logger = useLogger();
     const [relaunching, setRelaunching] = React.useState(false);
 
     // The channel the app currently tracks. It is fully dictated by the installed version scheme.
     const activeChannel: ReleaseChannel = detectReleaseChannel(DASHQL_VERSION);
-    const activeUpdateManifest = activeChannel == "latest" ? latestUpdateManifest : stableUpdateManifest;
+    const activeUpdateManifest = activeChannel == "latest" ? latest.update : stable.update;
 
     // Are we on the most recent version of the active channel?
     // A successful update check that yields no update means we're up to date.
@@ -173,7 +162,7 @@ export const VersionInfo: React.FC<VersionViewerProps> = (props: VersionViewerPr
         });
     }, [logger, relaunching]);
 
-    if (versionCheck == VersionCheckStatusCode.RestartPending) {
+    if (status == VersionCheckStatusCode.RestartPending) {
         return (
             <div className={styles.restart_overlay}>
                 <InspectorHeader
@@ -259,18 +248,18 @@ export const VersionInfo: React.FC<VersionViewerProps> = (props: VersionViewerPr
                             channel="stable"
                             name="stable"
                             isActive={activeChannel == "stable"}
-                            releaseManifest={stableReleaseManifest}
-                            updateManifest={stableUpdateManifest}
-                            installationStatus={installationStatus}
+                            releaseManifest={stable.release}
+                            updateManifest={stable.update}
+                            installationStatus={installation}
                             onInstall={onInstall}
                         />
                         <UpdateChannel
                             channel="latest"
                             name="latest"
                             isActive={activeChannel == "latest"}
-                            releaseManifest={latestReleaseManifest}
-                            updateManifest={latestUpdateManifest}
-                            installationStatus={installationStatus}
+                            releaseManifest={latest.release}
+                            updateManifest={latest.update}
+                            installationStatus={installation}
                             onInstall={onInstall}
                         />
                     </div>
@@ -291,7 +280,7 @@ type VersionInfoOverlayProps = {
     anchorOffset?: number;
 }
 export function VersionInfoOverlay(props: VersionInfoOverlayProps) {
-    const refreshVersionCheck = useVersionCheckRefresh()?.refresh ?? null;
+    const refreshVersionCheck = useVersionCheck().refresh?.refresh ?? null;
     const lastOverlayCheckAt = React.useRef<number | null>(null);
     const refresh = React.useCallback(() => {
         lastOverlayCheckAt.current = Date.now();
@@ -323,7 +312,7 @@ export function VersionInfoOverlay(props: VersionInfoOverlayProps) {
 }
 
 function VersionRefreshButton(props: {onRefresh: () => void}) {
-    const refreshVersionCheck = useVersionCheckRefresh();
+    const refreshVersionCheck = useVersionCheck().refresh;
     if (refreshVersionCheck == null) {
         return null;
     }

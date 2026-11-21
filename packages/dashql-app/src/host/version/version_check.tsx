@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { ReleaseManifest, WebVersionCheck } from './web_version_check.js';
+import { ReleaseChannel, ReleaseManifest, WebVersionCheck } from './web_version_check.js';
 import { Result } from '../../utils/result.js';
 import { AppHost, getAppHost } from '@akohn/dashql-react/dom/app_host';
 import { ElectronVersionCheck } from './electron_version_check.js';
@@ -23,11 +23,11 @@ export enum InstallationStatusCode {
 }
 
 export interface InstallationState {
-    update: InstallableUpdate;
+    /// The channel of the installed update
+    channel: ReleaseChannel;
     statusCode: InstallationStatusCode;
     totalBytes: number | null;
     loadedBytes: number;
-    inProgressBytes: number;
     error: Error | null;
 }
 
@@ -35,19 +35,40 @@ export interface InstallableUpdate {
     download(): Promise<void>
 }
 
-export const VERSION_CHECK_CTX = React.createContext<VersionCheckStatusCode>(VersionCheckStatusCode.Unknown);
-export const INSTALLATION_STATUS_CTX = React.createContext<InstallationState | null>(null);
-export const STABLE_RELEASE_MANIFEST_CTX = React.createContext<Result<ReleaseManifest> | null>(null);
-export const STABLE_UPDATE_MANIFEST_CTX = React.createContext<Result<InstallableUpdate | null> | null>(null);
-export const LATEST_RELEASE_MANIFEST_CTX = React.createContext<Result<ReleaseManifest> | null>(null);
-export const LATEST_UPDATE_MANIFEST_CTX = React.createContext<Result<InstallableUpdate | null> | null>(null);
 export interface VersionCheckRefresh {
     refresh: () => void;
     isRefreshing: boolean;
 }
 
-/// Re-run the version check for all channels. Null when no check is available (unknown platform).
-export const VERSION_CHECK_REFRESH_CTX = React.createContext<VersionCheckRefresh | null>(null);
+/// What the version check knows about a release channel
+export interface ReleaseChannelState {
+    /// The release manifest of the channel, null until it is fetched
+    release: Result<ReleaseManifest> | null;
+    /// The update that the app can install from the channel, null while unknown, a value of null if there is none
+    update: Result<InstallableUpdate | null> | null;
+}
+
+/// The state of the version check
+export interface VersionCheckState {
+    status: VersionCheckStatusCode;
+    /// Re-run the version check for all channels. Null when no check is available (unknown platform).
+    refresh: VersionCheckRefresh | null;
+    /// The installation of an update, null without one
+    installation: InstallationState | null;
+    stable: ReleaseChannelState;
+    latest: ReleaseChannelState;
+}
+
+const UNKNOWN_VERSION_CHECK: VersionCheckState = {
+    status: VersionCheckStatusCode.Unknown,
+    refresh: null,
+    installation: null,
+    stable: { release: null, update: null },
+    latest: { release: null, update: null },
+};
+
+const VERSION_CHECK_CTX = React.createContext<VersionCheckState>(UNKNOWN_VERSION_CHECK);
+export const VersionCheckProvider = VERSION_CHECK_CTX.Provider;
 
 export function useVersionCheckRefreshState(check: () => Promise<void>): VersionCheckRefresh {
     const pendingChecks = React.useRef(0);
@@ -68,16 +89,10 @@ export function useVersionCheckRefreshState(check: () => Promise<void>): Version
         refresh();
     }, [refresh]);
 
-    return {refresh, isRefreshing};
+    return React.useMemo(() => ({refresh, isRefreshing}), [refresh, isRefreshing]);
 }
 
-export const useVersionCheck = () => React.useContext(VERSION_CHECK_CTX)!;
-export const useInstallationStatus = () => React.useContext(INSTALLATION_STATUS_CTX);
-export const useStableReleaseManifest = () => React.useContext(STABLE_RELEASE_MANIFEST_CTX);
-export const useStableUpdateManifest = () => React.useContext(STABLE_UPDATE_MANIFEST_CTX);
-export const useLatestReleaseManifest = () => React.useContext(LATEST_RELEASE_MANIFEST_CTX);
-export const useLatestUpdateManifest = () => React.useContext(LATEST_UPDATE_MANIFEST_CTX);
-export const useVersionCheckRefresh = () => React.useContext(VERSION_CHECK_REFRESH_CTX);
+export const useVersionCheck = () => React.useContext(VERSION_CHECK_CTX);
 
 interface VersionCheckProps {
     children: React.ReactElement;

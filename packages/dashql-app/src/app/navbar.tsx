@@ -71,7 +71,7 @@ const InternalsButton = (props: { workbookId: string | null }) => {
 
 const VersionButton = (props: { iconSize?: number }) => {
     const [showVersionOverlay, setShowVersionOverlay] = React.useState<boolean>(false);
-    const versionCheck = useVersionCheck();
+    const versionCheck = useVersionCheck().status;
 
     return (
         <div className={styles.tab}>

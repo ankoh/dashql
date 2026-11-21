@@ -4,7 +4,7 @@ import { classNames } from '@akohn/dashql-react/dom/classnames';
 import { Button, ButtonSize } from '@akohn/dashql-react/components/button';
 import { ReleaseChannel, ReleaseManifest } from '../../host/version/web_version_check.js';
 import { useLogger } from '../../host/logger_provider.js';
-import { useLatestReleaseManifest, useStableReleaseManifest } from '../../host/version/version_check.js';
+import { useVersionCheck } from '../../host/version/version_check.js';
 
 import * as styles from './release_bundle.module.css';
 import { Result, RESULT_OK } from '../../utils/result.js';
@@ -49,8 +49,9 @@ interface ReleaseBundlesProps {
 }
 
 export const ReleaseBundles: React.FC<ReleaseBundlesProps> = (props: ReleaseBundlesProps) => {
-    const stableReleaseManifest = useStableReleaseManifest();
-    const latestReleaseManifest = useLatestReleaseManifest();
+    const { stable, latest } = useVersionCheck();
+    const stableReleaseManifest = stable.release;
+    const latestReleaseManifest = latest.release;
 
     // We'll care about identifying the exact platform bundles as soon as we support more than mac.
     const macBundles: ReleaseBundleProps[] = React.useMemo(() => {
