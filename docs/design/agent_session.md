@@ -148,14 +148,16 @@ A conversation that starts in the page works on a copy: the site is the truth, t
   the first script that reads it as `:name`, else after the last script that it reads, else at the end. A script with the text of the page stays as it is. The server stamps the copies
   again after every `PostToolUse` and `Stop`, so an edit with a tool of the harness shows without a `dashql` command.
 - **The changes of the user go into the copy.** Half a second after an edit, the page writes the scripts whose text
-  differs from what the copy holds, removes the ones it deleted and, when the list of scripts changed, writes its
-  workbook file. A script that it took from the agent counts as held by the copy. Both directions run one after the
+  differs from what the copy holds, removes the ones it deleted and, when the list or the order of the scripts changed,
+  writes its workbook file. A script that it took from the agent counts as held by the copy. Both directions run one after the
   other (`AgentSessionCopies`).
 - **The connections of the scripts of the agent.** The workbook file of the copy names the connection of every script,
   `{"name": "x.sql", "connectionId": "<id>"}`. A new script of the agent runs on the connection that the workbook file
   of the copy names for it when the tab takes it, else on the connection of its neighbors; the guide tells the agent to
   add the entry before it writes the script. A later change of the workbook file moves the scripts to the connections
-  it names (`setScriptConnection`), a connection that the tab doesn't have leaves the script where it is.
+  it names (`setScriptConnection`), a connection that the tab doesn't have leaves the script where it is, and the feed
+  into its order (`reorderScripts`): the scripts that the file names take their places in its order, the ones that it
+  leaves out keep theirs.
 - **The catalogs of the connections.** The tab writes `connections/<id>/dashql-catalog-relations.sql` into every copy for
   every connection that the agent may use: the tables that the connection reported, as `CREATE TABLE` statements with
   the types of their columns, the file that the core writes into the storage of the connection

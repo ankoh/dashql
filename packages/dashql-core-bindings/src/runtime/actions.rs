@@ -122,7 +122,7 @@ pub enum WorkbookAction {
         file_name: String,
         new_name: String,
     },
-    /// Order the scripts by their file names
+    /// Order the scripts by their file names, the scripts that the order leaves out keep their places
     ReorderScripts {
         order: Vec<String>,
     },

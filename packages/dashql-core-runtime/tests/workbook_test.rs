@@ -233,8 +233,11 @@ fn renames_in_place_with_a_unique_name() {
 #[test]
 fn reorders_through_the_script_list() {
     let (mut workbook, _) = workbook(&[("alpha.sql", ""), ("beta.sql", ""), ("gamma.sql", "")]);
-    let outcome =
-        workbook.apply(WorkbookAction::ReorderScripts { order: vec!["gamma.sql".into(), "alpha.sql".into()] }).unwrap();
+    let outcome = workbook
+        .apply(WorkbookAction::ReorderScripts {
+            order: vec!["gamma.sql".into(), "alpha.sql".into(), "beta.sql".into()],
+        })
+        .unwrap();
     assert_eq!(files(&workbook), ["gamma.sql", "alpha.sql", "beta.sql"]);
     let entry = |name: &str| ScriptListEntry { name: name.into(), connection_id: "main".into() };
     assert_eq!(
@@ -248,6 +251,13 @@ fn reorders_through_the_script_list() {
     let same =
         workbook.apply(WorkbookAction::ReorderScripts { order: vec!["gamma.sql".into(), "gamma.sql".into()] }).unwrap();
     assert!(!same.changed && same.effects.is_empty());
+    // The scripts that an order leaves out keep their places, the named ones swap theirs
+    workbook.apply(WorkbookAction::ReorderScripts { order: vec!["beta.sql".into(), "gamma.sql".into()] }).unwrap();
+    assert_eq!(files(&workbook), ["beta.sql", "alpha.sql", "gamma.sql"]);
+    let unknown = workbook
+        .apply(WorkbookAction::ReorderScripts { order: vec!["missing.sql".into(), "beta.sql".into()] })
+        .unwrap();
+    assert!(!unknown.changed);
 }
 
 #[test]

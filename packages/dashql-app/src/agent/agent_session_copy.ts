@@ -68,6 +68,27 @@ export function copyScriptConnections(workbookFile: string): Map<string, string>
     return connections;
 }
 
+/// The order of the scripts of the workbook file of a copy, by their file names, empty while the agent writes it
+export function copyScriptOrder(workbookFile: string): string[] {
+    try {
+        const workbook = JSON.parse(workbookFile) as { scripts?: unknown };
+        return (Array.isArray(workbook.scripts) ? workbook.scripts as Record<string, unknown>[] : [])
+            .flatMap(script => typeof script?.name === 'string' ? [script.name] : []);
+    } catch {
+        return [];
+    }
+}
+
+/// The scripts of the page by their names in a copy, in the order of the page: a script that the page created for a
+/// new script of the agent has the name of the copy
+function copyNamesOf(scripts: Map<string, PageScript>, copy: Pick<Copy, 'created'>): Map<string, PageScript> {
+    const copyNames = new Map<number, string>();
+    for (const [fileName, key] of copy.created) copyNames.set(key, fileName);
+    const names = new Map<string, PageScript>();
+    for (const [fileName, script] of scripts) names.set(copyNames.get(script.scriptKey) ?? fileName, script);
+    return names;
+}
+
 /// What the page does with the copies, the tests pass their own
 export interface AgentSessionCopyHost {
     /// The files of the folder of a workbook of the page, after its pending writes; null for a workbook without a
@@ -82,7 +103,8 @@ export interface AgentSessionCopyHost {
     deleteFile: (workbookId: string, path: string) => Promise<void>;
     /// The text of a file of a copy
     fetchText: (workbookId: string, path: string) => Promise<string>;
-    /// The scripts of a workbook of the page by file name, null for a workbook that the page doesn't have
+    /// The scripts of a workbook of the page by file name in the order of the feed, null for a workbook that the page
+    /// doesn't have
     scripts: (workbookId: string) => Map<string, PageScript> | null;
     /// Call the listener when the scripts of a workbook of the page or the connections may have changed
     subscribe: (workbookId: string, listener: () => void) => () => void;
@@ -94,6 +116,8 @@ export interface AgentSessionCopyHost {
     createScript: (workbookId: string, base: string, text: string, connectionId: string | null) => number | null;
     /// Move a script to a connection, false if the page doesn't have the connection
     setScriptConnection: (workbookId: string, scriptKey: number, connectionId: string) => boolean;
+    /// Order the scripts of a workbook by their file names, the ones that the order leaves out keep their places
+    reorderScripts: (workbookId: string, order: string[]) => void;
     /// Wait for a time, the tests run it at once
     delay: (ms: number) => Promise<void>;
 }
@@ -138,11 +162,12 @@ export function agentSessionCopyHost(runtime: Runtime, target: AgentSessionTarge
             const workbook = runtime.store.get('workbook', workbookId);
             if (workbook == null) return null;
             const scripts = new Map<string, PageScript>();
-            for (const [fileName, ref] of Object.entries(workbook.scriptRefs)) {
-                const script = runtime.store.get('script', ref.scriptId);
-                const connectionId = workbook.scriptConnections[workbook.scriptOrder.indexOf(fileName)] ?? '';
-                if (script != null) scripts.set(fileName, { scriptKey: ref.scriptId, text: script.scriptSession.getText(), connectionId });
-            }
+            workbook.scriptOrder.forEach((fileName, index) => {
+                const ref = workbook.scriptRefs[fileName];
+                const script = ref == null ? null : runtime.store.get('script', ref.scriptId);
+                const connectionId = workbook.scriptConnections[index] ?? '';
+                if (ref != null && script != null) scripts.set(fileName, { scriptKey: ref.scriptId, text: script.scriptSession.getText(), connectionId });
+            });
             return scripts;
         },
         subscribe: (workbookId, listener) => {
@@ -185,6 +210,9 @@ export function agentSessionCopyHost(runtime: Runtime, target: AgentSessionTarge
             runtime.dispatch({ workbook: workbookId }, { kind: 'setScriptConnection', value: { fileName, connectionId } });
             return true;
         },
+        reorderScripts: (workbookId, order) => {
+            runtime.dispatch({ workbook: workbookId }, { kind: 'reorderScripts', value: { order } });
+        },
         delay: ms => new Promise(resolve => setTimeout(resolve, ms)),
     };
 }
@@ -198,6 +226,8 @@ interface Copy {
     texts: Map<string, string>;
     /// The scripts that the page created for new scripts of the copy, by their file names in the copy
     created: Map<string, number>;
+    /// The order of the scripts that the page wrote into the workbook file of the copy last, null before it wrote one
+    order: string | null;
     /// The stamps of the catalogs that the copy holds, by connection id
     catalogs: Map<string, string>;
     /// Stop watching the scripts of the page
@@ -243,7 +273,7 @@ export class AgentSessionCopies {
     /// scripts that differ from the page are changes of the agent
     adopt(workbookId: string): void {
         this.known.add(workbookId);
-        this.copies.set(workbookId, { seen: null, texts: new Map(), created: new Map(), catalogs: new Map(), unsubscribe: () => { }, pushing: false, adopted: true });
+        this.copies.set(workbookId, { seen: null, texts: new Map(), created: new Map(), order: null, catalogs: new Map(), unsubscribe: () => { }, pushing: false, adopted: true });
     }
 
     /// Write a workbook of the page into the session, replacing an older copy, and follow it from then on. Resolves
@@ -259,7 +289,9 @@ export class AgentSessionCopies {
             const match = COPY_SCRIPT.exec(file.path);
             if (match != null) texts.set(match[1], typeof file.content === 'string' ? file.content : await new Blob([file.content]).text());
         }
-        const copy: Copy = { seen: null, texts, created: new Map(), catalogs: new Map(), unsubscribe: () => { }, pushing: false, adopted: false };
+        // The copy holds the workbook file of the page with its order
+        const order = [...(this.host.scripts(workbookId)?.keys() ?? [])].join('\n');
+        const copy: Copy = { seen: null, texts, created: new Map(), order, catalogs: new Map(), unsubscribe: () => { }, pushing: false, adopted: false };
         this.copies.set(workbookId, copy);
         await this.host.writeCopy(workbookId, files);
         if (this.disposed || this.copies.get(workbookId) !== copy) return;
@@ -305,10 +337,10 @@ export class AgentSessionCopies {
             for (const path of changedCopyScripts(seen, workbook)) {
                 this.enqueue('take a script of the agent', workbook.workbookId, () => this.take(workbook.workbookId, copy, path));
             }
-            // The agent names the connections of scripts in the workbook file
+            // The agent names the connections and the order of the scripts in the workbook file
             const workbookFile = copy.seen.get(STORAGE_WORKBOOK_FILE);
             if (workbookFile != null && seen.get(STORAGE_WORKBOOK_FILE) !== workbookFile) {
-                this.enqueue('take the connections of the agent', workbook.workbookId, () => this.takeConnections(workbook.workbookId, copy));
+                this.enqueue('take the workbook file of the agent', workbook.workbookId, () => this.takeWorkbookFile(workbook.workbookId, copy));
             }
         }
         return this.queue;
@@ -353,11 +385,28 @@ export class AgentSessionCopies {
         if (key != null) copy.created.set(fileName, key);
     }
 
-    /// Move the scripts of the page to the connections that the agent named for them in the workbook file of the copy
-    private async takeConnections(workbookId: string, copy: Copy): Promise<void> {
-        const connections = copyScriptConnections(await this.host.fetchText(workbookId, STORAGE_WORKBOOK_FILE));
+    /// Move the scripts of the page to the connections that the agent named for them in the workbook file of the copy,
+    /// and into its order
+    private async takeWorkbookFile(workbookId: string, copy: Copy): Promise<void> {
+        const workbookFile = await this.host.fetchText(workbookId, STORAGE_WORKBOOK_FILE);
+        const connections = copyScriptConnections(workbookFile);
         const scripts = this.host.scripts(workbookId);
         if (scripts == null || this.copies.get(workbookId) !== copy) return;
+        // The scripts of the copy by the names of the page, a script that the page created for the agent may have
+        // another one
+        const pageNames = new Map<string, string>();
+        for (const fileName of scripts.keys()) pageNames.set(fileName, fileName);
+        for (const [fileName, key] of copy.created) {
+            const created = [...scripts].find(([, script]) => script.scriptKey === key);
+            if (created != null) pageNames.set(fileName, created[0]);
+        }
+        const copyOrder = copyScriptOrder(workbookFile);
+        const order = copyOrder.flatMap(fileName => pageNames.get(fileName) ?? []);
+        if (order.length > 0) this.host.reorderScripts(workbookId, order);
+        // A workbook file that names every script in the new order of the page holds it already, the page doesn't
+        // write it again over a later change of the agent
+        const reordered = [...copyNamesOf(this.host.scripts(workbookId) ?? scripts, copy).keys()].join('\n');
+        if (copyOrder.join('\n') === reordered) copy.order = reordered;
         for (const [fileName, connectionId] of connections) {
             const createdKey = copy.created.get(fileName);
             const script = scripts.get(fileName) ?? [...scripts.values()].find(other => other.scriptKey === createdKey);
@@ -388,16 +437,12 @@ export class AgentSessionCopies {
     private async push(workbookId: string, copy: Copy): Promise<void> {
         const scripts = this.host.scripts(workbookId);
         if (scripts == null || this.copies.get(workbookId) !== copy) return;
-        // The scripts of the copy that the page created for the agent have the names of the copy
-        const names = new Map<string, PageScript>(scripts);
-        for (const [fileName, key] of copy.created) {
-            const created = [...scripts].find(([, script]) => script.scriptKey === key);
-            if (created != null && created[0] !== fileName) {
-                names.delete(created[0]);
-                names.set(fileName, created[1]);
-            }
-        }
-        let listChanged = false;
+        const names = copyNamesOf(scripts, copy);
+        // A new order of the page goes into the workbook file of the copy, also one of the user. A copy that the page
+        // adopted holds the order that the page wrote before the reload.
+        const order = [...names.keys()].join('\n');
+        let listChanged = copy.order != null && copy.order !== order;
+        copy.order = order;
         for (const [fileName, script] of names) {
             if (copy.texts.get(fileName) === script.text) continue;
             listChanged ||= !copy.texts.has(fileName);

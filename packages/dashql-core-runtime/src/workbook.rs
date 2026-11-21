@@ -660,7 +660,9 @@ pub enum WorkbookAction {
     DeleteScript { file_name: String },
     /// Rename the script with a file name. The name is a display name, a `.sql` is dropped and the name is made unique.
     RenameScript { file_name: String, new_name: String },
-    /// Order the scripts by their file names, scripts that the order leaves out follow in their order
+    /// Order the scripts by their file names. The named scripts take the places of the named scripts in the new order,
+    /// the scripts that the order leaves out keep their places: an order of an agent that misses a new script moves
+    /// none of the others.
     ReorderScripts { order: Vec<String> },
     /// Replace the text of a script and analyze it. With a diff, the rewrite is staged to accept or reject, together
     /// with a rewrite that is staged already: rejecting restores the text before both. A rewrite back to that text
@@ -1859,18 +1861,22 @@ impl Workbook {
     }
 
     fn reorder(&mut self, order: &[String], outcome: &mut WorkbookOutcome) {
-        // The requested files that exist, without duplicates, then the files that the order leaves out
-        let mut ordered: Vec<usize> = Vec::with_capacity(self.scripts.len());
+        // The requested files that exist, without duplicates
+        let mut named: Vec<usize> = Vec::with_capacity(order.len());
         for file_name in order {
             if let Some(index) = self.scripts.iter().position(|script| &script.file_name == file_name) {
-                if !ordered.contains(&index) {
-                    ordered.push(index);
+                if !named.contains(&index) {
+                    named.push(index);
                 }
             }
         }
-        for index in 0..self.scripts.len() {
-            if !ordered.contains(&index) {
-                ordered.push(index);
+        // They fill the places of the named files in their order, the other files stay where they are
+        let mut places = named.clone();
+        places.sort_unstable();
+        let mut ordered: Vec<usize> = (0..self.scripts.len()).collect();
+        for (place, index) in places.into_iter().zip(named) {
+            if let Some(slot) = ordered.get_mut(place) {
+                *slot = index;
             }
         }
         // The same order changes nothing
