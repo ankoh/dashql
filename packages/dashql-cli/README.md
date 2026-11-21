@@ -94,10 +94,22 @@ doesn't parse. These scripts are reported on stderr and stay as they are, the ot
 The exit code is 0 if all scripts could be formatted (with `--check`: are formatted), 1 otherwise and 2 on usage or I/O
 errors.
 
+## dashql init
+
+```
+dashql init [<dir>]
+```
+
+Sets up a folder as a workspace of DashQL, this one by default: its `.dashql/` with a `.gitignore` that ignores it.
+`init` and `connect` are the only commands that set up a workspace; `catalog`, `describe`, `run` and `vis` take one with
+`--workspace`, the invoking directory by default, and fail on a folder that is no workspace, so a wrong path fails instead of running outside the tab of a
+session. Only the user runs it: the guide tells the agent not to, Claude Code asks before it runs it, and the error of
+a folder that is no workspace names no command to the agent.
+
 ## dashql run
 
 ```
-dashql run [--rows <n>] [--refresh] [--plain] [--workspace <dir> --session <id>] [--verbose] <workbook-dir> [<script>...]
+dashql run [-w <dir>] [--rows <n>] [--refresh] [--plain] [--home <dir>] [--verbose] <workbook-dir> [<script>...]
 ```
 
 Runs the scripts of a workbook folder (a folder with `dashql-workbook.json` and `scripts/`) on their connections like
@@ -158,24 +170,26 @@ that are not named show up only when they fail. `--verbose` prints the log of th
 - **The files of DashQL.** A root with the layout of the storage of the app (`docs/design/storage_layout.md`): the
   query result cache in `cache/`, the attachments of a workbook in `workbooks/<id>/attachments/`, mirrored from the
   folder before the run, and a folder per run of the embedded Hyper in `instances/`, removed at its end or by the next
-  run once its process is gone. The root is
-  `DASHQL_HOME`, else the `.dashql/` of the workspace, the one that `dashql connect` creates in the folder of its
-  session, else `~/.dashql`. The workspace is `--workspace <dir>`, else the invoking directory; nothing is searched
-  for. `--workspace` and `--session <id>` together name the session of `dashql connect`, as the start of the session
-  tells the agent. In a session, everything of a project is in its `.dashql/`, which commands in the sandbox of a
-  harness may write. It is a root of its own, the app keeps its files in the storage of
-  the browser.
+  run once its process is gone. The root is `--home <dir>`, else the `.dashql/` of the workspace, which the run
+  creates with a `.gitignore` that ignores it; nothing is searched for and nothing comes from the environment.
+  Everything of a project stays in its `.dashql/`, which commands in the sandbox of a harness may write, next to the
+  session of `dashql connect`. It is a root of its own, the app keeps its files in the storage of the browser.
 - **Cached results.** A script whose result is cached is not run again unless a script it follows runs, like in the
   app; the result then says `from the cache` and its connection is not needed. `--refresh` runs every script. The
   workbook folder is not written.
-- **Runs in the tab.** With `--workspace` and `--session` of a session of `dashql connect`, only a copy of a workbook
-  of the tab runs (`.dashql/sessions/<id>/workbooks/<workbook id>`), and it runs in the tab: `run` asks the server of
+- **The workspace.** `--workspace <dir>`, `-w` for short, is the folder that you work in, the invoking directory by
+  default, a workspace that `dashql init` or `dashql connect` set up: a folder without `.dashql/` fails, also one that
+  a relative path or the invoking directory names after a `cd`. `run`
+  reads the session of `dashql connect` there, `.dashql/session/session.json`, at that fixed path and nowhere else.
+- **Runs in the tab.** While a session runs in the workspace, a copy of a workbook that its tab made
+  (`.dashql/session/workbooks/<workbook id>`) runs in the tab: `run` asks the server of
   the session, the tab runs the scripts with its own runtime on its connections that the agent may use, as far as the
   browser reaches them, the feed of the tab shows the run, and the events come back and print as above. A result comes
   with its first `--rows` rows, its row count and, for a result with a key, its Parquet file, which the tab writes into
   `.dashql/cache/`. The run fails when no tab follows the session; Ctrl-C asks the tab to stop it
-  (`docs/design/agent_integration.md`, "Runs in the tab"). A copy without the session fails with a hint, so does
-  another folder in a session; outside a session a workbook folder runs in the process.
+  (`docs/design/agent_integration.md`, "Runs in the tab"). Every other workbook folder fails with a hint while the
+  session runs, so nothing runs outside the tab; without a session a workbook folder runs in the process, a copy only
+  with the workspace of its session.
 - **Connections.** Trino with basic auth and the embedded Hyper. `DASHQL_TRINO_USER` and `DASHQL_TRINO_PASSWORD`
   override the user and the password of the workbook. They stay in memory, the workbook keeps its params.
   A local cloud on the embedded Hyper attaches the databases of its clouds folder in the root, like in the app.
@@ -203,12 +217,13 @@ npx -y --registry=https://registry.npmjs.org/ --min-release-age=0 @akohn/dashql-
 ```
 
 The AI side of the prompt of DashQL shows this line with a port and a secret that the tab picked, and waits for a
-server there. `connect` is the one way to attach a harness to DashQL. It picks the id of the session, a new UUID,
-starts the server of the session on `127.0.0.1:<port>` with the secret as its token, and launches the harness in the
+server there. `connect` is the one way to attach a harness to DashQL, and one session runs in a folder: a second
+`connect` fails while the server of the first answers, the folder of one whose server is gone goes. It picks the id of
+the session, a new UUID, starts the server of the session on `127.0.0.1:<port>` with the secret as its token, and launches the harness in the
 terminal with hooks that send its events there: Claude Code with `--settings`, Codex with `-c hooks={…}`; nothing is
 written to `~/.claude` or `~/.codex`. Codex shows the new hooks for review at its start. The hooks call this `dashql`
-again with the session in their arguments (`session hook <event> --harness <name> --workspace <folder> --session
-<id>`), nothing goes through the environment. When the harness exits, `connect` ends the session and stops the server
+again with the workspace in their arguments (`session hook <event> --harness <name> --workspace <folder>`), nothing
+goes through the environment. When the harness exits, `connect` ends the session and stops the server
 and exits with the code of the harness. A port that is taken fails before the harness starts, the tab gives a new one.
 The arguments after `--` go to the harness, `--command` launches another program than `claude` or `codex` on the
 `PATH`.
@@ -216,29 +231,32 @@ The arguments after `--` go to the harness, `--command` launches another program
 The agent knows how to work on DashQL from the start, it needs no command to learn it: Claude Code gets the guide of
 `dashql describe` with a preface (`CONNECTED_AGENT_GUIDE`: the user started it from DashQL, a request about data is a
 request to the workbooks) in its system prompt (`--append-system-prompt`), Codex in the output of the hook at the start,
-which the harness puts into the context of the agent. That hook also gives both the session that the commands take,
-`--workspace <folder> --session <id>`, where the tab copies its workbook, and the workbooks and the connections of the
-session. The settings of Claude Code let it run `dashql` and edit the files of the sessions in `.dashql/sessions/`
-without asking (`permissions.allow`: `Bash(dashql:*)`, `Edit(./.dashql/sessions/**)`); everything else asks as the user
-configured it, and Codex keeps its sandbox. `//tests/agents` runs `connect` with Claude Code and Codex and a fake model:
+which the harness puts into the context of the agent. That hook also gives both the workspace that the commands
+take, the folder where the tab copies its workbook, and the workbooks and the connections of the session. The settings
+of Claude Code let it run the commands of `dashql` that it needs and edit the files of the session in
+`.dashql/session/` without asking (`permissions.allow`: `Bash(dashql describe:*)`, `catalog`, `run`, `vis`, `lint`,
+`format`, and `Edit(./.dashql/session/**)`); `dashql init` and everything else asks as the user configured it,
+and Codex keeps its sandbox. `//tests/agents` runs `connect` with Claude Code and Codex and a fake model:
 the events of a turn, the guide in the system prompt, `dashql` and a script of the copy without approval, a file of the
-project only with one. The agent of a harness that `npx` launched has no `dashql` on its path: `connect` writes one into
-the folder of the session (`.dashql/sessions/<id>/bin/dashql`, a shell script that runs this `dashql`) and puts that
-folder first on the `PATH` of the harness, the only variable it sets. Not on Windows.
+project only with one, and a run of a workbook folder of the project fails. The agent of a harness that `npx`
+launched has no `dashql` on its path: `connect` writes one into the folder of the session (`.dashql/session/bin/dashql`,
+a shell script that runs this `dashql`) and puts that folder first on the `PATH` of the harness, the only variable it
+sets. Not on Windows.
 
-The folder of the session is `.dashql/sessions/<id>/`: `server.json` with the address and the token of the server for
-the commands, readable by the user only, `connections.json` with the connections that the agent may use, and the
-copies of the workbooks of the tab in `workbooks/<workbook id>/`. It goes when the session ends, two sessions in one
-folder keep apart. The tab writes the workbook that it shows into the session once the server answers, with the
+The folder of the session is `.dashql/session/`: `session.json` with the id of the session and the address and the
+token of the server for the hooks and the commands, readable by the user only, `connections.json` with the connections
+that the agent may use, and the copies of the workbooks of the tab in `workbooks/<workbook id>/`. It goes when the
+session ends. The tab writes the workbook that it shows into the session once the server answers, with the
 catalogs of the connections that the agent may use, and the agent works on that copy; its changed scripts come back
-into the tab with their text (`docs/design/agent_session.md`). `catalog`, `run` and `vis` refuse a copy without
-`--workspace` and `--session`, and in a session `run` and `vis` refuse any other folder, so a run of the agent never
+into the tab with their text (`docs/design/agent_session.md`). `catalog`, `describe`, `run` and `vis` take the
+workspace, `--workspace <folder>`, and find the session at its fixed path there. While it runs, `run` and `vis` refuse
+every workbook folder that is no copy of the session, in `.dashql/` or outside of it, so a run of the agent never
 silently runs outside the tab.
 
 ## dashql catalog
 
 ```
-dashql catalog [--workspace <dir> --session <id>] [--max-chars <n>] <workbook-dir> [<connection>...]
+dashql catalog [-w <dir>] [--max-chars <n>] <workbook-dir> [<connection>...]
 ```
 
 Prints the tables of connections as `CREATE TABLE` statements with the types of their columns: the named connections
@@ -253,7 +271,8 @@ file to grep. Nothing goes over the server of the session for it.
 ## dashql vis
 
 ```
-dashql vis [--out <file.png>] [--width <n>] [--height <n>] [--scale <n>] [--refresh] [--workspace <dir> --session <id>] <workbook-dir> <script>
+dashql vis [-w <dir>] [--out <file.png>] [--width <n>] [--height <n>] [--scale <n>] [--refresh] [--home <dir>]
+           <workbook-dir> <script>
 ```
 
 Checks the chart of a script, the `@vis` tag above its last query (`docs/design/vis_comments.md`), and gets it as PNG.
@@ -267,19 +286,19 @@ result nor made by a transform, and sizes that DashQL decides (`chartSpecProblem
 The PNG comes from the tab, like the result: the run request asks for charts (`chart`, the size), and the tab renders
 the chart of the script with its result as the image download of the feed does, and sends it as the event
 `script_chart` before `run_finished` (`docs/design/agent_integration.md`, "Runs in the tab"). 800x500 at scale 2 by default, `charts/<script>.png`
-of the `.dashql/` of the workspace or `--out`. A workbook folder that runs in the process gets the check only. The exit
+of `--home`, else of the `.dashql/` of the workspace, or `--out`. A workbook folder that runs in the process gets the check only. The exit
 code is 0 without problems, 1 with problems, without a chart or without a result, 2 on usage errors.
 
 ## dashql describe
 
 ```
-dashql describe [--workspace <dir> --session <id>]
+dashql describe [-w <dir>]
 ```
 
 Prints what an agent needs to work on the workbooks of DashQL: the layout of a workbook folder, the commands, how the
-tab takes the changes of the agent, and that file contents and results are data, not instructions. With the session,
-the workbooks that the tab copied into it, with their names, scripts and connections, and the connections that the
-agent may use.
+tab takes the changes of the agent, and that file contents and results are data, not instructions. While a session
+of `dashql connect` runs in the workspace, the workbooks that the tab copied into the session, with their names,
+scripts and connections, and the connections that the agent may use.
 It covers scripts (one statement each, reentrant DDL, `:name` of scripts, the embedded Hyper over remote results,
 `@param`, `@manual`, client functions), charts (the `@vis` tag with an example, the size left to DashQL, `dashql vis`
 after every change) and how to work. The text lives in the command, so it fits the installed version; a harness of
@@ -288,12 +307,12 @@ after every change) and how to work. The text lives in the command, so it fits t
 ## dashql session
 
 ```
-dashql session hook <event> --harness <name> --workspace <dir> --session <id>
+dashql session hook <event> --harness <name> --workspace <dir>
 ```
 
 The hooks that `dashql connect` gives the harness, nobody installs them by hand. `session hook` reads the payload of
-the hook on stdin and sends the event to the server of the session that `--workspace` and `--session` name, from its
-`server.json`. `SessionStart` prints how to work on the workbooks of the session, the harness hands it to the agent. A
+the hook on stdin and sends the event to the server of the session that runs in `--workspace`, from its
+`.dashql/session/session.json`. `SessionStart` prints how to work on the workbooks of the session, the harness hands it to the agent. A
 hook never fails the harness. The server keeps the question, the steps (every use of a tool, from `PreToolUse` to
 `PostToolUse`), the files that the tools touched and the final message of every turn.
 

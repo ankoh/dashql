@@ -18,8 +18,12 @@ import { fetchAgentSession } from '@akohn/dashql/platform/session/agent_session_
 import { encodeRunEvent, type RunEvent } from '@akohn/dashql/platform/workbook/run_events';
 
 import { runRun, type RunEnvironment } from './run_command.js';
+import { initWorkspace } from './session_folder.js';
 import { startSessionServer } from './session_server.js';
 import { runWith, testFiles } from './test_process.js';
+
+/// What a command says to a folder that is no workspace, after its name
+const NO_WORKSPACE = 'is no workspace of DashQL, it has no .dashql/. Pass the workspace that the start of the session of dashql connect names. Only the user sets up a workspace.';
 
 const WORKBOOK_ID = '6f1c2a4e-8b3d-4c5e-9f70-1a2b3c4d5e6f';
 const CONNECTION_ID = '0d9e8f7a-6b5c-4d3e-8f21-0a1b2c3d4e5f';
@@ -156,8 +160,9 @@ const PASSWORD: Partial<RunEnvironment> = { trinoPassword: 'pw' };
 /// A folder for the files of DashQL
 const tempHome = () => mkdtempSync(path.join(process.env.TEST_TMPDIR ?? tmpdir(), 'dashql-home-'));
 
-const run = (dir: string, args: string[], env: Partial<RunEnvironment> = PASSWORD, home: string | null = tempHome()) =>
-    runWith((runArgs, cli) => runRun(runArgs, cli, { home, ...env }), dir, args);
+/// A run in the workbook folder, which is its workspace
+const run = (dir: string, args: string[], env: RunEnvironment = PASSWORD, home: string | null = tempHome()) =>
+    runWith((runArgs, cli) => { initWorkspace(dir); return runRun(['-w', '.', ...(home == null ? [] : ['--home', home]), ...runArgs], cli, env); }, dir, args);
 
 /// The Parquet files of the query result cache of a home
 const cacheFiles = (home: string) => readdirSync(path.join(home, 'cache')).filter(file => file.endsWith('.parquet'));
@@ -278,10 +283,10 @@ describe('dashql run', () => {
 
     it('keeps its files in the .dashql/ of the workspace', async () => {
         const dir = trinoWorkbook(trino.endpoint, [ORDERS, BROKEN]);
-        mkdirSync(path.join(dir, '.dashql'));
-        // Without DASHQL_HOME the files of DashQL go into the .dashql/ of the workspace, which dashql connect creates
+        // Without --home the files of DashQL go into the .dashql/ of the workspace, which ignores itself
         expect((await run(dir, ['.'], PASSWORD, null)).code).toBe(1);
-        expect(readdirSync(path.join(dir, '.dashql')).sort()).toEqual(['cache', 'instances', 'logs', 'workbooks']);
+        expect(readdirSync(path.join(dir, '.dashql')).sort()).toEqual(['.gitignore', 'cache', 'instances', 'logs', 'workbooks']);
+        expect(readFileSync(path.join(dir, '.dashql', '.gitignore'), 'utf8')).toBe('*\n');
     });
 
     it('reaches a connection with OAuth only in the tab of a session', async () => {
@@ -331,7 +336,6 @@ describe('dashql run', () => {
     it('takes the user from the environment and never writes the password', async () => {
         const dir = trinoWorkbook(trino.endpoint, [ORDERS], 'someone');
         // The files of DashQL in the folder, with the logs of the run
-        mkdirSync(path.join(dir, '.dashql'));
         const secret = 'pw-0a1b2c3d';
         trino.password = secret;
         const output = await run(dir, ['.'], { trinoUser: 'ann', trinoPassword: secret }, null);
@@ -344,11 +348,12 @@ describe('dashql run', () => {
 
     it('stops when interrupted, cancels the running query and removes its instance', async () => {
         const dir = trinoWorkbook(trino.endpoint, [['slow.sql', "select id, name from orders where 'slow' = 'slow'\n"], ORDERS]);
+        initWorkspace(dir);
         const home = tempHome();
         // Interrupted while the slow query runs on Trino
         const interrupt = new AbortController();
         const watch = setInterval(() => { if (trino.statements.some(text => text.includes("'slow'"))) interrupt.abort(); }, 20);
-        const output = await runWith((runArgs, cli) => runRun(runArgs, { ...cli, interrupt: interrupt.signal }, { home, ...PASSWORD }), dir, ['.']);
+        const output = await runWith((runArgs, cli) => runRun(runArgs, { ...cli, interrupt: interrupt.signal }, PASSWORD), dir, ['--workspace', '.', '--home', home, '.']);
         clearInterval(watch);
         expect(output.code).toBe(130);
         expect(output.stderr).toBe('interrupted\n');
@@ -374,7 +379,7 @@ describe('dashql run', () => {
 
 describe('dashql run in a session of dashql connect', () => {
     const SESSION = '0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0';
-    const COPY = `.dashql/sessions/${SESSION}/workbooks/${WORKBOOK_ID}`;
+    const COPY = `.dashql/session/workbooks/${WORKBOOK_ID}`;
 
     /// A session with a tab that follows it: the tab copied the workbook and answers its runs
     async function sessionWithTab(answer: (message: Extract<AgentSessionRunMessage, { type: 'run' }>, send: (event: RunEvent) => Promise<void>, stopped: Promise<void>, target: AgentSessionTarget) => Promise<void>) {
@@ -395,10 +400,8 @@ describe('dashql run in a session of dashql connect', () => {
         await following;
         const workbook = trinoWorkbook('http://trino.invalid', [ORDERS]);
         await writeAgentSessionWorkbook(target, WORKBOOK_ID, ['dashql-workbook.json', `scripts/${ORDERS[0]}`].map(file => ({ path: file, content: readFileSync(path.join(workbook, file), 'utf8') })));
-        // The session as the agent passes it
-        const args = ['--workspace', folder, '--session', SESSION];
         return {
-            folder, args, runs, target,
+            folder, runs, target,
             close: async () => {
                 tab.abort();
                 await server.close();
@@ -418,7 +421,7 @@ describe('dashql run in a session of dashql connect', () => {
             await send({ type: 'run_finished', ms: 1300, ok: 1, failed: 0, cancelled: 0, notRun: 0, interrupted: false });
         });
         try {
-            const output = await runWith((args, cli) => runRun(args, cli, { home: tempHome() }), session.folder, [...session.args, '--rows', '2', COPY]);
+            const output = await runWith((args, cli) => runRun(args, cli), session.folder, ['--workspace', session.folder, '--rows', '2', COPY]);
             expect(output.stderr).toBe('');
             expect(output.code).toBe(0);
             // The table of the result came with its first rows, the count with all of them, the file is in the cache of
@@ -436,24 +439,30 @@ describe('dashql run in a session of dashql connect', () => {
         }
     });
 
-    it('runs the copy in the tab from a shell in the copy, in the session that its arguments name', async () => {
+    it('runs the copy in the tab from a shell in the copy, in the session of the workspace', async () => {
         const session = await sessionWithTab(async (message, send) => {
             await send({ type: 'run_started', workbook: message.label, scripts: [ORDERS[0]] });
             await send({ type: 'run_finished', ms: 1, ok: 0, failed: 0, cancelled: 0, notRun: 0, interrupted: false });
         });
         try {
             const copy = path.join(session.folder, ...COPY.split('/'));
-            const output = await runWith((args, cli) => runRun(args, cli, { home: tempHome() }), copy, [...session.args, '.']);
+            const output = await runWith((args, cli) => runRun(args, cli), copy, ['--workspace', session.folder, '.']);
             expect(output.stderr).toBe('');
             expect(output.code).toBe(0);
             expect(session.runs).toEqual([{ type: 'run', runId: expect.any(String), workbookId: WORKBOOK_ID, label: '.', scripts: [], refresh: false, rows: 10 }]);
-            // Without the session the copy doesn't run, nor with a session that doesn't run
-            const bare = await runWith((args, cli) => runRun(args, cli, { home: tempHome() }), copy, ['.']);
+            // The invoking directory is the workspace by default: the copy is none, the run fails instead of running
+            // outside the tab
+            const bare = await runWith((args, cli) => runRun(args, cli), copy, ['.']);
             expect(bare.code).toBe(2);
-            expect(bare.stderr).toBe('error: . is the copy of a workbook of the tab of DashQL, pass --workspace <folder> --session <id> as the start of the session says\n');
-            const other = await runWith((args, cli) => runRun(args, cli, { home: tempHome() }), copy, ['--workspace', session.folder, '--session', 'gone', '.']);
-            expect(other.stderr).toBe(`error: no session gone runs in ${session.folder}\n`);
-            expect(session.runs).toHaveLength(1);
+            expect(bare.stderr).toBe(`error: . ${NO_WORKSPACE}\n`);
+            // A relative workspace works like an absolute one, and the folder of the session is the workspace by default
+            const relative = await runWith((args, cli) => runRun(args, cli), copy, ['--workspace', '../../../..', '.']);
+            expect(relative.stderr).toBe('');
+            expect(relative.code).toBe(0);
+            const here = await runWith((args, cli) => runRun(args, cli), session.folder, [COPY]);
+            expect(here.stderr).toBe('');
+            expect(here.code).toBe(0);
+            expect(session.runs).toHaveLength(3);
         } finally {
             await session.close();
         }
@@ -469,7 +478,7 @@ describe('dashql run in a session of dashql connect', () => {
         });
         try {
             const interrupt = new AbortController();
-            const running = runWith((args, cli) => runRun(args, { ...cli, interrupt: interrupt.signal }, { home: tempHome() }), session.folder, [...session.args, COPY]);
+            const running = runWith((args, cli) => runRun(args, { ...cli, interrupt: interrupt.signal }), session.folder, ['--workspace', session.folder, COPY]);
             await vi.waitFor(() => expect(session.runs).toHaveLength(1));
             interrupt.abort();
             const output = await running;
@@ -481,23 +490,35 @@ describe('dashql run in a session of dashql connect', () => {
         }
     });
 
-    it('fails without a tab that follows the session, and runs no other folder in a session', async () => {
+    it('fails without a tab that follows the session, and runs no other folder while a session runs', async () => {
         const folder = testFiles([]);
         const server = await startSessionServer({ harness: 'claude', folder, session: SESSION });
         try {
-            const args = ['--workspace', folder, '--session', SESSION];
             const copy = path.join(folder, ...COPY.split('/'));
             const workbook = trinoWorkbook('http://trino.invalid', [ORDERS]);
             mkdirSync(path.join(copy, 'scripts'), { recursive: true });
             for (const file of ['dashql-workbook.json', `scripts/${ORDERS[0]}`]) copyFileSync(path.join(workbook, file), path.join(copy, file));
-            const output = await runWith((a, cli) => runRun(a, cli, { home: tempHome() }), folder, [...args, COPY]);
+            const output = await runWith((a, cli) => runRun(a, cli), folder, ['--workspace', folder, COPY]);
             expect(output.code).toBe(1);
             expect(output.stderr).toBe('error: no tab of DashQL follows the session, open it with the line of dashql connect\n');
-            // A workbook folder that the tab did not copy runs nowhere in a session
-            const own = await runWith((a, cli) => runRun(a, cli, { home: tempHome() }), workbook, [...args, '.']);
-            expect(own.code).toBe(2);
-            expect(own.stdout).toBe('');
-            expect(own.stderr).toBe(`error: . is no copy of a workbook of the tab of DashQL, the copies of the session are in ${folder}/.dashql/sessions/${SESSION}/workbooks/\n`);
+            // While the session runs, a workbook folder that the tab did not copy runs nowhere: in the session folder
+            // and outside of it
+            const own = path.join(folder, '.dashql', 'session', 'own');
+            mkdirSync(path.join(own, 'scripts'), { recursive: true });
+            for (const file of ['dashql-workbook.json', `scripts/${ORDERS[0]}`]) copyFileSync(path.join(workbook, file), path.join(own, file));
+            const refused = (name: string) => `error: ${name} is no copy of a workbook of the tab of DashQL and would run outside the tab, the session of dashql connect in ${folder} runs only its copies in ${folder}/.dashql/session/workbooks/\n`;
+            for (const dir of [own, workbook]) {
+                const other = await runWith((a, cli) => runRun(a, cli), dir, ['--workspace', folder, '.']);
+                expect(other.code).toBe(2);
+                expect(other.stdout).toBe('');
+                expect(other.stderr).toBe(refused('.'));
+            }
+            // A shell that changed into another folder names it with a relative workspace, which nobody set up: the run
+            // fails instead of running outside the tab
+            const relative = await runWith((a, cli) => runRun(a, cli), workbook, ['--workspace', '.', '.']);
+            expect(relative.code).toBe(2);
+            expect(relative.stdout).toBe('');
+            expect(relative.stderr).toBe(`error: . ${NO_WORKSPACE}\n`);
         } finally {
             await server.close();
         }

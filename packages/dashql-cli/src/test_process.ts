@@ -28,6 +28,11 @@ export function testFiles(files: Array<string | [string, string | Uint8Array]>):
     return root;
 }
 
+/// A workspace with files, as `dashql init` sets it up
+export function testWorkspace(files: Array<string | [string, string | Uint8Array]>): string {
+    return testFiles([['.dashql/.gitignore', '*\n'], ...files]);
+}
+
 /// Run a command with the process of a test, without colors
 export async function runWith(
     run: (args: string[], process: CliProcess) => Promise<number>,

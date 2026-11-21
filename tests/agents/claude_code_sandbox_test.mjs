@@ -2,7 +2,7 @@
 // The model calls Bash once, e.g. with a probe that connects to a server on loopback, and hooks run the same probe or
 // carry the events of the session to a server that a SessionStart hook started.
 import assert from 'node:assert/strict';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { after, before, test } from 'node:test';
@@ -206,11 +206,20 @@ test('dashql connect gives Claude Code the guide of DashQL and lets it run dashq
     const home = join(dir, 'home');
     const work = join(dir, 'work');
     mkdirSync(home, { recursive: true });
-    mkdirSync(join(work, '.dashql', 'sessions', 's1', 'workbooks', 'w1', 'scripts'), { recursive: true });
-    // The model runs dashql, writes a script of the copy and a file of the project, one after the other
+    // A workbook folder of the project, outside of the session
+    mkdirSync(join(work, 'mine', 'scripts'), { recursive: true });
+    writeFileSync(join(work, 'mine', 'dashql-workbook.json'), JSON.stringify({ name: 'Mine', connections: [], scripts: [] }));
+    // The model runs dashql, runs the workbook of the project, tries to make it a workspace of its own and run it there,
+    // writes a script of a copy and checks it, and writes a file of the project, one after the other. The folder of the
+    // session goes with the session, the lint reads the script.
+    const script = join(work, '.dashql', 'session', 'workbooks', 'w1', 'scripts', 'orders.sql');
     const calls = [
-        toolUse('Bash', { command: 'dashql describe', description: 'read the guide' }),
-        toolUse('Write', { file_path: join(work, '.dashql', 'sessions', 's1', 'workbooks', 'w1', 'scripts', 'orders.sql'), content: 'select 1\n' }),
+        toolUse('Bash', { command: `dashql describe --workspace ${work}`, description: 'read the guide' }),
+        toolUse('Bash', { command: `dashql run --workspace ${work} mine`, description: 'run the workbook of the project' }),
+        toolUse('Bash', { command: 'dashql init mine', description: 'set up the workbook of the project' }),
+        toolUse('Bash', { command: 'dashql run --workspace mine mine', description: 'run it in its own workspace' }),
+        toolUse('Write', { file_path: script, content: 'select 1\n' }),
+        toolUse('Bash', { command: `dashql lint ${script}`, description: 'check the script' }),
         toolUse('Write', { file_path: join(work, 'notes.md'), content: 'notes\n' }),
     ];
     const model = await startFakeAnthropic({
@@ -229,15 +238,26 @@ test('dashql connect gives Claude Code the guide of DashQL and lets it run dashq
         const results = output.split('\n').filter(line => line.startsWith('{')).map(line => JSON.parse(line))
             .flatMap(event => event.type === 'user' && Array.isArray(event.message?.content) ? event.message.content : [])
             .filter(block => block.type === 'tool_result');
-        assert.equal(results.length, 3, JSON.stringify(results));
+        assert.equal(results.length, 7, JSON.stringify(results));
         const content = result => Array.isArray(result.content) ? result.content.map(block => block.text ?? '').join('') : String(result.content);
         // dashql runs without asking, from the dashql that connect puts on the path
         assert.equal(results[0].is_error === true, false, content(results[0]));
         assert.match(content(results[0]), /^DashQL works on workbooks/);
-        // A script of the copy is written without asking, a file of the project needs an approval
-        assert.equal(results[1].is_error === true, false, content(results[1]));
-        assert.equal(readFileSync(join(work, '.dashql', 'sessions', 's1', 'workbooks', 'w1', 'scripts', 'orders.sql'), 'utf8'), 'select 1\n');
+        // While the session runs in the workspace, dashql runs nothing outside its tab
+        assert.equal(results[1].is_error, true, content(results[1]));
+        assert.match(content(results[1]), /mine is no copy of a workbook of the tab of DashQL and would run outside the tab/);
+        assert.equal(existsSync(join(work, '.dashql', 'cache')), false);
+        // Only the user sets up a workspace: dashql init needs an approval, and the folder that it did not set up is no
+        // workspace to run in
         assert.equal(results[2].is_error, true, content(results[2]));
+        assert.equal(existsSync(join(work, 'mine', '.dashql')), false);
+        assert.equal(results[3].is_error, true, content(results[3]));
+        assert.match(content(results[3]), /mine is no workspace of DashQL/);
+        // A script of the copy is written without asking, a file of the project needs an approval
+        assert.equal(results[4].is_error === true, false, content(results[4]));
+        assert.match(content(results[5]), /1 file, 0 errors/);
+        assert.equal(results[6].is_error, true, content(results[6]));
+        assert.equal(existsSync(join(work, '.dashql', 'session')), false);
         assert.equal(existsSync(join(work, 'notes.md')), false);
         // The guide is in the system prompt of the main conversation
         assert.ok(model.requests.some(request => JSON.stringify(request.system ?? '').includes('The user started you from DashQL')), 'the guide is in no system prompt');

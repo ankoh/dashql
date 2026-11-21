@@ -19,8 +19,7 @@ function directory(script) {
 
 /// Run dashql in a directory, as `bazel run` does with BUILD_WORKING_DIRECTORY
 function dashql(dir, args, input = '') {
-    const home = mkdtempSync(join(process.env.TEST_TMPDIR ?? tmpdir(), 'dashql-home-'));
-    return spawnSync(DASHQL, args, { input, encoding: 'utf8', env: { ...process.env, BUILD_WORKING_DIRECTORY: dir, DASHQL_HOME: home, NO_COLOR: '1' } });
+    return spawnSync(DASHQL, args, { input, encoding: 'utf8', env: { ...process.env, BUILD_WORKING_DIRECTORY: dir, NO_COLOR: '1' } });
 }
 
 test('exits with 0 for a clean script', () => {
@@ -71,6 +70,10 @@ test('runs a workbook with the runtime and names the connection it can not reach
     }));
     mkdirSync(join(dir, 'scripts'));
     writeFileSync(join(dir, 'scripts', 'a.sql'), 'select 1\n');
+    // A workbook folder that is its own workspace
+    const init = dashql(dir, ['init']);
+    assert.equal(init.status, 0, init.stderr);
+    assert.equal(init.stdout, 'Set up the workspace .dashql/\n');
     const output = dashql(dir, ['run', '.']);
     assert.equal(output.status, 1, output.stderr);
     assert.ok(output.stdout.startsWith(`trino ${endpoint}  failed\n  fetch failed: connect ECONNREFUSED`), output.stdout);

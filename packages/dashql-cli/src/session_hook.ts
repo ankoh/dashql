@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 
 import type { AgentSessionEvent, AgentSessionEventName } from '@akohn/dashql/platform/session/agent_session_state';
-import { DASHQL_FOLDER, SESSION_WORKBOOK_COPIES, SESSIONS_FOLDER } from '@akohn/dashql/platform/session/session_folder';
+import { SESSION_FOLDER_PATH, SESSION_WORKBOOK_COPIES } from '@akohn/dashql/platform/session/session_folder';
 
 const EVENTS = new Set<AgentSessionEventName>(['SessionStart', 'UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'Stop', 'SessionEnd']);
 /// The hook of Claude Code after a tool that failed, a PostToolUse with the error for a session
@@ -47,8 +47,8 @@ export function lastAssistantText(transcript: string): string | null {
 
 const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-/// The prefix of a path in the copy of a workbook of a page, `.dashql/sessions/<id>/workbooks/<workbook id>/`
-const WORKBOOK_COPY = new RegExp(`(^|[\\s"'=])${escapeRegExp(`${DASHQL_FOLDER}/${SESSIONS_FOLDER}/`)}[^/\\s"']+/${SESSION_WORKBOOK_COPIES}/[^/\\s"']+/`, 'g');
+/// The prefix of a path in the copy of a workbook of a page, `.dashql/session/workbooks/<workbook id>/`
+const WORKBOOK_COPY = new RegExp(`(^|[\\s"'=])${escapeRegExp(`${SESSION_FOLDER_PATH}/${SESSION_WORKBOOK_COPIES}/`)}[^/\\s"']+/`, 'g');
 
 /// The paths in a text as the page shows them: relative to the folder of the session, and in a copy of a workbook
 /// relative to the copy
@@ -56,8 +56,9 @@ function shortPaths(text: string, folder: string): string {
     let short = text;
     if (folder.length > 1) {
         const prefix = folder.endsWith('/') ? folder : `${folder}/`;
-        // `cd <folder> && ` in front of a command says nothing
+        // `cd <folder> && ` in front of a command says nothing, nor `--workspace <folder>` (`-w`) of a command of dashql
         short = short.replace(new RegExp(`^cd\\s+(["']?)${escapeRegExp(folder)}/?\\1\\s*&&\\s*`), '');
+        short = short.replace(new RegExp(`\\s(?:--workspace(?:\\s+|=)|-w\\s+)(["']?)(?:${escapeRegExp(folder)}/?|\\.)\\1(?=\\s|$)`, 'g'), '');
         short = short.split(prefix).join('');
     }
     return short.replace(WORKBOOK_COPY, '$1');

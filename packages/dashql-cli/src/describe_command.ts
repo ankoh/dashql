@@ -6,13 +6,13 @@ import path from 'node:path';
 import { STORAGE_ATTACHMENTS_FOLDER, STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE } from '@akohn/dashql/platform/storage/storage_backend';
 
 import { EXIT_OK, EXIT_USAGE, type CliProcess } from './cli_process.js';
-import { commandSession, readSessionConnections, sessionCopiesFolder } from './session_folder.js';
+import { isWorkspace, noWorkspace, readSession, readSessionConnections, sessionCopiesFolder } from './session_folder.js';
 
-export const DESCRIBE_USAGE = `Usage: dashql describe [--workspace <dir> --session <id>]
+export const DESCRIBE_USAGE = `Usage: dashql describe [-w <dir>]
 
-Prints how to work on the workbooks of DashQL with the commands of dashql. With --workspace and --session of a session
-of dashql connect, also the workbooks that the tab copied into the session and the connections that it lets the agent
-use.`;
+Prints how to work on the workbooks of DashQL with the commands of dashql. While a session of dashql connect runs in
+the workspace, --workspace (-w) or the invoking directory, also the workbooks that the tab copied into the session and
+the connections that it lets the agent use.`;
 
 export const DESCRIBE_TEXT = `DashQL works on workbooks: folders of SQL scripts that run on connections. The tab of DashQL in the browser shows
 the workbooks of this session live: the scripts, their runs, their results and their charts. Work on a workbook
@@ -30,22 +30,24 @@ A workbook folder:
                                 that you put here.
   connections/<id>/             The tables of the connections, dashql catalog prints them.
 
-Commands, <session> is the --workspace <dir> --session <id> of the session of dashql connect that the start of the
-session gives you; catalog, run and vis fail without it on a workbook that the tab copied:
-  dashql catalog <session> <workbook-dir> [<connection>...]
+Commands, <workspace> is the folder that you work in, the start of the session names it. catalog, describe, run and
+vis need it: while the session runs there, run and vis run only the copies of the tab, in the tab. Only the user sets
+up a workspace: never run dashql init, a command that says that a folder is no workspace names the wrong folder.
+  dashql catalog --workspace <workspace> <workbook-dir> [<connection>...]
                                 The tables that you can query, as CREATE TABLE statements with the types of
                                 their columns, for every connection of the workbook or the named ones.
-  dashql run <session> <workbook-dir> [<script>...]
+  dashql run --workspace <workspace> <workbook-dir> [<script>...]
                                 Run the scripts on their connections, all of them or the named ones with the
                                 scripts they read. Prints syntax errors first, then the first rows of every result
                                 and the Parquet file with all of it. A cached result is not run again, --refresh
                                 runs it.
-  dashql vis <session> <workbook-dir> <script>
+  dashql vis --workspace <workspace> <workbook-dir> <script>
                                 Check the chart of a script against its result and render it as PNG.
   dashql lint <file.sql|dir>... Check scripts without running them.
   dashql format --write <file.sql|dir>...
                                 Pretty print scripts in place.
-  dashql describe <session>      This guide, the workbooks and the connections of the session.
+  dashql describe --workspace <workspace>
+                                This guide, the workbooks and the connections of the session.
   dashql <command> --help       The options of a command.
 
 Scripts:
@@ -105,9 +107,9 @@ Charts:
 
 How to work:
 1. Learn the workbook: dashql-workbook.json, its scripts, and dashql catalog for the tables and the attachments.
-2. Write SQL into new scripts that build on the existing ones, run them with dashql run <session> <workbook-dir>
-   <script> and fix the errors. Run the workbook folder, not a copy of it: the tab follows the folder. A workbook that
-   the tab copied runs in the tab, on the connections that the user lets you use, and the user watches the run there.
+2. Write SQL into new scripts that build on the existing ones, run them with dashql run and fix the errors. Run the
+   workbook folder, not a copy of it: the tab follows the folder. A workbook that the tab copied runs in the tab, on
+   the connections that the user lets you use, and the user watches the run there.
 3. Chart a result that a chart explains better than a table, and check it with dashql vis.
 4. The user watches the scripts change and run. Do not recap your steps, the queries or the results: end with one
    plain sentence that answers the request, or with nothing if the results already answer it.
@@ -124,8 +126,8 @@ them.`;
 /// at its start
 export const CONNECTED_AGENT_PREFACE = `The user started you from DashQL, a SQL workbench in the browser, to work on its workbooks. A request about data
 is a request to the workbooks of DashQL: answer it with scripts in a workbook that the tab shows, with charts where
-they help, not with ad hoc queries, notebooks or files outside the workbook. dashql describe <session> prints this
-guide again with the workbooks and the connections of the session.`;
+they help, not with ad hoc queries, notebooks or files outside the workbook. dashql describe --workspace <workspace>
+prints this guide again with the workbooks and the connections of the session.`;
 
 /// The guide with its preface, for a harness that `dashql connect` launches
 export const CONNECTED_AGENT_GUIDE = `${CONNECTED_AGENT_PREFACE}
@@ -143,8 +145,8 @@ interface CopiedWorkbook {
 }
 
 /// The copies of the workbooks of the tab in a session that have a workbook file
-export function copiedWorkbooks(workspace: string, session: string): CopiedWorkbook[] {
-    const root = sessionCopiesFolder(workspace, session);
+export function copiedWorkbooks(workspace: string): CopiedWorkbook[] {
+    const root = sessionCopiesFolder(workspace);
     let ids: string[];
     try {
         ids = readdirSync(root).sort();
@@ -206,8 +208,8 @@ ${lines.join('\n')}`;
 
 /// The section of the connections that the tab lets the agent use, null outside a session of `dashql connect` and before
 /// the tab told them
-export function describeSessionConnections(workspace: string, session: string | null): string | null {
-    const allowed = readSessionConnections(workspace, session);
+export function describeSessionConnections(workspace: string): string | null {
+    const allowed = readSessionConnections(workspace);
     if (allowed == null) return null;
     if (allowed.connections.length === 0) {
         return 'Connections: the tab of DashQL lets you use none, dashql run runs no script. The user can allow them in the prompt.';
@@ -219,37 +221,33 @@ ${lines.join('\n')}`;
 
 /// Run `describe` with the arguments after it, returns the exit code
 export function runDescribe(args: string[], cli: CliProcess): number {
-    let workspace: string | null = null;
-    let session: string | null = null;
+    if (args.includes('-h') || args.includes('--help')) {
+        cli.stdout(`${DESCRIBE_USAGE}\n`);
+        return EXIT_OK;
+    }
+    let value = '.';
     for (let i = 0; i < args.length; ++i) {
-        const arg = args[i];
-        if (arg === '-h' || arg === '--help') {
-            cli.stdout(`${DESCRIBE_USAGE}\n`);
-            return EXIT_OK;
-        }
-        if (arg === '--workspace' && i + 1 < args.length) {
-            workspace = args[++i];
+        if ((args[i] === '--workspace' || args[i] === '-w') && i + 1 < args.length && !args[i + 1].startsWith('-')) {
+            value = args[++i];
             continue;
         }
-        if (arg === '--session' && i + 1 < args.length) {
-            session = args[++i];
-            continue;
-        }
-        cli.stderr(`error: unexpected argument ${arg}\n\n${DESCRIBE_USAGE}\n`);
+        cli.stderr(`error: unexpected argument ${args[i]}\n\n${DESCRIBE_USAGE}\n`);
         return EXIT_USAGE;
     }
-    const resolved = commandSession(cli.cwd, workspace, session, null);
-    if (typeof resolved === 'string') {
-        cli.stderr(`error: ${resolved}\n`);
+    const workspace = path.resolve(cli.cwd, value);
+    if (!isWorkspace(workspace)) {
+        cli.stderr(`error: ${noWorkspace(value)}\n`);
         return EXIT_USAGE;
     }
-    cli.stdout(`${DESCRIBE_TEXT}\n\n${describeWorkspace(resolved.workspace, resolved.session)}`);
+    const workbooks = readSession(workspace) == null
+        ? `Workbooks of DashQL: no session of dashql connect runs in ${workspace}.\n`
+        : describeSession(workspace);
+    cli.stdout(`${DESCRIBE_TEXT}\n\n${workbooks}`);
     return EXIT_OK;
 }
 
-/// The workbooks that the tabs copied into a workspace and the connections that the agent may use
-export function describeWorkspace(workspace: string, session: string | null): string {
-    if (session == null) return 'Workbooks of DashQL: --workspace and --session name a session of dashql connect, its workbooks are listed then.\n';
-    const connections = describeSessionConnections(workspace, session);
-    return `${describeCopiedWorkbooks(copiedWorkbooks(workspace, session))}\n${connections == null ? '' : `\n${connections}\n`}`;
+/// The workbooks that the tab copied into a session and the connections that the agent may use
+export function describeSession(workspace: string): string {
+    const connections = describeSessionConnections(workspace);
+    return `${describeCopiedWorkbooks(copiedWorkbooks(workspace))}\n${connections == null ? '' : `\n${connections}\n`}`;
 }

@@ -111,8 +111,8 @@ async function expectOk(response: Response, what: string): Promise<void> {
     if (!response.ok) throw new Error(`the session answered ${what} with ${response.status}`);
 }
 
-/// Write the workbook of the page into the folder of the session, `.dashql/workbooks/<workbook id>/`, where the agent
-/// works on it. An older copy goes first. The workbook file comes last: with it, the server announces the copy in the
+/// Write the workbook of the page into the folder of the session, `.dashql/session/workbooks/<workbook id>/`, where the
+/// agent works on it. An older copy goes first. The workbook file comes last: with it, the server announces the copy in the
 /// state of the session.
 export async function writeAgentSessionWorkbook(
     target: AgentSessionTarget,

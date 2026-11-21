@@ -1,6 +1,5 @@
 // dashql vis: checks the chart of a script, its `@vis` tag, against the result of the script and renders it as PNG
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { homedir } from 'node:os';
 import path from 'node:path';
 
 import * as vegaLite from 'vega-lite';
@@ -14,16 +13,15 @@ import {
     compileProblems,
     type VegaLiteCompile,
 } from '@akohn/dashql/platform/workbook/chart_config';
-import { DASHQL_FOLDER } from '@akohn/dashql/platform/session/session_folder';
 import { STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE } from '@akohn/dashql/platform/storage/storage_backend';
 import type { RunEvent } from '@akohn/dashql/platform/workbook/run_events';
 
 import { EXIT_FAILED, EXIT_INTERRUPTED, EXIT_OK, EXIT_USAGE, type CliProcess } from './cli_process.js';
 import { processRunEnvironment, runWorkbookFolder, type RunEnvironment } from './run_command.js';
-import { commandSession } from './session_folder.js';
+import { dashqlRoot, isWorkspace, noWorkspace } from './session_folder.js';
 
-export const VIS_USAGE = `Usage: dashql vis [--out <file.png>] [--width <n>] [--height <n>] [--scale <n>] [--refresh]
-                 [--workspace <dir> --session <id>] <workbook-dir> <script>
+export const VIS_USAGE = `Usage: dashql vis [-w <dir>] [--out <file.png>] [--width <n>] [--height <n>] [--scale <n>]
+                 [--refresh] [--home <dir>] <workbook-dir> <script>
 
 Checks the chart of a script and renders it as PNG to look at. The chart is the @vis tag in the comment above the
 last query of the script, the result of the script is its data. vis runs the script like dashql run, a result that is
@@ -31,10 +29,12 @@ cached is not run again. It prints the renderer, the columns and the rows of the
 Vega-Lite chart: errors and warnings of Vega-Lite, fields that are no columns of the result, sizes that DashQL decides.
 
 The tab of DashQL renders the PNG with the result, as it runs the script: for a workbook that it copied into a
-session of dashql connect, which --workspace and --session name. It has the theme of DashQL, ${CHART_IMAGE_WIDTH}x${CHART_IMAGE_HEIGHT} at scale ${CHART_IMAGE_SCALE} unless given otherwise.
-Check a narrow card too, e.g. --width 400 --height 400: the cards of the feed, the dashboard and the dataflow differ in
-aspect ratio. The file is charts/<script>.png in the .dashql/ of the workspace unless --out names it. Other workbook
-folders get the check only.
+session of dashql connect, .dashql/session/workbooks/<workbook id> of --workspace. It has the theme of DashQL, ${CHART_IMAGE_WIDTH}x${CHART_IMAGE_HEIGHT} at scale ${CHART_IMAGE_SCALE} unless given otherwise.
+Check a narrow card too, e.g. --width 400 --height 400: the cards of the feed, the dashboard and the dataflow differ
+in aspect ratio. --workspace (-w) is the folder that you work in, the invoking directory by default, as for dashql
+run. The file is charts/<script>.png in the folder of the files of DashQL unless --out names it: --home, else the
+.dashql/ of the workspace. vis runs where dashql run runs: in a session only the copies of the tab, without one any
+workbook folder, which gets the check only.
 
 Exits with 0 when the chart has no problems, 1 when it has some or the script has no chart or no result, 2 on usage
 errors.`;
@@ -47,21 +47,21 @@ interface VisArgs {
     height: number;
     scale: number;
     refresh: boolean;
-    workspace: string | null;
-    session: string | null;
+    home: string | null;
+    workspace: string;
 }
 
 /// Parse the arguments, an error message if they are invalid
 function parseVisArgs(args: string[]): VisArgs | string {
-    const out: Omit<VisArgs, 'workbook' | 'script'> = {
+    const out: Omit<VisArgs, 'workbook' | 'script' | 'workspace'> = {
         out: null,
         width: CHART_IMAGE_WIDTH,
         height: CHART_IMAGE_HEIGHT,
         scale: CHART_IMAGE_SCALE,
         refresh: false,
-        workspace: null,
-        session: null,
+        home: null,
     };
+    let workspace = '.';
     const positional: string[] = [];
     const number = (name: string, value: string | undefined, max: number): number | string => {
         const parsed = Number(value);
@@ -80,14 +80,14 @@ function parseVisArgs(args: string[]): VisArgs | string {
             const value = args[++i];
             if (value == null || value.startsWith('-')) return '--out takes a file';
             out.out = value;
-        } else if (arg === '--workspace') {
+        } else if (arg === '--home') {
+            const value = args[++i];
+            if (value == null || value.startsWith('-')) return '--home takes a folder';
+            out.home = value;
+        } else if (arg === '--workspace' || arg === '-w') {
             const value = args[++i];
             if (value == null || value.startsWith('-')) return '--workspace takes a folder';
-            out.workspace = value;
-        } else if (arg === '--session') {
-            const value = args[++i];
-            if (value == null || value.startsWith('-')) return '--session takes the id of the session';
-            out.session = value;
+            workspace = value;
         } else if (arg === '--width') {
             error = take('width', 4096);
         } else if (arg === '--height') {
@@ -104,7 +104,7 @@ function parseVisArgs(args: string[]): VisArgs | string {
         if (error != null) return error;
     }
     if (positional.length !== 2) return positional.length < 2 ? 'missing the workbook folder or the script' : `unexpected argument ${positional[2]}`;
-    return { workbook: positional[0], script: positional[1], ...out };
+    return { workbook: positional[0], script: positional[1], ...out, workspace };
 }
 
 /// The chart of a script as the core compiles it: the renderer of the `@vis` tag of its last query and its spec
@@ -160,12 +160,6 @@ function scriptFileName(name: string): string {
     return base.endsWith('.sql') ? base : `${base}.sql`;
 }
 
-/// The root of the files of DashQL of a workspace: its `.dashql/`, else `~/.dashql`
-function dashqlRootOf(workspace: string): string {
-    const root = path.join(workspace, DASHQL_FOLDER);
-    return existsSync(root) ? root : path.join(homedir(), DASHQL_FOLDER);
-}
-
 /// Run `dashql vis` with its arguments, returns the exit code
 export async function runVis(args: string[], cli: CliProcess, env: RunEnvironment = processRunEnvironment()): Promise<number> {
     if (args.includes('-h') || args.includes('--help')) {
@@ -178,12 +172,12 @@ export async function runVis(args: string[], cli: CliProcess, env: RunEnvironmen
         return EXIT_USAGE;
     }
     const dir = path.resolve(cli.cwd, parsed.workbook);
-    const session = commandSession(cli.cwd, parsed.workspace, parsed.session, parsed.workbook);
-    if (typeof session === 'string') {
-        cli.stderr(`error: ${session}\n`);
+    const home = parsed.home == null ? null : path.resolve(cli.cwd, parsed.home);
+    const workspace = path.resolve(cli.cwd, parsed.workspace);
+    if (!isWorkspace(workspace)) {
+        cli.stderr(`error: ${noWorkspace(parsed.workspace)}\n`);
         return EXIT_USAGE;
     }
-    const { workspace } = session;
     if (!existsSync(path.join(dir, STORAGE_WORKBOOK_FILE))) {
         cli.stderr(`error: ${parsed.workbook} is no workbook folder, it has no ${STORAGE_WORKBOOK_FILE}\n`);
         return EXIT_USAGE;
@@ -217,11 +211,11 @@ export async function runVis(args: string[], cli: CliProcess, env: RunEnvironmen
     const failures: string[] = [];
     let code: number;
     // The columns of the result are enough here, the tab renders the chart with all of it
-    const run = { workbook: parsed.workbook, scripts: [fileName], rows: 0, refresh: parsed.refresh, verbose: false };
+    const run = { workbook: parsed.workbook, workspace, scripts: [fileName], rows: 0, refresh: parsed.refresh, verbose: false, home };
     // The tab renders the PNG of a Vega-Lite chart after the result
     const chartSize = tag.spec == null ? null : { width: parsed.width, height: parsed.height, scale: parsed.scale };
     try {
-        code = await runWorkbookFolder({ ...run, chart: chartSize }, dir, session, env, cli, stop.signal, event => {
+        code = await runWorkbookFolder({ ...run, chart: chartSize }, dir, env, cli, stop.signal, event => {
             switch (event.type) {
                 case 'script_done':
                     if (event.script === fileName) done = event;
@@ -261,7 +255,7 @@ export async function runVis(args: string[], cli: CliProcess, env: RunEnvironmen
     const rendered = image as Extract<RunEvent, { type: 'script_chart' }> | null;
     let wrote: string | null = null;
     if (rendered?.png != null) {
-        const out = parsed.out != null ? path.resolve(cli.cwd, parsed.out) : path.join(dashqlRootOf(workspace), 'charts', `${name}.png`);
+        const out = parsed.out != null ? path.resolve(cli.cwd, parsed.out) : path.join(dashqlRoot(workspace, home), 'charts', `${name}.png`);
         mkdirSync(path.dirname(out), { recursive: true });
         writeFileSync(out, rendered.png);
         wrote = `${path.relative(cli.cwd, out) || out} (${rendered.width}x${rendered.height} pixels)`;

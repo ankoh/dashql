@@ -10,8 +10,8 @@ import { runWith } from './test_process.js';
 const W = mkdtempSync(path.join(process.env.TEST_TMPDIR ?? tmpdir(), 'dashql-workspace-'));
 const SESSION = '0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0';
 
-const hook = (event: string, payload: object, session = SESSION) =>
-    runWith((args, cli) => runSession(args, cli), W, ['hook', event, '--harness', 'claude', '--workspace', W, '--session', session], JSON.stringify(payload));
+const hook = (event: string, payload: object, workspace = W) =>
+    runWith((args, cli) => runSession(args, cli), workspace, ['hook', event, '--harness', 'claude', '--workspace', workspace], JSON.stringify(payload));
 
 describe('dashql session hook', () => {
     it('sends the events to the server of the session that its arguments name', async () => {
@@ -19,9 +19,9 @@ describe('dashql session hook', () => {
         try {
             const start = await hook('SessionStart', { session_id: 'c1', cwd: W });
             expect(start.code).toBe(0);
-            // The start tells the agent the session that its commands take
-            expect(start.stdout).toBe(connectedSessionStart('claude', W, SESSION));
-            expect(start.stdout).toContain(`--workspace ${W} --session ${SESSION}`);
+            // The start tells the agent the copies and the workspace that its commands take
+            expect(start.stdout).toBe(connectedSessionStart('claude', W));
+            expect(start.stdout).toContain(`dashql run --workspace ${W} ${W}/.dashql/session/workbooks/<id>`);
             await hook('UserPromptSubmit', { session_id: 'c1', cwd: W, prompt: 'how many orders' });
             // A shell that changed its directory still reaches the session
             await hook('PostToolUse', { session_id: 'c1', cwd: path.join(W, 'sub'), tool_name: 'Bash', tool_input: { command: 'dashql lint a.sql' } });
@@ -41,12 +41,12 @@ describe('dashql session hook', () => {
         // No server of the session, an unknown event, a hook without its session
         const gone = await hook('SessionEnd', { session_id: 'gone' });
         expect(gone.code).toBe(0);
-        expect(gone.stderr).toBe(`dashql: the session ${SESSION} does not run in ${W}\n`);
+        expect(gone.stderr).toBe(`dashql: no session of dashql connect runs in ${W}\n`);
         expect((await hook('Notification', {})).code).toBe(0);
         const bare = await runWith((args, cli) => runSession(args, cli), W, ['hook', 'Stop', '--harness', 'claude'], '{}');
         expect(bare.code).toBe(0);
-        expect(bare.stderr).toContain('--workspace and --session name the session of dashql connect');
-        const noHarness = await runWith((args, cli) => runSession(args, cli), W, ['hook', 'Stop', '--workspace', W, '--session', SESSION], '{}');
+        expect(bare.stderr).toContain('--workspace names the folder of the session of dashql connect');
+        const noHarness = await runWith((args, cli) => runSession(args, cli), W, ['hook', 'Stop', '--workspace', W], '{}');
         expect(noHarness.code).toBe(0);
         expect(noHarness.stderr).toContain('--harness names the harness of the hook');
     });

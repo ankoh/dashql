@@ -1,11 +1,16 @@
 import { createAgentSessionState, reduceAgentSessionCopy } from './agent_session_state.js';
-import { parseSessionConnections, sessionFolderPath, workbookCopyPath } from './session_folder.js';
+import { parseSessionConnections, parseSessionFile, workbookCopyPath } from './session_folder.js';
 
 describe('the folder of a session', () => {
     it('keeps the copies of the workbooks in the folder of the session', () => {
-        expect(sessionFolderPath('s1')).toBe('.dashql/sessions/s1');
-        expect(workbookCopyPath('s1', 'w1')).toBe('.dashql/sessions/s1/workbooks/w1');
-        expect(() => sessionFolderPath('../x')).toThrow('invalid session name');
+        expect(workbookCopyPath('w1')).toBe('.dashql/session/workbooks/w1');
+        expect(() => workbookCopyPath('../x')).toThrow('invalid workbook id');
+    });
+
+    it('reads the file of the session', () => {
+        expect(parseSessionFile('{"id":"s1","endpoint":"http://127.0.0.1:1","token":"t"}')).toEqual({ id: 's1', endpoint: 'http://127.0.0.1:1', token: 't' });
+        expect(parseSessionFile('{"endpoint":"http://127.0.0.1:1","token":"t"}')).toBeNull();
+        expect(parseSessionFile('not json')).toBeNull();
     });
 
     it('reads the connections that the agent may use', () => {

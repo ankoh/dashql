@@ -36,11 +36,14 @@ describe('the events of the hooks of a harness', () => {
 
     it('shortens the paths of the folder and of the copies of workbooks', () => {
         const status = (tool_name: string, tool_input: unknown) => sessionEventOf('PreToolUse', { cwd: '/home/u/p', tool_name, tool_input })?.status;
-        expect(status('Edit', { file_path: '/home/u/p/.dashql/sessions/s1/workbooks/wb1/scripts/a.sql' })).toBe('Edit scripts/a.sql');
+        expect(status('Edit', { file_path: '/home/u/p/.dashql/session/workbooks/wb1/scripts/a.sql' })).toBe('Edit scripts/a.sql');
         expect(status('Edit', { file_path: '/elsewhere/a.sql' })).toBe('Edit /elsewhere/a.sql');
-        expect(status('Bash', { command: 'cd /home/u/p && dashql run .dashql/sessions/s1/workbooks/wb1 --script /home/u/p/.dashql/sessions/s1/workbooks/wb1/scripts/a.sql' }))
-            .toBe('dashql run .dashql/sessions/s1/workbooks/wb1 --script scripts/a.sql');
+        expect(status('Bash', { command: 'cd /home/u/p && dashql run --workspace /home/u/p .dashql/session/workbooks/wb1 --script /home/u/p/.dashql/session/workbooks/wb1/scripts/a.sql' }))
+            .toBe('dashql run .dashql/session/workbooks/wb1 --script scripts/a.sql');
         expect(status('Bash', { command: 'cd "/home/u/p" && ls' })).toBe('ls');
+        expect(status('Bash', { command: 'dashql vis --workspace=/home/u/p .dashql/session/workbooks/wb1 a' })).toBe('dashql vis .dashql/session/workbooks/wb1 a');
+        expect(status('Bash', { command: 'dashql vis --workspace . .dashql/session/workbooks/wb1 a' })).toBe('dashql vis .dashql/session/workbooks/wb1 a');
+        expect(status('Bash', { command: 'dashql run -w /home/u/p .dashql/session/workbooks/wb1' })).toBe('dashql run .dashql/session/workbooks/wb1');
         expect(status('Grep', { pattern: 'orders', path: '/home/u/p' })).toBe('Grep orders');
         expect(status('Glob', { pattern: '**/*.sql' })).toBe('Glob **/*.sql');
         expect(status('Agent', { description: 'Find the tables', prompt: 'long' })).toBe('Agent Find the tables');

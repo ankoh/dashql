@@ -1,5 +1,4 @@
-import { existsSync, mkdtempSync, readFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
 import * as arrow from 'apache-arrow';
@@ -14,6 +13,7 @@ import {
 import { encodeRunEvent } from '@akohn/dashql/platform/workbook/run_events';
 
 import type { RunEnvironment } from './run_command.js';
+import { initWorkspace } from './session_folder.js';
 import { startSessionServer } from './session_server.js';
 import { runWith, testFiles } from './test_process.js';
 import { runVis, scriptChart, VIS_USAGE } from './vis_command.js';
@@ -56,9 +56,8 @@ ${REVENUE};
 
 const BAR = { mark: 'bar', encoding: { x: { field: 'region', type: 'nominal' }, y: { field: 'revenue', type: 'quantitative' } } };
 
-const tempHome = () => mkdtempSync(path.join(process.env.TEST_TMPDIR ?? tmpdir(), 'dashql-home-'));
-const vis = (dir: string, args: string[], env: Partial<RunEnvironment> = {}) =>
-    runWith((visArgs, cli) => runVis(visArgs, cli, { home: tempHome(), ...env }), dir, args);
+const vis = (dir: string, args: string[], env: RunEnvironment = {}) =>
+    runWith((visArgs, cli) => { initWorkspace(dir); return runVis(['-w', '.', ...visArgs], cli, env); }, dir, args);
 
 /// The bytes of a PNG as a tab sends them
 const PNG = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3]);
@@ -118,7 +117,7 @@ No PNG: the tab of DashQL renders it, for a workbook that it copied into a sessi
                 { path: 'dashql-workbook.json', content: workbookFile(['revenue.sql']) },
                 { path: 'scripts/revenue.sql', content: charted(BAR) },
             ]);
-            const output = await vis(folder, ['--workspace', '.', '--session', session, `.dashql/sessions/${session}/workbooks/${WORKBOOK_ID}`, 'revenue', '--width', '400', '--height', '300', '--scale', '1']);
+            const output = await vis(folder, [`.dashql/session/workbooks/${WORKBOOK_ID}`, 'revenue', '--width', '400', '--height', '300', '--scale', '1']);
             expect(output.stderr).toBe('');
             expect(output.stdout).toBe(`revenue.sql: @vis vegalite, 2 rows, columns region, revenue
 No problems.

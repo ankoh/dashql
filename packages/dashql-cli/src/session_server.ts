@@ -18,18 +18,34 @@ import {
 } from '@akohn/dashql/platform/session/agent_session_client';
 import { AGENT_SESSION_PROTOCOL, AGENT_SESSION_PROTOCOL_HEADER } from '@akohn/dashql/platform/session/agent_session_protocol';
 import {
-    DASHQL_FOLDER,
     isWorkbookCopyId,
     parseSessionConnections,
     SESSION_CONNECTIONS_FILE,
+    SESSION_FILE,
     type CopyFile,
+    type SessionFile,
 } from '@akohn/dashql/platform/session/session_folder';
 import { STORAGE_ATTACHMENTS_FOLDER, STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE } from '@akohn/dashql/platform/storage/storage_backend';
 
-import { sessionCopiesFolder, sessionFolder as sessionFolderOf, SESSION_SERVER_FILE } from './session_folder.js';
+import { dashqlRoot, initWorkspace, readSession, sessionCopiesFolder, sessionFolder as sessionFolderOf } from './session_folder.js';
 
 /// How long a run waits for the first event of the tab
 const RUN_CLAIM_TIMEOUT_MS = 30_000;
+
+/// The error of a start in a folder where a session runs
+export const SESSION_RUNS_ERROR = 'ESESSIONRUNS';
+
+/// Does the server of a session answer? Every answer of a server of a session carries the protocol, before its token
+/// is checked.
+async function sessionAnswers({ endpoint }: SessionFile): Promise<boolean> {
+    try {
+        const response = await fetch(`${endpoint}/v1/state`, { signal: AbortSignal.timeout(1000) });
+        await response.body?.cancel();
+        return response.headers.has(AGENT_SESSION_PROTOCOL_HEADER);
+    } catch {
+        return false;
+    }
+}
 
 /// The size of the charts of a run request, null for a run without charts or a size out of bounds
 function chartSize(value: unknown): AgentSessionChartSize | null {
@@ -49,8 +65,8 @@ export interface SessionServerOptions {
     port?: number;
     /// The token, a random one by default
     token?: string;
-    /// The id of the session of `dashql connect`: the id of its state and its folder `.dashql/sessions/<id>/`, with the
-    /// address of the server for the commands and the copies of the workbooks of the tab
+    /// The id of the session of `dashql connect`, the id of its state. Its folder is `.dashql/session/`, with the file of
+    /// the session for the hooks and the commands and the copies of the workbooks of the tab.
     session: string;
 }
 
@@ -185,15 +201,20 @@ export async function startSessionServer(options: SessionServerOptions): Promise
 
     const send = (response: http.ServerResponse) => response.write(`data: ${JSON.stringify(state)}\n\n`);
     const broadcast = () => { for (const stream of streams) send(stream); };
-    // The folder of the session holds the address of the server and the copies, it goes when the session ends. The
-    // folder of DashQL ignores itself, it is no part of a repository of the folder. The hooks find the server only
-    // there, a folder that the server can't write to has no session.
-    const dashqlFolder = path.join(options.folder, DASHQL_FOLDER);
-    const sessionFolder = sessionFolderOf(options.folder, options.session);
-    const copies = sessionCopiesFolder(options.folder, options.session);
+    // The folder of the session holds the file of the session and the copies, it goes when the session ends. The
+    // session sets up the folder as a workspace, whose `.dashql/` ignores itself. The hooks find the server only
+    // there, a folder that the server can't write to has no session. One session runs in a folder: a session whose
+    // server answers keeps it, the folder of a session that ended without removing it goes.
+    const sessionFolder = sessionFolderOf(options.folder);
+    const copies = sessionCopiesFolder(options.folder);
+    const running = readSession(options.folder);
+    if (running != null && await sessionAnswers(running)) {
+        throw Object.assign(new Error(`a session of dashql connect already runs in ${options.folder}`), { code: SESSION_RUNS_ERROR });
+    }
     try {
+        initWorkspace(options.folder);
+        rmSync(sessionFolder, { force: true, recursive: true });
         mkdirSync(sessionFolder, { recursive: true });
-        writeFileSync(path.join(dashqlFolder, '.gitignore'), '*\n');
     } catch {
         throw new Error(`cannot write ${sessionFolder}`);
     }
@@ -416,7 +437,7 @@ export async function startSessionServer(options: SessionServerOptions): Promise
             // session as a new file of the key, where the agent reads it
             const key = url.pathname.split('/')[4];
             if (!/^[0-9a-f]{64}$/.test(key)) return void response.writeHead(400).end();
-            const cache = path.join(dashqlFolder, RESULT_CACHE_FOLDER);
+            const cache = path.join(dashqlRoot(options.folder, null), RESULT_CACHE_FOLDER);
             const file = path.join(cache, `${key}.${randomUUID()}.parquet`);
             mkdirSync(cache, { recursive: true });
             writeAtomically(request, file).then(() => sendJson(response, 200, { file }), () => failWrite(response)).catch(() => response.destroy());
@@ -477,8 +498,10 @@ export async function startSessionServer(options: SessionServerOptions): Promise
         throw error;
     }
     const port = (server.address() as { port: number }).port;
-    // The commands of the agent find the server in the folder of the session, readable by the user only
-    writeFileSync(path.join(sessionFolder, SESSION_SERVER_FILE), `${JSON.stringify({ endpoint: `http://127.0.0.1:${port}`, token })}\n`, { mode: 0o600 });
+    // The hooks and the commands of the agent find the session at the fixed path in its folder, readable by the user
+    // only
+    const file: SessionFile = { id: options.session, endpoint: `http://127.0.0.1:${port}`, token };
+    writeFileSync(path.join(sessionFolder, SESSION_FILE), `${JSON.stringify(file)}\n`, { mode: 0o600 });
     return {
         port,
         token,
