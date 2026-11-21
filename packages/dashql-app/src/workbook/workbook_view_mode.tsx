@@ -18,7 +18,7 @@ const VIEW_PARAMETERS: [WorkbookViewMode, string][] = [
 
 export interface WorkbookViewModeContextValue {
     mode: WorkbookViewMode;
-    setMode: React.Dispatch<React.SetStateAction<WorkbookViewMode>>;
+    setMode: (mode: WorkbookViewMode) => void;
 }
 const WORKBOOK_VIEW_MODE_CTX = React.createContext<WorkbookViewModeContextValue | null>(null);
 export const useWorkbookViewMode = () => React.useContext(WORKBOOK_VIEW_MODE_CTX)!;
@@ -58,29 +58,21 @@ function inSearch(mode: WorkbookViewMode): boolean {
     return VIEW_PARAMETERS.some(([m]) => m === mode);
 }
 
-/// The view mode of the workbook. The dashboard and dataflow views are part of the URL.
+/// The view mode of the workbook. The dashboard and dataflow views are part of the URL, the shell is a state of the
+/// app that a view in the URL closes.
 export const WorkbookViewModeProvider: React.FC<React.PropsWithChildren> = (props: React.PropsWithChildren) => {
     const location = useLocation();
     const navigate = useNavigate();
 
-    const [workbookViewMode, setWorkbookViewModeState] = React.useState(() => workbookViewModeFromSearch(location.search));
-    const workbookViewModeRef = React.useRef(workbookViewMode);
-    const pendingViewSearchRef = React.useRef<string | null>(null);
-    workbookViewModeRef.current = workbookViewMode;
-    const setWorkbookViewMode = React.useCallback<React.Dispatch<React.SetStateAction<WorkbookViewMode>>>((update) => {
-        const next = typeof update === 'function' ? update(workbookViewModeRef.current) : update;
-        workbookViewModeRef.current = next;
-        setWorkbookViewModeState(next);
+    const [shellOpen, setShellOpen] = React.useState(false);
+    const requested = workbookViewModeFromSearch(location.search);
+    const mode = inSearch(requested) ? requested : shellOpen ? WorkbookViewMode.Shell : WorkbookViewMode.Workbook;
+    const setMode = React.useCallback((next: WorkbookViewMode) => {
+        setShellOpen(next === WorkbookViewMode.Shell);
         const navigation = workbookViewNavigation(location, next);
-        if (navigation.to.search !== location.search) {
-            pendingViewSearchRef.current = navigation.to.search;
-            navigate(navigation.to, navigation.options);
-        }
+        if (navigation.to.search !== location.search) navigate(navigation.to, navigation.options);
     }, [location, navigate]);
-    const workbookViewModeValue = React.useMemo<WorkbookViewModeContextValue>(
-        () => ({ mode: workbookViewMode, setMode: setWorkbookViewMode }),
-        [workbookViewMode, setWorkbookViewMode],
-    );
+    const workbookViewModeValue = React.useMemo<WorkbookViewModeContextValue>(() => ({ mode, setMode }), [mode, setMode]);
 
     // The fallback to the workbook keeps the rest of the current location
     const showWorkbookInUrl = React.useEffectEvent(() => {
@@ -88,26 +80,15 @@ export const WorkbookViewModeProvider: React.FC<React.PropsWithChildren> = (prop
         navigate(navigation.to, navigation.options);
     });
     React.useEffect(() => {
-        const requested = workbookViewModeFromSearch(location.search);
         const parameter = new URLSearchParams(location.search).get('view');
-        // An unknown view falls back to the workbook, also in the URL
-        if (parameter != null && !inSearch(requested)) {
-            pendingViewSearchRef.current = null;
+        if (parameter == null) return;
+        // An unknown view falls back to the workbook, also in the URL, a known one closes the shell
+        if (!inSearch(workbookViewModeFromSearch(location.search))) {
             showWorkbookInUrl();
-            return;
+        } else {
+            setShellOpen(false);
         }
-        if (pendingViewSearchRef.current != null) {
-            if (pendingViewSearchRef.current === location.search) pendingViewSearchRef.current = null;
-            return;
-        }
-        if (inSearch(requested) && workbookViewModeRef.current !== requested) {
-            workbookViewModeRef.current = requested;
-            setWorkbookViewModeState(requested);
-        } else if (!inSearch(requested) && inSearch(workbookViewModeRef.current)) {
-            workbookViewModeRef.current = WorkbookViewMode.Workbook;
-            setWorkbookViewModeState(WorkbookViewMode.Workbook);
-        }
-    }, [location.search, navigate]);
+    }, [location.search]);
 
     return (
         <WORKBOOK_VIEW_MODE_CTX.Provider value={workbookViewModeValue}>
