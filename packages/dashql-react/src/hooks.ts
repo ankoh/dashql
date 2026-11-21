@@ -6,7 +6,7 @@ import type { Runtime, Settled } from '@akohn/dashql/runtime/runtime';
 import type { StoreView } from '@akohn/dashql/runtime/store/runtime_store';
 import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import type { EmbeddedComputeDatabase } from '@akohn/dashql/platform/embedded_database';
-import type { QueryExecutionProgress, QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
+import type { QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import type { ScriptData, ScriptDataMap, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 
@@ -205,11 +205,6 @@ export function useConnectionViews(connectionIds: readonly string[] | null | und
 export const useQuery = (queryId: number | null | undefined): QueryExecutionState | null => useView('query', queryId) as QueryExecutionState | null;
 /// The queries of all histories, it renders again when any query changes, e.g. for the viewer of the query history
 export const useAllQueries = (): ReadonlyMap<number, QueryExecutionState> => useAll('query') as ReadonlyMap<number, QueryExecutionState>;
-
-/// The latest progress of a query with its structured progress, the store projects it once per change of the query
-export function useQueryProgress(query: QueryExecutionState | null | undefined): QueryExecutionProgress | null {
-    return query?.progress ?? null;
-}
 
 /// The result table of a query, null without one
 export function useQueryResultTable(query: QueryExecutionState | null | undefined): arrow.Table | null {

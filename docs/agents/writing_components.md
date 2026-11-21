@@ -55,7 +55,7 @@ A model is an interface with a hook that implements it over the runtime:
 | Model | Shows | Operations |
 |---|---|---|
 | `useScriptModel` (`models/script_model`) | the script, the model of its latest query, whether its workbook runs | `run`, `cancel`, `setText`, `acceptDiff`, `rejectDiff`, `setVisSpec` |
-| `useQueryModel` (`models/query_model`) | the query, its progress, its result as an Arrow table, the model of the computation of the result; the profile while asked for | `cancel` |
+| `useQueryModel` (`models/query_model`) | the query, its progress, its result as an Arrow table, the model of the computation of the result | `cancel` |
 | `useComputationModel` (`models/computation_model`) | the computation of a result table and the Arrow tables of its handles | `dispatch` of a computation action (filters, ordering, searches, summaries) |
 
 Each has a fake in `@akohn/dashql-react/testing/fake_models`, `mockTableComputation` of `testing/computation_mocks`

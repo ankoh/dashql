@@ -49,7 +49,6 @@ export function VisualizationPanel(props: VisualizationPanelProps): React.ReactE
                     hideLegend={props.hideLegend}
                     preview={props.preview}
                     table={props.table}
-                    chartDependencies={props.chartDependencies}
                 />
             </div>
         </div>

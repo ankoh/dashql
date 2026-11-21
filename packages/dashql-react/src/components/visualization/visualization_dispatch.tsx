@@ -1,7 +1,7 @@
 import * as React from 'react';
 import type { QueryModel } from '../../models/query_model.js';
 import type { ResolvedVisualizeQuery } from '@akohn/dashql/platform/workbook/script_types';
-import { VegaLiteView, type VegaLiteViewDependencies } from '../vegalite_view.js';
+import { VegaLiteView } from '../vegalite_view.js';
 import { VegaLitePreview } from './vegalite_preview.js';
 import { MarkdownView } from './markdown_view.js';
 
@@ -22,7 +22,6 @@ export interface VisualizationDispatchProps {
     preview?: boolean;
     /// The result as a table, for the table renderer
     table: () => React.ReactNode;
-    chartDependencies?: VegaLiteViewDependencies;
 }
 
 /// Renders the visualization of a query with `@vis` tags, dispatching on the renderer named by the tag
@@ -30,12 +29,12 @@ export function VisualizationDispatch(props: VisualizationDispatchProps): React.
     const vq = props.visualizeQuery;
     const result = { model: props.model };
     if (vq == null) {
-        return <VegaLiteView {...result} vegaLiteSpec={null} dependencies={props.chartDependencies} />;
+        return <VegaLiteView {...result} vegaLiteSpec={null} />;
     }
     switch (vq.renderer) {
         case 'vegalite':
             if (props.preview && props.width != null && props.height != null) {
-                return <VegaLitePreview {...result} vegaLiteSpec={vq.vegaLiteSpec} width={props.width} height={props.height} dependencies={props.chartDependencies} />;
+                return <VegaLitePreview {...result} vegaLiteSpec={vq.vegaLiteSpec} width={props.width} height={props.height} />;
             }
             return (
                 <VegaLiteView
@@ -45,7 +44,6 @@ export function VisualizationDispatch(props: VisualizationDispatchProps): React.
                     height={props.height}
                     scale={props.scale}
                     hideLegend={props.hideLegend}
-                    dependencies={props.chartDependencies}
                 />
             );
         case 'markdown':

@@ -3,7 +3,7 @@ import type { EditorView } from '@codemirror/view';
 import * as styles from './script_editor_dialog.module.css';
 
 import { type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
-import { useOptionalRuntime, useQuery, useQueryProgress, useScript, useWorkbookDerived, useWorkbookExecution } from '@akohn/dashql-react/hooks';
+import { useOptionalRuntime, useQuery, useScript, useWorkbookDerived, useWorkbookExecution } from '@akohn/dashql-react/hooks';
 import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
 import { ButtonGroup } from '@akohn/dashql-react/components/button_group';
 import { Overlay, OverlaySize } from '@akohn/dashql-react/components/overlay';
@@ -48,8 +48,7 @@ export function ScriptEditorDialog(props: ScriptEditorDialogProps): React.ReactE
     const [expanded, setExpanded] = React.useState(false);
     const scriptReferences = useWorkbookDerived(workbookId)?.references.get(scriptKey) ?? null;
     const queryState = useQuery(script?.latestQueryId ?? null);
-    const queryProgress = useQueryProgress(queryState);
-    const status = deriveEntryStatus(queryState, queryProgress);
+    const status = deriveEntryStatus(queryState, queryState?.progress ?? null);
     const runtime = useOptionalRuntime();
     const workbookExecution = useWorkbookExecution(workbookId);
     const { busy: workbookBusy, stop: stopWorkbook } = workbookExecution;

@@ -71,7 +71,7 @@ export function getQueryStatusText(status: QueryExecutionStatus): string {
 }
 
 /// Derive the status bar contents for a workbook entry from its query execution.
-/// The progress is the one of the query with its structured progress (`useQueryProgress`).
+/// The progress is the one of the query with its structured progress (`progress` of the query view).
 export function deriveEntryStatus(query: QueryExecutionState | null, progress: QueryExecutionProgress | null = null): EntryStatus {
     if (query != null && !queryIsDone(query.status)) {
         const statusText = getQueryStatusText(query.status);

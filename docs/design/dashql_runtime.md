@@ -450,7 +450,7 @@ it over, and only the latest lease resets the connection when it closes.
   `useWorkbookDerived`, `useWorkbookList`, `useConnection`, `useConnectionList`, `useQuery`, `useComputation`,
   `useComputationDispatch`; hooks that read all slices of a kind for the views that show all of them (`useWorkbooks`,
   `useWorkbookScriptMap`, `useConnections`, `useConnectionViews`, `useAllQueries`); and hooks over a slice and a
-  command (`useQueryProgress`, `useQueryResultTable`, `useQueryProfileDetail`, `useWorkbookExecution`,
+  command (`useQueryResultTable`, `useQueryProfileDetail`, `useWorkbookExecution`,
   `useScriptRun`). `useView` is `useSyncExternalStore` over one slice; a component renders again only when its slice
   changes. `useDispatch` dispatches through the facade, see [Dispatch](#dispatch).
 - **Models** (`@akohn/dashql-react/models/...`): a model is what a component shows of the runtime with its operations,

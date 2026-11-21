@@ -3,7 +3,7 @@ import type * as arrow from 'apache-arrow';
 
 import type { QueryExecutionProgress, QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 
-import { useComputation, useOptionalRuntime, useQuery, useQueryProfileDetail, useTable } from '../hooks.js';
+import { useComputation, useOptionalRuntime, useQuery, useTable } from '../hooks.js';
 import { useComputationModel, type ComputationModel } from './computation_model.js';
 
 // The model of a query (docs/agents/writing_components.md): what a component shows of a query of a connection and what
@@ -26,15 +26,12 @@ export interface QueryModel {
     cancel(): Promise<void>;
 }
 
-/// The model of a query, null while the query is unknown. `profile` shows the profile of the query while the component
-/// is mounted: the connector then fetches the plan and its statistics. It renders again when the query changes and no
-/// other.
-export function useQueryModel(queryId: number | null | undefined, options: { profile?: boolean } = {}): QueryModel | null {
+/// The model of a query, null while the query is unknown. It renders again when the query changes and no other.
+export function useQueryModel(queryId: number | null | undefined): QueryModel | null {
     const runtime = useOptionalRuntime();
     const query = useQuery(queryId);
     const result = useTable(query?.resultTable?.id ?? null);
     const computation = useComputationModel(useComputation(queryId));
-    useQueryProfileDetail(queryId ?? null, options.profile === true);
     return React.useMemo(() => {
         if (query == null || queryId == null) return null;
         return {
