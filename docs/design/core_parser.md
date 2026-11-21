@@ -144,6 +144,7 @@ The final `.y` file is composed in this order:
 | `sql_delete.y` | DELETE |
 | `sql_drop_attach.y` | DROP TABLE, DROP VIEW, ATTACH DATABASE |
 | `sql_alter.y` | ALTER TABLE and ALTER VIEW with the actions that change what a catalog holds, CREATE, DROP and ALTER SCHEMA |
+| `sql_transaction.y` | Hyper transaction control: BEGIN, START TRANSACTION, COMMIT, ROLLBACK, aliases, savepoints and prepared transactions |
 | `sql_pgq.y` | SQL/PGQ: property graph definitions, `GRAPH_TABLE` queries |
 | `ext_set.y` | SET variable statements |
 | `ext_varargs.y` | Nested key/value field syntax |

@@ -1,0 +1,8 @@
+%type<Node> sql_transaction_stmt;
+%type<Node> sql_transaction_end;
+%type<Node> sql_transaction_modes;
+%type<Node> sql_transaction_mode;
+%type<Node> sql_transaction_isolation_level;
+%type<Node> sql_transaction_savepoint;
+%type<Node> sql_transaction_rollback_target;
+%type<NodeList> sql_transaction_mode_list;

@@ -42,6 +42,46 @@ Embedded backticks are supported via doubling (``` `` ```), matching the MySQL c
 - `packages/dashql-parser/src/scanner.rs` — `xbt` exclusive state (the `Xbt` lexer and `State::Xbt`), backtick removed from `{op_chars}`, the identifier is read by `identifier_stop`
 
 
+## Transaction Control
+
+`sql_transaction.y` follows `TransactionStmt` in Hyper's `hyper/parser/sql/sql.ypp`:
+
+```text
+BEGIN [WORK | TRANSACTION] [transaction_mode ...]
+START TRANSACTION [transaction_mode ...]
+COMMIT [WORK | TRANSACTION]
+END [WORK | TRANSACTION]
+ROLLBACK [WORK | TRANSACTION]
+ABORT [WORK | TRANSACTION]
+SAVEPOINT name
+RELEASE [SAVEPOINT] name
+ROLLBACK [WORK | TRANSACTION] TO [SAVEPOINT] name
+PREPARE TRANSACTION 'id'
+COMMIT PREPARED 'id'
+ROLLBACK PREPARED 'id'
+```
+
+Modes are `ISOLATION LEVEL { READ UNCOMMITTED | READ COMMITTED | REPEATABLE READ | SERIALIZABLE }`,
+`READ ONLY`, `READ WRITE`, `DEFERRABLE` and `NOT DEFERRABLE`. A list accepts commas, whitespace,
+or both as separators, and preserves mode order and duplicates. This is syntactic support: accepting
+a statement does not imply that an engine executes it. `SET TRANSACTION` and formatter and runtime
+support are outside this addition.
+
+The parse tree adds `StatementType::TRANSACTION`, `OBJECT_SQL_TRANSACTION` and
+`OBJECT_SQL_TRANSACTION_MODE`. The statement has a `SQL_TRANSACTION_COMMAND` keyword `NAME`
+(`begin`, `start`, `commit`, `end`, `rollback`, `abort`, `savepoint`, `release`, or `prepare`), optional
+`SQL_TRANSACTION_MODES`, and an optional `SQL_TRANSACTION_TARGET`: a `NAME` for a savepoint, or a
+string literal for a prepared transaction. `SQL_TRANSACTION_PREPARED` is true for the three prepared
+forms. A rollback with a savepoint target is `ROLLBACK TO`, so it stays distinct from a full rollback.
+`WORK`/`TRANSACTION` and the optional `SAVEPOINT` keyword have no semantic difference and are omitted.
+
+Each mode object holds exactly one attribute: `SQL_TRANSACTION_ISOLATION_LEVEL` (a keyword `NAME`
+with the canonical phrase `read uncommitted`, `read committed`, `repeatable read`, or `serializable`),
+`SQL_TRANSACTION_READ_ONLY` (a boolean), or `SQL_TRANSACTION_DEFERRABLE` (a boolean). Keyword names
+use the parser's name registry, as other keyword-valued attributes do. These additions append node,
+attribute and statement types without changing existing values or existing parse trees. All command
+kinds, targets and mode values remain distinguishable; aliases retain their command keyword.
+
 ## Other Deviations
 
 - **Parameters follow Hyper**: `:name`, `:"name"`, `:'name'`, `$0` and `?`, also as table references

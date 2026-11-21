@@ -1,0 +1,81 @@
+parser-snapshots:
+  - name: transaction_commands
+    input: |
+      begin; begin work; begin transaction;
+      start transaction;
+      commit; commit work; commit transaction;
+      end; end work; end transaction;
+      rollback; rollback work; rollback transaction;
+      abort; abort work; abort transaction;
+  - name: transaction_isolation_levels
+    input: |
+      begin isolation level read uncommitted;
+      begin work isolation level read committed;
+      begin transaction isolation level repeatable read;
+      start transaction isolation level serializable;
+  - name: transaction_modes
+    input: |
+      begin read only;
+      begin read write;
+      begin deferrable;
+      begin not deferrable;
+      start transaction isolation level serializable, read only, deferrable;
+      begin read write not deferrable isolation level read committed;
+      begin read only, read write read only, not deferrable deferrable;
+  - name: transaction_savepoints
+    input: |
+      savepoint checkpoint;
+      release savepoint checkpoint;
+      release checkpoint;
+      rollback to savepoint checkpoint;
+      rollback to checkpoint;
+      rollback work to checkpoint;
+      rollback transaction to savepoint checkpoint;
+  - name: transaction_savepoint_names
+    input: |
+      savepoint savepoint;
+      release savepoint;
+      release savepoint savepoint;
+      rollback to savepoint;
+      rollback to savepoint savepoint;
+      savepoint begin;
+      rollback to begin;
+      savepoint "Mixed Case";
+      release "Mixed Case";
+  - name: transaction_prepared
+    input: |
+      prepare transaction 'batch';
+      commit prepared 'batch';
+      rollback prepared 'batch''s id';
+  - name: transaction_mixed_script
+    input: |
+      -- Load the batch in one transaction.
+      BEGIN TRANSACTION;
+      insert into items values (1);
+      SAVEPOINT "Checkpoint";
+      select * from items;
+      ROLLBACK WORK TO SAVEPOINT "Checkpoint";
+      COMMIT;
+  - name: transaction_invalid_start
+    input: start work;
+  - name: transaction_invalid_chain
+    input: commit and chain;
+  - name: transaction_missing_isolation_level
+    input: begin isolation level;
+  - name: transaction_invalid_isolation_level
+    input: begin isolation level snapshot;
+  - name: transaction_trailing_comma
+    input: begin read only,;
+  - name: transaction_missing_savepoint
+    input: rollback to;
+  - name: transaction_invalid_savepoint_literal
+    input: savepoint 'checkpoint';
+  - name: transaction_missing_prepared_id
+    input: prepare transaction;
+  - name: transaction_invalid_prepared_id
+    input: commit prepared batch;
+  - name: transaction_error_recovery
+    input: |
+      begin read invalid;
+      rollback;
+      select 1;

@@ -1,0 +1,1342 @@
+parser-snapshots:
+
+  - name: transaction_commands
+    input: |-
+      begin; begin work; begin transaction;
+      start transaction;
+      commit; commit work; commit transaction;
+      end; end work; end transaction;
+      rollback; rollback work; rollback transaction;
+      abort; abort work; abort transaction;
+    expected:
+      statements:
+        - type: TRANSACTION
+          ast-begin: 0
+          ast-size: 2
+          description:
+            text: "begin;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_TRANSACTION
+            text: "begin"
+            children:
+              - key: SQL_TRANSACTION_COMMAND
+                type: NAME
+                text: "begin"
+        - type: TRANSACTION
+          ast-begin: 2
+          ast-size: 2
+          description:
+            text: "begin work;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_TRANSACTION
+            text: "begin work"
+            children:
+              - key: SQL_TRANSACTION_COMMAND
+                type: NAME
+                text: "begin"
+        - type: TRANSACTION
+          ast-begin: 4
+          ast-size: 2
+          description:
+            text: "begin transaction;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_TRANSACTION
+            text: "begin transaction"
+            children:
+              - key: SQL_TRANSACTION_COMMAND
+                type: NAME
+                text: "begin"
+        - type: TRANSACTION
+          ast-begin: 6
+          ast-size: 2
+          description:
+            text: "start transaction;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_TRANSACTION
+            text: "start transaction"
+            children:
+              - key: SQL_TRANSACTION_COMMAND
+                type: NAME
+                text: "start"
+        - type: TRANSACTION
+          ast-begin: 8
+          ast-size: 2
+          description:
+            text: "commit;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_TRANSACTION
+            text: "commit"
+            children:
+              - key: SQL_TRANSACTION_COMMAND
+                type: NAME
+                text: "commit"
+        - type: TRANSACTION
+          ast-begin: 10
+          ast-size: 2
+          description:
+            text: "commit work;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_TRANSACTION
+            text: "commit work"
+            children:
+              - key: SQL_TRANSACTION_COMMAND
+                type: NAME
+                text: "commit"
+        - type: TRANSACTION
+          ast-begin: 12
+          ast-size: 2
+          description:
+            text: "commit transaction;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_TRANSACTION
+            text: "commit transaction"
+            children:
+              - key: SQL_TRANSACTION_COMMAND
+                type: NAME
+                text: "commit"
+        - type: TRANSACTION
+          ast-begin: 14
+          ast-size: 2
+          description:
+            text: "end;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_TRANSACTION
+            text: "end"
+            children:
+              - key: SQL_TRANSACTION_COMMAND
+                type: NAME
+                text: "end"
+        - type: TRANSACTION
+          ast-begin: 16
+          ast-size: 2
+          description:
+            text: "end work;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_TRANSACTION
+            text: "end work"
+            children:
+              - key: SQL_TRANSACTION_COMMAND
+                type: NAME
+                text: "end"
+        - type: TRANSACTION
+          ast-begin: 18
+          ast-size: 2
+          description:
+            text: "end transaction;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_TRANSACTION
+            text: "end transaction"
+            children:
+              - key: SQL_TRANSACTION_COMMAND
+                type: NAME
+                text: "end"
+        - type: TRANSACTION
+          ast-begin: 20
+          ast-size: 2
+          description:
+            text: "rollback;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_TRANSACTION
+            text: "rollback"
+            children:
+              - key: SQL_TRANSACTION_COMMAND
+                type: NAME
+                text: "rollback"
+        - type: TRANSACTION
+          ast-begin: 22
+          ast-size: 2
+          description:
+            text: "rollback work;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_TRANSACTION
+            text: "rollback work"
+            children:
+              - key: SQL_TRANSACTION_COMMAND
+                type: NAME
+                text: "rollback"
+        - type: TRANSACTION
+          ast-begin: 24
+          ast-size: 2
+          description:
+            text: "rollback t..ansaction;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_TRANSACTION
+            text: "rollback t..ransaction"
+            children:
+              - key: SQL_TRANSACTION_COMMAND
+                type: NAME
+                text: "rollback"
+        - type: TRANSACTION
+          ast-begin: 26
+          ast-size: 2
+          description:
+            text: "abort;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_TRANSACTION
+            text: "abort"
+            children:
+              - key: SQL_TRANSACTION_COMMAND
+                type: NAME
+                text: "abort"
+        - type: TRANSACTION
+          ast-begin: 28
+          ast-size: 2
+          description:
+            text: "abort work;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_TRANSACTION
+            text: "abort work"
+            children:
+              - key: SQL_TRANSACTION_COMMAND
+                type: NAME
+                text: "abort"
+        - type: TRANSACTION
+          ast-begin: 30
+          ast-size: 2
+          description:
+            text: "abort transaction;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_TRANSACTION
+            text: "abort transaction"
+            children:
+              - key: SQL_TRANSACTION_COMMAND
+                type: NAME
+                text: "abort"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [37,38]
+        - text: [56,57]
+        - text: [97,98]
+        - text: [129,130]
+        - text: [176,177]
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: transaction_isolation_levels
+    input: |-
+      begin isolation level read uncommitted;
+      begin work isolation level read committed;
+      begin transaction isolation level repeatable read;
+      start transaction isolation level serializable;
+    expected:
+      statements:
+        - type: TRANSACTION
+          ast-begin: 0
+          ast-size: 5
+          description:
+            text: "begin isol..committed;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_TRANSACTION
+            text: "begin isol..ncommitted"
+            children:
+              - key: SQL_TRANSACTION_COMMAND
+                type: NAME
+                text: "begin"
+              - key: SQL_TRANSACTION_MODES
+                type: ARRAY
+                text: "isolation ..ncommitted"
+                children:
+                  - type: OBJECT_SQL_TRANSACTION_MODE
+                    text: "isolation ..ncommitted"
+                    children:
+                      - key: SQL_TRANSACTION_ISOLATION_LEVEL
+                        type: NAME
+                        text: "read uncommitted"
+        - type: TRANSACTION
+          ast-begin: 5
+          ast-size: 5
+          description:
+            text: "begin work..committed;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_TRANSACTION
+            text: "begin work.. committed"
+            children:
+              - key: SQL_TRANSACTION_COMMAND
+                type: NAME
+                text: "begin"
+              - key: SQL_TRANSACTION_MODES
+                type: ARRAY
+                text: "isolation .. committed"
+                children:
+                  - type: OBJECT_SQL_TRANSACTION_MODE
+                    text: "isolation .. committed"
+                    children:
+                      - key: SQL_TRANSACTION_ISOLATION_LEVEL
+                        type: NAME
+                        text: "read committed"
+        - type: TRANSACTION
+          ast-begin: 10
+          ast-size: 5
+          description:
+            text: "begin tran..able read;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_TRANSACTION
+            text: "begin tran..table read"
+            children:
+              - key: SQL_TRANSACTION_COMMAND
+                type: NAME
+                text: "begin"
+              - key: SQL_TRANSACTION_MODES
+                type: ARRAY
+                text: "isolation ..table read"
+                children:
+                  - type: OBJECT_SQL_TRANSACTION_MODE
+                    text: "isolation ..table read"
+                    children:
+                      - key: SQL_TRANSACTION_ISOLATION_LEVEL
+                        type: NAME
+                        text: "repeatable read"
+        - type: TRANSACTION
+          ast-begin: 15
+          ast-size: 5
+          description:
+            text: "start tran..ializable;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_TRANSACTION
+            text: "start tran..rializable"
+            children:
+              - key: SQL_TRANSACTION_COMMAND
+                type: NAME
+                text: "start"
+              - key: SQL_TRANSACTION_MODES
+                type: ARRAY
+                text: "isolation ..rializable"
+                children:
+                  - type: OBJECT_SQL_TRANSACTION_MODE
+                    text: "isolation ..rializable"
+                    children:
+                      - key: SQL_TRANSACTION_ISOLATION_LEVEL
+                        type: NAME
+                        text: "serializable"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [39,40]
+        - text: [82,83]
+        - text: [133,134]
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: transaction_modes
+    input: |-
+      begin read only;
+      begin read write;
+      begin deferrable;
+      begin not deferrable;
+      start transaction isolation level serializable, read only, deferrable;
+      begin read write not deferrable isolation level read committed;
+      begin read only, read write read only, not deferrable deferrable;
+    expected:
+      statements:
+        - type: TRANSACTION
+          ast-begin: 0
+          ast-size: 5
+          description:
+            text: "begin read only;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_TRANSACTION
+            text: "begin read only"
+            children:
+              - key: SQL_TRANSACTION_COMMAND
+                type: NAME
+                text: "begin"
+              - key: SQL_TRANSACTION_MODES
+                type: ARRAY
+                text: "read only"
+                children:
+                  - type: OBJECT_SQL_TRANSACTION_MODE
+                    text: "read only"
+                    children:
+                      - key: SQL_TRANSACTION_READ_ONLY
+                        type: BOOL
+                        value: 1
+        - type: TRANSACTION
+          ast-begin: 5
+          ast-size: 5
+          description:
+            text: "begin read write;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_TRANSACTION
+            text: "begin read write"
+            children:
+              - key: SQL_TRANSACTION_COMMAND
+                type: NAME
+                text: "begin"
+              - key: SQL_TRANSACTION_MODES
+                type: ARRAY
+                text: "read write"
+                children:
+                  - type: OBJECT_SQL_TRANSACTION_MODE
+                    text: "read write"
+                    children:
+                      - key: SQL_TRANSACTION_READ_ONLY
+                        type: BOOL
+                        value: 0
+        - type: TRANSACTION
+          ast-begin: 10
+          ast-size: 5
+          description:
+            text: "begin deferrable;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_TRANSACTION
+            text: "begin deferrable"
+            children:
+              - key: SQL_TRANSACTION_COMMAND
+                type: NAME
+                text: "begin"
+              - key: SQL_TRANSACTION_MODES
+                type: ARRAY
+                text: "deferrable"
+                children:
+                  - type: OBJECT_SQL_TRANSACTION_MODE
+                    text: "deferrable"
+                    children:
+                      - key: SQL_TRANSACTION_DEFERRABLE
+                        type: BOOL
+                        value: 1
+        - type: TRANSACTION
+          ast-begin: 15
+          ast-size: 5
+          description:
+            text: "begin not ..eferrable;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_TRANSACTION
+            text: "begin not ..deferrable"
+            children:
+              - key: SQL_TRANSACTION_COMMAND
+                type: NAME
+                text: "begin"
+              - key: SQL_TRANSACTION_MODES
+                type: ARRAY
+                text: "not deferrable"
+                children:
+                  - type: OBJECT_SQL_TRANSACTION_MODE
+                    text: "not deferrable"
+                    children:
+                      - key: SQL_TRANSACTION_DEFERRABLE
+                        type: BOOL
+                        value: 0
+        - type: TRANSACTION
+          ast-begin: 20
+          ast-size: 9
+          description:
+            text: "start tran..eferrable;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_TRANSACTION
+            text: "start tran..deferrable"
+            children:
+              - key: SQL_TRANSACTION_COMMAND
+                type: NAME
+                text: "start"
+              - key: SQL_TRANSACTION_MODES
+                type: ARRAY
+                text: "isolation ..deferrable"
+                children:
+                  - type: OBJECT_SQL_TRANSACTION_MODE
+                    text: "isolation ..rializable"
+                    children:
+                      - key: SQL_TRANSACTION_ISOLATION_LEVEL
+                        type: NAME
+                        text: "serializable"
+                  - type: OBJECT_SQL_TRANSACTION_MODE
+                    text: "read only"
+                    children:
+                      - key: SQL_TRANSACTION_READ_ONLY
+                        type: BOOL
+                        value: 1
+                  - type: OBJECT_SQL_TRANSACTION_MODE
+                    text: "deferrable"
+                    children:
+                      - key: SQL_TRANSACTION_DEFERRABLE
+                        type: BOOL
+                        value: 1
+        - type: TRANSACTION
+          ast-begin: 29
+          ast-size: 9
+          description:
+            text: "begin read..committed;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_TRANSACTION
+            text: "begin read.. committed"
+            children:
+              - key: SQL_TRANSACTION_COMMAND
+                type: NAME
+                text: "begin"
+              - key: SQL_TRANSACTION_MODES
+                type: ARRAY
+                text: "read write.. committed"
+                children:
+                  - type: OBJECT_SQL_TRANSACTION_MODE
+                    text: "read write"
+                    children:
+                      - key: SQL_TRANSACTION_READ_ONLY
+                        type: BOOL
+                        value: 0
+                  - type: OBJECT_SQL_TRANSACTION_MODE
+                    text: "not deferrable"
+                    children:
+                      - key: SQL_TRANSACTION_DEFERRABLE
+                        type: BOOL
+                        value: 0
+                  - type: OBJECT_SQL_TRANSACTION_MODE
+                    text: "isolation .. committed"
+                    children:
+                      - key: SQL_TRANSACTION_ISOLATION_LEVEL
+                        type: NAME
+                        text: "read committed"
+        - type: TRANSACTION
+          ast-begin: 38
+          ast-size: 13
+          description:
+            text: "begin read..eferrable;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_TRANSACTION
+            text: "begin read..deferrable"
+            children:
+              - key: SQL_TRANSACTION_COMMAND
+                type: NAME
+                text: "begin"
+              - key: SQL_TRANSACTION_MODES
+                type: ARRAY
+                text: "read only,..deferrable"
+                children:
+                  - type: OBJECT_SQL_TRANSACTION_MODE
+                    text: "read only"
+                    children:
+                      - key: SQL_TRANSACTION_READ_ONLY
+                        type: BOOL
+                        value: 1
+                  - type: OBJECT_SQL_TRANSACTION_MODE
+                    text: "read write"
+                    children:
+                      - key: SQL_TRANSACTION_READ_ONLY
+                        type: BOOL
+                        value: 0
+                  - type: OBJECT_SQL_TRANSACTION_MODE
+                    text: "read only"
+                    children:
+                      - key: SQL_TRANSACTION_READ_ONLY
+                        type: BOOL
+                        value: 1
+                  - type: OBJECT_SQL_TRANSACTION_MODE
+                    text: "not deferrable"
+                    children:
+                      - key: SQL_TRANSACTION_DEFERRABLE
+                        type: BOOL
+                        value: 0
+                  - type: OBJECT_SQL_TRANSACTION_MODE
+                    text: "deferrable"
+                    children:
+                      - key: SQL_TRANSACTION_DEFERRABLE
+                        type: BOOL
+                        value: 1
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [16,17]
+        - text: [34,35]
+        - text: [52,53]
+        - text: [74,75]
+        - text: [145,146]
+        - text: [209,210]
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: transaction_savepoints
+    input: |-
+      savepoint checkpoint;
+      release savepoint checkpoint;
+      release checkpoint;
+      rollback to savepoint checkpoint;
+      rollback to checkpoint;
+      rollback work to checkpoint;
+      rollback transaction to savepoint checkpoint;
+    expected:
+      statements:
+        - type: TRANSACTION
+          ast-begin: 0
+          ast-size: 3
+          description:
+            text: "savepoint ..heckpoint;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_TRANSACTION
+            text: "savepoint ..checkpoint"
+            children:
+              - key: SQL_TRANSACTION_COMMAND
+                type: NAME
+                text: "savepoint"
+              - key: SQL_TRANSACTION_TARGET
+                type: NAME
+                text: "checkpoint"
+        - type: TRANSACTION
+          ast-begin: 3
+          ast-size: 3
+          description:
+            text: "release sa..heckpoint;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_TRANSACTION
+            text: "release sa..checkpoint"
+            children:
+              - key: SQL_TRANSACTION_COMMAND
+                type: NAME
+                text: "release"
+              - key: SQL_TRANSACTION_TARGET
+                type: NAME
+                text: "checkpoint"
+        - type: TRANSACTION
+          ast-begin: 6
+          ast-size: 3
+          description:
+            text: "release checkpoint;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_TRANSACTION
+            text: "release checkpoint"
+            children:
+              - key: SQL_TRANSACTION_COMMAND
+                type: NAME
+                text: "release"
+              - key: SQL_TRANSACTION_TARGET
+                type: NAME
+                text: "checkpoint"
+        - type: TRANSACTION
+          ast-begin: 9
+          ast-size: 3
+          description:
+            text: "rollback t..heckpoint;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_TRANSACTION
+            text: "rollback t..checkpoint"
+            children:
+              - key: SQL_TRANSACTION_COMMAND
+                type: NAME
+                text: "rollback"
+              - key: SQL_TRANSACTION_TARGET
+                type: NAME
+                text: "checkpoint"
+        - type: TRANSACTION
+          ast-begin: 12
+          ast-size: 3
+          description:
+            text: "rollback t..heckpoint;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_TRANSACTION
+            text: "rollback t..checkpoint"
+            children:
+              - key: SQL_TRANSACTION_COMMAND
+                type: NAME
+                text: "rollback"
+              - key: SQL_TRANSACTION_TARGET
+                type: NAME
+                text: "checkpoint"
+        - type: TRANSACTION
+          ast-begin: 15
+          ast-size: 3
+          description:
+            text: "rollback w..heckpoint;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_TRANSACTION
+            text: "rollback w..checkpoint"
+            children:
+              - key: SQL_TRANSACTION_COMMAND
+                type: NAME
+                text: "rollback"
+              - key: SQL_TRANSACTION_TARGET
+                type: NAME
+                text: "checkpoint"
+        - type: TRANSACTION
+          ast-begin: 18
+          ast-size: 3
+          description:
+            text: "rollback t..heckpoint;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_TRANSACTION
+            text: "rollback t..checkpoint"
+            children:
+              - key: SQL_TRANSACTION_COMMAND
+                type: NAME
+                text: "rollback"
+              - key: SQL_TRANSACTION_TARGET
+                type: NAME
+                text: "checkpoint"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [21,22]
+        - text: [51,52]
+        - text: [71,72]
+        - text: [105,106]
+        - text: [129,130]
+        - text: [158,159]
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: transaction_savepoint_names
+    input: |-
+      savepoint savepoint;
+      release savepoint;
+      release savepoint savepoint;
+      rollback to savepoint;
+      rollback to savepoint savepoint;
+      savepoint begin;
+      rollback to begin;
+      savepoint "Mixed Case";
+      release "Mixed Case";
+    expected:
+      statements:
+        - type: TRANSACTION
+          ast-begin: 0
+          ast-size: 3
+          description:
+            text: "savepoint ..savepoint;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_TRANSACTION
+            text: "savepoint savepoint"
+            children:
+              - key: SQL_TRANSACTION_COMMAND
+                type: NAME
+                text: "savepoint"
+              - key: SQL_TRANSACTION_TARGET
+                type: NAME
+                text: "savepoint"
+        - type: TRANSACTION
+          ast-begin: 3
+          ast-size: 3
+          description:
+            text: "release savepoint;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_TRANSACTION
+            text: "release savepoint"
+            children:
+              - key: SQL_TRANSACTION_COMMAND
+                type: NAME
+                text: "release"
+              - key: SQL_TRANSACTION_TARGET
+                type: NAME
+                text: "savepoint"
+        - type: TRANSACTION
+          ast-begin: 6
+          ast-size: 3
+          description:
+            text: "release sa..savepoint;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_TRANSACTION
+            text: "release sa.. savepoint"
+            children:
+              - key: SQL_TRANSACTION_COMMAND
+                type: NAME
+                text: "release"
+              - key: SQL_TRANSACTION_TARGET
+                type: NAME
+                text: "savepoint"
+        - type: TRANSACTION
+          ast-begin: 9
+          ast-size: 3
+          description:
+            text: "rollback t..savepoint;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_TRANSACTION
+            text: "rollback t.. savepoint"
+            children:
+              - key: SQL_TRANSACTION_COMMAND
+                type: NAME
+                text: "rollback"
+              - key: SQL_TRANSACTION_TARGET
+                type: NAME
+                text: "savepoint"
+        - type: TRANSACTION
+          ast-begin: 12
+          ast-size: 3
+          description:
+            text: "rollback t..savepoint;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_TRANSACTION
+            text: "rollback t.. savepoint"
+            children:
+              - key: SQL_TRANSACTION_COMMAND
+                type: NAME
+                text: "rollback"
+              - key: SQL_TRANSACTION_TARGET
+                type: NAME
+                text: "savepoint"
+        - type: TRANSACTION
+          ast-begin: 15
+          ast-size: 3
+          description:
+            text: "savepoint begin;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_TRANSACTION
+            text: "savepoint begin"
+            children:
+              - key: SQL_TRANSACTION_COMMAND
+                type: NAME
+                text: "savepoint"
+              - key: SQL_TRANSACTION_TARGET
+                type: NAME
+                text: "begin"
+        - type: TRANSACTION
+          ast-begin: 18
+          ast-size: 3
+          description:
+            text: "rollback to begin;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_TRANSACTION
+            text: "rollback to begin"
+            children:
+              - key: SQL_TRANSACTION_COMMAND
+                type: NAME
+                text: "rollback"
+              - key: SQL_TRANSACTION_TARGET
+                type: NAME
+                text: "begin"
+        - type: TRANSACTION
+          ast-begin: 21
+          ast-size: 3
+          description:
+            text: "savepoint ..xed Case\";"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_TRANSACTION
+            text: "savepoint ..ixed Case\""
+            children:
+              - key: SQL_TRANSACTION_COMMAND
+                type: NAME
+                text: "savepoint"
+              - key: SQL_TRANSACTION_TARGET
+                type: NAME
+                text: "\"Mixed Case\""
+        - type: TRANSACTION
+          ast-begin: 24
+          ast-size: 3
+          description:
+            text: "release \"M..xed Case\";"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_TRANSACTION
+            text: "release \"M..ixed Case\""
+            children:
+              - key: SQL_TRANSACTION_COMMAND
+                type: NAME
+                text: "release"
+              - key: SQL_TRANSACTION_TARGET
+                type: NAME
+                text: "\"Mixed Case\""
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [20,21]
+        - text: [39,40]
+        - text: [68,69]
+        - text: [91,92]
+        - text: [124,125]
+        - text: [141,142]
+        - text: [160,161]
+        - text: [184,185]
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: transaction_prepared
+    input: |-
+      prepare transaction 'batch';
+      commit prepared 'batch';
+      rollback prepared 'batch''s id';
+    expected:
+      statements:
+        - type: TRANSACTION
+          ast-begin: 0
+          ast-size: 4
+          description:
+            text: "prepare tr..n 'batch';"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_TRANSACTION
+            text: "prepare tr..on 'batch'"
+            children:
+              - key: SQL_TRANSACTION_COMMAND
+                type: NAME
+                text: "prepare"
+              - key: SQL_TRANSACTION_TARGET
+                type: LITERAL_STRING
+                text: "'batch'"
+              - key: SQL_TRANSACTION_PREPARED
+                type: BOOL
+                value: 1
+        - type: TRANSACTION
+          ast-begin: 4
+          ast-size: 4
+          description:
+            text: "commit pre..d 'batch';"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_TRANSACTION
+            text: "commit pre..ed 'batch'"
+            children:
+              - key: SQL_TRANSACTION_COMMAND
+                type: NAME
+                text: "commit"
+              - key: SQL_TRANSACTION_TARGET
+                type: LITERAL_STRING
+                text: "'batch'"
+              - key: SQL_TRANSACTION_PREPARED
+                type: BOOL
+                value: 1
+        - type: TRANSACTION
+          ast-begin: 8
+          ast-size: 4
+          description:
+            text: "rollback p..ch''s id';"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_TRANSACTION
+            text: "rollback p..tch''s id'"
+            children:
+              - key: SQL_TRANSACTION_COMMAND
+                type: NAME
+                text: "rollback"
+              - key: SQL_TRANSACTION_TARGET
+                type: LITERAL_STRING
+                text: "'batch''s id'"
+              - key: SQL_TRANSACTION_PREPARED
+                type: BOOL
+                value: 1
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [28,29]
+        - text: [53,54]
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: transaction_mixed_script
+    input: |-
+      -- Load the batch in one transaction.
+      BEGIN TRANSACTION;
+      insert into items values (1);
+      SAVEPOINT "Checkpoint";
+      select * from items;
+      ROLLBACK WORK TO SAVEPOINT "Checkpoint";
+      COMMIT;
+    expected:
+      statements:
+        - type: TRANSACTION
+          ast-begin: 0
+          ast-size: 2
+          description:
+            text: "BEGIN TRANSACTION;"
+            description-begin: 0
+            description-count: 1
+            description-blocks: [0,1]
+          ast:
+            type: OBJECT_SQL_TRANSACTION
+            text: "BEGIN TRANSACTION"
+            children:
+              - key: SQL_TRANSACTION_COMMAND
+                type: NAME
+                text: "BEGIN"
+        - type: INSERT
+          ast-begin: 2
+          ast-size: 8
+          description:
+            text: "insert int..alues (1);"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_INSERT
+            text: "insert int..values (1)"
+            children:
+              - key: SQL_INSERT_SOURCE
+                type: OBJECT_SQL_SELECT
+                text: "values (1)"
+                children:
+                  - key: SQL_SELECT_VALUES
+                    type: ARRAY
+                    text: "values (1)"
+                    children:
+                      - type: ARRAY
+                        text: "1"
+                        children:
+                          - type: LITERAL_INTEGER
+                            text: "1"
+              - key: SQL_INSERT_TARGET
+                type: OBJECT_SQL_TABLEREF
+                text: "items"
+                children:
+                  - key: SQL_TABLEREF_NAME
+                    type: ARRAY
+                    text: "items"
+                    children:
+                      - type: NAME
+                        text: "items"
+        - type: TRANSACTION
+          ast-begin: 10
+          ast-size: 3
+          description:
+            text: "SAVEPOINT ..eckpoint\";"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_TRANSACTION
+            text: "SAVEPOINT ..heckpoint\""
+            children:
+              - key: SQL_TRANSACTION_COMMAND
+                type: NAME
+                text: "SAVEPOINT"
+              - key: SQL_TRANSACTION_TARGET
+                type: NAME
+                text: "\"Checkpoint\""
+        - type: SELECT
+          ast-begin: 13
+          ast-size: 8
+          description:
+            text: "select * f..rom items;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select * from items"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "*"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "*"
+                    children:
+                      - key: SQL_RESULT_TARGET_STAR
+                        type: BOOL
+                        value: 1
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from items"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "items"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "items"
+                        children:
+                          - type: NAME
+                            text: "items"
+        - type: TRANSACTION
+          ast-begin: 21
+          ast-size: 3
+          description:
+            text: "ROLLBACK W..eckpoint\";"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_TRANSACTION
+            text: "ROLLBACK W..heckpoint\""
+            children:
+              - key: SQL_TRANSACTION_COMMAND
+                type: NAME
+                text: "ROLLBACK"
+              - key: SQL_TRANSACTION_TARGET
+                type: NAME
+                text: "\"Checkpoint\""
+        - type: TRANSACTION
+          ast-begin: 24
+          ast-size: 2
+          description:
+            text: "COMMIT;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_TRANSACTION
+            text: "COMMIT"
+            children:
+              - key: SQL_TRANSACTION_COMMAND
+                type: NAME
+                text: "COMMIT"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [37,38]
+        - text: [56,57]
+        - text: [86,87]
+        - text: [110,111]
+        - text: [131,132]
+        - text: [172,173]
+      comments:
+        - text: "-- Load th..ansaction."
+      comment-blocks:
+        - type: COMMENT
+          text: "-- Load th..ansaction."
+          comments: [0,1]
+          lines:
+            - "Load the batch in one transaction."
+      comment-warnings: []
+
+  - name: transaction_invalid_start
+    input: |-
+      start work;
+    expected:
+      statements: []
+      scanner-errors: []
+      parser-errors:
+        - message: 'syntax error, unexpected WORK, expecting TRANSACTION'
+          text: "work"
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: transaction_invalid_chain
+    input: |-
+      commit and chain;
+    expected:
+      statements: []
+      scanner-errors: []
+      parser-errors:
+        - message: 'syntax error, unexpected AND'
+          text: "and"
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: transaction_missing_isolation_level
+    input: |-
+      begin isolation level;
+    expected:
+      statements: []
+      scanner-errors: []
+      parser-errors:
+        - message: 'syntax error, unexpected SEMICOLON, expecting READ_P or REPEATABLE or SERIALIZABLE'
+          text: ";"
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: transaction_invalid_isolation_level
+    input: |-
+      begin isolation level snapshot;
+    expected:
+      statements: []
+      scanner-errors: []
+      parser-errors:
+        - message: 'syntax error, unexpected SNAPSHOT, expecting READ_P or REPEATABLE or SERIALIZABLE'
+          text: "snapshot"
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: transaction_trailing_comma
+    input: |-
+      begin read only,;
+    expected:
+      statements: []
+      scanner-errors: []
+      parser-errors:
+        - message: 'syntax error, unexpected SEMICOLON, expecting DEFERRABLE or NOT or ISOLATION or READ_P'
+          text: ";"
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: transaction_missing_savepoint
+    input: |-
+      rollback to;
+    expected:
+      statements: []
+      scanner-errors: []
+      parser-errors:
+        - message: 'syntax error, unexpected SEMICOLON'
+          text: ";"
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: transaction_invalid_savepoint_literal
+    input: |-
+      savepoint 'checkpoint';
+    expected:
+      statements: []
+      scanner-errors: []
+      parser-errors:
+        - message: 'syntax error, unexpected string literal'
+          text: "'checkpoint'"
+          hint: string literals cannot be used as identifiers here; use a double-quoted identifier instead
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: transaction_missing_prepared_id
+    input: |-
+      prepare transaction;
+    expected:
+      statements: []
+      scanner-errors: []
+      parser-errors:
+        - message: 'syntax error, unexpected SEMICOLON, expecting string literal'
+          text: ";"
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: transaction_invalid_prepared_id
+    input: |-
+      commit prepared batch;
+    expected:
+      statements: []
+      scanner-errors: []
+      parser-errors:
+        - message: 'syntax error, unexpected identifier literal, expecting string literal'
+          text: "batch"
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: transaction_error_recovery
+    input: |-
+      begin read invalid;
+      rollback;
+      select 1;
+    expected:
+      statements:
+        - type: TRANSACTION
+          ast-begin: 0
+          ast-size: 2
+          description:
+            text: "rollback;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_TRANSACTION
+            text: "rollback"
+            children:
+              - key: SQL_TRANSACTION_COMMAND
+                type: NAME
+                text: "rollback"
+        - type: SELECT
+          ast-begin: 2
+          ast-size: 4
+          description:
+            text: "select 1;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select 1"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "1"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "1"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: LITERAL_INTEGER
+                        text: "1"
+      scanner-errors: []
+      parser-errors:
+        - message: 'syntax error, unexpected identifier literal, expecting ONLY or WRITE_P'
+          text: "invalid"
+      line-breaks:
+        - text: [19,20]
+        - text: [29,30]
+      comments: []
+      comment-blocks: []
+      comment-warnings: []

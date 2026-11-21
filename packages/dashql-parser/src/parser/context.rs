@@ -589,6 +589,7 @@ impl<'a> ParseContext<'a> {
             NodeType::OBJECT_SQL_DELETE => StatementType::DELETE,
             NodeType::OBJECT_EXT_EXPLAIN => StatementType::EXPLAIN,
             NodeType::OBJECT_SQL_CALL => StatementType::CALL,
+            NodeType::OBJECT_SQL_TRANSACTION => StatementType::TRANSACTION,
             // The grammar reduces statements only to the roots above, another root drops the statement
             other => {
                 state.errors.push(ParseError {

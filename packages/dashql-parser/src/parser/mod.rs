@@ -274,6 +274,9 @@ fn replace_obfuscated_cast_literals(scanned: &mut ScannedScript, nodes: &[Node])
 }
 
 #[cfg(test)]
+mod transaction_tests;
+
+#[cfg(test)]
 mod tests {
     use super::*;
     use crate::scanner::scan;
