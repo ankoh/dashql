@@ -117,6 +117,8 @@ describe('useMergeConnections', () => {
             query: 'select 1',
             metadata: { queryType: QueryType.USER_PROVIDED, title: null, description: null, issuer: null, userProvided: true },
         });
+        // Catch the cancellation right away, a rejection without a handler fails the page in Firefox
+        const settled = execution.then(() => null, (error: unknown) => error);
         await vi.waitFor(() => expect(source.stream.read).toHaveBeenCalledTimes(1));
 
         // The log monitor closes the monitoring database in the folder of the connection
@@ -127,7 +129,7 @@ describe('useMergeConnections', () => {
         await vi.waitFor(() => expect(forget).toHaveBeenCalledWith('source'));
         // The running query was cancelled at the backend and settled before
         expect(source.stream.cancel).toHaveBeenCalledTimes(1);
-        await expect(execution).rejects.toMatchObject({ name: 'AbortError' });
+        expect(await settled).toMatchObject({ name: 'AbortError' });
         // The connection, and with it its folder, outlives the open monitoring database
         expect(merged).toBe(false);
         expect(api!.connections.has('source')).toBe(true);
