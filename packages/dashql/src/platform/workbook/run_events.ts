@@ -2,6 +2,8 @@
 // for the agent of a session sends them to `dashql run` (docs/design/agent_integration.md, "Runs in the tab")
 import * as arrow from 'apache-arrow';
 
+import { fromBase64, toBase64 } from '../utils/base64.js';
+
 /// What happens in a run
 export type RunEvent =
     /// The run starts, with the scripts that it reports results of: the named ones, every one by default
@@ -31,22 +33,6 @@ export type RunEvent =
     | { type: 'script_chart'; script: string; png: Uint8Array | null; width: number | null; height: number | null; error: string | null }
     /// The run is over: what happened to the scripts that it reports
     | { type: 'run_finished'; ms: number; ok: number; failed: number; cancelled: number; notRun: number; interrupted: boolean };
-
-/// The bytes of a text of base64
-function fromBase64(text: string): Uint8Array {
-    const binary = atob(text);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; ++i) bytes[i] = binary.charCodeAt(i);
-    return bytes;
-}
-
-/// The base64 of bytes
-function toBase64(bytes: Uint8Array): string {
-    let binary = '';
-    const chunk = 0x8000;
-    for (let i = 0; i < bytes.length; i += chunk) binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
-    return btoa(binary);
-}
 
 /// An event as JSON: the table of a result with its first rows as an Arrow IPC stream in base64, a chart as PNG in base64
 export function encodeRunEvent(event: RunEvent, rows: number): unknown {

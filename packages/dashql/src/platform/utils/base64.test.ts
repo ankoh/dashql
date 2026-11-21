@@ -1,8 +1,6 @@
-import * as auth from '@akohn/dashql-jsonschema/auth.js';
-
 import type * as app_event from '@akohn/dashql-jsonschema/app_event.js';
 
-import { BASE64_CODEC, BASE64URL_CODEC } from "./base64.js";
+import { BASE64URL_CODEC, fromBase64, toBase64 } from "./base64.js";
 
 /// 32 words of a seeded generator (mulberry32)
 function randomBuffer32(seed: number): ArrayBuffer {
@@ -17,76 +15,32 @@ function randomBuffer32(seed: number): ArrayBuffer {
     return out.buffer;
 }
 
-describe('Base64Codec', () => {
-    describe("invalid base64 strings", () => {
-        it("padding chars", () => {
-            expect(BASE64_CODEC.isValidBase64("uny100A=")).toBeTruthy();
-            expect(BASE64_CODEC.isValidBase64("uny100==")).toBeTruthy();
-            expect(BASE64_CODEC.isValidBase64("=uny100=")).toBeFalsy();
-            expect(BASE64_CODEC.isValidBase64("==uny100")).toBeFalsy();
-        })
+describe('toBase64 and fromBase64', () => {
+    it("encode the test vectors of RFC 4648", () => {
+        const vectors = ['', 'Zg==', 'Zm8=', 'Zm9v', 'Zm9vYg==', 'Zm9vYmE=', 'Zm9vYmFy'];
+        vectors.forEach((vector, i) => {
+            const bytes = new TextEncoder().encode('foobar'.slice(0, i));
+            expect(toBase64(bytes)).toBe(vector);
+            expect(fromBase64(vector)).toEqual(bytes);
+        });
     });
 
-    describe("encodes random 32 byte sequences", () => {
+    it("roundtrip bytes beyond a chunk of String.fromCharCode", () => {
+        const bytes = new Uint8Array(100_000).map((_, i) => (i * 31) & 0xFF);
+        expect(fromBase64(toBase64(bytes))).toEqual(bytes);
+    });
+
+    describe("roundtrip random 32 byte sequences", () => {
         for (let i = 0; i < 1000; ++i) {
             it(`seed=${i}`, () => {
-                const randomBytes = randomBuffer32(i)
-                const encoded = BASE64_CODEC.encode(randomBytes);
-                expect(BASE64_CODEC.isValidBase64(encoded)).toBeTruthy();
-                const decoded = BASE64_CODEC.decode(encoded);
-                expect(decoded).toEqual(randomBytes);
+                const randomBytes = new Uint8Array(randomBuffer32(i));
+                expect(fromBase64(toBase64(randomBytes))).toEqual(randomBytes);
             });
         }
     });
-
-    it("encode salesforce oauth web flow state", () => {
-        const authState: auth.OAuthState = {
-            flowId: "web-flow-id",
-            flowVariant: "WEB_OPENER_FLOW",
-            debugMode: false,
-            salesforceProvider: {
-                instanceUrl: "https://trialorgfarmforu-16f.test2.my.pc-rnd.salesforce.com",
-                appConsumerKey: "foo",
-                requestedAt: 0,
-                expiresAt: 0
-            }
-        };
-        // Encode as JSON
-        const authStateJson = JSON.stringify(authState);
-        const authStateBuffer = new TextEncoder().encode(authStateJson);
-        const authStateBase64 = BASE64_CODEC.encode(authStateBuffer.buffer);
-        // Verify it encodes and decodes correctly
-        const decoded = BASE64_CODEC.decode(authStateBase64);
-        const decodedJson = new TextDecoder().decode(decoded);
-        const decodedState = JSON.parse(decodedJson);
-        expect(decodedState).toEqual(authState);
-    });
-
-    it("encode salesforce oauth native flow state", () => {
-        const authState: auth.OAuthState = {
-            flowId: "native-flow-id",
-            flowVariant: "NATIVE_LINK_FLOW",
-            debugMode: false,
-            salesforceProvider: {
-                instanceUrl: "https://trialorgfarmforu-16f.test2.my.pc-rnd.salesforce.com",
-                appConsumerKey: "foo",
-                requestedAt: 0,
-                expiresAt: 0
-            }
-        };
-        // Encode as JSON
-        const authStateJson = JSON.stringify(authState);
-        const authStateBuffer = new TextEncoder().encode(authStateJson);
-        const authStateBase64 = BASE64_CODEC.encode(authStateBuffer.buffer);
-        // Verify it encodes and decodes correctly
-        const decoded = BASE64_CODEC.decode(authStateBase64);
-        const decodedJson = new TextDecoder().decode(decoded);
-        const decodedState = JSON.parse(decodedJson);
-        expect(decodedState).toEqual(authState);
-    });
 });
 
-describe('Base64UrlCodec oauth event roundtrip', () => {
+describe('BASE64URL_CODEC oauth event roundtrip', () => {
     const INSTANCE_URL = "https://trialorgfarmforu-16f.test2.my.pc-rnd.salesforce.com";
     const CONSUMER_KEY = "3MVG9GS4BiwvuHvgBoJxvy6gBq99_Ptg8FHx1QqO0bcDgy3lYc3x1b3nLPXGDQzYlYYMOwqo_j12QdTgAvAZD";
 
@@ -120,7 +74,7 @@ describe('Base64UrlCodec oauth event roundtrip', () => {
     }
 });
 
-describe('Base64UrlCodec', () => {
+describe('BASE64URL_CODEC', () => {
     describe("invalid base64url strings", () => {
         it("padding chars", () => {
             expect(BASE64URL_CODEC.isValidBase64("uny100A")).toBeTruthy();
