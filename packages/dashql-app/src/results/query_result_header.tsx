@@ -59,7 +59,6 @@ export function QueryResultPanel(props: PanelProps): React.ReactElement {
             table={maxRows => model != null && (
                 <QueryResultView
                     model={model}
-                    debugMode={false}
                     maxRows={maxRows}
                     columnHeader={TableColumnHeader.OnlyColumnName}
                     cellBackground={props.cellBackground}

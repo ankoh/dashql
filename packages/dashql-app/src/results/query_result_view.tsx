@@ -8,7 +8,6 @@ import { classNames } from '@akohn/dashql-react/dom/classnames';
 
 interface Props {
     model: QueryModel | null;
-    debugMode: boolean;
     maxRows?: number;
     columnHeader?: TableColumnHeader;
     cellBackground?: string;
@@ -31,7 +30,6 @@ export function QueryResultView(props: Props) {
             <DataTableView
                 className={styles.data_table}
                 model={computation}
-                debugMode={props.debugMode}
                 maxRows={props.maxRows}
                 columnHeader={props.columnHeader}
                 cellBackground={props.cellBackground}

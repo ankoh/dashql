@@ -152,7 +152,6 @@ const ResultOverlay: React.FC<Props> = ({
         [ResultTab.Data]: () => model == null ? <></> : (
             <ResultDetails
                 model={model}
-                debugMode={false}
                 fitHeight
                 maxHeight={MAX_OVERLAY_HEIGHT}
                 columnHeader={TableColumnHeader.WithColumnPlots}

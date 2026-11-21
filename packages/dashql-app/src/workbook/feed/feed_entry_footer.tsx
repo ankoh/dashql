@@ -214,7 +214,6 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
                 />
                 <QueryResultView
                     model={model}
-                    debugMode={false}
                     maxRows={FEED_LIMIT_RESULT_ROWS}
                     columnHeader={TableColumnHeader.OnlyColumnName}
                     onShowTable={props.onShowTable}

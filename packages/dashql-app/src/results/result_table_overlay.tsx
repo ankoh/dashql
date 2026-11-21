@@ -19,7 +19,6 @@ export function ResultTableOverlay(props: Props): React.ReactElement {
             {layout => (
                 <QueryResultDetails
                     model={props.model}
-                    debugMode={false}
                     fitHeight={layout.fitHeight}
                     maxHeight={layout.maxHeight}
                     columnHeader={TableColumnHeader.WithColumnPlots}

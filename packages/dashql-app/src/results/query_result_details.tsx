@@ -12,14 +12,13 @@ import { QueryResultActionMenu } from './query_result_action_menu.js';
 
 interface Props {
     model: QueryModel;
-    debugMode: boolean;
     actions?: React.ReactNode;
     fitHeight?: boolean;
     maxHeight?: number;
     columnHeader?: TableColumnHeader;
 }
 
-export function QueryResultDetails({ model, debugMode, actions, fitHeight, maxHeight, columnHeader }: Props): React.ReactElement {
+export function QueryResultDetails({ model, actions, fitHeight, maxHeight, columnHeader }: Props): React.ReactElement {
     return (
         <QueryResultDetailsView
             model={model}
@@ -35,7 +34,6 @@ export function QueryResultDetails({ model, debugMode, actions, fitHeight, maxHe
             table={layout => (
                 <QueryResultView
                     model={model}
-                    debugMode={debugMode}
                     compact
                     fitHeight={layout.fitHeight}
                     maxHeight={layout.maxHeight}

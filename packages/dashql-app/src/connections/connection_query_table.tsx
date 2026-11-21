@@ -110,7 +110,6 @@ export const QueryTable: React.FC<QueryTableProps> = ({ sql, clientContext, runQ
     return (
         <DataTableView
             model={model}
-            debugMode={false}
             columnHeader={TableColumnHeader.OnlyColumnName}
             compact
         />
