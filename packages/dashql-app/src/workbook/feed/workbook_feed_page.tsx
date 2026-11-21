@@ -22,6 +22,7 @@ import { Dashboard } from '../dashboard/dashboard.js';
 import { DataflowCanvas } from '../dataflow/dataflow_canvas.js';
 import { WorkbookViewMode, useWorkbookViewMode } from '../workbook_view_mode.js';
 import { SegmentedControl, SegmentedControlSize } from '@akohn/dashql-react/components/segmented_control';
+import { PanelResizeHandle } from '@akohn/dashql-react/components/panel_resize_handle';
 import { useWorkbookExecution, useWorkbookShown } from '@akohn/dashql-react/hooks';
 import { IndicatorStatus, StatusIndicator } from '@akohn/dashql-react/components/status_indicator';
 import { AnchoredOverlay } from '@akohn/dashql-react/components/anchored_overlay';
@@ -49,6 +50,10 @@ const WORKBOOK_VIEWS: [WorkbookViewMode, string, typeof FeedViewIcon][] = [
     [WorkbookViewMode.Dashboard, 'Dashboard', DashboardViewIcon],
     [WorkbookViewMode.Dataflow, 'Dataflow', DataflowViewIcon],
 ];
+/// The width of the workbench sidebar in pixels, the handle next to it resizes it
+const SIDEBAR_DEFAULT_WIDTH = 276;
+const SIDEBAR_MIN_WIDTH = 200;
+const SIDEBAR_MAX_WIDTH = 560;
 
 export interface WorkbookFeedPageDependencies {
     WorkbookFeed: typeof WorkbookFeed;
@@ -119,6 +124,7 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
     }, [props.workbookScripts, selection]);
     const closeDetails = React.useCallback(() => setDetails(null), []);
     const [navigationDrawerOpen, setNavigationDrawerOpen] = React.useState(false);
+    const [sidebarWidth, setSidebarWidth] = React.useState(SIDEBAR_DEFAULT_WIDTH);
     // The overview of a connection or of a cloud that takes the place of the workbook
     const [overview, setOverview] = React.useState<{ kind: 'connection' | 'cloud'; connectionId: string } | null>(null);
     const overviewConnectionId = overview?.kind === 'connection' ? overview.connectionId : null;
@@ -215,10 +221,18 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
 
     return (
         <WorkbookReadOnlyContext.Provider value={preview}>
-        <div className={styles.page}>
+        <div className={styles.page} style={{ '--workbook_navigation_sidebar_width': `${sidebarWidth}px` } as React.CSSProperties}>
             <aside className={styles.navigation_sidebar}>
                 {workbench(false)}
             </aside>
+            <PanelResizeHandle
+                className={styles.navigation_sidebar_separator}
+                size={sidebarWidth}
+                minSize={SIDEBAR_MIN_WIDTH}
+                maxSize={SIDEBAR_MAX_WIDTH}
+                onResize={setSidebarWidth}
+                label="Resize workbench and workbook"
+            />
             <main className={styles.body_container} id="workbook-body">
                 <div className={styles.content_container}>
                     {cloudLoading && (
