@@ -57,7 +57,7 @@ describe('Workbook composer', () => {
         view = null;
         onSend = vi.fn<(text: string) => void>();
         targetScript = { current: null };
-        attention = { workbookId: 'workbook', active: false, request: vi.fn<Attention['request']>() };
+        attention = { active: false, request: vi.fn<Attention['request']>() };
     });
     afterEach(() => {
         act(() => root.unmount());
@@ -189,7 +189,7 @@ describe('Workbook composer', () => {
         act(() => press(editor, 'Enter'));
         expect(onSend).not.toHaveBeenCalled();
         expect(attention.request).toHaveBeenCalledTimes(2);
-        expect(attention.request).toHaveBeenCalledWith('workbook');
+        expect(attention.request).toHaveBeenCalledWith();
         expect(editor.state.doc.toString()).toBe('select 1');
         // Once connected the draft is sent
         await render(variant, null);

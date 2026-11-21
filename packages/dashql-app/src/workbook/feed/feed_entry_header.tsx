@@ -122,7 +122,7 @@ export function FeedEntryHeader(props: FeedEntryHeaderProps): React.ReactElement
                     <LockIcon size={14} />
                 </span>
             ) : (
-            <ExecuteConnectionGuard workbookId={props.workbookId} blocked={!queryActive && connectionHealth !== ConnectionHealth.ONLINE}>
+            <ExecuteConnectionGuard blocked={!queryActive && connectionHealth !== ConnectionHealth.ONLINE}>
             <IconButton
                 className={needsConnection ? styles.feed_entry_execute_offline : props.focused ? styles.feed_entry_execute_focused : styles.feed_entry_execute_unfocused}
                 variant={ButtonVariant.Invisible}
@@ -135,7 +135,7 @@ export function FeedEntryHeader(props: FeedEntryHeaderProps): React.ReactElement
                     if (queryActive && props.scriptData != null) {
                         void runtime?.cancelScript(props.workbookId, props.scriptData.scriptKey);
                     } else if (needsConnection) {
-                        connectionAttention?.request(props.workbookId);
+                        connectionAttention?.request();
                     } else {
                         props.onExecute();
                     }

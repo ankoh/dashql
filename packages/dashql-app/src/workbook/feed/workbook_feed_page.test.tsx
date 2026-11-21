@@ -36,7 +36,6 @@ const state = {
     shareProps: null as PropsOf<'WorkbookURLShareOverlay'> | null,
     exportProps: null as PropsOf<'WorkbookFileSaveOverlay'> | null,
     sidebarProps: null as PropsOf<'WorkbookWorkbenchSidebar'> | null,
-    attention: null as React.ContextType<typeof WorkbookConnectionAttentionContext>,
     connectionButtonsProps: null as PropsOf<'WorkbookConnectionButtons'> | null,
     execution: { state: null, busy: false, ready: true, start: vi.fn(), stop: vi.fn() } as TestExecution,
 };
@@ -46,7 +45,6 @@ function testConnection(connectionId: string, connectionHealth: ConnectionHealth
 }
 const dependencies = {
     WorkbookFeed: (props: PropsOf<'WorkbookFeed'>) => {
-        state.attention = React.useContext(WorkbookConnectionAttentionContext);
         state.feedProps = props;
         return null;
     },
@@ -197,30 +195,36 @@ describe('WorkbookFeedPage', () => {
         const workbook = scripts();
         workbook.scriptConnections = ['lake'];
         workbook.connectionIds = ['lake'];
-        const render = (phase: string, skippedScripts: number, connection = lake) => {
+        // The commands of the workbook hold the attention, the page requests it and passes it to the connections
+        const attention = { active: false, request: vi.fn<() => void>() };
+        const render = (phase: string, skippedScripts: number) => {
             state.execution = { ...state.execution, busy: phase === 'running', state: {
                 phase, completedScripts: 3, totalScripts: 5, completedStatements: 3, totalStatements: 3,
                 activeFileName: null, activeStatementIndex: null, activeStatementCount: null, error: null, skippedScripts,
                 skippedFiles: ['2.sql', '3.sql'].slice(0, skippedScripts),
             } };
-            act(() => root.render(<WorkbookFeedPage workbookScripts={workbook} modifyWorkbookScripts={vi.fn()} connection={connection}
-                scriptConnections={new Map([['lake', connection]])} active dependencies={dependencies} />));
+            act(() => root.render(<WorkbookConnectionAttentionContext.Provider value={{ ...attention }}>
+                <WorkbookFeedPage workbookScripts={workbook} modifyWorkbookScripts={vi.fn()} connection={lake}
+                    scriptConnections={new Map([['lake', lake]])} active dependencies={dependencies} />
+            </WorkbookConnectionAttentionContext.Provider>));
         };
         const status = () => container.querySelector('[data-testid="execution-status"]')!;
         // A run that settled before the page mounted points at nothing
         render('succeeded', 2);
         await new Promise(resolve => setTimeout(resolve, 0));
-        expect(state.attention?.active).toBe(false);
+        expect(attention.request).not.toHaveBeenCalled();
         render('running', 2);
-        expect(state.attention?.active).toBe(false);
+        expect(attention.request).not.toHaveBeenCalled();
         render('succeeded', 2);
         expect(status().textContent).toContain('3/5 completed · 2 need a connection');
         expect(status().getAttribute('title')).toBe('Need a connection: 2.sql, 3.sql');
-        // The request lands with the commit of the settled run, the attention lasts a while
-        await vi.waitFor(() => expect(state.attention?.active).toBe(true));
-        // The attention clears once the connection changes its health
-        render('succeeded', 2, { ...lake, connectionHealth: ConnectionHealth.CONNECTING });
-        expect(state.attention?.active).toBe(false);
+        // The request lands with the commit of the settled run
+        await vi.waitFor(() => expect(attention.request).toHaveBeenCalledExactlyOnceWith());
+        // The connections in the bar show the attention
+        attention.active = true;
+        render('succeeded', 2);
+        expect(state.connectionButtonsProps?.attention).toBe(true);
+        expect(attention.request).toHaveBeenCalledOnce();
         // A run that skipped nothing succeeded
         render('succeeded', 0);
         expect(status().textContent).toContain('3/5 succeeded');

@@ -127,7 +127,7 @@ export const WorkbookCommands: React.FC<Props> = (props: Props) => {
                     {
                         const { entry, scriptData, scriptConnection } = selectedScriptConnection(workbookScripts, selected, readConnection, readScript);
                         if (scriptConnection == null || scriptConnection.connectionHealth !== ConnectionHealth.ONLINE) {
-                            connectionAttention.request(workbookScripts.workbookId);
+                            connectionAttention.request();
                             logger.warn("Cannot execute query command with an unhealthy connection", {
                                 workbookId,
                                 status: scriptConnection?.healthLabel ?? 'Not Started',

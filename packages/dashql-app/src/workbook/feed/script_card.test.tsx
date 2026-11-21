@@ -280,7 +280,7 @@ describe('the card of a script', () => {
         const model = fakeScriptModel({ script: fakeScript(1, '01_alpha.sql') });
         const { props } = cardProps(model);
         const request = vi.fn();
-        render(props, card => <WorkbookConnectionAttentionContext.Provider value={{ workbookId: 'workbook', active: false, request }}>
+        render(props, card => <WorkbookConnectionAttentionContext.Provider value={{ active: false, request }}>
             {card}
         </WorkbookConnectionAttentionContext.Provider>);
         const play = container.querySelector<HTMLButtonElement>('[data-testid="script-execute"]')!;
@@ -294,7 +294,7 @@ describe('the card of a script', () => {
             wrapper.dispatchEvent(new PointerEvent('pointerover', { bubbles: true, relatedTarget: play }));
             wrapper.dispatchEvent(new PointerEvent('pointermove', { bubbles: true }));
         });
-        expect(request).toHaveBeenCalledExactlyOnceWith('workbook');
+        expect(request).toHaveBeenCalledExactlyOnceWith();
         expect(wrapper.tabIndex).toBe(0);
         // A click pulses the connections as well, it opens nothing and runs nothing
         act(() => play.click());

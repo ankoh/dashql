@@ -26,7 +26,7 @@ import { useWorkbookExecution } from '@akohn/dashql-react/hooks';
 import { IndicatorStatus, StatusIndicator } from '@akohn/dashql-react/components/status_indicator';
 import { AnchoredOverlay } from '@akohn/dashql-react/components/anchored_overlay';
 import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
-import { connectionHealthKey, WorkbookConnectionAttentionContext, useWorkbookConnectionAttention } from '../connections/workbook_connection_attention.js';
+import { WorkbookConnectionAttentionContext } from '../connections/workbook_connection_attention.js';
 import { WorkbookConnectionButtons } from './workbook_connection_buttons.js';
 import { useAppFlavor } from '../../config/flavor_provider.js';
 import { ConnectionOverviewPage } from '../../connections/connection_overview_page.js';
@@ -154,7 +154,8 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
     const runConnections = scriptConnectionIds(props.workbookScripts).flatMap(connectionId => scriptConnections.get(connectionId) ?? []);
     // The bar also shows the connection that the composer drafts the next script on, e.g. the one picked in an empty workbook
     const barConnections = props.workbookScripts.connectionIds.flatMap(connectionId => scriptConnections.get(connectionId) ?? []);
-    const connectionAttention = useWorkbookConnectionAttention(props.workbookScripts.workbookId, connectionHealthKey(barConnections));
+    // The commands of the workbook hold the attention of its connections
+    const connectionAttention = React.useContext(WorkbookConnectionAttentionContext);
     // A connection that is connecting holds the run, it would join a moment later
     const scriptConnectionsIdle = runConnections.length > 0 && runConnections.every(connection =>
         connection.connectionHealth !== ConnectionHealth.CONNECTING && (connection.queriesActiveOrdered?.length ?? 0) === 0);
@@ -177,13 +178,13 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
     const sawRun = React.useRef(false);
     React.useEffect(() => { sawRun.current = false; }, [props.workbookScripts.workbookId]);
     React.useEffect(() => { if (execution.busy) sawRun.current = true; }, [execution.busy]);
-    const requestAttention = connectionAttention.request;
+    const requestAttention = connectionAttention?.request;
     React.useEffect(() => {
         if (settledWithSkips && sawRun.current) {
             sawRun.current = false;
-            requestAttention(props.workbookScripts.workbookId);
+            requestAttention?.();
         }
-    }, [settledWithSkips, requestAttention, props.workbookScripts.workbookId]);
+    }, [settledWithSkips, requestAttention]);
     const skippedTitle = run != null && run.skippedFiles.length > 0 ? `Need a connection: ${run.skippedFiles.join(', ')}` : undefined;
     const { mode, setMode } = dependencies.useWorkbookViewMode();
     // The greeter shows the feed, its workbook has nothing to run, show or share until a script promotes it
@@ -221,7 +222,6 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
     );
 
     return (
-        <WorkbookConnectionAttentionContext.Provider value={connectionAttention}>
         <WorkbookReadOnlyContext.Provider value={preview}>
         <div className={styles.page}>
             <aside className={styles.navigation_sidebar}>
@@ -381,7 +381,7 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
                     <div className={styles.header_actions}>
                         {/* The connections of the workbook, the user sees which one is not connected */}
                         {/* A preview shows its connections locked, the import maps them */}
-                        <dependencies.WorkbookConnectionButtons connections={barConnections} attention={connectionAttention.active} />
+                        <dependencies.WorkbookConnectionButtons connections={barConnections} attention={connectionAttention?.active === true} />
                         {preview && <dependencies.CloudPreviewActions workbookId={props.workbookScripts.workbookId} labelClassName={styles.action_label} />}
                         {!ephemeral && !preview && <dependencies.Button ref={shareTriggerRef} size={ButtonSize.Small} variant={ButtonVariant.Invisible} leadingVisual={LinkIcon} aria-label="Share as URL" data-testid="share-url" aria-expanded={shareOpen} onClick={() => {
                             setExportOpen(false);
@@ -417,6 +417,5 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
             )}
         </div>
         </WorkbookReadOnlyContext.Provider>
-        </WorkbookConnectionAttentionContext.Provider>
     );
 };

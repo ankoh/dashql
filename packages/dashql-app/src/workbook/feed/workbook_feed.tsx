@@ -563,7 +563,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     const runAppendedScript = React.useCallback((next: WorkbookScripts, scriptData: ScriptData) => {
         // The agent may write the script on another connection than the one of the composer
         if (!isScriptOnline(scriptData)) {
-            connectionAttention?.request(next.workbookId);
+            connectionAttention?.request();
             return;
         }
         if (runScript == null) return;

@@ -5,9 +5,8 @@ import { Tooltip } from '@akohn/dashql-react/components/tooltip';
 export const CONNECTION_ATTENTION_DURATION_MS = 900;
 
 interface ConnectionAttention {
-    workbookId: string | null;
     active: boolean;
-    request: (workbookId: string) => void;
+    request: () => void;
 }
 
 export const WorkbookConnectionAttentionContext = React.createContext<ConnectionAttention | null>(null);
@@ -17,8 +16,8 @@ export function connectionHealthKey(connections: readonly ConnectionState[] | nu
     return (connections ?? []).map(connection => `${connection.connectionId}:${connection.connectionHealth}`).join(',');
 }
 
+/// The attention of the connections of the shown workbook, the commands of the workbook provide it to the pages
 export function useWorkbookConnectionAttention(workbookId: string | null, healthKey: string): ConnectionAttention {
-    const shared = React.useContext(WorkbookConnectionAttentionContext);
     const [active, setActive] = React.useState(false);
     const timer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
     React.useLayoutEffect(() => {
@@ -31,27 +30,26 @@ export function useWorkbookConnectionAttention(workbookId: string | null, health
         };
     }, [workbookId, healthKey]);
     // Callers request attention for the connections the scripts of the workbook run on
-    const request = React.useCallback((targetWorkbookId: string) => {
-        if (targetWorkbookId !== workbookId || timer.current != null) return;
+    const request = React.useCallback(() => {
+        if (timer.current != null) return;
         setActive(true);
         timer.current = setTimeout(() => {
             timer.current = null;
             setActive(false);
         }, CONNECTION_ATTENTION_DURATION_MS);
-    }, [workbookId]);
+    }, []);
     // The value is provided as context to every execute button in the feed, keep it stable
-    const own = React.useMemo(() => ({ workbookId, active, request }), [workbookId, active, request]);
-    return shared?.workbookId === workbookId ? shared : own;
+    return React.useMemo(() => ({ active, request }), [active, request]);
 }
 
-export function ExecuteConnectionGuard(props: { workbookId: string; blocked: boolean; children: React.ReactElement }) {
+export function ExecuteConnectionGuard(props: { blocked: boolean; children: React.ReactElement }) {
     const attention = React.useContext(WorkbookConnectionAttentionContext);
     return <Tooltip type="description" direction="s" text={props.blocked ? 'Connect to execute queries' : 'Query execution control'}>
         <span data-execution-connection-blocked={props.blocked ? 'true' : undefined}
             style={{ display: 'inline-flex' }} tabIndex={props.blocked ? 0 : undefined}
             onPointerOverCapture={event => {
                 if (props.blocked && !(event.relatedTarget instanceof Node && event.currentTarget.contains(event.relatedTarget))) {
-                    attention?.request(props.workbookId);
+                    attention?.request();
                 }
             }}>
             {props.children}

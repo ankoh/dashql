@@ -15,7 +15,7 @@ describe('workbook connection attention', () => {
     }
     function Child() {
         const shared = React.useContext(WorkbookConnectionAttentionContext)!;
-        return <span data-active={shared.active}>{shared.workbookId}</span>;
+        return <span data-active={shared.active} />;
     }
     beforeEach(() => {
         vi.useFakeTimers();
@@ -24,15 +24,14 @@ describe('workbook connection attention', () => {
     });
     afterEach(() => { act(() => root.unmount()); vi.useRealTimers(); });
 
-    it('shares a finite coalesced pulse, rejects other workbooks, and never focuses', () => {
+    it('shares a finite coalesced pulse and never focuses', () => {
         act(() => root.render(<Probe workbookId="workbook" health={ConnectionHealth.NOT_STARTED} />));
         const focused = document.activeElement;
-        act(() => signal.request('other'));
         expect(signal.active).toBe(false);
-        act(() => signal.request('workbook'));
+        act(() => signal.request());
         expect(container.querySelector('[data-active="true"]')).not.toBeNull();
         act(() => vi.advanceTimersByTime(500));
-        act(() => signal.request('workbook'));
+        act(() => signal.request());
         act(() => vi.advanceTimersByTime(CONNECTION_ATTENTION_DURATION_MS - 500));
         expect(signal.active).toBe(false);
         expect(document.activeElement).toBe(focused);
@@ -42,17 +41,17 @@ describe('workbook connection attention', () => {
         const render = (workbookId: string, health: ConnectionHealth, connectionId = 'main') =>
             act(() => root.render(<Probe workbookId={workbookId} health={health} databaseId={connectionId} />));
         render('a', ConnectionHealth.NOT_STARTED);
-        act(() => signal.request('a'));
+        act(() => signal.request());
         render('b', ConnectionHealth.NOT_STARTED);
         expect(signal.active).toBe(false);
-        act(() => signal.request('b'));
+        act(() => signal.request());
         render('b', ConnectionHealth.NOT_STARTED, 'replacement');
         expect(signal.active).toBe(false);
-        act(() => signal.request('b'));
+        act(() => signal.request());
         render('b', ConnectionHealth.ONLINE, 'replacement');
         expect(signal.active).toBe(false);
         // A script on another connection may be blocked while the main database is online
-        act(() => signal.request('b'));
+        act(() => signal.request());
         expect(signal.active).toBe(true);
     });
 });

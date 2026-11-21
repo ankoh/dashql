@@ -200,7 +200,7 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
     const send = React.useCallback(() => {
         if (view == null || ai) return;
         if (offlineWorkbookId != null) {
-            connectionAttention?.request(offlineWorkbookId);
+            connectionAttention?.request();
             return;
         }
         // A card writes a typed value when it loses the focus, the value goes along
@@ -404,7 +404,7 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
                                 />
                             )}
                             {blockedWorkbookId != null
-                                ? <ExecuteConnectionGuard workbookId={blockedWorkbookId} blocked>{sendButton}</ExecuteConnectionGuard>
+                                ? <ExecuteConnectionGuard blocked>{sendButton}</ExecuteConnectionGuard>
                                 : sendButton}
                         </div>
                     )}

@@ -372,7 +372,7 @@ describe('Workbook feed composer', () => {
         feedState.scripts = {};
         feedState.next = null;
         feedState.view = fakeView('');
-        attention = { workbookId: 'workbook', active: false, request: vi.fn<Attention['request']>() };
+        attention = { active: false, request: vi.fn<Attention['request']>() };
         container = document.createElement('div');
         document.body.appendChild(container);
         root = createRoot(container);
@@ -437,7 +437,7 @@ describe('Workbook feed composer', () => {
         render(workbook(), modify, null);
         await act(async () => feedState.composerProps!.onSend('select 1'));
         expect(modify).toHaveBeenCalledOnce();
-        await vi.waitFor(() => expect(attention.request).toHaveBeenCalledExactlyOnceWith('workbook'));
+        await vi.waitFor(() => expect(attention.request).toHaveBeenCalledExactlyOnceWith());
         expect(feedState.runScript).not.toHaveBeenCalled();
     });
 
