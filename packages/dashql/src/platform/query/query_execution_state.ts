@@ -62,13 +62,14 @@ export interface QueryExecutionResponseStream {
     read(abort?: AbortSignal): AsyncIterable<QueryStreamItem>;
 }
 
-/// The record batches of a stream, read to the end
-export async function readStreamBatches(stream: QueryExecutionResponseStream, abort?: AbortSignal): Promise<arrow.RecordBatch[]> {
+/// The result table of a stream, read to the end. A result without batches has the schema of the stream.
+export async function readStreamTable(stream: QueryExecutionResponseStream, abort?: AbortSignal): Promise<arrow.Table> {
     const batches: arrow.RecordBatch[] = [];
     for await (const item of stream.read(abort)) {
         if (item.type === 'batch') batches.push(item.batch);
     }
-    return batches;
+    const schema = batches.length > 0 ? batches[0].schema : await stream.getSchema() ?? new arrow.Schema();
+    return new arrow.Table(schema, batches);
 }
 
 /// The kind of a query, a numeric enum of the module

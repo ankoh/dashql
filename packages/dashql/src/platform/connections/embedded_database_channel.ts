@@ -1,6 +1,5 @@
 import type * as arrow from 'apache-arrow';
 import type * as core from '../../core/index.js';
-import type * as pb from '../proto.js';
 
 import type { EmbeddedClientContext, EmbeddedComputeDatabase, EmbeddedConnection, EmbeddedResultStream } from '../embedded_database.js';
 import { embeddedAttachedDatabasePath } from '../hyperdb/hyperdb_opfs_instance.js';
@@ -97,7 +96,7 @@ function waitUnlessAborted(promise: Promise<void>, abort?: AbortSignal): Promise
     });
 }
 
-export class EmbeddedDatabaseChannel {
+export class EmbeddedDatabaseChannel implements HyperDatabaseChannel {
     /// The connection runs one statement at a time, so queries wait until the result of the previous one is read.
     /// One connection keeps the workbook state of the scripts, such as settings and attached databases.
     private previousQuery: Promise<void> = Promise.resolve();
@@ -140,23 +139,6 @@ export class EmbeddedDatabaseChannel {
     }
 }
 
-export class EmbeddedHyperDatabaseChannel implements HyperDatabaseChannel {
-    constructor(
-        private readonly channel: EmbeddedDatabaseChannel,
-    ) {}
-
-    async executeQuery(
-        params: pb.salesforce_hyperdb_grpc_v1.pb.QueryParam,
-        abort?: AbortSignal,
-    ): Promise<QueryExecutionResponseStream> {
-        return await this.channel.executeQuery(params.query, abort);
-    }
-
-    async close(): Promise<void> {
-        await this.channel.close();
-    }
-}
-
 /// The channel of a connection to the embedded Hyper on the session that the runtime asked for (`session` of the
 /// channel request): the database of the instance, or the databases of the clouds folder that a local cloud attaches
 /// like a Hyper server. The Hyper log attributes the queries of the session to the client context.
@@ -164,7 +146,7 @@ export async function connectEmbeddedHyper(
     database: Pick<EmbeddedComputeDatabase, 'connect'>,
     session: core.EmbeddedHyperSession | null,
     clientContext?: EmbeddedClientContext,
-): Promise<EmbeddedHyperDatabaseChannel> {
+): Promise<EmbeddedDatabaseChannel> {
     const attachedDatabases = await Promise.all((session?.attachedDatabases ?? []).map(async attached => ({
         path: await embeddedAttachedDatabasePath(attached.path),
         alias: attached.alias,
@@ -174,5 +156,5 @@ export async function connectEmbeddedHyper(
         attachedDatabases,
         clientContext,
     });
-    return new EmbeddedHyperDatabaseChannel(new EmbeddedDatabaseChannel(connection));
+    return new EmbeddedDatabaseChannel(connection);
 }

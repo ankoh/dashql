@@ -118,8 +118,8 @@ describe('The handles of a runtime', () => {
         // A statement `select 2` runs until it is cancelled
         const active = new AbortController();
         const channel = {
-            executeQuery: vi.fn(async (params: { query: string }, abort?: AbortSignal) => {
-                if (params.query !== 'select 2') return stream;
+            executeQuery: vi.fn(async (query: string, abort?: AbortSignal) => {
+                if (query !== 'select 2') return stream;
                 return await new Promise<QueryExecutionResponseStream>((_resolve, reject) => abort?.addEventListener('abort', () => {
                     active.abort(abort.reason);
                     reject(abort.reason);
@@ -149,7 +149,7 @@ describe('The handles of a runtime', () => {
         expect(await finished).not.toBeNull();
         const [, pending] = rt.execute(connectionId, { query: 'select 2', metadata, throwOnError: true });
         const cancelled = pending.then(() => null, error => error);
-        await vi.waitFor(() => expect(channel.executeQuery).toHaveBeenCalledWith(expect.objectContaining({ query: 'select 2' }), expect.anything(), expect.anything()));
+        await vi.waitFor(() => expect(channel.executeQuery).toHaveBeenCalledWith('select 2', expect.anything(), expect.anything()));
         rt.flush();
         expect(rt.table(rt.store.get('query', finishedId)?.resultTable?.id)).not.toBeUndefined();
 

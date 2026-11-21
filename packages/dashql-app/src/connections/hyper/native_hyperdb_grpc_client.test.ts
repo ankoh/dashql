@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import * as pb from '@akohn/dashql/platform/proto';
 import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
-import { readStreamBatches } from '@akohn/dashql/platform/query/query_execution_state';
+import { readStreamTable } from '@akohn/dashql/platform/query/query_execution_state';
 import { installNativeGrpcProxy, nativeStreamBatch } from '../../tests/mocks/native_proxy.js';
 import type { HyperDatabaseConnectionContext } from '@akohn/dashql/platform/connections/hyper/hyperdb_grpc_client';
 import { NativeHyperDatabaseClient } from './native_hyperdb_grpc_client.js';
@@ -29,8 +29,6 @@ function resultMessages(table: arrow.Table): Uint8Array[] {
     ];
 }
 
-const queryParam = (query: string) => buf.create(hyper.QueryParamSchema, { query });
-
 describe('NativeHyperDatabaseClient', () => {
     afterEach(() => {
         delete globalThis.dashqlElectron;
@@ -42,15 +40,14 @@ describe('NativeHyperDatabaseClient', () => {
         const channel = await new NativeHyperDatabaseClient(PROXY, new TestLogger()).connect({ endpoint: 'http://localhost:7484' } as never, CONTEXT);
         expect(seen[0].headers.get('dashql-tls')).toBeNull();
 
-        const stream = await channel.executeQuery(queryParam('select 1'));
+        const stream = await channel.executeQuery('select 1');
         const sent = buf.fromBinary(hyper.QueryParamSchema, seen[1].body);
         expect(sent.query).toBe('select 1');
         expect(sent.outputFormat).toBe(hyper.QueryParam_OutputFormat.ARROW_STREAM);
         expect(sent.database.map(db => db.path)).toEqual(['/data/db.hyper']);
         expect(sent.params).toMatchObject({ lc_time: 'en_US', external_client_context: JSON.stringify({ app: 'dashql' }) });
 
-        const batches: arrow.RecordBatch[] = [];
-        batches.push(...await readStreamBatches(stream));
+        const batches = (await readStreamTable(stream)).batches;
         expect((await stream.getSchema())!.fields.map(field => field.name)).toEqual(['a']);
         expect(batches.flatMap(batch => [...batch.getChild('a')!])).toEqual([1, 2, 3]);
         expect(stream.getMetrics().totalDataBytesReceived).toBeGreaterThan(0);
@@ -67,7 +64,7 @@ describe('NativeHyperDatabaseClient', () => {
     it('starts no stream for an aborted query and closes the channel', async () => {
         const { requests } = installNativeGrpcProxy([]);
         const channel = await new NativeHyperDatabaseClient(PROXY, new TestLogger()).connect({ endpoint: 'http://localhost:7484' } as never, CONTEXT);
-        await expect(channel.executeQuery(queryParam('select 1'), AbortSignal.abort())).rejects.toThrow();
+        await expect(channel.executeQuery('select 1', AbortSignal.abort())).rejects.toThrow();
         expect(requests).toEqual(['POST /grpc/channels']);
         await channel.close();
         expect(requests[requests.length - 1]).toBe('DELETE /grpc/channel/3');
@@ -77,7 +74,7 @@ describe('NativeHyperDatabaseClient', () => {
         const qsv1 = buf.toBinary(hyper.QueryResultSchema$, buf.create(hyper.QueryResultSchema$, { result: { case: 'qsv1Chunk', value: {} } }));
         installNativeGrpcProxy([nativeStreamBatch('StreamFinished', [qsv1])]);
         const channel = await new NativeHyperDatabaseClient(PROXY, new TestLogger()).connect({ endpoint: 'http://localhost:7484' } as never, CONTEXT);
-        const stream = await channel.executeQuery(queryParam('select 1'));
-        await expect(readStreamBatches(stream)).rejects.toThrow('qsv1Chunk');
+        const stream = await channel.executeQuery('select 1');
+        await expect(readStreamTable(stream)).rejects.toThrow('qsv1Chunk');
     });
 });

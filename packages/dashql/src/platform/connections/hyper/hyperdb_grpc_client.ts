@@ -1,9 +1,8 @@
 import * as connection from '@akohn/dashql-jsonschema/connection.js';
-import * as pb from "../../proto.js";
 
 import { ChannelMetadataProvider } from '../../channel_common.js';
 import type { EmbeddedClientContext } from '../../embedded_database.js';
-import { QueryExecutionResponseStream } from "../../query/query_execution_state.js";
+import type { QueryExecutionResponseStream } from "../../query/query_execution_state.js";
 
 export interface AttachedDatabase {
     path: string;
@@ -19,16 +18,14 @@ export interface HyperDatabaseConnectionContext extends ChannelMetadataProvider 
     getClientContext?(): EmbeddedClientContext | null;
 }
 
-export interface HyperQueryResultStream extends QueryExecutionResponseStream { }
-
 export interface HyperQueryExecutionOptions {
     /// Maximum time to wait for the next result batch from the native gRPC proxy.
     readTimeoutMs?: number;
 }
 
 export interface HyperDatabaseChannel {
-    /// Execute Query
-    executeQuery(param: pb.salesforce_hyperdb_grpc_v1.pb.QueryParam, abort?: AbortSignal, options?: HyperQueryExecutionOptions): Promise<HyperQueryResultStream>;
+    /// Run the text of a query
+    executeQuery(query: string, abort?: AbortSignal, options?: HyperQueryExecutionOptions): Promise<QueryExecutionResponseStream>;
     /// Destroy the connection
     close(): Promise<void>;
 }

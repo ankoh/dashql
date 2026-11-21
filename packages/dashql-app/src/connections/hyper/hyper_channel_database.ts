@@ -1,10 +1,8 @@
 import type * as arrow from 'apache-arrow';
-import * as buf from '@bufbuild/protobuf';
-import * as pb from '@akohn/dashql/platform/proto';
 
 import type { EmbeddedClientContext } from '@akohn/dashql/platform/embedded_database';
 import type { HyperDBSourceConnection, HyperDBSourceDatabase } from '../../host/hyperdb/hyperdb_incremental_extract.js';
-import { consumeQueryResponseStream } from '@akohn/dashql/platform/connections/query_execution';
+import { readStreamTable } from '@akohn/dashql/platform/query/query_execution_state';
 import type { HyperDatabaseChannel } from '@akohn/dashql/platform/connections/hyper/hyperdb_grpc_client';
 
 /// A query on a channel to a remote Hyper, the channel keeps no session across its queries
@@ -15,9 +13,7 @@ class HyperChannelConnection implements HyperDBSourceConnection {
     ) {}
 
     async query(query: string, abort?: AbortSignal): Promise<arrow.Table> {
-        const param = buf.create(pb.salesforce_hyperdb_grpc_v1.pb.QueryParamSchema, { query });
-        const stream = await this.channel.executeQuery(param, abort);
-        return (await consumeQueryResponseStream({ stream, abort, publishResults: true, onProgress: () => {} }))!;
+        return await readStreamTable(await this.channel.executeQuery(query, abort), abort);
     }
 
     async execute(statement: string, abort?: AbortSignal): Promise<bigint | null> {

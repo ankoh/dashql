@@ -8,7 +8,6 @@ import {
     HyperDatabaseClient,
     HyperDatabaseConnectionContext,
     HyperQueryExecutionOptions,
-    HyperQueryResultStream,
 } from '@akohn/dashql/platform/connections/hyper/hyperdb_grpc_client';
 import {
     NativeGrpcChannel,
@@ -159,9 +158,12 @@ class NativeHyperDatabaseChannel implements HyperDatabaseChannel {
     }
 
     /// Execute a query against Hyper
-    public async executeQuery(params: pb.salesforce_hyperdb_grpc_v1.pb.QueryParam, abort?: AbortSignal, options?: HyperQueryExecutionOptions): Promise<HyperQueryResultStream> {
+    public async executeQuery(query: string, abort?: AbortSignal, options?: HyperQueryExecutionOptions): Promise<QueryExecutionResponseStream> {
         abort?.throwIfAborted();
-        params.outputFormat = pb.salesforce_hyperdb_grpc_v1.pb.QueryParam_OutputFormat.ARROW_STREAM;
+        const params = buf.create(pb.salesforce_hyperdb_grpc_v1.pb.QueryParamSchema, {
+            query,
+            outputFormat: pb.salesforce_hyperdb_grpc_v1.pb.QueryParam_OutputFormat.ARROW_STREAM,
+        });
         for (const db of this.connection.getAttachedDatabases()) {
             params.database.push(buf.create(pb.salesforce_hyperdb_grpc_v1.pb.AttachedDatabaseSchema, db));
         }

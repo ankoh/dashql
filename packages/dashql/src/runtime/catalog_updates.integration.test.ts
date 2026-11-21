@@ -1,7 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import * as dashql from '../core/index.js';
-import type * as pb from '../platform/proto.js';
 import { openTestHyperDB } from '../platform/testing/test_hyperdb.js';
 import type { EmbeddedConnection } from '../platform/embedded_database.js';
 import { ConnectorType } from '../platform/connections/connector_info.js';
@@ -12,7 +11,7 @@ import { STORAGE_CATALOG_RELATIONS } from '../platform/storage/storage_backend.j
 import { TASK_UPDATE_SCHEDULER } from './store/update_scheduler.js';
 import { TestLogger } from '../platform/testing/test_logger.js';
 import { WorkbookTestRegistry } from '../platform/testing/workbook_test_backend.js';
-import { EmbeddedDatabaseChannel, EmbeddedHyperDatabaseChannel } from '../platform/connections/embedded_database_channel.js';
+import { EmbeddedDatabaseChannel } from '../platform/connections/embedded_database_channel.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -91,11 +90,11 @@ describe('the catalog of a connection follows statements', () => {
         const state = runtime.connection('connection')!;
         expect(state.connectorType).toBe(ConnectorType.HYPER);
         // The metadata queries run on the session of the statements of the test, it sees their temporary tables
-        const embedded = new EmbeddedHyperDatabaseChannel(new EmbeddedDatabaseChannel(connection));
+        const embedded = new EmbeddedDatabaseChannel(connection);
         const channel = {
-            executeQuery: (params: pb.salesforce_hyperdb_grpc_v1.pb.QueryParam, abort?: AbortSignal) => {
-                if (!statements.has(params.query)) queries.push(params.query);
-                return embedded.executeQuery(params, abort);
+            executeQuery: (query: string, abort?: AbortSignal) => {
+                if (!statements.has(query)) queries.push(query);
+                return embedded.executeQuery(query, abort);
             },
             close: async () => { },
         };

@@ -51,9 +51,9 @@ describe('a session on a connection to the embedded Hyper', () => {
                     const channel = await connectEmbeddedHyper(database, request.session);
                     // Hear the queries of the catalog loader
                     return {
-                        executeQuery: (params: { query: string }, abort?: AbortSignal) => {
-                            queries.push(params.query);
-                            return channel.executeQuery(params as never, abort);
+                        executeQuery: (query: string, abort?: AbortSignal) => {
+                            queries.push(query);
+                            return channel.executeQuery(query, abort);
                         },
                         close: () => channel.close(),
                     };

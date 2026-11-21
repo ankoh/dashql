@@ -1,10 +1,8 @@
 import * as arrow from 'apache-arrow';
-import * as buf from '@bufbuild/protobuf';
 import type * as core from '../../core/index.js';
 
 import type { QueryExecutionArgs } from '../../platform/connections/query_execution_args.js';
 import type { HyperDatabaseChannel } from '../../platform/connections/hyper/hyperdb_grpc_client.js';
-import * as proto from '../../platform/proto.js';
 import type { HandleTable } from '../store/handles.js';
 import type { CachePins } from './cache_pins.js';
 import type { PlatformTables } from '../store/runtime_tables.js';
@@ -118,10 +116,9 @@ export class QueryChannels {
             if (query == null) throw new Error(`The query ${queryId} was not described`);
             const channel = record.channel as HyperDatabaseChannel | null;
             if (channel == null) throw new Error(`${query.connector} channel is not set up`);
-            const param = buf.create(proto.salesforce_hyperdb_grpc_v1.pb.QueryParamSchema, { query: query.text });
-            const stream = await channel.executeQuery(param, record.cancellation.signal, { readTimeoutMs: query.readTimeoutMs ?? undefined });
+            const stream = await channel.executeQuery(query.text, record.cancellation.signal, { readTimeoutMs: query.readTimeoutMs ?? undefined });
             if (stream == null) return false;
-            record.stream = stream as QueryExecutionResponseStream;
+            record.stream = stream;
             // The stream is read from the first message on, a query that was cancelled meanwhile never reads it
             record.table = table;
             return true;

@@ -437,8 +437,8 @@ describe('the runs of scripts of the runtime', () => {
             };
             return stream;
         };
-        const executeQuery = vi.fn(async (param: { query: string }) => {
-            statements.push(param.query);
+        const executeQuery = vi.fn(async (query: string) => {
+            statements.push(query);
             return answer(tableFromArrays({ n: Int32Array.from([statements.length]) }));
         });
         const connectionId = crypto.randomUUID();
@@ -726,9 +726,9 @@ describe('the runs of scripts of the runtime', () => {
 
     it('reports the events of the scripts of a run of the workbook and fails with the error of a statement', async () => {
         const f = await scripts([['1_ok.sql', 'select 1 as a;'], ['2_bad.sql', 'select 2 as b;']]);
-        f.executeQuery.mockImplementation(async (param: { query: string }) => {
-            f.statements.push(param.query);
-            if (param.query.includes('select 2')) throw new Error('the channel failed');
+        f.executeQuery.mockImplementation(async (query: string) => {
+            f.statements.push(query);
+            if (query.includes('select 2')) throw new Error('the channel failed');
             const table = tableFromArrays({ n: Int32Array.from([1]) });
             const stream: QueryExecutionResponseStream = {
                 getMetrics: createQueryResponseStreamMetrics,

@@ -2,7 +2,7 @@ import * as arrow from 'apache-arrow';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { EmbeddedConnection, EmbeddedResultStream } from '../embedded_database.js';
-import { readStreamBatches, type QueryExecutionResponseStream } from '../query/query_execution_state.js';
+import { readStreamTable, type QueryExecutionResponseStream } from '../query/query_execution_state.js';
 import { EmbeddedDatabaseChannel } from './embedded_database_channel.js';
 import { tableFromArrays } from '../testing/arrow_fixtures.js';
 
@@ -34,8 +34,8 @@ async function readTable(table: arrow.Table, onDone: () => void = () => {}): Pro
 }
 
 /// Read a response stream to the end.
-function produceAll(stream: QueryExecutionResponseStream): Promise<arrow.RecordBatch[]> {
-    return readStreamBatches(stream);
+async function produceAll(stream: QueryExecutionResponseStream): Promise<arrow.RecordBatch[]> {
+    return (await readStreamTable(stream)).batches;
 }
 
 /// A connection that rejects a statement while a result is still read, like a HyperDB session.
