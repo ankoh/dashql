@@ -49,7 +49,7 @@ describe('the catalog of a connection follows statements', () => {
     const execute = async (statement: string) => {
         statements.add(statement);
         const metadata = { queryType: dashql.QueryType.USER_PROVIDED, title: null, description: null, issuer: null, userProvided: true };
-        const [, done] = runtime.execute('connection', { query: statement, metadata, throwOnError: true, publishResults: false });
+        const [, done] = runtime.execute('connection', { query: statement, metadata });
         try {
             await done;
         } finally {

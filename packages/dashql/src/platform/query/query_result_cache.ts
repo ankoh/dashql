@@ -2,14 +2,6 @@ import type * as arrow from 'apache-arrow';
 
 import type { EmbeddedComputeDatabase } from '../embedded_database.js';
 
-/// The error of a query that may only read a cached result, see `cacheOnly` of the query execution args
-export class QueryCacheMissError extends Error {
-    constructor() {
-        super('The query result is not cached');
-        this.name = 'QueryCacheMissError';
-    }
-}
-
 /// A cached query result, a Parquet file of the query result cache of the app
 export interface QueryResultCacheEntry {
     /// The file name, `<key>.<uuid>.parquet`

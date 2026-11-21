@@ -50,8 +50,6 @@ export function createWorkbookShellEnvironment(
                 query,
                 clientFunctionCall,
                 analyzeResults: true,
-                cacheable: false,
-                throwOnError: true,
                 onLog: onProgress,
                 onTiming: reportTiming,
                 metadata: { ...SHELL_QUERY_METADATA, workbookId },

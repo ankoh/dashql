@@ -127,7 +127,7 @@ describe('useMergeConnections', () => {
         await vi.waitFor(() => expect(forget).toHaveBeenCalledWith('source'));
         // The running query was cancelled at the backend and settled before
         expect(source.stream.cancel).toHaveBeenCalledTimes(1);
-        await expect(execution).resolves.toBeNull();
+        await expect(execution).rejects.toMatchObject({ name: 'AbortError' });
         // The connection, and with it its folder, outlives the open monitoring database
         expect(merged).toBe(false);
         expect(api!.connections.has('source')).toBe(true);

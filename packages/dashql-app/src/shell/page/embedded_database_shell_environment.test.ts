@@ -31,7 +31,7 @@ describe('embedded database shell environment', () => {
         expect(calls).toHaveLength(1);
         expect(calls[0][0]).toBe('shell');
         // The executor analyzes the result as the computation of the query and passes on its error
-        expect(calls[0][1]).toMatchObject({ query: 'SELECT 42', analyzeResults: true, throwOnError: true, metadata: { userProvided: true } });
+        expect(calls[0][1]).toMatchObject({ query: 'SELECT 42', analyzeResults: true, metadata: { userProvided: true } });
     });
 
     it('reports progress, the timings of the executor and the result by the id of its query', async () => {

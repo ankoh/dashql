@@ -6,7 +6,7 @@ import type { HyperDatabaseChannel } from '../../platform/connections/hyper/hype
 import type { HandleTable } from '../store/handles.js';
 import type { CachePins } from './cache_pins.js';
 import type { PlatformTables } from '../store/runtime_tables.js';
-import { QueryCacheMissError, type QueryResultCache } from '../../platform/query/query_result_cache.js';
+import type { QueryResultCache } from '../../platform/query/query_result_cache.js';
 import type { QueryExecutionResponseStream, QueryStreamItem } from '../../platform/query/query_execution_state.js';
 import { createTrace } from '../../platform/logger/trace_context.js';
 import { LoggableException, stringifyError, type Logger } from '../../platform/logger/logger.js';
@@ -204,26 +204,14 @@ export class QueryChannels {
                 spanId: trace.spanId,
                 options: {
                     analyzeResults: args.analyzeResults,
-                    publishResults: args.publishResults,
-                    throwOnError: args.throwOnError,
+                    throwOnError: true,
                     clientFunctionCall: args.clientFunctionCall,
-                    readTimeoutMs: args.readTimeoutMs,
-                    cache: args.cacheable && args.cacheSignature
-                        ? { signature: args.cacheSignature, refresh: args.refreshCache === true, only: args.cacheOnly === true }
-                        : undefined,
                 },
             },
-            args.failure,
+            undefined,
             event => {
                 try {
-                    switch (event.type) {
-                        case 'timing':
-                            args.onTiming?.(event.label, event.elapsedMs);
-                            break;
-                        case 'resultsReady':
-                            args.onResultsReady?.();
-                            break;
-                    }
+                    if (event.type === 'timing') args.onTiming?.(event.label, event.elapsedMs);
                 } catch {
                     // An observer must not interrupt the query
                 }
@@ -267,14 +255,8 @@ export class QueryChannels {
             }
             return value;
         }
-        switch (failure.kind) {
-            case 'cacheMiss':
-                return new QueryCacheMissError();
-            case 'cancelled':
-                return args.abortSignal?.reason ?? abortError();
-            default:
-                return new LoggableException(failure.message, failure.details, failure.target);
-        }
+        if (failure.kind === 'cancelled') return args.abortSignal?.reason ?? abortError();
+        return new LoggableException(failure.message, failure.details, failure.target);
     }
 
     /// A query of a record

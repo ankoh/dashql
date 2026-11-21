@@ -22,7 +22,6 @@ export function cloudQueryOf(executor: QueryExecutor, connectionId: string): Clo
             query: sql,
             abortSignal: signal,
             analyzeResults: false,
-            throwOnError: true,
             metadata: {
                 queryType: QueryType.CLOUD_STORE,
                 title: 'Cloud Store',

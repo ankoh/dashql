@@ -29,7 +29,6 @@ export function createEmbeddedDatabaseShellEnvironment(
                 metadata: { ...SHELL_QUERY_METADATA },
                 abortSignal: signal,
                 analyzeResults: true,
-                throwOnError: true,
                 onTiming: (label, elapsedMs) => reportShellTiming(onTiming, label, elapsedMs),
             });
             let table;

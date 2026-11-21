@@ -28,7 +28,7 @@ describe('a session on a connection to the embedded Hyper', () => {
     const run = async (statement: string) => {
         statements.add(statement);
         const metadata = { queryType: QueryType.USER_PROVIDED, title: 'Shell Query', description: null, issuer: 'DashQL Shell', userProvided: true };
-        const [, execution] = runtime.execute(session.connectionId, { query: statement, metadata, throwOnError: true });
+        const [, execution] = runtime.execute(session.connectionId, { query: statement, metadata });
         await execution;
         await runtime.settleCatalog(session.connectionId);
     };

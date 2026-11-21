@@ -388,7 +388,7 @@ when the store took the changes. Every effect tells the host. `HandleTable.apply
   failure is in the view of the connection and the log. `runWorkbook` and `runScript` resolve with `{ outcome, error }`.
   `executeQuery` resolves with a `QueryRunOutcome`: `rejected` carries a `QueryRunFailure` (`error`, `cancelled`,
   `cacheMiss` or `processing`, with `hostValue`) and the value; `execute` of the facade rejects with that value when
-  `hostValue` is set, else with a `QueryCacheMissError`, the reason of the abort signal or a `LoggableException`.
+  `hostValue` is set, else with the reason of the abort signal or a `LoggableException`.
 - **A host call that fails** is a `HostError` in Rust (`host/mod.rs` of the core runtime): its message and the value
   that JavaScript failed with, which goes back unchanged (`host_value` of `host.rs`). A cancelled call is
   `HostError::cancelled()` (`is_cancelled()`), a call whose target is gone is `HostError::unavailable` (a

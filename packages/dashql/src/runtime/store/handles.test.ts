@@ -147,7 +147,7 @@ describe('The handles of a runtime', () => {
         const metadata = { queryType: QueryType.USER_PROVIDED, title: null, description: null, issuer: null, userProvided: true };
         const [finishedId, finished] = rt.execute(connectionId, { query: 'select 1', metadata });
         expect(await finished).not.toBeNull();
-        const [, pending] = rt.execute(connectionId, { query: 'select 2', metadata, throwOnError: true });
+        const [, pending] = rt.execute(connectionId, { query: 'select 2', metadata });
         const cancelled = pending.then(() => null, error => error);
         await vi.waitFor(() => expect(channel.executeQuery).toHaveBeenCalledWith('select 2', expect.anything(), expect.anything()));
         rt.flush();
