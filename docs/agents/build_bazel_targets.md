@@ -67,7 +67,7 @@ bazel build //...
 | `//packages/dashql:npm_package` | The npm package directory of `@akohn/dashql` (`npm/package.json`) |
 | `//packages/dashql:npm_tarball` | The npm archive of `@akohn/dashql` at `bazel-bin/packages/dashql/dashql.tgz` |
 | `//packages/dashql-cli:npm_tarball` | CLI npm archive at `bazel-bin/packages/dashql-cli/dashql-cli.tgz`, `npx -y @akohn/dashql-cli` |
-| `//packages/dashql-cli:dashql` | The `dashql` command line tool on `@akohn/dashql`, bundled for Node with Vite from its sources: `lint` and `format` for SQL files, `run` for the scripts of a workbook folder on Trino and the embedded Hyper, `catalog` and `vis` (the tables of a workbook, its charts checked here and rendered as PNG by the tab), `connect` and `session serve` for the live view of an agent session |
+| `//packages/dashql-cli:dashql` | The `dashql` command line tool on `@akohn/dashql`, bundled for Node with Vite from its sources: `lint` and `format` for SQL files, `run` for the scripts of a workbook folder on Trino and the embedded Hyper, `catalog` and `vis` (the tables of a workbook, its charts checked here and rendered as PNG by the tab), `connect` for the live view of an agent session, with `session hook` for the hooks that it gives the harness |
 
 `mac_package_arm64`, `mac_package_x86_64`, `pack` and `vacuum` produce their outputs when they run, not when they are
 built: use `bazel run`. The macOS packages land in `dist/electron/<arch>/`.
