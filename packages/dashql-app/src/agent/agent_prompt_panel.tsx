@@ -5,9 +5,11 @@ import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/compo
 import { IndicatorStatus, StatusIndicator } from '@akohn/dashql-react/components/status_indicator';
 import { ChevronRightIcon, SymbolIcon } from '@akohn/dashql-react/components/symbol_icon';
 import {
+    agentActivity,
     formatAgentDuration,
     harnessLabel,
     isAgentAnswering,
+    isAgentWaiting,
     isAgentWorking,
     type AgentSession,
     type AgentStep,
@@ -72,14 +74,18 @@ const AgentSteps: React.FC<{ steps: AgentStep[] }> = ({ steps }) => {
 const AgentTurnItem: React.FC<{ turn: AgentTurn; session: AgentSession; expanded: boolean; onToggle: () => void }> = ({ turn, session, expanded, onToggle }) => {
     const { questionId, question } = turn;
     const working = isAgentAnswering(question);
-    const indicator = working ? IndicatorStatus.Running : IndicatorStatus.Succeeded;
+    const activity = agentActivity(question);
+    const waiting = activity?.kind === 'waiting' ? activity.text : null;
+    const indicator = waiting != null ? IndicatorStatus.Blocked
+        : working ? IndicatorStatus.Running
+            : question.interrupted ? IndicatorStatus.Skip : IndicatorStatus.Succeeded;
     const note = React.useMemo(() => (question.note != null ? plainAgentNote(question.note) : null), [question.note]);
     const questionTextId = React.useId();
     const { steps } = question;
     return (
         <li
             className={styles.turn}
-            data-state={working ? 'working' : 'done'}
+            data-state={waiting != null ? 'waiting' : working ? 'working' : question.interrupted ? 'interrupted' : 'done'}
             data-expanded={expanded ? '' : undefined}
             data-testid="composer-agent-turn"
         >
@@ -94,7 +100,7 @@ const AgentTurnItem: React.FC<{ turn: AgentTurn; session: AgentSession; expanded
                 >
                     <ChevronRightIcon size={12} className={styles.turn_chevron} />
                     <span className={styles.turn_indicator}>
-                        <StatusIndicator status={indicator} width="12px" height="12px" />
+                        <StatusIndicator status={indicator} width="12px" height="12px" fill={waiting != null ? 'var(--color_attention_fg)' : undefined} />
                     </span>
                 </button>
                 {/* The question is text that users can select and copy, not a part of the button.
@@ -138,7 +144,13 @@ const AgentTurnItem: React.FC<{ turn: AgentTurn; session: AgentSession; expanded
                     <AgentSteps steps={steps} />
                 </div>
             )}
+            {expanded && waiting != null && (
+                <div className={styles.turn_waiting} role="status" data-testid="composer-agent-waiting">
+                    Waits for you in the terminal: {waiting}
+                </div>
+            )}
             {expanded && !working && note != null && <div className={styles.turn_note} role="note">{note}</div>}
+            {expanded && question.interrupted && <div className={styles.turn_note} role="note">Stopped without an answer</div>}
         </li>
     );
 };
@@ -179,7 +191,8 @@ export const AgentPromptPanel: React.FC<{ session: AgentSession; onClose?: () =>
         const list = turnsRef.current;
         if (list != null) atBottomRef.current = list.scrollHeight - list.scrollTop - list.clientHeight < 8;
     }, []);
-    const detail = session.ended ? 'ended the session' : !session.connected ? 'lost the session' : working ? 'working' : `in ${session.folder}`;
+    const detail = session.ended ? 'ended the session' : !session.connected ? 'lost the session'
+        : isAgentWaiting(session) ? 'waits for you in the terminal' : working ? 'working' : `in ${session.folder}`;
     return (
         <div className={styles.panel} role="region" aria-label="Agent" data-testid="composer-agent">
             <div className={styles.header}>

@@ -29,9 +29,11 @@ export const CONNECT_USAGE = `Usage:
 const HARNESSES = new Set(['claude', 'codex']);
 
 /// The events that the hooks of a harness send. Codex has no SessionEnd, `dashql connect` ends the session when the
-/// harness exits either way. Claude Code tells a tool that failed with PostToolUseFailure instead of PostToolUse.
+/// harness exits either way. Claude Code tells a tool that failed with PostToolUseFailure instead of PostToolUse, a turn
+/// that an error ended with StopFailure instead of Stop, and with Notification that it waits for an approval or is
+/// idle; Codex has none of them.
 const HOOK_EVENTS: Record<string, string[]> = {
-    claude: ['SessionStart', 'UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'PostToolUseFailure', 'Stop', 'SessionEnd'],
+    claude: ['SessionStart', 'UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'PostToolUseFailure', 'Notification', 'Stop', 'StopFailure', 'SessionEnd'],
     codex: ['SessionStart', 'UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'Stop'],
 };
 /// The events of tools, their hooks match every tool

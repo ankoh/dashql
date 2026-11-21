@@ -1,7 +1,8 @@
-import { harnessLabel, isAgentWorking, type AgentSession } from './agent_session.js';
+import { agentActivity, harnessLabel, isAgentWorking, type AgentSession } from './agent_session.js';
 import { WorkbookStatusSource, WorkbookStatusTone, type WorkbookStatus } from '../workbook/status/workbook_status.js';
 
-/// The live statuses of the agent: what it works on, a session that the page lost. A session that ended has none, the
+/// The live statuses of the agent: what it works on, that it waits for the user in the terminal, a session that the
+/// page lost. A session that ended has none, the
 /// composer shows the line for the next one.
 export function agentLiveStatuses(session: AgentSession | null, now: number): WorkbookStatus[] {
     if (session == null || session.ended) return [];
@@ -16,12 +17,23 @@ export function agentLiveStatuses(session: AgentSession | null, now: number): Wo
     }
     if (!isAgentWorking(session)) return [];
     const turn = [...session.turns].reverse().find(turn => turn.question.status != null)!;
+    const activity = agentActivity(turn.question)!;
+    if (activity.kind === 'waiting') {
+        return [{
+            key: `agent:${turn.questionId}`,
+            source: WorkbookStatusSource.Agent,
+            tone: WorkbookStatusTone.Attention,
+            text: `${harnessLabel(session.harness)} waits for you in the terminal`,
+            detail: activity.text,
+            at: now,
+        }];
+    }
     return [{
         key: `agent:${turn.questionId}`,
         source: WorkbookStatusSource.Agent,
         tone: WorkbookStatusTone.Progress,
         text: `${harnessLabel(session.harness)} works on your question`,
-        detail: turn.question.status,
+        detail: activity.kind === 'tool' ? activity.text : 'thinking',
         at: now,
     }];
 }
@@ -44,6 +56,16 @@ export function diffAgentQuestions(prev: AgentSession | null, next: AgentSession
             continue;
         }
         if (before.question.status == null || turn.question.status != null) continue;
+        if (turn.question.interrupted) {
+            lines.push({
+                key: `agent:${turn.questionId}:interrupted:${now}`,
+                source: WorkbookStatusSource.Agent,
+                tone: WorkbookStatusTone.Attention,
+                text: `The agent stopped without an answer: ${turn.question.question}`,
+                at: now,
+            });
+            continue;
+        }
         lines.push({
             key: `agent:${turn.questionId}:answered:${now}`,
             source: WorkbookStatusSource.Agent,

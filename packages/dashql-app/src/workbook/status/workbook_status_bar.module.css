@@ -106,6 +106,19 @@
     align-self: center;
 }
 
+/* The agent waits for the user in the terminal */
+.agent[data-state="waiting"] {
+    color: var(--color_attention_fg);
+}
+
+/* A steady dot, the dot of a working agent pulses */
+.waiting_dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background-color: var(--color_attention_fg);
+}
+
 @keyframes dot_pulse {
     0%, 100% { opacity: 1; transform: scale(1); }
     50% { opacity: 0.35; transform: scale(0.75); }

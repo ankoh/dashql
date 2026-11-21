@@ -41,14 +41,20 @@ const STEPS = [
 ];
 const WORKING: AgentTurn = {
     questionId: 1,
-    question: { question: 'Which regions grew the most last quarter?', status: 'dashql run sales 2_region_growth.sql', note: null, steps: STEPS },
+    question: { question: 'Which regions grew the most last quarter?', status: 'dashql run sales 2_region_growth.sql', waiting: null, interrupted: false, note: null, steps: STEPS },
     scripts: SCRIPTS,
+};
+const WAITING: AgentTurn = {
+    ...WORKING,
+    question: { ...WORKING.question, waiting: 'Claude needs your permission to use Bash' },
 };
 const ANSWERED: AgentTurn = {
     questionId: 1,
     question: {
         question: 'Which regions grew the most last quarter?',
         status: null,
+        waiting: null,
+        interrupted: false,
         note: 'EMEA grew the most, 18% over the previous quarter. The script 2_region_growth compares the quarters.',
         steps: STEPS.map(step => ({ ...step, endedAt: step.endedAt ?? NOW })),
     },
@@ -59,6 +65,8 @@ const LONG_STATUS: AgentTurn = {
     question: {
         question: 'Compare the revenue of every region and product over the last eight quarters',
         status: 'Edit scripts/4_revenue_by_region_and_product_over_the_last_eight_quarters.sql',
+        waiting: null,
+        interrupted: false,
         note: null,
         steps: [{ label: 'Edit scripts/4_revenue_by_region_and_product_over_the_last_eight_quarters.sql', startedAt: NOW - 2_000, endedAt: null, failed: false }],
     },
@@ -212,6 +220,14 @@ const SITUATIONS: Situation[] = [
         description: 'The agent leads what runs, a click on Wobble shows its question in the log.',
         session: fakeSession([WORKING]),
         live: [line('q', Q, T.Progress, 'Running 2_region_growth', null, 0, 2)],
+        log: LOG,
+    },
+    {
+        id: 'waiting',
+        title: 'The agent waits for you',
+        description: 'The agent asks for an approval in the terminal, the bar asks for attention instead of running.',
+        session: fakeSession([WAITING]),
+        live: [line('w', WorkbookStatusSource.Agent, T.Attention, 'Claude Code waits for you in the terminal', 'Claude needs your permission to use Bash')],
         log: LOG,
     },
     {

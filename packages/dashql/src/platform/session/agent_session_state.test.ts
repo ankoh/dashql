@@ -5,7 +5,7 @@ describe('the state of an agent session', () => {
         let state = createAgentSessionState('claude', '/w', 's1');
         state = reduceAgentSessionEvent(state, { event: 'SessionStart' });
         state = reduceAgentSessionEvent(state, { event: 'UserPromptSubmit', prompt: 'how many orders' });
-        expect(state.turns).toEqual([{ turnId: 1, question: 'how many orders', status: 'working', note: null, files: [], steps: [] }]);
+        expect(state.turns).toEqual([{ turnId: 1, question: 'how many orders', status: 'working', waiting: null, interrupted: false, note: null, files: [], steps: [] }]);
         state = reduceAgentSessionEvent(state, { event: 'PostToolUse', status: 'dashql lint scripts/orders.sql', files: ['scripts/orders.sql'] });
         state = reduceAgentSessionEvent(state, { event: 'PostToolUse', status: 'Edit scripts/orders.sql', files: ['scripts/orders.sql'] });
         expect(state.turns[0]).toMatchObject({ status: 'Edit scripts/orders.sql', files: ['scripts/orders.sql'] });
@@ -70,6 +70,40 @@ describe('the state of an agent session', () => {
         }
         expect(state.turns[0].steps).toHaveLength(MAX_AGENT_SESSION_STEPS);
         expect(state.turns[0].steps[MAX_AGENT_SESSION_STEPS - 1].label).toBe(`s${MAX_AGENT_SESSION_STEPS + 4}`);
+    });
+
+    it('waits for an approval in the terminal until the next event of the turn', () => {
+        let state = createAgentSessionState('claude', '/w', 's1');
+        state = reduceAgentSessionEvent(state, { event: 'UserPromptSubmit', prompt: 'drop the table' });
+        state = reduceAgentSessionEvent(state, { event: 'PreToolUse', status: 'rm data.csv', toolUseId: 't1' }, 1000);
+        state = reduceAgentSessionEvent(state, { event: 'Notification', notification: 'permission', message: 'Claude needs your permission to use Bash' }, 1100);
+        expect(state.turns[0]).toMatchObject({ status: 'rm data.csv', waiting: 'Claude needs your permission to use Bash', interrupted: false });
+        // The approval goes on with the tool, a denial with the next event as well
+        state = reduceAgentSessionEvent(state, { event: 'PostToolUse', status: 'rm data.csv', toolUseId: 't1' }, 1500);
+        expect(state.turns[0].waiting).toBeNull();
+        state = reduceAgentSessionEvent(state, { event: 'Notification', notification: 'permission' }, 1600);
+        expect(state.turns[0].waiting).toBe('an approval');
+        state = reduceAgentSessionEvent(state, { event: 'Stop', message: 'done' }, 1700);
+        expect(state.turns[0]).toMatchObject({ status: null, waiting: null, note: 'done', interrupted: false });
+        // Without an open turn a notification changes nothing
+        expect(reduceAgentSessionEvent(state, { event: 'Notification', notification: 'permission' }).turns).toEqual(state.turns);
+    });
+
+    it('ends a turn that was interrupted without its Stop', () => {
+        let state = createAgentSessionState('claude', '/w', 's1');
+        state = reduceAgentSessionEvent(state, { event: 'UserPromptSubmit', prompt: 'how many orders' }, 1000);
+        state = reduceAgentSessionEvent(state, { event: 'PreToolUse', status: 'dashql run tpch', toolUseId: 't1' }, 1100);
+        state = reduceAgentSessionEvent(state, { event: 'Notification', notification: 'permission' }, 1200);
+        // The next question ends the open turn, its open steps end then
+        state = reduceAgentSessionEvent(state, { event: 'UserPromptSubmit', prompt: 'how many customers' }, 2000);
+        expect(state.turns).toMatchObject([
+            { turnId: 1, status: null, waiting: null, interrupted: true, note: null, steps: [{ label: 'dashql run tpch', endedAt: 2000 }] },
+            { turnId: 2, status: 'working', interrupted: false },
+        ]);
+        // The notification of an idle agent ends it too, and nothing once the turn ended
+        state = reduceAgentSessionEvent(state, { event: 'Notification', notification: 'idle', message: 'Claude is waiting for your input' }, 3000);
+        expect(state.turns[1]).toMatchObject({ status: null, interrupted: true });
+        expect(reduceAgentSessionEvent(state, { event: 'Notification', notification: 'idle' }).turns).toEqual(state.turns);
     });
 
     it('keeps the latest turns', () => {

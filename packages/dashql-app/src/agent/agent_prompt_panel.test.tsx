@@ -60,6 +60,8 @@ describe('Agent prompt panel', () => {
                 question: {
                     question: 'how many orders',
                     status: 'dashql lint scripts/orders.sql',
+                    waiting: null,
+                    interrupted: false,
                     note: null,
                     steps: [{ label: 'dashql lint scripts/orders.sql', startedAt: Date.now(), endedAt: null, failed: false }],
                 },
@@ -79,6 +81,20 @@ describe('Agent prompt panel', () => {
         expect(agent.onShowScript).toHaveBeenCalledExactlyOnceWith(7);
     });
 
+    it('shows that the agent waits for the user in the terminal, and a question that stopped without an answer', () => {
+        const question = { question: 'drop the table', status: 'rm data.csv', waiting: null, interrupted: false, note: null, steps: [] };
+        const waiting = agentSession({ turns: [{ questionId: 1, question: { ...question, waiting: 'Claude needs your permission to use Bash' }, scripts: [] }] });
+        act(() => root.render(<AgentPromptPanel session={waiting} />));
+        expect(detail()).toBe('waits for you in the terminal');
+        expect(container.querySelector<HTMLElement>('[data-testid="composer-agent-turn"]')!.dataset.state).toBe('waiting');
+        expect(container.querySelector('[data-testid="composer-agent-waiting"]')!.textContent).toBe('Waits for you in the terminal: Claude needs your permission to use Bash');
+        const interrupted = agentSession({ turns: [{ questionId: 1, question: { ...question, status: null, interrupted: true }, scripts: [] }] });
+        act(() => root.render(<AgentPromptPanel session={interrupted} />));
+        expect(container.querySelector<HTMLElement>('[data-testid="composer-agent-turn"]')!.dataset.state).toBe('interrupted');
+        expect(container.querySelector('[role="note"]')!.textContent).toBe('Stopped without an answer');
+        expect(container.querySelector('[data-testid="composer-agent-waiting"]')).toBeNull();
+    });
+
     it('shows the steps of the agent while it works', () => {
         const now = Date.now();
         const agent = agentSession({
@@ -87,6 +103,8 @@ describe('Agent prompt panel', () => {
                 question: {
                     question: 'how many orders',
                     status: 'dashql run .dashql/workbooks/wb1',
+                    waiting: null,
+                    interrupted: false,
                     note: null,
                     steps: [
                         { label: 'Read scripts/orders.sql', startedAt: now - 9000, endedAt: now - 8600, failed: false },
@@ -111,7 +129,7 @@ describe('Agent prompt panel', () => {
         const done = agentSession({
             turns: [{
                 questionId: 3,
-                question: { ...agent.turns[0].question, status: null, note: 'There are 42 orders', steps: agent.turns[0].question.steps!.map(step => ({ ...step, endedAt: step.endedAt ?? now })) },
+                question: { ...agent.turns[0].question, status: null, waiting: null, interrupted: false, note: 'There are 42 orders', steps: agent.turns[0].question.steps!.map(step => ({ ...step, endedAt: step.endedAt ?? now })) },
                 scripts: [],
             }],
         });
@@ -123,9 +141,9 @@ describe('Agent prompt panel', () => {
     it('shows answers until they are dismissed', () => {
         const agent = agentSession({
             turns: [
-                { questionId: 1, question: { question: 'how many orders', status: null, note: 'There are 42 orders', steps: [] }, scripts: [] },
-                { questionId: 2, question: { question: 'how many customers', status: null, note: 'There are 7 customers', steps: [] }, scripts: [] },
-                { questionId: 3, question: { question: 'top customers', status: null, note: null, steps: [] }, scripts: [{ scriptKey: 4, scriptName: 'top_customers' }] },
+                { questionId: 1, question: { question: 'how many orders', status: null, waiting: null, interrupted: false, note: 'There are 42 orders', steps: [] }, scripts: [] },
+                { questionId: 2, question: { question: 'how many customers', status: null, waiting: null, interrupted: false, note: 'There are 7 customers', steps: [] }, scripts: [] },
+                { questionId: 3, question: { question: 'top customers', status: null, waiting: null, interrupted: false, note: null, steps: [] }, scripts: [{ scriptKey: 4, scriptName: 'top_customers' }] },
             ],
         });
         expect(isAgentWorking(agent)).toBe(false);
@@ -153,8 +171,8 @@ describe('Agent prompt panel', () => {
         const longQuestion = 'which customers ordered the most in the last quarter, grouped by region and with the share of all orders';
         const agent = agentSession({
             turns: [
-                { questionId: 1, question: { question: longQuestion, status: null, note: recap, steps: [] }, scripts: [{ scriptKey: 4, scriptName: 'top_customers' }] },
-                { questionId: 2, question: { question: 'how many orders', status: null, note: 'There are 42 orders', steps: [] }, scripts: [] },
+                { questionId: 1, question: { question: longQuestion, status: null, waiting: null, interrupted: false, note: recap, steps: [] }, scripts: [{ scriptKey: 4, scriptName: 'top_customers' }] },
+                { questionId: 2, question: { question: 'how many orders', status: null, waiting: null, interrupted: false, note: 'There are 42 orders', steps: [] }, scripts: [] },
             ],
         });
         act(() => root.render(<AgentPromptPanel session={agent} />));
@@ -187,8 +205,8 @@ describe('Agent prompt panel', () => {
     it('keeps the texts of a turn selectable', () => {
         const agent = agentSession({
             turns: [
-                { questionId: 1, question: { question: 'how many customers', status: null, note: 'There are 7 customers', steps: [] }, scripts: [] },
-                { questionId: 2, question: { question: 'how many orders', status: null, note: 'There are 42 orders', steps: [] }, scripts: [] },
+                { questionId: 1, question: { question: 'how many customers', status: null, waiting: null, interrupted: false, note: 'There are 7 customers', steps: [] }, scripts: [] },
+                { questionId: 2, question: { question: 'how many orders', status: null, waiting: null, interrupted: false, note: 'There are 42 orders', steps: [] }, scripts: [] },
             ],
         });
         act(() => root.render(<AgentPromptPanel session={agent} />));
@@ -212,7 +230,7 @@ describe('Agent prompt panel', () => {
     it('scrolls to a new question', () => {
         const turn = (questionId: number) => ({
             questionId,
-            question: { question: `question ${questionId}`, status: null, note: 'answer\n'.repeat(12), steps: [] },
+            question: { question: `question ${questionId}`, status: null, waiting: null, interrupted: false, note: 'answer\n'.repeat(12), steps: [] },
             scripts: [],
         });
         const turns = Array.from({ length: 6 }, (_, i) => turn(i + 1));

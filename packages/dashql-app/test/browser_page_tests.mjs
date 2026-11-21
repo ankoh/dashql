@@ -179,7 +179,7 @@ async function waitUntil(condition, timeout = PAGE_TIMEOUT) {
 
 /// A server of a session like the one of dashql connect. It speaks the protocol of the page, 6
 /// (agent_session_protocol.ts); `protocol: null` is a server older than the protocol.
-async function startSessionServer({ port = 0, token = 'secret', protocol = 6, id = 'session' } = {}) {
+async function startSessionServer({ port = 0, token = 'secret', protocol = 7, id = 'session' } = {}) {
     const streams = new Set();
     let state = { id, harness: 'claude', folder: '/work', ended: false, turns: [], workbooks: [], version: 0 };
     // The files that the page wrote into the copy of its workbook, in the order of the writes
@@ -311,7 +311,7 @@ async function testAppAgentSession(page, navigate) {
     const session = await startSessionServer({ port: Number(await line.getAttribute('data-port')), token: await line.getAttribute('data-secret'), id: 'zero' });
     try {
         const steps = [{ label: 'dashql lint scripts/orders.sql', toolUseId: 't1', startedAt: Date.now(), endedAt: null, failed: false }];
-        const turn = { turnId: 1, question: 'how many orders', status: 'dashql lint scripts/orders.sql', note: null, files: ['scripts/orders.sql'], steps };
+        const turn = { turnId: 1, question: 'how many orders', status: 'dashql lint scripts/orders.sql', waiting: null, interrupted: false, note: null, files: ['scripts/orders.sql'], steps };
         session.push({ turns: [turn] });
         await page.getByTestId('composer-connect-status').getByText('Claude Code works on this workbook in the terminal').waitFor();
         assert.equal(await page.getByTestId('composer-send').count(), 0);
@@ -319,11 +319,17 @@ async function testAppAgentSession(page, navigate) {
         // The status line tells the step, the log stays closed and leaves the feed to the scripts of the agent
         await page.getByRole('status').getByText('dashql lint scripts/orders.sql').first().waitFor();
         assert.equal(await page.getByTestId('workbook-bubble').count(), 0);
+        // An approval in the terminal: the bar asks for attention instead of running
+        session.push({ turns: [{ ...turn, waiting: 'Claude needs your permission to use Bash' }] });
+        await page.locator('[data-testid="workbook-agent-state"][data-state="waiting"]').waitFor();
+        await page.getByRole('status').getByText('Claude Code waits for you in the terminal').first().waitFor();
+        session.push({ turns: [turn] });
+        await page.locator('[data-testid="workbook-agent-state"][data-state="working"]').waitFor();
         // A click on Wobble shows the question in the log
         await page.getByTestId('workbook-wobble').click();
         await page.getByTestId('composer-agent-turn').getByText('how many orders').waitFor();
 
-        session.push({ turns: [{ ...turn, status: null, note: 'There are 42 orders' }] });
+        session.push({ turns: [{ ...turn, status: null, waiting: null, interrupted: false, note: 'There are 42 orders' }] });
         await page.getByRole('note').getByText('There are 42 orders').waitFor();
         await page.locator('[data-testid="workbook-agent-state"][data-state="connected"]').waitFor();
 

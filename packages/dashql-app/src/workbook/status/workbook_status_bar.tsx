@@ -3,7 +3,7 @@ import * as styles from './workbook_status_bar.module.css';
 
 import { Wobble, WobbleMode, type WobbleGaze } from '../../agent/wobble.js';
 import { AgentPromptPanel } from '../../agent/agent_prompt_panel.js';
-import { harnessLabel, isAgentWorking, type AgentSession } from '../../agent/agent_session.js';
+import { harnessLabel, isAgentWaiting, isAgentWorking, type AgentSession } from '../../agent/agent_session.js';
 import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
 import { XIcon } from '@akohn/dashql-react/components/symbol_icon';
 import { IndicatorStatus, StatusDot } from '@akohn/dashql-react/components/status_indicator';
@@ -40,14 +40,16 @@ export interface WorkbookStatusBarProps {
 }
 
 /// The agent at the right end of the bar: the harness of the session and the folder it works in
-function AgentState(props: { session: AgentSession; working: boolean }) {
+function AgentState(props: { session: AgentSession; working: boolean; waiting: boolean }) {
     const { session } = props;
-    const dot = session.ended ? 'ended' : !session.connected ? 'lost' : props.working ? 'working' : 'connected';
+    const dot = session.ended ? 'ended' : !session.connected ? 'lost' : props.waiting ? 'waiting' : props.working ? 'working' : 'connected';
     return (
         <span className={styles.agent} title={`${harnessLabel(session.harness)} in ${session.folder}`}
             data-testid="workbook-agent-state" data-state={dot}>
-            <StatusDot className={styles.indicator} status={dot === 'working' ? IndicatorStatus.Running
-                : dot === 'connected' ? IndicatorStatus.Succeeded : IndicatorStatus.None} />
+            {dot === 'waiting'
+                ? <span className={`${styles.indicator} ${styles.waiting_dot}`} aria-hidden="true" />
+                : <StatusDot className={styles.indicator} status={dot === 'working' ? IndicatorStatus.Running
+                    : dot === 'connected' ? IndicatorStatus.Succeeded : IndicatorStatus.None} />}
             {harnessLabel(session.harness)}
         </span>
     );
@@ -125,7 +127,7 @@ export function WorkbookStatusBar(props: WorkbookStatusBarProps): React.ReactEle
             </span>
             {session != null && (
                 <div className={styles.agent_controls}>
-                    <AgentState session={session} working={agentWorking} />
+                    <AgentState session={session} working={agentWorking} waiting={isAgentWaiting(session)} />
                 </div>
             )}
             {wobble && open && (

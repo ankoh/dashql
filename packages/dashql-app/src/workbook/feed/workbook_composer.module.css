@@ -65,6 +65,11 @@
     animation: composer_agent_turn 3s linear infinite;
 }
 
+/* The agent waits for the user in the terminal: the frame stops and asks for attention */
+.composer[data-agent="waiting"] {
+    border-color: var(--color_attention_fg);
+}
+
 @keyframes composer_agent_turn {
     to { --composer_agent_angle: 360deg; }
 }

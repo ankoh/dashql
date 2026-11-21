@@ -1,11 +1,16 @@
 import { readFileSync } from 'node:fs';
 
-import type { AgentSessionEvent, AgentSessionEventName } from '@akohn/dashql/platform/session/agent_session_state';
+import type { AgentSessionEvent, AgentSessionEventName, AgentSessionNotification } from '@akohn/dashql/platform/session/agent_session_state';
 import { SESSION_FOLDER_PATH, SESSION_WORKBOOK_COPIES } from '@akohn/dashql/platform/session/session_folder';
 
-const EVENTS = new Set<AgentSessionEventName>(['SessionStart', 'UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'Stop', 'SessionEnd']);
+const EVENTS = new Set<AgentSessionEventName>(['SessionStart', 'UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'Notification', 'Stop', 'SessionEnd']);
 /// The hook of Claude Code after a tool that failed, a PostToolUse with the error for a session
 const POST_TOOL_USE_FAILURE = 'PostToolUseFailure';
+/// The hook of Claude Code at the end of a turn that an error ended instead of its Stop, a Stop for a session
+const STOP_FAILURE = 'StopFailure';
+/// The notifications of Claude Code that a session follows, by their `notification_type`: an approval that the
+/// agent waits for in the terminal, and an agent that is idle and waits for the next question
+const NOTIFICATIONS = new Map<string, AgentSessionNotification>([['permission_prompt', 'permission'], ['idle_prompt', 'idle']]);
 
 /// The longest status line
 const MAX_STATUS = 160;
@@ -101,6 +106,7 @@ export function sessionEventOf(
     if (name === POST_TOOL_USE_FAILURE) {
         return { event: 'PostToolUse', ...toolUseOf(payload, folder), toolUseId: text(payload, 'tool_use_id'), error: text(payload, 'error') ?? 'failed' };
     }
+    if (name === STOP_FAILURE) return { event: 'Stop', message: null };
     if (!EVENTS.has(name as AgentSessionEventName)) return null;
     const event = name as AgentSessionEventName;
     switch (event) {
@@ -109,6 +115,10 @@ export function sessionEventOf(
         case 'PreToolUse':
         case 'PostToolUse':
             return { event, ...toolUseOf(payload, folder), toolUseId: text(payload, 'tool_use_id') };
+        case 'Notification': {
+            const notification = NOTIFICATIONS.get(text(payload, 'notification_type') ?? '');
+            return notification == null ? null : { event, notification, message: text(payload, 'message') };
+        }
         case 'Stop': {
             let message = text(payload, 'last_assistant_message');
             const transcript = text(payload, 'transcript_path');

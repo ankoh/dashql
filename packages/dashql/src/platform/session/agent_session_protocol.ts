@@ -11,7 +11,8 @@
 /// 4: no log and no paths of workbooks in the state, the copies of the tab are its workbooks
 /// 5: requests name no protocol, only the answers of the server do
 /// 6: the events of the hooks name neither the harness nor the folder, a turn has no error
-export const AGENT_SESSION_PROTOCOL = 6;
+/// 7: the event Notification, `waiting` and `interrupted` of a turn
+export const AGENT_SESSION_PROTOCOL = 7;
 
 /// The protocol of the server, on every answer
 export const AGENT_SESSION_PROTOCOL_HEADER = 'X-DashQL-Protocol';

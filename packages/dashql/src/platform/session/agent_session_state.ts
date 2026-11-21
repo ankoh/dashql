@@ -1,7 +1,11 @@
 import type { CopyFile, SessionWorkbook } from './session_folder.js';
 
 /// The events of a harness that its hooks send to the server of `dashql connect`, docs/design/agent_session.md
-export type AgentSessionEventName = 'SessionStart' | 'UserPromptSubmit' | 'PreToolUse' | 'PostToolUse' | 'Stop' | 'SessionEnd';
+export type AgentSessionEventName = 'SessionStart' | 'UserPromptSubmit' | 'PreToolUse' | 'PostToolUse' | 'Notification' | 'Stop' | 'SessionEnd';
+
+/// What a Notification tells: the agent waits for an approval in the terminal, or it is idle and waits for the next
+/// question
+export type AgentSessionNotification = 'permission' | 'idle';
 
 /// An event of a session, as the hook command of dashql reads it from the harness. The server knows the harness and
 /// the folder from `dashql connect`.
@@ -15,8 +19,10 @@ export interface AgentSessionEvent {
     files?: string[];
     /// The id of the use of a tool, PostToolUse names the same as its PreToolUse
     toolUseId?: string | null;
-    /// The final message of Stop
+    /// The final message of Stop, the text of Notification
     message?: string | null;
+    /// What a Notification tells
+    notification?: AgentSessionNotification | null;
     /// The error of a failed tool of PostToolUse
     error?: string | null;
 }
@@ -42,6 +48,12 @@ export interface AgentSessionTurn {
     question: string;
     /// The latest status line while the agent works, null once it stopped
     status: string | null;
+    /// What the agent waits for in the terminal while it works, e.g. an approval of a tool; null while it works on its
+    /// own. The next event of the turn clears it.
+    waiting: string | null;
+    /// Did the turn end without its Stop: on an interrupt in the terminal, which the harness doesn't tell, the next
+    /// question or the notification of an idle agent ends it
+    interrupted: boolean;
     /// The final message of the agent
     note: string | null;
     /// The files that the tools touched, in the order of their first touch
@@ -79,12 +91,17 @@ export function createAgentSessionState(harness: string, folder: string, id: str
 /// A turn of a question
 function newTurn(state: AgentSessionState, question: string): AgentSessionTurn {
     const last = state.turns[state.turns.length - 1];
-    return { turnId: (last?.turnId ?? 0) + 1, question, status: 'working', note: null, files: [], steps: [] };
+    return { turnId: (last?.turnId ?? 0) + 1, question, status: 'working', waiting: null, interrupted: false, note: null, files: [], steps: [] };
 }
 
 /// The steps of a turn with the open ones ended
 function endSteps(steps: readonly AgentSessionStep[], now: number): AgentSessionStep[] {
     return steps.map(step => step.endedAt == null ? { ...step, endedAt: now } : step);
+}
+
+/// A turn that ended without its Stop
+function interruptedTurn(turn: AgentSessionTurn, now: number): AgentSessionTurn {
+    return { ...turn, status: null, waiting: null, interrupted: true, steps: endSteps(turn.steps, now) };
 }
 
 /// The index of the open step that a PostToolUse ends: the one of its id, else the oldest one of its label, -1 if none
@@ -104,9 +121,12 @@ export function reduceAgentSessionEvent(state: AgentSessionState, event: AgentSe
     switch (event.event) {
         case 'SessionStart':
             break;
-        case 'UserPromptSubmit':
-            turns = [...turns, newTurn(state, event.prompt ?? '')];
+        case 'UserPromptSubmit': {
+            // A turn that is still open was interrupted, the harness tells no Stop then
+            const before = open != null ? [...turns.slice(0, -1), interruptedTurn(open, now)] : turns;
+            turns = [...before, newTurn({ ...state, turns: before }, event.prompt ?? '')];
             break;
+        }
         case 'PreToolUse':
         case 'PostToolUse': {
             // A harness that tells no question still shows what its agent does
@@ -125,17 +145,26 @@ export function reduceAgentSessionEvent(state: AgentSessionState, event: AgentSe
                 if (index >= 0) steps[index] = { ...steps[index], endedAt: now, failed };
                 else steps.push({ label, toolUseId, startedAt: now, endedAt: now, failed });
             }
-            const next = { ...turn, status: event.status ?? turn.status, files, steps: steps.slice(-MAX_AGENT_SESSION_STEPS) };
+            const next = { ...turn, status: event.status ?? turn.status, waiting: null, files, steps: steps.slice(-MAX_AGENT_SESSION_STEPS) };
             turns = open != null ? [...turns.slice(0, -1), next] : [...turns, next];
             break;
         }
+        case 'Notification':
+            if (open == null) break;
+            if (event.notification === 'permission') {
+                turns = [...turns.slice(0, -1), { ...open, waiting: event.message ?? 'an approval' }];
+            } else if (event.notification === 'idle') {
+                // The agent waits for the next question with a turn still open: it was interrupted
+                turns = [...turns.slice(0, -1), interruptedTurn(open, now)];
+            }
+            break;
         case 'Stop':
             if (open != null) {
-                turns = [...turns.slice(0, -1), { ...open, status: null, note: event.message ?? null, steps: endSteps(open.steps, now) }];
+                turns = [...turns.slice(0, -1), { ...open, status: null, waiting: null, note: event.message ?? null, steps: endSteps(open.steps, now) }];
             }
             break;
         case 'SessionEnd':
-            if (open != null) turns = [...turns.slice(0, -1), { ...open, status: null, steps: endSteps(open.steps, now) }];
+            if (open != null) turns = [...turns.slice(0, -1), { ...open, status: null, waiting: null, steps: endSteps(open.steps, now) }];
             break;
     }
     return {

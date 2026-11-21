@@ -26,6 +26,10 @@ export interface AgentQuestion {
     question: string;
     /// The latest status line of the agent while it works, null once it finished
     status: string | null;
+    /// What the agent waits for in the terminal while it works, e.g. an approval, null while it works on its own
+    waiting: string | null;
+    /// Did the question end on an interrupt in the terminal instead of an answer?
+    interrupted: boolean;
     /// The final message of the agent
     note: string | null;
     /// The uses of tools, oldest first
@@ -69,9 +73,29 @@ export function isAgentAnswering(question: AgentQuestion): boolean {
     return question.status != null;
 }
 
-/// Is the agent of a session working on a question?
+/// Is the agent of a session working on a question? Also while it waits for the user in the terminal.
 export function isAgentWorking(session: AgentSession): boolean {
     return session.turns.some(turn => isAgentAnswering(turn.question));
+}
+
+/// What the agent does for a question that it works on: it waits for the user in the terminal, a tool runs, or it
+/// thinks between its tools, where the harness tells nothing
+export type AgentActivity =
+    | { kind: 'waiting'; text: string }
+    | { kind: 'tool'; text: string }
+    | { kind: 'thinking' };
+
+/// What the agent does for a question, null once it finished
+export function agentActivity(question: AgentQuestion): AgentActivity | null {
+    if (!isAgentAnswering(question)) return null;
+    if (question.waiting != null) return { kind: 'waiting', text: question.waiting };
+    const running = [...question.steps].reverse().find(step => step.endedAt == null);
+    return running != null ? { kind: 'tool', text: running.label } : { kind: 'thinking' };
+}
+
+/// Does the agent of a session wait for the user in the terminal, e.g. for an approval?
+export function isAgentWaiting(session: AgentSession): boolean {
+    return session.turns.some(turn => agentActivity(turn.question)?.kind === 'waiting');
 }
 
 /// A duration in a few characters: `0.4 s`, `12 s`, `2 min 5 s`
@@ -135,6 +159,8 @@ export function agentSessionOf(
             question: {
                 question: turn.question || 'A question in the terminal',
                 status: turn.status,
+                waiting: turn.waiting,
+                interrupted: turn.interrupted,
                 note: turn.note,
                 steps: turn.steps.map(step => ({ label: step.label, startedAt: step.startedAt, endedAt: step.endedAt, failed: step.failed })),
             },

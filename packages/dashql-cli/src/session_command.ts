@@ -11,9 +11,9 @@ import { readSession, sessionCopiesFolder } from './session_folder.js';
 export const SESSION_USAGE = `Usage:
   dashql session hook <event> --harness <name> --workspace <dir>
       The hooks that dashql connect gives the harness. Called with the payload of the hook on stdin: SessionStart,
-      UserPromptSubmit, PreToolUse, PostToolUse, PostToolUseFailure, Stop or SessionEnd. Sends the event to the
-      server of the session that runs in --workspace (.dashql/session/session.json). SessionStart prints how to work on
-      the workbooks of the session. Never fails the harness.`;
+      UserPromptSubmit, PreToolUse, PostToolUse, PostToolUseFailure, Notification, Stop, StopFailure or SessionEnd.
+      Sends the event to the server of the session that runs in --workspace (.dashql/session/session.json).
+      SessionStart prints how to work on the workbooks of the session. Never fails the harness.`;
 
 /// A word of a POSIX shell command
 export function shellWord(word: string): string {

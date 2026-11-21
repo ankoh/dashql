@@ -50,8 +50,11 @@ its draft for SQL.
   path; `connect` sets no variable for them but the `PATH` of the `dashql` of the agent. A workspace is a folder that
   `dashql init` or `dashql connect` set up, the commands fail on any other.
 - **Hooks carry the events.** Every hook that `connect` gives the harness runs `dashql session hook <event> --harness
-  <name> --workspace <folder>` and sends the event to the server that `session.json` names: `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `Stop` and `SessionEnd`, the page
-  reads them from there. `PostToolUseFailure` of Claude Code goes as a `PostToolUse` with the error. `SessionStart`
+  <name> --workspace <folder>` and sends the event to the server that `session.json` names: `SessionStart`,
+  `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `Stop` and `SessionEnd`, the page reads them from there. Claude Code
+  sends three more: `PostToolUseFailure` goes as a `PostToolUse` with the error, `StopFailure` (a turn that an error
+  ended) as a `Stop`, and `Notification` for an approval that the agent waits for in the terminal (`permission_prompt`)
+  and for an agent that is idle (`idle_prompt`); Codex has none of them. `SessionStart`
   prints the session that the commands take, the workbooks and the connections; the harness hands it to the agent.
   There are no hooks to install in the settings of a harness, so a session never has two servers.
   Hooks run outside the sandbox of both harnesses, the commands of the agent inside it don't need the server:
@@ -207,8 +210,9 @@ stays the one place the page talks to.
 ## The page
 
 - **The server** (`packages/dashql-cli/src/session_server.ts`) keeps the state that the runtime reduces from the events
-  (`session/agent_session_state.ts`): per turn the question, the latest status line, the steps, the files the tools
-  named, the final message. The harness and the folder of the state come from `dashql connect`, the events don't
+  (`session/agent_session_state.ts`): per turn the question, the latest status line, what the agent waits for in the
+  terminal, whether the turn was interrupted, the steps, the files the tools named, the final message. A harness tells
+  no Stop on an interrupt: the next question or an idle notification ends the open turn as interrupted. The harness and the folder of the state come from `dashql connect`, the events don't
   repeat them. A step is a use of a tool: `PreToolUse` starts it at the time of the server, the
   `PostToolUse` with the same `tool_use_id` (else the oldest open step of the same line) ends it, a failed tool ends it
   as failed, `Stop` and `SessionEnd` end the open ones. A turn keeps its latest 30 steps.

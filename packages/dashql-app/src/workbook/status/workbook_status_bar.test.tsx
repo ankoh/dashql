@@ -26,12 +26,15 @@ function agentSession(turns: AgentTurn[] = [], connected = true): AgentSession {
 
 const working: AgentTurn = {
     questionId: 1,
-    question: { question: 'how many orders', status: 'dashql lint scripts/orders.sql', note: null, steps: [] },
+    question: {
+        question: 'how many orders', status: 'dashql lint scripts/orders.sql', waiting: null, interrupted: false, note: null,
+        steps: [{ label: 'dashql lint scripts/orders.sql', startedAt: 0, endedAt: null, failed: false }],
+    },
     scripts: [],
 };
 const answered: AgentTurn = {
     questionId: 1,
-    question: { question: 'how many orders', status: null, note: 'There are 42 orders', steps: [] },
+    question: { question: 'how many orders', status: null, waiting: null, interrupted: false, note: 'There are 42 orders', steps: [] },
     scripts: [],
 };
 
@@ -141,6 +144,13 @@ describe('Workbook status bar', () => {
         expect(container.querySelector('[data-testid="workbook-agent-stop"]')).toBeNull();
         render({ session: agentSession([answered]) });
         expect(bubble()).not.toBeNull();
+    });
+
+    it('tells that the agent waits for the user in the terminal', () => {
+        const waiting: AgentTurn = { ...working, question: { ...working.question, waiting: 'Claude needs your permission to use Bash' } };
+        render({ session: agentSession([waiting]) });
+        expect(agentState()!.dataset.state).toBe('waiting');
+        expect(agentState()!.querySelector('[data-status]')).toBeNull();
     });
 
     it('tells that the page lost the session, and one that ended', () => {

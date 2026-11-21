@@ -235,3 +235,10 @@
     white-space: pre-wrap;
     overflow-wrap: anywhere;
 }
+
+/* The agent waits for the user in the terminal, e.g. for an approval */
+.turn_waiting {
+    margin: 4px 0 0 30px;
+    color: var(--color_attention_fg);
+    font-size: 12px;
+}

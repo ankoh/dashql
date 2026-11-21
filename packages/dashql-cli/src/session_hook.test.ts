@@ -53,8 +53,17 @@ describe('the events of the hooks of a harness', () => {
             .toMatchObject({ status: 'apply_patch scripts/a.sql, b.sql', files: ['/home/u/p/scripts/a.sql', 'b.sql'] });
     });
 
+    it('reads the notifications of an approval and of an idle agent, and a turn that an error ended', () => {
+        expect(sessionEventOf('Notification', { notification_type: 'permission_prompt', message: 'Claude needs your permission to use Bash' }))
+            .toEqual({ event: 'Notification', notification: 'permission', message: 'Claude needs your permission to use Bash' });
+        expect(sessionEventOf('Notification', { notification_type: 'idle_prompt', message: 'Claude is waiting for your input' }))
+            .toEqual({ event: 'Notification', notification: 'idle', message: 'Claude is waiting for your input' });
+        expect(sessionEventOf('StopFailure', { error: 'rate_limit' })).toEqual({ event: 'Stop', message: null });
+    });
+
     it('ignores events that a session does not follow', () => {
         expect(sessionEventOf('Notification', {})).toBeNull();
+        expect(sessionEventOf('Notification', { notification_type: 'auth_success' })).toBeNull();
         expect(sessionEventOf('SessionStart', null)).toEqual({ event: 'SessionStart' });
     });
 });

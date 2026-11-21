@@ -16,7 +16,7 @@ import { PromptEditor } from '../editor/prompt_editor.js';
 import { DashQLCompletionAbortEffect } from '../editor/dashql_processor.js';
 import { insertMentionAtCursor } from '../editor/editor_focus.js';
 import { SCRIPT_REFERENCE_PREFIX } from './script_references.js';
-import { harnessLabel, type AgentSession } from '../../agent/agent_session.js';
+import { harnessLabel, isAgentWaiting, type AgentSession } from '../../agent/agent_session.js';
 import { SnippetsOverlay } from '../snippets/snippets_overlay.js';
 import { ExecuteConnectionGuard, WorkbookConnectionAttentionContext } from '../connections/workbook_connection_attention.js';
 import { WorkbookInputCard } from '../inputs/workbook_input_card.js';
@@ -71,7 +71,8 @@ export interface WorkbookComposerProps {
     variant: WorkbookComposerVariant;
     /// The keyword case for completions
     keywordCase: core.buffers.formatting.KeywordCase;
-    /// Is the agent working on a question of the workbook? The frame turns in the gradient of the agent then.
+    /// Is the agent working on a question of the workbook? The frame turns in the gradient of the agent then, and holds
+    /// still in the color of attention while the agent waits for the user in the terminal.
     agentWorking?: boolean;
     /// The session of an agent in the terminal that the page follows
     session?: AgentSession | null;
@@ -312,7 +313,7 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
             className={styles.composer}
             data-variant={hero ? 'hero' : 'docked'}
             data-mode={ai ? 'ai' : 'sql'}
-            data-agent={props.agentWorking ? 'working' : undefined}
+            data-agent={props.agentWorking ? (props.session != null && isAgentWaiting(props.session) ? 'waiting' : 'working') : undefined}
         >
             {/* Empty without the bar of Wobble and inputs of the draft, the stylesheet hides it then */}
             <div className={styles.composer_bar} data-testid="composer-bar">
