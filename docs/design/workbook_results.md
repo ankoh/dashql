@@ -18,7 +18,8 @@ workbooks/<workbook-id>/
     └── <uuid>.transient.parquet       a materialized result that is no result of a script
 ```
 
-- `<script>` is the file name of the script, e.g. `revenue.sql`, as the workbook names it (`scripts/<script>`).
+- `<script>` is the name of the script without `.sql`, e.g. `revenue` of `revenue.sql`, as the workbook names it
+  (`scripts/<script>.sql`). Every script ends in `.sql`, the name leaves it out like a reference `:revenue` does.
 - `<key>` is the result key of the script when the result was written, 64 lowercase hex digits (Result Keys below).
 - `<gen>` is 8 lowercase hex digits, new for every file. A path is never written twice: the compute database
   remembers the files that it opened below a mount and would read the old bytes of a reused path.

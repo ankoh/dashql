@@ -28,7 +28,7 @@ describe('the embedded Hyper of Node', { timeout: 30_000 }, () => {
             expect(instanceFolders(root)).toHaveLength(1);
 
             const table = arrow.tableFromArrays({ id: Int32Array.from([1, 2, 3]), name: ['a', 'b', 'c'] });
-            const name = `a.sql.${'a'.repeat(64)}.00000001.parquet`;
+            const name = `a.${'a'.repeat(64)}.00000001.parquet`;
             expect(await hyper.results.writeTable(hyper.database, workbookId, table, name)).toBe(3);
             expect(readdirSync(folder)).toEqual([name]);
             expect((await hyper.results.files(workbookId)).map(file => file.name)).toEqual([name]);

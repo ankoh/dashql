@@ -8,7 +8,7 @@
 use dashql_core_runtime::host::{Host, HostError, LogLevel};
 use dashql_core_runtime::workbook::WorkbookEffect;
 use dashql_core_storage::workbook_format::results::{
-    generation_of, other_files_of_script, parse_result_file_name, result_file_name, sort_result_files,
+    generation_of, other_files_of_script, result_file_name, script_of_result_file, sort_result_files,
     transient_result_file_name, ResultListing, StoredResult,
 };
 
@@ -68,9 +68,9 @@ pub(crate) fn new_transient_file_name(platform: &JsPlatform) -> Result<String, H
     Ok(transient_result_file_name(&platform.random_uuid()?))
 }
 
-/// The script of a file, none for a transient file or a name that doesn't parse
-pub(crate) fn script_of(name: &str) -> Option<&str> {
-    parse_result_file_name(name).map(|parsed| parsed.script)
+/// The file name of the script of a file, none for a transient file or a name that doesn't parse
+pub(crate) fn script_of(name: &str) -> Option<String> {
+    script_of_result_file(name)
 }
 
 /// Remove the files of a script but one, e.g. the older files once a new one was written. Files that are read stay,

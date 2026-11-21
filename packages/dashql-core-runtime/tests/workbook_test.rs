@@ -548,7 +548,7 @@ fn keeps_the_stored_result_that_the_host_looked_up() {
     let alpha = key(&workbook, "alpha.sql");
     assert_eq!(workbook.script(alpha).unwrap().stored_result(), None);
     let stored =
-        ScriptStoredResult { name: "alpha.sql.k.0.parquet".into(), key: "k".into(), written_at: 1000.0, current: true };
+        ScriptStoredResult { name: "alpha.k.0.parquet".into(), key: "k".into(), written_at: 1000.0, current: true };
     let set = |stored: Option<ScriptStoredResult>| WorkbookAction::SetStoredResult { key: alpha, stored };
     let revision = workbook.script(alpha).unwrap().revision();
     let outcome = workbook.apply(set(Some(stored.clone()))).unwrap();

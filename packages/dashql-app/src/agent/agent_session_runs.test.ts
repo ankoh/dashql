@@ -12,7 +12,7 @@ describe('the runs of the agent in the tab', () => {
         const order: string[] = [];
         const runtime = {
             module: {
-                retainStoredResult: vi.fn(async (_workbookId: string, script: string) => script !== 'a.sql' ? null : { id: 7, name: 'a.sql.k.1.parquet' }),
+                retainStoredResult: vi.fn(async (_workbookId: string, script: string) => script !== 'a.sql' ? null : { id: 7, name: 'a.k.1.parquet' }),
                 releaseStoredResult: vi.fn(async (id: number) => { order.push(`release ${id}`); }),
             },
         } as unknown as Runtime;
@@ -26,14 +26,14 @@ describe('the runs of the agent in the tab', () => {
             order.push(`write ${name} ${await data.text()}`);
             return `/work/.dashql/workbooks/w/results/${name}`;
         });
-        expect(await sendStoredResult(runtime, results, 'w', 'a.sql', write)).toBe('/work/.dashql/workbooks/w/results/a.sql.k.1.parquet');
-        expect(order).toEqual(['read a.sql.k.1.parquet', 'write a.sql.k.1.parquet PAR1', 'release 7']);
+        expect(await sendStoredResult(runtime, results, 'w', 'a.sql', write)).toBe('/work/.dashql/workbooks/w/results/a.k.1.parquet');
+        expect(order).toEqual(['read a.k.1.parquet', 'write a.k.1.parquet PAR1', 'release 7']);
         expect(await sendStoredResult(runtime, results, 'w', 'other.sql', write)).toBeNull();
         expect(await sendStoredResult(runtime, null, 'w', 'a.sql', write)).toBeNull();
         // A failed write still releases the file
         order.length = 0;
         await expect(sendStoredResult(runtime, results, 'w', 'a.sql', async () => { throw new Error('gone'); })).rejects.toThrow('gone');
-        expect(order).toEqual(['read a.sql.k.1.parquet', 'release 7']);
+        expect(order).toEqual(['read a.k.1.parquet', 'release 7']);
     });
 
     it('runs nothing for the agent while the user has the workbook', async () => {

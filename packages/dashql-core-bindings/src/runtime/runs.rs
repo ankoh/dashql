@@ -1165,7 +1165,7 @@ impl RunHost for RuntimeRunHost {
             // The file of a script replaces the older files of the script, a transient file goes when the run ends
             let name = name?;
             if let Some(script) = results::script_of(&name) {
-                let replaced = results::remove_files_of_script(&platform, &workbook_id, script, Some(&name)).await;
+                let replaced = results::remove_files_of_script(&platform, &workbook_id, &script, Some(&name)).await;
                 if let Err(error) = replaced {
                     platform.log_on(
                         LogLevel::Warn,

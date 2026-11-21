@@ -402,8 +402,8 @@ describe('HyperDB embedded database integration', () => {
         return { results, files, cleanup: () => root.removeEntry(name, { recursive: true }) };
     }
     const WORKBOOK = '00000000-0000-4000-8000-0000000000a1';
-    const FILE_A = `a.sql.${'a'.repeat(64)}.00000001.parquet`;
-    const FILE_B = `b.sql.${'b'.repeat(64)}.00000002.parquet`;
+    const FILE_A = `a.${'a'.repeat(64)}.00000001.parquet`;
+    const FILE_B = `b.${'b'.repeat(64)}.00000002.parquet`;
 
     it('writes the results of a workbook into its folder and reads them back from disk', async () => {
         const table = tableFromArrays({ id: Int32Array.from([1, 2, 3]), name: ['alpha', 'beta', 'gamma'] });
@@ -445,11 +445,11 @@ describe('HyperDB embedded database integration', () => {
                 await release();
             }
             // A new file of the script is readable through the refreshed mount
-            const second = `a.sql.${'a'.repeat(64)}.00000003.parquet`;
+            const second = `a.${'a'.repeat(64)}.00000003.parquet`;
             await results.writeTable(database!, WORKBOOK, table, second);
             expect(toPlainObjects((await results.readTable(database!, WORKBOOK, second))!)).toEqual([{ id: 1 }]);
             // A renamed file is readable under its new name
-            const renamed = `c.sql.${'a'.repeat(64)}.00000004.parquet`;
+            const renamed = `c.${'a'.repeat(64)}.00000004.parquet`;
             expect(await results.move(WORKBOOK, second, renamed)).toBe(true);
             expect(toPlainObjects((await results.readTable(database!, WORKBOOK, renamed))!)).toEqual([{ id: 1 }]);
         } finally {

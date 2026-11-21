@@ -43,10 +43,10 @@ describe('the results of the workbooks', () => {
         expect(await r.files(WORKBOOK)).toEqual([]);
         // The listing creates no folder
         await expect((await root.getDirectoryHandle(STORAGE_WORKBOOKS_FOLDER, { create: true })).getDirectoryHandle(WORKBOOK)).rejects.toThrow();
-        await put('a.sql.k.00000001.parquet', 8);
+        await put('a.k.00000001.parquet', 8);
         await put('notes.txt');
         const files = await r.files(WORKBOOK);
-        expect(files.map(file => file.name)).toEqual(['a.sql.k.00000001.parquet']);
+        expect(files.map(file => file.name)).toEqual(['a.k.00000001.parquet']);
         expect(files[0].size).toBe(8);
         expect(files[0].mtimeMs).toBeGreaterThan(0);
         expect(r.mountPath(WORKBOOK)).toBe(resultsMountPath(WORKBOOK));
@@ -55,19 +55,19 @@ describe('the results of the workbooks', () => {
     it('moves and removes files that nobody reads, also those of other windows', async () => {
         const reader = results();
         const writer = results();
-        const read = await put('a.sql.k.00000001.parquet');
-        const free = await put('b.sql.k.00000002.parquet');
+        const read = await put('a.k.00000001.parquet');
+        const free = await put('b.k.00000002.parquet');
         const release = await reader.pin(WORKBOOK, read);
         // Another instance shares the locks of the origin
         expect(await writer.remove(WORKBOOK, read)).toBe(false);
-        expect(await writer.move(WORKBOOK, read, 'c.sql.k.00000003.parquet')).toBe(false);
-        expect(await writer.move(WORKBOOK, free, 'd.sql.k.00000004.parquet')).toBe(true);
-        expect(await names()).toEqual([read, 'd.sql.k.00000004.parquet']);
+        expect(await writer.move(WORKBOOK, read, 'c.k.00000003.parquet')).toBe(false);
+        expect(await writer.move(WORKBOOK, free, 'd.k.00000004.parquet')).toBe(true);
+        expect(await names()).toEqual([read, 'd.k.00000004.parquet']);
         await release();
         expect(await writer.remove(WORKBOOK, read)).toBe(true);
         // A file that is gone is removed
         expect(await writer.remove(WORKBOOK, read)).toBe(true);
-        expect(await names()).toEqual(['d.sql.k.00000004.parquet']);
+        expect(await names()).toEqual(['d.k.00000004.parquet']);
     });
 
     it('imports bytes as a new file and leaves no file if the CRC-32 differs', async () => {
@@ -75,11 +75,11 @@ describe('the results of the workbooks', () => {
         const raw = new Uint8Array([80, 65, 82, 49, 1, 2, 3]);
         const crc = new Crc32();
         crc.update(raw);
-        await expect(r.importFile(WORKBOOK, 'a.sql.k.00000001.parquet', new Blob([raw]), { crc32: crc.value ^ 1 })).rejects.toThrow('checksum');
+        await expect(r.importFile(WORKBOOK, 'a.k.00000001.parquet', new Blob([raw]), { crc32: crc.value ^ 1 })).rejects.toThrow('checksum');
         expect(await names()).toEqual([]);
-        await r.importFile(WORKBOOK, 'a.sql.k.00000001.parquet', new Blob([raw]), { crc32: crc.value });
-        expect(await names()).toEqual(['a.sql.k.00000001.parquet']);
-        expect((await r.readFile(WORKBOOK, 'a.sql.k.00000001.parquet')).size).toBe(raw.length);
+        await r.importFile(WORKBOOK, 'a.k.00000001.parquet', new Blob([raw]), { crc32: crc.value });
+        expect(await names()).toEqual(['a.k.00000001.parquet']);
+        expect((await r.readFile(WORKBOOK, 'a.k.00000001.parquet')).size).toBe(raw.length);
     });
 
     it('mounts the results of a workbook once per database and refreshes the mount after removals', async () => {
@@ -96,8 +96,8 @@ describe('the results of the workbooks', () => {
         expect(first.registerExternalDirectory).toHaveBeenCalledTimes(1);
         expect(first.registerExternalDirectory.mock.calls[0][1]).toBe(resultsMountPath(WORKBOOK));
         expect(first.refreshExternalDirectory).not.toHaveBeenCalled();
-        await put('a.sql.k.00000001.parquet');
-        await r.remove(WORKBOOK, 'a.sql.k.00000001.parquet');
+        await put('a.k.00000001.parquet');
+        await r.remove(WORKBOOK, 'a.k.00000001.parquet');
         await r.mount(database, WORKBOOK);
         await r.mount(database, WORKBOOK);
         expect(first.refreshExternalDirectory).toHaveBeenCalledTimes(1);
