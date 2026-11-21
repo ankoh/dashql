@@ -164,6 +164,20 @@ describe('the runtime', () => {
         expect(live).toEqual([]);
     });
 
+    it('places a script by its references when asked, at the end otherwise', async () => {
+        const runtime = createRuntime(testPlatform(new WorkbookTestBackend()));
+        const connection = runtime.createConnection(newDefaultHyperWasmConnection({ active: false }));
+        const workbook = runtime.createWorkbook(connection.connectionId, 'Placed', false);
+        const target = { workbook: workbook.workbookId };
+        runtime.dispatch(target, { kind: 'createScript', value: { text: 'select 1 as id', base: 'orders' } });
+        runtime.dispatch(target, { kind: 'createScript', value: { text: 'select 2', base: 'other' } });
+        runtime.dispatch(target, { kind: 'createScript', value: { text: 'select * from :orders', base: 'counts', byReferences: true } });
+        runtime.dispatch(target, { kind: 'createScript', value: { text: 'select * from :orders', base: 'appended' } });
+        runtime.flush();
+        expect(runtime.store.get('workbook', workbook.workbookId)!.scriptOrder).toEqual(['orders.sql', 'counts.sql', 'other.sql', 'appended.sql']);
+        await runtime.destroy();
+    });
+
     it('refuses its commands once destroyed instead of calling the freed module', async () => {
         const runtime = createRuntime(testPlatform(new WorkbookTestBackend()));
         const connection = runtime.createConnection(newDefaultHyperWasmConnection({ active: false }));

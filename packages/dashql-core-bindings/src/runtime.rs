@@ -633,16 +633,21 @@ impl Runtime {
     /// Apply an action to a workbook
     fn dispatch_workbook(&self, workbook_id: String, action: actions::WorkbookAction) -> DispatchOutcome {
         use actions::WorkbookAction as W;
-        use dashql_core_runtime::workbook::WorkbookAction as A;
+        use dashql_core_runtime::workbook::{ScriptPlacement, WorkbookAction as A};
         let workbooks = &self.workbooks;
         let connection = |id: &str| self.script_connection(id);
         let action = match action {
-            W::CreateScript { index, text, base, connection_id } => {
+            W::CreateScript { index, by_references, text, base, connection_id } => {
                 let connection = match connection_id.as_deref().map(connection).transpose() {
                     Ok(connection) => connection,
                     Err(error) => return DispatchOutcome::failed(error),
                 };
-                A::CreateScript { index: index.map(|index| index as usize), text, base, connection }
+                let place = match (by_references.unwrap_or(false), index) {
+                    (true, _) => ScriptPlacement::ByReferences,
+                    (false, Some(index)) => ScriptPlacement::At(index as usize),
+                    (false, None) => ScriptPlacement::End,
+                };
+                A::CreateScript { place, text, base, connection }
             }
             W::DeleteScript { file_name } => A::DeleteScript { file_name },
             W::RenameScript { file_name, new_name } => A::RenameScript { file_name, new_name },

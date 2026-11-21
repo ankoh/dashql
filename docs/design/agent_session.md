@@ -144,7 +144,8 @@ A conversation that starts in the page works on a copy: the site is the truth, t
 - **The changes of the agent come back** (`agent/agent_session_copy.ts`). The first state that names a copy is what the
   page wrote, later stamps of its scripts that differ are changes of the agent: the page fetches a changed script and
   takes its text (`setScriptText`, no rewrite to accept or reject), a new script becomes a script of the workbook, and
-  its next changes go to that script. A script with the text of the page stays as it is. The server stamps the copies
+  its next changes go to that script. A new script goes by its references (`createScript` with `byReferences`): before
+  the first script that reads it as `:name`, else after the last script that it reads, else at the end. A script with the text of the page stays as it is. The server stamps the copies
   again after every `PostToolUse` and `Stop`, so an edit with a tool of the harness shows without a `dashql` command.
 - **The changes of the user go into the copy.** Half a second after an edit, the page writes the scripts whose text
   differs from what the copy holds, removes the ones it deleted and, when the list of scripts changed, writes its

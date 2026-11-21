@@ -97,11 +97,15 @@ pub enum AppAction {
 #[tsify(missing_as_null)]
 pub enum WorkbookAction {
     /// Create a script at an index of the feed, appended without one. The base names its file, the connection is the
-    /// one of its neighbors without one.
+    /// one of its neighbors without one. `byReferences` places it instead before the first script that reads it, else
+    /// after the last script that it reads, else at the end: where the scripts of an agent go.
     CreateScript {
         #[serde(default)]
         #[tsify(optional)]
         index: Option<u32>,
+        #[serde(default)]
+        #[tsify(optional)]
+        by_references: Option<bool>,
         #[serde(default)]
         #[tsify(optional)]
         text: Option<String>,

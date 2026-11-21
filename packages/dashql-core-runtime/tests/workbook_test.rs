@@ -9,8 +9,8 @@ use dashql_buffers::formatting::FormattingDialect;
 use dashql_core_runtime::attachments::{renamed_attachment_file_name, DataFile, WorkbookAttachment};
 use dashql_core_runtime::workbook::{
     new_catalog, text_change, ConnectionCopy, EditorUpdateId, ExternalChanges, ScriptCachedResult, ScriptConnection,
-    ScriptConnectionProfile, ScriptKey, ScriptList, ScriptListEntry, StoredScript, TextChange, Workbook,
-    WorkbookAction, WorkbookEffect, WorkbookOrigin,
+    ScriptConnectionProfile, ScriptKey, ScriptList, ScriptListEntry, ScriptPlacement, StoredScript, TextChange,
+    Workbook, WorkbookAction, WorkbookEffect, WorkbookOrigin,
 };
 use serde_json::Value;
 
@@ -59,8 +59,9 @@ fn files(workbook: &Workbook) -> Vec<&str> {
 }
 
 fn create(workbook: &mut Workbook, index: Option<usize>, text: Option<&str>, base: &str) -> Vec<WorkbookEffect> {
+    let place = index.map_or(ScriptPlacement::End, ScriptPlacement::At);
     let action =
-        WorkbookAction::CreateScript { index, text: text.map(str::to_string), base: base.into(), connection: None };
+        WorkbookAction::CreateScript { place, text: text.map(str::to_string), base: base.into(), connection: None };
     workbook.apply(action).unwrap().effects
 }
 
@@ -114,7 +115,12 @@ fn appends_a_script_with_text_analyzes_it_and_writes_it() {
 #[test]
 fn inserts_at_a_feed_index_with_a_unique_name() {
     let (mut workbook, _) = workbook(&[("alpha.sql", ""), ("beta.sql", "")]);
-    let action = WorkbookAction::CreateScript { index: Some(1), text: None, base: "alpha".into(), connection: None };
+    let action = WorkbookAction::CreateScript {
+        place: ScriptPlacement::At(1),
+        text: None,
+        base: "alpha".into(),
+        connection: None,
+    };
     let outcome = workbook.apply(action).unwrap();
     assert_eq!(files(&workbook), ["alpha.sql", "alpha-2.sql", "beta.sql"]);
     // The outcome names the created script
@@ -123,6 +129,41 @@ fn inserts_at_a_feed_index_with_a_unique_name() {
         outcome.effects[0],
         WorkbookEffect::WriteScript { file_name: "alpha-2.sql".into(), text: String::new() }
     );
+}
+
+#[test]
+fn places_a_script_by_its_references() {
+    let (mut workbook, _) = workbook(&[
+        ("orders.sql", "select 1 as id"),
+        ("report.sql", "select * from :helper"),
+        ("other.sql", "select 2"),
+    ]);
+    let by_references = |workbook: &mut Workbook, text: &str, base: &str| {
+        let action = WorkbookAction::CreateScript {
+            place: ScriptPlacement::ByReferences,
+            text: Some(text.into()),
+            base: base.into(),
+            connection: None,
+        };
+        workbook.apply(action).unwrap().effects
+    };
+    // Before the first script that reads it
+    by_references(&mut workbook, "select * from :orders", "helper");
+    assert_eq!(files(&workbook), ["orders.sql", "helper.sql", "report.sql", "other.sql"]);
+    // After the last script that it reads, when no script reads it
+    let effects = by_references(&mut workbook, "select * from :orders join :report using (id)", "chart");
+    assert_eq!(files(&workbook), ["orders.sql", "helper.sql", "report.sql", "chart.sql", "other.sql"]);
+    // The workbook file lists the place
+    let list = effects.iter().find_map(|effect| match effect {
+        WorkbookEffect::WriteScriptList(list) => {
+            Some(list.scripts.iter().map(|entry| entry.name.clone()).collect::<Vec<_>>())
+        }
+        _ => None,
+    });
+    assert_eq!(list.unwrap(), ["orders.sql", "helper.sql", "report.sql", "chart.sql", "other.sql"]);
+    // At the end without references
+    by_references(&mut workbook, "select 3", "plain");
+    assert_eq!(files(&workbook).last(), Some(&"plain.sql"));
 }
 
 #[test]
@@ -845,7 +886,12 @@ fn keeps_a_read_only_workbook_as_it_came_until_it_gets_an_origin_of_its_own() {
     let input = WorkbookAction::SetWorkbookInput { name: "region".into(), literal: "'EU'".into(), keys: vec![alpha] };
     assert!(workbook.apply(input).is_err());
     assert!(workbook
-        .apply(WorkbookAction::CreateScript { index: None, text: None, base: "beta".into(), connection: None })
+        .apply(WorkbookAction::CreateScript {
+            place: ScriptPlacement::End,
+            text: None,
+            base: "beta".into(),
+            connection: None
+        })
         .is_err());
     assert_eq!(text(&workbook, alpha), "/* @param :region = 'US' */ select :region");
     assert!(workbook.apply(WorkbookAction::RegisterQuery { key: alpha, query_id: 1 }).unwrap().changed);

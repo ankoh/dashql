@@ -170,9 +170,11 @@ export function agentSessionCopyHost(runtime: Runtime, target: AgentSessionTarge
         },
         createScript: (workbookId, base, text, connectionId) => {
             const before = new Set(refsOf(workbookId).map(ref => ref.scriptId));
-            // A connection that the page doesn't have leaves the script on the connection of its neighbors
+            // A connection that the page doesn't have leaves the script on the connection of its neighbors. The agent
+            // tells no place, the script goes by what it reads and what reads it.
             const known = connectionId != null && runtime.store.get('connection', connectionId) != null;
-            runtime.dispatch({ workbook: workbookId }, { kind: 'createScript', value: known ? { text, base, connectionId } : { text, base } });
+            const value = { text, base, byReferences: true };
+            runtime.dispatch({ workbook: workbookId }, { kind: 'createScript', value: known ? { ...value, connectionId } : value });
             runtime.flush();
             return refsOf(workbookId).find(ref => !before.has(ref.scriptId))?.scriptId ?? null;
         },

@@ -634,11 +634,28 @@ pub struct EditorUpdateId {
     pub serial: u64,
 }
 
+/// Where a new script goes in the feed
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ScriptPlacement {
+    /// At the end of the feed
+    End,
+    /// At an index of the feed
+    At(usize),
+    /// By its references: before the first script that reads it, else after the last script that it reads, else at
+    /// the end. The scripts of an agent go so, which add to the workbook without telling where.
+    ByReferences,
+}
+
 /// An action on the scripts of a workbook
 pub enum WorkbookAction {
-    /// Create a script at an index of the feed, appended without one. The text seeds the script, the base names its
-    /// file (made unique), the connection is the one of the neighbors without one.
-    CreateScript { index: Option<usize>, text: Option<String>, base: String, connection: Option<Rc<ScriptConnection>> },
+    /// Create a script at a place of the feed. The text seeds the script, the base names its file (made unique), the
+    /// connection is the one of the neighbors without one.
+    CreateScript {
+        place: ScriptPlacement,
+        text: Option<String>,
+        base: String,
+        connection: Option<Rc<ScriptConnection>>,
+    },
     /// Delete the script with a file name
     DeleteScript { file_name: String },
     /// Rename the script with a file name. The name is a display name, a `.sql` is dropped and the name is made unique.
@@ -1184,6 +1201,54 @@ impl Workbook {
         !session.script().table_parameters_current()
     }
 
+    /// Analyze the scripts whose analysis lags behind their text, e.g. of a script without an editor, so that their
+    /// references are current
+    fn analyze_lagging(&mut self) {
+        for index in 0..self.scripts.len() {
+            let lags = self.scripts.get(index).is_some_and(|script| {
+                let text_version = script.session.try_borrow().map(|session| session.text_version()).ok();
+                script.editor_update.as_ref().map(|update| update.text_version) != text_version
+            });
+            if lags {
+                self.analyze_at(index);
+            }
+        }
+    }
+
+    /// Move the script at an index by its references: before the first other script that reads it, else after the
+    /// last other script that it reads. A script without references stays.
+    fn place_by_references(&mut self, from: usize) {
+        self.analyze_lagging();
+        let checked = self.with_plan_request(check_script_references);
+        let script = from as u32;
+        let first_reader = checked
+            .iter()
+            .enumerate()
+            .filter(|(index, checked)| {
+                *index != from && checked.references.iter().any(|reference| reference.script == Some(script))
+            })
+            .map(|(index, _)| index)
+            .min();
+        let last_read = checked
+            .get(from)
+            .into_iter()
+            .flat_map(|checked| checked.references.iter())
+            .filter_map(|reference| reference.script.map(|read| read as usize))
+            .filter(|read| *read != from)
+            .max();
+        let to = match (first_reader, last_read) {
+            (Some(reader), _) => reader,
+            (None, Some(read)) => read + 1,
+            (None, None) => return,
+        };
+        // The index of the list without the script
+        let to = if to > from { to - 1 } else { to };
+        if to != from {
+            let moved = self.scripts.remove(from);
+            self.scripts.insert(to, moved);
+        }
+    }
+
     /// Rewrite the table parameters that read a renamed script or attachment to read `name`. The references are those
     /// of a plan with the names before the rename, scripts are analyzed first if their analysis lags behind their
     /// text. The script `keep` keeps its text. Returns the keys of the rewritten scripts.
@@ -1194,15 +1259,7 @@ impl Workbook {
         keep: Option<ScriptKey>,
     ) -> Result<Vec<ScriptKey>> {
         // A script that analyzes here changes for the views also when the rewrite fails below
-        for index in 0..self.scripts.len() {
-            let lags = self.scripts.get(index).is_some_and(|script| {
-                let text_version = script.session.try_borrow().map(|session| session.text_version()).ok();
-                script.editor_update.as_ref().map(|update| update.text_version) != text_version
-            });
-            if lags {
-                self.analyze_at(index);
-            }
-        }
+        self.analyze_lagging();
         let target_index = match target {
             ReferenceTarget::Script(file) => self.scripts.iter().position(|script| script.file_name == file),
             ReferenceTarget::Attachment(file) => {
@@ -1421,8 +1478,8 @@ impl Workbook {
                     outcome.effects.push(self.properties_write());
                 }
             }
-            WorkbookAction::CreateScript { index, text, base, connection } => {
-                self.create(index, text, &base, connection, &mut outcome)?
+            WorkbookAction::CreateScript { place, text, base, connection } => {
+                self.create(place, text, &base, connection, &mut outcome)?
             }
             WorkbookAction::DeleteScript { file_name } => self.delete(&file_name, &mut outcome),
             WorkbookAction::RenameScript { file_name, new_name } => self.rename(&file_name, &new_name, &mut outcome)?,
@@ -1697,12 +1754,16 @@ impl Workbook {
 
     fn create(
         &mut self,
-        index: Option<usize>,
+        place: ScriptPlacement,
         text: Option<String>,
         base: &str,
         connection: Option<Rc<ScriptConnection>>,
         outcome: &mut WorkbookOutcome,
     ) -> Result<()> {
+        let index = match place {
+            ScriptPlacement::At(index) => Some(index),
+            ScriptPlacement::End | ScriptPlacement::ByReferences => None,
+        };
         let Some(connection) = connection.or_else(|| self.new_script_connection(index)) else {
             return Err(Error::invalid_argument("a new script needs a connection"));
         };
@@ -1722,6 +1783,9 @@ impl Workbook {
         let key = script.key;
         let at = index.map_or(self.scripts.len(), |index| index.min(self.scripts.len()));
         self.scripts.insert(at, script);
+        if place == ScriptPlacement::ByReferences {
+            self.place_by_references(at);
+        }
         if text.is_some() {
             self.mark_others_outdated(key, &connection);
         }
