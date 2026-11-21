@@ -177,9 +177,9 @@ async function waitUntil(condition, timeout = PAGE_TIMEOUT) {
     }
 }
 
-/// A server of a session like the one of dashql connect. It speaks the protocol of the page, 4
+/// A server of a session like the one of dashql connect. It speaks the protocol of the page, 5
 /// (agent_session_protocol.ts); `protocol: null` is a server older than the protocol.
-async function startSessionServer({ port = 0, token = 'secret', protocol = 4, id = 'session' } = {}) {
+async function startSessionServer({ port = 0, token = 'secret', protocol = 5, id = 'session' } = {}) {
     const streams = new Set();
     let state = { id, harness: 'claude', folder: '/work', ended: false, turns: [], workbooks: [], version: 0 };
     // The files that the page wrote into the copy of its workbook, in the order of the writes
@@ -211,7 +211,7 @@ async function startSessionServer({ port = 0, token = 'secret', protocol = 4, id
             // The preflight of the server of dashql
             return response.writeHead(204, {
                 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE',
-                'Access-Control-Allow-Headers': 'Authorization, Content-Type, X-DashQL-Protocol',
+                'Access-Control-Allow-Headers': 'Authorization, Content-Type',
                 'Access-Control-Allow-Private-Network': 'true',
             }).end();
         }

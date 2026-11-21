@@ -82,8 +82,8 @@ The reasons:
 
 ## What crosses
 
-Every request carries the token of the session and names its protocol ([agent_session.md](agent_session.md#protocol)). Only the pages
-of DashQL get CORS headers.
+Every request carries the token of the session, every answer names the protocol of the server
+([agent_session.md](agent_session.md#protocol)). Only the pages of DashQL get CORS headers.
 
 | Route | From | Carries |
 |---|---|---|

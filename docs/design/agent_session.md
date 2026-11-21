@@ -81,10 +81,10 @@ The server of a session and its clients (the page, the hooks, `dashql run`) name
 `platform/session/agent_session_protocol.ts`, so that a mismatch shows instead of failing later in one request. The line
 of the tab runs the `dashql-cli` of the build of the page, so both sides speak exactly one protocol, the same.
 
-- **On the wire.** Every request and every answer, also an error, carries `X-DashQL-Protocol`; pages may read it (CORS
-  expose). The server answers a request without the protocol or of another one with 426 and nothing else.
-- **The client checks.** `fetchAgentSession` sends the protocol and checks every answer: a server of another protocol
-  throws `AgentSessionProtocolError` with the older side, a server that names none is the older one.
+- **On the wire.** Every answer of the server, also an error, carries `X-DashQL-Protocol`; pages may read it (CORS
+  expose). Requests name no protocol, the server takes every request as it is.
+- **The client checks.** `fetchAgentSession` checks every answer: a server of another protocol throws
+  `AgentSessionProtocolError` with the older side, a server that names none is the older one.
 - **The page** keeps trying the server and shows in the status of the composer which side to update: an older
   `dashql-cli` (stop it, run the command again) or the page (reload). `dashql run` fails with the error.
 - **Changing it.** Raise `AGENT_SESSION_PROTOCOL` with every change of what goes over the wire, also an added field, and
@@ -244,10 +244,9 @@ stays the one place the page talks to.
   the session: its address, two sessions in one folder, gone when the session stops.
 - `//packages/dashql:test_platform_node`: the folder of a session and the stamps of its copies
   (`session/session_folder.test.ts`), the state of a session with the steps of a turn (tools at once, a failed one,
-  hooks without an id), the protocol (`session/agent_session_protocol.test.ts`: the older side, the header of a request,
-  the check of an answer).
-- `//packages/dashql-cli:test` also: the server names its protocol on every answer and to pages, answers a client
-  without one or of another one with 426.
+  hooks without an id), the protocol (`session/agent_session_protocol.test.ts`: the older side, the check of an
+  answer).
+- `//packages/dashql-cli:test` also: the server names its protocol on every answer and to pages.
 - `agent/agent_prompt_panel.test.tsx`: the steps of a turn that works and of a finished one.
 - The page test `app_agent_session`: the line of AI and a server on its port, the bar, the log, the switch back to SQL;
   then a new port, Codex, a server without a protocol on the port and secret of the line that the composer calls an

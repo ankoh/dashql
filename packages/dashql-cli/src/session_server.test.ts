@@ -139,7 +139,7 @@ describe('the session server', () => {
         }
     });
 
-    it('names its protocol on every answer and answers clients of another protocol with nothing', async () => {
+    it('names its protocol on every answer', async () => {
         server = await startSessionServer({ harness: 'claude', folder: temp('dashql-session-'), session: '51009' });
         const base = `http://127.0.0.1:${server.port}`;
         // A page reads the protocol of every answer, also of an error
@@ -150,21 +150,11 @@ describe('the session server', () => {
             expect(answer.headers.get('x-dashql-protocol')).toBe(String(AGENT_SESSION_PROTOCOL));
             expect(answer.headers.get('access-control-expose-headers')).toBe('X-DashQL-Protocol');
         }
-        // A page sends the protocol with every request, the preflight allows it
-        const preflight = await fetch(`${base}/v1/stream`, { method: 'OPTIONS', headers: { Origin: 'https://dashql.app', 'Access-Control-Request-Headers': 'x-dashql-protocol' } });
-        expect(preflight.headers.get('access-control-allow-headers')).toContain('X-DashQL-Protocol');
-        // A client without a protocol or of another one gets nothing but the protocol of the server
-        const events = `${base}/v1/events`;
+        // A request names no protocol, the server takes it as it is
         const event = JSON.stringify({ event: 'UserPromptSubmit', harness: 'claude', folder: '/w', prompt: 'q' });
-        const headers = { Authorization: `Bearer ${server.token}` };
-        const none = await fetch(events, { method: 'POST', headers, body: event });
-        expect(none.status).toBe(426);
-        expect(none.headers.get('x-dashql-protocol')).toBe(String(AGENT_SESSION_PROTOCOL));
-        for (const protocol of [AGENT_SESSION_PROTOCOL - 1, AGENT_SESSION_PROTOCOL + 1, 'x']) {
-            expect((await fetch(events, { method: 'POST', headers: { ...headers, 'X-DashQL-Protocol': String(protocol) }, body: event })).status).toBe(426);
-        }
-        expect(server.state().turns).toEqual([]);
-        expect((await fetch(events, { method: 'POST', headers: { ...headers, 'X-DashQL-Protocol': String(AGENT_SESSION_PROTOCOL) }, body: event })).status).toBe(204);
+        const posted = await fetch(`${base}/v1/events`, { method: 'POST', headers: { Authorization: `Bearer ${server.token}` }, body: event });
+        expect(posted.status).toBe(204);
+        expect(posted.headers.get('x-dashql-protocol')).toBe(String(AGENT_SESSION_PROTOCOL));
         expect(server.state().turns.map(turn => turn.question)).toEqual(['q']);
     });
 

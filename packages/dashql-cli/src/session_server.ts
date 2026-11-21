@@ -16,7 +16,7 @@ import {
     type AgentSessionRunMessage,
     type AgentSessionRunRequest,
 } from '@akohn/dashql/platform/session/agent_session_client';
-import { AGENT_SESSION_PROTOCOL, AGENT_SESSION_PROTOCOL_HEADER, parseAgentSessionProtocol } from '@akohn/dashql/platform/session/agent_session_protocol';
+import { AGENT_SESSION_PROTOCOL, AGENT_SESSION_PROTOCOL_HEADER } from '@akohn/dashql/platform/session/agent_session_protocol';
 import {
     DASHQL_FOLDER,
     isWorkbookCopyId,
@@ -290,7 +290,7 @@ export async function startSessionServer(options: SessionServerOptions): Promise
         if (request.method === 'OPTIONS') {
             response.writeHead(204, {
                 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE',
-                'Access-Control-Allow-Headers': `Authorization, Content-Type, ${AGENT_SESSION_PROTOCOL_HEADER}`,
+                'Access-Control-Allow-Headers': 'Authorization, Content-Type',
                 // Chrome asks before a public page reaches the local network
                 'Access-Control-Allow-Private-Network': 'true',
             }).end();
@@ -298,12 +298,6 @@ export async function startSessionServer(options: SessionServerOptions): Promise
         }
         if (!authorized(request, url)) {
             response.writeHead(401).end();
-            return;
-        }
-        // A client of another protocol, or of none, gets nothing else
-        const clientProtocol = parseAgentSessionProtocol(request.headers[AGENT_SESSION_PROTOCOL_HEADER.toLowerCase()]);
-        if (clientProtocol !== AGENT_SESSION_PROTOCOL) {
-            sendJson(response, 426, { error: `the server of the session speaks protocol ${AGENT_SESSION_PROTOCOL}, the client ${clientProtocol ?? 'none'}` });
             return;
         }
         if (request.method === 'POST' && url.pathname === '/v1/events') {

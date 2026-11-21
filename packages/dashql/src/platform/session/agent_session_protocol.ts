@@ -1,6 +1,7 @@
 /// The protocol between the server of `dashql connect` and its clients: the page that follows a session, the hooks of a
-/// harness and the runs of `dashql run` in it (docs/design/agent_session.md#protocol). Every request and every answer
-/// names it, both sides speak exactly one: the line of the tab runs the `dashql-cli` of the build of the page.
+/// harness and the runs of `dashql run` in it (docs/design/agent_session.md#protocol). Every answer of the server names
+/// it and the client checks it, both sides speak exactly one: the line of the tab runs the `dashql-cli` of the build of
+/// the page.
 ///
 /// Raise it with every change of what goes over the wire: a route, a request, a field of the state.
 ///
@@ -8,9 +9,10 @@
 /// 2: `chart` of a run request, the tab renders the charts of the run and sends them as the event `script_chart`
 /// 3: `id` of the state, a new one for every server: the tab copies its workbooks again into a new session on the port
 /// 4: no log and no paths of workbooks in the state, the copies of the tab are its workbooks
-export const AGENT_SESSION_PROTOCOL = 4;
+/// 5: requests name no protocol, only the answers of the server do
+export const AGENT_SESSION_PROTOCOL = 5;
 
-/// The protocol of the sender, on every request and every answer
+/// The protocol of the server, on every answer
 export const AGENT_SESSION_PROTOCOL_HEADER = 'X-DashQL-Protocol';
 
 /// The side that is older than the other: the server, `dashql-cli` that runs it, or the client
@@ -52,12 +54,9 @@ export function checkAgentSessionAnswer(response: Response): void {
     if (outdated != null) throw new AgentSessionProtocolError(outdated, serverProtocol);
 }
 
-/// Send a request to the server of a session: it names the protocol of the client, the answer is checked with
-/// checkAgentSessionAnswer
+/// Send a request to the server of a session, the answer is checked with checkAgentSessionAnswer
 export async function fetchAgentSession(input: URL | string, init: RequestInit = {}, send: typeof fetch = fetch): Promise<Response> {
-    const headers = new Headers(init.headers);
-    headers.set(AGENT_SESSION_PROTOCOL_HEADER, String(AGENT_SESSION_PROTOCOL));
-    const response = await send(input, { ...init, headers });
+    const response = await send(input, init);
     checkAgentSessionAnswer(response);
     return response;
 }

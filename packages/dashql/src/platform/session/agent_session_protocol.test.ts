@@ -32,7 +32,7 @@ describe('the protocol of an agent session', () => {
         expect(outdatedAgentSessionSide(null)).toBe('server');
     });
 
-    it('sends the protocol of the client and checks the answer', async () => {
+    it('checks the protocol of the answer', async () => {
         const sent: Headers[] = [];
         const sendAnswer = (response: Response) => async (_input: URL | Request | string, init?: RequestInit) => {
             sent.push(new Headers(init?.headers));
@@ -40,7 +40,7 @@ describe('the protocol of an agent session', () => {
         };
         const ok = await fetchAgentSession('http://127.0.0.1:1/v1/state', { headers: { Authorization: 'Bearer t' } }, sendAnswer(answer(AGENT_SESSION_PROTOCOL)) as typeof fetch);
         expect(ok.status).toBe(200);
-        expect(sent[0].get('X-DashQL-Protocol')).toBe(String(AGENT_SESSION_PROTOCOL));
+        expect(sent[0].get('X-DashQL-Protocol')).toBeNull();
         expect(sent[0].get('Authorization')).toBe('Bearer t');
         // An error of a server of the protocol is an answer like any other
         expect((await fetchAgentSession('http://127.0.0.1:1/v1/state', {}, sendAnswer(answer(AGENT_SESSION_PROTOCOL, 401)) as typeof fetch)).status).toBe(401);
@@ -54,6 +54,6 @@ describe('the protocol of an agent session', () => {
             return null;
         };
         expect(await outdated(answer(null))).toBe('server');
-        expect(await outdated(answer(AGENT_SESSION_PROTOCOL + 1, 426))).toBe('client');
+        expect(await outdated(answer(AGENT_SESSION_PROTOCOL + 1))).toBe('client');
     });
 });

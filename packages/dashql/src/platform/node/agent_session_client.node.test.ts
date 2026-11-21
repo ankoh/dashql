@@ -23,10 +23,8 @@ describe('the client of an agent session', () => {
     it('reads the states of the stream until the server ends it', async () => {
         const states = [createAgentSessionState('claude', '/a'), { ...createAgentSessionState('claude', '/a'), version: 1 }];
         let token: string | null = null;
-        let protocol: string | null = null;
         const server = http.createServer((request, response) => {
             token = new URL(request.url ?? '/', 'http://x').searchParams.get('token');
-            protocol = request.headers['x-dashql-protocol'] as string;
             response.writeHead(200, { 'Content-Type': 'text/event-stream', ...PROTOCOL_HEADERS });
             // A state may arrive in pieces, comments are skipped
             const second = `data: ${JSON.stringify(states[1])}\n\n`;
@@ -40,7 +38,6 @@ describe('the client of an agent session', () => {
             await followAgentSession(target, state => received.push(state), new AbortController().signal);
             expect(received).toEqual(states);
             expect(token).toBe('secret');
-            expect(protocol).toBe(String(AGENT_SESSION_PROTOCOL));
         } finally {
             server.close();
         }

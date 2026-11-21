@@ -28,9 +28,7 @@ export async function followDashQLSession(port, token) {
     let response = null;
     for (let i = 0; i < 300 && response == null; ++i) {
         try {
-            // Every answer of the server names its protocol, the client speaks the same
-            const protocol = (await fetch(`${base}/v1/state`, { headers: { Authorization: `Bearer ${token}` } })).headers.get('x-dashql-protocol') ?? '';
-            response = await fetch(`${base}/v1/stream?token=${token}`, { headers: { 'X-DashQL-Protocol': protocol } });
+            response = await fetch(`${base}/v1/stream?token=${token}`);
         } catch {
             await new Promise(done => setTimeout(done, 100));
         }
