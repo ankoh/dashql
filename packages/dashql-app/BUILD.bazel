@@ -7,7 +7,7 @@ load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
 load("@npm//:typescript/package_json.bzl", typescript_bin = "bin")
 load("@npm//:vite/package_json.bzl", vite_bin = "bin")
 load("//bazel:eslint.bzl", "eslint_test")
-load(":bazel/browser_test.bzl", "browser_test")
+load("//bazel:browser_test.bzl", "browser_test")
 
 # Stage the declared SQL snippets for the @dashql/snippets alias, the app bundles them as text.
 # A fresh output directory, so snippets deleted from examples/snippets don't linger in bazel-bin.
@@ -372,27 +372,37 @@ copy_to_directory(
     visibility = ["//visibility:private"],
 )
 
-copy_to_directory(
-    name = "playwright_firefox",
-    srcs = ["@playwright_firefox//:firefox_files"],
-    include_external_repositories = ["*playwright_firefox"],
-    out = "playwright_firefox",
-    visibility = ["//visibility:private"],
-)
+# The driver of the browser tests of the app, with the page tests after the test files
+BROWSER_TEST_DATA = [
+    "test/browser_coverage.mjs",
+    "test/browser_page_tests.mjs",
+]
+
+# A suite runs a browser with an embedded Hyper per page, one page per four cores. A runner with four cores runs it
+# alone, two suites on the same cores timed tests out.
+BROWSER_TEST_TAGS = ["cpu:4"]
 
 browser_test(
     name = "test_chromium",
     browser = "chromium",
+    bundle = ":pages",
+    data = BROWSER_TEST_DATA,
+    entry_point = "test/browser_test_driver.mjs",
     executable = "@playwright_chromium//:chromium",
     runtime = "@playwright_chromium//:runtime",
+    tags = BROWSER_TEST_TAGS,
 )
 
 browser_test(
     name = "test_firefox",
     browser = "firefox",
+    bundle = ":pages",
+    data = BROWSER_TEST_DATA,
+    entry_point = "test/browser_test_driver.mjs",
     env = {"MOZ_DISABLE_CONTENT_SANDBOX": "1"},
-    executable = ":playwright_firefox",
+    executable = "//bazel:playwright_firefox",
     executable_root = True,
+    tags = BROWSER_TEST_TAGS,
 )
 
 # Line coverage of the app sources in the browser tests, published at https://coverage.dashql.app.
@@ -401,10 +411,12 @@ browser_test(
     name = "coverage_chromium",
     browser = "chromium",
     bundle = ":coverage_pages",
+    data = BROWSER_TEST_DATA,
+    entry_point = "test/browser_test_driver.mjs",
     env = {"DASHQL_BROWSER_COVERAGE": "1"},
     executable = "@playwright_chromium//:chromium",
     runtime = "@playwright_chromium//:runtime",
-    tags = ["manual"],
+    tags = BROWSER_TEST_TAGS + ["manual"],
 )
 
 sh_binary(

@@ -120,11 +120,9 @@ npm.npm_translate_lock(
 )
 use_repo(npm, "npm")
 
-playwright_chromium = use_repo_rule("//bazel:playwright_chromium.bzl", "playwright_chromium_repository")
-playwright_chromium(name = "playwright_chromium")
-
-playwright_firefox = use_repo_rule("//bazel:playwright_firefox.bzl", "playwright_firefox_repository")
-playwright_firefox(name = "playwright_firefox")
+playwright = use_repo_rule("//bazel:playwright.bzl", "playwright_repository")
+playwright(name = "playwright_chromium", browser = "chromium")
+playwright(name = "playwright_firefox", browser = "firefox")
 
 core_deps = use_extension("//bazel:core_dependencies.bzl", "dashql_core_dependencies")
 

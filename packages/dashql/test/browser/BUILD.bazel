@@ -2,7 +2,7 @@ load("@aspect_bazel_lib//lib:copy_to_bin.bzl", "copy_to_bin")
 load("@aspect_bazel_lib//lib:copy_to_directory.bzl", "copy_to_directory")
 load("@npm//:vite/package_json.bzl", vite_bin = "bin")
 load("//bazel:eslint.bzl", "eslint_test")
-load(":bazel/browser_test.bzl", "browser_test")
+load("//bazel:browser_test.bzl", "browser_test")
 
 copy_to_bin(
     name = "srcs",
@@ -47,16 +47,11 @@ vite_bin.vite(
     visibility = ["//visibility:public"],
 )
 
-copy_to_directory(
-    name = "playwright_firefox",
-    srcs = ["@playwright_firefox//:firefox_files"],
-    include_external_repositories = ["*playwright_firefox"],
-    out = "playwright_firefox",
-)
-
 browser_test(
     name = "test_chromium",
     browser = "chromium",
+    bundle = ":bundle",
+    entry_point = "browser_test_driver.mjs",
     executable = "@playwright_chromium//:chromium",
     runtime = "@playwright_chromium//:runtime",
 )
@@ -64,8 +59,10 @@ browser_test(
 browser_test(
     name = "test_firefox",
     browser = "firefox",
+    bundle = ":bundle",
+    entry_point = "browser_test_driver.mjs",
     env = {"MOZ_DISABLE_CONTENT_SANDBOX": "1"},
-    executable = ":playwright_firefox",
+    executable = "//bazel:playwright_firefox",
     executable_root = True,
 )
 

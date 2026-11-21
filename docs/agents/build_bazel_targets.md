@@ -187,7 +187,7 @@ bazel run //:trino [-- --port 8080]
 per four cores and at most four. Every page has its own browser context and Hyper. `coverage_chromium` stays on one page.
 `getBrowserTestShard` in `packages/dashql-app/src/tests/test_modules.ts` picks the files of a page, so a test can run
 after any other test file: tests have to clean up the globals they set. A suite claims four cores (the `cpu:4` tag of
-`browser_test`): on a CI runner with four cores it runs alone, the two suites side by side timed tests out.
+`BROWSER_TEST_TAGS` in its `BUILD.bazel`): on a CI runner with four cores it runs alone, the two suites side by side timed tests out.
 
 ```bash
 # Choose the number of pages

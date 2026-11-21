@@ -7,7 +7,7 @@
 #   python3 scripts/update_bazel_hashes.py bazel/core_dependencies.bzl
 #   python3 scripts/update_bazel_hashes.py bazel/external_tableauhyperapi.bzl
 #   python3 scripts/update_bazel_hashes.py bazel/external_bison.bzl           # also m4, wabt, binaryen
-#   python3 scripts/update_bazel_hashes.py bazel/playwright_chromium.bzl      # follows playwright-core
+#   python3 scripts/update_bazel_hashes.py bazel/playwright.bzl               # follows playwright-core
 import hashlib
 import json
 import os
@@ -278,15 +278,15 @@ def update_dashql_datasets(filepath: Path, workspace: Path, force: bool = False)
 
 
 # ---------------------------------------------------------------------------
-# Handler: bazel/playwright_{chromium,firefox}.bzl
+# Handler: bazel/playwright.bzl
 # ---------------------------------------------------------------------------
 #
 # The browsers must be the builds that the playwright-core of package.json expects,
-# which it lists in its browsers.json. Pin that version (Chromium) or revision
+# which it lists in its browsers.json. Pin that version (Chromium) and revision
 # (Firefox) and recompute the hash of every platform archive.
 
 
-def _playwright_browser(workspace: Path, name: str) -> dict:
+def _playwright_browsers(workspace: Path) -> dict:
     package = json.loads((workspace / "package.json").read_text())
     version = package["devDependencies"]["playwright-core"]
     url = f"https://unpkg.com/playwright-core@{version}/browsers.json"
@@ -294,32 +294,35 @@ def _playwright_browser(workspace: Path, name: str) -> dict:
     with urllib.request.urlopen(req) as resp:
         browsers = json.load(resp)["browsers"]
     print(f"[playwright-core] version={version}")
-    return next(b for b in browsers if b["name"] == name)
+    return {b["name"]: b for b in browsers}
 
 
-def _update_playwright_hashes(content: str, url_of) -> str:
+def _update_playwright_hashes(content: str, table: str, url_of) -> str:
     def replace(m: re.Match) -> str:
         sha = compute_sha256(url_of(m.group(2)))
         print(f"  [{m.group(2)}] sha256={sha}")
         return m.group(1) + sha + m.group(4)
 
-    # Platform entries are ("<archive>", "<sha256>", "<executable>") tuples.
-    return re.sub(r'(\(\s*"([^"]+)",\s*")([0-9a-f]{64})(")', replace, content)
+    # The platform table of a browser, its entries are ("<archive>", "<sha256>", "<executable>") tuples.
+    block = re.search(rf"^{table} = \{{.*?^\}}", content, re.DOTALL | re.MULTILINE)
+    if not block:
+        raise ValueError(f"{table} not found")
+    updated = re.sub(r'(\(\s*"([^"]+)",\s*")([0-9a-f]{64})(")', replace, block.group(0))
+    return content[:block.start()] + updated + content[block.end():]
 
 
-def update_playwright_chromium(filepath: Path, workspace: Path, force: bool = False) -> None:
-    version = _playwright_browser(workspace, "chromium-headless-shell")["browserVersion"]
-    content = re.sub(r'^_VERSION = "[^"]+"', f'_VERSION = "{version}"', filepath.read_text(), flags=re.MULTILINE)
-    base = f"https://cdn.playwright.dev/builds/cft/{version}/"
-    filepath.write_text(_update_playwright_hashes(content, lambda archive: base + archive))
-    print("Done.")
-
-
-def update_playwright_firefox(filepath: Path, workspace: Path, force: bool = False) -> None:
-    revision = _playwright_browser(workspace, "firefox")["revision"]
-    content = re.sub(r'^_REVISION = "[^"]+"', f'_REVISION = "{revision}"', filepath.read_text(), flags=re.MULTILINE)
-    base = f"https://cdn.playwright.dev/builds/firefox/{revision}/"
-    filepath.write_text(_update_playwright_hashes(content, lambda archive: base + archive))
+def update_playwright(filepath: Path, workspace: Path, force: bool = False) -> None:
+    browsers = _playwright_browsers(workspace)
+    version = browsers["chromium-headless-shell"]["browserVersion"]
+    revision = browsers["firefox"]["revision"]
+    content = filepath.read_text()
+    content = re.sub(r'^_CHROMIUM_VERSION = "[^"]+"', f'_CHROMIUM_VERSION = "{version}"', content, flags=re.MULTILINE)
+    content = re.sub(r'^_FIREFOX_REVISION = "[^"]+"', f'_FIREFOX_REVISION = "{revision}"', content, flags=re.MULTILINE)
+    chromium = f"https://cdn.playwright.dev/builds/cft/{version}/"
+    content = _update_playwright_hashes(content, "_CHROMIUM_PLATFORMS", lambda archive: chromium + archive)
+    firefox = f"https://cdn.playwright.dev/builds/firefox/{revision}/"
+    content = _update_playwright_hashes(content, "_FIREFOX_PLATFORMS", lambda archive: firefox + archive)
+    filepath.write_text(content)
     print("Done.")
 
 
@@ -330,8 +333,7 @@ def update_playwright_firefox(filepath: Path, workspace: Path, force: bool = Fal
 _HANDLERS = {
     "external_tableauhyperapi.bzl": update_tableauhyperapi_hashes,
     "datasets.bzl": update_dashql_datasets,
-    "playwright_chromium.bzl": update_playwright_chromium,
-    "playwright_firefox.bzl": update_playwright_firefox,
+    "playwright.bzl": update_playwright,
     **{name: update_prebuilt_archives for name in _PREBUILT_ARCHIVES},
 }
 
