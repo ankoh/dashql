@@ -210,7 +210,8 @@ describe('HyperDB Wasm log extract', () => {
         const worker = await database!.connect();
         const tag = uniqueTag('grow');
         try {
-            await openExtract();
+            await openExtract({ databaseAlias: 'monitoring' });
+            expect(extract!.tableName('query_ends')).toBe('"monitoring"."public"."query_ends"');
             const connection = await openReader();
 
             await failQueries(worker, `${tag}_a`, 2);
@@ -270,7 +271,7 @@ describe('HyperDB Wasm log extract', () => {
                 SELECT statement, elapsed, rows, error_code FROM ${QUERY_ENDS} WHERE outcome = 'query-end' AND query LIKE '%${tag}%'
             `));
             expect(success.statement).toBe('SELECT');
-            expect(typeof success.elapsed).toBe('number');
+            expect(success.elapsed).toBeGreaterThan(0);
             expect(success.rows).toBe(1n);
             expect(success.error_code).toBeNull();
         } finally {
@@ -346,71 +347,6 @@ describe('HyperDB Wasm log extract', () => {
         expect(reasons.length).toBe(1);
     }, 60_000);
 
-    it('computes operational metrics over the extract', async () => {
-        const worker = await database!.connect();
-        const tag = uniqueTag('metrics');
-        try {
-            await openExtract();
-            await succeedQueries(worker, tag, 3);
-            await failQueries(worker, tag, 2);
-            await extract!.poll();
-
-            const connection = await openReader();
-            const [metrics] = toPlainObjects(await connection.query(`
-                SELECT
-                    count(*) FILTER (WHERE outcome = 'query-end')              AS succeeded,
-                    count(*) FILTER (WHERE outcome = 'query-end-user-error')   AS user_errors,
-                    count(*) FILTER (WHERE outcome = 'query-end-system-error') AS system_errors,
-                    count(*) FILTER (WHERE outcome = 'query-end-canceled')     AS canceled,
-                    avg(elapsed) FILTER (WHERE outcome = 'query-end')          AS avg_elapsed_seconds,
-                    max(elapsed)                                               AS max_elapsed_seconds
-                FROM ${QUERY_ENDS}
-                WHERE query LIKE '%${tag}%'
-            `));
-            expect(Number(metrics.succeeded)).toBe(3);
-            expect(Number(metrics.user_errors)).toBe(2);
-            expect(Number(metrics.system_errors)).toBe(0);
-            expect(Number(metrics.canceled)).toBe(0);
-            expect(metrics.avg_elapsed_seconds).toBeGreaterThan(0);
-            expect(metrics.max_elapsed_seconds).toBeGreaterThanOrEqual(metrics.avg_elapsed_seconds as number);
-        } finally {
-            await worker.close();
-        }
-    }, 60_000);
-
-    it('recovers the events since the last poll after a reconnect', async () => {
-        const worker = await database!.connect();
-        const tag = uniqueTag('reconnect');
-        try {
-            await openExtract();
-            await failQueries(worker, `${tag}_polled`, 1);
-            await extract!.poll();
-            // Written after the last poll of the first connection.
-            await failQueries(worker, `${tag}_unpolled`, 1);
-            await extract!.stop();
-            extract = null;
-            // Written while no monitor connection exists.
-            await failQueries(worker, `${tag}_disconnected`, 2);
-
-            await openExtract();
-            const connection = await openReader();
-            const count = (suffix: string) => countUserErrors(connection, `${tag}_${suffix}`);
-            expect(await count('polled')).toBe(1);
-            expect(await count('unpolled')).toBe(1);
-            expect(await count('disconnected')).toBe(2);
-
-            // The first poll reads events of the backfill again and skips them.
-            await failQueries(worker, `${tag}_reconnected`, 1);
-            await extract!.poll();
-            expect(await count('polled')).toBe(1);
-            expect(await count('unpolled')).toBe(1);
-            expect(await count('disconnected')).toBe(2);
-            expect(await count('reconnected')).toBe(1);
-        } finally {
-            await worker.close();
-        }
-    }, 60_000);
-
     it('backfills a reconnect from the timestamp watermark', async () => {
         const worker = await database!.connect();
         const tag = uniqueTag('watermark');
@@ -449,15 +385,27 @@ describe('HyperDB Wasm log extract', () => {
                 await succeedQueries(worker, `${tag}_${i}`, 2);
                 await failQueries(worker, `${tag}_${i}`, 1);
                 await extract!.poll();
+                // Written after the last poll of the connection
                 await failQueries(worker, `${tag}_${i}_tail`, 1);
                 await extract!.stop();
                 extract = null;
+                // Written while no monitor connection exists
+                await failQueries(worker, `${tag}_${i}_disconnected`, 1);
             }
             await openExtract();
 
             const connection = await openReader();
-            expect(await countUserErrors(connection, tag)).toBe(6);
+            const count = (suffix: string) => countUserErrors(connection, `${tag}_${suffix}`);
+            expect(await countUserErrors(connection, tag)).toBe(9);
+            expect(await count('2_tail')).toBe(1);
+            expect(await count('2_disconnected')).toBe(1);
             expect(await countQueryEnds(connection, 'query-end', tag)).toBe(6);
+
+            // The first poll reads events of the backfill again and skips them
+            await failQueries(worker, `${tag}_reconnected`, 1);
+            await extract!.poll();
+            expect(await countUserErrors(connection, tag)).toBe(10);
+            expect(await count('reconnected')).toBe(1);
             for (const table of [EVENTS, QUERY_ENDS]) {
                 expect(await readNumber(connection, `
                     SELECT count(*) AS n FROM (SELECT * FROM ${table} GROUP BY ALL HAVING count(*) > 1) duplicates
@@ -577,19 +525,6 @@ describe('HyperDB Wasm log extract', () => {
         }
     }, 60_000);
 
-    it('reads the clock offset of the log', async () => {
-        // 0 - avoids the -0 of UTC
-        const offset = 0 - new Date().getTimezoneOffset() * 60_000;
-        for (const scoped of [true, false]) {
-            const connection = await database!.connect();
-            try {
-                expect(await new HyperDBLogSource(undefined, scoped).readClockOffset(connection)).toBe(offset);
-            } finally {
-                await connection.close();
-            }
-        }
-    }, 60_000);
-
     it('attributes the queries of its connections by their client context', async () => {
         const worker = await database!.connect();
         const tag = uniqueTag('context');
@@ -611,13 +546,6 @@ describe('HyperDB Wasm log extract', () => {
         } finally {
             await worker.close();
         }
-    }, 60_000);
-
-    it('names the tables of an extract file by its alias', async () => {
-        await openExtract({ databaseAlias: 'monitoring' });
-        expect(extract!.tableName('query_ends')).toBe('"monitoring"."public"."query_ends"');
-        const connection = await openReader();
-        expect(await readNumber(connection, `SELECT count(*) AS n FROM ${QUERY_ENDS}`)).toBeGreaterThanOrEqual(0);
     }, 60_000);
 
     it('extracts into a schema of the compute database of the sink', async () => {

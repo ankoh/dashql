@@ -1,6 +1,6 @@
 import { afterAll, afterEach, beforeAll, beforeEach, vi } from 'vitest';
 
-import { createTestHyperDBClient, getTestHyperDBClient, testDatabasePath } from '../../tests/hyperdb_test_client.js';
+import { createTestHyperDBClient, testDatabasePath } from '../../tests/hyperdb_test_client.js';
 import { HyperDB, type HyperDBClient, type HyperDBConnection, type HyperDBSettings } from '@akohn/dashql/platform/hyperdb/hyperdb_wasm';
 import { HyperDB as HyperDBEngine } from 'hyperdb-wasm';
 import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
@@ -69,20 +69,21 @@ function isSetup(query: HyperQueryEnd): boolean {
 }
 
 describe('Hyper log metrics', () => {
-    let client: HyperDBClient;
-    let sharedClient = false;
+    let client: HyperDBClient | null = null;
     let database: HyperDB | null = null;
     let logMetrics: HyperLogMetrics | null = null;
     let connections: HyperDBConnection[] = [];
     let nextDatabase = 1;
-    /// The tests share the log of one Hyper and every extract backfills it, the connection ids are unique per test
+    /// The tests share the log of one Hyper and every extract backfills it, the connection ids are unique per test.
+    /// The Hyper is not the shared one of the tests, every extract would backfill the log of all earlier test files.
     let run = '';
     const scoped = (connectionId: string) => `${connectionId}@${run}`;
     /// The monitoring databases of the connections of a test
     const databases = new Map<string, string>();
 
     beforeAll(async () => {
-        ({ client, shared: sharedClient } = await getTestHyperDBClient());
+        // The settings of the app, which log the resource usage every second
+        client = await createTestHyperDBClient();
         // The tests share the database, their connections and monitoring databases are unique per test
         database = await HyperDB.create(new HyperDBEngine(client), {
             computeDatabasePath: await testDatabasePath(`dashql-log-metrics-${nextDatabase++}.hyper`),
@@ -128,14 +129,16 @@ describe('Hyper log metrics', () => {
     afterAll(async () => {
         await database?.terminate();
         database = null;
-        if (!sharedClient) await client?.terminate();
+        await client?.terminate();
+        client = null;
     });
 
-    /// Monitor the log of a connection
+    /// Monitor the log of a connection, the monitor reads the clock offset of the log when it opens
     async function watch(connectionId: string): Promise<void> {
         logMetrics!.watch({ database: database!, sessions: true }, scoped(connectionId));
         const opened = await logMetrics!.opened(scoped(connectionId));
         expect(opened, JSON.stringify(logMetrics!.state.current.get(scoped(connectionId))?.error)).toBe(true);
+        expect(logMetrics!.state.current.get(scoped(connectionId))!.clockOffsetMs).toBe(LOCAL_CLOCK_OFFSET_MS);
     }
 
     /// A connection of the user that the client context attributes to a connection
@@ -180,11 +183,6 @@ describe('Hyper log metrics', () => {
         return (await queries(connectionId))
             .filter(query => query.queryType !== 'monitor' && query.queryType !== 'overview' && !isSetup(query));
     }
-
-    it('reads the clock offset of the log', async () => {
-        await watch('connection');
-        expect(logMetrics!.state.current.get(scoped('connection'))!.clockOffsetMs).toBe(LOCAL_CLOCK_OFFSET_MS);
-    }, 60_000);
 
     it('extracts the queries of a Hyper without sessions from the watermark', async () => {
         logMetrics!.watch({ database: sessionless(database!), sessions: false }, scoped('connection'));
@@ -393,45 +391,18 @@ describe('Hyper log metrics', () => {
         }
         await expect(logMetrics!.query(scoped('connection'), 'SELECT 1')).rejects.toThrow(/not monitored/);
     }, 60_000);
-});
-
-describe('Hyper log metrics of resources', () => {
-    let client: HyperDBClient;
-    let sharedClient = false;
-    let database: HyperDB | null = null;
-    let logMetrics: HyperLogMetrics | null = null;
-
-    beforeAll(async () => {
-        // The app settings log the resource usage every second
-        ({ client, shared: sharedClient } = await getTestHyperDBClient());
-        database = await HyperDB.create(new HyperDBEngine(client), {
-            computeDatabasePath: await testDatabasePath('dashql-log-metrics-resources-compute.hyper'),
-            defaultDatabasePath: await testDatabasePath('dashql-log-metrics-resources-user.hyper'),
-            terminateEngine: false,
-        });
-    }, 60_000);
-
-    afterAll(async () => {
-        await logMetrics?.stop();
-        await database?.terminate();
-        if (!sharedClient) await client?.terminate();
-    });
 
     it('reads the resource samples of the Hyper process', async () => {
-        const path = await testDatabasePath(`dashql-monitoring-${crypto.randomUUID()}.hyper`);
-        logMetrics = new HyperLogMetrics({ logger: new TestLogger(), pollIntervalMs: 3_600_000, sink: async () => database!, prepareDatabase: async () => path });
         const before = Date.now();
-        logMetrics.watch({ database: database!, sessions: true }, 'connection');
-        expect(await logMetrics.opened('connection')).toBe(true);
-        const { resourceMetrics, clockOffsetMs } = logMetrics.state.current.get('connection')!;
-        const readSamples = async () => readResourceSamples(await logMetrics!.query('connection', resourceSamplesQuery(resourceMetrics!, clockOffsetMs!, { afterRow: 0, since: before })));
+        await watch('connection');
+        const { resourceMetrics, clockOffsetMs } = logMetrics!.state.current.get(scoped('connection'))!;
+        const readSamples = async () => readResourceSamples(await logMetrics!.query(scoped('connection'), resourceSamplesQuery(resourceMetrics!, clockOffsetMs!, { afterRow: 0, since: before })));
         // Poll until the first sample since the start of the test
         let samples: Awaited<ReturnType<typeof readSamples>> = [];
-        await vi.waitFor(async () => {
-            await logMetrics!.poll('connection');
+        await pollUntil('connection', async () => {
             samples = await readSamples();
             expect(samples.length, 'the resource samples in the extract').toBeGreaterThan(0);
-        }, LOG_WAIT);
+        });
         const after = Date.now();
         for (const sample of samples) {
             expect(sample.sampledAt).toBeGreaterThanOrEqual(before - 1_000);
