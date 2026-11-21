@@ -48,3 +48,45 @@ aggregates. The page loads no client function specs, no flavor and no cell detai
 
 `src/tools/unpack/unpack_page.test.tsx` writes an archive with Hyper and zip.js, drops it on the page and reads a table.
 The page test boots the real page and drops a file that is no archive.
+
+## Analyzer
+
+`/tools/analyzer` shows what the core knows about a script after each phase. It has two cards: the catalog script,
+collapsed when the page opens, the TPC-H schema of `static/examples/tpch/schema.sql`, and the editor script, the
+subquery of TPC-H query 2, formatted. Each card has the editor of a feed entry on a script session of its own
+(`createScriptSession`), with the highlighting, the completion and the diagnostics of the core. The editors grow with
+their scripts, and the page scrolls. The Format button in the header of an expanded card opens Format Pretty and Format
+Compact like the action menu of a feed entry. Pretty formats at the default width of the formatter (80), compact at the
+width of the editor, like the format dialog of the shell; the editor applies the changes. Below the editor of the editor
+script is a section per phase:
+
+- **Scanner.** The tokens of the parse as a wrapping line, colored by their type, the comments between them.
+- **Parser.** The nodes of the AST as a wrapping line of chips in the order of the array of the parser, a label at the
+  start of each statement. A chip shows the attribute key and the type of its node, a leaf also its text. The node
+  under the pointer highlights its children and its parent, draws edges to its first child and its parent, and a line
+  below shows its children or value, its parent and its text.
+- **Analyzer.** The errors of the analysis, and its facts as rows of chips by their kind: the declared tables, the table
+  references with the tables they resolve to, the column references with their tables, the function calls, the roots of
+  the constant subtrees with their kind, the function references, the parameters, the inferred schemas and the name
+  scopes, the rarer parts by their count. The analyzer records only these expressions: column references, calls and
+  constant subtrees. An AND or a comparison of columns is none, so there is no row of "expressions". An unresolved
+  reference is marked. A fact under the pointer highlights its AST node and its tokens, a node under the pointer in the
+  AST its facts.
+
+Both sessions share a catalog. A new analysis of the catalog script loads it into the catalog (`loadIntoCatalog`), and
+the editor of the editor script analyzes it again. The page reads the phases from the session (`getParsed`,
+`getAnalyzed`), the spans of the buffers count UTF-8 bytes and the page decodes the text of a span from the bytes of the
+script. It needs the core only: no runtime, no database.
+
+| Part | Module |
+|------|--------|
+| Providers: logger, core | `src/tools/analyzer/analyzer.tsx` |
+| The sessions, the catalog, the cards | `analyzer_page.tsx` |
+| The editor of a session | `analyzer_editor.tsx` |
+| The card of a script, a component with the editor and the phases as slots | `analyzer_card.tsx` |
+| The sections of the phases | `script_phases.tsx` |
+| The Format button with its menu of Format Pretty and Format Compact | `format_menu.tsx` |
+
+`src/tools/analyzer/analyzer_page.test.tsx` checks the phases of the editor script, the facts of the analysis, the
+highlighting of a node, both formatting modes and that the editor script follows a change of the catalog script. The
+page test boots the real page and waits for the analysis.

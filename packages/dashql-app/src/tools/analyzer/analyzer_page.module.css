@@ -1,0 +1,46 @@
+/* The body doesn't scroll, the page does and grows with its cards */
+.page {
+    height: 100%;
+    overflow-y: auto;
+    background-color: var(--color_bg);
+    color: var(--color_fg);
+}
+
+.content {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 32px 16px;
+    display: flex;
+    flex-direction: column;
+    row-gap: 16px;
+}
+
+.header {
+    display: flex;
+    flex-direction: column;
+}
+
+.title {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.subtitle {
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--color_fg_muted);
+}
+
+.cards {
+    display: flex;
+    flex-direction: column;
+    row-gap: 8px;
+}
+
+.loading {
+    padding: 32px 16px;
+    font-size: 12px;
+    color: var(--color_fg_muted);
+    text-align: center;
+}

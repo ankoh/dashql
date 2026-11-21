@@ -18,6 +18,11 @@ export const TOOLS: readonly ToolEntry[] = [
         title: 'Unpack',
         description: 'Drop a .dashql file and look into the tables of its Parquet files.',
     },
+    {
+        id: 'analyzer',
+        title: 'Analyzer',
+        description: 'Edit a script against a catalog and look at its tokens, its AST and its analysis.',
+    },
 ];
 
 /// The path of a tool on the origin of the app

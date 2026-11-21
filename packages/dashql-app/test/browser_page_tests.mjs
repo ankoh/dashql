@@ -864,6 +864,15 @@ async function testUnpackTool(page, navigate) {
     await page.getByRole('alert').filter({ hasText: 'script.sql is not a ZIP archive' }).waitFor();
 }
 
+/// The analyzer tool on its own page: the scripts are scanned, parsed and analyzed against the catalog script
+async function testAnalyzerTool(page, navigate) {
+    await navigate('/tools/analyzer');
+    await page.getByRole('heading', { name: 'Analyzer' }).waitFor();
+    const editorScript = page.getByRole('region', { name: 'Editor Script' });
+    await editorScript.getByRole('region', { name: 'Scanner' }).getByText('ps_supplycost', { exact: true }).first().waitFor();
+    await editorScript.getByRole('region', { name: 'Analyzer' }).getByText('4 table refs (4 resolved)', { exact: false }).waitFor();
+}
+
 /// The redirect page of OAuth without a provider response
 async function testOAuth(page, navigate) {
     await navigate('/oauth.html');
@@ -888,6 +897,7 @@ const PAGE_TESTS = [
     { name: 'demos', options: DESKTOP, test: testDemos },
     { name: 'embed', options: NARROW, test: testEmbed },
     { name: 'tools_unpack', options: DESKTOP, test: testUnpackTool },
+    { name: 'tools_analyzer', options: DESKTOP, test: testAnalyzerTool },
     { name: 'oauth', options: DESKTOP, test: testOAuth },
 ];
 
