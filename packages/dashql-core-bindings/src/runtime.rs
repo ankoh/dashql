@@ -82,7 +82,7 @@ use workbooks::view::{
     EditorEventOutcome, StoredScriptView, WorkbookDerivedView, WorkbookListView, WorkbookScriptKeys,
     WorkbookScriptView, WorkbookView,
 };
-use workbooks::{NewWorkbook, StoredScriptRef, Workbooks};
+use workbooks::{Applied, NewWorkbook, StoredScriptRef, Workbooks};
 
 #[wasm_bindgen(typescript_custom_section)]
 const RUNTIME_VIEWS: &str = r#"
@@ -157,7 +157,7 @@ pub struct DispatchOutcome {
     pub changed: bool,
     /// The error of a failed action
     pub error: Option<String>,
-    /// What the action created: the id of a connection or of a query
+    /// What the action created: the id of a connection or of a query, the key of a script
     pub id: Option<SliceId>,
 }
 
@@ -684,7 +684,8 @@ impl Runtime {
             },
             W::SetWorkbookAttachments { files } => {
                 let action = A::SetWorkbookAttachments { files: files.into_iter().map(Into::into).collect() };
-                let outcome = self.workbook_outcome(workbooks.apply(&workbook_id, action));
+                let outcome =
+                    self.workbook_outcome(workbooks.apply(&workbook_id, action).map(|applied| applied.changed));
                 // The columns of new Parquet attachments are read with the compute database
                 self.runs.describe_attachments();
                 return outcome;
@@ -695,7 +696,11 @@ impl Runtime {
                 return self.workbook_outcome(workbooks.set_cloud_link(&workbook_id, link));
             }
         };
-        self.workbook_outcome(workbooks.apply(&workbook_id, action))
+        match workbooks.apply(&workbook_id, action) {
+            // A created script is named by its key
+            Ok(Applied { created: Some(key), .. }) => DispatchOutcome::created(SliceId::Number(key.into())),
+            outcome => self.workbook_outcome(outcome.map(|applied| applied.changed)),
+        }
     }
 
     /// What restores the stored state into the runtime

@@ -283,7 +283,6 @@ describe('Workbook feed composer', () => {
         useScriptRun: () => feedState.runScript,
         useWorkbookScriptMap: () => feedState.scripts,
         useWorkbookDerived: () => null,
-        useLiveWorkbookReader: () => () => feedState.next,
         useLiveScriptReader: () => (key: number) => feedState.next?.scripts[key] ?? null,
         useComposerCore: () => ({ instance: {}, catalog: {}, tableParameters: { attach: () => false }, connectorType: ConnectorType.HYPER }) as unknown as ReturnType<WorkbookFeedDependencies['useComposerCore']>,
         useAgentSession: (args: AgentSessionArgs) => { feedState.sessionArgs = args; return feedState.session; },
@@ -415,7 +414,7 @@ describe('Workbook feed composer', () => {
     it('appends a sent draft as a script and runs it', async () => {
         const next = workbook(['1_alpha.sql']);
         feedState.next = next;
-        const modify = vi.fn(() => APPLIED);
+        const modify = vi.fn(() => ({ ...APPLIED, id: 1 }));
         render(workbook(), modify);
         await act(async () => feedState.composerProps!.onSend('select 1'));
         expect(modify).toHaveBeenCalledExactlyOnceWith({ kind: 'createScript', value: expect.objectContaining({ text: 'select 1' }) });
@@ -433,7 +432,7 @@ describe('Workbook feed composer', () => {
 
     it('only creates the script without a healthy connection', async () => {
         feedState.next = workbook(['1_alpha.sql']);
-        const modify = vi.fn(() => APPLIED);
+        const modify = vi.fn(() => ({ ...APPLIED, id: 1 }));
         render(workbook(), modify, null);
         await act(async () => feedState.composerProps!.onSend('select 1'));
         expect(modify).toHaveBeenCalledOnce();
@@ -575,7 +574,7 @@ describe('Workbook feed composer', () => {
             const created = workbook(['1_alpha.sql', '2_beta.sql', '3_gamma.sql', '4_delta.sql']);
             created.scriptOrder = ['1_alpha.sql', '2_beta.sql', '4_delta.sql', '3_gamma.sql'];
             feedState.next = created;
-            const modify = vi.fn(() => APPLIED);
+            const modify = vi.fn(() => ({ ...APPLIED, id: 4 }));
             render(before, modify);
             for (let i = 0; i < 3; ++i) act(() => feedState.rowProps!.onRowHeightChange(i, 200));
             scrollTo.mockClear();

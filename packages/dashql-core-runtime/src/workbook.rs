@@ -761,6 +761,8 @@ pub struct WorkbookOutcome {
     /// The update of an editor event as it goes back to the editor: an analysis that the editor holds is left out.
     /// None if the update is the one that the script holds now (`WorkbookScript::editor_update`).
     pub editor_update: Option<EditorUpdateT>,
+    /// The key of the script that the action created
+    pub created: Option<ScriptKey>,
 }
 
 /// What a plan of a run covers
@@ -1728,6 +1730,7 @@ impl Workbook {
             self.pending_connection = None;
         }
         outcome.changed = true;
+        outcome.created = Some(key);
         outcome.effects.push(WorkbookEffect::WriteScript { file_name, text: text.unwrap_or_default() });
         outcome.effects.push(WorkbookEffect::WriteScriptList(self.script_list()));
         Ok(())

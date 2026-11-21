@@ -95,11 +95,14 @@ describe('The workbooks of the runtime', () => {
         // The connection knows the workbook that uses it, it can't be deleted
         expect(viewOf(runtime, 'connection', 'main')!.workbooks).toEqual(['w']);
 
-        expect(runtime.dispatch({ workbook: 'w' }, { kind: 'createScript', value: { text: 'create table t (x int)', base: 'alpha' } }).changed).toBe(true);
-        expect(runtime.dispatch({ workbook: 'w' }, { kind: 'createScript', value: { text: 'select x from t', base: 'beta' } }).changed).toBe(true);
+        const createdAlpha = runtime.dispatch({ workbook: 'w' }, { kind: 'createScript', value: { text: 'create table t (x int)', base: 'alpha' } });
+        const createdBeta = runtime.dispatch({ workbook: 'w' }, { kind: 'createScript', value: { text: 'select x from t', base: 'beta' } });
+        expect([createdAlpha.changed, createdBeta.changed]).toEqual([true, true]);
         const workbook = viewOf(runtime, 'workbook', 'w')!;
         expect(workbook.scriptOrder).toEqual(['alpha.sql', 'beta.sql']);
         const [alpha, beta] = workbook.scriptKeys;
+        // The outcome names a created script by its key
+        expect([createdAlpha.id, createdBeta.id]).toEqual([alpha, beta]);
         expect(viewOf(runtime, 'script', beta, [NONE])).toMatchObject({ key: beta, workbookId: 'w', fileName: 'beta.sql', connectionId: 'main', analysisOutdated: false });
 
         // The effects are written through the writer of the runtime

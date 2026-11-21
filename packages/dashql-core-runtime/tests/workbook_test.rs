@@ -114,9 +114,15 @@ fn appends_a_script_with_text_analyzes_it_and_writes_it() {
 #[test]
 fn inserts_at_a_feed_index_with_a_unique_name() {
     let (mut workbook, _) = workbook(&[("alpha.sql", ""), ("beta.sql", "")]);
-    let effects = create(&mut workbook, Some(1), None, "alpha");
+    let action = WorkbookAction::CreateScript { index: Some(1), text: None, base: "alpha".into(), connection: None };
+    let outcome = workbook.apply(action).unwrap();
     assert_eq!(files(&workbook), ["alpha.sql", "alpha-2.sql", "beta.sql"]);
-    assert_eq!(effects[0], WorkbookEffect::WriteScript { file_name: "alpha-2.sql".into(), text: String::new() });
+    // The outcome names the created script
+    assert_eq!(outcome.created, Some(key(&workbook, "alpha-2.sql")));
+    assert_eq!(
+        outcome.effects[0],
+        WorkbookEffect::WriteScript { file_name: "alpha-2.sql".into(), text: String::new() }
+    );
 }
 
 #[test]

@@ -20,7 +20,7 @@ use dashql_core_runtime::host::{Host, LogLevel};
 use dashql_core_runtime::names::free_workbook_name;
 use dashql_core_runtime::visible_scripts::{ScriptAnalyses, VisibleScripts};
 use dashql_core_runtime::workbook::{
-    next_revision, EditorUpdateId, ScriptConnection, StoredScript, Workbook, WorkbookAction, WorkbookEffect,
+    next_revision, EditorUpdateId, ScriptConnection, ScriptKey, StoredScript, Workbook, WorkbookAction, WorkbookEffect,
     WorkbookOutcome, WorkbookScript as Script,
 };
 use dashql_core_storage::restore::script_connection_of;
@@ -77,6 +77,14 @@ enum Changed {
     Editor { derives: bool },
     Scripts { derives: bool },
     Workbook,
+}
+
+/// What an action did to a workbook
+pub(crate) struct Applied {
+    /// Did the action change the workbook?
+    pub changed: bool,
+    /// The key of the script that the action created
+    pub created: Option<ScriptKey>,
 }
 
 /// The workbooks whose derived view waits until the typing pauses
@@ -280,7 +288,7 @@ impl Workbooks {
     /// Apply an action to a workbook: its effects are written, an ephemeral workbook with scripts is promoted and the
     /// connections learn the workbooks that use them. A failed action leaves the workbook as it was, but for the
     /// scripts that analyzed on the way, e.g. before a rewrite of references, which show their analyses.
-    pub fn apply(&self, workbook_id: &str, action: WorkbookAction) -> Result<bool> {
+    pub fn apply(&self, workbook_id: &str, action: WorkbookAction) -> Result<Applied> {
         let workbook = self
             .get(workbook_id)
             .ok_or_else(|| Error::invalid_argument(format!("no workbook registered with id {workbook_id}")))?;
@@ -299,7 +307,10 @@ impl Workbooks {
         let outcome =
             workbook.try_borrow_mut().map_err(|_| Error::invalid_argument("the workbook is busy"))?.apply(action);
         match outcome {
-            Ok(outcome) => Ok(self.settle(workbook_id, &workbook, outcome, changed)),
+            Ok(outcome) => {
+                let created = outcome.created;
+                Ok(Applied { changed: self.settle(workbook_id, &workbook, outcome, changed), created })
+            }
             Err(error) => {
                 self.platform.mark(Slice::Scripts(workbook_id));
                 self.mark_published(workbook_id, &workbook);
@@ -351,7 +362,7 @@ impl Workbooks {
     /// run analyzed scripts
     pub fn settle_run(&self, workbook_id: &str, effects: Vec<WorkbookEffect>, analyzed: bool) {
         let Some(workbook) = self.get(workbook_id) else { return };
-        let outcome = WorkbookOutcome { changed: true, effects, editor_update: None };
+        let outcome = WorkbookOutcome { changed: true, effects, editor_update: None, created: None };
         self.settle(workbook_id, &workbook, outcome, Changed::Scripts { derives: analyzed });
     }
 
@@ -721,7 +732,7 @@ impl Workbooks {
             self.settle(
                 workbook_id,
                 &workbook,
-                WorkbookOutcome { changed: true, effects: Vec::new(), editor_update: None },
+                WorkbookOutcome { changed: true, effects: Vec::new(), editor_update: None, created: None },
                 Changed::Workbook,
             );
         }

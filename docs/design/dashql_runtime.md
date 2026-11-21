@@ -289,10 +289,10 @@ runtime.dispatch<T extends Target>(target: T, action: ActionOf<T>): Settled
   `createScript`, `setScriptText`, `showScript`, `setDraft`, `resetConnection`, `orderBy`, `queryCacheDeleted`. The
   queries run with `execute`, never by actions.
 - **The outcome** is `{ ok, changed, error, id, settled }` (`Settled` of `runtime.ts`, over `DispatchOutcome`): `id`
-  names what the action created (a workbook, a connection). A failed action leaves the state as it was; the runtime
-  logs every refused action as a warning. `settled` resolves once the store took the changes of the action
-  (`RuntimeStore.afterFlush`), so a read after it sees them unless a task held the slice; it resolves at once when the
-  action changed nothing, and for a destroyed runtime.
+  names what the action created (a workbook, a connection, the key of a script). A failed action leaves the state as it
+  was; the runtime logs every refused action as a warning. `settled` resolves once the store took the changes of the
+  action (`RuntimeStore.afterFlush`), so a read after it sees them unless a task held the slice; it resolves at once
+  when the action changed nothing, and for a destroyed runtime.
 - **Never throws.** A malformed target or action and a refused action are a failed outcome, and so is a dispatch after
   `destroy`.
 

@@ -11,7 +11,7 @@ import { useStoreState } from '../../utils/store_hooks.js';
 /// The selected script of every workbook (workbookId -> script key). A state of the app, the workbook scripts of the
 /// runtime don't know it: the feed, the commands of a workbook and the editors follow it. Keyed by the script key, a
 /// selected script stays selected when it is renamed or moves to another connection. Whoever creates or deletes a
-/// script moves the selection: a created script is selected (`createdScriptRef`), a deleted one passes it to the
+/// script moves the selection: a created script is selected (the `id` of the outcome), a deleted one passes it to the
 /// script before it (`deleteScript`).
 export type ScriptSelectionState = ReadonlyMap<string, ScriptKey>;
 
@@ -23,12 +23,6 @@ export function selectedScriptRef(workbook: Pick<WorkbookScripts, 'scriptKeys' |
     if (ref != null) return ref;
     const first = workbook.scriptOrder[0];
     return first == null ? undefined : workbook.scriptRefs[first];
-}
-
-/// The script that a `createScript` added to a workbook
-export function createdScriptRef(prev: Pick<WorkbookScripts, 'scriptRefs'>, next: Pick<WorkbookScripts, 'scriptOrder' | 'scriptRefs'>): ScriptRef | undefined {
-    const created = next.scriptOrder.find(fileName => prev.scriptRefs[fileName] == null);
-    return created == null ? undefined : next.scriptRefs[created];
 }
 
 /// The selected scripts of the workbooks of a runtime

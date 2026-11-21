@@ -29,7 +29,7 @@ import { ConnectionHealth, ConnectionState } from '@akohn/dashql/platform/connec
 import { useWorkbookReadOnly } from '../workbook_read_only.js';
 import { deleteScript, useScriptSelection, useSelectedScriptRef } from '../scripts/script_selection.js';
 import { getScriptRefs, type ModifyWorkbookScripts, type ScriptData, type WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
-import { createScriptAction, selectCreatedScript, useLiveScriptReader, useLiveWorkbookReader } from '../scripts/script_creation.js';
+import { createScriptAction, useLiveScriptReader } from '../scripts/script_creation.js';
 import { useCatalog, useOptionalRuntime, useRuntime, useScriptRun, useWorkbookDerived, useWorkbookExecution, useWorkbookScriptMap } from '@akohn/dashql-react/hooks';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
 import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
@@ -111,7 +111,6 @@ export interface WorkbookFeedDependencies {
     useScriptRun: typeof useScriptRun;
     useWorkbookScriptMap: typeof useWorkbookScriptMap;
     useWorkbookDerived: typeof useWorkbookDerived;
-    useLiveWorkbookReader: typeof useLiveWorkbookReader;
     useLiveScriptReader: typeof useLiveScriptReader;
     useComposerCore: typeof useComposerCore;
     useAgentSession: typeof useAgentSession;
@@ -130,7 +129,6 @@ const DEFAULT_DEPENDENCIES: WorkbookFeedDependencies = {
     useScriptRun,
     useWorkbookScriptMap,
     useWorkbookDerived,
-    useLiveWorkbookReader,
     useLiveScriptReader,
     useComposerCore,
     useAgentSession,
@@ -548,26 +546,24 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     // on a connection that is not connected is only created and the connection asks for attention.
     const connectionAttention = React.useContext(WorkbookConnectionAttentionContext);
     const pendingScrollToEndRef = React.useRef(false);
-    const readWorkbook = dependencies.useLiveWorkbookReader();
     const appendScript = React.useCallback(async (text: string) => {
         const prev = latest.current.workbookScripts;
+        // The outcome names the created script by its key, it is selected
         const outcome = modifyWorkbookScripts(createScriptAction(prev, { text }));
-        if (!outcome.ok) return null;
+        if (!outcome.ok || typeof outcome.id !== 'number') return null;
         pendingScrollToEndRef.current = true;
-        const next = readWorkbook(prev.workbookId);
-        const created = selectCreatedScript(selection, prev, next);
-        if (next == null || created == null) return null;
-        const scriptData = readScript(created.scriptId);
-        return scriptData != null ? { next, scriptData } : null;
-    }, [modifyWorkbookScripts, selection, readWorkbook, readScript]);
-    const runAppendedScript = React.useCallback((next: WorkbookScripts, scriptData: ScriptData) => {
+        selection.select(prev.workbookId, outcome.id);
+        const scriptData = readScript(outcome.id);
+        return scriptData != null ? { workbookId: prev.workbookId, scriptData } : null;
+    }, [modifyWorkbookScripts, selection, readScript]);
+    const runAppendedScript = React.useCallback((workbookId: string, scriptData: ScriptData) => {
         // The agent may write the script on another connection than the one of the composer
         if (!isScriptOnline(scriptData)) {
             connectionAttention?.request();
             return;
         }
         if (runScript == null) return;
-        void runScript(next.workbookId, scriptData.scriptKey);
+        void runScript(workbookId, scriptData.scriptKey);
     }, [connectionAttention, runScript]);
 
     // Scroll a script into view.
@@ -636,21 +632,22 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
 
     const handleCreate = React.useCallback((index: number) => {
         const prev = latest.current.workbookScripts;
+        // The outcome names the created script by its key, it is selected
         const outcome = modifyWorkbookScripts(createScriptAction(prev, { index }));
-        if (!outcome.ok) return;
-        const created = selectCreatedScript(selection, prev, readWorkbook(prev.workbookId));
-        if (created == null) return;
+        if (!outcome.ok || typeof outcome.id !== 'number') return;
+        const scriptKey = outcome.id;
+        selection.select(prev.workbookId, scriptKey);
         // The created script stays in view like a followed one, until the user scrolls, clicks or types in the feed
         followAgentRef.current = false;
-        followedRef.current = { scriptKey: created.scriptId, target: 'script' };
+        followedRef.current = { scriptKey, target: 'script' };
         setFollowRequest(n => n + 1);
-        const view = editorViewsRef.current.get(created.scriptId);
+        const view = editorViewsRef.current.get(scriptKey);
         if (view != null) {
             view.focus();
         } else {
-            pendingCreatedScriptKeyRef.current = created.scriptId;
+            pendingCreatedScriptKeyRef.current = scriptKey;
         }
-    }, [modifyWorkbookScripts, selection, readWorkbook]);
+    }, [modifyWorkbookScripts, selection]);
 
     // The agent of a session in the terminal answers questions in the scripts of the workbook, the page watches
     const handleShowAgentScript = React.useCallback((scriptKey: number) => {
@@ -680,7 +677,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         stopFollowingAgent();
         logger.debug('Running the composer draft', { characters: String(text.length) }, LOG_CTX);
         void appendScript(text).then(appended => {
-            if (appended != null) runAppendedScript(appended.next, appended.scriptData);
+            if (appended != null) runAppendedScript(appended.workbookId, appended.scriptData);
         });
     }, [appendScript, runAppendedScript, stopFollowingAgent, logger]);
     React.useEffect(() => {

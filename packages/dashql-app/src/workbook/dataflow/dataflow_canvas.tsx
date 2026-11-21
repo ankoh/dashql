@@ -40,7 +40,6 @@ import {
 } from './dataflow_scene.js';
 import { createFlowScript, persistFlowPlacement, removeFlowPositions } from './dataflow_source.js';
 import { deleteScript as deleteWorkbookScript, useScriptSelection } from '../scripts/script_selection.js';
-import { selectCreatedScript, useLiveWorkbookReader } from '../scripts/script_creation.js';
 import { useOptionalRuntime, useWorkbookDerived, useWorkbookScriptMap } from '@akohn/dashql-react/hooks';
 import { useQueryModel } from '@akohn/dashql-react/models/query_model';
 import { useDataflowModule } from './dataflow_module.js';
@@ -498,12 +497,11 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
     // The core of the runtime, or the one that the package instantiated, e.g. of a canvas without a runtime
     const coreInstance = useOptionalRuntime()?.core ?? core.DashQL.instantiated();
     const quoteIdentifier = React.useCallback((name: string) => coreInstance?.quoteIdentifier(name) ?? quoteSqlIdentifier(name), [coreInstance]);
-    const readWorkbook = useLiveWorkbookReader();
     const createAt = React.useCallback((position: Position | null, producer: ScriptData | null) => {
         const outcome = createFlowScript(workbookScripts, position, producer, quoteIdentifier, modifyWorkbookScripts);
-        // The created script is selected
-        if (outcome.ok) selectCreatedScript(scriptSelection, workbookScripts, readWorkbook(workbookScripts.workbookId));
-    }, [quoteIdentifier, modifyWorkbookScripts, workbookScripts, scriptSelection, readWorkbook]);
+        // The created script is selected, the outcome names it by its key
+        if (outcome.ok && typeof outcome.id === 'number') scriptSelection.select(workbookScripts.workbookId, outcome.id);
+    }, [quoteIdentifier, modifyWorkbookScripts, workbookScripts, scriptSelection]);
     // The layout places a script that reads a box right of it, in a free slot
     const createDownstream = React.useCallback((box: DataflowSceneBox) => {
         createAt(null, scripts[box.script.scriptKey] ?? null);

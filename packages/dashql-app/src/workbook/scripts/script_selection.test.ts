@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 
-import { createdScriptRef, deleteScript, ScriptSelection, selectedScriptRef } from './script_selection.js';
+import { deleteScript, ScriptSelection, selectedScriptRef } from './script_selection.js';
 
 /// A workbook with scripts in feed order, the scripts are keyed from 1. Only the names, the keys and the order matter.
 function workbook(files: string[], keys: number[] = files.map((_, i) => i + 1)): WorkbookScripts {
@@ -21,13 +21,6 @@ describe('the script selection', () => {
         expect(selectedScriptRef(current, 2)?.fileName).toBe('b.sql');
         expect(selectedScriptRef(current, 9)?.fileName).toBe('a.sql');
         expect(selectedScriptRef(workbook([]), 1)).toBeUndefined();
-    });
-
-    it('finds a created script', () => {
-        const prev = workbook(['a.sql', 'c.sql'], [1, 3]);
-        const next = workbook(['a.sql', 'b.sql', 'c.sql'], [1, 2, 3]);
-        expect(createdScriptRef(prev, next)?.scriptId).toBe(2);
-        expect(createdScriptRef(next, next)).toBeUndefined();
     });
 
     it('keeps a renamed script selected', () => {
