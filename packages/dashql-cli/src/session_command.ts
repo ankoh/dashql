@@ -75,7 +75,7 @@ export function options(args: string[], flags: ReadonlySet<string> = new Set()):
 }
 
 /// Send an event to the server of a session
-export async function postSessionEvent(target: SessionTarget, event: AgentSessionEvent): Promise<void> {
+async function postSessionEvent(target: SessionTarget, event: AgentSessionEvent): Promise<void> {
     await fetchAgentSession(`${target.endpoint}/v1/events`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${target.token}`, 'Content-Type': 'application/json' },

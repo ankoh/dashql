@@ -7,7 +7,7 @@ import { DASHQL_FOLDER, SESSIONS_FOLDER } from '@akohn/dashql/platform/session/s
 
 import { EXIT_FAILED, EXIT_OK, EXIT_USAGE, type CliProcess } from './cli_process.js';
 import { CONNECTED_AGENT_GUIDE } from './describe_command.js';
-import { options, postSessionEvent, shellWord, type SessionTarget } from './session_command.js';
+import { options, shellWord } from './session_command.js';
 import { sessionFolder } from './session_folder.js';
 import { startSessionServer } from './session_server.js';
 
@@ -171,7 +171,6 @@ export async function runConnect(argv: string[], cli: CliProcess, env: ConnectEn
             : `dashql: the server of the session did not start: ${String(error)}\n`);
         return EXIT_FAILED;
     }
-    const target: SessionTarget = { endpoint: `http://127.0.0.1:${server.port}`, token: secret };
     const program = named.get('command') ?? harness;
     const hookSession: HookSession = { workspace: folder, session };
     const args = [...(harness === 'claude' ? claudeHookArgs(env.dashql, hookSession) : codexHookArgs(env.dashql, hookSession)), ...rest];
@@ -191,13 +190,7 @@ export async function runConnect(argv: string[], cli: CliProcess, env: ConnectEn
         code = EXIT_FAILED;
     }
     // The page learns that the session ended, also from a harness without SessionEnd
-    if (!server.state().ended) {
-        try {
-            await postSessionEvent(target, { event: 'SessionEnd', harness, folder });
-        } catch {
-            // The page finds the server gone
-        }
-    }
+    server.end();
     await server.close();
     return code;
 }

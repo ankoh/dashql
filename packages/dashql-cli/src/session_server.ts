@@ -52,10 +52,6 @@ export interface SessionServerOptions {
     /// The id of the session of `dashql connect`: the id of its state and its folder `.dashql/sessions/<id>/`, with the
     /// address of the server for the commands and the copies of the workbooks of the tab
     session: string;
-    /// The pages that may follow the session, besides requests without an origin
-    origins?: string[];
-    /// Called when the harness ended the session
-    onEnd?: () => void;
 }
 
 /// A running server of a session
@@ -64,6 +60,8 @@ export interface SessionServer {
     token: string;
     /// The state as the events left it
     state: () => AgentSessionState;
+    /// End the session unless the harness ended it, the pages learn it
+    end: () => void;
     close: () => Promise<void>;
 }
 
@@ -137,33 +135,69 @@ function sendFile(response: http.ServerResponse, file: string, type: string): vo
     createReadStream(file).pipe(response);
 }
 
+/// The body of a request
+function readBody(request: http.IncomingMessage): Promise<Buffer> {
+    return new Promise<Buffer>((resolve, reject) => {
+        const chunks: Buffer[] = [];
+        request.on('data', chunk => chunks.push(chunk as Buffer));
+        request.on('end', () => resolve(Buffer.concat(chunks)));
+        request.on('error', reject);
+    });
+}
+
+/// Write the body of a request to a file: next to its place and moved there, a reader never sees half of it
+function writeAtomically(request: http.IncomingMessage, file: string): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+        const part = `${file}.${randomBytes(6).toString('hex')}.part`;
+        const out = createWriteStream(part);
+        const fail = (error: unknown) => {
+            rmSync(part, { force: true });
+            reject(error);
+        };
+        request.on('error', fail);
+        out.on('error', fail);
+        out.on('finish', () => {
+            try {
+                renameSync(part, file);
+                resolve();
+            } catch (error) {
+                fail(error);
+            }
+        });
+        request.pipe(out);
+    });
+}
+
+/// Answer a request whose body could not be written
+function failWrite(response: http.ServerResponse): void {
+    if (!response.headersSent) response.writeHead(500);
+    response.end();
+}
+
 /// Start the server of a session on 127.0.0.1. Hooks post the events of the harness to /v1/events, pages follow its
 /// state on /v1/stream as server-sent events. Every request carries the token, pages in the query since an
 /// EventSource sends no headers.
 export async function startSessionServer(options: SessionServerOptions): Promise<SessionServer> {
     const token = options.token ?? randomBytes(24).toString('base64url');
-    const origins = new Set(options.origins ?? SESSION_PAGE_ORIGINS);
+    const origins = new Set(SESSION_PAGE_ORIGINS);
     let state = createAgentSessionState(options.harness, options.folder, options.session);
     const streams = new Set<http.ServerResponse>();
 
     const send = (response: http.ServerResponse) => response.write(`data: ${JSON.stringify(state)}\n\n`);
     const broadcast = () => { for (const stream of streams) send(stream); };
     // The folder of the session holds the address of the server and the copies, it goes when the session ends. The
-    // folder of DashQL ignores itself, it is no part of a repository of the folder. A folder that the server can't
-    // write to has no session folder, the page still follows the conversation.
+    // folder of DashQL ignores itself, it is no part of a repository of the folder. The hooks find the server only
+    // there, a folder that the server can't write to has no session.
     const dashqlFolder = path.join(options.folder, DASHQL_FOLDER);
     const sessionFolder = sessionFolderOf(options.folder, options.session);
     const copies = sessionCopiesFolder(options.folder, options.session);
-    let writable = true;
     try {
         mkdirSync(sessionFolder, { recursive: true });
         writeFileSync(path.join(dashqlFolder, '.gitignore'), '*\n');
     } catch {
-        writable = false;
+        throw new Error(`cannot write ${sessionFolder}`);
     }
-    const removeSessionFolder = () => {
-        if (writable) rmSync(sessionFolder, { force: true, recursive: true });
-    };
+    const removeSessionFolder = () => rmSync(sessionFolder, { force: true, recursive: true });
 
     /// Stamp the files of the copy of the workbook of a page once it has its workbook file, the caller broadcasts
     const stampCopy = (workbookId: string) => {
@@ -190,16 +224,37 @@ export async function startSessionServer(options: SessionServerOptions): Promise
         request.headers.authorization === `Bearer ${token}` || url.searchParams.get('token') === token
         || pathToken(url) === token;
 
-
-    /// The body of a request
-    const readBody = (request: http.IncomingMessage) => new Promise<Buffer>((resolve, reject) => {
-        const chunks: Buffer[] = [];
-        request.on('data', chunk => chunks.push(chunk as Buffer));
-        request.on('end', () => resolve(Buffer.concat(chunks)));
-        request.on('error', reject);
-    });
     const sendJson = (response: http.ServerResponse, status: number, value: unknown) =>
         response.writeHead(status, { 'Content-Type': 'application/json' }).end(JSON.stringify(value));
+
+    /// POST /v1/events from the hooks: an event of the harness
+    const postEvent = async (request: http.IncomingMessage, response: http.ServerResponse) => {
+        let event: AgentSessionEvent;
+        try {
+            event = JSON.parse((await readBody(request)).toString('utf8')) as AgentSessionEvent;
+        } catch {
+            return void response.writeHead(400).end();
+        }
+        state = reduceAgentSessionEvent(state, event, Date.now());
+        // The tools of the harness edit the files of a copy without a dashql command, the page sees their edits after
+        // the tool
+        if (event.event === 'PostToolUse' || event.event === 'Stop') stampCopies();
+        broadcast();
+        response.writeHead(204).end();
+    };
+
+    /// PUT /v1/connections/<token>: the connections that the tab lets the agent use, in the folder of the session, where
+    /// the commands of the session read them
+    const putConnections = async (request: http.IncomingMessage, response: http.ServerResponse) => {
+        const connections = parseSessionConnections((await readBody(request)).toString('utf8'));
+        if (connections == null) return void response.writeHead(400).end();
+        try {
+            writeFileSync(path.join(sessionFolder, SESSION_CONNECTIONS_FILE), `${JSON.stringify(connections, null, 2)}\n`);
+        } catch {
+            return void response.writeHead(500).end();
+        }
+        response.writeHead(204).end();
+    };
 
     /// The runs that `dashql run` asked the tab for, by their id: the answer that streams their events
     const runs = new Map<string, { response: http.ServerResponse; claim: ReturnType<typeof setTimeout> | null }>();
@@ -300,28 +355,7 @@ export async function startSessionServer(options: SessionServerOptions): Promise
             response.writeHead(401).end();
             return;
         }
-        if (request.method === 'POST' && url.pathname === '/v1/events') {
-            let body = '';
-            request.setEncoding('utf8');
-            request.on('data', chunk => { body += chunk; });
-            request.on('end', () => {
-                let event: AgentSessionEvent;
-                try {
-                    event = JSON.parse(body) as AgentSessionEvent;
-                } catch {
-                    response.writeHead(400).end();
-                    return;
-                }
-                state = reduceAgentSessionEvent(state, event, Date.now());
-                // The tools of the harness edit the files of a copy without a dashql command, the page sees their
-                // edits after the tool
-                if (event.event === 'PostToolUse' || event.event === 'Stop') stampCopies();
-                for (const stream of streams) send(stream);
-                response.writeHead(204).end();
-                if (state.ended) options.onEnd?.();
-            });
-            return;
-        }
+        if (request.method === 'POST' && url.pathname === '/v1/events') return void postEvent(request, response).catch(() => response.destroy());
         if (url.pathname.startsWith('/v1/runs/')) {
             // /v1/runs/<token> starts a run, /v1/runs/<token>/<run id> takes its events or stops it
             const parts = url.pathname.split('/');
@@ -337,27 +371,7 @@ export async function startSessionServer(options: SessionServerOptions): Promise
             return void response.writeHead(404).end();
         }
         if (request.method === 'PUT' && url.pathname.split('/').length === 4 && url.pathname.startsWith('/v1/connections/')) {
-            // /v1/connections/<token>: the connections that the tab lets the agent use, in the folder of the session,
-            // where the commands of the session read them
-            let body = '';
-            request.setEncoding('utf8');
-            request.on('data', chunk => { body += chunk; });
-            request.on('end', () => {
-                const connections = parseSessionConnections(body);
-                if (connections == null) {
-                    response.writeHead(400).end();
-                    return;
-                }
-                try {
-                    if (!writable) throw new Error('the session has no folder');
-                    writeFileSync(path.join(sessionFolder, SESSION_CONNECTIONS_FILE), `${JSON.stringify(connections, null, 2)}\n`);
-                } catch {
-                    response.writeHead(500).end();
-                    return;
-                }
-                response.writeHead(204).end();
-            });
-            return;
+            return void putConnections(request, response).catch(() => response.destroy());
         }
         if ((request.method === 'PUT' || request.method === 'DELETE') && url.pathname.startsWith('/v1/workbooks/')) {
             // The copy of the workbook of a page, /v1/workbooks/<token>/<workbook id>[/<path in the folder>]
@@ -389,29 +403,12 @@ export async function startSessionServer(options: SessionServerOptions): Promise
                 response.writeHead(204).end();
                 return;
             }
-            // The file is written next to its place and moved there, a reader never sees half of it
             mkdirSync(path.dirname(file), { recursive: true });
-            const part = `${file}.${randomBytes(6).toString('hex')}.part`;
-            const out = createWriteStream(part);
-            const fail = () => {
-                rmSync(part, { force: true });
-                if (!response.headersSent) response.writeHead(500);
-                response.end();
-            };
-            request.on('error', fail);
-            out.on('error', fail);
-            out.on('finish', () => {
-                try {
-                    renameSync(part, file);
-                } catch {
-                    fail();
-                    return;
-                }
+            writeAtomically(request, file).then(() => {
                 stampCopy(workbookId);
                 broadcast();
                 response.writeHead(204).end();
-            });
-            request.pipe(out);
+            }, () => failWrite(response)).catch(() => response.destroy());
             return;
         }
         if (request.method === 'PUT' && url.pathname.split('/').length === 5 && url.pathname.startsWith('/v1/results/')) {
@@ -421,26 +418,8 @@ export async function startSessionServer(options: SessionServerOptions): Promise
             if (!/^[0-9a-f]{64}$/.test(key)) return void response.writeHead(400).end();
             const cache = path.join(dashqlFolder, RESULT_CACHE_FOLDER);
             const file = path.join(cache, `${key}.${randomUUID()}.parquet`);
-            const part = `${file}.part`;
             mkdirSync(cache, { recursive: true });
-            const out = createWriteStream(part);
-            const fail = () => {
-                rmSync(part, { force: true });
-                if (!response.headersSent) response.writeHead(500);
-                response.end();
-            };
-            request.on('error', fail);
-            out.on('error', fail);
-            out.on('finish', () => {
-                try {
-                    renameSync(part, file);
-                } catch {
-                    fail();
-                    return;
-                }
-                sendJson(response, 200, { file });
-            });
-            request.pipe(out);
+            writeAtomically(request, file).then(() => sendJson(response, 200, { file }), () => failWrite(response)).catch(() => response.destroy());
             return;
         }
         if (request.method === 'GET' && url.pathname.startsWith('/v1/workbooks/')) {
@@ -499,11 +478,16 @@ export async function startSessionServer(options: SessionServerOptions): Promise
     }
     const port = (server.address() as { port: number }).port;
     // The commands of the agent find the server in the folder of the session, readable by the user only
-    if (writable) writeFileSync(path.join(sessionFolder, SESSION_SERVER_FILE), `${JSON.stringify({ endpoint: `http://127.0.0.1:${port}`, token })}\n`, { mode: 0o600 });
+    writeFileSync(path.join(sessionFolder, SESSION_SERVER_FILE), `${JSON.stringify({ endpoint: `http://127.0.0.1:${port}`, token })}\n`, { mode: 0o600 });
     return {
         port,
         token,
         state: () => state,
+        end: () => {
+            if (state.ended) return;
+            state = reduceAgentSessionEvent(state, { event: 'SessionEnd', harness: options.harness, folder: options.folder }, Date.now());
+            broadcast();
+        },
         close: () => new Promise<void>(resolve => {
             clearInterval(keepAlive);
             // The commands of a later run find no session, the copies go with it

@@ -93,8 +93,8 @@ of the tab runs the `dashql-cli` of the build of the page, so both sides speak e
 
 ## The folder of the session
 
-The server of `dashql connect` creates `.dashql/sessions/<id>/` in the folder that the harness works in; the folder of
-DashQL ignores itself (`.dashql/.gitignore` is `*`). It holds everything of the session and goes when the session ends,
+The server of `dashql connect` creates `.dashql/sessions/<id>/` in the folder that the harness works in, a folder that it
+can't write fails the start; the folder of DashQL ignores itself (`.dashql/.gitignore` is `*`). It holds everything of the session and goes when the session ends,
 two sessions in one folder keep apart:
 
 - `server.json`: the address and the token of the server, readable by the user only, where the commands find it.
@@ -239,9 +239,9 @@ stays the one place the page talks to.
 
 - `//tests/agents`: Claude Code and Codex run a turn under `dashql connect`, the state of its server holds the
   question, the command with its SQL file and the final message.
-- `//packages/dashql-cli:test`: the server (token, origins, preflight, malformed paths), the payloads of both
-  harnesses with the lines of their steps and the hooks of the tools that `dashql connect` gives them; the folder of
-  the session: its address, two sessions in one folder, gone when the session stops.
+- `//packages/dashql-cli:test`: the server (token, origins, preflight, malformed paths, a folder that it can't write),
+  the payloads of both harnesses with the lines of their steps and the hooks of the tools that `dashql connect` gives
+  them; the folder of the session: its address, two sessions in one folder, gone when the session stops.
 - `//packages/dashql:test_platform_node`: the folder of a session and the stamps of its copies
   (`session/session_folder.test.ts`), the state of a session with the steps of a turn (tools at once, a failed one,
   hooks without an id), the protocol (`session/agent_session_protocol.test.ts`: the older side, the check of an

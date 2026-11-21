@@ -166,9 +166,8 @@ describe('the session server', () => {
         expect((await fetchAgentSession(`${base}/v1/state?token=${server.token}`)).status).toBe(200);
     });
 
-    it('follows the conversation in a folder that it cannot write', async () => {
-        server = await startSessionServer({ harness: 'claude', folder: path.join(temp('dashql-session-'), 'missing', '\0'), session: '51009' });
-        expect(server.state().workbooks).toEqual([]);
-        expect(existsSync(path.join(server.state().folder, '.dashql'))).toBe(false);
+    it('does not start in a folder that it cannot write', async () => {
+        const folder = path.join(temp('dashql-session-'), 'missing', '\0');
+        await expect(startSessionServer({ harness: 'claude', folder, session: '51009' })).rejects.toThrow(/^cannot write /);
     });
 });
