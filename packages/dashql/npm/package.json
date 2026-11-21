@@ -36,7 +36,7 @@
     "immutable": "^5.1.9"
   },
   "peerDependencies": {
-    "hyperdb-wasm": "0.0.27368-dev.wasm.ge0a6b4a9",
+    "hyperdb-wasm": "0.0.27368-dev.wasm.ge6142229",
     "vega-lite": "^6.5.0"
   },
   "peerDependenciesMeta": {
