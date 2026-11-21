@@ -17,12 +17,12 @@ const LOG_CTX = 'agent_session';
 /// without a file.
 export async function sendStoredResult(runtime: Runtime, results: WorkbookResultFiles | null, workbookId: string, script: string, write: (name: string, data: Blob) => Promise<string>): Promise<string | null> {
     if (results == null) return null;
-    const retained = await runtime.module.retainStoredResult(workbookId, script);
+    const retained = await runtime.retainStoredResult(workbookId, script);
     if (retained == null) return null;
     try {
         return await write(retained.name, await results.readFile(workbookId, retained.name));
     } finally {
-        await runtime.module.releaseStoredResult(retained.id);
+        await runtime.releaseStoredResult(retained.id);
     }
 }
 

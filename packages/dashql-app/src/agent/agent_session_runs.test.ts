@@ -11,10 +11,8 @@ describe('the runs of the agent in the tab', () => {
     it('sends the stored result of a script while it keeps it, nothing without one', async () => {
         const order: string[] = [];
         const runtime = {
-            module: {
-                retainStoredResult: vi.fn(async (_workbookId: string, script: string) => script !== 'a.sql' ? null : { id: 7, name: 'a.k.1.parquet' }),
-                releaseStoredResult: vi.fn(async (id: number) => { order.push(`release ${id}`); }),
-            },
+            retainStoredResult: vi.fn(async (_workbookId: string, script: string) => script !== 'a.sql' ? null : { id: 7, name: 'a.k.1.parquet' }),
+            releaseStoredResult: vi.fn(async (id: number) => { order.push(`release ${id}`); }),
         } as unknown as Runtime;
         const results = {
             readFile: vi.fn(async (_workbookId: string, name: string) => {

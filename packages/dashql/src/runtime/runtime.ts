@@ -660,6 +660,18 @@ export class Runtime {
         if (!this.stopping) this.module.answerExternalChange(workbookId, prompt, reload);
     }
 
+    /// Keep the stored result of a script until `releaseStoredResult`, e.g. while its file is read: the id of the pin
+    /// and the name of its file below the results of the workbook, null if the script has none
+    async retainStoredResult(workbookId: string, script: string): Promise<{ id: number; name: string } | null> {
+        return await this.live().retainStoredResult(workbookId, script);
+    }
+
+    /// Release a stored result that `retainStoredResult` kept, nothing once the runtime is destroyed
+    async releaseStoredResult(id: number): Promise<void> {
+        if (this.stopping) return;
+        await this.module.releaseStoredResult(id);
+    }
+
     // The imports and exports of workbooks
 
     /// The cached results that an export of a workbook would carry, e.g. to show their size before a save
