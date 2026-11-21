@@ -123,6 +123,10 @@ pub struct QueryResultOptions {
     pub script: String,
     /// The result key of the script, the file of the result is named after it
     pub key: String,
+    /// The name of the file of the result, a new name of the key without one. A run names the files when it plans.
+    #[serde(default)]
+    #[tsify(optional)]
+    pub name: Option<String>,
     /// Read this file of the results of the workbook instead of running the query, fail with a miss if it is gone
     #[serde(default)]
     #[tsify(optional)]
@@ -147,6 +151,7 @@ impl From<&ResultRequest> for QueryResultOptions {
             workbook_id: result.workbook_id.clone(),
             script: result.script.clone(),
             key: result.key.clone(),
+            name: result.name.clone(),
             read: result.read.as_ref().map(|file| QueryResultFile {
                 name: file.name.clone(),
                 key: file.key.clone(),
@@ -162,6 +167,7 @@ impl From<&QueryResultOptions> for ResultRequest {
             workbook_id: result.workbook_id.clone(),
             script: result.script.clone(),
             key: result.key.clone(),
+            name: result.name.clone(),
             read: result.read.as_ref().map(|file| StoredFile {
                 name: file.name.clone(),
                 key: file.key.clone(),
@@ -817,7 +823,11 @@ impl ExecutorHost for QueryHost {
         let platform = self.platform.clone();
         let table = run.result();
         let result = result.clone();
-        let name = results::new_file_name(&platform, &result.script, &result.key);
+        // A run names the file when it plans, the keys downstream of the script cover the name
+        let name = match &result.name {
+            Some(name) => Ok(Some(name.clone())),
+            None => results::new_file_name(&platform, &result.script, &result.key),
+        };
         let write = match (table, &name) {
             (Some(table), Ok(Some(name))) => {
                 let pin = platform.results_pin(&result.workbook_id, name);

@@ -163,12 +163,13 @@ statement. The files of the runs are the stored results of the workbook over the
 platform). Without them, a run mounts no results of other connections and stores nothing. A script connection knows whether it is the embedded
 Hyper (`ScriptConnection.local`).
 
-The result key of a script covers the keys of the scripts it references (`result_keys` in `workbook_run/plan.rs` of the core runtime, see
-`workbook_results.md`). When the key is reusable, i.e. the connections of the script and of the scripts it references
+The result key of a script covers the keys of the scripts it references and the names of their files (`result_keys` in
+`workbook_run/plan.rs` of the core runtime, see `workbook_results.md`): a new result of a script outdates the scripts
+downstream of it. When the key is reusable, i.e. the connections of the script and of the scripts it references
 reuse results, a materialized script whose stored result has its key is reused instead of running (`materialized` of
 the plan): the plan scans the file of the script. The stored result of the script is reused when nothing it follows
-runs. Every other materialized script runs and writes its result as the new file of the script, as a transient file
-without a key (`mount_file_name` of the run host). A refresh of a script reuses no stored results: the script and
+runs. Every other materialized script runs and writes its result as the new file of the script, named when the run
+planned, as a transient file without a key (`mount_file_name` of the run host). A refresh of a script reuses no stored results: the script and
 every script of its plan run, their results replace the stored ones.
 
 ## Editing

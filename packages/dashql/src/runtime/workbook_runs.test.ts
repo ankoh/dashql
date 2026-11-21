@@ -591,6 +591,31 @@ describe('the runs of scripts of the runtime', () => {
         await vi.waitFor(() => expect(f.script('foo.sql').storedResult).toMatchObject({ key, current: true }));
     });
 
+    it('outdates the stored results downstream of a refreshed script and runs them again', async () => {
+        const f = await scripts([['foo.sql', 'select 1 as a;'], ['bar.sql', 'select a from :foo;']], { cache: true });
+        expect((await f.core.runWorkbook(f.workbookId, {})).outcome.failure).toBeNull();
+        await f.core.module.flushResultWrites();
+        await vi.waitFor(() => {
+            expect(f.script('foo.sql').storedResult).toMatchObject({ current: true });
+            expect(f.script('bar.sql').storedResult).toMatchObject({ current: true });
+        });
+        // Both results fit, a run of the workbook reuses them
+        const calls = f.executeQuery.mock.calls.length;
+        expect((await f.core.runWorkbook(f.workbookId, {})).outcome.failure).toBeNull();
+        expect(f.executeQuery.mock.calls.length).toBe(calls);
+        // A refresh of foo writes a new result of foo, the result of bar was computed from the old one
+        await f.run('foo.sql', true);
+        await f.core.module.flushResultWrites();
+        await vi.waitFor(() => expect(f.script('bar.sql').storedResult).toMatchObject({ current: false }));
+        expect(f.script('foo.sql').storedResult).toMatchObject({ current: true });
+        // The next run of the workbook reuses foo and runs bar
+        const refreshed = f.executeQuery.mock.calls.length;
+        expect((await f.core.runWorkbook(f.workbookId, {})).outcome.failure).toBeNull();
+        expect(f.statements.slice(refreshed)).toEqual([expect.stringContaining('select a from foo')]);
+        await f.core.module.flushResultWrites();
+        await vi.waitFor(() => expect(f.script('bar.sql').storedResult).toMatchObject({ current: true }));
+    });
+
     it('keeps the results of workbooks apart, also for the same script on the same connection', async () => {
         const f = await scripts([['foo.sql', 'select 1 as a;']], { cache: true });
         const other = f.rt.addWorkbook(f.connectionId, [['foo.sql', 'select 1 as a;']], { name: 'other' });

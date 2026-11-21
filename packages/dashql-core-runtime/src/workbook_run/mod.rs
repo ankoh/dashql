@@ -35,8 +35,9 @@ pub type LocalFuture<T> = Pin<Box<dyn Future<Output = T>>>;
 pub enum StatementResult {
     /// It doesn't
     None,
-    /// The statement runs and its result becomes the file of its script, named after the key
-    Store { script: String, key: String },
+    /// The statement runs and its result becomes the file of its script, named after the key. The run names the file
+    /// when it plans, the keys of the scripts downstream of the script cover the name.
+    Store { script: String, key: String, name: String },
     /// The statement reads a file of the results of the workbook or fails with a miss, it never runs
     Read { script: String, file: StoredFile },
 }

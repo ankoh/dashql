@@ -85,6 +85,10 @@ struct HostState {
     states: Vec<RunState>,
     /// The keys of the stored results by script
     stored: BTreeMap<String, String>,
+    /// The names of the stored files by script, `<script>.parquet` without one
+    names: BTreeMap<String, String>,
+    /// The generations of the files that the runs named
+    generations: u32,
     /// The connections that can't run
     offline: BTreeSet<String>,
     /// The connections that reuse no query results
@@ -235,7 +239,11 @@ impl RunHost for FakeHost {
         let key = self.state.borrow().stored.get(script).cloned();
         let file = key.map(|key| RetainedFile {
             id: self.next_file(),
-            file: StoredFile { name: format!("{script}.parquet"), key, written_at: 1.0 },
+            file: StoredFile {
+                name: self.state.borrow().names.get(script).cloned().unwrap_or_else(|| format!("{script}.parquet")),
+                key,
+                written_at: 1.0,
+            },
         });
         let mut state = self.state.borrow_mut();
         if let Some(file) = &file {
@@ -257,11 +265,10 @@ impl RunHost for FakeHost {
         self.mounts.clone()
     }
     fn mount_file_name(&self, result: Option<(&str, &str)>) -> String {
-        if result.is_some() {
-            "keyed.parquet".to_string()
-        } else {
-            "transient.parquet".to_string()
-        }
+        let Some((script, _key)) = result else { return "transient.parquet".to_string() };
+        let mut state = self.state.borrow_mut();
+        state.generations += 1;
+        format!("{script}.{}.parquet", state.generations)
     }
     fn mount_pin(&self, path: &str) -> impl Future<Output = Result<u64, HostError>> + 'static {
         let pin = self.next_file();
@@ -539,6 +546,56 @@ fn serves_the_cached_results_of_scripts_and_runs_the_others() {
     assert_eq!(s.events("foo.sql").last().map(String::as_str), Some("cached"));
 }
 
+/// The script, the key and the name of the file of every statement of the last runs that stores its result
+fn stores(s: &Setup) -> Vec<(String, String, String)> {
+    s.state
+        .borrow()
+        .statements
+        .iter()
+        .filter_map(|statement| match &statement.request.result {
+            StatementResult::Store { script, key, name } => Some((script.clone(), key.clone(), name.clone())),
+            _ => None,
+        })
+        .collect()
+}
+
+#[test]
+fn a_new_result_of_a_script_is_a_new_key_of_the_scripts_downstream() {
+    let main = connection("main", false);
+    let workbook = workbook(&[("foo.sql", "select 1 as a", &main), ("bar.sql", "select a + 1 from :foo", &main)]);
+    let s = setup(true, None, 1);
+    // The key of bar covers the file that foo writes, the run named it when it planned
+    let first = s.run(&workbook, workbook_run());
+    assert!(first.failure.is_none(), "{:?}", first.failure);
+    let [(_, foo_key, foo_file), (_, bar_key, bar_file)] = <[_; 2]>::try_from(stores(&s)).unwrap();
+    assert!(bar_key.ends_with(&format!("{foo_key} {foo_file}")), "{bar_key}");
+    let store = |script: &str, key: &str, file: &str| {
+        let mut state = s.state.borrow_mut();
+        state.stored.insert(script.into(), key.into());
+        state.names.insert(script.into(), file.into());
+        state.statements.clear();
+    };
+    store("foo.sql", &foo_key, &foo_file);
+    store("bar.sql", &bar_key, &bar_file);
+    // Both results fit, a run reuses them
+    assert!(s.run(&workbook, workbook_run()).failure.is_none());
+    assert!(stores(&s).is_empty());
+    // A refresh of foo writes a new file of the same key
+    let refresh =
+        RunOptions { run: PlanRun::Script("foo.sql".into()), targets: Some(vec![0]), refresh: true, ..workbook_run() };
+    assert!(s.run(&workbook, refresh).failure.is_none());
+    let [(_, refreshed_key, refreshed_file)] = <[_; 1]>::try_from(stores(&s)).unwrap();
+    assert_eq!(refreshed_key, foo_key);
+    assert_ne!(refreshed_file, foo_file);
+    store("foo.sql", &refreshed_key, &refreshed_file);
+    // foo reuses its new file, bar runs again: its result was computed from the old one
+    assert!(s.run(&workbook, workbook_run()).failure.is_none());
+    assert_eq!(s.events("foo.sql").last().map(String::as_str), Some("cached"));
+    let [(script, key, _)] = <[_; 1]>::try_from(stores(&s)).unwrap();
+    assert_eq!(script, "bar.sql");
+    assert!(key.ends_with(&format!("{foo_key} {refreshed_file}")), "{key}");
+}
+
 #[test]
 fn runs_a_script_whose_stored_result_has_another_key() {
     let main = connection("main", false);
@@ -593,9 +650,11 @@ fn materializes_a_script_of_another_connection_before_the_scan() {
     let calls = s.state.borrow().calls.clone();
     assert_eq!(calls.first().map(String::as_str), Some("execute select 1 as a"));
     // The run pins the file before it writes it and releases the pin once it ended
-    assert_eq!(calls.get(1).map(String::as_str), Some("pin 1 /mnt/cache/keyed.parquet"));
-    assert_eq!(calls.get(2).map(String::as_str), Some("write 1 /mnt/cache/keyed.parquet"));
-    assert!(calls.get(3).is_some_and(|call| call.starts_with("execute") && call.contains("/mnt/cache/keyed.parquet")));
+    assert_eq!(calls.get(1).map(String::as_str), Some("pin 1 /mnt/cache/foo.sql.1.parquet"));
+    assert_eq!(calls.get(2).map(String::as_str), Some("write 1 /mnt/cache/foo.sql.1.parquet"));
+    assert!(calls
+        .get(3)
+        .is_some_and(|call| call.starts_with("execute") && call.contains("/mnt/cache/foo.sql.1.parquet")));
     assert_eq!(calls.last().map(String::as_str), Some("release 1"));
     // Without the mounts the run fails before its first statement
     let s = setup(true, None, 1);
@@ -633,7 +692,7 @@ fn releases_the_pins_of_a_failed_run_once_its_statements_settled() {
     let (_handle, result) = s.start(&workbook, workbook_run());
     // The result of foo arrived, the pin of its file is pending when baz fails
     s.end("select 1 as a", Ok(true));
-    assert!(s.state.borrow().calls.iter().any(|call| call == "pin 1 /mnt/cache/keyed.parquet"));
+    assert!(s.state.borrow().calls.iter().any(|call| call == "pin 1 /mnt/cache/foo.sql.1.parquet"));
     s.end("select 2", Err(StatementFailure::new("boom")));
     // The run waits for the statement of foo before it releases the files
     assert!(result.borrow().is_none());

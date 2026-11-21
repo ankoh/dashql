@@ -930,7 +930,7 @@ impl Imports {
             Ok(_) => {
                 outcome.restored = true;
                 if legacy {
-                    let keys = match restorer.runs.result_keys(workbook_id, None) {
+                    let keys = match restorer.runs.result_keys(workbook_id, None, None) {
                         Ok(keys) => keys.await,
                         Err(_) => Vec::new(),
                     };

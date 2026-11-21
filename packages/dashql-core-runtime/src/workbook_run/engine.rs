@@ -112,6 +112,8 @@ struct PlanContext {
     visualizations: Vec<Option<ScriptVisualization>>,
     /// The result keys of the scripts
     keys: Vec<Option<ResultKey>>,
+    /// The names of the new files of the scripts that run, the keys downstream of them cover the names
+    names: BTreeMap<u32, String>,
     /// The scripts whose results the plan materializes, the files of the scripts already
     materialized: BTreeSet<u32>,
     /// The nodes that don't run
@@ -124,6 +126,32 @@ impl PlanContext {
         let has_result = nodes(&self.graph).iter().any(|node| node.script == script && node.script_result);
         self.keys.get(script as usize).cloned().flatten().filter(|key| key.reusable && has_result).map(|key| key.key)
     }
+}
+
+/// What a run settled about the results of its scripts while it derived their keys
+#[derive(Default)]
+struct Settled {
+    /// The scripts that may run, by feed index: not a script that reused its result, nor one of a connection that
+    /// can't run
+    runs: Vec<bool>,
+    /// The scripts that reused their stored results, with their files
+    cached: BTreeMap<u32, String>,
+    /// The names of the new files of the scripts that run
+    names: BTreeMap<u32, String>,
+    /// Why the run stopped while it reused a result, e.g. a cancel
+    failure: Option<RunFailure>,
+}
+
+/// The plan whose results a run settles
+struct Settling<'a> {
+    graph: &'a ExecutionGraphT,
+    statements: &'a [PlannedStatement],
+    visualizations: &'a [Option<ScriptVisualization>],
+    /// The scripts that every script follows
+    follows: &'a [BTreeSet<u32>],
+    /// May the scripts reuse their stored results?
+    reuse: bool,
+    settled: &'a RefCell<Settled>,
 }
 
 /// A run of a workbook
@@ -450,19 +478,148 @@ impl<H: RunHost> Run<H> {
             .collect()
     }
 
-    /// The result keys of the scripts of a plan
-    async fn result_keys(self: &Rc<Self>, graph: &ExecutionGraphT) -> Vec<Option<ResultKey>> {
+    /// The key of the result of a script from its signature
+    fn key_of(self: &Rc<Self>) -> impl Fn(u32, String) -> Pin<Box<dyn Future<Output = Option<String>>>> {
         let run = self.clone();
-        let reuses = self.clone();
+        move |script, signature| {
+            let run = run.clone();
+            Box::pin(async move { run.host.result_key(run.connection_of(script), &signature).await })
+        }
+    }
+
+    /// The result keys of the scripts of a plan that reads their stored results, the keys downstream of a script cover
+    /// its stored file
+    async fn stored_keys(self: &Rc<Self>, graph: &ExecutionGraphT) -> Vec<Option<ResultKey>> {
         result_keys(
             graph,
-            move |script, signature| {
-                let run = run.clone();
-                async move { run.host.result_key(run.connection_of(script), &signature).await }
-            },
-            move |script| reuses.host.reuses_results(reuses.connection_of(script)),
+            self.key_of(),
+            |script| self.host.reuses_results(self.connection_of(script)),
+            |script, _key| self.keep_stored(script),
         )
         .await
+    }
+
+    /// The result keys of the scripts of a plan that runs and what the run does with their results, in the order of
+    /// their references: a script whose key is reusable and matches its stored file reuses it unless it follows a
+    /// script that runs, every other script with a result node writes a new file under a name that the run gives it
+    /// now, and a script without one keeps its stored file, e.g. a script that another one inlines. The keys
+    /// downstream of a script cover its file.
+    async fn settle_results(
+        self: &Rc<Self>,
+        graph: &ExecutionGraphT,
+        visualizations: &[Option<ScriptVisualization>],
+    ) -> Result<(Vec<Option<ResultKey>>, Settled), RunFailure> {
+        let count = self.files.len();
+        let statements = planned_statements(graph, &self.files, &self.options.run);
+        let follows = script_follows(graph, count);
+        // A script of a connection that can't run doesn't run, the scripts that follow it reuse their stored results:
+        // the script can't change what they read during the run
+        let settled = RefCell::new(Settled {
+            runs: self.connections.iter().map(|connection| self.host.can_run(connection)).collect(),
+            ..Settled::default()
+        });
+        let plan = Settling {
+            graph,
+            statements: &statements,
+            visualizations,
+            follows: &follows,
+            reuse: !self.options.refresh && self.host.has_results(),
+            settled: &settled,
+        };
+        let keys = result_keys(
+            graph,
+            self.key_of(),
+            |script| self.host.reuses_results(self.connection_of(script)),
+            |script, key| self.settle_result(&plan, script, key),
+        )
+        .await;
+        let mut settled = settled.into_inner();
+        match settled.failure.take() {
+            Some(failure) => Err(failure),
+            None => Ok((keys, settled)),
+        }
+    }
+
+    /// Settle the result of a script of a plan that runs, the name of its file for the keys downstream of it
+    async fn settle_result(self: &Rc<Self>, plan: &Settling<'_>, script: u32, key: ResultKey) -> Option<String> {
+        if plan.settled.borrow().failure.is_some() {
+            return None;
+        }
+        let Some(result_node) = nodes(plan.graph).iter().position(|node| node.script == script && node.script_result)
+        else {
+            return self.keep_stored(script).await;
+        };
+        let blocked = plan.follows.get(script as usize).is_some_and(|earlier| {
+            let settled = plan.settled.borrow();
+            earlier.iter().any(|e| settled.runs.get(*e as usize) == Some(&true))
+        });
+        if plan.reuse && key.reusable && !blocked {
+            match self.reuse_stored(plan, script, result_node, &key).await {
+                Ok(Some(name)) => return Some(name),
+                Ok(None) => {}
+                Err(failure) => {
+                    plan.settled.borrow_mut().failure = Some(failure);
+                    return None;
+                }
+            }
+        }
+        // The script runs, its result becomes a new file
+        let name = self.host.mount_file_name(Some((self.file(script).as_str(), key.key.as_str())));
+        plan.settled.borrow_mut().names.insert(script, name.clone());
+        Some(name)
+    }
+
+    /// Reuse the stored result of a script if its file has the key, the name of the file or none if the script runs
+    async fn reuse_stored(
+        self: &Rc<Self>,
+        plan: &Settling<'_>,
+        script: u32,
+        result_node: usize,
+        key: &ResultKey,
+    ) -> Result<Option<String>, RunFailure> {
+        let host = self.host.clone();
+        let file = self.file(script);
+        let retained = host.result_retain(&file).await.ok().flatten();
+        // A file of another key is no result of the script as it is now, the script runs
+        let retained = match retained {
+            Some(retained) if retained.file.key != key.key => {
+                host.result_release(retained.id).await;
+                None
+            }
+            retained => retained,
+        };
+        // A file that was retained is kept before a cancellation counts, the release of the run releases it
+        if let Some(retained) = &retained {
+            self.kept.borrow_mut().push(retained.id);
+        }
+        self.check_cancelled()?;
+        let Some(retained) = retained else { return Ok(None) };
+        let Some(served) = self
+            .serve_cached(plan.graph, script, result_node, key, &retained.file, plan.statements, plan.visualizations)
+            .await?
+        else {
+            return Ok(None);
+        };
+        {
+            let mut settled = plan.settled.borrow_mut();
+            if let Some(run) = settled.runs.get_mut(script as usize) {
+                *run = false;
+            }
+            settled.cached.insert(script, retained.file.name.clone());
+        }
+        self.host.script_event(&file, &ScriptEvent::Cached { key: key.key.clone(), query_id: served });
+        self.cooperate().await?;
+        Ok(Some(retained.file.name))
+    }
+
+    /// Keep the stored file of a script until the run settled, its name or none without one
+    async fn keep_stored(self: &Rc<Self>, script: u32) -> Option<String> {
+        if !self.host.has_results() {
+            return None;
+        }
+        let retained = self.host.result_retain(&self.file(script)).await.ok().flatten()?;
+        self.kept.borrow_mut().push(retained.id);
+        Some(retained.file.name)
     }
 
     /// Run the workbook and report how it ended
@@ -617,65 +774,12 @@ impl<H: RunHost> Run<H> {
                 return Err(RunFailure::plan(format!("{target} holds no statement")));
             }
         }
-        let keys = self.result_keys(&graph).await;
         let visualizations = self.visualizations(&graph)?;
         self.validate(&graph, true)?;
         self.check_cancelled()?;
-
-        // The scripts whose stored results are reused, with their files
-        let mut cached_files: BTreeMap<u32, String> = BTreeMap::new();
-        if !self.options.refresh && host.has_results() {
-            let statements = planned_statements(&graph, &self.files, &self.options.run);
-            let follows = script_follows(&graph, count);
-            // A script of a connection that can't run doesn't run, the scripts that follow it reuse their stored
-            // results: the script can't change what they read during the run
-            let mut runs: Vec<bool> = self.connections.iter().map(|connection| host.can_run(connection)).collect();
-            for index in 0..count as u32 {
-                let Some(key) = keys.get(index as usize).cloned().flatten().filter(|key| key.reusable) else {
-                    continue;
-                };
-                let Some(result_node) =
-                    nodes(&graph).iter().position(|node| node.script == index && node.script_result)
-                else {
-                    continue;
-                };
-                let blocked = follows
-                    .get(index as usize)
-                    .is_some_and(|earlier| earlier.iter().any(|e| runs.get(*e as usize) == Some(&true)));
-                if blocked {
-                    continue;
-                }
-                let retained = host.result_retain(&self.file(index)).await.ok().flatten();
-                // A file of another key is no result of the script as it is now, the script runs
-                let retained = match retained {
-                    Some(retained) if retained.file.key != key.key => {
-                        host.result_release(retained.id).await;
-                        None
-                    }
-                    retained => retained,
-                };
-                // A file that was retained is kept before a cancellation counts, the release of the run releases it
-                if let Some(retained) = &retained {
-                    self.kept.borrow_mut().push(retained.id);
-                }
-                self.check_cancelled()?;
-                let Some(retained) = retained else { continue };
-                if let Some(served) = self
-                    .serve_cached(&graph, index, result_node, &key, &retained.file, &statements, &visualizations)
-                    .await?
-                {
-                    if let Some(run) = runs.get_mut(index as usize) {
-                        *run = false;
-                    }
-                    cached_files.insert(index, retained.file.name);
-                    self.host.script_event(
-                        &self.file(index),
-                        &ScriptEvent::Cached { key: key.key.clone(), query_id: served },
-                    );
-                    self.cooperate().await?;
-                }
-            }
-        }
+        // The keys of the scripts, the stored results that they reuse and the names of the files that they write
+        let (keys, settled) = self.settle_results(&graph, &visualizations).await?;
+        let Settled { cached: cached_files, names, .. } = settled;
 
         // Scripts without statements are done right away, so are the scripts that reused their results
         let counted: Vec<u32> = targets.clone().unwrap_or_else(|| (0..count as u32).collect());
@@ -693,24 +797,27 @@ impl<H: RunHost> Run<H> {
         let mounts = host.mount_prefix().is_some();
         let materializations = graph.materializations.as_deref().unwrap_or_default();
         if !cached_files.is_empty() || (mounts && !materializations.is_empty()) {
-            let mut names: Vec<(u32, String)> =
+            let mut files: Vec<(u32, String)> =
                 cached_files.iter().map(|(script, file)| (*script, file.clone())).collect();
             if mounts {
                 for materialization in materializations {
-                    if names.iter().any(|(script, _)| *script == materialization.script) {
+                    if files.iter().any(|(script, _)| *script == materialization.script) {
                         continue;
                     }
-                    let key = keys.get(materialization.script as usize).cloned().flatten();
-                    let file = self.file(materialization.script);
-                    let name = host.mount_file_name(key.as_ref().map(|key| (file.as_str(), key.key.as_str())));
-                    if key.is_none() {
-                        self.transient.borrow_mut().push(name.clone());
-                    }
-                    names.push((materialization.script, name));
+                    // The file of a script with a key has its name already, the keys downstream cover it
+                    let name = match names.get(&materialization.script) {
+                        Some(name) => name.clone(),
+                        None => {
+                            let name = host.mount_file_name(None);
+                            self.transient.borrow_mut().push(name.clone());
+                            name
+                        }
+                    };
+                    files.push((materialization.script, name));
                 }
             }
             let provided: Vec<u32> = cached_files.keys().copied().collect();
-            let replanned = self.plan(targets.as_deref(), &provided, &names, &mount_prefix)?;
+            let replanned = self.plan(targets.as_deref(), &provided, &files, &mount_prefix)?;
             // The keys, the reused results and the names of the files come from the first plan. A script that changed
             // during the lookups of the results would run its new text under the key of its old one.
             if !same_keyed_scripts(&graph, &replanned) {
@@ -833,7 +940,7 @@ impl<H: RunHost> Run<H> {
                 self.host.script_event(&self.file(*index), &ScriptEvent::Skipped { reason: reason(*index) });
             }
         }
-        let context = self.plan_context(graph, connection_ids, keys, materialized, skip)?;
+        let context = self.plan_context(graph, connection_ids, keys, names, materialized, skip)?;
         self.run_graph(Rc::new(context)).await
     }
 
@@ -857,7 +964,7 @@ impl<H: RunHost> Run<H> {
             else {
                 continue;
             };
-            let Some(key) = self.result_keys(&graph).await.get(index as usize).cloned().flatten() else { continue };
+            let Some(key) = self.stored_keys(&graph).await.get(index as usize).cloned().flatten() else { continue };
             let Ok(visualizations) = self.visualizations(&graph) else { continue };
             let statements = planned_statements(&graph, &self.files, &self.options.run);
             let retained = host.result_retain(&self.file(index)).await.ok().flatten();
@@ -966,6 +1073,7 @@ impl<H: RunHost> Run<H> {
         graph: ExecutionGraphT,
         connection_ids: Vec<String>,
         keys: Vec<Option<ResultKey>>,
+        names: BTreeMap<u32, String>,
         materialized: BTreeSet<u32>,
         skip: BTreeSet<u32>,
     ) -> Result<PlanContext, RunFailure> {
@@ -1001,6 +1109,7 @@ impl<H: RunHost> Run<H> {
             successors,
             visualizations,
             keys,
+            names,
             materialized,
             skip,
         })
@@ -1276,7 +1385,10 @@ impl<H: RunHost> Run<H> {
         let key = context.keys.get(script as usize).cloned().flatten();
         let result = match key {
             Some(key) if node.script_result && !context.materialized.contains(&script) => {
-                StatementResult::Store { script: self.file(script), key: key.key }
+                let file = self.file(script);
+                let name = context.names.get(&script).cloned();
+                let name = name.unwrap_or_else(|| self.host.mount_file_name(Some((file.as_str(), key.key.as_str()))));
+                StatementResult::Store { script: file, key: key.key, name }
             }
             _ => StatementResult::None,
         };

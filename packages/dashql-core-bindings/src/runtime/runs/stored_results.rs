@@ -5,8 +5,8 @@
 //! A workbook is looked up again when it changed (not a move of the cursor), when a connection of its scripts changed,
 //! when a query of it recorded its result and when a run of it ended. The lookups wait until the changes pause like the
 //! analyses of the scripts that the editors show (`background_analysis_delay_ms` of the settings), typing looks the
-//! workbook up once. A lookup plans the keys of the scripts and lists the results folder of the workbook once, and
-//! removes the garbage of the folder. A workbook whose analyses are outdated is skipped, it changes again once they are
+//! workbook up once. A lookup lists the results folder of the workbook once, plans the keys of the scripts over the
+//! files it found and removes the garbage of the folder. A workbook whose analyses are outdated is skipped, it changes again once they are
 //! current. A workbook that changes while it is looked up is looked up again afterwards.
 
 use std::cell::{Cell, RefCell};
@@ -81,14 +81,12 @@ impl Runs {
     }
 
     /// Look up the stored results of the scripts of a workbook and show them on the scripts, then remove the garbage of
-    /// its results
+    /// its results. The keys follow the listing: the keys downstream of a script cover its stored file.
     fn look_up(self: &Rc<Self>, workbook_id: String, scripts: Vec<(u32, String)>) {
-        let Ok(keys) = self.result_keys(&workbook_id, None) else { return };
         self.stored.looking_up.borrow_mut().insert(workbook_id.clone());
         let runs = Rc::downgrade(self);
         let platform = self.platform.clone();
         self.platform.spawn(Box::pin(async move {
-            let keys = keys.await;
             let names: Vec<String> = scripts.iter().map(|(_, name)| name.clone()).collect();
             let listing = match results::listing(&platform, &workbook_id, Some(&names)).await {
                 Ok(listing) => Some(listing),
@@ -105,13 +103,26 @@ impl Runs {
             if let Some(listing) = &listing {
                 results::remove_garbage(&platform, &workbook_id, listing).await;
             }
+            let file = |name: &str| listing.as_ref().and_then(|listing| listing.result(name));
+            let files: Vec<Option<String>> =
+                scripts.iter().map(|(_, name)| file(name).map(|result| result.name.clone())).collect();
+            let keys = runs.upgrade().map(|runs| runs.result_keys(&workbook_id, None, Some(files)));
+            let keys = match keys {
+                Some(Ok(keys)) => Some(keys.await),
+                _ => None,
+            };
             let Some(runs) = runs.upgrade() else { return };
             runs.stored.looking_up.borrow_mut().remove(&workbook_id);
             if runs.destroyed.get() {
                 return;
             }
+            // A workbook that is busy is looked up again
+            let Some(keys) = keys else {
+                runs.check_stored_results(&[workbook_id]);
+                return;
+            };
             for (index, (key, name)) in scripts.iter().enumerate() {
-                let stored = listing.as_ref().and_then(|listing| listing.result(name)).map(|result| {
+                let stored = file(name).map(|result| {
                     let current = keys.get(index).and_then(Option::as_ref).is_some_and(|key| key.key == result.key);
                     ScriptStoredResult {
                         name: result.name.clone(),

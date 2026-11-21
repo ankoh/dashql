@@ -408,23 +408,32 @@ pub struct ResultKey {
     pub reusable: bool,
 }
 
-/// The result keys of the scripts of a plan. The key of a script covers its connection, its signature and the keys of
-/// the scripts it references (docs/design/workbook_results.md). None for scripts that aren't planned or have no
-/// signature, whose connection has no key or that reference such a script. A plan that is invalid for one script keeps
-/// the keys of the others. `key_of` derives the key of a script from its signature, `reuses_results`
-/// tells whether the connection of a script reuses results.
-pub async fn result_keys<F, Fut>(
+/// The result keys of the scripts of a plan. The key of a script covers its connection, its signature and, for every
+/// script it references, the key and the file of its result (docs/design/workbook_results.md): a new result of a script
+/// is a new key of every script downstream of it. None for scripts that aren't planned or have no signature, whose
+/// connection has no key or that reference such a script. A plan that is invalid for one script keeps the keys of the
+/// others.
+///
+/// `key_of` derives the key of a script from its signature, `reuses_results` tells whether the connection of a script
+/// reuses results. `file_of` settles the file of the result of a script once its key is known, before the keys of the
+/// scripts downstream of it: the stored file that it keeps or reuses, or the new file that it writes, none without one.
+/// The scripts settle in the order of their references.
+pub async fn result_keys<F, Fut, S, SFut>(
     graph: &ExecutionGraphT,
     key_of: F,
     reuses_results: impl Fn(u32) -> bool,
+    file_of: S,
 ) -> Vec<Option<ResultKey>>
 where
     F: Fn(u32, String) -> Fut,
     Fut: Future<Output = Option<String>>,
+    S: Fn(u32, ResultKey) -> SFut,
+    SFut: Future<Output = Option<String>>,
 {
     let scripts = graph.scripts.as_deref().unwrap_or_default();
     // A key is derived once the keys of the scripts it references are known, a cycle never gets one
     let mut keys: Vec<Option<Option<ResultKey>>> = vec![None; scripts.len()];
+    let mut files: Vec<Option<String>> = vec![None; scripts.len()];
     for _pass in 0..=scripts.len() {
         let mut progressed = false;
         for (index, script) in scripts.iter().enumerate() {
@@ -447,18 +456,25 @@ where
             }
             let referenced: Vec<ResultKey> = referenced.into_iter().flatten().collect();
             let mut lines = vec![script.signature.clone().unwrap_or_default()];
-            lines.extend(referenced.iter().map(|r| r.key.clone()));
+            for (reference, key) in references.iter().zip(&referenced) {
+                match files.get(*reference as usize).cloned().flatten() {
+                    Some(file) => lines.push(format!("{} {file}", key.key)),
+                    None => lines.push(key.key.clone()),
+                }
+            }
             let signature = lines.join("\n");
-            let key = key_of(index as u32, signature.clone()).await;
-            set_key(
-                &mut keys,
-                index,
-                key.map(|key| ResultKey {
-                    key,
-                    signature,
-                    reusable: script.cacheable && reuses_results(index as u32) && referenced.iter().all(|r| r.reusable),
-                }),
-            );
+            let key = key_of(index as u32, signature.clone()).await.map(|key| ResultKey {
+                key,
+                signature,
+                reusable: script.cacheable && reuses_results(index as u32) && referenced.iter().all(|r| r.reusable),
+            });
+            if let Some(key) = &key {
+                let file = file_of(index as u32, key.clone()).await;
+                if let Some(slot) = files.get_mut(index) {
+                    *slot = file;
+                }
+            }
+            set_key(&mut keys, index, key);
         }
         if !progressed {
             break;

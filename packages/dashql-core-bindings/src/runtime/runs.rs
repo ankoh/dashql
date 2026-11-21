@@ -914,11 +914,14 @@ impl Runs {
 
     /// The result keys of the scripts of a workbook in feed order, the keys that a run checks the stored results with
     /// and names their files after. A script without a key has none, e.g. one that can't be planned; the other scripts
-    /// keep theirs. Plans the targets with what they need, every script without, and analyzes nothing.
+    /// keep theirs. Plans the targets with what they need, every script without, and analyzes nothing. The keys
+    /// downstream of a script cover its stored file: `files` names the file of every script in feed order, without
+    /// them the results folder of the workbook is listed.
     pub fn result_keys(
         &self,
         workbook_id: &str,
         targets: Option<Vec<u32>>,
+        files: Option<Vec<Option<String>>>,
     ) -> Result<LocalFuture<Vec<Option<ResultKey>>>, String> {
         let workbook =
             self.workbooks.get(workbook_id).ok_or_else(|| format!("no workbook registered with id {workbook_id}"))?;
@@ -929,10 +932,14 @@ impl Runs {
                 mount_prefix: "/mnt/external/dashql-keys",
                 ..RunPlanRequest::default()
             };
-            let scripts: Vec<String> =
-                workbook.scripts().iter().map(|script| script.connection().connection_id.clone()).collect();
+            let scripts: Vec<(String, String)> = workbook
+                .scripts()
+                .iter()
+                .map(|script| (script.connection().connection_id.clone(), script.file_name().to_string()))
+                .collect();
             (workbook.plan_run(&request), scripts)
         };
+        let (scripts, names): (Vec<String>, Vec<String>) = scripts.into_iter().unzip();
         let reuses: Vec<bool> = {
             let registry = self.connections.registry.borrow();
             scripts
@@ -946,7 +953,19 @@ impl Runs {
         };
         let connections = self.connections.clone();
         let scripts = Rc::new(scripts);
+        let platform = self.platform.clone();
+        let workbook_id = workbook_id.to_string();
         Ok(Box::pin(async move {
+            let files = match files {
+                Some(files) => files,
+                None if platform.has_results() => match results::listing(&platform, &workbook_id, Some(&names)).await {
+                    Ok(listing) => {
+                        names.iter().map(|name| listing.result(name).map(|result| result.name.clone())).collect()
+                    }
+                    Err(_) => Vec::new(),
+                },
+                None => Vec::new(),
+            };
             let key_scripts = scripts.clone();
             result_keys(
                 &graph,
@@ -957,6 +976,7 @@ impl Runs {
                     )
                 },
                 |script| reuses.get(script as usize).copied().unwrap_or(false),
+                |script, _key| std::future::ready(files.get(script as usize).cloned().flatten()),
             )
             .await
         }))
@@ -1034,9 +1054,11 @@ impl RunHost for RuntimeRunHost {
         let workbook_id = self.workbook_id.clone();
         let result = match request.result {
             StatementResult::None => None,
-            StatementResult::Store { script, key } => Some(ResultRequest { workbook_id, script, key, read: None }),
+            StatementResult::Store { script, key, name } => {
+                Some(ResultRequest { workbook_id, script, key, name: Some(name), read: None })
+            }
             StatementResult::Read { script, file } => {
-                Some(ResultRequest { workbook_id, script, key: file.key.clone(), read: Some(file) })
+                Some(ResultRequest { workbook_id, script, key: file.key.clone(), name: None, read: Some(file) })
             }
         };
         let client_function_call =

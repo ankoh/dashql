@@ -1922,11 +1922,11 @@ impl Runtime {
     }
 
     /// The reusable result keys of the scripts of a workbook in feed order, the keys that a run reuses the stored results
-    /// with: of the targets with what they need, of every script without. Null for a script without one, all null if
-    /// the analyses as they are can't be planned.
+    /// with: of the targets with what they need, of every script without, the keys downstream of a script cover its
+    /// stored file. Null for a script without one, e.g. one that can't be planned.
     #[wasm_bindgen(js_name = resultKeys, unchecked_return_type = "Promise<(string | null)[]>")]
     pub fn result_keys(&self, workbook_id: &str, targets: Option<Vec<u32>>) -> Result<Promise, JsError> {
-        let keys = self.runs.result_keys(workbook_id, targets).map_err(|message| JsError::new(&message))?;
+        let keys = self.runs.result_keys(workbook_id, targets, None).map_err(|message| JsError::new(&message))?;
         Ok(future_to_promise(async move {
             let keys = keys.await;
             Ok(keys

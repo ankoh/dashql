@@ -81,6 +81,8 @@ pub struct ResultRequest {
     pub script: String,
     /// The result key of the script, the file of a result that the query stores is named after it
     pub key: String,
+    /// The name of the file of a result that the query stores, a new name of the key without one
+    pub name: Option<String>,
     /// Read this file instead of running the query, a query whose file is gone fails with a miss
     pub read: Option<StoredFile>,
 }

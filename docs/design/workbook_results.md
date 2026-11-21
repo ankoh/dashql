@@ -91,7 +91,13 @@ contribute, including commands preceding the terminal result statement.
 
 The plan of a script records its AST signature and whether it is cacheable (`ExecutionGraphScript.signature` and
 `cacheable`). A script that references other scripts with table parameters (`:foo`, see `script_references.md`)
-appends the keys of the referenced scripts to its AST signature, one per line. The AST signature of a script that binds
+appends the key of each referenced script and the name of its file to its AST signature, `<key> <file>` per line, or
+the key alone for a script without a file. The name of a file is new for every result, so a new result of `foo.sql`
+is a new key of `bar.sql`, which references it, and of every script downstream of `bar.sql`: a refresh of `foo.sql`
+outdates them, and the next run computes them anew. A run settles the scripts in the order of their references and
+names the file of a script before the keys of the scripts downstream of it: the stored file that it reuses, the new
+file that it writes, named when the run plans, or, for a script that the run doesn't run, e.g. one that another script
+inlines, its stored file. The lookup of the stored results takes the files of the listing. The AST signature of a script that binds
 inputs is followed by their literals, `:min=10` per line (`workbook_inputs.md`), a new value is a new key. A script
 that reads attachments is followed by their stamps, `attachment sales.parquet=<stamp>` per line, a changed file is a
 new key. Every planned script has a result key (`result_keys` in `workbook_run/plan.rs` of the core runtime). For a
@@ -151,8 +157,8 @@ the key it looked for and the key of the stored file.
 
 Every run of a script stores its result: the terminal query of a script runs with the result option `store` and the
 name of the script, and after the query succeeded, or after only the analysis of its result failed, the compute
-database writes the table as a new file of the script (`<script>.<key>.<gen>.parquet`), then the other files of the
-script are removed. A script that ran to its end without a result, e.g. one whose last statement is a `CREATE TABLE`,
+database writes the table as a new file of the script (`<script>.<key>.<gen>.parquet`, named by the run when it
+planned), then the other files of the script are removed. A script that ran to its end without a result, e.g. one whose last statement is a `CREATE TABLE`,
 has its files removed: they describe an earlier text. A failed, cancelled or skipped run leaves the files alone. The
 caller is not blocked on the write. A failed write only produces a log message.
 
@@ -267,9 +273,11 @@ leaves the stored results as they were.
 
 - The key covers the connection signature and the AST signature, not a TTL, a backend data version or a catalog
   version. A reused result may be stale after a backend changed: Refresh replaces it.
-- The key of a script covers the keys of the scripts it references, not their data. A new result of `foo.sql` with the
-  same text doesn't change the key of `bar.sql`, which references it, and `bar.sql` keeps reusing the result it computed
-  from the old data of `foo.sql` until it is refreshed too.
+- The key of a script covers the stored files of the scripts it references, not the tables that it reads otherwise. A
+  script that reads a table that a script before it creates, without a reference, runs after it in a run of both: the
+  creating script is no query, it always runs, and the scripts that follow a script that runs don't reuse their
+  results. A run of the creating script alone outdates none of them: they reuse their results until they are
+  refreshed.
 - Corrupt files are not removed automatically. They fail to read and stay until the next run of the script replaces
   them.
 - Results preserve raw tables only. Analyses and projections run again after a read.
