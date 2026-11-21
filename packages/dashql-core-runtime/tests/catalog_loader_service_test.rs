@@ -474,10 +474,13 @@ fn a_forced_refresh_aborts_the_running_update_once_and_runs_after_it() {
     host.observe();
     assert_eq!(host.query_count(), 2);
     host.answer(1, Ok(pg_rows("orders")));
+    // A Hyper server reads its functions from pg_proc
+    assert_eq!(host.query_count(), 3);
+    assert_eq!(host.state.borrow().queries[2].query.query_type, QueryType::CatalogQueryPgProc);
+    host.answer(2, Ok(Vec::new()));
     assert!(host.events().contains(&"finished 2 Succeeded".to_string()), "{:?}", host.events());
     assert!(host.events().contains(&"announced database".to_string()));
     assert!(relations_text(&host).contains("orders"));
-    // The bundled functions of Hyper came with the refresh
     assert!(host
         .connection("database")
         .state
@@ -485,11 +488,11 @@ fn a_forced_refresh_aborts_the_running_update_once_and_runs_after_it() {
         .function_script()
         .unwrap()
         .to_text()
-        .contains("CREATE FUNCTION"));
+        .contains("-- Catalog Source: Hyper pg_proc"));
     // The host hears that the loader changed the connection
     assert!(host.events().contains(&"connection database".to_string()), "{:?}", host.events());
     host.observe();
-    assert_eq!(host.query_count(), 2);
+    assert_eq!(host.query_count(), 3);
 }
 
 #[test]
@@ -510,8 +513,9 @@ fn an_update_that_failed_is_tried_once_more_without_another_request() {
     // The request that wasn't forced is still queued and the connection isn't described
     assert_eq!(host.query_count(), 2);
     host.answer(1, Ok(pg_rows("orders")));
+    host.answer(2, Ok(Vec::new()));
     host.observe();
-    assert_eq!(host.query_count(), 2);
+    assert_eq!(host.query_count(), 3);
 }
 
 #[test]
@@ -525,13 +529,14 @@ fn a_request_after_a_refresh_that_described_the_connection_is_consumed() {
     host.service().enqueue("database", false);
     host.run();
     host.answer(0, Ok(pg_rows("orders")));
-    assert_eq!(host.query_count(), 1);
+    host.answer(1, Ok(Vec::new()));
+    assert_eq!(host.query_count(), 2);
     host.observe();
-    assert_eq!(host.query_count(), 1);
+    assert_eq!(host.query_count(), 2);
     host.service().enqueue("database", true);
     host.run();
-    assert_eq!(host.query_count(), 2);
-    assert!(!host.query_cancelled(1));
+    assert_eq!(host.query_count(), 3);
+    assert!(!host.query_cancelled(2));
 }
 
 #[test]
@@ -558,20 +563,17 @@ fn the_catalog_of_an_embedded_database_is_described_whenever_it_comes_online() {
     host.observe();
     assert_eq!(host.query_count(), 1);
     host.answer(0, Ok(pg_rows("orders")));
-    // The embedded database reads its functions from pg_proc
-    assert_eq!(host.query_count(), 2);
-    assert_eq!(host.state.borrow().queries[1].query.query_type, QueryType::CatalogQueryPgProc);
-    host.answer(1, Ok(Vec::new()));
+    // The embedded database takes the bundled functions, it doesn't ask pg_proc
     assert!(host.events().contains(&"finished 1 Succeeded".to_string()), "{:?}", host.events());
     host.observe();
-    assert_eq!(host.query_count(), 2);
+    assert_eq!(host.query_count(), 1);
 
     // A reconnect describes the new database again
     host.apply("database", ConnectionAction::HealthCheckStarted);
     host.observe();
     host.apply("database", ConnectionAction::HealthCheckSucceeded);
     host.observe();
-    assert_eq!(host.query_count(), 3);
+    assert_eq!(host.query_count(), 2);
 }
 
 #[test]
@@ -641,8 +643,9 @@ fn the_relations_wait_for_a_running_refresh_that_may_have_read_them_too_early() 
     host.observe();
     assert_eq!(host.query_count(), 1);
     host.answer(0, Ok(pg_rows("customers")));
-    assert_eq!(host.query_count(), 2);
-    assert!(host.query_texts()[1].contains("'orders'"));
+    host.answer(1, Ok(Vec::new()));
+    assert_eq!(host.query_count(), 3);
+    assert!(host.query_texts()[2].contains("'orders'"));
 }
 
 #[test]
@@ -693,8 +696,9 @@ fn a_forced_refresh_runs_ahead_of_a_lookup_that_keeps_coming_back() {
     assert_eq!(host.query_count(), 2);
     assert!(!host.query_texts()[1].contains("'orders'"));
     host.answer(1, Ok(pg_rows("customers")));
-    assert_eq!(host.query_count(), 3);
-    assert!(host.query_texts()[2].contains("'orders'"));
+    host.answer(2, Ok(Vec::new()));
+    assert_eq!(host.query_count(), 4);
+    assert!(host.query_texts()[3].contains("'orders'"));
 }
 
 // Cancellation

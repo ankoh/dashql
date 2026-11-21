@@ -1,4 +1,4 @@
-//! The functions of a PostgreSQL catalog, the embedded Hyper reads its functions with them.
+//! The functions of a PostgreSQL catalog, a Hyper server and Database.com read their functions with them.
 
 use arrow_array::RecordBatch;
 
@@ -33,10 +33,20 @@ pub const PG_PROC_QUERY: &str = "
         ORDER BY n.nspname, p.proname
     ";
 
-/// The query of the functions
-pub fn pg_proc_query() -> CatalogQuery {
+/// The query of the functions, of the catalog of an attached database if a session attaches several: Hyper resolves no
+/// unqualified name then
+pub fn pg_proc_query(database_name: Option<&str>) -> CatalogQuery {
+    let sql = match database_name {
+        None => PG_PROC_QUERY.to_string(),
+        Some(database) => {
+            let pg_catalog = format!("{}.{}", quote_identifier(database), quote_identifier("pg_catalog"));
+            PG_PROC_QUERY
+                .replace("FROM pg_proc p", &format!("FROM {pg_catalog}.pg_proc p"))
+                .replace("JOIN pg_namespace n", &format!("JOIN {pg_catalog}.pg_namespace n"))
+        }
+    };
     CatalogQuery {
-        sql: PG_PROC_QUERY.to_string(),
+        sql,
         query_type: QueryType::CatalogQueryPgProc,
         title: "Query Postgres Functions".to_string(),
         read_timeout: true,

@@ -103,9 +103,15 @@ A full refresh only runs:
   (`CatalogUpdates.described`): no file was restored and no refresh succeeded,
 - whenever a connection whose database doesn't outlive the app comes online: its database is new.
 
-Nothing else starts one. A restored catalog is kept until the user refreshes it. Until a connection is described, the
-answers about relations update the catalog in memory but nothing saves it: a few relations aren't a catalog, and a restart
-must not take them for one.
+Nothing else starts one. A restored catalog is kept until the user refreshes it.
+
+A Hyper server and Database.com read their functions from `pg_proc` with a full refresh: they depend on the deployment,
+e.g. `vector_search`. A session that attaches several databases reads the `pg_proc` of the first. The embedded Hyper
+always takes the bundled function catalog (`catalog_loader/prefetched_hyper_functions.sql`), so it is described with one
+query of its relations, whose database is new at every start.
+
+Until a connection is described, the answers about relations update the catalog in memory but nothing saves it: a few
+relations aren't a catalog, and a restart must not take them for one.
 
 ## On disk
 

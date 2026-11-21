@@ -1,7 +1,4 @@
-//! The functions of Hyper that a Hyper connection knows before it asked the engine, as SQL text.
-
-/// The bundled function catalog of Hyper, qualified with the database `hyper`
-pub const PREFETCHED_HYPER_FUNCTIONS_SQL: &str = r#"CREATE FUNCTION "hyper"."pg_catalog"."abs"() RETURNS any;
+CREATE FUNCTION "hyper"."pg_catalog"."abs"() RETURNS any;
 CREATE FUNCTION "hyper"."pg_catalog"."acos"() RETURNS any;
 CREATE FUNCTION "hyper"."pg_catalog"."age"() RETURNS any;
 CREATE AGGREGATE "hyper"."pg_catalog"."any"() RETURNS any;
@@ -351,4 +348,3 @@ CREATE FUNCTION "hyper"."tableau"."split_part"() RETURNS any;
 CREATE FUNCTION "hyper"."tableau"."sqrt"() RETURNS any;
 CREATE FUNCTION "hyper"."tableau"."startswith"() RETURNS any;
 CREATE FUNCTION "hyper"."tableau"."to_datetime"() RETURNS any;
-"#;

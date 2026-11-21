@@ -1,5 +1,5 @@
 //! The catalog of a Hyper connection: the relations of its databases from `pg_attribute`, or from the `_hyper_catalog`
-//! of an attached Hyper Cloud database, and its functions from `pg_proc` of the embedded Hyper or from the bundled
+//! of an attached Hyper Cloud database, and its functions from `pg_proc` or, for the embedded Hyper, from the bundled
 //! function catalog. A Database.com connection reads the Hyper Cloud database that it attaches.
 //!
 //! The update queries every database at the same time. A database that fails keeps the relations it had, the others
@@ -17,7 +17,7 @@ use super::columns::{batches_with_rows, row_count, Integers, Strings};
 use super::pg_attribute::{catalog_tables_from_pg_attribute, pg_attribute_query, PgAttributeScope};
 use super::pg_proc::{catalog_sql_from_pg_proc, pg_proc_query};
 use super::prefetched_hyper_functions::qualify_prefetched_hyper_functions;
-use super::sql::{function_script_header, quote_identifier, relation_filter, HYPER_WASM_PG_PROC_SOURCE};
+use super::sql::{function_script_header, quote_identifier, relation_filter, HYPER_PG_PROC_SOURCE};
 use super::tables::{
     catalog_tables_of_schema, pack_catalog_descriptor_of_tables, pack_catalog_table_update, CatalogTable,
     ColumnMetadata, SchemaTables,
@@ -240,8 +240,11 @@ pub struct HyperCatalogUpdate {
     attached: bool,
     /// The relations to ask about, the whole catalog if none
     relations: Option<Vec<RelationName>>,
-    /// Are the functions read from `pg_proc`, those of the embedded Hyper, instead of the bundled catalog?
+    /// Are the functions read from `pg_proc` instead of the bundled catalog? A Hyper server and Database.com read theirs,
+    /// their functions depend on the deployment, e.g. `vector_search`. The embedded Hyper has the bundled ones.
     live_functions: bool,
+    /// The database whose `pg_proc` is read, the first of several attached ones
+    functions_database: Option<String>,
     /// The entries to publish into
     entries: CatalogEntries,
     /// The time of the refresh in the header of the function script
@@ -262,7 +265,8 @@ impl HyperCatalogUpdate {
         relations: Option<Vec<RelationName>>,
         now: Timestamp,
     ) -> Self {
-        let live = setup_params.get("protocol").and_then(Value::as_str) == Some("WASM");
+        // Without a protocol the connection is the embedded Hyper
+        let live = !matches!(setup_params.get("protocol").and_then(Value::as_str), None | Some("WASM"));
         Self::new(&attached_databases(setup_params), live, entries, relations, now)
     }
 
@@ -273,7 +277,7 @@ impl HyperCatalogUpdate {
         relations: Option<Vec<RelationName>>,
         now: Timestamp,
     ) -> Self {
-        Self::new(&[hyper_cloud_attached_database(setup_params)], false, entries, relations, now)
+        Self::new(&[hyper_cloud_attached_database(setup_params)], true, entries, relations, now)
     }
 
     /// An update of the attached databases, the default database without any
@@ -343,6 +347,11 @@ impl HyperCatalogUpdate {
             attached: !attached.is_empty(),
             relations,
             live_functions,
+            functions_database: if attached.len() > 1 {
+                attached.first().and_then(|database| database.alias.clone())
+            } else {
+                None
+            },
             entries,
             updated_at: now,
             function_text: None,
@@ -444,7 +453,7 @@ impl ConnectorCatalogUpdate for HyperCatalogUpdate {
                 }
                 Ok(ConnectorStep::Query(queries))
             }
-            Phase::Functions => Ok(ConnectorStep::Query(vec![pg_proc_query()])),
+            Phase::Functions => Ok(ConnectorStep::Query(vec![pg_proc_query(self.functions_database.as_deref())])),
             Phase::Publish(_) => Ok(ConnectorStep::Publish),
             Phase::Done => Ok(ConnectorStep::Done { partial: self.partial_error() }),
         }
@@ -481,7 +490,7 @@ impl ConnectorCatalogUpdate for HyperCatalogUpdate {
                     self.warnings.push(format!("Skipping unsupported PostgreSQL function signature: {skipped}"));
                 }
                 let text =
-                    format!("{}{}", function_script_header(HYPER_WASM_PG_PROC_SOURCE, self.updated_at), functions.sql);
+                    format!("{}{}", function_script_header(HYPER_PG_PROC_SOURCE, self.updated_at), functions.sql);
                 self.batch_functions(text, false)
             }
             _ => Err(CatalogLoadError::failed("the Hyper catalog update didn't ask for queries")),

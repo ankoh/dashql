@@ -64,8 +64,8 @@ impl CatalogSource {
     }
 }
 
-/// The source of the functions of the embedded Hyper, its `pg_proc`
-pub const HYPER_WASM_PG_PROC_SOURCE: &str = "HyperDB WASM pg_proc";
+/// The source of the functions that a Hyper connection read from its `pg_proc`
+pub const HYPER_PG_PROC_SOURCE: &str = "Hyper pg_proc";
 
 /// The header of the script with the functions of a connection
 pub fn function_script_header(source: &str, updated_at: Timestamp) -> String {

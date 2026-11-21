@@ -16,7 +16,6 @@ pub mod information_schema;
 pub mod pg_attribute;
 pub mod pg_proc;
 pub mod prefetched_hyper_functions;
-mod prefetched_hyper_functions_sql;
 pub mod salesforce;
 pub mod scheduler;
 pub mod service;

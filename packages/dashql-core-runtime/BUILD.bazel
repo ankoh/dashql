@@ -11,6 +11,8 @@ load("//bazel:rustfmt.bzl", "rustfmt_test")
 rust_library(
     name = "dashql_core_runtime",
     srcs = glob(["src/**/*.rs"]),
+    # The bundled function catalog of Hyper, see src/catalog_loader/prefetched_hyper_functions.rs
+    compile_data = ["src/catalog_loader/prefetched_hyper_functions.sql"],
     crate_name = "dashql_core_runtime",
     crate_root = "src/lib.rs",
     edition = "2021",

@@ -138,6 +138,11 @@ fn function_rows() -> RecordBatch {
     ])
 }
 
+/// The answer of a query of a Hyper connection: the functions for its `pg_proc`, the rows otherwise
+fn or_functions(query: &CatalogQuery, rows: RecordBatch) -> Vec<RecordBatch> {
+    vec![if query.query_type == QueryType::CatalogQueryPgProc { function_rows() } else { rows }]
+}
+
 /// An empty result without columns
 fn no_rows() -> Vec<RecordBatch> {
     Vec::new()
@@ -1017,15 +1022,18 @@ fn hyper_queries_standard_and_cloud_attachments_and_merges_their_catalogs() {
         ],
     }));
     let host = Host::new(|query| {
-        Ok(vec![if query.sql.contains("\"_hyper_catalog\".\"databases\"") {
-            cloud_rows()
-        } else {
-            pg_rows("lake_table", &["id"])
-        }])
+        Ok(or_functions(
+            query,
+            if query.sql.contains("\"_hyper_catalog\".\"databases\"") {
+                cloud_rows()
+            } else {
+                pg_rows("lake_table", &["id"])
+            },
+        ))
     });
     let (outcome, functions) = hyper.run(None, &host);
     assert_eq!(outcome.status, CatalogUpdateTaskStatus::Succeeded, "{outcome:?}");
-    assert_eq!(host.queries.borrow().len(), 2);
+    assert_eq!(host.queries.borrow().len(), 3);
     assert!(host.queries.borrow()[0].sql.contains("FROM \"lake db\".\"pg_catalog\".pg_class c"));
     assert!(host.queries.borrow()[1].sql.contains("FROM \"cloud\".\"_hyper_catalog\".\"databases\" d"));
     assert_eq!(host.queries.borrow()[1].title, "Query Hyper Cloud Catalog (cloud)");
@@ -1034,26 +1042,50 @@ fn hyper_queries_standard_and_cloud_attachments_and_merges_their_catalogs() {
     assert!(text.contains("CREATE TABLE \"lake db\".\"public\".\"lake_table\""));
     assert!(text.contains("CREATE TABLE \"cloud\".\"sales\".\"orders\""));
     assert!(!text.contains("Cloud Database"));
-    assert!(functions.unwrap().contains("CREATE FUNCTION \"hyper\".\"pg_catalog\".\"abs\"() RETURNS any;"));
-    assert_eq!(hyper.function_count(), 350);
+    // A server reads the functions of its deployment from the pg_proc of its first database, a session with several
+    // resolves no unqualified name
+    assert_eq!(host.queries.borrow()[2].query_type, QueryType::CatalogQueryPgProc);
+    assert!(host.queries.borrow()[2].sql.contains("FROM \"lake db\".\"pg_catalog\".pg_proc p"));
+    assert!(host.queries.borrow()[2].sql.contains("JOIN \"lake db\".\"pg_catalog\".pg_namespace n"));
+    let functions = functions.unwrap();
+    assert!(functions.contains("-- Catalog Source: Hyper pg_proc"));
+    assert!(functions.contains(
+        "CREATE FUNCTION \"hyper\".\"pg_catalog\".\"wasm_catalog_function\"(\"arg1\" integer) RETURNS bigint;"
+    ));
+    assert_eq!(hyper.function_count(), 1);
     assert!(hyper.connection.catalog_updates().described);
 }
 
 #[test]
-fn hyper_wasm_reads_the_default_database_and_the_live_function_catalog() {
+fn hyper_wasm_reads_the_default_database_and_takes_the_bundled_functions() {
     let mut hyper = Fixture::hyper(json!({ "protocol": "WASM" }));
-    let host = Host::new(|query| {
-        Ok(vec![if query.sql.contains("FROM pg_proc p") { function_rows() } else { pg_rows("default_table", &["id"]) }])
-    });
+    let host = Host::new(|_| Ok(vec![pg_rows("default_table", &["id"])]));
     let (outcome, functions) = hyper.run(None, &host);
     assert_eq!(outcome.status, CatalogUpdateTaskStatus::Succeeded, "{outcome:?}");
+    // One query of the relations, the functions of the embedded Hyper are the bundled ones
+    assert_eq!(host.queries.borrow().len(), 1);
     assert!(host.queries.borrow()[0].sql.contains("FROM pg_catalog.pg_class c"));
     assert!(!host.queries.borrow()[0].sql.contains("\"hyper\".\"pg_catalog\""));
-    assert_eq!(host.queries.borrow()[1].query_type, QueryType::CatalogQueryPgProc);
-    assert!(host.queries.borrow()[1].read_timeout);
     assert!(hyper.relations_text().contains("CREATE TABLE \"hyper\".\"public\".\"default_table\""));
     let functions = functions.unwrap();
-    assert!(functions.contains("-- Catalog Source: HyperDB WASM pg_proc"));
+    assert!(functions.contains("-- Catalog Source: Bundled Hyper function catalog"));
+    assert!(functions.contains("CREATE FUNCTION \"hyper\".\"pg_catalog\".\"abs\"() RETURNS any;"));
+}
+
+#[test]
+fn a_hyper_server_reads_its_functions_from_pg_proc() {
+    let mut hyper = Fixture::hyper(json!({ "protocol": "V3_HTTP", "endpoint": "http://hyper.example" }));
+    let host = Host::new(|query| Ok(or_functions(query, pg_rows("default_table", &["id"]))));
+    let (outcome, functions) = hyper.run(None, &host);
+    assert_eq!(outcome.status, CatalogUpdateTaskStatus::Succeeded, "{outcome:?}");
+    let queries = host.queries.borrow();
+    assert_eq!(queries.len(), 2);
+    assert_eq!(queries[1].query_type, QueryType::CatalogQueryPgProc);
+    assert!(queries[1].read_timeout);
+    // A session without attached databases resolves the unqualified name
+    assert!(queries[1].sql.contains("FROM pg_proc p"));
+    let functions = functions.unwrap();
+    assert!(functions.contains("-- Catalog Source: Hyper pg_proc"));
     assert!(functions.contains(
         "CREATE FUNCTION \"hyper\".\"pg_catalog\".\"wasm_catalog_function\"(\"arg1\" integer) RETURNS bigint;"
     ));
@@ -1067,11 +1099,11 @@ fn hyper_keeps_the_relations_of_a_failed_database_while_committing_the_others() 
         "attachedDatabases": [{ "path": "lakehouse:first", "alias": "first" }, { "path": "lakehouse:second", "alias": "second" }],
     }));
     let alias = |query: &CatalogQuery| if query.sql.contains("\"first\".\"pg_catalog\"") { "first" } else { "second" };
-    let host = Host::new(|query| Ok(vec![pg_rows(&format!("{}_v1", alias(query)), &["id"])]));
+    let host = Host::new(|query| Ok(or_functions(query, pg_rows(&format!("{}_v1", alias(query)), &["id"]))));
     hyper.run(None, &host);
     let host = Host::new(|query| match alias(query) {
         "second" => Err("second unavailable".to_string()),
-        alias => Ok(vec![pg_rows(&format!("{alias}_v2"), &["id"])]),
+        alias => Ok(or_functions(query, pg_rows(&format!("{alias}_v2"), &["id"]))),
     });
     let (outcome, _) = hyper.run(None, &host);
     assert_eq!(outcome.status, CatalogUpdateTaskStatus::PartiallySucceeded);
@@ -1113,7 +1145,7 @@ fn hyper_keeps_the_relations_after_a_failure_of_a_later_step() {
     for failure in ["function publication", "relation publication", "aborted"] {
         let mut hyper = Fixture::hyper(json!({ "protocol": "V3_HTTP" }));
         let revision = std::cell::Cell::new(1);
-        let host = Host::new(|_| Ok(vec![pg_rows(&format!("table_v{}", revision.get()), &["id"])]));
+        let host = Host::new(|query| Ok(or_functions(query, pg_rows(&format!("table_v{}", revision.get()), &["id"]))));
         hyper.run(None, &host);
         let previous = hyper.relations_text();
         assert!(previous.contains("table_v1"));
@@ -1123,12 +1155,12 @@ fn hyper_keeps_the_relations_after_a_failure_of_a_later_step() {
         let mut host = Host::new({
             let cancel = cancel.clone();
             let revision = &revision;
-            move |_| {
+            move |query: &CatalogQuery| {
                 // The update is aborted once its query answered
                 if failure == "aborted" {
                     *cancel.borrow_mut() = Some("aborted".to_string());
                 }
-                Ok(vec![pg_rows(&format!("table_v{}", revision.get()), &["id"])])
+                Ok(or_functions(query, pg_rows(&format!("table_v{}", revision.get()), &["id"])))
             }
         });
         host.cancel = cancel;
@@ -1151,7 +1183,7 @@ fn hyper_keeps_the_relations_after_a_failure_of_a_later_step() {
 
 #[test]
 fn hyper_publishes_an_empty_function_catalog_to_clear_stale_functions() {
-    let mut hyper = Fixture::hyper(json!({ "protocol": "WASM" }));
+    let mut hyper = Fixture::hyper(json!({ "protocol": "V3_HTTP", "endpoint": "http://hyper.example" }));
     let empty = std::cell::Cell::new(false);
     let host = Host::new(|query| {
         if query.sql.contains("FROM pg_proc p") {
@@ -1229,14 +1261,15 @@ fn hyper_asks_only_the_databases_of_the_relations() {
 #[test]
 fn a_database_com_connection_reads_the_hyper_cloud_database_it_attaches() {
     let mut dbcom = Fixture::new(ConnectorType::Dbcom, json!({ "instanceUrl": "", "databaseName": "sales" }));
-    let host = Host::new(|_| Ok(vec![cloud_rows()]));
+    let host = Host::new(|query| Ok(or_functions(query, cloud_rows())));
     let (outcome, functions) = dbcom.run(None, &host);
     assert_eq!(outcome.status, CatalogUpdateTaskStatus::Succeeded, "{outcome:?}");
-    assert_eq!(host.queries.borrow().len(), 1);
+    assert_eq!(host.queries.borrow().len(), 2);
     assert!(host.queries.borrow()[0].sql.contains("FROM \"lakehouse\".\"_hyper_catalog\".\"databases\" d"));
     assert!(dbcom.relations_text().contains("CREATE TABLE \"lakehouse\".\"sales\".\"orders\""));
-    // The bundled functions, not those of the engine
-    assert!(functions.unwrap().contains("-- Catalog Source: Bundled Hyper function catalog"));
+    // The functions of the deployment, e.g. vector_search, from pg_proc
+    assert_eq!(host.queries.borrow()[1].query_type, QueryType::CatalogQueryPgProc);
+    assert!(functions.unwrap().contains("-- Catalog Source: Hyper pg_proc"));
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -1602,7 +1635,13 @@ impl Registry {
         let (update, cancel) = self.running.remove(0);
         let task_id = update.task.task_id;
         let catalog = self.connection.catalog().clone();
-        let host = Host::new(|_| if succeed { Ok(vec![pg_rows("orders", &["id"])]) } else { Err("down".to_string()) });
+        let host = Host::new(|query| {
+            if succeed {
+                Ok(or_functions(query, pg_rows("orders", &["id"])))
+            } else {
+                Err("down".to_string())
+            }
+        });
         *host.cancel.borrow_mut() = cancel;
         let outcome = host.drive(update, &catalog);
         self.apply(outcome.connection_action(task_id));
