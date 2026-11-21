@@ -1082,15 +1082,22 @@ fn reads_and_renders_catalog_files_with_the_core() {
 fn round_trips_a_bundle_through_the_rows() {
     let bundle = tables_bundle();
     let tables = workbook_bundle_to_tables(&bundle, &mut uuids()).unwrap();
+    // The version gets the first fresh id, every row carries the key of the version
+    let version_id = "00000000-0000-4000-8000-000000000001";
     assert_eq!(
-        tables.workbook,
-        vec![WorkbookRow {
+        tables.versions,
+        vec![VersionRow {
             workbook_id: TEST_WORKBOOK_ID.into(),
+            version_id: version_id.into(),
             format_version: 11,
             name: Some("Tables".into()),
             metadata: r#"{"createdAt":"2026-11-10T10:00:00.000Z"}"#.into()
         }]
     );
+    let key = VersionKey { workbook_id: TEST_WORKBOOK_ID.into(), version_id: version_id.into() };
+    assert_eq!(workbook_tables_key(&tables, "Invalid").unwrap(), key);
+    assert!(tables.scripts.iter().all(|r| r.workbook_id == key.workbook_id && r.version_id == key.version_id));
+    assert!(tables.results.iter().all(|r| r.workbook_id == key.workbook_id && r.version_id == key.version_id));
     assert_eq!(
         tables.scripts.iter().map(|r| (r.position, r.name.as_str(), r.connection_id.as_str())).collect::<Vec<_>>(),
         [(0, "b.sql", TEST_CONNECTION_ID), (1, "a.sql", TABLES_OTHER_CONNECTION_ID)]
@@ -1178,20 +1185,26 @@ fn numbers_the_tables_and_functions_of_all_connections() {
 }
 
 #[test]
-fn rejects_tables_without_exactly_one_workbook_and_invalid_json() {
+fn rejects_tables_without_exactly_one_version_rows_of_another_and_invalid_json() {
     let tables = workbook_bundle_to_tables(&tables_bundle(), &mut uuids()).unwrap();
     let mut none = tables.clone();
-    none.workbook.clear();
+    none.versions.clear();
     assert!(workbook_tables_to_bundle(&none, "Invalid workbook tables")
         .unwrap_err()
         .message
-        .contains("expected one workbook, found 0"));
+        .contains("expected one workbook version, found 0"));
     let mut two = tables.clone();
-    two.workbook.push(two.workbook[0].clone());
+    two.versions.push(two.versions[0].clone());
     assert!(workbook_tables_to_bundle(&two, "Invalid workbook tables")
         .unwrap_err()
         .message
-        .contains("expected one workbook, found 2"));
+        .contains("expected one workbook version, found 2"));
+    let mut other = tables.clone();
+    other.catalog_columns[1].version_id = "00000000-0000-4000-8000-000000000099".into();
+    assert!(workbook_tables_to_bundle(&other, "Invalid workbook tables")
+        .unwrap_err()
+        .message
+        .contains("connection_catalog_columns holds rows of another version"));
     let mut broken = tables.clone();
     broken.connections[0].params = "{".into();
     assert!(workbook_tables_to_bundle(&broken, "Invalid workbook tables")
@@ -1283,24 +1296,46 @@ fn rejects_arrow_tables_that_miss_a_column_or_hold_a_null() {
     use arrow_array::{Int32Array, RecordBatch, StringArray};
     use arrow_schema::{DataType, Field, Schema};
     use std::sync::Arc;
+    let key = || -> Vec<Arc<dyn arrow_array::Array>> {
+        vec![Arc::new(StringArray::from(vec!["w"])), Arc::new(StringArray::from(vec!["v"]))]
+    };
+    let key_fields =
+        || vec![Field::new("workbook_id", DataType::Utf8, false), Field::new("version_id", DataType::Utf8, false)];
+    // The key is no nullable column, a table without it fails
     let batch = RecordBatch::try_new(
         Arc::new(Schema::new(vec![Field::new("position", DataType::Int32, false)])),
         vec![Arc::new(Int32Array::from(vec![0]))],
     )
     .unwrap();
+    assert!(table_from_arrow::<ScriptRow>(&batch).unwrap_err().message.contains("has no column workbook_id"));
+    let batch = RecordBatch::try_new(
+        Arc::new(Schema::new([key_fields(), vec![Field::new("position", DataType::Int32, false)]].concat())),
+        [key(), vec![Arc::new(Int32Array::from(vec![0])) as Arc<dyn arrow_array::Array>]].concat(),
+    )
+    .unwrap();
     assert!(table_from_arrow::<ScriptRow>(&batch).unwrap_err().message.contains("has no column name"));
     // A nullable column may be missing, a column of another type is cast
     let batch = RecordBatch::try_new(
-        Arc::new(Schema::new(vec![
-            Field::new("position", DataType::Utf8, false),
-            Field::new("connection_id", DataType::Utf8, false),
-            Field::new("params", DataType::Utf8, true),
-        ])),
-        vec![
-            Arc::new(StringArray::from(vec!["3"])),
-            Arc::new(StringArray::from(vec!["c"])),
-            Arc::new(StringArray::from(vec![None::<&str>])),
-        ],
+        Arc::new(Schema::new(
+            [
+                key_fields(),
+                vec![
+                    Field::new("position", DataType::Utf8, false),
+                    Field::new("connection_id", DataType::Utf8, false),
+                    Field::new("params", DataType::Utf8, true),
+                ],
+            ]
+            .concat(),
+        )),
+        [
+            key(),
+            vec![
+                Arc::new(StringArray::from(vec!["3"])),
+                Arc::new(StringArray::from(vec!["c"])),
+                Arc::new(StringArray::from(vec![None::<&str>])),
+            ],
+        ]
+        .concat(),
     )
     .unwrap();
     assert!(table_from_arrow::<ConnectionRow>(&batch)
@@ -1339,8 +1374,8 @@ fn reads_an_archive_of_workbook_tables() {
     }
     assert_eq!(read_table_archive(&read).unwrap(), tables_bundle());
     let duplicate = vec![
-        ArchiveEntry { filename: "workbook.parquet".into(), directory: false },
-        ArchiveEntry { filename: "WORKBOOK.parquet".into(), directory: false },
+        ArchiveEntry { filename: "workbook_versions.parquet".into(), directory: false },
+        ArchiveEntry { filename: "WORKBOOK_VERSIONS.parquet".into(), directory: false },
     ];
     assert!(plan_archive(&duplicate).unwrap_err().message.contains("duplicate table"));
 }
@@ -1352,7 +1387,7 @@ fn writes_the_workbook_tables_and_the_data_tables_with_their_compression() {
     let tables = workbook_bundle_to_tables(&tables_bundle(), &mut uuids()).unwrap();
     let entries = workbook_archive_entries(&tables);
     let names: Vec<&str> = entries.iter().map(|e| e.file_name.as_str()).collect();
-    assert_eq!(names[0], "workbook.parquet");
+    assert_eq!(names[0], "workbook_versions.parquet");
     // Empty tables are left out
     assert!(names.contains(&"workbook_results.parquet"));
     let mut empty = tables.clone();
@@ -1379,7 +1414,7 @@ fn shares_a_workbook_without_secrets_drafts_and_the_draft_script() {
     let tables = shared_workbook_tables(&bundle, &mut uuids()).unwrap();
     assert!(!tables.connections[0].params.contains("secret"));
     assert!(!tables.connections[0].params.contains("token"));
-    assert!(!tables.workbook[0].metadata.contains("cloud"));
+    assert!(!tables.versions[0].metadata.contains("cloud"));
     assert_eq!(tables.connections[0].name.as_deref(), Some("Local"));
     assert!(tables.scripts.iter().all(|row| row.name != "dashql-draft.sql"));
 }

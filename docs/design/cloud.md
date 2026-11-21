@@ -5,8 +5,10 @@ database of its own there, every version of a workbook as rows of a few shared t
 all equal. A link to a published workbook will ask the recipient to log in to the same connection and open the workbook
 from there. DashQL is then a client of the connection and stores its own state in it, next to the data.
 
-The tables of DashQL are the workbook tables of a `.dashql` file (`workbook_tables.md`), merged across the versions of
-all workbooks.
+The tables of DashQL are the workbook tables of a `.dashql` file (`workbook_tables.md`) with the same names and
+columns, merged across the versions of all workbooks. A `.dashql` file is a cloud that holds one version. Only the
+bookkeeping of a shared store is the cloud's own: the store row, the folders, the workbooks with their deletion, and the
+state of a version.
 
 A cloud may hold very many workbooks. Nothing in the app reads all of them: the sidebar lists the clouds, not their
 workbooks, the overview of a cloud reads one folder a page at a time and the search runs in the cloud, and the counts of
@@ -97,7 +99,7 @@ dashql                                      the database of DashQL
     ├── cloud_store                         one row: the version of the tables, the oldest clients, the lock
     ├── workbook_folders                    one row per folder, with its parent
     ├── workbooks                           one row per published workbook: its folder, whether it was deleted
-    ├── workbook_versions                   one row per version of a published workbook, with its workbook row
+    ├── workbook_versions                   the versions table of the workbook tables, with the state of a version
     ├── workbook_connections                the workbook tables, the rows of every version,
     ├── workbook_scripts                    keyed by (workbook_id, version_id)
     ├── connection_catalog_tables
@@ -110,26 +112,27 @@ dashql                                      the database of DashQL
     └── workbook_result_<32 hex>            one table per result of a version
 ```
 
-The rows of a version are keyed by `(workbook_id, version_id)`, both of the type `uuid`. The merged tables have the
-columns of the workbook tables after the key. The `workbook` table has no table of its own, its row is part of the row
-of the version. `dashql.workbook_versions`, a list that only grows by publishing:
+The rows of a version are keyed by `(workbook_id, version_id)`, both of the type `uuid`, the key that the workbook tables
+start with. The merged tables have exactly the columns of the workbook tables. `dashql.workbook_versions` is the versions
+table of the workbook tables with the columns of the store after its columns, a list that only grows by publishing:
 
 | Column | Type | |
 |--------|------|-|
 | `workbook_id` | `uuid` | the id of the workbook, the same for all its versions |
 | `version_id` | `uuid` | a fresh id of the version |
-| `format_version` | `integer` | the rest of the workbook row |
+| `format_version` | `integer` | the columns of the workbook tables |
 | `name` | `text` | |
 | `metadata` | `text` | |
-| `state` | `text` | `uploading`, `ready` or `deleting` |
+| `state` | `text` | the columns of the store: `uploading`, `ready` or `deleting` |
 | `created_at` | `timestamptz` | |
 | `ready_at` | `timestamptz` | when the version turned ready, null before |
 | `updated_at` | `timestamptz` | when the state last changed |
 | `published_by` | `text` | the login of the cloud connection that published, null if unknown |
 | `app_version` | `text` | the version of DashQL that published, null if unknown |
 
-- **Publishing.** A new workbook gets a fresh id. The row of the version comes first, in state `uploading`. Then the
-  rows of the merged tables are inserted under its key. Every attachment and every result gets a table under a fresh
+- **Publishing.** A publish takes the workbook tables of an export, one version. A new workbook gets a fresh id, the
+  version a fresh id too: the key of the export is replaced. The row of the version comes first, in state `uploading`.
+  Then the rows of the merged tables are inserted under its key. Every attachment and every result gets a table under a fresh
   name, its row in `workbook_attachments` or `workbook_results` is inserted first, then the table is created and
   filled. Last, the row of the version turns `ready` with a single `UPDATE`.
 - **Updating.** An update names the workbook and adds a version the same way. The current version of a workbook is the

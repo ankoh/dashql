@@ -70,9 +70,12 @@ describe('The imports and exports of the runtime', () => {
             files = tables.data.map(entry => platform.handles.get(entry.file));
         });
         expect(outcome.results).toEqual({ cachedScripts: 0, totalScripts: 0, files: 0, bytes: 0 });
-        expect(rows['workbook']).toEqual([expect.objectContaining({ workbook_id: WB, name: 'Sales' })]);
-        expect(rows['workbook_scripts']).toEqual([expect.objectContaining({ name: 'a.sql', connection_id: CONNECTION, text: 'select 1' })]);
-        expect(rows['workbook_attachments']).toEqual([expect.objectContaining({ name: 'data.parquet' })]);
+        // One version under a fresh id, every row carries its key
+        expect(rows['workbook_versions']).toEqual([expect.objectContaining({ workbook_id: WB, name: 'Sales' })]);
+        const key = { workbook_id: WB, version_id: rows['workbook_versions'][0].version_id };
+        expect(key.version_id).toMatch(/^[0-9a-f-]{36}$/);
+        expect(rows['workbook_scripts']).toEqual([expect.objectContaining({ ...key, name: 'a.sql', connection_id: CONNECTION, text: 'select 1' })]);
+        expect(rows['workbook_attachments']).toEqual([expect.objectContaining({ ...key, name: 'data.parquet' })]);
         // The attachment stays with the host, the export names it by handle
         expect(files).toEqual([new Uint8Array([1, 2, 3])]);
         runtime.free();

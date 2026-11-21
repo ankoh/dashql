@@ -82,7 +82,7 @@ pub struct ArchiveWriteEntry {
     pub compression: EntryCompression,
 }
 
-/// The entries of the archive of workbook tables: the tables with rows, the workbook first, then the data tables.
+/// The entries of the archive of workbook tables: the tables with rows, the versions first, then the data tables.
 /// Empty tables are left out, an import reads a missing table as one without rows.
 pub fn workbook_archive_entries<B>(tables: &WorkbookTables<B>) -> Vec<ArchiveWriteEntry> {
     let mut entries: Vec<ArchiveWriteEntry> = WorkbookTableName::ALL

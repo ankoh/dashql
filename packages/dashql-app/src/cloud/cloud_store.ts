@@ -10,7 +10,7 @@ import {
     ATTACHMENTS_TABLE,
     RESULT_TABLE_PREFIX,
     RESULTS_TABLE,
-    WORKBOOK_TABLE,
+    VERSIONS_TABLE,
     WORKBOOK_TABLE_NAMES,
     workbookTableColumns,
     type AttachmentRow,
@@ -35,16 +35,18 @@ import {
 // A workbook has a row in the workbooks table with its folder, which is written before its first version. Deleting a
 // workbook only marks that row, the workbook and its versions are hidden then, and a cleanup removes them later.
 //
-// All tables live in the schema of DashQL. The versions table grows by one row per version of a published workbook and
-// holds its workbook row. The other workbook tables are merged into one table each, keyed by workbook and version. Every
+// All tables live in the schema of DashQL. The workbook tables of a `.dashql` file are tables of the cloud with the same
+// names and columns, merged across the versions of all workbooks and keyed by workbook and version like in the file. The
+// versions table grows by one row per version of a published workbook and adds the columns of the store. Every
 // attachment and every result is a table of its own, named by a row of the attachments or results table. A version row
 // is written before anything of its version and removed after everything else, a data table is named by a row before
 // it is created and dropped before its row is removed. Only the rows of ready versions are read. The current version of
 // a workbook is the one that turned ready last, the earlier ones stay readable. Every operation opens the tables first,
 // which creates and migrates them (cloud_store_schema.ts).
 
-/// The workbook tables that are merged into one table of the cloud each, the workbook row goes into the versions table
-export const CLOUD_MERGED_TABLE_NAMES: WorkbookTableName[] = WORKBOOK_TABLE_NAMES.filter(name => name !== WORKBOOK_TABLE);
+/// The workbook tables besides the versions, their tables in the cloud have only the columns of the workbook tables.
+/// The versions table adds the columns of the store.
+export const CLOUD_MERGED_TABLE_NAMES: WorkbookTableName[] = WORKBOOK_TABLE_NAMES.filter(name => name !== VERSIONS_TABLE);
 
 /// The state of a version
 export type CloudVersionState =
@@ -122,7 +124,8 @@ const DEFAULT_MAX_STATEMENT_LENGTH = 512 * 1024;
 /// The Hyper type of a column of a workbook table
 const WORKBOOK_COLUMN_TYPES = { text: 'text', integer: 'integer', boolean: 'boolean' } as const;
 
-/// The key of the rows of a version, the workbook first
+/// The key of the rows of a version, the workbook first. The workbook tables have it too, a publish replaces it with the
+/// key of the new version.
 const KEY_COLUMNS: CloudColumn[] = [
     { name: 'workbook_id', type: 'uuid', nullable: false },
     { name: 'version_id', type: 'uuid', nullable: false },
@@ -138,7 +141,7 @@ function selected(name: string): string {
 
 /// The columns of a workbook table in the cloud, without the key
 function workbookColumns(instance: core.DashQL, tableName: WorkbookTableName): CloudColumn[] {
-    return workbookTableColumns(instance, tableName).filter(column => column.name !== 'workbook_id').map(column => ({
+    return workbookTableColumns(instance, tableName).filter(column => !UUID_COLUMNS.has(column.name)).map(column => ({
         name: column.name,
         type: WORKBOOK_COLUMN_TYPES[column.type],
         nullable: column.nullable,
@@ -149,7 +152,7 @@ function workbookColumns(instance: core.DashQL, tableName: WorkbookTableName): C
 export function cloudColumnsUsed(instance: core.DashQL): Record<string, string[]> {
     const names = (columns: CloudColumn[]) => columns.map(column => column.name);
     const columns: Record<string, string[]> = {
-        [CLOUD_VERSIONS_TABLE]: [...names(KEY_COLUMNS), ...names(workbookColumns(instance, WORKBOOK_TABLE)), 'state', 'created_at', 'ready_at', 'updated_at', 'published_by', 'app_version'],
+        [CLOUD_VERSIONS_TABLE]: [...names(KEY_COLUMNS), ...names(workbookColumns(instance, VERSIONS_TABLE)), 'state', 'created_at', 'ready_at', 'updated_at', 'published_by', 'app_version'],
     };
     for (const tableName of CLOUD_MERGED_TABLE_NAMES) columns[tableName] = [...names(KEY_COLUMNS), ...names(workbookColumns(instance, tableName))];
     columns[CLOUD_WORKBOOKS_TABLE] = ['workbook_id', 'folder_id', 'created_at', 'created_by', 'updated_at', 'deleted_at'];
@@ -230,8 +233,8 @@ export async function publishCloudWorkbook(
     tables: WorkbookTables,
     options: CloudPublishOptions = {},
 ): Promise<CloudWorkbookVersion> {
-    if (tables[WORKBOOK_TABLE].length !== 1) {
-        throw new Error(`Expected one workbook, found ${tables[WORKBOOK_TABLE].length}`);
+    if (tables[VERSIONS_TABLE].length !== 1) {
+        throw new Error(`Expected one workbook version, found ${tables[VERSIONS_TABLE].length}`);
     }
     for (const name of [...tables[ATTACHMENTS_TABLE].map(row => row.table_name), ...tables[RESULTS_TABLE].map(row => row.table_name)]) {
         if (!instance.isDataTableName(name)) throw new Error(`Not the name of a data table: ${name}`);
@@ -250,13 +253,13 @@ export async function publishCloudWorkbook(
     if (options.folderId != null) checkCloudId(options.folderId, 'folder');
     const versionId = newVersionId();
     const key: CloudVersionKey = { workbookId, versionId };
-    const workbook = tables[WORKBOOK_TABLE][0];
+    const workbook = tables[VERSIONS_TABLE][0];
     // The data tables of every publish get fresh names, the tables of the cloud are shared by all versions
     const created: string[] = [];
 
     const createdRow = await ensureWorkbookRow(query, workbookId, options);
 
-    const versionColumns = workbookColumns(instance, WORKBOOK_TABLE);
+    const versionColumns = workbookColumns(instance, VERSIONS_TABLE);
     const versionValues = [quoteLiteral(workbookId), quoteLiteral(versionId), ...versionColumns.map(column => {
         const value = valueText((workbook as unknown as Record<string, unknown>)[column.name]);
         return value == null ? 'NULL' : `CAST(${quoteLiteral(value)} AS ${column.type})`;
@@ -505,22 +508,18 @@ export async function readCloudWorkbook(
         throw new Error(`The workbook ${workbookId} was published by a newer DashQL, update DashQL to read it`);
     }
     const tables: CloudWorkbookTables = { rows: {}, data: [] };
+    // The workbook tables are tables of the cloud of the same names, the versions table has more columns than are read.
     // The tables may lack columns and tables that this client knows, of migrations that no writer ran yet. The runtime
     // reads a missing column of a nullable field as null and a missing table as one without rows.
-    const read = async (tableName: WorkbookTableName, cloudTableName: string): Promise<arrow.Table | null> => {
-        const existing = view.columns.get(cloudTableName);
+    const dataTables: string[] = [];
+    for (const tableName of WORKBOOK_TABLE_NAMES) {
+        const existing = view.columns.get(tableName);
         const columns = workbookTableColumns(instance, tableName).filter(column => existing?.has(column.name)).map(column => column.name);
-        if (columns.length === 0) return null;
-        const result = await query(`SELECT ${columns.map(selected).join(', ')} FROM ${cloudTable(cloudTableName, options)} `
+        if (columns.length === 0) continue;
+        const result = await query(`SELECT ${columns.map(selected).join(', ')} FROM ${cloudTable(tableName, options)} `
             + `WHERE ${versionWhere(row)} ORDER BY ${columns.map(name => qualifiedName(name)).join(', ')}`, signal);
         tables.rows[tableName] = arrow.tableToIPC(result, 'stream');
-        return result;
-    };
-    await read(WORKBOOK_TABLE, CLOUD_VERSIONS_TABLE);
-    const dataTables: string[] = [];
-    for (const tableName of CLOUD_MERGED_TABLE_NAMES) {
-        const result = await read(tableName, tableName);
-        if (result != null && (tableName === ATTACHMENTS_TABLE || tableName === RESULTS_TABLE)) dataTables.push(...textColumn(result, 'table_name'));
+        if (tableName === ATTACHMENTS_TABLE || tableName === RESULTS_TABLE) dataTables.push(...textColumn(result, 'table_name'));
     }
     for (const name of dataTables) {
         const result = await query(`SELECT * FROM ${dataTable(instance, name, options)}`, signal);

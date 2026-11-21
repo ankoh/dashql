@@ -9,6 +9,7 @@ import {
     type CatalogFunctionParamRow,
     type CatalogFunctionRow,
     type CatalogTableRow,
+    type VersionKeyColumns,
     type WorkbookTableName,
     type WorkbookTables,
 } from '@akohn/dashql/platform/storage/workbook_tables';
@@ -21,15 +22,24 @@ function testDataTableName(prefix: string): string {
 import type { CloudWorkbookTables } from './cloud_store.js';
 
 // The workbook tables of the tests of the clouds, written as the runtime exports them (`workbook_bundle_to_tables` of
-// the crate): the metadata of the workbook and the params of the connections as JSON text, the scripts in the order
-// of the workbook file, a data table of a fresh name for every attachment and result.
+// the crate): a version of a fresh id whose key every row carries, the metadata of the workbook and the params of the
+// connections as JSON text, the scripts in the order of the workbook file, a data table of a fresh name for every
+// attachment and result.
+
+/// A row without the key of its version
+type Unkeyed<R> = Omit<R, keyof VersionKeyColumns>;
 
 /// The catalog rows of a workbook of the tests, the ids count across the connections
 export interface TestCatalogRows {
-    tables?: CatalogTableRow[];
-    columns?: CatalogColumnRow[];
-    functions?: CatalogFunctionRow[];
-    params?: CatalogFunctionParamRow[];
+    tables?: Unkeyed<CatalogTableRow>[];
+    columns?: Unkeyed<CatalogColumnRow>[];
+    functions?: Unkeyed<CatalogFunctionRow>[];
+    params?: Unkeyed<CatalogFunctionParamRow>[];
+}
+
+/// Rows under the key of another version, e.g. the one that a publish gave them
+export function withVersionKey<R extends object>(rows: readonly R[], key: { workbookId: string; versionId: string }): R[] {
+    return rows.map(row => ({ ...row, workbook_id: key.workbookId, version_id: key.versionId }));
 }
 
 /// What the workbook tables of a test hold
@@ -49,8 +59,10 @@ export interface TestWorkbookTables {
 export function testWorkbookTables(spec: TestWorkbookTables): WorkbookTables {
     const tables = emptyWorkbookTables();
     const { workbook } = spec;
-    tables.workbook.push({ workbook_id: workbook.workbookId, format_version: workbook.formatVersion, name: workbook.name ?? null, metadata: JSON.stringify(workbook.metadata) });
+    const key: VersionKeyColumns = { workbook_id: workbook.workbookId, version_id: crypto.randomUUID() };
+    tables.workbook_versions.push({ ...key, format_version: workbook.formatVersion, name: workbook.name ?? null, metadata: JSON.stringify(workbook.metadata) });
     workbook.connections.forEach((connection, position) => tables.workbook_connections.push({
+        ...key,
         position,
         connection_id: connection.connectionId,
         name: connection.name ?? null,
@@ -58,20 +70,20 @@ export function testWorkbookTables(spec: TestWorkbookTables): WorkbookTables {
     }));
     workbook.scripts.forEach((script, position) => {
         const text = spec.scripts[script.name];
-        if (text != null) tables.workbook_scripts.push({ position, name: script.name, connection_id: script.connectionId, text });
+        if (text != null) tables.workbook_scripts.push({ ...key, position, name: script.name, connection_id: script.connectionId, text });
     });
-    tables.connection_catalog_tables.push(...spec.catalog?.tables ?? []);
-    tables.connection_catalog_columns.push(...spec.catalog?.columns ?? []);
-    tables.connection_catalog_functions.push(...spec.catalog?.functions ?? []);
-    tables.connection_catalog_function_params.push(...spec.catalog?.params ?? []);
+    tables.connection_catalog_tables.push(...(spec.catalog?.tables ?? []).map(row => ({ ...key, ...row })));
+    tables.connection_catalog_columns.push(...(spec.catalog?.columns ?? []).map(row => ({ ...key, ...row })));
+    tables.connection_catalog_functions.push(...(spec.catalog?.functions ?? []).map(row => ({ ...key, ...row })));
+    tables.connection_catalog_function_params.push(...(spec.catalog?.params ?? []).map(row => ({ ...key, ...row })));
     (spec.attachments ?? []).forEach((file, position) => {
         const tableName = testDataTableName(ATTACHMENT_TABLE_PREFIX);
-        tables.workbook_attachments.push({ position, name: file.name, table_name: tableName });
+        tables.workbook_attachments.push({ ...key, position, name: file.name, table_name: tableName });
         tables.data.set(tableName, { bytes: file.bytes });
     });
     for (const result of spec.results ?? []) {
         const tableName = testDataTableName(RESULT_TABLE_PREFIX);
-        tables.workbook_results.push({ cache_key: result.key, table_name: tableName });
+        tables.workbook_results.push({ ...key, cache_key: result.key, table_name: tableName });
         tables.data.set(tableName, { bytes: result.bytes });
     }
     return tables;

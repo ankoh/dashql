@@ -375,7 +375,7 @@ impl Exports {
     }
 }
 
-/// Write the archive of workbook tables with the platform: the tables with rows as Parquet, the workbook first, then
+/// Write the archive of workbook tables with the platform: the tables with rows as Parquet, the versions first, then
 /// the Parquet files of the attachments and results as they are. Returns the Blob of the archive.
 pub(crate) async fn write_archive(
     platform: &JsPlatform,

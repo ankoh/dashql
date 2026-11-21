@@ -3,7 +3,7 @@ import { act } from '@akohn/dashql-react/testing/react_act';
 import { createRoot } from 'react-dom/client';
 import { describe, expect, it, vi } from 'vitest';
 
-import { WORKBOOK_TABLE } from '@akohn/dashql/platform/storage/workbook_tables';
+import { VERSIONS_TABLE } from '@akohn/dashql/platform/storage/workbook_tables';
 import { createTestRuntime } from '@akohn/dashql/runtime/testing/test_runtime';
 import type { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { findLinkedWorkbook, linkedWorkbookMetadata, previewConnections, useCloudPreviewCleanup } from './cloud_workbooks.js';
@@ -55,7 +55,7 @@ describe('Cloud workbooks', () => {
         try {
             const exported: { metadata: string | null } = { metadata: null };
             await runtime.exportTables(TEST_WORKBOOK_ID, { withCatalog: true, withLoginHint: false }, async tables => {
-                exported.metadata = tables[WORKBOOK_TABLE][0].metadata;
+                exported.metadata = tables[VERSIONS_TABLE][0].metadata;
             });
             expect(JSON.parse(exported.metadata!)).toEqual({ originalFileName: 'hyper' });
         } finally {

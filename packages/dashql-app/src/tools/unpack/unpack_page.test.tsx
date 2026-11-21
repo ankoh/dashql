@@ -32,8 +32,9 @@ afterAll(async () => {
 
 /// A `.dashql` file with two workbook tables and a file that is no Parquet file
 async function testArchive(): Promise<File> {
-    const workbook = await exportArrowTableAsParquet(database, tableFromArrays({
+    const versions = await exportArrowTableAsParquet(database, tableFromArrays({
         workbook_id: ['0f6b7a3e'],
+        version_id: ['5c1d9e20'],
         name: ['Orders'],
     }));
     const scripts = await exportArrowTableAsParquet(database, tableFromArrays({
@@ -42,7 +43,7 @@ async function testArchive(): Promise<File> {
         text: ['select * from orders', 'select 42 as answer'],
     }));
     const zip = new ZipWriter(new BlobWriter('application/zip'));
-    await zip.add('workbook.parquet', new Uint8ArrayReader(workbook));
+    await zip.add('workbook_versions.parquet', new Uint8ArrayReader(versions));
     await zip.add('workbook_scripts.parquet', new Uint8ArrayReader(scripts), { level: 0 });
     await zip.add('notes.txt', new TextReader('not a table'));
     return new File([await zip.close()], 'orders.dashql');
@@ -95,7 +96,7 @@ describe('UnpackPage', () => {
             await vi.waitFor(() => expect(card('workbook_scripts.parquet')).not.toBeNull());
         });
         expect([...root.container.querySelectorAll('section')].map(section => section.getAttribute('aria-label')))
-            .toEqual(['workbook.parquet', 'workbook_scripts.parquet']);
+            .toEqual(['workbook_versions.parquet', 'workbook_scripts.parquet']);
         expect(root.container.textContent).toContain('orders.dashql');
         expect(root.container.textContent).toContain('2 Parquet files');
         // The other entries are listed without a table

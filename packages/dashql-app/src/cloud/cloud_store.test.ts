@@ -11,10 +11,10 @@ import {
     CATALOG_TABLES_TABLE,
     SCRIPTS_TABLE,
     RESULTS_TABLE,
-    WORKBOOK_TABLE,
+    VERSIONS_TABLE,
     type WorkbookTables,
 } from '@akohn/dashql/platform/storage/workbook_tables';
-import { cloudRows, testWorkbookTables } from './cloud_test_tables.js';
+import { cloudRows, testWorkbookTables, withVersionKey } from './cloud_test_tables.js';
 import { createTestHyperDB, testDatabasePath } from '../tests/hyperdb_test_client.js';
 import { listCloudEntries, type CloudCursor, type CloudSearch } from './cloud_folders.js';
 import {
@@ -203,7 +203,7 @@ describe('cloud store', () => {
         statements = [];
         const { tables } = await readCloudWorkbook(dql, query, database, workbookId, { migrations: newer });
         // The column of the names is missing, the runtime reads it as null
-        expect(cloudRows(tables, CONNECTIONS_TABLE)).toEqual([{ position: 0, connection_id: 'c', params: '{}' }]);
+        expect(cloudRows(tables, CONNECTIONS_TABLE)).toEqual([{ workbook_id: workbookId, version_id: versionId, position: 0, connection_id: 'c', params: '{}' }]);
         expect(statements.every(sql => sql.startsWith('SELECT'))).toBe(true);
     });
 
@@ -239,7 +239,8 @@ describe('cloud store', () => {
         expect(published.version).toBe(1);
         expect(published.readyAt).not.toBeNull();
         expect(published.name).toBe("Bob's workbook");
-        expect(published.workbookId).not.toBe(tables[WORKBOOK_TABLE][0].workbook_id);
+        expect(published.workbookId).not.toBe(tables[VERSIONS_TABLE][0].workbook_id);
+        expect(published.versionId).not.toBe(tables[VERSIONS_TABLE][0].version_id);
         expect(published.versionId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
         expect(await listWorkbooks()).toEqual([{ ...published, folderId: null }]);
         // The workbook row comes first, then the version row, which turns ready last. A data table is named by a row
@@ -259,13 +260,16 @@ describe('cloud store', () => {
 
         const { version, tables: read } = await readCloudWorkbook(dql, query, database, published.workbookId);
         expect(version).toEqual(published);
-        const [workbookRow] = cloudRows(read, WORKBOOK_TABLE);
-        expect(workbookRow.workbook_id).toBe(published.workbookId);
-        expect(workbookRow.name).toBe("Bob's workbook");
-        expect(JSON.parse(workbookRow.metadata as string)).toEqual(TEST_WORKBOOK.metadata);
-        expect(cloudRows(read, CATALOG_TABLES_TABLE)).toEqual(tables[CATALOG_TABLES_TABLE]);
-        expect(cloudRows(read, CATALOG_FUNCTION_PARAMS_TABLE)).toEqual(tables[CATALOG_FUNCTION_PARAMS_TABLE]);
-        expect(cloudRows(read, SCRIPTS_TABLE)).toEqual(tables[SCRIPTS_TABLE]);
+        // The cloud reads the workbook tables as the file holds them, the rows under the key of the published version
+        const [versionRow] = cloudRows(read, VERSIONS_TABLE);
+        expect(Object.keys(versionRow)).toEqual(Object.keys(tables[VERSIONS_TABLE][0]));
+        expect(versionRow.workbook_id).toBe(published.workbookId);
+        expect(versionRow.version_id).toBe(published.versionId);
+        expect(versionRow.name).toBe("Bob's workbook");
+        expect(JSON.parse(versionRow.metadata as string)).toEqual(TEST_WORKBOOK.metadata);
+        expect(cloudRows(read, CATALOG_TABLES_TABLE)).toEqual(withVersionKey(tables[CATALOG_TABLES_TABLE], published));
+        expect(cloudRows(read, CATALOG_FUNCTION_PARAMS_TABLE)).toEqual(withVersionKey(tables[CATALOG_FUNCTION_PARAMS_TABLE], published));
+        expect(cloudRows(read, SCRIPTS_TABLE)).toEqual(withVersionKey(tables[SCRIPTS_TABLE], published));
         const [attachmentRow] = cloudRows(read, ATTACHMENTS_TABLE);
         const [resultRow] = cloudRows(read, RESULTS_TABLE);
         expect(resultRow.cache_key).toBe('k1');
@@ -302,7 +306,7 @@ describe('cloud store', () => {
         const latest = await readCloudWorkbook(dql, query, database, first.workbookId);
         expect(latest.version).toEqual(second);
         expect(cloudRows(latest.tables, SCRIPTS_TABLE)[0].text).toBe('select 2');
-        expect(cloudRows(latest.tables, WORKBOOK_TABLE)[0].workbook_id).toBe(first.workbookId);
+        expect(cloudRows(latest.tables, VERSIONS_TABLE)[0].workbook_id).toBe(first.workbookId);
         const earlier = await readCloudWorkbook(dql, query, database, first.workbookId, { versionId: first.versionId });
         expect(earlier.version).toEqual(first);
         expect(cloudRows(earlier.tables, SCRIPTS_TABLE)[0].text).toBe("select 'it''s'");
@@ -420,7 +424,7 @@ describe('cloud store', () => {
 
     it('finds workbooks by the names and the scripts of their latest versions', async () => {
         const sales = await testTables();
-        sales[WORKBOOK_TABLE][0].name = 'Sales Q3';
+        sales[VERSIONS_TABLE][0].name = 'Sales Q3';
         sales[SCRIPTS_TABLE][0].text = 'select * from Orders';
         const first = await publishCloudWorkbook(dql, query, database, sales);
         const other = await publishCloudWorkbook(dql, query, database, await testTables());
@@ -470,7 +474,7 @@ describe('cloud store', () => {
     it('rejects tables that do not hold one workbook', async () => {
         const tables = await testTables();
         statements = [];
-        await expect(publishCloudWorkbook(dql, query, database, { ...tables, [WORKBOOK_TABLE]: [] })).rejects.toThrow('Expected one workbook, found 0');
+        await expect(publishCloudWorkbook(dql, query, database, { ...tables, [VERSIONS_TABLE]: [] })).rejects.toThrow('Expected one workbook version, found 0');
         expect(statements).toEqual([]);
     });
 });

@@ -1,8 +1,8 @@
 //! The import of a `.dashql` archive.
 //!
 //! The ZIP stays with the host: it lists the entries of the archive, `plan_archive` decides what each entry is and
-//! what the host reads of it, and the host hands back what it read. An archive with `workbook.parquet` holds the
-//! workbook tables (`docs/design/workbook_tables.md`), the host scans them with the embedded Hyper into Arrow IPC.
+//! what the host reads of it, and the host hands back what it read. An archive with `workbook_versions.parquet` holds
+//! the workbook tables (`docs/design/workbook_tables.md`), the host scans them with the embedded Hyper into Arrow IPC.
 //! Archives of older versions hold the files of a workbook folder.
 
 use std::collections::HashSet;
@@ -136,9 +136,9 @@ pub struct FolderArchivePlan {
     pub script_error: Option<String>,
 }
 
-/// The file name of the workbook table, it marks an archive of workbook tables
+/// The file name of the versions table, it marks an archive of workbook tables
 fn workbook_table_file() -> String {
-    WorkbookTableName::Workbook.file_name()
+    WorkbookTableName::Versions.file_name()
 }
 
 /// Decide what the entries of an archive are. Fails on paths that escape, duplicates and misplaced files.

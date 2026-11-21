@@ -2,6 +2,7 @@ import type * as arrow from 'apache-arrow';
 
 import { createTableSQL, qualifiedName, type CloudColumn } from './cloud_sql.js';
 import { quoteLiteral } from '@akohn/dashql/platform/utils/sql_quote';
+import { VERSIONS_TABLE } from '@akohn/dashql/platform/storage/workbook_tables';
 
 // The tables of DashQL in the cloud connection and how they evolve. See docs/design/cloud.md.
 //
@@ -19,8 +20,9 @@ export const CLOUD_DATABASE = 'dashql';
 export const CLOUD_SCHEMA = 'dashql';
 /// The store row: the version of the tables, the oldest clients that may use them, the lock of a migration
 export const CLOUD_STORE_TABLE = 'cloud_store';
-/// The versions of the published workbooks, one row per version, with the workbook row of the version
-export const CLOUD_VERSIONS_TABLE = 'workbook_versions';
+/// The versions of the published workbooks, one row per version: the versions table of the workbook tables with the
+/// columns of the store after its columns
+export const CLOUD_VERSIONS_TABLE = VERSIONS_TABLE;
 /// The published workbooks, one row per workbook: its folder and whether it was deleted
 export const CLOUD_WORKBOOKS_TABLE = 'workbooks';
 /// The folders of the published workbooks, a folder names its parent

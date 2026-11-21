@@ -149,7 +149,7 @@ fn rows_value<R: WorkbookTableRow>(rows: &[R]) -> Value {
 /// The rows of a workbook table as JS objects
 pub(crate) fn table_rows<B>(tables: &WorkbookTables<B>, table: WorkbookTableName) -> Value {
     match table {
-        WorkbookTableName::Workbook => rows_value(&tables.workbook),
+        WorkbookTableName::Versions => rows_value(&tables.versions),
         WorkbookTableName::Connections => rows_value(&tables.connections),
         WorkbookTableName::Scripts => rows_value(&tables.scripts),
         WorkbookTableName::CatalogTables => rows_value(&tables.catalog_tables),

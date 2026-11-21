@@ -1,12 +1,13 @@
 # Workbook Tables
 
-A workbook that leaves the app travels as the rows of a fixed set of tables. A `.dashql` file is a ZIP that holds each
-table as a Parquet file, `<table>.parquet`. The cloud keeps published workbooks in the same tables, the rows of all
-versions merged and keyed by workbook and version (`cloud.md`). File and schema share one converter, the workbook format of
-the core runtime (`workbook_format/tables.rs`); only the sink differs. The runtime of the module exports and imports them
-(`runtime/exports.rs` and `runtime/imports.rs` of `dashql-core-bindings`), the platform keeps the ZIP container and the
-Parquet files (`workbook_archives.ts` of `packages/dashql/src/runtime`), and a cloud writes and reads the rows itself
-(`storage/workbook_tables.ts` has their types). The tables hold exactly one workbook, so no row names its workbook.
+A workbook that leaves the app travels as a version: the rows of a fixed set of tables. A `.dashql` file is a ZIP that
+holds each table as a Parquet file, `<table>.parquet`. A cloud keeps published workbooks in tables of the same names and
+columns, the rows of all versions of all workbooks side by side (`cloud.md`): a `.dashql` file is a cloud that holds
+one version. Every row starts with the key of its version, `(workbook_id, version_id)`. File and cloud share one
+converter, the workbook format of the core runtime (`workbook_format/tables.rs`); only the sink differs. The runtime of
+the module exports and imports them (`runtime/exports.rs` and `runtime/imports.rs` of `dashql-core-bindings`), the
+platform keeps the ZIP container and the Parquet files (`workbook_archives.ts` of `packages/dashql/src/runtime`), and a
+cloud writes and reads the rows itself (`storage/workbook_tables.ts` has their types).
 
 ## Sharing a Workbook
 
@@ -27,9 +28,9 @@ in NFC.
 
 ## Tables
 
-| Table | Columns |
-|-------|---------|
-| `workbook` | `workbook_id`, `format_version`, `name`, `metadata` (JSON text), one row |
+| Table | Columns after the key |
+|-------|-------------------------|
+| `workbook_versions` | `format_version`, `name`, `metadata` (JSON text), one row per version |
 | `workbook_connections` | `position`, `connection_id`, `name`, `params` (JSON text, sanitized for sharing) |
 | `workbook_scripts` | `position`, `name`, `connection_id`, `text` |
 | `connection_catalog_tables` | `table_id`, `connection_id`, `database_name`, `schema_name`, `table_name` |
@@ -38,18 +39,27 @@ in NFC.
 | `connection_catalog_function_params` | `function_id`, `position`, `param_name`, `param_type` |
 | `workbook_attachments` | `position`, `name`, `table_name` |
 | `workbook_results` | `cache_key`, `table_name` |
-| `workbook_attachment_<32 hex>` | the data of one attachment |
-| `workbook_result_<32 hex>` | one cached query result |
+| `workbook_attachment_<32 hex>` | the data of one attachment, no key |
+| `workbook_result_<32 hex>` | one cached query result, no key |
 
 - **Names.** A table is named after what its rows belong to: the workbook or a connection of it. The cloud keeps the
-  tables of all published workbooks side by side under the same names (`cloud.md`).
+  tables of all published workbooks side by side under the same names and columns (`cloud.md`), only its versions
+  table has more: the columns of the store after these.
+- **The key.** `workbook_id` and `version_id` are the first columns of every table but the data tables, a version row
+  has a key of its own, every other row the key of its version. An export writes one version under a fresh
+  `version_id`, every export of a workbook is a version of its own. A reader takes the tables of exactly one version
+  and refuses rows of another. A cloud gives a published version a key of its own (`cloud.md`), so the key of a file
+  doesn't carry over into it. In a file the key is `text`, in a cloud `uuid`.
 - **Data tables.** Every attachment and every cached query result is a table of its own. `workbook_attachments` and
-  `workbook_results` name them. The text columns are `text`, the ids, `position` and `format_version` are `integer`, `is_aggregate` is
-  `boolean`.
+  `workbook_results` name them, the name is unique across versions. The text columns are `text`, the ids of the
+  catalogs, `position` and `format_version` are `integer`, `is_aggregate` is `boolean`.
+- **Evolving.** A reader reads a missing nullable column as null and a missing table as one without rows, so a later
+  version adds nullable columns and tables without breaking readers. A change that a reader must not ignore raises
+  `format_version`, which a reader refuses when it is newer than it knows.
 - **Workbook file.** A reader assembles the workbook file from the rows and migrates it in memory like the top-level
   files of a workbook folder (`read_workbook_bundle_head`). `format_version` keeps the workbook migrations in charge.
 - **Catalogs.** The catalog files of a connection are rows: its tables with their columns, and its functions with their
-  parameters. A table has a `table_id` and a function a `function_id`, numbered across the connections of the workbook in
+  parameters. A table has a `table_id` and a function a `function_id`, numbered across the connections of the version in
   the order of their declarations. A column names its table and a parameter its function by that id, so the overloads
   of a function stay apart. The ids aren't declared as keys, the tables have none. An empty database or schema name means the declaration
   names none. An export reads the SQL of the files with the core into a catalog descriptor
@@ -63,7 +73,7 @@ in NFC.
 A `.dashql` file is a ZIP whose entries are named after their tables:
 
 ```
-workbook.parquet
+workbook_versions.parquet
 workbook_connections.parquet
 workbook_scripts.parquet
 connection_catalog_tables.parquet           (with catalogs only, the same for the columns,
@@ -88,9 +98,11 @@ workbook_result_<id>.parquet
 - **Reading.** The platform lists the entries (`archives.entries`), the core decides what each entry is
   (`plan_archive`). The embedded Hyper mounts every workbook table and scans it (`archives.readTable`), the core reads
   the rows of the Arrow IPC. The attachments and results stay with the platform by handle, a stored result as a slice
-  of the archive with its CRC-32 (`archives.readFile`). An archive without `workbook.parquet` is an archive of an older
-  version, which holds the files of a workbook folder (`dashql-workbook.json`, `scripts/`, `attachments/`,
-  `connections/<id>/`, `results/`). The import still reads it, without the embedded Hyper.
+  of the archive with its CRC-32 (`archives.readFile`).
+- **Older archives.** An archive without `workbook_versions.parquet` is an archive of an older version, which holds
+  the files of a workbook folder (`dashql-workbook.json`, `scripts/`, `attachments/`, `connections/<id>/`,
+  `results/`). The import still reads it, without the embedded Hyper. The first archives of workbook tables, of
+  v0.0.19, held `workbook.parquet` and no key; they aren't read.
 
 ## Links
 

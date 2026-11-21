@@ -3,7 +3,7 @@ import * as core from '@akohn/dashql';
 
 import type { HyperDB, HyperDBConnection } from '@akohn/dashql/platform/hyperdb/hyperdb_wasm';
 import { TEST_CONNECTION_ID, testWorkbook } from '@akohn/dashql/platform/testing/workbook_test_backend';
-import { WORKBOOK_TABLE, type WorkbookTables } from '@akohn/dashql/platform/storage/workbook_tables';
+import { VERSIONS_TABLE, type WorkbookTables } from '@akohn/dashql/platform/storage/workbook_tables';
 import { testWorkbookTables } from './cloud_test_tables.js';
 import { createTestHyperDB, testDatabasePath } from '../tests/hyperdb_test_client.js';
 import {
@@ -53,7 +53,7 @@ beforeEach(async () => {
 
 function tablesNamed(name: string, sql = 'select 1'): WorkbookTables {
     const tables = testWorkbookTables({ workbook: testWorkbook({ name, scripts: [{ name: 'a.sql', connectionId: TEST_CONNECTION_ID }] }), scripts: { 'a.sql': sql } });
-    expect(tables[WORKBOOK_TABLE][0].name).toBe(name);
+    expect(tables[VERSIONS_TABLE][0].name).toBe(name);
     return tables;
 }
 

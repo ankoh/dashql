@@ -1,15 +1,16 @@
 import * as core from '../../core/index.js';
 
-// The tables of one workbook: in a `.dashql` file as `<table>.parquet`, in the cloud as rows of tables of the same
-// names, merged across the versions of all workbooks. A table is named after what its rows belong to, the workbook or a
-// connection. See docs/design/workbook_tables.md.
+// The tables of a version of a workbook: in a `.dashql` file as `<table>.parquet`, in the cloud as rows of tables of the
+// same names and columns, merged across the versions of all workbooks. Every row starts with the key of its version,
+// `(workbook_id, version_id)`. A table is named after what its rows belong to, the workbook or a connection. See
+// docs/design/workbook_tables.md.
 //
 // The rows are a module of the workbook format of the core (`workbook_format::tables`). The runtime turns workbooks into
 // rows and back when it imports and exports them, a cloud writes and reads the rows of the export and the import. The
 // Parquet files stay with the embedded Hyper, the bytes of the data tables with the host.
 
-/// The workbook, one row
-export const WORKBOOK_TABLE = 'workbook';
+/// The versions of the workbook, one row per version: the workbook file of the version
+export const VERSIONS_TABLE = 'workbook_versions';
 /// The connections of the workbook
 export const CONNECTIONS_TABLE = 'workbook_connections';
 /// The scripts of the workbook
@@ -31,9 +32,9 @@ export const ATTACHMENT_TABLE_PREFIX = 'workbook_attachment_';
 /// The prefix of a table that holds a cached query result
 export const RESULT_TABLE_PREFIX = 'workbook_result_';
 
-/// The workbook tables, the workbook first
+/// The workbook tables, the versions first
 export const WORKBOOK_TABLE_NAMES = [
-    WORKBOOK_TABLE,
+    VERSIONS_TABLE,
     CONNECTIONS_TABLE,
     SCRIPTS_TABLE,
     CATALOG_TABLES_TABLE,
@@ -60,15 +61,21 @@ export function workbookTableColumns(instance: core.DashQL, name: WorkbookTableN
     return table.columns;
 }
 
-export interface WorkbookRow {
+/// The key of a version, the first columns of every row
+export interface VersionKeyColumns {
     workbook_id: string;
+    version_id: string;
+}
+
+/// A version of the workbook, the workbook file without its lists
+export interface VersionRow extends VersionKeyColumns {
     format_version: number;
     name: string | null;
     /// The metadata of the workbook as JSON
     metadata: string;
 }
 
-export interface ConnectionRow {
+export interface ConnectionRow extends VersionKeyColumns {
     position: number;
     connection_id: string;
     name: string | null;
@@ -76,7 +83,7 @@ export interface ConnectionRow {
     params: string;
 }
 
-export interface ScriptRow {
+export interface ScriptRow extends VersionKeyColumns {
     position: number;
     name: string;
     connection_id: string;
@@ -84,8 +91,8 @@ export interface ScriptRow {
 }
 
 /// A table of the catalog of a connection
-export interface CatalogTableRow {
-    /// Unique among the tables of the workbook, the tables of a connection are in the order of their ids
+export interface CatalogTableRow extends VersionKeyColumns {
+    /// Unique among the tables of the version, the tables of a connection are in the order of their ids
     table_id: number;
     connection_id: string;
     /// Empty if the declaration names none
@@ -96,7 +103,7 @@ export interface CatalogTableRow {
 }
 
 /// A column of a table of a catalog
-export interface CatalogColumnRow {
+export interface CatalogColumnRow extends VersionKeyColumns {
     /// The table of the column
     table_id: number;
     position: number;
@@ -105,8 +112,8 @@ export interface CatalogColumnRow {
 }
 
 /// A function of the catalog of a connection
-export interface CatalogFunctionRow {
-    /// Unique among the functions of the workbook, the functions of a connection are in the order of their ids
+export interface CatalogFunctionRow extends VersionKeyColumns {
+    /// Unique among the functions of the version, the functions of a connection are in the order of their ids
     function_id: number;
     connection_id: string;
     /// Empty if the declaration names none
@@ -119,7 +126,7 @@ export interface CatalogFunctionRow {
 }
 
 /// A parameter of a function of a catalog
-export interface CatalogFunctionParamRow {
+export interface CatalogFunctionParamRow extends VersionKeyColumns {
     /// The function of the parameter
     function_id: number;
     position: number;
@@ -127,13 +134,13 @@ export interface CatalogFunctionParamRow {
     param_type: string | null;
 }
 
-export interface AttachmentRow {
+export interface AttachmentRow extends VersionKeyColumns {
     position: number;
     name: string;
     table_name: string;
 }
 
-export interface ResultRow {
+export interface ResultRow extends VersionKeyColumns {
     cache_key: string;
     table_name: string;
 }
@@ -148,8 +155,8 @@ export interface DataTableFile {
 
 /// The rows of the workbook tables, and the data of the attachment and result tables as Parquet files.
 export interface WorkbookTables {
-    /// One row
-    [WORKBOOK_TABLE]: WorkbookRow[];
+    /// One row, the tables hold one version
+    [VERSIONS_TABLE]: VersionRow[];
     [CONNECTIONS_TABLE]: ConnectionRow[];
     [SCRIPTS_TABLE]: ScriptRow[];
     [CATALOG_TABLES_TABLE]: CatalogTableRow[];
@@ -165,7 +172,7 @@ export interface WorkbookTables {
 /// Workbook tables without rows
 export function emptyWorkbookTables(): WorkbookTables {
     return {
-        [WORKBOOK_TABLE]: [],
+        [VERSIONS_TABLE]: [],
         [CONNECTIONS_TABLE]: [],
         [SCRIPTS_TABLE]: [],
         [CATALOG_TABLES_TABLE]: [],

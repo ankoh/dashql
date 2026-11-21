@@ -1,5 +1,6 @@
-//! The workbook tables: a workbook as the rows of a fixed set of tables, in a `.dashql` file as `<table>.parquet` and
-//! in a cloud as rows of tables of the same names, see `docs/design/workbook_tables.md`.
+//! The workbook tables: a version of a workbook as the rows of a fixed set of tables, in a `.dashql` file as
+//! `<table>.parquet` and in a cloud as rows of tables of the same names and columns, see
+//! `docs/design/workbook_tables.md`. Every row starts with the key of its version, `(workbook_id, version_id)`.
 //!
 //! Parquet stays with the embedded Hyper of the host: a table crosses as Arrow IPC (`encode_table_ipc`), which the
 //! host writes as Parquet, and the host scans a Parquet file into Arrow IPC that `decode_table_ipc` reads.
@@ -66,12 +67,15 @@ const fn integer(name: &'static str) -> TableColumn {
 const fn boolean(name: &'static str) -> TableColumn {
     TableColumn { name, column_type: ColumnType::Boolean, nullable: false }
 }
+/// The columns of the key of a version
+const WORKBOOK_ID: TableColumn = text("workbook_id", false);
+const VERSION_ID: TableColumn = text("version_id", false);
 
 /// The workbook tables
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum WorkbookTableName {
-    /// `workbook`, one row
-    Workbook,
+    /// `workbook_versions`, one row per version: the workbook file of the version
+    Versions,
     /// `workbook_connections`
     Connections,
     /// `workbook_scripts`
@@ -91,9 +95,9 @@ pub enum WorkbookTableName {
 }
 
 impl WorkbookTableName {
-    /// The workbook tables, the workbook first
+    /// The workbook tables, the versions first
     pub const ALL: [WorkbookTableName; 9] = [
-        Self::Workbook,
+        Self::Versions,
         Self::Connections,
         Self::Scripts,
         Self::CatalogTables,
@@ -107,7 +111,7 @@ impl WorkbookTableName {
     /// The name of the table
     pub fn name(self) -> &'static str {
         match self {
-            Self::Workbook => "workbook",
+            Self::Versions => "workbook_versions",
             Self::Connections => "workbook_connections",
             Self::Scripts => "workbook_scripts",
             Self::CatalogTables => "connection_catalog_tables",
@@ -124,24 +128,46 @@ impl WorkbookTableName {
         Self::ALL.into_iter().find(|table| table.name() == name)
     }
 
-    /// The columns of the table
+    /// The columns of the table, the key of the version first
     pub fn columns(self) -> &'static [TableColumn] {
-        const WORKBOOK: [TableColumn; 4] =
-            [text("workbook_id", false), integer("format_version"), text("name", true), text("metadata", false)];
-        const CONNECTIONS: [TableColumn; 4] =
-            [integer("position"), text("connection_id", false), text("name", true), text("params", false)];
-        const SCRIPTS: [TableColumn; 4] =
-            [integer("position"), text("name", false), text("connection_id", false), text("text", false)];
-        const CATALOG_TABLES: [TableColumn; 5] = [
+        const VERSIONS: [TableColumn; 5] =
+            [WORKBOOK_ID, VERSION_ID, integer("format_version"), text("name", true), text("metadata", false)];
+        const CONNECTIONS: [TableColumn; 6] = [
+            WORKBOOK_ID,
+            VERSION_ID,
+            integer("position"),
+            text("connection_id", false),
+            text("name", true),
+            text("params", false),
+        ];
+        const SCRIPTS: [TableColumn; 6] = [
+            WORKBOOK_ID,
+            VERSION_ID,
+            integer("position"),
+            text("name", false),
+            text("connection_id", false),
+            text("text", false),
+        ];
+        const CATALOG_TABLES: [TableColumn; 7] = [
+            WORKBOOK_ID,
+            VERSION_ID,
             integer("table_id"),
             text("connection_id", false),
             text("database_name", false),
             text("schema_name", false),
             text("table_name", false),
         ];
-        const CATALOG_COLUMNS: [TableColumn; 4] =
-            [integer("table_id"), integer("position"), text("column_name", false), text("column_type", true)];
-        const CATALOG_FUNCTIONS: [TableColumn; 7] = [
+        const CATALOG_COLUMNS: [TableColumn; 6] = [
+            WORKBOOK_ID,
+            VERSION_ID,
+            integer("table_id"),
+            integer("position"),
+            text("column_name", false),
+            text("column_type", true),
+        ];
+        const CATALOG_FUNCTIONS: [TableColumn; 9] = [
+            WORKBOOK_ID,
+            VERSION_ID,
             integer("function_id"),
             text("connection_id", false),
             text("database_name", false),
@@ -150,12 +176,20 @@ impl WorkbookTableName {
             boolean("is_aggregate"),
             text("return_type", true),
         ];
-        const CATALOG_FUNCTION_PARAMS: [TableColumn; 4] =
-            [integer("function_id"), integer("position"), text("param_name", true), text("param_type", true)];
-        const ATTACHMENTS: [TableColumn; 3] = [integer("position"), text("name", false), text("table_name", false)];
-        const RESULTS: [TableColumn; 2] = [text("cache_key", false), text("table_name", false)];
+        const CATALOG_FUNCTION_PARAMS: [TableColumn; 6] = [
+            WORKBOOK_ID,
+            VERSION_ID,
+            integer("function_id"),
+            integer("position"),
+            text("param_name", true),
+            text("param_type", true),
+        ];
+        const ATTACHMENTS: [TableColumn; 5] =
+            [WORKBOOK_ID, VERSION_ID, integer("position"), text("name", false), text("table_name", false)];
+        const RESULTS: [TableColumn; 4] =
+            [WORKBOOK_ID, VERSION_ID, text("cache_key", false), text("table_name", false)];
         match self {
-            Self::Workbook => &WORKBOOK,
+            Self::Versions => &VERSIONS,
             Self::Connections => &CONNECTIONS,
             Self::Scripts => &SCRIPTS,
             Self::CatalogTables => &CATALOG_TABLES,
@@ -262,9 +296,10 @@ macro_rules! row {
 }
 
 row!(
-    /// The workbook, one row
-    WorkbookRow, WorkbookTableName::Workbook, {
+    /// A version of the workbook, the workbook file without its lists
+    VersionRow, WorkbookTableName::Versions, {
     workbook_id: String => string,
+    version_id: String => string,
     format_version: i32 => integer,
     name: Option<String> => text,
     /// The metadata of the workbook as JSON
@@ -273,6 +308,8 @@ row!(
 row!(
     /// A connection of the workbook
     ConnectionRow, WorkbookTableName::Connections, {
+    workbook_id: String => string,
+    version_id: String => string,
     position: i32 => integer,
     connection_id: String => string,
     name: Option<String> => text,
@@ -282,6 +319,8 @@ row!(
 row!(
     /// A script of the workbook
     ScriptRow, WorkbookTableName::Scripts, {
+    workbook_id: String => string,
+    version_id: String => string,
     position: i32 => integer,
     name: String => string,
     connection_id: String => string,
@@ -290,7 +329,9 @@ row!(
 row!(
     /// A table of the catalog of a connection
     CatalogTableRow, WorkbookTableName::CatalogTables, {
-    /// Unique among the tables of the workbook
+    workbook_id: String => string,
+    version_id: String => string,
+    /// Unique among the tables of the version
     table_id: i32 => integer,
     connection_id: String => string,
     /// Empty if the declaration names none
@@ -302,6 +343,8 @@ row!(
 row!(
     /// A column of a table of a catalog
     CatalogColumnRow, WorkbookTableName::CatalogColumns, {
+    workbook_id: String => string,
+    version_id: String => string,
     table_id: i32 => integer,
     position: i32 => integer,
     column_name: String => string,
@@ -310,7 +353,9 @@ row!(
 row!(
     /// A function of the catalog of a connection
     CatalogFunctionRow, WorkbookTableName::CatalogFunctions, {
-    /// Unique among the functions of the workbook
+    workbook_id: String => string,
+    version_id: String => string,
+    /// Unique among the functions of the version
     function_id: i32 => integer,
     connection_id: String => string,
     database_name: String => string,
@@ -322,6 +367,8 @@ row!(
 row!(
     /// A parameter of a function of a catalog
     CatalogFunctionParamRow, WorkbookTableName::CatalogFunctionParams, {
+    workbook_id: String => string,
+    version_id: String => string,
     function_id: i32 => integer,
     position: i32 => integer,
     param_name: Option<String> => text,
@@ -330,6 +377,8 @@ row!(
 row!(
     /// An attachment of the workbook and the table of its data
     AttachmentRow, WorkbookTableName::Attachments, {
+    workbook_id: String => string,
+    version_id: String => string,
     position: i32 => integer,
     name: String => string,
     table_name: String => string,
@@ -337,6 +386,8 @@ row!(
 row!(
     /// A cached query result of the workbook and the table of its data
     ResultRow, WorkbookTableName::Results, {
+    workbook_id: String => string,
+    version_id: String => string,
     cache_key: String => string,
     table_name: String => string,
 });
@@ -350,10 +401,17 @@ pub struct DataTableFile<B> {
     pub crc32: Option<u32>,
 }
 
+/// The key of a version, of its row and of its rows in the other tables
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct VersionKey {
+    pub workbook_id: String,
+    pub version_id: String,
+}
+
 /// The rows of the workbook tables, and the Parquet files of the attachment and result tables
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WorkbookTables<B> {
-    pub workbook: Vec<WorkbookRow>,
+    pub versions: Vec<VersionRow>,
     pub connections: Vec<ConnectionRow>,
     pub scripts: Vec<ScriptRow>,
     pub catalog_tables: Vec<CatalogTableRow>,
@@ -369,7 +427,7 @@ pub struct WorkbookTables<B> {
 impl<B> Default for WorkbookTables<B> {
     fn default() -> Self {
         Self {
-            workbook: Vec::new(),
+            versions: Vec::new(),
             connections: Vec::new(),
             scripts: Vec::new(),
             catalog_tables: Vec::new(),
@@ -387,7 +445,7 @@ impl<B> WorkbookTables<B> {
     /// The number of rows of a table
     pub fn row_count(&self, table: WorkbookTableName) -> usize {
         match table {
-            WorkbookTableName::Workbook => self.workbook.len(),
+            WorkbookTableName::Versions => self.versions.len(),
             WorkbookTableName::Connections => self.connections.len(),
             WorkbookTableName::Scripts => self.scripts.len(),
             WorkbookTableName::CatalogTables => self.catalog_tables.len(),
@@ -402,7 +460,7 @@ impl<B> WorkbookTables<B> {
     /// The rows of a table as Arrow IPC
     pub fn encode_table(&self, table: WorkbookTableName) -> Result<Vec<u8>> {
         match table {
-            WorkbookTableName::Workbook => encode_table_ipc(&self.workbook),
+            WorkbookTableName::Versions => encode_table_ipc(&self.versions),
             WorkbookTableName::Connections => encode_table_ipc(&self.connections),
             WorkbookTableName::Scripts => encode_table_ipc(&self.scripts),
             WorkbookTableName::CatalogTables => encode_table_ipc(&self.catalog_tables),
@@ -417,7 +475,7 @@ impl<B> WorkbookTables<B> {
     /// Replace the rows of a table with the rows of Arrow IPC that the host read from its Parquet file
     pub fn decode_table(&mut self, table: WorkbookTableName, ipc: &[u8]) -> Result<()> {
         match table {
-            WorkbookTableName::Workbook => self.workbook = decode_table_ipc(ipc)?,
+            WorkbookTableName::Versions => self.versions = decode_table_ipc(ipc)?,
             WorkbookTableName::Connections => self.connections = decode_table_ipc(ipc)?,
             WorkbookTableName::Scripts => self.scripts = decode_table_ipc(ipc)?,
             WorkbookTableName::CatalogTables => self.catalog_tables = decode_table_ipc(ipc)?,
@@ -574,23 +632,28 @@ pub fn decode_table_ipc<R: WorkbookTableRow>(ipc: &[u8]) -> Result<Vec<R>> {
     Ok(rows)
 }
 
-/// The rows of a bundle. The connection params are written as the bundle holds them, an export sanitizes them first.
-/// The catalog files are read into their tables and functions, the data tables are named with fresh UUIDs of
-/// `new_uuid`.
+/// The rows of a bundle, as a version under a fresh id. The connection params are written as the bundle holds them, an
+/// export sanitizes them first. The catalog files are read into their tables and functions, the version and the data
+/// tables get fresh UUIDs of `new_uuid`, the version first.
 pub fn workbook_bundle_to_tables<B: Clone>(
     bundle: &WorkbookBundle<B>,
     new_uuid: &mut dyn FnMut() -> String,
 ) -> Result<WorkbookTables<B>> {
     let mut tables = WorkbookTables::default();
     let workbook = &bundle.workbook;
-    tables.workbook.push(WorkbookRow {
-        workbook_id: workbook.workbook_id.clone(),
+    let workbook_id = workbook.workbook_id.clone();
+    let version_id = new_uuid();
+    tables.versions.push(VersionRow {
+        workbook_id: workbook_id.clone(),
+        version_id: version_id.clone(),
         format_version: i32::try_from(workbook.format_version).unwrap_or(0),
         name: workbook.name.clone(),
         metadata: to_text(&workbook.metadata.to_json()),
     });
     for (position, connection) in workbook.connections.iter().enumerate() {
         tables.connections.push(ConnectionRow {
+            workbook_id: workbook_id.clone(),
+            version_id: version_id.clone(),
             position: position as i32,
             connection_id: connection.connection_id.clone(),
             name: connection.name.clone(),
@@ -602,6 +665,8 @@ pub fn workbook_bundle_to_tables<B: Clone>(
             continue;
         };
         tables.scripts.push(ScriptRow {
+            workbook_id: workbook_id.clone(),
+            version_id: version_id.clone(),
             position: position as i32,
             name: script.name.clone(),
             connection_id: script.connection_id.clone(),
@@ -622,6 +687,8 @@ pub fn workbook_bundle_to_tables<B: Clone>(
         for table in relations {
             let table_id = tables.catalog_tables.len() as i32;
             tables.catalog_tables.push(CatalogTableRow {
+                workbook_id: workbook_id.clone(),
+                version_id: version_id.clone(),
                 table_id,
                 connection_id: connection_id.clone(),
                 database_name: table.database_name,
@@ -632,6 +699,8 @@ pub fn workbook_bundle_to_tables<B: Clone>(
             columns.sort_by_key(|column| column.ordinal_position);
             for (position, column) in columns.into_iter().enumerate() {
                 tables.catalog_columns.push(CatalogColumnRow {
+                    workbook_id: workbook_id.clone(),
+                    version_id: version_id.clone(),
                     table_id,
                     position: position as i32,
                     column_name: column.name,
@@ -642,6 +711,8 @@ pub fn workbook_bundle_to_tables<B: Clone>(
         for function in functions {
             let function_id = tables.catalog_functions.len() as i32;
             tables.catalog_functions.push(CatalogFunctionRow {
+                workbook_id: workbook_id.clone(),
+                version_id: version_id.clone(),
                 function_id,
                 connection_id: connection_id.clone(),
                 database_name: function.database_name,
@@ -652,6 +723,8 @@ pub fn workbook_bundle_to_tables<B: Clone>(
             });
             for (position, param) in function.params.into_iter().enumerate() {
                 tables.catalog_function_params.push(CatalogFunctionParamRow {
+                    workbook_id: workbook_id.clone(),
+                    version_id: version_id.clone(),
                     function_id,
                     position: position as i32,
                     param_name: param.name,
@@ -663,6 +736,8 @@ pub fn workbook_bundle_to_tables<B: Clone>(
     for (position, file) in bundle.data.iter().enumerate() {
         let table_name = new_data_table_name(ATTACHMENT_TABLE_PREFIX, &new_uuid());
         tables.attachments.push(AttachmentRow {
+            workbook_id: workbook_id.clone(),
+            version_id: version_id.clone(),
             position: position as i32,
             name: file.name.clone(),
             table_name: table_name.clone(),
@@ -671,7 +746,12 @@ pub fn workbook_bundle_to_tables<B: Clone>(
     }
     for result in &bundle.results {
         let table_name = new_data_table_name(RESULT_TABLE_PREFIX, &new_uuid());
-        tables.results.push(ResultRow { cache_key: result.key.clone(), table_name: table_name.clone() });
+        tables.results.push(ResultRow {
+            workbook_id: workbook_id.clone(),
+            version_id: version_id.clone(),
+            cache_key: result.key.clone(),
+            table_name: table_name.clone(),
+        });
         tables.data.push((table_name, DataTableFile { bytes: result.bytes.clone(), crc32: result.crc32 }));
     }
     Ok(tables)
@@ -688,18 +768,59 @@ fn parse_json(value: &str, error_prefix: &str, table: WorkbookTableName) -> Resu
         .map_err(|_| Error::invalid_argument(format!("{error_prefix}: invalid JSON in {}", table.name())))
 }
 
-/// The bundle of the workbook of a set of tables. The workbook file is assembled from the rows and migrated like a
-/// workbook folder. A data table that the tables don't carry leaves its attachment or result out.
+/// The key of the rows of a version
+fn row_key<R: WorkbookTableRow>(row: &R) -> VersionKey {
+    let mut cells = row.cells().into_iter();
+    let mut text = || match cells.next() {
+        Some(Cell::Text(text)) => text.unwrap_or_default(),
+        _ => String::new(),
+    };
+    VersionKey { workbook_id: text(), version_id: text() }
+}
+
+/// Check that the rows of a table belong to a version
+fn check_rows_key<R: WorkbookTableRow>(rows: &[R], key: &VersionKey, error_prefix: &str) -> Result<()> {
+    match rows.iter().find(|row| row_key(*row) != *key) {
+        None => Ok(()),
+        Some(_) => {
+            Err(Error::invalid_argument(format!("{error_prefix}: {} holds rows of another version", R::TABLE.name())))
+        }
+    }
+}
+
+/// The key of the one version of a set of tables, every row of the other tables carries it
+pub fn workbook_tables_key<B>(tables: &WorkbookTables<B>, error_prefix: &str) -> Result<VersionKey> {
+    let row = checked_version(tables, error_prefix)?;
+    Ok(VersionKey { workbook_id: row.workbook_id.clone(), version_id: row.version_id.clone() })
+}
+
+/// The row of the one version of a set of tables, after checking that the rows of the other tables carry its key
+fn checked_version<'a, B>(tables: &'a WorkbookTables<B>, error_prefix: &str) -> Result<&'a VersionRow> {
+    let [row] = tables.versions.as_slice() else {
+        return Err(Error::invalid_argument(format!(
+            "{error_prefix}: expected one workbook version, found {}",
+            tables.versions.len()
+        )));
+    };
+    let key = VersionKey { workbook_id: row.workbook_id.clone(), version_id: row.version_id.clone() };
+    check_rows_key(&tables.connections, &key, error_prefix)?;
+    check_rows_key(&tables.scripts, &key, error_prefix)?;
+    check_rows_key(&tables.catalog_tables, &key, error_prefix)?;
+    check_rows_key(&tables.catalog_columns, &key, error_prefix)?;
+    check_rows_key(&tables.catalog_functions, &key, error_prefix)?;
+    check_rows_key(&tables.catalog_function_params, &key, error_prefix)?;
+    check_rows_key(&tables.attachments, &key, error_prefix)?;
+    check_rows_key(&tables.results, &key, error_prefix)?;
+    Ok(row)
+}
+
+/// The bundle of the workbook of a set of tables that hold one version. The workbook file is assembled from the rows and
+/// migrated like a workbook folder. A data table that the tables don't carry leaves its attachment or result out.
 pub fn workbook_tables_to_bundle<B: Clone>(
     tables: &WorkbookTables<B>,
     error_prefix: &str,
 ) -> Result<WorkbookBundle<B>> {
-    let [row] = tables.workbook.as_slice() else {
-        return Err(Error::invalid_argument(format!(
-            "{error_prefix}: expected one workbook, found {}",
-            tables.workbook.len()
-        )));
-    };
+    let row = checked_version(tables, error_prefix)?;
     let mut connections = tables.connections.clone();
     connections.sort_by_key(|row| row.position);
     // The file names in NFC, like the names of the entries of an archive
@@ -733,7 +854,7 @@ pub fn workbook_tables_to_bundle<B: Clone>(
     );
     workbook
         .insert("attachments".into(), Value::Array(attachments.iter().map(|a| json!({ "name": a.name })).collect()));
-    workbook.insert("metadata".into(), parse_json(&row.metadata, error_prefix, WorkbookTableName::Workbook)?);
+    workbook.insert("metadata".into(), parse_json(&row.metadata, error_prefix, WorkbookTableName::Versions)?);
 
     // The workbook file and the catalogs are migrated in memory, like the top-level files of an archive
     let mut folder = MigrationFolder::new([(STORAGE_WORKBOOK_FILE.to_string(), to_text(&Value::Object(workbook)))]);
