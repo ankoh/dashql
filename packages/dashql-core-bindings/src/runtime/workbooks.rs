@@ -370,7 +370,7 @@ impl Workbooks {
     /// Write the effects of an outcome, mark what changed and tell the host. A change of scripts marks them and what the
     /// workbook derives if it `derives`, an editor event marks what the workbook derives once the typing paused; a
     /// change of the workbook marks it as a whole, promotes it and tells the connections which workbooks use them. The scripts of the other workbooks on a catalog that the scripts changed
-    /// are outdated, the runs look up the cached results of the workbook again, and the outdated scripts that the
+    /// are outdated, the runs look up the stored results of the workbook again, and the outdated scripts that the
     /// editors show analyze.
     fn settle(
         &self,
@@ -413,7 +413,7 @@ impl Workbooks {
         self.mark_published(workbook_id, workbook);
         if moved {
             self.platform.signal(true);
-            // A move of the cursor changes nothing that a cached result depends on
+            // A move of the cursor changes nothing that a stored result depends on
             if changed != (Changed::Editor { derives: false }) {
                 let listener = self.changed_listener.borrow().clone();
                 if let Some(listener) = listener {

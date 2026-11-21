@@ -175,11 +175,11 @@ script whose key differs from the key in the
 name of its file is marked as outdated; running it computes a new result.
 
 A script whose result was read stays as it is when the workbook is shown again. The view of a script carries its stored
-result (`storedResult`: the name of the file, its key, when it was written, whether the key is the current reusable key
-of the script), which the runtime looks up (`runs/results.rs` of the core module) from the listing of the folder. A
-workbook is looked up once its changes paused and only if what its keys depend on changed: the analyses of its
-scripts, its attachments, its connections and their params, the keys of its latest queries; the end of a run and every
-write, rename and removal of a file of the workbook look it up again. A move of the cursor looks up nothing.
+result (`storedResult`: the name of the file, its key, when it was written, whether the key is the key of the script
+as it is now), which the runtime looks up (`runs/stored_results.rs` of the bindings) from the listing of the folder. A
+workbook is looked up once its changes paused: a change of the workbook (a move of the cursor is none), of a
+connection of its scripts, a result that a query of it recorded and the end of a run. A lookup plans the keys and lists
+the folder once, a workbook whose analyses are outdated waits for them.
 
 ## Renames and Deletes
 

@@ -226,6 +226,6 @@ pub enum ConnectionAction {
     RelationsTouched { names: Vec<ConnectionTableName> },
 
     // The queries of the connection
-    /// The cached result of the query was deleted
+    /// The stored result of the query was deleted
     QueryCacheDeleted { query_id: f64 },
 }

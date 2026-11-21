@@ -248,7 +248,7 @@ pub struct QueryExecutionState {
     pub cache_key: Option<String>,
     /// Was the result served from the query result cache instead of the backend?
     pub served_from_cache: bool,
-    /// Was the cached result deleted? There is nothing left to delete then.
+    /// Was the stored result deleted? There is nothing left to delete then.
     pub cache_deleted: bool,
     /// When the cached result was written, none if the result didn't come from the cache. A cache hit doesn't touch
     /// the file, so this is the write time, not a last access.

@@ -23,7 +23,7 @@ pub struct RunWorkbookOptions {
     #[serde(default)]
     #[tsify(optional)]
     pub targets: Option<Vec<u32>>,
-    /// Read no cached results: the scripts run, the results with reusable keys become the newest files of their keys
+    /// Reuse no stored results: the scripts run and their results replace the stored ones
     #[serde(default)]
     #[tsify(optional)]
     pub refresh: Option<bool>,
@@ -37,7 +37,7 @@ pub struct RunWorkbookOptions {
 #[derive(Clone, Debug, Default, Deserialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 pub struct RunScriptOptions {
-    /// Read no cached results, neither of the script nor of the scripts it references
+    /// Reuse no stored results, neither of the script nor of the scripts it references
     #[serde(default)]
     #[tsify(optional)]
     pub refresh: Option<bool>,

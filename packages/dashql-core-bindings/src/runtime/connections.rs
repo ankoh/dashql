@@ -105,10 +105,9 @@ pub(crate) struct Connections {
     pub follow_listener: RefCell<Option<Rc<dyn Fn()>>>,
     /// Hears a change of what the scripts read of a connection (`ScriptConnectionProfile`), the workbooks on it follow
     pub profile_listener: RefCell<Option<Rc<dyn Fn(&str)>>>,
-    /// Hears a change of what the cached results of the scripts on a connection depend on, with the workbooks that use
-    /// it: the connection changed, or a query of it recorded or deleted its cached result (`files`), a file that the
-    /// scripts of every workbook on the connection may share
-    pub results_listener: RefCell<Option<Rc<dyn Fn(&[String], bool)>>>,
+    /// Hears a change of what the stored results of the scripts on a connection depend on, with the workbooks that use
+    /// it: the connection changed, or a query of it recorded or deleted its stored result
+    pub results_listener: RefCell<Option<Rc<dyn Fn(&[String])>>>,
 }
 
 impl Connections {
@@ -360,7 +359,7 @@ impl Connections {
             }
             let listener = self.results_listener.borrow().clone();
             if let Some(listener) = listener {
-                listener(&workbooks, false);
+                listener(&workbooks);
             }
         }
         if outcome.deleted {
@@ -412,12 +411,12 @@ impl Connections {
         );
         let outcome = self.registry.borrow_mut().apply_query(connection_id, action)?;
         self.settle(connection_id, &outcome, urgent, Some(query_id));
-        // The scripts of the workbooks on the connection show the cached results of their queries
+        // The scripts of the workbooks on the connection show the stored results of their queries
         if cache && outcome.changed {
             let workbooks = self.registry.borrow().workbooks_of(connection_id).to_vec();
             let listener = self.results_listener.borrow().clone();
             if let Some(listener) = listener {
-                listener(&workbooks, true);
+                listener(&workbooks);
             }
         }
         Ok(outcome)

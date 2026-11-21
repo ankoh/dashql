@@ -107,7 +107,7 @@ pub(crate) struct Runs {
     numbers: Cell<u64>,
     /// The Parquet attachments whose columns were read, by workbook, file and stamp
     described: RefCell<BTreeSet<String>>,
-    /// The cached results of the scripts that the runtime looked up
+    /// The stored results of the scripts that the runtime looks up
     stored: stored_results::StoredResults,
     destroyed: Cell<bool>,
 }
@@ -165,14 +165,14 @@ impl Runs {
         let weak = Rc::downgrade(&runs);
         *runs.workbooks.changed_listener.borrow_mut() = Some(Rc::new(move |workbook_id: &str| {
             if let Some(runs) = weak.upgrade() {
-                runs.check_stored_results(Some(workbook_id));
+                runs.check_stored_results(&[workbook_id.to_string()]);
             }
         }));
         // And the changes of the connections of the workbooks: their params, the keys of the results of their queries
         let weak = Rc::downgrade(&runs);
-        *connections.results_listener.borrow_mut() = Some(Rc::new(move |workbook_ids: &[String], files: bool| {
+        *connections.results_listener.borrow_mut() = Some(Rc::new(move |workbook_ids: &[String]| {
             if let Some(runs) = weak.upgrade() {
-                runs.check_workbooks_stored_results(workbook_ids, files);
+                runs.check_stored_results(workbook_ids);
             }
         }));
         // A workbook that is deleted or replaced takes its run with it
@@ -292,7 +292,7 @@ impl Runs {
 
     /// Why a run of a workbook can't start now, none if it can
     fn blocker(&self, workbook_id: &str, connections: &[String], prepares: bool) -> Option<String> {
-        // The compute database reads the cached results, a run before its setup would fail or skip them
+        // The compute database reads the stored results, a run before its setup would fail or skip them
         if !prepares && !self.platform.has_compute() {
             return Some("the compute database is not set up".into());
         }
@@ -629,7 +629,7 @@ impl Runs {
         self.update_held(workbook_id, number, |entry| entry.held = None);
         self.start_pending();
         // The run wrote the results of its scripts, a workbook that was shown meanwhile reads its results
-        self.check_workbooks_stored_results(&[workbook_id.to_string()], true);
+        self.check_stored_results(&[workbook_id.to_string()]);
         self.open_waiting(workbook_id);
     }
 

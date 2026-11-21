@@ -13,7 +13,7 @@ pub const CATALOG_HEARTBEAT_MS: f64 = 5000.0;
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct RuntimeSettings {
     /// The pause after the last change before the shown scripts that are not selected are analyzed, the derived view
-    /// of the workbook moves and the cached results are looked up
+    /// of the workbook moves and the stored results are looked up
     pub background_analysis_delay_ms: f64,
     /// How often the catalog loader looks at the connections without being asked
     pub catalog_heartbeat_ms: f64,
