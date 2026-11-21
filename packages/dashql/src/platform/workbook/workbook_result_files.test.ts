@@ -101,6 +101,14 @@ describe('the results of the workbooks', () => {
         await r.mount(database, WORKBOOK);
         await r.mount(database, WORKBOOK);
         expect(first.refreshExternalDirectory).toHaveBeenCalledTimes(1);
+        // A database whose queries run refuses the refresh, the mount works and refreshes with its next use
+        await put('a.k.00000002.parquet');
+        await r.remove(WORKBOOK, 'a.k.00000002.parquet');
+        first.refreshExternalDirectory.mockRejectedValueOnce(new Error('cannot refresh while queries have active operations'));
+        await r.mount(database, WORKBOOK);
+        await r.mount(database, WORKBOOK);
+        await r.mount(database, WORKBOOK);
+        expect(first.refreshExternalDirectory).toHaveBeenCalledTimes(3);
         // Another database, e.g. after a restart of the engine, gets its own mount
         const second = fakeDatabase();
         await r.mount(second as unknown as EmbeddedComputeDatabase, WORKBOOK);

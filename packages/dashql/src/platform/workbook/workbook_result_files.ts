@@ -39,7 +39,8 @@ export interface ResultFileStat {
 /// is written under a transient name and moved to its name once it is complete, so readers never see a partial file.
 /// Readers pin the files they read with a shared Web Lock across the windows of the app, a move or removal leaves a
 /// pinned file alone. After this window moved or removed files of a workbook, the next use of its mount refreshes it,
-/// so the database forgets the files that are gone; queries that run keep reading the files they opened.
+/// so the database forgets the files that are gone; queries that run keep reading the files they opened. A refresh that
+/// the database refuses, e.g. while its queries run, is tried again with the next use.
 export interface WorkbookResultFiles {
     /// The mount path of the results of a workbook
     mountPath(workbookId: string): string;
@@ -129,13 +130,14 @@ export function createWorkbookResultFiles(options: WorkbookResultFilesOptions = 
             await database.registerExternalDirectory(await requireDirectory(workbookId), path, 'readwrite');
             mounts.set(workbookId, { database, stale: false });
         } else if (current.stale) {
-            // Changes during the refresh mark the mount stale again
+            // The refresh only lets the database forget the files that are gone, a result never reuses a name. The
+            // database refuses it while its queries run, the mount stays stale then and the next use refreshes it.
+            // Changes during the refresh mark the mount stale again.
             current.stale = false;
             try {
                 await database.refreshExternalDirectory(path);
-            } catch (error) {
+            } catch {
                 current.stale = true;
-                throw error;
             }
         }
     });
