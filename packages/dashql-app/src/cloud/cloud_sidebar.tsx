@@ -32,7 +32,7 @@ import { CloudRowMenu } from './cloud_row_menu.js';
 import { useCloudRemoval } from './cloud_deletion.js';
 import { useClouds, type CloudState } from './cloud_state.js';
 import { useCloudWorkbooks } from './cloud_workbooks.js';
-import { useCloudLogin, useLocalCloudAutoLogin } from './cloud_login.js';
+import { useCloudLogin } from './cloud_login.js';
 import { connectorInfoOf } from '@akohn/dashql/platform/connections/connection_state';
 
 // The clouds in the workbook list of the sidebar: a folder Clouds at the top level, above the folder of the local
@@ -153,16 +153,20 @@ interface CloudRowProps {
 }
 
 /// A cloud: the logo of its connector, its name, its health, the number of its workbooks and a menu. A click opens its
-/// overview.
+/// overview, and connects the local cloud.
 const CloudRow: React.FC<CloudRowProps> = ({ cloud, selected, onOpen }) => {
     const contextMenu = useRowContextMenu();
     const connectorIcon = useConnectorIcon();
     const { openSetup } = useClouds();
     const removal = useCloudRemoval(cloud.connectionId, cloud.connection.localCloud);
-    // The local cloud needs no credentials, it logs in without a click
     const login = useCloudLogin(cloud.connectionId);
-    useLocalCloudAutoLogin(cloud.connection, login);
     const health = cloud.connection.connectionHealth;
+    // The local cloud needs no credentials, a click on it connects it. Nothing connects it at the start of the app, its
+    // session would attach its database before anyone asked for the cloud.
+    const open = () => {
+        if (cloud.connection.localCloud && health === ConnectionHealth.NOT_STARTED) void login.login();
+        onOpen();
+    };
     const name = cloud.connection.label.text;
     const count = cloud.stats?.workbooks ?? null;
     return (
@@ -181,7 +185,7 @@ const CloudRow: React.FC<CloudRowProps> = ({ cloud, selected, onOpen }) => {
                 className={classNames(sidebarStyles.tree_button, styles.cloud_button)}
                 aria-current={selected ? 'page' : undefined}
                 title={`${name}, ${CONNECTION_HEALTH_NAMES[health]}`}
-                onClick={onOpen}
+                onClick={open}
             >
                 <svg width="14" height="14" aria-hidden="true">
                     <use xlinkHref={`${symbols}#${connectorIcon(connectorInfoOf(cloud.connection))}`} style={CONNECTOR_ICON_STYLE} />

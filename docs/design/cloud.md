@@ -193,7 +193,8 @@ groups the rows, its folders and workbooks are the top level of the workbook tre
 - **Clouds.** Clouds is expanded at first and its row shows the number of clouds. Its menu, also on a right click, adds
   one: Add Cloud opens the setup page. The row of a cloud shows the logo of its connector, its name, its health and the
   number of its workbooks once they were counted. Its menu opens the overview, logs in, refreshes, opens the setup page
-  for the cloud and stops using it. A local cloud logs in without a click (`useLocalCloudAutoLogin`). The sidebar never
+  for the cloud and stops using it. A click on a local cloud also logs it in, it needs no credentials. Nothing logs it
+  in at the start of the app: its session would attach its database before anyone asked for the cloud. The sidebar never
   lists the workbooks of a cloud, only the preview that is open, below its cloud.
 - **The overview.** A click on a cloud shows its overview in place of the feed, like the overview of a connection
   (`cloud/cloud_overview_page.tsx`). It closes when another workbook is shown or the connection stops being a cloud. Its
@@ -390,7 +391,7 @@ cloud still needs:
 
 - **Log In.** The page logs in with the saved settings, the setup that Connect of the settings runs (`useCloudLogin`).
   Database.com opens its OAuth popup on the click, it keeps no refresh token, so every start of the app logs in again.
-  The local cloud logs in without a click.
+  The local cloud logs in without a click once the page shows it (`useLocalCloudAutoLogin`).
 - **Skipping.** At the start of the app the page offers Continue Without Cloud, the cloud stays a cloud and the
   app goes on without it. Once the tables are current the page closes by itself, so a cloud link to a cloud that is
   online and installed only shows the card for the look at the tables. The link keeps its parameter, a reload asks
