@@ -30,24 +30,28 @@ in a new tab of the same origin, the desktop app opens it on dashql.app in the b
 ## Unpacker
 
 `/tools/unpacker` shows what a `.dashql` file holds ([workbook_tables.md](workbook_tables.md)): a card per Parquet file
-of the archive, and the other entries in a list below. A card reads its file when it first opens, and the data table of
-`@akohn/dashql-react` shows its rows. Only archives of the current format have Parquet files, an archive of an older
-version shows its entries as other entries.
+of the archive, and the other entries in a list below. A card reads its file when it first opens and shows a preview of
+its rows in a fixed height, the first rows like the result of a feed entry. The button next to the header of a read file
+and the column names of the preview open the full table in the card of a feed entry's result (`ResultTableOverlay` of
+`@akohn/dashql-react`) with the search, the cross filters and a button to enlarge it to the window. The tables are the
+data table of the app (`DataTableView`), a cell of either opens its detail in the overlay of the app. The page scrolls,
+the body doesn't. Only archives of the current format have Parquet files, an archive of an older version shows its
+entries as other entries.
 
 | Part | Module |
 |------|--------|
 | Providers: logger, embedded Hyper, core, `StandaloneRuntime` | `src/tools/unpacker/unpacker.tsx` |
-| Drop zone, file picker, the cards | `unpacker_page.tsx` |
+| Drop zone, file picker, the cards, the preview and the full table of a file (`TableDetails` of `@akohn/dashql-react`, the details of any analyzed table) | `unpacker_page.tsx` |
 | The ZIP container (zip.js): entries, sizes, the bytes of a file | `unpacker_archive.ts` |
 | A Parquet file as a computation: Hyper scans it (`readParquetFile` of `platform/hyperdb/hyperdb_parquet_read.ts`, shared with the import), the runtime analyzes it (`analyzeTable`) | `use_parquet_computation.ts` |
 | The card of a file, a component with plain props and the table as a slot | `parquet_file_card.tsx` |
 
 The computation of a file stays while its archive is shown, a card that opens again shows it at once. Another file
 replaces the cards and deletes their computations. The table shows no column plots, the analysis skips the column
-aggregates. The page loads no client function specs, no flavor and no cell detail with its editor.
+aggregates. The page loads no client function specs and no flavor.
 
-`src/tools/unpacker/unpacker_page.test.tsx` writes an archive with Hyper and zip.js, drops it on the page and reads a
-table. The page test boots the real page and drops a file that is no archive.
+`src/tools/unpacker/unpacker_page.test.tsx` writes an archive with Hyper and zip.js, drops it on the page, reads a
+table and opens and closes its full table. The page test boots the real page and drops a file that is no archive.
 
 ## Analyzer
 

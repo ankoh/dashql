@@ -5,8 +5,20 @@
     overflow: hidden;
 }
 
+/* The toggle of the card and the button that opens the table */
+.header_row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.card_expanded .header_row {
+    border-bottom: 1px solid var(--color_border);
+}
+
 .header {
-    width: 100%;
+    flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -21,12 +33,13 @@
     cursor: pointer;
 }
 
-.header:hover {
+.header_row:hover {
     background-color: var(--color_bg_hover);
 }
 
-.card_expanded .header {
-    border-bottom: 1px solid var(--color_border);
+.show_table {
+    flex-shrink: 0;
+    margin: 0 8px 0 4px;
 }
 
 .icon {

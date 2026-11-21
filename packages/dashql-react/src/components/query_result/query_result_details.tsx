@@ -1,3 +1,4 @@
+import type * as arrow from 'apache-arrow';
 import * as React from 'react';
 import * as styles from './query_result_details.module.css';
 
@@ -7,6 +8,7 @@ import { SymbolIcon } from '../symbol_icon.js';
 import { classNames } from '../../dom/classnames.js';
 import { formatResultDetail } from './query_result_header.js';
 import { TableSearchToolbar, useResultRowCounts } from './query_result_toolbar.js';
+import type { ComputationModel } from '../../models/computation_model.js';
 import type { QueryModel } from '../../models/query_model.js';
 
 /// The height of the header of the details
@@ -21,9 +23,13 @@ export interface QueryResultDetailsLayout {
     maxHeight?: number;
 }
 
-export interface QueryResultDetailsProps {
-    /// The query of the result: its rows, its size, its search and its cross filters
-    model: QueryModel;
+export interface TableDetailsProps {
+    /// The title of the header
+    title: string;
+    /// The computation of the table: its rows, its search and its cross filters, none before the table is analyzed
+    computation: ComputationModel | null;
+    /// The Arrow table whose size the header shows after the row count, none shows only the row count
+    resultTable?: arrow.Table | null;
     /// The controls after the search and the button that clears the cross filters: the download and the actions of the host
     actions?: React.ReactNode;
     fitHeight?: boolean;
@@ -32,10 +38,10 @@ export interface QueryResultDetailsProps {
     table: (layout: QueryResultDetailsLayout) => React.ReactNode;
 }
 
-/// The full result of a query: a header with the row count, the search, the button that clears the cross filters and the
-/// controls of the host, over the table
-export function QueryResultDetails(props: QueryResultDetailsProps): React.ReactElement {
-    const computation = props.model.computation;
+/// Any analyzed table in full: a header with the row count, the search, the button that clears the cross filters and
+/// the controls of the host, over the table
+export function TableDetails(props: TableDetailsProps): React.ReactElement {
+    const computation = props.computation;
     const counts = useResultRowCounts(computation);
     const hasCrossFilters = (computation?.computation.crossFilters.length ?? 0) > 0;
     const clearCrossFilters = React.useCallback(() => {
@@ -44,10 +50,10 @@ export function QueryResultDetails(props: QueryResultDetailsProps): React.ReactE
     return (
         <div className={classNames(styles.root, { [styles.root_fit_height]: props.fitHeight })}>
             <TabHeader
-                title="Query Results"
+                title={props.title}
                 detail={formatResultDetail(counts.matchingRows == null
                     ? formatRowCountDetail(counts.totalRows)
-                    : `${counts.matchingRows} of ${counts.currentRows ?? counts.totalRows ?? 0} rows`, props.model.result)}
+                    : `${counts.matchingRows} of ${counts.currentRows ?? counts.totalRows ?? 0} rows`, props.resultTable ?? null)}
                 actions={(
                     <>
                         <TableSearchToolbar computation={computation} />
@@ -72,5 +78,31 @@ export function QueryResultDetails(props: QueryResultDetailsProps): React.ReactE
                 })}
             </div>
         </div>
+    );
+}
+
+export interface QueryResultDetailsProps {
+    /// The query of the result: its rows, its size, its search and its cross filters
+    model: QueryModel;
+    /// The controls after the search and the button that clears the cross filters: the download and the actions of the host
+    actions?: React.ReactNode;
+    fitHeight?: boolean;
+    maxHeight?: number;
+    /// The table in the layout that the details leave it
+    table: (layout: QueryResultDetailsLayout) => React.ReactNode;
+}
+
+/// The full result of a query: the details of its table with the size of its result
+export function QueryResultDetails(props: QueryResultDetailsProps): React.ReactElement {
+    return (
+        <TableDetails
+            title="Query Results"
+            computation={props.model.computation}
+            resultTable={props.model.result}
+            actions={props.actions}
+            fitHeight={props.fitHeight}
+            maxHeight={props.maxHeight}
+            table={props.table}
+        />
     );
 }

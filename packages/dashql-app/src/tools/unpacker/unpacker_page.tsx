@@ -1,49 +1,99 @@
 import * as React from 'react';
 
 import { Button, ButtonVariant } from '@akohn/dashql-react/components/button';
-import { DataTable, TableColumnHeader } from '@akohn/dashql-react/components/data_table/data_table';
+import { TableColumnHeader } from '@akohn/dashql-react/components/data_table/data_table';
+import { TableDetails } from '@akohn/dashql-react/components/query_result/query_result_details';
+import { ResultTableOverlay } from '@akohn/dashql-react/components/query_result/result_table_overlay';
 import { FileIcon, UploadIcon } from '@akohn/dashql-react/components/symbol_icon';
 import { classNames } from '@akohn/dashql-react/dom/classnames';
 import { formatBytes } from '@akohn/dashql-react/format/format';
 import { useComputation } from '@akohn/dashql-react/hooks';
 import { useComputationModel } from '@akohn/dashql-react/models/computation_model';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
+import { DataTableView } from '../../results/data_table_view.js';
 import { ParquetFileCard } from './parquet_file_card.js';
 import { isParquetFile, openArchive, type ArchiveFile, type UnpackedArchive } from './unpacker_archive.js';
 import { useParquetComputation } from './use_parquet_computation.js';
 import * as styles from './unpacker_page.module.css';
 
-/// The tallest a table of a card grows before it scrolls
-const TABLE_MAX_HEIGHT = 480;
+/// The rows of the preview of a card, like the preview of a result in the feed: the column names open the full table
+const PREVIEW_ROWS = 8;
 
-/// The table of a read Parquet file
-function ParquetTable(props: { tableId: number }) {
+/// The preview of the table of a read Parquet file, the first rows in the height of `PREVIEW_ROWS`
+function ParquetTablePreview(props: { tableId: number; onShowTable: () => void }) {
     const model = useComputationModel(useComputation(props.tableId));
     if (model == null) return null;
     return (
-        <DataTable
+        <DataTableView
             model={model}
-            debugMode={false}
             columnHeader={TableColumnHeader.OnlyColumnName}
-            fitHeight
-            maxHeight={TABLE_MAX_HEIGHT}
+            maxRows={PREVIEW_ROWS}
+            onShowTable={props.onShowTable}
             compact
         />
     );
 }
 
-const renderTable = (tableId: number) => <ParquetTable tableId={tableId} />;
+/// The full table of a read Parquet file in a card over the page, like the result table of a feed entry: the search,
+/// the cross filters and the detail of a cell
+function ParquetTableOverlay(props: { fileName: string; tableId: number; onClose: () => void }) {
+    const model = useComputationModel(useComputation(props.tableId));
+    return (
+        <ResultTableOverlay scriptName={props.fileName} subject="Table" onClose={props.onClose}>
+            {layout => (
+                <TableDetails
+                    title="Table"
+                    computation={model}
+                    fitHeight={layout.fitHeight}
+                    maxHeight={layout.maxHeight}
+                    table={tableLayout => model != null && (
+                        <div className={classNames(styles.details_table, tableLayout.fitHeight && styles.details_table_fit_height)}>
+                            <DataTableView
+                                model={model}
+                                columnHeader={TableColumnHeader.OnlyColumnName}
+                                fitHeight={tableLayout.fitHeight}
+                                maxHeight={tableLayout.maxHeight}
+                                compact
+                            />
+                        </div>
+                    )}
+                />
+            )}
+        </ResultTableOverlay>
+    );
+}
 
 /// The card of a Parquet file. The file is read when the card first opens and stays read while the archive is shown.
 function ParquetFileEntry(props: { file: ArchiveFile }) {
     const [expanded, setExpanded] = React.useState(false);
     const [opened, setOpened] = React.useState(false);
+    const [tableShown, setTableShown] = React.useState(false);
     const table = useParquetComputation(props.file, opened);
     const toggle = React.useCallback(() => {
         setExpanded(expanded => !expanded);
         setOpened(true);
     }, []);
-    return <ParquetFileCard file={props.file} table={table} expanded={expanded} onToggle={toggle} renderTable={renderTable} />;
+    const showTable = React.useCallback(() => setTableShown(true), []);
+    const closeTable = React.useCallback(() => setTableShown(false), []);
+    const renderTable = React.useCallback(
+        (tableId: number) => <ParquetTablePreview tableId={tableId} onShowTable={showTable} />,
+        [showTable],
+    );
+    return (
+        <>
+            <ParquetFileCard
+                file={props.file}
+                table={table}
+                expanded={expanded}
+                onToggle={toggle}
+                onShowTable={showTable}
+                renderTable={renderTable}
+            />
+            {tableShown && table.status === 'ready' && (
+                <ParquetTableOverlay fileName={props.file.fileName} tableId={table.tableId} onClose={closeTable} />
+            )}
+        </>
+    );
 }
 
 /// The files of an opened archive: a card for every Parquet file, the other entries in a list below

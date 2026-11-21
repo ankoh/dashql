@@ -114,6 +114,18 @@ describe('UnpackerPage', () => {
         expect(cells('workbook_scripts.parquet')).toContain('orders.sql');
         expect(computations()).toBe(1);
 
+        // The button next to the header opens the full table over the page, its close button closes it
+        const dialog = () => document.querySelector<HTMLElement>('[role="dialog"][aria-label="Table of workbook_scripts.parquet"]');
+        await act(async () => card('workbook_scripts.parquet')!
+            .querySelector<HTMLButtonElement>('button[aria-label="Open the table of workbook_scripts.parquet"]')!.click());
+        await act(async () => {
+            await vi.waitFor(() => expect(dialog()?.textContent).toContain('select 42 as answer'));
+        });
+        expect(dialog()!.textContent).toContain('2 rows');
+        await act(async () => dialog()!.querySelector<HTMLButtonElement>('button[aria-label="Close table"]')!.click());
+        expect(dialog()).toBeNull();
+        expect(computations()).toBe(1);
+
         // A closed card keeps its table, it shows again at once
         await toggle('workbook_scripts.parquet');
         expect(cells('workbook_scripts.parquet')).toBe('');

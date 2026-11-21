@@ -9,6 +9,8 @@ import type { QueryResultDetailsLayout } from './query_result_details.js';
 
 export interface ResultTableOverlayProps {
     scriptName: string;
+    /// What the card shows, for the labels of the dialog and its close button, "Query results" by default
+    subject?: string;
     onClose: () => void;
     /// The details of the result in the layout of the card
     children: (layout: QueryResultDetailsLayout) => React.ReactNode;
@@ -26,6 +28,7 @@ const CloseIcon = SymbolIcon('x_16');
 export function ResultTableOverlay(props: ResultTableOverlayProps): React.ReactElement {
     const dialogRef = React.useRef<HTMLElement | null>(null);
     const [expanded, setExpanded] = React.useState(false);
+    const subject = props.subject ?? 'Query results';
 
     // Focus the dialog, not its first button
     useFocusTrap({
@@ -51,7 +54,7 @@ export function ResultTableOverlay(props: ResultTableOverlayProps): React.ReactE
                 role="dialog"
                 aria-modal="true"
                 tabIndex={-1}
-                aria-label={`Query results of ${props.scriptName}`}
+                aria-label={`${subject} of ${props.scriptName}`}
                 data-expanded={expanded || undefined}
                 data-testid="result-table-overlay"
             >
@@ -71,7 +74,7 @@ export function ResultTableOverlay(props: ResultTableOverlayProps): React.ReactE
                     <IconButton
                         variant={ButtonVariant.Invisible}
                         size={ButtonSize.Small}
-                        aria-label="Close query results"
+                        aria-label={`Close ${subject.toLowerCase()}`}
                         data-testid="result-table-overlay-close"
                         onClick={props.onClose}
                     >
