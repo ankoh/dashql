@@ -100,7 +100,7 @@ async function testTables(): Promise<WorkbookTables> {
             params: [{ function_id: 0, position: 0, param_name: 'value', param_type: 'bigint' }],
         },
         attachments: [{ name: 'types.parquet', bytes: new Blob([await typesParquet() as Uint8Array<ArrayBuffer>]) }],
-        results: [{ key: 'k1', bytes: new Blob([await typesParquet() as Uint8Array<ArrayBuffer>]) }],
+        results: [{ key: 'k1', script: 'a.sql', bytes: new Blob([await typesParquet() as Uint8Array<ArrayBuffer>]) }],
     });
 }
 
@@ -273,6 +273,7 @@ describe('cloud store', () => {
         const [attachmentRow] = cloudRows(read, ATTACHMENTS_TABLE);
         const [resultRow] = cloudRows(read, RESULTS_TABLE);
         expect(resultRow.cache_key).toBe('k1');
+        expect(resultRow.script_name).toBe('a.sql');
         const file = (tableName: unknown) => read.data.find(entry => entry.tableName === tableName)!.file;
 
         // The data tables hold the values of the Parquet files

@@ -29,7 +29,7 @@ import { WorkbookCommands } from '../workbook/scripts/workbook_commands.js';
 import { WorkbookViewModeProvider } from '../workbook/workbook_view_mode.js';
 import { WorkbookPage } from '../workbook/workbook_page.js';
 import { AgentSessionProvider } from '../agent/agent_session_provider.js';
-import { QueryResultCacheProvider } from '../storage/query_result_cache_provider.js';
+import { WorkbookResultsProvider } from '../storage/workbook_results_provider.js';
 import { getGlobalLogger, LoggerProvider } from '../host/logger_provider.js';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { EmbeddedDatabaseProvider, type EmbeddedDatabaseOptions } from '../host/embedded_database_provider.js';
@@ -101,11 +101,11 @@ const AppProviders = (props: { children: React.ReactElement }) => (
                                     <HttpClientProvider>
                                         <AppSettingsSync>
                                             <AppEmbeddedDatabaseProvider>
-                                                <QueryResultCacheProvider>
+                                                <WorkbookResultsProvider>
                                                     <WorkbookProviders>
                                                         {props.children}
                                                     </WorkbookProviders>
-                                                </QueryResultCacheProvider>
+                                                </WorkbookResultsProvider>
                                             </AppEmbeddedDatabaseProvider>
                                         </AppSettingsSync>
                                     </HttpClientProvider>

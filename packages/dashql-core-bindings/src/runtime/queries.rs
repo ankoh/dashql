@@ -37,8 +37,8 @@ use dashql_core_runtime::compute::tasks::analyze_table::AnalyzeTableOptions as R
 use dashql_core_runtime::connections::{ConnectionAction, ConnectionChannel, ConnectorType, DetailedError};
 use dashql_core_runtime::executor::cache_key::{connection_cache_signature, result_key_input, result_key_of_digest};
 use dashql_core_runtime::executor::{
-    CacheEntry, CacheRequest, ChannelMessage, ClientFunctionTarget, ExecutorHost, ExecutorRun, FailureKind, HostTable,
-    QueryControls, QueryEvent, QueryFailure, QueryId, QueryOutcome, QueryRequest, QueryTarget,
+    ChannelMessage, ClientFunctionTarget, ExecutorHost, ExecutorRun, FailureKind, HostTable, QueryControls, QueryEvent,
+    QueryFailure, QueryId, QueryOutcome, QueryRequest, QueryTarget, ResultRequest, StoredFile,
 };
 use dashql_core_runtime::handles::Handle;
 use dashql_core_runtime::host::signal::{oneshot, Receiver, Sender};
@@ -56,6 +56,7 @@ use tsify::Tsify;
 use wasm_bindgen::prelude::*;
 
 use super::connections::Connections;
+use super::results;
 use crate::host::{field, host_value, lifetime_token, IntlTimeZones, JsPlatform, RuntimeChannelTarget};
 use crate::query_history::view::{QueryMetadataView, QueryProgressView, QueryStreamMetrics};
 use crate::views::{to_js, JsonValue};
@@ -106,26 +107,68 @@ pub struct QueryOptions {
     #[serde(default)]
     #[tsify(optional)]
     pub read_timeout_ms: Option<u32>,
-    /// The query result cache, none for a query that never reads or writes it
+    /// The stored result of the script of the query, none for a query of no script
     #[serde(default)]
     #[tsify(optional)]
-    pub cache: Option<QueryCacheOptions>,
+    pub result: Option<QueryResultOptions>,
 }
 
-/// How a query uses the query result cache
+/// The stored result of the script of a query (docs/design/workbook_results.md)
 #[derive(Clone, Debug, Default, Deserialize, Tsify)]
 #[serde(rename_all = "camelCase")]
-pub struct QueryCacheOptions {
-    /// The semantic signature of the script that the key of the result derives from, with the params of the connection
-    pub signature: String,
-    /// Run the query instead of serving a cached result, the result becomes the newest file of its key
+pub struct QueryResultOptions {
+    /// The workbook of the script
+    pub workbook_id: String,
+    /// The file name of the script
+    pub script: String,
+    /// The result key of the script, the file of the result is named after it
+    pub key: String,
+    /// Read this file of the results of the workbook instead of running the query, fail with a miss if it is gone
     #[serde(default)]
     #[tsify(optional)]
-    pub refresh: bool,
-    /// Serve the cached result or fail with a cache miss instead of running the query
-    #[serde(default)]
-    #[tsify(optional)]
-    pub only: bool,
+    pub read: Option<QueryResultFile>,
+}
+
+/// A file of the results of a workbook
+#[derive(Clone, Debug, Default, Deserialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub struct QueryResultFile {
+    /// The file name
+    pub name: String,
+    /// The key in its name
+    pub key: String,
+    /// When it was written, in milliseconds since the epoch
+    pub written_at: f64,
+}
+
+impl From<&ResultRequest> for QueryResultOptions {
+    fn from(result: &ResultRequest) -> Self {
+        QueryResultOptions {
+            workbook_id: result.workbook_id.clone(),
+            script: result.script.clone(),
+            key: result.key.clone(),
+            read: result.read.as_ref().map(|file| QueryResultFile {
+                name: file.name.clone(),
+                key: file.key.clone(),
+                written_at: file.written_at,
+            }),
+        }
+    }
+}
+
+impl From<&QueryResultOptions> for ResultRequest {
+    fn from(result: &QueryResultOptions) -> Self {
+        ResultRequest {
+            workbook_id: result.workbook_id.clone(),
+            script: result.script.clone(),
+            key: result.key.clone(),
+            read: result.read.as_ref().map(|file| StoredFile {
+                name: file.name.clone(),
+                key: file.key.clone(),
+                written_at: file.written_at,
+            }),
+        }
+    }
 }
 
 /// A query that runs: its id and its outcome
@@ -748,49 +791,60 @@ impl ExecutorHost for QueryHost {
         std::future::ready(finished)
     }
 
-    fn cache_lookup(&self, key: &str) -> impl Future<Output = Result<Option<CacheEntry>, HostError>> + 'static {
-        let lookup = self.platform.cache_lookup(key);
-        async move {
-            let value = lookup.await?;
-            Ok(field(&value, "name").and_then(|name| name.as_string()).map(|name| CacheEntry {
-                name,
-                cached_at: field(&value, "cachedAt").and_then(|at| at.as_f64()).unwrap_or_default(),
-            }))
-        }
-    }
-
-    fn cache_read(
+    fn result_read(
         &self,
         run: &Rc<QueryRun>,
-        entry: &CacheEntry,
-    ) -> impl Future<Output = Result<HostTable, HostError>> + 'static {
-        let read = self.platform.cache_read(&entry.name);
+        workbook_id: &str,
+        name: &str,
+    ) -> impl Future<Output = Result<Option<HostTable>, HostError>> + 'static {
+        let read = self.platform.results_read(workbook_id, name);
         let run = run.clone();
         async move {
-            let read = read.await?;
+            let Some(read) = read.await? else { return Ok(None) };
             // The run owns the table
             run.adopt_result(read.table);
             let count = |n: f64| if n.is_finite() { n.max(0.0) as u64 } else { 0 };
-            Ok(HostTable { rows: count(read.rows), columns: count(read.columns), batches: 0 })
+            Ok(Some(HostTable { rows: count(read.rows), columns: count(read.columns), batches: 0 }))
         }
     }
 
-    fn cache_touch(&self, entry: &CacheEntry) -> impl Future<Output = Result<(), HostError>> + 'static {
-        self.platform.cache_touch(&entry.name)
-    }
-
-    fn cache_write(&self, run: &Rc<QueryRun>, key: &str) -> impl Future<Output = Result<bool, HostError>> + 'static {
+    fn result_write(
+        &self,
+        run: &Rc<QueryRun>,
+        result: &ResultRequest,
+    ) -> impl Future<Output = Result<String, HostError>> + 'static {
         // The write holds the run, its table is there. The platform takes the table when it is called.
-        let write = run.result().map(|table| self.platform.cache_write(key, table));
-        // The cache keeps its limits after every file of a key
-        let evict = self.platform.evict_cache();
+        let platform = self.platform.clone();
+        let table = run.result();
+        let result = result.clone();
+        let name = results::new_file_name(&platform, &result.script, &result.key);
+        let write = match (table, &name) {
+            (Some(table), Ok(Some(name))) => {
+                let pin = platform.results_pin(&result.workbook_id, name);
+                Ok((table, pin))
+            }
+            (None, _) => Err(HostError::new("The query has no result")),
+            (_, Ok(None)) => Err(HostError::new(format!("{} makes no name of a file of a result", result.script))),
+            (_, Err(error)) => Err(error.clone()),
+        };
         async move {
-            let Some(write) = write else { return Err(HostError::new("The query has no result")) };
-            let written = write.await?;
-            // The eviction may remove the new file right away, e.g. a result larger than the cache
-            let removed = evict.await;
-            Ok(!removed.contains(&written))
+            let (table, pin) = write?;
+            let name = name?.unwrap_or_default();
+            let pin = pin.await?;
+            let written = platform.results_write(&result.workbook_id, &name, table).await;
+            platform.results_release(pin).await;
+            written?;
+            // The script keeps one file, the older ones go once nobody reads them
+            results::remove_files_of_script(&platform, &result.workbook_id, &result.script, Some(&name)).await?;
+            Ok(name)
         }
+    }
+
+    fn result_clear(&self, workbook_id: &str, script: &str) -> impl Future<Output = Result<(), HostError>> + 'static {
+        let platform = self.platform.clone();
+        let workbook_id = workbook_id.to_string();
+        let script = script.to_string();
+        async move { results::remove_files_of_script(&platform, &workbook_id, &script, None).await }
     }
 
     fn analyze_result(&self, run: &Rc<QueryRun>) -> impl Future<Output = Result<(), HostError>> + 'static {
@@ -954,17 +1008,15 @@ impl Connections {
         (query_id, done)
     }
 
-    /// The key of the results of a script signature on a connection in the query result cache, none without a cache or
-    /// before the connection has the params of a setup. The key derives from the params of the connector that identify
-    /// its results, the platform computes the SHA-256 digest. The executor derives the same key, it uses the cache only
-    /// with the compute database that reads and writes its files (`describe`); the cache indicators and the exports
-    /// read the files of the keys without it.
+    /// The key of the result of a script signature on a connection, none without stored results or before the
+    /// connection has the params of a setup. The key derives from the params of the connector that identify its
+    /// results, the platform computes the SHA-256 digest.
     pub(crate) fn result_key(
         &self,
         connection_id: &str,
         signature: &str,
     ) -> impl Future<Output = Option<String>> + 'static {
-        let input = if self.platform.has_cache() {
+        let input = if self.platform.has_results() {
             let registry = self.registry.borrow();
             registry.get(connection_id).and_then(|connection| {
                 let state = connection.state.try_borrow().ok()?;
@@ -1021,14 +1073,8 @@ impl Connections {
             }
         }
         let options = &description.options;
-        // The executor reads and writes the files of the cache with the compute database, through the mounts
-        let cache = match &options.cache {
-            Some(cache) if self.platform.has_mounts() => self
-                .result_key(connection_id, &cache.signature)
-                .await
-                .map(|key| CacheRequest { key, refresh: cache.refresh }),
-            _ => None,
-        };
+        // The executor reads and writes the files of the results with the compute database
+        let result = options.result.as_ref().filter(|_| self.platform.has_results()).map(ResultRequest::from);
         let publish_results = options.publish_results != Some(false);
         let query = ChannelQuery {
             text: &description.text,
@@ -1081,8 +1127,7 @@ impl Connections {
             target,
             publish_results,
             analyze_results: options.analyze_results == Some(true),
-            cache,
-            cache_only: options.cache.as_ref().is_some_and(|cache| cache.only),
+            result,
             // Nothing that runs on Salesforce changes its relations
             touches_relations: description.metadata.user_provided && connector != ConnectorType::SalesforceDataCloud,
             throw_on_error: options.throw_on_error == Some(true),
@@ -1230,7 +1275,7 @@ impl Connections {
     }
 
     /// Run a statement of a run of a workbook on its connection. It is a query of the history of the connection, the
-    /// platform describes where it runs with the options of the statement (`queries.describe`): the cache, whether it
+    /// platform describes where it runs with the options of the statement (`queries.describe`): its stored result, whether it
     /// publishes and analyzes its result, a call of a client function. Returns its id, a future that completes once
     /// its result arrived and a future of its end: whether it has a result, or its failure. A statement that fails may
     /// never complete the first.
@@ -1250,11 +1295,7 @@ impl Connections {
                 throw_on_error: Some(true),
                 client_function_call: statement.client_function_call.clone().map(JsonValue),
                 read_timeout_ms: None,
-                cache: statement.cache.as_ref().map(|(signature, refresh, only)| QueryCacheOptions {
-                    signature: signature.clone(),
-                    refresh: *refresh,
-                    only: *only,
-                }),
+                result: statement.result.as_ref().map(QueryResultOptions::from),
             },
         };
         let mut log_details = Vec::new();
@@ -1353,9 +1394,8 @@ pub(crate) struct Statement {
     pub client_function_call: Option<serde_json::Value>,
     pub analyze_results: bool,
     pub publish_results: bool,
-    /// The query result cache: the signature of the key, whether the statement refreshes the key, and whether it only
-    /// reads the cache
-    pub cache: Option<(String, bool, bool)>,
+    /// The stored result of the script of the statement
+    pub result: Option<ResultRequest>,
 }
 
 /// The result of a query that the runtime runs itself: its result table as an Arrow IPC stream, or its failure

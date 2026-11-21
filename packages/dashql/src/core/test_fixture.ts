@@ -177,7 +177,7 @@ export function testPlatform(storage: MemoryStorage = new MemoryStorage()): { pl
             next: () => Promise.reject(new Error('no channels')),
             cancel: async () => { },
         },
-        resultCache: null,
+        results: null,
         crypto: {
             randomUuid: () => `00000000-0000-4000-8000-${(++uuid).toString().padStart(12, '0')}`,
             sha256: async bytes => new Uint8Array(await crypto.subtle.digest('SHA-256', bytes as Uint8Array<ArrayBuffer>)),

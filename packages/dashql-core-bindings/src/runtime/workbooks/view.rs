@@ -323,13 +323,18 @@ pub struct WorkbookScriptKeys {
     pub statistics: Option<u64>,
 }
 
-/// The cached result of a script: the reusable key of its result and when the newest file of the key was written
+/// The stored result of a script: the file of its last result in the results of the workbook
 #[derive(Clone, Debug, Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
-pub struct WorkbookScriptCachedResult {
+pub struct WorkbookScriptStoredResult {
+    /// The file name
+    pub name: String,
+    /// The key in the name of the file
     pub key: String,
-    /// Milliseconds since the epoch
-    pub cached_at: f64,
+    /// When the file was written, in milliseconds since the epoch
+    pub written_at: f64,
+    /// Is the key the key of the script as it is now? A result of another key is outdated, a run computes it anew.
+    pub current: bool,
 }
 
 /// A script with its payloads
@@ -350,8 +355,8 @@ pub struct WorkbookScriptView {
     pub analysis_outdated: bool,
     pub latest_query_id: Option<u32>,
     pub latest_result_query_id: Option<u32>,
-    /// The cached result of a run of the script in the query result cache, null without one
-    pub cached_result: Option<WorkbookScriptCachedResult>,
+    /// The stored result of the script in the results of the workbook, null without one
+    pub stored_result: Option<WorkbookScriptStoredResult>,
     pub external_changes: Option<WorkbookExternalChanges>,
     /// What the views read of the analysis
     pub annotations: WorkbookScriptAnnotations,
@@ -412,9 +417,12 @@ impl WorkbookScriptView {
             analysis_outdated: script.is_analysis_outdated(),
             latest_query_id: script.latest_query_id(),
             latest_result_query_id: script.latest_result_query_id(),
-            cached_result: script
-                .cached_result()
-                .map(|cached| WorkbookScriptCachedResult { key: cached.key.clone(), cached_at: cached.cached_at }),
+            stored_result: script.stored_result().map(|stored| WorkbookScriptStoredResult {
+                name: stored.name.clone(),
+                key: stored.key.clone(),
+                written_at: stored.written_at,
+                current: stored.current,
+            }),
             external_changes: script.external_changes().map(WorkbookExternalChanges::from),
             annotations: WorkbookScriptAnnotations::of(update),
             editor_update_key,

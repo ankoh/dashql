@@ -2,7 +2,7 @@
 //!
 //! The task runs a query on its connection and reports what happens as `QueryEvent`s, the host applies them to the
 //! query history of the connection (`query::QueryExecutionHistory` of the Rust connection). It serves a result from the
-//! query result cache or drives the connector: Trino over `TrinoQuery`, Hyper over its HTTP API with a
+//! stored result of its script or drives the connector: Trino over `TrinoQuery`, Hyper over its HTTP API with a
 //! `HyperResultReader` (Salesforce Data Cloud too, with its bearer token), client functions with a
 //! `ClientFunctionCallRun`, all over `HttpHost::fetch` and the timers of the host. A connection whose channel is an
 //! object of the host (the gRPC channel of Hyper in the desktop app, the embedded Hyper, a channel of a test) stays a
@@ -19,13 +19,13 @@
 //! the structured progress of the query (its stages, the plan once it is known, their execution state), every
 //! progress update carries it to the history.
 //!
-//! The host keeps what the runtime holds as JavaScript values: the result tables, the query result cache (Parquet
-//! files of the embedded Hyper), the analysis of the results on the compute database and the relations that a
+//! The host keeps what the runtime holds as JavaScript values: the result tables, the stored results of the scripts
+//! (Parquet files of the workbooks that the embedded Hyper reads and writes), the analysis of the results on the compute database and the relations that a
 //! statement touches. The task decides when they happen.
 //!
 //! The host owns the run of a query (`ExecutorHost::Run`): the id of the query, its cancellation token and its
 //! controls, from the registration of the query on. The executor gets the run with the request and hands it to every
-//! call of the host, the task and its follow-ups hold it, e.g. the write of the result into the cache after the query
+//! call of the host, the task and its follow-ups hold it, e.g. the write of the stored result after the query
 //! ended. The token is the one cancellation of the query: the requests of the query stop, the query is cancelled at the
 //! backend (a Trino or Hyper query by its request, a channel of the host by `channel_cancel`, also while it opens) and
 //! the task ends as cancelled.
@@ -60,13 +60,29 @@ pub type QueryId = u64;
 /// A value of the host, e.g. a JavaScript value in the module
 pub type HostValue = Rc<dyn std::any::Any>;
 
-/// How a query uses the query result cache
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CacheRequest {
-    /// The key of the result
+/// A file of the results of a workbook (docs/design/workbook_results.md)
+#[derive(Debug, Clone, PartialEq)]
+pub struct StoredFile {
+    /// The file name below the results folder of the workbook
+    pub name: String,
+    /// The key in the name of the file
     pub key: String,
-    /// Run the query on the backend instead of serving the cached result, and store the new result
-    pub refresh: bool,
+    /// When the file was written, in milliseconds since the epoch
+    pub written_at: f64,
+}
+
+/// The stored result of the script of a query: the query reads a file of the results of the workbook, or it runs and
+/// its result becomes the file of the script
+#[derive(Debug, Clone, PartialEq)]
+pub struct ResultRequest {
+    /// The workbook
+    pub workbook_id: String,
+    /// The file name of the script
+    pub script: String,
+    /// The result key of the script, the file of a result that the query stores is named after it
+    pub key: String,
+    /// Read this file instead of running the query, a query whose file is gone fails with a miss
+    pub read: Option<StoredFile>,
 }
 
 /// A client function call on a connection
@@ -107,10 +123,8 @@ pub struct QueryRequest {
     pub publish_results: bool,
     /// Analyze the result on the compute database
     pub analyze_results: bool,
-    /// The query result cache, none if the query doesn't use it
-    pub cache: Option<CacheRequest>,
-    /// Serve the cached result or fail, never run the query. A query without a cache fails.
-    pub cache_only: bool,
+    /// The stored result of the script of the query, none for a query of no script
+    pub result: Option<ResultRequest>,
     /// May the statement change the relations of the connection? The catalog loader then asks the connection.
     pub touches_relations: bool,
     /// Reject with the error of a failed query instead of resolving without a result
@@ -126,7 +140,7 @@ pub enum FailureKind {
     Error,
     /// The query was cancelled
     Cancelled,
-    /// A query that may only come from the cache missed it
+    /// A query that only reads the stored result of its script found no file
     CacheMiss,
     /// The analysis of the result failed
     Processing,
@@ -241,7 +255,7 @@ pub enum QueryEvent {
     Failed { failure: QueryFailure, metrics: Option<QueryExecutionMetrics> },
     /// The query was cancelled
     Cancelled { failure: QueryFailure, metrics: Option<QueryExecutionMetrics> },
-    /// The result is in the query result cache, served from it or written to it
+    /// The result is the stored result of its script, read from its file or written to it
     CacheRecorded { key: String, served_from_cache: bool, cached_at: Option<f64> },
     /// The statement may have changed relations of the connection
     TouchRelations,
@@ -262,16 +276,7 @@ pub enum QueryOutcome {
     Rejected(QueryFailure),
 }
 
-/// An entry of the query result cache
-#[derive(Debug, Clone, PartialEq)]
-pub struct CacheEntry {
-    /// The name of the file
-    pub name: String,
-    /// When the entry was written, in milliseconds since the epoch
-    pub cached_at: f64,
-}
-
-/// A result table that the host holds: one it read from the cache or one it built from the parts of a stream
+/// A result table that the host holds: one it read from a file or one it built from the parts of a stream
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct HostTable {
     pub rows: u64,
@@ -316,19 +321,22 @@ pub trait ExecutorHost: HttpHost {
     /// batches of its channel and holds it as the result of the run.
     fn finish_result(&self, run: &Rc<Self::Run>) -> impl Future<Output = Result<HostTable, HostError>> + 'static;
 
-    /// Look up a result in the query result cache
-    fn cache_lookup(&self, key: &str) -> impl Future<Output = Result<Option<CacheEntry>, HostError>> + 'static;
-    /// Read a cached result, the host holds it as the result of the run
-    fn cache_read(
+    /// Read a file of the results of a workbook, the host holds it as the result of the run. None if the file is gone.
+    fn result_read(
         &self,
         run: &Rc<Self::Run>,
-        entry: &CacheEntry,
-    ) -> impl Future<Output = Result<HostTable, HostError>> + 'static;
-    /// Record that a cached result was used, for the eviction
-    fn cache_touch(&self, entry: &CacheEntry) -> impl Future<Output = Result<(), HostError>> + 'static;
-    /// Write the result of a run into the cache. False if the cache evicted the new file right away to keep its
-    /// limits.
-    fn cache_write(&self, run: &Rc<Self::Run>, key: &str) -> impl Future<Output = Result<bool, HostError>> + 'static;
+        workbook_id: &str,
+        name: &str,
+    ) -> impl Future<Output = Result<Option<HostTable>, HostError>> + 'static;
+    /// Write the result of a run as the new file of its script, the older files of the script go. Resolves with the
+    /// name of the file.
+    fn result_write(
+        &self,
+        run: &Rc<Self::Run>,
+        result: &ResultRequest,
+    ) -> impl Future<Output = Result<String, HostError>> + 'static;
+    /// Remove the files of a script whose query ended without a result, they describe an earlier text
+    fn result_clear(&self, workbook_id: &str, script: &str) -> impl Future<Output = Result<(), HostError>> + 'static;
 
     /// Analyze the result of a run on the compute database. A cancellation of the token of the run stops the analysis,
     /// the host keeps no analysis of a cancelled query and fails with the cancellation.
@@ -372,27 +380,27 @@ pub trait ExecutorHost: HttpHost {
 
 #[derive(Default)]
 struct ExecutorState {
-    /// The writes into the query result cache that run
-    cache_writes: usize,
-    /// The callers that wait for the cache writes
-    cache_waiters: Vec<Sender<()>>,
+    /// The writes of stored results that run
+    result_writes: usize,
+    /// The callers that wait for the writes of stored results
+    result_waiters: Vec<Sender<()>>,
     /// The layout of the plans of the progress of queries, none for the default one
     progress_layout: Option<ProfileLayoutConfig>,
 }
 
-/// Counts a write into the cache while it runs. A guard that drops while the state is borrowed, e.g. a task that is
+/// Counts a write of a stored result while it runs. A guard that drops while the state is borrowed, e.g. a task that is
 /// dropped within a call of the executor, changes it in a task of the host once the borrow ended.
-struct CacheWriteGuard<H: ExecutorHost> {
+struct ResultWriteGuard<H: ExecutorHost> {
     host: Rc<H>,
     state: Rc<RefCell<ExecutorState>>,
 }
 
-impl<H: ExecutorHost> Drop for CacheWriteGuard<H> {
+impl<H: ExecutorHost> Drop for ResultWriteGuard<H> {
     fn drop(&mut self) {
         let finish = |state: &mut ExecutorState| {
-            state.cache_writes = state.cache_writes.saturating_sub(1);
-            if state.cache_writes == 0 {
-                std::mem::take(&mut state.cache_waiters)
+            state.result_writes = state.result_writes.saturating_sub(1);
+            if state.result_writes == 0 {
+                std::mem::take(&mut state.result_waiters)
             } else {
                 Vec::new()
             }
@@ -439,7 +447,7 @@ impl<H: ExecutorHost> QueryExecutor<H> {
     }
 
     /// Run a query of a run, a run whose token was cancelled before ends as cancelled. The future settles once the
-    /// query ended, a write of its result into the cache may still run and hold the run.
+    /// query ended, a write of its stored result may still run and hold the run.
     pub fn execute(&self, request: QueryRequest, run: Rc<H::Run>) -> impl Future<Output = QueryOutcome> + 'static {
         let task = QueryTask { host: self.host.clone(), state: self.state.clone(), run, request };
         task.run()
@@ -452,13 +460,13 @@ impl<H: ExecutorHost> QueryExecutor<H> {
         }
     }
 
-    /// Wait for the writes into the query result cache that run, e.g. before a process ends
-    pub fn flush_cache_writes(&self) -> impl Future<Output = ()> + 'static {
+    /// Wait for the writes of stored results that run, e.g. before a process ends
+    pub fn flush_result_writes(&self) -> impl Future<Output = ()> + 'static {
         let receiver = {
             let mut state = self.state.borrow_mut();
-            (state.cache_writes > 0).then(|| {
+            (state.result_writes > 0).then(|| {
                 let (sender, receiver) = oneshot();
-                state.cache_waiters.push(sender);
+                state.result_waiters.push(sender);
                 receiver
             })
         };
@@ -482,7 +490,7 @@ struct QueryTask<H: ExecutorHost> {
 struct ResultSummary {
     /// Does the query have a result table?
     has_table: bool,
-    /// Was it served from the cache?
+    /// Was it read from the file of its stored result?
     served_from_cache: bool,
 }
 
@@ -546,9 +554,9 @@ impl<H: ExecutorHost> QueryTask<H> {
                     self.report(QueryEvent::Cancelled { failure: failure.clone(), metrics });
                     return self.fail(failure);
                 }
-                // The result is fine, only its analysis failed: it goes into the cache all the same
+                // The result is fine, only its analysis failed: it is stored all the same
                 if !summary.served_from_cache {
-                    self.store_in_cache();
+                    self.store_result(summary.has_table);
                 }
                 let mut details = self.query_details();
                 details.push(("error".to_string(), failure.message.clone()));
@@ -558,8 +566,8 @@ impl<H: ExecutorHost> QueryTask<H> {
                 return QueryOutcome::Rejected(failure);
             }
         }
-        if summary.has_table && !summary.served_from_cache {
-            self.store_in_cache();
+        if !summary.served_from_cache && self.request.publish_results {
+            self.store_result(summary.has_table);
         }
         self.report(QueryEvent::Succeeded);
         QueryOutcome::Resolved { has_result: summary.has_table }
@@ -577,18 +585,20 @@ impl<H: ExecutorHost> QueryTask<H> {
     /// The statement may have changed relations, the catalog loader asks the connection about them. Also after a
     /// failure: a statement of many may have run, and a cancelled one may have run all the same.
     fn touch_relations(&self) {
-        if self.request.touches_relations && !self.request.cache_only {
+        if self.request.touches_relations && !self.reads_file() {
             self.report(QueryEvent::TouchRelations);
         }
     }
 
-    /// Serve the result from the cache or run the query
+    /// Does the query read the file of a stored result instead of running?
+    fn reads_file(&self) -> bool {
+        self.request.result.as_ref().is_some_and(|result| result.read.is_some())
+    }
+
+    /// Read the stored result or run the query
     async fn fetch_result(&self, metrics: &mut Option<QueryExecutionMetrics>) -> Result<ResultSummary, QueryFailure> {
-        if let Some(summary) = self.serve_from_cache().await? {
+        if let Some(summary) = self.read_stored().await? {
             return Ok(summary);
-        }
-        if self.request.cache_only {
-            return Err(QueryFailure::new(FailureKind::CacheMiss, "The query result is not cached"));
         }
         self.report(QueryEvent::Sending);
         let started_at = self.host.now();
@@ -638,66 +648,43 @@ impl<H: ExecutorHost> QueryTask<H> {
         Ok(ResultSummary { has_table: true, served_from_cache: false })
     }
 
-    /// Serve a cached result, none on a miss. A failed lookup or read is a miss.
-    async fn serve_from_cache(&self) -> Result<Option<ResultSummary>, QueryFailure> {
-        let Some(cache) = self.request.cache.as_ref().filter(|cache| !cache.refresh) else {
+    /// Read the file of a stored result, none for a query that runs. A file that is gone or fails to read is a miss, the
+    /// query fails with it and never runs.
+    async fn read_stored(&self) -> Result<Option<ResultSummary>, QueryFailure> {
+        let Some((result, file)) =
+            self.request.result.as_ref().and_then(|result| Some((result, result.read.as_ref()?)))
+        else {
             return Ok(None);
         };
-        let query_id = self.run.query_id().to_string();
-        // A cancel during the lookup or the read behaves like any other cancel
-        let entry = match self.token().run(self.host.cache_lookup(&cache.key)).await {
-            None => return Err(QueryFailure::cancelled()),
-            Some(Ok(entry)) => entry,
-            Some(Err(error)) => {
-                let details =
-                    vec![("query".to_string(), query_id.clone()), ("error".to_string(), error.message().to_string())];
-                self.log(LogLevel::Warn, "Failed to read query cache", details);
-                None
-            }
-        };
-        let Some(entry) = entry else { return Ok(None) };
+        let mut details = self.query_details();
+        details.push(("file".to_string(), file.name.clone()));
         // The read runs to its end, the run owns the table that it read
-        let table = self.host.cache_read(&self.run, &entry).await;
+        let table = self.host.result_read(&self.run, &result.workbook_id, &file.name).await;
         if self.token().is_cancelled() {
             return Err(QueryFailure::cancelled());
         }
         let table = match table {
-            Ok(table) => table,
+            Ok(Some(table)) => table,
+            Ok(None) => return Err(QueryFailure::new(FailureKind::CacheMiss, "The stored result is gone")),
             Err(error) => {
-                let details = vec![("query".to_string(), query_id), ("error".to_string(), error.message().to_string())];
-                self.log(LogLevel::Warn, "Failed to read cached query result", details);
-                return Ok(None);
+                details.push(("error".to_string(), error.message().to_string()));
+                self.log(LogLevel::Warn, "Failed to read a stored result", details);
+                return Err(QueryFailure::new(
+                    FailureKind::CacheMiss,
+                    format!("The stored result can't be read: {}", error.message()),
+                ));
             }
         };
-        // The access counts for the eviction, a failure only makes the entry look colder. The touch holds the run, its
-        // warning goes into the log of the query.
-        let touch = self.host.cache_touch(&entry);
-        let host = self.host.clone();
-        let run = self.run.clone();
-        self.host.spawn(Box::pin(async move {
-            if let Err(error) = touch.await {
-                let details = vec![
-                    ("query".to_string(), run.query_id().to_string()),
-                    ("error".to_string(), error.message().to_string()),
-                ];
-                let message = "Failed to record query cache access".to_string();
-                host.report(
-                    &run,
-                    QueryEvent::Log { level: LogLevel::Warn, message, details, target: LOG_TARGET.to_string() },
-                );
-            }
-        }));
-        let mut details = self.query_details();
         details.push(("numRows".to_string(), table.rows.to_string()));
         details.push(("numCols".to_string(), table.columns.to_string()));
-        details.push(("cachedAt".to_string(), crate::time::iso_timestamp(entry.cached_at as i64)));
-        self.log(LogLevel::Info, "Served query from cache", details);
+        details.push(("writtenAt".to_string(), crate::time::iso_timestamp(file.written_at as i64)));
+        self.log(LogLevel::Info, "Read a stored result", details);
         let metrics = QueryExecutionMetrics::default();
         self.report(QueryEvent::ReceivedAllBatches { rows: table.rows, metrics });
         self.report(QueryEvent::CacheRecorded {
-            key: cache.key.clone(),
+            key: file.key.clone(),
             served_from_cache: true,
-            cached_at: Some(entry.cached_at),
+            cached_at: Some(file.written_at),
         });
         Ok(Some(ResultSummary { has_table: true, served_from_cache: true }))
     }
@@ -717,33 +704,44 @@ impl<H: ExecutorHost> QueryTask<H> {
         Ok(())
     }
 
-    /// Write the result into the cache after the query, the query doesn't wait for it. A failure only logs. The write
-    /// holds the run, so the key and the warning reach the history of the query after the query ended. A file that the
-    /// eviction removed right away is not recorded.
-    fn store_in_cache(&self) {
-        let Some(cache) = self.request.cache.as_ref() else { return };
-        let key = cache.key.clone();
-        let write = self.host.cache_write(&self.run, &key);
+    /// Store the result as the file of its script after the query, the query doesn't wait for it. A query that ended
+    /// without a result removes the files of its script. A failure only logs. The write holds the run, so the key and
+    /// the warning reach the history of the query after the query ended.
+    fn store_result(&self, has_table: bool) {
+        let Some(result) = self.request.result.clone() else { return };
         let host = self.host.clone();
         let run = self.run.clone();
-        self.state.borrow_mut().cache_writes += 1;
-        let guard = CacheWriteGuard { host: self.host.clone(), state: self.state.clone() };
+        let write = has_table.then(|| self.host.result_write(&self.run, &result));
+        let clear = (!has_table).then(|| self.host.result_clear(&result.workbook_id, &result.script));
+        self.state.borrow_mut().result_writes += 1;
+        let guard = ResultWriteGuard { host: self.host.clone(), state: self.state.clone() };
         self.host.spawn(Box::pin(async move {
-            let query = ("query".to_string(), run.query_id().to_string());
-            let log = |level: LogLevel, message: &str, details: Vec<(String, String)>| {
+            let log = |level: LogLevel, message: &str, error: &HostError| {
+                let details = vec![
+                    ("query".to_string(), run.query_id().to_string()),
+                    ("script".to_string(), result.script.clone()),
+                    ("error".to_string(), error.message().to_string()),
+                ];
                 let message = message.to_string();
                 host.report(&run, QueryEvent::Log { level, message, details, target: LOG_TARGET.to_string() });
             };
-            match write.await {
-                Ok(true) => {
-                    host.report(&run, QueryEvent::CacheRecorded { key, served_from_cache: false, cached_at: None })
+            if let Some(write) = write {
+                match write.await {
+                    Ok(_) => host.report(
+                        &run,
+                        QueryEvent::CacheRecorded {
+                            key: result.key.clone(),
+                            served_from_cache: false,
+                            cached_at: None,
+                        },
+                    ),
+                    Err(error) => log(LogLevel::Warn, "Failed to store the result of a script", &error),
                 }
-                Ok(false) => log(LogLevel::Info, "The query result cache evicted the result right away", vec![query]),
-                Err(error) => log(
-                    LogLevel::Warn,
-                    "Failed to write query cache",
-                    vec![query, ("error".to_string(), error.message().to_string())],
-                ),
+            }
+            if let Some(clear) = clear {
+                if let Err(error) = clear.await {
+                    log(LogLevel::Warn, "Failed to remove the stored result of a script", &error);
+                }
             }
             drop(guard);
         }));

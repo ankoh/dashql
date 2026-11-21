@@ -115,6 +115,15 @@ export function useTable(handle: number | null | undefined): arrow.Table | null 
 
 /// A workbook, it renders again when the workbook changes, not with the keystrokes of its scripts
 export const useWorkbook = (workbookId: string | null | undefined): WorkbookScripts | null => useView('workbook', workbookId);
+
+/// Show a workbook: the first time it is shown, the runtime reads the stored results of its scripts
+/// (docs/design/workbook_results.md). Without a runtime nothing is read.
+export function useWorkbookShown(workbookId: string | null | undefined) {
+    const runtime = React.useContext(RUNTIME_CTX);
+    React.useEffect(() => {
+        if (workbookId != null) runtime?.showWorkbook(workbookId);
+    }, [runtime, workbookId]);
+}
 /// A script of a workbook by its key
 export const useScript = (scriptKey: number | null | undefined): ScriptData | null => useView('script', scriptKey);
 /// What the runtime derives from the scripts of a workbook: the checked references, the dataflow and the inputs

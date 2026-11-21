@@ -18,7 +18,7 @@ pub const WORKBOOK_FORMAT_VERSION: i64 = 11;
 /// Workbook folders up to this format version hold a copy of the catalog of their default connection
 pub const WORKBOOK_CATALOG_COPY_FORMAT_VERSION: i64 = 6;
 /// The version of the storage root, `storageVersion` of the manifest
-pub const STORAGE_VERSION: i64 = 9;
+pub const STORAGE_VERSION: i64 = 10;
 
 /// A copy of a connection that a workbook file holds
 #[derive(Debug, Clone, PartialEq)]

@@ -17,6 +17,7 @@ use dashql_core_runtime::connections::label::{connection_params_label_of_value, 
 use dashql_core_runtime::connections::sharing::descriptor_of_params;
 use dashql_core_runtime::handles::Handle;
 use dashql_core_runtime::host::{HostError, LogLevel};
+use dashql_core_runtime::workbook_run::ResultKey;
 use dashql_core_storage::storage::{HoldReason, WriteError, WriteOutcome, WriteTask};
 use dashql_core_storage::workbook_format::bundle::{
     assemble_workbook_bundle, bundle_catalog_path, catalog_seed_files, check_workbook_bundle,
@@ -31,6 +32,7 @@ use dashql_core_storage::workbook_format::connection_import::{
 use dashql_core_storage::workbook_format::data::{
     ConnectionEntry, WorkbookData, WorkbookMetadata, WORKBOOK_FORMAT_VERSION,
 };
+use dashql_core_storage::workbook_format::files::file_name_key;
 use dashql_core_storage::workbook_format::files::nfc;
 use dashql_core_storage::workbook_format::import::{
     plan_archive, read_folder_archive, read_table_archive, ArchiveEntry, ArchivePlan, FolderArchiveEntry,
@@ -40,9 +42,7 @@ use dashql_core_storage::workbook_format::layout::{
     StorageType, STORAGE_CATALOG_FUNCTIONS, STORAGE_CATALOG_RELATIONS, STORAGE_WORKBOOK_FILE,
 };
 use dashql_core_storage::workbook_format::migration::{MigrationFolder, MIGRATION_FILES};
-use dashql_core_storage::workbook_format::query_results::{
-    plan_result_import, CacheCapacity, ImportedWorkbookQueryResults,
-};
+use dashql_core_storage::workbook_format::query_results::ImportedWorkbookQueryResults;
 use dashql_core_storage::workbook_format::tables::{
     workbook_tables_to_bundle, DataTableFile, WorkbookTableName, WorkbookTables,
 };
@@ -56,6 +56,7 @@ use wasm_bindgen::JsCast;
 
 use super::archives::{items, HostFile, HostFiles};
 use super::connections::Connections;
+use super::results;
 use super::storage::restore_view::RestoreScriptFile;
 use super::storage::{entry_path, find_workbook, load_workbook, RuntimeWriter};
 use super::workbooks::view::WorkbookDataFile;
@@ -107,7 +108,7 @@ pub struct ImportQuestion {
     pub candidates: Vec<ImportCandidate>,
 }
 
-/// The cached query results that an imported workbook carries
+/// The stored results of the scripts that an imported workbook carries
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 pub struct ImportResultFiles {
@@ -128,7 +129,7 @@ pub struct ImportPreview {
     pub script_count: u32,
     /// The attachments
     pub attachment_count: u32,
-    /// The cached query results
+    /// The stored results of the scripts
     pub results: ImportResultFiles,
     /// The registered workbook with the same id, null if there is none
     pub conflict: Option<ImportConflict>,
@@ -187,7 +188,7 @@ pub struct ImportAnswers {
     #[serde(default)]
     #[tsify(optional, type = "unknown")]
     pub metadata: Option<Value>,
-    /// Add the cached query results to the cache, true if absent. A link never does.
+    /// Add the stored results of the scripts to the workbook, true if absent. A link never does.
     #[serde(default)]
     #[tsify(optional)]
     pub results: Option<bool>,
@@ -204,14 +205,13 @@ pub struct ImportAnswers {
 pub struct ImportedResults {
     /// The results of the workbook
     pub total: u32,
-    /// The results that became files of the cache
+    /// The results that became the files of their scripts
     pub added: u32,
-    /// The results whose keys were cached already, the results of the app win
-    pub kept: u32,
+    /// The results that name no script of the workbook, e.g. a result of an archive of an earlier version whose key
+    /// is the key of no script
+    pub unmatched: u32,
     /// The results that couldn't be added
     pub failed: u32,
-    /// The results left out because the workbook holds more than the cache keeps
-    pub dropped: u32,
     /// The bytes of the results that were added
     pub bytes: f64,
     /// Why the first result that failed couldn't be added, or why none was
@@ -224,9 +224,8 @@ impl From<&ImportedWorkbookQueryResults> for ImportedResults {
         ImportedResults {
             total: count(outcome.total),
             added: count(outcome.added),
-            kept: count(outcome.kept),
+            unmatched: count(outcome.unmatched),
             failed: count(outcome.failed),
-            dropped: count(outcome.dropped),
             bytes: outcome.bytes as f64,
             error: outcome.error.clone(),
         }
@@ -485,7 +484,12 @@ impl Imports {
                         FolderArchiveEntry::Result { key } => {
                             // An export stores the results without compression, they stay slices of the archive
                             let (file, crc32) = self.read_entry_file(&handle, *i, true, files).await?;
-                            read.results.push(WorkbookBundleResult { key: key.clone(), bytes: file, crc32 });
+                            read.results.push(WorkbookBundleResult {
+                                key: key.clone(),
+                                script: None,
+                                bytes: file,
+                                crc32,
+                            });
                         }
                     }
                 }
@@ -778,20 +782,18 @@ impl Imports {
         if let Some(workbook_id) = &answers.workbook_id {
             bundle.workbook.workbook_id = workbook_id.clone();
         }
-        // The query results are no part of the workbook, a failure leaves the import alone
-        let results = std::mem::take(&mut bundle.results);
-        if !results.is_empty() {
-            if answers.results.unwrap_or(true) {
-                let imported = self.import_results(&bundle.workbook.workbook_id, &results, &steps).await;
-                outcome.results = Some(ImportedResults::from(&imported));
-            } else {
-                self.log(
-                    LogLevel::Warn,
-                    "Ignored the query results of an import",
-                    &[("results", &results.len().to_string())],
-                );
-            }
+        // The results go into the folder of the written workbook, a failure leaves the import alone
+        let mut results = std::mem::take(&mut bundle.results);
+        if !results.is_empty() && !answers.results.unwrap_or(true) {
+            self.log(
+                LogLevel::Warn,
+                "Ignored the query results of an import",
+                &[("results", &results.len().to_string())],
+            );
+            results.clear();
         }
+        let results =
+            ImportResults { results, scripts: bundle.workbook.scripts.iter().map(|s| s.name.clone()).collect() };
         steps.report("workbook", None);
         // A runtime without storage opens the workbook into memory
         let Some(storage) = restorer.workbooks.persistence.writer().cloned() else {
@@ -799,6 +801,14 @@ impl Imports {
                 return Err(HostError::new("a runtime without storage keeps an import only in memory, it restores it"));
             }
             outcome.workbook_id = bundle.workbook.workbook_id.clone();
+            if !results.results.is_empty() {
+                let failed = ImportedWorkbookQueryResults::failed_all(
+                    results.results.len() as u64,
+                    "a runtime without storage keeps no results",
+                );
+                steps.report("results", Some(&ImportedResults::from(&failed)));
+                outcome.results = Some(ImportedResults::from(&failed));
+            }
             steps.report("open", None);
             restorer.restore_bundle(bundle).await?;
             outcome.restored = true;
@@ -815,12 +825,14 @@ impl Imports {
                         if connection_refs_changed(&original, &bundle.workbook) {
                             writer.write_connection_refs(&workbook_id, &bundle.workbook).await?;
                         }
+                        outcome.results = self.import_results(&workbook_id, &results, &steps, None).await;
                         workbook_id
                     }
                     (Some(_), Some(ImportConflictChoice::CreateNew)) => {
                         let workbook_id = self.new_uuid()?;
                         writer.write_fresh(&with_fresh_identity(&bundle, &workbook_id), &workbook_id).await?;
-                        self.restore_fresh(&writer, &restorer, &answers, &steps, &workbook_id, &mut outcome).await?;
+                        self.restore_fresh(&writer, &restorer, &answers, &steps, &workbook_id, &results, &mut outcome)
+                            .await?;
                         workbook_id
                     }
                     (Some(conflict), Some(ImportConflictChoice::Replace)) => {
@@ -834,6 +846,7 @@ impl Imports {
                             Ok(())
                         };
                         held_replacement(storage, &conflict.workbook_id, replace).await?;
+                        outcome.results = self.import_results(&conflict.workbook_id, &results, &steps, None).await;
                         conflict.workbook_id
                     }
                     (Some(conflict), None) => {
@@ -846,13 +859,15 @@ impl Imports {
                     (None, _) => {
                         let workbook_id = bundle.workbook.workbook_id.clone();
                         writer.write_fresh(&bundle, &workbook_id).await?;
-                        self.restore_fresh(&writer, &restorer, &answers, &steps, &workbook_id, &mut outcome).await?;
+                        self.restore_fresh(&writer, &restorer, &answers, &steps, &workbook_id, &results, &mut outcome)
+                            .await?;
                         workbook_id
                     }
                     (Some(_), Some(ImportConflictChoice::CreateNew)) => {
                         let workbook_id = self.new_uuid()?;
                         writer.write_fresh(&with_fresh_identity(&bundle, &workbook_id), &workbook_id).await?;
-                        self.restore_fresh(&writer, &restorer, &answers, &steps, &workbook_id, &mut outcome).await?;
+                        self.restore_fresh(&writer, &restorer, &answers, &steps, &workbook_id, &results, &mut outcome)
+                            .await?;
                         workbook_id
                     }
                     (Some(conflict), Some(ImportConflictChoice::Replace)) => {
@@ -865,6 +880,7 @@ impl Imports {
                             writer.replace_with_bundle(&bundle, &conflict, staging, backup),
                         )
                         .await?;
+                        outcome.results = self.import_results(&conflict.workbook_id, &results, &steps, None).await;
                         conflict.workbook_id
                     }
                     (Some(_), None) => {
@@ -884,8 +900,10 @@ impl Imports {
         Ok(outcome)
     }
 
-    /// Restore a fresh copy into the runtime unless the caller reloads the app. A copy that can't be restored is
-    /// deleted again.
+    /// Add the results to a fresh copy, then restore it into the runtime unless the caller reloads the app. The results
+    /// of archives of earlier versions are matched to the scripts by their keys once the copy is restored. A copy that
+    /// can't be restored is deleted again.
+    #[allow(clippy::too_many_arguments)]
     async fn restore_fresh(
         &self,
         writer: &Writer<'_>,
@@ -893,9 +911,16 @@ impl Imports {
         answers: &ImportAnswers,
         steps: &Steps,
         workbook_id: &str,
+        results: &ImportResults,
         outcome: &mut ImportOutcome,
     ) -> Result<(), HostError> {
-        if !answers.restore.unwrap_or(true) {
+        let restores = answers.restore.unwrap_or(true);
+        // The results of an earlier version need the keys of the restored workbook
+        let legacy = restores && results.results.iter().any(|result| result.script.is_none());
+        if !legacy {
+            outcome.results = self.import_results(workbook_id, results, steps, None).await;
+        }
+        if !restores {
             return Ok(());
         }
         // The same workbook may have been imported and deleted before
@@ -904,6 +929,13 @@ impl Imports {
         match restorer.clone().restore_workbook(workbook_id.to_string()).await {
             Ok(_) => {
                 outcome.restored = true;
+                if legacy {
+                    let keys = match restorer.runs.result_keys(workbook_id, None) {
+                        Ok(keys) => keys.await,
+                        Err(_) => Vec::new(),
+                    };
+                    outcome.results = self.import_results(workbook_id, results, steps, Some(keys)).await;
+                }
                 Ok(())
             }
             Err(error) => {
@@ -913,82 +945,124 @@ impl Imports {
         }
     }
 
-    /// Add the cached query results of an imported workbook to the cache of the platform, the results of the app win.
-    /// The results beyond the limits of the cache are left out, they would evict each other.
+    /// Add the stored results of an imported workbook to its results folder. A result that names a script of the
+    /// workbook becomes the file of the script under the key of the archive, whatever the key of the script is here: the
+    /// workbook shows it when it opens, a run computes it anew if the key differs. A result of an archive of an earlier
+    /// version names only its key: with the keys of the scripts of the restored workbook, it becomes the file of the
+    /// script with the key, without them it names no script. Each result succeeds or fails on its own. None for a
+    /// workbook without results.
     async fn import_results(
         &self,
         workbook_id: &str,
-        results: &[WorkbookBundleResult<HostFile>],
+        results: &ImportResults,
         steps: &Steps,
-    ) -> ImportedWorkbookQueryResults {
-        let total = results.len() as u64;
-        let bytes: u64 = results.iter().map(|result| result.bytes.size).sum();
+        keys: Option<Vec<Option<ResultKey>>>,
+    ) -> Option<ImportedResults> {
+        if results.results.is_empty() {
+            return None;
+        }
+        let total = results.results.len() as u64;
+        let bytes: u64 = results.results.iter().map(|result| result.bytes.size).sum();
         steps.report("results", None);
         let fields =
             [("workbookId", workbook_id.to_string()), ("results", total.to_string()), ("bytes", bytes.to_string())];
         let fields: Vec<(&str, &str)> = fields.iter().map(|(key, value)| (*key, value.as_str())).collect();
-        let capacity = match self.cache_capacity().await {
-            Ok(capacity) => capacity,
-            Err(error) => {
-                self.log(
-                    LogLevel::Warn,
-                    "Ignored the query results of an imported workbook, results are not cached",
-                    &fields,
-                );
-                let outcome = ImportedWorkbookQueryResults::failed_all(total, error.message());
-                steps.report("results", Some(&ImportedResults::from(&outcome)));
-                return outcome;
-            }
-        };
+        if !self.platform.has_results() {
+            self.log(
+                LogLevel::Warn,
+                "Ignored the query results of an imported workbook, results are not stored",
+                &fields,
+            );
+            let outcome = ImportedWorkbookQueryResults::failed_all(total, "the platform stores no results");
+            steps.report("results", Some(&ImportedResults::from(&outcome)));
+            return Some(ImportedResults::from(&outcome));
+        }
         self.log(LogLevel::Info, "Importing the query results of a workbook", &fields);
-        let mut outcome = ImportedWorkbookQueryResults::default();
-        let sizes: Vec<u64> = results.iter().map(|result| result.bytes.size).collect();
-        let plan = plan_result_import(&sizes, capacity, &mut outcome);
-        for (result, add) in results.iter().zip(plan) {
-            let size = result.bytes.size.to_string();
-            let details = [("key", result.key.as_str()), ("bytes", size.as_str())];
-            if !add {
-                self.log(LogLevel::Warn, "Left out an imported query result, the cache is full", &details);
-                continue;
-            }
-            let crc32 = result.crc32.map(|crc| JsValue::from_f64(crc as f64)).unwrap_or(JsValue::NULL);
-            let args = [text(&result.key), JsValue::from_f64(result.bytes.handle as f64), crc32];
-            match self.platform.cache_call("import", &args).await {
-                Ok(added) if added.is_truthy() => {
-                    outcome.added(result.bytes.size);
-                    // The cache keeps its limits after every file of a key
-                    self.platform.evict_cache().await;
+        let mut outcome = ImportedWorkbookQueryResults { total, ..ImportedWorkbookQueryResults::default() };
+        let scripts: Vec<String> = results.scripts.iter().map(|name| file_name_key(name)).collect();
+        let mut legacy: Vec<&WorkbookBundleResult<HostFile>> = Vec::new();
+        for result in &results.results {
+            match &result.script {
+                Some(script) => {
+                    // The script name of the workbook, the archive may spell it in another case
+                    let named = results.scripts.iter().zip(&scripts).find(|(_, key)| **key == file_name_key(script));
+                    match named {
+                        Some((script, _)) => self.import_result(workbook_id, script, result, &mut outcome).await,
+                        None => {
+                            self.log(
+                                LogLevel::Warn,
+                                "Left out an imported query result of no script",
+                                &[("workbookId", workbook_id), ("script", script)],
+                            );
+                            outcome.unmatched();
+                        }
+                    }
                 }
-                Ok(_) => outcome.kept(),
-                Err(error) => {
-                    self.log(
-                        LogLevel::Warn,
-                        "Adding an imported query result to the cache failed",
-                        &[("key", &result.key), ("error", error.message())],
-                    );
-                    outcome.failed(error.message());
+                None => legacy.push(result),
+            }
+        }
+        if !legacy.is_empty() {
+            let keys = keys.unwrap_or_default();
+            for result in legacy {
+                let script = keys
+                    .iter()
+                    .position(|key| key.as_ref().is_some_and(|key| key.key == result.key))
+                    .and_then(|index| results.scripts.get(index));
+                match script {
+                    Some(script) => self.import_result(workbook_id, script, result, &mut outcome).await,
+                    None => {
+                        self.log(
+                            LogLevel::Warn,
+                            "Left out an imported query result whose key is the key of no script",
+                            &[("workbookId", workbook_id), ("key", &result.key)],
+                        );
+                        outcome.unmatched();
+                    }
                 }
             }
         }
-        let level = if outcome.failed > 0 || outcome.dropped > 0 { LogLevel::Warn } else { LogLevel::Info };
-        let counts = [
-            ("added", outcome.added),
-            ("kept", outcome.kept),
-            ("failed", outcome.failed),
-            ("dropped", outcome.dropped),
-        ]
-        .map(|(key, n)| (key, n.to_string()));
+        let level = if outcome.failed > 0 || outcome.unmatched > 0 { LogLevel::Warn } else { LogLevel::Info };
+        let counts = [("added", outcome.added), ("unmatched", outcome.unmatched), ("failed", outcome.failed)]
+            .map(|(key, n)| (key, n.to_string()));
         let counts: Vec<(&str, &str)> = counts.iter().map(|(key, value)| (*key, value.as_str())).collect();
         self.log(level, "Imported the query results of a workbook", &counts);
         steps.report("results", Some(&ImportedResults::from(&outcome)));
-        outcome
+        Some(ImportedResults::from(&outcome))
     }
 
-    /// The limits of the query result cache of the platform
-    async fn cache_capacity(&self) -> Result<CacheCapacity, HostError> {
-        let capacity = self.platform.cache_call("capacity", &[]).await?;
-        Ok(crate::host::cache_capacity(&capacity))
+    /// Add one imported result as the file of a script, the other files of the script go
+    async fn import_result(
+        &self,
+        workbook_id: &str,
+        script: &str,
+        result: &WorkbookBundleResult<HostFile>,
+        outcome: &mut ImportedWorkbookQueryResults,
+    ) {
+        let added = async {
+            let name: String = results::new_file_name(&self.platform, script, &result.key)?
+                .ok_or_else(|| HostError::new(format!("the result of {script} has no valid key: {}", result.key)))?;
+            self.platform.results_import(workbook_id, &name, result.bytes.handle, result.crc32).await?;
+            results::remove_files_of_script(&self.platform, workbook_id, script, Some(&name)).await?;
+            Ok::<(), HostError>(())
+        };
+        match added.await {
+            Ok(()) => outcome.added(result.bytes.size),
+            Err(error) => {
+                self.log(
+                    LogLevel::Warn,
+                    "Adding an imported query result failed",
+                    &[("workbookId", workbook_id), ("script", script), ("error", error.message())],
+                );
+                outcome.failed(error.message());
+            }
+        }
     }
+}
+
+/// The results of an import with the scripts of the imported workbook, by their file names
+struct ImportResults {
+    results: Vec<WorkbookBundleResult<HostFile>>,
+    scripts: Vec<String>,
 }
 
 /// The questions of a plan

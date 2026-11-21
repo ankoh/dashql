@@ -46,8 +46,8 @@ export interface ReportedRunOptions {
     /// Set up a connection before the first statement, an error message if it can't be used. Without, the run takes
     /// the connections that can run.
     prepareConnection?: (conn: ConnectionState) => Promise<string | null>;
-    /// The file of the result of a key in the query result cache, null without one
-    resultFile?: (key: string) => Promise<string | null>;
+    /// The file of the stored result of a script of the workbook, null without one (docs/design/workbook_results.md)
+    resultFile?: (script: string) => Promise<string | null>;
     /// Reporting an event failed
     onReportError?: (error: unknown) => void;
 }
@@ -137,9 +137,9 @@ export async function runWorkbookReported(runtime: Runtime, workbook: WorkbookSc
             const ms = elapsed(script);
             // The history of the connection keeps the result table of the query
             const table: arrow.Table | null = queryId == null ? null : runtime.table(queryOf(queryId)?.resultTable?.id) ?? null;
-            // The executor writes the result into the cache after the query resolved
-            await runtime.module.flushCacheWrites();
-            const file = key == null || options.resultFile == null ? null : await options.resultFile(key);
+            // The executor writes the stored result after the query resolved
+            await runtime.module.flushResultWrites();
+            const file = queryId == null || options.resultFile == null ? null : await options.resultFile(script);
             return { type: 'script_done', script, ms, rows: table?.numRows ?? null, table, cached, key, file };
         };
         const onScript = (script: string, event: ScriptRunEvent) => {

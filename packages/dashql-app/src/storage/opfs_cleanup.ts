@@ -21,7 +21,8 @@ import {
     isUuid,
 } from '@akohn/dashql/platform/hyperdb/hyperdb_opfs_instance';
 import { PARQUET_EXPORT_DIRECTORY } from '@akohn/dashql/platform/hyperdb/hyperdb_parquet_export';
-import { QUERY_RESULT_CACHE_DIRECTORY } from '@akohn/dashql/platform/storage/opfs_query_result_cache';
+import { RESULTS_FOLDER } from '@akohn/dashql/platform/workbook/workbook_result_files';
+import { GITIGNORE_FILE } from '@akohn/dashql/platform/storage/workbook_gitignore';
 import { OPFS_TESTS_FOLDER } from '@akohn/dashql/platform/opfs_root';
 
 /// An OPFS entry that the current app version doesn't use
@@ -86,8 +87,13 @@ const OPFS_WORKBOOK_ENTRIES = new Map<string, boolean>([
     [STORAGE_WORKBOOK_FILE, false],
     [STORAGE_SCRIPTS_FOLDER, true],
     [STORAGE_ATTACHMENTS_FOLDER, true],
+    [RESULTS_FOLDER, true],
+    [GITIGNORE_FILE, false],
 ]);
-const NATIVE_WORKBOOK_ENTRIES = new Map<string, boolean>([[STORAGE_ATTACHMENTS_FOLDER, true]]);
+/// A native workbook keeps the mirror of its attachments and its results in the origin private file system
+const NATIVE_WORKBOOK_ENTRIES = new Map<string, boolean>([[STORAGE_ATTACHMENTS_FOLDER, true], [RESULTS_FOLDER, true]]);
+/// The query result cache of the app up to storage version 9, the storage migration removes it
+const LEGACY_QUERY_RESULT_CACHE_DIRECTORY = 'cache';
 
 const UNUSED = 'Not used by this version of DashQL';
 
@@ -144,8 +150,8 @@ export async function findOPFSCleanupCandidates(
                     add([name, id], child.kind === 'directory', 'Leftover of an interrupted Parquet export');
                 }
                 break;
-            case QUERY_RESULT_CACHE_DIRECTORY:
-                // The cache evicts its own files, also the leftovers of interrupted runs
+            case LEGACY_QUERY_RESULT_CACHE_DIRECTORY:
+                add([name], true, 'Query result cache of an earlier version');
                 break;
             case STORAGE_SHELL_FOLDER:
             case SHELL_FILES_DIRECTORY:

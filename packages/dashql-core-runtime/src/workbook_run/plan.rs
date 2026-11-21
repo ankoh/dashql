@@ -398,24 +398,24 @@ fn set_key(keys: &mut [Option<Option<ResultKey>>], index: usize, key: Option<Res
 /// The result key of a script of a plan
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ResultKey {
-    /// The key, the files of the results of the script are named after it
+    /// The key, the file of the result of the script is named after it
     pub key: String,
     /// The signature that the key derives from: the signature of the script and the keys of the scripts it
     /// references, one per line
     pub signature: String,
-    /// May a run read a file of the key instead of running the script? The script is cacheable, its connection caches
-    /// results and so do the scripts it references.
+    /// May a run read the stored result of the script instead of running it, if the file has this key? The script is
+    /// cacheable, its connection reuses results and so do the scripts it references.
     pub reusable: bool,
 }
 
 /// The result keys of the scripts of a plan. The key of a script covers its connection, its signature and the keys of
-/// the scripts it references (docs/design/query_cache.md). None for scripts that aren't planned, whose connection has
-/// no key or that reference such a script. `key_of` derives the key of a script from its signature, `caches_results`
-/// tells whether the connection of a script caches results.
+/// the scripts it references (docs/design/workbook_results.md). None for scripts that aren't planned, whose connection has
+/// no key or that reference such a script. `key_of` derives the key of a script from its signature, `reuses_results`
+/// tells whether the connection of a script reuses results.
 pub async fn result_keys<F, Fut>(
     graph: &ExecutionGraphT,
     key_of: F,
-    caches_results: impl Fn(u32) -> bool,
+    reuses_results: impl Fn(u32) -> bool,
 ) -> Vec<Option<ResultKey>>
 where
     F: Fn(u32, String) -> Fut,
@@ -455,7 +455,7 @@ where
                 key.map(|key| ResultKey {
                     key,
                     signature,
-                    reusable: script.cacheable && caches_results(index as u32) && referenced.iter().all(|r| r.reusable),
+                    reusable: script.cacheable && reuses_results(index as u32) && referenced.iter().all(|r| r.reusable),
                 }),
             );
         }

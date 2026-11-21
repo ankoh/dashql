@@ -1,12 +1,9 @@
 import { type StorageBackend, type WorkbookData, type ScriptData, type WorkbookEntry, type AppSettings, StorageBackendType, STORAGE_WORKBOOK_FILE, STORAGE_SCRIPTS_FOLDER } from './storage_backend.js';
+import { GITIGNORE_FILE, gitignoreWithEntries } from './workbook_gitignore.js';
 import { type DataFile, type DataFileContent, type ExpectedStamp, ExternalScriptChangeError, STORAGE_ATTACHMENTS_FOLDER, WorkbookFolderMissingError, isAttachmentFileName, matchesExpectedStamp, validateDataFileName } from './storage_backend.js';
 
 import { joinPath, type FileStamp, type FileSystem } from '../file_system.js';
 
-/// The name of the workbook-level .gitignore that keeps generated files out of version control.
-const GITIGNORE_FILE = '.gitignore';
-/// The entries of the workbook-level .gitignore: the former query result cache of the workbook and Hyper database files.
-const GITIGNORE_ENTRIES = ['cache/', '*.hyper'];
 /// The draft script of an older layout, no script of the workbook
 const DRAFT_SCRIPT_FILE = 'dashql-draft.sql';
 
@@ -143,13 +140,8 @@ export class NativeStorageBackend implements StorageBackend {
     private async ensureGitignore(): Promise<void> {
         if (this.gitignoreChecked) return;
         const file = await this.abs(GITIGNORE_FILE);
-        const existing = (await this.fs.exists(file)) ? await this.fs.readTextFile(file) : '';
-        const lines = new Set(existing.split(/\r?\n/).map(line => line.trim()));
-        const missing = GITIGNORE_ENTRIES.filter(entry => !lines.has(entry));
-        if (missing.length > 0) {
-            const separator = existing.length > 0 && !existing.endsWith('\n') ? '\n' : '';
-            await this.fs.writeTextFile(file, `${existing}${separator}${missing.join('\n')}\n`);
-        }
+        const updated = gitignoreWithEntries((await this.fs.exists(file)) ? await this.fs.readTextFile(file) : null);
+        if (updated != null) await this.fs.writeTextFile(file, updated);
         this.gitignoreChecked = true;
     }
 

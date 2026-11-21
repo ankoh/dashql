@@ -20,7 +20,7 @@ import { displayPath } from '@akohn/dashql/platform/storage/workbook_locator';
 import type { ScriptModel } from '@akohn/dashql-react/models/script_model';
 import { deriveEntryStatus, EntryStatusKind } from '../entry_status_model.js';
 import { EntryStatusBar } from '../entry_status_bar.js';
-import { CachedResultBean, QueryResultRerunButton } from '../persistence/query_result_cache_controls.js';
+import { QueryResultRerunButton, StoredResultBean } from '../persistence/stored_result_controls.js';
 import { DEFAULT_FEED_ENTRY_HEADER_DEPENDENCIES, FeedEntryHeader, type FeedEntryHeaderDependencies } from './feed_entry_header.js';
 import { FeedEntryTabStrip, useFeedEntryTabs, type FeedEntryTab } from './feed_entry_footer.js';
 import { formattingDialectForConnector, isScriptFormattable, useScriptText } from '../scripts/script_format.js';
@@ -149,8 +149,8 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
     // A staged rewrite waiting to be accepted or rejected. The editor shows the diff in place, these buttons are the
     // explicit alternatives.
     const hasPendingDiff = script.pendingDiff != null;
-    // The time the cached result of a run of the script was written, null if it is not cached
-    const cachedAtMs = script.cachedResult?.cachedAt ?? null;
+    // The stored result of the script in the results of the workbook, null without one
+    const storedResult = script.storedResult ?? null;
     const entryStatus = deriveEntryStatus(query, query?.progress ?? null);
     // The result tabs live in the status bar, their panel below it
     const resultTabs = useFeedEntryTabs(model.query, script.annotations.visualizeQuery ?? null);
@@ -294,7 +294,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                             tabs={<FeedEntryTabStrip tabs={resultTabs} expanded={result.expanded} onSelect={expandResult} />}
                             actions={
                                 <>
-                                    {cachedAtMs != null && <CachedResultBean cachedAtMs={cachedAtMs} />}
+                                    {storedResult != null && <StoredResultBean writtenAtMs={storedResult.writtenAt} current={storedResult.current} />}
                                     <QueryResultRerunButton
                                         query={query}
                                         onRerun={online && !model.runActive ? () => void model.run({ refresh: true }) : undefined}

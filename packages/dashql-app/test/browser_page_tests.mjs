@@ -242,12 +242,14 @@ async function startSessionServer({ port = 0, token = 'secret', protocol = 7, id
             return;
         }
         if (request.method === 'PUT' && request.url.startsWith(`/v1/results/${encodeURIComponent(token)}/`)) {
-            const key = request.url.split('/').pop();
+            // /v1/results/<token>/<workbook id>/<file>, the stored result of a script named after the script and its key
+            const [workbookId, name] = request.url.split('/').slice(4).map(decodeURIComponent);
+            const key = name.split('.').at(-3);
             const chunks = [];
             request.on('data', chunk => chunks.push(chunk));
             request.on('end', () => {
-                results.push({ key, bytes: Buffer.concat(chunks) });
-                response.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ file: `/work/.dashql/cache/${key}.parquet` }));
+                results.push({ workbookId, name, key, bytes: Buffer.concat(chunks) });
+                response.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ file: `/work/.dashql/workbooks/${workbookId}/results/${name}` }));
             });
             return;
         }
@@ -414,9 +416,9 @@ async function testAppAgentSession(page, navigate) {
         await scriptEditor(page, 'from_agent').waitFor();
         assert.equal(await page.getByTestId('diff-accept').count(), 0);
 
-        // The connection of the script caches its results, its result has a key
+        // The connection of the script reuses its results, its result has a reusable key
         await page.getByTestId('workbook-connection').first().click();
-        const caching = page.getByRole('switch', { name: 'Cache query results' });
+        const caching = page.getByRole('switch', { name: 'Reuse query results' });
         await caching.click();
         await page.locator('[role="switch"][aria-checked="true"]').waitFor();
         await page.keyboard.press('Escape');
@@ -431,13 +433,15 @@ async function testAppAgentSession(page, navigate) {
         assert.equal(done.script, script.path.split('/').pop());
         assert.equal(done.rows, 1);
         assert.equal(typeof done.table, 'string');
-        // The result has a key, its Parquet file went into the cache of the session before the event named it there
+        // The result has a key, its stored Parquet file went into the results of the workbook in the session before the
+        // event named it there
         assert.match(done.key ?? '', /^[0-9a-f]{64}$/, JSON.stringify(done));
-        const uploaded = connected.results.find(result => result.key === done.key);
-        assert.ok(uploaded != null, JSON.stringify(connected.results.map(result => result.key)));
+        const uploaded = connected.results.find(result => result.key === done.key && result.workbookId === script.workbookId);
+        assert.ok(uploaded != null, JSON.stringify(connected.results.map(result => result.name)));
+        assert.ok(uploaded.name.startsWith(`${done.script}.${done.key}.`), uploaded.name);
         assert.equal(uploaded.bytes.subarray(0, 4).toString('latin1'), 'PAR1');
         assert.equal(uploaded.bytes.subarray(-4).toString('latin1'), 'PAR1');
-        assert.equal(done.file, `/work/.dashql/cache/${done.key}.parquet`);
+        assert.equal(done.file, `/work/.dashql/workbooks/${script.workbookId}/results/${uploaded.name}`);
         assert.deepEqual(events[events.length - 1], { ...events[events.length - 1], type: 'run_finished', ok: 1, failed: 0, interrupted: false });
         const chart = events.find(event => event.type === 'script_chart');
         assert.ok(chart?.png != null, JSON.stringify(chart));

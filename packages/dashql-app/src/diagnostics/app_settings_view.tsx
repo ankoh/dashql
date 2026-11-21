@@ -11,7 +11,6 @@ import { CONFIRM_FINISHED_SETUP, useRouterNavigate } from '../app/router.js';
 import { useLogger } from '../host/logger_provider.js';
 import { LogLevel } from '@akohn/dashql/platform/logger/log_buffer';
 import { useStorageReader } from '../storage/storage_provider.js';
-import { useQueryResultCache } from '../storage/query_result_cache_provider.js';
 import { useDropAllCloudDatabases } from '../connections/connection_deletion.js';
 import { AppFlavor, FLAVORS } from '../config/flavors.js';
 import { useAppFlavor, useRequestedAppFlavor } from '../config/flavor_provider.js';
@@ -54,7 +53,6 @@ export function AppSettings(props: { onClose: () => void; }) {
     const routerNavigate = useRouterNavigate();
     const logger = useLogger();
     const storageReader = useStorageReader();
-    const queryResultCache = useQueryResultCache();
     const dropAllCloudDatabases = useDropAllCloudDatabases();
     const restartApp = useAppRestart();
 
@@ -156,8 +154,6 @@ export function AppSettings(props: { onClose: () => void; }) {
             // The engine holds the databases of the local clouds open until they are dropped
             await dropAllCloudDatabases();
             await storageReader.backend.clearAllStorage();
-            // The query results of every connection, files that other windows read right now stay
-            await queryResultCache?.clear();
             logger.info("Storage cleared successfully", {}, "app_settings");
             alert("Storage cleared successfully. The page will now reload.");
             window.location.reload();
@@ -169,7 +165,7 @@ export function AppSettings(props: { onClose: () => void; }) {
         } finally {
             setIsClearing(false);
         }
-    }, [storageReader, queryResultCache, dropAllCloudDatabases, logger]);
+    }, [storageReader, dropAllCloudDatabases, logger]);
 
     // A row with the name of a boolean setting and its switch
     const toggle = (key: ToggleSettingKey, name: string) => {

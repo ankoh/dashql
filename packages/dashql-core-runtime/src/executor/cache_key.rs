@@ -1,8 +1,8 @@
-//! The key of a query result in the query result cache.
+//! The key of the stored result of a script (docs/design/workbook_results.md).
 //!
-//! A result is cached as a function of the params of its connection that identify its results (the signature of the
-//! connector) and the versioned semantic signature of its script that the core emits. The analysis of a result runs
-//! after the cache was read and is no part of the key. The key is the lowercase hex of the SHA-256 digest of
+//! A result is keyed by the params of its connection that identify its results (the signature of the connector) and
+//! the versioned semantic signature of its script that the core emits. A run reuses a stored result whose file names
+//! the key. The analysis of a result runs after the result was read and is no part of the key. The key is the lowercase hex of the SHA-256 digest of
 //! `result_key_input`; the platform computes the digest.
 
 use serde_json::{Map, Value};

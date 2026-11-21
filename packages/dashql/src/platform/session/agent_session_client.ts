@@ -216,11 +216,11 @@ export async function postAgentSessionRunEvent(target: AgentSessionTarget, runId
     return true;
 }
 
-/// Write the cached result of a key of a run of the tab into the query result cache of the session,
-/// `.dashql/cache/<key>.<uuid>.parquet`, where the agent reads it. Resolves with the path of the file.
-export async function writeAgentSessionResult(target: AgentSessionTarget, key: string, data: Blob): Promise<string> {
-    const url = new URL(`/v1/results/${encodeURIComponent(target.token)}/${encodeURIComponent(key)}`, target.endpoint);
+/// Write the stored result of a script of a run of the tab into the results of the workbook in the session,
+/// `.dashql/workbooks/<id>/results/<file>`, where the agent reads it. Resolves with the path of the file.
+export async function writeAgentSessionResult(target: AgentSessionTarget, workbookId: string, name: string, data: Blob): Promise<string> {
+    const url = new URL(`/v1/results/${encodeURIComponent(target.token)}/${encodeURIComponent(workbookId)}/${encodeURIComponent(name)}`, target.endpoint);
     const response = await fetchAgentSession(url, { method: 'PUT', body: data });
-    await expectOk(response, `the result ${key}`);
+    await expectOk(response, `the result ${name}`);
     return ((await response.json()) as { file: string }).file;
 }

@@ -186,8 +186,8 @@ impl WorkbookTableName {
         ];
         const ATTACHMENTS: [TableColumn; 5] =
             [WORKBOOK_ID, VERSION_ID, integer("position"), text("name", false), text("table_name", false)];
-        const RESULTS: [TableColumn; 4] =
-            [WORKBOOK_ID, VERSION_ID, text("cache_key", false), text("table_name", false)];
+        const RESULTS: [TableColumn; 5] =
+            [WORKBOOK_ID, VERSION_ID, text("cache_key", false), text("table_name", false), text("script_name", true)];
         match self {
             Self::Versions => &VERSIONS,
             Self::Connections => &CONNECTIONS,
@@ -384,12 +384,15 @@ row!(
     table_name: String => string,
 });
 row!(
-    /// A cached query result of the workbook and the table of its data
+    /// The stored result of a script of the workbook and the table of its data
     ResultRow, WorkbookTableName::Results, {
     workbook_id: String => string,
     version_id: String => string,
+    /// The key in the name of the file of the result
     cache_key: String => string,
     table_name: String => string,
+    /// The file name of the script, null in the archives of earlier versions, which name only the key
+    script_name: Option<String> => text,
 });
 
 /// The Parquet file of an attachment or a result table
@@ -751,6 +754,7 @@ pub fn workbook_bundle_to_tables<B: Clone>(
             version_id: version_id.clone(),
             cache_key: result.key.clone(),
             table_name: table_name.clone(),
+            script_name: result.script.clone(),
         });
         tables.data.push((table_name, DataTableFile { bytes: result.bytes.clone(), crc32: result.crc32 }));
     }
@@ -894,6 +898,7 @@ pub fn workbook_tables_to_bundle<B: Clone>(
         .filter_map(|result| {
             data_file(&result.table_name).map(|file| WorkbookBundleResult {
                 key: result.cache_key.clone(),
+                script: result.script_name.clone(),
                 bytes: file.bytes.clone(),
                 crc32: file.crc32,
             })

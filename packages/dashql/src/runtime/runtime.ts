@@ -14,7 +14,7 @@ import { createRuntimeTables, isArrowTable, type PlatformTables } from './store/
 import type { UpdateScheduler } from './store/update_scheduler.js';
 import { QueryChannels } from './query/query_channels.js';
 import { createQueryProjection } from './query/query_projection.js';
-import type { QueryResultCache } from '../platform/query/query_result_cache.js';
+import type { WorkbookResultFiles } from '../platform/workbook/workbook_result_files.js';
 import { createProgressLayoutConfig } from '../platform/query/profile_layout_config.js';
 import type { CancelQuery, QueryExecutionArgs, QueryExecutor, WatchQueryProfile } from '../platform/connections/query_execution_args.js';
 import { createConnectionAction, type ConnectionState, type NewConnection } from '../platform/connections/connection_state.js';
@@ -61,11 +61,11 @@ export interface RuntimeOptions {
     oauthFlow?: OAuthFlow | null;
     /// Connects the channels of the setups besides Trino, e.g. the embedded Hyper
     channels?: ChannelConnector | null;
-    /// The database of the computations, the runs and the query result cache. The runtime asks for it when a task, a
-    /// run or the cache first needs it and waits until the platform set it up.
+    /// The database of the computations, the runs and the stored results. The runtime asks for it when a task, a run or
+    /// a stored result first needs it and waits until the platform set it up.
     computeDatabase?: ComputeDatabaseProvider | null;
-    /// The cache of query results, null without one
-    resultCache?: QueryResultCache | null;
+    /// The stored results of the scripts of the workbooks (docs/design/workbook_results.md), null without
+    results?: WorkbookResultFiles | null;
     /// The `.dashql` archives over the handle table of the runtime, e.g. `createRuntimeArchives` of
     /// `workbook_archives.ts`. Without, the runtime imports and exports no archives.
     archives?: RuntimeArchivesFactory | null;
@@ -162,11 +162,11 @@ function destroyedError(): Error {
 /// object, and the store that the app reads its views from. The one object that the app and the command line tool hold.
 ///
 /// The module holds the state and the services: the computations, the connections with the histories of their queries,
-/// the query executor with the description of its queries and the keys of the query result cache, the setups of the
+/// the query executor with the description of its queries and the stored results of the scripts, the setups of the
 /// connections, the catalog loader, the workbooks with their scripts, the runs of the workbooks, the storage writer,
 /// the restore, the imports and the exports. This class is the platform object of the
-/// module (the clock, the log, the handle table, the Arrow tables by handle, fetch, the channels of the host, the query
-/// result cache, the compute database, the OAuth flows, the specs of the extensions, the storage, the files of the
+/// module (the clock, the log, the handle table, the Arrow tables by handle, fetch, the channels of the host, the stored
+/// results, the compute database, the OAuth flows, the specs of the extensions, the storage, the files of the
 /// runs, the archives), the store, and typed commands where a caller needs more than the module returns: the flush of
 /// the store after a command, handles for the objects that cross. The app reads views through the store and calls the
 /// module directly (`module`) for everything else.
@@ -181,7 +181,7 @@ export class Runtime {
     readonly store: RuntimeStore;
     /// The commands of the storage writer of the runtime
     readonly storage: StorageCommands;
-    /// The compute database of the platform: the computations, the runs and the query result cache wait for it, the app
+    /// The compute database of the platform: the computations, the runs and the stored results wait for it, the app
     /// reads whether it is ready
     readonly computeDatabase: ComputeDatabase;
     /// What the platform passed to the runtime
@@ -194,7 +194,7 @@ export class Runtime {
     readonly module: core.Runtime;
     private readonly tables: PlatformTables;
     private readonly queries: QueryChannels;
-    /// The files of the query result cache that the runtime keeps
+    /// The files of the stored results that the runtime keeps
     private readonly pins = new CachePins();
     /// The mounts of the attachments of the workbooks of the runtime in the compute database, removed when the runtime
     /// is destroyed
@@ -223,7 +223,7 @@ export class Runtime {
         this.requests = new PlatformRequests(options);
         this.tables = createRuntimeTables(this.handles);
         const database = this.computeDatabase.available ? () => this.computeDatabase.get() : null;
-        this.queries = new QueryChannels({ logger: this.logger, handles: this.handles, tables: this.tables, computeDatabase: database, resultCache: options.resultCache ?? null, pins: this.pins });
+        this.queries = new QueryChannels({ logger: this.logger, handles: this.handles, tables: this.tables, computeDatabase: database, results: options.results ?? null, pins: this.pins });
         this.module = this.core.createRuntime(this.modulePlatform(database));
         // The progress shows the plan in short panels, it grows left-to-right
         this.module.setProgressLayout(createProgressLayoutConfig());
@@ -273,8 +273,8 @@ export class Runtime {
                 },
                 hyperLinkToken: connectionId => platform.channels?.hyperLinkToken?.(connectionId) ?? null,
             },
-            resultCache: this.queries.resultCache,
-            mounts: database == null ? null : createRunMounts(database, platform.resultCache ?? null, this.handles, this.pins, this.attachmentMounts),
+            results: this.queries.results,
+            mounts: database == null ? null : createRunMounts(database, this.handles, this.attachmentMounts),
             crypto: {
                 randomUuid: () => crypto.randomUUID(),
                 sha256: async bytes => new Uint8Array(await crypto.subtle.digest('SHA-256', bytes as Uint8Array<ArrayBuffer>)),
@@ -512,6 +512,12 @@ export class Runtime {
     }
 
     // The workbooks
+
+    /// Show a workbook: the first time it is shown, the runtime reads the stored results of its scripts that show no
+    /// result yet (docs/design/workbook_results.md)
+    showWorkbook(workbookId: string): void {
+        if (!this.stopping) this.module.showWorkbook(workbookId);
+    }
 
     /// Create a workbook without scripts on a connection and write it, returns its view. The ephemeral workbook of the
     /// greeter is promoted by its first script.

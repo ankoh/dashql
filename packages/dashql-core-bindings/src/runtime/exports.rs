@@ -1,8 +1,8 @@
 //! The exports of workbooks: a `.dashql` file, a link that carries the archive, the workbook tables of a cloud, and the
 //! link of a connection (docs/design/dashql_core.md, docs/design/workbook_tables.md).
 //!
-//! The runtime reads the workbook from the storage of the platform, the cached results of its scripts from the query
-//! result cache (retained while the export reads them) and the live params and names of its connections from its
+//! The runtime reads the workbook from the storage of the platform, the stored results of its scripts from the results
+//! of the workbook (retained while the export reads them) and the live params and names of its connections from its
 //! registry. The format of the crate sanitizes the bundle for sharing and turns it into the workbook tables. The
 //! platform writes the tables as Parquet and the archive as a ZIP (`archives`), the attachments and results go into it
 //! by handle.
@@ -27,7 +27,7 @@ use wasm_bindgen_futures::JsFuture;
 
 use super::archives::{bytes_value, list, object, table_rows, HostFile, HostFiles};
 use super::connections::Connections;
-use super::runs::Runs;
+use super::results;
 use super::workbooks::Workbooks;
 use crate::host::{host_error, JsPlatform};
 use crate::views::JsonValue;
@@ -39,7 +39,7 @@ pub enum ExportFormat {
     /// A `.dashql` archive, a Blob of the handle table
     #[default]
     Archive,
-    /// A link that carries the archive inline, without the cached results
+    /// A link that carries the archive inline, without the stored results
     Link,
     /// The workbook tables, e.g. for a cloud: the rows and the Parquet files of the attachments and results by handle
     Tables,
@@ -53,7 +53,7 @@ pub struct ExportOptions {
     #[serde(default)]
     #[tsify(optional)]
     pub format: ExportFormat,
-    /// Carry the cached query results of the scripts, a link never does
+    /// Carry the stored results of the scripts, a link never does
     #[serde(default)]
     #[tsify(optional)]
     pub results: Option<bool>,
@@ -87,15 +87,15 @@ pub struct ConnectionLinkOptions {
     pub link_base: String,
 }
 
-/// The cached results of the scripts of a workbook
+/// The stored results of the scripts of a workbook
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 pub struct ExportedResults {
-    /// The scripts with a cached result
+    /// The scripts with a stored result
     pub cached_scripts: u32,
     /// The scripts
     pub total_scripts: u32,
-    /// The files of the results, one per key
+    /// The files of the results, one per script
     pub files: u32,
     /// The bytes of the files. An archive stores them as they are, it grows by about as much.
     pub bytes: f64,
@@ -110,7 +110,7 @@ pub struct ExportOutcome {
     pub archive: Option<u32>,
     /// The link
     pub link: Option<String>,
-    /// The cached results that the export carries
+    /// The stored results that the export carries
     pub results: ExportedResults,
 }
 
@@ -120,20 +120,19 @@ pub(crate) struct Exports {
     pub platform: JsPlatform,
     pub connections: Rc<Connections>,
     pub workbooks: Rc<Workbooks>,
-    pub runs: Rc<Runs>,
 }
 
-/// A cached result that an export keeps until it ends
+/// The stored results that an export keeps until it ends
 struct RetainedResults {
     platform: JsPlatform,
     ids: Vec<u64>,
 }
 
 impl RetainedResults {
-    /// Let go of the files, the cache may evict them again
+    /// Let go of the files, a run may replace them again
     async fn release(self) {
         for id in self.ids {
-            self.platform.cache_release(id).await;
+            self.platform.results_release(id).await;
         }
     }
 }
@@ -171,70 +170,60 @@ impl Exports {
         (params, names)
     }
 
-    /// The reusable result keys of the scripts of a workbook
-    async fn result_keys(&self, workbook_id: &str) -> Result<Vec<Option<String>>, HostError> {
-        Ok(self.runs.result_keys(workbook_id, None).map_err(HostError::new)?.await)
+    /// The file names of the scripts of a workbook in feed order
+    fn script_files(&self, workbook_id: &str) -> Result<Vec<String>, HostError> {
+        let workbook = self
+            .workbooks
+            .get(workbook_id)
+            .ok_or_else(|| HostError::new(format!("no workbook registered with id {workbook_id}")))?;
+        let workbook = workbook.try_borrow().map_err(|_| HostError::new("the workbook is busy"))?;
+        Ok(workbook.scripts().iter().map(|script| script.file_name().to_string()).collect())
     }
 
-    /// Count the cached results of the scripts of a workbook without reading them
+    /// Count the stored results of the scripts of a workbook without reading them
     pub async fn result_counts(&self, workbook_id: &str) -> Result<ExportedResults, HostError> {
-        let keys = self.result_keys(workbook_id).await?;
-        let mut sizes: Vec<(String, Option<f64>)> = Vec::new();
-        let mut counts = ExportedResults { total_scripts: keys.len() as u32, ..ExportedResults::default() };
-        for key in keys.into_iter().flatten() {
-            let size = match sizes.iter().find(|(known, _)| *known == key) {
-                Some((_, size)) => *size,
-                None => {
-                    let entry = self.platform.cache_lookup(&key).await?;
-                    let size = crate::host::field(&entry, "size")
-                        .and_then(|size| size.as_f64())
-                        .or_else(|| entry.is_object().then_some(0.0));
-                    if let Some(size) = size {
-                        counts.files += 1;
-                        counts.bytes += size;
-                    }
-                    sizes.push((key, size));
-                    size
-                }
-            };
-            if size.is_some() {
+        let scripts = self.script_files(workbook_id)?;
+        let mut counts = ExportedResults { total_scripts: scripts.len() as u32, ..ExportedResults::default() };
+        if !self.platform.has_results() {
+            return Ok(counts);
+        }
+        let listing = results::listing(&self.platform, workbook_id, Some(&scripts)).await?;
+        for script in &scripts {
+            if let Some(result) = listing.result(script) {
                 counts.cached_scripts += 1;
+                counts.files += 1;
+                counts.bytes += result.size as f64;
             }
         }
         Ok(counts)
     }
 
-    /// Retain the cached results of the scripts of a workbook under the keys that a run of the workbook reads
+    /// Retain the stored results of the scripts of a workbook: the file of every script, also one whose key is
+    /// outdated, it is what the script shows
     async fn retain_results(
         &self,
         workbook_id: &str,
         files: &HostFiles,
         retained: &mut RetainedResults,
     ) -> Result<(Vec<WorkbookBundleResult<HostFile>>, ExportedResults), HostError> {
-        let keys = self.result_keys(workbook_id).await?;
-        let mut counts = ExportedResults { total_scripts: keys.len() as u32, ..ExportedResults::default() };
-        let mut results: Vec<WorkbookBundleResult<HostFile>> = Vec::new();
-        let mut missing: Vec<String> = Vec::new();
-        for key in keys.into_iter().flatten() {
-            if results.iter().any(|result| result.key == key) {
-                counts.cached_scripts += 1;
-                continue;
-            }
-            if missing.contains(&key) {
-                continue;
-            }
-            let Some((id, name)) = self.platform.cache_retain(&key).await? else {
-                missing.push(key);
+        let scripts = self.script_files(workbook_id)?;
+        let mut counts = ExportedResults { total_scripts: scripts.len() as u32, ..ExportedResults::default() };
+        let mut bundled: Vec<WorkbookBundleResult<HostFile>> = Vec::new();
+        if !self.platform.has_results() {
+            return Ok((bundled, counts));
+        }
+        for script in scripts {
+            let Some((id, result)) = results::retain(&self.platform, workbook_id, &script).await? else {
                 continue;
             };
             retained.ids.push(id);
-            let file = files.keep(&self.platform.cache_call("file", &[JsValue::from_str(&name)]).await?)?;
+            let file = files.keep(&self.platform.results_file(workbook_id, &result.name).await?)?;
             counts.files += 1;
             counts.bytes += file.size as f64;
             counts.cached_scripts += 1;
-            results.push(WorkbookBundleResult { key, bytes: file, crc32: None });
+            bundled.push(WorkbookBundleResult { key: result.key, script: Some(script), bytes: file, crc32: None });
         }
-        Ok((results, counts))
+        Ok((bundled, counts))
     }
 
     /// Export a workbook. A table export hands the tables to `consume` and resolves once it settled, the files of the

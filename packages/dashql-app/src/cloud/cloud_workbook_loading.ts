@@ -3,11 +3,11 @@ import * as React from 'react';
 import { IndicatorStatus } from '@akohn/dashql-react/components/status_indicator';
 
 // The steps of loading a version of a published workbook, shown by a card in place of the feed. The version is
-// downloaded, its connections resolved, its query results added to the cache, its scripts and attachments saved and the
-// workbook opened. A step without anything to do, e.g. a version without attachments, is skipped. See docs/design/cloud.md.
+// downloaded, its connections resolved, its scripts and attachments saved, its query results added to the workbook and
+// the workbook opened. A step without anything to do, e.g. a version without attachments, is skipped. See docs/design/cloud.md.
 
 /// The steps in order
-export const CLOUD_LOADING_STEPS = ['download', 'connections', 'results', 'scripts', 'attachments', 'open'] as const;
+export const CLOUD_LOADING_STEPS = ['download', 'connections', 'scripts', 'attachments', 'results', 'open'] as const;
 export type CloudLoadingStepId = typeof CLOUD_LOADING_STEPS[number];
 
 export interface CloudLoadingStep {

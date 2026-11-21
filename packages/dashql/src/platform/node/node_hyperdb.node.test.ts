@@ -18,35 +18,32 @@ function tempRoot(): string {
 describe('the embedded Hyper of Node', { timeout: 30_000 }, () => {
     afterEach(() => setOPFSRootProvider(null));
 
-    it('writes and reads the query result cache in the folder of the root', async () => {
+    it('writes and reads the results of a workbook in the folder of the root', async () => {
         const root = tempRoot();
         const hyper = await openNodeComputeDatabase(root);
+        const workbookId = '00000000-0000-4000-8000-000000000001';
+        const folder = path.join(root, 'workbooks', workbookId, 'results');
         try {
             // The instance has a folder of its own, like a window of the app
             expect(instanceFolders(root)).toHaveLength(1);
 
             const table = arrow.tableFromArrays({ id: Int32Array.from([1, 2, 3]), name: ['a', 'b', 'c'] });
-            const key = 'a'.repeat(64);
-            const name = hyper.resultCache.newFileName(key);
-            await hyper.resultCache.writeTable(hyper.database, table, name);
-            expect(readdirSync(path.join(root, 'cache')).filter(file => file.endsWith('.parquet'))).toEqual([name]);
-
-            const entry = await hyper.resultCache.lookup(key);
-            expect(entry?.name).toBe(name);
-            const read = await hyper.resultCache.readTable(hyper.database, name);
-            expect(read.numRows).toBe(3);
-            expect(read.getChild('name')?.toArray()).toEqual(['a', 'b', 'c']);
-
-            // A newer file of the key replaces the older one
-            const newer = hyper.resultCache.newFileName(key);
-            await hyper.resultCache.writeTable(hyper.database, table, newer);
-            expect(readdirSync(path.join(root, 'cache')).filter(file => file.endsWith('.parquet'))).toEqual([newer]);
+            const name = `a.sql.${'a'.repeat(64)}.00000001.parquet`;
+            expect(await hyper.results.writeTable(hyper.database, workbookId, table, name)).toBe(3);
+            expect(readdirSync(folder)).toEqual([name]);
+            expect((await hyper.results.files(workbookId)).map(file => file.name)).toEqual([name]);
+            const read = await hyper.results.readTable(hyper.database, workbookId, name);
+            expect(read?.numRows).toBe(3);
+            expect(read?.getChild('name')?.toArray()).toEqual(['a', 'b', 'c']);
+            // A file that is gone reads as none
+            expect(await hyper.results.remove(workbookId, name)).toBe(true);
+            expect(await hyper.results.readTable(hyper.database, workbookId, name)).toBeNull();
         } finally {
             await hyper.close();
         }
-        // The cache stays, the instance goes
+        // The results stay with the workbook, the instance goes
         expect(readdirSync(path.join(root, 'instances'))).toEqual([]);
-        expect(existsSync(path.join(root, 'cache'))).toBe(true);
+        expect(existsSync(folder)).toBe(true);
     });
 
     it('removes the instance folders of processes that are gone and keeps those of living ones', async () => {

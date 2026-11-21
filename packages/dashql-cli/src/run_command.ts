@@ -15,8 +15,8 @@ import { LoggableException, Logger } from '@akohn/dashql/platform/logger/logger'
 import { createRuntime, type Runtime } from '@akohn/dashql/runtime/runtime';
 import { describeRunError, runScriptsOf, runWorkbookReported, type ReportedRunEnd } from '@akohn/dashql/runtime/workbook_run_report';
 import { NativeStorageBackend } from '@akohn/dashql/platform/storage/native_storage_backend';
-import { QUERY_RESULT_CACHE_DIRECTORY } from '@akohn/dashql/platform/storage/opfs_query_result_cache';
-import { STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE } from '@akohn/dashql/platform/storage/storage_backend';
+import { STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE, STORAGE_WORKBOOKS_FOLDER } from '@akohn/dashql/platform/storage/storage_backend';
+import { RESULTS_FOLDER } from '@akohn/dashql/platform/workbook/workbook_result_files';
 import { SqlLinter } from './sql_lint.js';
 import { formatReportFile } from './sql_report.js';
 import { mirrorWorkbookAttachments } from './attachment_mirror.js';
@@ -35,7 +35,7 @@ Runs the scripts of a workbook folder on their connections like the Run of the w
 default, the named ones with the scripts they reference otherwise. Scripts of different connections run at the same
 time, a script runs once the scripts it references are done. The run stops at the first statement that fails. Prints
 the schema, the row count and the first rows of every result (--rows, 10 by default), and the Parquet file of the
-result in the query result cache.
+stored result of the script.
 
 Scripts with syntax errors are printed with their errors before the run, as dashql lint prints them; the run fails
 at their first statement that fails.
@@ -43,12 +43,12 @@ at their first statement that fails.
 On a terminal the run shows what runs and what waits while it runs, otherwise and with --plain it prints a few lines
 per script once it settled and a summary at the end.
 
-A script whose result is cached is not run again unless a script it follows runs, --refresh runs every script. The
-connections that statements run on are set up first, a result that the cache serves needs none. The scripts of a
+A script whose stored result fits its text and connection is not run again unless a script it follows runs, --refresh
+runs every script. The connections that statements run on are set up first, a stored result that is read needs none. The scripts of a
 connection that can't be set up are not run.
 
-The files of DashQL are in the workspace, with the layout of the storage of the app: the query result cache in
-cache/, the attachments of the workbooks in workbooks/<id>/attachments.
+The files of DashQL are in the workspace, with the layout of the storage of the app: the stored results of the
+scripts in workbooks/<id>/results, the attachments of the workbooks in workbooks/<id>/attachments.
 
 Connections: Trino with basic auth and the embedded Hyper. DASHQL_TRINO_USER and DASHQL_TRINO_PASSWORD override the
 user and the password of the workbook.
@@ -336,8 +336,8 @@ async function runHere(
 ): Promise<number> {
     const logger = new RunLogger(parsed.verbose ? record => { if (record.level >= LogLevel.Info) cli.stderr(logLine(record)); } : null);
     const storage = new NativeStorageBackend(dir, NODE_FILE_SYSTEM);
-    // The embedded Hyper writes the results into the query result cache of the root and reads the results of other
-    // connections and the attachments. Without it the scripts on Trino still run, nothing is written.
+    // The embedded Hyper writes the results of the scripts into the results of the workbook in the root and reads the
+    // results of other connections and the attachments. Without it the scripts on Trino still run, nothing is written.
     let hyper: NodeComputeDatabase | null = null;
     try {
         hyper = await openNodeComputeDatabase(parsed.workspace);
@@ -349,7 +349,7 @@ async function runHere(
     const runtime = createRuntime({
         ...platform,
         computeDatabase: embedded == null ? null : async () => embedded,
-        resultCache: hyper?.resultCache ?? null,
+        results: hyper?.results ?? null,
         // A run doesn't describe the connections, it only runs the scripts
         catalogLoader: false,
         // The embedded Hyper of the run is the channel of its connections to the embedded Hyper
@@ -386,9 +386,13 @@ async function runHere(
             // The results are printed, nothing shows their analysis
             analyze: false,
             prepareConnection: conn => setupConnection(runtime, conn, env, hyper, signal),
-            resultFile: async key => {
-                const entry = hyper == null ? null : await hyper.resultCache.lookup(key);
-                return entry == null ? null : path.join(hyper!.root, QUERY_RESULT_CACHE_DIRECTORY, entry.name);
+            resultFile: async script => {
+                if (hyper == null) return null;
+                const retained = await runtime.module.retainStoredResult(workbook.workbookId, script);
+                if (retained == null) return null;
+                // The pins of the process are its own, the file stays until a run of the script replaces it
+                await runtime.module.releaseStoredResult(retained.id);
+                return path.join(hyper.root, STORAGE_WORKBOOKS_FOLDER, workbook.workbookId, RESULTS_FOLDER, retained.name);
             },
             onReportError: error => logger.warn('Reporting a script failed', { error: describeRunError(error) }),
         }, emit);

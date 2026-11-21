@@ -79,7 +79,7 @@ describe('deriveEntryStatus', () => {
             kind: EntryStatusKind.Query, indicator: IndicatorStatus.Running, message: 'Executing query', traceId: 5, errorDetail: null,
         });
         expect(deriveEntryStatus(query({ status: QueryExecutionStatus.SUCCEEDED }))).toMatchObject({ indicator: IndicatorStatus.Succeeded, message: 'Statement executed successfully' });
-        expect(deriveEntryStatus(query({ status: QueryExecutionStatus.SUCCEEDED, servedFromCache: true }))).toMatchObject({ message: 'Result loaded from cache' });
+        expect(deriveEntryStatus(query({ status: QueryExecutionStatus.SUCCEEDED, servedFromCache: true }))).toMatchObject({ message: 'Result read from its stored file' });
         expect(deriveEntryStatus(null)).toEqual({ kind: EntryStatusKind.Idle, indicator: IndicatorStatus.None, message: 'Not run yet', traceId: null, errorDetail: null });
     });
 

@@ -116,14 +116,15 @@ export const ConnectionSettingsOverlay: React.FC<Props> = (props: Props) => {
     );
 };
 
-/// Does the connection cache query results? The choice applies right away, it is no connection parameter.
+/// Does the connection reuse the stored results of its scripts? The choice applies right away, it is no connection
+/// parameter. Every script stores its result whatever the choice (docs/design/workbook_results.md).
 function QueryResultCachingRow(props: { caching: boolean; disabled: boolean; toggle: () => void }) {
     const labelId = React.useId();
     return (
         <div className={styles.caching}>
             <div className={styles.caching_text}>
-                <div id={labelId} className={styles.caching_label}>Cache query results</div>
-                <div className={styles.caching_caption}>Reuse the results of unchanged scripts instead of querying the connection again</div>
+                <div id={labelId} className={styles.caching_label}>Reuse query results</div>
+                <div className={styles.caching_caption}>Reuse the stored results of unchanged scripts instead of querying the connection again</div>
             </div>
             <ToggleSwitch size="small" checked={props.caching} disabled={props.disabled} onClick={props.toggle} aria-labelledby={labelId} />
         </div>

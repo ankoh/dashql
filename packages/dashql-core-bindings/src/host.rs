@@ -2,8 +2,8 @@
 //! (docs/design/dashql_runtime.md), and `JsPlatform`, the host of the services of the crate over it.
 //!
 //! The platform holds the handle table, the Arrow tables by handle, the compute database, the clock, the log, fetch,
-//! the channels of the host, the descriptions of the queries that the runtime runs itself, the query result cache, the
-//! files of the runs of workbooks, the OAuth flows and the specs of the extensions. The runtime
+//! the channels of the host, the descriptions of the queries that the runtime runs itself, the stored results of the
+//! scripts, the attachments of the workbooks, the OAuth flows and the specs of the extensions. The runtime
 //! tells it that its state changed (`changed`), the store of the app then takes the changes and reads the views. Every
 //! call into the platform catches: a member that throws or is missing fails the call of the service with a `HostError`
 //! and never unwinds through the module. No borrow of the platform is held while it calls JavaScript, so the platform
@@ -26,10 +26,7 @@ use dashql_core_runtime::handles::Handle;
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
 use dashql_core_runtime::http::{CancellationToken, Headers, HostBytes, HttpHost, HttpRequest, HttpResponse};
 use dashql_core_runtime::settings::RuntimeSettings;
-use dashql_core_storage::workbook_format::eviction::{
-    evict_to_fit, CacheFileStat, CacheHost, DEFAULT_CACHE_MAX_BYTES, DEFAULT_CACHE_MAX_FILES,
-};
-use dashql_core_storage::workbook_format::query_results::CacheCapacity;
+use dashql_core_storage::workbook_format::results::ResultFileStat;
 use js_sys::{Array, Function, Object, Promise, Reflect, Uint8Array};
 use serde::{Deserialize, Serialize};
 use tsify::{Ts, Tsify};
@@ -58,11 +55,11 @@ export interface RuntimePlatform {
     http: RuntimeHttp;
     /** The channels of the host: the ones that the setups connect, and the ones that run queries themselves (the embedded Hyper, gRPC through the native proxy, the channels of tests) */
     channels: RuntimeChannels;
-    /** The query result cache, null without one */
-    readonly resultCache: RuntimeResultCache | null;
-    /** The files of the runs of workbooks in the compute database: the materialized results, the cached results that they scan and the attachments. Null without a compute database that reads Parquet files. */
+    /** The stored results of the scripts of the workbooks, Parquet files that the compute database reads and writes; null without */
+    readonly results: RuntimeResults | null;
+    /** The attachments of the workbooks in the compute database. Null without a compute database that reads Parquet files. */
     readonly mounts: RuntimeMounts | null;
-    /** Random ids and the SHA-256 digests of the keys of the query result cache */
+    /** Random ids and the SHA-256 digests of the result keys */
     crypto: { randomUuid(): string; sha256(bytes: Uint8Array): Promise<Uint8Array> };
     /** The OAuth flows of the setups */
     oauth: RuntimeOAuth;
@@ -370,30 +367,32 @@ export interface RuntimeChannels {
     cancel(queryId: number): Promise<void>;
 }
 
-/** The query result cache of the platform, Parquet files that the compute database reads and writes */
-export interface RuntimeResultCache {
-    /** The newest file of a key, null on a miss */
-    lookup(key: string): Promise<{ name: string; cachedAt: number; size: number } | null>;
-    /** Read a file into a table of the handle table */
-    read(name: string): Promise<RuntimeCachedTable>;
-    /** Record a read of a file */
-    touch(name: string): Promise<void>;
-    /** Write a table of the handle table as the newest file of a key, resolves with the name of the file */
-    write(key: string, table: number): Promise<string>;
-    /** Keep the newest file of a key until `release`, null on a miss */
-    retain(key: string): Promise<{ id: number; name: string } | null>;
-    /** Release a file that `retain` or `pin` of the mounts kept */
+/** The stored results of the scripts of the workbooks: the Parquet files of `workbooks/<id>/results/`, mounted in the compute database (docs/design/workbook_results.md). The platform lists, reads, writes, moves and removes the files; the runtime names them and decides which file is the result of a script. A pin is a shared lock of a file across the windows of the app, a move or removal leaves a pinned file alone. */
+export interface RuntimeResults {
+    /** The mount path of the results of a workbook in the compute database */
+    mountPath(workbookId: string): string;
+    /** Mount the results of a workbook in the compute database, refresh the mount after files were moved or removed */
+    mount(workbookId: string): Promise<void>;
+    /** Unmount the results of a workbook that was deleted or replaced */
+    unmount(workbookId: string): Promise<void>;
+    /** The Parquet files of the results of a workbook with their sizes and the times they were written, empty without a folder */
+    files(workbookId: string): Promise<{ name: string; size: number; mtimeMs: number }[]>;
+    /** Pin a file, also one that is about to be written, resolves with the id that `release` releases it with */
+    pin(workbookId: string, name: string): Promise<number>;
+    /** Release a pin, resolves once the file can be moved or removed */
     release(id: number): Promise<void>;
-    /** The Blob of a file, e.g. one that `retain` kept for an export */
-    file(name: string): Promise<Blob>;
-    /** Add a result of a key from a file of the handle table, checked against the CRC-32. Resolves false if the key was cached already, the files of the app win. */
-    import(key: string, file: number, crc32: number | null): Promise<boolean>;
-    /** The limits of the files, the runtime evicts the least recently read files beyond them after every write of a file of a key. A limit that is null is the default of the runtime. */
-    capacity(): { maxBytes: number | null; maxFiles: number | null };
-    /** The Parquet files with their sizes, their write times and the times they were read last (the write time if never), for the eviction */
-    files(): Promise<{ name: string; size: number; mtimeMs: number; lastAccessMs: number }[]>;
-    /** Remove a file and its marker if nobody reads it, resolves false if the file is read and stays */
-    remove(name: string): Promise<boolean>;
+    /** Read a file into a table of the handle table while it is pinned, null if the file is gone */
+    read(workbookId: string, name: string): Promise<RuntimeCachedTable | null>;
+    /** Write a table of the handle table as a file that is pinned, moved in place once it is complete. Resolves with its rows. */
+    write(workbookId: string, name: string, table: number): Promise<number>;
+    /** The Blob of a file that is pinned, e.g. for an export */
+    file(workbookId: string, name: string): Promise<Blob>;
+    /** Stream a file of the handle table into a new file, checked against the CRC-32; a file that differs leaves nothing */
+    import(workbookId: string, name: string, file: number, crc32: number | null): Promise<void>;
+    /** Rename a file that nobody reads, resolves false if it is read and stays */
+    move(workbookId: string, from: string, to: string): Promise<boolean>;
+    /** Remove a file that nobody reads, resolves false if it is read and stays. A file that is gone is removed. */
+    remove(workbookId: string, name: string): Promise<boolean>;
 }
 
 /** A file of an attachment of a workbook in memory: its file name and the handle of its Blob or bytes */
@@ -402,16 +401,8 @@ export interface RuntimeMemoryFile {
     file: number;
 }
 
-/** The files of the runs of workbooks in the compute database, the files of the query result cache. The runtime keeps the pins of a run, releases them with `release` of the cache once the run settled and then removes its transient files with `remove`. */
+/** The attachments of the workbooks in the compute database */
 export interface RuntimeMounts {
-    /** The directory of the files of the runs, the files of the query result cache; null without the cache */
-    prefix(): string | null;
-    /** The name of a new file of the result of a script: a file of its key if the key is reusable, a transient file otherwise */
-    fileName(key: string | null): string;
-    /** Mount the files in the compute database and pin a file at a path below the prefix, also one that is about to be written. Resolves with the id that `release` of the cache releases it with. */
-    pin(path: string): Promise<number>;
-    /** Write a table of the handle table as Parquet file at a path below the prefix that is pinned, resolves with its rows */
-    write(path: string, table: number): Promise<number>;
     /** Mount the attachments of a workbook: from the folder of the workbook in the storage (`files` null), or the files of a workbook in memory, mounted at the same paths */
     attachments(workbookId: string, files: RuntimeMemoryFile[] | null): Promise<void>;
     /** The columns of a Parquet attachment of a workbook, its attachments where `attachments` mounts them from */
@@ -454,7 +445,7 @@ pub enum RuntimeChannelTarget {
     Host,
 }
 
-/// A cached result that the query result cache read into a table of the handle table
+/// A stored result that the platform read into a table of the handle table
 #[derive(Deserialize, Tsify)]
 #[serde(rename_all = "camelCase")]
 pub struct RuntimeCachedTable {
@@ -503,8 +494,6 @@ struct Inner {
     pending: RefCell<Pending>,
     /// The id of the last request
     last_request: Cell<f64>,
-    /// Hears that the query result cache evicted files
-    cache_evicted: RefCell<Option<Rc<dyn Fn()>>>,
     /// Did the runtime shut down? The platform is called no more then.
     fenced: Cell<bool>,
     /// The settings of the platform object, read once
@@ -675,17 +664,6 @@ pub(crate) fn details_value(details: &[(&str, &str)]) -> Array {
     details.iter().map(|(key, value)| Array::of2(&JsValue::from_str(key), &JsValue::from_str(value))).collect()
 }
 
-/// The limits of the query result cache of the platform, a limit that it leaves out is the default of the runtime
-pub(crate) fn cache_capacity(capacity: &JsValue) -> CacheCapacity {
-    let limit = |name: &str| {
-        field(capacity, name).and_then(|n| n.as_f64()).filter(|n| n.is_finite()).map(|n| n.max(0.0) as u64)
-    };
-    CacheCapacity {
-        max_bytes: limit("maxBytes").unwrap_or(DEFAULT_CACHE_MAX_BYTES),
-        max_files: limit("maxFiles").unwrap_or(DEFAULT_CACHE_MAX_FILES),
-    }
-}
-
 impl JsPlatform {
     pub fn new(object: JsRuntimePlatform) -> Self {
         let settings = settings_of(&object);
@@ -695,7 +673,6 @@ impl JsPlatform {
                 object,
                 pending: RefCell::new(Pending::default()),
                 last_request: Cell::new(0.0),
-                cache_evicted: RefCell::new(None),
                 fenced: Cell::new(false),
             }),
         }
@@ -1145,13 +1122,9 @@ impl JsPlatform {
         settled(archives.and_then(|archives| call(&archives, name, args)))
     }
 
-    /// Call a member of the query result cache and await it
-    pub fn cache_call(
-        &self,
-        name: &str,
-        args: &[JsValue],
-    ) -> impl Future<Output = Result<JsValue, HostError>> + 'static {
-        settled(self.result_cache().and_then(|cache| call(&cache, name, args)))
+    /// Call a member of the stored results and await it
+    fn results_call(&self, name: &str, args: &[JsValue]) -> impl Future<Output = Result<JsValue, HostError>> + 'static {
+        settled(self.results().and_then(|results| call(&results, name, args)))
     }
 
     /// Forget the object of a handle
@@ -1177,9 +1150,9 @@ impl JsPlatform {
         self.compute().is_ok()
     }
 
-    /// The query result cache, an error without one
-    fn result_cache(&self) -> Result<JsValue, HostError> {
-        self.member("resultCache").map_err(|_| HostError::new("the platform has no query result cache"))
+    /// The stored results, an error without
+    fn results(&self) -> Result<JsValue, HostError> {
+        self.member("results").map_err(|_| HostError::new("the platform stores no results"))
     }
 
     /// Call a member of the channels of the host
@@ -1209,110 +1182,152 @@ impl JsPlatform {
         async move { settled(call).await.map(|_| ()) }
     }
 
-    /// Look up a key in the query result cache
-    pub fn cache_lookup(&self, key: &str) -> impl Future<Output = Result<JsValue, HostError>> + 'static {
-        let call = self.result_cache().and_then(|cache| call(&cache, "lookup", &[JsValue::from_str(key)]));
-        settled(call)
+    /// Does the platform store the results of the scripts?
+    pub fn has_results(&self) -> bool {
+        self.results().is_ok()
     }
 
-    /// Read a cached file into a table of the handle table
-    pub fn cache_read(&self, name: &str) -> impl Future<Output = Result<RuntimeCachedTable, HostError>> + 'static {
-        let call = self.result_cache().and_then(|cache| call(&cache, "read", &[JsValue::from_str(name)]));
+    /// The mount path of the results of a workbook in the compute database
+    pub fn results_mount_path(&self, workbook_id: &str) -> Option<String> {
+        let results = self.results().ok()?;
+        call(&results, "mountPath", &[JsValue::from_str(workbook_id)]).ok()?.as_string()
+    }
+
+    /// Mount the results of a workbook in the compute database
+    pub fn results_mount(&self, workbook_id: &str) -> impl Future<Output = Result<(), HostError>> + 'static {
+        let call = self.results_call("mount", &[JsValue::from_str(workbook_id)]);
+        async move { call.await.map(|_| ()) }
+    }
+
+    /// Unmount the results of a workbook that was deleted or replaced
+    pub fn results_unmount(&self, workbook_id: &str) -> impl Future<Output = Result<(), HostError>> + 'static {
+        let call = self.results_call("unmount", &[JsValue::from_str(workbook_id)]);
+        async move { call.await.map(|_| ()) }
+    }
+
+    /// The files of the results of a workbook
+    pub fn results_files(
+        &self,
+        workbook_id: &str,
+    ) -> impl Future<Output = Result<Vec<ResultFileStat>, HostError>> + 'static {
+        let call = self.results_call("files", &[JsValue::from_str(workbook_id)]);
         async move {
-            let read = settled(call).await?;
-            serde_wasm_bindgen::from_value(read)
-                .map_err(|error| HostError::new(format!("the cache returned no table: {error}")))
-        }
-    }
-
-    /// Record a read of a cached file
-    pub fn cache_touch(&self, name: &str) -> impl Future<Output = Result<(), HostError>> + 'static {
-        let call = self.result_cache().and_then(|cache| call(&cache, "touch", &[JsValue::from_str(name)]));
-        async move { settled(call).await.map(|_| ()) }
-    }
-
-    /// Write a table as the newest file of a key, the name of the file. The host takes the table when it is called.
-    pub fn cache_write(&self, key: &str, table: Handle) -> impl Future<Output = Result<String, HostError>> + 'static {
-        let call = self
-            .result_cache()
-            .and_then(|cache| call(&cache, "write", &[JsValue::from_str(key), JsValue::from_f64(table as f64)]));
-        async move { settled(call).await?.as_string().ok_or_else(|| HostError::new("the cache named no file")) }
-    }
-
-    /// Keep the newest file of a key until it is released: its id and its name, none on a miss
-    pub fn cache_retain(&self, key: &str) -> impl Future<Output = Result<Option<(u64, String)>, HostError>> + 'static {
-        let call = self.result_cache().and_then(|cache| call(&cache, "retain", &[JsValue::from_str(key)]));
-        async move {
-            let value = settled(call).await?;
-            let id = field(&value, "id").and_then(|id| id.as_f64());
-            let name = field(&value, "name").and_then(|name| name.as_string());
-            Ok(id.zip(name).map(|(id, name)| (id.max(0.0) as u64, name)))
-        }
-    }
-
-    /// Release a file that the cache kept
-    pub fn cache_release(&self, id: u64) -> impl Future<Output = ()> + 'static {
-        let call = self.result_cache().and_then(|cache| call(&cache, "release", &[JsValue::from_f64(id as f64)]));
-        async move {
-            let _ = settled(call).await;
-        }
-    }
-
-    /// Is there a query result cache?
-    pub fn has_cache(&self) -> bool {
-        self.result_cache().is_ok()
-    }
-
-    /// Hear that the query result cache evicted files, e.g. to look up the cached results of the scripts again
-    pub fn on_cache_evicted(&self, listener: Rc<dyn Fn()>) {
-        *self.inner.cache_evicted.borrow_mut() = Some(listener);
-    }
-
-    /// Keep the query result cache within its limits after a file of a key was written: the least recently read files
-    /// go first, the files that are read stay. Resolves with the names of the removed files, the listener of
-    /// `on_cache_evicted` hears of them first. A failed eviction is logged and removed nothing, the write stands.
-    pub fn evict_cache(&self) -> impl Future<Output = Vec<String>> + 'static {
-        let platform = self.clone();
-        async move {
-            let evicted = async {
-                let capacity = settled(platform.result_cache().and_then(|cache| call(&cache, "capacity", &[]))).await?;
-                let limits = cache_capacity(&capacity);
-                evict_to_fit(&JsCache(platform.clone()), limits.max_bytes, limits.max_files).await
-            };
-            match evicted.await {
-                Ok(removed) if !removed.is_empty() => {
-                    let count = removed.len().to_string();
-                    platform.log_on(
-                        LogLevel::Info,
-                        "Evicted query results",
-                        &[("files", count.as_str())],
-                        "query_result_cache",
-                    );
-                    let listener = platform.inner.cache_evicted.borrow().clone();
-                    if let Some(listener) = listener {
-                        listener();
-                    }
-                    removed
-                }
-                Ok(removed) => removed,
-                Err(error) => {
-                    platform.log_on(
-                        LogLevel::Warn,
-                        "Evicting query results failed",
-                        &[("error", error.message())],
-                        "query_result_cache",
-                    );
-                    Vec::new()
-                }
+            let files = call.await?;
+            if !Array::is_array(&files) {
+                return Err(HostError::new("the files of the results are not a list"));
             }
+            let number = |file: &JsValue, name: &str| {
+                field(file, name).and_then(|n| n.as_f64()).filter(|n| n.is_finite() && *n >= 0.0).unwrap_or(0.0)
+            };
+            Ok(Array::from(&files)
+                .iter()
+                .filter_map(|file| {
+                    let name = field(&file, "name")?.as_string()?;
+                    Some(ResultFileStat {
+                        name,
+                        size: number(&file, "size") as u64,
+                        mtime_ms: number(&file, "mtimeMs"),
+                    })
+                })
+                .collect())
         }
     }
 
-    /// The files of the runs, an error without a compute database that reads Parquet files
+    /// Pin a file of the results of a workbook, the id of the pin
+    pub fn results_pin(&self, workbook_id: &str, name: &str) -> impl Future<Output = Result<u64, HostError>> + 'static {
+        let call = self.results_call("pin", &[JsValue::from_str(workbook_id), JsValue::from_str(name)]);
+        async move {
+            let id = call.await?.as_f64().ok_or_else(|| HostError::new("the platform returned no pin"))?;
+            Ok(id.max(0.0) as u64)
+        }
+    }
+
+    /// Release a pin of a file of the results
+    pub fn results_release(&self, id: u64) -> impl Future<Output = ()> + 'static {
+        let call = self.results_call("release", &[JsValue::from_f64(id as f64)]);
+        async move {
+            let _ = call.await;
+        }
+    }
+
+    /// Read a file of the results of a workbook into a table of the handle table, none if the file is gone
+    pub fn results_read(
+        &self,
+        workbook_id: &str,
+        name: &str,
+    ) -> impl Future<Output = Result<Option<RuntimeCachedTable>, HostError>> + 'static {
+        let call = self.results_call("read", &[JsValue::from_str(workbook_id), JsValue::from_str(name)]);
+        async move {
+            let read = call.await?;
+            if read.is_null() || read.is_undefined() {
+                return Ok(None);
+            }
+            serde_wasm_bindgen::from_value(read)
+                .map(Some)
+                .map_err(|error| HostError::new(format!("the platform returned no table: {error}")))
+        }
+    }
+
+    /// Write a table as a file of the results of a workbook, the rows. The host takes the table when it is called.
+    pub fn results_write(
+        &self,
+        workbook_id: &str,
+        name: &str,
+        table: Handle,
+    ) -> impl Future<Output = Result<u64, HostError>> + 'static {
+        let args = [JsValue::from_str(workbook_id), JsValue::from_str(name), JsValue::from_f64(table as f64)];
+        let call = self.results_call("write", &args);
+        async move { Ok(call.await?.as_f64().unwrap_or(0.0).max(0.0) as u64) }
+    }
+
+    /// The Blob of a file of the results of a workbook
+    pub fn results_file(
+        &self,
+        workbook_id: &str,
+        name: &str,
+    ) -> impl Future<Output = Result<JsValue, HostError>> + 'static {
+        self.results_call("file", &[JsValue::from_str(workbook_id), JsValue::from_str(name)])
+    }
+
+    /// Stream a file of the handle table into a new file of the results of a workbook, checked against the CRC-32
+    pub fn results_import(
+        &self,
+        workbook_id: &str,
+        name: &str,
+        file: Handle,
+        crc32: Option<u32>,
+    ) -> impl Future<Output = Result<(), HostError>> + 'static {
+        let crc32 = crc32.map(|crc| JsValue::from_f64(crc as f64)).unwrap_or(JsValue::NULL);
+        let args = [JsValue::from_str(workbook_id), JsValue::from_str(name), JsValue::from_f64(file as f64), crc32];
+        let call = self.results_call("import", &args);
+        async move { call.await.map(|_| ()) }
+    }
+
+    /// Rename a file of the results of a workbook that nobody reads, false if it is read and stays
+    pub fn results_move(
+        &self,
+        workbook_id: &str,
+        from: &str,
+        to: &str,
+    ) -> impl Future<Output = Result<bool, HostError>> + 'static {
+        let args = [JsValue::from_str(workbook_id), JsValue::from_str(from), JsValue::from_str(to)];
+        let call = self.results_call("move", &args);
+        async move { Ok(call.await?.as_bool() != Some(false)) }
+    }
+
+    /// Remove a file of the results of a workbook that nobody reads, false if it is read and stays
+    pub fn results_remove(
+        &self,
+        workbook_id: &str,
+        name: &str,
+    ) -> impl Future<Output = Result<bool, HostError>> + 'static {
+        let call = self.results_call("remove", &[JsValue::from_str(workbook_id), JsValue::from_str(name)]);
+        async move { Ok(call.await?.as_bool() != Some(false)) }
+    }
+
+    /// The attachments of the runs, an error without a compute database that reads Parquet files
     fn mounts(&self) -> Result<JsValue, HostError> {
-        self.member("mounts").map_err(|_| {
-            HostError::new("Scripts that read the results of other scripts or attachments need the compute database")
-        })
+        self.member("mounts").map_err(|_| HostError::new("Scripts that read attachments need the compute database"))
     }
 
     /// Can the platform mount files of runs?
@@ -1320,18 +1335,13 @@ impl JsPlatform {
         self.mounts().is_ok()
     }
 
-    /// Call a member of the files of the runs and await it
+    /// Call a member of the attachments of the runs and await it
     pub fn mounts_call(
         &self,
         name: &str,
         args: &[JsValue],
     ) -> impl Future<Output = Result<JsValue, HostError>> + 'static {
         settled(self.mounts().and_then(|mounts| call(&mounts, name, args)))
-    }
-
-    /// Call a member of the files of the runs that returns right away
-    pub fn mounts_call_now(&self, name: &str, args: &[JsValue]) -> Result<JsValue, HostError> {
-        self.mounts().and_then(|mounts| call(&mounts, name, args))
     }
 
     /// Send a request with the fetch of the platform, a successful response may keep its body with the host. The fetch
@@ -1423,40 +1433,6 @@ impl Drop for CloseOnDrop {
         let _ = promise.then(&close).catch(&ignore);
         close.forget();
         ignore.forget();
-    }
-}
-
-/// The files of the query result cache of the platform as the eviction sees them
-struct JsCache(JsPlatform);
-
-impl CacheHost for JsCache {
-    async fn list_files(&self) -> Result<Vec<CacheFileStat>, HostError> {
-        let files = settled(self.0.result_cache().and_then(|cache| call(&cache, "files", &[]))).await?;
-        if !Array::is_array(&files) {
-            return Err(HostError::new("the files of the query result cache are not a list"));
-        }
-        let number = |file: &JsValue, name: &str| {
-            field(file, name).and_then(|n| n.as_f64()).filter(|n| n.is_finite() && *n >= 0.0).unwrap_or(0.0) as u64
-        };
-        Ok(Array::from(&files)
-            .iter()
-            .filter_map(|file| {
-                let name = field(&file, "name")?.as_string()?;
-                Some(CacheFileStat {
-                    name,
-                    size: number(&file, "size"),
-                    mtime_ms: number(&file, "mtimeMs"),
-                    last_access_ms: number(&file, "lastAccessMs"),
-                })
-            })
-            .collect())
-    }
-
-    async fn remove_file(&self, name: &str) -> Result<bool, HostError> {
-        let removed =
-            settled(self.0.result_cache().and_then(|cache| call(&cache, "remove", &[JsValue::from_str(name)]))).await?;
-        // A file that is read stays
-        Ok(removed.as_bool() != Some(false))
     }
 }
 

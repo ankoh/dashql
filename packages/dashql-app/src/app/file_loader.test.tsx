@@ -251,28 +251,30 @@ describe('FileLoader', () => {
         });
         await act(async () => root.render(<FileLoader file={file()} onDone={() => {}} dependencies={dependencies} />));
         await vi.waitFor(() => expect(button(container, 'workbook-import-confirm')).not.toBeNull());
-        expect(steps(container)).toEqual({ read: 'Succeeded', check: 'Succeeded', connections: 'Succeeded', results: 'None', workbook: 'None' });
+        expect(steps(container)).toEqual({ read: 'Succeeded', check: 'Succeeded', connections: 'Succeeded', workbook: 'None', results: 'None' });
         expect(container.textContent).toContain('2 results, 8 bytes');
 
         await act(async () => button(container, 'workbook-import-confirm')!.click());
-        expect(steps(container)).toMatchObject({ results: 'Running', workbook: 'None' });
+        // The workbook is saved first, its results go into its folder then
+        expect(steps(container)).toMatchObject({ workbook: 'Running', results: 'None' });
         await act(async () => {
-            report({ step: 'results', total: 2, outcome: { total: 2, added: 2, kept: 0, failed: 0, dropped: 0, bytes: 8, error: null } });
             report({ step: 'workbook' });
+            report({ step: 'results', total: 2, outcome: null });
         });
-        expect(steps(container)).toMatchObject({ results: 'Succeeded', workbook: 'Running' });
+        expect(steps(container)).toMatchObject({ workbook: 'Succeeded', results: 'Running' });
+        await act(async () => report({ step: 'results', total: 2, outcome: { total: 2, added: 2, unmatched: 0, failed: 0, bytes: 8, error: null } }));
         expect(container.querySelector('[data-testid="workbook-import-step-results"]')?.textContent).toContain('2 of 2');
 
         await act(async () => finish('imported-workbook'));
-        // All results are in the cache, the workbook opens right away
+        // All results are in the workbook, it opens right away
         expect(state.navigate).toHaveBeenCalledOnce();
     });
 
     it('keeps the card open when query results were not added', async () => {
         state.readImport.mockResolvedValue(RESULT_PREVIEW);
         state.commitImport.mockImplementation(async (_prepared, _choice, options: WorkbookCommitOptions) => {
-            options.onProgress!({ step: 'results', total: 2, outcome: { total: 2, added: 1, kept: 0, failed: 1, dropped: 0, bytes: 3, error: 'The checksum of b.parquet differs' } });
             options.onProgress!({ step: 'workbook' });
+            options.onProgress!({ step: 'results', total: 2, outcome: { total: 2, added: 1, unmatched: 0, failed: 1, bytes: 3, error: 'The checksum of b.parquet differs' } });
             return 'imported-workbook';
         });
         const onDone = vi.fn();
@@ -281,9 +283,9 @@ describe('FileLoader', () => {
         await act(async () => button(container, 'workbook-import-confirm')!.click());
 
         await vi.waitFor(() => expect(button(container, 'workbook-import-open')).not.toBeNull());
-        expect(steps(container)).toEqual({ read: 'Succeeded', check: 'Succeeded', connections: 'Succeeded', results: 'Failed', workbook: 'Succeeded' });
+        expect(steps(container)).toEqual({ read: 'Succeeded', check: 'Succeeded', connections: 'Succeeded', workbook: 'Succeeded', results: 'Failed' });
         const warning = container.querySelector('[data-testid="workbook-import-warning"]')!;
-        expect(warning.textContent).toContain('1 of 2 query results was not added to the cache (1 failed)');
+        expect(warning.textContent).toContain('1 of 2 query results was not added to the workbook (1 failed)');
         expect(warning.textContent).toContain('The checksum of b.parquet differs');
         expect(state.navigate).not.toHaveBeenCalled();
         expect(onDone).not.toHaveBeenCalled();

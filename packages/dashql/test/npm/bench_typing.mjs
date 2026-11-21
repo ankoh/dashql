@@ -87,7 +87,7 @@ function platform() {
         http: { fetch: none, abort: () => { } },
         channels: { connect: none, hyperLinkToken: () => null, open: none, next: none, cancel: async () => { } },
         queries: { describe: none, forget: () => { } },
-        resultCache: null,
+        results: null,
         crypto: { randomUuid: () => `00000000-0000-4000-8000-${(++uuid).toString().padStart(12, '0')}` },
         oauth: { pkce: none, flowInfo: none, authorizeWithLoopback: none, authorizeWithRedirectPage: none, abort: () => { } },
         extensions: { loadSpec: none },

@@ -78,6 +78,7 @@ const dependencies: WorkbookFeedPageDependencies = {
     useWorkbookViewMode: () => ({ mode: state.mode, setMode: state.setMode }),
     // The tests set the parts of the execution that the page reads
     useWorkbookExecution: () => state.execution as unknown as ReturnType<WorkbookFeedPageDependencies['useWorkbookExecution']>,
+    useWorkbookShown: () => { },
     CloudWorkbookLoadingCard: () => null,
 };
 

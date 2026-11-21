@@ -29,8 +29,8 @@ import { AgentSessionCopies, agentSessionCopyHost } from './agent_session_copy.j
 import { agentConnections, isAgentConnectionAllowed, type AgentConnectionChoices } from './agent_connections.js';
 import { useCloudConnectionIds } from '../connections/cloud_connection.js';
 import { useAppFlavor } from '../config/flavor_provider.js';
-import { AgentSessionRuns, renderScriptChart, sendCachedResult } from './agent_session_runs.js';
-import { useQueryResultCache } from '../storage/query_result_cache_provider.js';
+import { AgentSessionRuns, renderScriptChart, sendStoredResult } from './agent_session_runs.js';
+import { useWorkbookResults } from '../storage/workbook_results_provider.js';
 
 const LOG_CTX = 'agent_session';
 
@@ -174,7 +174,7 @@ const CONNECT_CTX = React.createContext<AgentConnect | null>(null);
 export const AgentSessionProvider: React.FC<React.PropsWithChildren> = (props) => {
     const logger = useLogger();
     const runtime = useOptionalRuntime();
-    const resultCache = useQueryResultCache();
+    const results = useWorkbookResults();
     const [store] = React.useState(() => new Store<FollowedAgentSession | null>(null));
     const [target, setTarget] = React.useState<AgentSessionTarget | null>(readTabTarget);
     const [connect, setConnect] = React.useState(readTabConnect);
@@ -321,7 +321,7 @@ export const AgentSessionProvider: React.FC<React.PropsWithChildren> = (props) =
             isConnectionAllowed: connectionId => isConnectionAllowedRef.current(connectionId),
             paused: () => userHasControlRef.current,
             send: (runId, event) => postAgentSessionRunEvent(target, runId, event),
-            writeResult: key => sendCachedResult(resultCache, key, data => writeAgentSessionResult(target, key, data)),
+            writeResult: (workbookId, script) => sendStoredResult(runtime, results, workbookId, script, (name, data) => writeAgentSessionResult(target, workbookId, name, data)),
             renderChart: (workbookId, script, table, size) => renderScriptChart(runtime, workbookId, script, table, size),
         }, logger);
         const onState = (state: FollowedAgentSession['state']) => {
@@ -372,7 +372,7 @@ export const AgentSessionProvider: React.FC<React.PropsWithChildren> = (props) =
             controller.abort();
             runs?.dispose();
         };
-    }, [target, store, logger, runtime, resultCache, updateConnect, copyShown, copiesOf, sendConnections]);
+    }, [target, store, logger, runtime, results, updateConnect, copyShown, copiesOf, sendConnections]);
     // The changes of the agent wait while the user has the workbooks, and come in when the agent gets them back
     React.useEffect(() => {
         void copied.current.copies?.pause(userHasControl);

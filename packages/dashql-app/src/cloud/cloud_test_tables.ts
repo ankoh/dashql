@@ -52,7 +52,7 @@ export interface TestWorkbookTables {
     /// The Parquet files of the attachments by name
     attachments?: { name: string; bytes: Blob }[];
     /// The Parquet files of cached results by key
-    results?: { key: string; bytes: Blob }[];
+    results?: { key: string; script?: string; bytes: Blob }[];
 }
 
 /// The workbook tables of a workbook of a test
@@ -83,7 +83,7 @@ export function testWorkbookTables(spec: TestWorkbookTables): WorkbookTables {
     });
     for (const result of spec.results ?? []) {
         const tableName = testDataTableName(RESULT_TABLE_PREFIX);
-        tables.workbook_results.push({ ...key, cache_key: result.key, table_name: tableName });
+        tables.workbook_results.push({ ...key, cache_key: result.key, table_name: tableName, script_name: result.script ?? null });
         tables.data.set(tableName, { bytes: result.bytes });
     }
     return tables;

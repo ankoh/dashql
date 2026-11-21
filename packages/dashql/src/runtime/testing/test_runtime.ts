@@ -5,7 +5,7 @@ import { createTestConnection, type TestConnectionOptions } from './connection_f
 import type { OAuthFlow } from '../../platform/oauth_flow.js';
 import type { EmbeddedComputeDatabase } from '../../platform/embedded_database.js';
 import type { HttpClient } from '../../platform/http_client.js';
-import type { QueryResultCache } from '../../platform/query/query_result_cache.js';
+import type { WorkbookResultFiles } from '../../platform/workbook/workbook_result_files.js';
 import { createRuntime, type Runtime, type RuntimeOptions } from '../runtime.js';
 import { TASK_UPDATE_SCHEDULER } from '../store/update_scheduler.js';
 import type { StorageBackend, WorkbookData } from '../../platform/storage/storage_backend.js';
@@ -30,8 +30,8 @@ export interface TestRuntimeOptions {
     http?: HttpClient;
     /// The database of the computations, none by default
     computeDatabase?: EmbeddedComputeDatabase | null;
-    /// The cache of query results, none by default
-    resultCache?: QueryResultCache | null;
+    /// The stored results of the workbooks, none by default
+    results?: WorkbookResultFiles | null;
     /// The database that writes and scans the Parquet files of `.dashql` archives, none by default
     archiveDatabase?: (context: string) => Promise<EmbeddedComputeDatabase>;
     /// Keep the catalog loader running. It asks connections that come online about their catalogs, the tests of other
@@ -147,7 +147,7 @@ export async function createTestRuntime(options: TestRuntimeOptions = {}): Promi
         oauthFlow: { authorizeWithRedirectPage: offline, authorizeWithLoopback: offline } as unknown as OAuthFlow,
         core: instance,
         computeDatabase: options.computeDatabase == null ? null : async () => options.computeDatabase!,
-        resultCache: options.resultCache ?? null,
+        results: options.results ?? null,
         archives: options.archiveDatabase == null ? undefined : handles => createRuntimeArchives(handles, options.archiveDatabase!),
         catalogLoader: options.catalogLoader === true,
     };

@@ -29,6 +29,7 @@ pub(crate) mod imports;
 pub(crate) mod migrations;
 pub(crate) mod persistence;
 pub(crate) mod queries;
+pub(crate) mod results;
 pub(crate) mod runs;
 pub(crate) mod sessions;
 pub(crate) mod setups;
@@ -725,7 +726,6 @@ impl Runtime {
             platform: self.platform.clone(),
             connections: self.connections.clone(),
             workbooks: self.workbooks.clone(),
-            runs: self.runs.clone(),
         }
     }
 
@@ -1031,8 +1031,8 @@ impl Runtime {
     }
 
     /// Run a query on a connection. The query is in the history of the connection from the start; it runs once the
-    /// runtime described it: the target on the channel of the connection, the key of its result in the query result
-    /// cache and what the options of the arguments ask for. The caller hears the events of the query (`events`).
+    /// runtime described it: the target on the channel of the connection, the stored result of its script and what the
+    /// options of the arguments ask for. The caller hears the events of the query (`events`).
     /// `failure` is what a query that the caller failed fails with. Returns the id and the promise of the outcome.
     #[wasm_bindgen(js_name = executeQuery)]
     pub fn execute_query(
@@ -1077,6 +1077,42 @@ impl Runtime {
         Ok(())
     }
 
+    /// A view shows a workbook. The first time a workbook is shown, the runtime reads the stored results of its scripts
+    /// that show no result yet (docs/design/workbook_results.md).
+    #[wasm_bindgen(js_name = showWorkbook)]
+    pub fn show_workbook(&self, workbook_id: &str) {
+        self.runs.show_workbook(workbook_id);
+    }
+
+    /// Keep the stored result of a script until `releaseStoredResult`: the id of the pin and the name of its file below
+    /// the results of the workbook, null if the script has none (docs/design/workbook_results.md)
+    #[wasm_bindgen(js_name = retainStoredResult, unchecked_return_type = "Promise<{ id: number; name: string } | null>")]
+    pub fn retain_stored_result(&self, workbook_id: String, script: String) -> Promise {
+        let platform = self.platform.clone();
+        future_to_promise(async move {
+            if !platform.has_results() {
+                return Ok(JsValue::NULL);
+            }
+            let retained =
+                results::retain(&platform, &workbook_id, &script).await.map_err(|error| error_value(&error))?;
+            let Some((id, result)) = retained else { return Ok(JsValue::NULL) };
+            let object = js_sys::Object::new();
+            js_sys::Reflect::set(&object, &JsValue::from_str("id"), &JsValue::from_f64(id as f64))?;
+            js_sys::Reflect::set(&object, &JsValue::from_str("name"), &JsValue::from_str(&result.name))?;
+            Ok(object.into())
+        })
+    }
+
+    /// Release a stored result that `retainStoredResult` kept
+    #[wasm_bindgen(js_name = releaseStoredResult, unchecked_return_type = "Promise<void>")]
+    pub fn release_stored_result(&self, id: f64) -> Promise {
+        let release = self.platform.results_release(id.max(0.0) as u64);
+        future_to_promise(async move {
+            release.await;
+            Ok(JsValue::UNDEFINED)
+        })
+    }
+
     /// The layout of the plans of the progress of the queries that start later, null for the default one
     #[wasm_bindgen(js_name = setProgressLayout)]
     pub fn set_progress_layout(&self, layout: Option<Ts<ProfileLayoutView>>) -> Result<(), JsError> {
@@ -1087,10 +1123,10 @@ impl Runtime {
         Ok(())
     }
 
-    /// Wait for the writes into the query result cache that run, e.g. before a process ends
-    #[wasm_bindgen(js_name = flushCacheWrites, unchecked_return_type = "Promise<void>")]
-    pub fn flush_cache_writes(&self) -> Promise {
-        let flush = self.connections.executor().map(|executor| executor.flush_cache_writes());
+    /// Wait for the writes of the stored results of scripts that run, e.g. before a process ends
+    #[wasm_bindgen(js_name = flushResultWrites, unchecked_return_type = "Promise<void>")]
+    pub fn flush_result_writes(&self) -> Promise {
+        let flush = self.connections.executor().map(|executor| executor.flush_result_writes());
         future_to_promise(async move {
             if let Some(flush) = flush {
                 flush.await;
@@ -1885,9 +1921,9 @@ impl Runtime {
         })
     }
 
-    /// The reusable result keys of the scripts of a workbook in feed order, the keys that a run reads and writes: of the
-    /// targets with what they need, of every script without. Null for a script without one, all null if the analyses as
-    /// they are can't be planned.
+    /// The reusable result keys of the scripts of a workbook in feed order, the keys that a run reuses the stored results
+    /// with: of the targets with what they need, of every script without. Null for a script without one, all null if
+    /// the analyses as they are can't be planned.
     #[wasm_bindgen(js_name = resultKeys, unchecked_return_type = "Promise<(string | null)[]>")]
     pub fn result_keys(&self, workbook_id: &str, targets: Option<Vec<u32>>) -> Result<Promise, JsError> {
         let keys = self.runs.result_keys(workbook_id, targets).map_err(|message| JsError::new(&message))?;
@@ -1895,7 +1931,9 @@ impl Runtime {
             let keys = keys.await;
             Ok(keys
                 .into_iter()
-                .map(|key| key.map(|key| JsValue::from_str(&key)).unwrap_or(JsValue::NULL))
+                .map(|key| {
+                    key.filter(|key| key.reusable).map(|key| JsValue::from_str(&key.key)).unwrap_or(JsValue::NULL)
+                })
                 .collect::<Array>()
                 .into())
         }))
@@ -1905,7 +1943,7 @@ impl Runtime {
 
     /// Export a workbook: a `.dashql` archive (a Blob of the handle table that the caller releases), a link, or the
     /// workbook tables, which go to `consume` and stay readable until it settled. The pending writes of the workbook
-    /// are written first, the cached results are retained while the export reads them. Rejects with what the platform
+    /// are written first, the stored results are retained while the export reads them. Rejects with what the platform
     /// failed with.
     #[wasm_bindgen(js_name = exportWorkbook, unchecked_return_type = "Promise<ExportOutcome>")]
     pub fn export_workbook(
@@ -1937,7 +1975,7 @@ impl Runtime {
         }))
     }
 
-    /// The cached results of the scripts of a workbook that an export would carry, counted without reading them
+    /// The stored results of the scripts of a workbook that an export would carry, counted without reading them
     #[wasm_bindgen(js_name = exportedResults, unchecked_return_type = "Promise<ExportedResults>")]
     pub fn exported_results(&self, workbook_id: String) -> Promise {
         let exports = self.exports();
@@ -1959,8 +1997,8 @@ impl Runtime {
         })
     }
 
-    /// Import a workbook that was read, with the answers to its questions: the connections are mapped, the cached
-    /// results go to the query result cache, the workbook is written and restored. The listener hears the steps.
+    /// Import a workbook that was read, with the answers to its questions: the connections are mapped, the workbook
+    /// is written, the stored results go into its results folder and it is restored. The listener hears the steps.
     #[wasm_bindgen(js_name = commitImport, unchecked_return_type = "Promise<ImportOutcome>")]
     pub fn commit_import(
         &self,
@@ -2087,8 +2125,8 @@ impl Runtime {
         self.workbooks.persistence.is_workbook_held(workbook_id)
     }
 
-    /// Shut the runtime down, in this order: the runs stop, the catalog loader stops, the writes into the query result
-    /// cache and the pending writes of the storage finish, then the imports are dropped, the setups and the queries are
+    /// Shut the runtime down, in this order: the runs stop, the catalog loader stops, the writes of the stored results
+    /// and the pending writes of the storage finish, then the imports are dropped, the setups and the queries are
     /// cancelled and the computations go, their runs cancelled and their tables released with the next changes.
     /// Resolves once that is done; from then on the runtime calls the platform no more, a task that is still running
     /// fails at its next call. The host takes the last changes and frees the runtime with `free()`.
@@ -2098,7 +2136,7 @@ impl Runtime {
         if let Some(loader) = self.connections.loader() {
             loader.stop();
         }
-        let cache = self.connections.executor().map(|executor| executor.flush_cache_writes());
+        let cache = self.connections.executor().map(|executor| executor.flush_result_writes());
         let storage = self.workbooks.persistence.flush();
         let stop = Shutdown {
             platform: self.platform.clone(),

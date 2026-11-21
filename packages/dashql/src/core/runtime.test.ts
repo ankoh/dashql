@@ -52,7 +52,7 @@ function platform() {
             next: () => Promise.reject(new Error('no channels')),
             cancel: async () => { },
         },
-        resultCache: null,
+        results: null,
         crypto: { randomUuid: () => 'uuid', sha256: () => Promise.reject(new Error('no digests')) },
         oauth: NO_OAUTH,
         extensions: { loadSpec: () => Promise.reject(new Error('no extensions')) },

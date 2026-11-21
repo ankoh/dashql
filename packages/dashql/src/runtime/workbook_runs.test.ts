@@ -14,7 +14,7 @@ import type { EmbeddedComputeDatabase } from '../platform/embedded_database.js';
 import type { HyperDB } from '../platform/hyperdb/hyperdb_wasm.js';
 import { createQueryResponseStreamMetrics, QueryExecutionStatus, QueryType, type QueryExecutionResponseStream } from '../platform/query/query_execution_state.js';
 import { tableFromArrays } from '../platform/testing/arrow_fixtures.js';
-import { memoryQueryResultCache } from '../platform/testing/memory_query_result_cache.js';
+import { memoryWorkbookResultFiles } from '../platform/testing/memory_workbook_result_files.js';
 import { openTestHyperDB } from '../platform/testing/test_hyperdb.js';
 import { createTestRuntime, restoreTestWorkbook, type TestRuntime } from './testing/test_runtime.js';
 import type { ScriptRunEvent } from '../platform/workbook/workbook_execution.js';
@@ -422,11 +422,12 @@ describe('the runs of scripts of the runtime', () => {
     });
 
     /// A runtime on the embedded Hyper of the tests with a connection whose channel answers every statement with a
-    /// table of its number, and a workbook with scripts on it. A query result cache in memory if asked for.
+    /// table of its number, and a workbook with scripts on it. The stored results in memory if asked for, the
+    /// connection reuses them.
     async function scripts(entries: Array<[string, string]>, options: { cache?: boolean } = {}) {
         database = await openTestHyperDB('workbook_runs_test');
-        const cache = options.cache ? memoryQueryResultCache() : null;
-        const rt = await createTestRuntime({ computeDatabase: database, resultCache: cache });
+        const cache = options.cache ? memoryWorkbookResultFiles() : null;
+        const rt = await createTestRuntime({ computeDatabase: database, results: cache });
         runtime = rt;
         const statements: string[] = [];
         const answer = (table: arrow.Table): QueryExecutionResponseStream => {
@@ -544,42 +545,93 @@ describe('the runs of scripts of the runtime', () => {
         }
     });
 
-    it('serves the cached result of a script and refreshes it on request', async () => {
+    it('stores the result of a script, reuses it while its key matches and refreshes it on request', async () => {
         const f = await scripts([['foo.sql', 'select 1 as a;']], { cache: true });
         const first = await f.run('foo.sql');
         expect(first.outcome.failure).toBeNull();
-        await f.core.module.flushCacheWrites();
+        await f.core.module.flushResultWrites();
         const [key] = await f.core.module.resultKeys(f.workbookId);
         expect(key).not.toBeNull();
-        expect(await f.cache!.has(key!)).toBe(true);
-        // The write after the query records the key on the fresh result
+        // The workbook keeps one file of the script, named after the script and its key
+        expect(f.cache!.names(f.workbookId)).toEqual([expect.stringMatching(new RegExp(`^foo\\.sql\\.${key}\\.[0-9a-f]{8}\\.parquet$`))]);
         f.core.flush();
         expect(queryView(f.core, f.script('foo.sql').latestQueryId!)).toMatchObject({ cacheKey: key, servedFromCache: false });
-        // The second run reads the cached result instead of the connection
+        // The second run reads the stored result instead of the connection
         await f.run('foo.sql');
         expect(f.executeQuery).toHaveBeenCalledOnce();
         expect(queryView(f.core, f.script('foo.sql').latestQueryId!)?.servedFromCache).toBe(true);
-        // A refresh runs the script again
+        // A refresh runs the script again, its new file replaces the old one
         await f.run('foo.sql', true);
+        await f.core.module.flushResultWrites();
+        expect(f.executeQuery).toHaveBeenCalledTimes(2);
+        expect(f.cache!.names(f.workbookId)).toHaveLength(1);
+    });
+
+    it('shows the stored result of a script on its view, outdated once its key changed', async () => {
+        const f = await scripts([['foo.sql', 'select 1 as a;']], { cache: true });
+        expect(f.script('foo.sql').storedResult).toBeNull();
+        await f.run('foo.sql');
+        await f.core.module.flushResultWrites();
+        const [key] = await f.core.module.resultKeys(f.workbookId);
+        const [name] = f.cache!.names(f.workbookId);
+        // The runtime looks the results up once the run wrote its result
+        await vi.waitFor(() => expect(f.script('foo.sql').storedResult).toEqual({ name, key, writtenAt: expect.any(Number), current: true }));
+        edit(f.rt, f.workbookId, f.script('foo.sql').scriptKey, 8, '2');
+        await vi.waitFor(() => expect(f.script('foo.sql').storedResult).toMatchObject({ name, key, current: false }));
+    });
+
+    it('keeps the results of workbooks apart, also for the same script on the same connection', async () => {
+        const f = await scripts([['foo.sql', 'select 1 as a;']], { cache: true });
+        const other = f.rt.addWorkbook(f.connectionId, [['foo.sql', 'select 1 as a;']], { name: 'other' });
+        await f.run('foo.sql');
+        await f.core.module.flushResultWrites();
+        await vi.waitFor(() => expect(f.script('foo.sql').storedResult).not.toBeNull());
+        await pause();
+        f.core.flush();
+        const [same] = other.scriptKeys;
+        expect(f.core.store.get('script', same)?.storedResult).toBeNull();
+        expect(f.cache!.names(other.workbookId)).toEqual([]);
+        // The other workbook runs its query anew
+        expect((await f.core.runScript(other.workbookId, same)).outcome.failure).toBeNull();
         expect(f.executeQuery).toHaveBeenCalledTimes(2);
     });
 
-    it('shows the cached result of a script on its view and follows a deleted cache entry', async () => {
-        const f = await scripts([['foo.sql', 'select 1 as a;']], { cache: true });
-        expect(f.script('foo.sql').cachedResult).toBeNull();
+    it('reads the stored results of a workbook when it is first shown, whatever their keys, and runs nothing', async () => {
+        const f = await scripts([['foo.sql', 'select 1 as a;'], ['bar.sql', 'select 2 as b;']], { cache: true });
+        // A result of an import, of another version of the app: its key is no key of the script here
+        const name = f.cache!.put(f.workbookId, `foo.sql.${'0'.repeat(64)}.00000001.parquet`, tableFromArrays({ a: Int32Array.from([41]) }));
+        f.core.showWorkbook(f.workbookId);
+        await vi.waitFor(() => expect(f.script('foo.sql').latestResultQueryId).not.toBeNull());
+        const query = queryView(f.core, f.script('foo.sql').latestResultQueryId!)!;
+        expect(query).toMatchObject({ servedFromCache: true, cacheKey: '0'.repeat(64) });
+        expect(f.core.table(query.resultTable?.id)?.getChild('a')?.toArray()).toEqual(Int32Array.from([41]));
+        expect(f.script('bar.sql').latestResultQueryId).toBeNull();
+        expect(f.executeQuery).not.toHaveBeenCalled();
+        await vi.waitFor(() => expect(f.script('foo.sql').storedResult).toMatchObject({ name, current: false }));
+        // Showing it again reads nothing, a run computes the result of the outdated key anew
+        f.core.showWorkbook(f.workbookId);
         await f.run('foo.sql');
-        await f.core.module?.flushCacheWrites();
-        const [key] = await f.core.module.resultKeys(f.workbookId);
-        const entry = (await f.cache!.lookup(key!))!;
-        // The runtime looks the key up once the run wrote its result
-        await vi.waitFor(() => expect(f.script('foo.sql').cachedResult).toEqual({ key, cachedAt: entry.cachedAtMs }));
-        // The cache entry is deleted, the query of the script no longer advertises it
-        await f.cache!.remove(entry.name);
-        f.core.dispatch({ connection: f.connectionId }, { kind: 'queryCacheDeleted', value: { queryId: f.script('foo.sql').latestQueryId! } });
-        await vi.waitFor(() => expect(f.script('foo.sql').cachedResult).toBeNull());
+        expect(f.executeQuery).toHaveBeenCalledOnce();
+        await f.core.module.flushResultWrites();
+        await vi.waitFor(() => expect(f.script('foo.sql').storedResult).toMatchObject({ current: true }));
+        expect(f.cache!.names(f.workbookId)).toHaveLength(1);
     });
 
-    /// Let the changes pause, the runtime checks the cached results then
+    it('renames the result of a renamed script and removes the result of a deleted one', async () => {
+        const f = await scripts([['foo.sql', 'select 1 as a;'], ['bar.sql', 'select 2 as b;']], { cache: true });
+        await f.run('foo.sql');
+        await f.run('bar.sql');
+        await f.core.module.flushResultWrites();
+        expect(f.cache!.names(f.workbookId)).toHaveLength(2);
+        expect(f.core.dispatch({ workbook: f.workbookId }, { kind: 'renameScript', value: { fileName: 'foo.sql', newName: 'renamed' } }).ok).toBe(true);
+        expect(f.core.dispatch({ workbook: f.workbookId }, { kind: 'deleteScript', value: { fileName: 'bar.sql' } }).ok).toBe(true);
+        await vi.waitFor(() => expect(f.cache!.names(f.workbookId)).toEqual([expect.stringMatching(/^renamed\.sql\.[0-9a-f]{64}\.[0-9a-f]{8}\.parquet$/)]));
+        // The renamed script reuses its result
+        await f.run('renamed.sql');
+        expect(f.executeQuery).toHaveBeenCalledTimes(2);
+    });
+
+    /// Let the changes pause, the runtime checks the stored results then
     const pause = () => new Promise(resolve => setTimeout(resolve, 400));
 
     /// An editor event of a script as the editor sends it: typed text at an offset, or a move of the cursor
@@ -596,72 +648,23 @@ describe('the runs of scripts of the runtime', () => {
         expect(rt.applyEditorEvent({ workbookId, scriptKey, sessionGeneration: script.sessionGeneration }, event, script.editorUpdate)?.status).toBe(editor.EditorUpdateStatus.OK);
     }
 
-    it('looks up the cached results of the workbook that changed once the changes paused, a move of the cursor looks up none', async () => {
+    it('looks up the stored results of the workbook that changed once the changes paused, a move of the cursor looks up none', async () => {
         const f = await scripts([['foo.sql', 'select 1 as a;']], { cache: true });
         const other = f.rt.addWorkbook(f.connectionId, [['bar.sql', 'select 2 as b;']], { name: 'other' });
         await f.run('foo.sql');
-        await f.core.module.flushCacheWrites();
-        await vi.waitFor(() => expect(f.script('foo.sql').cachedResult).not.toBeNull());
+        await f.core.module.flushResultWrites();
+        await vi.waitFor(() => expect(f.script('foo.sql').storedResult).not.toBeNull());
         await pause();
-        f.cache!.lookup.mockClear();
+        f.cache!.files.mockClear();
         const foo = f.script('foo.sql').scriptKey;
         for (let offset = 0; offset < 5; ++offset) edit(f.rt, f.workbookId, foo, offset, null);
         await pause();
-        expect(f.cache!.lookup).not.toHaveBeenCalled();
-        // Typing looks up the scripts of the typed workbook once, the other workbook keeps its cached results
+        expect(f.cache!.files).not.toHaveBeenCalled();
+        // Typing looks up the scripts of the typed workbook once, the other workbook keeps its results
         for (const [offset, text] of [[8, '2'], [9, '3']] as const) edit(f.rt, f.workbookId, foo, offset, text);
         await pause();
-        const [otherKey] = await f.core.module.resultKeys(other.workbookId);
-        expect(f.cache!.lookup.mock.calls.map(([key]) => key)).not.toContain(otherKey);
-        expect(f.cache!.lookup).toHaveBeenCalledOnce();
-    });
-
-    it('shows the cached result that the run of another workbook wrote under the same key', async () => {
-        const f = await scripts([['foo.sql', 'select 1 as a;']], { cache: true });
-        const other = f.rt.addWorkbook(f.connectionId, [['same.sql', 'select 1 as a;']], { name: 'other' });
-        const [same] = other.scriptKeys;
-        await pause();
-        expect(f.core.store.get('script', same)?.cachedResult).toBeNull();
-        await f.run('foo.sql');
-        await f.core.module.flushCacheWrites();
-        await vi.waitFor(() => expect(f.script('foo.sql').cachedResult).not.toBeNull());
-        await vi.waitFor(() => {
-            f.core.flush();
-            expect(f.core.store.get('script', same)?.cachedResult).toEqual(f.script('foo.sql').cachedResult);
-        });
-    });
-
-    it('clears the cached result of a script whose file the cache evicted for another workbook', async () => {
-        const f = await scripts([['foo.sql', 'select 1 as a;']], { cache: true });
-        const other = f.rt.addWorkbook(f.connectionId, [['bar.sql', 'select 2 as b;']], { name: 'other' });
-        f.cache!.capacity = { maxBytes: Number.POSITIVE_INFINITY, maxFiles: 1 };
-        await f.run('foo.sql');
-        await f.core.module.flushCacheWrites();
-        await vi.waitFor(() => expect(f.script('foo.sql').cachedResult).not.toBeNull());
-        // The run of the other workbook writes the one file that the cache keeps
-        const [bar] = other.scriptKeys;
-        expect((await f.core.runScript(other.workbookId, bar)).outcome.failure).toBeNull();
-        await f.core.module.flushCacheWrites();
-        await vi.waitFor(() => {
-            f.core.flush();
-            expect(f.script('foo.sql').cachedResult).toBeNull();
-            expect(f.core.store.get('script', bar)?.cachedResult).not.toBeNull();
-        });
-    });
-
-    it('keeps the query result cache within its limits, the least recently read files go first', async () => {
-        const f = await scripts([['foo.sql', 'select 1 as a;'], ['bar.sql', 'select 2 as b;']], { cache: true });
-        f.cache!.capacity = { maxBytes: Number.POSITIVE_INFINITY, maxFiles: 1 };
-        await f.run('foo.sql');
-        await f.core.module.flushCacheWrites();
-        const [foo, bar] = await f.core.module.resultKeys(f.workbookId);
-        const fooFile = (await f.cache!.lookup(foo!))!.name;
-        await f.run('bar.sql');
-        await f.core.module.flushCacheWrites();
-        // The runtime evicts after the write of bar, the file of foo was read longer ago
-        expect(f.cache!.remove).toHaveBeenCalledWith(fooFile);
-        expect(await f.cache!.has(foo!)).toBe(false);
-        expect(await f.cache!.has(bar!)).toBe(true);
+        expect(f.cache!.files.mock.calls.map(([workbookId]) => workbookId)).not.toContain(other.workbookId);
+        expect(f.cache!.files.mock.calls.length).toBeGreaterThan(0);
     });
 
     it('runs create, insert and select across scripts in the order of their dependencies', async () => {

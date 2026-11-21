@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as styles from './query_result_cache_controls.module.css';
+import * as styles from './stored_result_controls.module.css';
 
 import { SyncIcon } from '@akohn/dashql-react/components/symbol_icon';
 
@@ -10,15 +10,19 @@ import { Tag } from '@akohn/dashql-react/components/tag';
 import { AnchoredOverlay } from '@akohn/dashql-react/components/anchored_overlay';
 import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
 
-interface CachedResultBeanProps {
-    /// The time the cached result was written
-    cachedAtMs: number;
+interface StoredResultBeanProps {
+    /// When the stored result was written
+    writtenAtMs: number;
+    /// Is it a result of the script as it is now? A result of an earlier text or connection is outdated.
+    current: boolean;
 }
 
-/// The "Cached" tag of a result card. Clicking it tells since when the result is cached.
-export const CachedResultBean: React.FC<CachedResultBeanProps> = ({ cachedAtMs }) => {
+/// The "Stored" tag of a result card, "Outdated" for a result of an earlier text or connection. Clicking it tells since
+/// when the result is stored (docs/design/workbook_results.md).
+export const StoredResultBean: React.FC<StoredResultBeanProps> = ({ writtenAtMs, current }) => {
     const [open, setOpen] = React.useState(false);
-    const relativeTime = useRelativeTime(cachedAtMs);
+    const relativeTime = useRelativeTime(writtenAtMs);
+    const label = current ? 'Stored' : 'Outdated';
     return (
         <AnchoredOverlay
             open={open}
@@ -31,21 +35,26 @@ export const CachedResultBean: React.FC<CachedResultBeanProps> = ({ cachedAtMs }
                 <button
                     {...(p as React.ButtonHTMLAttributes<HTMLButtonElement>)}
                     type="button"
-                    className={styles.cached_result_button}
-                    aria-label="Show since when the result is cached"
-                    data-testid="cached-result"
+                    className={styles.stored_result_button}
+                    aria-label="Show since when the result is stored"
+                    data-testid="stored-result"
                 >
-                    <Tag className={styles.cached_result_bean}>Cached</Tag>
+                    <Tag className={styles.stored_result_bean}>{label}</Tag>
                 </button>
             )}
         >
-            <div className={styles.cached_result_detail} role="dialog" aria-label="Cached result" data-testid="cached-result-detail">
-                <div className={styles.cached_result_detail_title}>
-                    Cached {relativeTime != null ? lowerFirst(relativeTime) : null}
+            <div className={styles.stored_result_detail} role="dialog" aria-label="Stored result" data-testid="stored-result-detail">
+                <div className={styles.stored_result_detail_title}>
+                    Stored {relativeTime != null ? lowerFirst(relativeTime) : null}
                 </div>
-                <div className={styles.cached_result_detail_time}>
-                    {new Date(cachedAtMs).toLocaleString()}
+                <div className={styles.stored_result_detail_time}>
+                    {new Date(writtenAtMs).toLocaleString()}
                 </div>
+                {!current && (
+                    <div className={styles.stored_result_detail_hint}>
+                        The script or its connection changed since, a run computes the result anew.
+                    </div>
+                )}
             </div>
         </AnchoredOverlay>
     );
@@ -56,19 +65,19 @@ function lowerFirst(text: string): string {
     return text.charAt(0).toLowerCase() + text.slice(1);
 }
 
-/// Whether the query has a result to describe (succeeded, not since cache-deleted).
+/// Whether the query has a result to describe (succeeded, its stored result not deleted since).
 function hasResult(query: QueryExecutionState | null): boolean {
     return query?.status === QueryExecutionStatus.SUCCEEDED && query?.cacheDeleted !== true;
 }
 
 interface QueryResultRerunButtonProps {
     query: QueryExecutionState | null;
-    /// Run the script of this result again without reading cached results
+    /// Run the script of this result again without reusing stored results
     onRerun?: () => void;
 }
 
 /// The Refresh icon shown in the entry status bar. Shown for any succeeded result; clicking it runs the script and
-/// the scripts it references again against their backends, without reading cached results.
+/// the scripts it references again against their backends, without reusing stored results.
 export const QueryResultRerunButton: React.FC<QueryResultRerunButtonProps> = ({ query, onRerun }) => {
     if (!hasResult(query)) {
         return null;

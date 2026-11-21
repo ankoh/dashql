@@ -93,7 +93,7 @@ export class PlainRunReporter implements RunReporter {
                 break;
             case 'script_done': {
                 if (!this.reported.has(event.script)) break;
-                const from = event.cached ? '  from the cache' : '';
+                const from = event.cached ? '  reused' : '';
                 let out = `${event.script}  ok  ${rowsText(event.rows)}  ${seconds(event.ms)}${from}\n`;
                 if (event.table != null) out += describeTable(event.table, this.rows, event.rows ?? event.table.numRows);
                 if (event.file != null) out += `  ${pathBelow(event.file, this.cwd)}\n`;

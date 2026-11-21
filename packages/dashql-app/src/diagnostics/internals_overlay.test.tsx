@@ -10,10 +10,8 @@ import { QueryType } from '@akohn/dashql/platform/query/query_execution_state';
 import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_state';
 import { LoggerProvider } from '../host/logger_provider.js';
 import { StorageProvider } from '../storage/storage_provider.js';
-import { QueryResultCacheProvider } from '../storage/query_result_cache_provider.js';
 import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
 import { OPFSDirectoryMock } from '@akohn/dashql/platform/testing/opfs_mock';
-import { memoryQueryResultCache } from '@akohn/dashql/platform/testing/memory_query_result_cache';
 import { createTestRoot } from '@akohn/dashql-react/testing/react_root';
 import { TestRuntime } from '../tests/test_runtime.js';
 import * as core from '@akohn/dashql';
@@ -83,14 +81,12 @@ describe('InternalsViewer', () => {
                     <AppConfigProvider>
                         <MemoryRouter>
                             <StorageProvider backend={new WorkbookTestBackend()}>
-                                <QueryResultCacheProvider cache={memoryQueryResultCache()}>
-                                    <TestRuntime>
-                                        <>
-                                            <Capture />
-                                            {content}
-                                        </>
-                                    </TestRuntime>
-                                </QueryResultCacheProvider>
+                                <TestRuntime>
+                                    <>
+                                        <Capture />
+                                        {content}
+                                    </>
+                                </TestRuntime>
                             </StorageProvider>
                         </MemoryRouter>
                     </AppConfigProvider>
@@ -111,7 +107,7 @@ describe('InternalsViewer', () => {
 
         expect(groups()).toEqual([
             ['Diagnostics', ['Application logs']],
-            ['Connections', ['HTTP requests', 'Query execution history', 'Query result cache']],
+            ['Connections', ['HTTP requests', 'Query execution history']],
             ['Storage', ['Storage browser', 'Storage writer']],
             ['Settings', ['Tools', 'Application settings']],
         ]);
@@ -121,7 +117,6 @@ describe('InternalsViewer', () => {
 
         const titles: [string, string][] = [
             ['HTTP requests', 'Requests'],
-            ['Query result cache', 'Cache'],
             ['Storage browser', 'Origin Private File System'],
             ['Storage writer', 'Select a workbook to see its storage writes'],
             ['Application settings', 'App Settings'],

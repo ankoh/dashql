@@ -56,8 +56,8 @@ export interface ScriptData {
     latestQueryId: number | null;
     /// The retained result/computation id, independent of later commands or failures
     latestResultQueryId: number | null;
-    /// The cached result of a run of the script in the query result cache, null without one
-    cachedResult: core.WorkbookScriptCachedResult | null;
+    /// The stored result of the script in the results of the workbook, null without one
+    storedResult: core.WorkbookScriptStoredResult | null;
     /// The file name of the script
     fileName: string;
     /// The connection the script is analyzed and executed with

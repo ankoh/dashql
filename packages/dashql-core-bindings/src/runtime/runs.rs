@@ -12,11 +12,11 @@
 //! listener and needs no compute database.
 //!
 //! The statements of a run are queries of the histories of their connections on the executor of the runtime
-//! (`Connections::run_statement`). The files of a run, the cached results it scans, the results it materializes and
-//! the attachments, are files of the platform (`mounts`, `resultCache`). The runtime reads the columns of the Parquet
+//! (`Connections::run_statement`). The files of a run, the stored results it reads, the results it materializes and
+//! the attachments, are files of the platform (`results`, `mounts`). The runtime reads the columns of the Parquet
 //! attachments of the workbooks once per file with the compute database.
 
-mod cached_results;
+mod stored_results;
 pub(crate) mod view;
 
 use std::cell::{Cell, RefCell};
@@ -26,14 +26,14 @@ use std::rc::{Rc, Weak};
 
 use dashql_core_runtime::connections::label::is_hyper_wasm_connection;
 use dashql_core_runtime::connections::{ConnectionHealth, ConnectionState};
-use dashql_core_runtime::executor::{FailureKind, QueryId};
+use dashql_core_runtime::executor::{FailureKind, QueryId, ResultRequest, StoredFile};
 use dashql_core_runtime::host::{Host, HostError, LogLevel, OnHost};
 use dashql_core_runtime::query::{QueryError, QueryExecutionAction, QueryExecutionState, QueryMetadata, QueryType};
 use dashql_core_runtime::workbook::{next_revision, RunPlanRequest, Workbook, WorkbookAction, WorkbookEffect};
 use dashql_core_runtime::workbook_run::plan::result_keys;
 use dashql_core_runtime::workbook_run::{
-    start_run, PlanRun, RetainedFile, RunFailureKind, RunHandle, RunHost, RunOptions, RunState, ScriptEvent,
-    StatementCache, StatementFailure, StatementHandle, StatementRequest, LOG_TARGET,
+    start_run, PlanRun, ResultKey, RetainedFile, RunFailureKind, RunHandle, RunHost, RunOptions, RunState, ScriptEvent,
+    StatementFailure, StatementHandle, StatementRequest, StatementResult, LOG_TARGET,
 };
 use js_sys::{Array, Function, Promise, Reflect};
 use wasm_bindgen::prelude::*;
@@ -44,6 +44,7 @@ use super::changes::{Read, Slice};
 use super::connections::Connections;
 use super::persistence::attachments_value;
 use super::queries::{LocalFuture, Statement};
+use super::results;
 use super::workbooks::Workbooks;
 use crate::host::{host_error, JsPlatform};
 use view::{
@@ -107,7 +108,7 @@ pub(crate) struct Runs {
     /// The Parquet attachments whose columns were read, by workbook, file and stamp
     described: RefCell<BTreeSet<String>>,
     /// The cached results of the scripts that the runtime looked up
-    cached: cached_results::CachedResults,
+    stored: stored_results::StoredResults,
     destroyed: Cell<bool>,
 }
 
@@ -149,7 +150,7 @@ impl Runs {
             entries: RefCell::new(Vec::new()),
             numbers: Cell::new(0),
             described: RefCell::new(BTreeSet::new()),
-            cached: Default::default(),
+            stored: Default::default(),
             destroyed: Cell::new(false),
         });
         // The runs follow the changes of the registry: dropped connections, workbooks that are gone, changes of inputs
@@ -160,25 +161,18 @@ impl Runs {
                 runs.follow();
             }
         }));
-        // The cached results of the scripts follow the changes of the workbooks, e.g. their analyses
+        // The stored results of the scripts follow the changes of the workbooks, e.g. their analyses
         let weak = Rc::downgrade(&runs);
         *runs.workbooks.changed_listener.borrow_mut() = Some(Rc::new(move |workbook_id: &str| {
             if let Some(runs) = weak.upgrade() {
-                runs.check_cached_results(Some(workbook_id));
+                runs.check_stored_results(Some(workbook_id));
             }
         }));
-        // And the changes of the connections of the workbooks: their params, the files of the cache keys of their queries
+        // And the changes of the connections of the workbooks: their params, the keys of the results of their queries
         let weak = Rc::downgrade(&runs);
         *connections.results_listener.borrow_mut() = Some(Rc::new(move |workbook_ids: &[String], files: bool| {
             if let Some(runs) = weak.upgrade() {
-                runs.check_workbooks_cached_results(workbook_ids, files);
-            }
-        }));
-        // A file that the cache evicted is a cached result of no script
-        let weak = Rc::downgrade(&runs);
-        runs.platform.on_cache_evicted(Rc::new(move || {
-            if let Some(runs) = weak.upgrade() {
-                runs.forget_cached_results();
+                runs.check_workbooks_stored_results(workbook_ids, files);
             }
         }));
         // A workbook that is deleted or replaced takes its run with it
@@ -239,6 +233,22 @@ impl Runs {
                     platform.log_on(
                         LogLevel::Warn,
                         "Unmounting the attachments of a workbook failed",
+                        &[("error", error.message())],
+                        LOG_TARGET,
+                    );
+                }
+            }));
+        }
+        // So do its results, a replaced workbook mounts them again
+        self.forget_stored_results(workbook_id);
+        if self.platform.has_results() {
+            let unmount = self.platform.results_unmount(workbook_id);
+            let platform = self.platform.clone();
+            self.platform.spawn(Box::pin(async move {
+                if let Err(error) = unmount.await {
+                    platform.log_on(
+                        LogLevel::Warn,
+                        "Unmounting the results of a workbook failed",
                         &[("error", error.message())],
                         LOG_TARGET,
                     );
@@ -350,7 +360,6 @@ impl Runs {
             can_run,
             listener,
             prepares,
-            keyed_files: RefCell::new(BTreeSet::new()),
         }
     }
 
@@ -421,7 +430,7 @@ impl Runs {
         let online = if prepares { Vec::new() } else { self.online(&scope.connections, scope.preview) };
         let can_run = (!prepares).then(|| online.clone());
         let offline: Vec<String> = scope.connections.iter().filter(|id| !online.contains(id)).cloned().collect();
-        let cache = (self.platform.has_cache() && self.platform.has_mounts()).to_string();
+        let results = self.platform.has_results().to_string();
         let inputs_text = inputs.as_ref().map(|inputs| inputs.join(", ")).unwrap_or_default();
         self.log(
             LogLevel::Info,
@@ -431,7 +440,7 @@ impl Runs {
                 ("inputs", &inputs_text),
                 ("online", &online.join(", ")),
                 ("offline", &offline.join(", ")),
-                ("cache", &cache),
+                ("results", &results),
             ],
         );
         let host = self.host(&scope, workbook_id, can_run, listener);
@@ -441,6 +450,7 @@ impl Runs {
             targets: options.targets,
             inputs,
             refresh: options.refresh.unwrap_or(false),
+            stored: false,
             reports_state: true,
             analyze: options.analyze.unwrap_or(true),
         };
@@ -535,6 +545,7 @@ impl Runs {
             targets: Some(vec![index]),
             inputs: None,
             refresh: options.refresh.unwrap_or(false),
+            stored: false,
             reports_state: false,
             analyze: true,
         };
@@ -617,8 +628,9 @@ impl Runs {
     fn release(self: &Rc<Self>, workbook_id: &str, number: u64) {
         self.update_held(workbook_id, number, |entry| entry.held = None);
         self.start_pending();
-        // The run wrote the files of its keys, the scripts of other workbooks may share them
-        self.forget_cached_results();
+        // The run wrote the results of its scripts, a workbook that was shown meanwhile reads its results
+        self.check_workbooks_stored_results(&[workbook_id.to_string()], true);
+        self.open_waiting(workbook_id);
     }
 
     /// Drop a change of inputs that still waits after a while
@@ -900,14 +912,14 @@ impl Runs {
         }
     }
 
-    /// The reusable result keys of the scripts of a workbook in feed order, the keys that a run reads and writes. A
-    /// script without a reusable key has none, all have none if the analyses as they are can't be planned. Plans the
-    /// targets with what they need, every script without, and analyzes nothing.
+    /// The result keys of the scripts of a workbook in feed order, the keys that a run checks the stored results with
+    /// and names their files after. A script without a key has none, all have none if the analyses as they are can't be
+    /// planned. Plans the targets with what they need, every script without, and analyzes nothing.
     pub fn result_keys(
         &self,
         workbook_id: &str,
         targets: Option<Vec<u32>>,
-    ) -> Result<LocalFuture<Vec<Option<String>>>, String> {
+    ) -> Result<LocalFuture<Vec<Option<ResultKey>>>, String> {
         let workbook =
             self.workbooks.get(workbook_id).ok_or_else(|| format!("no workbook registered with id {workbook_id}"))?;
         let (graph, scripts) = {
@@ -921,7 +933,7 @@ impl Runs {
                 workbook.scripts().iter().map(|script| script.connection().connection_id.clone()).collect();
             (workbook.plan_run(&request), scripts)
         };
-        let caches: Vec<bool> = {
+        let reuses: Vec<bool> = {
             let registry = self.connections.registry.borrow();
             scripts
                 .iter()
@@ -939,7 +951,7 @@ impl Runs {
                 return scripts.iter().map(|_| None).collect();
             }
             let key_scripts = scripts.clone();
-            let keys = result_keys(
+            result_keys(
                 &graph,
                 move |script, signature| {
                     connections.result_key(
@@ -947,10 +959,9 @@ impl Runs {
                         &signature,
                     )
                 },
-                |script| caches.get(script as usize).copied().unwrap_or(false),
+                |script| reuses.get(script as usize).copied().unwrap_or(false),
             )
-            .await;
-            keys.into_iter().map(|key| key.filter(|key| key.reusable).map(|key| key.key)).collect()
+            .await
         }))
     }
 }
@@ -979,11 +990,19 @@ pub(crate) struct RuntimeRunHost {
     /// Hears the events of the scripts and prepares the connections
     listener: Option<JsValue>,
     prepares: bool,
-    /// The names of the files of keys that the run writes, the cache keeps its limits after each
-    keyed_files: RefCell<BTreeSet<String>>,
 }
 
 impl RuntimeRunHost {
+    /// The name of a file of the results of the workbook by its path below the mount prefix
+    fn file_of_path(&self, path: &str) -> Result<String, HostError> {
+        let prefix = self.platform.results_mount_path(&self.workbook_id).unwrap_or_default();
+        path.strip_prefix(&prefix)
+            .and_then(|rest| rest.strip_prefix('/'))
+            .filter(|name| !name.is_empty() && !name.contains('/'))
+            .map(str::to_string)
+            .ok_or_else(|| HostError::new(format!("The path {path} is no file of the results of the workbook")))
+    }
+
     /// The state of a connection of the runtime
     fn with_connection<R>(&self, connection_id: &str, read: impl FnOnce(&ConnectionState) -> R) -> Option<R> {
         let registry = self.connections.registry.borrow();
@@ -1015,10 +1034,13 @@ impl RunHost for RuntimeRunHost {
         metadata.workbook_id = Some(self.workbook_id.clone());
         metadata.result_owner = Some(result_owner(&self.workbook_id, request.script_key));
         metadata.planned = Some(planned.to_json());
-        let cache = match request.cache {
-            StatementCache::None => None,
-            StatementCache::Refresh { signature } => Some((signature, true, false)),
-            StatementCache::Only { signature } => Some((signature, false, true)),
+        let workbook_id = self.workbook_id.clone();
+        let result = match request.result {
+            StatementResult::None => None,
+            StatementResult::Store { script, key } => Some(ResultRequest { workbook_id, script, key, read: None }),
+            StatementResult::Read { script, file } => {
+                Some(ResultRequest { workbook_id, script, key: file.key.clone(), read: Some(file) })
+            }
         };
         let client_function_call =
             request.client_function_call.as_deref().and_then(|call| serde_json::from_str(call).ok());
@@ -1029,7 +1051,7 @@ impl RunHost for RuntimeRunHost {
             client_function_call,
             analyze_results: request.analyze_results,
             publish_results: request.publish_results,
-            cache,
+            result,
         };
         let (query_id, ready, done) = self.connections.run_statement(statement);
         Ok(StatementHandle {
@@ -1053,7 +1075,7 @@ impl RunHost for RuntimeRunHost {
         self.connections.result_key(connection_id, signature)
     }
 
-    fn caches_results(&self, connection_id: &str) -> bool {
+    fn reuses_results(&self, connection_id: &str) -> bool {
         self.with_connection(connection_id, |state| state.caches_query_results()).unwrap_or(false)
     }
 
@@ -1084,36 +1106,40 @@ impl RunHost for RuntimeRunHost {
         }
     }
 
-    fn has_cache(&self) -> bool {
-        self.platform.has_cache()
+    fn has_results(&self) -> bool {
+        self.platform.has_results()
     }
 
-    fn cache_retain(&self, key: &str) -> impl Future<Output = Result<Option<RetainedFile>, HostError>> + 'static {
-        let retain = self.platform.cache_retain(key);
-        async move { Ok(retain.await?.map(|(id, name)| RetainedFile { id, name })) }
+    fn result_retain(&self, script: &str) -> impl Future<Output = Result<Option<RetainedFile>, HostError>> + 'static {
+        let platform = self.platform.clone();
+        let workbook_id = self.workbook_id.clone();
+        let script = script.to_string();
+        async move {
+            let retained = results::retain(&platform, &workbook_id, &script).await?;
+            Ok(retained.map(|(id, result)| RetainedFile {
+                id,
+                file: StoredFile { name: result.name, key: result.key, written_at: result.written_at },
+            }))
+        }
     }
 
-    fn cache_release(&self, file: u64) -> impl Future<Output = ()> + 'static {
-        self.platform.cache_release(file)
+    fn result_release(&self, file: u64) -> impl Future<Output = ()> + 'static {
+        self.platform.results_release(file)
     }
 
     fn mount_prefix(&self) -> Option<String> {
-        self.platform.mounts_call_now("prefix", &[]).ok().and_then(|prefix| prefix.as_string())
+        self.platform.results_mount_path(&self.workbook_id)
     }
 
-    fn mount_file_name(&self, key: Option<&str>) -> String {
-        let keyed = key.is_some();
-        let key = key.map(JsValue::from_str).unwrap_or(JsValue::NULL);
-        let name = self
-            .platform
-            .mounts_call_now("fileName", &[key])
-            .ok()
-            .and_then(|name| name.as_string())
-            .unwrap_or_default();
-        if keyed && !name.is_empty() {
-            self.keyed_files.borrow_mut().insert(name.clone());
+    fn mount_file_name(&self, result: Option<(&str, &str)>) -> String {
+        let name = match result {
+            Some((script, key)) => results::new_file_name(&self.platform, script, key).ok().flatten(),
+            None => None,
+        };
+        match name {
+            Some(name) => name,
+            None => results::new_transient_file_name(&self.platform).unwrap_or_default(),
         }
-        name
     }
 
     fn mount_write(&self, path: &str, query_id: QueryId) -> impl Future<Output = Result<u64, HostError>> + 'static {
@@ -1126,34 +1152,48 @@ impl RunHost for RuntimeRunHost {
                 })
             })
         };
-        let write = table.map(|table| {
-            self.platform.mounts_call("write", &[JsValue::from_str(path), JsValue::from_f64(table as f64)])
-        });
-        // The cache keeps its limits after every file of a key, a transient file of the run goes when the run ends
-        let keyed = self.keyed_files.borrow().iter().any(|name| path.rsplit('/').next() == Some(name.as_str()));
-        let evict = keyed.then(|| self.platform.evict_cache());
+        let platform = self.platform.clone();
+        let workbook_id = self.workbook_id.clone();
+        let name = self.file_of_path(path);
+        let write = match (table, &name) {
+            (Some(table), Ok(name)) => Ok(platform.results_write(&workbook_id, name, table)),
+            (None, _) => Err(HostError::new("The statement has no result")),
+            (_, Err(error)) => Err(error.clone()),
+        };
         async move {
-            let Some(write) = write else { return Err(HostError::new("The statement has no result")) };
-            let rows = write.await?.as_f64().unwrap_or_default().max(0.0) as u64;
-            if let Some(evict) = evict {
-                evict.await;
+            let rows = write?.await?;
+            // The file of a script replaces the older files of the script, a transient file goes when the run ends
+            let name = name?;
+            if let Some(script) = results::script_of(&name) {
+                let replaced = results::remove_files_of_script(&platform, &workbook_id, script, Some(&name)).await;
+                if let Err(error) = replaced {
+                    platform.log_on(
+                        LogLevel::Warn,
+                        "Failed to remove the older results of a script",
+                        &[("workbookId", &workbook_id), ("file", &name), ("error", error.message())],
+                        results::LOG_TARGET,
+                    );
+                }
             }
             Ok(rows)
         }
     }
 
     fn mount_pin(&self, path: &str) -> impl Future<Output = Result<u64, HostError>> + 'static {
-        let call = self.platform.mounts_call("pin", &[JsValue::from_str(path)]);
+        let platform = self.platform.clone();
+        let workbook_id = self.workbook_id.clone();
+        let name = self.file_of_path(path);
         async move {
-            let pin = call.await?.as_f64().ok_or_else(|| HostError::new("the platform returned no pin"))?;
-            Ok(pin.max(0.0) as u64)
+            let name = name?;
+            platform.results_mount(&workbook_id).await?;
+            platform.results_pin(&workbook_id, &name).await
         }
     }
 
     fn mount_remove(&self, name: &str) -> impl Future<Output = ()> + 'static {
-        let call = self.platform.cache_call("remove", &[JsValue::from_str(name)]);
+        let remove = self.platform.results_remove(&self.workbook_id, name);
         async move {
-            let _ = call.await;
+            let _ = remove.await;
         }
     }
 

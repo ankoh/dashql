@@ -44,7 +44,7 @@ describe('a workbook folder on the file system of Node', () => {
             { name: '2_second.sql', sql: 'select 2' },
             { name: '10_tenth.sql', sql: 'select 10' },
         ]);
-        expect(await readFile(join(dir, '.gitignore'), 'utf8')).toBe('cache/\n*.hyper\n');
+        expect(await readFile(join(dir, '.gitignore'), 'utf8')).toBe('results/\ncache/\n*.hyper\n');
     });
 
     it('stamps files and lists them', async () => {

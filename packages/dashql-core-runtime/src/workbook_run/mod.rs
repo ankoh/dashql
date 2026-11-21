@@ -2,14 +2,14 @@
 //! script with the scripts it references.
 //!
 //! A run is an async task on a `RunHost`. It analyzes the scripts of the workbook and publishes their declarations,
-//! plans the scripts with the planner of the runtime (`planner::plan_session` through `Workbook::plan_run`), serves
-//! the results that the query result cache holds, plans again with the files of those results, and runs the nodes of
+//! plans the scripts with the planner of the runtime (`planner::plan_session` through `Workbook::plan_run`), reuses
+//! the stored results of the scripts whose keys match, plans again with the files of those results, and runs the nodes of
 //! the plan across their connections: a node starts once its predecessors are done, at most a number of statements
 //! of a connection run at once. The statements run through the host, which hands them to the query executor and keeps
 //! the result tables. The run registers the queries and the results of the scripts on the workbook and captures the
 //! visualization of every output, the host learns that the workbook changed. A failed statement cancels the running
-//! ones, the run settles once they are done and then releases its files: the cached files it kept and the pins of the
-//! files it scans and writes, then it removes its transient files.
+//! ones, the run settles once they are done and then releases its files: the stored files it kept and the pins of the
+//! files it scans and writes, then it removes its transient files (docs/design/workbook_results.md).
 
 mod engine;
 pub mod plan;
@@ -18,7 +18,7 @@ pub mod report;
 use std::future::Future;
 use std::pin::Pin;
 
-use crate::executor::{HostValue, QueryId};
+use crate::executor::{HostValue, QueryId, StoredFile};
 use crate::host::{Host, HostError};
 use crate::workbook::{ScriptKey, WorkbookEffect};
 pub use engine::{start_run, RunHandle};
@@ -30,15 +30,15 @@ pub const LOG_TARGET: &str = "workbook_execution";
 /// A future of the host
 pub type LocalFuture<T> = Pin<Box<dyn Future<Output = T>>>;
 
-/// How a statement uses the query result cache
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum StatementCache {
+/// How a statement uses the stored result of its script
+#[derive(Clone, Debug, PartialEq)]
+pub enum StatementResult {
     /// It doesn't
     None,
-    /// The statement runs and its result becomes the newest file of the key of its signature
-    Refresh { signature: String },
-    /// The statement reads the cached file of the key of its signature or fails, it never runs
-    Only { signature: String },
+    /// The statement runs and its result becomes the file of its script, named after the key
+    Store { script: String, key: String },
+    /// The statement reads a file of the results of the workbook or fails with a miss, it never runs
+    Read { script: String, file: StoredFile },
 }
 
 /// A statement that a run hands to the host
@@ -56,8 +56,8 @@ pub struct StatementRequest {
     pub analyze_results: bool,
     /// Collect the result, a statement whose output nothing reads drains it
     pub publish_results: bool,
-    /// The query result cache
-    pub cache: StatementCache,
+    /// The stored result of the script
+    pub result: StatementResult,
     /// Where the statement comes from
     pub planned: PlannedStatement,
 }
@@ -67,7 +67,7 @@ pub struct StatementRequest {
 pub struct StatementFailure {
     /// The message
     pub message: String,
-    /// A statement that may only read the cache missed it
+    /// A statement that only reads a stored result found no file
     pub cache_miss: bool,
     /// What the host failed with, it goes back unchanged
     pub value: Option<HostValue>,
@@ -99,13 +99,13 @@ pub struct StatementHandle {
     pub done: LocalFuture<Result<bool, StatementFailure>>,
 }
 
-/// A file of the query result cache that a run keeps until it ends
-#[derive(Clone, Debug, PartialEq, Eq)]
+/// The stored result of a script that a run keeps until it ends
+#[derive(Clone, Debug, PartialEq)]
 pub struct RetainedFile {
     /// The id of the host, the run releases the file by it
     pub id: u64,
-    /// The name of the file below the mount prefix
-    pub name: String,
+    /// The file below the mount prefix, with its key and when it was written
+    pub file: StoredFile,
 }
 
 /// What a run asks of the host
@@ -117,9 +117,9 @@ pub trait RunHost: Host {
 
     /// The result key of a signature on a connection, none if the connection has no key
     fn result_key(&self, connection_id: &str, signature: &str) -> impl Future<Output = Option<String>> + 'static;
-    /// Does a connection cache query results? A run reuses and writes the results with reusable keys.
-    fn caches_results(&self, connection_id: &str) -> bool;
-    /// Can the statements of a connection run? The scripts of one that can't serve their cached results, the others
+    /// Does a connection reuse query results? A run reuses the stored results whose keys are reusable and match.
+    fn reuses_results(&self, connection_id: &str) -> bool;
+    /// Can the statements of a connection run? The scripts of one that can't reuse their stored results, the others
     /// are skipped with the scripts that follow them.
     fn can_run(&self, connection_id: &str) -> bool;
     /// The statements that a connection runs at once
@@ -129,22 +129,24 @@ pub trait RunHost: Host {
     /// Set up a connection that statements run on, the scripts of one that fails are skipped
     fn prepare_connection(&self, connection_id: &str) -> impl Future<Output = Result<(), HostError>> + 'static;
 
-    /// Is there a query result cache?
-    fn has_cache(&self) -> bool;
-    /// Keep the newest file of a key until the run releases it, none if the cache has none
-    fn cache_retain(&self, key: &str) -> impl Future<Output = Result<Option<RetainedFile>, HostError>> + 'static;
+    /// Does the workbook store the results of its scripts?
+    fn has_results(&self) -> bool;
+    /// Keep the stored result of a script until the run releases it, none if the script has none
+    fn result_retain(&self, script: &str) -> impl Future<Output = Result<Option<RetainedFile>, HostError>> + 'static;
     /// Release a file that the run kept: a retained file or a pin
-    fn cache_release(&self, file: u64) -> impl Future<Output = ()> + 'static;
+    fn result_release(&self, file: u64) -> impl Future<Output = ()> + 'static;
 
-    /// The directory of the files of the materialized results of the run, none without the compute database
+    /// The directory of the files of the materialized results of the run, the results of the workbook; none without
+    /// the compute database
     fn mount_prefix(&self) -> Option<String>;
-    /// The name of a new file of the result of a script, a file of its key if the key is reusable, a transient file
-    /// otherwise
-    fn mount_file_name(&self, key: Option<&str>) -> String;
-    /// Mount the files of the cache in the compute database and pin a file below the prefix, also one that the run is
-    /// about to write. Returns the id that `cache_release` releases the pin with.
+    /// The name of a new file of the result of a script: the file of the script under its key, a transient file
+    /// without a key
+    fn mount_file_name(&self, result: Option<(&str, &str)>) -> String;
+    /// Mount the results of the workbook in the compute database and pin a file below the prefix, also one that the
+    /// run is about to write. Returns the id that `result_release` releases the pin with.
     fn mount_pin(&self, path: &str) -> impl Future<Output = Result<u64, HostError>> + 'static;
-    /// Write the result of a statement as Parquet file at a path below the prefix that the run pinned, returns its rows
+    /// Write the result of a statement as Parquet file at a path below the prefix that the run pinned, returns its rows.
+    /// The file of a script replaces the older files of the script.
     fn mount_write(&self, path: &str, query_id: QueryId) -> impl Future<Output = Result<u64, HostError>> + 'static;
     /// Remove a transient file of the run that nobody pins any more
     fn mount_remove(&self, name: &str) -> impl Future<Output = ()> + 'static;
@@ -204,8 +206,8 @@ pub struct RunState {
     pub active_statement_index: Option<u32>,
     pub active_statement_count: Option<u32>,
     pub error: Option<String>,
-    /// The scripts that the run left out: their connection can't run or could not be set up, they have no cached
-    /// result or follow a script that runs on such a connection
+    /// The scripts that the run left out: their connection can't run or could not be set up, they have no stored
+    /// result whose key matches or follow a script that runs on such a connection
     pub skipped_scripts: usize,
     pub skipped_files: Vec<String>,
 }
@@ -279,7 +281,7 @@ impl RunFailure {
 pub enum ScriptEvent {
     /// It runs once the scripts that it follows in the plan are done, by their files
     Planned { follows: Vec<String> },
-    /// The cache served its result instead of its connection
+    /// Its stored result was reused instead of running it on its connection
     Cached { key: String, query_id: QueryId },
     /// It doesn't run: its connection can't run or could not be set up, or it follows a script that doesn't run
     Skipped { reason: String },
@@ -302,8 +304,11 @@ pub struct RunOptions {
     pub targets: Option<Vec<u32>>,
     /// Run the scripts that a change of these inputs affects instead (docs/design/workbook_inputs.md)
     pub inputs: Option<Vec<String>>,
-    /// Read no cached results: the scripts run, the results with reusable keys become the newest files of their keys
+    /// Reuse no stored results: the scripts run and their results replace the stored ones
     pub refresh: bool,
+    /// Read the stored result of every script that shows no result yet, whatever its key, and run nothing: a workbook
+    /// that opens shows the results of its scripts (docs/design/workbook_results.md)
+    pub stored: bool,
     /// Report the state of the run to the host
     pub reports_state: bool,
     /// Analyze the results of the outputs on the compute database, the command line tool only prints them

@@ -860,9 +860,12 @@ fn read_folder_zip(files: &[(&str, &str)]) -> Result<WorkbookBundle<Vec<u8>>> {
             FolderArchiveEntry::Attachment { name } => {
                 read.data.push(DataFileData { name: name.clone(), bytes: content.into_bytes() })
             }
-            FolderArchiveEntry::Result { key } => {
-                read.results.push(WorkbookBundleResult { key: key.clone(), bytes: content.into_bytes(), crc32: None })
-            }
+            FolderArchiveEntry::Result { key } => read.results.push(WorkbookBundleResult {
+                key: key.clone(),
+                script: None,
+                bytes: content.into_bytes(),
+                crc32: None,
+            }),
         }
     }
     read_folder_archive(&plan, read)
@@ -1050,7 +1053,12 @@ fn tables_bundle() -> WorkbookBundle<Vec<u8>> {
         }],
         scripts: vec![ScriptData::new("b.sql", "select 1"), ScriptData::new("a.sql", "select 'it''s'")],
         data: vec![DataFileData { name: "d.parquet".into(), bytes: vec![1, 2, 3] }],
-        results: vec![WorkbookBundleResult { key: "k1".into(), bytes: vec![4, 5], crc32: Some(7) }],
+        results: vec![WorkbookBundleResult {
+            key: "k1".into(),
+            script: Some("a.sql".into()),
+            bytes: vec![4, 5],
+            crc32: Some(7),
+        }],
     }
 }
 

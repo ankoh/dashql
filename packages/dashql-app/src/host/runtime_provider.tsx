@@ -19,7 +19,7 @@ import { usePlatformEventListener } from './events/event_listener_provider.js';
 import { useHttpClient } from './http/http_client_provider.js';
 import { useLogger } from './logger_provider.js';
 import { usePlatformType } from './platform_type.js';
-import { useQueryResultCache } from '../storage/query_result_cache_provider.js';
+import { useWorkbookResults } from '../storage/workbook_results_provider.js';
 import { useStorageReader } from '../storage/storage_provider.js';
 import { useAppHandOver } from './app_hand_over.js';
 import { FRAME_UPDATE_SCHEDULER } from '../utils/store_hooks.js';
@@ -56,7 +56,7 @@ function AppRuntime(props: { core: core.DashQL; catalogLoader?: boolean; queryCo
     const logger = useLogger();
     const storage = useStorageReader();
     const http = useHttpClient();
-    const resultCache = useQueryResultCache();
+    const results = useWorkbookResults();
     const appEvents = usePlatformEventListener();
     const platformType = usePlatformType();
     const logMetrics = useCreateHyperLogMetrics();
@@ -89,7 +89,7 @@ function AppRuntime(props: { core: core.DashQL; catalogLoader?: boolean; queryCo
             channels: createChannelConnector(clients),
             // The embedded database starts once the settings loaded, the runtime waits for it
             computeDatabase: ref.current.setupEmbeddedDatabase == null ? null : () => ref.current.setupEmbeddedDatabase('compute'),
-            resultCache,
+            results,
             archives: handles => createRuntimeArchives(handles, context => ref.current.setupEmbeddedDatabase(context)),
             catalogLoader: props.catalogLoader,
             // The commands that a test replaces are read when they are called

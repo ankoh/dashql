@@ -13,7 +13,7 @@ import { stringifyError, type LoggerLike } from '@akohn/dashql/platform/logger/l
 type PreparationPhase = 'reading' | 'validating' | 'resolving';
 
 /// The steps that a commit of the import reports, in order
-const COMMIT_STEPS = ['results', 'workbook'] as const;
+const COMMIT_STEPS = ['workbook', 'results'] as const;
 type CommitStep = typeof COMMIT_STEPS[number];
 
 /// How far the commit of an import got
@@ -129,9 +129,9 @@ export function FileLoader({ file, onDone, dependencies = DEFAULT_DEPENDENCIES }
     }, [navigate, onDone, state]);
     const startImport = React.useEffectEvent(async (prepared: PreparedImport, fileByteCount: number, choice: ConflictChoice | null) => {
         const preview = prepared.preview;
-        let progress: ImportProgress = { step: preview.results.count > 0 ? 'results' : 'workbook', results: null };
+        let progress: ImportProgress = { step: 'workbook', results: null };
         const onProgress = (update: WorkbookImportProgress) => {
-            // The file shows the commit as adding the results and saving the workbook
+            // The file shows the commit as saving the workbook and adding its results
             if (update.step !== 'results' && update.step !== 'workbook') return;
             progress = { step: update.step, results: update.step === 'results' ? update.outcome : progress.results };
             setState(current => current.phase === 'importing' ? { ...current, progress } : current);
@@ -191,19 +191,19 @@ export function FileLoader({ file, onDone, dependencies = DEFAULT_DEPENDENCIES }
     }
 }
 
-/// The query results of an import that aren't in the cache
+/// The query results of an import that weren't added to the workbook
 function missingResults(results: core.ImportedResults): number {
-    return results.failed + results.dropped;
+    return results.failed + results.unmatched;
 }
 
-/// Why some query results of an imported workbook aren't in the cache
+/// Why some query results of an imported workbook weren't added to it
 function resultsWarning(results: core.ImportedResults): string {
     const missing = missingResults(results);
     const reasons = [
         results.failed > 0 ? `${results.failed} failed` : null,
-        results.dropped > 0 ? `${results.dropped} did not fit into the cache` : null,
+        results.unmatched > 0 ? `${results.unmatched} belong to no script` : null,
     ].filter(reason => reason != null).join(', ');
-    return `${missing} of ${results.total} query ${results.total === 1 ? 'result' : 'results'} ${missing === 1 ? 'was' : 'were'} not added to the cache (${reasons}). `
+    return `${missing} of ${results.total} query ${results.total === 1 ? 'result' : 'results'} ${missing === 1 ? 'was' : 'were'} not added to the workbook (${reasons}). `
         + `Their scripts need a connection to run.`;
 }
 
@@ -244,8 +244,8 @@ function fileImportSteps(state: FileLoadState): WorkbookFileStepStatus[] {
         if (step === 'results') {
             detail = `${resultCount} ${resultCount === 1 ? 'result' : 'results'}`;
             if (results != null) {
-                // The results are added, the outcome tells if all of them are in the cache
-                detail = `${results.added + results.kept} of ${results.total}`;
+                // The results are added, the outcome tells if all of them are in the workbook
+                detail = `${results.added} of ${results.total}`;
                 status = missingResults(results) > 0 ? IndicatorStatus.Failed : IndicatorStatus.Succeeded;
             }
         }

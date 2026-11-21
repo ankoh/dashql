@@ -30,6 +30,7 @@ use serde_json::{json, Map, Value};
 use super::changes::{Read, Slice};
 use super::connections::Connections;
 use super::persistence::{CreatedWorkbook, Persistence};
+use super::results;
 use crate::host::JsPlatform;
 use crate::runtime::storage::restore_view::RestoredInvalidWorkbook;
 use crate::views::JsonValue;
@@ -138,7 +139,7 @@ pub(crate) struct Workbooks {
     pub invalid: RefCell<Vec<RestoredInvalidWorkbook>>,
     /// Changes with the list of the invalid workbooks
     pub invalid_revision: Cell<u64>,
-    /// Hears that what the cached results of a workbook depend on may have changed, the runs look them up again
+    /// Hears that what the stored results of a workbook depend on may have changed, the runs look them up again
     pub changed_listener: RefCell<Option<Rc<dyn Fn(&str)>>>,
     /// Hears that a workbook was deleted or replaced, the runs forget its run
     pub removed_listener: RefCell<Option<Rc<dyn Fn(&str)>>>,
@@ -294,7 +295,7 @@ impl Workbooks {
             .ok_or_else(|| Error::invalid_argument(format!("no workbook registered with id {workbook_id}")))?;
         let changed = match action {
             // Fields of the scripts that the workbook derives nothing from
-            WorkbookAction::SetCachedResult { .. }
+            WorkbookAction::SetStoredResult { .. }
             | WorkbookAction::RegisterQuery { .. }
             | WorkbookAction::RegisterScriptResult { .. }
             | WorkbookAction::SetExecutionVisualization { .. } => Changed::Scripts { derives: false },
@@ -551,6 +552,7 @@ impl Workbooks {
 
     /// Schedule the writes of the effects of an action, in order. Nothing is written without storage.
     pub fn write_effects(&self, workbook_id: &str, effects: Vec<WorkbookEffect>) {
+        results::follow_effects(&self.platform, workbook_id, &effects);
         let metadata = self.metadata(workbook_id);
         self.persistence.workbook_effects(workbook_id, effects, metadata.get("cloud"));
     }

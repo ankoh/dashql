@@ -1,4 +1,5 @@
 import { type WorkbookRegistryBackend, type ConnectionEntry, STORAGE_CONNECTIONS_FOLDER, type WorkbookData, type ScriptData, type WorkbookEntry, type StorageManifest, type AppSettings, StorageBackendType, STORAGE_MANIFEST_FILE, STORAGE_WORKBOOKS_FOLDER, STORAGE_WORKBOOK_FILE, STORAGE_SCRIPTS_FOLDER, STORAGE_SHELL_FOLDER } from './storage_backend.js';
+import { GITIGNORE_FILE, gitignoreWithEntries } from './workbook_gitignore.js';
 import { type DataFile, type DataFileContent, STORAGE_ATTACHMENTS_FOLDER } from './storage_backend.js';
 import type * as core from '../../core/index.js';
 import { sleep } from '../utils/sleep.js';
@@ -54,6 +55,8 @@ interface MovableFileHandle {
 /// Every per-workbook method is keyed by the bare workbook UUID.
 export class OPFSStorageBackend implements WorkbookRegistryBackend {
     private rootHandle: FileSystemDirectoryHandle | null = null;
+    /// The workbooks whose `.gitignore` this backend checked
+    private readonly gitignoreChecked = new Set<string>();
     /// The latest manifest mutation, every read-modify-write of the manifest chains onto it
     private manifestChain: Promise<void> = Promise.resolve();
     /// The latest change of the workbook tree, every change of the tree chains onto it
@@ -166,6 +169,11 @@ export class OPFSStorageBackend implements WorkbookRegistryBackend {
         const writable = await metaFile.createWritable();
         await writable.write(JSON.stringify(data, null, 2));
         await writable.close();
+        // The results of the scripts stay out of version control when the folder is checked in
+        if (!this.gitignoreChecked.has(workbookId)) {
+            await this.ensureGitignore(workbookDir);
+            this.gitignoreChecked.add(workbookId);
+        }
 
         await this.upsertWorkbookEntry({ path: workbookId, storageType: StorageBackendType.OPFS });
     }
@@ -330,6 +338,21 @@ export class OPFSStorageBackend implements WorkbookRegistryBackend {
             throw error;
         }
         await this.moveFile(scriptsDir, oldScriptName, scriptsDir, newScriptName);
+    }
+
+    /// Append the missing entries of the app to the `.gitignore` of a workbook folder
+    private async ensureGitignore(workbookDir: FileSystemDirectoryHandle): Promise<void> {
+        let existing: string | null = null;
+        try {
+            existing = await (await (await workbookDir.getFileHandle(GITIGNORE_FILE)).getFile()).text();
+        } catch (error) {
+            if ((error as Error).name !== 'NotFoundError') throw error;
+        }
+        const updated = gitignoreWithEntries(existing);
+        if (updated == null) return;
+        const writable = await (await workbookDir.getFileHandle(GITIGNORE_FILE, { create: true })).createWritable();
+        await writable.write(updated);
+        await writable.close();
     }
 
     private async dataDir(workbookId: string, create: boolean): Promise<FileSystemDirectoryHandle | null> {

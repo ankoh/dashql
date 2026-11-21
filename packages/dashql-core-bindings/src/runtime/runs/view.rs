@@ -49,6 +49,8 @@ pub struct RunScriptOptions {
 pub enum WorkbookRunKind {
     Workbook,
     Script,
+    /// The workbook opened and reads the stored results of its scripts
+    Open,
 }
 
 /// The phase of a run

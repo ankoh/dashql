@@ -291,7 +291,7 @@ describe('storage migration', () => {
         }));
         files.set(`sessions/${SESSION_A}/scripts/1_a.sql`, 'SELECT 1');
 
-        expect(await migrateStorage(new TestLogger(), root)).toEqual({ steps: 1, workbooks: 1 });
+        expect(await migrateStorage(new TestLogger(), root)).toEqual({ steps: STORAGE_VERSION - 8, workbooks: 1 });
 
         expect([...dirs].filter(dir => dir.startsWith('sessions') || dir.startsWith('sessiontree'))).toEqual([]);
         expect(json('workbooktree/dashql-folder.json')).toEqual({ workbooks: [] });

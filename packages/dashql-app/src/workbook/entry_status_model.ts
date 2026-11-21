@@ -100,7 +100,7 @@ export function deriveEntryStatus(query: QueryExecutionState | null, progress: Q
             kind: EntryStatusKind.Query,
             indicator: IndicatorStatus.Succeeded,
             message: query.status === QueryExecutionStatus.SUCCEEDED && query.servedFromCache
-                ? 'Result loaded from cache'
+                ? 'Result read from its stored file'
                 : getQueryStatusText(query.status),
             traceId: query.traceId,
             errorDetail: null,

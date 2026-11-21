@@ -113,16 +113,27 @@ describe('the card of a script', () => {
         }
     });
 
-    it('marks a result that was loaded from the cache as cached in the status bar', async () => {
-        const script = fakeScript(1, '01_alpha.sql', 'SELECT 1', { latestQueryId: 42, analysisOutdated: false, cachedResult: { key: 'key', cachedAt: Date.now() - 8 * 60_000 } } as never);
+    it('marks a result that was read from its stored file in the status bar', async () => {
+        const stored = { name: 'n', key: 'key', writtenAt: Date.now() - 8 * 60_000, current: true };
+        const script = fakeScript(1, '01_alpha.sql', 'SELECT 1', { latestQueryId: 42, analysisOutdated: false, storedResult: stored } as never);
         const { props } = cardProps(fakeScriptModel({ script, query: fakeQueryModel(succeeded(42, { servedFromCache: true } as never)) }));
         render({ ...props, connection: connection() });
-        expect(container.textContent).toContain('Result loaded from cache');
-        await vi.waitFor(() => expect(container.querySelector('[data-testid="cached-result"]')).not.toBeNull());
+        expect(container.textContent).toContain('Result read from its stored file');
+        await vi.waitFor(() => expect(container.querySelector('[data-testid="stored-result"]')?.textContent).toBe('Stored'));
 
-        // Clicking the tag tells since when the result is cached
-        click('cached-result');
-        expect(document.querySelector('[data-testid="cached-result-detail"]')?.textContent).toContain('8 minutes ago');
+        // Clicking the tag tells since when the result is stored
+        click('stored-result');
+        expect(document.querySelector('[data-testid="stored-result-detail"]')?.textContent).toContain('8 minutes ago');
+    });
+
+    it('marks a stored result of an earlier text of the script as outdated', async () => {
+        const stored = { name: 'n', key: 'key', writtenAt: Date.now(), current: false };
+        const script = fakeScript(1, '01_alpha.sql', 'SELECT 1', { latestQueryId: 42, analysisOutdated: false, storedResult: stored } as never);
+        const { props } = cardProps(fakeScriptModel({ script, query: fakeQueryModel(succeeded(42, { servedFromCache: true } as never)) }));
+        render({ ...props, connection: connection() });
+        await vi.waitFor(() => expect(container.querySelector('[data-testid="stored-result"]')?.textContent).toBe('Outdated'));
+        click('stored-result');
+        expect(document.querySelector('[data-testid="stored-result-detail"]')?.textContent).toContain('a run computes the result anew');
     });
 
     it('focuses on pointer entry, shows the result and its table, formats, accepts and rejects a rewrite, moves and deletes', () => {

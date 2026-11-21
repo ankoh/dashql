@@ -1,5 +1,5 @@
-//! The cached query results that an exported workbook carries, and their import into the query result cache. The cache
-//! stays with the host.
+//! The query results that an exported workbook carries, and the outcome of their import into the results folder of the
+//! workbook (docs/design/workbook_results.md).
 
 /// The folder of the query results in an exported workbook of older versions, `results/<key>.parquet`
 pub const WORKBOOK_RESULTS_FOLDER: &str = "results";
@@ -15,28 +15,18 @@ pub fn workbook_result_key(file_name: &str) -> Option<&str> {
     (key.len() == 64 && key.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))).then_some(key)
 }
 
-/// The limits of the query result cache
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct CacheCapacity {
-    /// The bytes the cache keeps
-    pub max_bytes: u64,
-    /// The files the cache keeps
-    pub max_files: u64,
-}
-
-/// The outcome of an import of the query results of a workbook
+/// The outcome of an import of the query results of a workbook into its results folder
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ImportedWorkbookQueryResults {
     /// The results of the workbook
     pub total: u64,
-    /// The results that became files of the cache
+    /// The results that became the files of their scripts
     pub added: u64,
-    /// The results whose keys were cached already, the results of the app win
-    pub kept: u64,
+    /// The results that name no script of the workbook, e.g. a result of an archive of an earlier version whose key
+    /// is the key of no script
+    pub unmatched: u64,
     /// The results that couldn't be added
     pub failed: u64,
-    /// The results left out because the workbook holds more than the cache keeps
-    pub dropped: u64,
     /// The bytes of the results that were added
     pub bytes: u64,
     /// Why the first result that failed couldn't be added, or why none was
@@ -44,20 +34,20 @@ pub struct ImportedWorkbookQueryResults {
 }
 
 impl ImportedWorkbookQueryResults {
-    /// The outcome of an import whose results all failed at once, e.g. without a cache
+    /// The outcome of an import whose results all failed at once, e.g. without a results folder
     pub fn failed_all(total: u64, error: impl Into<String>) -> Self {
         Self { total, failed: total, error: Some(error.into()), ..Self::default() }
     }
 
-    /// A result became a file of the cache
+    /// A result became the file of its script
     pub fn added(&mut self, size: u64) {
         self.added += 1;
         self.bytes += size;
     }
 
-    /// The key of a result was cached already
-    pub fn kept(&mut self) {
-        self.kept += 1;
+    /// A result names no script of the workbook
+    pub fn unmatched(&mut self) {
+        self.unmatched += 1;
     }
 
     /// A result couldn't be added
@@ -67,30 +57,6 @@ impl ImportedWorkbookQueryResults {
             self.error = Some(error.into());
         }
     }
-}
-
-/// Which results of a workbook an import adds to the cache, by their sizes: true for a result to add, false for one
-/// beyond the limits of the cache, which would evict the ones before it again. Counts the dropped results.
-pub fn plan_result_import(
-    sizes: &[u64],
-    capacity: CacheCapacity,
-    outcome: &mut ImportedWorkbookQueryResults,
-) -> Vec<bool> {
-    outcome.total = sizes.len() as u64;
-    let mut budget_bytes = capacity.max_bytes;
-    let mut budget_files = capacity.max_files;
-    sizes
-        .iter()
-        .map(|size| {
-            if *size > budget_bytes || budget_files < 1 {
-                outcome.dropped += 1;
-                return false;
-            }
-            budget_bytes -= size;
-            budget_files -= 1;
-            true
-        })
-        .collect()
 }
 
 #[cfg(test)]
@@ -107,31 +73,21 @@ mod tests {
     }
 
     #[test]
-    fn leaves_out_results_beyond_the_capacity() {
-        let mut outcome = ImportedWorkbookQueryResults::default();
-        let plan = plan_result_import(&[3, 3], CacheCapacity { max_bytes: 5, max_files: 10 }, &mut outcome);
-        assert_eq!(plan, [true, false]);
-        outcome.added(3);
-        assert_eq!(
-            outcome,
-            ImportedWorkbookQueryResults { total: 2, added: 1, dropped: 1, bytes: 3, ..Default::default() }
-        );
-        let mut outcome = ImportedWorkbookQueryResults::default();
-        plan_result_import(&[1, 3, 4], CacheCapacity { max_bytes: 100, max_files: 100 }, &mut outcome);
+    fn counts_the_outcome_of_an_import() {
+        let mut outcome = ImportedWorkbookQueryResults { total: 4, ..Default::default() };
         outcome.failed("NotReadableError");
         outcome.added(3);
-        outcome.kept();
+        outcome.unmatched();
         outcome.failed("other");
         assert_eq!(
             outcome,
             ImportedWorkbookQueryResults {
-                total: 3,
+                total: 4,
                 added: 1,
-                kept: 1,
+                unmatched: 1,
                 failed: 2,
                 bytes: 3,
                 error: Some("NotReadableError".into()),
-                ..Default::default()
             }
         );
     }

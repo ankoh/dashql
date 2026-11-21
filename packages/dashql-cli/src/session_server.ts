@@ -1,5 +1,5 @@
 import http from 'node:http';
-import { randomBytes, randomUUID } from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 import { createReadStream, createWriteStream, existsSync, mkdirSync, readdirSync, renameSync, rmSync, statSync } from 'node:fs';
 import path from 'node:path';
 
@@ -81,8 +81,12 @@ export interface SessionServer {
     close: () => Promise<void>;
 }
 
-/// The folder of the query result cache in the workspace of the session (docs/design/storage_layout.md)
-const RESULT_CACHE_FOLDER = 'cache';
+/// The folders of the stored results of the workbooks in the workspace of the session, `workbooks/<id>/results`
+/// (docs/design/workbook_results.md)
+const WORKBOOKS_FOLDER = 'workbooks';
+const RESULTS_FOLDER = 'results';
+/// The id of a workbook
+const WORKBOOK_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 /// The files of a workbook folder that the server hands out: what a published workbook holds (workbook_publishing.md)
 const WORKBOOK_FILE = /^(dashql-workbook\.json|(scripts|attachments)\/[^/]+|connections\/[^/]+\/dashql-catalog-[a-z]+\.sql)$/;
 
@@ -442,14 +446,16 @@ export async function startSessionServer(options: SessionServerOptions): Promise
             }, () => failWrite(response)).catch(() => response.destroy());
             return;
         }
-        if (request.method === 'PUT' && url.pathname.split('/').length === 5 && url.pathname.startsWith('/v1/results/')) {
-            // /v1/results/<token>/<key>: the cached result of a run of the tab, into the query result cache of the
-            // session as a new file of the key, where the agent reads it
-            const key = url.pathname.split('/')[4];
-            if (!/^[0-9a-f]{64}$/.test(key)) return void response.writeHead(400).end();
-            const cache = path.join(workspace, RESULT_CACHE_FOLDER);
-            const file = path.join(cache, `${key}.${randomUUID()}.parquet`);
-            mkdirSync(cache, { recursive: true });
+        if (request.method === 'PUT' && url.pathname.split('/').length === 6 && url.pathname.startsWith('/v1/results/')) {
+            // /v1/results/<token>/<workbook id>/<file>: the stored result of a script of a run of the tab, into the
+            // results of the workbook in the workspace, where the agent reads it
+            const [workbookId, name] = url.pathname.split('/').slice(4).map(decodePart);
+            const valid = workbookId != null && WORKBOOK_ID.test(workbookId) && name != null && name.endsWith('.parquet')
+                && !/[/\\\0:]/.test(name) && name !== '.parquet';
+            if (!valid) return void response.writeHead(400).end();
+            const results = path.join(workspace, WORKBOOKS_FOLDER, workbookId!, RESULTS_FOLDER);
+            const file = path.join(results, name!);
+            mkdirSync(results, { recursive: true });
             writeAtomically(request, file).then(() => sendJson(response, 200, { file }), () => failWrite(response)).catch(() => response.destroy());
             return;
         }

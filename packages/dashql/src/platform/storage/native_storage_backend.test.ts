@@ -34,13 +34,13 @@ describe('NativeStorageBackend V2 flat storage', () => {
 
     it('writes a .gitignore with the workbook file', async () => {
         await backend.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook());
-        expect(fsStore.files.get(`${DIR}/.gitignore`)).toBe('cache/\n*.hyper\n');
+        expect(fsStore.files.get(`${DIR}/.gitignore`)).toBe('results/\ncache/\n*.hyper\n');
     });
 
     it('appends missing entries to an existing .gitignore', async () => {
         fsStore.files.set(`${DIR}/.gitignore`, 'notes.txt\ncache/');
         await backend.saveWorkbookManifest(TEST_WORKBOOK_ID, testWorkbook());
-        expect(fsStore.files.get(`${DIR}/.gitignore`)).toBe('notes.txt\ncache/\n*.hyper\n');
+        expect(fsStore.files.get(`${DIR}/.gitignore`)).toBe('notes.txt\ncache/\nresults/\n*.hyper\n');
     });
 
     it('persists rename and delete', async () => {

@@ -8,9 +8,9 @@ use dashql_buffers::editor::{EditorEventOrigin, EditorEventT, EditorOffsetUnit, 
 use dashql_buffers::formatting::FormattingDialect;
 use dashql_core_runtime::attachments::{renamed_attachment_file_name, DataFile, WorkbookAttachment};
 use dashql_core_runtime::workbook::{
-    new_catalog, text_change, ConnectionCopy, EditorUpdateId, ExternalChanges, ScriptCachedResult, ScriptConnection,
-    ScriptConnectionProfile, ScriptKey, ScriptList, ScriptListEntry, ScriptPlacement, StoredScript, TextChange,
-    Workbook, WorkbookAction, WorkbookEffect, WorkbookOrigin,
+    new_catalog, text_change, ConnectionCopy, EditorUpdateId, ExternalChanges, ScriptConnection,
+    ScriptConnectionProfile, ScriptKey, ScriptList, ScriptListEntry, ScriptPlacement, ScriptStoredResult, StoredScript,
+    TextChange, Workbook, WorkbookAction, WorkbookEffect, WorkbookOrigin,
 };
 use serde_json::Value;
 
@@ -543,21 +543,22 @@ fn keeps_the_result_of_the_newest_query() {
 }
 
 #[test]
-fn keeps_the_cached_result_that_the_host_looked_up() {
+fn keeps_the_stored_result_that_the_host_looked_up() {
     let (mut workbook, _) = workbook(&[("alpha.sql", "select 1")]);
     let alpha = key(&workbook, "alpha.sql");
-    assert_eq!(workbook.script(alpha).unwrap().cached_result(), None);
-    let cached = ScriptCachedResult { key: "k".into(), cached_at: 1000.0 };
-    let set = |cached: Option<ScriptCachedResult>| WorkbookAction::SetCachedResult { key: alpha, cached };
+    assert_eq!(workbook.script(alpha).unwrap().stored_result(), None);
+    let stored =
+        ScriptStoredResult { name: "alpha.sql.k.0.parquet".into(), key: "k".into(), written_at: 1000.0, current: true };
+    let set = |stored: Option<ScriptStoredResult>| WorkbookAction::SetStoredResult { key: alpha, stored };
     let revision = workbook.script(alpha).unwrap().revision();
-    let outcome = workbook.apply(set(Some(cached.clone()))).unwrap();
-    // The cached result is no content of the workbook, nothing is written
+    let outcome = workbook.apply(set(Some(stored.clone()))).unwrap();
+    // The stored result is no content of the workbook file, nothing is written
     assert!(outcome.changed && outcome.effects.is_empty());
-    assert_eq!(workbook.script(alpha).unwrap().cached_result(), Some(&cached));
+    assert_eq!(workbook.script(alpha).unwrap().stored_result(), Some(&stored));
     assert_ne!(workbook.script(alpha).unwrap().revision(), revision);
-    assert!(!workbook.apply(set(Some(cached))).unwrap().changed);
+    assert!(!workbook.apply(set(Some(stored))).unwrap().changed);
     assert!(workbook.apply(set(None)).unwrap().changed);
-    assert_eq!(workbook.script(alpha).unwrap().cached_result(), None);
+    assert_eq!(workbook.script(alpha).unwrap().stored_result(), None);
 }
 
 #[test]

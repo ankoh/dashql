@@ -260,13 +260,18 @@ fn execution_compilation_config(dialect: FormattingDialect) -> FormattingConfigT
 /// into the workbook never overlap, a borrow ends with the call that took it.
 pub type SessionHandle = Rc<RefCell<ScriptSession>>;
 
-/// The cached result of a script: the reusable key of its result and when the newest file of the key in the query
-/// result cache was written
+/// The stored result of a script: the file of its last result in the results of the workbook
+/// (docs/design/workbook_results.md)
 #[derive(Clone, Debug, PartialEq)]
-pub struct ScriptCachedResult {
+pub struct ScriptStoredResult {
+    /// The file name
+    pub name: String,
+    /// The key in the name of the file
     pub key: String,
-    /// Milliseconds since the epoch
-    pub cached_at: f64,
+    /// When the file was written, in milliseconds since the epoch
+    pub written_at: f64,
+    /// Is the key the key of the script as it is now? A result of another key is outdated.
+    pub current: bool,
 }
 
 /// A script of a workbook
@@ -307,8 +312,8 @@ pub struct WorkbookScript {
     latest_query_id: Option<u32>,
     /// The query whose result the script shows, independent of later queries that failed
     latest_result_query_id: Option<u32>,
-    /// The cached result of the script as the host last looked it up, none without one
-    cached_result: Option<ScriptCachedResult>,
+    /// The stored result of the script as the host last looked it up, none without one
+    stored_result: Option<ScriptStoredResult>,
     /// The connection that the workbook file names for the script while the app doesn't know it
     unresolved_connection_id: Option<String>,
     /// The revision of the script, it changes with every change of the script
@@ -410,8 +415,8 @@ impl WorkbookScript {
     pub fn latest_result_query_id(&self) -> Option<u32> {
         self.latest_result_query_id
     }
-    pub fn cached_result(&self) -> Option<&ScriptCachedResult> {
-        self.cached_result.as_ref()
+    pub fn stored_result(&self) -> Option<&ScriptStoredResult> {
+        self.stored_result.as_ref()
     }
     pub fn unresolved_connection_id(&self) -> Option<&str> {
         self.unresolved_connection_id.as_deref()
@@ -439,7 +444,7 @@ impl WorkbookScript {
     }
 
     /// Is the analysis outdated? The one predicate of the runtime: runs, the views, the analyses of the scripts that
-    /// the editors show and the cached results ask it. The flag marks the changes that the workbook knows about, the
+    /// the editors show and the stored results ask it. The flag marks the changes that the workbook knows about, the
     /// session catches the ones it missed: the text changed since the analysis, or the analysis is no longer current
     /// with the catalog, as the planner checks it. The publish of the script itself leaves its analysis current. A
     /// failed analysis is outdated once the text or the catalog changed, analyzing the same text against the same
@@ -695,8 +700,8 @@ pub enum WorkbookAction {
     RegisterQuery { key: ScriptKey, query_id: u32 },
     /// A query of a script produced the result that the script shows. An older query never replaces a newer result.
     RegisterScriptResult { key: ScriptKey, query_id: u32 },
-    /// The cached result of a script as the host looked it up, none for a script without one
-    SetCachedResult { key: ScriptKey, cached: Option<ScriptCachedResult> },
+    /// The stored result of a script as the host looked it up, none for a script without one
+    SetStoredResult { key: ScriptKey, stored: Option<ScriptStoredResult> },
     /// Rename the workbook, an empty name removes the name
     RenameWorkbook { name: Option<String> },
     /// Move a script to another connection. It keeps its key, its text and its queries, and picking the connection it
@@ -761,7 +766,7 @@ impl WorkbookAction {
                 | WorkbookAction::SetExecutionVisualization { .. }
                 | WorkbookAction::RegisterQuery { .. }
                 | WorkbookAction::RegisterScriptResult { .. }
-                | WorkbookAction::SetCachedResult { .. }
+                | WorkbookAction::SetStoredResult { .. }
                 | WorkbookAction::RenameWorkbook { .. }
                 | WorkbookAction::SetPendingConnection { .. }
                 | WorkbookAction::DetachConnection { .. }
@@ -1551,9 +1556,9 @@ impl Workbook {
                     }
                 }
             }
-            WorkbookAction::SetCachedResult { key, cached } => {
-                if let Some(script) = self.script_mut(key).filter(|script| script.cached_result != cached) {
-                    script.cached_result = cached;
+            WorkbookAction::SetStoredResult { key, stored } => {
+                if let Some(script) = self.script_mut(key).filter(|script| script.stored_result != stored) {
+                    script.stored_result = stored;
                     script.revision = next_revision();
                     outcome.changed = true;
                 }
@@ -1703,7 +1708,7 @@ impl Workbook {
             statistics: Default::default(),
             latest_query_id: None,
             latest_result_query_id: None,
-            cached_result: None,
+            stored_result: None,
             unresolved_connection_id: None,
             revision: next_revision(),
         })
@@ -2109,7 +2114,7 @@ impl Workbook {
 
     /// The script at a position moved to another connection under its key, in a new session with its text. It keeps
     /// what doesn't belong to the session: its staged rewrite, its unresolved connection, its visualization, its
-    /// statistics, its queries, its cached result, and its editor update until it analyzes in the new session. The
+    /// statistics, its queries, its stored result, and its editor update until it analyzes in the new session. The
     /// script at the position stays as it is, the caller replaces it.
     fn moved_script(&self, position: usize, connection: Rc<ScriptConnection>) -> Result<WorkbookScript> {
         let Some(previous) = self.scripts.get(position) else {
@@ -2127,7 +2132,7 @@ impl Workbook {
         moved.statistics = previous.statistics.clone();
         moved.latest_query_id = previous.latest_query_id;
         moved.latest_result_query_id = previous.latest_result_query_id;
-        moved.cached_result = previous.cached_result.clone();
+        moved.stored_result = previous.stored_result.clone();
         Ok(moved)
     }
 

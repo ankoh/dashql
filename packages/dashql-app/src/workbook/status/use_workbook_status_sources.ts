@@ -163,8 +163,10 @@ export function diffScriptQueries(prev: readonly ScriptQuery[], next: readonly S
         const key = `query:${query.queryId}:${now}`;
         if (query.status === QueryExecutionStatus.SUCCEEDED) {
             if (executing) continue;
+            // A stored result that a script without a query shows is the workbook opening, no script ran
+            if (query.fromCache && before == null) continue;
             const parts: string[] = [];
-            if (query.fromCache) parts.push('from the cache');
+            if (query.fromCache) parts.push('stored result');
             else if (query.durationMs != null) parts.push(`in ${formatMilliseconds(query.durationMs)}`);
             if (query.rows != null) parts.push(query.rows === 1 ? '1 row' : `${query.rows.toLocaleString()} rows`);
             const detail = parts.length > 0 ? parts.join(' · ') : null;

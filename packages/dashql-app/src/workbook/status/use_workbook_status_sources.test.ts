@@ -74,8 +74,10 @@ describe('Workbook status', () => {
         expect(diffScriptQueries(done, done, false, NOW)).toEqual([]);
         // A query that started and finished between two renders
         expect(texts(diffScriptQueries(done, [query(1, 12, QueryExecutionStatus.SUCCEEDED, { fromCache: true })], false, NOW))).toEqual([
-            ['success', '1_script ran', 'from the cache · 42 rows'],
+            ['success', '1_script ran', 'stored result · 42 rows'],
         ]);
+        // The stored result of a script that showed no query is the workbook opening
+        expect(diffScriptQueries([], [query(1, 12, QueryExecutionStatus.SUCCEEDED, { fromCache: true })], false, NOW)).toEqual([]);
         expect(texts(diffScriptQueries(running, [query(1, 10, QueryExecutionStatus.CANCELLED)], false, NOW))).toEqual([
             ['attention', '1_script was stopped', null],
         ]);

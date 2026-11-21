@@ -13,7 +13,7 @@ import type { QueryExecutionState } from '@akohn/dashql/platform/query/query_exe
 export function fakeScript(scriptKey: number, fileName: string, text = 'SELECT 1', overrides: Partial<ScriptData> = {}): ScriptData {
     return {
         scriptKey, fileName, workbookId: 'workbook', connectionId: 'database', scriptSession: { getText: () => text },
-        analysisOutdated: true, annotations: {}, statistics: [], pendingDiff: null, latestQueryId: null, cachedResult: null,
+        analysisOutdated: true, annotations: {}, statistics: [], pendingDiff: null, latestQueryId: null, storedResult: null,
         ...overrides,
     } as unknown as ScriptData;
 }

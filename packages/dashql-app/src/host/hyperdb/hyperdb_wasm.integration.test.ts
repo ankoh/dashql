@@ -9,10 +9,7 @@ import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
 import { HyperDB, type HyperDBClient, type HyperDBResult, type HyperDBSettings } from '@akohn/dashql/platform/hyperdb/hyperdb_wasm';
 import { HyperDB as HyperDBEngine } from 'hyperdb-wasm';
 import { exportArrowTableAsParquet, PARQUET_EXPORT_DIRECTORY } from '@akohn/dashql/platform/hyperdb/hyperdb_parquet_export';
-import { createRunMounts } from '@akohn/dashql/runtime/run_mounts';
-import { CachePins } from '@akohn/dashql/runtime/query/cache_pins';
-import { HandleTable } from '@akohn/dashql/runtime/store/handles';
-import { createOPFSQueryResultCache, QUERY_RESULT_CACHE_MOUNT } from '@akohn/dashql/platform/storage/opfs_query_result_cache';
+import { createWorkbookResultFiles, resultsMountPath } from '@akohn/dashql/platform/workbook/workbook_result_files';
 import { getOPFSRoot } from '@akohn/dashql/platform/opfs_root';
 import { AttachmentMounts } from '@akohn/dashql/platform/workbook/attachment_mounts';
 import { tableFromArrays, vectorFromArray } from '@akohn/dashql/platform/testing/arrow_fixtures';
@@ -395,116 +392,66 @@ describe('HyperDB embedded database integration', () => {
         }
     }, 60_000);
 
-    /// A query result cache in a folder of its own
-    async function testCache() {
+    /// The results of the workbooks in a folder of its own
+    async function testResults() {
         const root = await getOPFSRoot();
-        const name = `cache-test-${crypto.randomUUID()}`;
+        const name = `results-test-${crypto.randomUUID()}`;
         const folder = await root.getDirectoryHandle(name, { create: true });
-        const cache = createOPFSQueryResultCache({ getRoot: async () => folder });
-        const files = async () => {
-            const names: string[] = [];
-            for await (const entry of (await folder.getDirectoryHandle('cache', { create: true })).keys()) names.push(entry);
-            return names.sort();
-        };
-        return { cache, files, cleanup: () => root.removeEntry(name, { recursive: true }) };
+        const results = createWorkbookResultFiles({ getRoot: async () => folder });
+        const files = async () => (await results.files(WORKBOOK)).map(file => file.name).sort();
+        return { results, files, cleanup: () => root.removeEntry(name, { recursive: true }) };
     }
-    const KEY_A = 'a'.repeat(64);
-    const KEY_B = 'b'.repeat(64);
+    const WORKBOOK = '00000000-0000-4000-8000-0000000000a1';
+    const FILE_A = `a.sql.${'a'.repeat(64)}.00000001.parquet`;
+    const FILE_B = `b.sql.${'b'.repeat(64)}.00000002.parquet`;
 
-    it('writes query results into the cache folder and reads them back from disk', async () => {
+    it('writes the results of a workbook into its folder and reads them back from disk', async () => {
         const table = tableFromArrays({ id: Int32Array.from([1, 2, 3]), name: ['alpha', 'beta', 'gamma'] });
-        const { cache, files, cleanup } = await testCache();
+        const { results, files, cleanup } = await testResults();
         try {
-            const name = cache.newFileName(KEY_A);
-            const file = await cache.writeTable(database!, table, name);
-            expect(file.size).toBeGreaterThan(0);
+            expect(await results.writeTable(database!, WORKBOOK, table, FILE_A)).toBe(3);
             // The file is complete under its name, the temporary file of the write is gone
-            expect(await files()).toEqual([name, `${name}.last_access`]);
-            expect(await cache.lookup(KEY_A)).toMatchObject({ name, key: KEY_A, size: file.size });
-            expect(toPlainObjects(await cache.readTable(database!, name))).toEqual(toPlainObjects(table));
-
-            // A new write of the key replaces the older file
-            const newer = cache.newFileName(KEY_A);
-            await cache.writeTable(database!, tableFromArrays({ id: Int32Array.from([4]), name: ['delta'] }), newer);
-            expect(await files()).toEqual([newer, `${newer}.last_access`]);
-            expect(toPlainObjects(await cache.readTable(database!, newer))).toEqual([{ id: 4, name: 'delta' }]);
+            expect(await files()).toEqual([FILE_A]);
+            expect(toPlainObjects((await results.readTable(database!, WORKBOOK, FILE_A))!)).toEqual(toPlainObjects(table));
+            // A file that is gone reads as none
+            expect(await results.readTable(database!, WORKBOOK, FILE_B)).toBeNull();
         } finally {
             await cleanup();
         }
     }, 60_000);
 
-    it('keeps the files that a run reads and writes until it ended', async () => {
-        const table = tableFromArrays({ id: Int32Array.from([1, 2, 3]), name: ['alpha', 'beta', 'gamma'] });
-        const { cache, files, cleanup } = await testCache();
-        try {
-            const cached = cache.newFileName(KEY_A);
-            await cache.writeTable(database!, table, cached);
-            const handles = new HandleTable();
-            const pins = new CachePins();
-            const mounts = createRunMounts(async () => database!, cache, handles, pins, new AttachmentMounts());
-            const prefix = mounts.prefix();
-            expect(prefix).toBe(QUERY_RESULT_CACHE_MOUNT);
-            // The run pins and writes the result of another key and pins the cached one that it reads
-            const runFile = mounts.fileName(KEY_B);
-            expect(runFile.startsWith(`${KEY_B}.`)).toBe(true);
-            const written = await mounts.pin(`${prefix}/${runFile}`);
-            expect(await mounts.write(`${prefix}/${runFile}`, handles.register(table))).toBe(table.numRows);
-            const read = await mounts.pin(`${prefix}/${cached}`);
-            const connection = await database!.connect();
-            try {
-                const result = await connection.query(
-                    `with foo as (select * from external('${prefix}/${cached}', format => 'parquet')),\n`
-                    + `bar as (select * from external('${prefix}/${runFile}', format => 'parquet'))\n`
-                    + 'select (select count(*) from foo)::int as n, (select max(name) from bar) as last');
-                expect(toPlainObjects(result)).toEqual([{ n: 3, last: 'gamma' }]);
-            } finally {
-                await connection.close();
-            }
-            // The run pins its files, the cache leaves them alone
-            expect(await cache.clear()).toEqual([]);
-            expect(await cache.lookup(KEY_A)).toMatchObject({ name: cached });
-            expect(await cache.lookup(KEY_B)).toMatchObject({ name: runFile });
-            // Once the run released its pins, its files stay in the cache and can be removed
-            await pins.release(written);
-            await pins.release(read);
-            expect(await files()).toEqual([cached, `${cached}.last_access`, runFile, `${runFile}.last_access`].sort());
-            expect((await cache.clear()).sort()).toEqual([KEY_A, KEY_B]);
-            expect(await files()).toEqual([]);
-        } finally {
-            await cleanup();
-        }
-    }, 60_000);
-
-    it('forgets removed files of the cache while a run reads through the mount', async () => {
+    it('forgets removed results while a run reads through the mount', async () => {
         const table = tableFromArrays({ id: Int32Array.from([1]) });
-        const { cache, cleanup } = await testCache();
+        const { results, cleanup } = await testResults();
         try {
-            const first = cache.newFileName(KEY_A);
-            await cache.writeTable(database!, table, first);
-            expect(toPlainObjects(await cache.readTable(database!, first))).toEqual([{ id: 1 }]);
-            // A run keeps reading its file through the shared mount while the cache removes another one
-            const kept = cache.newFileName(KEY_B);
-            await cache.writeTable(database!, tableFromArrays({ id: Int32Array.from([2]) }), kept);
-            const pins = new CachePins();
-            const mounts = createRunMounts(async () => database!, cache, new HandleTable(), pins, new AttachmentMounts());
+            await results.writeTable(database!, WORKBOOK, table, FILE_A);
+            expect(toPlainObjects((await results.readTable(database!, WORKBOOK, FILE_A))!)).toEqual([{ id: 1 }]);
+            await results.writeTable(database!, WORKBOOK, tableFromArrays({ id: Int32Array.from([2]) }), FILE_B);
+            // A run keeps reading its file through the mount while another one is removed
+            const release = await results.pin(WORKBOOK, FILE_B);
             try {
-                await mounts.pin(`${mounts.prefix()}/${kept}`);
-                await cache.delete(KEY_A);
-                await cache.mount(database!);
+                expect(await results.remove(WORKBOOK, FILE_B)).toBe(false);
+                expect(await results.remove(WORKBOOK, FILE_A)).toBe(true);
+                await results.mount(database!, WORKBOOK);
+                const prefix = resultsMountPath(WORKBOOK);
                 const connection = await database!.connect();
                 try {
-                    await expect(connection.query(`select * from external('${QUERY_RESULT_CACHE_MOUNT}/${first}', format => 'parquet')`)).rejects.toThrow();
-                    expect(toPlainObjects(await connection.query(`select * from external('${QUERY_RESULT_CACHE_MOUNT}/${kept}', format => 'parquet')`))).toEqual([{ id: 2 }]);
+                    await expect(connection.query(`select * from external('${prefix}/${FILE_A}', format => 'parquet')`)).rejects.toThrow();
+                    expect(toPlainObjects(await connection.query(`select * from external('${prefix}/${FILE_B}', format => 'parquet')`))).toEqual([{ id: 2 }]);
                 } finally {
                     await connection.close();
                 }
             } finally {
-                await pins.close();
+                await release();
             }
-            // Files of other keys stay readable through the refreshed mount
-            const second = cache.newFileName(KEY_A);
-            await cache.writeTable(database!, table, second);
-            expect(toPlainObjects(await cache.readTable(database!, second))).toEqual([{ id: 1 }]);
+            // A new file of the script is readable through the refreshed mount
+            const second = `a.sql.${'a'.repeat(64)}.00000003.parquet`;
+            await results.writeTable(database!, WORKBOOK, table, second);
+            expect(toPlainObjects((await results.readTable(database!, WORKBOOK, second))!)).toEqual([{ id: 1 }]);
+            // A renamed file is readable under its new name
+            const renamed = `c.sql.${'a'.repeat(64)}.00000004.parquet`;
+            expect(await results.move(WORKBOOK, second, renamed)).toBe(true);
+            expect(toPlainObjects((await results.readTable(database!, WORKBOOK, renamed))!)).toEqual([{ id: 1 }]);
         } finally {
             await cleanup();
         }

@@ -22,7 +22,7 @@ import { Dashboard } from '../dashboard/dashboard.js';
 import { DataflowCanvas } from '../dataflow/dataflow_canvas.js';
 import { WorkbookViewMode, useWorkbookViewMode } from '../workbook_view_mode.js';
 import { SegmentedControl, SegmentedControlSize } from '@akohn/dashql-react/components/segmented_control';
-import { useWorkbookExecution } from '@akohn/dashql-react/hooks';
+import { useWorkbookExecution, useWorkbookShown } from '@akohn/dashql-react/hooks';
 import { IndicatorStatus, StatusIndicator } from '@akohn/dashql-react/components/status_indicator';
 import { AnchoredOverlay } from '@akohn/dashql-react/components/anchored_overlay';
 import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
@@ -65,6 +65,7 @@ export interface WorkbookFeedPageDependencies {
     WorkbookConnectionButtons: typeof WorkbookConnectionButtons;
     useWorkbookViewMode: typeof useWorkbookViewMode;
     useWorkbookExecution: typeof useWorkbookExecution;
+    useWorkbookShown: typeof useWorkbookShown;
     CloudWorkbookLoadingCard: typeof CloudWorkbookLoadingCard;
 }
 
@@ -83,6 +84,7 @@ const DEFAULT_DEPENDENCIES: WorkbookFeedPageDependencies = {
     WorkbookConnectionButtons,
     useWorkbookViewMode,
     useWorkbookExecution,
+    useWorkbookShown,
     CloudWorkbookLoadingCard,
 };
 
@@ -148,6 +150,8 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
     const scriptConnectionsIdle = runConnections.length > 0 && runConnections.every(connection =>
         connection.connectionHealth !== ConnectionHealth.CONNECTING && (connection.queriesActiveOrdered?.length ?? 0) === 0);
     const execution = dependencies.useWorkbookExecution(props.workbookScripts.workbookId);
+    // The workbook shows the stored results of its scripts once it is shown (docs/design/workbook_results.md)
+    dependencies.useWorkbookShown(props.workbookScripts.workbookId);
     const run = execution.state;
     const [executionDetailsOpen, setExecutionDetailsOpen] = React.useState(false);
     React.useEffect(() => setExecutionDetailsOpen(false), [props.workbookScripts.workbookId]);

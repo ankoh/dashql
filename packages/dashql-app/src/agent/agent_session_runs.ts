@@ -3,7 +3,7 @@ import { stringifyError, type Logger } from '@akohn/dashql/platform/logger/logge
 import type * as arrow from 'apache-arrow';
 
 import type { AgentSessionChartSize, AgentSessionRunMessage } from '@akohn/dashql/platform/session/agent_session_client';
-import type { QueryResultCache } from '@akohn/dashql/platform/query/query_result_cache';
+import type { WorkbookResultFiles } from '@akohn/dashql/platform/workbook/workbook_result_files';
 import { encodeRunEvent, type RunEvent } from '@akohn/dashql/platform/workbook/run_events';
 import { describeRunError, runScriptsOf, runWorkbookReported } from '@akohn/dashql/runtime/workbook_run_report';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
@@ -13,14 +13,16 @@ import { arrowTableToRows } from '@akohn/dashql-react/vegalite/vegalite_rows';
 
 const LOG_CTX = 'agent_session';
 
-/// Send the cached file of a key, kept while it is read. Resolves with what `write` resolves, null without a file.
-export async function sendCachedResult(cache: QueryResultCache | null, key: string, write: (data: Blob) => Promise<string>): Promise<string | null> {
-    const retained = await cache?.retain(key);
+/// Send the file of the stored result of a script, kept while it is read. Resolves with what `write` resolves, null
+/// without a file.
+export async function sendStoredResult(runtime: Runtime, results: WorkbookResultFiles | null, workbookId: string, script: string, write: (name: string, data: Blob) => Promise<string>): Promise<string | null> {
+    if (results == null) return null;
+    const retained = await runtime.module.retainStoredResult(workbookId, script);
     if (retained == null) return null;
     try {
-        return await write(await cache!.readFile(retained.entry.name));
+        return await write(retained.name, await results.readFile(workbookId, retained.name));
     } finally {
-        await retained.release();
+        await runtime.module.releaseStoredResult(retained.id);
     }
 }
 
@@ -48,8 +50,9 @@ export interface AgentSessionRunHost {
     paused: () => boolean;
     /// Send an event of a run to `dashql run`, resolves false once the run is gone there
     send: (runId: string, event: unknown) => Promise<boolean>;
-    /// Write the cached result of a key into the session, resolves with its path there, null if the tab has no file
-    writeResult: (key: string) => Promise<string | null>;
+    /// Write the stored result of a script of a workbook into the session, resolves with its path there, null if the tab
+    /// has no file
+    writeResult: (workbookId: string, script: string) => Promise<string | null>;
     /// Render the Vega-Lite chart of a script of a workbook with a result as PNG, rejects with why it can't
     renderChart: (workbookId: string, script: string, table: arrow.Table | null, size: AgentSessionChartSize) => Promise<{ png: Uint8Array; width: number; height: number }>;
 }
@@ -134,10 +137,10 @@ export class AgentSessionRuns {
                     return null;
                 },
                 // The agent reads the whole result from its file in the session, a result without one still goes back
-                resultFile: async key => {
+                resultFile: async script => {
                     if (controller.signal.aborted) return null;
                     try {
-                        return await this.host.writeResult(key);
+                        return await this.host.writeResult(message.workbookId, script);
                     } catch (error) {
                         this.logger.warn('Cannot write the result of the agent into the session', { run: runId, error: stringifyError(error) }, LOG_CTX);
                         return null;

@@ -628,6 +628,27 @@ fn moves_the_files_of_the_shell_to_the_shell_folder() {
 }
 
 #[test]
+fn removes_the_query_result_cache_of_the_app() {
+    let root = storage();
+    root.set("dashql-manifest.json", json!({ "connections": [], "storageVersion": 9 }).to_string());
+    let key = "a".repeat(64);
+    root.dir("cache");
+    root.set(&format!("cache/{key}.00000000-0000-4000-8000-000000000001.parquet"), "PAR1");
+    root.set(&format!("cache/{key}.00000000-0000-4000-8000-000000000001.parquet.last_access"), "");
+    root.dir("workbooks");
+    root.set("workbooks/notes.txt", "kept");
+
+    assert_eq!(root.migrate().unwrap(), summary(1, 0));
+
+    assert_eq!(root.json("dashql-manifest.json")["storageVersion"], json!(STORAGE_VERSION));
+    assert!(root.files_starting_with("cache").is_empty());
+    assert!(root.dirs_starting_with("cache").is_empty());
+    assert_eq!(root.text("workbooks/notes.txt").as_deref(), Some("kept"));
+    // A storage without the cache has nothing to remove
+    block_on(run_storage_migration_step(&root, 10)).unwrap();
+}
+
+#[test]
 fn refuses_a_storage_of_a_newer_version() {
     let root = storage();
     let manifest = json!({ "sessions": [], "storageVersion": STORAGE_VERSION + 1 }).to_string();
@@ -670,7 +691,7 @@ fn renames_the_sessions_as_workbooks() {
     );
     root.set(&format!("sessions/{SESSION_A}/scripts/1_a.sql"), "SELECT 1");
 
-    assert_eq!(root.migrate().unwrap(), summary(1, 1));
+    assert_eq!(root.migrate().unwrap(), summary((STORAGE_VERSION - 8) as u32, 1));
 
     assert!(root.dirs_starting_with("sessions").is_empty());
     assert!(root.dirs_starting_with("sessiontree").is_empty());

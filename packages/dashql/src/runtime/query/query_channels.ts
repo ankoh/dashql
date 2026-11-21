@@ -6,7 +6,7 @@ import type { HyperDatabaseChannel } from '../../platform/connections/hyper/hype
 import type { HandleTable } from '../store/handles.js';
 import type { CachePins } from './cache_pins.js';
 import type { PlatformTables } from '../store/runtime_tables.js';
-import type { QueryResultCache } from '../../platform/query/query_result_cache.js';
+import type { WorkbookResultFiles } from '../../platform/workbook/workbook_result_files.js';
 import type { QueryExecutionResponseStream, QueryStreamItem } from '../../platform/query/query_execution_state.js';
 import { createTrace } from '../../platform/logger/trace_context.js';
 import { LoggableException, stringifyError, type Logger } from '../../platform/logger/logger.js';
@@ -65,9 +65,9 @@ export interface QueryChannelsDependencies {
     tables: PlatformTables;
     /// The database of the computations, null without one
     computeDatabase: ComputeDatabase | null;
-    /// The cache of query results, null without one
-    resultCache: QueryResultCache | null;
-    /// The files of the cache that the runtime keeps
+    /// The stored results of the scripts of the workbooks, null without
+    results: WorkbookResultFiles | null;
+    /// The files of the results that the runtime keeps
     pins: CachePins;
 }
 
@@ -75,17 +75,18 @@ export interface QueryChannelsDependencies {
 /// runtime describes a query itself: the target on the channel of its connection, the key of its result and what the
 /// executor does around it; the connections own the channels that the runtime speaks (Trino, Hyper over HTTP, the
 /// Hyper of Salesforce) with their tokens. This class keeps the channel of the host of a query, runs the queries of the
-/// channels of the host (the gRPC channel of Hyper, the embedded Hyper, the channels of tests), keeps the query result
-/// cache over the compute database, and gives a caller in TypeScript the result table and the error of a failed query.
+/// channels of the host (the gRPC channel of Hyper, the embedded Hyper, the channels of tests), keeps the stored
+/// results of the scripts over the compute database, and gives a caller in TypeScript the result table and the error
+/// of a failed query.
 export class QueryChannels {
     private readonly records = new Map<number, QueryRecord>();
 
-    /// The query result cache of the platform, Parquet files that the compute database reads and writes. Null without
-    /// a cache.
-    readonly resultCache: core.RuntimeResultCache | null;
+    /// The stored results of the scripts, Parquet files that the compute database reads and writes. Null without
+    /// stored results or without a compute database.
+    readonly results: core.RuntimeResults | null;
 
     constructor(private readonly deps: QueryChannelsDependencies) {
-        this.resultCache = deps.resultCache == null ? null : this.createResultCache(deps.resultCache, deps.computeDatabase);
+        this.results = deps.results == null || deps.computeDatabase == null ? null : this.createResults(deps.results, deps.computeDatabase);
     }
 
     /// Let go of what the platform keeps for the runtime: the queries stop
@@ -136,54 +137,40 @@ export class QueryChannels {
         },
     };
 
-    /// The query result cache over the compute database
-    private createResultCache(cache: QueryResultCache, computeDatabase: ComputeDatabase | null): core.RuntimeResultCache {
-        const database = async (): Promise<EmbeddedComputeDatabase> => {
-            if (computeDatabase == null) throw new Error('The query result cache needs a compute database');
-            return await computeDatabase();
-        };
+    /// The stored results of the scripts over the compute database. The platform only moves the files, the runtime
+    /// names them and decides (docs/design/workbook_results.md).
+    private createResults(files: WorkbookResultFiles, database: ComputeDatabase): core.RuntimeResults {
+        const { handles, pins } = this.deps;
         return {
-            lookup: async key => {
-                const entry = await cache.lookup(key);
-                return entry == null ? null : { name: entry.name, cachedAt: entry.cachedAtMs, size: entry.size };
+            mountPath: workbookId => files.mountPath(workbookId),
+            mount: async workbookId => await files.mount(await database(), workbookId),
+            unmount: workbookId => files.unmount(workbookId),
+            files: workbookId => files.files(workbookId),
+            pin: async (workbookId, name) => pins.add(await files.pin(workbookId, name)),
+            release: id => pins.release(id),
+            read: async (workbookId, name) => {
+                const table = await files.readTable(await database(), workbookId, name);
+                if (table == null) return null;
+                return { table: handles.register(table), rows: table.numRows, columns: table.numCols } satisfies core.RuntimeCachedTable;
             },
-            read: async name => {
-                const table = await cache.readTable(await database(), name);
-                return { table: this.deps.handles.register(table), rows: table.numRows, columns: table.numCols } satisfies core.RuntimeCachedTable;
-            },
-            touch: name => cache.touch(name),
-            retain: async key => {
-                const file = await cache.retain(key);
-                return file == null ? null : { id: this.deps.pins.add(file.release), name: file.entry.name };
-            },
-            release: id => this.deps.pins.release(id),
-            file: name => cache.readFile(name),
-            import: async (key, handle, crc32) => {
-                const file = this.deps.handles.get<Blob | Uint8Array>(handle);
-                if (file == null) throw new Error(`The result of ${key} has no file`);
-                // The bytes are streamed into the file, a slice of a dropped archive never sits in memory
-                const blob = file instanceof Blob ? file : new Blob([file as Uint8Array<ArrayBuffer>]);
-                return await cache.importFile(key, blob, { crc32: crc32 ?? undefined });
-            },
-            capacity: () => cache.capacity,
-            files: () => cache.fileStats(),
-            remove: name => cache.remove(name),
-            write: (key, handle) => {
+            write: (workbookId, name, handle) => {
                 // The table is taken when the runtime calls, its handle may go before the write ends
-                const table = this.deps.handles.get<arrow.Table>(handle);
+                const table = handles.get<arrow.Table>(handle);
                 return (async () => {
                     if (table == null) throw new Error('The query has no result');
-                    // Hyper writes the file into the mounted cache, the new file stays pinned until it is complete
-                    const name = cache.newFileName(key);
-                    const release = await cache.pin(name);
-                    try {
-                        await cache.writeTable(await database(), table, name);
-                    } finally {
-                        await release();
-                    }
-                    return name;
+                    return await files.writeTable(await database(), workbookId, table, name);
                 })();
             },
+            file: (workbookId, name) => files.readFile(workbookId, name),
+            import: async (workbookId, name, handle, crc32) => {
+                const file = handles.get<Blob | Uint8Array>(handle);
+                if (file == null) throw new Error(`The result ${name} has no file`);
+                // The bytes are streamed into the file, a slice of a dropped archive never sits in memory
+                const blob = file instanceof Blob ? file : new Blob([file as Uint8Array<ArrayBuffer>]);
+                await files.importFile(workbookId, name, blob, { crc32: crc32 ?? undefined });
+            },
+            move: (workbookId, from, to) => files.move(workbookId, from, to),
+            remove: (workbookId, name) => files.remove(workbookId, name),
         };
     }
 

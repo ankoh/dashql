@@ -1,38 +1,39 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { QueryResultCache } from '@akohn/dashql/platform/query/query_result_cache';
+import type { WorkbookResultFiles } from '@akohn/dashql/platform/workbook/workbook_result_files';
 
 import type { Logger } from '@akohn/dashql/platform/logger/logger';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
 
-import { AGENT_PAUSED_ERROR, AgentSessionRuns, sendCachedResult } from './agent_session_runs.js';
+import { AGENT_PAUSED_ERROR, AgentSessionRuns, sendStoredResult } from './agent_session_runs.js';
 
 describe('the runs of the agent in the tab', () => {
-    it('sends the cached file of a key while it keeps it, nothing without one', async () => {
+    it('sends the stored result of a script while it keeps it, nothing without one', async () => {
         const order: string[] = [];
-        const entry = { name: 'k.1.parquet', key: 'k', size: 4, cachedAtMs: 1, lastAccessMs: 1 };
-        const cache = {
-            retain: vi.fn(async (key: string) => key !== 'k' ? null : {
-                entry,
-                release: async () => { order.push('release'); },
-            }),
-            readFile: vi.fn(async (name: string) => {
+        const runtime = {
+            module: {
+                retainStoredResult: vi.fn(async (_workbookId: string, script: string) => script !== 'a.sql' ? null : { id: 7, name: 'a.sql.k.1.parquet' }),
+                releaseStoredResult: vi.fn(async (id: number) => { order.push(`release ${id}`); }),
+            },
+        } as unknown as Runtime;
+        const results = {
+            readFile: vi.fn(async (_workbookId: string, name: string) => {
                 order.push(`read ${name}`);
                 return new Blob(['PAR1']);
             }),
-        } as unknown as QueryResultCache;
-        const write = vi.fn(async (data: Blob) => {
-            order.push(`write ${await data.text()}`);
-            return '/work/.dashql/cache/k.1.parquet';
+        } as unknown as WorkbookResultFiles;
+        const write = vi.fn(async (name: string, data: Blob) => {
+            order.push(`write ${name} ${await data.text()}`);
+            return `/work/.dashql/workbooks/w/results/${name}`;
         });
-        expect(await sendCachedResult(cache, 'k', write)).toBe('/work/.dashql/cache/k.1.parquet');
-        expect(order).toEqual(['read k.1.parquet', 'write PAR1', 'release']);
-        expect(await sendCachedResult(cache, 'other', write)).toBeNull();
-        expect(await sendCachedResult(null, 'k', write)).toBeNull();
+        expect(await sendStoredResult(runtime, results, 'w', 'a.sql', write)).toBe('/work/.dashql/workbooks/w/results/a.sql.k.1.parquet');
+        expect(order).toEqual(['read a.sql.k.1.parquet', 'write a.sql.k.1.parquet PAR1', 'release 7']);
+        expect(await sendStoredResult(runtime, results, 'w', 'other.sql', write)).toBeNull();
+        expect(await sendStoredResult(runtime, null, 'w', 'a.sql', write)).toBeNull();
         // A failed write still releases the file
         order.length = 0;
-        await expect(sendCachedResult(cache, 'k', async () => { throw new Error('gone'); })).rejects.toThrow('gone');
-        expect(order).toEqual(['read k.1.parquet', 'release']);
+        await expect(sendStoredResult(runtime, results, 'w', 'a.sql', async () => { throw new Error('gone'); })).rejects.toThrow('gone');
+        expect(order).toEqual(['read a.sql.k.1.parquet', 'release 7']);
     });
 
     it('runs nothing for the agent while the user has the workbook', async () => {

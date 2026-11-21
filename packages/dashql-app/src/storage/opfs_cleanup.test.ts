@@ -47,6 +47,7 @@ function messyStorage() {
         'workbooktree/clients/dashql-folder.json': CLIENTS_FOLDER,
         'stray.txt': '',
         'workbooks/s1/dashql-workbook.json': '{}',
+        'workbooks/s1/.gitignore': 'results/\n',
         'workbooks/s1/dashql-session-index.json': '{}',
         'workbooks/s1/scripts/1.sql': 'SELECT 1',
         'workbooks/s1/scripts/page/2.sql': 'SELECT 2',
@@ -60,8 +61,8 @@ function messyStorage() {
         'clouds/local.hyper': '',
     }, [
         'workbooktree', 'workbooktree/clients',
-        'workbooks', 'workbooks/s1', 'workbooks/s1/scripts', 'workbooks/s1/scripts/page', 'workbooks/s1/cache',
-        'workbooks/s2', 'workbooks/s2/attachments', 'workbooks/gone',
+        'workbooks', 'workbooks/s1', 'workbooks/s1/scripts', 'workbooks/s1/scripts/page', 'workbooks/s1/cache', 'workbooks/s1/results',
+        'workbooks/s2', 'workbooks/s2/attachments', 'workbooks/s2/results', 'workbooks/gone',
         'connections', 'connections/c1', 'connections/c2',
         'instances', `instances/${LIVE}`, `instances/${CLOSED}`,
         'exports', 'exports/e1', 'shell', 'imported', 'logs', 'notebooks', 'tests', 'cache', 'clouds',
@@ -75,6 +76,7 @@ describe('findOPFSCleanupCandidates', () => {
         const candidates = await findOPFSCleanupCandidates(dql, root, fakeLocks([`dashql-instance-${LIVE}`]));
         expect(candidates.map(c => c.path.join('/')).sort()).toEqual([
             `dashql-session-${LEGACY}`,
+            'cache',
             'connections/c2',
             'exports/e1',
             `instances/${CLOSED}`,

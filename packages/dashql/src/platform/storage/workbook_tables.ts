@@ -141,8 +141,11 @@ export interface AttachmentRow extends VersionKeyColumns {
 }
 
 export interface ResultRow extends VersionKeyColumns {
+    /// The key in the name of the file of the stored result
     cache_key: string;
     table_name: string;
+    /// The file name of the script, null in the archives of earlier versions, which name only the key
+    script_name: string | null;
 }
 
 /// The Parquet file of an attachment or a result table

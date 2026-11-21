@@ -12,9 +12,7 @@ import { LogLevel } from '@akohn/dashql/platform/logger/log_buffer';
 import type { Logger } from '@akohn/dashql/platform/logger/logger';
 import { APP_RESTART_CTX } from '../host/app_hand_over.js';
 import { StorageProvider } from '../storage/storage_provider.js';
-import { QueryResultCacheProvider } from '../storage/query_result_cache_provider.js';
 import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
-import { memoryQueryResultCache } from '@akohn/dashql/platform/testing/memory_query_result_cache';
 import { applyFlavorToDocument } from '../config/flavor_resolution.js';
 import { createTestRoot } from '@akohn/dashql-react/testing/react_root';
 import { type RouteContext } from '../app/router.js';
@@ -29,7 +27,6 @@ const SETUP_DONE: RouteContext = {
 describe('AppSettings', () => {
     let root: ReturnType<typeof createTestRoot>;
     let backend: WorkbookTestBackend;
-    let cache: ReturnType<typeof memoryQueryResultCache>;
     let restart: ReturnType<typeof vi.fn<() => Promise<void>>>;
     let onClose: ReturnType<typeof vi.fn<() => void>>;
     let config: AppConfig | null;
@@ -52,14 +49,12 @@ describe('AppSettings', () => {
                     <AppConfigProvider>
                         <MemoryRouter initialEntries={[{ pathname: '/', state: SETUP_DONE }]}>
                             <StorageProvider backend={backend}>
-                                <QueryResultCacheProvider cache={cache}>
-                                    <APP_RESTART_CTX.Provider value={restart}>
-                                        <>
-                                            <Capture />
-                                            <AppSettings onClose={onClose} />
-                                        </>
-                                    </APP_RESTART_CTX.Provider>
-                                </QueryResultCacheProvider>
+                                <APP_RESTART_CTX.Provider value={restart}>
+                                    <>
+                                        <Capture />
+                                        <AppSettings onClose={onClose} />
+                                    </>
+                                </APP_RESTART_CTX.Provider>
                             </StorageProvider>
                         </MemoryRouter>
                     </AppConfigProvider>
@@ -83,7 +78,6 @@ describe('AppSettings', () => {
     beforeEach(() => {
         root = createTestRoot();
         backend = new WorkbookTestBackend();
-        cache = memoryQueryResultCache();
         restart = vi.fn<() => Promise<void>>(async () => {});
         onClose = vi.fn<() => void>();
         config = null;
@@ -222,7 +216,6 @@ describe('AppSettings', () => {
     it('resets the app state only once confirmed and reports a failure', async () => {
         const clearAllStorage = vi.fn<() => Promise<void>>(async () => { throw new Error('disk busy'); });
         (backend as WorkbookTestBackend & { clearAllStorage?: () => Promise<void> }).clearAllStorage = clearAllStorage;
-        cache.put('cached');
         await render();
 
         const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
@@ -235,8 +228,6 @@ describe('AppSettings', () => {
         await act(async () => button('Reset App State').click());
         await vi.waitFor(() => expect(alert).toHaveBeenCalledWith('Failed to clear storage: disk busy'));
         expect(clearAllStorage).toHaveBeenCalledOnce();
-        // The cache is only cleared after the storage
-        expect(cache.clear).not.toHaveBeenCalled();
         await vi.waitFor(() => expect(button('Reset App State')?.disabled).toBe(false));
     });
 

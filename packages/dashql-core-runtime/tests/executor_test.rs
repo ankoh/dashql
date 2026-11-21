@@ -20,8 +20,8 @@ use dashql_core_runtime::connections::{ConnectorType, DetailedError, TrinoSessio
 use dashql_core_runtime::executor::connectors::{BACKEND_CANCEL_TIMEOUT_MS, TRINO_TOKEN_REFRESH_TIMEOUT_MS};
 use dashql_core_runtime::executor::ipc::{read_stream, write_stream};
 use dashql_core_runtime::executor::{
-    CacheEntry, CacheRequest, ChannelMessage, ClientFunctionTarget, ExecutorHost, ExecutorRun, FailureKind, HostTable,
-    QueryControls, QueryEvent, QueryExecutor, QueryId, QueryOutcome, QueryRequest, QueryTarget,
+    ChannelMessage, ClientFunctionTarget, ExecutorHost, ExecutorRun, FailureKind, HostTable, QueryControls, QueryEvent,
+    QueryExecutor, QueryId, QueryOutcome, QueryRequest, QueryTarget, ResultRequest, StoredFile,
 };
 use dashql_core_runtime::host::signal::{oneshot, Receiver};
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
@@ -155,17 +155,14 @@ struct State {
     channel_stream: bool,
     channel_calls: Vec<String>,
     channel_cancel_fails: bool,
-    cache: HashMap<String, CacheEntry>,
+    /// The files of the stored results by name
+    files: HashMap<String, ()>,
     cache_calls: Vec<String>,
     /// Cancelled with the query of the channel, a stream that waits for a message then fails
     channel_aborted: CancellationToken,
     cache_read_fails: bool,
     cache_write_fails: bool,
-    /// Does the eviction after a write remove the new file right away?
-    cache_write_evicted: bool,
-    /// The answer of the next lookup of the cache, it waits for it
-    cache_lookup_later: Option<Receiver<Option<CacheEntry>>>,
-    /// The next read of the cache waits for this
+    /// The next read of a stored result waits for this
     cache_read_later: Option<Receiver<()>>,
     analysis_fails: bool,
     /// Does the analysis wait until its query is cancelled?
@@ -426,22 +423,15 @@ impl ExecutorHost for FakeHost {
         std::future::ready(table)
     }
 
-    fn cache_lookup(&self, key: &str) -> impl Future<Output = Result<Option<CacheEntry>, HostError>> + 'static {
-        let mut state = self.state.borrow_mut();
-        state.cache_calls.push(format!("lookup:{key}"));
-        match state.cache_lookup_later.take() {
-            Some(answer) => later(answer, "no answer"),
-            None => Box::pin(std::future::ready(Ok(state.cache.get(key).cloned()))),
-        }
-    }
-
-    fn cache_read(
+    fn result_read(
         &self,
         run: &Rc<FakeRun>,
-        entry: &CacheEntry,
-    ) -> impl Future<Output = Result<HostTable, HostError>> + 'static {
+        _workbook_id: &str,
+        name: &str,
+    ) -> impl Future<Output = Result<Option<HostTable>, HostError>> + 'static {
         let mut state = self.state.borrow_mut();
-        state.cache_calls.push(format!("read:{}", entry.name));
+        state.cache_calls.push(format!("read:{name}"));
+        let exists = state.files.contains_key(name);
         let fails = state.cache_read_fails;
         let wait = state.cache_read_later.take();
         let tables = self.cache_tables.clone();
@@ -453,26 +443,33 @@ impl ExecutorHost for FakeHost {
             if fails {
                 return Err(HostError::new("corrupt parquet"));
             }
+            if !exists {
+                return Ok(None);
+            }
             // The run owns the table that was read
             tables.borrow_mut().push(query_id);
-            Ok(HostTable { rows: 1, columns: 1, batches: 1 })
+            Ok(Some(HostTable { rows: 1, columns: 1, batches: 1 }))
         }
     }
 
-    fn cache_touch(&self, entry: &CacheEntry) -> impl Future<Output = Result<(), HostError>> + 'static {
-        self.state.borrow_mut().cache_calls.push(format!("touch:{}", entry.name));
-        std::future::ready(Err(HostError::new("read only")))
-    }
-
-    fn cache_write(&self, _run: &Rc<FakeRun>, key: &str) -> impl Future<Output = Result<bool, HostError>> + 'static {
+    fn result_write(
+        &self,
+        _run: &Rc<FakeRun>,
+        result: &ResultRequest,
+    ) -> impl Future<Output = Result<String, HostError>> + 'static {
         let mut state = self.state.borrow_mut();
-        state.cache_calls.push(format!("write:{key}"));
+        state.cache_calls.push(format!("write:{}:{}", result.script, result.key));
         let outcome = if state.cache_write_fails {
             Err(HostError::new("quota exceeded"))
         } else {
-            Ok(!state.cache_write_evicted)
+            Ok(format!("{}.{}.parquet", result.script, result.key))
         };
         std::future::ready(outcome)
+    }
+
+    fn result_clear(&self, _workbook_id: &str, script: &str) -> impl Future<Output = Result<(), HostError>> + 'static {
+        self.state.borrow_mut().cache_calls.push(format!("clear:{script}"));
+        std::future::ready(Ok(()))
     }
 
     fn analyze_result(&self, run: &Rc<FakeRun>) -> impl Future<Output = Result<(), HostError>> + 'static {
@@ -591,8 +588,7 @@ fn request(query_id: QueryId, target: QueryTarget) -> TestQuery {
         target,
         publish_results: true,
         analyze_results: false,
-        cache: None,
-        cache_only: false,
+        result: None,
         touches_relations: false,
         throw_on_error: false,
         log_details: vec![("workbookId".into(), "w".into())],
@@ -1423,11 +1419,11 @@ fn a_failed_analysis_fails_the_query_and_rejects() {
     let executor = QueryExecutor::new(host.clone());
     let mut query = request(1, QueryTarget::Host);
     query.analyze_results = true;
-    query.cache = cached("k");
+    query.result = stored("k");
     let QueryOutcome::Rejected(failure) = run(&host, &executor, query) else { panic!("expected a rejection") };
     assert_eq!(failure.kind, FailureKind::Processing);
     host.advance(0);
-    // The result is fine, it goes into the cache all the same
+    // The result is fine, it is stored all the same
     assert_eq!(
         host.events(),
         [
@@ -1443,11 +1439,11 @@ fn a_failed_analysis_fails_the_query_and_rejects() {
             "cache:k:false"
         ]
     );
-    assert_eq!(host.state.borrow().cache_calls, ["lookup:k", "write:k"]);
+    assert_eq!(host.state.borrow().cache_calls, ["write:a.sql:k"]);
 }
 
 #[test]
-fn a_cancel_during_the_analysis_cancels_the_query_and_writes_no_cache() {
+fn a_cancel_during_the_analysis_cancels_the_query_and_writes_no_result() {
     let host = FakeHost::new();
     {
         let mut state = host.state.borrow_mut();
@@ -1457,7 +1453,7 @@ fn a_cancel_during_the_analysis_cancels_the_query_and_writes_no_cache() {
     let executor = QueryExecutor::new(host.clone());
     let mut query = request(1, QueryTarget::Host);
     query.analyze_results = true;
-    query.cache = cached("k");
+    query.result = stored("k");
     let run = query.run.clone();
     let outcome = start(&host, &executor, query);
     host.advance(0);
@@ -1467,32 +1463,39 @@ fn a_cancel_during_the_analysis_cancels_the_query_and_writes_no_cache() {
     host.advance(0);
     assert_eq!(resolved(outcome.borrow().as_ref().unwrap()), Some(false));
     assert_eq!(host.events().last().map(String::as_str), Some("cancelled"));
-    assert_eq!(host.state.borrow().cache_calls, ["lookup:k"]);
+    assert!(host.state.borrow().cache_calls.is_empty());
 }
 
-// The query result cache
+// The stored results of the scripts
 
-fn cached(key: &str) -> Option<CacheRequest> {
-    Some(CacheRequest { key: key.into(), refresh: false })
+/// A query that stores its result as the result of `a.sql` under a key
+fn stored(key: &str) -> Option<ResultRequest> {
+    Some(ResultRequest { workbook_id: "w".into(), script: "a.sql".into(), key: key.into(), read: None })
+}
+
+/// A query that reads a file of the results of `w`
+fn reads(name: &str) -> Option<ResultRequest> {
+    let file = StoredFile { name: name.into(), key: "k".into(), written_at: 1234.0 };
+    Some(ResultRequest { workbook_id: "w".into(), script: "a.sql".into(), key: "k".into(), read: Some(file) })
 }
 
 #[test]
-fn a_cached_result_is_served_without_the_backend() {
+fn a_stored_result_is_read_without_the_backend() {
     let host = FakeHost::new();
-    host.state.borrow_mut().cache.insert("k".into(), CacheEntry { name: "k.parquet".into(), cached_at: 1234.0 });
+    host.state.borrow_mut().files.insert("a.parquet".into(), ());
     let executor = QueryExecutor::new(host.clone());
     let mut query = request(1, QueryTarget::Host);
-    query.cache = cached("k");
+    query.result = reads("a.parquet");
     query.touches_relations = true;
     assert_eq!(resolved(&run(&host, &executor, query)), Some(true));
+    // A read touches no relations and writes nothing
     assert_eq!(host.events(), ["all:1", "cache:k:true", "ready", "succeeded"]);
-    assert_eq!(host.state.borrow().cache_calls, ["lookup:k", "read:k.parquet", "touch:k.parquet"]);
-    assert!(host.log_messages().contains(&"Failed to record query cache access".to_string()));
+    assert_eq!(host.state.borrow().cache_calls, ["read:a.parquet"]);
     assert!(host.state.borrow().channel_calls.is_empty());
 }
 
 #[test]
-fn a_miss_runs_the_query_and_stores_its_result() {
+fn a_query_stores_its_result_as_the_file_of_its_script() {
     let host = FakeHost::new();
     {
         let mut state = host.state.borrow_mut();
@@ -1501,14 +1504,14 @@ fn a_miss_runs_the_query_and_stores_its_result() {
     }
     let executor = QueryExecutor::new(host.clone());
     let mut query = request(1, QueryTarget::Host);
-    query.cache = cached("k");
+    query.result = stored("k");
     assert_eq!(resolved(&run(&host, &executor, query)), Some(true));
     host.advance(0);
-    assert_eq!(host.state.borrow().cache_calls, ["lookup:k", "write:k"]);
+    assert_eq!(host.state.borrow().cache_calls, ["write:a.sql:k"]);
     assert_eq!(host.events().last().map(String::as_str), Some("cache:k:false"));
     let flushed = Rc::new(Cell::new(false));
     let flag = flushed.clone();
-    let flush = executor.flush_cache_writes();
+    let flush = executor.flush_result_writes();
     host.executor.spawn(Box::pin(async move {
         flush.await;
         flag.set(true);
@@ -1518,104 +1521,66 @@ fn a_miss_runs_the_query_and_stores_its_result() {
 }
 
 #[test]
-fn an_unreadable_entry_is_a_miss_and_a_failed_write_only_logs() {
+fn a_query_without_a_result_removes_the_files_of_its_script() {
+    let host = FakeHost::new();
+    host.state.borrow_mut().channel_stream = false;
+    let executor = QueryExecutor::new(host.clone());
+    let mut query = request(1, QueryTarget::Host);
+    query.result = stored("k");
+    assert_eq!(resolved(&run(&host, &executor, query)), Some(false));
+    host.advance(0);
+    assert_eq!(host.state.borrow().cache_calls, ["clear:a.sql"]);
+}
+
+#[test]
+fn a_failed_write_only_logs() {
     let host = FakeHost::new();
     {
         let mut state = host.state.borrow_mut();
-        state.cache_read_fails = true;
         state.cache_write_fails = true;
-        state.cache.insert("k".into(), CacheEntry { name: "k.parquet".into(), cached_at: 1.0 });
         state.channel.push_back(Ok(ChannelMessage::Batch { metrics: metrics(1) }));
         state.channel.push_back(Ok(ChannelMessage::End { metrics: metrics(1) }));
     }
     let executor = QueryExecutor::new(host.clone());
     let mut query = request(1, QueryTarget::Host);
-    query.cache = cached("k");
+    query.result = stored("k");
     assert_eq!(resolved(&run(&host, &executor, query)), Some(true));
     host.advance(0);
-    let logs = host.log_messages();
-    assert!(logs.contains(&"Failed to read cached query result".to_string()));
-    assert!(logs.contains(&"Failed to write query cache".to_string()));
+    assert!(host.log_messages().contains(&"Failed to store the result of a script".to_string()));
     assert_eq!(host.events().last().map(String::as_str), Some("succeeded"));
 }
 
 #[test]
-fn a_query_that_may_only_come_from_the_cache_fails_on_a_miss() {
-    let host = FakeHost::new();
-    let executor = QueryExecutor::new(host.clone());
-    let mut query = request(1, QueryTarget::Host);
-    query.cache = Some(CacheRequest { key: "k".into(), refresh: false });
-    query.cache_only = true;
-    query.throw_on_error = true;
-    query.touches_relations = true;
-    let QueryOutcome::Rejected(failure) = run(&host, &executor, query) else { panic!("expected a rejection") };
-    assert_eq!(failure.kind, FailureKind::CacheMiss);
-    assert!(host.state.borrow().channel_calls.is_empty());
-    // Nothing ran, nothing touched the relations
-    assert_eq!(host.events(), ["failed:The query result is not cached"]);
-}
-
-#[test]
-fn a_refresh_skips_the_lookup() {
-    let host = FakeHost::new();
-    host.state.borrow_mut().channel_stream = false;
-    let executor = QueryExecutor::new(host.clone());
-    let mut query = request(1, QueryTarget::Host);
-    query.cache = Some(CacheRequest { key: "k".into(), refresh: true });
-    run(&host, &executor, query);
-    assert!(host.state.borrow().cache_calls.is_empty());
-}
-
-#[test]
-fn a_result_that_the_eviction_removes_right_away_is_not_recorded() {
-    let host = FakeHost::new();
-    {
-        let mut state = host.state.borrow_mut();
-        state.cache_write_evicted = true;
-        state.channel.push_back(Ok(ChannelMessage::End { metrics: metrics(1) }));
+fn a_read_of_a_file_that_is_gone_or_broken_fails_with_a_miss() {
+    for broken in [false, true] {
+        let host = FakeHost::new();
+        host.state.borrow_mut().cache_read_fails = broken;
+        let executor = QueryExecutor::new(host.clone());
+        let mut query = request(1, QueryTarget::Host);
+        query.result = reads("a.parquet");
+        query.throw_on_error = true;
+        query.touches_relations = true;
+        let QueryOutcome::Rejected(failure) = run(&host, &executor, query) else { panic!("expected a rejection") };
+        assert_eq!(failure.kind, FailureKind::CacheMiss);
+        // Nothing ran, nothing touched the relations
+        assert!(host.state.borrow().channel_calls.is_empty());
+        assert_eq!(host.events().len(), 1);
+        assert!(host.events()[0].starts_with("failed:The stored result"), "{:?}", host.events());
     }
-    let executor = QueryExecutor::new(host.clone());
-    let mut query = request(1, QueryTarget::Host);
-    query.cache = cached("k");
-    assert_eq!(resolved(&run(&host, &executor, query)), Some(true));
-    host.advance(0);
-    assert_eq!(host.state.borrow().cache_calls, ["lookup:k", "write:k"]);
-    assert!(!host.events().iter().any(|event| event.starts_with("cache:")));
-    assert!(host.log_messages().contains(&"The query result cache evicted the result right away".to_string()));
 }
 
 #[test]
-fn a_cancel_during_the_lookup_of_the_cache_ends_the_query_at_once() {
-    let host = FakeHost::new();
-    let (_answer, lookup) = oneshot();
-    host.state.borrow_mut().cache_lookup_later = Some(lookup);
-    let executor = QueryExecutor::new(host.clone());
-    let mut query = request(1, QueryTarget::Host);
-    query.cache = cached("k");
-    let run = query.run.clone();
-    let outcome = start(&host, &executor, query);
-    host.advance(0);
-    assert!(outcome.borrow().is_none());
-    run.token.cancel();
-    host.advance(0);
-    assert_eq!(resolved(outcome.borrow().as_ref().unwrap()), Some(false));
-    assert_eq!(host.events(), ["cancelled"]);
-    assert_eq!(host.state.borrow().cache_calls, ["lookup:k"]);
-    assert!(host.state.borrow().channel_calls.is_empty());
-}
-
-#[test]
-fn a_cancel_during_the_read_of_the_cache_waits_for_the_table_of_the_run() {
+fn a_cancel_during_the_read_of_a_stored_result_waits_for_the_table_of_the_run() {
     let host = FakeHost::new();
     let (read_done, read) = oneshot();
     {
         let mut state = host.state.borrow_mut();
-        state.cache.insert("k".into(), CacheEntry { name: "k.parquet".into(), cached_at: 1.0 });
+        state.files.insert("a.parquet".into(), ());
         state.cache_read_later = Some(read);
     }
     let executor = QueryExecutor::new(host.clone());
     let mut query = request(1, QueryTarget::Host);
-    query.cache = cached("k");
+    query.result = reads("a.parquet");
     let run = query.run.clone();
     let outcome = start(&host, &executor, query);
     host.advance(0);
@@ -1628,7 +1593,7 @@ fn a_cancel_during_the_read_of_the_cache_waits_for_the_table_of_the_run() {
     assert_eq!(resolved(outcome.borrow().as_ref().unwrap()), Some(false));
     assert_eq!(*host.cache_tables.borrow(), [1]);
     assert_eq!(host.events(), ["cancelled"]);
-    assert_eq!(host.state.borrow().cache_calls, ["lookup:k", "read:k.parquet"]);
+    assert_eq!(host.state.borrow().cache_calls, ["read:a.parquet"]);
 }
 
 // Client functions

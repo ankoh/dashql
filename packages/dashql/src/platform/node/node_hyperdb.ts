@@ -11,8 +11,7 @@ import { HyperDB, type HyperDBEngine, type MountFile } from '../hyperdb/hyperdb_
 import { HYPERDB_WASM_ENGINE_SETTINGS } from '../hyperdb/hyperdb_settings.js';
 import { setOPFSRootProvider } from '../opfs_root.js';
 import { cleanupStaleHyperDBOPFSInstances, createHyperDBOPFSInstance, HYPER_INSTANCES_DIRECTORY } from '../hyperdb/hyperdb_opfs_instance.js';
-import type { QueryResultCache } from '../query/query_result_cache.js';
-import { createOPFSQueryResultCache } from '../storage/opfs_query_result_cache.js';
+import { createWorkbookResultFiles, type WorkbookResultFiles } from '../workbook/workbook_result_files.js';
 import { openNodeRoot } from './node_directory_handle.js';
 import { nodeInstanceLocks } from './node_instance_locks.js';
 import { PROCESS_LOCKS } from './node_locks.js';
@@ -113,12 +112,12 @@ export async function startNodeHyperEngine(folder: string): Promise<NodeHyperEng
     };
 }
 
-/// The embedded Hyper of Node with the query result cache of the root
+/// The embedded Hyper of Node with the stored results of the workbooks of the root
 export interface NodeComputeDatabase {
     /// The folder of the host that is the root of the files of the app
     readonly root: string;
     readonly database: HyperDB;
-    readonly resultCache: QueryResultCache;
+    readonly results: WorkbookResultFiles;
     /// Stop the engine and remove the folder of the instance
     close(): Promise<void>;
 }
@@ -137,7 +136,7 @@ export async function openNodeComputeDatabase(folder: string): Promise<NodeCompu
     return {
         root: engine.root,
         database,
-        resultCache: createOPFSQueryResultCache({ locks: PROCESS_LOCKS as unknown as LockManager }),
+        results: createWorkbookResultFiles({ locks: PROCESS_LOCKS as unknown as LockManager }),
         async close() {
             try {
                 await database.terminate();

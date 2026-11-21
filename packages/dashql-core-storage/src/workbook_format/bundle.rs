@@ -56,11 +56,13 @@ pub struct DataFileData<B> {
     pub bytes: B,
 }
 
-/// A cached query result that an exported workbook carries
+/// The stored result of a script that an exported workbook carries
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WorkbookBundleResult<B> {
-    /// The cache key
+    /// The key in the name of the file of the result
     pub key: String,
+    /// The file name of the script, none in the archives of earlier versions, which name only the key
+    pub script: Option<String>,
     /// The Parquet file
     pub bytes: B,
     /// The CRC-32 that an archive stores for the file, an import checks it while it streams the file

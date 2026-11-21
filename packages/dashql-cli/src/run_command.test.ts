@@ -171,8 +171,10 @@ const run = (dir: string, args: string[], env: RunEnvironment = PASSWORD, worksp
         return runRun([...(workspace == null ? [] : ['-w', workspace]), ...runArgs], cli, env);
     }, dir, args);
 
-/// The Parquet files of the query result cache of a workspace
-const cacheFiles = (workspace: string) => readdirSync(path.join(workspace, 'cache')).filter(file => file.endsWith('.parquet'));
+/// The results folder of the workbook in a workspace
+const resultsFolder = (workspace: string) => path.join(workspace, 'workbooks', WORKBOOK_ID, 'results');
+/// The stored results of the workbook in a workspace, one file per script
+const cacheFiles = (workspace: string) => readdirSync(resultsFolder(workspace)).filter(file => file.endsWith('.parquet'));
 
 describe('dashql run', () => {
     let trino: FakeTrino;
@@ -199,11 +201,13 @@ describe('dashql run', () => {
   1  | apple
   2  | pear
   3  | NULL
-  ${path.join(workspace, 'cache', cached)}
+  ${path.join(resultsFolder(workspace), cached)}
 
 1 ok
 `);
-        // The instance of the embedded Hyper is gone, the cache stays
+        // The file of the script is named after it
+        expect(cached).toMatch(/^01_orders\.sql\.[0-9a-f]{64}\.[0-9a-f]{8}\.parquet$/);
+        // The instance of the embedded Hyper is gone, the results stay
         expect(readdirSync(path.join(workspace, 'instances'))).toEqual([]);
         // The health check, then the script; the user of the workbook with the password of the environment
         expect(trino.statements).toHaveLength(2);
@@ -235,26 +239,26 @@ describe('dashql run', () => {
   … 2 more`);
     });
 
-    it('serves a cached result unless a refresh runs the script again', async () => {
+    it('reuses a stored result unless a refresh runs the script again', async () => {
         const dir = trinoWorkbook(trino.endpoint, [ORDERS]);
         const workspace = tempWorkspace();
         expect((await run(dir, ['.'], PASSWORD, workspace)).code).toBe(0);
         const [first] = cacheFiles(workspace);
         expect(trino.statements.filter(text => text.includes('orders'))).toHaveLength(1);
 
-        // The cache serves the result, the run doesn't reach Trino at all, not even to check the connection
+        // The stored result is reused, the run doesn't reach Trino at all, not even to check the connection
         const before = trino.statements.length;
         const again = await run(dir, ['.'], { trinoPassword: 'wrong' }, workspace);
         expect(again.code).toBe(0);
-        expect(again.stdout).toMatch(/^01_orders\.sql {2}ok {2}3 rows {2}\d+\.\d s {2}from the cache\n/);
-        expect(again.stdout).toContain(path.join(workspace, 'cache', first));
+        expect(again.stdout).toMatch(/^01_orders\.sql {2}ok {2}3 rows {2}\d+\.\d s {2}reused\n/);
+        expect(again.stdout).toContain(path.join(resultsFolder(workspace), first));
         expect(trino.statements).toHaveLength(before);
 
         const refreshed = await run(dir, ['--refresh', '.'], PASSWORD, workspace);
         expect(refreshed.code).toBe(0);
-        expect(refreshed.stdout).not.toContain('from the cache');
+        expect(refreshed.stdout).not.toContain('reused');
         expect(trino.statements.filter(text => text.includes('orders'))).toHaveLength(2);
-        // The newer file of the key replaced the older one
+        // The newer file of the script replaced the older one
         expect(cacheFiles(workspace)).toHaveLength(1);
         expect(cacheFiles(workspace)).not.toEqual([first]);
     });
@@ -268,7 +272,7 @@ describe('dashql run', () => {
         expect(output.stderr).toBe('');
         expect(output.stdout).toMatch(/^02_count\.sql {2}ok {2}1 row {2}\d+\.\d s\n {2}n Int64, named Int64\n {2}n \| named\n {2}--\+------\n {2}3 \| 2\n/);
         expect(output.code).toBe(0);
-        // The result of the Trino script was materialized into the cache and scanned
+        // The result of the Trino script was materialized into its file and scanned
         expect(trino.statements.filter(text => text.includes('orders'))).toHaveLength(1);
         expect(cacheFiles(workspace).length).toBeGreaterThanOrEqual(1);
     });
@@ -277,9 +281,9 @@ describe('dashql run', () => {
         const dir = trinoWorkbook(trino.endpoint, [ORDERS]);
         const workspace = tempWorkspace();
         expect((await run(dir, ['.'], PASSWORD, workspace)).code).toBe(0);
-        // A Parquet file as attachment, the cached result of the Trino script
+        // A Parquet file as attachment, the stored result of the Trino script
         mkdirSync(path.join(dir, 'attachments'));
-        copyFileSync(path.join(workspace, 'cache', cacheFiles(workspace)[0]), path.join(dir, 'attachments', 'fruits.parquet'));
+        copyFileSync(path.join(resultsFolder(workspace), cacheFiles(workspace)[0]), path.join(dir, 'attachments', 'fruits.parquet'));
         withHyperScripts(dir, [['02_fruits.sql', "select name from :fruits where id = 2\n"]]);
         const output = await run(dir, ['.', '02_fruits.sql'], PASSWORD, workspace);
         expect(output.stderr).toBe('');
@@ -292,7 +296,7 @@ describe('dashql run', () => {
         const dir = trinoWorkbook(trino.endpoint, [ORDERS, BROKEN]);
         // Without --workspace the files of DashQL go into the .dashql/ of the invoking directory, which ignores itself
         expect((await run(dir, ['.'], PASSWORD, null)).code).toBe(1);
-        expect(readdirSync(path.join(dir, '.dashql')).sort()).toEqual(['.gitignore', 'cache', 'dashql-workspace.json', 'instances', 'logs', 'workbooks']);
+        expect(readdirSync(path.join(dir, '.dashql')).sort()).toEqual(['.gitignore', 'dashql-workspace.json', 'instances', 'logs', 'workbooks']);
         expect(readFileSync(path.join(dir, '.dashql', '.gitignore'), 'utf8')).toBe('*\n');
     });
 
@@ -420,11 +424,12 @@ describe('dashql run in a session of dashql connect', () => {
     it('runs a workbook that the tab copied in the tab and prints its events', async () => {
         const rows = arrow.tableFromArrays({ id: Int32Array.from({ length: 12 }, (_, i) => i + 1) });
         const key = 'c'.repeat(64);
+        const name = `${ORDERS[0]}.${key}.0000000a.parquet`;
         const session = await sessionWithTab(async (message, send, _stopped, target) => {
             await send({ type: 'run_started', workbook: message.label, scripts: [ORDERS[0]] });
             await send({ type: 'script_started', script: ORDERS[0] });
-            // The file of the result goes into the cache of the session first
-            const file = await writeAgentSessionResult(target, key, new Blob(['PAR1 the result PAR1']));
+            // The file of the result goes into the results of the workbook in the session first
+            const file = await writeAgentSessionResult(target, message.workbookId, name, new Blob(['PAR1 the result PAR1']));
             await send({ type: 'script_done', script: ORDERS[0], ms: 1200, rows: rows.numRows, table: rows, cached: false, key, file });
             await send({ type: 'run_finished', ms: 1300, ok: 1, failed: 0, cancelled: 0, notRun: 0, interrupted: false });
         });
@@ -432,15 +437,17 @@ describe('dashql run in a session of dashql connect', () => {
             const output = await runWith((args, cli) => runRun(args, cli), session.folder, ['--workspace', ws(session.folder), '--rows', '2', COPY]);
             expect(output.stderr).toBe('');
             expect(output.code).toBe(0);
-            // The table of the result came with its first rows, the count with all of them, the file is in the cache of
-            // the session
-            const [cached] = readdirSync(path.join(session.folder, '.dashql', 'cache'));
-            expect(cached).toMatch(new RegExp(`^${key}\\.[0-9a-f-]{36}\\.parquet$`));
-            expect(readFileSync(path.join(session.folder, '.dashql', 'cache', cached), 'utf8')).toBe('PAR1 the result PAR1');
-            expect(output.stdout).toBe(`${ORDERS[0]}  ok  12 rows  1.2 s\n  id Int32\n  id\n  --\n  1\n  2\n  … 10 more\n  .dashql/cache/${cached}\n\n1 ok\n`);
-            // Only files of keys
+            // The table of the result came with its first rows, the count with all of them, the file is in the results
+            // of the workbook in the session
+            const results = path.join(session.folder, '.dashql', 'workbooks', WORKBOOK_ID, 'results');
+            expect(readdirSync(results)).toEqual([name]);
+            expect(readFileSync(path.join(results, name), 'utf8')).toBe('PAR1 the result PAR1');
+            expect(output.stdout).toBe(`${ORDERS[0]}  ok  12 rows  1.2 s\n  id Int32\n  id\n  --\n  1\n  2\n  … 10 more\n  .dashql/workbooks/${WORKBOOK_ID}/results/${name}\n\n1 ok\n`);
+            // Only Parquet files of the workbooks
             const url = `${session.target.endpoint}/v1/results/${session.target.token}`;
-            expect((await fetchAgentSession(`${url}/not-a-key`, { method: 'PUT', body: 'x' })).status).toBe(400);
+            expect((await fetchAgentSession(`${url}/not-a-workbook/${name}`, { method: 'PUT', body: 'x' })).status).toBe(400);
+            expect((await fetchAgentSession(`${url}/${WORKBOOK_ID}/notes.txt`, { method: 'PUT', body: 'x' })).status).toBe(400);
+            expect((await fetchAgentSession(`${url}/${WORKBOOK_ID}/..%2F${name}`, { method: 'PUT', body: 'x' })).status).toBe(400);
             expect(session.runs).toEqual([{ type: 'run', runId: expect.any(String), workbookId: WORKBOOK_ID, label: COPY, scripts: [], refresh: false, rows: 2 }]);
         } finally {
             await session.close();

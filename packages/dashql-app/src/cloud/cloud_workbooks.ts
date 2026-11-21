@@ -39,7 +39,7 @@ import { useCloudQueries } from './cloud_query.js';
 import { trackCloudPublish } from './cloud_publish_status.js';
 import { CloudPublishTooLargeError, deleteCloudWorkbook, listCloudWorkbookVersions, publishCloudWorkbook, readCloudWorkbook, type CloudWorkbookTables, type CloudWorkbookVersion } from './cloud_store.js';
 import type { CloudQuery } from './cloud_store_schema.js';
-import { useQueryResultCache } from '../storage/query_result_cache_provider.js';
+import { useWorkbookResults } from '../storage/workbook_results_provider.js';
 import {
     createCloudFolder,
     deleteCloudFolder,
@@ -118,9 +118,9 @@ function cloudLoadingProgress(): CloudLoadingProgress {
                     return state;
                 case 'results': {
                     if (progress.outcome == null) return cloudLoadingStep(state, 'results');
-                    const { added, kept, total } = progress.outcome;
-                    return cloudLoadingDetail(state, 'results', `${added + kept} of ${total}`,
-                        added + kept < total ? IndicatorStatus.Failed : IndicatorStatus.Succeeded);
+                    const { added, total } = progress.outcome;
+                    return cloudLoadingDetail(state, 'results', `${added} of ${total}`,
+                        added < total ? IndicatorStatus.Failed : IndicatorStatus.Succeeded);
                 }
                 default:
                     return cloudLoadingStep(state, progress.step);
@@ -210,7 +210,7 @@ export function useCloudWorkbooks(): CloudWorkbooks {
     const storageWriter = runtime?.storage ?? null;
     const logger = useLogger();
     const deleteConnection = useDeleteConnection();
-    const queryResultCache = useQueryResultCache();
+    const workbookResults = useWorkbookResults();
 
     const discardPreview = React.useCallback(async (workbookId: string) => {
         const scripts = readWorkbook(workbookId);
@@ -392,7 +392,7 @@ export function useCloudWorkbooks(): CloudWorkbooks {
         const local = await archiveDatabase('cloud_publish');
         const cloudWorkbookId = options.asNew || !linkedHere ? undefined : link?.workbookId;
         const folderId = options.folderId ?? undefined;
-        // The runtime reads the workbook from the storage with the changes that are pending. The cached results go
+        // The runtime reads the workbook from the storage with the changes that are pending. The stored results go
         // along, a preview shows them for the connections that it doesn't run on, they stay pinned until the publish
         // sent them. Whoever opens the workbook logs in to the connections with their own account.
         const written: { version: CloudWorkbookVersion | null; results: number } = { version: null, results: 0 };
@@ -400,7 +400,7 @@ export function useCloudWorkbooks(): CloudWorkbooks {
             written.results = tables.workbook_results.length;
             written.version = await publishCloudWorkbook(runtime.core, query, local, tables, { database, workbookId: cloudWorkbookId, folderId });
         });
-        const published = await publishTables(queryResultCache != null).catch(async error => {
+        const published = await publishTables(workbookResults != null).catch(async error => {
             // Only the query results are left out, a workbook that is too large without them fails
             if (!(error instanceof CloudPublishTooLargeError) || written.results === 0) throw error;
             logger.warn('The query results are too large to publish, publishing without them', { workbookId, error: stringifyError(error) }, LOG_CTX);
@@ -418,7 +418,7 @@ export function useCloudWorkbooks(): CloudWorkbooks {
         }, LOG_CTX);
         await cloud.refresh();
         return publishedVersion;
-    }, [archiveDatabase, dispatchScripts, logger, queryResultCache, readWorkbook, readyCloud, runtime]);
+    }, [archiveDatabase, dispatchScripts, logger, workbookResults, readWorkbook, readyCloud, runtime]);
     // The status of the workbook tells the publish
     const publish = React.useCallback(
         (workbookId: string, options: Parameters<typeof publishVersion>[1]) => trackCloudPublish(workbookId, publishVersion(workbookId, options)),

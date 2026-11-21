@@ -97,7 +97,7 @@ class TestPlatform {
             next: () => Promise.reject(new Error('no channel')),
             cancel: async () => { },
         },
-        resultCache: null,
+        results: null,
         crypto: {
             randomUuid: () => `uuid-${this.next}`,
             sha256: async bytes => new Uint8Array(await crypto.subtle.digest('SHA-256', bytes as Uint8Array<ArrayBuffer>)),
@@ -558,37 +558,34 @@ describe('The queries of the runtime', () => {
         runtime.free();
     });
 
-    it('records a result in the cache only if the eviction kept its file', async () => {
-        for (const evicted of [false, true]) {
-            const platform = new TestPlatform();
-            const files: { name: string; size: number; mtimeMs: number; lastAccessMs: number }[] = [];
-            const resultCache = {
-                lookup: async () => null,
-                read: () => Promise.reject(new Error('no file')),
-                touch: async () => { },
-                write: async (key: string) => {
-                    const name = `${key}-${files.length}.parquet`;
-                    files.push({ name, size: 100, mtimeMs: 1, lastAccessMs: 1 });
-                    return name;
-                },
-                capacity: () => ({ maxBytes: evicted ? 10 : 1000, maxFiles: 10 }),
-                files: async () => files,
-                remove: async (name: string) => {
-                    files.splice(files.findIndex(file => file.name === name), 1);
-                    return true;
-                },
-            } as unknown as dashql.RuntimeResultCache;
-            Object.assign(platform.platform, { resultCache, mounts: {} as dashql.RuntimeMounts });
-            const runtime = createRuntime(platform);
-            await setupTrino(runtime, platform);
-            const ticket = runtime.executeQuery('trino', { text: 'select 1', metadata: USER_QUERY, traceId: 1, options: { cache: { signature: 'sig' } } }, undefined, null);
-            expect((await ticket.done).status).toBe('resolved');
-            await runtime.flushCacheWrites();
-            // The eviction removed the new file right away, the query names no cached result
-            expect(files).toHaveLength(evicted ? 0 : 1);
-            expect(viewOf(runtime, 'query', ticket.queryId)!.cacheKey).toEqual(evicted ? null : expect.any(String));
-            runtime.free();
-        }
+    it('stores the result of a query as the file of its script and removes the older files of the script', async () => {
+        const platform = new TestPlatform();
+        const key = 'a'.repeat(64);
+        const files: { name: string; size: number; mtimeMs: number }[] = [{ name: `q.sql.${'b'.repeat(64)}.00000001.parquet`, size: 1, mtimeMs: 1 }];
+        const results = {
+            mountPath: (workbookId: string) => `/mnt/external/results/${workbookId}`,
+            files: async () => files,
+            pin: async () => 1,
+            release: async () => { },
+            write: async (_workbookId: string, name: string) => {
+                files.push({ name, size: 100, mtimeMs: 2 });
+                return 1;
+            },
+            remove: async (_workbookId: string, name: string) => {
+                files.splice(files.findIndex(file => file.name === name), 1);
+                return true;
+            },
+        } as unknown as dashql.RuntimeResults;
+        Object.assign(platform.platform, { results });
+        const runtime = createRuntime(platform);
+        await setupTrino(runtime, platform);
+        const result = { workbookId: 'w', script: 'q.sql', key };
+        const ticket = runtime.executeQuery('trino', { text: 'select 1', metadata: USER_QUERY, traceId: 1, options: { result } }, undefined, null);
+        expect((await ticket.done).status).toBe('resolved');
+        await runtime.flushResultWrites();
+        expect(files.map(file => file.name)).toEqual([expect.stringMatching(new RegExp(`^q\\.sql\\.${key}\\.[0-9a-f]{8}\\.parquet$`))]);
+        expect(viewOf(runtime, 'query', ticket.queryId)!.cacheKey).toBe(key);
+        runtime.free();
     });
 
     it('cancels a call of a client function while its spec loads, the call never starts', async () => {

@@ -15,7 +15,7 @@ export type {
     WorkbookListView,
     WorkbookPendingDiff,
     WorkbookScriptKeys,
-    WorkbookScriptCachedResult,
+    WorkbookScriptStoredResult,
     WorkbookScriptStatistics,
     WorkbookScriptView,
     WorkbookScriptVisualization,

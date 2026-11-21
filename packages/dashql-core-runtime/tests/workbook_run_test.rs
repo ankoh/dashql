@@ -2,7 +2,7 @@
 // or when it releases them. The workbooks are real, the run analyzes and plans their scripts.
 
 use std::cell::{Cell, RefCell};
-use std::collections::{BTreeSet, HashMap, VecDeque};
+use std::collections::{BTreeMap, BTreeSet, HashMap, VecDeque};
 use std::future::Future;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
@@ -10,7 +10,7 @@ use std::task::{Context, Wake, Waker};
 
 use dashql_buffers::editor::EditorOffsetUnit;
 use dashql_buffers::formatting::FormattingDialect;
-use dashql_core_runtime::executor::QueryId;
+use dashql_core_runtime::executor::{QueryId, StoredFile};
 use dashql_core_runtime::host::signal::{oneshot, Receiver, Sender};
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
 use dashql_core_runtime::settings::RuntimeSettings;
@@ -19,7 +19,7 @@ use dashql_core_runtime::workbook::{
 };
 use dashql_core_runtime::workbook_run::{
     start_run, PlanRun, RetainedFile, RunFailureKind, RunHost, RunOptions, RunPhase, RunResult, RunState, ScriptEvent,
-    StatementCache, StatementFailure, StatementHandle, StatementRequest,
+    StatementFailure, StatementHandle, StatementRequest, StatementResult,
 };
 
 // The executor
@@ -83,26 +83,28 @@ struct HostState {
     events: Vec<(String, String)>,
     /// The states of the run
     states: Vec<RunState>,
-    /// The keys whose results the cache holds
-    cached: BTreeSet<String>,
+    /// The keys of the stored results by script
+    stored: BTreeMap<String, String>,
     /// The connections that can't run
     offline: BTreeSet<String>,
-    /// The connections that cache no query results
+    /// The connections that reuse no query results
     uncached: BTreeSet<String>,
+    /// The connections without a key of their results
+    unkeyed: BTreeSet<String>,
     /// The texts of statements that fail
     failing: Vec<String>,
     /// How often the run told that it changed the workbook, and the effects it passed on
     changes: usize,
     effects: Vec<WorkbookEffect>,
-    /// Do the statements that serve cached results wait for the test?
+    /// Do the statements that read stored results wait for the test?
     gate_cached: bool,
-    /// Are the cached results gone when they are read?
+    /// Are the stored results gone when they are read?
     missing: bool,
     /// Does the host set up the connections of a run, the ones that fail, and a gate that the setups wait for
     prepares: bool,
     failing_setups: BTreeSet<String>,
     prepare_gate: Option<Receiver<()>>,
-    /// Gates that the next retain of a cached file and the next pin wait for
+    /// Gates that the next retain of a stored file and the next pin wait for
     retain_gate: Option<Receiver<()>>,
     pin_gate: Option<Receiver<()>>,
 }
@@ -154,10 +156,8 @@ impl RunHost for FakeHost {
         let mut state = self.state.borrow_mut();
         state.calls.push(format!("execute {}", request.text));
         let fails = state.failing.iter().any(|text| request.text.contains(text.as_str()));
-        let cached = matches!(&request.cache, StatementCache::Only { .. });
-        let miss = cached
-            && (state.missing
-                || !state.cached.iter().any(|key| key.ends_with(&format!(":{}", signature_of(&request)))));
+        let cached = matches!(&request.result, StatementResult::Read { .. });
+        let miss = cached && (state.missing || !state.stored.values().any(|key| *key == key_of(&request)));
         if (self.auto && !(cached && state.gate_cached)) || (cached && !state.gate_cached) {
             let end = if fails {
                 Err(StatementFailure::new(format!("{} failed", request.text)))
@@ -197,9 +197,10 @@ impl RunHost for FakeHost {
     }
 
     fn result_key(&self, connection_id: &str, signature: &str) -> impl Future<Output = Option<String>> + 'static {
-        std::future::ready(Some(format!("{connection_id}:{signature}")))
+        let keyed = !self.state.borrow().unkeyed.contains(connection_id);
+        std::future::ready(keyed.then(|| format!("{connection_id}:{signature}")))
     }
-    fn caches_results(&self, connection_id: &str) -> bool {
+    fn reuses_results(&self, connection_id: &str) -> bool {
         !self.state.borrow().uncached.contains(connection_id)
     }
     fn can_run(&self, connection_id: &str) -> bool {
@@ -227,12 +228,15 @@ impl RunHost for FakeHost {
             }
         }
     }
-    fn has_cache(&self) -> bool {
+    fn has_results(&self) -> bool {
         true
     }
-    fn cache_retain(&self, key: &str) -> impl Future<Output = Result<Option<RetainedFile>, HostError>> + 'static {
-        let found = self.state.borrow().cached.contains(key);
-        let file = found.then(|| RetainedFile { id: self.next_file(), name: format!("{}.parquet", key.len()) });
+    fn result_retain(&self, script: &str) -> impl Future<Output = Result<Option<RetainedFile>, HostError>> + 'static {
+        let key = self.state.borrow().stored.get(script).cloned();
+        let file = key.map(|key| RetainedFile {
+            id: self.next_file(),
+            file: StoredFile { name: format!("{script}.parquet"), key, written_at: 1.0 },
+        });
         let mut state = self.state.borrow_mut();
         if let Some(file) = &file {
             state.calls.push(format!("retain {}", file.id));
@@ -245,15 +249,15 @@ impl RunHost for FakeHost {
             Ok(file)
         }
     }
-    fn cache_release(&self, file: u64) -> impl Future<Output = ()> + 'static {
+    fn result_release(&self, file: u64) -> impl Future<Output = ()> + 'static {
         self.state.borrow_mut().calls.push(format!("release {file}"));
         std::future::ready(())
     }
     fn mount_prefix(&self) -> Option<String> {
         self.mounts.clone()
     }
-    fn mount_file_name(&self, key: Option<&str>) -> String {
-        if key.is_some() {
+    fn mount_file_name(&self, result: Option<(&str, &str)>) -> String {
+        if result.is_some() {
             "keyed.parquet".to_string()
         } else {
             "transient.parquet".to_string()
@@ -313,11 +317,12 @@ impl RunHost for FakeHost {
     }
 }
 
-/// The signature of a statement that reads the cache
-fn signature_of(request: &StatementRequest) -> String {
-    match &request.cache {
-        StatementCache::Only { signature } | StatementCache::Refresh { signature } => signature.clone(),
-        StatementCache::None => String::new(),
+/// The key of the stored result of a statement
+fn key_of(request: &StatementRequest) -> String {
+    match &request.result {
+        StatementResult::Store { key, .. } => key.clone(),
+        StatementResult::Read { file, .. } => file.key.clone(),
+        StatementResult::None => String::new(),
     }
 }
 
@@ -371,6 +376,7 @@ fn workbook_run() -> RunOptions {
         targets: None,
         inputs: None,
         refresh: false,
+        stored: false,
         reports_state: true,
         analyze: true,
     }
@@ -504,21 +510,77 @@ fn serves_the_cached_results_of_scripts_and_runs_the_others() {
     let main = connection("main", false);
     let workbook = workbook(&[("foo.sql", "select 1 as a", &main), ("bar.sql", "select a + 1 from :foo", &main)]);
     let s = setup(true, None, 1);
-    // A first run writes the results of the reusable keys
+    // A first run stores the results of the scripts
     let first = s.run(&workbook, workbook_run());
     assert!(first.failure.is_none(), "{:?}", first.failure);
-    let signatures: Vec<String> = s.state.borrow().statements.iter().map(|s| signature_of(&s.request)).collect();
-    assert!(s.state.borrow().statements.iter().all(|s| matches!(s.request.cache, StatementCache::Refresh { .. })));
+    let keys: Vec<String> = s.state.borrow().statements.iter().map(|s| key_of(&s.request)).collect();
+    let scripts: Vec<String> = s
+        .state
+        .borrow()
+        .statements
+        .iter()
+        .map(|s| match &s.request.result {
+            StatementResult::Store { script, .. } => script.clone(),
+            _ => String::new(),
+        })
+        .collect();
+    assert_eq!(scripts, vec!["foo.sql", "bar.sql"]);
     assert_eq!(s.texts(), vec!["select 1 as a", "with foo as (\nselect 1 as a\n)\nselect a + 1 from foo"]);
-    // The cache holds the result of foo, it is served and bar runs
+    // The stored result of foo has its key, it is reused and bar runs
     s.state.borrow_mut().statements.clear();
-    s.state.borrow_mut().cached.insert(format!("main:{}", signatures[0]));
+    s.state.borrow_mut().stored.insert("foo.sql".into(), keys[0].clone());
     let second = s.run(&workbook, workbook_run());
     assert!(second.failure.is_none(), "{:?}", second.failure);
     let statements = &s.state.borrow().statements;
-    assert!(matches!(statements[0].request.cache, StatementCache::Only { .. }) && statements[0].request.planned.cached);
-    assert!(matches!(statements[1].request.cache, StatementCache::Refresh { .. }));
+    assert!(
+        matches!(statements[0].request.result, StatementResult::Read { .. }) && statements[0].request.planned.cached
+    );
+    assert!(matches!(statements[1].request.result, StatementResult::Store { .. }));
     assert_eq!(s.events("foo.sql").last().map(String::as_str), Some("cached"));
+}
+
+#[test]
+fn runs_a_script_whose_stored_result_has_another_key() {
+    let main = connection("main", false);
+    let workbook = workbook(&[("foo.sql", "select 1 as a", &main)]);
+    let s = setup(true, None, 1);
+    // A result of another version of the app or another login
+    s.state.borrow_mut().stored.insert("foo.sql".into(), "other".into());
+    let result = s.run(&workbook, workbook_run());
+    assert!(result.failure.is_none(), "{:?}", result.failure);
+    let statements = &s.state.borrow().statements;
+    assert_eq!(statements.len(), 1);
+    assert!(matches!(&statements[0].request.result, StatementResult::Store { key, .. } if key.starts_with("main:")));
+    // The file of the other key was released at once
+    assert!(s.state.borrow().calls.iter().any(|call| call == "release 1"));
+}
+
+#[test]
+fn an_opened_workbook_reads_the_stored_results_of_every_key_and_runs_nothing() {
+    let main = connection("main", false);
+    let workbook = workbook(&[
+        ("foo.sql", "select 1 as a", &main),
+        ("bar.sql", "select 2", &main),
+        ("baz.sql", "select 3", &main),
+        // A script that can't be planned leaves the others alone
+        ("broken.sql", "select * from :missing", &main),
+    ]);
+    let s = setup(true, None, 1);
+    {
+        let mut state = s.state.borrow_mut();
+        state.stored.insert("foo.sql".into(), "outdated".into());
+        state.stored.insert("bar.sql".into(), "main:anything".into());
+        state.stored.insert("broken.sql".into(), "main:anything".into());
+        // Reading needs no connection
+        state.offline.insert("main".into());
+    }
+    let options = RunOptions { stored: true, reports_state: false, ..workbook_run() };
+    let result = s.run(&workbook, options);
+    assert!(result.failure.is_none(), "{:?}", result.failure);
+    let statements = &s.state.borrow().statements;
+    assert_eq!(statements.len(), 2);
+    assert!(statements.iter().all(|s| matches!(s.request.result, StatementResult::Read { .. })));
+    assert_eq!(s.events("baz.sql"), Vec::<String>::new());
 }
 
 #[test]
@@ -547,8 +609,8 @@ fn removes_the_transient_files_of_a_run_after_it_released_their_pins() {
     let (local, remote) = (connection("local", true), connection("remote", false));
     let workbook = workbook(&[("foo.sql", "select 1 as a", &remote), ("bar.sql", "select count(*) from :foo", &local)]);
     let s = setup(true, Some("/mnt/cache"), 1);
-    // The result of a connection that caches nothing has no reusable key, it is a transient file of the run
-    s.state.borrow_mut().uncached.insert("remote".to_string());
+    // A result without a key is a transient file of the run
+    s.state.borrow_mut().unkeyed.insert("remote".to_string());
     let result = s.run(&workbook, workbook_run());
     assert!(result.failure.is_none(), "{:?}", result.failure);
     let calls = s.state.borrow().calls.clone();
@@ -587,12 +649,12 @@ fn releases_a_cached_file_that_was_retained_while_the_run_stopped() {
     let main = connection("main", false);
     let workbook = workbook(&[("foo.sql", "select 1 as a", &main)]);
     let s = setup(true, None, 1);
-    // A first run learns the signature of the result of foo, the cache holds it then
+    // A first run learns the key of the result of foo, the result is stored then
     let first = s.run(&workbook, workbook_run());
     assert!(first.failure.is_none(), "{:?}", first.failure);
-    let signature = signature_of(&s.state.borrow().statements[0].request);
-    s.state.borrow_mut().cached.insert(format!("main:{signature}"));
-    // The run stops while the cache retains the file
+    let key = key_of(&s.state.borrow().statements[0].request);
+    s.state.borrow_mut().stored.insert("foo.sql".into(), key);
+    // The run stops while it retains the file
     let (open, gate) = oneshot();
     s.state.borrow_mut().retain_gate = Some(gate);
     let (handle, result) = s.start(&workbook, workbook_run());
@@ -620,6 +682,7 @@ fn runs_a_script_with_the_queries_it_inlines() {
         targets: Some(vec![2]),
         inputs: None,
         refresh: true,
+        stored: false,
         reports_state: false,
         analyze: true,
     };
@@ -757,18 +820,18 @@ fn a_run_of_a_workbook_that_is_gone_fails() {
     assert_eq!(s.texts(), vec!["select 1"]);
 }
 
-/// A workbook whose first script has a cached result, the cache holds it
+/// A workbook whose first script has a stored result of its key
 fn cached_workbook(s: &Setup) -> Rc<RefCell<Workbook>> {
     let main = connection("main", false);
     let workbook = workbook(&[("foo.sql", "select 1 as a", &main), ("bar.sql", "select a + 1 from :foo", &main)]);
     let first = s.run(&workbook, workbook_run());
     assert!(first.failure.is_none(), "{:?}", first.failure);
-    let signature = signature_of(&s.state.borrow().statements[0].request);
+    let key = key_of(&s.state.borrow().statements[0].request);
     let mut state = s.state.borrow_mut();
     state.statements.clear();
     state.calls.clear();
     state.events.clear();
-    state.cached.insert(format!("main:{signature}"));
+    state.stored.insert("foo.sql".into(), key);
     drop(state);
     workbook
 }
@@ -780,11 +843,11 @@ fn runs_a_script_whose_cached_result_is_gone() {
     s.state.borrow_mut().missing = true;
     let result = s.run(&workbook, workbook_run());
     assert!(result.failure.is_none(), "{:?}", result.failure);
-    // The cached result was asked for, then the script ran with the one after it
+    // The stored result was asked for, then the script ran with the one after it
     let statements = &s.state.borrow().statements;
-    assert!(matches!(statements[0].request.cache, StatementCache::Only { .. }));
+    assert!(matches!(statements[0].request.result, StatementResult::Read { .. }));
     assert_eq!(statements.len(), 3);
-    assert!(statements.iter().skip(1).all(|s| matches!(s.request.cache, StatementCache::Refresh { .. })));
+    assert!(statements.iter().skip(1).all(|s| matches!(s.request.result, StatementResult::Store { .. })));
     assert_eq!(s.events("foo.sql").last().map(String::as_str), Some("done"));
 }
 

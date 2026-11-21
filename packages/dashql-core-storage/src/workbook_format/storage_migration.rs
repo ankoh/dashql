@@ -76,7 +76,7 @@ pub struct StorageMigrationStep {
 }
 
 /// The steps in order. Steps are never removed, a storage may skip any number of app versions.
-pub const STORAGE_MIGRATION_STEPS: [StorageMigrationStep; 8] = [
+pub const STORAGE_MIGRATION_STEPS: [StorageMigrationStep; 9] = [
     StorageMigrationStep { version: 2, description: "Rename notebooks as sessions" },
     StorageMigrationStep { version: 3, description: "Move the connections of the sessions into the app manifest" },
     StorageMigrationStep {
@@ -88,6 +88,7 @@ pub const STORAGE_MIGRATION_STEPS: [StorageMigrationStep; 8] = [
     StorageMigrationStep { version: 7, description: "Move the sessions of the app manifest into the session tree" },
     StorageMigrationStep { version: 8, description: "Rename the connection params of the SIDB connector to dbcom" },
     StorageMigrationStep { version: 9, description: "Rename sessions as workbooks" },
+    StorageMigrationStep { version: 10, description: "Remove the query result cache of the app" },
 ];
 
 // The last step produces the current storage version
@@ -305,8 +306,26 @@ pub async fn run_storage_migration_step<H: StorageRootHost>(host: &H, version: i
         7 => session_tree(host).await,
         8 => dbcom_connector(host).await,
         9 => sessions_to_workbooks(host).await,
+        10 => drop_query_result_cache(host).await,
         _ => Err(HostError::new(format!("Unknown storage migration step {version}"))),
     }
+}
+
+/// The folder of the query result cache of the app up to storage version 9
+const QUERY_RESULT_CACHE_FOLDER: &str = "cache";
+
+/// The results of the scripts live in the folders of their workbooks (docs/design/workbook_results.md): the query result
+/// cache of the app, `cache/` with its Parquet files and access markers, goes. Its results are computed again when their
+/// scripts run. A file that another window of an older version reads right now may refuse to go, the step leaves it and
+/// the cleanup of the internals lists the folder.
+async fn drop_query_result_cache<H: StorageRootHost>(host: &H) -> Result<(), HostError> {
+    if host.list(QUERY_RESULT_CACHE_FOLDER).await?.is_none() {
+        return Ok(());
+    }
+    if let Err(error) = host.remove(QUERY_RESULT_CACHE_FOLDER).await {
+        host.log(LogLevel::Warn, "Failed to remove the query result cache of the app", &[("error", message(&error))]);
+    }
+    Ok(())
 }
 
 /// Notebooks are called sessions: the session folders move from `notebooks/<uuid>` to `sessions/<uuid>` and the manifest
