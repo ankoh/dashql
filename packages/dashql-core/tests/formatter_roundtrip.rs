@@ -5,7 +5,6 @@
 //! when it is formatted a second time.
 
 use dashql_buffers::formatting::{FormattingConfigT, FormattingDialect, FormattingMode};
-use dashql_buffers::parser::StatementType;
 use dashql_core::formatter::Formatter;
 use dashql_parser::parser::{parse, ParsedScript};
 use dashql_parser::scanner::scan;
@@ -41,10 +40,6 @@ fn formatted_parser_snapshots_parse_again() {
         let Some(input) = case.input() else { continue };
         let parsed = parse(Arc::new(scan(&input, 0, 2)));
         if !is_valid(&parsed) || UNFORMATTABLE.contains(&input.trim()) {
-            continue;
-        }
-        // Transaction control currently has parser support only.
-        if parsed.statements.iter().any(|s| s.statement_type == StatementType::TRANSACTION) {
             continue;
         }
         for mode in [FormattingMode::INLINE, FormattingMode::COMPACT, FormattingMode::PRETTY] {

@@ -64,6 +64,34 @@ call d360.mapping_create (
         catalog.destroy();
     });
 
+    it('formats transaction control', async () => {
+        const catalog = dql!.createCatalog();
+        const script = dql!.createScript(catalog);
+        script.insertTextAt(0, `BEGIN WORK ISOLATION LEVEL  SERIALIZABLE READ ONLY;
+SAVEPOINT "Before";
+ROLLBACK TO "Before";
+COMMIT TRANSACTION;`);
+        const config = new dashql.buffers.formatting.FormattingConfigT(
+            dashql.buffers.formatting.FormattingDialect.HYPER,
+            dashql.buffers.formatting.FormattingMode.COMPACT,
+            80,
+            4,
+        );
+        const formatted = script.format(config, catalog, true);
+
+        expect(formatted.toString()).toEqual(`begin isolation level serializable, read only;
+
+savepoint "Before";
+
+rollback to savepoint "Before";
+
+commit;`);
+
+        formatted.destroy();
+        script.destroy();
+        catalog.destroy();
+    });
+
     it('formats inserts through WebAssembly', async () => {
         const catalog = dql!.createCatalog();
         const script = dql!.createScript(catalog);

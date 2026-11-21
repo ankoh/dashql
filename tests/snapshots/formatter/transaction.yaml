@@ -1,0 +1,260 @@
+formatter-snapshots:
+
+  - name: coverage_transaction_commands
+    input: |-
+      BEGIN WORK; Commit Transaction; begin transaction; rollback work;
+      START  TRANSACTION; end; begin; abort transaction;
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              begin;
+
+              commit;
+
+              begin;
+
+              rollback;
+
+              start transaction;
+
+              end;
+
+              begin;
+
+              abort;
+          - mode: compact
+            expected: |-
+              begin;
+
+              commit;
+
+              begin;
+
+              rollback;
+
+              start transaction;
+
+              end;
+
+              begin;
+
+              abort;
+          - mode: pretty
+            expected: |-
+              begin;
+
+              commit;
+
+              begin;
+
+              rollback;
+
+              start transaction;
+
+              end;
+
+              begin;
+
+              abort;
+        validation:
+          setup: |-
+            select 1;
+
+  - name: transaction_block
+    input: |-
+      begin;
+      insert into items values (1);
+      delete from items where id = 1;
+      commit;
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              begin;
+
+              insert into items values (1);
+
+              delete from items where id = 1;
+
+              commit;
+          - mode: compact
+            expected: |-
+              begin;
+
+              insert into items values (1);
+
+              delete from items where id = 1;
+
+              commit;
+          - mode: pretty
+            expected: |-
+              begin;
+
+              insert into items
+              values
+                (1);
+
+              delete from items
+              where id = 1;
+
+              commit;
+        validation:
+          setup: |-
+            create table items (id int);
+
+  - name: coverage_transaction_modes
+    input: |-
+      begin isolation level read committed;
+      start transaction isolation  level  serializable,read only;
+      begin read write not deferrable;
+      begin deferrable, isolation level repeatable read read only;
+      begin isolation level read uncommitted;
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              begin isolation level read committed;
+
+              start transaction isolation level serializable, read only;
+
+              begin read write, not deferrable;
+
+              begin deferrable, isolation level repeatable read, read only;
+
+              begin isolation level read uncommitted;
+          - mode: compact
+            expected: |-
+              begin isolation level read committed;
+
+              start transaction isolation level serializable, read only;
+
+              begin read write, not deferrable;
+
+              begin deferrable, isolation level repeatable read, read only;
+
+              begin isolation level read uncommitted;
+          - mode: pretty
+            expected: |-
+              begin isolation level read committed;
+
+              start transaction isolation level serializable, read only;
+
+              begin read write, not deferrable;
+
+              begin deferrable, isolation level repeatable read, read only;
+
+              begin isolation level read uncommitted;
+
+  - name: transaction_modes_wrapped
+    input: |-
+      start transaction isolation level serializable, read only, not deferrable, isolation level repeatable read
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              start transaction isolation level serializable, read only, not deferrable, isolation level repeatable read;
+          - mode: compact
+            width: 40
+            expected: |-
+              start transaction isolation level serializable,
+                read only, not deferrable,
+                isolation level repeatable read;
+          - mode: pretty
+            width: 40
+            expected: |-
+              start transaction isolation level serializable,
+                read only, not deferrable,
+                isolation level repeatable read;
+
+  - name: coverage_transaction_savepoints
+    input: |-
+      savepoint checkpoint;
+      release checkpoint;
+      rollback work to checkpoint;
+      SAVEPOINT "Mixed Case";
+      RELEASE SAVEPOINT "Mixed Case";
+      savepoint savepoint;
+      rollback to savepoint;
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              savepoint checkpoint;
+
+              release savepoint checkpoint;
+
+              rollback to savepoint checkpoint;
+
+              savepoint "Mixed Case";
+
+              release savepoint "Mixed Case";
+
+              savepoint savepoint;
+
+              rollback to savepoint savepoint;
+          - mode: compact
+            expected: |-
+              savepoint checkpoint;
+
+              release savepoint checkpoint;
+
+              rollback to savepoint checkpoint;
+
+              savepoint "Mixed Case";
+
+              release savepoint "Mixed Case";
+
+              savepoint savepoint;
+
+              rollback to savepoint savepoint;
+          - mode: pretty
+            expected: |-
+              savepoint checkpoint;
+
+              release savepoint checkpoint;
+
+              rollback to savepoint checkpoint;
+
+              savepoint "Mixed Case";
+
+              release savepoint "Mixed Case";
+
+              savepoint savepoint;
+
+              rollback to savepoint savepoint;
+
+  - name: coverage_transaction_prepared
+    input: |-
+      PREPARE TRANSACTION 'batch';
+      commit prepared 'batch';
+      rollback prepared 'batch''s id';
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              prepare transaction 'batch';
+
+              commit prepared 'batch';
+
+              rollback prepared 'batch''s id';
+          - mode: compact
+            expected: |-
+              prepare transaction 'batch';
+
+              commit prepared 'batch';
+
+              rollback prepared 'batch''s id';
+          - mode: pretty
+            expected: |-
+              prepare transaction 'batch';
+
+              commit prepared 'batch';
+
+              rollback prepared 'batch''s id';

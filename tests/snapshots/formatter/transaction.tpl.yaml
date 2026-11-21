@@ -1,0 +1,59 @@
+formatter-snapshots:
+  # WORK and TRANSACTION after a command carry no meaning, the aliases keep their command
+  - name: coverage_transaction_commands
+    input: |
+      BEGIN WORK; Commit Transaction; begin transaction; rollback work;
+      START  TRANSACTION; end; begin; abort transaction;
+    dialects:
+      hyper:
+        validation:
+          setup: select 1;
+  # A transaction in one script, the statements in between are formatted as usual
+  - name: transaction_block
+    input: |
+      begin;
+      insert into items values (1);
+      delete from items where id = 1;
+      commit;
+    dialects:
+      hyper:
+        validation:
+          setup: create table items (id int);
+  - name: coverage_transaction_modes
+    input: |
+      begin isolation level read committed;
+      start transaction isolation  level  serializable,read only;
+      begin read write not deferrable;
+      begin deferrable, isolation level repeatable read read only;
+      begin isolation level read uncommitted;
+    dialects:
+      hyper:
+  # Modes that don't fit break after the commas
+  - name: transaction_modes_wrapped
+    input: start transaction isolation level serializable, read only, not deferrable, isolation level repeatable read
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 40
+          - mode: pretty
+            width: 40
+  # SAVEPOINT before a savepoint name is written in full, quoted names stay quoted
+  - name: coverage_transaction_savepoints
+    input: |
+      savepoint checkpoint;
+      release checkpoint;
+      rollback work to checkpoint;
+      SAVEPOINT "Mixed Case";
+      RELEASE SAVEPOINT "Mixed Case";
+      savepoint savepoint;
+      rollback to savepoint;
+    dialects:
+      hyper:
+  - name: coverage_transaction_prepared
+    input: |
+      PREPARE TRANSACTION 'batch';
+      commit prepared 'batch';
+      rollback prepared 'batch''s id';
+    dialects:
+      hyper:

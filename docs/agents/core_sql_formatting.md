@@ -4,7 +4,7 @@ This guide documents the standard workflow to add or improve SQL formatter behav
 
 ## 1) Implement formatter behavior
 
-1. Update formatter logic in the Rust core, `packages/dashql-core/src/formatter/`: `mod.rs` holds the dispatch and the shared helpers, the statement formatters live in `select.rs`, `create.rs`, `insert.rs`, `delete.rs`, `explain.rs` and `pgq.rs`, `comments.rs` places and wraps comments, and `program.rs` holds the formatting program and its width-aware renderer.
+1. Update formatter logic in the Rust core, `packages/dashql-core/src/formatter/`: `mod.rs` holds the dispatch and the shared helpers, the statement formatters live in `select.rs`, `create.rs`, `insert.rs`, `delete.rs`, `explain.rs`, `pgq.rs` and `transaction.rs`, `comments.rs` places and wraps comments, and `program.rs` holds the formatting program and its width-aware renderer.
 2. Ensure the node is handled in the `Formatter::format_node` dispatch (`mod.rs`).
 3. Keep lowercase SQL keywords as the default; honor the configured keyword case without changing identifiers, literals, comments, or current break/indent behavior.
 4. Don't use the source text of a node (`text_at`) as escape hatch to copy over the AST node content, instead use a place holder similar to unsupported node types (`format_unimplemented`).
