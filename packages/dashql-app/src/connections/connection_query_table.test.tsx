@@ -4,7 +4,6 @@ import { createRoot, type Root } from 'react-dom/client';
 import * as dashql from '@akohn/dashql';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ComputeConnectionProvider } from './compute_connection_provider.js';
 import { EmbeddedDatabaseProvider } from '../host/embedded_database_provider.js';
 import { HyperDB, type HyperDBClient, type HyperDBConnection } from '@akohn/dashql/platform/hyperdb/hyperdb_wasm';
 import { HyperDB as HyperDBEngine } from 'hyperdb-wasm';
@@ -12,10 +11,18 @@ import { LoggerProvider } from '../host/logger_provider.js';
 import { getTestHyperDBClient, testDatabasePath } from '../tests/hyperdb_test_client.js';
 import { QueryTable } from './connection_query_table.js';
 import { StandaloneRuntime } from '../host/standalone_runtime.js';
+import { useRuntime } from '@akohn/dashql-react/hooks';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
+
+/// Set up the compute database of the runtime right away like the app does, the table waits until it is ready
+function PrepareComputeDatabase() {
+    const runtime = useRuntime();
+    React.useEffect(() => runtime.computeDatabase.prepare(), [runtime]);
+    return null;
+}
 
 describe('QueryTable', () => {
     let client: HyperDBClient;
@@ -67,11 +74,10 @@ describe('QueryTable', () => {
         act(() => root.render(
             <LoggerProvider>
                 <EmbeddedDatabaseProvider setupDatabase={async () => computeDatabase}>
-                    <ComputeConnectionProvider>
-                        <StandaloneRuntime>
-                            <QueryTable sql={sql} clientContext={null} runQuery={runQuery} />
-                        </StandaloneRuntime>
-                    </ComputeConnectionProvider>
+                    <StandaloneRuntime>
+                        <PrepareComputeDatabase />
+                        <QueryTable sql={sql} clientContext={null} runQuery={runQuery} />
+                    </StandaloneRuntime>
                 </EmbeddedDatabaseProvider>
             </LoggerProvider>,
         ));

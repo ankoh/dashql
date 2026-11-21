@@ -444,7 +444,8 @@ it over, and only the latest lease resets the connection when it closes.
   of the runtime: it imports React, apache-arrow, `@akohn/dashql` and the libraries of its components only,
   `//packages/dashql-react:boundary_test`):
   `RuntimeContextProvider`, `useOwnedRuntime`, `useRuntime`, `useOptionalRuntime`,
-  `useView(kind, id)`, `useDispatch(target)` (typed by the target, see [Dispatch](#dispatch)), `useTable(handle)`, `useCatalog(connectionId)` and `useComputeReady()`;
+  `useView(kind, id)`, `useDispatch(target)` (typed by the target, see [Dispatch](#dispatch)), `useTable(handle)`, `useCatalog(connectionId)`, `useComputeReady()` and `useComputeDatabase()` (the compute database once it is ready, e.g. for
+  the Parquet export of a result);
   one-line aliases `useWorkbook`, `useScript`,
   `useWorkbookDerived`, `useWorkbookList`, `useConnection`, `useConnectionList`, `useQuery`, `useComputation`,
   `useComputationDispatch`; hooks that read all slices of a kind for the views that show all of them (`useWorkbooks`,

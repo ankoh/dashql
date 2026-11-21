@@ -5,7 +5,6 @@ import { act } from '@akohn/dashql-react/testing/react_act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ComputeConnectionProvider, useComputeDatabase } from '../connections/compute_connection_provider.js';
 import { EmbeddedDatabaseProvider } from './embedded_database_provider.js';
 import type { EmbeddedComputeDatabase } from '@akohn/dashql/platform/embedded_database';
 import { LoggerProvider } from './logger_provider.js';
@@ -24,9 +23,8 @@ import { StorageProvider } from '../storage/storage_provider.js';
 import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_state';
 import { createTestConnection } from '@akohn/dashql/runtime/testing/connection_fixtures';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
-import { HyperLogMetricsProvider } from '../connections/hyper/hyper_log_metrics_provider.js';
 import type { QueryExecutionArgs, QueryExecutor, WatchQueryProfile } from '@akohn/dashql/platform/connections/query_execution_args';
-import { useQuery, useQueryProfileDetail, useRuntime } from '@akohn/dashql-react/hooks';
+import { useComputeReady, useQuery, useQueryProfileDetail, useRuntime } from '@akohn/dashql-react/hooks';
 import { useQueryModel, type QueryModel } from '@akohn/dashql-react/models/query_model';
 import { TestRuntime } from '../tests/test_runtime.js';
 import type { ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
@@ -87,7 +85,7 @@ interface Api {
 function Capture(props: { database: (runtime: Runtime) => Promise<void>; capture: (api: Api) => void }) {
     const runtime = useRuntime();
     const execute = runtime.execute.bind(runtime);
-    const compute = useComputeDatabase();
+    const compute = useComputeReady();
     const [created, setCreated] = React.useState(false);
     const createDatabase = React.useEffectEvent(props.database);
     React.useEffect(() => {
@@ -167,16 +165,12 @@ describe('the queries of the app', () => {
                     root.render(<LoggerProvider>
                         <StorageProvider backend={new WorkbookTestBackend()}>
                             <EmbeddedDatabaseProvider setupDatabase={setupDatabase}>
-                                <ComputeConnectionProvider>
-                                    <TestRuntime>
-                                        <HyperLogMetricsProvider>
-                                            <>
-                                                <Capture database={database} capture={next => { api = next; }} />
-                                                <QueryStatus queryId={queryId} />
-                                            </>
-                                        </HyperLogMetricsProvider>
-                                    </TestRuntime>
-                                </ComputeConnectionProvider>
+                                <TestRuntime>
+                                    <>
+                                        <Capture database={database} capture={next => { api = next; }} />
+                                        <QueryStatus queryId={queryId} />
+                                    </>
+                                </TestRuntime>
                             </EmbeddedDatabaseProvider>
                         </StorageProvider>
                     </LoggerProvider>);
@@ -237,16 +231,12 @@ describe('the model of a query', () => {
                 root.render(<LoggerProvider>
                     <StorageProvider backend={new WorkbookTestBackend()}>
                         <EmbeddedDatabaseProvider setupDatabase={setupDatabase}>
-                            <ComputeConnectionProvider>
-                                <TestRuntime>
-                                    <HyperLogMetricsProvider>
-                                        <>
-                                            <Capture database={database} capture={next => { api = next; }} />
-                                            <QueryView queryId={queryId} capture={next => { model = next; }} />
-                                        </>
-                                    </HyperLogMetricsProvider>
-                                </TestRuntime>
-                            </ComputeConnectionProvider>
+                            <TestRuntime>
+                                <>
+                                    <Capture database={database} capture={next => { api = next; }} />
+                                    <QueryView queryId={queryId} capture={next => { model = next; }} />
+                                </>
+                            </TestRuntime>
                         </EmbeddedDatabaseProvider>
                     </StorageProvider>
                 </LoggerProvider>);

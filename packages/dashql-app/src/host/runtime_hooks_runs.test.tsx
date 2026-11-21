@@ -4,7 +4,6 @@ import { act } from '@akohn/dashql-react/testing/react_act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ComputeConnectionProvider, useComputeDatabase } from '../connections/compute_connection_provider.js';
 import { EmbeddedDatabaseProvider } from './embedded_database_provider.js';
 import type { EmbeddedComputeDatabase } from '@akohn/dashql/platform/embedded_database';
 import { LoggerProvider } from './logger_provider.js';
@@ -15,7 +14,7 @@ import { createTestConnection } from '@akohn/dashql/runtime/testing/connection_f
 import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
 import { StorageProvider } from '../storage/storage_provider.js';
 import { analyzeWorkbook } from '@akohn/dashql/runtime/testing/test_runtime';
-import { useRuntime, useWorkbookExecution } from '@akohn/dashql-react/hooks';
+import { useComputeReady, useRuntime, useWorkbookExecution } from '@akohn/dashql-react/hooks';
 import { TestRuntime } from '../tests/test_runtime.js';
 import type { ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
 
@@ -82,8 +81,8 @@ type Execution = ReturnType<typeof useWorkbookExecution>;
 
 function Consumer(props: { workbookId: string; capture: (execution: Execution) => void }) {
     const execution = useWorkbookExecution(props.workbookId);
-    const database = useComputeDatabase();
-    React.useLayoutEffect(() => { if (database) props.capture(execution); });
+    const computeReady = useComputeReady();
+    React.useLayoutEffect(() => { if (computeReady) props.capture(execution); });
     return null;
 }
 
@@ -151,15 +150,13 @@ describe('the runs of workbooks in the app', () => {
             root.render(<LoggerProvider>
                 <StorageProvider backend={backend}>
                     <EmbeddedDatabaseProvider setupDatabase={setupDatabase}>
-                        <ComputeConnectionProvider>
-                            {showRuntime ? <TestRuntime>
-                                <SeedRuntime fixtures={fixtures}>
-                                    {showConsumer ? <Consumer key={workbookId} workbookId={workbookId} capture={capture} /> : null}
-                                    <Consumer workbookId="first" capture={captureObserver} />
-                                    <EarlyConsumer capture={execution => { early = execution; }} />
-                                </SeedRuntime>
-                            </TestRuntime> : <></>}
-                        </ComputeConnectionProvider>
+                        {showRuntime ? <TestRuntime>
+                            <SeedRuntime fixtures={fixtures}>
+                                {showConsumer ? <Consumer key={workbookId} workbookId={workbookId} capture={capture} /> : null}
+                                <Consumer workbookId="first" capture={captureObserver} />
+                                <EarlyConsumer capture={execution => { early = execution; }} />
+                            </SeedRuntime>
+                        </TestRuntime> : <></>}
                     </EmbeddedDatabaseProvider>
                 </StorageProvider>
             </LoggerProvider>);

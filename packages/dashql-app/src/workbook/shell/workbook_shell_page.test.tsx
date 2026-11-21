@@ -7,7 +7,6 @@ import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { useRuntime } from '@akohn/dashql-react/hooks';
-import { ComputeConnectionProvider } from '../../connections/compute_connection_provider.js';
 import { AppConfigProvider, useAppReconfigure, type AppConfig } from '../../config/app_config.js';
 import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_state';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
@@ -247,27 +246,25 @@ describe('WorkbookShellPage', () => {
                 <StorageProvider backend={backend}>
                     <AppConfigProvider>
                         <EmbeddedDatabaseProvider setupDatabase={async () => database ?? ({} as EmbeddedComputeDatabase)}>
-                            <ComputeConnectionProvider>
-                                <TestRuntime {...executor}>
-                                    <MemoryRouter initialEntries={['/?view=dashboard']}>
-                                        <WorkbookViewModeProvider>
-                                            <DashQLCoreProvider>
-                                                <Capture capture={next => { api = next; }}>
-                                                    <WorkbookShellPage
-                                                        dependencies={dependencies}
-                                                        workbookId={WORKBOOK_ID}
-                                                        workbookName={props.workbookName === undefined ? 'My workbook' : props.workbookName}
-                                                        connectionId={props.connectionId ?? MAIN}
-                                                        ordinal={props.ordinal === undefined ? 2 : props.ordinal}
-                                                        label={labelOf(props.ordinal === undefined ? 2 : props.ordinal)}
-                                                        active={props.active ?? true}
-                                                    />
-                                                </Capture>
-                                            </DashQLCoreProvider>
-                                        </WorkbookViewModeProvider>
-                                    </MemoryRouter>
-                                </TestRuntime>
-                            </ComputeConnectionProvider>
+                            <TestRuntime {...executor}>
+                                <MemoryRouter initialEntries={['/?view=dashboard']}>
+                                    <WorkbookViewModeProvider>
+                                        <DashQLCoreProvider>
+                                            <Capture capture={next => { api = next; }}>
+                                                <WorkbookShellPage
+                                                    dependencies={dependencies}
+                                                    workbookId={WORKBOOK_ID}
+                                                    workbookName={props.workbookName === undefined ? 'My workbook' : props.workbookName}
+                                                    connectionId={props.connectionId ?? MAIN}
+                                                    ordinal={props.ordinal === undefined ? 2 : props.ordinal}
+                                                    label={labelOf(props.ordinal === undefined ? 2 : props.ordinal)}
+                                                    active={props.active ?? true}
+                                                />
+                                            </Capture>
+                                        </DashQLCoreProvider>
+                                    </WorkbookViewModeProvider>
+                                </MemoryRouter>
+                            </TestRuntime>
                         </EmbeddedDatabaseProvider>
                     </AppConfigProvider>
                 </StorageProvider>

@@ -17,7 +17,6 @@ import { createShellLastCommand } from '../../shell/terminal/shell_result.js';
 import { useAppConfig } from '../../config/app_config.js';
 import { getKeywordCase } from '../scripts/script_format.js';
 import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
-import { useComputeDatabase } from '../../connections/compute_connection_provider.js';
 import { externalDirectoryDatabase, externalFileDatabase, ShellFileRegistry } from '../../shell/terminal/shell_files.js';
 import { useShellFiles } from '../../shell/terminal/filesystem_dialog.js';
 import { createExamplesCommand } from '../../shell/terminal/shell_examples.js';
@@ -25,7 +24,7 @@ import { splitShellScript } from '../../shell/terminal/shell_script.js';
 import { useSnippetsDialog } from '../snippets/snippets_dialog.js';
 import { connectorInfoOf } from '@akohn/dashql/platform/connections/connection_state';
 import type * as core from '@akohn/dashql';
-import { useCatalog, useConnection, useOptionalRuntime, useQuery } from '@akohn/dashql-react/hooks';
+import { useCatalog, useComputeDatabase, useConnection, useOptionalRuntime, useQuery } from '@akohn/dashql-react/hooks';
 
 const LOG_CTX = 'workbook_shell_page';
 

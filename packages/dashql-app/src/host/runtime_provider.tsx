@@ -30,8 +30,6 @@ const NO_HTTP: HttpClient = {
 };
 
 interface Props {
-    /// The runtime to provide, e.g. one of a test. By default the provider creates one over the providers above it.
-    runtime?: Runtime;
     /// The core of the runtime, by default the one of the DashQLCoreProvider above
     core?: core.DashQL;
     /// Run the catalog loader, true by default. The tests of components stop it.
@@ -43,12 +41,11 @@ interface Props {
     children?: React.ReactNode;
 }
 
-/// The runtime of DashQL (packages/dashql/src/runtime/runtime.ts). By default over the platform of the app: the
-/// storage, the http client, the core and the embedded database of the providers above it. The provider creates it once
+/// The runtime of DashQL (packages/dashql/src/runtime/runtime.ts) over the platform of the app: the storage, the http
+/// client, the core and the embedded database of the providers above it. The provider creates it once
 /// the core is there and shows `loading` until then. The hooks of `@akohn/dashql-react/hooks` read from it.
 export function RuntimeProvider(props: Props) {
     const provided = useDashQLCore();
-    if (props.runtime != null) return <RuntimeContextProvider value={props.runtime}>{props.children}</RuntimeContextProvider>;
     const core = props.core ?? provided;
     if (core == null) return <>{props.loading ?? null}</>;
     return <AppRuntime core={core} catalogLoader={props.catalogLoader} queryCommands={props.queryCommands}>{props.children}</AppRuntime>;

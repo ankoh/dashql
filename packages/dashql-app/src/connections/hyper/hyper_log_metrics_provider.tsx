@@ -27,9 +27,8 @@ const LOG_METRICS_CTX = React.createContext<HyperLogMetrics | null>(null);
 const RETAINED_MS = 60 * 60_000;
 
 interface Props {
-    /// The metrics to provide, e.g. the ones of the runtime of the app whose channels they watch. By default the
-    /// provider creates its own.
-    metrics?: HyperLogMetrics;
+    /// The metrics to provide, the ones of the runtime of the app whose channels they watch
+    metrics: HyperLogMetrics;
     /// The children
     children: React.ReactElement;
 }
@@ -57,8 +56,7 @@ export function useCreateHyperLogMetrics(): HyperLogMetrics {
 /// Must be nested in the runtime and the embedded database, which holds the monitoring databases.
 export const HyperLogMetricsProvider: React.FC<Props> = (props: Props) => {
     const runtime = useOptionalRuntime();
-    const created = useCreateHyperLogMetrics();
-    const logMetrics = props.metrics ?? created;
+    const logMetrics = props.metrics;
     React.useEffect(() => {
         const retain = () => logMetrics.retain(new Set(runtime?.store.all('connection').keys() ?? []));
         retain();

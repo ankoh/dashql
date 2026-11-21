@@ -10,7 +10,6 @@ import { IndicatorStatus } from '@akohn/dashql-react/components/status_indicator
 import { ProgressCounter } from '@akohn/dashql/platform/utils/progress';
 import { AppOwnershipGate } from './app_ownership_gate.js';
 import { AppSettingsSync, useAppSettingsReady } from '../config/app_settings_sync.js';
-import { ComputeConnectionProvider } from '../connections/compute_connection_provider.js';
 import { DashQLCoreProvider } from '../host/core_provider.js';
 import { RuntimeProvider } from '../host/runtime_provider.js';
 import { FileDropzone } from './file_dropzone.js';
@@ -109,13 +108,11 @@ const AppProviders = (props: { children: React.ReactElement }) => (
                                         <AppSettingsSync>
                                             <HyperDatabaseClientProvider>
                                                 <AppEmbeddedDatabaseProvider>
-                                                    <ComputeConnectionProvider>
-                                                        <QueryResultCacheProvider>
-                                                            <WorkbookProviders>
-                                                                {props.children}
-                                                            </WorkbookProviders>
-                                                        </QueryResultCacheProvider>
-                                                    </ComputeConnectionProvider>
+                                                    <QueryResultCacheProvider>
+                                                        <WorkbookProviders>
+                                                            {props.children}
+                                                        </WorkbookProviders>
+                                                    </QueryResultCacheProvider>
                                                 </AppEmbeddedDatabaseProvider>
                                             </HyperDatabaseClientProvider>
                                         </AppSettingsSync>

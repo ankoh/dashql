@@ -3,14 +3,12 @@ import { act } from '@akohn/dashql-react/testing/react_act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ComputeConnectionProvider, useComputeDatabase } from '../../connections/compute_connection_provider.js';
 import { EmbeddedDatabaseProvider } from '../../host/embedded_database_provider.js';
 import type { EmbeddedComputeDatabase } from '@akohn/dashql/platform/embedded_database';
 import { LoggerProvider } from '../../host/logger_provider.js';
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
-import { useConnections, useRuntime, useWorkbooks } from '@akohn/dashql-react/hooks';
-import { HyperLogMetricsProvider } from '../../connections/hyper/hyper_log_metrics_provider.js';
+import { useComputeReady, useConnections, useRuntime, useWorkbooks } from '@akohn/dashql-react/hooks';
 
 import { WorkbookTestBackend, testWorkbook } from '@akohn/dashql/platform/testing/workbook_test_backend';
 import { StorageProvider } from '../../storage/storage_provider.js';
@@ -57,7 +55,7 @@ function Capture(props: { capture: (api: Api) => void }) {
     const workbooks = useWorkbooks();
     const replace = useReplaceConnection();
     const writer = runtime.storage;
-    const compute = useComputeDatabase();
+    const compute = useComputeReady();
     React.useEffect(() => {
         const source = connection(runtime, 'source', SOURCE_PARAMS);
         connection(runtime, 'target', TARGET_PARAMS);
@@ -90,13 +88,9 @@ describe('useReplaceConnection', () => {
             root.render(<LoggerProvider>
                 <StorageProvider backend={backend}>
                     <EmbeddedDatabaseProvider setupDatabase={setupDatabase}>
-                        <ComputeConnectionProvider>
-                            <TestRuntime>
-                                <HyperLogMetricsProvider>
-                                    <Capture capture={next => { api = next; }} />
-                                </HyperLogMetricsProvider>
-                            </TestRuntime>
-                        </ComputeConnectionProvider>
+                        <TestRuntime>
+                            <Capture capture={next => { api = next; }} />
+                        </TestRuntime>
                     </EmbeddedDatabaseProvider>
                 </StorageProvider>
             </LoggerProvider>);

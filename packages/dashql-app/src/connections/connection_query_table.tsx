@@ -1,8 +1,7 @@
 import type * as arrow from 'apache-arrow';
 import * as React from 'react';
 
-import { useComputation, useRuntime } from '@akohn/dashql-react/hooks';
-import { useComputeDatabase } from './compute_connection_provider.js';
+import { useComputation, useComputeReady, useRuntime } from '@akohn/dashql-react/hooks';
 import type { EmbeddedClientContext } from '@akohn/dashql/platform/embedded_database';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { useLogger } from '../host/logger_provider.js';
@@ -25,7 +24,7 @@ function useQueryComputation(
     refreshes: number,
 ): number | null {
     const runtime = useRuntime();
-    const database = useComputeDatabase();
+    const computeReady = useComputeReady();
     const logger = useLogger();
     const [tableId, setTableId] = React.useState<number | null>(null);
     const state = React.useRef({
@@ -50,7 +49,7 @@ function useQueryComputation(
     }, [runtime]);
 
     React.useEffect(() => {
-        if (database == null) return;
+        if (!computeReady) return;
         const current = state.current;
         current.next = async () => {
             const table = await runQuery(sql);
@@ -87,7 +86,7 @@ function useQueryComputation(
             }
             current.pumping = false;
         })();
-    }, [sql, refreshes, runQuery, clientContext, database, runtime, logger]);
+    }, [sql, refreshes, runQuery, clientContext, computeReady, runtime, logger]);
     return tableId;
 }
 

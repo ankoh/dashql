@@ -5,6 +5,7 @@ import type * as core from '@akohn/dashql';
 import type { Runtime, Settled } from '@akohn/dashql/runtime/runtime';
 import type { StoreView } from '@akohn/dashql/runtime/store/runtime_store';
 import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
+import type { EmbeddedComputeDatabase } from '@akohn/dashql/platform/embedded_database';
 import type { QueryExecutionProgress, QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import type { ScriptData, ScriptDataMap, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
@@ -248,6 +249,21 @@ export function useComputeReady(): boolean {
     const subscribe = React.useMemo(() => database == null ? NO_SUBSCRIPTION : (listener: () => void) => database.subscribe(listener), [database]);
     const getSnapshot = React.useCallback(() => database?.ready ?? false, [database]);
     return React.useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+}
+
+/// The compute database of the runtime once it is ready, null before and without a runtime, e.g. for the Parquet
+/// export of a result or the files of a shell
+export function useComputeDatabase(): EmbeddedComputeDatabase | null {
+    const runtime = React.useContext(RUNTIME_CTX);
+    const ready = useComputeReady();
+    const [database, setDatabase] = React.useState<EmbeddedComputeDatabase | null>(null);
+    React.useEffect(() => {
+        if (runtime == null || !ready) return;
+        let current = true;
+        runtime.computeDatabase.get().then(resolved => { if (current) setDatabase(resolved); }, () => { });
+        return () => { current = false; };
+    }, [runtime, ready]);
+    return ready ? database : null;
 }
 
 /// The run of a workbook from its `run` slice. `busy` while the whole workbook runs, `runActive` while any run holds
