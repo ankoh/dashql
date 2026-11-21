@@ -415,10 +415,10 @@ For local development with hot module reloading:
 
 ```bash
 # Start browser dev server with HMR
-pnpm exec ibazel run //packages/dashql-app:dev
+pnpm dev
 
 # Start the Vite server in Electron mode with renderer HMR
-pnpm exec ibazel run //packages/dashql-app:dev -- --mode electron
+pnpm dev --mode electron
 
 # Start the native app (connects to the Electron-mode Vite server)
 bazel run //packages/dashql-native:dev
@@ -428,13 +428,18 @@ Run the last two commands in separate terminals for Electron development.
 
 The dev server of the app is a `js_run_devserver` of rules_js. It runs Vite in a sandbox of its own in
 `/tmp/js_run_devserver-*`, a copy of its inputs: the sources of the app, of `packages/dashql` and of
-`packages/dashql-react` at their paths in the workspace, and the generated packages of the core module. Builds never
-change the files under the running server, other Bazel runs in the same output base included. Under ibazel, an edit
-triggers a rebuild, and ibazel syncs the files it changed into the sandbox (about 1.5 seconds from the edit to the
-sandbox), Vite updates the page; the page reloads when a build replaces the Wasm. Without ibazel, `bazel run` copies
-the inputs once and the server never sees an edit. Errors of the type checker and of Vite name the copies in the
-sandbox, edit the files of the workspace. A new test file reaches the browser tests of the dev server once a rebuild
-puts it into their manifests.
+`packages/dashql-react` at their paths in the workspace, and the generated packages of the core module. The npm
+packages are not copied: their links in the sandbox point into `bazel-out` of the output base that ibazel builds in.
+Other Bazel runs in that output base rewrite these packages, and the type checker of the dev server then fails with
+"Cannot find module '.../node_modules/typescript/lib/typescript.js'". The dev server therefore builds in an output base
+of its own: `pnpm dev` (and `pnpm dev:debug` with `--config=debug`) runs `ibazel run
+--output_base=$HOME/.cache/bazel/dashql-dev //packages/dashql-app:dev --`, arguments after `pnpm dev` reach Vite. Its
+first build starts from scratch, and it keeps a second Bazel server running. Do not run other Bazel commands with that
+output base. Under ibazel, an edit triggers a rebuild, and ibazel syncs the files it changed into the sandbox (about 1.5
+seconds from the edit to the sandbox), Vite updates the page; the page reloads when a build replaces the Wasm. Without
+ibazel, `bazel run` copies the inputs once and the server never sees an edit. Errors of the type checker and of Vite
+name the copies in the sandbox, edit the files of the workspace. A new test file reaches the browser tests of the dev
+server once a rebuild puts it into their manifests.
 
 The dev server of the website reads `packages/dashql-react` from its sources, an edit reaches the page without a build
 or a restart.

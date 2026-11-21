@@ -14,19 +14,17 @@
 ### Building
 
 ```
-# We use ibazel, the watcher of Bazel, for our dev servers.
-pnpm add -g @bazel/ibazel
-
-# Vite dev server for the browser with HMR.
-ibazel run //packages/dashql-app:dev
+# Vite dev server for the browser with HMR. It runs ibazel, the watcher of Bazel,
+# in a separate output base.
+pnpm dev
 
 # For Electron renderer HMR, run these in separate terminals.
-ibazel run //packages/dashql-app:dev -- --mode electron
+pnpm dev --mode electron
 bazel run //packages/dashql-native:dev
 # Override DASHQL_ELECTRON_RENDERER_URL if Vite uses another loopback HTTP origin.
 
 # If you need demangled wasm stacktraces, run with
-ibazel run --config=debug //packages/dashql-app:dev
+pnpm dev:debug
 
 # We bundle the web app with two routers
 # - '/'-paths for Cloudflare Pages -> :pages

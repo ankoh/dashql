@@ -418,9 +418,9 @@ vite_bin.vite_binary(
     visibility = ["//visibility:private"],
 )
 
-# The dev server: `ibazel run //packages/dashql-app:dev`. It runs Vite in a sandbox of its own, a copy of the inputs of
-# the builds of the app, and ibazel syncs the files that a rebuild changes into it. Builds never change the files under
-# the running server, see docs/agents/build_bazel_targets.md
+# The dev server: `pnpm dev`, which runs it under ibazel in an output base of its own. It runs Vite in a sandbox, a copy
+# of the inputs of the builds of the app, and ibazel syncs the files that a rebuild changes into it. The npm packages in
+# the sandbox link into bazel-out, hence the output base of its own, see docs/agents/build_bazel_targets.md
 js_run_devserver(
     name = "dev",
     tool = ":_vite_bin",
