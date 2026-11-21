@@ -511,19 +511,6 @@
         }
       }
     },
-    "//packages/dashql-app:bazel/version.bzl%dashql_app_version_ext": {
-      "general": {
-        "bzlTransitiveDigest": "OaS6FKEvtVoQqTu3C8WNrr14pL80PDs0WoXJCxA1khY=",
-        "usagesDigest": "7qEg6jJ3x/4uKgcnKbgB41hPTTQZ1vwhNdr6ASBz8SU=",
-        "recordedInputs": [],
-        "generatedRepoSpecs": {
-          "dashql_app_version": {
-            "repoRuleId": "@@//packages/dashql-app:bazel/version.bzl%dashql_app_version_repository",
-            "attributes": {}
-          }
-        }
-      }
-    },
     "//tools/datasets:deps.bzl%dashql_datasets": {
       "general": {
         "bzlTransitiveDigest": "10SItGrrWu/ssd3ZFYWGsvn5zJ+0woPb5Zx0ZLpnwH4=",

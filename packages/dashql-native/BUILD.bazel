@@ -68,7 +68,6 @@ sh_binary(
         ":compile",
         ":package.json",
         ":preload",
-        "@dashql_app_version//:version.env",
         "//:node_modules/electron",
         "//packages/dashql-app:electron_bundle",
         "//packages/dashql-native/proxy:addon",

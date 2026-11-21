@@ -175,9 +175,9 @@ use_repo(rust, "rust_toolchains")
 
 register_toolchains("@rust_toolchains//:all")
 
-# App version (git describe -> version.env for Vite genrules in dashql-app).
-app_version = use_extension("//packages/dashql-app:bazel/version.bzl", "dashql_app_version_ext")
-use_repo(app_version, "dashql_app_version")
+# The version of DashQL (git describe -> version.env for the genrules of the packages).
+dashql_app_version = use_repo_rule("//bazel:versioning.bzl", "dashql_app_version_repository")
+dashql_app_version(name = "dashql_app_version")
 
 # Rust crate universes. Each file declares its crates with crate.spec and keeps a Cargo.lock under
 # bazel/crates/<universe>/. There are no Cargo manifests; BUILD files are the only source of crate wiring.

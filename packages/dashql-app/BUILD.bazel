@@ -72,9 +72,6 @@ genrule(
         COMMIT=$$(awk -F= '$$1=="DASHQL_VERSION_COMMIT"{print $$2}' "$(location @dashql_app_version//:version.env)")
         NPM_VERSION=$$(awk -F= '$$1=="DASHQL_VERSION_NPM"{print $$2}' "$(location @dashql_app_version//:version.env)")
         HYPERDB_WASM_VERSION=$$(awk -F'"' '/"hyperdb-wasm"/{print $$4; exit}' "$(location //:package.json)")
-        if [ -z "$$VERSION" ]; then VERSION="0.0.1"; fi
-        if [ -z "$$COMMIT" ]; then COMMIT="unknown"; fi
-        if [ -z "$$NPM_VERSION" ]; then NPM_VERSION="$$VERSION"; fi
 
         sed -e "s|__PROTOBUF_PATH__|../../node_modules/@akohn/dashql/dependencies/dashql-protobuf|g" \\
             -e "s|__JSONSCHEMA_PATH__|../../node_modules/@akohn/dashql/dependencies/dashql-jsonschema|g" \\
@@ -105,9 +102,6 @@ genrule(
         COMMIT=$$(awk -F= '$$1=="DASHQL_VERSION_COMMIT"{print $$2}' "$(location @dashql_app_version//:version.env)")
         NPM_VERSION=$$(awk -F= '$$1=="DASHQL_VERSION_NPM"{print $$2}' "$(location @dashql_app_version//:version.env)")
         HYPERDB_WASM_VERSION=$$(awk -F'"' '/"hyperdb-wasm"/{print $$4; exit}' "$(location //:package.json)")
-        if [ -z "$$VERSION" ]; then VERSION="0.0.1"; fi
-        if [ -z "$$COMMIT" ]; then COMMIT="unknown"; fi
-        if [ -z "$$NPM_VERSION" ]; then NPM_VERSION="$$VERSION"; fi
 
         sed -e "s|__DASHQL_VERSION__|$${VERSION}|g" \
             -e "s|__DASHQL_COMMIT__|$${COMMIT}|g" \
