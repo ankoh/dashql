@@ -3,6 +3,7 @@ import type * as core from '../core/index.js';
 
 import type { EmbeddedComputeDatabase } from '../platform/embedded_database.js';
 import { exportArrowTableAsParquet } from '../platform/hyperdb/hyperdb_parquet_export.js';
+import { readParquetFile } from '../platform/hyperdb/hyperdb_parquet_read.js';
 import type { HandleTable } from './store/handles.js';
 import {
     archiveError,
@@ -21,22 +22,6 @@ import {
 // docs/design/dashql_runtime.md, docs/design/workbook_tables.md). The runtime decides what an archive holds and reads,
 // the platform keeps the ZIP container (zip.js) and the Parquet files of the workbook tables (the embedded Hyper). The
 // rows of a workbook table cross as Arrow IPC, the attachments and results by handle.
-
-/// Scan a Parquet file with the embedded Hyper
-async function readParquet(database: EmbeddedComputeDatabase, file: Blob): Promise<arrow.Table> {
-    // Every read mounts the file under a name of its own, reads of several archives may run at the same time
-    const path = await database.registerExternalFile(`${crypto.randomUUID()}.parquet`, file);
-    try {
-        const connection = await database.connect({ pooled: true });
-        try {
-            return await connection.query(`SELECT * FROM external('${path.replace(/'/g, "''")}', format => 'parquet')`);
-        } finally {
-            await connection.close();
-        }
-    } finally {
-        await database.removeExternalFile(path);
-    }
-}
 
 /// An archive that is read, with the reader of its central directory
 interface ArchiveReader {
@@ -108,7 +93,7 @@ export function createRuntimeArchives(handles: HandleTable, database: (context: 
         readText: (archive, index) => checked(async () => await (await fileEntry(archive, index)).getData(new TextWriter())),
         readTable: (archive, index) => checked(async () => {
             const file = await (await fileEntry(archive, index)).getData(new BlobWriter(), { checkCrc32: true });
-            return arrow.tableToIPC(await readParquet(await database('workbook_import'), file), 'stream');
+            return arrow.tableToIPC(await readParquetFile(await database('workbook_import'), file), 'stream');
         }),
         readFile: (archive, index, slice) => checked(async () => {
             const entry = await fileEntry(archive, index);
