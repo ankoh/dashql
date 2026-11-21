@@ -46,5 +46,8 @@ describe('dashql session hook', () => {
         const bare = await runWith((args, cli) => runSession(args, cli), W, ['hook', 'Stop', '--harness', 'claude'], '{}');
         expect(bare.code).toBe(0);
         expect(bare.stderr).toContain('--workspace and --session name the session of dashql connect');
+        const noHarness = await runWith((args, cli) => runSession(args, cli), W, ['hook', 'Stop', '--workspace', W, '--session', SESSION], '{}');
+        expect(noHarness.code).toBe(0);
+        expect(noHarness.stderr).toContain('--harness names the harness of the hook');
     });
 });

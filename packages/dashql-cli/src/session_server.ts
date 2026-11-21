@@ -485,7 +485,7 @@ export async function startSessionServer(options: SessionServerOptions): Promise
         state: () => state,
         end: () => {
             if (state.ended) return;
-            state = reduceAgentSessionEvent(state, { event: 'SessionEnd', harness: options.harness, folder: options.folder }, Date.now());
+            state = reduceAgentSessionEvent(state, { event: 'SessionEnd' }, Date.now());
             broadcast();
         },
         close: () => new Promise<void>(resolve => {

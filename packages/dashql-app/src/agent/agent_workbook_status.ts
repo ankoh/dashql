@@ -44,14 +44,7 @@ export function diffAgentQuestions(prev: AgentSession | null, next: AgentSession
             continue;
         }
         if (before.question.status == null || turn.question.status != null) continue;
-        lines.push(turn.question.error != null ? {
-            key: `agent:${turn.questionId}:failed:${now}`,
-            source: WorkbookStatusSource.Agent,
-            tone: WorkbookStatusTone.Failed,
-            text: `The agent failed: ${turn.question.question}`,
-            detail: turn.question.error,
-            at: now,
-        } : {
+        lines.push({
             key: `agent:${turn.questionId}:answered:${now}`,
             source: WorkbookStatusSource.Agent,
             tone: WorkbookStatusTone.Success,

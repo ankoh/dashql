@@ -93,22 +93,21 @@ function toolUseOf(payload: unknown, folder: string): { status: string; files: s
 /// transcript.
 export function sessionEventOf(
     name: string,
-    harness: string,
     payload: unknown,
     readText: (path: string) => string | null = path => { try { return readFileSync(path, 'utf8'); } catch { return null; } },
 ): AgentSessionEvent | null {
     const folder = text(payload, 'cwd') ?? '';
     if (name === POST_TOOL_USE_FAILURE) {
-        return { event: 'PostToolUse', harness, folder, ...toolUseOf(payload, folder), toolUseId: text(payload, 'tool_use_id'), error: text(payload, 'error') ?? 'failed' };
+        return { event: 'PostToolUse', ...toolUseOf(payload, folder), toolUseId: text(payload, 'tool_use_id'), error: text(payload, 'error') ?? 'failed' };
     }
     if (!EVENTS.has(name as AgentSessionEventName)) return null;
     const event = name as AgentSessionEventName;
     switch (event) {
         case 'UserPromptSubmit':
-            return { event, harness, folder, prompt: text(payload, 'prompt') ?? '' };
+            return { event, prompt: text(payload, 'prompt') ?? '' };
         case 'PreToolUse':
         case 'PostToolUse':
-            return { event, harness, folder, ...toolUseOf(payload, folder), toolUseId: text(payload, 'tool_use_id') };
+            return { event, ...toolUseOf(payload, folder), toolUseId: text(payload, 'tool_use_id') };
         case 'Stop': {
             let message = text(payload, 'last_assistant_message');
             const transcript = text(payload, 'transcript_path');
@@ -116,9 +115,9 @@ export function sessionEventOf(
                 const content = readText(transcript);
                 message = content != null ? lastAssistantText(content) : null;
             }
-            return { event, harness, folder, message };
+            return { event, message };
         }
         default:
-            return { event, harness, folder };
+            return { event };
     }
 }

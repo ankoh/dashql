@@ -199,7 +199,8 @@ stays the one place the page talks to.
 
 - **The server** (`packages/dashql-cli/src/session_server.ts`) keeps the state that the runtime reduces from the events
   (`session/agent_session_state.ts`): per turn the question, the latest status line, the steps, the files the tools
-  named, the final message. A step is a use of a tool: `PreToolUse` starts it at the time of the server, the
+  named, the final message. The harness and the folder of the state come from `dashql connect`, the events don't
+  repeat them. A step is a use of a tool: `PreToolUse` starts it at the time of the server, the
   `PostToolUse` with the same `tool_use_id` (else the oldest open step of the same line) ends it, a failed tool ends it
   as failed, `Stop` and `SessionEnd` end the open ones. A turn keeps its latest 30 steps.
 - **The line of a step** comes from the hook (`session_hook.ts`): the command of a shell, else the tool with its file,

@@ -10,7 +10,8 @@
 /// 3: `id` of the state, a new one for every server: the tab copies its workbooks again into a new session on the port
 /// 4: no log and no paths of workbooks in the state, the copies of the tab are its workbooks
 /// 5: requests name no protocol, only the answers of the server do
-export const AGENT_SESSION_PROTOCOL = 5;
+/// 6: the events of the hooks name neither the harness nor the folder, a turn has no error
+export const AGENT_SESSION_PROTOCOL = 6;
 
 /// The protocol of the server, on every answer
 export const AGENT_SESSION_PROTOCOL_HEADER = 'X-DashQL-Protocol';

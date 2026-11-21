@@ -396,7 +396,7 @@ describe('Workbook feed composer', () => {
     /// A question that the agent works on
     const question = (questionId: number, status: string | null = 'Edit scripts/1_alpha.sql'): AgentTurn => ({
         questionId,
-        question: { question: 'how many rows', status, error: null, note: null, steps: [] },
+        question: { question: 'how many rows', status, note: null, steps: [] },
         scripts: [],
     });
 

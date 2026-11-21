@@ -75,7 +75,7 @@ describe('the session server', () => {
         const stamp = () => server!.state().workbooks[0].files.find(file => file.path === 'scripts/b.sql');
         const before = stamp();
         writeFileSync(path.join(copy, 'scripts', 'b.sql'), 'select 22, 23\n');
-        const event = { event: 'PostToolUse', harness: 'claude', folder, status: 'Edit', files: [] };
+        const event = { event: 'PostToolUse', status: 'Edit', files: [] };
         const posted = await fetchAgentSession(`http://127.0.0.1:${server.port}/v1/events`, { method: 'POST', headers: { Authorization: `Bearer ${server.token}` }, body: JSON.stringify(event) });
         expect(posted.status).toBe(204);
         expect(stamp()?.size).toBe(14);
@@ -151,7 +151,7 @@ describe('the session server', () => {
             expect(answer.headers.get('access-control-expose-headers')).toBe('X-DashQL-Protocol');
         }
         // A request names no protocol, the server takes it as it is
-        const event = JSON.stringify({ event: 'UserPromptSubmit', harness: 'claude', folder: '/w', prompt: 'q' });
+        const event = JSON.stringify({ event: 'UserPromptSubmit', prompt: 'q' });
         const posted = await fetch(`${base}/v1/events`, { method: 'POST', headers: { Authorization: `Bearer ${server.token}` }, body: event });
         expect(posted.status).toBe(204);
         expect(posted.headers.get('x-dashql-protocol')).toBe(String(AGENT_SESSION_PROTOCOL));

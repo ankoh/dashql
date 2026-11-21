@@ -11,11 +11,11 @@ const workbook = {
 describe('the session of an agent in the bar of a workbook', () => {
     it('names the scripts that the agent touched and leaves out the dismissed turns', () => {
         const state = {
-            ...createAgentSessionState('codex', '/w'),
+            ...createAgentSessionState('codex', '/w', 's1'),
             turns: [
-                { turnId: 1, question: '', status: null, error: null, note: 'done', files: [], steps: [] },
+                { turnId: 1, question: '', status: null, note: 'done', files: [], steps: [] },
                 {
-                    turnId: 2, question: 'top orders', status: 'Edit', error: null, note: null, files: ['/w/scripts/1_orders.sql', 'scripts/1_orders.sql', 'other.sql'],
+                    turnId: 2, question: 'top orders', status: 'Edit', note: null, files: ['/w/scripts/1_orders.sql', 'scripts/1_orders.sql', 'other.sql'],
                     steps: [{ label: 'Edit scripts/1_orders.sql', toolUseId: 't1', startedAt: 10, endedAt: null, failed: false }],
                 },
             ],
@@ -25,7 +25,7 @@ describe('the session of an agent in the bar of a workbook', () => {
         expect(session).toMatchObject({ harness: 'codex', folder: '/w', connected: true });
         expect(session.turns).toEqual([{
             questionId: 2,
-            question: { question: 'top orders', status: 'Edit', error: null, note: null, steps: [{ label: 'Edit scripts/1_orders.sql', startedAt: 10, endedAt: null, failed: false }] },
+            question: { question: 'top orders', status: 'Edit', note: null, steps: [{ label: 'Edit scripts/1_orders.sql', startedAt: 10, endedAt: null, failed: false }] },
             scripts: [{ scriptKey: 7, scriptName: '1_orders' }],
         }]);
         session.onDismiss(2);
@@ -33,7 +33,7 @@ describe('the session of an agent in the bar of a workbook', () => {
     });
 
     it('names a question that the harness did not tell and is no longer connected once the session ended', () => {
-        const state = { ...createAgentSessionState('claude', '/w'), ended: true, turns: [{ turnId: 1, question: '', status: null, error: null, note: null, files: [], steps: [] }] };
+        const state = { ...createAgentSessionState('claude', '/w', 's1'), ended: true, turns: [{ turnId: 1, question: '', status: null, note: null, files: [], steps: [] }] };
         const session = agentSessionOf({ state, connected: true }, workbook, new Set(), vi.fn(), vi.fn());
         expect(session.connected).toBe(false);
         expect(session.ended).toBe(true);

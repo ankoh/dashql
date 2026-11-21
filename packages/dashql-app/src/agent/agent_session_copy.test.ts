@@ -42,7 +42,7 @@ class Fixture {
     /// The state of the session that names the copy
     state(): AgentSessionState {
         const files: CopyFile[] = [...this.copy].map(([path, file]) => ({ path, size: file.text.length, mtimeMs: file.mtimeMs }));
-        return { ...createAgentSessionState('claude', '/work'), workbooks: [{ workbookId: 'w1', files }] };
+        return { ...createAgentSessionState('claude', '/work', 's1'), workbooks: [{ workbookId: 'w1', files }] };
     }
 
     readonly host: AgentSessionCopyHost = {

@@ -192,7 +192,6 @@ test('the hooks of dashql connect show the session in DashQL: the question, what
             turnId: 1,
             question: 'run the probe',
             status: null,
-            error: null,
             note: 'done',
             files: ['scripts/orders.sql'],
             steps: [{ label: 'echo hello from scripts/orders.sql', failed: false }],

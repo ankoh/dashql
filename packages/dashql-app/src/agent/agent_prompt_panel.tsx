@@ -67,20 +67,19 @@ const AgentSteps: React.FC<{ steps: AgentStep[] }> = ({ steps }) => {
 };
 
 /// A question of the workbook with the answer of the agent.
-/// A collapsed turn shows the question in one line. An expanded turn shows the question, the steps of the agent, the
-/// final message and the error in full.
+/// A collapsed turn shows the question in one line. An expanded turn shows the question, the steps of the agent and the
+/// final message in full.
 const AgentTurnItem: React.FC<{ turn: AgentTurn; session: AgentSession; expanded: boolean; onToggle: () => void }> = ({ turn, session, expanded, onToggle }) => {
     const { questionId, question } = turn;
     const working = isAgentAnswering(question);
-    const failed = !working && question.error != null;
-    const indicator = working ? IndicatorStatus.Running : (failed ? IndicatorStatus.Failed : IndicatorStatus.Succeeded);
+    const indicator = working ? IndicatorStatus.Running : IndicatorStatus.Succeeded;
     const note = React.useMemo(() => (question.note != null ? plainAgentNote(question.note) : null), [question.note]);
     const questionTextId = React.useId();
     const { steps } = question;
     return (
         <li
             className={styles.turn}
-            data-state={working ? 'working' : (failed ? 'failed' : 'done')}
+            data-state={working ? 'working' : 'done'}
             data-expanded={expanded ? '' : undefined}
             data-testid="composer-agent-turn"
         >
@@ -126,7 +125,7 @@ const AgentTurnItem: React.FC<{ turn: AgentTurn; session: AgentSession; expanded
                     <IconButton
                         variant={ButtonVariant.Invisible}
                         size={ButtonSize.Small}
-                        aria-label={failed ? 'Dismiss the error' : 'Dismiss the answer'}
+                        aria-label="Dismiss the answer"
                         data-testid="question-dismiss"
                         onClick={() => session.onDismiss(questionId)}
                     >
@@ -139,8 +138,7 @@ const AgentTurnItem: React.FC<{ turn: AgentTurn; session: AgentSession; expanded
                     <AgentSteps steps={steps} />
                 </div>
             )}
-            {expanded && failed && <div className={styles.turn_error} role="alert">{question.error}</div>}
-            {expanded && !working && !failed && note != null && <div className={styles.turn_note} role="note">{note}</div>}
+            {expanded && !working && note != null && <div className={styles.turn_note} role="note">{note}</div>}
         </li>
     );
 };

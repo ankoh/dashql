@@ -21,7 +21,7 @@ describe('the client of an agent session', () => {
     });
 
     it('reads the states of the stream until the server ends it', async () => {
-        const states = [createAgentSessionState('claude', '/a'), { ...createAgentSessionState('claude', '/a'), version: 1 }];
+        const states = [createAgentSessionState('claude', '/a', 's1'), { ...createAgentSessionState('claude', '/a', 's1'), version: 1 }];
         let token: string | null = null;
         const server = http.createServer((request, response) => {
             token = new URL(request.url ?? '/', 'http://x').searchParams.get('token');
@@ -46,7 +46,7 @@ describe('the client of an agent session', () => {
     it('reads no state of a server that names no protocol', async () => {
         const server = http.createServer((_request, response) => {
             response.writeHead(200, { 'Content-Type': 'text/event-stream' });
-            response.end(`data: ${JSON.stringify(createAgentSessionState('claude', '/a'))}\n\n`);
+            response.end(`data: ${JSON.stringify(createAgentSessionState('claude', '/a', 's1'))}\n\n`);
         });
         await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
         try {

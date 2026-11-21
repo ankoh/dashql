@@ -138,8 +138,7 @@
 
 /* The texts of a turn can be selected and copied, the root disables the selection elsewhere */
 .turn_question,
-.turn_note,
-.turn_error {
+.turn_note {
     -webkit-user-select: text;
     user-select: text;
 }
@@ -236,11 +235,3 @@
     white-space: pre-wrap;
     overflow-wrap: anywhere;
 }
-
-.turn_error {
-    padding-left: 36px;
-    color: var(--color_danger_fg);
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
-}
-

@@ -26,12 +26,12 @@ function agentSession(turns: AgentTurn[] = [], connected = true): AgentSession {
 
 const working: AgentTurn = {
     questionId: 1,
-    question: { question: 'how many orders', status: 'dashql lint scripts/orders.sql', error: null, note: null, steps: [] },
+    question: { question: 'how many orders', status: 'dashql lint scripts/orders.sql', note: null, steps: [] },
     scripts: [],
 };
 const answered: AgentTurn = {
     questionId: 1,
-    question: { question: 'how many orders', status: null, error: null, note: 'There are 42 orders', steps: [] },
+    question: { question: 'how many orders', status: null, note: 'There are 42 orders', steps: [] },
     scripts: [],
 };
 

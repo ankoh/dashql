@@ -26,8 +26,6 @@ export interface AgentQuestion {
     question: string;
     /// The latest status line of the agent while it works, null once it finished
     status: string | null;
-    /// The error of a failed turn
-    error: string | null;
     /// The final message of the agent
     note: string | null;
     /// The uses of tools, oldest first
@@ -45,7 +43,7 @@ export interface AgentTurn {
 /// send its events to the server of `dashql connect`, the page reads them from there (docs/design/agent_session.md). The
 /// questions come from the terminal, the prompt of the page is closed while the page reaches the session.
 export interface AgentSession {
-    /// The id of the session, a new one for every server on the port of the line; empty from an older server
+    /// The id of the session, a new one for every server on the port of the line
     id: string;
     /// The harness, e.g. claude or codex
     harness: string;
@@ -57,7 +55,7 @@ export interface AgentSession {
     ended: boolean;
     /// The questions of the session, oldest first
     turns: AgentTurn[];
-    /// Dismiss the final message or the error of a question
+    /// Dismiss the final message of a question
     onDismiss: (questionId: number) => void;
     /// Scroll to a script that the agent wrote
     onShowScript: (scriptKey: number) => void;
@@ -91,7 +89,6 @@ export function harnessLabel(harness: string): string {
     switch (harness) {
         case 'claude': return 'Claude Code';
         case 'codex': return 'Codex';
-        case 'opencode': return 'opencode';
         default: return harness;
     }
 }
@@ -138,7 +135,6 @@ export function agentSessionOf(
             question: {
                 question: turn.question || 'A question in the terminal',
                 status: turn.status,
-                error: turn.error,
                 note: turn.note,
                 steps: turn.steps.map(step => ({ label: step.label, startedAt: step.startedAt, endedAt: step.endedAt, failed: step.failed })),
             },

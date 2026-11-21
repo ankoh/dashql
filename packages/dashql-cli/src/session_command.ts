@@ -87,9 +87,10 @@ async function postSessionEvent(target: SessionTarget, event: AgentSessionEvent)
 async function hook(args: string[], cli: CliProcess): Promise<number> {
     const { positional, named } = options(args);
     const [name] = positional;
-    const harness = named.get('harness') ?? 'agent';
+    const harness = named.get('harness');
     const workspace = named.get('workspace');
     const session = named.get('session');
+    if (harness == null) throw '--harness names the harness of the hook';
     if (workspace == null || session == null) throw '--workspace and --session name the session of dashql connect';
     let payload: unknown = {};
     try {
@@ -98,7 +99,7 @@ async function hook(args: string[], cli: CliProcess): Promise<number> {
     } catch {
         // A hook without a payload still tells the event
     }
-    const event = sessionEventOf(name ?? '', harness, payload);
+    const event = sessionEventOf(name ?? '', payload);
     if (event == null) return EXIT_OK;
     const target = readSessionServer(workspace, session);
     if (target == null) {

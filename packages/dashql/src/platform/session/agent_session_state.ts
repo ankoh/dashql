@@ -3,13 +3,10 @@ import type { CopyFile, SessionWorkbook } from './session_folder.js';
 /// The events of a harness that its hooks send to the server of `dashql connect`, docs/design/agent_session.md
 export type AgentSessionEventName = 'SessionStart' | 'UserPromptSubmit' | 'PreToolUse' | 'PostToolUse' | 'Stop' | 'SessionEnd';
 
-/// An event of a session, as the hook command of dashql reads it from the harness
+/// An event of a session, as the hook command of dashql reads it from the harness. The server knows the harness and
+/// the folder from `dashql connect`.
 export interface AgentSessionEvent {
     event: AgentSessionEventName;
-    /// The harness, e.g. claude or codex
-    harness: string;
-    /// The folder that the agent works in
-    folder: string;
     /// The question of UserPromptSubmit
     prompt?: string | null;
     /// What a tool of PreToolUse or PostToolUse does, in one line
@@ -20,7 +17,7 @@ export interface AgentSessionEvent {
     toolUseId?: string | null;
     /// The final message of Stop
     message?: string | null;
-    /// The error of a failed turn, or of a failed tool of PostToolUse
+    /// The error of a failed tool of PostToolUse
     error?: string | null;
 }
 
@@ -45,7 +42,6 @@ export interface AgentSessionTurn {
     question: string;
     /// The latest status line while the agent works, null once it stopped
     status: string | null;
-    error: string | null;
     /// The final message of the agent
     note: string | null;
     /// The files that the tools touched, in the order of their first touch
@@ -76,14 +72,14 @@ export const MAX_AGENT_SESSION_TURNS = 50;
 /// The steps that a turn keeps, the oldest go first
 export const MAX_AGENT_SESSION_STEPS = 30;
 
-export function createAgentSessionState(harness: string, folder: string, id: string = globalThis.crypto.randomUUID()): AgentSessionState {
+export function createAgentSessionState(harness: string, folder: string, id: string): AgentSessionState {
     return { id, harness, folder, ended: false, turns: [], workbooks: [], version: 0 };
 }
 
 /// A turn of a question
 function newTurn(state: AgentSessionState, question: string): AgentSessionTurn {
     const last = state.turns[state.turns.length - 1];
-    return { turnId: (last?.turnId ?? 0) + 1, question, status: 'working', error: null, note: null, files: [], steps: [] };
+    return { turnId: (last?.turnId ?? 0) + 1, question, status: 'working', note: null, files: [], steps: [] };
 }
 
 /// The steps of a turn with the open ones ended
@@ -135,7 +131,7 @@ export function reduceAgentSessionEvent(state: AgentSessionState, event: AgentSe
         }
         case 'Stop':
             if (open != null) {
-                turns = [...turns.slice(0, -1), { ...open, status: null, note: event.message ?? null, error: event.error ?? null, steps: endSteps(open.steps, now) }];
+                turns = [...turns.slice(0, -1), { ...open, status: null, note: event.message ?? null, steps: endSteps(open.steps, now) }];
             }
             break;
         case 'SessionEnd':
@@ -143,12 +139,9 @@ export function reduceAgentSessionEvent(state: AgentSessionState, event: AgentSe
             break;
     }
     return {
-        id: state.id,
-        harness: event.harness || state.harness,
-        folder: event.folder || state.folder,
+        ...state,
         ended: event.event === 'SessionEnd' ? true : event.event === 'SessionStart' ? false : state.ended,
         turns: turns.slice(-MAX_AGENT_SESSION_TURNS),
-        workbooks: state.workbooks,
         version: state.version + 1,
     };
 }

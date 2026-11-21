@@ -177,9 +177,9 @@ async function waitUntil(condition, timeout = PAGE_TIMEOUT) {
     }
 }
 
-/// A server of a session like the one of dashql connect. It speaks the protocol of the page, 5
+/// A server of a session like the one of dashql connect. It speaks the protocol of the page, 6
 /// (agent_session_protocol.ts); `protocol: null` is a server older than the protocol.
-async function startSessionServer({ port = 0, token = 'secret', protocol = 5, id = 'session' } = {}) {
+async function startSessionServer({ port = 0, token = 'secret', protocol = 6, id = 'session' } = {}) {
     const streams = new Set();
     let state = { id, harness: 'claude', folder: '/work', ended: false, turns: [], workbooks: [], version: 0 };
     // The files that the page wrote into the copy of its workbook, in the order of the writes
@@ -311,7 +311,7 @@ async function testAppAgentSession(page, navigate) {
     const session = await startSessionServer({ port: Number(await line.getAttribute('data-port')), token: await line.getAttribute('data-secret'), id: 'zero' });
     try {
         const steps = [{ label: 'dashql lint scripts/orders.sql', toolUseId: 't1', startedAt: Date.now(), endedAt: null, failed: false }];
-        const turn = { turnId: 1, question: 'how many orders', status: 'dashql lint scripts/orders.sql', error: null, note: null, files: ['scripts/orders.sql'], steps };
+        const turn = { turnId: 1, question: 'how many orders', status: 'dashql lint scripts/orders.sql', note: null, files: ['scripts/orders.sql'], steps };
         session.push({ turns: [turn] });
         await page.getByTestId('composer-connect-status').getByText('Claude Code works on this workbook in the terminal').waitFor();
         assert.equal(await page.getByTestId('composer-send').count(), 0);

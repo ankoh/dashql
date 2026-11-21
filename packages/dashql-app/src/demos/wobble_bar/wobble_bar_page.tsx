@@ -41,7 +41,7 @@ const STEPS = [
 ];
 const WORKING: AgentTurn = {
     questionId: 1,
-    question: { question: 'Which regions grew the most last quarter?', status: 'dashql run sales 2_region_growth.sql', error: null, note: null, steps: STEPS },
+    question: { question: 'Which regions grew the most last quarter?', status: 'dashql run sales 2_region_growth.sql', note: null, steps: STEPS },
     scripts: SCRIPTS,
 };
 const ANSWERED: AgentTurn = {
@@ -49,23 +49,16 @@ const ANSWERED: AgentTurn = {
     question: {
         question: 'Which regions grew the most last quarter?',
         status: null,
-        error: null,
         note: 'EMEA grew the most, 18% over the previous quarter. The script 2_region_growth compares the quarters.',
         steps: STEPS.map(step => ({ ...step, endedAt: step.endedAt ?? NOW })),
     },
     scripts: SCRIPTS,
-};
-const FAILED: AgentTurn = {
-    questionId: 2,
-    question: { question: 'And by product?', status: null, error: 'The harness stopped with an error', note: null, steps: [] },
-    scripts: [],
 };
 const LONG_STATUS: AgentTurn = {
     questionId: 1,
     question: {
         question: 'Compare the revenue of every region and product over the last eight quarters',
         status: 'Edit scripts/4_revenue_by_region_and_product_over_the_last_eight_quarters.sql',
-        error: null,
         note: null,
         steps: [{ label: 'Edit scripts/4_revenue_by_region_and_product_over_the_last_eight_quarters.sql', startedAt: NOW - 2_000, endedAt: null, failed: false }],
     },
@@ -225,7 +218,7 @@ const SITUATIONS: Situation[] = [
         id: 'answered',
         title: 'The agent answered',
         description: 'The answer is a line of the log, the log shows the questions above the lines.',
-        session: fakeSession([ANSWERED, FAILED]),
+        session: fakeSession([ANSWERED]),
         log: [...LOG, line('l6', WorkbookStatusSource.Agent, T.Success, 'The agent answered', 'Which regions grew the most last quarter?', 0, 2)],
     },
     {
