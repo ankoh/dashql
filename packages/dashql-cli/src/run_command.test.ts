@@ -206,7 +206,7 @@ describe('dashql run', () => {
 1 ok
 `);
         // The file of the script is named after it
-        expect(cached).toMatch(/^01_orders\.[0-9a-f]{64}\.[0-9a-f]{8}\.parquet$/);
+        expect(cached).toMatch(/^01_orders\.[0-9a-f]{64}\.[0-9a-f]{20}\.parquet$/);
         // The instance of the embedded Hyper is gone, the results stay
         expect(readdirSync(path.join(workspace, 'instances'))).toEqual([]);
         // The health check, then the script; the user of the workbook with the password of the environment

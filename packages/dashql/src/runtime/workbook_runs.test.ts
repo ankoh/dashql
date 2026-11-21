@@ -552,7 +552,7 @@ describe('the runs of scripts of the runtime', () => {
         const [key] = await f.core.module.resultKeys(f.workbookId);
         expect(key).not.toBeNull();
         // The workbook keeps one file of the script, named after the script and its key
-        expect(f.cache!.names(f.workbookId)).toEqual([expect.stringMatching(new RegExp(`^foo\\.${key}\\.[0-9a-f]{8}\\.parquet$`))]);
+        expect(f.cache!.names(f.workbookId)).toEqual([expect.stringMatching(new RegExp(`^foo\\.${key}\\.[0-9a-f]{20}\\.parquet$`))]);
         f.core.flush();
         expect(queryView(f.core, f.script('foo.sql').latestQueryId!)).toMatchObject({ cacheKey: key, servedFromCache: false });
         // The second run reads the stored result instead of the connection
@@ -660,7 +660,7 @@ describe('the runs of scripts of the runtime', () => {
         expect(f.cache!.names(f.workbookId)).toHaveLength(2);
         expect(f.core.dispatch({ workbook: f.workbookId }, { kind: 'renameScript', value: { fileName: 'foo.sql', newName: 'renamed' } }).ok).toBe(true);
         expect(f.core.dispatch({ workbook: f.workbookId }, { kind: 'deleteScript', value: { fileName: 'bar.sql' } }).ok).toBe(true);
-        await vi.waitFor(() => expect(f.cache!.names(f.workbookId)).toEqual([expect.stringMatching(/^renamed\.[0-9a-f]{64}\.[0-9a-f]{8}\.parquet$/)]));
+        await vi.waitFor(() => expect(f.cache!.names(f.workbookId)).toEqual([expect.stringMatching(/^renamed\.[0-9a-f]{64}\.[0-9a-f]{20}\.parquet$/)]));
         // The renamed script reuses its result
         await f.run('renamed.sql');
         expect(f.executeQuery).toHaveBeenCalledTimes(2);

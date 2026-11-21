@@ -472,6 +472,8 @@ impl Runs {
                 );
             }
             runs.release(&workbook_id, number);
+            // The run resolves once the older files of its scripts are gone
+            runs.vacuum(&workbook_id).await;
             RunOutcome::of(&result)
         })
     }
@@ -575,6 +577,8 @@ impl Runs {
                 );
             }
             runs.release(&workbook_id, number);
+            // The run resolves once the older files of its scripts are gone
+            runs.vacuum(&workbook_id).await;
             RunOutcome::of(&result)
         })
     }
@@ -1163,23 +1167,8 @@ impl RunHost for RuntimeRunHost {
             (None, _) => Err(HostError::new("The statement has no result")),
             (_, Err(error)) => Err(error.clone()),
         };
-        async move {
-            let rows = write?.await?;
-            // The file of a script replaces the older files of the script, a transient file goes when the run ends
-            let name = name?;
-            if let Some(script) = results::script_of(&name) {
-                let replaced = results::remove_files_of_script(&platform, &workbook_id, &script, Some(&name)).await;
-                if let Err(error) = replaced {
-                    platform.log_on(
-                        LogLevel::Warn,
-                        "Failed to remove the older results of a script",
-                        &[("workbookId", &workbook_id), ("file", &name), ("error", error.message())],
-                        results::LOG_TARGET,
-                    );
-                }
-            }
-            Ok(rows)
-        }
+        // The file of a script is its newest, its older files go when the run ended
+        async move { write?.await }
     }
 
     fn mount_pin(&self, path: &str) -> impl Future<Output = Result<u64, HostError>> + 'static {

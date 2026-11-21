@@ -5,11 +5,13 @@
 //! which files are garbage, and that a script keeps one file. Every function is best-effort where its caller doesn't
 //! need the outcome: a failure of the platform is logged, the results are a convenience.
 
+use std::cell::RefCell;
+
 use dashql_core_runtime::host::{Host, HostError, LogLevel};
 use dashql_core_runtime::workbook::WorkbookEffect;
 use dashql_core_storage::workbook_format::results::{
-    generation_of, other_files_of_script, result_file_name, script_of_result_file, sort_result_files,
-    transient_result_file_name, ResultListing, StoredResult,
+    other_files_of_script, result_file_name, sort_result_files, transient_result_file_name, Generations, ResultListing,
+    StoredResult,
 };
 
 use crate::host::JsPlatform;
@@ -57,20 +59,24 @@ pub(crate) async fn retain(
     Ok(Some((pin, result)))
 }
 
-/// The name of a new file of the result of a script, none if the script name makes no file name
+thread_local! {
+    /// The generations of the new files of the module, in the order they are named
+    static GENERATIONS: RefCell<Generations> = RefCell::new(Generations::default());
+}
+
+/// The name of a new file of the result of a script, none if the script name makes no file name. Its generation sorts
+/// after the generations of the files named before it.
 pub(crate) fn new_file_name(platform: &JsPlatform, script: &str, key: &str) -> Result<Option<String>, HostError> {
-    let generation = generation_of(&platform.random_uuid()?);
+    let uuid = platform.random_uuid()?;
+    let digits: String = uuid.chars().filter(char::is_ascii_hexdigit).take(8).collect();
+    let random = u32::from_str_radix(&digits, 16).unwrap_or_default();
+    let generation = GENERATIONS.with(|generations| generations.borrow_mut().next(platform.now(), random));
     Ok(result_file_name(script, key, &generation))
 }
 
 /// The name of a new transient file
 pub(crate) fn new_transient_file_name(platform: &JsPlatform) -> Result<String, HostError> {
     Ok(transient_result_file_name(&platform.random_uuid()?))
-}
-
-/// The file name of the script of a file, none for a transient file or a name that doesn't parse
-pub(crate) fn script_of(name: &str) -> Option<String> {
-    script_of_result_file(name)
 }
 
 /// Remove the files of a script but one, e.g. the older files once a new one was written. Files that are read stay,

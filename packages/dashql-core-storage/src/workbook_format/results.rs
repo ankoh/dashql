@@ -2,6 +2,7 @@
 //! `<script>.<key>.<gen>.parquet`, the script by its name without `.sql` (docs/design/workbook_results.md). The platform lists, writes, moves and removes the
 //! files, this module names them and decides which file is the result of a script and which files are garbage.
 
+use std::cmp::Ordering;
 use std::collections::BTreeMap;
 
 use crate::workbook_format::files::{file_name_key, is_safe_file_name};
@@ -16,8 +17,17 @@ const PARQUET: &str = ".parquet";
 const SCRIPT_EXTENSION: &str = ".sql";
 /// The hex digits of a key
 const KEY_LENGTH: usize = 64;
-/// The hex digits of a generation
-const GENERATION_LENGTH: usize = 8;
+/// The hex digits of a generation: the time it was named at in milliseconds since the epoch, 12 digits, and a sequence,
+/// 8 digits. The names of the files of a script sort by the time they were named, the newest name is the largest.
+const GENERATION_LENGTH: usize = 20;
+/// The hex digits of the time of a generation
+const GENERATION_TIME_LENGTH: usize = 12;
+/// The hex digits of a random generation of earlier versions, the files of these sort by their modification times
+const RANDOM_GENERATION_LENGTH: usize = 8;
+/// The sequence of the first generation of a millisecond is random below this bound, the generations that follow
+/// within the millisecond count up from it. Two processes that name a file in the same millisecond pick different
+/// sequences.
+const SEQUENCE_START_BOUND: u32 = 1 << 28;
 /// The age after which a transient or empty file that nobody pins is garbage. Writing a file changes its time; the
 /// pins of a process of Node are not seen by another one on the same root, so a younger file may be written right now.
 pub const GARBAGE_AFTER_MS: f64 = 60.0 * 60.0 * 1000.0;
@@ -32,10 +42,43 @@ pub fn is_result_key(key: &str) -> bool {
     is_hex(key, KEY_LENGTH)
 }
 
-/// The generation of a new file from a random UUID: its first 8 hex digits
-pub fn generation_of(uuid: &str) -> String {
-    let digits: String = uuid.chars().filter(char::is_ascii_hexdigit).map(|c| c.to_ascii_lowercase()).collect();
-    format!("{digits:0<GENERATION_LENGTH$}").chars().take(GENERATION_LENGTH).collect()
+/// Is a text the generation of a file of a result, also a random one of earlier versions?
+fn is_generation(text: &str) -> bool {
+    is_hex(text, GENERATION_LENGTH) || is_hex(text, RANDOM_GENERATION_LENGTH)
+}
+
+/// The time a generation was named at in milliseconds since the epoch, none for a random one of earlier versions
+pub fn generation_time(generation: &str) -> Option<f64> {
+    if !is_hex(generation, GENERATION_LENGTH) {
+        return None;
+    }
+    let time = u64::from_str_radix(generation.get(..GENERATION_TIME_LENGTH)?, 16).ok()?;
+    Some(time as f64)
+}
+
+/// Names the generations of the new files of a process in the order they are named: the time and a sequence that
+/// counts up within a millisecond. A clock that goes back keeps the last time, so a newer name never sorts lower.
+#[derive(Debug, Default)]
+pub struct Generations {
+    time: u64,
+    sequence: u32,
+}
+
+impl Generations {
+    /// The generation of a new file, `random` picks the sequence of a new millisecond
+    pub fn next(&mut self, now_ms: f64, random: u32) -> String {
+        let now = now_ms.max(0.0) as u64;
+        if now > self.time {
+            self.time = now;
+            self.sequence = random % SEQUENCE_START_BOUND;
+        } else if let Some(sequence) = self.sequence.checked_add(1) {
+            self.sequence = sequence;
+        } else {
+            self.time += 1;
+            self.sequence = 0;
+        }
+        format!("{:012x}{:08x}", self.time & 0xffff_ffff_ffff, self.sequence)
+    }
 }
 
 /// The name of a script without `.sql` (in any case), as the names of its results hold it. None for a name without
@@ -60,7 +103,7 @@ pub fn script_of_result_file(name: &str) -> Option<String> {
 /// The name of a file of the result of a script, None if the script name is no plain file name of a script, the key is
 /// no key or the name gets too long for a file system
 pub fn result_file_name(script: &str, key: &str, generation: &str) -> Option<String> {
-    if !is_result_key(key) || !is_hex(generation, GENERATION_LENGTH) || !is_safe_file_name(script) {
+    if !is_result_key(key) || !is_generation(generation) || !is_safe_file_name(script) {
         return None;
     }
     let name = format!("{}.{key}.{generation}{PARQUET}", script_stem(script)?);
@@ -97,7 +140,7 @@ pub fn parse_result_file_name(name: &str) -> Option<ResultFileName<'_>> {
     let rest = name.strip_suffix(PARQUET)?;
     let (rest, generation) = rest.rsplit_once('.')?;
     let (stem, key) = rest.rsplit_once('.')?;
-    (!stem.is_empty() && is_result_key(key) && is_hex(generation, GENERATION_LENGTH)).then_some(ResultFileName {
+    (!stem.is_empty() && is_result_key(key) && is_generation(generation)).then_some(ResultFileName {
         stem,
         key,
         generation,
@@ -124,7 +167,8 @@ pub struct StoredResult {
     pub stem: String,
     /// The key in the name of the file
     pub key: String,
-    /// When the file was written, in milliseconds since the epoch
+    /// When the file was written, in milliseconds since the epoch: the time of its generation, or the modification time
+    /// of a file of earlier versions
     pub written_at: f64,
     /// The size in bytes
     pub size: u64,
@@ -146,6 +190,22 @@ impl ResultListing {
     }
 }
 
+/// The generation of a file that has a time, none for a random one of earlier versions or another file
+fn timed_generation(file: &ResultFileStat) -> Option<&str> {
+    parse_result_file_name(&file.name).map(|parsed| parsed.generation).filter(|g| generation_time(g).is_some())
+}
+
+/// The order of the files of the results, the newest first: by the generations in their names, a file of a generation
+/// that has a time before a random one of earlier versions, and the files without one by their modification times
+fn newest_first(a: &ResultFileStat, b: &ResultFileStat) -> Ordering {
+    match (timed_generation(a), timed_generation(b)) {
+        (Some(a), Some(b)) => b.cmp(a),
+        (Some(_), None) => Ordering::Less,
+        (None, Some(_)) => Ordering::Greater,
+        (None, None) => b.mtime_ms.total_cmp(&a.mtime_ms).then_with(|| b.name.cmp(&a.name)),
+    }
+}
+
 /// Sort the files of the results folder of a workbook: the newest file of every script of the workbook is its result.
 /// Garbage are the older files of a script, the files of scripts that the workbook doesn't have (`scripts` None keeps
 /// them, e.g. while the scripts are unknown), names that don't parse, and transient or empty files that are older than
@@ -156,7 +216,7 @@ pub fn sort_result_files(files: &[ResultFileStat], scripts: Option<&[&str]>, now
     let mut listing = ResultListing::default();
     // The newest file first, then by name
     let mut ordered: Vec<&ResultFileStat> = files.iter().collect();
-    ordered.sort_by(|a, b| b.mtime_ms.total_cmp(&a.mtime_ms).then_with(|| b.name.cmp(&a.name)));
+    ordered.sort_by(|a, b| newest_first(a, b));
     for file in ordered {
         if is_transient_result_file(&file.name) {
             if old(file) {
@@ -185,7 +245,7 @@ pub fn sort_result_files(files: &[ResultFileStat], scripts: Option<&[&str]>, now
                 name: file.name.clone(),
                 stem: parsed.stem.to_string(),
                 key: parsed.key.to_string(),
-                written_at: file.mtime_ms,
+                written_at: generation_time(parsed.generation).unwrap_or(file.mtime_ms),
                 size: file.size,
             },
         );
@@ -236,8 +296,12 @@ mod tests {
         assert_eq!(parse_result_file_name(&format!("{}.0123abcd.parquet", key('a'))), None);
         assert_eq!(parse_result_file_name(&format!("a.{}.0123abcd.parquet", key('A'))), None);
         assert_eq!(parse_result_file_name("1b4e28ba-2fa1-11d2-883f-0016d3cca427.transient.parquet"), None);
-        assert_eq!(generation_of("1B4E28BA-2fa1-11d2-883f-0016d3cca427"), "1b4e28ba");
-        assert_eq!(generation_of("12"), "12000000");
+        // A generation has a time and a sequence, a random one of earlier versions has 8 digits
+        let generation = "0000000000ff00000001";
+        assert!(result_file_name("a.sql", &key('a'), generation).is_some());
+        assert_eq!(generation_time(generation), Some(255.0));
+        assert_eq!(generation_time("0123abcd"), None);
+        assert_eq!(result_file_name("a.sql", &key('a'), "0123abc"), None);
     }
 
     #[test]
@@ -268,6 +332,38 @@ mod tests {
         // Without the scripts, the files of every script stay
         let listing = sort_result_files(&files, None, now);
         assert!(listing.result("gone.sql").is_some());
+    }
+
+    #[test]
+    fn names_generations_in_the_order_they_are_named() {
+        let mut generations = Generations::default();
+        let first = generations.next(1000.0, 7);
+        assert_eq!(first, "0000000003e800000007");
+        // Within a millisecond and when the clock goes back the sequence counts up
+        let second = generations.next(1000.0, 99);
+        let third = generations.next(900.0, 99);
+        assert_eq!((second.as_str(), third.as_str()), ("0000000003e800000008", "0000000003e800000009"));
+        // A new millisecond starts a random sequence below the bound
+        let fourth = generations.next(1001.0, u32::MAX);
+        assert_eq!(fourth, format!("0000000003e9{:08x}", u32::MAX % SEQUENCE_START_BOUND));
+        assert!(first < second && second < third && third < fourth);
+        assert_eq!(generation_time(&fourth), Some(1001.0));
+    }
+
+    #[test]
+    fn sorts_the_files_of_a_script_by_their_generations() {
+        let now = 10.0 * GARBAGE_AFTER_MS;
+        let legacy = format!("a.{}.00000001.parquet", key('a'));
+        let older = format!("a.{}.0000000003e800000005.parquet", key('b'));
+        let newer = format!("a.{}.0000000003e800000006.parquet", key('c'));
+        // The modification times don't count for files with a time in their generation, they may be equal or swapped
+        let files = [stat(&newer, 10, 1.0), stat(&older, 10, 2.0), stat(&legacy, 10, now)];
+        let listing = sort_result_files(&files, Some(&["a.sql"]), now);
+        let result = listing.result("a.sql").unwrap();
+        assert_eq!((result.name.as_str(), result.written_at), (newer.as_str(), 1000.0));
+        let mut garbage = vec![older, legacy];
+        garbage.sort();
+        assert_eq!(listing.garbage, garbage);
     }
 
     #[test]

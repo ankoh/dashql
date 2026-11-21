@@ -844,8 +844,8 @@ impl ExecutorHost for QueryHost {
             let written = platform.results_write(&result.workbook_id, &name, table).await;
             platform.results_release(pin).await;
             written?;
-            // The script keeps one file, the older ones go once nobody reads them
-            results::remove_files_of_script(&platform, &result.workbook_id, &result.script, Some(&name)).await?;
+            // The older files of the script stay until the run ended, the newest file is the result of the script.
+            // Removing them now would make the compute database forget them while the queries of the run use it.
             Ok(name)
         }
     }

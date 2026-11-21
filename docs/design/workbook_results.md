@@ -21,8 +21,12 @@ workbooks/<workbook-id>/
 - `<script>` is the name of the script without `.sql`, e.g. `revenue` of `revenue.sql`, as the workbook names it
   (`scripts/<script>.sql`). Every script ends in `.sql`, the name leaves it out like a reference `:revenue` does.
 - `<key>` is the result key of the script when the result was written, 64 lowercase hex digits (Result Keys below).
-- `<gen>` is 8 lowercase hex digits, new for every file. A path is never written twice: the compute database
-  remembers the files that it opened below a mount and would read the old bytes of a reused path.
+- `<gen>` is 20 lowercase hex digits, new for every file: the time the run named the file in milliseconds since the
+  epoch, 12 digits, and a sequence, 8 digits, that counts up within a millisecond and starts at a random number in a new
+  one (`Generations`). The names of the files of a script sort by the time they were named, and the time is when the
+  result was written. A path is never written twice: the compute database remembers the files that it opened below a
+  mount and would read the old bytes of a reused path. Earlier versions wrote 8 random digits, these files still parse
+  and sort before the others, by their modification times.
 - A transient file, `<uuid>.transient.parquet`, is a materialized result that a run scans but that is no result of a
   script, e.g. a script that runs on request. It is garbage once nobody pins it.
 
@@ -30,8 +34,10 @@ The core parses and names the files (`workbook_format/results.rs` of `dashql-cor
 three dots, a script name may hold dots itself. A file whose name doesn't parse, or whose script is not a script of the
 workbook any more, is garbage too. Script names compare like the names of scripts do, in NFC and without case.
 
-A script has at most one result. A write of a result of a script removes its other files once nobody reads them, so
-for a moment a script may have two files: the newest one counts, by its modification time and then its name.
+A script has at most one result, its newest file. A run leaves the older files of its scripts until it ended: removing
+them would make the next use of the mount refresh it while the queries of the run use the compute database, which
+refuses that. Once the run ended and its writes are done it removes them (`vacuum` of `runs/stored_results.rs`), the
+run resolves after that. A file that is read then stays, the next listing removes it.
 
 The `.gitignore` of a workbook folder holds `results/`, together with the entries of native workbook folders
 (`cache/`, `*.hyper`). The storage writer of the core decides it: with the first write of the workbook file of a
@@ -46,7 +52,8 @@ result with `COPY ... TO` into the mount and reads it with `external('<path>', f
 byte ranges it needs. A result is written as a transient file and moved to its name once it is complete, so readers
 never see a partial file. After the files of a workbook were removed or renamed, the next use of its mount refreshes it
 (`refreshExternalDirectory`), the database looks the paths up again and forgets the files that are gone. A refresh
-doesn't wait for readers, queries that run keep reading the files they opened.
+doesn't wait for readers, queries that run keep reading the files they opened. The database refuses a refresh while
+its queries run, the mount stays stale then and the next use tries again: a result never reuses a name.
 
 Readers pin the files they read with a shared Web Lock named `dashql-workbook-results/<workbook-id>/<name>`, which spans
 the windows of the app. A write pins its new file and its temporary file. A removal or rename only touches a file if it
@@ -156,8 +163,8 @@ the key it looked for and the key of the stored file.
 Every run of a script stores its result: the terminal query of a script runs with the result option `store` and the
 name of the script, and after the query succeeded, or after only the analysis of its result failed, the compute
 database writes the table as a new file of the script (`<script>.<key>.<gen>.parquet`, named by the run when it
-planned), then the other files of the script are removed. A script that ran to its end without a result, e.g. one whose last statement is a `CREATE TABLE`,
-has its files removed: they describe an earlier text. A failed, cancelled or skipped run leaves the files alone. The
+planned). The older files of the script go when the run ended. A script that ran to its end without a result, e.g. one
+whose last statement is a `CREATE TABLE`, has its files removed: they describe an earlier text. A failed, cancelled or skipped run leaves the files alone. The
 caller is not blocked on the write. A failed write only produces a log message.
 
 The query is in the history of its connection before the runtime describes it. On a read, the executor reads the file
@@ -211,8 +218,8 @@ results of the workbook (`script_references.md`). The planner takes the file nam
 - A run scans the stored file of a script whose key is reusable and matches, the producer doesn't run unless it
   follows a script of the plan that runs (`script_references.md`). The run pins the file from the lookup on until it
   ends.
-- Otherwise the producer runs. Its terminal node writes its result as the new file of the script, which replaces the
-  older files. A materialized result that is no result of a script is a transient file.
+- Otherwise the producer runs. Its terminal node writes its result as the new file of the script, the older files go
+  when the run ended. A materialized result that is no result of a script is a transient file.
 - A refresh runs every producer anew and writes its result the same way.
 
 The run pins every file it writes or reads until it settled, then it removes its transient files. The runtime keeps

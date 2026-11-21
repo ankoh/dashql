@@ -19,6 +19,7 @@ use dashql_core_runtime::workbook_run::{start_run, PlanRun, RunOptions};
 
 use super::view::WorkbookRunKind;
 use super::{HeldRun, Runs};
+use crate::runtime::queries::LocalFuture;
 use crate::runtime::results;
 
 /// What the runtime looks up of the stored results of the workbooks
@@ -139,6 +140,36 @@ impl Runs {
                 runs.check_stored_results(&[workbook_id]);
             }
         }));
+    }
+
+    /// Remove the garbage of the results of a workbook once a run of it ended and its writes are done: the older files
+    /// of its scripts, which a run leaves until it ended so that the compute database keeps the files it knows while
+    /// the queries of the run use it. Files that are read stay for a later listing.
+    pub(crate) fn vacuum(self: &Rc<Self>, workbook_id: &str) -> LocalFuture<()> {
+        let names: Option<Vec<String>> = self.workbooks.get(workbook_id).and_then(|workbook| {
+            let workbook = workbook.try_borrow().ok()?;
+            Some(workbook.scripts().iter().map(|script| script.file_name().to_string()).collect())
+        });
+        let (Some(names), false, true) = (names, self.destroyed.get(), self.platform.has_results()) else {
+            return Box::pin(std::future::ready(()));
+        };
+        let writes = self.connections.executor().map(|executor| executor.flush_result_writes());
+        let platform = self.platform.clone();
+        let workbook_id = workbook_id.to_string();
+        Box::pin(async move {
+            if let Some(writes) = writes {
+                writes.await;
+            }
+            match results::listing(&platform, &workbook_id, Some(&names)).await {
+                Ok(listing) => results::remove_garbage(&platform, &workbook_id, &listing).await,
+                Err(error) => platform.log_on(
+                    LogLevel::Debug,
+                    "Listing the stored results of a workbook failed",
+                    &[("workbookId", workbook_id.as_str()), ("error", error.message())],
+                    results::LOG_TARGET,
+                ),
+            }
+        })
     }
 
     /// A view shows a workbook. The first time a workbook is shown, the runtime reads the stored results of its scripts
