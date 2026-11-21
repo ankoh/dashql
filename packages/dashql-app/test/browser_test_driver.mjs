@@ -1,4 +1,4 @@
-import { createReadStream, readFileSync, realpathSync, statSync, writeFileSync } from 'node:fs';
+import { createReadStream, existsSync, readFileSync, realpathSync, statSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { availableParallelism } from 'node:os';
 import { extname, join, normalize, resolve, sep } from 'node:path';
@@ -75,8 +75,11 @@ function responseHeaders(pathname, file, size) {
 // The URL of the test frame of a shard lists its files
 const server = createServer({ maxHeaderSize: 1024 * 1024 }, (request, response) => {
     const pathname = decodeURIComponent(new URL(request.url ?? '/', 'http://localhost').pathname);
-    // Pages serves the app for the routes of its router, since the bundle has no 404.html
-    const relative = normalize(pathname === '/' || extname(pathname) === '' ? 'index.html' : pathname.slice(1));
+    // Pages serves a page without its extension, /tools/unpack is tools/unpack.html, and the app for the routes of its
+    // router, since the bundle has no 404.html
+    const page = extname(pathname) === '' && pathname !== '/' ? `${pathname.slice(1)}.html` : null;
+    const relative = normalize(page != null && existsSync(join(root, page)) ? page
+        : pathname === '/' || extname(pathname) === '' ? 'index.html' : pathname.slice(1));
     const file = resolve(join(root, relative));
     if (file !== root && !file.startsWith(`${root}${sep}`)) {
         response.writeHead(403).end('Forbidden');

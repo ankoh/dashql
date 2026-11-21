@@ -114,6 +114,7 @@ describe('InternalsViewer', () => {
             ['Connections', ['HTTP requests', 'Query execution history', 'Query result cache']],
             ['Storage', ['Storage browser', 'Storage writer']],
             ['Settings', ['Application settings']],
+            ['Tools', ['Tools']],
         ]);
         // The logs are shown first
         expect(tab('Application logs').getAttribute('aria-current')).toBe('page');
@@ -125,12 +126,17 @@ describe('InternalsViewer', () => {
             ['Storage browser', 'Origin Private File System'],
             ['Storage writer', 'Select a workbook to see its storage writes'],
             ['Application settings', 'App Settings'],
+            ['Tools', 'Drop a .dashql file'],
         ];
         for (const [label, text] of titles) {
             await act(async () => tab(label).click());
             expect(tab(label).getAttribute('aria-current')).toBe('page');
             await vi.waitFor(() => expect(root.container.textContent).toContain(text));
         }
+
+        // A tool opens its page next to the app
+        await act(async () => tab('Tools').click());
+        expect(root.container.querySelector('a[href="/tools/unpack"]')?.getAttribute('target')).toBe('_blank');
 
         // The queries of every connection, the finished before the active ones
         await act(async () => tab('Query execution history').click());

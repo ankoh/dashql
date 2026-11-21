@@ -40,7 +40,8 @@ start with `packages/` or `extensions/`.
 - hyperdb-edge: `wip/hyperdb_edge.md`, `wip/hyperdb_edge_stores.md`
 - Website: `agents/architecture_diagrams.md` (the style of the architecture diagrams of dashql.org, for new ones)
 - Hosts and embeds: `design/electron.md` (desktop app), `design/app_csp.md`, `design/document_isolation_policy.md`,
-  `wip/embeds.md`, `design/slack_app.md`, `packages/dashql-mcp/README.md`
+  `wip/embeds.md`, `design/slack_app.md`, `packages/dashql-mcp/README.md`, `design/tools.md` (pages of their own at
+  `/tools/<id>`, e.g. unpack)
 
 ## Third-party notices
 

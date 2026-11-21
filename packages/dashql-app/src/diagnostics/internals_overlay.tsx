@@ -12,6 +12,7 @@ import { HttpRequestViewer } from './http_request_viewer.js';
 import { QueryCacheView } from '../workbook/persistence/query_cache_view.js';
 import { VerticalTabs, VerticalTabVariant } from '@akohn/dashql-react/components/vertical_tabs';
 import { StorageBrowserView } from './storage_browser_view.js';
+import { ToolsView } from './tools_view.js';
 
 interface InternalsViewerProps {
     /// The active workbook UUID, used by workbook-scoped tabs (e.g. the query cache inspector).
@@ -27,6 +28,7 @@ enum TabKey {
     QueryCache = 4,
     StorageBrowser = 6,
     HttpRequests = 8,
+    Tools = 9,
 }
 
 /// The groups of the tabs, separated by bars in the tab bar
@@ -34,10 +36,11 @@ const TAB_GROUP_DIAGNOSTICS = 'Diagnostics';
 const TAB_GROUP_CONNECTIONS = 'Connections';
 const TAB_GROUP_STORAGE = 'Storage';
 const TAB_GROUP_SETTINGS = 'Settings';
+const TAB_GROUP_TOOLS = 'Tools';
 
 export const InternalsViewer: React.FC<InternalsViewerProps> = (props: InternalsViewerProps) => {
     const [selectedTab, selectTab] = React.useState<TabKey>(TabKey.LogViewer);
-    const tabKeys = [TabKey.LogViewer, TabKey.HttpRequests, TabKey.QueryViewer, TabKey.QueryCache, TabKey.StorageBrowser, TabKey.StorageWriter, TabKey.AppSettings];
+    const tabKeys = [TabKey.LogViewer, TabKey.HttpRequests, TabKey.QueryViewer, TabKey.QueryCache, TabKey.StorageBrowser, TabKey.StorageWriter, TabKey.AppSettings, TabKey.Tools];
 
     return (
         <VerticalTabs
@@ -108,6 +111,15 @@ export const InternalsViewer: React.FC<InternalsViewerProps> = (props: Internals
                     description: 'Configure application settings',
                     disabled: false,
                 },
+                [TabKey.Tools]: {
+                    tabId: TabKey.Tools,
+                    group: TAB_GROUP_TOOLS,
+                    icon: `${icons}#tools_24`,
+                    labelShort: 'Tools',
+                    ariaLabel: 'Tools',
+                    description: 'Open the tools of DashQL',
+                    disabled: false,
+                },
             }}
             tabKeys={tabKeys}
             tabRenderers={{
@@ -131,6 +143,9 @@ export const InternalsViewer: React.FC<InternalsViewerProps> = (props: Internals
                 ),
                 [TabKey.AppSettings]: _props => (
                     <AppSettings onClose={props.onClose} />
+                ),
+                [TabKey.Tools]: _props => (
+                    <ToolsView onClose={props.onClose} />
                 ),
             }}
         />

@@ -6,23 +6,24 @@ import { RuntimeContextProvider, useOwnedRuntime } from '@akohn/dashql-react/hoo
 
 import { useLogger } from './logger_provider.js';
 import { useEmbeddedDatabaseSetup } from './embedded_database_provider.js';
-import { useHttpClient } from './http/http_client_provider.js';
+import { useOptionalHttpClient } from './http/http_client_provider.js';
 import { FRAME_UPDATE_SCHEDULER } from '../utils/store_hooks.js';
 import { useDashQLCore } from './core_provider.js';
 
-/// A runtime without the storage of the app, e.g. of the shell of Hyper, on the embedded database and the HTTP client of
-/// the providers above it. It is created once the core of the provider above is there, without one the core that the
-/// package instantiated already, and it goes with the component. `channels` connects the channels of its connections,
-/// e.g. the embedded Hyper of the shell.
-export function StandaloneRuntime(props: { channels?: ChannelConnector; children?: React.ReactNode }) {
+/// A runtime without the storage of the app, e.g. of the shell of Hyper or of a tool, on the embedded database and the
+/// HTTP client of the providers above it, without an HTTP client for a page that sends no requests. It is created once
+/// the core of the provider above is there, without one the core that the package instantiated already, and it goes
+/// with the component. `channels` connects the channels of its connections, e.g. the embedded Hyper of the shell.
+export function StandaloneRuntime(props: { channels?: ChannelConnector; fallback?: React.ReactNode; children?: React.ReactNode }) {
     const core = useDashQLCore();
-    if (core == null) return null;
+    // The fallback shows while the core loads
+    if (core == null) return props.fallback ?? null;
     return <StandaloneRuntimeOf core={core} channels={props.channels}>{props.children}</StandaloneRuntimeOf>;
 }
 
 function StandaloneRuntimeOf(props: { core: core.DashQL; channels?: ChannelConnector; children?: React.ReactNode }) {
     const logger = useLogger();
-    const http = useHttpClient();
+    const http = useOptionalHttpClient();
     const setupEmbeddedDatabase = useEmbeddedDatabaseSetup();
     const runtime = useOwnedRuntime(() => createRuntime({
         logger,

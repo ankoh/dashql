@@ -1,4 +1,4 @@
-// Tests of the real pages of the bundle: index.html, shell.html, demos.html, embed.html and oauth.html.
+// Tests of the real pages of the bundle: index.html, shell.html, demos.html, embed.html, oauth.html and the tools.
 //
 // Their entry points call createRoot when they are imported, so a test in the test frame can't load them, and tests in
 // the frame replace parts of the composition with fakes. These tests boot the pages like a browser does, with the
@@ -854,6 +854,16 @@ async function testEmbed(page, navigate) {
     if (!probe.steps.some(step => step.detail.includes('n=5000000'))) throw new Error(`Hyper returned ${JSON.stringify(probe.steps)}`);
 }
 
+/// The unpack tool on its own page, served without the extension like Pages serves it. The browser tests of the app
+/// read real archives, the page only boots and reports a file that is no archive.
+async function testUnpackTool(page, navigate) {
+    await navigate('/tools/unpack');
+    await page.getByRole('heading', { name: 'Unpack' }).waitFor();
+    await page.getByRole('button', { name: /Drop a \.dashql file/ }).waitFor();
+    await page.getByLabel('Open a .dashql file').setInputFiles({ name: 'script.sql', mimeType: 'text/plain', buffer: Buffer.from('select 1;') });
+    await page.getByRole('alert').filter({ hasText: 'script.sql is not a ZIP archive' }).waitFor();
+}
+
 /// The redirect page of OAuth without a provider response
 async function testOAuth(page, navigate) {
     await navigate('/oauth.html');
@@ -877,6 +887,7 @@ const PAGE_TESTS = [
     { name: 'shell', options: DESKTOP, test: testShell },
     { name: 'demos', options: DESKTOP, test: testDemos },
     { name: 'embed', options: NARROW, test: testEmbed },
+    { name: 'tools_unpack', options: DESKTOP, test: testUnpackTool },
     { name: 'oauth', options: DESKTOP, test: testOAuth },
 ];
 

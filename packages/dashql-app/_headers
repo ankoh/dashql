@@ -91,6 +91,10 @@
 /demos
   Cache-Control: public, max-age=0, must-revalidate
 
+# The tools, Pages serves tools/<id>.html as /tools/<id>
+/tools/*
+  Cache-Control: public, max-age=0, must-revalidate
+
 /tests.html
   Cache-Control: public, max-age=0, must-revalidate
 

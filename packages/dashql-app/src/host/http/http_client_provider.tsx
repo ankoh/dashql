@@ -14,6 +14,8 @@ type Props = {
 const CLIENT_CTX = React.createContext<HttpClient | null>(null);
 const REQUEST_LOG_CTX = React.createContext<HttpRequestLog | null>(null);
 export const useHttpClient = () => React.useContext(CLIENT_CTX)!;
+/// The http client, null outside of the provider, e.g. on a tool page that sends no requests
+export const useOptionalHttpClient = () => React.useContext(CLIENT_CTX);
 /// The log of the requests of the http client, null outside of the provider
 export const useHttpRequestLog = () => React.useContext(REQUEST_LOG_CTX);
 
