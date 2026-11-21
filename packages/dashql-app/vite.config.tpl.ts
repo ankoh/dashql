@@ -46,12 +46,12 @@ export default vite.defineConfig(({ mode, command }) => {
     const toolInputs = Object.fromEntries(nodeFs.readdirSync(toolsDir)
         .filter(file => file.endsWith('.html'))
         .map(file => [`tools_${path.basename(file, '.html')}`, path.join(toolsDir, file)]));
-    // The package root of @akohn/dashql, the bindings of the core module, the runtime and its platforms. A source package
-    // like @akohn/dashql-react: the dev server reads packages/dashql.
+    // The builds and the dev server run in a sandbox of Bazel, the inputs are files of the sandbox. The dev server
+    // (js_run_devserver under ibazel) gets the files that a rebuild changes synced into it, and Vite updates the page.
+    // The package root of @akohn/dashql, the bindings of the core module, the runtime and its platforms, a source package
     const DASHQL_PATH = path.resolve(rootDir, "__DASHQL_PATH__");
     // The package root of @akohn/dashql-react: the hooks and the models of the runtime in React, the components, and the
-    // tokens, fonts and brand code shared with the website. A source package: the dev server reads packages/dashql-react,
-    // Vite watches it and updates the page in place.
+    // tokens, fonts and brand code shared with the website, a source package
     const REACT_PATH = path.resolve(rootDir, "__REACT_PATH__");
     // The generated packages of the core module that the bindings import, folders of Bazel: @akohn/dashql-wasm, the
     // glue and the Wasm of the core and of the dataflow layout, and @akohn/dashql-flatbuffers
@@ -64,20 +64,21 @@ export default vite.defineConfig(({ mode, command }) => {
     const SNIPPETS_PATH = path.resolve(rootDir, "__SNIPPETS_PATH__");
     // The extensions: the app bundles their generated specs and their snippets
     const EXTENSIONS_PATH = path.resolve(rootDir, "__EXTENSIONS_PATH__");
-    // copy_to_bin can leave deleted sources in the execroot. Only bundle declared test inputs.
-    const declaredTestInputs = (manifest: string) => includesBrowserTests && command === 'build'
+    // copy_to_bin can leave deleted sources in the execroot. Only bundle declared test inputs, the dev server too: a new
+    // test file is served after the rebuild that adds it to the manifests.
+    const declaredTestInputs = (manifest: string) => includesBrowserTests
         ? nodeFs.readFileSync(path.join(rootDir, manifest), 'utf8')
             .trim().split('\n').filter(Boolean).map(file => `../${file}`)
         : null;
     const browserTestPatterns = declaredTestInputs('browser_test_files.txt');
     // The tests of the runtime and of the platform of @akohn/dashql, relative to src/tests/test_modules.ts like the globs
     // they replace
-    const dashqlTestPatterns = includesBrowserTests && command === 'build'
+    const dashqlTestPatterns = includesBrowserTests
         ? nodeFs.readFileSync(path.join(rootDir, 'dashql_browser_test_files.txt'), 'utf8').trim().split('\n').filter(Boolean)
             .map(file => path.relative(path.join(rootDir, 'src/tests'), path.join(DASHQL_PATH, 'src', file)).split(path.sep).join('/'))
         : null;
     // The tests of the components of @akohn/dashql-react, the same way
-    const dashqlReactTestPatterns = includesBrowserTests && command === 'build'
+    const dashqlReactTestPatterns = includesBrowserTests
         ? nodeFs.readFileSync(path.join(rootDir, 'dashql_react_browser_test_files.txt'), 'utf8').trim().split('\n').filter(Boolean)
             .map(file => path.relative(path.join(rootDir, 'src/tests'), path.join(REACT_PATH, 'src', file)).split(path.sep).join('/'))
         : null;
@@ -136,8 +137,8 @@ export default vite.defineConfig(({ mode, command }) => {
         },
     };
 
-    // The generated packages of the core module are folders of Bazel outside the root. Vite serves and watches their
-    // modules like sources, but no module imports the Wasm: reload the page when a build of the core module replaces it.
+    // Vite serves and watches the modules of the generated packages of the core module like sources, but no module
+    // imports the Wasm: reload the page when ibazel syncs a new build of the core module into the sandbox.
     const reloadOnCoreWasm = {
         name: 'dashql-reload-on-core-wasm',
         apply: 'serve' as const,
@@ -292,7 +293,8 @@ export default vite.defineConfig(({ mode, command }) => {
             }] : []),
             checker({
                 enableBuild: false,
-                typescript: true,
+                // The tsconfig.json of the workspace maps the generated packages to bazel-bin, the sandbox has none
+                typescript: { root: rootDir, tsconfigPath: 'tsconfig.bazel.json' },
             }),
         ],
         root: entrypointsDir,

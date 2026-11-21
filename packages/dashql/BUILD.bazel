@@ -121,6 +121,13 @@ _GENERATED = [
     ":dep_wasm",
 ]
 
+# The sources and the generated packages at their paths in the workspace, for the dev server of the app. In its
+# sandbox, under node_modules, Vite would pre-bundle the source package like a dependency and not watch it.
+copy_to_bin(
+    name = "dev_srcs",
+    srcs = ["package.json"] + _GENERATED + _SOURCES,
+)
+
 # The source package, linked as //:node_modules/@akohn/dashql. The exports of package.json name the sources and the
 # Wasm (@akohn/dashql/wasm, which the platform of Node reads from its file). The generated packages that the sources
 # import come along in dependencies/, the consumers alias them there.

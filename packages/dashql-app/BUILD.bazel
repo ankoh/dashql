@@ -1,8 +1,7 @@
-load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
 load("@aspect_bazel_lib//lib:copy_to_bin.bzl", "copy_to_bin")
 load("@aspect_bazel_lib//lib:copy_to_directory.bzl", "copy_to_directory")
 load("@npm//:defs.bzl", "npm_link_all_packages")
-load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_library", "js_test")
+load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_library", "js_run_devserver", "js_test")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
 load("@npm//:typescript/package_json.bzl", typescript_bin = "bin")
 load("@npm//:vite/package_json.bzl", vite_bin = "bin")
@@ -66,7 +65,7 @@ genrule(
         "//:package.json",
         ":dep_svg_symbols",
     ],
-    outs = ["vite.config.generated.ts"],
+    outs = ["vite.config.generated.mts"],
     cmd = """
         VERSION=$$(awk -F= '$$1=="DASHQL_VERSION_TEXT"{print $$2}' "$(location @dashql_app_version//:version.env)")
         COMMIT=$$(awk -F= '$$1=="DASHQL_VERSION_COMMIT"{print $$2}' "$(location @dashql_app_version//:version.env)")
@@ -89,6 +88,8 @@ genrule(
     """,
 )
 
+# The config of the dev server: the paths of its sandbox, where @akohn/dashql and @akohn/dashql-react are at their paths
+# in the workspace, see //packages/dashql:dev_srcs
 genrule(
     name = "dev_config",
     srcs = [
@@ -96,25 +97,25 @@ genrule(
         "@dashql_app_version//:version.env",
         "//:package.json",
     ],
-    outs = ["vite.config.dev.ts"],
+    outs = ["vite.config.dev.mts"],
     cmd = """
         VERSION=$$(awk -F= '$$1=="DASHQL_VERSION_TEXT"{print $$2}' "$(location @dashql_app_version//:version.env)")
         COMMIT=$$(awk -F= '$$1=="DASHQL_VERSION_COMMIT"{print $$2}' "$(location @dashql_app_version//:version.env)")
         NPM_VERSION=$$(awk -F= '$$1=="DASHQL_VERSION_NPM"{print $$2}' "$(location @dashql_app_version//:version.env)")
         HYPERDB_WASM_VERSION=$$(awk -F'"' '/"hyperdb-wasm"/{print $$4; exit}' "$(location //:package.json)")
 
-        sed -e "s|__DASHQL_VERSION__|$${VERSION}|g" \
-            -e "s|__DASHQL_COMMIT__|$${COMMIT}|g" \
-            -e "s|__DASHQL_NPM_VERSION__|$${NPM_VERSION}|g" \
-            -e "s|__HYPERDB_WASM_VERSION__|$${HYPERDB_WASM_VERSION}|g" \
-            -e "s|__DASHQL_PATH__|../dashql|g" \
-            -e "s|__DASHQL_GENERATED_PATH__|../../bazel-bin/packages/dashql/dependencies|g" \
-            -e "s|__REACT_PATH__|../dashql-react|g" \
-            -e "s|__PROTOBUF_PATH__|../../bazel-bin/packages/dashql/dependencies/dashql-protobuf|g" \
-            -e "s|__JSONSCHEMA_PATH__|../../bazel-bin/packages/dashql/dependencies/dashql-jsonschema|g" \
-            -e "s|__SVG_SYMBOLS_PATH__|../../bazel-bin/packages/dashql-app/dependencies/svg-symbols/symbols.generated.svg|g" \
-            -e "s|__SNIPPETS_PATH__|../../examples/snippets|g" \
-            -e "s|__EXTENSIONS_PATH__|../../bazel-bin/packages/dashql-app/dependencies/extensions|g" \
+        sed -e "s|__PROTOBUF_PATH__|../dashql/dependencies/dashql-protobuf|g" \\
+            -e "s|__JSONSCHEMA_PATH__|../dashql/dependencies/dashql-jsonschema|g" \\
+            -e "s|__DASHQL_PATH__|../dashql|g" \\
+            -e "s|__DASHQL_GENERATED_PATH__|../dashql/dependencies|g" \\
+            -e "s|__REACT_PATH__|../dashql-react|g" \\
+            -e "s|__SVG_SYMBOLS_PATH__|./dependencies/svg-symbols/symbols.generated.svg|g" \\
+            -e "s|__SNIPPETS_PATH__|./dependencies/snippets|g" \\
+            -e "s|__EXTENSIONS_PATH__|./dependencies/extensions|g" \\
+            -e "s|__DASHQL_VERSION__|$${VERSION}|g" \\
+            -e "s|__DASHQL_COMMIT__|$${COMMIT}|g" \\
+            -e "s|__DASHQL_NPM_VERSION__|$${NPM_VERSION}|g" \\
+            -e "s|__HYPERDB_WASM_VERSION__|$${HYPERDB_WASM_VERSION}|g" \\
             $(location vite.config.tpl.ts) > $@
     """,
 )
@@ -278,7 +279,7 @@ _vite_web_deps = [
 vite_bin.vite(
     name = "reloc",
     srcs = _vite_web_deps,
-    args = ["build", "--config", "vite.config.generated.ts", "--mode", "reloc", "--outDir", "../reloc"],
+    args = ["build", "--config", "vite.config.generated.mts", "--mode", "reloc", "--outDir", "../reloc"],
     chdir = "packages/dashql-app",
     out_dirs = ["reloc"],
     visibility = ["//visibility:public"],
@@ -287,7 +288,7 @@ vite_bin.vite(
 vite_bin.vite(
     name = "electron",
     srcs = _vite_web_deps,
-    args = ["build", "--config", "vite.config.generated.ts", "--mode", "electron", "--outDir", "../electron"],
+    args = ["build", "--config", "vite.config.generated.mts", "--mode", "electron", "--outDir", "../electron"],
     chdir = "packages/dashql-app",
     out_dirs = ["electron"],
     visibility = ["//visibility:public"],
@@ -312,7 +313,7 @@ copy_to_directory(
 vite_bin.vite(
     name = "pages_vite",
     srcs = _vite_web_deps,
-    args = ["build", "--config", "vite.config.generated.ts", "--mode", "pages", "--outDir", "../pages"],
+    args = ["build", "--config", "vite.config.generated.mts", "--mode", "pages", "--outDir", "../pages"],
     chdir = "packages/dashql-app",
     out_dirs = ["pages"],
     visibility = ["//visibility:private"],
@@ -343,7 +344,7 @@ copy_to_directory(
 vite_bin.vite(
     name = "coverage_pages_vite",
     srcs = _vite_web_deps,
-    args = ["build", "--config", "vite.config.generated.ts", "--mode", "coverage", "--outDir", "../coverage_pages"],
+    args = ["build", "--config", "vite.config.generated.mts", "--mode", "coverage", "--outDir", "../coverage_pages"],
     chdir = "packages/dashql-app",
     out_dirs = ["coverage_pages"],
     visibility = ["//visibility:private"],
@@ -412,18 +413,26 @@ browser_test(
     tags = BROWSER_TEST_TAGS + ["manual"],
 )
 
-sh_binary(
+vite_bin.vite_binary(
+    name = "_vite_bin",
+    visibility = ["//visibility:private"],
+)
+
+# The dev server: `ibazel run //packages/dashql-app:dev`. It runs Vite in a sandbox of its own, a copy of the inputs of
+# the builds of the app, and ibazel syncs the files that a rebuild changes into it. Builds never change the files under
+# the running server, see docs/agents/build_bazel_targets.md
+js_run_devserver(
     name = "dev",
-    srcs = ["utils/dev.sh"],
-    args = ["$(location :dev_config)"],
-    data = [
+    tool = ":_vite_bin",
+    args = ["--config", "vite.config.dev.mts"],
+    chdir = package_name(),
+    data = [dep for dep in _vite_web_deps if dep != ":vite_config"] + glob(["types/**/*.d.ts"]) + [
         ":dev_config",
-        "//packages/dashql:dep_flatbuffers",
-        "//packages/dashql:dep_wasm",
-        ":extensions",
-        "//packages/dashql:dep_protobuf",
-        "//packages/dashql:dep_jsonschema",
-        ":dep_svg_symbols",
+        "tsconfig.bazel.json",
+        "//packages/dashql:dev_srcs",
+        "//packages/dashql-react:dev_srcs",
+        # The type checker of the dev server resolves the imports and the types of tsconfig.bazel.json
+        "//:node_modules",
     ],
     visibility = ["//visibility:public"],
 )

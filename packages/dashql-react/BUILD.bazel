@@ -68,16 +68,24 @@ js_test(
     entry_point = "test/boundary_test.mjs",
 )
 
+_PACKAGE_FILES = ["package.json"] + _SOURCES + glob([
+    "fonts/*.css",
+    "fonts/*.ttf",
+    "fonts/*.txt",
+    "styles/*.css",
+    "styles/flavors/*.css",
+])
+
+# The files of the package at their paths in the workspace, for the dev server of the app, see //packages/dashql:dev_srcs
+copy_to_bin(
+    name = "dev_srcs",
+    srcs = _PACKAGE_FILES,
+)
+
 npm_package(
     name = "npm_package",
     package = "@akohn/dashql-react",
-    srcs = ["package.json"] + _SOURCES + glob([
-        "fonts/*.css",
-        "fonts/*.ttf",
-        "fonts/*.txt",
-        "styles/*.css",
-        "styles/flavors/*.css",
-    ]),
+    srcs = _PACKAGE_FILES,
     include_transitive_sources = False,
     include_transitive_types = False,
 )
