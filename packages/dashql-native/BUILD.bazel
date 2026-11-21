@@ -128,22 +128,6 @@ sh_binary(
 )
 
 sh_binary(
-    name = "capability_test",
-    srcs = ["scripts/run_electron.sh"],
-    args = ["--capability-test"],
-    data = [
-        ":compile",
-        ":package.json",
-        ":preload",
-        "//:node_modules/electron",
-        "//packages/dashql-app:electron_bundle",
-        "//packages/dashql-native/proxy:addon",
-    ],
-    tags = ["manual"],
-    visibility = ["//visibility:public"],
-)
-
-sh_binary(
     name = "native_addon_test",
     srcs = ["scripts/run_electron.sh"],
     args = ["--native-addon-test"],

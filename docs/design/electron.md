@@ -75,11 +75,9 @@ handler checks the sender frame against it.
 The embedded database is HyperDB WASM, as on the web. HyperDB requires Memory64, Wasm exceptions, Wasm
 pthreads (`SharedArrayBuffer` and a cross-origin-isolated page), a preallocated pthread worker pool, and
 WasmFS with OPFS. Capabilities are tested, not inferred from the Electron version:
-
-- `//packages/dashql-native:capability_test` (manual) validates a Memory64 module, passes shared memory to a
-  worker and runs a real HyperDB query through `hyperdb-capability.html`.
-- `//packages/dashql-native:startup_smoke_test` launches the app and waits for the startup result the app
-  publishes as `__DASHQL_STARTUP__` (`packages/dashql-app/src/app/loading/app_setup.ts`). It runs in CI.
+`//packages/dashql-native:startup_smoke_test` launches the app and waits for the startup result the app publishes
+as `__DASHQL_STARTUP__` (`packages/dashql-app/src/app/loading/app_setup.ts`). The app is ready only after HyperDB
+started, so a missing capability fails it. It runs in CI.
 
 ## Native Proxy
 

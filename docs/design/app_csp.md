@@ -32,7 +32,6 @@ that it loads as `<script>` or `import`, so the header only takes effect when th
 | `oauth.html` | `'self'` + Cloudflare Insights | no |
 | `tests.html` | `'wasm-unsafe-eval' 'self'` | yes |
 | `tests-frame.html` | `'wasm-unsafe-eval' 'self'` | yes |
-| `hyperdb-capability.html` | no policy | |
 
 Every policy sets `default-src 'self'`. `connect-src`, `worker-src` and `frame-src` follow what each page
 talks to, read them in the files.

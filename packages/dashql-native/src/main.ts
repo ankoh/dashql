@@ -81,10 +81,9 @@ async function handleAppRequest(request: Request): Promise<Response> {
     }
 }
 
-type RendererTestMode = "capability" | "startup" | null;
+type RendererTestMode = "startup" | null;
 
 function rendererTestMode(): RendererTestMode {
-    if (process.argv.includes("--capability-test")) return "capability";
     if (process.argv.includes("--startup-smoke-test")) return "startup";
     return null;
 }
@@ -147,10 +146,7 @@ async function createWindow(testMode: RendererTestMode): Promise<BrowserWindow> 
             event.preventDefault();
         }
     });
-    const target = testMode === "capability"
-        ? `hyperdb-capability.html?mode=${testMode}`
-        : "index.html";
-    await window.loadURL(`${rendererDevOrigin ?? APP_ORIGIN}/${target}`);
+    await window.loadURL(`${rendererDevOrigin ?? APP_ORIGIN}/index.html`);
     // The renderer writes its pending changes first, the quit already waited for them
     let flushed = false;
     window.on("close", (event) => {
@@ -167,78 +163,6 @@ async function createWindow(testMode: RendererTestMode): Promise<BrowserWindow> 
     });
     mainWindow = window;
     return window;
-}
-
-async function runCapabilityTest(window: BrowserWindow): Promise<void> {
-    const capabilities = await window.webContents.executeJavaScript(`(async () => {
-        const memory64Probe = new Uint8Array([
-            0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00,
-            0x05, 0x03, 0x01, 0x04, 0x01,
-        ]);
-        const sharedMemory = new WebAssembly.Memory({initial: 1, maximum: 1, shared: true});
-        const workerSource = \`onmessage = ({data}) => postMessage(
-            data instanceof WebAssembly.Memory && data.buffer instanceof SharedArrayBuffer
-        )\`;
-        const workerUrl = URL.createObjectURL(new Blob([workerSource], {type: "text/javascript"}));
-        const sharedMemoryWorker = await new Promise((resolve, reject) => {
-            const worker = new Worker(workerUrl);
-            worker.onmessage = ({data}) => {
-                worker.terminate();
-                URL.revokeObjectURL(workerUrl);
-                resolve(data === true);
-            };
-            worker.onerror = (error) => {
-                worker.terminate();
-                URL.revokeObjectURL(workerUrl);
-                reject(error);
-            };
-            worker.postMessage(sharedMemory);
-        });
-        return {
-            crossOriginIsolated: globalThis.crossOriginIsolated,
-            memory64: WebAssembly.validate(memory64Probe),
-            secureContext: globalThis.isSecureContext,
-            sharedArrayBuffer: typeof globalThis.SharedArrayBuffer === "function",
-            sharedMemoryWorker,
-        };
-    })()`) as {
-        crossOriginIsolated: boolean;
-        memory64: boolean;
-        secureContext: boolean;
-        sharedArrayBuffer: boolean;
-        sharedMemoryWorker: boolean;
-    };
-    const result = {
-        ...capabilities,
-        chrome: process.versions.chrome,
-        electron: process.versions.electron,
-        node: process.versions.node,
-    };
-    const hyperdb = await window.webContents.executeJavaScript(`new Promise((resolve, reject) => {
-        const deadline = Date.now() + 120000;
-        const poll = () => {
-            if (globalThis.__DASHQL_HYPERDB_CAPABILITY__ !== undefined) {
-                resolve(globalThis.__DASHQL_HYPERDB_CAPABILITY__);
-            } else if (Date.now() >= deadline) {
-                reject(new Error("Timed out waiting for HyperDB capability result"));
-            } else {
-                setTimeout(poll, 100);
-            }
-        };
-        poll();
-    })`) as {
-        answer?: number;
-        engine?: string;
-        error?: string;
-        initialized: boolean;
-        version?: string;
-    };
-    Object.assign(result, {hyperdb});
-    console.log(JSON.stringify(result));
-    const passed = result.crossOriginIsolated && result.memory64 && result.secureContext &&
-        result.sharedArrayBuffer && result.sharedMemoryWorker && hyperdb.initialized &&
-        hyperdb.answer === 42 && hyperdb.engine === "hyper" && hyperdb.version?.includes("hyper version");
-    app.exit(passed ? 0 : 1);
 }
 
 async function waitForRendererResult<T>(window: BrowserWindow, expression: string): Promise<T> {
@@ -730,9 +654,7 @@ if (!hasSingleInstanceLock) {
         await nativeProxy.ready();
         const window = await createWindow(testMode);
         if (testMode === null) void updater?.check().catch((error) => console.error("Update check failed", error));
-        if (testMode === "capability") {
-            await runCapabilityTest(window);
-        } else if (testMode === "startup") {
+        if (testMode === "startup") {
             await runStartupSmokeTest(window);
         }
     }).catch((error) => {

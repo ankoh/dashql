@@ -181,7 +181,7 @@ export default vite.defineConfig(({ mode, command }) => {
     // 'wasm-unsafe-eval' lets a page compile WebAssembly, CSP has no narrower source for it. Only script-src carries it,
     // and only on the pages whose bundle loads a Wasm module. A build fails on it in default-src, where script-src
     // overrides it, on a page without Wasm, and on a page with Wasm but without it in script-src. Pages without a policy
-    // (the test frame, the HyperDB capability probe) compile Wasm unrestricted and are skipped.
+    // compile Wasm unrestricted and are skipped.
     const wasmCompilation = {
         name: 'dashql-wasm-compilation',
         transformIndexHtml: {
@@ -299,9 +299,6 @@ export default vite.defineConfig(({ mode, command }) => {
                     demos: path.join(entrypointsDir, "demos.html"),
                     embed: path.join(entrypointsDir, "embed.html"),
                     oauth_redirect: path.join(entrypointsDir, "oauth.html"),
-                    ...(isElectronBuild
-                        ? { hyperdb_capability: path.join(entrypointsDir, "hyperdb-capability.html") }
-                        : {}),
                     ...(includesBrowserTests ? {
                         tests: path.join(entrypointsDir, "tests.html"),
                         tests_frame: path.join(entrypointsDir, "tests-frame.html"),
