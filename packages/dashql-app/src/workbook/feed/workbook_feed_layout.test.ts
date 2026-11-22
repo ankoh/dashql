@@ -46,10 +46,10 @@ describe('FeedRowHeightCache', () => {
         expect(heights.setTopInset(54)).toBe(true);
         expect(heights.setTopInset(54)).toBe(false);
 
-        expect([0, 1].map(index => heights.getRowHeight(index))).toEqual([54 + 10 + 122 + 32, 202 + 32]);
-        expect(heights.getAverageRowHeight()).toBe((54 + 10 + 122 + 32 + 202 + 32) / 2);
-        expect(heights.getEntrySpan(0)).toEqual([64, 186]);
-        expect(heights.getEntrySpan(1)).toEqual([218, 420]);
+        expect([0, 1].map(index => heights.getRowHeight(index))).toEqual([54 + 12 + 122 + 32, 202 + 32]);
+        expect(heights.getAverageRowHeight()).toBe((54 + 12 + 122 + 32 + 202 + 32) / 2);
+        expect(heights.getEntrySpan(0)).toEqual([66, 188]);
+        expect(heights.getEntrySpan(1)).toEqual([220, 422]);
     });
 
     it('retains measured script heights by identity while entries update', () => {
