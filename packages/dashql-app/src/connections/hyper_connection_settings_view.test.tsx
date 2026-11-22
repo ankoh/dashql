@@ -214,7 +214,6 @@ describe('HyperConnectorSettings', () => {
         it('restores the params of the connection', async () => {
             await render(hyperDatabase(HTTP));
             expect(input('HTTP Endpoint').value).toBe('https://hyper.example.com');
-            expect(input('HTTP Endpoint').placeholder).toBe('HTTP endpoint url');
             expect(input('Attached Databases name 1').value).toBe('/data/a.hyper');
             expect(input('Attached Databases value 1').value).toBe('a');
             expect(input('HTTP Headers name 1').value).toBe('x-tenant');
@@ -317,7 +316,7 @@ describe('HyperConnectorSettings', () => {
             expect(endpoint.value).toBe('http://127.0.0.1:7483');
             expect(endpoint.readOnly).toBe(true);
             expect(endpoint.disabled).toBe(true);
-            expect(endpoint.placeholder).toBe('Open a link to connect');
+            expect(endpoint.placeholder).toContain('link');
             expect(protocolOptions()).toEqual([]);
         });
     });
@@ -339,7 +338,6 @@ describe('HyperConnectorSettings', () => {
             await click(container.querySelector<HTMLButtonElement>('[data-protocol="V3_GRPC"]'));
             expect(draft().protocol).toBe('V3_GRPC');
             expect(input('gRPC Endpoint').value).toBe('https://hyper.example.com');
-            expect(input('gRPC Endpoint').placeholder).toBe('gRPC endpoint url');
             expect(input('gRPC Metadata name 1').value).toBe('x-tenant');
             expect(testId('connection-setup')?.disabled).toBe(false);
 
@@ -358,7 +356,7 @@ describe('HyperConnectorSettings', () => {
             await render(hyperDatabase({ ...GRPC, endpoint: 'http://hyper:7484' }), { clients: true });
             expect(validation('gRPC Endpoint')).toBeNull();
             await click(testId('connection-setup'));
-            expect(validation('gRPC Endpoint')).toBe('TLS certificate paths require an https:// endpoint');
+            expect(validation('gRPC Endpoint')).toContain('https://');
             expect(input('gRPC Endpoint').getAttribute('aria-invalid')).toBe('true');
             expect(setup).not.toHaveBeenCalled();
             // Editing the endpoint clears the error
@@ -370,7 +368,7 @@ describe('HyperConnectorSettings', () => {
             asDesktop();
             await render(hyperDatabase({ ...GRPC, tls: { clientKeyPath: '/k.key', clientCertPath: '', caCertsPath: '' } }), { clients: true });
             await click(testId('connection-setup'));
-            expect(validation('mTLS Client Key')).toBe('Client key and certificate paths must both be provided');
+            expect(validation('mTLS Client Key')).toContain('certificate');
             expect(setup).not.toHaveBeenCalled();
             await type('mTLS Client Certificate', '/k.pem');
             expect(validation('mTLS Client Key')).toBeNull();

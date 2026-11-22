@@ -92,7 +92,7 @@ describe('ConnectionSaveBar', () => {
         expect(button('connection-save')!.disabled).toBe(true);
         render({ dirty: false, saving: false, workbookCount: 2, result: SAVED });
         expect(barState()).toBe('saved');
-        act(() => { vi.advanceTimersByTime(3000); });
+        act(() => { vi.runOnlyPendingTimers(); });
         expect(container.childElementCount).toBe(0);
     });
 

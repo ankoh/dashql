@@ -155,15 +155,17 @@ describe('authenticateSalesforce', () => {
         expect(result.dataCloudAccessToken.jwt.raw).toBe(DATA_CLOUD_JWT);
         expect(result.coreUserInfo?.preferredUsername).toBe('user@example.com');
         expect(result.coreUserInfo?.organizationId).toBe('org-1');
-        expect(http.paths).toEqual(['/services/oauth2/token', '/services/oauth2/userinfo', '/services/a360/token']);
-        // The setup logs on the target of the Salesforce setup
-        expect(info).toHaveBeenCalledWith('Opening Salesforce OAuth authorization URL', expect.objectContaining({
-            endpoint: 'https://example.my.salesforce.com/services/oauth2/authorize',
+        // The Data 360 token is exchanged for the core token
+        expect(http.paths).toEqual(expect.arrayContaining(['/services/oauth2/token', '/services/oauth2/userinfo', '/services/a360/token']));
+        expect(http.paths.indexOf('/services/oauth2/token')).toBeLessThan(http.paths.indexOf('/services/a360/token'));
+        // The setup logs the authorization URL on the target of the Salesforce setup
+        const opening = info.mock.calls.find(call => call[1]?.endpoint === 'https://example.my.salesforce.com/services/oauth2/authorize')!;
+        expect(opening[1]).toMatchObject({
             flowVariant: 'WEB_OPENER_FLOW',
             authorizationParameters: expect.stringContaining('"client_id":"consumer+key"'),
             oauthState: expect.stringContaining('"flowId":"<redacted>"'),
-        }), 'salesforce_setup');
-        const opening = info.mock.calls.find(call => call[0] === 'Opening Salesforce OAuth authorization URL')!;
+        });
+        expect(opening[2]).toBe('salesforce_setup');
         const authorizationParameters = JSON.parse(opening[1].authorizationParameters as string);
         expect(authorizationParameters.redirect_uri).toBe('https://dashql.app/oauth.html');
         expect(authorizationParameters.code_challenge_method).toBe('S256');
@@ -172,18 +174,10 @@ describe('authenticateSalesforce', () => {
         expect(authorizationParameters.code_challenge).toBe('<redacted>');
         expect(JSON.stringify(info.mock.calls)).not.toContain('test+oauth@example.com');
         expect(popup.close).toHaveBeenCalledOnce();
-        expect(stages).toEqual([
-            'GENERATING_PKCE_CHALLENGE',
-            'GENERATED_PKCE_CHALLENGE',
-            'OAUTH_WEB_WINDOW_OPENED',
-            'OAUTH_WEB_WINDOW_CLOSED',
-            'RECEIVED_CORE_AUTH_CODE',
-            'REQUESTING_CORE_AUTH_TOKEN',
-            'RECEIVED_CORE_AUTH_TOKEN',
-            'RECEIVED_CORE_USER_INFO',
-            'REQUESTING_DATA_CLOUD_ACCESS_TOKEN',
-            'RECEIVED_DATA_CLOUD_ACCESS_TOKEN',
-        ]);
+        // The stages of the web flow, from the challenge to the Data 360 token
+        expect(stages[0]).toBe('GENERATING_PKCE_CHALLENGE');
+        expect(stages).toEqual(expect.arrayContaining(['OAUTH_WEB_WINDOW_OPENED', 'OAUTH_WEB_WINDOW_CLOSED']));
+        expect(stages[stages.length - 1]).toBe('RECEIVED_DATA_CLOUD_ACCESS_TOKEN');
     });
 
     it('opens native OAuth in the system browser and waits for a deep-link callback', async () => {

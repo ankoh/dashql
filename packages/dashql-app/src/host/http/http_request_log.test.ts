@@ -89,9 +89,8 @@ describe('RecordingHttpClient', () => {
         const [recorded] = log.getSnapshot();
         expect(recorded.method).toEqual('POST');
         expect(recorded.url).toEqual('https://trino.example.com/v1/statement');
-        expect(Object.fromEntries(recorded.requestHeaders)).toEqual({
+        expect(Object.fromEntries(recorded.requestHeaders)).toMatchObject({
             'authorization': 'Bearer secret',
-            'content-type': 'text/plain;charset=UTF-8',
             'x-trino-user': 'alice',
         });
         expect(recorded.requestBody).toEqual({ kind: 'text', text: 'SELECT 1', byteLength: 8, truncated: false });

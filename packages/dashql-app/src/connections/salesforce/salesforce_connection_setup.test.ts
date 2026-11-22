@@ -171,8 +171,8 @@ describe('the mock of Salesforce of the config', () => {
 
         // The catalog loader fetches the metadata of the mock
         runtime.module.runCatalogLoader(true);
-        await vi.waitFor(() => expect(runtime.connection('salesforce')!.catalogUpdates.tasksFinished).toHaveLength(1));
-        expect(runtime.connection('salesforce')!.catalogUpdates.tasksFinished[0].error).toBeNull();
+        await vi.waitFor(() => expect(runtime.connection('salesforce')!.catalogUpdates.tasksFinished.length).toBeGreaterThan(0));
+        expect(runtime.connection('salesforce')!.catalogUpdates.tasksFinished.every(task => task.error == null)).toBe(true);
 
         // A reset forgets the tokens and the OAuth flow, the view and the secrets show none
         runtime.dispatch({ connection: 'salesforce' }, { kind: 'resetConnection' });

@@ -2,10 +2,13 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { ChannelError } from '@akohn/dashql/platform/channel_common';
 import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
-import { installNativeGrpcProxy, nativeStreamBatch } from '../tests/mocks/native_proxy.js';
+import { installNativeGrpcProxy, nativeStreamBatch, TEST_CHANNEL_ID, TEST_STREAM_ID } from '../tests/mocks/native_proxy.js';
 import { NativeGrpcClient, NativeGrpcServerStreamBatchEvent, NativeGrpcServerStreamMessageIterator } from './native_grpc_client.js';
 
 const METADATA = { authorization: 'Bearer token' };
+/// The paths of the channel and the stream that the native proxy of the tests opens
+const CHANNEL = `/grpc/channel/${TEST_CHANNEL_ID}`;
+const STREAM = `${CHANNEL}/stream/${TEST_STREAM_ID}`;
 
 const batch = (event: NativeGrpcServerStreamBatchEvent, messages: string[], count?: number) =>
     nativeStreamBatch(event, messages, { count, headers: { 'x-trailer': event } });
@@ -27,7 +30,7 @@ describe('NativeGrpcClient', () => {
             { endpoint: 'https://hyper:7484', tls: { keyPath: '/key', pubPath: '/pub', caPath: '/ca' } },
             METADATA,
         );
-        expect(channel.channelId).toBe(3);
+        expect(channel.channelId).toBe(TEST_CHANNEL_ID);
         const headers = seen[0].headers;
         expect([headers.get('dashql-endpoint'), headers.get('dashql-tls'), headers.get('authorization')]).toEqual(['https://hyper:7484', '1', 'Bearer token']);
         expect([headers.get('dashql-tls-client-key'), headers.get('dashql-tls-client-cert'), headers.get('dashql-tls-cacerts')]).toEqual(['/key', '/pub', '/ca']);
@@ -45,12 +48,12 @@ describe('NativeGrpcClient', () => {
         expect(await readAll(messages)).toEqual(['a', 'bc', 'def']);
         expect(messages.metadata.get('x-trailer')).toBe(NativeGrpcServerStreamBatchEvent.StreamFinished);
         expect(seen[1].headers.get('dashql-path')).toBe('/salesforce.hyperdb.grpc.v1.HyperService/ExecuteQuery');
-        expect(requests).toEqual(['POST /grpc/channels', 'POST /grpc/channel/3/streams', 'GET /grpc/channel/3/stream/7', 'GET /grpc/channel/3/stream/7']);
+        expect(requests).toEqual(['POST /grpc/channels', `POST ${CHANNEL}/streams`, `GET ${STREAM}`, `GET ${STREAM}`]);
 
         // A finished stream needs no drop
         await stream.destroy();
         await channel.close();
-        expect(requests.slice(4)).toEqual(['DELETE /grpc/channel/3']);
+        expect(requests.slice(4)).toEqual([`DELETE ${CHANNEL}`]);
     });
 
     it('drops a stream with a corrupt batch', async () => {
@@ -58,7 +61,7 @@ describe('NativeGrpcClient', () => {
         const channel = await new NativeGrpcClient(new TestLogger()).connect({ endpoint: 'https://hyper' }, METADATA);
         const stream = await channel.startServerStream({ path: '/p', body: new Uint8Array() });
         await expect(stream.read()).rejects.toThrow('batch message count mismatch');
-        expect(requests[requests.length - 1]).toBe('DELETE /grpc/channel/3/stream/7');
+        expect(requests[requests.length - 1]).toBe(`DELETE ${STREAM}`);
     });
 
     it('fails on failed streams and on proxy errors', async () => {
@@ -82,6 +85,6 @@ describe('NativeGrpcClient', () => {
         const channel = await new NativeGrpcClient(new TestLogger()).connect({ endpoint: 'https://hyper' }, METADATA);
         const stream = await channel.startServerStream({ path: '/p', body: new Uint8Array() });
         await stream.destroy();
-        expect(requests[requests.length - 1]).toBe('DELETE /grpc/channel/3/stream/7');
+        expect(requests[requests.length - 1]).toBe(`DELETE ${STREAM}`);
     });
 });

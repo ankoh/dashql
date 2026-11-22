@@ -43,13 +43,19 @@ export function nativeStreamBatch(event: string, messages: (string | Uint8Array)
     });
 }
 
-/// A native proxy with gRPC channel 3 and stream 7 that answers the stream reads with the batches
+/// The gRPC channel that the native proxy of the tests opens
+export const TEST_CHANNEL_ID = 3;
+/// The gRPC stream that the native proxy of the tests opens on its channel
+export const TEST_STREAM_ID = 7;
+
+/// A native proxy with the gRPC channel TEST_CHANNEL_ID and the stream TEST_STREAM_ID that answers the stream reads with
+/// the batches
 export function installNativeGrpcProxy(batches: Response[]) {
     const seen: NativeProxyRequest[] = [];
     const proxy = installNativeProxy(request => {
         seen.push(request);
-        if (request.method === 'POST' && request.path === '/grpc/channels') return new Response(null, { headers: { 'dashql-channel-id': '3' } });
-        if (request.method === 'POST' && request.path === '/grpc/channel/3/streams') return new Response(null, { headers: { 'dashql-stream-id': '7' } });
+        if (request.method === 'POST' && request.path === '/grpc/channels') return new Response(null, { headers: { 'dashql-channel-id': `${TEST_CHANNEL_ID}` } });
+        if (request.method === 'POST' && request.path === `/grpc/channel/${TEST_CHANNEL_ID}/streams`) return new Response(null, { headers: { 'dashql-stream-id': `${TEST_STREAM_ID}` } });
         if (request.method === 'GET') return batches.shift()!;
         return new Response(null);
     });

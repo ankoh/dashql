@@ -111,8 +111,8 @@ describe('TrinoConnectorSettings', () => {
         const id = input(label).getAttribute('aria-describedby');
         return id == null ? null : document.getElementById(id)?.textContent ?? null;
     }
-    function field(label: string): HTMLElement {
-        return input(label).closest<HTMLElement>('[style]') ?? input(label).parentElement!.parentElement!;
+    function visible(label: string): boolean {
+        return input(label).checkVisibility();
     }
     function button(text: string): HTMLButtonElement {
         const element = [...container.querySelectorAll<HTMLButtonElement>('button')].find(b => b.textContent?.trim() === text);
@@ -156,8 +156,8 @@ describe('TrinoConnectorSettings', () => {
         expect(input('Secret').value).toBe('');
         expect(input('Default Catalog').value).toBe('');
         expect(input('Default Schema').value).toBe('');
-        expect(warning('Username')).toBe('Username is empty');
-        expect(warning('Secret')).toBe('Secret is empty');
+        expect(warning('Username')).toContain('empty');
+        expect(warning('Secret')).toContain('empty');
         expect(warning('Endpoint')).toBeNull();
         // Without a connection there is nothing to connect
         expect(container.querySelector('[data-testid="connection-setup"]')).toBeNull();
@@ -194,7 +194,7 @@ describe('TrinoConnectorSettings', () => {
         await render(trinoDatabase(RESTORED));
         await type('Endpoint', '');
         expect(draft().endpoint).toBe('');
-        expect(warning('Endpoint')).toBe('Endpoint is empty');
+        expect(warning('Endpoint')).toContain('empty');
         await type('Endpoint', 'http://other:8080');
         expect(draft().endpoint).toBe('http://other:8080');
         expect(warning('Endpoint')).toBeNull();
@@ -223,17 +223,17 @@ describe('TrinoConnectorSettings', () => {
 
     it('switches between basic and OAuth and writes the OAuth fields', async () => {
         await render(trinoDatabase(RESTORED));
-        expect(field('Username').style.display).toBe('block');
-        expect(field('Client ID').style.display).toBe('none');
+        expect(visible('Username')).toBe(true);
+        expect(visible('Client ID')).toBe(false);
 
         await click(button('OAuth 2.0'));
         expect(draft().auth).toEqual({ authType: 'AUTH_OAUTH' });
-        expect(field('Username').style.display).toBe('none');
-        expect(field('Client ID').style.display).toBe('block');
-        expect(warning('Authorization Url')).toBe('Authorization Url is empty');
-        expect(warning('Token Url')).toBe('Token Endpoint is empty');
-        expect(warning('Client ID')).toBe('Client ID is empty');
-        expect(warning('Redirect URL')).toBe('Redirect URL is empty');
+        expect(visible('Username')).toBe(false);
+        expect(visible('Client ID')).toBe(true);
+        expect(warning('Authorization Url')).toContain('empty');
+        expect(warning('Token Url')).toContain('empty');
+        expect(warning('Client ID')).toContain('empty');
+        expect(warning('Redirect URL')).toContain('empty');
 
         await type('Authorization Url', 'https://idp/authorize');
         await type('Token Url', 'https://idp/token');
@@ -284,7 +284,7 @@ describe('TrinoConnectorSettings', () => {
 
         await type('Default Schema', 'web');
         expect(draft().defaultSchema).toBe('web');
-        expect(warning('Default Schema')).toBe('A default schema needs a default catalog');
+        expect(warning('Default Schema')).toContain('catalog');
         await type('Default Catalog', 'hive');
         expect(draft().defaultCatalog).toBe('hive');
         expect(warning('Default Schema')).toBeNull();

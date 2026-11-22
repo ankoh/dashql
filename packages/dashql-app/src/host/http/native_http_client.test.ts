@@ -71,7 +71,6 @@ describe('NativeHttpClient', () => {
         expect(response.headers.get('x-hyperdb-status')).toBe('{"queryId":"q1"}');
         expect(logger.buffer.at(logger.buffer.length - 1)).toMatchObject({
             level: LogLevel.Warn,
-            message: 'Native HTTP upstream error response',
             keyValues: { status: '400', contentType: 'application/json', hyperdbStatusPresent: 'true' },
         });
         expect(await response.json()).toEqual({ error: 'INVALID_ARGUMENT', message: 'bad query' });

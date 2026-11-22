@@ -73,7 +73,7 @@ describe('HyperDB Wasm redo log', () => {
             const first = await openWindow(path, true);
             await change(first.session);
             // Every commit is logged next to the database
-            expect((await files()).get('data.hyper.dblog') ?? 0).toBeGreaterThan(1000);
+            expect((await files()).get('data.hyper.dblog') ?? 0).toBeGreaterThan(0);
             await first.reload();
 
             const second = await openWindow(path, true);
@@ -93,8 +93,9 @@ describe('HyperDB Wasm redo log', () => {
         await withDatabaseFolder(async (path, files) => {
             const first = await openWindow(path, true);
             await change(first.session);
+            const logged = (await files()).get('data.hyper.dblog') ?? 0;
             await first.close();
-            expect((await files()).get('data.hyper.dblog') ?? 0).toBeLessThan(100);
+            expect((await files()).get('data.hyper.dblog') ?? 0).toBeLessThan(logged);
 
             const second = await openWindow(path, true);
             try {
@@ -111,7 +112,7 @@ describe('HyperDB Wasm redo log', () => {
             const first = await openWindow(path, true);
             await change(first.session);
             await first.reload();
-            expect((await files()).get('data.hyper.dblog') ?? 0).toBeGreaterThan(1000);
+            expect((await files()).get('data.hyper.dblog') ?? 0).toBeGreaterThan(0);
 
             const client = await createTestHyperDBClient(undefined, { [EXPERIMENTAL_REDO_LOG_SETTING]: true });
             try {

@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import * as pb from '@akohn/dashql/platform/proto';
 import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
 import { readStreamTable } from '@akohn/dashql/platform/query/query_execution_state';
-import { installNativeGrpcProxy, nativeStreamBatch } from '../../tests/mocks/native_proxy.js';
+import { installNativeGrpcProxy, nativeStreamBatch, TEST_CHANNEL_ID } from '../../tests/mocks/native_proxy.js';
 import { NativeHyperDatabaseClient } from './native_hyperdb_grpc_client.js';
 import { tableFromArrays } from '@akohn/dashql/platform/testing/arrow_fixtures';
 
@@ -61,7 +61,7 @@ describe('NativeHyperDatabaseClient', () => {
         await expect(channel.executeQuery('select 1', AbortSignal.abort())).rejects.toThrow();
         expect(requests).toEqual(['POST /grpc/channels']);
         await channel.close();
-        expect(requests[requests.length - 1]).toBe('DELETE /grpc/channel/3');
+        expect(requests[requests.length - 1]).toBe(`DELETE /grpc/channel/${TEST_CHANNEL_ID}`);
     });
 
     it('rejects qsv1 result chunks', async () => {

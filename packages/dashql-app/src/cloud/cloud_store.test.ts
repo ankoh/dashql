@@ -248,8 +248,9 @@ describe('cloud store', () => {
         const inserts = statements.filter(sql => sql.startsWith('INSERT'));
         expect(inserts[0]).toMatch(/^INSERT INTO "dashql"."dashql"."workbooks"/);
         expect(inserts[1]).toMatch(/^INSERT INTO "dashql"."dashql"."workbook_versions"/);
+        // A data table for every attachment and every result
         const dataTables = createdDataTables();
-        expect(dataTables).toHaveLength(2);
+        expect(dataTables).toHaveLength(tables[ATTACHMENTS_TABLE].length + tables[RESULTS_TABLE].length);
         for (const tableName of dataTables) {
             expect(statements.findIndex(sql => sql.startsWith('INSERT INTO "dashql"."dashql"."') && sql.includes(`'${tableName}'`)))
                 .toBeLessThan(statements.findIndex(sql => sql.startsWith(`CREATE TABLE "dashql"."dashql"."${tableName}"`)));
@@ -337,9 +338,10 @@ describe('cloud store', () => {
             if (sql.startsWith('INSERT INTO "dashql"."dashql"."workbook_result_')) throw new Error('lost connection');
             return await query(sql, signal);
         };
-        await expect(publishCloudWorkbook(dql, failing, database, await testTables())).rejects.toThrow('lost connection');
+        const tables = await testTables();
+        await expect(publishCloudWorkbook(dql, failing, database, tables)).rejects.toThrow('lost connection');
         const dataTables = createdDataTables();
-        expect(dataTables).toHaveLength(2);
+        expect(dataTables).toHaveLength(tables[ATTACHMENTS_TABLE].length + tables[RESULTS_TABLE].length);
         for (const tableName of dataTables) expect(await tableExists(tableName)).toBe(false);
         expect(await rowCount()).toBe(0);
     });
@@ -468,7 +470,11 @@ describe('cloud store', () => {
         for (const { tableName } of [abandoned, deleting, orphan, sibling]) expect(await tableExists(tableName)).toBe(false);
         for (const { tableName } of [young, ready]) expect(await tableExists(tableName)).toBe(true);
         expect(await tableExists('workbook_versions')).toBe(true);
-        expect(await rowCount()).toBe(2 * 3 + 1);
+        // Only the rows of the young and the ready version stay
+        for (const tableName of ['workbook_versions', 'workbook_scripts', 'workbook_attachments']) {
+            const rows = await connection.query(`SELECT DISTINCT version_id::text AS version_id FROM "dashql"."dashql"."${tableName}"`);
+            expect(rows.toArray().map(row => row.version_id as string).sort()).toEqual(versionIds([young, ready]));
+        }
         expect((await listWorkbooks()).map(row => row.versionId)).toEqual([ready.versionId]);
     });
 

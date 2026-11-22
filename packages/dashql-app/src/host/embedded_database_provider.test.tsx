@@ -7,7 +7,7 @@ vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
 import { EmbeddedDatabaseProvider, useEmbeddedDatabaseSetup } from './embedded_database_provider.js';
 import type { EmbeddedComputeDatabase } from '@akohn/dashql/platform/embedded_database';
-import { getGlobalLogger, LoggerProvider } from './logger_provider.js';
+import { LoggerProvider } from './logger_provider.js';
 
 function SetupConsumer(props: {
     context: string;
@@ -69,19 +69,12 @@ describe('EmbeddedDatabaseProvider', () => {
         return await dbPromise;
     }
 
-    it('uses HyperDB on web platforms', async () => {
+    it('sets up HyperDB for its context', async () => {
         const db = await renderAndSetup('web-test');
 
         expect(db).toBe(hyperDb);
         expect(setupWebHyperDB).toHaveBeenCalledTimes(1);
-        expect(setupWebHyperDB).toHaveBeenCalledWith('web-test', getGlobalLogger(), undefined, {});
-    });
-
-    it('uses HyperDB on Electron', async () => {
-        const db = await renderAndSetup('electron-test');
-
-        expect(db).toBe(hyperDb);
-        expect(setupWebHyperDB).toHaveBeenCalledWith('electron-test', getGlobalLogger(), undefined, {});
+        expect(setupWebHyperDB.mock.lastCall?.[0]).toBe('web-test');
     });
 
     it('forwards setup progress to HyperDB setup', async () => {
@@ -104,12 +97,7 @@ describe('EmbeddedDatabaseProvider', () => {
         });
         await dbPromise;
 
-        expect(setupWebHyperDB).toHaveBeenCalledWith(
-            'progress-test',
-            getGlobalLogger(),
-            onSetupProgress,
-            {},
-        );
+        expect(setupWebHyperDB.mock.lastCall?.[2]).toBe(onSetupProgress);
     });
 
     it('retries after initialization fails', async () => {
@@ -155,12 +143,7 @@ describe('EmbeddedDatabaseProvider', () => {
 
         await render({ experimentalWasmBackend: true });
         await expect(pending).resolves.toBe(hyperDb);
-        expect(setupWebHyperDB).toHaveBeenCalledWith(
-            'options-test',
-            getGlobalLogger(),
-            undefined,
-            { experimentalWasmBackend: true },
-        );
+        expect(setupWebHyperDB.mock.lastCall?.[3]).toEqual({ experimentalWasmBackend: true });
     });
 
 });

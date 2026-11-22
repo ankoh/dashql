@@ -26,12 +26,14 @@ describe('cloud sql', () => {
 
     it('splits the rows into statements up to a length, a single row may be longer', () => {
         const rows = [['1', 'a'.repeat(10)], ['2', 'b'.repeat(10)], ['3', 'c'.repeat(200)]];
-        const statements = [...insertStatements('"t"', COLUMNS, rows, 150)];
-        expect(statements).toHaveLength(3);
+        // The limit fits a statement of one of the short rows, not of two
+        const limit = [...insertStatements('"t"', COLUMNS, [rows[0]], Infinity)][0].length;
+        const statements = [...insertStatements('"t"', COLUMNS, rows, limit)];
+        expect(statements).toHaveLength(rows.length);
         expect(statements[0]).toContain("('1', 'aaaaaaaaaa')");
         expect(statements[1]).toContain("('2', 'bbbbbbbbbb')");
-        expect(statements[2].length).toBeGreaterThan(150);
-        expect([...insertStatements('"t"', COLUMNS, [], 150)]).toEqual([]);
+        expect(statements[2].length).toBeGreaterThan(limit);
+        expect([...insertStatements('"t"', COLUMNS, [], limit)]).toEqual([]);
     });
 
     it('rejects rows with the wrong number of values', () => {

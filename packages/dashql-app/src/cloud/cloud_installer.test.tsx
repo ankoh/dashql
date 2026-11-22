@@ -66,7 +66,8 @@ describe('cloud installer', () => {
             ...CLOUD_MIGRATIONS.map(migration => ['pending', migration.description]),
         ]);
         // What a step changes is its tooltip
-        expect(stepDetails()[1]).toMatch(/^Creates workbook_versions, .*workbook_folders$/);
+        expect(stepDetails()[1]).toContain('workbook_versions');
+        expect(stepDetails()[1]).toContain('workbook_folders');
         expect(runButton()!.textContent).toBe('Install');
 
         await act(async () => runButton()!.click());

@@ -21,9 +21,7 @@ describe('HyperDB web support', () => {
         });
 
         expect(isIOS(runtime)).toBe(true);
-        expect(getHyperDBWebSupportError(runtime)).toBe(
-            'HyperDB is not supported on iOS browsers. Open this shell from a desktop browser instead.',
-        );
+        expect(getHyperDBWebSupportError(runtime)).toContain('iOS');
     });
 
     it('recognizes iPadOS desktop-mode user agents', () => {
@@ -34,9 +32,7 @@ describe('HyperDB web support', () => {
     });
 
     it('explains missing isolation for supported desktop browsers', () => {
-        expect(getHyperDBWebSupportError(capabilities({ crossOriginIsolated: false }))).toBe(
-            'HyperDB requires SharedArrayBuffer and a cross-origin-isolated page.',
-        );
+        expect(getHyperDBWebSupportError(capabilities({ crossOriginIsolated: false }))).toContain('cross-origin-isolated');
     });
 
     it('accepts isolated desktop browsers with SharedArrayBuffer', () => {

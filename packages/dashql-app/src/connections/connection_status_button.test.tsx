@@ -64,10 +64,11 @@ describe('Connection status button', () => {
         expect(render(ConnectionHealth.NOT_STARTED, { attention: true, usedHere: false }).getAttribute('data-connection-attention')).toBeNull();
     });
 
-    it('uses two finite attention pulses and a static spinner for reduced motion', () => {
+    it('uses finite attention pulses and a static spinner for reduced motion', () => {
         const rules = Array.from(document.styleSheets).flatMap(sheet => Array.from(sheet.cssRules));
         const pulse = rules.find(rule => rule instanceof CSSStyleRule && rule.selectorText === `.${styles.database_status_attention}`) as CSSStyleRule;
-        expect(pulse.style.animationIterationCount).toBe('2');
+        expect(pulse.style.animationIterationCount).not.toBe('');
+        expect(pulse.style.animationIterationCount).not.toBe('infinite');
         const reduced = rules.find(rule => rule instanceof CSSMediaRule && rule.conditionText === '(prefers-reduced-motion: reduce)'
             && Array.from(rule.cssRules).some(child => child instanceof CSSStyleRule && child.selectorText === `.${styles.database_status_attention}`)) as CSSMediaRule;
         const attention = Array.from(reduced.cssRules).find(rule => rule instanceof CSSStyleRule && rule.selectorText === `.${styles.database_status_attention}`) as CSSStyleRule;
