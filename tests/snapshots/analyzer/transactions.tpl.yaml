@@ -85,3 +85,11 @@ analyzer-snapshots:
       input: |
         begin read invalid;
         rollback;
+  # SET TRANSACTION changes the modes, it neither begins nor ends a transaction
+  - name: transaction_set_modes
+    script:
+      input: |
+        set transaction isolation level serializable;
+        begin;
+        set transaction read only;
+        commit;

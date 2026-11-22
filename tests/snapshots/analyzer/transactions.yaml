@@ -317,3 +317,16 @@ analyzer-snapshots:
         rollback;
       catalog-id: 1
       errors: []
+
+  - name: transaction_set_modes
+    script:
+      input: |
+        set transaction isolation level serializable;
+        begin;
+        set transaction read only;
+        commit;
+      catalog-id: 1
+      errors: []
+      transactions:
+        - begin: 1
+          end: 3
