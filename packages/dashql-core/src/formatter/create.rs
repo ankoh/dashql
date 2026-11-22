@@ -1,7 +1,9 @@
-//! CREATE, DROP, ATTACH and SET statements.
+//! CREATE, DROP, ATTACH, SET and RESET statements.
 
 use super::{FmtReg, Formatter, FormattingJoinPolicy, K};
-use dashql_buffers::parser::{FunctionOption, FunctionParameterMode, Node, NodeType, OnCommitOption, TempType};
+use dashql_buffers::parser::{
+    FunctionOption, FunctionParameterMode, Node, NodeType, OnCommitOption, SessionParameter, TempType, ZoneValueType,
+};
 use dashql_parser::attrs;
 
 impl<'a> Formatter<'a> {
@@ -522,5 +524,114 @@ impl<'a> Formatter<'a> {
         let [varargs, local] = attrs!(self.children(node), [K::EXT_SET_VARARGS, K::SQL_SET_LOCAL]);
         let Some(varargs) = varargs else { return self.format_unimplemented(node) };
         f.concat(&[f.text(if local.is_some() { "set local " } else { "set " }), self.reg(varargs)])
+    }
+
+    /// Every SET but `set a.b = v` with a single value (`OBJECT_EXT_SET`).
+    ///
+    /// The values of a variable follow `to`, which keeps a single value out of `OBJECT_EXT_SET`. Only values that
+    /// the `to` form does not take, like a column reference first, follow `=`.
+    pub(super) fn format_sql_set(&self, node: &'a Node) -> FmtReg {
+        let f = &self.fmt;
+        let [local, name, args, parameter, default, from_current] = attrs!(
+            self.children(node),
+            [
+                K::SQL_SET_LOCAL,
+                K::SQL_SET_NAME,
+                K::SQL_SET_ARGS,
+                K::SQL_SET_PARAMETER,
+                K::SQL_SET_DEFAULT,
+                K::SQL_SET_FROM_CURRENT,
+            ],
+        );
+        let set = f.text(if local.is_some() { "set local " } else { "set " });
+        let args_reg = args.map(|a| self.reg(a));
+        let rest = match parameter.map(|p| SessionParameter(super::value_u8(p))) {
+            None => {
+                let Some(name) = name else { return self.format_unimplemented(node) };
+                let value = match (args, args_reg) {
+                    _ if default.is_some() => f.text(" to default"),
+                    _ if from_current.is_some() => f.text(" from current"),
+                    (Some(args), Some(args_reg)) => {
+                        let first = self.children(args).first().map(|a| a.node_type());
+                        let to_value = matches!(
+                            first,
+                            Some(
+                                NodeType::NAME
+                                    | NodeType::LITERAL_STRING
+                                    | NodeType::LITERAL_INTEGER
+                                    | NodeType::LITERAL_FLOAT
+                                    | NodeType::BOOL
+                            )
+                        );
+                        f.concat(&[f.text(if to_value { " to " } else { " = " }), args_reg])
+                    }
+                    _ => return self.format_unimplemented(node),
+                };
+                f.concat(&[self.reg(name), value])
+            }
+            // TIME ZONE LOCAL and TIME ZONE DEFAULT are the same, and so are NAMES and NAMES DEFAULT
+            Some(SessionParameter::TIME_ZONE) => {
+                f.concat(&[f.text("time zone "), args_reg.unwrap_or_else(|| f.text("default"))])
+            }
+            Some(SessionParameter::CLIENT_ENCODING) => {
+                f.concat(&[f.text("names "), args_reg.unwrap_or_else(|| f.text("default"))])
+            }
+            Some(SessionParameter::SESSION_AUTHORIZATION) if default.is_some() => {
+                f.text("session authorization default")
+            }
+            Some(parameter) => {
+                let keywords = match parameter {
+                    SessionParameter::CATALOG => "catalog ",
+                    SessionParameter::SCHEMA => "schema ",
+                    SessionParameter::ROLE => "role ",
+                    SessionParameter::SESSION_AUTHORIZATION => "session authorization ",
+                    SessionParameter::TRANSACTION_SNAPSHOT => "transaction snapshot ",
+                    SessionParameter::TRANSACTION => "transaction ",
+                    SessionParameter::SESSION_CHARACTERISTICS => "session characteristics as transaction ",
+                    _ => return self.format_unimplemented(node),
+                };
+                let Some(args_reg) = args_reg else { return self.format_unimplemented(node) };
+                f.concat(&[f.text(keywords), args_reg])
+            }
+        };
+        f.concat(&[set, rest])
+    }
+
+    /// The zone of `set time zone`
+    pub(super) fn format_zone_value(&self, node: &'a Node) -> FmtReg {
+        let f = &self.fmt;
+        let [kind, arg, modifier] =
+            attrs!(self.children(node), [K::SQL_ZONE_VALUE_KIND, K::SQL_ZONE_VALUE_ARG, K::SQL_ZONE_VALUE_MOD]);
+        let (Some(kind), Some(arg)) = (kind, arg) else { return self.format_unimplemented(node) };
+        if ZoneValueType(super::value_u8(kind)) != ZoneValueType::INTERVAL {
+            return self.reg(arg);
+        }
+        match modifier {
+            // `interval(3) '1:00'`
+            Some(precision) if precision.node_type() == NodeType::LITERAL_INTEGER => {
+                f.concat(&[f.text("interval"), f.parenthesized(self.reg(precision)), f.text(" "), self.reg(arg)])
+            }
+            // `interval '+02:00' hour to minute`
+            Some(fields) => f.concat(&[f.text("interval "), self.reg(arg), f.text(" "), self.reg(fields)]),
+            None => f.concat(&[f.text("interval "), self.reg(arg)]),
+        }
+    }
+
+    /// RESET, whose statement node holds a RESET node with the variable or the parameter
+    pub(super) fn format_reset(&self, node: &'a Node) -> FmtReg {
+        let f = &self.fmt;
+        let [arg, parameter, global] =
+            attrs!(self.children(node), [K::SQL_RESET_ARG, K::SQL_RESET_PARAMETER, K::SQL_RESET_GLOBAL]);
+        match (arg, parameter.map(|p| SessionParameter(super::value_u8(p)))) {
+            (Some(arg), _) if arg.node_type() == NodeType::OBJECT_SQL_RESET => {
+                f.concat(&[f.text("reset "), self.reg(arg)])
+            }
+            (Some(name), None) => self.reg(name),
+            (None, Some(SessionParameter::ALL)) => f.text(if global.is_some() { "all global" } else { "all" }),
+            (None, Some(SessionParameter::TIME_ZONE)) => f.text("time zone"),
+            (None, Some(SessionParameter::TRANSACTION_ISOLATION)) => f.text("transaction isolation level"),
+            (None, Some(SessionParameter::SESSION_AUTHORIZATION)) => f.text("session authorization"),
+            _ => self.format_unimplemented(node),
+        }
     }
 }

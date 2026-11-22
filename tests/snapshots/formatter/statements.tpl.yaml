@@ -147,6 +147,53 @@ formatter-snapshots:
     dialects:
       hyper:
 
+  # The values of a variable follow `to`, `=` only for a single value and for values that `to` does not take
+  - name: coverage_set_to_values
+    input: SET search_path TO public, 'other'; SET a.b = 'x', 2; SET LOCAL timezone = 'UTC'; SET SESSION enable_x TO on; SET ratio TO -1.5; SET a = b, 2
+    dialects:
+      hyper:
+
+  - name: coverage_set_default_and_current
+    input: SET x = DEFAULT; SET LOCAL y TO DEFAULT; SET z FROM CURRENT
+    dialects:
+      hyper:
+
+  - name: coverage_set_time_zone
+    input: SET TIME ZONE 'Europe/Berlin'; SET TIME ZONE utc; SET TIME ZONE INTERVAL '+02:00' HOUR TO MINUTE; SET TIME ZONE INTERVAL(3) '1:00'; SET TIME ZONE -7; SET TIME ZONE DEFAULT; SET LOCAL TIME ZONE LOCAL
+    dialects:
+      hyper:
+
+  - name: coverage_set_session_parameters
+    input: SET CATALOG 'c'; SET SCHEMA 's'; SET NAMES 'UTF8'; SET NAMES; SET ROLE admin; SET SESSION AUTHORIZATION 'someone'; SET SESSION AUTHORIZATION DEFAULT; SET TRANSACTION SNAPSHOT '00000003-0000001B-1'
+    dialects:
+      hyper:
+
+  - name: coverage_set_transaction
+    input: SET TRANSACTION ISOLATION LEVEL SERIALIZABLE, READ ONLY; SET SESSION CHARACTERISTICS AS TRANSACTION READ WRITE, NOT DEFERRABLE; SET LOCAL TRANSACTION DEFERRABLE
+    dialects:
+      hyper:
+
+  - name: coverage_reset
+    input: RESET search_path; RESET a.b; RESET ALL; RESET ALL GLOBAL; RESET TIME ZONE; RESET TRANSACTION ISOLATION LEVEL; RESET SESSION AUTHORIZATION
+    dialects:
+      hyper:
+
+  - name: coverage_create_function_set_reset_options
+    input: create function f() returns int set search_path to public, 'other' set x from current reset work_mem reset all as 'select 1'
+    dialects:
+      hyper:
+
+  # Long value lists break like other lists
+  - name: set_to_long_values
+    input: SET search_path TO first_schema_name, second_schema_name, third_schema_name, fourth_schema_name
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 60
+          - mode: pretty
+            width: 60
+
   - name: coverage_create_table_modifiers
     input: create unlogged table result (value int) on commit drop
     dialects:

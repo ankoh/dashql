@@ -484,6 +484,310 @@ formatter-snapshots:
             expected: |-
               set variable = ('some' = 42, 'nested' = ('enabled' = true), 'values' = [43, 44]);
 
+  - name: coverage_set_to_values
+    input: |-
+      SET search_path TO public, 'other'; SET a.b = 'x', 2; SET LOCAL timezone = 'UTC'; SET SESSION enable_x TO on; SET ratio TO -1.5; SET a = b, 2
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              set search_path to public, 'other';
+
+              set a.b to 'x', 2;
+
+              set local timezone = 'UTC';
+
+              set enable_x to on;
+
+              set ratio to -1.5;
+
+              set a = b, 2;
+          - mode: compact
+            expected: |-
+              set search_path to public, 'other';
+
+              set a.b to 'x', 2;
+
+              set local timezone = 'UTC';
+
+              set enable_x to on;
+
+              set ratio to -1.5;
+
+              set a = b, 2;
+          - mode: pretty
+            expected: |-
+              set search_path to public, 'other';
+
+              set a.b to 'x', 2;
+
+              set local timezone = 'UTC';
+
+              set enable_x to on;
+
+              set ratio to -1.5;
+
+              set a = b, 2;
+
+  - name: coverage_set_default_and_current
+    input: |-
+      SET x = DEFAULT; SET LOCAL y TO DEFAULT; SET z FROM CURRENT
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              set x to default;
+
+              set local y to default;
+
+              set z from current;
+          - mode: compact
+            expected: |-
+              set x to default;
+
+              set local y to default;
+
+              set z from current;
+          - mode: pretty
+            expected: |-
+              set x to default;
+
+              set local y to default;
+
+              set z from current;
+
+  - name: coverage_set_time_zone
+    input: |-
+      SET TIME ZONE 'Europe/Berlin'; SET TIME ZONE utc; SET TIME ZONE INTERVAL '+02:00' HOUR TO MINUTE; SET TIME ZONE INTERVAL(3) '1:00'; SET TIME ZONE -7; SET TIME ZONE DEFAULT; SET LOCAL TIME ZONE LOCAL
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              set time zone 'Europe/Berlin';
+
+              set time zone utc;
+
+              set time zone interval '+02:00' hour to minute;
+
+              set time zone interval(3) '1:00';
+
+              set time zone -7;
+
+              set time zone default;
+
+              set local time zone default;
+          - mode: compact
+            expected: |-
+              set time zone 'Europe/Berlin';
+
+              set time zone utc;
+
+              set time zone interval '+02:00' hour to minute;
+
+              set time zone interval(3) '1:00';
+
+              set time zone -7;
+
+              set time zone default;
+
+              set local time zone default;
+          - mode: pretty
+            expected: |-
+              set time zone 'Europe/Berlin';
+
+              set time zone utc;
+
+              set time zone interval '+02:00' hour to minute;
+
+              set time zone interval(3) '1:00';
+
+              set time zone -7;
+
+              set time zone default;
+
+              set local time zone default;
+
+  - name: coverage_set_session_parameters
+    input: |-
+      SET CATALOG 'c'; SET SCHEMA 's'; SET NAMES 'UTF8'; SET NAMES; SET ROLE admin; SET SESSION AUTHORIZATION 'someone'; SET SESSION AUTHORIZATION DEFAULT; SET TRANSACTION SNAPSHOT '00000003-0000001B-1'
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              set catalog 'c';
+
+              set schema 's';
+
+              set names 'UTF8';
+
+              set names default;
+
+              set role admin;
+
+              set session authorization 'someone';
+
+              set session authorization default;
+
+              set transaction snapshot '00000003-0000001B-1';
+          - mode: compact
+            expected: |-
+              set catalog 'c';
+
+              set schema 's';
+
+              set names 'UTF8';
+
+              set names default;
+
+              set role admin;
+
+              set session authorization 'someone';
+
+              set session authorization default;
+
+              set transaction snapshot '00000003-0000001B-1';
+          - mode: pretty
+            expected: |-
+              set catalog 'c';
+
+              set schema 's';
+
+              set names 'UTF8';
+
+              set names default;
+
+              set role admin;
+
+              set session authorization 'someone';
+
+              set session authorization default;
+
+              set transaction snapshot '00000003-0000001B-1';
+
+  - name: coverage_set_transaction
+    input: |-
+      SET TRANSACTION ISOLATION LEVEL SERIALIZABLE, READ ONLY; SET SESSION CHARACTERISTICS AS TRANSACTION READ WRITE, NOT DEFERRABLE; SET LOCAL TRANSACTION DEFERRABLE
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              set transaction isolation level serializable, read only;
+
+              set session characteristics as transaction read write, not deferrable;
+
+              set local transaction deferrable;
+          - mode: compact
+            expected: |-
+              set transaction isolation level serializable, read only;
+
+              set session characteristics as transaction read write, not deferrable;
+
+              set local transaction deferrable;
+          - mode: pretty
+            expected: |-
+              set transaction isolation level serializable, read only;
+
+              set session characteristics as transaction read write, not deferrable;
+
+              set local transaction deferrable;
+
+  - name: coverage_reset
+    input: |-
+      RESET search_path; RESET a.b; RESET ALL; RESET ALL GLOBAL; RESET TIME ZONE; RESET TRANSACTION ISOLATION LEVEL; RESET SESSION AUTHORIZATION
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              reset search_path;
+
+              reset a.b;
+
+              reset all;
+
+              reset all global;
+
+              reset time zone;
+
+              reset transaction isolation level;
+
+              reset session authorization;
+          - mode: compact
+            expected: |-
+              reset search_path;
+
+              reset a.b;
+
+              reset all;
+
+              reset all global;
+
+              reset time zone;
+
+              reset transaction isolation level;
+
+              reset session authorization;
+          - mode: pretty
+            expected: |-
+              reset search_path;
+
+              reset a.b;
+
+              reset all;
+
+              reset all global;
+
+              reset time zone;
+
+              reset transaction isolation level;
+
+              reset session authorization;
+
+  - name: coverage_create_function_set_reset_options
+    input: |-
+      create function f() returns int set search_path to public, 'other' set x from current reset work_mem reset all as 'select 1'
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              create function f() returns integer set search_path to public, 'other' set x from current reset work_mem reset all as 'select 1';
+          - mode: compact
+            expected: |-
+              create function f()
+                returns integer
+                set search_path to public, 'other' set x from current reset work_mem reset all as 'select 1';
+          - mode: pretty
+            expected: |-
+              create function f()
+                returns integer
+                set search_path to public, 'other' set x from current reset work_mem reset all as 'select 1';
+
+  - name: set_to_long_values
+    input: |-
+      SET search_path TO first_schema_name, second_schema_name, third_schema_name, fourth_schema_name
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              set search_path to first_schema_name, second_schema_name, third_schema_name, fourth_schema_name;
+          - mode: compact
+            width: 60
+            expected: |-
+              set search_path to first_schema_name, second_schema_name,
+                third_schema_name, fourth_schema_name;
+          - mode: pretty
+            width: 60
+            expected: |-
+              set search_path to first_schema_name, second_schema_name,
+                third_schema_name, fourth_schema_name;
+
   - name: coverage_create_table_modifiers
     input: |-
       create unlogged table result (value int) on commit drop

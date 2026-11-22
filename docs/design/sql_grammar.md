@@ -38,7 +38,11 @@ rules and enums: `NumericType` for the type of a sequence, `IntervalType` for in
 `SET a.b = v` with a single value is an `OBJECT_EXT_SET` with its key path and value, every other SET form
 an `OBJECT_SQL_SET` with its parameter (`SQL_SET_PARAMETER`, a `SessionParameter`) or variable (`SQL_SET_NAME`)
 and its values (`SQL_SET_ARGS`), both with `SQL_SET_LOCAL` for `SET LOCAL` (`ctx.set`, `ext_set.y`). `SET
-SESSION` is the default and not recorded.
+SESSION` is the default and not recorded. The formatter writes the `OBJECT_EXT_SET` with `=` and the values of an
+`OBJECT_SQL_SET` variable after `to`, like PostgreSQL's deparser, so that a single value stays an `OBJECT_SQL_SET`;
+only values that `to` does not take, a column reference or a function call first, follow `=`. `RESET` is an
+`OBJECT_SQL_RESET` that holds another one with the variable (`SQL_RESET_ARG`) or the parameter
+(`SQL_RESET_PARAMETER`).
 
 ## Trailing Dots
 

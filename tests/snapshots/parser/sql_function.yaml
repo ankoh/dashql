@@ -1667,3 +1667,135 @@ parser-snapshots:
       comments: []
       comment-blocks: []
       comment-warnings: []
+
+  - name: create_function_set_reset_options
+    input: |-
+      create function f() returns int set search_path to public, 'other' set x from current reset work_mem reset all as 'select 1'
+    expected:
+      statements:
+        - type: CREATE_FUNCTION
+          ast-begin: 0
+          ast-size: 35
+          description:
+            text: "create fun..'select 1'"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_CREATE_FUNCTION
+            text: "create fun..'select 1'"
+            children:
+              - key: SQL_CREATE_FUNCTION_NAME
+                type: ARRAY
+                text: "f"
+                children:
+                  - type: NAME
+                    text: "f"
+              - key: SQL_CREATE_FUNCTION_RETURNS
+                type: OBJECT_SQL_TYPENAME
+                text: "int"
+                children:
+                  - key: SQL_TYPENAME_TYPE
+                    type: ENUM_SQL_NUMERIC_TYPE
+                    value: INT4
+              - key: SQL_CREATE_FUNCTION_OPTIONS
+                type: ARRAY
+                text: "set search..'select 1'"
+                children:
+                  - type: OBJECT_SQL_CREATE_FUNCTION_OPTION
+                    text: "set search..c, 'other'"
+                    children:
+                      - key: SQL_CREATE_FUNCTION_OPTION_KIND
+                        type: ENUM_SQL_FUNCTION_OPTION
+                        value: SET
+                      - key: SQL_CREATE_FUNCTION_OPTION_VALUE
+                        type: OBJECT_SQL_SET
+                        text: "set search..c, 'other'"
+                        children:
+                          - key: SQL_SET_NAME
+                            type: ARRAY
+                            text: "search_path"
+                            children:
+                              - type: NAME
+                                text: "search_path"
+                          - key: SQL_SET_ARGS
+                            type: ARRAY
+                            text: "public, 'other'"
+                            children:
+                              - type: NAME
+                                text: "public"
+                              - type: LITERAL_STRING
+                                text: "'other'"
+                  - type: OBJECT_SQL_CREATE_FUNCTION_OPTION
+                    text: "set x from current"
+                    children:
+                      - key: SQL_CREATE_FUNCTION_OPTION_KIND
+                        type: ENUM_SQL_FUNCTION_OPTION
+                        value: SET
+                      - key: SQL_CREATE_FUNCTION_OPTION_VALUE
+                        type: OBJECT_SQL_SET
+                        text: "set x from current"
+                        children:
+                          - key: SQL_SET_FROM_CURRENT
+                            type: BOOL
+                            value: 1
+                          - key: SQL_SET_NAME
+                            type: ARRAY
+                            text: "x"
+                            children:
+                              - type: NAME
+                                text: "x"
+                  - type: OBJECT_SQL_CREATE_FUNCTION_OPTION
+                    text: "reset work_mem"
+                    children:
+                      - key: SQL_CREATE_FUNCTION_OPTION_KIND
+                        type: ENUM_SQL_FUNCTION_OPTION
+                        value: SET
+                      - key: SQL_CREATE_FUNCTION_OPTION_VALUE
+                        type: OBJECT_SQL_RESET
+                        text: "reset work_mem"
+                        children:
+                          - key: SQL_RESET_ARG
+                            type: OBJECT_SQL_RESET
+                            text: "work_mem"
+                            children:
+                              - key: SQL_RESET_ARG
+                                type: ARRAY
+                                text: "work_mem"
+                                children:
+                                  - type: NAME
+                                    text: "work_mem"
+                  - type: OBJECT_SQL_CREATE_FUNCTION_OPTION
+                    text: "reset all"
+                    children:
+                      - key: SQL_CREATE_FUNCTION_OPTION_KIND
+                        type: ENUM_SQL_FUNCTION_OPTION
+                        value: SET
+                      - key: SQL_CREATE_FUNCTION_OPTION_VALUE
+                        type: OBJECT_SQL_RESET
+                        text: "reset all"
+                        children:
+                          - key: SQL_RESET_ARG
+                            type: OBJECT_SQL_RESET
+                            text: "all"
+                            children:
+                              - key: SQL_RESET_PARAMETER
+                                type: ENUM_SQL_SESSION_PARAMETER
+                                value: ALL
+                  - type: OBJECT_SQL_CREATE_FUNCTION_OPTION
+                    text: "as 'select 1'"
+                    children:
+                      - key: SQL_CREATE_FUNCTION_OPTION_KIND
+                        type: ENUM_SQL_FUNCTION_OPTION
+                        value: AS
+                      - key: SQL_CREATE_FUNCTION_OPTION_VALUE
+                        type: ARRAY
+                        text: "'select 1'"
+                        children:
+                          - type: LITERAL_STRING
+                            text: "'select 1'"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []

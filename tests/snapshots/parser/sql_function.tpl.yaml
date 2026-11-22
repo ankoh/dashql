@@ -53,3 +53,6 @@ parser-snapshots:
       create aggregate b() returns bigint;
       create aggregate c(order by x int) returns int;
       create aggregate d(x float8 order by y float8) returns float8
+  - name: create_function_set_reset_options
+    input: |
+      create function f() returns int set search_path to public, 'other' set x from current reset work_mem reset all as 'select 1'

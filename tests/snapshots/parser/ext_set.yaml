@@ -220,3 +220,868 @@ parser-snapshots:
       comments: []
       comment-blocks: []
       comment-warnings: []
+
+  - name: set_to_values
+    input: |-
+      SET search_path TO public, 'other';
+      SET a.b = 'x', 2;
+      SET LOCAL timezone TO 'UTC';
+      SET SESSION enable_x TO on;
+      SET ratio TO -1.5;
+      SET a = b, 2;
+    expected:
+      statements:
+        - type: SET
+          ast-begin: 0
+          ast-size: 6
+          description:
+            text: "SET search.., 'other';"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SET
+            text: "SET search..c, 'other'"
+            children:
+              - key: SQL_SET_NAME
+                type: ARRAY
+                text: "search_path"
+                children:
+                  - type: NAME
+                    text: "search_path"
+              - key: SQL_SET_ARGS
+                type: ARRAY
+                text: "public, 'other'"
+                children:
+                  - type: NAME
+                    text: "public"
+                  - type: LITERAL_STRING
+                    text: "'other'"
+        - type: SET
+          ast-begin: 6
+          ast-size: 7
+          description:
+            text: "SET a.b = 'x', 2;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SET
+            text: "SET a.b = 'x', 2"
+            children:
+              - key: SQL_SET_NAME
+                type: ARRAY
+                text: "a.b"
+                children:
+                  - type: NAME
+                    text: "a"
+                  - type: NAME
+                    text: "b"
+              - key: SQL_SET_ARGS
+                type: ARRAY
+                text: "'x'"
+                children:
+                  - type: LITERAL_STRING
+                    text: "'x'"
+                  - type: LITERAL_INTEGER
+                    text: "2"
+        - type: SET
+          ast-begin: 13
+          ast-size: 6
+          description:
+            text: "SET LOCAL .. TO 'UTC';"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SET
+            text: "SET LOCAL ..e TO 'UTC'"
+            children:
+              - key: SQL_SET_NAME
+                type: ARRAY
+                text: "timezone"
+                children:
+                  - type: NAME
+                    text: "timezone"
+              - key: SQL_SET_ARGS
+                type: ARRAY
+                text: "'UTC'"
+                children:
+                  - type: LITERAL_STRING
+                    text: "'UTC'"
+              - key: SQL_SET_LOCAL
+                type: BOOL
+                value: 1
+        - type: SET
+          ast-begin: 19
+          ast-size: 5
+          description:
+            text: "SET SESSIO..e_x TO on;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SET
+            text: "SET SESSIO..le_x TO on"
+            children:
+              - key: SQL_SET_NAME
+                type: ARRAY
+                text: "enable_x"
+                children:
+                  - type: NAME
+                    text: "enable_x"
+              - key: SQL_SET_ARGS
+                type: ARRAY
+                text: "on"
+                children:
+                  - type: BOOL
+                    value: 1
+        - type: SET
+          ast-begin: 24
+          ast-size: 5
+          description:
+            text: "SET ratio TO -1.5;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SET
+            text: "SET ratio TO -1.5"
+            children:
+              - key: SQL_SET_NAME
+                type: ARRAY
+                text: "ratio"
+                children:
+                  - type: NAME
+                    text: "ratio"
+              - key: SQL_SET_ARGS
+                type: ARRAY
+                text: "-1.5"
+                children:
+                  - type: LITERAL_FLOAT
+                    text: "-1.5"
+        - type: SET
+          ast-begin: 29
+          ast-size: 8
+          description:
+            text: "SET a = b, 2;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SET
+            text: "SET a = b, 2"
+            children:
+              - key: SQL_SET_NAME
+                type: ARRAY
+                text: "a"
+                children:
+                  - type: NAME
+                    text: "a"
+              - key: SQL_SET_ARGS
+                type: ARRAY
+                text: "b"
+                children:
+                  - type: OBJECT_SQL_COLUMN_REF
+                    text: "b"
+                    children:
+                      - key: SQL_COLUMN_REF_PATH
+                        type: ARRAY
+                        text: "b"
+                        children:
+                          - type: NAME
+                            text: "b"
+                  - type: LITERAL_INTEGER
+                    text: "2"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [35,36]
+        - text: [53,54]
+        - text: [82,83]
+        - text: [110,111]
+        - text: [129,130]
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: set_default_and_current
+    input: |-
+      SET x TO DEFAULT;
+      SET LOCAL y = DEFAULT;
+      SET z FROM CURRENT;
+    expected:
+      statements:
+        - type: SET
+          ast-begin: 0
+          ast-size: 4
+          description:
+            text: "SET x TO DEFAULT;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SET
+            text: "SET x TO DEFAULT"
+            children:
+              - key: SQL_SET_DEFAULT
+                type: BOOL
+                value: 1
+              - key: SQL_SET_NAME
+                type: ARRAY
+                text: "x"
+                children:
+                  - type: NAME
+                    text: "x"
+        - type: SET
+          ast-begin: 4
+          ast-size: 5
+          description:
+            text: "SET LOCAL ..= DEFAULT;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SET
+            text: "SET LOCAL .. = DEFAULT"
+            children:
+              - key: SQL_SET_DEFAULT
+                type: BOOL
+                value: 1
+              - key: SQL_SET_NAME
+                type: ARRAY
+                text: "y"
+                children:
+                  - type: NAME
+                    text: "y"
+              - key: SQL_SET_LOCAL
+                type: BOOL
+                value: 1
+        - type: SET
+          ast-begin: 9
+          ast-size: 4
+          description:
+            text: "SET z FROM CURRENT;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SET
+            text: "SET z FROM CURRENT"
+            children:
+              - key: SQL_SET_FROM_CURRENT
+                type: BOOL
+                value: 1
+              - key: SQL_SET_NAME
+                type: ARRAY
+                text: "z"
+                children:
+                  - type: NAME
+                    text: "z"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [17,18]
+        - text: [40,41]
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: set_time_zone
+    input: |-
+      SET TIME ZONE 'Europe/Berlin';
+      SET TIME ZONE utc;
+      SET TIME ZONE INTERVAL '+02:00' HOUR TO MINUTE;
+      SET TIME ZONE INTERVAL(3) '1:00';
+      SET TIME ZONE -7;
+      SET TIME ZONE DEFAULT;
+      SET LOCAL TIME ZONE LOCAL;
+    expected:
+      statements:
+        - type: SET
+          ast-begin: 0
+          ast-size: 5
+          description:
+            text: "SET TIME Z..e/Berlin';"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SET
+            text: "SET TIME Z..pe/Berlin'"
+            children:
+              - key: SQL_SET_PARAMETER
+                type: ENUM_SQL_SESSION_PARAMETER
+                value: TIME_ZONE
+              - key: SQL_SET_ARGS
+                type: OBJECT_SQL_ZONE_VALUE
+                text: "'Europe/Berlin'"
+                children:
+                  - key: SQL_ZONE_VALUE_KIND
+                    type: ENUM_SQL_ZONE_VALUE_TYPE
+                    value: LITERAL
+                  - key: SQL_ZONE_VALUE_ARG
+                    type: LITERAL_STRING
+                    text: "'Europe/Berlin'"
+        - type: SET
+          ast-begin: 5
+          ast-size: 5
+          description:
+            text: "SET TIME ZONE utc;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SET
+            text: "SET TIME ZONE utc"
+            children:
+              - key: SQL_SET_PARAMETER
+                type: ENUM_SQL_SESSION_PARAMETER
+                value: TIME_ZONE
+              - key: SQL_SET_ARGS
+                type: OBJECT_SQL_ZONE_VALUE
+                text: "utc"
+                children:
+                  - key: SQL_ZONE_VALUE_KIND
+                    type: ENUM_SQL_ZONE_VALUE_TYPE
+                    value: LITERAL
+                  - key: SQL_ZONE_VALUE_ARG
+                    type: NAME
+                    text: "utc"
+        - type: SET
+          ast-begin: 10
+          ast-size: 7
+          description:
+            text: "SET TIME Z..TO MINUTE;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SET
+            text: "SET TIME Z.. TO MINUTE"
+            children:
+              - key: SQL_SET_PARAMETER
+                type: ENUM_SQL_SESSION_PARAMETER
+                value: TIME_ZONE
+              - key: SQL_SET_ARGS
+                type: OBJECT_SQL_ZONE_VALUE
+                text: "INTERVAL '.. TO MINUTE"
+                children:
+                  - key: SQL_ZONE_VALUE_KIND
+                    type: ENUM_SQL_ZONE_VALUE_TYPE
+                    value: INTERVAL
+                  - key: SQL_ZONE_VALUE_ARG
+                    type: LITERAL_STRING
+                    text: "'+02:00'"
+                  - key: SQL_ZONE_VALUE_MOD
+                    type: OBJECT_SQL_INTERVAL_TYPE
+                    text: "HOUR TO MINUTE"
+                    children:
+                      - key: SQL_INTERVAL_TYPE
+                        type: ENUM_SQL_INTERVAL_TYPE
+                        value: HOUR_TO_MINUTE
+        - type: SET
+          ast-begin: 17
+          ast-size: 6
+          description:
+            text: "SET TIME Z..3) '1:00';"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SET
+            text: "SET TIME Z..(3) '1:00'"
+            children:
+              - key: SQL_SET_PARAMETER
+                type: ENUM_SQL_SESSION_PARAMETER
+                value: TIME_ZONE
+              - key: SQL_SET_ARGS
+                type: OBJECT_SQL_ZONE_VALUE
+                text: "INTERVAL(3) '1:00'"
+                children:
+                  - key: SQL_ZONE_VALUE_KIND
+                    type: ENUM_SQL_ZONE_VALUE_TYPE
+                    value: INTERVAL
+                  - key: SQL_ZONE_VALUE_MOD
+                    type: LITERAL_INTEGER
+                    text: "3"
+                  - key: SQL_ZONE_VALUE_ARG
+                    type: LITERAL_STRING
+                    text: "'1:00'"
+        - type: SET
+          ast-begin: 23
+          ast-size: 5
+          description:
+            text: "SET TIME ZONE -7;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SET
+            text: "SET TIME ZONE -7"
+            children:
+              - key: SQL_SET_PARAMETER
+                type: ENUM_SQL_SESSION_PARAMETER
+                value: TIME_ZONE
+              - key: SQL_SET_ARGS
+                type: OBJECT_SQL_ZONE_VALUE
+                text: "-7"
+                children:
+                  - key: SQL_ZONE_VALUE_KIND
+                    type: ENUM_SQL_ZONE_VALUE_TYPE
+                    value: NUMERIC
+                  - key: SQL_ZONE_VALUE_ARG
+                    type: LITERAL_INTEGER
+                    text: "-7"
+        - type: SET
+          ast-begin: 28
+          ast-size: 2
+          description:
+            text: "SET TIME Z..E DEFAULT;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SET
+            text: "SET TIME Z..NE DEFAULT"
+            children:
+              - key: SQL_SET_PARAMETER
+                type: ENUM_SQL_SESSION_PARAMETER
+                value: TIME_ZONE
+        - type: SET
+          ast-begin: 30
+          ast-size: 3
+          description:
+            text: "SET LOCAL ..ONE LOCAL;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SET
+            text: "SET LOCAL ..ZONE LOCAL"
+            children:
+              - key: SQL_SET_PARAMETER
+                type: ENUM_SQL_SESSION_PARAMETER
+                value: TIME_ZONE
+              - key: SQL_SET_LOCAL
+                type: BOOL
+                value: 1
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [30,31]
+        - text: [49,50]
+        - text: [97,98]
+        - text: [131,132]
+        - text: [149,150]
+        - text: [172,173]
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: set_session_parameters
+    input: |-
+      SET CATALOG 'c';
+      SET SCHEMA 's';
+      SET NAMES 'UTF8';
+      SET NAMES DEFAULT;
+      SET ROLE admin;
+      SET SESSION AUTHORIZATION 'someone';
+      SET SESSION AUTHORIZATION DEFAULT;
+      SET TRANSACTION SNAPSHOT '00000003-0000001B-1';
+    expected:
+      statements:
+        - type: SET
+          ast-begin: 0
+          ast-size: 3
+          description:
+            text: "SET CATALOG 'c';"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SET
+            text: "SET CATALOG 'c'"
+            children:
+              - key: SQL_SET_PARAMETER
+                type: ENUM_SQL_SESSION_PARAMETER
+                value: CATALOG
+              - key: SQL_SET_ARGS
+                type: LITERAL_STRING
+                text: "'c'"
+        - type: SET
+          ast-begin: 3
+          ast-size: 3
+          description:
+            text: "SET SCHEMA 's';"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SET
+            text: "SET SCHEMA 's'"
+            children:
+              - key: SQL_SET_PARAMETER
+                type: ENUM_SQL_SESSION_PARAMETER
+                value: SCHEMA
+              - key: SQL_SET_ARGS
+                type: LITERAL_STRING
+                text: "'s'"
+        - type: SET
+          ast-begin: 6
+          ast-size: 3
+          description:
+            text: "SET NAMES 'UTF8';"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SET
+            text: "SET NAMES 'UTF8'"
+            children:
+              - key: SQL_SET_PARAMETER
+                type: ENUM_SQL_SESSION_PARAMETER
+                value: CLIENT_ENCODING
+              - key: SQL_SET_ARGS
+                type: LITERAL_STRING
+                text: "'UTF8'"
+        - type: SET
+          ast-begin: 9
+          ast-size: 2
+          description:
+            text: "SET NAMES DEFAULT;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SET
+            text: "SET NAMES DEFAULT"
+            children:
+              - key: SQL_SET_PARAMETER
+                type: ENUM_SQL_SESSION_PARAMETER
+                value: CLIENT_ENCODING
+        - type: SET
+          ast-begin: 11
+          ast-size: 3
+          description:
+            text: "SET ROLE admin;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SET
+            text: "SET ROLE admin"
+            children:
+              - key: SQL_SET_PARAMETER
+                type: ENUM_SQL_SESSION_PARAMETER
+                value: ROLE
+              - key: SQL_SET_ARGS
+                type: NAME
+                text: "admin"
+        - type: SET
+          ast-begin: 14
+          ast-size: 3
+          description:
+            text: "SET SESSIO..'someone';"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SET
+            text: "SET SESSIO.. 'someone'"
+            children:
+              - key: SQL_SET_PARAMETER
+                type: ENUM_SQL_SESSION_PARAMETER
+                value: SESSION_AUTHORIZATION
+              - key: SQL_SET_ARGS
+                type: LITERAL_STRING
+                text: "'someone'"
+        - type: SET
+          ast-begin: 17
+          ast-size: 3
+          description:
+            text: "SET SESSIO..N DEFAULT;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SET
+            text: "SET SESSIO..ON DEFAULT"
+            children:
+              - key: SQL_SET_PARAMETER
+                type: ENUM_SQL_SESSION_PARAMETER
+                value: SESSION_AUTHORIZATION
+              - key: SQL_SET_DEFAULT
+                type: BOOL
+                value: 1
+        - type: SET
+          ast-begin: 20
+          ast-size: 3
+          description:
+            text: "SET TRANSA..00001B-1';"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SET
+            text: "SET TRANSA..000001B-1'"
+            children:
+              - key: SQL_SET_PARAMETER
+                type: ENUM_SQL_SESSION_PARAMETER
+                value: TRANSACTION_SNAPSHOT
+              - key: SQL_SET_ARGS
+                type: LITERAL_STRING
+                text: "'00000003-..000001B-1'"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [16,17]
+        - text: [32,33]
+        - text: [50,51]
+        - text: [69,70]
+        - text: [85,86]
+        - text: [122,123]
+        - text: [157,158]
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: set_transaction
+    input: |-
+      SET TRANSACTION ISOLATION LEVEL SERIALIZABLE, READ ONLY;
+      SET SESSION CHARACTERISTICS AS TRANSACTION READ WRITE, NOT DEFERRABLE;
+      SET LOCAL TRANSACTION DEFERRABLE;
+    expected:
+      statements:
+        - type: SET
+          ast-begin: 0
+          ast-size: 7
+          description:
+            text: "SET TRANSA..READ ONLY;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SET
+            text: "SET TRANSA.. READ ONLY"
+            children:
+              - key: SQL_SET_PARAMETER
+                type: ENUM_SQL_SESSION_PARAMETER
+                value: TRANSACTION
+              - key: SQL_SET_ARGS
+                type: ARRAY
+                text: "ISOLATION .. READ ONLY"
+                children:
+                  - type: OBJECT_SQL_TRANSACTION_MODE
+                    text: "ISOLATION ..RIALIZABLE"
+                    children:
+                      - key: SQL_TRANSACTION_ISOLATION_LEVEL
+                        type: ENUM_SQL_TRANSACTION_ISOLATION_LEVEL
+                        value: SERIALIZABLE
+                  - type: OBJECT_SQL_TRANSACTION_MODE
+                    text: "READ ONLY"
+                    children:
+                      - key: SQL_TRANSACTION_READ_ONLY
+                        type: BOOL
+                        value: 1
+        - type: SET
+          ast-begin: 7
+          ast-size: 7
+          description:
+            text: "SET SESSIO..EFERRABLE;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SET
+            text: "SET SESSIO..DEFERRABLE"
+            children:
+              - key: SQL_SET_PARAMETER
+                type: ENUM_SQL_SESSION_PARAMETER
+                value: SESSION_CHARACTERISTICS
+              - key: SQL_SET_ARGS
+                type: ARRAY
+                text: "READ WRITE..DEFERRABLE"
+                children:
+                  - type: OBJECT_SQL_TRANSACTION_MODE
+                    text: "READ WRITE"
+                    children:
+                      - key: SQL_TRANSACTION_READ_ONLY
+                        type: BOOL
+                        value: 0
+                  - type: OBJECT_SQL_TRANSACTION_MODE
+                    text: "NOT DEFERRABLE"
+                    children:
+                      - key: SQL_TRANSACTION_DEFERRABLE
+                        type: BOOL
+                        value: 0
+        - type: SET
+          ast-begin: 14
+          ast-size: 6
+          description:
+            text: "SET LOCAL ..EFERRABLE;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SET
+            text: "SET LOCAL ..DEFERRABLE"
+            children:
+              - key: SQL_SET_PARAMETER
+                type: ENUM_SQL_SESSION_PARAMETER
+                value: TRANSACTION
+              - key: SQL_SET_ARGS
+                type: ARRAY
+                text: "DEFERRABLE"
+                children:
+                  - type: OBJECT_SQL_TRANSACTION_MODE
+                    text: "DEFERRABLE"
+                    children:
+                      - key: SQL_TRANSACTION_DEFERRABLE
+                        type: BOOL
+                        value: 1
+              - key: SQL_SET_LOCAL
+                type: BOOL
+                value: 1
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [56,57]
+        - text: [127,128]
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: reset
+    input: |-
+      RESET search_path;
+      RESET a.b;
+      RESET ALL;
+      RESET ALL GLOBAL;
+      RESET TIME ZONE;
+      RESET TRANSACTION ISOLATION LEVEL;
+      RESET SESSION AUTHORIZATION;
+    expected:
+      statements:
+        - type: RESET
+          ast-begin: 0
+          ast-size: 4
+          description:
+            text: "RESET search_path;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_RESET
+            text: "RESET search_path"
+            children:
+              - key: SQL_RESET_ARG
+                type: OBJECT_SQL_RESET
+                text: "search_path"
+                children:
+                  - key: SQL_RESET_ARG
+                    type: ARRAY
+                    text: "search_path"
+                    children:
+                      - type: NAME
+                        text: "search_path"
+        - type: RESET
+          ast-begin: 4
+          ast-size: 5
+          description:
+            text: "RESET a.b;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_RESET
+            text: "RESET a.b"
+            children:
+              - key: SQL_RESET_ARG
+                type: OBJECT_SQL_RESET
+                text: "a.b"
+                children:
+                  - key: SQL_RESET_ARG
+                    type: ARRAY
+                    text: "a.b"
+                    children:
+                      - type: NAME
+                        text: "a"
+                      - type: NAME
+                        text: "b"
+        - type: RESET
+          ast-begin: 9
+          ast-size: 3
+          description:
+            text: "RESET ALL;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_RESET
+            text: "RESET ALL"
+            children:
+              - key: SQL_RESET_ARG
+                type: OBJECT_SQL_RESET
+                text: "ALL"
+                children:
+                  - key: SQL_RESET_PARAMETER
+                    type: ENUM_SQL_SESSION_PARAMETER
+                    value: ALL
+        - type: RESET
+          ast-begin: 12
+          ast-size: 4
+          description:
+            text: "RESET ALL GLOBAL;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_RESET
+            text: "RESET ALL GLOBAL"
+            children:
+              - key: SQL_RESET_ARG
+                type: OBJECT_SQL_RESET
+                text: "ALL GLOBAL"
+                children:
+                  - key: SQL_RESET_PARAMETER
+                    type: ENUM_SQL_SESSION_PARAMETER
+                    value: ALL
+                  - key: SQL_RESET_GLOBAL
+                    type: BOOL
+                    value: 1
+        - type: RESET
+          ast-begin: 16
+          ast-size: 3
+          description:
+            text: "RESET TIME ZONE;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_RESET
+            text: "RESET TIME ZONE"
+            children:
+              - key: SQL_RESET_ARG
+                type: OBJECT_SQL_RESET
+                text: "TIME ZONE"
+                children:
+                  - key: SQL_RESET_PARAMETER
+                    type: ENUM_SQL_SESSION_PARAMETER
+                    value: TIME_ZONE
+        - type: RESET
+          ast-begin: 19
+          ast-size: 3
+          description:
+            text: "RESET TRAN..ION LEVEL;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_RESET
+            text: "RESET TRAN..TION LEVEL"
+            children:
+              - key: SQL_RESET_ARG
+                type: OBJECT_SQL_RESET
+                text: "TRANSACTIO..TION LEVEL"
+                children:
+                  - key: SQL_RESET_PARAMETER
+                    type: ENUM_SQL_SESSION_PARAMETER
+                    value: TRANSACTION_ISOLATION
+        - type: RESET
+          ast-begin: 22
+          ast-size: 3
+          description:
+            text: "RESET SESS..ORIZATION;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_RESET
+            text: "RESET SESS..HORIZATION"
+            children:
+              - key: SQL_RESET_ARG
+                type: OBJECT_SQL_RESET
+                text: "SESSION AU..HORIZATION"
+                children:
+                  - key: SQL_RESET_PARAMETER
+                    type: ENUM_SQL_SESSION_PARAMETER
+                    value: SESSION_AUTHORIZATION
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [18,19]
+        - text: [29,30]
+        - text: [40,41]
+        - text: [58,59]
+        - text: [75,76]
+        - text: [110,111]
+      comments: []
+      comment-blocks: []
+      comment-warnings: []

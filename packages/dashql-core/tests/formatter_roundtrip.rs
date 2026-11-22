@@ -22,7 +22,6 @@ const UNFORMATTABLE: &[&str] = &[
     "SELECT 1;\n-- Copy a query result.\nCOPY (SELECT JSON_OBJECT('answer': 42)) TO NULL;\nSELECT 2;",
     "MERGE INTO t USING u ON t.x = u.x WHEN MATCHED THEN UPDATE SET y=u.y WHEN NOT MATCHED BY SOURCE THEN DELETE WHEN NOT MATCHED THEN INSERT (x,y) VALUES (u.x,u.y);",
     "PREPARE p(integer) AS UPDATE t SET x=$1 RETURNING x;",
-    "SET LOCAL timezone TO 'UTC';",
     "CREATE DATABASE db;",
     "DECLARE c SCROLL CURSOR FOR SELECT x FROM t;",
     // Clauses that the formatter does not write yet: SQL/JSON, assumed constraints and table options, external

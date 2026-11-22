@@ -690,7 +690,10 @@ impl<'a> Formatter<'a> {
             K::EXT_VARARG_FIELD_VALUE | K::SQL_FUNCTION_ARG_VALUE => self.format_vararg_object(node),
             K::SQL_GENERIC_OPTION_VALUE => f.parenthesized(self.format_comma_list(node, true)),
             K::SQL_INDIRECTION_PATH | K::SQL_SELECT_EXPRESSION_INDIRECTION => self.format_indirection_path(node),
-            K::SQL_ROW_EXPRESSION_VALUES | K::SQL_ARRAY_EXPRESSION_VALUES | K::SQL_TRANSACTION_MODES => {
+            K::SQL_ROW_EXPRESSION_VALUES
+            | K::SQL_ARRAY_EXPRESSION_VALUES
+            | K::SQL_TRANSACTION_MODES
+            | K::SQL_SET_ARGS => {
                 let values = self.array_regs(node);
                 if values.iter().any(|&v| v == 0) {
                     return self.format_unimplemented(node);
@@ -726,6 +729,8 @@ impl<'a> Formatter<'a> {
             | K::SQL_VIEW_NAME
             | K::SQL_CREATE_FUNCTION_NAME
             | K::SQL_TYPE_TABLE_COLUMN_ATTRIBUTES
+            | K::SQL_SET_NAME
+            | K::SQL_RESET_ARG
             | K::SQL_DROP_NAME
             | K::SQL_ALTER_TABLE_NAME
             | K::SQL_ALTER_ACTION_NEW_TABLE
@@ -1057,7 +1062,8 @@ impl<'a> Formatter<'a> {
     fn format_interval_type(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
         let [interval_type, precision] = attrs!(self.children(node), [K::SQL_INTERVAL_TYPE, K::SQL_INTERVAL_PRECISION]);
-        let is_qualifier = node.attribute_key() == K::SQL_CONST_CAST_INTERVAL;
+        // The fields after a string, as in `interval '1' hour` and `set time zone interval '+02:00' hour to minute`
+        let is_qualifier = matches!(node.attribute_key(), K::SQL_CONST_CAST_INTERVAL | K::SQL_ZONE_VALUE_MOD);
         let mut parts = Vec::with_capacity(4);
         if !is_qualifier {
             parts.push(f.text("interval"));
@@ -2782,6 +2788,10 @@ impl<'a> Formatter<'a> {
             NodeType::OBJECT_SQL_TABLE_ARG_SEMANTICS => self.format_table_arg_semantics(node),
             NodeType::OBJECT_SQL_TYPE_TABLE_COLUMN => self.format_type_table_column(node),
             NodeType::OBJECT_EXT_SET => self.format_set(node),
+            NodeType::OBJECT_SQL_SET => self.format_sql_set(node),
+            NodeType::OBJECT_SQL_ZONE_VALUE => self.format_zone_value(node),
+            NodeType::OBJECT_SQL_RESET => self.format_reset(node),
+            NodeType::ENUM_SQL_SESSION_PARAMETER | NodeType::ENUM_SQL_ZONE_VALUE_TYPE => f.empty(),
             NodeType::OBJECT_EXT_VARARG_FIELD => self.format_vararg_field(node),
             NodeType::OBJECT_EXT_EXPLAIN => self.format_explain(node),
             NodeType::OBJECT_EXT_EXPLAIN_EXPRESSIONS => self.format_explain_expressions(node),
