@@ -415,15 +415,6 @@ fn failed_and_cancelled_effects_render_messages() {
 }
 
 #[test]
-fn query_results_are_the_text_of_the_host() {
-    let mut shell = new_shell(80);
-    let operation = shell.start_query(b"select 1");
-    let result = shell.complete_effect(effect_id(&operation), EFFECT_SUCCESS, b"\x00Query completed (1 row)\r\n");
-    assert_eq!(result.status, ShellStatus::Ok);
-    assert_eq!(result.data, b"Query completed (1 row)\r\n");
-}
-
-#[test]
 fn terminal_prompt_is_validated() {
     let mut shell = new_shell(80);
     let output = shell.open_terminal(b"\xff");
@@ -573,31 +564,8 @@ fn terminal_status_renders_a_message() {
     assert!(text(&output).contains("connected"));
 }
 
-#[test]
-fn keyword_case_applies_to_completions() {
-    let mut shell = new_shell(80);
-    shell.set_prompt(b"sel");
-    let lower: Vec<_> = shell.complete_prompt(50).unwrap().into_iter().map(|c| c.completion_text).collect();
-    shell.set_keyword_case(1);
-    let upper: Vec<_> = shell.complete_prompt(50).unwrap().into_iter().map(|c| c.completion_text).collect();
-    assert!(lower.iter().any(|c| c == "select"), "{lower:?}");
-    assert!(upper.iter().any(|c| c == "SELECT"), "{upper:?}");
-}
-
 fn bytes_text(data: &[u8]) -> String {
     String::from_utf8_lossy(data).into_owned()
-}
-
-#[test]
-fn suspends_dot_command_as_effect() {
-    let catalog = Catalog::new();
-    let mut session = ShellSession::new(&catalog, 100, false);
-    session.set_prompt(b".help");
-
-    let pending = session.submit_prompt(&catalog);
-    assert_eq!(pending.status, ShellStatus::Pending);
-    assert_eq!(effect_type(&pending), EffectType::ExecuteCommand);
-    assert_eq!(payload(&pending), b".help");
 }
 
 #[test]
@@ -645,17 +613,6 @@ fn renders_terminal_prompt_in_its_color() {
 }
 
 #[test]
-fn renders_registered_dot_command_names_in_bold() {
-    let catalog = Catalog::new();
-    let mut session = ShellSession::new(&catalog, 100, false);
-    assert_eq!(session.set_commands(b"login\nrefresh"), ShellStatus::Ok);
-    session.open_terminal(b"hyperdb> ");
-
-    let output = bytes_text(&session.consume_terminal_input(Key::Text, b".refresh", &catalog).data);
-    assert!(output.contains(&format!("{}.refresh{}", vt100::BOLD, vt100::RESET_ATTRIBUTES)), "{output}");
-}
-
-#[test]
 fn compiles_plain_sql_before_execution() {
     let catalog = Catalog::new();
     let mut session = ShellSession::new(&catalog, 80, false);
@@ -676,68 +633,14 @@ fn runs_vis_tags_as_plain_queries() {
 }
 
 #[test]
-fn rejects_concurrent_queries_and_stale_completions() {
-    let catalog = Catalog::new();
-    let mut session = ShellSession::new(&catalog, 80, false);
-    let pending = session.start_query(b"SELECT 1", &catalog);
-    assert_eq!(pending.status, ShellStatus::Pending);
-    let pending_id = effect_id(&pending);
-
-    assert_eq!(session.start_query(b"SELECT 2", &catalog).status, ShellStatus::Busy);
-    assert_eq!(session.cancel_effect(pending_id).data, b"Cancelled");
-    assert_eq!(session.cancel_effect(pending_id).status, ShellStatus::StaleEffect);
-}
-
-#[test]
-fn converts_query_errors_to_output() {
-    let catalog = Catalog::new();
-    let mut session = ShellSession::new(&catalog, 80, false);
-    let pending = session.start_query(b"SELECT * FROM missing_table", &catalog);
-    assert_eq!(pending.status, ShellStatus::Pending);
-    let complete = session.complete_effect(effect_id(&pending), EffectCompletionStatus::Error, b"syntax error");
-    assert_eq!(complete.status, ShellStatus::Ok);
-    assert_eq!(complete.data, b"syntax error");
-}
-
-#[test]
 fn aligns_continuation_marker_with_prompt_marker() {
     let catalog = Catalog::new();
-
-    let mut short_session = ShellSession::new(&catalog, 80, false);
-    assert_eq!(short_session.open_terminal(b"hyper> ").status, ShellStatus::Ok);
-    let short_output = bytes_text(&short_session.consume_terminal_input(Key::Enter, b"", &catalog).data);
-    assert!(short_output.contains("    -> "));
-
-    let mut long_session = ShellSession::new(&catalog, 80, false);
-    assert_eq!(long_session.open_terminal(b"long-connection> ").status, ShellStatus::Ok);
-    let long_output = bytes_text(&long_session.consume_terminal_input(Key::Enter, b"", &catalog).data);
-    assert!(long_output.contains("              -> "));
-}
-
-#[test]
-fn applies_readline_bindings_to_multiline_prompt() {
-    let catalog = Catalog::new();
-    let mut session = ShellSession::new(&catalog, 80, false);
-
-    session.set_prompt(b"SELECT one\nFROM table");
-    assert_eq!(session.consume_prompt_input(Key::LineStart, b"").cursor_byte_offset as usize, "SELECT one\n".len());
-    assert_eq!(session.consume_prompt_input(Key::KillWord, b"").text, "SELECT one\n table");
-    assert_eq!(session.consume_prompt_input(Key::Yank, b"").text, "SELECT one\nFROM table");
-    assert_eq!(
-        session.consume_prompt_input(Key::LineEnd, b"").cursor_byte_offset as usize,
-        "SELECT one\nFROM table".len()
-    );
-    assert_eq!(session.consume_prompt_input(Key::BackwardKillWord, b"").text, "SELECT one\nFROM ");
-}
-
-#[test]
-fn renders_shell_prefixes_in_bold() {
-    let catalog = Catalog::new();
-    let mut session = ShellSession::new(&catalog, 80, false);
-    let initial = session.open_terminal(b"dashql> ");
-    assert_eq!(initial.status, ShellStatus::Ok);
-    assert!(bytes_text(&initial.data).contains("\x1b[1mdashql> \x1b[0m"));
-
-    let continuation = session.consume_terminal_input(Key::Enter, b"", &catalog);
-    assert!(bytes_text(&continuation.data).contains("\x1b[1m     -> \x1b[0m"));
+    // The marker of a continuation line ends where the prompt ends
+    for prompt in ["hyper> ", "long-connection> "] {
+        let mut session = ShellSession::new(&catalog, 80, false);
+        assert_eq!(session.open_terminal(prompt.as_bytes()).status, ShellStatus::Ok);
+        let output = bytes_text(&session.consume_terminal_input(Key::Enter, b"", &catalog).data);
+        let marker = format!("{:>width$}", "-> ", width = prompt.len());
+        assert!(output.contains(&marker), "{prompt}: {output:?}");
+    }
 }

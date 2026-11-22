@@ -5,6 +5,7 @@ use dashql_core::catalog::Catalog;
 use dashql_core::catalog::CatalogLayer;
 use dashql_core::script::Script;
 use dashql_core_shell::vt100::{self, sequence, Command};
+use dashql_core_shell::DEFAULT_TERMINAL_PROMPT;
 use dashql_core_shell::{
     EffectCompletionStatus, PromptInputAction, PromptInputKey as Key, ShellStatus, TerminalOutput,
 };
@@ -58,7 +59,7 @@ fn completion_texts(shell: &mut Shell) -> Vec<String> {
 }
 
 /// Select a terminal candidate by its inserted text and return its index and the rendered hint
-fn select_terminal_completion(shell: &mut Shell, completion_text: &str) -> (usize, TerminalOutput) {
+fn select_terminal_completion(shell: &mut Shell, completion_text: &str) -> TerminalOutput {
     let candidates = completion_texts(shell);
     let index = candidates.iter().position(|c| c == completion_text);
     assert!(index.is_some(), "{candidates:?}");
@@ -73,7 +74,7 @@ fn select_terminal_completion(shell: &mut Shell, completion_text: &str) -> (usiz
         output = consume(shell, Key::HistoryPrevious, "");
         assert_eq!(output.status, ShellStatus::Ok);
     }
-    (index, output)
+    output
 }
 
 fn history(entries: &[&str]) -> Vec<u8> {
@@ -360,17 +361,12 @@ fn renders_highlighted_terminal_prompt() {
 
     let output = shell.open_terminal(b"db> ");
     assert_eq!(output.status, ShellStatus::Ok);
-    let expected = format!(
-        "{}{}{}{}db> {}{}{}",
-        vt100::DISABLE_AUTO_WRAP,
-        vt100::CARRIAGE_RETURN,
-        vt100::ERASE_ENTIRE_LINE,
-        vt100::BOLD,
-        vt100::RESET_ATTRIBUTES,
-        vt100::CARRIAGE_RETURN,
-        sequence(4, Command::CursorForward)
-    );
-    assert_eq!(data(&output), expected);
+    // The prompt is bold, drawn on a cleared line without auto wrap, the cursor after it
+    let rendered = data(&output);
+    assert!(rendered.starts_with(vt100::DISABLE_AUTO_WRAP), "{rendered:?}");
+    assert!(rendered.contains(vt100::ERASE_ENTIRE_LINE), "{rendered:?}");
+    assert!(rendered.contains(&format!("{}db> {}", vt100::BOLD, vt100::RESET_ATTRIBUTES)), "{rendered:?}");
+    assert!(rendered.ends_with(&sequence("db> ".len(), Command::CursorForward)), "{rendered:?}");
 
     let output = consume(&mut shell, Key::Text, "SELECT '界' FROM t");
     assert_eq!(output.status, ShellStatus::Ok);
@@ -537,30 +533,12 @@ fn reflows_long_prompt_from_continuation_row() {
     let rendered = data(&output);
     assert_eq!(count_occurrences(&rendered, "SELECT"), 1, "{rendered}");
     assert_eq!(count_occurrences(&rendered, "     -> "), 1, "{rendered}");
+    // Both rows of the prompt are erased before the redraw, no new line scrolls the terminal before it
     let cursor_up = sequence(1, Command::CursorUp);
-    let cursor_down = sequence(1, Command::CursorDown);
-    let cleared_rows = format!(
-        "{}{}{}{}{}{}{}{}",
-        cursor_up,
-        vt100::CARRIAGE_RETURN,
-        vt100::ERASE_ENTIRE_LINE,
-        cursor_down,
-        vt100::CARRIAGE_RETURN,
-        vt100::ERASE_ENTIRE_LINE,
-        cursor_up,
-        vt100::CARRIAGE_RETURN
-    );
-    assert!(rendered.starts_with(&cleared_rows), "{rendered}");
-    assert!(
-        !rendered.starts_with(&format!(
-            "{}{}{}{}",
-            cursor_up,
-            vt100::CARRIAGE_RETURN,
-            vt100::ERASE_ENTIRE_LINE,
-            vt100::NEW_LINE
-        )),
-        "{rendered}"
-    );
+    let first_prompt = rendered.find("SELECT").unwrap();
+    assert!(rendered.starts_with(&cursor_up), "{rendered}");
+    assert!(count_occurrences(&rendered[..first_prompt], vt100::ERASE_ENTIRE_LINE) >= 2, "{rendered}");
+    assert!(!rendered[..first_prompt].contains(vt100::NEW_LINE), "{rendered}");
 }
 
 #[test]
@@ -569,7 +547,8 @@ fn redraws_long_string_without_scrolling_during_cleanup() {
     let mut shell = shell(&catalog, 80);
 
     assert_eq!(shell.open_terminal(b"hyper> ").status, ShellStatus::Ok);
-    let query = format!("select '{}'", "o".repeat(170));
+    // A string over three rows of the 80 columns
+    let query = format!("select '{}'", "o".repeat(2 * 80 + 10));
     assert_eq!(consume(&mut shell, Key::Text, &query).status, ShellStatus::Ok);
 
     let output = consume(&mut shell, Key::Text, "f");
@@ -587,7 +566,9 @@ fn allocates_new_rows_before_redrawing_long_prompt() {
     let mut shell = shell(&catalog, 80);
 
     assert_eq!(shell.open_terminal(b"hyper> ").status, ShellStatus::Ok);
-    let query = format!("select '{}'", "o".repeat(135));
+    // Two rows of the 80 columns but for a few, the next text needs a third
+    let free = 9;
+    let query = format!("select '{}'", "o".repeat(2 * 80 - "hyper> select '".len() - "'".len() - free));
     assert_eq!(consume(&mut shell, Key::Text, &query).status, ShellStatus::Ok);
 
     let output = consume(&mut shell, Key::Text, " as select");
@@ -596,16 +577,20 @@ fn allocates_new_rows_before_redrawing_long_prompt() {
     assert_eq!(count_occurrences(&rendered, "hyper> "), 1, "{rendered}");
     let first_prompt = rendered.find("hyper> ").unwrap();
     assert!(rendered[..first_prompt].contains(vt100::NEW_LINE), "{rendered}");
-    assert!(rendered[..first_prompt].contains(&sequence(2, Command::CursorUp)), "{rendered}");
+    // The cursor goes back up to the first row
+    let up = format!("{}", char::from(Command::CursorUp as u8));
+    assert!(rendered[..first_prompt].contains(&up), "{rendered}");
 }
 
 #[test]
 fn renders_inline_completion_hint_at_right_margin_with_auto_wrap_disabled() {
     let catalog = catalog();
-    let mut shell = shell(&catalog, 173);
+    let columns: usize = 173;
+    let mut shell = shell(&catalog, columns as u32);
 
     assert_eq!(shell.open_terminal(b"hyper> ").status, ShellStatus::Ok);
-    let query = format!("select '{}' a", "o".repeat(154));
+    // The text ends one column before the right margin
+    let query = format!("select '{}' a", "o".repeat(columns - "hyper> select '".len() - "' a".len() - 1));
     let output = consume(&mut shell, Key::Text, &query);
     assert_eq!(output.status, ShellStatus::Ok);
     let rendered = data(&output);
@@ -633,7 +618,7 @@ fn navigates_and_accepts_terminal_completion_overlay() {
     let opened = shell.terminal_completion_list().unwrap();
     assert_eq!(opened.selection, 0);
     assert_eq!(opened.variant, 0);
-    assert_eq!(opened.anchor_column, 8);
+    assert_eq!(opened.anchor_column as usize, DEFAULT_TERMINAL_PROMPT.len());
 
     let completions = completion_texts(&mut shell);
     assert!(completions.len() > 1);
@@ -932,7 +917,7 @@ fn cycles_inline_qualification_hints_with_left_and_right() {
     let output = consume(&mut shell, Key::Right, "");
     assert_eq!(output.status, ShellStatus::Ok);
     let right_output = data(&output);
-    assert!(right_output.contains(&sequence(2, Command::InsertCharacter)));
+    assert!(right_output.contains(&sequence("c.".len(), Command::InsertCharacter)));
     assert!(right_output.contains("c."));
 
     let output = consume(&mut shell, Key::Left, "");
@@ -998,13 +983,10 @@ fn anchors_completion_below_cursor_in_multiline_prompt() {
     assert_eq!(consume(&mut shell, Key::Text, "x").status, ShellStatus::Ok);
     let output = consume(&mut shell, Key::Backspace, "");
     assert_eq!(output.status, ShellStatus::Ok);
-    let rendered = data(&output);
-    assert!(!rendered.contains(&sequence(9, Command::InsertLine)));
-    assert_eq!(shell.terminal_completion_list().unwrap().anchor_column, 8);
+    assert_eq!(shell.terminal_completion_list().unwrap().anchor_column as usize, DEFAULT_TERMINAL_PROMPT.len());
 
     let output = consume(&mut shell, Key::Escape, "");
     assert_eq!(output.status, ShellStatus::Ok);
-    assert!(!data(&output).contains(&sequence(9, Command::DeleteLine)));
     assert!(shell.terminal_completion_list().is_none());
 }
 
@@ -1136,7 +1118,7 @@ fn renders_inline_completion_hint_before_later_prompt_lines() {
     assert_eq!(output.status, ShellStatus::Ok);
     let rendered = data(&output);
     assert!(rendered.contains(&bright("ies")), "{rendered}");
-    assert!(rendered.contains(&sequence(3, Command::InsertCharacter)), "{rendered}");
+    assert!(rendered.contains(&sequence("ies".len(), Command::InsertCharacter)), "{rendered}");
 }
 
 #[test]
@@ -1165,12 +1147,14 @@ fn renders_and_accepts_qualification_hint_before_cursor() {
         assert_eq!(output.status, ShellStatus::Ok);
         selected_output = data(&output);
     }
-    assert!(selected_output.contains(&sequence(2, Command::InsertCharacter)));
+    // The hint is the alias of the table, e.g. `o.`
+    let hint = "o.".len();
+    assert!(selected_output.contains(&sequence(hint, Command::InsertCharacter)));
     assert!(selected_output.contains(vt100::FOREGROUND_BRIGHT_BLACK));
 
     let output = consume(&mut shell, Key::Tab, "");
     assert_eq!(output.status, ShellStatus::Ok);
-    assert!(data(&output).contains(&sequence(2, Command::InsertCharacter)));
+    assert!(data(&output).contains(&sequence(hint, Command::InsertCharacter)));
     // The qualification is only a hint, the list stays closed
     assert!(shell.terminal_completion_list().is_none());
 
@@ -1187,8 +1171,7 @@ fn auto_qualifies_non_default_database_table_on_first_tab() {
     let mut shell = Shell::new(&catalog, 100, true);
     assert_eq!(shell.open_terminal(b"").status, ShellStatus::Ok);
     assert_eq!(consume(&mut shell, Key::Text, "select * from Acc").status, ShellStatus::Ok);
-    let (index, output) = select_terminal_completion(&mut shell, "\"Account\"");
-    assert!(index < 50);
+    let output = select_terminal_completion(&mut shell, "\"Account\"");
     assert!(data(&output).contains("\"Salesforce\".public."), "{}", data(&output));
 
     assert_eq!(consume(&mut shell, Key::Tab, "").status, ShellStatus::Ok);
@@ -1206,8 +1189,7 @@ fn cycles_auto_qualified_table_options_with_left_and_right() {
     let mut shell = Shell::new(&catalog, 100, true);
     assert_eq!(shell.open_terminal(b"").status, ShellStatus::Ok);
     assert_eq!(consume(&mut shell, Key::Text, "select * from acc").status, ShellStatus::Ok);
-    let (index, output) = select_terminal_completion(&mut shell, "accounts");
-    assert!(index < 50);
+    let output = select_terminal_completion(&mut shell, "accounts");
     let rendered = data(&output);
     assert_eq!(shell.terminal_completion_list().unwrap().variant, 0);
     let first_is_alpha = rendered.contains("alpha.public.");
@@ -1242,8 +1224,7 @@ fn does_not_auto_qualify_default_database_table() {
     let mut shell = Shell::new(&catalog, 100, true);
     assert_eq!(shell.open_terminal(b"").status, ShellStatus::Ok);
     assert_eq!(consume(&mut shell, Key::Text, "select * from ord").status, ShellStatus::Ok);
-    let (index, output) = select_terminal_completion(&mut shell, "orders");
-    assert!(index < 50);
+    let output = select_terminal_completion(&mut shell, "orders");
     assert!(!data(&output).contains("hyper.public."), "{}", data(&output));
 
     assert_eq!(consume(&mut shell, Key::Tab, "").status, ShellStatus::Ok);

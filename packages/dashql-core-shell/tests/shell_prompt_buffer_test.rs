@@ -10,16 +10,18 @@ fn prompt() -> PromptBuffer {
 #[test]
 fn sets_valid_utf8_and_rejects_invalid_utf8() {
     let mut prompt = prompt();
+    let initial = prompt.revision();
     assert!(prompt.set_text("select 界".as_bytes()));
     assert_eq!(prompt.text(), "select 界");
     assert_eq!(prompt.cursor_byte_offset(), prompt.text().len());
     assert_eq!(prompt.cursor_codepoint_offset(), 8);
     assert_eq!(prompt.grapheme_count(), 8);
-    assert_eq!(prompt.revision(), 1);
+    let revision = prompt.revision();
+    assert!(revision > initial);
 
     assert!(!prompt.set_text(b"\xc3\x28"));
     assert_eq!(prompt.text(), "select 界");
-    assert_eq!(prompt.revision(), 1);
+    assert_eq!(prompt.revision(), revision);
 }
 
 #[test]
@@ -99,22 +101,27 @@ fn inserts_and_deletes_whole_grapheme_clusters() {
     let mut prompt = prompt();
     assert!(prompt.set_text(b"ac"));
     assert!(prompt.move_left());
+    // Every edit moves the revision, a refused one doesn't
+    let mut revision = prompt.revision();
 
     assert!(prompt.insert("👩‍💻".as_bytes()));
     assert_eq!(prompt.text(), "a👩‍💻c");
-    assert_eq!(prompt.revision(), 2);
+    assert!(prompt.revision() > revision);
+    revision = prompt.revision();
 
     assert!(prompt.delete_backward());
     assert_eq!(prompt.text(), "ac");
     assert_eq!(prompt.cursor_byte_offset(), 1);
-    assert_eq!(prompt.revision(), 3);
+    assert!(prompt.revision() > revision);
+    revision = prompt.revision();
 
     assert!(prompt.delete_forward());
     assert_eq!(prompt.text(), "a");
     assert_eq!(prompt.cursor_byte_offset(), 1);
-    assert_eq!(prompt.revision(), 4);
+    assert!(prompt.revision() > revision);
+    revision = prompt.revision();
     assert!(!prompt.delete_forward());
-    assert_eq!(prompt.revision(), 4);
+    assert_eq!(prompt.revision(), revision);
 }
 
 #[test]
@@ -166,32 +173,36 @@ fn keeps_cursor_on_boundary_when_insertion_joins_graphemes() {
 fn only_moves_cursor_to_grapheme_boundaries() {
     let mut prompt = prompt();
     assert!(prompt.set_text("界x".as_bytes()));
+    let revision = prompt.revision();
 
     assert!(!prompt.move_to_byte_offset(1));
     assert_eq!(prompt.cursor_byte_offset(), prompt.text().len());
     assert!(prompt.move_to_byte_offset("界".len()));
     assert_eq!(prompt.cursor_byte_offset(), "界".len());
-    assert_eq!(prompt.revision(), 1);
+    // Moving the cursor is no edit
+    assert_eq!(prompt.revision(), revision);
 }
 
 #[test]
 fn empty_edits_do_not_advance_revision() {
     let mut prompt = prompt();
+    let initial = prompt.revision();
     assert_eq!(prompt.grapheme_count(), 0);
     assert!(!prompt.insert(b""));
     assert!(!prompt.delete_backward());
     assert!(!prompt.delete_forward());
-    assert_eq!(prompt.revision(), 0);
+    assert_eq!(prompt.revision(), initial);
 
     assert!(prompt.set_text(b""));
-    assert_eq!(prompt.revision(), 0);
+    assert_eq!(prompt.revision(), initial);
     assert!(!prompt.insert(b"\xff"));
-    assert_eq!(prompt.revision(), 0);
+    assert_eq!(prompt.revision(), initial);
 
     assert!(prompt.set_text(b"x"));
-    assert_eq!(prompt.revision(), 1);
+    let revision = prompt.revision();
+    assert!(revision > initial);
     assert!(prompt.set_text(b"x"));
-    assert_eq!(prompt.revision(), 1);
+    assert_eq!(prompt.revision(), revision);
 }
 
 #[test]

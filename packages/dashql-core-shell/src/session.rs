@@ -18,7 +18,7 @@ use std::cmp::Ordering;
 use std::collections::VecDeque;
 
 const DEFAULT_DATABASE_NAME: &str = "hyper";
-const DEFAULT_TERMINAL_PROMPT: &[u8] = b"dashql> ";
+pub const DEFAULT_TERMINAL_PROMPT: &[u8] = b"dashql> ";
 const HISTORY_LIMIT: usize = 1000;
 const TERMINAL_PROMPT_CAPACITY: usize = 256;
 const TERMINAL_QUERY_SPINNER_FRAMES: [&str; 10] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];

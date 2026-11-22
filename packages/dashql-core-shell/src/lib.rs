@@ -18,7 +18,7 @@ pub mod vt100;
 
 pub use arrow_renderer::ArrowRenderer;
 pub use prompt_buffer::PromptBuffer;
-pub use session::ShellSession;
+pub use session::{ShellSession, DEFAULT_TERMINAL_PROMPT};
 
 /// The status of a shell operation
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
