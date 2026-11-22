@@ -9,15 +9,16 @@
     font-size: var(--font_size_small);
 }
 
-/* A bar of its own looks like the bar on the prompt without the prompt */
+/* A bar of its own looks like the bar on the prompt without the prompt. It floats over the cards like the docked
+   prompt, with its elevation. */
 .bar[data-variant="standalone"] {
     position: relative;
     box-sizing: border-box;
     padding: 3px 6px 3px 12px;
     border: 1px solid var(--color_border);
     border-radius: var(--border_radius);
-    background-color: var(--color_bg_subtle);
-    box-shadow: var(--shadow_small);
+    background-color: var(--color_bg_card);
+    box-shadow: var(--shadow_large);
 }
 
 /* Wobble at the start of the bar, only its face: the face is round already, the button brings no border */

@@ -95,6 +95,9 @@ export interface WorkbookFeedProps {
     /// Receives the function that attaches files to the workbook, for the files dropped on the page or picked in its
     /// menu. Null while the workbook takes no attachments.
     attachRef?: React.RefObject<((files: File[]) => void) | null>;
+    /// Another view of the workbook shows over the hidden feed. The composer stays visible over it, shrunk to the bar
+    /// of Wobble, and grows into the prompt again when the feed shows.
+    collapsed?: boolean;
     dependencies?: WorkbookFeedDependencies;
 }
 
@@ -533,7 +536,11 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     // The docked prompt floats over the bottom of the feed, the last script scrolls clear of it
     const composerSectionRef = React.useRef<HTMLDivElement>(null);
     const composerSectionSize = useObservedSize(composerSectionRef);
-    const bottomInset = entries.length === 0 ? 0 : Math.ceil(composerSectionSize?.height ?? 0);
+    // The feed keeps the space of the prompt while the composer is shrunk over another view, the hidden rows stay
+    const measuredBottomInset = entries.length === 0 ? 0 : Math.ceil(composerSectionSize?.height ?? 0);
+    const expandedBottomInset = React.useRef(measuredBottomInset);
+    if (!props.collapsed) expandedBottomInset.current = measuredBottomInset;
+    const bottomInset = props.collapsed ? expandedBottomInset.current : measuredBottomInset;
     // The head stands above the first script and scrolls with the scripts, the first row leaves its height free. The
     // list mounts again for another workbook, with a new head: the observer follows the element of the callback ref.
     const [inputsElement, inputsRef] = React.useState<HTMLDivElement | null>(null);
@@ -778,7 +785,8 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     // question. The tab follows its session after a switch back to SQL, the questions of the agent dock the composer
     // in AI only. The composer stays at the same position in the tree so it keeps focus when the view docks it.
     const agentTurns = agentConnect?.mode === ComposerMode.Sql ? 0 : session?.turns.length ?? 0;
-    const landing = entries.length === 0 && agentTurns === 0;
+    // The composer shrunk over another view is docked
+    const landing = !props.collapsed && entries.length === 0 && agentTurns === 0;
     // While the user writes, Wobble watches the caret of the composer
     const composerCaret = React.useCallback(() => {
         const head = composerView?.state?.selection?.main.head;
@@ -849,7 +857,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
             wobble={!landing}
             gaze={dockGaze}
             lastInput={composerLastInput}
-            paused={!props.active}
+            paused={!props.active && !props.collapsed}
         />
     );
     return (
@@ -857,6 +865,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
             ref={bodyRef}
             className={styles.feed_body_container}
             data-landing={landing ? '' : undefined}
+            data-collapsed={props.collapsed ? '' : undefined}
             style={{
                 '--feed-scrollbar-inset': `${feedLayout.listScrollbarInset}px`,
                 '--feed-scrollbar-gutter': `${feedLayout.listScrollbarGutter}px`,
@@ -931,11 +940,14 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
             )}
             {!readOnly && <div className={styles.feed_composer_section} ref={composerSectionRef}>
                 <div className={styles.feed_composer_body}>
+                    {/* Without a composer the other views still show the bar */}
+                    {props.collapsed && (composerConnectionId == null || composerCore == null) && statusBar(WorkbookStatusBarVariant.Standalone)}
                     {composerConnectionId != null && composerCore != null && <dependencies.WorkbookComposer
                         key={props.workbookScripts.workbookId}
                         instance={composerCore.instance}
                         catalog={composerCore.catalog}
                         variant={landing ? WorkbookComposerVariant.Hero : WorkbookComposerVariant.Docked}
+                        collapsed={props.collapsed}
                         keywordCase={keywordCase}
                         agentActivity={session != null ? agentActivity(session).kind : 'idle'}
                         session={session}

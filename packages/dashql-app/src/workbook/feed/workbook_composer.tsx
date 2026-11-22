@@ -108,6 +108,9 @@ export interface WorkbookComposerProps {
     snippetConnector?: ConnectorType;
     /// The snippets to browse, the bundled ones by default
     snippetRegistry?: SnippetRegistry;
+    /// Another view of the workbook shows, the composer shrinks to its bar. The prompt keeps its draft, it grows out
+    /// of the bar again when the feed shows.
+    collapsed?: boolean;
 }
 
 /// A change of the text of a draft
@@ -314,11 +317,12 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
             data-variant={hero ? 'hero' : 'docked'}
             data-mode={ai ? 'ai' : 'sql'}
             data-agent={props.agentActivity == null || props.agentActivity === 'idle' ? undefined : props.agentActivity === 'waiting' ? 'waiting' : 'working'}
+            data-collapsed={props.collapsed ? '' : undefined}
         >
             {/* Empty without the bar of Wobble and inputs of the draft, the stylesheet hides it then */}
             <div className={styles.composer_bar} data-testid="composer-bar">
                 {props.bar}
-                {showDraftInputs && (
+                {showDraftInputs && !props.collapsed && (
                     <div ref={inputsRef} className={styles.composer_inputs} role="group" aria-label="Inputs of the prompt" data-testid="composer-inputs">
                         {draftInputs.map(draftInput => (
                             <WorkbookInputCard key={draftInput.name} input={draftInput} literalOf={literalOfDraftInput} onCommit={commitDraftInput} />
@@ -326,89 +330,94 @@ export const WorkbookComposer: React.FC<WorkbookComposerProps> = (props) => {
                     </div>
                 )}
             </div>
-            <div className={styles.composer_prompt} onMouseDown={ai ? undefined : handlePromptMouseDown}>
-                {/* The line of the agent takes the place of the editor in AI, the editor keeps the draft for SQL */}
-                <div hidden={ai}>
-                    <PromptEditor
-                        className={styles.composer_editor}
-                        scriptSession={scriptSession}
-                        placeholder={placeholder}
-                        keywordCase={props.keywordCase}
-                        readOnly={ai}
-                        onSubmit={send}
-                        onTextChange={handleTextChange}
-                        onEditorUpdate={handleEditorUpdate}
-                        setView={handleView}
-                    />
-                </div>
-                {ai && connect != null && (
-                    <div className={styles.composer_connect} role="group" aria-label="Connect an agent in the terminal" data-testid="composer-connect" data-port={connectPort} data-secret={connect.target?.token}>
-                        <div id={statusId} className={styles.composer_connect_status} role="status" data-testid="composer-connect-status">
-                            {session != null
-                                ? `${harnessLabel(session.harness)} works on this workbook in the terminal, switch to SQL to edit the scripts yourself`
-                                : connectStatus(connect.outdated)}
+            {/* The prompt shrinks into the bar while another view shows */}
+            <div className={styles.composer_collapse} inert={props.collapsed} data-testid="composer-prompt">
+                <div className={styles.composer_collapse_body}>
+                    <div className={styles.composer_prompt} onMouseDown={ai ? undefined : handlePromptMouseDown}>
+                        {/* The line of the agent takes the place of the editor in AI, the editor keeps the draft for SQL */}
+                        <div hidden={ai}>
+                            <PromptEditor
+                                className={styles.composer_editor}
+                                scriptSession={scriptSession}
+                                placeholder={placeholder}
+                                keywordCase={props.keywordCase}
+                                readOnly={ai}
+                                onSubmit={send}
+                                onTextChange={handleTextChange}
+                                onEditorUpdate={handleEditorUpdate}
+                                setView={handleView}
+                            />
                         </div>
-                        {/* The command is only copied, the buttons stay usable */}
-                        <TextArea
-                            className={styles.composer_connect_command}
-                            block
-                            disabled
-                            rows={commandLines?.length ?? 1}
-                            value={commandText}
-                            aria-label="Command"
-                            aria-describedby={statusId}
-                            data-testid="composer-connect-command"
-                            leadingAction={
-                                <TextInputAction aria-label="Use a new port" aria-labelledby="" data-testid="composer-connect-renew" onClick={connect.renewTarget}>
-                                    <SyncIcon />
-                                </TextInputAction>
-                            }
-                            trailingAction={<CopyToClipboardAction value={command ?? ''} logContext="composer" ariaLabel="Copy the command" testId="composer-connect-copy" />}
-                        />
-                    </div>
-                )}
-                <div className={styles.composer_action_bar}>
-                    {connect != null && (
-                        <SegmentedControl aria-label="Input mode" size={SegmentedControlSize.Small} onChange={handleModeChange}>
-                            <SegmentedControl.Button leadingVisual={CodeIcon} selected={!ai} data-testid="composer-mode" data-mode="sql">
-                                SQL
-                            </SegmentedControl.Button>
-                            <SegmentedControl.Button leadingVisual={SparklesFillIcon} selected={ai} data-testid="composer-mode" data-mode="ai">
-                                AI
-                            </SegmentedControl.Button>
-                        </SegmentedControl>
-                    )}
-                    {/* In AI the switch of the harness takes the place of the snippets and Run, the connections stay left of it */}
-                    {ai && connect != null ? (
-                        <div className={styles.composer_trailing_actions}>
-                            {props.agentConnectionsPicker ?? props.connectionPicker}
-                            <SegmentedControl aria-label="Harness" size={SegmentedControlSize.Small} onChange={handleHarnessChange}>
-                                <SegmentedControl.Button selected={connect.harness === 'claude'} data-testid="composer-connect-harness" data-harness="claude">
-                                    Claude Code
-                                </SegmentedControl.Button>
-                                <SegmentedControl.Button selected={connect.harness === 'codex'} data-testid="composer-connect-harness" data-harness="codex">
-                                    Codex
-                                </SegmentedControl.Button>
-                            </SegmentedControl>
-                        </div>
-                    ) : (
-                        <div className={styles.composer_trailing_actions}>
-                            {props.connectionPicker}
-                            {props.snippetConnector != null && (
-                                <SnippetsOverlay
-                                    scriptName="the prompt"
-                                    connectorType={props.snippetConnector}
-                                    disabled={view == null}
-                                    onApply={applySnippet}
-                                    registry={props.snippetRegistry}
-                                    testId="composer-snippets"
+                        {ai && connect != null && (
+                            <div className={styles.composer_connect} role="group" aria-label="Connect an agent in the terminal" data-testid="composer-connect" data-port={connectPort} data-secret={connect.target?.token}>
+                                <div id={statusId} className={styles.composer_connect_status} role="status" data-testid="composer-connect-status">
+                                    {session != null
+                                        ? `${harnessLabel(session.harness)} works on this workbook in the terminal, switch to SQL to edit the scripts yourself`
+                                        : connectStatus(connect.outdated)}
+                                </div>
+                                {/* The command is only copied, the buttons stay usable */}
+                                <TextArea
+                                    className={styles.composer_connect_command}
+                                    block
+                                    disabled
+                                    rows={commandLines?.length ?? 1}
+                                    value={commandText}
+                                    aria-label="Command"
+                                    aria-describedby={statusId}
+                                    data-testid="composer-connect-command"
+                                    leadingAction={
+                                        <TextInputAction aria-label="Use a new port" aria-labelledby="" data-testid="composer-connect-renew" onClick={connect.renewTarget}>
+                                            <SyncIcon />
+                                        </TextInputAction>
+                                    }
+                                    trailingAction={<CopyToClipboardAction value={command ?? ''} logContext="composer" ariaLabel="Copy the command" testId="composer-connect-copy" />}
                                 />
+                            </div>
+                        )}
+                        <div className={styles.composer_action_bar}>
+                            {connect != null && (
+                                <SegmentedControl aria-label="Input mode" size={SegmentedControlSize.Small} onChange={handleModeChange}>
+                                    <SegmentedControl.Button leadingVisual={CodeIcon} selected={!ai} data-testid="composer-mode" data-mode="sql">
+                                        SQL
+                                    </SegmentedControl.Button>
+                                    <SegmentedControl.Button leadingVisual={SparklesFillIcon} selected={ai} data-testid="composer-mode" data-mode="ai">
+                                        AI
+                                    </SegmentedControl.Button>
+                                </SegmentedControl>
                             )}
-                            {blockedWorkbookId != null
-                                ? <ExecuteConnectionGuard blocked>{sendButton}</ExecuteConnectionGuard>
-                                : sendButton}
+                            {/* In AI the switch of the harness takes the place of the snippets and Run, the connections stay left of it */}
+                            {ai && connect != null ? (
+                                <div className={styles.composer_trailing_actions}>
+                                    {props.agentConnectionsPicker ?? props.connectionPicker}
+                                    <SegmentedControl aria-label="Harness" size={SegmentedControlSize.Small} onChange={handleHarnessChange}>
+                                        <SegmentedControl.Button selected={connect.harness === 'claude'} data-testid="composer-connect-harness" data-harness="claude">
+                                            Claude Code
+                                        </SegmentedControl.Button>
+                                        <SegmentedControl.Button selected={connect.harness === 'codex'} data-testid="composer-connect-harness" data-harness="codex">
+                                            Codex
+                                        </SegmentedControl.Button>
+                                    </SegmentedControl>
+                                </div>
+                            ) : (
+                                <div className={styles.composer_trailing_actions}>
+                                    {props.connectionPicker}
+                                    {props.snippetConnector != null && (
+                                        <SnippetsOverlay
+                                            scriptName="the prompt"
+                                            connectorType={props.snippetConnector}
+                                            disabled={view == null}
+                                            onApply={applySnippet}
+                                            registry={props.snippetRegistry}
+                                            testId="composer-snippets"
+                                        />
+                                    )}
+                                    {blockedWorkbookId != null
+                                        ? <ExecuteConnectionGuard blocked>{sendButton}</ExecuteConnectionGuard>
+                                        : sendButton}
+                                </div>
+                            )}
                         </div>
-                    )}
+                    </div>
                 </div>
             </div>
         </div>

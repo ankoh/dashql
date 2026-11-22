@@ -417,6 +417,26 @@ describe('Workbook feed composer', () => {
         expect(feedState.composerProps?.variant).toBe(WorkbookComposerVariant.Docked);
     });
 
+    it('shrinks the composer to the bar of Wobble over another view of the workbook', () => {
+        const renderCollapsed = (collapsed: boolean) => act(() => root.render(<LoggerProvider>
+            <WorkbookConnectionAttentionContext.Provider value={attention}>
+                <WorkbookFeed workbookScripts={workbook()} modifyWorkbookScripts={vi.fn()} conn={onlineConn}
+                    active={!collapsed} collapsed={collapsed} dependencies={feedDependencies} />
+            </WorkbookConnectionAttentionContext.Provider>
+        </LoggerProvider>));
+        feedState.scripts = workbook().scripts;
+        renderCollapsed(true);
+        // The empty workbook docks its composer under the other view, Wobble stays awake in the bar
+        const body = container.querySelector<HTMLElement>('[data-testid="feed-list"]')!.parentElement!;
+        expect(body.hasAttribute('data-collapsed')).toBe(true);
+        expect(feedState.composerProps).toMatchObject({ variant: WorkbookComposerVariant.Docked, collapsed: true });
+        expect(feedState.barProps).toMatchObject({ wobble: true, paused: false });
+
+        renderCollapsed(false);
+        expect(body.hasAttribute('data-collapsed')).toBe(false);
+        expect(feedState.composerProps).toMatchObject({ variant: WorkbookComposerVariant.Hero, collapsed: false });
+    });
+
     it('appends a sent draft as a script and runs it', async () => {
         const next = workbook(['1_alpha.sql']);
         feedState.next = next;

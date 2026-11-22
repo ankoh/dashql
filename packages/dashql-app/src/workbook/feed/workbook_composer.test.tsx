@@ -69,13 +69,13 @@ describe('Workbook composer', () => {
     });
 
     // The view is created by a chain of effects, wait until the composer hands it out
-    async function render(variant = WorkbookComposerVariant.Docked, offlineWorkbookId: string | null = null, agentActivity: AgentActivity['kind'] = 'idle', bar: React.ReactNode = undefined) {
+    async function render(variant = WorkbookComposerVariant.Docked, offlineWorkbookId: string | null = null, agentActivity: AgentActivity['kind'] = 'idle', bar: React.ReactNode = undefined, collapsed = false) {
         const snippets = buildSnippetRegistry(dql, { 'hyper/dates/month.sql': `/**\n * Text.\n */\nselect 42;` });
         act(() => root.render(<LoggerProvider>
             <WorkbookConnectionAttentionContext.Provider value={attention}>
                 <WorkbookComposer instance={dql} catalog={catalog} variant={variant}
                     snippetConnector={ConnectorType.HYPER} snippetRegistry={snippets}
-                    scriptNames={['revenue', 'revenue-2']} targetScriptRef={targetScript} offlineWorkbookId={offlineWorkbookId} agentActivity={agentActivity} bar={bar}
+                    scriptNames={['revenue', 'revenue-2']} targetScriptRef={targetScript} offlineWorkbookId={offlineWorkbookId} agentActivity={agentActivity} bar={bar} collapsed={collapsed}
                     keywordCase={core.buffers.formatting.KeywordCase.LOWER} onSend={onSend} setView={v => { view = v; }} />
             </WorkbookConnectionAttentionContext.Provider>
         </LoggerProvider>));
@@ -240,6 +240,28 @@ describe('Workbook composer', () => {
         expect(await render(WorkbookComposerVariant.Docked, null, 'idle', <span data-testid="agent-bar">Agent</span>)).toBe(editor);
         expect(container.querySelector('[data-testid="composer-bar"] [data-testid="agent-bar"]')).not.toBeNull();
         expect(editor.state.doc.toString()).toBe('select 5');
+    });
+
+    it('shrinks into its bar while another view shows and grows out of it with the draft', async () => {
+        const bar = <span data-testid="agent-bar">Agent</span>;
+        const editor = await render(WorkbookComposerVariant.Docked, null, 'idle', bar);
+        act(() => type(editor, 'select :min'));
+        const composer = () => container.querySelector<HTMLElement>('[data-variant="docked"]')!;
+        const prompt = () => container.querySelector<HTMLElement>('[data-testid="composer-prompt"]')!;
+        expect(composer().hasAttribute('data-collapsed')).toBe(false);
+        expect(prompt().inert).toBe(false);
+
+        // The bar stays, the prompt and the inputs of the draft can't be reached
+        expect(await render(WorkbookComposerVariant.Docked, null, 'idle', bar, true)).toBe(editor);
+        expect(composer().hasAttribute('data-collapsed')).toBe(true);
+        expect(prompt().inert).toBe(true);
+        expect(container.querySelector('[data-testid="composer-bar"] [data-testid="agent-bar"]')).not.toBeNull();
+        expect(container.querySelector('[data-testid="composer-inputs"]')).toBeNull();
+
+        expect(await render(WorkbookComposerVariant.Docked, null, 'idle', bar)).toBe(editor);
+        expect(prompt().inert).toBe(false);
+        expect(editor.state.doc.toString()).toBe('select :min');
+        expect(container.querySelector('[data-testid="composer-inputs"]')).not.toBeNull();
     });
 
     describe('inputs of the draft', () => {

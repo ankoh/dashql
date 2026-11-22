@@ -2,6 +2,8 @@
 
 
 .feed_body_container {
+    /* The composer narrows and shrinks when another view shows, like its prompt (workbook_composer.module.css) */
+    --feed_composer_morph: 240ms cubic-bezier(0.2, 0, 0, 1);
     position: relative;
     height: 100%;
     width: 100%;
@@ -131,6 +133,35 @@
         16px
         calc(var(--page_gutter) - var(--feed_composer_overhang));
     pointer-events: auto;
+    transition: padding var(--feed_composer_morph);
+}
+
+/* The composer narrows to the bar of the other views of the workbook and widens to the prompt of the feed */
+.feed_composer_body > * {
+    max-width: 100%;
+    margin-inline: auto;
+    transition: max-width var(--feed_composer_morph);
+}
+
+/* Another view shows over the hidden feed, the composer stays visible over it as the bar of Wobble, as wide as the
+   bar of the dataflow and the dashboard was */
+.feed_body_container[data-collapsed] .feed_composer_section {
+    visibility: visible;
+}
+
+.feed_body_container[data-collapsed] .feed_composer_body {
+    padding: 0 var(--page_gutter) 16px var(--page_gutter);
+}
+
+.feed_body_container[data-collapsed] .feed_composer_body > * {
+    max-width: 720px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .feed_composer_body,
+    .feed_composer_body > * {
+        transition: none;
+    }
 }
 
 .feed_body_container[data-landing] .feed_composer_section {

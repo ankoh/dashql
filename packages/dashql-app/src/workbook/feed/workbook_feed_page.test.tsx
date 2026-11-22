@@ -53,7 +53,6 @@ const dependencies: WorkbookFeedPageDependencies = {
     },
     ConnectionOverviewPage: () => null,
     CloudOverviewPage: () => null,
-    WorkbookStatusBar: (props: PropsOf<'WorkbookStatusBar'>) => <div data-testid="workbook-status-bar" data-variant={props.variant} />,
     WorkbookNavigationDrawer: () => null,
     WorkbookURLShareOverlay: (props: PropsOf<'WorkbookURLShareOverlay'>) => {
         state.shareProps = props;
@@ -483,12 +482,13 @@ describe('WorkbookFeedPage', () => {
         state.mode = WorkbookViewMode.Dashboard;
         const workbookScripts = scripts();
         const modifyWorkbookScripts = vi.fn();
+        // The workbook page is active in the feed only, like in the app
         act(() => root.render(
             <WorkbookFeedPage
                 workbookScripts={workbookScripts}
                 modifyWorkbookScripts={modifyWorkbookScripts}
                 connection={null}
-                active
+                active={false}
                 dependencies={dependencies}
             />,
         ));
@@ -496,12 +496,15 @@ describe('WorkbookFeedPage', () => {
         expect(container.querySelector('[data-testid="dashboard"]')).not.toBeNull();
         expect(state.dashboardProps).toMatchObject({ workbookScripts, modifyWorkbookScripts });
         expect(state.feedProps?.active).toBe(false);
-        // The bar of Wobble stands alone below the dashboard, the feed has the bar on its prompt
-        expect(container.querySelector('[data-testid="workbook-status-bar"]')?.getAttribute('data-variant')).toBe('standalone');
+        // The composer of the feed shrinks to the bar of Wobble over the dashboard
+        expect(state.feedProps?.collapsed).toBe(true);
         const buttons = container.querySelectorAll<HTMLButtonElement>('[data-testid="workbook-view-switch"] button');
         expect(buttons[1]?.getAttribute('aria-current')).toBe('true');
         act(() => buttons[0]?.click());
         expect(state.setMode).toHaveBeenCalledWith(WorkbookViewMode.Workbook);
+        // A connection overview hides the bar with the dashboard
+        act(() => state.sidebarProps!.onOpenOverview!('database'));
+        expect(state.feedProps?.collapsed).toBe(false);
     });
 
     it('offers the Dataflow view after the Dashboard', () => {
@@ -520,12 +523,13 @@ describe('WorkbookFeedPage', () => {
         const modifyWorkbookScripts = vi.fn();
         const ScriptEditorDialog = vi.fn((_props: PropsOf<'ScriptEditorDialog'>) => <div data-testid="script-editor-dialog" />);
         act(() => root.render(
-            <WorkbookFeedPage workbookScripts={workbookScripts} modifyWorkbookScripts={modifyWorkbookScripts} connection={null} active
+            <WorkbookFeedPage workbookScripts={workbookScripts} modifyWorkbookScripts={modifyWorkbookScripts} connection={null} active={false}
                 dependencies={{ ...dependencies, ScriptEditorDialog } as unknown as WorkbookFeedPageDependencies} />,
         ));
         expect(container.querySelector('[data-testid="dataflow"]')).not.toBeNull();
         expect(state.dataflowProps).toMatchObject({ workbookScripts, modifyWorkbookScripts });
         expect(state.feedProps?.active).toBe(false);
+        expect(state.feedProps?.collapsed).toBe(true);
         const buttons = container.querySelectorAll<HTMLButtonElement>('[data-testid="workbook-view-switch"] button');
         expect([...buttons].map(viewLabel)).toEqual(['Feed', 'Dashboard', 'Dataflow']);
         expect(buttons[2]?.getAttribute('aria-current')).toBe('true');

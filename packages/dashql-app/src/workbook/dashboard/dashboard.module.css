@@ -21,8 +21,9 @@
     box-sizing: border-box;
     height: 100%;
     overflow: auto;
-    /* Like the space of the feed above its head */
-    padding: 24px var(--page_gutter) 16px var(--page_gutter);
+    /* Like the space of the feed above its head. Below the last card the space of the bar of Wobble that floats over
+       the bottom of the page, set by the workbook page. */
+    padding: 24px var(--page_gutter) var(--status_bar_dock_space, 16px) var(--page_gutter);
 }
 
 /* The sections of the board stacked under their labels: the inputs, the scripts without a renderer, the
@@ -261,7 +262,7 @@
 
 @media only screen and (max-width: 799px) {
     .scroll {
-        padding: 12px 8px;
+        padding: 12px 8px var(--status_bar_dock_space, 12px) 8px;
     }
 
     .grid {

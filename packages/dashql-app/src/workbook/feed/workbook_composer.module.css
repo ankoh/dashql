@@ -9,6 +9,9 @@
     box-sizing: border-box;
     --composer_bg: var(--color_bg_card);
     --prompt_editor_max_height: 30vh;
+    /* The prompt grows out of the bar and shrinks into it, the frame follows */
+    --composer_morph_duration: 240ms;
+    --composer_morph_easing: cubic-bezier(0.2, 0, 0, 1);
 }
 
 /* The docked composer floats over the scripts, which lie flat on the stage */
@@ -82,6 +85,41 @@
 @media (prefers-reduced-motion: reduce) {
     .composer[data-agent="working"] {
         animation: none;
+    }
+}
+
+/* The prompt grows out of the bar and shrinks into it, the bar alone stands over the other views of the workbook */
+.composer_collapse {
+    display: grid;
+    grid-template-rows: 1fr;
+    transition: grid-template-rows var(--composer_morph_duration) var(--composer_morph_easing);
+}
+
+.composer[data-collapsed] .composer_collapse {
+    grid-template-rows: 0fr;
+}
+
+.composer_collapse_body {
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* Collapsed, the bar is the whole composer: the frame of the composer is the frame of the bar */
+.composer_bar {
+    transition:
+        background-color var(--composer_morph_duration) var(--composer_morph_easing),
+        border-color var(--composer_morph_duration) var(--composer_morph_easing);
+}
+
+.composer[data-collapsed] .composer_bar {
+    border-bottom-color: transparent;
+    background-color: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .composer_collapse,
+    .composer_bar {
+        transition: none;
     }
 }
 

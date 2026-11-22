@@ -34,7 +34,6 @@ import { WorkbookConnectionButtons } from './workbook_connection_buttons.js';
 import { useAppFlavor } from '../../config/flavor_provider.js';
 import { ConnectionOverviewPage } from '../../connections/connection_overview_page.js';
 import { CloudOverviewPage } from '../../cloud/cloud_overview_page.js';
-import { WorkbookStatusBar, WorkbookStatusBarVariant } from '../status/workbook_status_bar.js';
 import type { RenameDraftReferences } from '../scripts/script_rename.js';
 import { CloudPreviewActions, CloudPreviewBadge, CloudWorkbookLoadingCard } from '../../cloud/cloud_preview_actions.js';
 import { useCloudWorkbookLoading } from '../../cloud/cloud_workbook_loading.js';
@@ -66,7 +65,6 @@ export interface WorkbookFeedPageDependencies {
     ScriptEditorDialog: typeof ScriptEditorDialog;
     WorkbookWorkbenchSidebar: typeof WorkbookWorkbenchSidebar;
     ConnectionOverviewPage: typeof ConnectionOverviewPage;
-    WorkbookStatusBar: typeof WorkbookStatusBar;
     CloudOverviewPage: typeof CloudOverviewPage;
     WorkbookNavigationDrawer: typeof WorkbookNavigationDrawer;
     Dashboard: typeof Dashboard;
@@ -85,7 +83,6 @@ const DEFAULT_DEPENDENCIES: WorkbookFeedPageDependencies = {
     ScriptEditorDialog,
     WorkbookWorkbenchSidebar,
     ConnectionOverviewPage,
-    WorkbookStatusBar,
     CloudOverviewPage,
     WorkbookNavigationDrawer,
     Dashboard,
@@ -217,7 +214,10 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
     // A version of a published workbook that is being loaded takes the place of the views
     const cloudLoading = useCloudWorkbookLoading() != null;
     const feedActive = props.active && !dashboardActive && !dataflowActive && !overviewActive && !cloudLoading;
-    // The workbook page is active in the feed only, it shows in the dashboard and the dataflow too
+    // The dashboard and the dataflow show over the hidden feed, its composer stays visible as the bar of Wobble. It
+    // shrinks into the bar when they show and grows into the prompt when the feed shows again. The workbook page is
+    // active in the feed only, it shows in the dashboard and the dataflow too.
+    const composerCollapsed = (dashboardActive || dataflowActive) && !overviewActive && !cloudLoading;
     const pageShown = props.active || dashboardActive || dataflowActive;
     useFileDropHandler(pageShown ? files => {
         const attach = attachRef.current;
@@ -266,7 +266,7 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
                             <dependencies.CloudWorkbookLoadingCard />
                         </div>
                     )}
-                    <div className={feedActive ? styles.feed_layer : styles.feed_layer_hidden}>
+                    <div className={feedActive ? styles.feed_layer : composerCollapsed ? styles.feed_layer_collapsed : styles.feed_layer_hidden}>
                         <dependencies.WorkbookFeed
                             workbookScripts={props.workbookScripts}
                             modifyWorkbookScripts={props.modifyWorkbookScripts}
@@ -274,6 +274,7 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
                             active={feedActive}
                             revealRequest={revealRequest}
                             attachRef={attachRef}
+                            collapsed={composerCollapsed}
                             conn={props.connection}
                             scriptConnections={props.scriptConnections}
                         />
@@ -298,16 +299,6 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
                             scriptConnections={scriptConnections}
                             draftRenameRef={draftRenameRef}
                         />
-                    )}
-                    {/* The bar of Wobble tells the status of the workbook in the views without the prompt */}
-                    {(dashboardActive || dataflowActive) && !overviewActive && !cloudLoading && (
-                        <div className={styles.status_bar_dock}>
-                            <dependencies.WorkbookStatusBar
-                                workbookId={props.workbookScripts.workbookId}
-                                variant={WorkbookStatusBarVariant.Standalone}
-                                paused={!props.active}
-                            />
-                        </div>
                     )}
                     {dataflowActive && !overviewActive && !cloudLoading && (
                         <div className={styles.dataflow_layout}>

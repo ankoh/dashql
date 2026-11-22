@@ -267,6 +267,8 @@ stays the one place the page talks to.
 - **The feed** follows the agent to the scripts it edits and runs until the user scrolls, clicks or types in it, also
   to a new script once the tab created it.
 - **The composer** takes SQL in SQL and nothing in AI, see [Connecting from the page](#connecting-from-the-page).
+  Over the dashboard and the dataflow it shrinks into the bar of Wobble, one element with the prompt of the feed: the
+  prompt collapses with its draft and the inputs of the draft, and grows out of the bar when the feed shows again.
 - **Wobble** stays: the greeting of an empty workbook and the face of the bar.
 
 ## Tests
