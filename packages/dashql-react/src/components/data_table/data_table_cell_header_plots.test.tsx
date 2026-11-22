@@ -191,8 +191,8 @@ describe('HeaderPlotsCell', () => {
         expect(cell.textContent).toContain('Text');
 
         // Clicking the first bar filters by the value a
-        const bar = cell.querySelector<SVGRectElement>('svg > g > g > rect[y]')!;
-        const target = cell.querySelectorAll<SVGGElement>('svg > g')[2].querySelector('rect')!;
+        const bar = cell.querySelector<SVGRectElement>('[data-part="bars"] > g > rect[y]')!;
+        const target = cell.querySelector<SVGGElement>('[data-part="pointer"]')!.querySelector('rect')!;
         const bounds = bar.getBoundingClientRect();
         act(() => {
             target.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: bounds.left + bounds.width / 2, clientY: bounds.top + bounds.height / 2 }));
@@ -204,7 +204,7 @@ describe('HeaderPlotsCell', () => {
     it('shows the histogram of ordinal columns with the brush of the cross filter', async () => {
         const props = await succeeded();
         const unfiltered = await render({ ...props, columnIndex: 2 });
-        const brush = () => unfiltered.querySelectorAll<SVGGElement>('svg > g > g')[1];
+        const brush = () => unfiltered.querySelector<SVGGElement>('[data-part="brush"]')!;
         expect(unfiltered.querySelector('svg')).not.toBeNull();
         expect(d3.brushSelection(brush())).toBeNull();
 

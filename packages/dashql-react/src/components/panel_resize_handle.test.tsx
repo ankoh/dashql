@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
-import { PanelResizeHandle } from './panel_resize_handle.js';
+import { KEYBOARD_STEP, PanelResizeHandle } from './panel_resize_handle.js';
 
 function dispatchPointerEvent(target: EventTarget, type: string, init: PointerEventInit) {
     const event = new Event(type, { bubbles: true, cancelable: true }) as PointerEvent;
@@ -103,7 +103,7 @@ describe('PanelResizeHandle', () => {
         const separator = renderHandle();
 
         act(() => separator.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })));
-        expect(separator.getAttribute('aria-valuenow')).toBe('292');
+        expect(separator.getAttribute('aria-valuenow')).toBe(String(276 + KEYBOARD_STEP));
 
         act(() => separator.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true })));
         expect(separator.getAttribute('aria-valuenow')).toBe('276');

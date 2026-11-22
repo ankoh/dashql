@@ -3,7 +3,7 @@ import * as React from 'react';
 import { classNames } from '../dom/classnames.js';
 import { SEPARATOR_CLASSES, useSeparatorDrag } from './separator.js';
 
-const KEYBOARD_STEP = 16;
+export const KEYBOARD_STEP = 16;
 
 export interface PanelResizeHandleProps {
     /// The width of the panel left of the handle in pixels

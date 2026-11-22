@@ -229,7 +229,7 @@ function MostFrequentCellImpl(props: MostFrequentCellProps): React.ReactElement 
                                 <rect x={0} y={0} width={width} height={height} rx={3} ry={3} />
                             </clipPath>
                         </defs>
-                        <g transform={`translate(${margin.left},${margin.top})`} clipPath={`url(#${roundedBarClipId})`}>
+                        <g data-part="bars" transform={`translate(${margin.left},${margin.top})`} clipPath={`url(#${roundedBarClipId})`}>
                             <rect
                                 x={0}
                                 y={0}
@@ -309,6 +309,7 @@ function MostFrequentCellImpl(props: MostFrequentCellProps): React.ReactElement 
                             />
                         </g>
                         <g
+                            data-part="pointer"
                             transform={`translate(${margin.left},${margin.top})`}
                             onPointerOver={onPointerOver}
                             onPointerMove={onPointerOver}

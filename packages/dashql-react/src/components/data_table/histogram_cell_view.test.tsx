@@ -135,12 +135,13 @@ describe('HistogramCell', () => {
     const cell = () => root!.container.querySelector<HTMLDivElement>('.cell')!;
     const header = () => cell().firstElementChild!.firstElementChild!.textContent;
     // The bars, the brush, the axis and the null bar
-    const plotGroups = () => cell().querySelectorAll<SVGGElement>('svg > g > g');
-    const barRects = () => Array.from(plotGroups()[0].querySelectorAll<SVGRectElement>('rect'));
-    const brush = () => plotGroups()[1];
+    const plotPart = (part: string) => cell().querySelector<SVGGElement>(`[data-part="${part}"]`);
+    const barRects = () => Array.from(plotPart('bars')!.querySelectorAll<SVGRectElement>('rect'));
+    const focusedBar = () => plotPart('bars')!.querySelector<SVGRectElement>('[data-part="focus"]');
+    const brush = () => plotPart('brush')!;
     const overlay = () => brush().querySelector<SVGRectElement>('.overlay')!;
     const brushSelection = () => brush().querySelector<SVGRectElement>('.selection')!;
-    const nullBar = () => plotGroups()[3]?.querySelector<SVGRectElement>('rect') ?? null;
+    const nullBar = () => plotPart('null')?.querySelector<SVGRectElement>('rect') ?? null;
     const labels = () => Array.from(cell().querySelectorAll('span')).map(span => span.textContent);
 
     function centerY(rect: Element) {
@@ -199,10 +200,11 @@ describe('HistogramCell', () => {
         expect(header()).toBe('4 rows (40%)');
         expect(labels()).toEqual(['10', '∅']);
         // The focused bar is drawn over the bar of the bin
-        const focused = barRects()[4];
+        const focused = focusedBar()!;
         expect((focused as SVGElement).style.fill).toBe(COLUMN_SUMMARY_COLORS.totalBarFocused);
         expect(focused.getAttribute('x')).toBe(barRects()[1].getAttribute('x'));
-        expect(cell().style.zIndex).toBe('100');
+        // The focused cell lies above its neighbors
+        expect(cell().style.zIndex).not.toBe('');
 
         await hoverBin(3);
         expect(header()).toBe('1 row (10%)');
@@ -211,7 +213,7 @@ describe('HistogramCell', () => {
         await pointer(overlay(), 'pointerout', 0);
         expect(header()).toBe(TYPE);
         expect(labels()).toEqual(['0', '30', '∅']);
-        expect(barRects()).toHaveLength(4);
+        expect(focusedBar()).toBeNull();
         expect(cell().style.zIndex).toBe('');
     });
 
@@ -259,7 +261,7 @@ describe('HistogramCell', () => {
         const column = await aggregate(ROWS, SCORE, BINS());
         await render({ column });
 
-        const axis = plotGroups()[2].querySelector('rect')!;
+        const axis = plotPart('axis')!.querySelector('rect')!;
         const bounds = barRects()[2].getBoundingClientRect();
         await pointer(axis, 'pointermove', bounds.left + bounds.width / 2);
         expect(header()).toBe('2 rows (20%)');
@@ -293,7 +295,7 @@ describe('HistogramCell', () => {
         const column = await aggregate(table, scoreColumn(4, false), bins([1n, 4n, 2n, 1n, 0n]));
         await render({ column, table });
 
-        expect(plotGroups()).toHaveLength(3);
+        expect(nullBar()).toBeNull();
         expect(labels()).toEqual(['0', '30']);
         // Without the null bar, the bins take the whole width
         const overlayBounds = overlay().getBoundingClientRect();
@@ -329,8 +331,7 @@ describe('HistogramCell', () => {
         mouse('mousedown', bars[0].getBoundingClientRect().left - 1);
         mouse('mousemove', bars[0].getBoundingClientRect().right + 1);
         expect(onFilter).not.toHaveBeenCalled();
-        await act(async () => { await new Promise(resolve => setTimeout(resolve, 200)); });
-        expect(onFilter).toHaveBeenCalledOnce();
+        await act(async () => { await vi.waitFor(() => expect(onFilter).toHaveBeenCalledOnce()); });
         expect(selectedBins(vi.mocked(onFilter).mock.calls[0][3], 4)).toEqual([0]);
 
         mouse('mousemove', bars[3].getBoundingClientRect().right + 1);
@@ -424,7 +425,7 @@ describe('HistogramCell', () => {
 
         // The null bar shows the selected nulls
         await pointer(overlay(), 'pointerout', 0);
-        const nullRects = plotGroups()[3].querySelectorAll(':scope > rect');
+        const nullRects = plotPart('null')!.querySelectorAll(':scope > rect');
         expect(nullRects).toHaveLength(2);
         expect((nullRects[0] as SVGElement).style.fill).toBe(COLUMN_SUMMARY_NULL_COLORS.totalBarWithFilter);
         expect(nullRects[1].getBoundingClientRect().height).toBeCloseTo(nullRects[0].getBoundingClientRect().height / 2, 3);

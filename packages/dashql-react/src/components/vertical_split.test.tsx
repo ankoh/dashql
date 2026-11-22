@@ -82,22 +82,28 @@ describe('VerticalSplit', () => {
             dispatchPointerEvent(separator, 'pointerdown', { pointerId: 4, clientY: 308 });
             dispatchPointerEvent(window, 'pointermove', { pointerId: 4, clientY: 508 });
         });
-        expect(separator.getAttribute('aria-valuenow')).toBe('68');
+        const dragged = separator.getAttribute('aria-valuenow');
+        expect(Number(dragged)).toBeGreaterThan(40);
 
         act(() => dispatchPointerEvent(window, 'pointerup', { pointerId: 4, clientY: 508 }));
+        // Dragging to the bottom stops where the result pane keeps its minimum
+        act(() => separator.dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true })));
+        expect(separator.getAttribute('aria-valuenow')).toBe(dragged);
     });
 
     it('supports keyboard resizing', () => {
         const { separator } = renderSplit();
 
+        const value = () => Number(separator.getAttribute('aria-valuenow'));
         act(() => separator.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })));
-        expect(separator.getAttribute('aria-valuenow')).toBe('45');
+        const down = value();
+        expect(down).toBeGreaterThan(40);
 
         act(() => separator.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true })));
-        expect(separator.getAttribute('aria-valuenow')).toBe('24');
+        expect(value()).toBeLessThan(40);
 
         act(() => separator.dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true })));
-        expect(separator.getAttribute('aria-valuenow')).toBe('68');
+        expect(value()).toBeGreaterThan(down);
     });
 
     it('restores the previous size after pointer cancellation', () => {

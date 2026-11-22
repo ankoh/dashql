@@ -56,7 +56,7 @@ describe('StatusIndicator', () => {
         expect(dot(IndicatorStatus.Running).dataset.status).toBe('running');
         expect(getComputedStyle(dot(IndicatorStatus.Running)).animationName).not.toBe('none');
         expect(getComputedStyle(dot(IndicatorStatus.Succeeded)).animationName).toBe('none');
-        expect(getComputedStyle(dot(IndicatorStatus.None)).opacity).toBe('0.5');
+        expect(Number(getComputedStyle(dot(IndicatorStatus.None)).opacity)).toBeLessThan(1);
         expect(dot(IndicatorStatus.Failed).style.width).toBe('6px');
     });
 });

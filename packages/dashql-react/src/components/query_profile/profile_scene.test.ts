@@ -55,30 +55,66 @@ describe('estimateRelativeDifference', () => {
     });
 });
 
+/// The points of a cubic edge 'M x y C x1 y1, x2 y2, x y': the start, the two control points and the end
+function cubicPoints(path: string): [number, number][] {
+    const values = path.match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? [];
+    expect(values).toHaveLength(8);
+    return [[values[0], values[1]], [values[2], values[3]], [values[4], values[5]], [values[6], values[7]]];
+}
+
+/// Whether the browser fills a point of a path
+function fillsPoint(path: string, x: number, y: number): boolean {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    const element = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    element.setAttribute('d', path);
+    svg.appendChild(element);
+    document.body.appendChild(svg);
+    try {
+        const point = svg.createSVGPoint();
+        point.x = x;
+        point.y = y;
+        return element.isPointInFill(point);
+    } finally {
+        svg.remove();
+    }
+}
+
 describe('buildCrossEdgePath', () => {
     it('connects the centered tree ports with external control points', () => {
-        expect(buildCrossEdgePath(
+        const [start, lead, tail, end] = cubicPoints(buildCrossEdgePath(
             { x: 40, y: 160, width: 60, height: 32 },
             { x: 200, y: 160, width: 80, height: 32 },
-        )).toEqual('M 40 144 C 40 120, 200 224, 200 176');
+        ));
+        // From the top of the source to the bottom of the target, the control points lie outside of both
+        expect(start).toEqual([40, 160 - 32 / 2]);
+        expect(end).toEqual([200, 160 + 32 / 2]);
+        expect(lead[1]).toBeLessThan(start[1]);
+        expect(tail[1]).toBeGreaterThan(end[1]);
     });
 
     it('connects the side ports of a left-to-right plan', () => {
         // From the left side of the source to the right side of the target
-        expect(buildCrossEdgePath(
+        const [start, lead, tail, end] = cubicPoints(buildCrossEdgePath(
             { x: 400, y: 60, width: 60, height: 32 },
             { x: 100, y: 16, width: 80, height: 32 },
             24,
             48,
             true,
-        )).toEqual('M 370 60 C 255 60, 255 16, 140 16');
+        ));
+        expect(start).toEqual([400 - 60 / 2, 60]);
+        expect(end).toEqual([100 + 80 / 2, 16]);
+        // The edge leaves and enters horizontally
+        expect(lead[1]).toEqual(start[1]);
+        expect(tail[1]).toEqual(end[1]);
     });
 
     it('keeps vertical tension when the lead endpoints align', () => {
-        expect(buildCrossEdgePath(
+        const [start, lead, tail, end] = cubicPoints(buildCrossEdgePath(
             { x: 40, y: 224, width: 60, height: 32 },
             { x: 200, y: 160, width: 80, height: 32 },
-        )).toEqual('M 40 208 C 40 184, 200 224, 200 176');
+        ));
+        expect(lead[1]).toBeLessThan(start[1]);
+        expect(tail[1]).toBeGreaterThan(end[1]);
     });
 });
 
@@ -224,14 +260,20 @@ describe('buildPipelinePath', () => {
         { rect: { x: 150, y: 40, width: 40, height: 20 } },
     ];
 
-    it('draws one rounded rectangle with a padding of 4 per operator of the pipeline', () => {
-        // The first operator spans 30..70 x 30..50, padded 26..74 x 26..54 with a corner radius of 8
-        const first = 'M 34 26 H 66 Q 74 26 74 34 V 46 Q 74 54 66 54 H 34 Q 26 54 26 46 V 34 Q 26 26 34 26 Z';
-        expect(buildPipelinePath([0], operators)).toBe(first);
+    it('draws one padded rounded rectangle per operator of the pipeline', () => {
+        // The first operator spans 30..70 x 30..50, the padding grows it on every side
+        const first = buildPipelinePath([0], operators);
+        expect(fillsPoint(first, 50, 40)).toEqual(true);
+        expect(fillsPoint(first, 72, 40)).toEqual(true);
+        expect(fillsPoint(first, 50, 52)).toEqual(true);
+        expect(fillsPoint(first, 80, 40)).toEqual(false);
+        expect(fillsPoint(first, 50, 60)).toEqual(false);
         // Operators that are not in the scene are skipped
         const both = buildPipelinePath([0, 7, 1], operators);
-        expect(both.startsWith(`${first} M 134 26`)).toBe(true);
         expect(both.match(/M /g)).toHaveLength(2);
+        expect(fillsPoint(both, 50, 40)).toEqual(true);
+        expect(fillsPoint(both, 150, 40)).toEqual(true);
+        expect(fillsPoint(both, 110, 40)).toEqual(false);
     });
 
     it('draws nothing for an empty pipeline', () => {

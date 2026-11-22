@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { computeGridHeight, fittingRowCount } from './data_table.js';
+import { COLUMN_HEADER_HEIGHT, computeGridHeight, fittingRowCount, ROW_HEIGHT } from './data_table.js';
 
 describe('computeGridHeight', () => {
     it('keeps a fitted grid at its base result height when cross-filtering rows', () => {
@@ -8,7 +8,7 @@ describe('computeGridHeight', () => {
         const heightAfterCrossFiltering = computeGridHeight(8, 1, 108, 0, true, 568);
         const heightAfterCrossFilteringToZero = computeGridHeight(8, 0, 108, 0, true, 568);
 
-        expect(initialHeight).toBe(316);
+        expect(initialHeight).toBe(108 + 8 * ROW_HEIGHT);
         expect(heightAfterCrossFiltering).toBe(initialHeight);
         expect(heightAfterCrossFilteringToZero).toBe(initialHeight);
     });
@@ -20,11 +20,10 @@ describe('computeGridHeight', () => {
 
 describe('fittingRowCount', () => {
     it('counts the rows below the column header, the last one may be cut off', () => {
-        // 32px header, 26px rows
-        expect(fittingRowCount(32 + 5 * 26)).toBe(5);
-        expect(fittingRowCount(32 + 5 * 26 + 1)).toBe(6);
-        // The dashboard card of 226px shows a cut off eighth row and not 7 rows over a hole of 12px
-        expect(fittingRowCount(226)).toBe(8);
+        expect(fittingRowCount(COLUMN_HEADER_HEIGHT + 5 * ROW_HEIGHT)).toBe(5);
+        expect(fittingRowCount(COLUMN_HEADER_HEIGHT + 5 * ROW_HEIGHT + 1)).toBe(6);
+        // A host that is a little taller than 7 rows shows a cut off eighth row and not 7 rows over a hole
+        expect(fittingRowCount(COLUMN_HEADER_HEIGHT + 7 * ROW_HEIGHT + 12)).toBe(8);
     });
 
     it('shows one row in a host that is too small', () => {

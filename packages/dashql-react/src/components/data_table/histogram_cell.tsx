@@ -267,7 +267,7 @@ function HistogramCellImpl(props: HistogramCellProps): React.ReactElement {
                         height={height + margin.top + margin.bottom}
                     >
                         <g transform={`translate(${margin.left},${margin.top})`}>
-                            <g>
+                            <g data-part="bars">
                                 <HistogramBars
                                     binCounts={binCounts}
                                     filteredBinCounts={filteredBinCounts}
@@ -282,12 +282,14 @@ function HistogramCellImpl(props: HistogramCellProps): React.ReactElement {
                                 />
                             </g>
                             <g ref={brushContainer}
+                                data-part="brush"
                                 onPointerOver={onPointerOverBin}
                                 onPointerMove={onPointerOverBin}
                                 onPointerOut={onPointerOutBin}
                                 onClick={event => event.stopPropagation()}
                             />
                             <g
+                                data-part="axis"
                                 transform={`translate(0, ${height})`}
                                 onPointerOver={onPointerOverBin}
                                 onPointerMove={onPointerOverBin}

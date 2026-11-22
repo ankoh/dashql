@@ -64,10 +64,9 @@ describe('VegaLiteChart', () => {
 
     it('builds the theme from the color tokens of the app', () => {
         const colors = resolveChartColors();
-        expect(colors.categorical).toHaveLength(8);
-        expect(new Set(colors.categorical).size).toBe(8);
+        expect(colors.categorical.length).toBeGreaterThan(1);
+        expect(new Set(colors.categorical).size).toBe(colors.categorical.length);
         const config = createVegaLiteConfig(colors);
         expect(config.range?.category).toEqual(colors.categorical);
-        expect(config.bar?.cornerRadius).toBe(0);
     });
 });

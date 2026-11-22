@@ -7,6 +7,7 @@ vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
 import { QueryExecutionStatus, type QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 import { VEGALITE_PREVIEW_INSET, VegaLitePreview } from './vegalite_preview.js';
+import { createVegaLitePreviewConfig, resolveChartColors } from '../../vegalite/vegalite_theme.js';
 import type { VegaLiteViewDependencies } from '../vegalite_view.js';
 import { tableFromArrays } from '@akohn/dashql/platform/testing/arrow_fixtures';
 import { fakeQueryModel } from '../../testing/fake_models.js';
@@ -62,7 +63,8 @@ describe('VegaLitePreview', () => {
         ];
         expect([spec.width, spec.height]).toEqual([262 - 2 * VEGALITE_PREVIEW_INSET, 198 - 2 * VEGALITE_PREVIEW_INSET]);
         expect(JSON.stringify(spec)).toContain('"legend":null');
-        expect(options.config.axis.labelFontSize).toBe(8);
+        // The preview takes the config of the previews
+        expect(options.config.axis.labelFontSize).toBe(createVegaLitePreviewConfig(resolveChartColors()).axis?.labelFontSize);
         expect(options.config.axisX.labelAngle).toBe(0);
     });
 });

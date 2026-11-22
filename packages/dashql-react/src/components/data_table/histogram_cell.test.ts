@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as d3 from 'd3';
 
 import { SettledBrushUpdates } from './histogram_cell.js';
-import { useHistogramBrush } from './histogram_brush.js';
+import { BRUSH_SETTLE_DELAY_MS, useHistogramBrush } from './histogram_brush.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -19,13 +19,14 @@ describe('SettledBrushUpdates', () => {
         const callback = vi.fn();
         const updates = new SettledBrushUpdates<number>();
 
+        // Every update restarts the wait
         updates.schedule(1, callback);
-        vi.advanceTimersByTime(100);
+        vi.advanceTimersByTime(BRUSH_SETTLE_DELAY_MS - 1);
         updates.schedule(2, callback);
-        vi.advanceTimersByTime(100);
+        vi.advanceTimersByTime(BRUSH_SETTLE_DELAY_MS - 1);
 
         expect(callback).not.toHaveBeenCalled();
-        vi.advanceTimersByTime(20);
+        vi.advanceTimersByTime(1);
         expect(callback).toHaveBeenCalledOnce();
         expect(callback).toHaveBeenCalledWith(2);
     });
@@ -84,10 +85,7 @@ describe('useHistogramBrush', () => {
         expect(d3.brushSelection(brushGroup)).toBeNull();
         expect(onBrushUpdate).not.toHaveBeenCalled();
         for (const rect of brushGroup.querySelectorAll<SVGRectElement>('.selection, .handle')) {
-            expect(rect.getAttribute('x')).toBe('0');
-            expect(rect.getAttribute('y')).toBe('0');
-            expect(rect.getAttribute('width')).toBe('0');
-            expect(rect.getAttribute('height')).toBe('0');
+            expect(rect.style.display).toBe('none');
         }
 
         act(() => root.unmount());

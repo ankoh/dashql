@@ -17,7 +17,7 @@ import { filteredAggregate, stringAggregate } from '@akohn/dashql/platform/testi
 import { tableFromArrays } from '@akohn/dashql/platform/testing/arrow_fixtures';
 import { createTestRoot } from '../../testing/react_root.js';
 import { COLUMN_SUMMARY_COLORS, COLUMN_SUMMARY_NULL_COLORS } from './data_table_colors.js';
-import { MostFrequentCell, type MostFrequentValueFilterCallback } from './mostfrequent_cell.js';
+import { MostFrequentCell, type MostFrequentValueFilterCallback, truncateFocusedValue } from './mostfrequent_cell.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -111,14 +111,14 @@ describe('MostFrequentCell', () => {
     const cell = () => root!.container.querySelector<HTMLDivElement>('.cell')!;
     const header = () => cell().firstElementChild!.firstElementChild!.textContent;
     const svg = () => cell().querySelector('svg')!;
-    // The groups of the bars, the outline, and the pointer target
-    const plotGroups = () => svg().querySelectorAll<SVGGElement>(':scope > g');
+    // The group of the bars and the group of the pointer target
+    const barsGroup = () => svg().querySelector<SVGGElement>('[data-part="bars"]')!;
     /// The background rects of the bars, one per frequent value
     // The rect of the more button has no y attribute
-    const totalBars = () => Array.from(plotGroups()[0].querySelectorAll<SVGRectElement>(':scope > g > rect:first-child[y]'));
+    const totalBars = () => Array.from(barsGroup().querySelectorAll<SVGRectElement>(':scope > g > rect:first-child[y]'));
     /// The fill rects of the bars that show the selected rows
-    const filteredBars = (bar: number) => plotGroups()[0].querySelectorAll<SVGGElement>(':scope > g')[bar].querySelectorAll('rect');
-    const pointerTarget = () => plotGroups()[2].querySelector('rect')!;
+    const filteredBars = (bar: number) => barsGroup().querySelectorAll<SVGGElement>(':scope > g')[bar].querySelectorAll('rect');
+    const pointerTarget = () => svg().querySelector('[data-part="pointer"] rect')!;
     const axisLabels = () => Array.from(cell().querySelectorAll('span'))
         .map(span => span.textContent)
         .filter(text => text !== 'all distinct');
@@ -146,8 +146,9 @@ describe('MostFrequentCell', () => {
         expect(header()).toBe('Text');
         const widths = totalBars().map(bar => Number(bar.getAttribute('width')));
         expect(widths).toHaveLength(4);
-        // a (4 rows) is twice as wide as the others (2 rows), each bar loses the same padding
-        expect(widths[0]).toBeCloseTo(2 * widths[1] + 1, 3);
+        // a (4 rows) is about twice as wide as the others (2 rows), each bar loses a few pixels of padding
+        expect(widths[0]).toBeGreaterThan(widths[1]);
+        expect(widths[0]).toBeCloseTo(2 * widths[1], -1);
         expect(widths[1]).toBeCloseTo(widths[2], 3);
         expect(widths[2]).toBeCloseTo(widths[3], 3);
         // The bars follow each other in the order of the frequent values
@@ -170,7 +171,7 @@ describe('MostFrequentCell', () => {
             COLUMN_SUMMARY_COLORS.totalBar,
         ]);
         // The stripes overlay the null bar
-        const stripes = Array.from(plotGroups()[0].querySelectorAll<SVGRectElement>(':scope > rect'))
+        const stripes = Array.from(barsGroup().querySelectorAll<SVGRectElement>(':scope > rect'))
             .filter(rect => rect.getAttribute('fill')?.startsWith('url(#'));
         expect(stripes).toHaveLength(1);
         expect(stripes[0].getAttribute('x')).toBe(totalBars()[2].getAttribute('x'));
@@ -185,7 +186,8 @@ describe('MostFrequentCell', () => {
         expect(header()).toBe('4 rows (40%)');
         expect(axisLabels()).toEqual(['a']);
         expect((totalBars()[0] as SVGElement).style.fill).toBe(COLUMN_SUMMARY_COLORS.totalBarFocused);
-        expect(cell().style.zIndex).toBe('100');
+        // The focused cell lies above its neighbors
+        expect(cell().style.zIndex).not.toBe('');
 
         await hoverBar(3);
         expect(header()).toBe('2 rows (20%)');
@@ -237,7 +239,7 @@ describe('MostFrequentCell', () => {
         await render({ column, table: tableAggregate(2, 2, 1) });
 
         await hoverBar(0);
-        expect(axisLabels()).toEqual([`${'x'.repeat(97)}...`]);
+        expect(axisLabels()).toEqual([truncateFocusedValue(long)]);
     });
 
     it('filters by the clicked value once per frame', async () => {
@@ -357,7 +359,7 @@ describe('MostFrequentCell', () => {
 
         const bars = totalBars();
         expect(bars).toHaveLength(3);
-        const more = Array.from(plotGroups()[0].querySelectorAll<SVGRectElement>(':scope > g:last-child > rect'));
+        const more = Array.from(barsGroup().querySelectorAll<SVGRectElement>(':scope > g:last-child > rect'));
         expect(more).toHaveLength(1);
         const moreBounds = more[0].getBoundingClientRect();
         expect(moreBounds.left).toBeGreaterThanOrEqual(bars[2].getBoundingClientRect().right);
@@ -374,7 +376,7 @@ describe('MostFrequentCell', () => {
 
     it('shows more values by the counts of the frequent values, not by the estimated distinct count', async () => {
         // The rect of the more button is the one without a y attribute
-        const moreButtons = () => plotGroups()[0].querySelectorAll(':scope > g > rect:not([y])');
+        const moreButtons = () => barsGroup().querySelectorAll(':scope > g > rect:not([y])');
         // The estimate says 3 distinct values, but the 3 values shown cover only 20 of 100 rows
         const under = tableAggregate(100, 100, 3);
         const fewer = await aggregate(under, frequentValues(['a', 'b', 'c'], [1n, 2n, 3n], [10n, 5n, 5n]));

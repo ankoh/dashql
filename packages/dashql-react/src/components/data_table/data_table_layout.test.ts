@@ -6,7 +6,7 @@ import { valueColumn } from '../../testing/computation_mocks.js';
 import type { ComputationColumnGroup } from '@akohn/dashql';
 import { ORDINAL_COLUMN, ROWNUMBER_COLUMN, STRING_COLUMN } from '@akohn/dashql/platform/compute/computation_types';
 import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
-import { computeTableLayout, DataTableLayout } from './data_table_layout.js';
+import { computeTableLayout, DataTableLayout, MIN_COLUMN_WIDTH, ROW_HEADER_WIDTH } from './data_table_layout.js';
 import { tableFromArrays, vectorFromArray } from '@akohn/dashql/platform/testing/arrow_fixtures';
 
 function createTableState() {
@@ -57,13 +57,13 @@ describe('computeTableLayout', () => {
     it('applies resized widths and stretches only the other columns', () => {
         const { state, formatter } = createTableState();
         const natural = columnWidths(computeTableLayout(formatter, state, false, 1));
-        expect(natural).toEqual([48, 120, 120]);
+        expect(natural).toEqual([ROW_HEADER_WIDTH, MIN_COLUMN_WIDTH, MIN_COLUMN_WIDTH]);
 
         const resized = computeTableLayout(formatter, state, false, 1, 0, null, new Map([['a', 200]]));
-        expect(columnWidths(resized)).toEqual([48, 200, 120]);
+        expect(columnWidths(resized)).toEqual([ROW_HEADER_WIDTH, 200, MIN_COLUMN_WIDTH]);
 
         const stretched = computeTableLayout(formatter, state, false, 1, 600, null, new Map([['a', 80]]));
-        expect(columnWidths(stretched)).toEqual([48, 80, 472]);
+        expect(columnWidths(stretched)).toEqual([ROW_HEADER_WIDTH, 80, 600 - ROW_HEADER_WIDTH - 80]);
     });
 
     it('shows the bin and value id columns as system columns', () => {

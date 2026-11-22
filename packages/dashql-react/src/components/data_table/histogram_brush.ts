@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as d3 from 'd3';
 
-const BRUSH_SETTLE_DELAY_MS = 120;
+export const BRUSH_SETTLE_DELAY_MS = 120;
 
 function hideBrushSelection(container: SVGGElement): void {
     d3.select(container)

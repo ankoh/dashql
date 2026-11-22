@@ -16,9 +16,9 @@ export interface DataTableLayout {
 }
 
 const MAX_VALUE_COLUMN_WIDTH = 300;
-const MIN_COLUMN_WIDTH = 120;
+export const MIN_COLUMN_WIDTH = 120;
 const COLUMN_HEADER_ACTION_WIDTH = 24;
-const ROW_HEADER_WIDTH = 48;
+export const ROW_HEADER_WIDTH = 48;
 const FORMATTER_PIXEL_SCALING = 10;
 
 function computeColumnCount(columnGroups: ComputationColumnGroup[], showMetaColumns: boolean, visibleColumnGroups?: ReadonlySet<number> | null): number {

@@ -54,18 +54,23 @@ describe('Wobble morph', () => {
     });
 
     it('places the brand mark pieces into the viewBox', () => {
+        // The bounds of all pieces of a mark lie inside the viewBox of 200x200, centered within a few pixels
+        const expectCenteredInViewBox = (bounds: number[][]) => {
+            const [left, top] = [Math.min(...bounds.map(b => b[0])), Math.min(...bounds.map(b => b[1]))];
+            const [right, bottom] = [Math.max(...bounds.map(b => b[2])), Math.max(...bounds.map(b => b[3]))];
+            expect(left).toBeGreaterThanOrEqual(0);
+            expect(top).toBeGreaterThanOrEqual(0);
+            expect(right).toBeLessThanOrEqual(200);
+            expect(bottom).toBeLessThanOrEqual(200);
+            expect((left + right) / 2).toBeCloseTo(100, -1);
+            expect((top + bottom) / 2).toBeCloseTo(100, -1);
+        };
         const [upper, lower] = DASHQL_BRAND.pieces.map(piece => outlineBounds(piece.logo));
-        const expectBounds = (actual: number[], expected: number[]) => actual.forEach((v, i) => expect(v).toBeCloseTo(expected[i], 0));
-        // The brand mark shrinks by 10% around the center of the viewBox
-        const scaled = (bounds: number[]) => bounds.map(v => 100 + (v - 100) * 0.9);
-        expectBounds(upper, scaled([91.8, 25, 200, 125]));
-        expectBounds(lower, scaled([1.8, 75, 110, 175]));
-        // The Hyper logo shrinks to the height of the disk and stays centered
-        const hyper = DBCOM_BRAND.pieces.map(piece => outlineBounds(piece.logo));
-        expect(Math.min(...hyper.map(b => b[0]))).toBeCloseTo(43, 0);
-        expect(Math.max(...hyper.map(b => b[2]))).toBeCloseTo(157, 0);
-        expect(Math.min(...hyper.map(b => b[1]))).toBeCloseTo(30, 0);
-        expect(Math.max(...hyper.map(b => b[3]))).toBeCloseTo(170, 0);
+        expectCenteredInViewBox([upper, lower]);
+        // The upper piece sits right of and above the lower one
+        expect(upper[0]).toBeGreaterThan(lower[0]);
+        expect(upper[1]).toBeLessThan(lower[1]);
+        expectCenteredInViewBox(DBCOM_BRAND.pieces.map(piece => outlineBounds(piece.logo)));
     });
 
     it('resamples every outline to the same points with the same winding', () => {

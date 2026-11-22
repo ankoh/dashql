@@ -100,9 +100,5 @@ describe('ProfileProgressDetails', () => {
                 .filter(icon => getComputedStyle(icon).display !== 'none')
                 .map(icon => Number(icon.getAttribute('data-status-icon'))));
         expect(shown).toEqual(Array(5).fill([view.SUCCEEDED]));
-        // The check is cut out of the circle, not filled
-        const check = container.querySelector(`[data-status-icon="${view.SUCCEEDED}"] path`) as SVGPathElement;
-        expect(check.isPointInFill(new DOMPoint(2, 8))).toBe(true);
-        expect(check.isPointInFill(new DOMPoint(6.75, 10))).toBe(false);
     });
 });

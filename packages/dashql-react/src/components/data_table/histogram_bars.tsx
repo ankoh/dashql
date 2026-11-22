@@ -62,7 +62,7 @@ function HistogramBarsImpl(props: HistogramBarsProps): React.ReactElement {
         <>
             {totalBars}
             {focusedTotalGeometry != null && (
-                <rect key={`focused-${props.focusedBin}`} {...focusedTotalGeometry} style={{ fill: props.totalBarFocusedColor }} />
+                <rect key={`focused-${props.focusedBin}`} data-part="focus" {...focusedTotalGeometry} style={{ fill: props.totalBarFocusedColor }} />
             )}
             {filteredBars}
             {focusedFilteredGeometry != null && (
@@ -108,6 +108,7 @@ export function HistogramNullBar(props: HistogramNullBarProps): React.ReactEleme
 
     return (
         <g
+            data-part="null"
             transform={`translate(${props.transformX}, 0)`}
             onPointerOver={props.onPointerOver}
             onPointerMove={props.onPointerOver}

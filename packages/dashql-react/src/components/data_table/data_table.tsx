@@ -70,11 +70,11 @@ type Props = DataTableProps;
 
 const MIN_GRID_HEIGHT = 200;
 const MIN_GRID_WIDTH = 100;
-const COLUMN_HEADER_HEIGHT = 32;
+export const COLUMN_HEADER_HEIGHT = 32;
 const COLUMN_HEADER_PLOTS_HEIGHT = 76;
 /// The row of the column plots shrinks to a strip that still holds its toggle
 const COLUMN_HEADER_PLOTS_COLLAPSED_HEIGHT = 18;
-const ROW_HEIGHT = 26;
+export const ROW_HEIGHT = 26;
 /// The row under a preview that `maxRows` cuts, it counts the rows that the preview leaves out
 const MORE_ROWS_HEIGHT = 24;
 const GRID_OVERSCAN_COUNT = 10;
