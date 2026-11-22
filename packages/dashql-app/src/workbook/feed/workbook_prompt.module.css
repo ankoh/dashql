@@ -86,10 +86,11 @@
 }
 
 /* The composer narrows to the bar of the other views of the workbook and widens to the prompt of the feed. Only the
-   composer takes clicks, its padding lets them through to the view below, e.g. the controls of the dataflow. */
+   composer takes clicks, its padding lets them through to the view below, e.g. the controls of the dataflow. Over
+   the feed it stands out of the cards of the scripts also at their maximum width. */
 .prompt_body > * {
     pointer-events: auto;
-    max-width: 100%;
+    max-width: min(100%, calc(var(--feed_card_max_width, 100%) + 2 * var(--prompt_overhang)));
     margin-inline: auto;
     transition: max-width var(--prompt_morph);
 }

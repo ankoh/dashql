@@ -3,6 +3,8 @@
     --workbook_navigation_sidebar_width: 276px;
     /* The space between the items of a group of the bar, e.g. Execute All and its status */
     --workbook_bar_item_gap: 6px;
+    /* The cards of the feed stop growing at this width and center, wider lines of SQL only get harder to read */
+    --feed_card_max_width: 1200px;
     width: 100%;
     height: 100%;
     display: grid;

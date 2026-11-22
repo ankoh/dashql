@@ -15,6 +15,13 @@
     grid-template-columns: minmax(0, 1fr);
 }
 
+/* The space left of the head and the cards: the gutter, more once the cards reach their maximum width and center.
+   The percentage resolves where the variable is used, against the width of the head or the row. */
+.feed_head,
+.feed_list_item {
+    --feed_side: max(var(--page_gutter), calc((100% - var(--feed-scrollbar-inset, 0px) - var(--feed_card_max_width, 100%)) / 2));
+}
+
 /* The head of the feed, the sections of the parameters and the attachments under their labels. It keeps the gutter of
    the scripts, absent without parameters and attachments. */
 .feed_head {
@@ -22,7 +29,7 @@
     flex-direction: column;
     /* The gap between the sections of the dashboard */
     gap: 24px;
-    padding: 0 calc(var(--page_gutter) + var(--feed-scrollbar-inset, 0px)) 0 var(--page_gutter);
+    padding: 0 calc(var(--feed_side) + var(--feed-scrollbar-inset, 0px)) 0 var(--feed_side);
 }
 
 .feed_head:empty {
@@ -203,7 +210,7 @@
     display: flex;
     width: 100%;
     box-sizing: border-box;
-    padding: 0 calc(var(--page_gutter) + var(--feed-scrollbar-inset, 0px)) 0 var(--page_gutter);
+    padding: 0 calc(var(--feed_side) + var(--feed-scrollbar-inset, 0px)) 0 var(--feed_side);
 }
 
 /* The spaces above and below the card keep it hovered while the pointer is on an add button in them.
@@ -231,7 +238,7 @@
     appearance: none;
     position: absolute;
     /* Lines up with the right border of the card, the card ends before the scrollbar inset */
-    right: calc(var(--page_gutter) + var(--feed-scrollbar-inset, 0px));
+    right: calc(var(--feed_side) + var(--feed-scrollbar-inset, 0px));
     z-index: 3;
     width: 22px;
     height: 22px;
@@ -279,7 +286,7 @@
     position: absolute;
     top: 12px;
     /* Inside the card, in the space left of its title */
-    left: calc(var(--page_gutter) + 6px);
+    left: calc(var(--feed_side) + 6px);
     z-index: 2;
     width: 16px;
     height: 16px;
