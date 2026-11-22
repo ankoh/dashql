@@ -282,7 +282,7 @@ decides on. The tab logs in as it does for its own runs, no token reaches the te
 
 - The way back from an edit of the agent: the editor may not undo a text that was set from outside.
 - Scripts that the agent creates take the name that the page gives them, a run of the agent names its file.
-- Scripts that the agent deletes or renames, the order of the scripts, the attachments of a copy.
+- Scripts that the agent deletes or renames, the attachments of a copy.
 - The functions of a connection in its catalog file, client functions included.
 
 ## Tests

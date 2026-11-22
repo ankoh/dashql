@@ -43,15 +43,6 @@ describe('dashql move', () => {
         expect(workbook.scripts[0]).toEqual({ name: 'chart.sql', connectionId: 'hyper' });
     });
 
-    it('lists a script of the folder that the workbook file does not name yet, on the connection of its neighbor', async () => {
-        const dir = workbookFolder();
-        expect((await moveIn(dir, ['.', 'new', '--after', 'chart'])).code).toBe(0);
-        expect(workbookOf(dir).scripts.at(-1)).toEqual({ name: 'new.sql', connectionId: 'hyper' });
-        const first = workbookFolder();
-        expect((await moveIn(first, ['.', 'new', '--first'])).code).toBe(0);
-        expect(workbookOf(first).scripts[0]).toEqual({ name: 'new.sql', connectionId: 'c1' });
-    });
-
     it('checks its arguments', async () => {
         const dir = workbookFolder();
         expect((await moveIn(dir, ['--help'])).stdout).toBe(`${MOVE_USAGE}\n`);
@@ -63,7 +54,8 @@ describe('dashql move', () => {
         await usage(['.', 'chart'], `error: name one place: --before <script>, --after <script>, --first or --last\n\n${MOVE_USAGE}\n`);
         await usage(['.', 'chart', '--first', '--last'], `error: name one place: --before <script>, --after <script>, --first or --last\n\n${MOVE_USAGE}\n`);
         await usage(['.', '--first'], `error: missing the workbook folder or the script\n\n${MOVE_USAGE}\n`);
-        await usage(['.', 'gone', '--first'], 'error: the workbook has no script scripts/gone.sql\n');
+        await usage(['.', 'gone', '--first'], 'error: dashql-workbook.json lists no script gone.sql, add {"name": "gone.sql", "connectionId": "<id>"} where it goes\n');
+        await usage(['.', 'new', '--first'], 'error: dashql-workbook.json lists no script new.sql, add {"name": "new.sql", "connectionId": "<id>"} where it goes\n');
         await usage(['.', 'chart', '--after', 'gone'], 'error: dashql-workbook.json lists no script gone.sql, its scripts are orders.sql, top.sql\n');
         await usage(['.', 'chart', '--after', 'chart'], "error: chart.sql can't go after itself\n");
         await usage([testFiles([]), 'chart', '--first'], expect.stringContaining('is no workbook folder'));

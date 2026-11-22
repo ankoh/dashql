@@ -79,6 +79,15 @@ export function copyScriptOrder(workbookFile: string): string[] {
     }
 }
 
+/// The script of the page with its file name for a script of a copy: a script that the page created for a new script
+/// of the agent may have another name than in the copy
+function pageScriptOf(scripts: Map<string, PageScript>, copy: Pick<Copy, 'created'>, fileName: string): [string, PageScript] | undefined {
+    const script = scripts.get(fileName);
+    if (script != null) return [fileName, script];
+    const key = copy.created.get(fileName);
+    return [...scripts].find(([, other]) => other.scriptKey === key);
+}
+
 /// The scripts of the page by their names in a copy, in the order of the page: a script that the page created for a
 /// new script of the agent has the name of the copy
 function copyNamesOf(scripts: Map<string, PageScript>, copy: Pick<Copy, 'created'>): Map<string, PageScript> {
@@ -112,11 +121,12 @@ export interface AgentSessionCopyHost {
     catalogs: () => Map<string, CopyCatalog>;
     /// Set the text of a script to the one of the agent
     setScriptText: (workbookId: string, scriptKey: number, text: string) => void;
-    /// Create a script with a text, on a connection or on the connection of its neighbors, returns its key
-    createScript: (workbookId: string, base: string, text: string, connectionId: string | null) => number | null;
+    /// Create a script with a text at an index of the feed or at the end, on a connection or on the connection of its
+    /// neighbors, returns its key
+    createScript: (workbookId: string, base: string, text: string, connectionId: string | null, index: number | null) => number | null;
     /// Move a script to a connection, false if the page doesn't have the connection
     setScriptConnection: (workbookId: string, scriptKey: number, connectionId: string) => boolean;
-    /// Order the scripts of a workbook by their file names, the ones that the order leaves out keep their places
+    /// Order the scripts of a workbook by their file names, the ones that the order leaves out follow
     reorderScripts: (workbookId: string, order: string[]) => void;
     /// Wait for a time, the tests run it at once
     delay: (ms: number) => Promise<void>;
@@ -193,12 +203,11 @@ export function agentSessionCopyHost(runtime: Runtime, target: AgentSessionTarge
         setScriptText: (workbookId, scriptKey, text) => {
             runtime.dispatch({ workbook: workbookId }, { kind: 'setScriptText', value: { scriptKey, text } });
         },
-        createScript: (workbookId, base, text, connectionId) => {
+        createScript: (workbookId, base, text, connectionId, index) => {
             const before = new Set(refsOf(workbookId).map(ref => ref.scriptId));
-            // A connection that the page doesn't have leaves the script on the connection of its neighbors. The agent
-            // tells no place, the script goes by what it reads and what reads it.
+            // A connection that the page doesn't have leaves the script on the connection of its neighbors
             const known = connectionId != null && runtime.store.get('connection', connectionId) != null;
-            const value = { text, base, byReferences: true };
+            const value = { text, base, ...(index != null ? { index } : {}) };
             runtime.dispatch({ workbook: workbookId }, { kind: 'createScript', value: known ? { ...value, connectionId } : value });
             runtime.flush();
             return refsOf(workbookId).find(ref => !before.has(ref.scriptId))?.scriptId ?? null;
@@ -367,21 +376,26 @@ export class AgentSessionCopies {
         const fileName = path.slice(STORAGE_SCRIPTS_FOLDER.length + 1);
         // The copy holds it now, the page doesn't write it back
         copy.texts.set(fileName, text);
-        const createdKey = copy.created.get(fileName);
-        const script = scripts.get(fileName) ?? [...scripts.values()].find(other => other.scriptKey === createdKey);
+        const script = pageScriptOf(scripts, copy, fileName)?.[1];
         if (script != null) {
             if (script.text !== text) this.host.setScriptText(workbookId, script.scriptKey, text);
             return;
         }
-        // A new script runs on the connection that the workbook file of the copy names for it
-        let connectionId: string | null = null;
+        // A new script goes where the workbook file of the copy lists it, at the end if it doesn't, and runs on the
+        // connection that the file names for it, else on the connection of the script before it
+        let workbookFile = '';
         try {
-            connectionId = copyScriptConnections(await this.host.fetchText(workbookId, STORAGE_WORKBOOK_FILE)).get(fileName) ?? null;
+            workbookFile = await this.host.fetchText(workbookId, STORAGE_WORKBOOK_FILE);
         } catch {
-            // No workbook file, the script takes the connection of its neighbors
+            // No workbook file
         }
-        if (this.copies.get(workbookId) !== copy) return;
-        const key = this.host.createScript(workbookId, fileName.replace(/\.sql$/, ''), text, connectionId);
+        const current = this.host.scripts(workbookId);
+        if (current == null || this.copies.get(workbookId) !== copy) return;
+        const order = copyScriptOrder(workbookFile);
+        const listed = order.indexOf(fileName);
+        const index = listed < 0 ? null : order.slice(0, listed).filter(name => pageScriptOf(current, copy, name) != null).length;
+        const connectionId = copyScriptConnections(workbookFile).get(fileName) ?? null;
+        const key = this.host.createScript(workbookId, fileName.replace(/\.sql$/, ''), text, connectionId, index);
         if (key != null) copy.created.set(fileName, key);
     }
 
@@ -389,27 +403,17 @@ export class AgentSessionCopies {
     /// and into its order
     private async takeWorkbookFile(workbookId: string, copy: Copy): Promise<void> {
         const workbookFile = await this.host.fetchText(workbookId, STORAGE_WORKBOOK_FILE);
-        const connections = copyScriptConnections(workbookFile);
         const scripts = this.host.scripts(workbookId);
         if (scripts == null || this.copies.get(workbookId) !== copy) return;
-        // The scripts of the copy by the names of the page, a script that the page created for the agent may have
-        // another one
-        const pageNames = new Map<string, string>();
-        for (const fileName of scripts.keys()) pageNames.set(fileName, fileName);
-        for (const [fileName, key] of copy.created) {
-            const created = [...scripts].find(([, script]) => script.scriptKey === key);
-            if (created != null) pageNames.set(fileName, created[0]);
-        }
         const copyOrder = copyScriptOrder(workbookFile);
-        const order = copyOrder.flatMap(fileName => pageNames.get(fileName) ?? []);
+        const order = copyOrder.flatMap(fileName => pageScriptOf(scripts, copy, fileName)?.[0] ?? []);
         if (order.length > 0) this.host.reorderScripts(workbookId, order);
         // A workbook file that names every script in the new order of the page holds it already, the page doesn't
         // write it again over a later change of the agent
         const reordered = [...copyNamesOf(this.host.scripts(workbookId) ?? scripts, copy).keys()].join('\n');
         if (copyOrder.join('\n') === reordered) copy.order = reordered;
-        for (const [fileName, connectionId] of connections) {
-            const createdKey = copy.created.get(fileName);
-            const script = scripts.get(fileName) ?? [...scripts.values()].find(other => other.scriptKey === createdKey);
+        for (const [fileName, connectionId] of copyScriptConnections(workbookFile)) {
+            const script = pageScriptOf(scripts, copy, fileName)?.[1];
             if (script == null || script.connectionId === connectionId) continue;
             if (!this.host.setScriptConnection(workbookId, script.scriptKey, connectionId)) {
                 this.logger.warn('The agent named a connection that the page does not have', { workbook: workbookId, script: fileName, connection: connectionId }, LOG_CTX);

@@ -101,12 +101,11 @@ dashql move <workbook-dir> <script> (--before <script> | --after <script> | --fi
 ```
 
 Moves a script of a workbook folder in the feed: the order of the scripts in `dashql-workbook.json`, which the feed of
-DashQL shows. A script is named like `orders`, `orders.sql` or `scripts/orders.sql`. A script file that the workbook
-file doesn't list yet goes in with the connection of the script before it. The other fields of the file stay, the
-command prints the new order. The tab of a session takes the order of a workbook that it copied
-(`docs/design/agent_session.md`), and puts a new script of the agent after the scripts that it reads and before the
-ones that read it, so the agent moves scripts only to put them elsewhere. Agents move scripts with it instead of
-editing the list of the workbook file, which they get wrong.
+DashQL shows. A script is named like `orders`, `orders.sql` or `scripts/orders.sql`; a script that the workbook file
+doesn't list fails. The other fields of the file stay, the command prints the new order. The tab of a session takes
+the order of a workbook that it copied (`docs/design/agent_session.md`), and puts a new script of the agent where the
+workbook file lists it, at the end without an entry. Agents move scripts with it instead of editing the list of the
+workbook file, which they get wrong.
 
 ## dashql init
 

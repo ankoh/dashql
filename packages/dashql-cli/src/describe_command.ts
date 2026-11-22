@@ -22,8 +22,9 @@ A workbook folder:
   dashql-workbook.json          The name, the connections (connectionId, name, params without secrets) and the
                                 scripts in the order of the feed, each with the connection it runs on:
                                 {"name": "revenue.sql", "connectionId": "<id>"}. A new script that it doesn't list
-                                runs on the connection of its neighbors. To put a new script on another connection,
-                                add its entry first, then write the script.
+                                goes to the end and runs on the connection of the script before it. To put a new
+                                script at a place or on another connection, add its entry there first, then write
+                                the script.
   scripts/<name>.sql            One script per file, with a short snake_case name.
   attachments/<name>.parquet    Tables that the user attached to the workbook in DashQL, scripts on the embedded
                                 Hyper read them as :name. Only the user adds them, the tab does not take files
@@ -114,8 +115,8 @@ How to work:
    workbook folder, not a copy of it: the tab follows the folder. A workbook that the tab copied runs in the tab, on
    the connections that the user lets you use, and the user watches the run there.
 3. Chart a result that a chart explains better than a table, and check it with dashql vis.
-   The tab puts a new script after the scripts that it reads and before the ones that read it. Move a script with
-   dashql move only to put it elsewhere, e.g. next to the scripts of its topic.
+   The tab puts a new script where dashql-workbook.json lists it. Move a script with dashql move, e.g. next to the
+   scripts of its topic.
 4. The user watches the scripts change and run. Do not recap your steps, the queries or the results: end with one
    plain sentence that answers the request, or with nothing if the results already answer it.
 

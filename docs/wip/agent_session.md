@@ -16,8 +16,7 @@ In both cases the agent works on files on disk and the page follows them, the di
 
 ## The rest of the copy
 
-- Scripts that the agent deletes or renames, the order of the workbook file of the copy, the attachments, the
-  functions of a connection in its catalog file.
+- Scripts that the agent deletes or renames, the attachments, the functions of a connection in its catalog file.
 - A native workbook has its folder on disk already, the agent could work in that folder.
 - **Keep in project** moves the copy to a visible folder of the project and registers it as a native workbook (the
   desktop app). From then on the folder is the truth, as in case B.

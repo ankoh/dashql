@@ -1,9 +1,9 @@
 // `dashql move`: move a script of a workbook folder in the feed, the order of the scripts of its dashql-workbook.json.
 // An agent moves scripts with it instead of editing the list of the workbook file.
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
-import { STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE } from '@akohn/dashql/platform/storage/storage_backend';
+import { STORAGE_WORKBOOK_FILE } from '@akohn/dashql/platform/storage/storage_backend';
 
 import { EXIT_FAILED, EXIT_OK, EXIT_USAGE, type CliProcess } from './cli_process.js';
 import { scriptFileName } from './vis_command.js';
@@ -11,12 +11,8 @@ import { scriptFileName } from './vis_command.js';
 export const MOVE_USAGE = `Usage: dashql move <workbook-dir> <script> (--before <script> | --after <script> | --first | --last)
 
 Moves a script of a workbook folder in the feed: the order of the scripts in dashql-workbook.json, which the feed of
-DashQL shows. A script is named like orders, orders.sql or scripts/orders.sql. A script of the folder that the workbook
-file doesn't list yet goes in with the connection of the script before it. Prints the new order. The tab of a session
-of dashql connect takes the order of a workbook that it copied.
-
-A new script that the tab takes goes after the scripts that it reads and before the ones that read it, move a script
-only to put it elsewhere.`;
+DashQL shows. A script is named like orders, orders.sql or scripts/orders.sql, the workbook file lists it. Prints the
+new order. The tab of a session of dashql connect takes the order of a workbook that it copied.`;
 
 /// Where a script goes
 type Target = { kind: 'before' | 'after'; script: string } | { kind: 'first' | 'last' };
@@ -75,8 +71,8 @@ export function runMove(args: string[], cli: CliProcess): number {
         .filter((entry): entry is ScriptEntry => typeof entry?.name === 'string');
     const name = scriptFileName(parsed.script);
     const listed = entries.findIndex(entry => entry.name === name);
-    if (listed < 0 && !existsSync(path.join(dir, STORAGE_SCRIPTS_FOLDER, name))) {
-        cli.stderr(`error: the workbook has no script ${STORAGE_SCRIPTS_FOLDER}/${name}\n`);
+    if (listed < 0) {
+        cli.stderr(`error: ${STORAGE_WORKBOOK_FILE} lists no script ${name}, add {"name": "${name}", "connectionId": "<id>"} where it goes\n`);
         return EXIT_USAGE;
     }
     const others = entries.filter((_, index) => index !== listed);
@@ -100,12 +96,7 @@ export function runMove(args: string[], cli: CliProcess): number {
             at = parsed.target.kind === 'before' ? index : index + 1;
         }
     }
-    // A script that the list doesn't name yet runs on the connection of its neighbor, like in the tab
-    const neighbor = others[at - 1] ?? others[at];
-    const entry: ScriptEntry = listed >= 0
-        ? entries[listed]
-        : { name, ...(neighbor?.connectionId != null ? { connectionId: neighbor.connectionId } : {}) };
-    const scripts = [...others.slice(0, at), entry, ...others.slice(at)];
+    const scripts = [...others.slice(0, at), entries[listed], ...others.slice(at)];
     try {
         writeFileSync(file, `${JSON.stringify({ ...workbook, scripts }, null, 2)}\n`);
     } catch (error) {
