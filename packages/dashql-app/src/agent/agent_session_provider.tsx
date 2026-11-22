@@ -26,7 +26,6 @@ import {
 import { ComposerMode, newAgentConnectTarget, type ConnectHarness } from './agent_connect.js';
 import { AgentSessionCopies, agentSessionCopyHost } from './agent_session_copy.js';
 import { agentConnections, isAgentConnectionAllowed, type AgentConnectionChoices } from './agent_connections.js';
-import { useCloudConnectionIds } from '../connections/cloud_connection.js';
 import { useAppFlavor } from '../config/flavor_provider.js';
 import { AgentSessionRuns, renderScriptChart, sendStoredResult } from './agent_session_runs.js';
 import { useWorkbookResults } from '../storage/workbook_results_provider.js';
@@ -152,7 +151,7 @@ export interface AgentConnect {
     /// The side that is too old when the server of the target answers with a protocol that the page doesn't speak:
     /// the server, then the command runs an older dashql-cli, or the page. Null while the two speak or before an answer.
     outdated: AgentSessionOutdated | null;
-    /// May the agent use a connection? Every connection but a cloud until the user ticks or unticks it
+    /// May the agent use a connection? The connections of the workbooks until the user ticks or unticks one
     isConnectionAllowed: (connectionId: string) => boolean;
     /// Allow or forbid a connection for the agent
     toggleConnection: (connectionId: string) => void;
@@ -241,15 +240,32 @@ export const AgentSessionProvider: React.FC<React.PropsWithChildren> = (props) =
         copied.current.copies?.dispose();
         copied.current = { target: null, session: '', workbooks: new Set(), copies: null };
     }, []);
+    // The connections that the shown workbooks and the copies of the session use: the agent gets only these until the
+    // user ticks more, every connection would confuse it
+    const [usedConnectionIds, setUsedConnectionIds] = React.useState<readonly string[]>([]);
+    const usedConnectionIdsRef = React.useRef(usedConnectionIds);
+    usedConnectionIdsRef.current = usedConnectionIds;
+    const refreshUsedConnections = React.useCallback(() => {
+        if (runtime == null) return;
+        const workbookIds = new Set(shown.current.keys());
+        if (copied.current.target === target) for (const workbookId of copied.current.workbooks) workbookIds.add(workbookId);
+        const used = new Set<string>();
+        for (const workbookId of workbookIds) {
+            for (const connectionId of runtime.store.get('workbook', workbookId)?.connectionIds ?? []) used.add(connectionId);
+        }
+        const next = [...used].sort();
+        setUsedConnectionIds(prev => prev.length === next.length && prev.every((connectionId, i) => connectionId === next[i]) ? prev : next);
+    }, [runtime, target]);
+    React.useEffect(() => {
+        refreshUsedConnections();
+        return runtime?.store.subscribeKind('workbook', refreshUsedConnections);
+    }, [runtime, refreshUsedConnections]);
     // The connections of the agent, per target. The session gets them once its server answers and after every change.
-    const cloudConnectionIds = useCloudConnectionIds();
-    const cloudConnectionIdsRef = React.useRef(cloudConnectionIds);
-    cloudConnectionIdsRef.current = cloudConnectionIds;
     const [agentSelection, setAgentSelection] = React.useState(() => ({ target, choices: readTabChoices(target) }));
     const choices = agentSelection.target === target ? agentSelection.choices : readTabChoices(target);
     const isConnectionAllowed = React.useCallback(
-        (connectionId: string) => isAgentConnectionAllowed(connectionId, choices, cloudConnectionIds),
-        [choices, cloudConnectionIds],
+        (connectionId: string) => isAgentConnectionAllowed(connectionId, choices, usedConnectionIds),
+        [choices, usedConnectionIds],
     );
     const isConnectionAllowedRef = React.useRef(isConnectionAllowed);
     isConnectionAllowedRef.current = isConnectionAllowed;
@@ -257,7 +273,7 @@ export const AgentSessionProvider: React.FC<React.PropsWithChildren> = (props) =
         if (target == null) return;
         setAgentSelection(prev => {
             const next = new Map(prev.target === target ? prev.choices : readTabChoices(target));
-            next.set(connectionId, !isAgentConnectionAllowed(connectionId, next, cloudConnectionIdsRef.current));
+            next.set(connectionId, !isAgentConnectionAllowed(connectionId, next, usedConnectionIdsRef.current));
             writeTabChoices(target, next);
             return { target, choices: next };
         });
@@ -291,13 +307,15 @@ export const AgentSessionProvider: React.FC<React.PropsWithChildren> = (props) =
         show: workbookId => {
             shown.current.set(workbookId, (shown.current.get(workbookId) ?? 0) + 1);
             copyShown();
+            refreshUsedConnections();
             return () => {
                 const count = (shown.current.get(workbookId) ?? 1) - 1;
                 if (count > 0) shown.current.set(workbookId, count);
                 else shown.current.delete(workbookId);
+                refreshUsedConnections();
             };
         },
-    }), [copyShown]);
+    }), [copyShown, refreshUsedConnections]);
     // AI waits on a target, the first switch picks one
     React.useEffect(() => {
         if (connect.mode === ComposerMode.Ai && target == null) follow(newAgentConnectTarget());
@@ -331,6 +349,7 @@ export const AgentSessionProvider: React.FC<React.PropsWithChildren> = (props) =
             // The copies never end the stream of the session
             try {
                 copyShown();
+                refreshUsedConnections();
                 sendConnections();
                 void copies?.update(state);
                 // An ended session takes no edits of the page
@@ -371,7 +390,7 @@ export const AgentSessionProvider: React.FC<React.PropsWithChildren> = (props) =
             controller.abort();
             runs?.dispose();
         };
-    }, [target, store, logger, runtime, results, updateConnect, copyShown, copiesOf, sendConnections]);
+    }, [target, store, logger, runtime, results, updateConnect, copyShown, copiesOf, sendConnections, refreshUsedConnections]);
     // The changes of the agent wait while the user has the workbooks, and come in when the agent gets them back
     React.useEffect(() => {
         void copied.current.copies?.pause(userHasControl);

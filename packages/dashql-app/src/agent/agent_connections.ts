@@ -7,10 +7,10 @@ import { listedConnections } from '../connections/connection_tree.js';
 /// What the user ticked in the menu of the agent: true for a ticked connection, false for an unticked one
 export type AgentConnectionChoices = ReadonlyMap<string, boolean>;
 
-/// May the agent use a connection? What the user ticked, else every connection but a cloud: a cloud keeps the
-/// published workbooks, the agent gets it only once the user ticks it. A new connection is allowed until it is unticked.
-export function isAgentConnectionAllowed(connectionId: string, choices: AgentConnectionChoices, cloudConnectionIds: readonly string[]): boolean {
-    return choices.get(connectionId) ?? !cloudConnectionIds.includes(connectionId);
+/// May the agent use a connection? What the user ticked, else only the connections that the workbooks of the session
+/// use: more connections confuse the agent, the user ticks the others when the agent needs them.
+export function isAgentConnectionAllowed(connectionId: string, choices: AgentConnectionChoices, usedConnectionIds: readonly string[]): boolean {
+    return choices.get(connectionId) ?? usedConnectionIds.includes(connectionId);
 }
 
 /// The connections that the agent of a session may use among the connections that the menus list

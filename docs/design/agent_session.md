@@ -183,8 +183,9 @@ first runs.
 
 The connection picker of the prompt becomes, in AI, a menu `2 / 4 connections` (`agent/agent_connections_picker.tsx`):
 the list of connections of the connection picker with a checkbox as the trailing visual of each, the clouds in a group
-of their own after the other connections. Every connection but a cloud is allowed until the user unticks it, also a new
-one; a cloud keeps the published workbooks and is allowed only once the user ticks it. The tab keeps what the user
+of their own after the other connections. Only the connections that the shown workbooks and the copies of the session
+use are allowed until the user ticks or unticks one: every connection of the tab would confuse the agent, the user ticks
+the others when the agent needs them. A cloud keeps the published workbooks, a workbook doesn't use it. The tab keeps what the user
 ticked and unticked per target in the storage of the tab. Once the server answers and after every change, the page
 sends the allowed connections with their labels (`PUT /v1/connections/<token>`), the server writes them into the
 session of the workspace file, `connections` in `.dashql/dashql-workspace.json`. A run in the tab takes only the allowed connections,

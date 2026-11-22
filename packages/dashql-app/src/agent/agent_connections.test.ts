@@ -3,14 +3,14 @@ import { describe, expect, it } from 'vitest';
 import { isAgentConnectionAllowed } from './agent_connections.js';
 
 describe('the connections of the agent', () => {
-    it('allows every connection but a cloud until the user ticks or unticks it', () => {
-        const clouds = ['cloud'];
+    it('allows only the connections of the workbooks until the user ticks or unticks one', () => {
+        const used = ['trino'];
         const none = new Map<string, boolean>();
-        expect(isAgentConnectionAllowed('trino', none, clouds)).toBe(true);
-        expect(isAgentConnectionAllowed('cloud', none, clouds)).toBe(false);
+        expect(isAgentConnectionAllowed('trino', none, used)).toBe(true);
+        expect(isAgentConnectionAllowed('hyper', none, used)).toBe(false);
         // What the user ticked wins over the default
-        const choices = new Map([['trino', false], ['cloud', true]]);
-        expect(isAgentConnectionAllowed('trino', choices, clouds)).toBe(false);
-        expect(isAgentConnectionAllowed('cloud', choices, clouds)).toBe(true);
+        const choices = new Map([['trino', false], ['hyper', true]]);
+        expect(isAgentConnectionAllowed('trino', choices, used)).toBe(false);
+        expect(isAgentConnectionAllowed('hyper', choices, used)).toBe(true);
     });
 });
