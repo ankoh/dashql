@@ -335,7 +335,7 @@ fn event_name(event: &QueryEvent) -> Option<String> {
         QueryEvent::Succeeded => "succeeded".into(),
         QueryEvent::Failed { failure, .. } => format!("failed:{}", failure.message),
         QueryEvent::Cancelled { .. } => "cancelled".into(),
-        QueryEvent::CacheRecorded { key, served_from_cache, .. } => format!("cache:{key}:{served_from_cache}"),
+        QueryEvent::CacheRecorded { served_from_cache } => format!("cache:{served_from_cache}"),
         QueryEvent::TouchRelations => "touch".into(),
         QueryEvent::Timing { label, .. } => format!("timing:{label}"),
         QueryEvent::ResultsReady => "ready".into(),
@@ -1436,7 +1436,7 @@ fn a_failed_analysis_fails_the_query_and_rejects() {
             "processing",
             "timing:Postprocess",
             "failed:no compute",
-            "cache:k:false"
+            "cache:false"
         ]
     );
     assert_eq!(host.state.borrow().cache_calls, ["write:a.sql:k"]);
@@ -1495,7 +1495,7 @@ fn a_stored_result_is_read_without_the_backend() {
     query.touches_relations = true;
     assert_eq!(resolved(&run(&host, &executor, query)), Some(true));
     // A read touches no relations and writes nothing
-    assert_eq!(host.events(), ["all:1", "cache:k:true", "ready", "succeeded"]);
+    assert_eq!(host.events(), ["all:1", "cache:true", "ready", "succeeded"]);
     assert_eq!(host.state.borrow().cache_calls, ["read:a.parquet"]);
     assert!(host.state.borrow().channel_calls.is_empty());
 }
@@ -1514,7 +1514,7 @@ fn a_query_stores_its_result_as_the_file_of_its_script() {
     assert_eq!(resolved(&run(&host, &executor, query)), Some(true));
     host.advance(0);
     assert_eq!(host.state.borrow().cache_calls, ["write:a.sql:k"]);
-    assert_eq!(host.events().last().map(String::as_str), Some("cache:k:false"));
+    assert_eq!(host.events().last().map(String::as_str), Some("cache:false"));
     let flushed = Rc::new(Cell::new(false));
     let flag = flushed.clone();
     let flush = executor.flush_result_writes();

@@ -49,7 +49,7 @@ use dashql_core_runtime::connections::registry::{ConnectionRegistry, RegistryOut
 use dashql_core_runtime::connections::sharing::{self, sanitize_connection_params_for_sharing};
 use dashql_core_runtime::connections::{ConnectionAction, ConnectionParams};
 use dashql_core_runtime::host::LogLevel;
-use dashql_core_runtime::query::{QueryExecutionAction, QueryExecutionState, QueryId};
+use dashql_core_runtime::query::{QueryExecutionState, QueryId};
 use js_sys::{Array, Function, Object, Promise, Reflect};
 use serde::{Deserialize, Serialize};
 use tsify::{Ts, Tsify};
@@ -223,15 +223,6 @@ pub struct Runtime {
     storage: Rc<StorageState>,
     sessions: sessions::HostSessions,
     taken: RefCell<Taken>,
-}
-
-/// The id of a query or a trace of an action, malformed input is refused
-fn id_of(value: f64, what: &str) -> Result<u64, String> {
-    if value.is_finite() && value >= 0.0 && value.fract() == 0.0 && value <= 9_007_199_254_740_991.0 {
-        Ok(value as u64)
-    } else {
-        Err(format!("the {what} is no integer"))
-    }
 }
 
 /// A checked integer id of the host
@@ -545,24 +536,10 @@ impl Runtime {
             A::RelationsTouched { names } => {
                 ConnectionAction::RelationsTouched(names.into_iter().map(Into::into).collect())
             }
-            A::QueryCacheDeleted { query_id } => {
-                return self.dispatch_query(
-                    &connection_id,
-                    QueryExecutionAction::QueryCacheDeleted { query_id: id_of(query_id, "query id")? },
-                )
-            }
         };
         // The host logs a refused action
         let outcome = connections.apply(&connection_id, action, None);
         Ok(self.connection_outcome(outcome))
-    }
-
-    /// Apply an action to a query of a connection
-    fn dispatch_query(&self, connection_id: &str, action: QueryExecutionAction) -> Result<DispatchOutcome, String> {
-        Ok(match self.connections.apply_query(connection_id, action, true) {
-            Ok(outcome) => DispatchOutcome::changed(outcome.changed),
-            Err(error) => DispatchOutcome::failed(error_text(error)),
-        })
     }
 
     /// Apply an action of the runtime

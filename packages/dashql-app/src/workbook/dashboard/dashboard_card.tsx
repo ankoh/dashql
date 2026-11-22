@@ -177,7 +177,7 @@ export const DashboardCard = React.memo(function DashboardCard(props: Props): Re
     // One button runs the card: a card without a result runs and may read cached results, a card with a result
     // refreshes without them, a running card stops
     const running = query != null && !queryIsDone(query.status);
-    const hasResult = query?.status === QueryExecutionStatus.SUCCEEDED && query.cacheDeleted !== true;
+    const hasResult = query?.status === QueryExecutionStatus.SUCCEEDED;
     const runAction = running
         ? { label: `Stop ${displayName}`, description: 'Stop the query', icon: <SquareFillIcon size={10} />, onClick: () => props.onStop(props.script.scriptKey) }
         : hasResult

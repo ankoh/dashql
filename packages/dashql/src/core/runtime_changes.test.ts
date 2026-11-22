@@ -98,7 +98,6 @@ describe('The changes of the runtime', () => {
         const platform = testPlatform(storage);
         const runtime = dql!.createRuntime(platform.platform);
         runtime.runCatalogLoader(false);
-        let queryId = 0;
         const key = (runtime: dashql.Runtime, index: number) => viewOf(runtime, 'workbook', 'w')!.scriptKeys[index];
         const file = (runtime: dashql.Runtime, index: number) => viewOf(runtime, 'workbook', 'w')!.scriptOrder[index];
         const workbook = (action: dashql.RuntimeAction) => (runtime: dashql.Runtime) => runtime.dispatch({ workbook: 'w' }, action);
@@ -143,11 +142,8 @@ describe('The changes of the runtime', () => {
             ['saveConnection', rt => rt.saveConnection('main', { hyper: { protocol: 'WASM', endpoint: 'saved' } })],
             // A query whose plan failed is in the history of its connection, it fails without running
             ['executeQuery', async rt => {
-                const ticket = rt.executeQuery('main', { text: 'select 1', metadata: USER_QUERY, traceId: 1 }, new Error('the plan failed'), null);
-                queryId = ticket.queryId;
-                await ticket.done;
+                await rt.executeQuery('main', { text: 'select 1', metadata: USER_QUERY, traceId: 1 }, new Error('the plan failed'), null).done;
             }],
-            ['queryCacheDeleted', rt => rt.dispatch({ connection: 'main' }, { kind: 'queryCacheDeleted', value: { queryId } })],
             ['resetConnection', connection('main', { kind: 'resetConnection' })],
             ['deleteScript', rt => workbook({ kind: 'deleteScript', value: { fileName: file(rt, 0) } })(rt)],
             ['deleteConnection', connection('second', { kind: 'deleteConnection' })],

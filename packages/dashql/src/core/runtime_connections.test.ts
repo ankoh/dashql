@@ -400,7 +400,6 @@ describe('The connections of the runtime', () => {
         expect(runtime.dispatch({ connection: 'main' }, { kind: 'setDraft', value: { params: 42 } } as unknown as dashql.RuntimeAction)).toMatchObject({ ok: false, error: expect.stringContaining('malformed') });
         expect(runtime.dispatch({ connection: 'main' }, { kind: 'nope' } as unknown as dashql.RuntimeAction)).toMatchObject({ ok: false });
         expect(runtime.dispatch({ nope: 1 } as unknown as dashql.Target, { kind: 'rename', value: { name: 'x' } })).toMatchObject({ ok: false });
-        expect(runtime.dispatch({ connection: 'main' }, { kind: 'queryCacheDeleted', value: { queryId: -1 } })).toMatchObject({ ok: false });
         expect(() => runtime.views('query', ['x' as unknown as number])).toThrow();
         expect(() => runtime.cancelQuery(-1)).toThrow();
         expect(runtime.dispatch({ connection: 'main' }, { kind: 'rename', value: { name: 'Main' } })).toMatchObject({ ok: true, changed: true });
@@ -581,7 +580,7 @@ describe('The queries of the runtime', () => {
         expect((await ticket.done).status).toBe('resolved');
         await runtime.flushResultWrites();
         expect(files.map(file => file.name)).toEqual([`q.${'b'.repeat(64)}.00000001.parquet`, expect.stringMatching(new RegExp(`^q\\.${key}\\.[0-9a-f]{20}\\.parquet$`))]);
-        expect(viewOf(runtime, 'query', ticket.queryId)!.cacheKey).toBe(key);
+        expect(viewOf(runtime, 'query', ticket.queryId)!.servedFromCache).toBe(false);
         runtime.free();
     });
 

@@ -197,7 +197,7 @@ pub enum WorkbookAction {
     },
 }
 
-/// The actions of a connection and the queries of its history (`{ connection: id }`)
+/// The actions of a connection (`{ connection: id }`)
 #[derive(Clone, Debug, Deserialize, Tsify)]
 #[serde(tag = "kind", content = "value", rename_all = "camelCase", rename_all_fields = "camelCase")]
 #[tsify(missing_as_null)]
@@ -215,8 +215,4 @@ pub enum ConnectionAction {
     /// Statements that the host ran on the connection itself touched relations, e.g. those of the shell. The names have
     /// nulls for the parts that a statement left out.
     RelationsTouched { names: Vec<ConnectionTableName> },
-
-    // The queries of the connection
-    /// The stored result of the query was deleted
-    QueryCacheDeleted { query_id: f64 },
 }

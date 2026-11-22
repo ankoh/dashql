@@ -169,8 +169,8 @@ caller is not blocked on the write. A failed write only produces a log message.
 
 The query is in the history of its connection before the runtime describes it. On a read, the executor reads the file
 through the mount while it is pinned, and the history records it like the result of a streamed query, with empty
-metadata and zeroed stream metrics; then the shared analysis and success path runs. The query records the key of the
-file, when the file was written and whether it was read from the file (`servedFromCache`), for the UI.
+metadata and zeroed stream metrics; then the shared analysis and success path runs. The query records whether it was
+read from the file (`servedFromCache`), for the UI.
 
 Cancellation during a lookup is treated like any other cancellation, the query ends at once. A read runs to its end,
 the run of the query owns the table that it read, then the query ends as cancelled.

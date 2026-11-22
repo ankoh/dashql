@@ -178,48 +178,30 @@ fn a_history_keeps_the_internal_queries_of_its_limit() {
     assert_eq!(history.finished_ids(), &[0, 4, 5]);
 }
 
-// Query cache bookkeeping
+// The stored results of the queries
 
 #[test]
-fn query_cache_records_the_cache_key_of_active_and_finished_queries() {
+fn records_the_stored_results_of_active_and_finished_queries() {
     let mut history = QueryExecutionHistory::new();
     start(&mut history, 1, metadata(QueryType::UserProvided, None));
-    let record = |served_from_cache, cached_at| QueryExecutionAction::QueryCacheRecorded {
-        query_id: 1,
-        cache_key: "key-1".into(),
-        served_from_cache,
-        cached_at,
-    };
-    history.apply(record(false, None)).unwrap();
+    let record = |served_from_cache| QueryExecutionAction::QueryCacheRecorded { query_id: 1, served_from_cache };
+    let revision = history.active(1).unwrap().revision;
+    assert!(history.apply(record(false)).unwrap().changed);
     let active = history.active(1).unwrap();
-    assert_eq!((active.cache_key.as_deref(), active.served_from_cache), (Some("key-1"), false));
+    assert!(!active.served_from_cache && active.revision > revision);
 
+    // The write of a result ends after its query
     finish(&mut history, 1);
-    // 2026-01-01 UTC
-    let cached_at = 1_767_225_600_000;
-    history.apply(record(true, Some(cached_at))).unwrap();
-    let finished = history.finished(1).unwrap();
-    assert_eq!(
-        (finished.cache_key.as_deref(), finished.served_from_cache, finished.cached_at),
-        (Some("key-1"), true, Some(cached_at))
-    );
-    // Recording again without a time keeps the time
-    history.apply(record(true, None)).unwrap();
-    assert_eq!(history.finished(1).unwrap().cached_at, Some(cached_at));
-
-    let revision = history.finished(1).unwrap().revision;
-    let outcome = history.apply(QueryExecutionAction::QueryCacheDeleted { query_id: 1 }).unwrap();
-    assert!(outcome.changed);
-    let finished = history.finished(1).unwrap();
-    assert!(finished.cache_deleted);
-    assert!(finished.revision > revision);
+    history.apply(record(true)).unwrap();
+    assert!(history.finished(1).unwrap().served_from_cache);
 }
 
 #[test]
-fn query_cache_ignores_the_cache_of_unknown_queries() {
+fn ignores_the_stored_results_of_unknown_queries() {
     let mut history = QueryExecutionHistory::new();
     let revision = history.revision();
-    let outcome = history.apply(QueryExecutionAction::QueryCacheDeleted { query_id: 9 }).unwrap();
+    let outcome =
+        history.apply(QueryExecutionAction::QueryCacheRecorded { query_id: 9, served_from_cache: true }).unwrap();
     assert!(!outcome.changed);
     let outcome = history.apply(QueryExecutionAction::QuerySucceeded { query_id: 9, now: NOW }).unwrap();
     assert!(!outcome.changed);

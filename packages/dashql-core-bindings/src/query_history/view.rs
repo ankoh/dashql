@@ -361,10 +361,8 @@ pub struct QueryView {
     pub metrics: QueryMetricsView,
     pub error: Option<QueryErrorView>,
     pub result_table: Option<QueryResultTableView>,
-    pub cache_key: Option<String>,
+    /// Was the result read from the stored result of its script?
     pub served_from_cache: bool,
-    pub cache_deleted: bool,
-    pub cached_at: Option<i64>,
     pub latest_progress_update: Option<QueryLatestProgressView>,
     pub revision: u64,
     /// The handle of the record of the query at the host
@@ -406,10 +404,7 @@ impl QueryView {
                 .as_ref()
                 .map(|e| QueryErrorView { message: e.message.clone(), details: e.details.clone() }),
             result_table: query.result_table.map(|t| QueryResultTableView { id: t.id, rows: t.rows }),
-            cache_key: query.cache_key.clone(),
             served_from_cache: query.served_from_cache,
-            cache_deleted: query.cache_deleted,
-            cached_at: query.cached_at,
             latest_progress_update: query
                 .latest_progress_update
                 .as_ref()

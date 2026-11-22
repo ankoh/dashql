@@ -282,12 +282,11 @@ runtime.dispatch<T extends Target>(target: T, action: ActionOf<T>): Settled
 - **Targets**: `{ workbook: id }`, `{ connection: id }`, `{ computation: tableId }` or `'app'`
   (create and delete workbooks and connections).
 - **Actions** are one generated union per target in `runtime/actions.rs` of the bindings, adjacently tagged:
-  `{ kind: 'setScriptText', value: { ... } }`. `WorkbookAction`, `ConnectionAction` (with the actions of the queries
-  of its history), `ComputationAction` and `AppAction`; `ActionOf<T>` picks the union of a target and `RuntimeAction`
-  is all of them. The module reads an action with the union of its target, so an action of another target is a type
-  error in TypeScript and a malformed action in the module. They are synchronous changes of state, e.g.
-  `createScript`, `setScriptText`, `showScript`, `setDraft`, `resetConnection`, `orderBy`, `queryCacheDeleted`. The
-  queries run with `execute`, never by actions.
+  `{ kind: 'setScriptText', value: { ... } }`. `WorkbookAction`, `ConnectionAction`, `ComputationAction` and
+  `AppAction`; `ActionOf<T>` picks the union of a target and `RuntimeAction` is all of them. The module reads an action
+  with the union of its target, so an action of another target is a type error in TypeScript and a malformed action in
+  the module. They are synchronous changes of state, e.g. `createScript`, `setScriptText`, `showScript`, `setDraft`,
+  `resetConnection`, `orderBy`. The queries run with `execute`, never by actions.
 - **The outcome** is `{ ok, changed, error, id, settled }` (`Settled` of `runtime.ts`, over `DispatchOutcome`): `id`
   names what the action created (a workbook, a connection, the key of a script). A failed action leaves the state as it
   was; the runtime logs every refused action as a warning. `settled` resolves once the store took the changes of the

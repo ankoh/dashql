@@ -301,11 +301,11 @@ describe('DashboardCard', () => {
         expect(onRun).toHaveBeenLastCalledWith(1, false);
 
         // With a result it refreshes without them
-        render({ queryId: 7, status: QueryExecutionStatus.SUCCEEDED, cacheDeleted: false }, true);
+        render({ queryId: 7, status: QueryExecutionStatus.SUCCEEDED }, true);
         expect(run().dataset.runAction).toBe('refresh');
         act(() => run().click());
         expect(onRun).toHaveBeenLastCalledWith(1, true);
-        render({ queryId: 7, status: QueryExecutionStatus.SUCCEEDED, cacheDeleted: false }, false);
+        render({ queryId: 7, status: QueryExecutionStatus.SUCCEEDED }, false);
         expect(run().disabled).toBe(true);
 
         // A running card stops, also while the workbook holds the run

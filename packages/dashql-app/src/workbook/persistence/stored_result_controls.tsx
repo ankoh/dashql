@@ -65,9 +65,9 @@ function lowerFirst(text: string): string {
     return text.charAt(0).toLowerCase() + text.slice(1);
 }
 
-/// Whether the query has a result to describe (succeeded, its stored result not deleted since).
+/// Whether the query has a result to describe
 function hasResult(query: QueryExecutionState | null): boolean {
-    return query?.status === QueryExecutionStatus.SUCCEEDED && query?.cacheDeleted !== true;
+    return query?.status === QueryExecutionStatus.SUCCEEDED;
 }
 
 interface QueryResultRerunButtonProps {

@@ -612,13 +612,8 @@ impl Connections {
                 self.delete_computation_of(query_id);
                 QueryExecutionAction::QueryCancelled { query_id, error: query_error(&failure), metrics, now }
             }
-            QueryEvent::CacheRecorded { key, served_from_cache, cached_at } => {
-                QueryExecutionAction::QueryCacheRecorded {
-                    query_id,
-                    cache_key: key,
-                    served_from_cache,
-                    cached_at: cached_at.map(|at| at as i64),
-                }
+            QueryEvent::CacheRecorded { served_from_cache } => {
+                QueryExecutionAction::QueryCacheRecorded { query_id, served_from_cache }
             }
             QueryEvent::TouchRelations => {
                 let touched =

@@ -401,10 +401,7 @@ impl Connections {
         urgent: bool,
     ) -> Result<RegistryOutcome> {
         let query_id = action.query_id();
-        let cache = matches!(
-            action,
-            QueryExecutionAction::QueryCacheRecorded { .. } | QueryExecutionAction::QueryCacheDeleted { .. }
-        );
+        let cache = matches!(action, QueryExecutionAction::QueryCacheRecorded { .. });
         let outcome = self.registry.borrow_mut().apply_query(connection_id, action)?;
         self.settle(connection_id, &outcome, urgent, Some(query_id));
         // The scripts of the workbooks on the connection show the stored results of their queries

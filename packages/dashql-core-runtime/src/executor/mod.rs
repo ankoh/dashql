@@ -258,7 +258,7 @@ pub enum QueryEvent {
     /// The query was cancelled
     Cancelled { failure: QueryFailure, metrics: Option<QueryExecutionMetrics> },
     /// The result is the stored result of its script, read from its file or written to it
-    CacheRecorded { key: String, served_from_cache: bool, cached_at: Option<f64> },
+    CacheRecorded { served_from_cache: bool },
     /// The statement may have changed relations of the connection
     TouchRelations,
     /// A step of the query took a time, `Results` until the result arrived and `Postprocess` for its analysis
@@ -683,11 +683,7 @@ impl<H: ExecutorHost> QueryTask<H> {
         self.log(LogLevel::Info, "Read a stored result", details);
         let metrics = QueryExecutionMetrics::default();
         self.report(QueryEvent::ReceivedAllBatches { rows: table.rows, metrics });
-        self.report(QueryEvent::CacheRecorded {
-            key: file.key.clone(),
-            served_from_cache: true,
-            cached_at: Some(file.written_at),
-        });
+        self.report(QueryEvent::CacheRecorded { served_from_cache: true });
         Ok(Some(ResultSummary { has_table: true, served_from_cache: true }))
     }
 
@@ -729,14 +725,7 @@ impl<H: ExecutorHost> QueryTask<H> {
             };
             if let Some(write) = write {
                 match write.await {
-                    Ok(_) => host.report(
-                        &run,
-                        QueryEvent::CacheRecorded {
-                            key: result.key.clone(),
-                            served_from_cache: false,
-                            cached_at: None,
-                        },
-                    ),
+                    Ok(_) => host.report(&run, QueryEvent::CacheRecorded { served_from_cache: false }),
                     Err(error) => log(LogLevel::Warn, "Failed to store the result of a script", &error),
                 }
             }

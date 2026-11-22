@@ -244,15 +244,8 @@ pub struct QueryExecutionState {
     pub latest_progress_update: Option<QueryExecutionProgress>,
     /// The result table, a finished query keeps it only while it is the latest result of a query of the user
     pub result_table: Option<QueryResultTable>,
-    /// The key of the query in the query result cache, none if the query isn't cacheable
-    pub cache_key: Option<String>,
-    /// Was the result served from the query result cache instead of the backend?
+    /// Was the result read from the stored result of its script instead of the backend?
     pub served_from_cache: bool,
-    /// Was the stored result deleted? There is nothing left to delete then.
-    pub cache_deleted: bool,
-    /// When the cached result was written, none if the result didn't come from the cache. A cache hit doesn't touch
-    /// the file, so this is the write time, not a last access.
-    pub cached_at: Option<Timestamp>,
     /// The revision of the execution, it changes with every change
     pub revision: u64,
     /// The handle of what the host keeps of the query, e.g. its cancellation, aborted when its connection stops. The
@@ -286,10 +279,7 @@ impl QueryExecutionState {
             error: None,
             latest_progress_update: None,
             result_table: None,
-            cache_key: None,
             served_from_cache: false,
-            cache_deleted: false,
-            cached_at: None,
             revision: 0,
             handle: None,
         }
@@ -343,11 +333,9 @@ pub enum QueryExecutionAction {
     QueryFailed { query_id: QueryId, error: QueryError, metrics: Option<QueryExecutionMetrics>, now: Timestamp },
     /// The query was cancelled, with the stream metrics so far if the connector has them
     QueryCancelled { query_id: QueryId, error: QueryError, metrics: Option<QueryExecutionMetrics>, now: Timestamp },
-    /// The query result cache knows the query, of an active or a finished query: its key, whether the result came
-    /// from the cache and when the cached result was written (unchanged without)
-    QueryCacheRecorded { query_id: QueryId, cache_key: String, served_from_cache: bool, cached_at: Option<Timestamp> },
-    /// The cached result of an active or a finished query was deleted
-    QueryCacheDeleted { query_id: QueryId },
+    /// The result of an active or a finished query was stored, or read from the stored result of its script
+    /// (`served_from_cache`)
+    QueryCacheRecorded { query_id: QueryId, served_from_cache: bool },
 }
 
 impl QueryExecutionAction {
@@ -365,8 +353,7 @@ impl QueryExecutionAction {
             | QueryExecutionAction::QuerySucceeded { query_id, .. }
             | QueryExecutionAction::QueryFailed { query_id, .. }
             | QueryExecutionAction::QueryCancelled { query_id, .. }
-            | QueryExecutionAction::QueryCacheRecorded { query_id, .. }
-            | QueryExecutionAction::QueryCacheDeleted { query_id } => *query_id,
+            | QueryExecutionAction::QueryCacheRecorded { query_id, .. } => *query_id,
         }
     }
 }
@@ -487,20 +474,11 @@ impl QueryExecutionHistory {
                 self.snapshot_queries_active_finished += 1;
                 outcome.changed = true;
             }
-            // The cache bookkeeping can arrive after the query finished: the write of a result runs after the query,
-            // and the cache of a finished result can be deleted
-            QueryExecutionAction::QueryCacheRecorded { query_id, cache_key, served_from_cache, cached_at } => {
+            // The record of a stored result can arrive after the query finished: the write of a result runs after
+            // the query
+            QueryExecutionAction::QueryCacheRecorded { query_id, served_from_cache } => {
                 if let Some(query) = self.query_mut(query_id) {
-                    query.cache_key = Some(cache_key);
                     query.served_from_cache = served_from_cache;
-                    query.cached_at = cached_at.or(query.cached_at);
-                    query.revision = next_revision();
-                    outcome.changed = true;
-                }
-            }
-            QueryExecutionAction::QueryCacheDeleted { query_id } => {
-                if let Some(query) = self.query_mut(query_id) {
-                    query.cache_deleted = true;
                     query.revision = next_revision();
                     outcome.changed = true;
                 }
@@ -555,9 +533,7 @@ impl QueryExecutionHistory {
             | QueryExecutionAction::QuerySucceeded { query_id, .. }
             | QueryExecutionAction::QueryFailed { query_id, .. }
             | QueryExecutionAction::QueryCancelled { query_id, .. } => *query_id,
-            QueryExecutionAction::ExecuteQuery { .. }
-            | QueryExecutionAction::QueryCacheRecorded { .. }
-            | QueryExecutionAction::QueryCacheDeleted { .. } => return,
+            QueryExecutionAction::ExecuteQuery { .. } | QueryExecutionAction::QueryCacheRecorded { .. } => return,
         };
         let Some(query) = self.queries_active.get_mut(&query_id) else {
             // A result that no active query takes is released
@@ -653,9 +629,7 @@ impl QueryExecutionHistory {
                 }
                 self.finish_query(query_id, outcome);
             }
-            QueryExecutionAction::ExecuteQuery { .. }
-            | QueryExecutionAction::QueryCacheRecorded { .. }
-            | QueryExecutionAction::QueryCacheDeleted { .. } => {}
+            QueryExecutionAction::ExecuteQuery { .. } | QueryExecutionAction::QueryCacheRecorded { .. } => {}
         }
     }
 

@@ -554,7 +554,7 @@ describe('the runs of scripts of the runtime', () => {
         // The workbook keeps one file of the script, named after the script and its key
         expect(f.cache!.names(f.workbookId)).toEqual([expect.stringMatching(new RegExp(`^foo\\.${key}\\.[0-9a-f]{20}\\.parquet$`))]);
         f.core.flush();
-        expect(queryView(f.core, f.script('foo.sql').latestQueryId!)).toMatchObject({ cacheKey: key, servedFromCache: false });
+        expect(queryView(f.core, f.script('foo.sql').latestQueryId!)).toMatchObject({ servedFromCache: false });
         // The second run reads the stored result instead of the connection
         await f.run('foo.sql');
         expect(f.executeQuery).toHaveBeenCalledOnce();
@@ -638,7 +638,7 @@ describe('the runs of scripts of the runtime', () => {
         f.core.showWorkbook(f.workbookId);
         await vi.waitFor(() => expect(f.script('foo.sql').latestResultQueryId).not.toBeNull());
         const query = queryView(f.core, f.script('foo.sql').latestResultQueryId!)!;
-        expect(query).toMatchObject({ servedFromCache: true, cacheKey: '0'.repeat(64) });
+        expect(query).toMatchObject({ servedFromCache: true });
         expect(f.core.table(query.resultTable?.id)?.getChild('a')?.toArray()).toEqual(Int32Array.from([41]));
         expect(f.script('bar.sql').latestResultQueryId).toBeNull();
         expect(f.executeQuery).not.toHaveBeenCalled();
