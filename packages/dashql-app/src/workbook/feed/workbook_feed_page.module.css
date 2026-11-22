@@ -103,6 +103,11 @@
     flex-shrink: 0;
 }
 
+/* The file input that Attach File of the menu opens */
+.attach_input {
+    display: none;
+}
+
 /* The icons of the view switch are muted like the leading visuals of segmented controls, the current view is not */
 .view_bar .view_switch_button {
     color: var(--color_fg_muted);

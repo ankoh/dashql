@@ -270,19 +270,10 @@
     display: none;
 }
 
-.feed_data_input {
-    display: none;
-}
-
-.feed_data_empty,
 .feed_data_error {
     padding: 8px 10px;
-    color: var(--color_fg_muted);
-    font-size: var(--font_size_compact);
-}
-
-.feed_data_error {
     color: var(--color_danger_fg);
+    font-size: var(--font_size_compact);
 }
 
 /* A row of the feed, the card of a script and the space below it */

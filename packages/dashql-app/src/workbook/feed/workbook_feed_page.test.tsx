@@ -371,21 +371,32 @@ describe('WorkbookFeedPage', () => {
         expect(container.querySelectorAll('header')).toHaveLength(1);
         expect(header.querySelector('[data-testid="open-workbench"]')).not.toBeNull();
         expect(header.querySelector('[data-testid="workbook-view-switch"]')).not.toBeNull();
-        const shareButton = header.querySelector<HTMLButtonElement>('[data-testid="share-url"]')!;
+        // The DashQL flavor shows Export .dashql next to the menu of the workbook actions
+        const menuButton = header.querySelector<HTMLButtonElement>('[data-testid="workbook-actions"]')!;
         const exportButton = header.querySelector<HTMLButtonElement>('[data-testid="export-workbook"]')!;
-        for (const button of [shareButton, exportButton]) {
-            expect(button).not.toBeNull();
-        }
-
-        act(() => shareButton.click());
-        expect(state.shareProps).toMatchObject({ workbookId: 'workbook', isOpen: true });
-        expect(state.shareProps?.anchorRef?.current).toBe(shareButton);
-        expect(shareButton.getAttribute('aria-expanded')).toBe('true');
+        expect(menuButton).not.toBeNull();
+        expect(exportButton).not.toBeNull();
+        expect(header.querySelector('[data-testid="share-url"]')).toBeNull();
 
         act(() => exportButton.click());
         expect(state.exportProps).toMatchObject({ workbookScripts, isOpen: true });
         expect(state.exportProps?.anchorRef?.current).toBe(exportButton);
         expect(exportButton.getAttribute('aria-expanded')).toBe('true');
+
+        // The menu holds Share as URL and Export .dashql, they open at the menu button
+        const action = (name: string) => document.querySelector<HTMLButtonElement>(`[data-testid="workbook-action"][data-action="${name}"]`);
+        act(() => menuButton.click());
+        // Attach File is experimental
+        expect(action('attach')).toBeNull();
+        act(() => action('share-url')!.click());
+        expect(state.shareProps).toMatchObject({ workbookId: 'workbook', isOpen: true });
+        expect(state.shareProps?.anchorRef?.current).toBe(menuButton);
+        expect(state.exportProps?.isOpen).toBe(false);
+        act(() => menuButton.click());
+        act(() => action('export')!.click());
+        expect(state.exportProps).toMatchObject({ workbookScripts, isOpen: true });
+        expect(state.exportProps?.anchorRef?.current).toBe(menuButton);
+        expect(state.shareProps?.isOpen).toBe(false);
         // Storage lives in the workbook row menu of the workbench
         expect(header.querySelector('[data-testid="workbook-storage"]')).toBeNull();
     });
@@ -401,7 +412,7 @@ describe('WorkbookFeedPage', () => {
             />,
         ));
         const header = container.querySelector('header')!;
-        const workbookControls = ['workbook-view-switch', 'execute-all', 'share-url'];
+        const workbookControls = ['workbook-view-switch', 'execute-all', 'workbook-actions'];
         for (const testId of workbookControls) expect(header.querySelector(`[data-testid="${testId}"]`)).not.toBeNull();
 
         act(() => state.sidebarProps!.onOpenOverview!('database'));
@@ -416,7 +427,7 @@ describe('WorkbookFeedPage', () => {
         const ephemeral = { ...scripts(), workbookMetadata: { ephemeral: true }, ephemeral: true, scriptOrder: [], scriptKeys: [], scriptConnections: [], scriptRefs: {} };
         act(() => root.render(<WorkbookFeedPage workbookScripts={ephemeral} modifyWorkbookScripts={vi.fn()} connection={null} active dependencies={dependencies} />));
         const header = container.querySelector('header')!;
-        for (const control of ['workbook-view-switch', 'execute-all', 'share-url', 'export-workbook']) {
+        for (const control of ['workbook-view-switch', 'execute-all', 'workbook-actions', 'export-workbook']) {
             expect(header.querySelector(`[data-testid="${control}"]`)).toBeNull();
         }
         expect(header.querySelector('[data-testid="open-workbench"]')).not.toBeNull();
@@ -445,8 +456,10 @@ describe('WorkbookFeedPage', () => {
         ));
 
         const header = container.querySelector('header')!;
-        expect(header.querySelector('[data-testid="share-url"]')).not.toBeNull();
         expect(header.querySelector('[data-testid="export-workbook"]')).toBeNull();
+        act(() => header.querySelector<HTMLButtonElement>('[data-testid="workbook-actions"]')!.click());
+        const actions = [...document.querySelectorAll('[data-testid="workbook-action"]')].map(item => item.getAttribute('data-action'));
+        expect(actions).toEqual(['share-url']);
     });
 
     it('switches between Workbook and Dashboard from the content view bar', () => {

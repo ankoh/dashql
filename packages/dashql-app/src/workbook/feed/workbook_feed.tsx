@@ -48,7 +48,6 @@ import { ScriptFeedRow, type ScriptFeedRowProps } from './workbook_feed_row.js';
 import type { ScriptFeedCommands } from './script_card.js';
 import { getKeywordCase } from '../scripts/script_format.js';
 import { reorderFeedEntries } from './workbook_feed_drag.js';
-import { ATTACHMENT_EXTENSION } from '@akohn/dashql/platform/storage/storage_backend';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { WorkbookDataCard } from './workbook_data_card.js';
 import { WorkbookInputStrip } from '../inputs/workbook_input_strip.js';
@@ -65,8 +64,6 @@ import {
     type ScriptConnectionView,
 } from '../scripts/script_connection_picker.js';
 import { useConnectionLabeler } from '../connections/connection_labels.js';
-import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
-import { PlusIcon } from '@akohn/dashql-react/components/symbol_icon';
 import { WorkbookConnectionAttentionContext } from '../connections/workbook_connection_attention.js';
 import { WorkbookComposer, WorkbookComposerVariant } from './workbook_composer.js';
 import { agentActivity, type AgentFollowTarget } from '../../agent/agent_session.js';
@@ -95,6 +92,9 @@ export interface WorkbookFeedProps {
     active: boolean;
     /// A script to scroll into view, e.g. one opened from the sidebar. A new request object reveals again.
     revealRequest?: WorkbookFeedRevealRequest | null;
+    /// Receives the function that attaches files to the workbook, for the files dropped on the page or picked in its
+    /// menu. Null while the workbook takes no attachments.
+    attachRef?: React.RefObject<((files: File[]) => void) | null>;
     dependencies?: WorkbookFeedDependencies;
 }
 
@@ -251,7 +251,6 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     const attachmentCommands = dependencies.useAttachmentCommands();
     const workbookId = props.workbookScripts.workbookId;
     const [attachmentError, setAttachmentError] = React.useState<string | null>(null);
-    const attachmentInputRef = React.useRef<HTMLInputElement>(null);
     // The view of the workbook lists its attachments, a changed attachment is listed again
     const attachments = props.workbookScripts.attachments ?? NO_ATTACHMENTS;
     const refreshAttachments = React.useCallback(() => {
@@ -309,14 +308,16 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         execution: execution.state,
         publish: publishStatus,
     });
-    const handleAttachmentInput = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-        if (attachmentsEnabled && event.target.files != null) void saveAttachments(Array.from(event.target.files));
-        event.target.value = '';
-    }, [attachmentsEnabled, saveAttachments]);
-    const handleAttachmentDrop = React.useCallback((event: React.DragEvent<HTMLElement>) => {
-        event.preventDefault();
-        if (props.active && attachmentsEnabled) void saveAttachments(Array.from(event.dataTransfer.files));
-    }, [attachmentsEnabled, props.active, saveAttachments]);
+    // The page takes the files in, dropped on it or picked in its menu
+    const attachRef = props.attachRef;
+    React.useEffect(() => {
+        if (attachRef == null || !attachmentsVisible || !attachmentsEnabled) return;
+        const attach = (files: File[]) => void saveAttachments(files);
+        attachRef.current = attach;
+        return () => {
+            if (attachRef.current === attach) attachRef.current = null;
+        };
+    }, [attachRef, attachmentsVisible, attachmentsEnabled, saveAttachments]);
 
     // The workbook scripts change with every keystroke and the connection with every query event.
     // Callbacks read the latest values through a ref to stay stable for the memoized feed rows.
@@ -810,25 +811,15 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     }), [props.active, composerCaret, composerLastInput]);
     const dockGaze = React.useMemo(() => ({ target: composerCaret }), [composerCaret]);
 
-    // The head of the feed, the parameters and the attachments: above the greeting on the landing view, otherwise above
+    // The head of the feed, the attachments and the parameters: above the greeting on the landing view, otherwise above
     // the first script, where they scroll away with the scripts
     const feedHead = (scriptsLabel: boolean) => (
         <>
-            <WorkbookInputStrip workbookId={workbookId} modifyWorkbookScripts={modifyWorkbookScripts} />
-            {attachmentsVisible && (
+            {/* The section appears with the first attachment, a file dropped on the page or picked in its menu */}
+            {attachmentsVisible && attachments.length > 0 && (
                 <StageSection label="Attachments" testId="workbook-attachments">
                     <div className={styles.feed_data_section}>
-                        <input ref={attachmentInputRef} className={styles.feed_data_input} type="file" multiple accept={ATTACHMENT_EXTENSION}
-                            onChange={handleAttachmentInput} aria-label="Add workbook attachments" disabled={!attachmentsEnabled} />
-                        <div className={styles.feed_data_drawer} onDragOver={event => event.preventDefault()} onDrop={handleAttachmentDrop}>
-                            {!readOnly && <IconButton variant={ButtonVariant.Invisible} size={ButtonSize.Small}
-                                aria-label="Add workbook attachments" disabled={!attachmentsEnabled}
-                                onClick={event => {
-                                    event.stopPropagation();
-                                    attachmentInputRef.current?.click();
-                                }}>
-                                <PlusIcon size={16} />
-                            </IconButton>}
+                        <div className={styles.feed_data_drawer}>
                             <div className={styles.feed_data_cards}>
                                 {attachments.map(attachment => (
                                     <WorkbookDataCard key={`${workbookId}/${attachment.fileName}`} workbookId={workbookId}
@@ -837,13 +828,13 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
                                         onRename={name => handleRenameAttachment(attachment.fileName, name)}
                                         collides={scriptNames.some(name => name.toLowerCase() === attachment.name.toLowerCase())} />
                                 ))}
-                                {attachments.length === 0 && <div className={styles.feed_data_empty}>Drop files here or add attachments.</div>}
                             </div>
                         </div>
-                        {attachmentError != null && <div className={styles.feed_data_error} role="alert">{attachmentError}</div>}
                     </div>
+                    {attachmentError != null && <div className={styles.feed_data_error} role="alert">{attachmentError}</div>}
                 </StageSection>
             )}
+            <WorkbookInputStrip workbookId={workbookId} modifyWorkbookScripts={modifyWorkbookScripts} />
             {/* The scripts follow below the head, the first row of the list leaves the space below the label */}
             {scriptsLabel && <StageLabel label="Scripts" className={styles.feed_scripts_label} />}
         </>

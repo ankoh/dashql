@@ -1,7 +1,9 @@
 import * as React from 'react';
 import * as styles from './workbook_feed_page.module.css';
 
-import { LinkIcon, PaperAirplaneIcon, SquareFillIcon, SymbolIcon, ThreeBarsIcon } from '@akohn/dashql-react/components/symbol_icon';
+import { LinkIcon, PaperAirplaneIcon, PaperclipIcon, SquareFillIcon, SymbolIcon, ThreeBarsIcon } from '@akohn/dashql-react/components/symbol_icon';
+import * as ActionList from '@akohn/dashql-react/components/action_list';
+import * as actionMenuStyles from '../../app/action_menu.module.css';
 
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import {
@@ -37,8 +39,12 @@ import type { RenameDraftReferences } from '../scripts/script_rename.js';
 import { CloudPreviewActions, CloudPreviewBadge, CloudWorkbookLoadingCard } from '../../cloud/cloud_preview_actions.js';
 import { useCloudWorkbookLoading } from '../../cloud/cloud_workbook_loading.js';
 import { WorkbookReadOnlyContext } from '../workbook_read_only.js';
+import { useAppConfig } from '../../config/app_config.js';
+import { useFileDropHandler } from '../../app/file_drop_handler.js';
+import { ATTACHMENT_EXTENSION } from '@akohn/dashql/platform/storage/storage_backend';
 
 const FileZipIcon = SymbolIcon('file_zip_16');
+const MoreIcon = SymbolIcon('kebab_horizontal');
 const CloseIcon = SymbolIcon('x_16');
 // The views of the workbook view switch, octicons
 const FeedViewIcon = SymbolIcon('rows_16');
@@ -139,11 +145,18 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
     }, []);
     const closeOverview = React.useCallback(() => setOverview(null), []);
     const navigationDrawerTriggerRef = React.useRef<HTMLButtonElement>(null);
-    const shareTriggerRef = React.useRef<HTMLButtonElement>(null);
+    // The menu of the workbook actions; Share as URL opens at the menu button, Export .dashql at the button that
+    // opened it
+    const menuTriggerRef = React.useRef<HTMLButtonElement>(null);
     const exportTriggerRef = React.useRef<HTMLButtonElement>(null);
+    const [menuOpen, setMenuOpen] = React.useState(false);
     const [shareOpen, setShareOpen] = React.useState(false);
-    const [exportOpen, setExportOpen] = React.useState(false);
-    const archiveExport = useAppFlavor().features.workbookArchiveExport;
+    const [exportOpen, setExportOpen] = React.useState<'button' | 'menu' | null>(null);
+    const setExportOverlayOpen = React.useCallback((open: boolean) => setExportOpen(current => open ? current ?? 'button' : null), []);
+    const flavor = useAppFlavor();
+    const archiveExport = flavor.features.workbookArchiveExport;
+    // The DashQL flavor also shows Export .dashql next to the menu
+    const exportButton = archiveExport && flavor.id === 'dashql';
     // A workbook run takes every connection that a script runs on. Connections that aren't connected serve the cached
     // results of their scripts, the others are skipped.
     const scriptConnections = props.scriptConnections ?? new Map(props.connection == null ? [] : [[props.connection.connectionId, props.connection]]);
@@ -189,6 +202,11 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
     const ephemeral = props.workbookScripts.ephemeral;
     // A read-only look at a published workbook is imported before it is shared
     const preview = isCloudPreview(props.workbookScripts);
+    // The feed attaches the Parquet files dropped on the app or picked in the menu, its section shows them once there
+    const attachmentsVisible = useAppConfig()?.settings?.experimental_file_attachments === true;
+    const attachEnabled = attachmentsVisible && !preview && (props.connection?.readsAttachments ?? false);
+    const attachRef = React.useRef<((files: File[]) => void) | null>(null);
+    const attachInputRef = React.useRef<HTMLInputElement>(null);
     React.useEffect(() => {
         if ((ephemeral || preview) && (mode === WorkbookViewMode.Dashboard || mode === WorkbookViewMode.Dataflow)) setMode(WorkbookViewMode.Workbook);
     }, [ephemeral, preview, mode, setMode]);
@@ -199,6 +217,14 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
     // A version of a published workbook that is being loaded takes the place of the views
     const cloudLoading = useCloudWorkbookLoading() != null;
     const feedActive = props.active && !dashboardActive && !dataflowActive && !overviewActive && !cloudLoading;
+    // The workbook page is active in the feed only, it shows in the dashboard and the dataflow too
+    const pageShown = props.active || dashboardActive || dataflowActive;
+    useFileDropHandler(pageShown ? files => {
+        const attach = attachRef.current;
+        if (attach == null || !files.some(file => file.name.toLowerCase().endsWith(ATTACHMENT_EXTENSION))) return false;
+        attach(files);
+        return true;
+    } : null);
     // A script opened from the sidebar shows in the feed
     const [revealRequest, setRevealRequest] = React.useState<WorkbookFeedRevealRequest | null>(null);
     const openScript = React.useCallback((workbookId: string, fileName: string) => {
@@ -247,6 +273,7 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
                             draftRenameRef={draftRenameRef}
                             active={feedActive}
                             revealRequest={revealRequest}
+                            attachRef={attachRef}
                             conn={props.connection}
                             scriptConnections={props.scriptConnections}
                         />
@@ -389,29 +416,82 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
                         {/* A preview shows its connections locked, the import maps them */}
                         <dependencies.WorkbookConnectionButtons connections={barConnections} attention={connectionAttention?.active === true} />
                         {preview && <CloudPreviewActions workbookId={props.workbookScripts.workbookId} labelClassName={styles.action_label} />}
-                        {!ephemeral && !preview && <Button ref={shareTriggerRef} size={ButtonSize.Small} variant={ButtonVariant.Invisible} leadingVisual={LinkIcon} aria-label="Share as URL" data-testid="share-url" aria-expanded={shareOpen} onClick={() => {
-                            setExportOpen(false);
-                            setShareOpen(value => !value);
-                        }}>
-                            <span className={styles.action_label}>Share as URL</span>
-                        </Button>}
-                        <dependencies.WorkbookURLShareOverlay workbookId={props.workbookScripts.workbookId} isOpen={shareOpen} setIsOpen={setShareOpen} anchorRef={shareTriggerRef} />
+                        {exportButton && !ephemeral && !preview && (
+                            <Button ref={exportTriggerRef} size={ButtonSize.Small} variant={ButtonVariant.Invisible} leadingVisual={FileZipIcon} aria-label="Export .dashql" data-testid="export-workbook" aria-expanded={exportOpen === 'button'} onClick={() => {
+                                setShareOpen(false);
+                                setExportOpen(value => value === 'button' ? null : 'button');
+                            }}>
+                                <span className={styles.action_label}>Export .dashql</span>
+                            </Button>
+                        )}
+                        {!ephemeral && !preview && (
+                            <AnchoredOverlay
+                                open={menuOpen}
+                                onOpen={() => setMenuOpen(true)}
+                                onClose={() => setMenuOpen(false)}
+                                side={AnchorSide.OutsideBottom}
+                                align={AnchorAlignment.End}
+                                anchorOffset={4}
+                                anchorRef={menuTriggerRef}
+                                returnFocusRef={menuTriggerRef}
+                                renderAnchor={anchorProps => (
+                                    <IconButton {...anchorProps} ref={menuTriggerRef} size={ButtonSize.Small} variant={ButtonVariant.Invisible}
+                                        aria-label="More workbook actions" data-testid="workbook-actions">
+                                        <MoreIcon size={16} />
+                                    </IconButton>
+                                )}
+                            >
+                                <div className={actionMenuStyles.menu} role="dialog" aria-label="Workbook actions">
+                                    <ActionList.List aria-label="Workbook actions">
+                                        <ActionList.ListItem data-testid="workbook-action" data-action="share-url" onClick={() => {
+                                            setMenuOpen(false);
+                                            setExportOpen(null);
+                                            setShareOpen(true);
+                                        }}>
+                                            <ActionList.Leading><LinkIcon size={16} /></ActionList.Leading>
+                                            <ActionList.ItemText>Share as URL</ActionList.ItemText>
+                                        </ActionList.ListItem>
+                                        {/* The list takes elements only, the fragments wrap the optional items */}
+                                        <>{archiveExport && (
+                                            <ActionList.ListItem data-testid="workbook-action" data-action="export" onClick={() => {
+                                                setMenuOpen(false);
+                                                setShareOpen(false);
+                                                setExportOpen('menu');
+                                            }}>
+                                                <ActionList.Leading><FileZipIcon size={16} /></ActionList.Leading>
+                                                <ActionList.ItemText>Export .dashql</ActionList.ItemText>
+                                            </ActionList.ListItem>
+                                        )}</>
+                                        <>{attachmentsVisible && (
+                                            <ActionList.ListItem data-testid="workbook-action" data-action="attach" disabled={!attachEnabled} onClick={() => {
+                                                setMenuOpen(false);
+                                                attachInputRef.current?.click();
+                                            }}>
+                                                <ActionList.Leading><PaperclipIcon size={16} /></ActionList.Leading>
+                                                <ActionList.ItemText>Attach File</ActionList.ItemText>
+                                            </ActionList.ListItem>
+                                        )}</>
+                                    </ActionList.List>
+                                </div>
+                            </AnchoredOverlay>
+                        )}
+                        <dependencies.WorkbookURLShareOverlay workbookId={props.workbookScripts.workbookId} isOpen={shareOpen} setIsOpen={setShareOpen} anchorRef={menuTriggerRef} />
                         {archiveExport && !ephemeral && !preview && (
-                            <>
-                                <Button ref={exportTriggerRef} size={ButtonSize.Small} variant={ButtonVariant.Invisible} leadingVisual={FileZipIcon} aria-label="Export .dashql" data-testid="export-workbook" aria-expanded={exportOpen} onClick={() => {
-                                    setShareOpen(false);
-                                    setExportOpen(value => !value);
-                                }}>
-                                    <span className={styles.action_label}>Export .dashql</span>
-                                </Button>
-                                <dependencies.WorkbookFileSaveOverlay
-                                    isOpen={exportOpen}
-                                    setIsOpen={setExportOpen}
-                                    anchorRef={exportTriggerRef}
-                                    workbookScripts={props.workbookScripts}
-                                    fileName={props.workbookScripts.name ?? props.workbookScripts.workbookMetadata.originalFileName ?? 'workbook'}
-                                />
-                            </>
+                            <dependencies.WorkbookFileSaveOverlay
+                                isOpen={exportOpen != null}
+                                setIsOpen={setExportOverlayOpen}
+                                anchorRef={exportOpen === 'button' ? exportTriggerRef : menuTriggerRef}
+                                workbookScripts={props.workbookScripts}
+                                fileName={props.workbookScripts.name ?? props.workbookScripts.workbookMetadata.originalFileName ?? 'workbook'}
+                            />
+                        )}
+                        {attachmentsVisible && (
+                            <input ref={attachInputRef} className={styles.attach_input} type="file" multiple accept={ATTACHMENT_EXTENSION}
+                                aria-label="Attach files to the workbook" disabled={!attachEnabled} onChange={event => {
+                                    const files = event.target.files == null ? [] : Array.from(event.target.files);
+                                    event.target.value = '';
+                                    if (files.length > 0) attachRef.current?.(files);
+                                }} />
                         )}
                     </div>
                 </>}

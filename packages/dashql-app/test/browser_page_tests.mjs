@@ -531,7 +531,8 @@ async function testAppCatalogFollowsStatements(page, navigate) {
 /// The link of a workbook opens a second workbook with its script
 async function testAppSharedWorkbook(page, navigate) {
     await openWorkbookWithQuery(page, navigate);
-    await page.getByTestId('share-url').click();
+    await page.getByTestId('workbook-actions').click();
+    await page.locator('[data-testid="workbook-action"][data-action="share-url"]').click();
     const field = page.locator('input[disabled]').first();
     await page.waitForFunction(element => element.value.length > 0, await field.elementHandle());
     const link = new URL(await field.inputValue());

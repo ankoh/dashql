@@ -4,6 +4,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { FileDropzone } from './file_dropzone.js';
+import { useFileDropHandler, type FileDropHandler } from './file_drop_handler.js';
 import type { FileLoaderDependencies } from './file_loader.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
@@ -49,32 +50,35 @@ describe('FileDropzone', () => {
     }
 
     const showsApp = () => container.querySelector('[data-testid="app"]') != null;
+    const showsArea = () => container.querySelector('[data-testid="file-dropzone-area"]') != null;
     const showsLoader = () => container.querySelector('[data-testid="workbook-import-card"]') != null;
 
     it('shows the dropzone until no drag over event follows within 100 ms', () => {
         vi.useFakeTimers();
         expect(drag('dragover').defaultPrevented).toBe(true);
-        expect(showsApp()).toBe(false);
+        // The app stays mounted under the dropzone
+        expect(showsArea()).toBe(true);
+        expect(showsApp()).toBe(true);
 
         // Another drag over event restarts the timeout
         act(() => { vi.advanceTimersByTime(60); });
         drag('dragover');
         act(() => { vi.advanceTimersByTime(60); });
-        expect(showsApp()).toBe(false);
+        expect(showsArea()).toBe(true);
         act(() => { vi.advanceTimersByTime(40); });
-        expect(showsApp()).toBe(true);
+        expect(showsArea()).toBe(false);
     });
 
     it('stops a drag at its end', () => {
         drag('dragover');
         expect(drag('dragend').defaultPrevented).toBe(true);
-        expect(showsApp()).toBe(true);
+        expect(showsArea()).toBe(false);
     });
 
     it('stops a drag that drops no file', () => {
         drag('dragover');
         expect(drag('drop').defaultPrevented).toBe(true);
-        expect(showsApp()).toBe(true);
+        expect(showsArea()).toBe(false);
         expect(showsLoader()).toBe(false);
     });
 
@@ -92,6 +96,25 @@ describe('FileDropzone', () => {
         } finally {
             window.removeEventListener('drop', other);
         }
+    });
+
+    it('offers a drop to the handlers of the app before it loads the first file', () => {
+        const takeParquet = vi.fn<FileDropHandler>(files => files.some(file => file.name.endsWith('.parquet')));
+        function Workbook() {
+            useFileDropHandler(takeParquet);
+            return null;
+        }
+        act(() => root.render(<FileDropzone fileLoader={fileLoader}><div data-testid="app"><Workbook /></div></FileDropzone>));
+
+        drag('drop', [new File(['p'], 'sales.parquet')]);
+        expect(takeParquet).toHaveBeenCalledExactlyOnceWith([expect.objectContaining({ name: 'sales.parquet' })]);
+        expect(showsLoader()).toBe(false);
+        expect(showsApp()).toBe(true);
+
+        // A file that no handler takes loads as a workbook
+        drag('drop', [new File(['w'], 'other.dashql')]);
+        expect(takeParquet).toHaveBeenCalledTimes(2);
+        expect(showsLoader()).toBe(true);
     });
 
     it('stops listening when unmounted', () => {
