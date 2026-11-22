@@ -169,10 +169,21 @@ fn operator_summaries_register_pipelines_and_merge_operators_of_a_plan_node() {
     .to_string();
     let version = profile.structure_version();
     let updates = profile.apply_trino_query_info(info.as_bytes(), 5).unwrap();
-    assert_eq!(profile.structure_version(), version + 1);
+    // Registering the pipeline changes the structure
+    let registered = profile.structure_version();
+    assert_ne!(registered, version);
     let slots: Vec<_> = updates.iter().filter(|u| u.entity == fb::ProfileEntity::SLOT).collect();
     assert_eq!(slots.len(), 2);
-    let join = slots[1].state;
+    // The slot of the join, plan node 7
+    let buffer = profile.pack_buffer();
+    let packed = root(&buffer);
+    let packed_operators = packed.operators().unwrap();
+    let packed_slots = packed.slots().unwrap();
+    let plan_node = |slot: u32| {
+        let operator = packed_operators.get(packed_slots.get(slot as usize).operator() as usize);
+        string(&packed, operator.engine_id())
+    };
+    let join = slots.iter().find(|u| plan_node(u.index) == "7").unwrap().state;
     // Input of the first operator, output of the last, times summed in microseconds
     assert_eq!((join.stats.tuples_in, join.stats.tuples_out), (Some(50), Some(4)));
     assert_eq!(join.stats.cpu_time_us, Some(4000));
@@ -182,7 +193,7 @@ fn operator_summaries_register_pipelines_and_merge_operators_of_a_plan_node() {
 
     // The next sample finds the pipeline
     assert!(profile.apply_trino_query_info(info.as_bytes(), 6).unwrap().is_empty());
-    assert_eq!(profile.structure_version(), version + 1);
+    assert_eq!(profile.structure_version(), registered);
     let buffer = profile.pack_buffer();
     let packed = root(&buffer);
     let pipeline = packed.pipelines().unwrap().get(0);

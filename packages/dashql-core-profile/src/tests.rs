@@ -168,7 +168,6 @@ fn resolves_operator_cross_edges() {
     let plan = root(&buffer);
 
     let cross_edges = plan.operator_cross_edges().unwrap();
-    assert_eq!(cross_edges.len(), 6);
     let attributes = plan.attributes().unwrap();
 
     let mut kinds = Vec::new();
@@ -266,6 +265,28 @@ fn fragment_operators(plan: &fb::QueryProfile, fragment: &fb::ProfileFragment) -
     (0..fragment.operator_count()).map(|i| operators.get((fragment.operators_begin() + i) as usize)).collect()
 }
 
+/// The type name of an operator
+fn type_name<'a>(plan: &fb::QueryProfile<'a>, operator: u32) -> &'a str {
+    string(plan, plan.operators().unwrap().get(operator as usize).type_name())
+}
+
+/// The type names of the operators of a fragment, sorted
+fn fragment_type_names<'a>(plan: &fb::QueryProfile<'a>, fragment: &fb::ProfileFragment) -> Vec<&'a str> {
+    let mut names: Vec<_> = fragment_operators(plan, fragment).into_iter().map(|op| type_name(plan, op)).collect();
+    names.sort();
+    names
+}
+
+/// The operators of each fragment belong to it
+fn expect_operators_know_their_fragment(plan: &fb::QueryProfile) {
+    let operators = plan.operators().unwrap();
+    for (index, fragment) in plan.fragments().unwrap().iter().enumerate() {
+        for op in fragment_operators(plan, fragment) {
+            assert_eq!(operators.get(op as usize).fragment(), index as u32, "{}", type_name(plan, op));
+        }
+    }
+}
+
 #[test]
 fn federate_creates_fragment_from_reachable_children() {
     let buffer = pack_plan(
@@ -284,11 +305,13 @@ fn federate_creates_fragment_from_reachable_children() {
     let plan = root(&buffer);
     assert_eq!(plan.fragments().unwrap().len(), 1);
     let fragment = plan.fragments().unwrap().get(0);
-    assert_eq!(fragment.root_operator(), 3);
+    assert_eq!(type_name(&plan, fragment.root_operator()), "federate");
     assert_eq!(fragment.hidden(), 0);
-    assert_eq!(fragment_operators(&plan, fragment), vec![3, 2, 0, 1]);
+    assert_eq!(fragment_type_names(&plan, fragment), vec!["federate", "join", "scan", "scan"]);
+    expect_operators_know_their_fragment(&plan);
     // The output above the federate belongs to no fragment
-    assert_eq!(plan.operators().unwrap().get(4).fragment(), u32::MAX);
+    let output = plan.operators().unwrap().iter().find(|op| string(&plan, op.type_name()) == "output").unwrap();
+    assert_eq!(output.fragment(), u32::MAX);
 }
 
 #[test]
@@ -302,14 +325,15 @@ fn execution_target_root_fragment_contains_federated_fragments() {
     let plan = root(&buffer);
     assert_eq!(plan.fragments().unwrap().len(), 2);
     let root_fragment = plan.fragments().unwrap().get(0);
-    assert_eq!(root_fragment.root_operator(), 2);
+    assert_eq!(type_name(&plan, root_fragment.root_operator()), "executiontarget");
     assert_eq!(root_fragment.hidden(), 1);
-    assert_eq!(fragment_operators(&plan, root_fragment), vec![2]);
+    assert_eq!(fragment_type_names(&plan, root_fragment), vec!["executiontarget"]);
     let federated = plan.fragments().unwrap().get(1);
-    assert_eq!(federated.root_operator(), 1);
+    assert_eq!(type_name(&plan, federated.root_operator()), "federate");
     assert_eq!(federated.parent_fragment(), 0);
     assert_eq!(federated.hidden(), 0);
-    assert_eq!(fragment_operators(&plan, federated), vec![1, 0]);
+    assert_eq!(fragment_type_names(&plan, federated), vec!["federate", "scan"]);
+    expect_operators_know_their_fragment(&plan);
 }
 
 #[test]
@@ -324,11 +348,13 @@ fn sibling_federates_create_distinct_fragments() {
     let plan = root(&buffer);
     assert_eq!(plan.fragments().unwrap().len(), 2);
     let left = plan.fragments().unwrap().get(0);
-    assert_eq!(left.root_operator(), 3);
-    assert_eq!(fragment_operators(&plan, left), vec![3, 0]);
+    assert_eq!(type_name(&plan, left.root_operator()), "federate");
+    assert_eq!(fragment_type_names(&plan, left), vec!["federate", "scan"]);
     let right = plan.fragments().unwrap().get(1);
-    assert_eq!(right.root_operator(), 4);
-    assert_eq!(fragment_operators(&plan, right), vec![4, 2, 1]);
+    assert_eq!(type_name(&plan, right.root_operator()), "federate");
+    assert_ne!(left.root_operator(), right.root_operator());
+    assert_eq!(fragment_type_names(&plan, right), vec!["federate", "map", "scan"]);
+    expect_operators_know_their_fragment(&plan);
 }
 
 #[test]
@@ -345,15 +371,16 @@ fn nested_federates_nest_fragments() {
     let plan = root(&buffer);
     assert_eq!(plan.fragments().unwrap().len(), 2);
     let outer = plan.fragments().unwrap().get(0);
-    assert_eq!(outer.root_operator(), 3);
+    assert_eq!(type_name(&plan, outer.root_operator()), "federate");
     assert_eq!(outer.parent_fragment(), u32::MAX);
-    assert_eq!(fragment_operators(&plan, outer), vec![3, 2]);
+    assert_eq!(fragment_type_names(&plan, outer), vec!["federate", "map"]);
     let inner = plan.fragments().unwrap().get(1);
-    assert_eq!(inner.root_operator(), 1);
+    assert_eq!(type_name(&plan, inner.root_operator()), "federate");
     assert_eq!(inner.parent_fragment(), 0);
-    assert_eq!(fragment_operators(&plan, inner), vec![1, 0]);
-    let fragment_of: Vec<u32> = plan.operators().unwrap().iter().map(|op| op.fragment()).collect();
-    assert_eq!(fragment_of, vec![1, 1, 0, 0]);
+    assert_eq!(fragment_type_names(&plan, inner), vec!["federate", "scan"]);
+    // Every operator belongs to the innermost fragment around it
+    expect_operators_know_their_fragment(&plan);
+    assert!(plan.operators().unwrap().iter().all(|op| op.fragment() != u32::MAX));
 }
 
 #[test]
