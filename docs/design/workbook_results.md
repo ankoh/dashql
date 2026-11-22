@@ -47,7 +47,9 @@ origin private file system, `workbooks/<id>/results/`, like the mirror of its at
 only folders of the origin private file system. The `.gitignore` of the native folder holds `results/` all the same.
 
 The compute database mounts the results of a workbook read-write at `/mnt/external/results/<workbook-id>`, like its
-attachments at `/mnt/external/attachments/<workbook-id>` (`WorkbookResultMounts` of the platform). Hyper writes a
+attachments at `/mnt/external/attachments/<workbook-id>`: the core plans with the path (`RESULTS_MOUNT_ROOT` of
+`workbook_format/results.rs`), the platform mounts the folder there (`createWorkbookResultFiles`). The mounts belong to
+the database, not to a runtime: destroying a runtime leaves them, deleting a workbook removes its mount. Hyper writes a
 result with `COPY ... TO` into the mount and reads it with `external('<path>', format => 'parquet')`, fetching the
 byte ranges it needs. A result is written as a transient file and moved to its name once it is complete, so readers
 never see a partial file. After the files of a workbook were removed or renamed, the next use of its mount refreshes it

@@ -142,7 +142,6 @@ export class QueryChannels {
     private createResults(files: WorkbookResultFiles, database: ComputeDatabase): core.RuntimeResults {
         const { handles, pins } = this.deps;
         return {
-            mountPath: workbookId => files.mountPath(workbookId),
             mount: async workbookId => await files.mount(await database(), workbookId),
             unmount: workbookId => files.unmount(workbookId),
             files: workbookId => files.files(workbookId),

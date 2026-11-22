@@ -371,10 +371,8 @@ export interface RuntimeChannels {
     cancel(queryId: number): Promise<void>;
 }
 
-/** The stored results of the scripts of the workbooks: the Parquet files of `workbooks/<id>/results/`, mounted in the compute database (docs/design/workbook_results.md). The platform lists, reads, writes, moves and removes the files; the runtime names them and decides which file is the result of a script. A pin is a shared lock of a file across the windows of the app, a move or removal leaves a pinned file alone. */
+/** The stored results of the scripts of the workbooks: the Parquet files of `workbooks/<id>/results/`, mounted in the compute database at `/mnt/external/results/<id>` (docs/design/workbook_results.md). The platform lists, reads, writes, moves and removes the files; the runtime names them and decides which file is the result of a script. A pin is a shared lock of a file across the windows of the app, a move or removal leaves a pinned file alone. */
 export interface RuntimeResults {
-    /** The mount path of the results of a workbook in the compute database */
-    mountPath(workbookId: string): string;
     /** Mount the results of a workbook in the compute database, refresh the mount after files were moved or removed */
     mount(workbookId: string): Promise<void>;
     /** Unmount the results of a workbook that was deleted or replaced */
@@ -1189,12 +1187,6 @@ impl JsPlatform {
     /// Does the platform store the results of the scripts?
     pub fn has_results(&self) -> bool {
         self.results().is_ok()
-    }
-
-    /// The mount path of the results of a workbook in the compute database
-    pub fn results_mount_path(&self, workbook_id: &str) -> Option<String> {
-        let results = self.results().ok()?;
-        call(&results, "mountPath", &[JsValue::from_str(workbook_id)]).ok()?.as_string()
     }
 
     /// Mount the results of a workbook in the compute database

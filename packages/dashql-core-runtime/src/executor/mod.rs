@@ -81,8 +81,8 @@ pub struct ResultRequest {
     pub script: String,
     /// The result key of the script, the file of a result that the query stores is named after it
     pub key: String,
-    /// The name of the file of a result that the query stores, a new name of the key without one
-    pub name: Option<String>,
+    /// The name of the file of the result that the query stores, the run names it when it plans
+    pub name: String,
     /// Read this file instead of running the query, a query whose file is gone fails with a miss
     pub read: Option<StoredFile>,
 }
@@ -330,8 +330,8 @@ pub trait ExecutorHost: HttpHost {
         workbook_id: &str,
         name: &str,
     ) -> impl Future<Output = Result<Option<HostTable>, HostError>> + 'static;
-    /// Write the result of a run as the new file of its script, the older files of the script go. Resolves with the
-    /// name of the file.
+    /// Write the result of a run as the new file of its script, `name` of the request. Resolves with the name of the
+    /// file.
     fn result_write(
         &self,
         run: &Rc<Self::Run>,

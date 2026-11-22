@@ -1,7 +1,7 @@
 import type * as arrow from 'apache-arrow';
 import { vi } from 'vitest';
 
-import { resultsMountPath, type WorkbookResultFiles } from '../workbook/workbook_result_files.js';
+import type { WorkbookResultFiles } from '../workbook/workbook_result_files.js';
 
 /// A file of the results of a workbook in memory
 interface MemoryResultFile {
@@ -35,10 +35,8 @@ export function memoryWorkbookResultFiles() {
         },
         /// The names of the files of a workbook
         names: (workbookId: string) => [...folder(workbookId).keys()].sort(),
-        mountPath: resultsMountPath,
         mount: vi.fn(async (_database: unknown, _workbookId: string) => {}),
         unmount: vi.fn(async (_workbookId: string) => {}),
-        unmountAll: vi.fn(async () => {}),
         files: vi.fn(async (workbookId: string) => [...folder(workbookId)].map(([name, file]) => ({
             name, size: file.bytes?.length ?? 1, mtimeMs: file.mtimeMs,
         }))),

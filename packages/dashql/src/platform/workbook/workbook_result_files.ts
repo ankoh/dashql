@@ -8,7 +8,7 @@ import { crc32CheckStream } from '../utils/crc32.js';
 
 /// The folder of the results in a workbook folder, `workbooks/<id>/results/`
 export const RESULTS_FOLDER = 'results';
-/// The mount paths of the results of the workbooks in the compute database
+/// The mount paths of the results of the workbooks in the compute database, `RESULTS_MOUNT_ROOT` of the core
 export const RESULTS_MOUNT_PREFIX = '/mnt/external/results';
 /// The suffix of a file that is being written, also the one of a transient file of the core
 const TRANSIENT_SUFFIX = '.transient.parquet';
@@ -42,14 +42,11 @@ export interface ResultFileStat {
 /// so the database forgets the files that are gone; queries that run keep reading the files they opened. A refresh that
 /// the database refuses, e.g. while its queries run, is tried again with the next use.
 export interface WorkbookResultFiles {
-    /// The mount path of the results of a workbook
-    mountPath(workbookId: string): string;
     /// Mount the results of a workbook in a database, refresh the mount after files were moved or removed
     mount(database: EmbeddedComputeDatabase, workbookId: string): Promise<void>;
-    /// Remove the mount of the results of a workbook, e.g. one that was deleted
+    /// Remove the mount of the results of a workbook, e.g. one that was deleted. The mounts outlive a runtime, they
+    /// belong to the database.
     unmount(workbookId: string): Promise<void>;
-    /// Remove every mount, e.g. when the runtime is destroyed
-    unmountAll(): Promise<void>;
     /// The Parquet files of the results of a workbook, empty without a folder
     files(workbookId: string): Promise<ResultFileStat[]>;
     /// Keep a file while it is read or written, resolves with the release once the file is pinned. The release
@@ -201,12 +198,8 @@ export function createWorkbookResultFiles(options: WorkbookResultFilesOptions = 
     };
 
     return {
-        mountPath: resultsMountPath,
         mount,
         unmount,
-        unmountAll: async () => {
-            for (const workbookId of [...mounts.keys()]) await unmount(workbookId);
-        },
         files: async workbookId => {
             const dir = await directory(workbookId, false);
             if (dir == null) return [];

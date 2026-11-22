@@ -49,7 +49,6 @@ describe('the results of the workbooks', () => {
         expect(files.map(file => file.name)).toEqual(['a.k.00000001.parquet']);
         expect(files[0].size).toBe(8);
         expect(files[0].mtimeMs).toBeGreaterThan(0);
-        expect(r.mountPath(WORKBOOK)).toBe(resultsMountPath(WORKBOOK));
     });
 
     it('moves and removes files that nobody reads, also those of other windows', async () => {

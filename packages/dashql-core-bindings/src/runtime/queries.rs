@@ -123,10 +123,8 @@ pub struct QueryResultOptions {
     pub script: String,
     /// The result key of the script, the file of the result is named after it
     pub key: String,
-    /// The name of the file of the result, a new name of the key without one. A run names the files when it plans.
-    #[serde(default)]
-    #[tsify(optional)]
-    pub name: Option<String>,
+    /// The name of the file of the result, the run names it when it plans
+    pub name: String,
     /// Read this file of the results of the workbook instead of running the query, fail with a miss if it is gone
     #[serde(default)]
     #[tsify(optional)]
@@ -814,27 +812,17 @@ impl ExecutorHost for QueryHost {
         run: &Rc<QueryRun>,
         result: &ResultRequest,
     ) -> impl Future<Output = Result<String, HostError>> + 'static {
-        // The write holds the run, its table is there. The platform takes the table when it is called.
+        // The write holds the run, its table is there. The platform takes the table when it is called. A run names the
+        // file when it plans, the keys downstream of the script cover the name.
         let platform = self.platform.clone();
-        let table = run.result();
         let result = result.clone();
-        // A run names the file when it plans, the keys downstream of the script cover the name
-        let name = match &result.name {
-            Some(name) => Ok(Some(name.clone())),
-            None => results::new_file_name(&platform, &result.script, &result.key),
-        };
-        let write = match (table, &name) {
-            (Some(table), Ok(Some(name))) => {
-                let pin = platform.results_pin(&result.workbook_id, name);
-                Ok((table, pin))
-            }
-            (None, _) => Err(HostError::new("The query has no result")),
-            (_, Ok(None)) => Err(HostError::new(format!("{} makes no name of a file of a result", result.script))),
-            (_, Err(error)) => Err(error.clone()),
+        let name = result.name.clone();
+        let write = match run.result() {
+            Some(table) => Ok((table, platform.results_pin(&result.workbook_id, &name))),
+            None => Err(HostError::new("The query has no result")),
         };
         async move {
             let (table, pin) = write?;
-            let name = name?.unwrap_or_default();
             let pin = pin.await?;
             let written = platform.results_write(&result.workbook_id, &name, table).await;
             platform.results_release(pin).await;

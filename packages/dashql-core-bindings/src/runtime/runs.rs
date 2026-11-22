@@ -35,6 +35,7 @@ use dashql_core_runtime::workbook_run::{
     start_run, PlanRun, ResultKey, RetainedFile, RunFailureKind, RunHandle, RunHost, RunOptions, RunState, ScriptEvent,
     StatementFailure, StatementHandle, StatementRequest, StatementResult, LOG_TARGET,
 };
+use dashql_core_storage::workbook_format::results::results_mount_path;
 use js_sys::{Array, Function, Promise, Reflect};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
@@ -1004,7 +1005,7 @@ pub(crate) struct RuntimeRunHost {
 impl RuntimeRunHost {
     /// The name of a file of the results of the workbook by its path below the mount prefix
     fn file_of_path(&self, path: &str) -> Result<String, HostError> {
-        let prefix = self.platform.results_mount_path(&self.workbook_id).unwrap_or_default();
+        let prefix = results_mount_path(&self.workbook_id);
         path.strip_prefix(&prefix)
             .and_then(|rest| rest.strip_prefix('/'))
             .filter(|name| !name.is_empty() && !name.contains('/'))
@@ -1047,11 +1048,15 @@ impl RunHost for RuntimeRunHost {
         let result = match request.result {
             StatementResult::None => None,
             StatementResult::Store { script, key, name } => {
-                Some(ResultRequest { workbook_id, script, key, name: Some(name), read: None })
+                Some(ResultRequest { workbook_id, script, key, name, read: None })
             }
-            StatementResult::Read { script, file } => {
-                Some(ResultRequest { workbook_id, script, key: file.key.clone(), name: None, read: Some(file) })
-            }
+            StatementResult::Read { script, file } => Some(ResultRequest {
+                workbook_id,
+                script,
+                key: file.key.clone(),
+                name: file.name.clone(),
+                read: Some(file),
+            }),
         };
         let client_function_call =
             request.client_function_call.as_deref().and_then(|call| serde_json::from_str(call).ok());
@@ -1135,7 +1140,7 @@ impl RunHost for RuntimeRunHost {
     }
 
     fn mount_prefix(&self) -> Option<String> {
-        self.platform.results_mount_path(&self.workbook_id)
+        self.platform.has_results().then(|| results_mount_path(&self.workbook_id))
     }
 
     fn mount_file_name(&self, result: Option<(&str, &str)>) -> String {

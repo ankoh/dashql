@@ -9,6 +9,8 @@ use crate::workbook_format::files::{file_name_key, is_safe_file_name};
 
 /// The folder of the results in a workbook folder
 pub const RESULTS_FOLDER: &str = "results";
+/// The compute database mounts the results of a workbook at `<root>/<workbook-id>`, the platform mounts them there
+pub const RESULTS_MOUNT_ROOT: &str = "/mnt/external/results";
 /// The suffix of a transient file: a materialized result that is no result of a script, or a file being written
 pub const TRANSIENT_SUFFIX: &str = ".transient.parquet";
 /// The extension of a result
@@ -95,9 +97,9 @@ fn script_key(script: &str) -> Option<String> {
     script_stem(script).map(file_name_key)
 }
 
-/// The file name of the script of a file of a result, None for a transient file or a name that doesn't parse
-pub fn script_of_result_file(name: &str) -> Option<String> {
-    parse_result_file_name(name).map(|parsed| format!("{}{SCRIPT_EXTENSION}", parsed.stem))
+/// The mount path of the results of a workbook in the compute database
+pub fn results_mount_path(workbook_id: &str) -> String {
+    format!("{RESULTS_MOUNT_ROOT}/{workbook_id}")
 }
 
 /// The name of a file of the result of a script, None if the script name is no plain file name of a script, the key is
@@ -163,8 +165,6 @@ pub struct ResultFileStat {
 pub struct StoredResult {
     /// The file name
     pub name: String,
-    /// The name of the script without `.sql`, as the file names it
-    pub stem: String,
     /// The key in the name of the file
     pub key: String,
     /// When the file was written, in milliseconds since the epoch: the time of its generation, or the modification time
@@ -243,7 +243,6 @@ pub fn sort_result_files(files: &[ResultFileStat], scripts: Option<&[&str]>, now
             script,
             StoredResult {
                 name: file.name.clone(),
-                stem: parsed.stem.to_string(),
                 key: parsed.key.to_string(),
                 written_at: generation_time(parsed.generation).unwrap_or(file.mtime_ms),
                 size: file.size,
@@ -282,7 +281,6 @@ mod tests {
         assert_eq!(name, format!("revenue.by.region.{}.0123abcd.parquet", key('a')));
         let parsed = parse_result_file_name(&name).unwrap();
         assert_eq!(parsed.stem, "revenue.by.region");
-        assert_eq!(script_of_result_file(&name).as_deref(), Some("revenue.by.region.sql"));
         assert_eq!(parsed.key, key('a'));
         assert_eq!(parsed.generation, "0123abcd");
         assert_eq!(result_file_name("a/b.sql", &key('a'), "0123abcd"), None);

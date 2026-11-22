@@ -557,9 +557,8 @@ describe('The queries of the runtime', () => {
     it('stores the result of a query as the newest file of its script, the older files stay for the end of the run', async () => {
         const platform = new TestPlatform();
         const key = 'a'.repeat(64);
-        const files: { name: string; size: number; mtimeMs: number }[] = [{ name: `q.${'b'.repeat(64)}.00000001.parquet`, size: 1, mtimeMs: 1 }];
+        const files: { name: string; size: number; mtimeMs: number }[] = [{ name: `q.${'b'.repeat(64)}.00000000000100000001.parquet`, size: 1, mtimeMs: 1 }];
         const results = {
-            mountPath: (workbookId: string) => `/mnt/external/results/${workbookId}`,
             files: async () => files,
             pin: async () => 1,
             release: async () => { },
@@ -575,11 +574,12 @@ describe('The queries of the runtime', () => {
         Object.assign(platform.platform, { results });
         const runtime = createRuntime(platform);
         await setupTrino(runtime, platform);
-        const result = { workbookId: 'w', script: 'q.sql', key };
+        const name = `q.${key}.0000000000010000000a.parquet`;
+        const result = { workbookId: 'w', script: 'q.sql', key, name };
         const ticket = runtime.executeQuery('trino', { text: 'select 1', metadata: USER_QUERY, traceId: 1, options: { result } }, undefined, null);
         expect((await ticket.done).status).toBe('resolved');
         await runtime.flushResultWrites();
-        expect(files.map(file => file.name)).toEqual([`q.${'b'.repeat(64)}.00000001.parquet`, expect.stringMatching(new RegExp(`^q\\.${key}\\.[0-9a-f]{20}\\.parquet$`))]);
+        expect(files.map(file => file.name)).toEqual([`q.${'b'.repeat(64)}.00000000000100000001.parquet`, name]);
         expect(viewOf(runtime, 'query', ticket.queryId)!.servedFromCache).toBe(false);
         runtime.free();
     });

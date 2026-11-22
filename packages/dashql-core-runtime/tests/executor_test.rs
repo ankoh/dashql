@@ -1470,7 +1470,8 @@ fn a_cancel_during_the_analysis_cancels_the_query_and_writes_no_result() {
 
 /// A query that stores its result as the result of `a.sql` under a key
 fn stored(key: &str) -> Option<ResultRequest> {
-    Some(ResultRequest { workbook_id: "w".into(), script: "a.sql".into(), key: key.into(), name: None, read: None })
+    let name = format!("a.{key}.parquet");
+    Some(ResultRequest { workbook_id: "w".into(), script: "a.sql".into(), key: key.into(), name, read: None })
 }
 
 /// A query that reads a file of the results of `w`
@@ -1480,7 +1481,7 @@ fn reads(name: &str) -> Option<ResultRequest> {
         workbook_id: "w".into(),
         script: "a.sql".into(),
         key: "k".into(),
-        name: None,
+        name: name.into(),
         read: Some(file),
     })
 }
