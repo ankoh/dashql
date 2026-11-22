@@ -11,7 +11,6 @@
 %type<Node> sql_cmd_close_external_stream_stmt;
 %type<Node> sql_cmd_close_portal_stmt;
 %type<Node> sql_cmd_comment_stmt;
-%type<Node> sql_cmd_const_interval;
 %type<Node> sql_cmd_copy_stmt;
 %type<Node> sql_cmd_create_db_from_stmt;
 %type<Node> sql_cmd_create_db_stmt;
@@ -44,7 +43,6 @@
 %type<Node> sql_cmd_grant_stmt;
 %type<Node> sql_cmd_import_db_stmt;
 %type<Node> sql_cmd_merge_stmt;
-%type<Node> sql_cmd_numeric;
 %type<NodeList> sql_cmd_numeric_only_list;
 %type<NodeList> sql_cmd_opt_role_list;
 %type<Node> sql_cmd_prepare_stmt;
@@ -132,7 +130,6 @@
 %type<NodeList> sql_cmd_index_params;
 %type<Node> sql_cmd_insert_column_item;
 %type<NodeList> sql_cmd_insert_column_list;
-%type<Node> sql_cmd_interval_second;
 %type<Node> sql_cmd_merge_delete;
 %type<Node> sql_cmd_merge_do_nothing;
 %type<Node> sql_cmd_merge_insert;
@@ -148,7 +145,6 @@
 %type<NodeList> sql_cmd_old_aggr_list;
 %type<NodeList> sql_cmd_opt__sequence_option_list;
 %type<Node> sql_cmd_opt_as;
-%type<Node> sql_cmd_opt_asc_desc;
 %type<NodeList> sql_cmd_opt_attach_database_options;
 %type<Node> sql_cmd_opt_binary;
 %type<NodeList> sql_cmd_opt_class;
@@ -161,7 +157,6 @@
 %type<NodeList> sql_cmd_opt_enum_val_list;
 %type<Node> sql_cmd_opt_equal;
 %type<NodeList> sql_cmd_opt_external_stream_options;
-%type<Node> sql_cmd_opt_float;
 %type<Node> sql_cmd_opt_from_in;
 %type<Node> sql_cmd_opt_grant_admin_option;
 %type<Node> sql_cmd_opt_grant_grant_option;
@@ -169,10 +164,8 @@
 %type<Node> sql_cmd_opt_hold;
 %type<Node> sql_cmd_opt_in_database;
 %type<Node> sql_cmd_opt_index_name;
-%type<Node> sql_cmd_opt_interval;
 %type<Node> sql_cmd_opt_merge_condition;
 %type<NodeList> sql_cmd_opt_name_list;
-%type<Node> sql_cmd_opt_nulls_order;
 %type<Node> sql_cmd_opt_oids;
 %type<Node> sql_cmd_opt_procedural;
 %type<NodeList> sql_cmd_opt_reloptions;
@@ -182,7 +175,6 @@
 %type<Node> sql_cmd_opt_table_arg_semantics;
 %type<NodeList> sql_cmd_opt_table_func_column_list;
 %type<Node> sql_cmd_opt_table_pass_through;
-%type<NodeList> sql_cmd_opt_type_modifiers;
 %type<Node> sql_cmd_opt_unique;
 %type<Node> sql_cmd_opt_unload_defragment;
 %type<Node> sql_cmd_opt_using;
@@ -216,7 +208,6 @@
 %type<Node> sql_cmd_table_column_type;
 %type<Node> sql_cmd_table_func_column;
 %type<NodeList> sql_cmd_table_func_column_list;
-%type<NodeList> sql_cmd_transaction_mode_list;
 %type<NodeList> sql_cmd_var_list;
 %type<NodeList> sql_cmd_var_name;
 %type<Node> sql_cmd_var_value;

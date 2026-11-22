@@ -259,10 +259,6 @@ sql_cmd_comment_stmt:
     }
     ;
 
-sql_cmd_const_interval:
-    INTERVAL { ctx.object(@$,NodeType::OBJECT_SQL_TYPE,&[attr(Key::SQL_TYPE_KIND,ctx.name_from_keyword(@$,"interval"))]) }
-    ;
-
 sql_cmd_copy_stmt:
     COPY sql_cmd_opt_binary sql_qualified_name sql_opt_column_list sql_cmd_opt_oids FROM sql_cmd_copy_source_descriptor sql_cmd_copy_delimiter sql_cmd_opt_with sql_cmd_copy_options {
         ctx.object(
@@ -1272,114 +1268,6 @@ sql_cmd_merge_stmt:
     }
     ;
 
-sql_cmd_numeric:
-    INT_P {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_TYPE,
-            &[
-                attr(Key::SQL_TYPE_KIND, ctx.name_from_keyword(@$, "integer")),
-                attr(Key::SQL_TYPE_TYPE, ctx.name_from_keyword(@1, $1)),
-            ],
-        )
-    }
-    | INTEGER {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_TYPE,
-            &[
-                attr(Key::SQL_TYPE_KIND, ctx.name_from_keyword(@$, "integer")),
-                attr(Key::SQL_TYPE_TYPE, ctx.name_from_keyword(@1, $1)),
-            ],
-        )
-    }
-    | SMALLINT {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_TYPE,
-            &[
-                attr(Key::SQL_TYPE_KIND, ctx.name_from_keyword(@$, "smallint")),
-                attr(Key::SQL_TYPE_TYPE, ctx.name_from_keyword(@1, $1)),
-            ],
-        )
-    }
-    | BIGINT {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_TYPE,
-            &[
-                attr(Key::SQL_TYPE_KIND, ctx.name_from_keyword(@$, "bigint")),
-                attr(Key::SQL_TYPE_TYPE, ctx.name_from_keyword(@1, $1)),
-            ],
-        )
-    }
-    | REAL {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_TYPE,
-            &[
-                attr(Key::SQL_TYPE_KIND, ctx.name_from_keyword(@$, "real")),
-                attr(Key::SQL_TYPE_TYPE, ctx.name_from_keyword(@1, $1)),
-            ],
-        )
-    }
-    | FLOAT_P sql_cmd_opt_float {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_TYPE,
-            &[
-                attr(Key::SQL_TYPE_KIND, ctx.name_from_keyword(@$, "float")),
-                attr(Key::SQL_TYPE_TYPE, ctx.name_from_keyword(@1, $1)),
-                attr(Key::SQL_TYPE_MODIFIER, $2),
-            ],
-        )
-    }
-    | DOUBLE_P PRECISION { ctx.object(@$,NodeType::OBJECT_SQL_TYPE,&[attr(Key::SQL_TYPE_KIND,ctx.name_from_keyword(@$,"double"))]) }
-    | DECIMAL_P sql_cmd_opt_type_modifiers {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_TYPE,
-            &[
-                attr(Key::SQL_TYPE_KIND, ctx.name_from_keyword(@$, "numeric")),
-                attr(Key::SQL_TYPE_TYPE, ctx.name_from_keyword(@1, $1)),
-                attr(Key::SQL_TYPE_MODIFIER, ctx.array(@2, $2)),
-            ],
-        )
-    }
-    | DEC sql_cmd_opt_type_modifiers {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_TYPE,
-            &[
-                attr(Key::SQL_TYPE_KIND, ctx.name_from_keyword(@$, "numeric")),
-                attr(Key::SQL_TYPE_TYPE, ctx.name_from_keyword(@1, $1)),
-                attr(Key::SQL_TYPE_MODIFIER, ctx.array(@2, $2)),
-            ],
-        )
-    }
-    | NUMERIC sql_cmd_opt_type_modifiers {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_TYPE,
-            &[
-                attr(Key::SQL_TYPE_KIND, ctx.name_from_keyword(@$, "numeric")),
-                attr(Key::SQL_TYPE_TYPE, ctx.name_from_keyword(@1, $1)),
-                attr(Key::SQL_TYPE_MODIFIER, ctx.array(@2, $2)),
-            ],
-        )
-    }
-    | BOOLEAN_P {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_TYPE,
-            &[
-                attr(Key::SQL_TYPE_KIND, ctx.name_from_keyword(@$, "bool")),
-                attr(Key::SQL_TYPE_TYPE, ctx.name_from_keyword(@1, $1)),
-            ],
-        )
-    }
-    ;
-
 sql_cmd_numeric_only_list:
     sql_numeric_only { ctx.list(&[$1]) }
     | sql_cmd_numeric_only_list COMMA sql_numeric_only { ctx.push_back($1,$3); $1 }
@@ -1929,7 +1817,7 @@ sql_cmd_role_id:
     ;
 
 sql_cmd_sequence_option_item:
-    AS sql_cmd_numeric {
+    AS sql_numeric {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_SEQUENCE_OPTION,
@@ -3301,7 +3189,7 @@ sql_cmd_import_source_descriptor:
     ;
 
 sql_cmd_index_elem:
-    sql_col_id sql_cmd_opt_collate sql_cmd_opt_class sql_cmd_opt_asc_desc sql_cmd_opt_nulls_order {
+    sql_col_id sql_cmd_opt_collate sql_cmd_opt_class sql_opt_asc_desc sql_opt_nulls_order {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_INDEX_ELEMENT,
@@ -3309,8 +3197,8 @@ sql_cmd_index_elem:
                 attr(Key::SQL_INDEX_ELEMENT_NAME, $1),
                 attr(Key::SQL_INDEX_ELEMENT_COLLATION, ctx.array(@2, $2)),
                 attr(Key::SQL_INDEX_ELEMENT_OPCLASS, ctx.array(@3, $3)),
-                attr(Key::SQL_INDEX_ELEMENT_DESCENDING, $4),
-                attr(Key::SQL_INDEX_ELEMENT_NULLS_FIRST, $5),
+                attr(Key::SQL_INDEX_ELEMENT_DIRECTION, $4),
+                attr(Key::SQL_INDEX_ELEMENT_NULL_RULE, $5),
             ],
         )
     }
@@ -3333,27 +3221,6 @@ sql_cmd_insert_column_list:
     sql_cmd_insert_column_item { ctx.list(&[$1]) }
     | sql_cmd_insert_column_list COMMA sql_cmd_insert_column_item { ctx.push_back($1,$3); $1 }
     ;
-
-sql_cmd_interval_second:
-    SECOND_P {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_INTERVAL_SPEC,
-            &[attr(Key::SQL_INTERVAL_SPEC_KIND, ctx.name_from_keyword(@$, "second"))],
-        )
-    }
-    | SECOND_P LRB sql_integer_literal RRB {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_INTERVAL_SPEC,
-            &[
-                attr(Key::SQL_INTERVAL_SPEC_KIND, ctx.name_from_keyword(@$, "second")),
-                attr(Key::SQL_INTERVAL_SPEC_VALUE, $3),
-            ],
-        )
-    }
-    ;
-
 
 sql_cmd_merge_delete:
     DELETE_P {
@@ -3579,12 +3446,6 @@ sql_cmd_opt_as:
     | %empty { null() }
     ;
 
-sql_cmd_opt_asc_desc:
-    ASC_P { null() }
-    | DESC_P { bool_node(@$,true) }
-    | %empty { null() }
-    ;
-
 sql_cmd_opt_attach_database_options:
     WITH LRB sql_cmd_attachdb_opt_items RRB { $3 }
     | %empty { ctx.list(NO_NODES) }
@@ -3672,11 +3533,6 @@ sql_cmd_opt_external_stream_options:
     | %empty { ctx.list(NO_NODES) }
     ;
 
-sql_cmd_opt_float:
-    LRB sql_integer_literal RRB { $2 }
-    | %empty { null() }
-    ;
-
 sql_cmd_opt_from_in:
     FROM { ctx.name_from_keyword(@1,$1) }
     | IN_P { ctx.name_from_keyword(@1,$1) }
@@ -3726,104 +3582,6 @@ sql_cmd_opt_index_name:
     | %empty { null() }
     ;
 
-sql_cmd_opt_interval:
-    YEAR_P {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_INTERVAL_SPEC,
-            &[attr(Key::SQL_INTERVAL_SPEC_KIND, ctx.name_from_keyword(@$, "year"))],
-        )
-    }
-    | MONTH_P {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_INTERVAL_SPEC,
-            &[attr(Key::SQL_INTERVAL_SPEC_KIND, ctx.name_from_keyword(@$, "month"))],
-        )
-    }
-    | DAY_P {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_INTERVAL_SPEC,
-            &[attr(Key::SQL_INTERVAL_SPEC_KIND, ctx.name_from_keyword(@$, "day"))],
-        )
-    }
-    | HOUR_P {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_INTERVAL_SPEC,
-            &[attr(Key::SQL_INTERVAL_SPEC_KIND, ctx.name_from_keyword(@$, "hour"))],
-        )
-    }
-    | MINUTE_P {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_INTERVAL_SPEC,
-            &[attr(Key::SQL_INTERVAL_SPEC_KIND, ctx.name_from_keyword(@$, "minute"))],
-        )
-    }
-    | sql_cmd_interval_second { $1 }
-    | YEAR_P TO MONTH_P {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_INTERVAL_SPEC,
-            &[attr(Key::SQL_INTERVAL_SPEC_KIND, ctx.name_from_keyword(@$, "yeartomonth"))],
-        )
-    }
-    | DAY_P TO HOUR_P {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_INTERVAL_SPEC,
-            &[attr(Key::SQL_INTERVAL_SPEC_KIND, ctx.name_from_keyword(@$, "daytohour"))],
-        )
-    }
-    | DAY_P TO MINUTE_P {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_INTERVAL_SPEC,
-            &[attr(Key::SQL_INTERVAL_SPEC_KIND, ctx.name_from_keyword(@$, "daytominute"))],
-        )
-    }
-    | DAY_P TO sql_cmd_interval_second {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_INTERVAL_SPEC,
-            &[
-                attr(Key::SQL_INTERVAL_SPEC_KIND, ctx.name_from_keyword(@$, "daytosecond")),
-                attr(Key::SQL_INTERVAL_SPEC_VALUE, $3),
-            ],
-        )
-    }
-    | HOUR_P TO MINUTE_P {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_INTERVAL_SPEC,
-            &[attr(Key::SQL_INTERVAL_SPEC_KIND, ctx.name_from_keyword(@$, "hourtominute"))],
-        )
-    }
-    | HOUR_P TO sql_cmd_interval_second {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_INTERVAL_SPEC,
-            &[
-                attr(Key::SQL_INTERVAL_SPEC_KIND, ctx.name_from_keyword(@$, "hourtosecond")),
-                attr(Key::SQL_INTERVAL_SPEC_VALUE, $3),
-            ],
-        )
-    }
-    | MINUTE_P TO sql_cmd_interval_second {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_INTERVAL_SPEC,
-            &[
-                attr(Key::SQL_INTERVAL_SPEC_KIND, ctx.name_from_keyword(@$, "minutetosecond")),
-                attr(Key::SQL_INTERVAL_SPEC_VALUE, $3),
-            ],
-        )
-    }
-    | %empty { null() }
-    ;
-
 sql_cmd_opt_merge_condition:
     AND sql_expression_node { $2 }
     | %empty { null() }
@@ -3832,12 +3590,6 @@ sql_cmd_opt_merge_condition:
 sql_cmd_opt_name_list:
     LRB sql_name_list RRB { $2 }
     | %empty { ctx.list(NO_NODES) }
-    ;
-
-sql_cmd_opt_nulls_order:
-    NULLS_LA FIRST_P { bool_node(@$,true) }
-    | NULLS_LA LAST_P { bool_node(@$,false) }
-    | %empty { null() }
     ;
 
 sql_cmd_opt_oids:
@@ -3902,11 +3654,6 @@ sql_cmd_opt_table_pass_through:
     %empty { null() }
     | PASS THROUGH { bool_node(@$,true) }
     | NO PASS THROUGH { bool_node(@$,false) }
-    ;
-
-sql_cmd_opt_type_modifiers:
-    LRB sql_expr_list RRB { $2 }
-    | %empty { ctx.list(NO_NODES) }
     ;
 
 sql_cmd_opt_unique:
@@ -4386,7 +4133,7 @@ sql_cmd_set_clause_list:
     ;
 
 sql_cmd_set_rest:
-    TRANSACTION sql_cmd_transaction_mode_list {
+    TRANSACTION sql_transaction_mode_list {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_SET,
@@ -4396,7 +4143,7 @@ sql_cmd_set_rest:
             ],
         )
     }
-    | SESSION CHARACTERISTICS AS TRANSACTION sql_cmd_transaction_mode_list {
+    | SESSION CHARACTERISTICS AS TRANSACTION sql_transaction_mode_list {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_SET,
@@ -4556,9 +4303,6 @@ sql_cmd_table_func_column_list:
     ;
 
 
-sql_cmd_transaction_mode_list:
-sql_transaction_mode_list { $1 }
-    ;
 sql_cmd_var_list:
     sql_cmd_var_value { ctx.list(&[$1]) }
     | sql_cmd_var_list COMMA sql_cmd_var_value { ctx.push_back($1,$3); $1 }
@@ -4599,25 +4343,23 @@ sql_cmd_zone_value:
             ],
         )
     }
-    | sql_cmd_const_interval sql_string_literal sql_cmd_opt_interval {
+    | sql_const_interval sql_string_literal sql_opt_interval {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_ZONE_VALUE,
             &[
                 attr(Key::SQL_ZONE_VALUE_KIND, ctx.name_from_keyword(@$, "interval")),
-                attr(Key::SQL_ZONE_VALUE_TYPE, $1),
                 attr(Key::SQL_ZONE_VALUE_ARG, $2),
                 attr(Key::SQL_ZONE_VALUE_MOD, $3),
             ],
         )
     }
-    | sql_cmd_const_interval LRB sql_integer_literal RRB sql_string_literal {
+    | sql_const_interval LRB sql_integer_literal RRB sql_string_literal {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_ZONE_VALUE,
             &[
                 attr(Key::SQL_ZONE_VALUE_KIND, ctx.name_from_keyword(@$, "intervalgeneric")),
-                attr(Key::SQL_ZONE_VALUE_TYPE, $1),
                 attr(Key::SQL_ZONE_VALUE_MOD, $3),
                 attr(Key::SQL_ZONE_VALUE_ARG, $5),
             ],
