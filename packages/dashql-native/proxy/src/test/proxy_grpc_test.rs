@@ -6,6 +6,7 @@ use std::time::Duration;
 use http::{Request, Response};
 use prost::Message;
 
+use crate::grpc_stream_manager::STREAM_CAPACITY;
 use crate::proto::dashql_test::{
     TestServerStreamingRequest, TestServerStreamingResponse, TestUnaryRequest, TestUnaryResponse,
 };
@@ -388,7 +389,7 @@ async fn deleting_a_stream_cancels_a_query_with_a_full_queue() {
     let (_, sender) = server.await.unwrap();
 
     // More messages than the queue holds, nobody reads them
-    for i in 0..15 {
+    for i in 0..STREAM_CAPACITY + 5 {
         sender.send(message(&format!("message {i}"))).await.unwrap();
     }
     tokio::time::sleep(Duration::from_millis(50)).await;

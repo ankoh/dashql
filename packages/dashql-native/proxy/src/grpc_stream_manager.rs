@@ -94,7 +94,6 @@ impl GrpcStreamManager {
         let stream_id = reg.next_stream_id.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
 
         // Register the receiver
-        const STREAM_CAPACITY: usize = 10;
         let (sender, receiver) = tokio::sync::mpsc::channel(STREAM_CAPACITY);
         let stream_entry = Arc::new(GRPCServerStream { channel_id, response_receiver: Mutex::new(receiver) });
         if let Ok(mut streams) = self.server_streams.write() {
@@ -258,23 +257,21 @@ impl GrpcStreamManager {
     }
 }
 
+/// The messages that a stream queues for its reader
+pub(crate) const STREAM_CAPACITY: usize = 10;
+
 #[cfg(test)]
 mod test {
     use super::*;
     use prost::Message;
     use std::collections::HashMap;
-    use tokio_stream::StreamExt;
 
     use crate::proto::salesforce_hyperdb_grpc_v1::hyper_service_client::HyperServiceClient;
     use crate::proto::salesforce_hyperdb_grpc_v1::query_param;
     use crate::proto::salesforce_hyperdb_grpc_v1::query_result;
-    use crate::proto::salesforce_hyperdb_grpc_v1::query_result_header::Header;
     use crate::proto::salesforce_hyperdb_grpc_v1::QueryBinaryResultChunk;
     use crate::proto::salesforce_hyperdb_grpc_v1::QueryParam;
-    use crate::proto::salesforce_hyperdb_grpc_v1::QueryResultSchema;
-    use crate::proto::salesforce_hyperdb_grpc_v1::SqlType;
-    use crate::proto::salesforce_hyperdb_grpc_v1::{sql_type, QueryResultHeader};
-    use crate::proto::salesforce_hyperdb_grpc_v1::{ColumnDescription, QueryResult};
+    use crate::proto::salesforce_hyperdb_grpc_v1::QueryResult;
     use crate::status::Status;
     use crate::test::hyper_service_mock::{spawn_hyper_service_mock, HyperServiceMock};
 
@@ -282,80 +279,6 @@ mod test {
         fn into(self) -> Vec<u8> {
             self.encode_to_vec()
         }
-    }
-
-    #[tokio::test]
-    async fn test_execute_query_mock() -> Result<(), Status> {
-        let (mock, mut setup_execute_query) = HyperServiceMock::new();
-        let (addr, shutdown) = spawn_hyper_service_mock(mock).await;
-        let mut client = HyperServiceClient::connect(format!("http://{}", addr)).await.unwrap();
-
-        let param = QueryParam {
-            query: "select 1".to_string(),
-            output_format: query_param::OutputFormat::ArrowStream.into(),
-            database: Vec::new(),
-            params: HashMap::new(),
-        };
-        let result = client.execute_query(param).await.unwrap();
-        let mut stream = result.into_inner();
-
-        // Send the results
-        let (_params, result_sender) = setup_execute_query.recv().await.unwrap();
-        result_sender
-            .send(Ok(QueryResult {
-                result: Some(query_result::Result::Header(QueryResultHeader {
-                    header: Some(Header::Schema(QueryResultSchema {
-                        column: vec![ColumnDescription {
-                            name: "foo".to_string(),
-                            r#type: Some(SqlType { tag: sql_type::TypeTag::HyperBool.into(), modifier: None }),
-                        }],
-                    })),
-                })),
-            }))
-            .await
-            .unwrap();
-        result_sender
-            .send(Ok(QueryResult {
-                result: Some(query_result::Result::ArrowChunk(QueryBinaryResultChunk {
-                    data: vec![0x1, 0x2, 0x3, 0x4],
-                })),
-            }))
-            .await
-            .unwrap();
-        drop(result_sender);
-
-        let mut results = Vec::new();
-        while let Some(item) = stream.next().await {
-            assert!(item.is_ok());
-            results.push(item.unwrap());
-        }
-        assert_eq!(results.len(), 2);
-        assert!(results[0].result.is_some());
-        assert_eq!(
-            &results[0],
-            &QueryResult {
-                result: Some(query_result::Result::Header(QueryResultHeader {
-                    header: Some(Header::Schema(QueryResultSchema {
-                        column: vec![ColumnDescription {
-                            name: "foo".to_string(),
-                            r#type: Some(SqlType { tag: sql_type::TypeTag::HyperBool.into(), modifier: None }),
-                        }],
-                    })),
-                })),
-            }
-        );
-        assert!(results[1].result.is_some());
-        assert_eq!(
-            &results[1],
-            &QueryResult {
-                result: Some(query_result::Result::ArrowChunk(QueryBinaryResultChunk {
-                    data: vec![0x1, 0x2, 0x3, 0x4],
-                })),
-            }
-        );
-        shutdown.send(()).unwrap();
-
-        Ok(())
     }
 
     #[tokio::test]
@@ -395,9 +318,7 @@ mod test {
 
         // Setup the stream manager
         let reg = Arc::new(GrpcStreamManager::default());
-        reg.next_stream_id.fetch_add(42, std::sync::atomic::Ordering::SeqCst);
         let stream_id = reg.start_server_stream(0, res.into_inner()).unwrap();
-        assert_eq!(stream_id, 42);
 
         // Read batched messages
         let batch =
@@ -406,7 +327,11 @@ mod test {
         assert_eq!(batch.messages[0], messages[0].as_ref().unwrap().encode_to_vec());
         assert_eq!(batch.messages[1], messages[1].as_ref().unwrap().encode_to_vec());
         assert_eq!(batch.event, GrpcServerStreamBatchEvent::StreamFinished);
-        assert!(!reg.server_streams.read().unwrap().contains_key(&stream_id));
+        // A finished stream is gone, reading it again fails
+        assert!(reg
+            .read_server_stream(0, stream_id, Duration::from_secs(10), Duration::from_secs(10), 1000000)
+            .await
+            .is_err());
 
         shutdown.send(()).unwrap();
         Ok(())

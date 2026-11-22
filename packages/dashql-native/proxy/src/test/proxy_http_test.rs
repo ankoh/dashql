@@ -5,6 +5,7 @@ use std::time::Duration;
 
 use http::{Request, Response};
 
+use crate::http_stream_manager::STREAM_CAPACITY;
 use crate::route_proxy_request;
 use crate::test::http_server_mock::spawn_http_server;
 
@@ -359,7 +360,7 @@ async fn deleting_a_stream_stops_a_reader_with_a_full_queue() {
     let (_, mut connection) = requests.recv().await.unwrap();
     connection.write_head("200 OK", &[]).await;
     // More chunks than the queue holds, nobody reads them
-    for _ in 0..20 {
+    for _ in 0..STREAM_CAPACITY + 10 {
         connection.write_chunk("x").await;
         tokio::time::sleep(Duration::from_millis(5)).await;
     }

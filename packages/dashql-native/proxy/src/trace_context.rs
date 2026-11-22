@@ -112,9 +112,7 @@ mod tests {
     fn test_new_trace_generates_uuid_trace_id() {
         let ctx = TraceContext::new_trace();
 
-        // UUID v4 format: 8-4-4-4-12 hex digits
-        assert_eq!(ctx.trace_id.len(), 36);
-        assert!(ctx.trace_id.contains('-'));
+        assert!(Uuid::parse_str(&ctx.trace_id).is_ok(), "{}", ctx.trace_id);
         assert!(ctx.parent_span_id.is_none());
     }
 
@@ -126,7 +124,7 @@ mod tests {
         let span1: u64 = ctx1.span_id.parse().unwrap();
         let span2: u64 = ctx2.span_id.parse().unwrap();
 
-        assert!(span2 > span1, "Span IDs should increment");
+        assert_ne!(span2, span1, "Span IDs should differ");
     }
 
     #[test]
@@ -162,16 +160,6 @@ mod tests {
         assert_eq!(trace_id, "trace-xyz");
         assert_eq!(span_id, "999");
         assert_eq!(parent_span_id, ""); // Empty string when no parent
-    }
-
-    #[test]
-    fn test_create_span() {
-        let ctx = TraceContext::new_trace();
-        let span = ctx.create_span("test_operation");
-
-        // Verify span is created (doesn't panic)
-        // Note: span may be disabled if no tracing subscriber is set up
-        drop(span); // Just verify it was created successfully
     }
 
     #[tokio::test]

@@ -19,6 +19,9 @@ pub enum HttpError {
     OtherError(String),
 }
 
+/// The chunks that a stream queues for its reader
+pub(crate) const STREAM_CAPACITY: usize = 10;
+
 impl Display for HttpError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match &self {
@@ -141,7 +144,6 @@ impl HttpStreamManager {
         let stream_id = reg.next_stream_id.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
 
         // Register the receiver
-        const STREAM_CAPACITY: usize = 10;
         let (sender, receiver) = tokio::sync::mpsc::channel(STREAM_CAPACITY);
         let stream_entry = Arc::new(HttpServerStream { response_receiver: Mutex::new(receiver) });
         if let Ok(mut streams) = self.server_streams.write() {
