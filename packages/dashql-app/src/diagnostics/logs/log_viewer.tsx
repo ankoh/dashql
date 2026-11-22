@@ -60,6 +60,7 @@ export const LogRow = (props: RowComponentProps<LogRowProps>) => {
     return (
         <div
             className={inspectorRowClassName(isSelected)}
+            data-testid="log-row"
             data-selected={isSelected || undefined}
             style={props.style}
             onClick={() => showJsonRecord(rowIndex)}

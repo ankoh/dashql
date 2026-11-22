@@ -79,12 +79,15 @@ function entryToObject(entry: HttpRequestEntry): object {
     };
 }
 
+/// The time that the copy button shows its check mark after a copy
+export const COPIED_CONFIRMATION_MS = 2000;
+
 /// Copy the request as curl command, the command includes credentials
 export function CopyCurlButton(props: { entry: HttpRequestEntry; size?: ButtonSize }) {
     const [copied, setCopied] = React.useState(false);
     React.useEffect(() => {
         if (!copied) return;
-        const timer = setTimeout(() => setCopied(false), 2000);
+        const timer = setTimeout(() => setCopied(false), COPIED_CONFIRMATION_MS);
         return () => clearTimeout(timer);
     }, [copied]);
     const copy = React.useCallback((e: React.MouseEvent) => {
@@ -131,13 +134,13 @@ const RequestRow = (props: RowComponentProps<RequestRowProps>) => {
             data-testid="http-request-row"
         >
             <div className={styles.request_row_main}>
-                <div className={styles.cell}>{entry.sentAt.toLocaleTimeString('en-GB', { hour12: false })}</div>
-                <div className={styles.cell}>{entry.method}</div>
-                <div className={`${styles.cell} ${styles.cell_status} ${failed ? styles.cell_status_failed : ''}`}>
+                <div className={styles.cell} data-column="time">{entry.sentAt.toLocaleTimeString('en-GB', { hour12: false })}</div>
+                <div className={styles.cell} data-column="method">{entry.method}</div>
+                <div className={`${styles.cell} ${styles.cell_status} ${failed ? styles.cell_status_failed : ''}`} data-column="status">
                     {getRequestStatusLabel(entry)}
                 </div>
-                <div className={`${styles.cell} ${styles.cell_duration}`}>{durationMs != null ? `${durationMs} ms` : '—'}</div>
-                <div className={styles.cell} title={entry.url}>{entry.url}</div>
+                <div className={`${styles.cell} ${styles.cell_duration}`} data-column="duration">{durationMs != null ? `${durationMs} ms` : '—'}</div>
+                <div className={styles.cell} title={entry.url} data-column="url">{entry.url}</div>
                 <div className={styles.cell_action}>
                     <CopyCurlButton entry={entry} size={ButtonSize.Small} />
                 </div>

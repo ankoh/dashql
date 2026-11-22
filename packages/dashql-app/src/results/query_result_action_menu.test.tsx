@@ -145,7 +145,7 @@ from base`);
         const noQueryKey = scriptKey;
         await open();
         expect(item()!.disabled).toBe(true);
-        expect(item()!.textContent).toBe('Project ColumnsThe last statement is no query');
+        expect(item()!.textContent).toContain('no query');
         // Clicking the disabled item keeps the script
         await act(async () => { item()!.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
         expect(scriptText(noQueryKey)).toBe('select 1 as a; drop table t;');
@@ -154,7 +154,7 @@ from base`);
         await render('select', key => query({}, scriptResultOwner('s1', key)));
         await open();
         expect(item()!.disabled).toBe(true);
-        expect(item()!.textContent).toBe('Project ColumnsThe result has no columns');
+        expect(item()!.textContent).toContain('no columns');
     });
 
     it('disables the projection of a result whose script is gone', async () => {

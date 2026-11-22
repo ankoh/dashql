@@ -101,13 +101,13 @@ const ShellBrand: React.FC = () => {
     const flavor = useRequestedAppFlavor();
     if (flavor == null) {
         return (
-            <svg className={styles.brand_logo} width="100%" height="100%" aria-hidden="true">
+            <svg className={styles.brand_logo} width="100%" height="100%" aria-hidden="true" data-brand="hyper">
                 <use xlinkHref={`${symbols}#hyper_banner`} />
             </svg>
         );
     }
     return (
-        <span className={styles.brand_mark} data-testid="shell-flavor-brand">
+        <span className={styles.brand_mark} data-testid="shell-flavor-brand" data-brand={flavor.id}>
             {flavor.logo.wordmark
                 ? <FlavorLogo height={WORDMARK_HEIGHT} ariaHidden />
                 : <>

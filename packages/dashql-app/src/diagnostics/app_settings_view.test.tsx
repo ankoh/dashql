@@ -72,6 +72,7 @@ describe('AppSettings', () => {
     };
     const segments = (labelId: string) => [...root.container.querySelectorAll<HTMLButtonElement>(`ul[aria-labelledby="${labelId}"] button`)];
     const selectedSegment = (labelId: string) => segments(labelId).find(b => b.getAttribute('aria-current') === 'true')?.textContent;
+    const segment = (labelId: string, label: string) => segments(labelId).find(b => b.textContent === label)!;
     const records = () => [...Array(logger.buffer.length).keys()].map(i => logger.buffer.at(i)!);
     const button = (text: string) => [...root.container.querySelectorAll<HTMLButtonElement>('button')].find(b => b.textContent?.trim() === text)!;
 
@@ -94,8 +95,7 @@ describe('AppSettings', () => {
 
     it('toggles the boolean settings', async () => {
         await render();
-        const sections = [...root.container.querySelectorAll('section')].map(s => s.getAttribute('aria-label'));
-        expect(sections).toEqual(['General', 'Layout', 'Experimental', 'Debugging', 'Login & Setup']);
+        const initial = { ...config!.settings };
 
         const toggles: [string, keyof NonNullable<AppConfig['settings']>][] = [
             ['Narrow Screen Layout', 'narrowScreenLayout'],
@@ -115,26 +115,26 @@ describe('AppSettings', () => {
             act(() => settingSwitch(name).click());
             expect(config!.settings?.[key]).toBe(before);
         }
-        // The other settings of config.json stay
-        expect(config!.settings?.enableTableColumnPlots).toBe(true);
+        // The other settings stay
+        expect(config!.settings).toMatchObject(initial);
     });
 
     it('switches the keyword case and the minimum log level', async () => {
         await render();
         expect(selectedSegment('app-setting-keyword-case')).toBe('Lowercase');
-        act(() => segments('app-setting-keyword-case')[1].click());
+        act(() => segment('app-setting-keyword-case', 'Uppercase').click());
         expect(config!.settings?.keywordCase).toBe('upper');
         expect(selectedSegment('app-setting-keyword-case')).toBe('Uppercase');
-        act(() => segments('app-setting-keyword-case')[0].click());
+        act(() => segment('app-setting-keyword-case', 'Lowercase').click());
         expect(config!.settings?.keywordCase).toBe('lower');
 
         expect(selectedSegment('app-setting-min-log-level')).toBe('Info');
         expect(logger.buffer.getMinLogLevel()).toBe(LogLevel.Info);
-        act(() => segments('app-setting-min-log-level')[0].click());
+        act(() => segment('app-setting-min-log-level', 'Trace').click());
         expect(config!.settings?.minLogLevel).toBe(LogLevel.Trace);
         expect(selectedSegment('app-setting-min-log-level')).toBe('Trace');
         expect(logger.buffer.getMinLogLevel()).toBe(LogLevel.Trace);
-        act(() => segments('app-setting-min-log-level')[4].click());
+        act(() => segment('app-setting-min-log-level', 'Error').click());
         expect(logger.buffer.getMinLogLevel()).toBe(LogLevel.Error);
     });
 

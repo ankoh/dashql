@@ -23,7 +23,7 @@ import { formatHHMMSS, formatTimeDifference } from '@akohn/dashql-react/format/f
 import { APP_EVENT_POST_MESSAGE_KIND, OAUTH_BROADCAST_CHANNEL } from '../host/events/event.js';
 import { decodeOAuthState, isAllowedOAuthCallbackUrl, validateOAuthRedirectState } from './oauth_redirect_utils.js';
 
-const AUTO_TRIGGER_DELAY = 2000;
+export const AUTO_TRIGGER_DELAY = 2000;
 const AUTO_TRIGGER_COUNTER_INTERVAL = 200;
 
 const LOG_CTX = "oauth_redirect";

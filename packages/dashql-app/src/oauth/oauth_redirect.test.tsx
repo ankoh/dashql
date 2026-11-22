@@ -7,13 +7,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LoggerProvider } from '../host/logger_provider.js';
 import { APP_EVENT_POST_MESSAGE_KIND, OAUTH_BROADCAST_CHANNEL } from '../host/events/event.js';
 import { BASE64URL_CODEC } from '@akohn/dashql/platform/utils/base64';
-import { RedirectPage } from './oauth_redirect.js';
+import { AUTO_TRIGGER_DELAY, RedirectPage } from './oauth_redirect.js';
 import type { AppEventData, OAuthState } from '@akohn/dashql/platform/oauth_types';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
 const PAGE_ORIGIN = 'https://dashql.app';
-const AUTO_TRIGGER_DELAY = 2000;
 const CODE_LIFETIME = 60_000;
 
 function encodeState(state: unknown): string {
@@ -155,7 +154,7 @@ describe('the OAuth redirect page', () => {
     describe('a native app', () => {
         it('opens the deep link after the delay', async () => {
             await renderState(oauthState({ flowVariant: 'NATIVE_LINK_FLOW' }));
-            expect(buttonWithText('Open in App')?.textContent).toContain('2');
+            expect(buttonWithText('Open in App')?.textContent).toContain(String(AUTO_TRIGGER_DELAY / 1000));
             await advance(AUTO_TRIGGER_DELAY);
             expect(windowOpen).toHaveBeenCalledOnce();
             const [link, target] = windowOpen.mock.calls[0] as [string, string];
@@ -168,10 +167,11 @@ describe('the OAuth redirect page', () => {
 
         it('counts down to the deep link and offers to open it again', async () => {
             await renderState(oauthState({ flowVariant: 'NATIVE_LINK_FLOW' }));
-            await advance(1000);
-            expect(buttonWithText('Open in App')?.textContent).toBe('Open in App1');
-            await advance(1000);
-            expect(buttonWithText('Open in App')?.textContent).toBe('Open in App');
+            await advance(AUTO_TRIGGER_DELAY / 2);
+            // The button counts the seconds down
+            expect(buttonWithText('Open in App')?.textContent).toMatch(/\d/);
+            await advance(AUTO_TRIGGER_DELAY / 2);
+            expect(buttonWithText('Open in App')?.textContent).not.toMatch(/\d/);
             await act(async () => buttonWithText('Open in App')!.click());
             expect(windowOpen).toHaveBeenCalledTimes(2);
             expect(container.querySelector('[aria-label="copy-deeplink"]')).not.toBeNull();

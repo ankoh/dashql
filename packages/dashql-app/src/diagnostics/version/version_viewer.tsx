@@ -25,7 +25,7 @@ import { ProgressBar } from '@akohn/dashql-react/components/progress_bar';
 import { relaunch } from '../../host/process.js';
 import { useLogger } from '../../host/logger_provider.js';
 
-const VERSION_CHECK_INTERVAL_MS = 5 * 60 * 1000;
+export const VERSION_CHECK_INTERVAL_MS = 5 * 60 * 1000;
 
 interface UpdateChannelProps {
     channel: ReleaseChannel;

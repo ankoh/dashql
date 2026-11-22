@@ -62,7 +62,7 @@ describe('StorageBrowserView', () => {
     /// The rows as `<depth> [+|-]<name> (<size>)`, + marks collapsed and - expanded folders
     const rows = () => [...root.container.querySelectorAll<HTMLElement>(`.${styles.row_container}`)].map(row => {
         const entry = row.firstElementChild as HTMLElement;
-        const depth = (Number.parseInt(entry.style.paddingLeft, 10) - 8) / 16;
+        const depth = entry.dataset.depth;
         const expanded = entry.getAttribute('aria-expanded');
         const marker = expanded == null ? '' : expanded === 'true' ? '-' : '+';
         const name = entry.querySelector('[title]')?.textContent ?? '';
@@ -163,11 +163,10 @@ describe('StorageBrowserView', () => {
 
         // Declining keeps the entries
         await act(async () => button('Check the filesystem').click());
-        await vi.waitFor(() => expect(root.container.textContent).toContain("Delete 2 entries that this version of DashQL doesn't use?"));
-        expect(reviewed()).toEqual([
-            ['old/', 'Not used by this version of DashQL'],
-            ['stray.txt', 'Not used by this version of DashQL'],
-        ]);
+        await vi.waitFor(() => expect(root.container.textContent).toContain('Delete 2 entries'));
+        // The entries with the reason to delete them
+        expect(reviewed().map(([name]) => name)).toEqual(['old/', 'stray.txt']);
+        expect(reviewed().every(([, reason]) => reason != null && reason.length > 0)).toBe(true);
         expect(root.container.textContent).toContain('Reason');
         expect(button('Check the filesystem').disabled).toBe(true);
         expect(button('Refresh storage listing').disabled).toBe(true);

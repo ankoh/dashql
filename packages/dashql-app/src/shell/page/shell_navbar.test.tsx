@@ -45,7 +45,7 @@ describe('ShellNavBar', () => {
             <ShellNavBar engineVersion="1.0.0" onReset={() => {}} Internals={EmptyInternals} />,
         ));
 
-        expect(container.querySelector('use')?.getAttribute('xlink:href')).toMatch(/#hyper_banner$/);
+        expect(container.querySelector('[data-brand="hyper"]')).not.toBeNull();
         expect(container.querySelector('[data-testid="shell-flavor-brand"]')).toBeNull();
     });
 
@@ -58,7 +58,7 @@ describe('ShellNavBar', () => {
 
         const brand = container.querySelector('[data-testid="shell-flavor-brand"]');
         expect(brand).not.toBeNull();
-        expect(brand!.querySelector('use')?.getAttribute('xlink:href')).toMatch(/#dbcom_wordmark$/);
+        expect(brand!.getAttribute('data-brand')).toBe(DBCOM_FLAVOR.id);
         expect(brand!.textContent).toContain(DBCOM_FLAVOR.tagline);
         expect(document.documentElement.dataset.flavor).toBe('dbcom');
         expect(document.title).toBe('Database.com');

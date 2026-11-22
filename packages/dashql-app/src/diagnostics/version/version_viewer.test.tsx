@@ -7,7 +7,7 @@ import { LoggerProvider } from '../../host/logger_provider.js';
 import { ElectronVersionCheck } from '../../host/version/electron_version_check.js';
 import { useVersionCheck } from '../../host/version/version_check.js';
 import { WebVersionCheck } from '../../host/version/web_version_check.js';
-import { VersionInfoOverlay } from './version_viewer.js';
+import { VERSION_CHECK_INTERVAL_MS, VersionInfoOverlay } from './version_viewer.js';
 
 const manifest = {
     release_id: 'release-id',
@@ -76,29 +76,32 @@ describe('VersionInfoOverlay', () => {
         await vi.waitFor(() => expect(isRefreshing).toBe(false));
     }
 
-    it('checks on first open, then only after five minutes since the overlay last checked', async () => {
+    it('checks on first open, then only after the check interval since the overlay last checked', async () => {
         await render(false);
-        expect(fetchManifest).toHaveBeenCalledTimes(2);
+        // A check fetches the manifest of every channel
+        const perCheck = fetchManifest.mock.calls.length;
+        expect(perCheck).toBeGreaterThan(0);
         await settleRefresh();
 
         await render(true);
-        expect(fetchManifest).toHaveBeenCalledTimes(4);
+        expect(fetchManifest).toHaveBeenCalledTimes(2 * perCheck);
         await settleRefresh();
 
         await render(false);
-        now += 5 * 60 * 1000 - 1;
+        now += VERSION_CHECK_INTERVAL_MS - 1;
         await render(true);
-        expect(fetchManifest).toHaveBeenCalledTimes(4);
+        expect(fetchManifest).toHaveBeenCalledTimes(2 * perCheck);
 
         await render(false);
         now += 1;
         await render(true);
-        expect(fetchManifest).toHaveBeenCalledTimes(6);
+        expect(fetchManifest).toHaveBeenCalledTimes(3 * perCheck);
     });
 
     it('shows a busy indicator until both channels finish and ignores overlapping clicks', async () => {
         await render(false);
         await settleRefresh();
+        const perCheck = fetchManifest.mock.calls.length;
         let resolveStable!: (response: Response) => void;
         let resolveLatest!: (response: Response) => void;
         fetchManifest
@@ -109,10 +112,10 @@ describe('VersionInfoOverlay', () => {
         const refreshButton = () => document.querySelector<HTMLButtonElement>('[data-testid="version-check-refresh"]');
         expect(refreshButton()).not.toBeNull();
         expect(refreshButton()!.getAttribute('aria-disabled'), 'busy while both channels load').toBe('true');
-        expect(fetchManifest).toHaveBeenCalledTimes(4);
+        expect(fetchManifest).toHaveBeenCalledTimes(2 * perCheck);
 
         act(() => refreshButton()!.click());
-        expect(fetchManifest).toHaveBeenCalledTimes(4);
+        expect(fetchManifest).toHaveBeenCalledTimes(2 * perCheck);
 
         await act(async () => resolveStable(new Response(JSON.stringify(manifest))));
         expect(refreshButton()!.getAttribute('aria-disabled'), 'still busy after stable resolves').toBe('true');
@@ -122,14 +125,14 @@ describe('VersionInfoOverlay', () => {
         expect(refreshButton()!.getAttribute('aria-disabled'), 'idle after the latest manifest resolves').not.toBe('true');
         act(() => refreshButton()!.click());
         await act(async () => {});
-        expect(fetchManifest).toHaveBeenCalledTimes(6);
+        expect(fetchManifest).toHaveBeenCalledTimes(3 * perCheck);
         await settleRefresh();
         await render(false);
         await render(true);
-        expect(fetchManifest).toHaveBeenCalledTimes(6);
+        expect(fetchManifest).toHaveBeenCalledTimes(3 * perCheck);
     });
 
-    it('rechecks the Electron updater on first open and after five minutes', async () => {
+    it('rechecks the Electron updater on first open and after the check interval', async () => {
         const status: DashQLElectronUpdateStatus = {status: 'up-to-date', channel: 'stable', version: '0.0.8'};
         const check = vi.fn().mockResolvedValue(status);
         vi.stubGlobal('dashqlElectron', {
@@ -143,16 +146,17 @@ describe('VersionInfoOverlay', () => {
         await render(false, true);
         await settleRefresh();
         expect(check).toHaveBeenCalledTimes(1);
+        const perCheck = fetchManifest.mock.calls.length;
 
         await render(true, true);
         expect(check).toHaveBeenCalledTimes(2);
-        expect(fetchManifest).toHaveBeenCalledTimes(4);
+        expect(fetchManifest).toHaveBeenCalledTimes(2 * perCheck);
 
         await settleRefresh();
         await render(false, true);
-        now += 5 * 60 * 1000;
+        now += VERSION_CHECK_INTERVAL_MS;
         await render(true, true);
         expect(check).toHaveBeenCalledTimes(3);
-        expect(fetchManifest).toHaveBeenCalledTimes(6);
+        expect(fetchManifest).toHaveBeenCalledTimes(3 * perCheck);
     });
 });

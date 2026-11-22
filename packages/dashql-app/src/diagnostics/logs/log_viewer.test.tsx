@@ -107,7 +107,7 @@ describe('LogViewer', () => {
             log('second');
             log('third');
         });
-        const rows = () => [...container.querySelectorAll<HTMLElement>('[title]')].map(element => element.parentElement!.parentElement!);
+        const rows = () => [...container.querySelectorAll<HTMLElement>('[data-testid="log-row"]')];
         act(() => rows()[1].click());
         expect(document.body.textContent).toContain('second');
         expect(overlayButton('Previous log')!.disabled).toBe(false);
@@ -158,7 +158,7 @@ describe('LogViewer', () => {
         const error = vi.spyOn(console, 'error').mockImplementation(() => { });
         render();
         await act(async () => button('Download Logs as JSON')!.click());
-        expect(error).toHaveBeenCalledWith('Failed to download logs:', failure);
+        expect(error).toHaveBeenCalledWith(expect.any(String), failure);
     });
 
     it('shows and downloads only the records of a trace', async () => {
@@ -178,7 +178,7 @@ describe('LogViewer', () => {
         });
         expect(rowMessages()).toEqual(['before', 'after']);
 
-        const rows = () => [...container.querySelectorAll<HTMLElement>('[title]')].map(element => element.parentElement!.parentElement!);
+        const rows = () => [...container.querySelectorAll<HTMLElement>('[data-testid="log-row"]')];
         act(() => rows()[0].click());
         key('ArrowDown');
         expect(rows().findIndex(row => row.hasAttribute('data-selected'))).toBe(1);

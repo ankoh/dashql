@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
 import { HttpRequestLog, type HttpRequestEntry } from '../host/http/http_request_log.js';
-import { getRequestStatusLabel, HttpRequestViewer } from './http_request_viewer.js';
+import { COPIED_CONFIRMATION_MS, getRequestStatusLabel, HttpRequestViewer } from './http_request_viewer.js';
 import * as styles from './http_request_viewer.module.css';
 
 const SENT_AT = new Date(Date.UTC(2026, 10, 4, 12, 0, 0));
@@ -83,7 +83,9 @@ describe('HttpRequestViewer', () => {
     }
 
     const rows = () => [...container.querySelectorAll<HTMLElement>('[data-testid="http-request-row"]')];
-    const cells = (row: HTMLElement) => [...row.firstElementChild!.children].slice(0, 5).map(cell => cell.textContent);
+    const COLUMNS = ['time', 'method', 'status', 'duration', 'url'];
+    const column = (row: HTMLElement, name: string) => row.querySelector<HTMLElement>(`[data-column="${name}"]`)!;
+    const cells = (row: HTMLElement) => COLUMNS.map(name => column(row, name).textContent);
     const selected = () => rows().findIndex(row => row.hasAttribute('data-selected'));
     const button = (label: string) => document.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`);
     const key = (k: string) => act(() => {
@@ -112,7 +114,7 @@ describe('HttpRequestViewer', () => {
             [time, 'DELETE', 'failed', '3 ms', url],
             [time, 'GET', 'pending', '—', url],
         ]);
-        const failed = rows().map(row => row.firstElementChild!.children[2].classList.contains(styles.cell_status_failed));
+        const failed = rows().map(row => column(row, 'status').classList.contains(styles.cell_status_failed));
         expect(failed).toEqual([false, true, true, false]);
 
         // The list follows new requests
@@ -135,7 +137,7 @@ describe('HttpRequestViewer', () => {
         // A progressing request stays selected
         act(() => log.update(second, { status: 200, respondedAt: new Date(SENT_AT.getTime() + 5) }));
         expect(selected()).toBe(1);
-        expect(cells(rows()[1])[2]).toBe('200');
+        expect(column(rows()[1], 'status').textContent).toBe('200');
 
         key('ArrowDown');
         expect(selected()).toBe(2);
@@ -184,14 +186,14 @@ describe('HttpRequestViewer', () => {
         // Copying does not open the details
         expect(selected()).toBe(-1);
         await untilRendered(() => expect(icon()).toMatch(/#check_16$/));
-        // The check mark stays before the two seconds have passed
-        act(() => { vi.advanceTimersByTime(1999); });
+        // The check mark stays until its time has passed
+        act(() => { vi.advanceTimersByTime(COPIED_CONFIRMATION_MS - 1); });
         await flushContinuousUpdates();
         expect(icon()).toMatch(/#check_16$/);
-        // It goes back to the copy icon after two seconds. An effect starts the timer after the render, it may start
+        // It goes back to the copy icon after that time. An effect starts the timer after the render, it may start
         // only now.
         await untilRendered(() => {
-            act(() => { vi.advanceTimersByTime(2000); });
+            act(() => { vi.advanceTimersByTime(COPIED_CONFIRMATION_MS); });
             expect(icon()).toMatch(/#copy_16$/);
         });
         vi.useRealTimers();
