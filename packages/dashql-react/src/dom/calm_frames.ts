@@ -4,8 +4,8 @@
 export interface RenderSchedule {
     /// Run the task in a calm frame, in the order of the calls. Returns the function that drops the task.
     schedule(task: () => void): () => void;
-    /// Hold the tasks for the given milliseconds, e.g. while a view transition runs
-    hold(ms: number): void;
+    /// Hold the tasks until the promise settles, e.g. until the transitions of a view switch end (`transitionsEnd`)
+    hold(until: Promise<unknown>): void;
     /// Suspend the heavy renders until the returned function resumes them, e.g. while a panel is dragged. Rendered
     /// content shows its skeleton again and stays mounted, it comes back in calm frames.
     suspend: () => () => void;
@@ -33,11 +33,22 @@ function whenIdle(callback: () => void): () => void {
     };
 }
 
+/// Settles when the transitions and animations that run in the element or below it end or are cancelled, e.g. right
+/// after the class of a view switch is set. Endless animations, e.g. a spinner, are not waited for. Reading the
+/// animations computes the styles, so a transition that a change of the DOM starts counts already.
+export function transitionsEnd(element: Element | null): Promise<void> {
+    if (element == null || typeof element.getAnimations !== 'function') return Promise.resolve();
+    const running = element.getAnimations({ subtree: true }).filter(animation =>
+        animation.playState === 'running' && Number.isFinite(animation.effect?.getComputedTiming().endTime ?? Infinity));
+    // A transition that another switch interrupts is cancelled, its promise rejects
+    return Promise.allSettled(running.map(animation => animation.finished)).then(() => {});
+}
+
 /// Runs one task per idle period. A task usually sets the state of a component, React renders it before the browser
 /// is idle again, so the next task waits for that render to be done.
 export class CalmFrameSchedule implements RenderSchedule {
     private readonly tasks = new Set<() => void>();
-    private heldUntil = 0;
+    private holds = 0;
     private suspensions = 0;
     private readonly listeners = new Set<() => void>();
     /// Stops the wait for the next task, null while nothing waits
@@ -51,11 +62,15 @@ export class CalmFrameSchedule implements RenderSchedule {
         return () => { this.tasks.delete(entry); };
     }
 
-    hold(ms: number): void {
-        this.heldUntil = Math.max(this.heldUntil, performance.now() + ms);
+    hold(until: Promise<unknown>): void {
+        this.holds += 1;
         this.stopWaiting?.();
         this.stopWaiting = null;
-        this.wake();
+        const release = () => {
+            this.holds -= 1;
+            this.wake();
+        };
+        until.then(release, release);
     }
 
     // Arrow functions, React reads them unbound in useSyncExternalStore
@@ -89,16 +104,7 @@ export class CalmFrameSchedule implements RenderSchedule {
     }
 
     private wake(): void {
-        if (this.stopWaiting != null || this.tasks.size === 0 || this.suspensions > 0) return;
-        const held = this.heldUntil - performance.now();
-        if (held > 0) {
-            const timeout = setTimeout(() => {
-                this.stopWaiting = null;
-                this.wake();
-            }, held);
-            this.stopWaiting = () => clearTimeout(timeout);
-            return;
-        }
+        if (this.stopWaiting != null || this.tasks.size === 0 || this.suspensions > 0 || this.holds > 0) return;
         this.stopWaiting = whenIdle(() => {
             this.stopWaiting = null;
             const next = this.tasks.values().next();

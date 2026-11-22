@@ -46,6 +46,7 @@ import { useFileDropHandler } from '../../app/file_drop_handler.js';
 import { ATTACHMENT_EXTENSION } from '@akohn/dashql/platform/storage/storage_backend';
 import { useRenderSchedule } from '@akohn/dashql-react/components/deferred';
 import { classNames } from '@akohn/dashql-react/dom/classnames';
+import { transitionsEnd } from '@akohn/dashql-react/dom/calm_frames';
 
 const FileZipIcon = SymbolIcon('file_zip_16');
 const MoreIcon = SymbolIcon('kebab_horizontal');
@@ -83,9 +84,6 @@ function usesArrowKeys(target: EventTarget | null): boolean {
 const SIDEBAR_DEFAULT_WIDTH = 276;
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_MAX_WIDTH = 560;
-/// The prompt morphs between the views for 200ms (workbook_composer.module.css, workbook_prompt.module.css), the charts and
-/// tables of the next view render after it
-const VIEW_SWITCH_HOLD_MS = 220;
 
 /// The line between two groups of the bar
 const BarSeparator = ({ className }: { className?: string }) => (
@@ -249,14 +247,17 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
     const dashboardActive = mode === WorkbookViewMode.Dashboard;
     const dataflowActive = mode === WorkbookViewMode.Dataflow;
     const activeView = dashboardActive ? WorkbookViewMode.Dashboard : dataflowActive ? WorkbookViewMode.Dataflow : WorkbookViewMode.Workbook;
-    // A switch of the view holds the heavy renders while the prompt morphs, the next view shows skeletons until then.
-    // The layout effect runs before the effects of the new view schedule them.
+    // A switch of the view holds the heavy renders until the transitions it starts end, e.g. the morph of the prompt
+    // (workbook_composer.module.css, workbook_prompt.module.css), the next view shows skeletons until then. A slow
+    // frame delays the end of a transition, the hold follows it. The layout effect runs before the effects of the new
+    // view schedule the renders.
     const renderSchedule = useRenderSchedule();
+    const contentRef = React.useRef<HTMLDivElement>(null);
     const shownView = React.useRef(activeView);
     React.useLayoutEffect(() => {
         if (shownView.current === activeView) return;
         shownView.current = activeView;
-        renderSchedule.hold(VIEW_SWITCH_HOLD_MS);
+        renderSchedule.hold(transitionsEnd(contentRef.current));
     }, [activeView, renderSchedule]);
     const overviewActive = overview != null;
     // A version of a published workbook that is being loaded takes the place of the views
@@ -386,7 +387,7 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
                     label="Resize workbench and workbook"
                 />
                 <main className={styles.body_container} id="workbook-body">
-                    <div className={styles.content_container}>
+                    <div ref={contentRef} className={styles.content_container}>
                         {cloudLoading && (
                             <div className={styles.loading_layer}>
                                 <dependencies.CloudWorkbookLoadingCard />

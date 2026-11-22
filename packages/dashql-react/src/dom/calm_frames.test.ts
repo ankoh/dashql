@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { CalmFrameSchedule, IMMEDIATE_SCHEDULE } from './calm_frames.js';
+import { CalmFrameSchedule, IMMEDIATE_SCHEDULE, transitionsEnd } from './calm_frames.js';
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -25,13 +25,19 @@ describe('CalmFrameSchedule', () => {
         await vi.waitFor(() => expect(ran).toEqual(['kept']));
     });
 
-    it('holds the tasks while a view transition runs', async () => {
+    it('holds the tasks until the promises of the holds settle', async () => {
         const schedule = new CalmFrameSchedule();
         const ran: string[] = [];
-        schedule.hold(150);
+        let resolve: () => void = () => {};
+        let reject: () => void = () => {};
+        schedule.hold(new Promise<void>(r => { resolve = r; }));
+        schedule.hold(new Promise<void>((_, r) => { reject = r; }));
         schedule.schedule(() => ran.push('a'));
+        resolve();
         await sleep(60);
         expect(ran).toEqual([]);
+        // A rejected hold, e.g. of a cancelled transition, releases the tasks too
+        reject();
         await vi.waitFor(() => expect(ran).toEqual(['a']));
     });
 
@@ -60,6 +66,45 @@ describe('CalmFrameSchedule', () => {
         schedule.schedule(task);
         schedule.schedule(task);
         await vi.waitFor(() => expect(task).toHaveBeenCalledTimes(2));
+    });
+});
+
+describe('transitionsEnd', () => {
+    it('settles when the transitions of the element and below it end', async () => {
+        const parent = document.createElement('div');
+        const child = document.createElement('div');
+        parent.appendChild(child);
+        document.body.appendChild(parent);
+        try {
+            child.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 80 });
+            // An endless animation is not waited for
+            parent.animate([{ opacity: 1 }, { opacity: 0.5 }], { duration: 1000, iterations: Infinity });
+            let ended = false;
+            const end = transitionsEnd(parent).then(() => { ended = true; });
+            await sleep(20);
+            expect(ended).toBe(false);
+            await end;
+            expect(child.getAnimations()).toEqual([]);
+        } finally {
+            parent.remove();
+        }
+    });
+
+    it('settles when a transition is cancelled', async () => {
+        const element = document.createElement('div');
+        document.body.appendChild(element);
+        try {
+            const animation = element.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 60_000 });
+            const end = transitionsEnd(element);
+            animation.cancel();
+            await end;
+        } finally {
+            element.remove();
+        }
+    });
+
+    it('settles right away without an element', async () => {
+        await transitionsEnd(null);
     });
 });
 
