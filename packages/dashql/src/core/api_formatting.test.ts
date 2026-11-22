@@ -87,15 +87,6 @@ describe('DashQL formatting', () => {
         expect(text).toMatch(/\/\*\d+\*\/\n/);
     });
 
-    it('breaks compact expression chains at runtime', () => {
-        const catalog = dql!.createCatalog();
-        const script = dql!.createScript(catalog);
-        script.insertTextAt(0, `select 1111111111+2222222222+3333333333`);
-        expect(script.format(config(formatting.FormattingMode.COMPACT, 20), catalog).toString()).toEqual(`select 1111111111 +
-    2222222222 +
-  3333333333;`);
-    });
-
     it('formats bit types without placeholders', () => {
         const catalog = dql!.createCatalog();
         const script = dql!.createScript(catalog);

@@ -1000,6 +1000,25 @@ formatter-snapshots:
             expected: |-
               select very_long_column_name_a + very_long_column_name_b + very_long_column_name_c + very_long_column_name_d;
 
+  - name: expr_add_chain_compact_narrow
+    input: |-
+      select 1111111111+2222222222+3333333333
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select 1111111111 + 2222222222 + 3333333333;
+          - mode: compact
+            width: 20
+            expected: |-
+              select 1111111111 +
+                  2222222222 +
+                3333333333;
+          - mode: pretty
+            expected: |-
+              select 1111111111 + 2222222222 + 3333333333;
+
   - name: expr_nested_boolean_chain_long
     input: |-
       select * from test where very_long_outer_left_column = 1 and (very_long_inner_left_column = 2 or very_long_inner_middle_column = 3 or very_long_inner_right_column = 4) and very_long_outer_right_column = 5
