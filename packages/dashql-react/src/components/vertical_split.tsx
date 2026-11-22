@@ -60,6 +60,8 @@ export const VerticalSplit: React.FC<VerticalSplitProps> = (props) => {
         const container = containerRef.current;
         if (container == null) return;
         const updateBounds = () => {
+            // A hidden split, e.g. in a collapsed sidebar, keeps its ratio until it shows again
+            if (container.getClientRects().length === 0) return;
             const bounds = getRatioBounds();
             setRatioBounds(current => current[0] === bounds[0] && current[1] === bounds[1] ? current : bounds);
             setRatio(current => clamp(current, bounds[0], bounds[1]));
