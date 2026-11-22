@@ -10,7 +10,7 @@
     --composer_bg: var(--color_bg_card);
     --prompt_editor_max_height: 30vh;
     /* The prompt grows out of the bar and shrinks into it, the frame follows */
-    --composer_morph_duration: 240ms;
+    --composer_morph_duration: 200ms;
     --composer_morph_easing: cubic-bezier(0.2, 0, 0, 1);
 }
 
