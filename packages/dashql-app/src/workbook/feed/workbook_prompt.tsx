@@ -13,7 +13,7 @@ import { scriptDisplayName } from '@akohn/dashql/platform/workbook/script_types'
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { useCatalog, useOptionalRuntime, useScriptRun, useWorkbookExecution, useWorkbookScriptMap } from '@akohn/dashql-react/hooks';
 import { type KeyEventHandler, useKeyEvents } from '@akohn/dashql-react/dom/key_events';
-import { useObservedSize } from '@akohn/dashql-react/components/size_observer';
+import { useSettledHeight } from '@akohn/dashql-react/components/size_observer';
 import { useWorkbookReadOnly } from '../workbook_read_only.js';
 import { useScriptSelection } from '../scripts/script_selection.js';
 import { createScriptAction, useLiveScriptReader } from '../scripts/script_creation.js';
@@ -315,12 +315,11 @@ export const WorkbookPrompt: React.FC<WorkbookPromptProps> = (props) => {
     }), [overFeed, composerCaret, composerLastInput]);
     const dockGaze = React.useMemo(() => ({ target: composerCaret }), [composerCaret]);
 
-    // The docked prompt floats over the bottom of the feed, the last script scrolls clear of it
-    const sectionRef = React.useRef<HTMLDivElement>(null);
-    const sectionSize = useObservedSize(sectionRef);
-    const sectionHeight = Math.ceil(sectionSize?.height ?? 0);
-    const { onHeight } = props;
-    React.useEffect(() => onHeight?.(sectionHeight), [onHeight, sectionHeight]);
+    // The docked prompt floats over the bottom of the feed, the last script scrolls clear of it. The morph between the
+    // views changes the height in every frame, the page follows the height at its end once and doesn't lay out the
+    // views in every frame.
+    const [section, setSection] = React.useState<HTMLDivElement | null>(null);
+    useSettledHeight(section, props.onHeight);
 
     // The bar of Wobble on the prompt: the status of the workbook, the agent and the log. On the landing view the
     // greeting is Wobble, the bar leaves it out. A read-only workbook has no prompt, the bar stands alone.
@@ -360,11 +359,11 @@ export const WorkbookPrompt: React.FC<WorkbookPromptProps> = (props) => {
                 </div>
             )}
             {readOnly && !landing && (
-                <div className={styles.prompt_section} ref={sectionRef}>
+                <div className={styles.prompt_section} ref={setSection}>
                     <div className={styles.prompt_body}>{statusBar(WorkbookStatusBarVariant.Standalone)}</div>
                 </div>
             )}
-            {!readOnly && <div className={styles.prompt_section} ref={sectionRef}>
+            {!readOnly && <div className={styles.prompt_section} ref={setSection}>
                 <div className={styles.prompt_body}>
                     {/* Without a composer the other views still show the bar */}
                     {collapsed && (composerConnectionId == null || composerCore == null) && statusBar(WorkbookStatusBarVariant.Standalone)}

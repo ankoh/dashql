@@ -1,5 +1,6 @@
 import * as React from 'react';
 import useResizeObserverRaw from '@react-hook/resize-observer';
+import { transitionsEnd } from '../dom/calm_frames.js';
 const useResizeObserver = useResizeObserverRaw as unknown as (target: React.RefObject<HTMLElement | null> | null, callback: (entry: ResizeObserverEntry) => void) => void;
 
 export interface ObservedSize {
@@ -29,3 +30,37 @@ export const useObservedSize = (target: React.RefObject<HTMLElement | null>, ena
     });
     return size;
 };
+
+/// Report the height of the element once it settles, without a render of the component. A transition in the element,
+/// e.g. a morph that changes its height in every frame, reports the height at its end once, so whatever follows the
+/// height lays out once and not in every frame of the transition. A change without a transition reports right away.
+export function useSettledHeight(element: HTMLElement | null, onHeight: ((height: number) => void) | undefined): void {
+    React.useEffect(() => {
+        if (element == null || onHeight == null) return;
+        let reported: number | null = null;
+        let waiting = false;
+        let stopped = false;
+        const report = () => {
+            const height = Math.ceil(element.getBoundingClientRect().height);
+            if (height === reported) return;
+            reported = height;
+            onHeight(height);
+        };
+        report();
+        if (typeof ResizeObserver === 'undefined') return;
+        // The resizes during a transition wait for its end together
+        const observer = new ResizeObserver(() => {
+            if (waiting) return;
+            waiting = true;
+            void transitionsEnd(element).then(() => {
+                waiting = false;
+                if (!stopped) report();
+            });
+        });
+        observer.observe(element);
+        return () => {
+            stopped = true;
+            observer.disconnect();
+        };
+    }, [element, onHeight]);
+}
