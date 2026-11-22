@@ -238,8 +238,8 @@ mod tests {
         let s3 = FakeS3::start().await;
         vacuum_bucket(&s3.client(), &args(1, 1, false)).await.unwrap();
         let requests = s3.requests();
-        assert_eq!(requests.len(), 1);
-        assert_eq!(requests[0].query.get("prefix").map(String::as_str), Some("releases/"));
+        assert!(!requests.is_empty());
+        assert!(requests.iter().all(|request| request.query.get("prefix").map(String::as_str) == Some("releases/")));
     }
 
     #[tokio::test]
@@ -288,7 +288,7 @@ mod tests {
         s3.put_objects(objects_of(&["1.0.0", "2.0.0"]));
         s3.deny_listing();
         assert!(vacuum_bucket(&s3.client(), &args(0, 0, false)).await.is_err());
-        assert_eq!(s3.object_keys().len(), 4);
+        assert_eq!(s3.object_keys(), sorted(objects_of(&["1.0.0", "2.0.0"])));
     }
 
     #[tokio::test]

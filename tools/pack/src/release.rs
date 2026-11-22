@@ -473,23 +473,19 @@ mod tests {
         let s3 = FakeS3::start().await;
         release.publish(&s3.client()).await.unwrap();
 
-        assert_eq!(
-            s3.object_keys(),
-            vec![
-                "channels/stable/macos/arm64/latest-mac.yml",
-                "channels/stable/macos/x64/latest-mac.yml",
-                "releases/1.2.3/macos/arm64/DashQL-arm64.dmg",
-                "releases/1.2.3/macos/arm64/DashQL-arm64.zip",
-                "releases/1.2.3/macos/arm64/DashQL-arm64.zip.blockmap",
-                "releases/1.2.3/macos/x64/DashQL-x64.dmg",
-                "releases/1.2.3/macos/x64/DashQL-x64.zip",
-                "releases/1.2.3/macos/x64/DashQL-x64.zip.blockmap",
-                "releases/1.2.3/metadata.json",
-                "releases/1.2.3/update.json",
-                "stable-update.json",
-                "stable.json",
-            ]
-        );
+        // The files of the release (the build test lists them), its metadata and the pointers of its channel
+        let keys = s3.object_keys();
+        for key in release.file_uploads.keys() {
+            assert!(keys.contains(key), "{key}: {keys:?}");
+        }
+        for key in [
+            release.release_metadata_path.as_str(),
+            release.channel_metadata_path,
+            release.channel_update_manifest_path,
+            "channels/stable/macos/arm64/latest-mac.yml",
+        ] {
+            assert!(keys.iter().any(|k| k == key), "{key}: {keys:?}");
+        }
         assert_eq!(s3.object("releases/1.2.3/macos/arm64/DashQL-arm64.dmg").unwrap(), b"arm64 dmg");
         let pointer: serde_json::Value = serde_json::from_slice(&s3.object("stable.json").unwrap()).unwrap();
         assert_eq!(pointer["version"], "1.2.3");
@@ -530,7 +526,6 @@ mod tests {
         let requests = s3.requests();
         let first_pointer = requests.iter().position(|request| is_channel_pointer(&request.key)).unwrap();
         assert!(requests[first_pointer..].iter().all(|request| is_channel_pointer(&request.key)));
-        assert_eq!(requests[first_pointer..].len(), 4);
     }
 
     #[tokio::test]

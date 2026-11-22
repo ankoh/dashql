@@ -637,7 +637,12 @@ schemas:
         assert!(function["example"].as_str().unwrap().contains("CALL t.thing_create"));
         assert_eq!(function["options"][0]["description"], "One | of them.");
         assert_eq!(function["options"][0]["api_name"], "thingKind");
-        assert_eq!(function["columns"][0].as_object().unwrap().len(), 2);
+        // A column keeps its name and type, its prose stays in the reference
+        let column = function["columns"][0].as_object().unwrap();
+        assert!(column.contains_key("name") && column.contains_key("type"), "{column:?}");
+        for field in ["description", "schema", "array"] {
+            assert!(!column.contains_key(field), "{field}: {column:?}");
+        }
         assert!(spec["schemas"]["A"].get("description").is_none());
         assert_eq!(spec["schemas"]["A"]["attributes"][0]["description"], "Which.");
         assert_eq!(spec["schemas"]["A"]["attributes"][0]["enum"][0], "None");

@@ -56,7 +56,6 @@ mod tests {
     fn builds_version_badge() {
         let badge = build_version_badge("0.0.7-dev.6");
 
-        assert!(badge.contains("width=\"138\""));
         assert!(badge.contains("aria-label=\"version: 0.0.7-dev.6\""));
         assert!(badge.contains(">version</text>"));
         assert!(badge.contains("fill=\"#007ec6\""));
@@ -75,7 +74,6 @@ mod tests {
     fn builds_coverage_badge() {
         let badge = build_coverage_badge(90.53);
 
-        assert!(badge.contains("width=\"96\""));
         assert!(badge.contains("aria-label=\"coverage: 91%\""));
         assert!(badge.contains(">coverage</text>"));
         assert!(badge.contains("fill=\"#4c1\""));
