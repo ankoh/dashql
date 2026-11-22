@@ -21,13 +21,13 @@ export function shellWord(word: string): string {
 }
 
 /// What a hook of `dashql connect` tells the agent at the start of the session, the harness puts it into the context:
-/// the folder of the copies and the workspace that the commands take
+/// the folder of the copies and the workspace that describe takes
 export function connectedSessionStartText(workspace: string): string {
     const copies = shellWord(`${sessionCopiesFolder(workspace)}/`);
     const folder = shellWord(workspace);
     return `DashQL shows this session live in the browser tab that started it. The tab copies its workbook into
-${copies}<id>/, work on that folder as the guide of DashQL says. Your workspace is ${folder}, pass it to dashql
-catalog, describe, run and vis, for example: dashql run --workspace ${folder} ${copies}<id>`;
+${copies}<id>/, work on that folder as the guide of DashQL says, for example: dashql run ${copies}<id>. Your workspace
+is ${folder}, dashql describe --workspace ${folder} prints the guide again.`;
 }
 
 /// What the hook at the start of a session of `dashql connect` prints for a harness: the guide unless the harness has

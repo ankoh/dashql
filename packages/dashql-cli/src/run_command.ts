@@ -27,7 +27,7 @@ import type { RunEvent, RunReporter } from './run_events.js';
 import { LiveRunReporter } from './run_live.js';
 import { PlainRunReporter } from './run_output.js';
 import { runInTab } from './run_tab.js';
-import { copiedWorkbookId, DEFAULT_WORKSPACE, isWorkbookCopyFolder, isWorkspace, noWorkspace, readSession, sessionCopiesFolder } from './session_folder.js';
+import { DEFAULT_WORKSPACE, isWorkspace, noWorkspace, readSession, sessionCopiesFolder, workbookCopyOf } from './session_folder.js';
 
 const RUN_USAGE = `Usage: dashql run [-w <dir>] [--rows <n>] [--refresh] [--plain] [--verbose] <workbook-dir> [<script>...]
 
@@ -53,13 +53,12 @@ scripts in workbooks/<id>/results, the attachments of the workbooks in workbooks
 Connections: Trino with basic auth and the embedded Hyper. DASHQL_TRINO_USER and DASHQL_TRINO_PASSWORD override the
 user and the password of the workbook.
 
---workspace (-w) is the folder of the files of DashQL, .dashql/ of the invoking directory by default: a workspace
-that dashql init or dashql connect set up, another folder fails. While a session of dashql connect runs there
-(dashql-workspace.json), only the copies of the workbooks of its tab run (workbooks/<workbook id>), and they run in
-the tab: on the connections of the tab that the agent may use, as far as the browser reaches them, and the tab shows
-the run. Every other folder fails, so nothing runs outside
-the tab. The run fails when no tab follows the session. Without a session the folder runs in this process, a copy of a
-tab only with the workspace of its session.
+The copy of a workbook of a tab, workbooks/<workbook id> of a workspace, runs in the tab of the session of dashql
+connect in that workspace (dashql-workspace.json): on the connections of the tab that the agent may use, as far as the
+browser reaches them, and the tab shows the run. It fails when no session runs there or no tab follows the session.
+Another folder runs with --workspace (-w), the folder of the files of DashQL, .dashql/ of the invoking directory by
+default: a workspace that dashql init or dashql connect set up, another folder fails. While a session runs there, the
+folder fails, so nothing runs outside the tab; without one it runs in this process.
 
 --verbose prints the log of the runtime to stderr.`;
 
@@ -217,12 +216,13 @@ export async function runRun(args: string[], cli: CliProcess, env: RunEnvironmen
         cli.stderr(`error: ${parsed}\n\n${RUN_USAGE}\n`);
         return EXIT_USAGE;
     }
-    const workspace = path.resolve(cli.cwd, parsed.workspace);
+    const dir = path.resolve(cli.cwd, parsed.workbook);
+    // A copy of a tab runs with the workspace that holds it
+    const workspace = workbookCopyOf(dir)?.workspace ?? path.resolve(cli.cwd, parsed.workspace);
     if (!isWorkspace(workspace)) {
         cli.stderr(`error: ${noWorkspace(parsed.workspace)}\n`);
         return EXIT_USAGE;
     }
-    const dir = path.resolve(cli.cwd, parsed.workbook);
     if (!existsSync(path.join(dir, STORAGE_WORKBOOK_FILE))) {
         cli.stderr(`error: ${parsed.workbook} is no workbook folder, it has no ${STORAGE_WORKBOOK_FILE}\n`);
         return EXIT_USAGE;
@@ -299,16 +299,16 @@ export async function runWorkbookFolder(
     live = false,
 ): Promise<number> {
     const session = readSession(run.workspace);
+    const copied = workbookCopyOf(dir)?.workbookId ?? null;
     if (session == null) {
         // A copy of a tab runs only in its tab
-        if (isWorkbookCopyFolder(dir)) {
-            cli.stderr(`error: ${run.workbook} is the copy of a workbook of the tab of DashQL, no session of dashql connect runs in ${run.workspace}: pass the --workspace of its session\n`);
+        if (copied != null) {
+            cli.stderr(`error: ${run.workbook} is the copy of a workbook of the tab of DashQL, no session of dashql connect runs in ${run.workspace}\n`);
             return EXIT_USAGE;
         }
         return await runHere(run, dir, env, cli, signal, emit, live);
     }
     // In a session the agent runs the copies of the tab, the tab runs them, and nothing else
-    const copied = copiedWorkbookId(run.workspace, dir);
     if (copied == null) {
         cli.stderr(`error: ${run.workbook} is no copy of a workbook of the tab of DashQL and would run outside the tab, the session of dashql connect in ${run.workspace} runs only its copies in ${sessionCopiesFolder(run.workspace)}/\n`);
         return EXIT_USAGE;

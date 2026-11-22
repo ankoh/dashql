@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { INIT_USAGE, runInit } from './init_command.js';
-import { copiedWorkbookId, isWorkbookCopyFolder, isWorkspace } from './session_folder.js';
+import { isWorkspace, workbookCopyOf } from './session_folder.js';
 import { runWith, testFiles } from './test_process.js';
 
 const init = (cwd: string, args: string[]) => runWith(async (a, cli) => runInit(a, cli), cwd, args);
@@ -65,10 +65,8 @@ describe('a workspace', () => {
     it('knows the copies of the workbooks of the tab in its session, under any name', () => {
         const dir = testFiles([['state/dashql-workspace.json', '{"formatVersion":1}'], 'state/workbooks/w1/dashql-workbook.json', 'other/workbooks/w1/dashql-workbook.json']);
         const copy = path.join(dir, 'state', 'workbooks', 'w1');
-        expect(isWorkbookCopyFolder(copy)).toBe(true);
-        expect(copiedWorkbookId(path.join(dir, 'state'), copy)).toBe('w1');
-        expect(copiedWorkbookId(dir, copy)).toBeNull();
+        expect(workbookCopyOf(copy)).toEqual({ workspace: path.join(dir, 'state'), workbookId: 'w1' });
         // No workspace around it
-        expect(isWorkbookCopyFolder(path.join(dir, 'other', 'workbooks', 'w1'))).toBe(false);
+        expect(workbookCopyOf(path.join(dir, 'other', 'workbooks', 'w1'))).toBeNull();
     });
 });

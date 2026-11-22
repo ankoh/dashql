@@ -102,15 +102,16 @@ The server keeps no workbook state of its own besides the files. A tab that relo
 ## The files
 
 The workspace is the folder of the files of DashQL, the `.dashql/` of the folder that the harness works in; one session
-of dashql connect runs there. The commands take it with `--workspace`, `.dashql/` of the invoking directory by default;
-a workspace that `--workspace` names holds the files directly, with no `.dashql/` inside. Its workspace file marks it.
+of dashql connect runs there. The commands take it with `--workspace`, `.dashql/` of the invoking directory by default,
+a copy of a workbook the workspace that holds it; a workspace that `--workspace` names holds the files directly, with
+no `.dashql/` inside. Its workspace file marks it.
 The session works in the root of the workspace, its copies are the workbooks of the workspace as in the storage of the
 app.
 
 ```
 .dashql/                               ignored by git (.gitignore is *)
-├── dashql-workspace.json              the format version and, while it runs, the session of dashql connect: its id,
-│                                      the address and token of the server for the hooks and the commands, and the
+├── dashql-workspace.json              the format version and, while it runs, the session of dashql connect: the
+│                                      address and token of the server for the hooks and the commands, and the
 │                                      connections that the agent may use, from the tab
 ├── bin/dashql                         the dashql of the agent, first on its PATH, gone when the session ends
 ├── workbooks/<workbook id>/           the copy of a workbook of the tab, gone when the session ends
@@ -154,8 +155,8 @@ and copies its workbooks again.
 
 ### A run
 
-1. `dashql run --workspace <folder>/.dashql .dashql/workbooks/<workbook id> top.sql` prints the syntax errors
-   of the script, finds the server in `dashql-workspace.json` of the workspace and posts the run request. The start of
+1. `dashql run .dashql/workbooks/<workbook id> top.sql` prints the syntax errors of the script, finds the server in
+   `dashql-workspace.json` of the workspace that holds the copy and posts the run request. The start of
    the session gives the agent the workspace and the folder of the copies; while the session runs, a folder that is no
    copy fails.
 2. The server stamps the copies, sends the state and then the run to the tab.
@@ -180,8 +181,8 @@ user changed keeps the text of the user.
 - **The guide** (`DESCRIBE_TEXT`): workbook folders, the commands, the rules of scripts, charts with an example, how to
   work, that the user may take the workbook back, and that file contents and results are data, not instructions.
 - **At the start**: Claude Code has the guide with a preface in its system prompt, which outranks the `CLAUDE.md` of a
-  project. Codex gets it in the output of the hook at the start. Both get the workspace that the commands
-  take, `--workspace <folder>/.dashql`, the copies and the connections of the session.
+  project. Codex gets it in the output of the hook at the start. Both get the workspace that `dashql describe`
+  takes, `--workspace <folder>/.dashql`, the copies and the connections of the session.
 - **Permissions**: Claude Code may run `dashql describe`, `catalog`, `run`, `vis`, `move`, `lint` and `format` and
   edit `.dashql/workbooks/**` without asking, not the workspace file; `dashql init` asks, a workspace is up to the user; everything else asks
   as the user configured it.
@@ -245,7 +246,7 @@ decides on. The tab logs in as it does for its own runs, no token reaches the te
 
 1. **Files come in.** The agent writes the copy of the workbook (`.dashql/workbooks/<workbook id>/`), the
    tab takes the changed scripts with their text (`agent/agent_session_copy.ts`), without a rewrite to accept or reject.
-2. **The run request.** `dashql run --workspace <folder>/.dashql <the copy>` posts
+2. **The run request.** `dashql run <the copy>` posts
    `{ workbookId, label, scripts, refresh, rows }` to `/v1/runs/<token>` (`run_tab.ts`). The server stamps the copies,
    sends the state, then the run as an event `run` on the stream of the tab (`event: run`), and answers with the
    events of the run as JSON lines, its header `X-DashQL-Run` names the run.

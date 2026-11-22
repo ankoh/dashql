@@ -16,7 +16,7 @@ export const USAGE = `Usage: dashql <command> [options]
 Commands:
   connect --launch <claude|codex> --port <port> --secret <secret>
                                       Launch Claude Code or Codex and show its session live in DashQL, see dashql connect --help
-  catalog [-w <dir>] <workbook-dir> [<connection>...]
+  catalog <workbook-dir> [<connection>...]
                                       The tables of the connections of a workbook as CREATE TABLE statements
   describe [-w <dir>]                 How an agent works on the workbooks of DashQL, and the workbooks of the session
   format <file.sql|dir|->...          Pretty print SQL files on disk with dashql-core, see dashql format --help
@@ -32,7 +32,8 @@ Commands:
 
 --workspace (-w) is the folder of the files of DashQL, .dashql/ of the invoking directory by default, a workspace that
 dashql init or dashql connect set up: while a session of dashql connect runs there, run and vis run only the copies
-of the workbooks of its tab, in the tab.`;
+of the workbooks of its tab, in the tab. A copy, workbooks/<workbook id> of a workspace, takes the workspace that
+holds it.`;
 
 /// Run dashql with its arguments, returns the exit code
 export async function runDashQL(argv: string[], process: CliProcess): Promise<number> {

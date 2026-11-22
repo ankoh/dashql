@@ -117,8 +117,9 @@ Sets up a folder as a workspace of DashQL, the folder of its files: its workspac
 marks it, and a `.gitignore` that ignores it. The `.dashql/` of this folder by default, else the named folder itself,
 which must be new or empty; a `.dashql/` from before the workspace file, whose `.gitignore` ignores all of it, gets the
 file. `init` and `connect` are the only
-commands that set up a workspace; `catalog`, `describe`, `run` and `vis` take one with `--workspace`, `.dashql/` of the
-invoking directory by default, and fail on a folder that is no workspace, so a wrong path fails instead of running
+commands that set up a workspace; `describe`, `run` and `vis` take one with `--workspace`, `.dashql/` of the
+invoking directory by default, a copy of a workbook of a tab the workspace that holds it, and fail on a folder that is
+no workspace, so a wrong path fails instead of running
 outside the tab of a session. Only the user runs it: the guide tells the agent not to, Claude Code asks before it runs it, and the error of
 a folder that is no workspace names no command to the agent.
 
@@ -195,8 +196,10 @@ that are not named show up only when they fail. `--verbose` prints the log of th
 - **The workspace.** `--workspace <dir>`, `-w` for short, is the folder of the files of DashQL, `.dashql/` of the
   invoking directory by default, a workspace that `dashql init` or `dashql connect` set up: a folder without
   `dashql-workspace.json` fails, so does the folder of a project around a workspace and one that a relative path or
-  the default names after a `cd`. A named workspace holds the files directly, with no `.dashql/` inside. `run` reads
-  the session of `dashql connect` there from its workspace file, `dashql-workspace.json`, and nowhere else.
+  the default names after a `cd`. A named workspace holds the files directly, with no `.dashql/` inside. A copy of a
+  workbook of a tab, `workbooks/<workbook id>` of a workspace, takes the workspace that holds it, without
+  `--workspace`. `run` reads the session of `dashql connect` there from its workspace file, `dashql-workspace.json`,
+  and nowhere else.
 - **Runs in the tab.** While a session runs in the workspace, a copy of a workbook that its tab made
   (`workbooks/<workbook id>` of the workspace) runs in the tab: `run` asks the server of
   the session, the tab runs the scripts with its own runtime on its connections that the agent may use, as far as the
@@ -260,27 +263,27 @@ a shell script that runs this `dashql`) and puts that folder first on the `PATH`
 sets. Not on Windows.
 
 The workspace of the session is the `.dashql/` of the folder of the harness (`--folder`, else the invoking directory),
-and the session works in its root. Without `--folder` in the home folder, as in a fresh terminal, the folder of the
-harness is `~/.dashql` instead (its workspace `~/.dashql/.dashql/`), so the agent doesn't get every file of the user;
-`connect` says so. `--folder ~` still runs in the home folder. It names itself in the workspace file, `.dashql/dashql-workspace.json` (`session`):
-the id of the session and the address and the token of the server for the hooks and the commands, readable by the user
+and the session works in its root. Without `--folder` in the home folder, as in a fresh terminal, `connect` fails, so
+the agent doesn't get every file of the user; `--folder ~` still runs there. It names itself in the workspace file, `.dashql/dashql-workspace.json` (`session`):
+the address and the token of the server for the hooks and the commands, readable by the user
 only, and the connections that the agent may use, removed when the session ends. The copies of the workbooks of the tab
 are the workbooks of the workspace, `.dashql/workbooks/<workbook id>/`, and go when the session ends. The tab writes the workbook that it shows into the session once the server answers, with the
 catalogs of the connections that the agent may use, and the agent works on that copy; its changed scripts come back
-into the tab with their text (`docs/design/agent_session.md`). `catalog`, `describe`, `run` and `vis` take the
-workspace, `--workspace <folder>/.dashql`, and find the session in its workspace file. While it runs, `run` and `vis` refuse
+into the tab with their text (`docs/design/agent_session.md`). `describe` takes the workspace, `--workspace
+<folder>/.dashql`; `catalog`, `run` and `vis` take a copy, `<folder>/.dashql/workbooks/<workbook id>`, and find the
+session in the workspace file of the workspace that holds it. While it runs, `run` and `vis` refuse
 every workbook folder that is no copy of the session, in `.dashql/` or outside of it, so a run of the agent never
 silently runs outside the tab.
 
 ## dashql catalog
 
 ```
-dashql catalog [-w <dir>] [--max-chars <n>] <workbook-dir> [<connection>...]
+dashql catalog [--max-chars <n>] <workbook-dir> [<connection>...]
 ```
 
 Prints the tables of connections as `CREATE TABLE` statements with the types of their columns: the named connections
 by id or name, else the connections of the workbook file and the ones with catalog files. Each comes with a line of its
-name, id, connector, the number of its scripts and tables, and whether the tab lets the agent use it. The embedded
+name, id, connector, the number of its scripts and tables, and for a copy whether the tab lets the agent use it. The embedded
 Hyper lists the attachments of the workbook as `:name`. The tables come from the catalog files of the folder,
 `connections/<id>/dashql-catalog-relations.sql` and `dashql-catalog-functions.sql`: the tab writes the relations into its
 copies for every connection that the agent may use and again when the catalog of a connection changed; a published

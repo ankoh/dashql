@@ -511,7 +511,7 @@ the `query` views. `lint` and `format` use the bindings and no runtime (`sql_lin
 line tool), and `run` mirrors the attachments of a workbook folder into the root of Node (`attachment_mirror.ts`).
 
 - **The root of Node.** The CLI brings a folder with the layout of the origin private file system
-  ([storage_layout.md](storage_layout.md)): the workspace, `--workspace` or `.dashql/` of the invoking directory.
+  ([storage_layout.md](storage_layout.md)): the workspace, the one of a copy of a tab, `--workspace` or `.dashql/` of the invoking directory.
   `useNodeRoot` of `platform/node/node_hyperdb.ts` hands the modules that keep files `NodeDirectoryHandle`s over
   `node:fs` (`platform/node/node_directory_handle.ts`) through `setOPFSRootProvider`, and the Node build of
   `hyperdb-wasm` mounts the root at `/mnt/fs` like OPFS. Instance folders are held by a pid file in Node

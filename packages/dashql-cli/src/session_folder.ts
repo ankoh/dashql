@@ -1,6 +1,6 @@
 // The workspace of DashQL and the session of `dashql connect` in it (@akohn/dashql/platform/session/session_folder). A
-// workspace is the folder of the files of DashQL, marked by its workspace file: the `.dashql/` of the invoking directory
-// unless --workspace names another, with no `.dashql/` inside it.
+// workspace is the folder of the files of DashQL, marked by its workspace file: the one around the copy of a workbook of
+// a tab, else the `.dashql/` of the invoking directory unless --workspace names another, with no `.dashql/` inside it.
 import { mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
@@ -12,7 +12,6 @@ import {
     SESSION_WORKBOOK_COPIES,
     WORKSPACE_FILE,
     WORKSPACE_FORMAT_VERSION,
-    workbookCopyPath,
     type SessionConnections,
     type WorkspaceFile,
     type WorkspaceSession,
@@ -104,17 +103,13 @@ export function writeSession(workspace: string, session: WorkspaceSession | null
     writeWorkspaceFile(workspace, session == null ? file : { ...file, session });
 }
 
-/// The id of the workbook of a folder that the tab copied into the session of a workspace, null for another folder
-export function copiedWorkbookId(workspace: string, folder: string): string | null {
-    const id = path.basename(folder);
-    return isWorkbookCopyId(id) && path.resolve(workspace, workbookCopyPath(id)) === path.resolve(folder) ? id : null;
-}
-
-/// Is a folder the copy of a workbook of a tab in some workspace, `<workspace>/workbooks/<workbook id>`? A copy runs only
-/// with the workspace of its session.
-export function isWorkbookCopyFolder(folder: string): boolean {
+/// The copy of a workbook of a tab, `<workspace>/workbooks/<workbook id>`: the workspace that holds it and the id of the
+/// workbook, null for another folder. A copy runs with the workspace that holds it.
+export function workbookCopyOf(folder: string): { workspace: string; workbookId: string } | null {
+    const workbookId = path.basename(path.resolve(folder));
     const parent = path.resolve(folder, '..');
-    return path.basename(parent) === SESSION_WORKBOOK_COPIES && isWorkspace(path.resolve(parent, '..'));
+    const workspace = path.resolve(parent, '..');
+    return isWorkbookCopyId(workbookId) && path.basename(parent) === SESSION_WORKBOOK_COPIES && isWorkspace(workspace) ? { workspace, workbookId } : null;
 }
 
 /// The connections that the tab of the session of a workspace lets the agent use, null without a session and before the

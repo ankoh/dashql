@@ -18,7 +18,7 @@ import type { RunEvent } from '@akohn/dashql/platform/workbook/run_events';
 
 import { EXIT_FAILED, EXIT_INTERRUPTED, EXIT_OK, EXIT_USAGE, type CliProcess } from './cli_process.js';
 import { processRunEnvironment, runWorkbookFolder, type RunEnvironment } from './run_command.js';
-import { DEFAULT_WORKSPACE, isWorkspace, noWorkspace } from './session_folder.js';
+import { DEFAULT_WORKSPACE, isWorkspace, noWorkspace, workbookCopyOf } from './session_folder.js';
 
 export const VIS_USAGE = `Usage: dashql vis [-w <dir>] [--out <file.png>] [--width <n>] [--height <n>] [--scale <n>]
                  [--refresh] <workbook-dir> <script>
@@ -29,10 +29,10 @@ cached is not run again. It prints the renderer, the columns and the rows of the
 Vega-Lite chart: errors and warnings of Vega-Lite, fields that are no columns of the result, sizes that DashQL decides.
 
 The tab of DashQL renders the PNG with the result, as it runs the script: for a workbook that it copied into a
-session of dashql connect, workbooks/<workbook id> of --workspace. It has the theme of DashQL, ${CHART_IMAGE_WIDTH}x${CHART_IMAGE_HEIGHT} at scale ${CHART_IMAGE_SCALE} unless given otherwise.
+session of dashql connect, workbooks/<workbook id> of its workspace. It has the theme of DashQL, ${CHART_IMAGE_WIDTH}x${CHART_IMAGE_HEIGHT} at scale ${CHART_IMAGE_SCALE} unless given otherwise.
 Check a narrow card too, e.g. --width 400 --height 400: the cards of the feed, the dashboard and the dataflow differ
-in aspect ratio. --workspace (-w) is the folder of the files of DashQL, .dashql/ of the invoking directory by default,
-as for dashql run. The file is charts/<script>.png in the workspace unless --out names it. vis runs where dashql run runs: in a session only the copies of the tab, without one any
+in aspect ratio. The workspace is the one of a copy, else --workspace (-w), as for dashql run. The file is
+charts/<script>.png in the workspace unless --out names it. vis runs where dashql run runs: in a session only the copies of the tab, without one any
 workbook folder, which gets the check only.
 
 Exits with 0 when the chart has no problems, 1 when it has some or the script has no chart or no result, 2 on usage
@@ -165,7 +165,7 @@ export async function runVis(args: string[], cli: CliProcess, env: RunEnvironmen
         return EXIT_USAGE;
     }
     const dir = path.resolve(cli.cwd, parsed.workbook);
-    const workspace = path.resolve(cli.cwd, parsed.workspace);
+    const workspace = workbookCopyOf(dir)?.workspace ?? path.resolve(cli.cwd, parsed.workspace);
     if (!isWorkspace(workspace)) {
         cli.stderr(`error: ${noWorkspace(parsed.workspace)}\n`);
         return EXIT_USAGE;

@@ -1,11 +1,7 @@
 import { runCatalog, CATALOG_USAGE } from './catalog_command.js';
 import { runWith, testFiles, testWorkspace } from './test_process.js';
 
-/// What a command says to a folder that is no workspace, after its name
-const NO_WORKSPACE = 'is no workspace of DashQL, it has no dashql-workspace.json. Pass the workspace that the start of the session of dashql connect names. Only the user sets up a workspace.';
-
-/// catalog with the workspace of the folder that it runs in
-const catalogIn = (cwd: string, args: string[]) => runWith(async (a, cli) => runCatalog(['-w', '.dashql', ...a], cli), cwd, args);
+const catalogIn = (cwd: string, args: string[]) => runWith(async (a, cli) => runCatalog(a, cli), cwd, args);
 
 const WORKBOOK = {
     name: 'Orders',
@@ -49,12 +45,12 @@ CREATE TABLE s.t (a integer);
     });
 
     it('marks the connections that the agent may not use and cuts long catalogs', async () => {
-        // A copy of the tab in the session of the workspace
+        // A copy of the tab in the session of the workspace that holds it
         const copy = '.dashql/workbooks/w1';
         const dir = testWorkspace([
             [`${copy}/dashql-workbook.json`, JSON.stringify(WORKBOOK)],
             [`${copy}/connections/c1/dashql-catalog-relations.sql`, RELATIONS],
-            ['.dashql/dashql-workspace.json', JSON.stringify({ formatVersion: 1, session: { id: 's1', endpoint: 'http://127.0.0.1:1', token: 't', connections: [{ connectionId: 'hyper', name: 'Hyper' }] } })],
+            ['.dashql/dashql-workspace.json', JSON.stringify({ formatVersion: 1, session: { endpoint: 'http://127.0.0.1:1', token: 't', connections: [{ connectionId: 'hyper', name: 'Hyper' }] } })],
         ]);
         const output = await catalogIn(dir, [copy, 'c1', 'hyper', '--max-chars', '70']);
         expect(output.stdout).toBe(`-- Trino prod (c1): Trino, 2 scripts, 2 tables, the tab of DashQL does not let the agent use it
@@ -76,18 +72,8 @@ CREATE TABLE tpch.tiny.customer (custkey bigint, name varchar);
         expect(none.code).toBe(2);
         expect(none.stderr).toBe('error: . is no workbook folder, it has no dashql-workbook.json\n');
         expect((await catalogIn(dir, [])).stderr).toBe(`error: missing the workbook folder\n\n${CATALOG_USAGE}\n`);
-        // The .dashql/ of the invoking directory is the workspace by default
-        const bare = await runWith(async (a, cli) => runCatalog(a, cli), dir, ['.', 'c1']);
-        expect(bare).toEqual(await catalogIn(dir, ['.', 'c1']));
-        const unsetHere = await runWith(async (a, cli) => runCatalog(a, cli), testFiles([['dashql-workbook.json', JSON.stringify(WORKBOOK)]]), ['.']);
-        expect(unsetHere.code).toBe(2);
-        expect(unsetHere.stderr).toBe(`error: .dashql ${NO_WORKSPACE}\n`);
-        // A folder that nobody set up is no workspace, nor the folder around a workspace
-        const unset = await catalogIn(testFiles([['dashql-workbook.json', JSON.stringify(WORKBOOK)]]), ['.']);
-        expect(unset.code).toBe(2);
-        expect(unset.stderr).toBe(`error: .dashql ${NO_WORKSPACE}\n`);
-        const around = await runWith(async (a, cli) => runCatalog(['-w', '.', ...a], cli), dir, ['.']);
-        expect(around.code).toBe(2);
-        expect(around.stderr).toBe(`error: . ${NO_WORKSPACE}\n`);
+        // A workbook folder outside of a workspace, e.g. a published one
+        expect((await catalogIn(testFiles([['dashql-workbook.json', JSON.stringify(WORKBOOK)]]), ['.', 'c1'])).code).toBe(0);
+        expect((await catalogIn(dir, ['-w', '.dashql', '.'])).stderr).toBe(`error: unknown option -w\n\n${CATALOG_USAGE}\n`);
     });
 });

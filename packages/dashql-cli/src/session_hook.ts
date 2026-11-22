@@ -62,11 +62,8 @@ function shortPaths(text: string, folder: string): string {
     let short = text;
     if (folder.length > 1) {
         const prefix = folder.endsWith('/') ? folder : `${folder}/`;
-        // `cd <folder> && ` in front of a command says nothing, nor `--workspace <folder>/.dashql` (`-w`), the workspace
-        // of the session, of a command of dashql
+        // `cd <folder> && ` in front of a command says nothing
         short = short.replace(new RegExp(`^cd\\s+(["']?)${escapeRegExp(folder)}/?\\1\\s*&&\\s*`), '');
-        const workspace = `(?:${escapeRegExp(prefix)}|\\./)?${escapeRegExp(DASHQL_FOLDER)}/?`;
-        short = short.replace(new RegExp(`\\s(?:--workspace(?:\\s+|=)|-w\\s+)(["']?)${workspace}\\1(?=\\s|$)`, 'g'), '');
         short = short.split(prefix).join('');
     }
     return short.replace(WORKBOOK_COPY, '$1');

@@ -31,18 +31,19 @@ A workbook folder:
                                 that you put here.
   connections/<id>/             The tables of the connections, dashql catalog prints them.
 
-Commands, <workspace> is the folder of the files of DashQL, the start of the session names it. catalog, describe, run and
-vis need it: while the session runs there, run and vis run only the copies of the tab, in the tab. Only the user sets
-up a workspace: never run dashql init, a command that says that a folder is no workspace names the wrong folder.
-  dashql catalog --workspace <workspace> <workbook-dir> [<connection>...]
+Commands, <workspace> is the folder of the files of DashQL that holds the copies of the tab in workbooks/, the start
+of the session names it. run and vis run the copies in the tab, with the session of the workspace that holds them.
+Only the user sets up a workspace: never run dashql init, a command that says that a folder is no workspace names the
+wrong folder.
+  dashql catalog <workbook-dir> [<connection>...]
                                 The tables that you can query, as CREATE TABLE statements with the types of
                                 their columns, for every connection of the workbook or the named ones.
-  dashql run --workspace <workspace> <workbook-dir> [<script>...]
+  dashql run <workbook-dir> [<script>...]
                                 Run the scripts on their connections, all of them or the named ones with the
                                 scripts they read. Prints syntax errors first, then the first rows of every result
                                 and the Parquet file with all of it. A cached result is not run again, --refresh
                                 runs it.
-  dashql vis --workspace <workspace> <workbook-dir> <script>
+  dashql vis <workbook-dir> <script>
                                 Check the chart of a script against its result and render it as PNG.
   dashql move <workbook-dir> <script> --after <script>
                                 Move a script in the feed, also --before <script>, --first and --last. Don't edit

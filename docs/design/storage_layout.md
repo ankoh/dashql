@@ -169,7 +169,7 @@ empty `logs/` folder at startup, before the instance settings apply.
 
 The command line tool keeps its files in a folder of its own with the same layout: `workbooks/<id>/results/`,
 `workbooks/<id>/attachments/` and `instances/<id>/`. The folder is the workspace that the command takes
-(`--workspace`, `.dashql/` of the invoking directory by default), which `dashql init` or `dashql connect` set up, the
+(the one that holds a copy of a tab, else `--workspace`, `.dashql/` of the invoking directory by default), which `dashql init` or `dashql connect` set up, the
 folder that also holds the session of `dashql connect`, in its workspace file and with its copies in `workbooks/`
 (`docs/design/agent_session.md`). The files of a project stay in the project, where the commands in the sandbox of a
 harness may write; the workspace ignores itself. The modules of the

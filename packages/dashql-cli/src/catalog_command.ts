@@ -7,13 +7,13 @@ import path from 'node:path';
 import { STORAGE_ATTACHMENTS_FOLDER, STORAGE_WORKBOOK_FILE } from '@akohn/dashql/platform/storage/storage_backend';
 
 import { EXIT_FAILED, EXIT_OK, EXIT_USAGE, type CliProcess } from './cli_process.js';
-import { DEFAULT_WORKSPACE, isWorkspace, noWorkspace, readSessionConnections } from './session_folder.js';
+import { readSessionConnections, workbookCopyOf } from './session_folder.js';
 
-export const CATALOG_USAGE = `Usage: dashql catalog [-w <dir>] [--max-chars <n>] <workbook-dir> [<connection>...]
+export const CATALOG_USAGE = `Usage: dashql catalog [--max-chars <n>] <workbook-dir> [<connection>...]
 
 Prints the tables of connections as CREATE TABLE statements, the names and types of their columns: the named
-connections by id or name, else every connection of the workbook. While a session of dashql connect runs in the
-workspace, a connection that the agent may not use in the session is marked.
+connections by id or name, else every connection of the workbook. For the copy of a workbook of a tab, a connection
+that the session of dashql connect does not let the agent use is marked.
 The embedded Hyper lists the attachments of the workbook, scripts on it read them as :name.
 
 The tables come from the catalog files of the workbook folder, connections/<id>/dashql-catalog-relations.sql, which
@@ -104,7 +104,6 @@ function upTo(text: string, max: number): { text: string; cut: boolean } {
 /// Run `catalog` with the arguments after it, returns the exit code
 export function runCatalog(args: string[], cli: CliProcess): number {
     let maxChars = DEFAULT_MAX_CHARS;
-    let workspace = DEFAULT_WORKSPACE;
     const positional: string[] = [];
     for (let i = 0; i < args.length; ++i) {
         const arg = args[i];
@@ -114,8 +113,6 @@ export function runCatalog(args: string[], cli: CliProcess): number {
         }
         if (arg === '--max-chars' && i + 1 < args.length && /^\d+$/.test(args[i + 1])) {
             maxChars = Number(args[++i]);
-        } else if ((arg === '--workspace' || arg === '-w') && i + 1 < args.length && !args[i + 1].startsWith('-')) {
-            workspace = args[++i];
         } else if (arg.startsWith('-')) {
             cli.stderr(`error: unknown option ${arg}\n\n${CATALOG_USAGE}\n`);
             return EXIT_USAGE;
@@ -134,12 +131,8 @@ export function runCatalog(args: string[], cli: CliProcess): number {
         return EXIT_USAGE;
     }
     // The connections that the tab lets the agent use, with their names
-    const folder = path.resolve(cli.cwd, workspace);
-    if (!isWorkspace(folder)) {
-        cli.stderr(`error: ${noWorkspace(workspace)}\n`);
-        return EXIT_USAGE;
-    }
-    const allowed = readSessionConnections(folder);
+    const copy = workbookCopyOf(dir);
+    const allowed = copy == null ? null : readSessionConnections(copy.workspace);
     const names = new Map(allowed?.connections.map(connection => [connection.connectionId, connection.name]) ?? []);
     const connections = folderConnections(dir, names);
     const matches = (connection: FolderConnection, name: string) =>

@@ -21,9 +21,10 @@ describe('dashql session hook', () => {
         try {
             const start = await hook('SessionStart', { session_id: 'c1', cwd: W });
             expect(start.code).toBe(0);
-            // The start tells the agent the copies and the workspace that its commands take
+            // The start tells the agent the copies and the workspace
             expect(start.stdout).toBe(connectedSessionStart('claude', WS, W));
-            expect(start.stdout).toContain(`dashql run --workspace ${WS} ${WS}/workbooks/<id>`);
+            expect(start.stdout).toContain(`dashql run ${WS}/workbooks/<id>`);
+            expect(start.stdout).toContain(`dashql describe --workspace ${WS}`);
             await hook('UserPromptSubmit', { session_id: 'c1', cwd: W, prompt: 'how many orders' });
             // A shell that changed its directory still reaches the session
             await hook('PostToolUse', { session_id: 'c1', cwd: path.join(W, 'sub'), tool_name: 'Bash', tool_input: { command: 'dashql lint a.sql' } });

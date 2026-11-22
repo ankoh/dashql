@@ -58,9 +58,8 @@ export function workbookCopyPath(workbookId: string): string {
     return `${SESSION_WORKBOOK_COPIES}/${workbookId}`;
 }
 
-/// The session of `dashql connect` that runs in a workspace: its id and the address and the token of its server
+/// The session of `dashql connect` that runs in a workspace: the address and the token of its server
 export interface WorkspaceSession {
-    id: string;
     endpoint: string;
     token: string;
     /// The connections that the tab lets the agent use, absent before the tab told them
@@ -74,9 +73,10 @@ export interface WorkspaceFile {
     session?: WorkspaceSession;
 }
 
-/// The workspace file of a text, null if it is none. A session that is no session is left out.
+/// The workspace file of a text, null if it is none. A session that is no session is left out, the id of a session of
+/// an older file too.
 export function parseWorkspaceFile(text: string): WorkspaceFile | null {
-    let value: { formatVersion?: unknown; session?: { id?: unknown; endpoint?: unknown; token?: unknown; connections?: unknown } };
+    let value: { formatVersion?: unknown; session?: { endpoint?: unknown; token?: unknown; connections?: unknown } };
     try {
         value = JSON.parse(text);
     } catch {
@@ -85,8 +85,8 @@ export function parseWorkspaceFile(text: string): WorkspaceFile | null {
     if (value == null || typeof value !== 'object' || !Number.isInteger(value.formatVersion)) return null;
     const file: WorkspaceFile = { formatVersion: value.formatVersion as number };
     const session = value.session;
-    if (typeof session?.id === 'string' && typeof session.endpoint === 'string' && typeof session.token === 'string') {
-        file.session = { id: session.id, endpoint: session.endpoint, token: session.token };
+    if (typeof session?.endpoint === 'string' && typeof session.token === 'string') {
+        file.session = { endpoint: session.endpoint, token: session.token };
         const connections = sessionConnectionsOf(session.connections);
         if (connections != null) file.session.connections = connections;
     }

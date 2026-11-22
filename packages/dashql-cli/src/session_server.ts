@@ -515,7 +515,7 @@ export async function startSessionServer(options: SessionServerOptions): Promise
     }
     const port = (server.address() as { port: number }).port;
     // The hooks and the commands of the agent find the session in the workspace file, readable by the user only
-    entry = { id: options.session, endpoint: `http://127.0.0.1:${port}`, token };
+    entry = { endpoint: `http://127.0.0.1:${port}`, token };
     writeSession(workspace, entry);
     return {
         port,
@@ -530,7 +530,8 @@ export async function startSessionServer(options: SessionServerOptions): Promise
             clearInterval(keepAlive);
             // The commands of a later run find no session, the copies go with it
             try {
-                if (readSession(workspace)?.id === options.session) writeSession(workspace, null);
+                const running = readSession(workspace);
+                if (running != null && running.endpoint === entry?.endpoint && running.token === entry?.token) writeSession(workspace, null);
             } catch {
                 // A workspace that is gone has no session either
             }

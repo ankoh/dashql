@@ -22,7 +22,7 @@ describe('the session server', () => {
         expect(readFileSync(path.join(folder, '.dashql', '.gitignore'), 'utf8')).toBe('*\n');
         // The hooks and the commands of the agent find the session there, only the user reads it
         const file = path.join(folder, '.dashql', 'dashql-workspace.json');
-        expect(JSON.parse(readFileSync(file, 'utf8'))).toEqual({ formatVersion: 1, session: { id: '51001', endpoint: `http://127.0.0.1:${server.port}`, token: server.token } });
+        expect(JSON.parse(readFileSync(file, 'utf8'))).toEqual({ formatVersion: 1, session: { endpoint: `http://127.0.0.1:${server.port}`, token: server.token } });
         expect(statSync(file).mode & 0o077).toBe(0);
         // The server names its session by its id, a page tells the next session on a port by it
         expect(server.state().id).toBe('51001');
@@ -36,20 +36,20 @@ describe('the session server', () => {
     it('runs one session in a folder and takes over the workspace of a session that ended without removing itself', async () => {
         const folder = temp('dashql-session-');
         const copies = path.join(folder, '.dashql', 'workbooks');
-        const sessionId = () => JSON.parse(readFileSync(path.join(folder, '.dashql', 'dashql-workspace.json'), 'utf8')).session?.id;
+        const endpoint = () => JSON.parse(readFileSync(path.join(folder, '.dashql', 'dashql-workspace.json'), 'utf8')).session?.endpoint;
         server = await startSessionServer({ harness: 'claude', folder, session: '51001' });
         // A second session fails while the server of the first answers, and leaves the first alone
         await expect(startSessionServer({ harness: 'codex', folder, session: '51002' })).rejects.toMatchObject({ code: 'ESESSIONRUNS' });
-        expect(sessionId()).toBe('51001');
-        // A session whose server is gone, e.g. after a crash, leaves its copies and its name behind; the next one takes
-        // them over
+        expect(endpoint()).toBe(`http://127.0.0.1:${server.port}`);
+        // A session whose server is gone, e.g. after a crash, leaves its copies and its entry behind, also one of an
+        // older file with an id; the next one takes them over
         const port = server.port;
         await server.close();
         server = null;
         mkdirSync(path.join(copies, 'w1'), { recursive: true });
         writeFileSync(path.join(folder, '.dashql', 'dashql-workspace.json'), JSON.stringify({ formatVersion: 1, session: { id: '51001', endpoint: `http://127.0.0.1:${port}`, token: 't' } }));
         server = await startSessionServer({ harness: 'codex', folder, session: '51002' });
-        expect(sessionId()).toBe('51002');
+        expect(endpoint()).toBe(`http://127.0.0.1:${server.port}`);
         expect(existsSync(path.join(copies, 'w1'))).toBe(false);
     });
 

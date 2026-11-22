@@ -21,8 +21,8 @@ The version is the one of the build of the page (`DASHQL_CLI_VERSION`, a release
 `0.0.20-latest.<commits>.g<commit>`, `-dev.` on dev.dashql.app): CI publishes the packages of a build to npm before it deploys the page, so the
 command is of the same commit, and npx caches each version by itself. The dev server shows `@latest`. `--registry` and
 `--min-release-age=0`, because a company's npm mirror or release-age policy would otherwise refuse a version published
-minutes ago. A fresh terminal starts in the home folder: there, `connect` runs the session in `~/.dashql` instead,
-not with all of home in the folder of the agent (`defaultSessionFolder`). A switch between Claude Code and Codex follows the switch of SQL and AI while AI is on. The editor keeps
+minutes ago. A fresh terminal starts in the home folder: there, `connect` fails without `--folder`, the agent would get
+all of home. A switch between Claude Code and Codex follows the switch of SQL and AI while AI is on. The editor keeps
 its draft for SQL.
 
 - **The tab picks the address.** The first switch to AI picks a random port of 49152–65535 on `127.0.0.1` and a random
@@ -45,11 +45,12 @@ its draft for SQL.
 - **One session per folder.** `dashql connect` runs one session in a folder, in its workspace `.dashql/`. A second
   `connect` in the folder fails while the server of the first answers; a session whose server is gone, e.g. after a
   crash, goes with its folder at the next start. The session has an id, a new UUID: the `id` of the state that the tab
-  follows, kept in the workspace file `.dashql/dashql-workspace.json` (`session`) with the address and the token of the
-  server, and removed from it when the session ends.
-- **The workspace in every command.** The hooks and the commands of the agent take the workspace, the `.dashql/` of
-  the folder that the harness works in, `--workspace <folder>/.dashql` (the commands default to `.dashql/` of the
-  invoking directory), and read the session from its workspace file; `connect` sets no variable for them but the
+  follows. The workspace file `.dashql/dashql-workspace.json` (`session`) holds the address and the token of the
+  server, removed from it when the session ends.
+- **The workspace in every command.** The hooks take the workspace, the `.dashql/` of the folder that the harness
+  works in, `--workspace <folder>/.dashql`, the commands of the agent a copy, `<folder>/.dashql/workbooks/<id>`, and
+  the workspace that holds it (`describe` takes `--workspace`, `.dashql/` of the invoking directory by default); they
+  read the session from the workspace file; `connect` sets no variable for them but the
   `PATH` of the `dashql` of the agent. A workspace is a folder that `dashql init` or `dashql connect` set up, with a
   workspace file; the commands fail on any other, also on the project folder around it. `dashql init` gives a
   `.dashql/` from before the workspace file, whose `.gitignore` ignores all of it, the file.
@@ -108,7 +109,7 @@ One session runs in a workspace, and it works in its root. The server of `dashql
 folder that the harness works in, a folder that it can't write fails the start; the workspace ignores itself
 (`.dashql/.gitignore` is `*`). The session keeps in it:
 
-- `dashql-workspace.json`, the workspace file, `session`: its id and the address and the token of the server, readable
+- `dashql-workspace.json`, the workspace file, `session`: the address and the token of the server, readable
   by the user only, where the hooks and the commands find it, and `connections`, the connections that the tab lets
   the agent use. The agent may not edit it without asking. The session goes from it when it ends.
 - `workbooks/<workbook id>/`: the copies of the workbooks of the tab, see below, the workbooks of the workspace as in
@@ -116,8 +117,9 @@ folder that the harness works in, a folder that it can't write fails the start; 
   there, which it mirrors again.
 - `bin/dashql`: the `dashql` of the agent, first on its `PATH`, gone when the session ends.
 
-`catalog`, `describe`, `run` and `vis` take the workspace, `--workspace <folder>/.dashql`, which the start of the
-session gives the agent; nothing comes from the environment and nothing is searched for. A path that names no
+`catalog`, `run` and `vis` of a copy take the workspace that holds it, `describe` takes `--workspace
+<folder>/.dashql`, which the start of the session gives the agent; nothing comes from the environment and nothing is
+searched for. A path that names no
 workspace, the project folder around it or a relative one after the shell of the agent changed into another folder,
 fails. Only the user sets up a
 workspace with `dashql init`: the guide tells the agent not to, Claude Code asks before it runs it. While
