@@ -8,6 +8,8 @@ import { QueryExecutionStatus } from '@akohn/dashql/platform/query/query_executi
 import type { ScriptData } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { DashboardCard, type DashboardCardDependencies } from './dashboard_card.js';
 import { queryModelOf, resultTableOf, WithResultTables } from '../../tests/result_tables.js';
+import { RenderScheduleContext } from '@akohn/dashql-react/components/deferred';
+import type { RenderSchedule } from '@akohn/dashql-react/dom/calm_frames';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -68,6 +70,47 @@ describe('DashboardCard', () => {
     afterEach(() => {
         act(() => root.unmount());
         container.remove();
+    });
+
+    it('shows the skeleton of a result until a calm frame renders it', () => {
+        // The schedule runs its tasks when the test says so
+        const tasks: (() => void)[] = [];
+        const schedule: RenderSchedule = { schedule: task => { tasks.push(task); return () => {}; }, hold: vi.fn() };
+        const result = { schema: { fields: [{ name: 'region' }] } };
+        const model = queryModelOf({ queryId: 7, status: QueryExecutionStatus.SUCCEEDED, resultTable: resultTableOf(result as never) } as never);
+        act(() => root.render(
+            <RenderScheduleContext.Provider value={schedule}>
+                <DndContext>
+                    <WithResultTables><DashboardCard
+                        workbookId="workbook"
+                        script={script}
+                        placement={{ id: 1, section: 'visualizations', row: 0, column: 0, width: 6, height: 3 }}
+                        columnStep={100}
+                        rowStep={108}
+                        onResize={vi.fn()}
+                        onResizeCancel={vi.fn()}
+                        shifted={false}
+                        onVisualize={vi.fn()}
+                        onOpenChart={vi.fn()}
+                        onRemoveVisualization={vi.fn()}
+                        onOpenEditor={vi.fn()}
+                        onOpenTable={vi.fn()}
+                        onAcceptDiff={vi.fn()}
+                        onRejectDiff={vi.fn()}
+                        runnable
+                        onRun={vi.fn()}
+                        onStop={vi.fn()}
+                        dependencies={{ ...dependencies, useQueryModel: () => model } as unknown as DashboardCardDependencies}
+                    /></WithResultTables>
+                </DndContext>
+            </RenderScheduleContext.Provider>,
+        ));
+        expect(container.querySelector('[data-testid="skeleton"]')).not.toBeNull();
+        expect(container.querySelector('[data-testid="visualization"]')).toBeNull();
+        expect(tasks).toHaveLength(1);
+        act(() => tasks.shift()!());
+        expect(container.querySelector('[data-testid="skeleton"]')).toBeNull();
+        expect(container.querySelector('[data-testid="visualization"]')).not.toBeNull();
     });
 
     it('opens the editor and collapses the card from the header', () => {

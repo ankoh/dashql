@@ -17,6 +17,8 @@ import * as ActionList from '@akohn/dashql-react/components/action_list';
 import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
 import { AnchoredOverlay } from '@akohn/dashql-react/components/anchored_overlay';
 import { NameInput } from '@akohn/dashql-react/components/name_input';
+import { Deferred } from '@akohn/dashql-react/components/deferred';
+import { Skeleton } from '@akohn/dashql-react/components/skeleton';
 import * as menuStyles from '../../app/action_menu.module.css';
 import { dashboardCardHeight, type DashboardPlacement } from './dashboard_layout.js';
 import { NEW_CHART_SPEC } from '../chart_builder/chart_spec_paths.js';
@@ -184,6 +186,10 @@ export const DashboardCard = React.memo(function DashboardCard(props: Props): Re
             ? { label: `Refresh ${displayName}`, description: 'Refresh, skips cached results', icon: <SyncIcon size={12} />, onClick: () => props.onRun(props.script.scriptKey, true) }
             : { label: `Run ${displayName}`, description: 'Run, may use cached results', icon: <PaperAirplaneIcon size={12} />, onClick: () => props.onRun(props.script.scriptKey, false) };
     const markdownDescription = template == null ? 'Run the script first' : 'Render every row as Markdown';
+    // A table shows the header of the result over the rows that fit, a chart only the chart
+    const body = collapsed ? null : visualizeQuery.renderer === 'table'
+        ? <dependencies.QueryResultPanel model={model} onShowTable={() => props.onOpenTable(props.script.scriptKey)} />
+        : <dependencies.VisualizationDispatch model={model} visualizeQuery={visualizeQuery} hideLegend={props.placement.width < 5} />;
 
     // The renderers of a card in the order of its segments, the last one collapses the card to its script. A chart
     // starts as a bar chart, the board opens its chart builder.
@@ -363,16 +369,13 @@ export const DashboardCard = React.memo(function DashboardCard(props: Props): Re
                 )}
             </header>
             {!collapsed && <div className={styles.card_body}>
-                {visualizeQuery.renderer === 'table' ? (
-                    // A table shows the header of the result over the rows that fit, a chart only the chart
-                    <dependencies.QueryResultPanel model={model} onShowTable={() => props.onOpenTable(props.script.scriptKey)} />
-                ) : (
-                    <dependencies.VisualizationDispatch
-                        model={model}
-                        visualizeQuery={visualizeQuery}
-                        hideLegend={props.placement.width < 5}
-                    />
-                )}
+                {/* A result renders in a calm frame, the board appears with skeletons and stays smooth. Without a
+                    result the card shows its cheap placeholder right away. */}
+                {hasResult ? (
+                    <Deferred fallback={<Skeleton />}>
+                        {body}
+                    </Deferred>
+                ) : body}
             </div>}
             <button
                 type="button"

@@ -19,8 +19,9 @@ function queryStatusMessage(query: QueryExecutionState | null): string | null {
 }
 
 /// A card that has nothing to show yet: the logo of the flavor, faint, with the message below it.
-/// A hint is quieter than a status, it must not compete with the cards that show results.
-export function CardPlaceholder(props: { message: string; hint?: boolean }): React.ReactElement {
+/// A hint is quieter than a status, it must not compete with the cards that show results. Without a message only the
+/// logo shows, e.g. in the skeleton of a card.
+export function CardPlaceholder(props: { message?: string; hint?: boolean }): React.ReactElement {
     const logo = useBrand().logo;
     return (
         <div className={styles.root} data-testid="card-placeholder">
@@ -31,7 +32,7 @@ export function CardPlaceholder(props: { message: string; hint?: boolean }): Rea
             >
                 <use xlinkHref={`${symbols}#${logo.symbol}`} />
             </svg>
-            <span className={props.hint ? styles.hint : styles.message}>{props.message}</span>
+            {props.message != null && <span className={props.hint ? styles.hint : styles.message}>{props.message}</span>}
         </div>
     );
 }

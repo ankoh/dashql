@@ -15,6 +15,8 @@ import type { ModifyWorkbookScripts, ScriptData, ScriptDataMap, WorkbookScripts 
 import type { DashboardCardDependencies } from './dashboard_card.js';
 import { Dashboard, type DashboardDependencies } from './dashboard.js';
 import { queryModelOf, resultTableOf, WithResultTables } from '../../tests/result_tables.js';
+import { RenderScheduleContext } from '@akohn/dashql-react/components/deferred';
+import { IMMEDIATE_SCHEDULE } from '@akohn/dashql-react/dom/calm_frames';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -139,14 +141,17 @@ describe('Dashboard', () => {
             <LoggerProvider>
                 <StorageProvider backend={backend}>
                     <TestRuntime {...executor}>
-                        <WithResultTables><Dashboard
-                            workbookScripts={workbookScripts}
-                            scripts={workbookScripts.scripts}
-                            modifyWorkbookScripts={modify as unknown as ModifyWorkbookScripts}
-                            scriptConnections={extra.scriptConnections ?? online}
-                            draftRenameRef={extra.draftRenameRef}
-                            dependencies={dependencies}
-                        /></WithResultTables>
+                        {/* The cards render their results right away, not in calm frames */}
+                        <RenderScheduleContext.Provider value={IMMEDIATE_SCHEDULE}>
+                            <WithResultTables><Dashboard
+                                workbookScripts={workbookScripts}
+                                scripts={workbookScripts.scripts}
+                                modifyWorkbookScripts={modify as unknown as ModifyWorkbookScripts}
+                                scriptConnections={extra.scriptConnections ?? online}
+                                draftRenameRef={extra.draftRenameRef}
+                                dependencies={dependencies}
+                            /></WithResultTables>
+                        </RenderScheduleContext.Provider>
                     </TestRuntime>
                 </StorageProvider>
             </LoggerProvider>,

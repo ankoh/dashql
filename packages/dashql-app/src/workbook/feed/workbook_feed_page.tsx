@@ -41,6 +41,7 @@ import { WorkbookReadOnlyContext } from '../workbook_read_only.js';
 import { useAppConfig } from '../../config/app_config.js';
 import { useFileDropHandler } from '../../app/file_drop_handler.js';
 import { ATTACHMENT_EXTENSION } from '@akohn/dashql/platform/storage/storage_backend';
+import { useRenderSchedule } from '@akohn/dashql-react/components/deferred';
 
 const FileZipIcon = SymbolIcon('file_zip_16');
 const MoreIcon = SymbolIcon('kebab_horizontal');
@@ -59,6 +60,9 @@ const WORKBOOK_VIEWS: [WorkbookViewMode, string, typeof FeedViewIcon][] = [
 const SIDEBAR_DEFAULT_WIDTH = 276;
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_MAX_WIDTH = 560;
+/// The prompt morphs between the views for 200ms (workbook_composer.module.css, workbook_feed.module.css), the charts and
+/// tables of the next view render after it
+const VIEW_SWITCH_HOLD_MS = 220;
 
 export interface WorkbookFeedPageDependencies {
     WorkbookFeed: typeof WorkbookFeed;
@@ -210,6 +214,15 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
     const dashboardActive = mode === WorkbookViewMode.Dashboard;
     const dataflowActive = mode === WorkbookViewMode.Dataflow;
     const activeView = dashboardActive ? WorkbookViewMode.Dashboard : dataflowActive ? WorkbookViewMode.Dataflow : WorkbookViewMode.Workbook;
+    // A switch of the view holds the heavy renders while the prompt morphs, the next view shows skeletons until then.
+    // The layout effect runs before the effects of the new view schedule them.
+    const renderSchedule = useRenderSchedule();
+    const shownView = React.useRef(activeView);
+    React.useLayoutEffect(() => {
+        if (shownView.current === activeView) return;
+        shownView.current = activeView;
+        renderSchedule.hold(VIEW_SWITCH_HOLD_MS);
+    }, [activeView, renderSchedule]);
     const overviewActive = overview != null;
     // A version of a published workbook that is being loaded takes the place of the views
     const cloudLoading = useCloudWorkbookLoading() != null;
