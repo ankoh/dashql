@@ -17,7 +17,7 @@ import { SalesforceLoginHistoryStore } from './salesforce_login_history.js';
 import { createExamplesCommand } from '../terminal/shell_examples.js';
 import { useShellQueryHistory } from './shell_query_history.js';
 import { createShellLastCommand } from '../terminal/shell_result.js';
-import { externalDirectoryDatabase, externalFileDatabase, ShellFileRegistry } from '../terminal/shell_files.js';
+import { ShellFileRegistry } from '../terminal/shell_files.js';
 import { useShellFiles } from '../terminal/filesystem_dialog.js';
 import { createFormatCommand } from './commands/format.js';
 import { createPlanCommand } from './commands/plan.js';
@@ -223,11 +223,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                     return 'retry';
                 },
             });
-            fileRegistry = new ShellFileRegistry(
-                logger,
-                externalFileDatabase(database),
-                externalDirectoryDatabase(database),
-            );
+            fileRegistry = new ShellFileRegistry(logger, database);
             fileRegistryRef.current = fileRegistry;
             const commands: DashQLShellCommand[] = [
                 createExamplesCommand({

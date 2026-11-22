@@ -17,7 +17,7 @@ import { createShellLastCommand } from '../../shell/terminal/shell_result.js';
 import { useAppConfig } from '../../config/app_config.js';
 import { getKeywordCase } from '../scripts/script_format.js';
 import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
-import { externalDirectoryDatabase, externalFileDatabase, ShellFileRegistry } from '../../shell/terminal/shell_files.js';
+import { ShellFileRegistry } from '../../shell/terminal/shell_files.js';
 import { useShellFiles } from '../../shell/terminal/filesystem_dialog.js';
 import { createExamplesCommand } from '../../shell/terminal/shell_examples.js';
 import { splitShellScript } from '../../shell/terminal/shell_script.js';
@@ -115,7 +115,7 @@ export const WorkbookShellPage: React.FC<Props> = ({ workbookId, workbookName, c
     const { command: filesCommand, dialogs: fileDialogs } = useShellFiles(fileRegistryRef);
     React.useEffect(() => {
         if (!mountsFiles || database == null) return;
-        const registry = new ShellFileRegistry(logger, externalFileDatabase(database), externalDirectoryDatabase(database));
+        const registry = new ShellFileRegistry(logger, database);
         fileRegistryRef.current = registry;
         return () => {
             if (fileRegistryRef.current === registry) fileRegistryRef.current = null;

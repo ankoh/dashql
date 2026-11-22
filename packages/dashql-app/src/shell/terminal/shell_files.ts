@@ -17,27 +17,9 @@ export interface ShellFileListing {
     readonly directoryMode?: ExternalDirectoryMode;
 }
 
-/// The mounts of files and of directories of a database
-type ExternalFiles = Pick<EmbeddedComputeDatabase, 'registerExternalFile' | 'removeExternalFile'>;
-type ExternalDirectories = Pick<EmbeddedComputeDatabase, 'registerExternalDirectory' | 'removeExternalDirectory'>;
-
 interface FileOperationOptions {
     readonly signal?: AbortSignal;
     readonly onProgress?: (message: string) => void;
-}
-
-/// The external file registration of a database, if it supports it
-export function externalFileDatabase(database: unknown): ExternalFiles | undefined {
-    if (database == null || typeof database !== 'object') return undefined;
-    if (!('registerExternalFile' in database) || !('removeExternalFile' in database)) return undefined;
-    return database as ExternalFiles;
-}
-
-/// The external directory registration of a database, if it supports it
-export function externalDirectoryDatabase(database: unknown): ExternalDirectories | undefined {
-    if (database == null || typeof database !== 'object') return undefined;
-    if (!('registerExternalDirectory' in database) || !('removeExternalDirectory' in database)) return undefined;
-    return database as ExternalDirectories;
 }
 
 export class ShellFileRegistry {
@@ -48,8 +30,11 @@ export class ShellFileRegistry {
 
     constructor(
         private readonly logger?: LoggerLike,
-        private readonly externalFiles?: ExternalFiles,
-        private readonly externalDirectories?: ExternalDirectories,
+        // The database that mounts the files and directories
+        private readonly database?: Pick<
+            EmbeddedComputeDatabase,
+            'registerExternalFile' | 'removeExternalFile' | 'registerExternalDirectory' | 'removeExternalDirectory'
+        >,
     ) {}
 
     async list(): Promise<readonly string[]> {
@@ -69,7 +54,7 @@ export class ShellFileRegistry {
 
     async mountFile(file: File, path?: string, options: FileOperationOptions = {}): Promise<string> {
         this.checkUsable();
-        if (this.externalFiles == null) throw new Error('external browser files are not supported');
+        if (this.database == null) throw new Error('external browser files are not supported');
         throwIfAborted(options.signal);
 
         const startedAt = Date.now();
@@ -78,15 +63,15 @@ export class ShellFileRegistry {
         let mountedPath: string | null = null;
         try {
             options.onProgress?.(`Mounting ${name}`);
-            mountedPath = await this.externalFiles.registerExternalFile(name, file, path, options.signal);
+            mountedPath = await this.database.registerExternalFile(name, file, path, options.signal);
             if (this.disposed || options.signal?.aborted) {
-                await this.externalFiles.removeExternalFile(mountedPath);
+                await this.database.removeExternalFile(mountedPath);
                 throw options.signal?.reason ?? new DOMException('The operation was aborted', 'AbortError');
             }
             const entry: ShellFileEntry = {
                 path: mountedPath,
                 size: async () => file.size,
-                drop: () => this.externalFiles!.removeExternalFile(mountedPath!),
+                drop: () => this.database!.removeExternalFile(mountedPath!),
             };
             this.files.set(mountedPath, entry);
             this.mountedPaths.add(mountedPath);
@@ -108,14 +93,14 @@ export class ShellFileRegistry {
         mode: ExternalDirectoryMode,
     ): Promise<string> {
         this.checkUsable();
-        if (this.externalDirectories == null) throw new Error('external browser directories are not supported');
+        if (this.database == null) throw new Error('external browser directories are not supported');
         const startedAt = Date.now();
         this.logger?.info('Mounting shell directory', logDetails(handle.name, undefined, undefined, 'register_external_directory', startedAt), LOG_CTX);
         let mountedPath: string | null = null;
         try {
-            mountedPath = await this.externalDirectories.registerExternalDirectory(handle, path, mode);
+            mountedPath = await this.database.registerExternalDirectory(handle, path, mode);
             if (this.disposed) {
-                await this.externalDirectories.removeExternalDirectory(mountedPath);
+                await this.database.removeExternalDirectory(mountedPath);
                 throw new Error('shell file registry is disposed');
             }
             this.directories.set(mountedPath, mode);
@@ -137,7 +122,7 @@ export class ShellFileRegistry {
 
     async drop(path: string): Promise<boolean> {
         if (this.directories.has(path)) {
-            await this.externalDirectories!.removeExternalDirectory(path);
+            await this.database!.removeExternalDirectory(path);
             this.directories.delete(path);
             return true;
         }
@@ -170,7 +155,7 @@ export class ShellFileRegistry {
         }
         for (const path of Array.from(this.directories.keys())) {
             try {
-                await this.externalDirectories!.removeExternalDirectory(path);
+                await this.database!.removeExternalDirectory(path);
                 this.directories.delete(path);
             } catch (error) {
                 this.logger?.warn('Failed to unmount shell directory during disposal', {

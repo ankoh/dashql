@@ -3,8 +3,6 @@ import type { EmbeddedComputeDatabase, ExternalDirectoryMode } from '@akohn/dash
 import type { LoggerLike } from '@akohn/dashql/platform/logger/logger';
 import {
     createShellFilesCommand,
-    externalDirectoryDatabase,
-    externalFileDatabase,
     selectPlatformDirectory,
     selectPlatformFiles,
     ShellFileRegistry,
@@ -103,7 +101,7 @@ describe('shell file registry directories', () => {
 
     it('mounts, lists and drops directories', async () => {
         const external = new MockExternalFiles();
-        const registry = new ShellFileRegistry(undefined, external, external);
+        const registry = new ShellFileRegistry(undefined, external);
         expect(await registry.mountDirectory(handle('data'), undefined, 'read')).toBe('/mnt/external/data');
         await registry.mountFile(sourceFile('a.csv'));
         expect(await registry.listFiles()).toEqual([
@@ -117,7 +115,7 @@ describe('shell file registry directories', () => {
 
     it('unmounts files and directories on dispose and rejects later mounts', async () => {
         const external = new MockExternalFiles();
-        const registry = new ShellFileRegistry(undefined, external, external);
+        const registry = new ShellFileRegistry(undefined, external);
         await registry.mountDirectory(handle('data'), '/mnt/data', 'readwrite');
         await registry.mountFile(sourceFile('a.csv'));
         await registry.dispose();
@@ -127,14 +125,14 @@ describe('shell file registry directories', () => {
     });
 
     it('rejects directories without external directory support', async () => {
-        const registry = new ShellFileRegistry(undefined, new MockExternalFiles());
+        const registry = new ShellFileRegistry();
         await expect(registry.mountDirectory(handle('data'), undefined, 'read')).rejects.toThrow('not supported');
     });
 
     it('forwards failing directory mounts', async () => {
         const external = new MockExternalFiles();
         vi.spyOn(external, 'registerExternalDirectory').mockRejectedValue(new Error('denied'));
-        const registry = new ShellFileRegistry(undefined, external, external);
+        const registry = new ShellFileRegistry(undefined, external);
         await expect(registry.mountDirectory(handle('data'), undefined, 'read')).rejects.toThrow('denied');
         expect(await registry.list()).toEqual([]);
     });
@@ -198,18 +196,6 @@ describe('selectPlatformDirectory', () => {
         vi.stubGlobal('showDirectoryPicker', picker);
         await expect(selectPlatformDirectory('readwrite')).resolves.toBe(handle);
         expect(picker).toHaveBeenCalledWith({ mode: 'readwrite' });
-    });
-});
-
-describe('external database registrations', () => {
-    it('finds the file and directory registrations of a database', () => {
-        const external = new MockExternalFiles();
-        expect(externalFileDatabase(external)).toBe(external);
-        expect(externalDirectoryDatabase(external)).toBe(external);
-        for (const database of [null, undefined, 'database', {}, { registerExternalFile: () => { } }]) {
-            expect(externalFileDatabase(database)).toBeUndefined();
-            expect(externalDirectoryDatabase(database)).toBeUndefined();
-        }
     });
 });
 
@@ -291,7 +277,7 @@ describe('shell file registry logging', () => {
     it('removes a directory that finished mounting after the dispose', async () => {
         const external = new MockExternalFiles();
         const logger = new RecordingLogger();
-        const registry = new ShellFileRegistry(logger, external, external);
+        const registry = new ShellFileRegistry(logger, external);
         const register = external.registerExternalDirectory.bind(external);
         vi.spyOn(external, 'registerExternalDirectory').mockImplementation(async (h, path, mode) => {
             const mounted = await register(h, path, mode);
@@ -307,7 +293,7 @@ describe('shell file registry logging', () => {
     it('logs directory mounts with their mode', async () => {
         const external = new MockExternalFiles();
         const logger = new RecordingLogger();
-        const registry = new ShellFileRegistry(logger, external, external);
+        const registry = new ShellFileRegistry(logger, external);
         await registry.mountDirectory(handle('data'), '/mnt/data', 'readwrite');
         expect(logger.records[logger.records.length - 1]).toMatchObject({
             level: 'info',
@@ -319,7 +305,7 @@ describe('shell file registry logging', () => {
     it('warns about mounts that fail to unmount on dispose', async () => {
         const external = new MockExternalFiles();
         const logger = new RecordingLogger();
-        const registry = new ShellFileRegistry(logger, external, external);
+        const registry = new ShellFileRegistry(logger, external);
         await registry.mountFile(sourceFile('a.csv'));
         await registry.mountDirectory(handle('data'), undefined, 'read');
         vi.spyOn(external, 'removeExternalFile').mockRejectedValue(new Error('busy'));
