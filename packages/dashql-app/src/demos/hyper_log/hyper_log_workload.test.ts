@@ -17,9 +17,11 @@ describe('The workload of the Hyper log demo in HyperDB WASM', () => {
     });
 
     it('runs every query of the workload, only the failing one fails', async () => {
-        const outcomes: Record<string, boolean> = {};
-        for (const query of WORKLOAD_QUERIES) outcomes[query.name] = await runWorkloadQuery(database, query);
-        expect(outcomes).toEqual({ 'aggregate': true, 'top values': true, 'distinct users': true, 'series': true, 'failing': false });
+        const failed: string[] = [];
+        for (const query of WORKLOAD_QUERIES) {
+            if (!(await runWorkloadQuery(database, query))) failed.push(query.name);
+        }
+        expect(failed).toEqual(['failing']);
     });
 
     it('sends the queries round robin and counts the failed ones', async () => {

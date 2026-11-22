@@ -51,6 +51,9 @@ export function deleteTicksBeforeSql(retentionMs: number): string {
     return `delete from ticks where ts < now() - interval '${Math.round(retentionMs / 1000)} seconds'`;
 }
 
+/// The number of batches that wait for their inserts at most, beyond them the oldest ticks are dropped
+export const MAX_PENDING_BATCHES = 10;
+
 /// The options of a tick writer
 export interface TickWriterOptions {
     /// The time between two inserts
@@ -95,12 +98,12 @@ export class TickWriter {
         this.retentionIntervalMs = options.retentionIntervalMs ?? 10 * 1000;
     }
 
-    /// Queue ticks for the next insert. Beyond 10 batches the oldest ticks are dropped, the table stays live.
+    /// Queue ticks for the next insert. Beyond MAX_PENDING_BATCHES the oldest ticks are dropped, the table stays live.
     push(ticks: readonly Tick[]): void {
         if (this.stopped) return;
         // A spread of a large backfill would exceed the argument limit of push
         for (const tick of ticks) this.pending.push(tick);
-        const overflow = this.pending.length - 10 * this.maxBatchSize;
+        const overflow = this.pending.length - MAX_PENDING_BATCHES * this.maxBatchSize;
         if (overflow > 0) {
             this.pending.splice(0, overflow);
             this.dropped += overflow;

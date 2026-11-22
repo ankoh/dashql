@@ -124,7 +124,11 @@ describe('Hyper log query SQL', () => {
         expect(runs.toArray().find(row => row.status === '42P01')!.error).toContain('query_sql_missing_table');
 
         const userRuns = await read(recentQueriesSql(queryEnds, QueryScope.User, Date.now() - 60_000));
-        expect(userRuns.numRows).toBe(4);
+        expect(userRuns.toArray().filter(isListed).map(row => row.query)).toEqual([
+            'SELECT * FROM query_sql_missing_table',
+            'SELECT 1 AS v WHERE 3 > 1',
+            'SELECT 1 AS v WHERE 2 > 1',
+        ]);
         const appRuns = await read(recentQueriesSql(queryEnds, QueryScope.App, Date.now() - 60_000));
         expect(appRuns.toArray().filter(isListed).map(row => row.query)).toEqual(['SELECT 3 AS sqlframe_query']);
         // The reads of the log are queries of the app too

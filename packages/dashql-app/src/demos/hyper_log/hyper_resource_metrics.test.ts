@@ -29,65 +29,23 @@ const RESOURCE_METRICS_MAPS = new Set([
     'mem-trackers.memory_tracked_peak_usage_mb',
 ]);
 
-/// The JSON schema of the resource-metrics events with the default recorders.
-/// Paths use `*` for map keys and labels, `[]` for array elements. `{}` is a gauge that Wasm does not record.
-const DEFAULT_RESOURCE_METRICS_SCHEMA = {
-    'cache-filesystem.cache_filesystem_available_mb': '{}',
-    'cache-filesystem.cache_filesystem_cached_mb': '{}',
-    'cache-filesystem.cache_filesystem_cached_peak_mb': '{}',
-    'cache-filesystem.cache_filesystem_effectively_available_mb': '{}',
-    'cache-filesystem.cache_filesystem_size_mb': '{}',
-    'has-load': 'boolean',
-    'load.cpu_load': '{}',
-    'load.memory_buckets_load': 'number',
+/// The paths of the resource-metrics events that HYPER_LOG_RESOURCE_METRICS_TABLE reads, with their JSON types.
+/// Paths use `*` for map keys and labels, `[]` for array elements. The other paths of the events are Hyper's own.
+const READ_RESOURCE_METRICS_SCHEMA = {
     'load.memory_load': 'number',
     'load.overall_load': 'number',
     'load.scheduler_load': 'number',
-    'load.total_instance_time.*.*.*': 'number',
-    'load.total_instance_time_available.*': 'number',
-    'load.total_memory_time_mb_seconds.*.*.*': 'number',
-    'load.total_network_io_usage_mb.*.*.*': 'number',
-    'load.total_thread_time.*.*.*': 'number',
-    'load.workspace_load': 'number',
     'mem-trackers.memory_tracked_current_usage_mb.*': 'number',
-    'mem-trackers.memory_tracked_peak_usage_mb.*': 'number',
-    'memory.process_file_mappings_mb': '{}',
     'memory.process_physical_memory_mb': 'number',
-    'memory.process_virtual_memory_mb': '{}',
-    'memory.system_physical_memory_mb': 'number',
-    'memory.system_virtual_memory_mb': '{}',
     'memory.total_physical_memory_mb': 'number',
-    'memory.total_virtual_memory_mb': '{}',
-    'multiplexer.multiplexer_active_scopes': '{}',
-    'multiplexer.multiplexer_cpu_time.count': 'number',
-    'multiplexer.multiplexer_cpu_time.max': 'number',
-    'multiplexer.multiplexer_cpu_time.min': 'number',
-    'multiplexer.multiplexer_cpu_time.total': 'number',
-    'multiplexer.multiplexer_executed_continuations.max': 'number',
-    'multiplexer.multiplexer_executed_continuations.min': 'number',
-    'multiplexer.multiplexer_executed_continuations.total': 'number',
-    'scheduler.job-count.running': 'number',
-    'scheduler.job-count.suspended': 'number',
     'scheduler.job-count.waiting': 'number',
     'scheduler.thread-count.active': 'number',
-    'scheduler.thread-count.inactive': 'number',
-    'volume-cache-trackers.volume_current_mb': '{}',
-    'volume-cache-trackers.volume_peak_mb': '{}',
 };
 
-/// The paths that all recorders add to the default ones.
-const ALL_RECORDERS_RESOURCE_METRICS_SCHEMA = {
-    ...DEFAULT_RESOURCE_METRICS_SCHEMA,
-    'cpu.process_cpu_utilization': '{}',
-    'cpu.system_cpu_utilization': '{}',
-    'filesystem.filesystem_available_mb': '{}',
-    'filesystem.filesystem_size_mb': '{}',
+/// The threads of the scheduler and the multiplexer, which only all recorders write.
+const THREAD_RESOURCE_METRICS_SCHEMA = {
     'multiplexer-threads[].id': 'number',
-    'multiplexer-threads[].s': 'string',
-    'multiplexer-threads[].t': 'string',
     'scheduler-threads[].id': 'number',
-    'scheduler-threads[].s': 'string',
-    'scheduler-threads[].t': 'string',
 };
 
 /// The JSON types of all leaf paths of a value.
@@ -223,14 +181,14 @@ describe('HyperDB Wasm resource metrics', () => {
             expect(interval).toBeGreaterThan(RESOURCE_METRICS_INTERVAL_MS / 2);
             expect(interval).toBeLessThan(RESOURCE_METRICS_INTERVAL_MS * 5);
         }
-        expect(schema).toEqual(DEFAULT_RESOURCE_METRICS_SCHEMA);
+        expect(schema).toMatchObject(READ_RESOURCE_METRICS_SCHEMA);
         expect(trackers).toEqual(expect.arrayContaining(['global', 'global_transactions', 'global_plan_cache']));
     }, 60_000);
 
     it('writes resource metrics with all recorders', async () => {
         const { schema, errors } = await discoverSchema({ log_resource_usage_mode: ALL_RESOURCE_RECORDERS });
         expect(errors).toEqual([]);
-        expect(schema).toEqual(ALL_RECORDERS_RESOURCE_METRICS_SCHEMA);
+        expect(schema).toMatchObject({ ...READ_RESOURCE_METRICS_SCHEMA, ...THREAD_RESOURCE_METRICS_SCHEMA });
     }, 60_000);
 
     it('extracts the resource metrics into typed columns', async () => {

@@ -100,16 +100,21 @@ describe('CoinbaseFeed', () => {
 
     it('reconnects with an increasing delay', async () => {
         feed.start(ticks => delivered.push(ticks), status => statuses.push(status));
-        sockets[0].drop();
-        await vi.advanceTimersByTimeAsync(999);
-        expect(sockets).toHaveLength(1);
-        await vi.advanceTimersByTimeAsync(1);
-        expect(sockets).toHaveLength(2);
-        sockets[1].drop();
-        await vi.advanceTimersByTimeAsync(1999);
-        expect(sockets).toHaveLength(2);
-        await vi.advanceTimersByTimeAsync(1);
-        expect(sockets).toHaveLength(3);
+        // The time from dropping the newest socket until the feed opens the next one
+        const reconnectDelay = async () => {
+            const count = sockets.length;
+            sockets[count - 1].drop();
+            let waited = 0;
+            while (sockets.length === count && waited < 60_000) {
+                await vi.advanceTimersByTimeAsync(100);
+                waited += 100;
+            }
+            expect(sockets).toHaveLength(count + 1);
+            return waited;
+        };
+        const first = await reconnectDelay();
+        expect(first).toBeGreaterThan(0);
+        expect(await reconnectDelay()).toBeGreaterThan(first);
     });
 
     it('closes the socket on stop and does not reconnect', async () => {

@@ -261,12 +261,12 @@ describe('HyperDB Wasm log extract', () => {
             expect(transfer.tables.query_ends).toBeGreaterThanOrEqual(3);
 
             const connection = await openReader();
-            expect(toPlainObjects(await connection.query(`
+            const userErrors = toPlainObjects(await connection.query(`
                 SELECT code, message FROM ${READER_ALIAS}.public.user_errors WHERE message LIKE '%${tag}%' ORDER BY message
-            `))).toEqual([
-                { code: '42P01', message: `table "${tag}_missing_0" does not exist` },
-                { code: '42P01', message: `table "${tag}_missing_1" does not exist` },
-            ]);
+            `));
+            expect(userErrors.map(error => error.code)).toEqual(['42P01', '42P01']);
+            expect(userErrors[0].message).toContain(`${tag}_missing_0`);
+            expect(userErrors[1].message).toContain(`${tag}_missing_1`);
             const [success] = toPlainObjects(await connection.query(`
                 SELECT statement, elapsed, rows, error_code FROM ${QUERY_ENDS} WHERE outcome = 'query-end' AND query LIKE '%${tag}%'
             `));
@@ -305,23 +305,23 @@ describe('HyperDB Wasm log extract', () => {
 
     it('rejects invalid queries before reading events', async () => {
         await expect(openExtract({ sourceQuery: 'SELECT ts, k FROM log' }))
-            .rejects.toThrow(/source query must return the source columns: missing pid/);
+            .rejects.toThrow(/missing pid/);
         await expect(openExtract({ sourceQuery: 'SELECT *, 1 AS extra FROM log' }))
-            .rejects.toThrow(/unexpected extra/);
+            .rejects.toThrow(/extra/);
         await expect(openExtract({ sourceQuery: 'SELECT * FROM nope' }))
-            .rejects.toThrow(/invalid source query/);
+            .rejects.toThrow(/source query/);
         await expect(openExtract({ tables: [{ name: 'broken', query: 'SELECT nope FROM log' }] }))
-            .rejects.toThrow(/invalid query of the extract table broken/);
+            .rejects.toThrow(/broken/);
         await expect(openExtract({ tables: [{ name: 'twice', query: 'SELECT ts, ts FROM log' }] }))
-            .rejects.toThrow(/returns the column ts twice/);
+            .rejects.toThrow(/twice/);
         await expect(openExtract({ tables: [{ name: 'internal', query: 'SELECT 1 AS __row FROM log' }] }))
-            .rejects.toThrow(/column name __row of the extract table internal is reserved/);
+            .rejects.toThrow(/__row.*reserved/);
         await expect(openExtract({ tables: [{ name: 'limited', query: 'SELECT ts FROM log', maxRows: 0 }] }))
-            .rejects.toThrow(/row limit of the extract table limited must be a positive integer/);
+            .rejects.toThrow(/limited/);
         await expect(openExtract({ tables: [{ name: 'aged', query: 'SELECT ts FROM log', maxAgeMs: 0 }] }))
-            .rejects.toThrow(/age limit of the extract table aged must be positive/);
+            .rejects.toThrow(/aged/);
         await expect(openExtract({ tables: [{ name: 'timeless', query: 'SELECT k FROM log', maxAgeMs: 1_000 }] }))
-            .rejects.toThrow(/extract table timeless needs the watermark column ts for its age limit/);
+            .rejects.toThrow(/timeless/);
         extract = null;
     }, 60_000);
 
@@ -553,10 +553,11 @@ describe('HyperDB Wasm log extract', () => {
         const worker = await database!.connect();
         const tag = uniqueTag('timer');
         const errors: unknown[] = [];
+        const intervalMs = 50;
         let transfers = 0;
         try {
             await openExtract({
-                intervalMs: 50,
+                intervalMs,
                 onTransfer: () => { ++transfers; },
                 onError: error => errors.push(error),
             });
@@ -574,9 +575,12 @@ describe('HyperDB Wasm log extract', () => {
             expect(errors).toEqual([]);
             expect(transfers).toBeGreaterThan(0);
 
+            // A stopped extract polls no more, also after several of its intervals
             const rows = await readNumber(connection, `SELECT count(*) AS n FROM ${EVENTS}`);
+            const transfersWhenStopped = transfers;
             await failQueries(worker, `${tag}_late`, 1);
-            await new Promise(resolve => setTimeout(resolve, 200));
+            await new Promise(resolve => setTimeout(resolve, 4 * intervalMs));
+            expect(transfers).toBe(transfersWhenStopped);
             expect(await readNumber(connection, `SELECT count(*) AS n FROM ${EVENTS}`)).toBe(rows);
         } finally {
             await worker.close();

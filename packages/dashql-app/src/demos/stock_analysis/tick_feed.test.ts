@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { HyperDBSourceConnection } from '../shared/hyperdb_incremental_extract.js';
-import { deleteTicksBeforeSql, insertTicksSql, TickWriter, type Tick } from './tick_feed.js';
+import { deleteTicksBeforeSql, insertTicksSql, MAX_PENDING_BATCHES, TickWriter, type Tick } from './tick_feed.js';
 
 function tick(symbol: string, price: number, ts = Date.UTC(2026, 0, 2, 3, 4, 5, 678)): Tick {
     return { symbol, ts, price, size: 2, bid: price - 0.01, ask: null };
@@ -78,7 +78,8 @@ describe('TickWriter', () => {
 
     it('drops the oldest ticks when the inserts fall behind', async () => {
         const writer = new TickWriter(recordingConnection(statements), { maxBatchSize: 1 });
-        writer.push(Array.from({ length: 15 }, (_, i) => tick('A', i)));
+        // Batches of one tick: everything beyond the pending batches is dropped
+        writer.push(Array.from({ length: MAX_PENDING_BATCHES + 5 }, (_, i) => tick('A', i)));
         expect(writer.dropped).toBe(5);
         await writer.stop();
         expect(statements).toHaveLength(0);
