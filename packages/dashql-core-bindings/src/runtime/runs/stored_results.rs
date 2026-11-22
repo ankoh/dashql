@@ -6,8 +6,8 @@
 //! when a query of it recorded its result and when a run of it ended. The lookups wait until the changes pause like the
 //! analyses of the scripts that the editors show (`background_analysis_delay_ms` of the settings), typing looks the
 //! workbook up once. A lookup lists the results folder of the workbook once, plans the keys of the scripts over the
-//! files it found and removes the garbage of the folder. A workbook whose analyses are outdated is skipped, it changes again once they are
-//! current. A workbook that changes while it is looked up is looked up again afterwards.
+//! files it found and removes the garbage of the folder, unless a run holds the workbook: the run removes it once it
+//! ended. A workbook whose analyses are outdated is skipped, it changes again once they are current. A workbook that changes while it is looked up is looked up again afterwards.
 
 use std::cell::{Cell, RefCell};
 use std::collections::BTreeSet;
@@ -81,8 +81,9 @@ impl Runs {
         }
     }
 
-    /// Look up the stored results of the scripts of a workbook and show them on the scripts, then remove the garbage of
-    /// its results. The keys follow the listing: the keys downstream of a script cover its stored file.
+    /// Look up the stored results of the scripts of a workbook and show them on the scripts, and remove the garbage of
+    /// its results unless a run holds the workbook. The keys follow the listing: the keys downstream of a script cover
+    /// its stored file.
     fn look_up(self: &Rc<Self>, workbook_id: String, scripts: Vec<(u32, String)>) {
         self.stored.looking_up.borrow_mut().insert(workbook_id.clone());
         let runs = Rc::downgrade(self);
@@ -101,7 +102,12 @@ impl Runs {
                     None
                 }
             };
-            if let Some(listing) = &listing {
+            // A run of the workbook uses its mount, removing files would make the next use refresh it while the queries
+            // of the run use the compute database. The run removes the garbage once it ended (`vacuum`).
+            let held = runs
+                .upgrade()
+                .is_none_or(|runs| runs.read(&workbook_id, |entry| entry.is_some_and(|entry| entry.held.is_some())));
+            if let (Some(listing), false) = (&listing, held) {
                 results::remove_garbage(&platform, &workbook_id, listing).await;
             }
             let file = |name: &str| listing.as_ref().and_then(|listing| listing.result(name));

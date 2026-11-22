@@ -212,9 +212,10 @@ A script has at most one result, so a change of the scripts touches at most one 
 - Deleting a script removes its file once nobody reads it.
 - Deleting a workbook unmounts its results and removes its folder with them.
 
-The listing of a folder removes the files that nobody pins and that are garbage: files of no script of the workbook,
-transient files, names that don't parse, older files of a script. A rename that lost a race against a read leaves a
-file of the old name, the listing removes it.
+The lookup of a workbook removes the files that nobody pins and that are garbage: files of no script of the workbook,
+transient files, names that don't parse, older files of a script. While a run holds the workbook the lookup removes
+nothing, the run removes the garbage once it ended (`vacuum`). A rename that lost a race against a read leaves a file
+of the old name, the next lookup removes it.
 
 ## Script References
 
