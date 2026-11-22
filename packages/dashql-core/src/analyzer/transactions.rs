@@ -21,7 +21,7 @@
 
 use super::state::AnalysisState;
 use dashql_buffers::analyzer::{AnalyzerErrorSeverity, AnalyzerErrorType};
-use dashql_buffers::parser::{AttributeKey as K, Node, NodeType, StatementType, TransactionCommand};
+use dashql_buffers::parser::{AttributeKey as K, NodeType, StatementType, TransactionCommand};
 use dashql_parser::attrs;
 use dashql_parser::names::NameId;
 
@@ -41,21 +41,6 @@ impl TransactionBlock {
     }
 }
 
-/// What a transaction control statement does
-enum Command {
-    Begin,
-    /// Ends the transaction, with the verb of the error without a transaction
-    End(&'static str),
-    Savepoint(Option<NameId>),
-    /// RELEASE drops the savepoint and the later ones, ROLLBACK TO the later ones
-    ToSavepoint {
-        name: Option<NameId>,
-        release: bool,
-    },
-    /// COMMIT PREPARED and ROLLBACK PREPARED
-    Standalone,
-}
-
 /// Find the transactions of a script and flag the transaction control statements without counterpart
 pub(super) fn analyze(state: &mut AnalysisState) {
     let parsed = state.parsed;
@@ -71,9 +56,14 @@ pub(super) fn analyze(state: &mut AnalysisState) {
             continue;
         }
         let Some(root) = parsed.nodes.get(statement.root as usize) else { continue };
-        let Some(command) = read_command(state, root) else { continue };
-        match command {
-            Command::Begin => {
+        let [command, target] = attrs!(parsed.children(root), [K::SQL_TRANSACTION_COMMAND, K::SQL_TRANSACTION_TARGET]);
+        let Some(command) = command.filter(|c| c.node_type() == NodeType::ENUM_SQL_TRANSACTION_COMMAND) else {
+            continue;
+        };
+        let name: Option<NameId> =
+            target.filter(|t| t.node_type() == NodeType::NAME).map(|t| t.children_begin_or_value());
+        match TransactionCommand(command.children_begin_or_value() as u8) {
+            TransactionCommand::BEGIN | TransactionCommand::START => {
                 if open.is_some() {
                     errors.push((statement.root, "a transaction is already open in this script".into()));
                 } else {
@@ -81,18 +71,31 @@ pub(super) fn analyze(state: &mut AnalysisState) {
                     savepoints.clear();
                 }
             }
-            Command::End(verb) => match open.take() {
+            command @ (TransactionCommand::COMMIT
+            | TransactionCommand::END
+            | TransactionCommand::ROLLBACK
+            | TransactionCommand::ABORT
+            | TransactionCommand::PREPARE) => match open.take() {
                 Some(begin) => blocks.push(TransactionBlock { begin, end: Some(statement_id) }),
-                None => errors.push((statement.root, format!("no transaction to {verb}, begin it in this script"))),
+                None => {
+                    let verb = match command {
+                        TransactionCommand::COMMIT | TransactionCommand::END => "commit",
+                        TransactionCommand::PREPARE => "prepare",
+                        _ => "roll back",
+                    };
+                    errors.push((statement.root, format!("no transaction to {verb}, begin it in this script")));
+                }
             },
-            Command::Savepoint(name) => {
+            TransactionCommand::SAVEPOINT => {
                 if open.is_none() {
                     errors.push((statement.root, "no transaction for the savepoint, begin it in this script".into()));
                 } else if let Some(name) = name {
                     savepoints.push(name);
                 }
             }
-            Command::ToSavepoint { name, release } => {
+            // RELEASE drops the savepoint and the later ones, ROLLBACK TO the later ones
+            command @ (TransactionCommand::RELEASE | TransactionCommand::ROLLBACK_TO) => {
+                let release = command == TransactionCommand::RELEASE;
                 if open.is_none() {
                     errors.push((statement.root, "no transaction for the savepoint, begin it in this script".into()));
                     continue;
@@ -107,7 +110,8 @@ pub(super) fn analyze(state: &mut AnalysisState) {
                     )),
                 }
             }
-            Command::Standalone => {}
+            // COMMIT PREPARED and ROLLBACK PREPARED stand alone
+            _ => {}
         }
     }
     if let Some(begin) = open {
@@ -128,28 +132,4 @@ pub(super) fn analyze(state: &mut AnalysisState) {
             );
         }
     }
-}
-
-/// Read the command of a transaction control statement
-fn read_command(state: &AnalysisState, root: &Node) -> Option<Command> {
-    let parsed = state.parsed;
-    let [command, target, prepared] = attrs!(
-        parsed.children(root),
-        [K::SQL_TRANSACTION_COMMAND, K::SQL_TRANSACTION_TARGET, K::SQL_TRANSACTION_PREPARED]
-    );
-    let command = command.filter(|c| c.node_type() == NodeType::ENUM_SQL_TRANSACTION_COMMAND)?;
-    let command = TransactionCommand(u8::try_from(command.children_begin_or_value()).ok()?);
-    let name = target.filter(|t| t.node_type() == NodeType::NAME).map(|t| t.children_begin_or_value());
-    let prepared = prepared.is_some_and(|p| p.children_begin_or_value() != 0);
-    Some(match (command, target.is_some(), prepared) {
-        (TransactionCommand::PREPARE, _, _) => Command::End("prepare"),
-        (_, _, true) => Command::Standalone,
-        (TransactionCommand::BEGIN | TransactionCommand::START, _, _) => Command::Begin,
-        (TransactionCommand::COMMIT | TransactionCommand::END, false, _) => Command::End("commit"),
-        (TransactionCommand::ROLLBACK | TransactionCommand::ABORT, false, _) => Command::End("roll back"),
-        (TransactionCommand::ROLLBACK, true, _) => Command::ToSavepoint { name, release: false },
-        (TransactionCommand::RELEASE, _, _) => Command::ToSavepoint { name, release: true },
-        (TransactionCommand::SAVEPOINT, _, _) => Command::Savepoint(name),
-        _ => return None,
-    })
 }

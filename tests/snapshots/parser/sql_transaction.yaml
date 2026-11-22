@@ -675,7 +675,7 @@ parser-snapshots:
             children:
               - key: SQL_TRANSACTION_COMMAND
                 type: ENUM_SQL_TRANSACTION_COMMAND
-                value: ROLLBACK
+                value: ROLLBACK_TO
               - key: SQL_TRANSACTION_TARGET
                 type: NAME
                 text: "checkpoint"
@@ -692,7 +692,7 @@ parser-snapshots:
             children:
               - key: SQL_TRANSACTION_COMMAND
                 type: ENUM_SQL_TRANSACTION_COMMAND
-                value: ROLLBACK
+                value: ROLLBACK_TO
               - key: SQL_TRANSACTION_TARGET
                 type: NAME
                 text: "checkpoint"
@@ -709,7 +709,7 @@ parser-snapshots:
             children:
               - key: SQL_TRANSACTION_COMMAND
                 type: ENUM_SQL_TRANSACTION_COMMAND
-                value: ROLLBACK
+                value: ROLLBACK_TO
               - key: SQL_TRANSACTION_TARGET
                 type: NAME
                 text: "checkpoint"
@@ -726,7 +726,7 @@ parser-snapshots:
             children:
               - key: SQL_TRANSACTION_COMMAND
                 type: ENUM_SQL_TRANSACTION_COMMAND
-                value: ROLLBACK
+                value: ROLLBACK_TO
               - key: SQL_TRANSACTION_TARGET
                 type: NAME
                 text: "checkpoint"
@@ -820,7 +820,7 @@ parser-snapshots:
             children:
               - key: SQL_TRANSACTION_COMMAND
                 type: ENUM_SQL_TRANSACTION_COMMAND
-                value: ROLLBACK
+                value: ROLLBACK_TO
               - key: SQL_TRANSACTION_TARGET
                 type: NAME
                 text: "savepoint"
@@ -837,7 +837,7 @@ parser-snapshots:
             children:
               - key: SQL_TRANSACTION_COMMAND
                 type: ENUM_SQL_TRANSACTION_COMMAND
-                value: ROLLBACK
+                value: ROLLBACK_TO
               - key: SQL_TRANSACTION_TARGET
                 type: NAME
                 text: "savepoint"
@@ -871,7 +871,7 @@ parser-snapshots:
             children:
               - key: SQL_TRANSACTION_COMMAND
                 type: ENUM_SQL_TRANSACTION_COMMAND
-                value: ROLLBACK
+                value: ROLLBACK_TO
               - key: SQL_TRANSACTION_TARGET
                 type: NAME
                 text: "begin"
@@ -933,7 +933,7 @@ parser-snapshots:
       statements:
         - type: TRANSACTION
           ast-begin: 0
-          ast-size: 4
+          ast-size: 3
           description:
             text: "prepare tr..n 'batch';"
             description-begin: 0
@@ -948,12 +948,9 @@ parser-snapshots:
               - key: SQL_TRANSACTION_TARGET
                 type: LITERAL_STRING
                 text: "'batch'"
-              - key: SQL_TRANSACTION_PREPARED
-                type: BOOL
-                value: 1
         - type: TRANSACTION
-          ast-begin: 4
-          ast-size: 4
+          ast-begin: 3
+          ast-size: 3
           description:
             text: "commit pre..d 'batch';"
             description-begin: 0
@@ -964,16 +961,13 @@ parser-snapshots:
             children:
               - key: SQL_TRANSACTION_COMMAND
                 type: ENUM_SQL_TRANSACTION_COMMAND
-                value: COMMIT
+                value: COMMIT_PREPARED
               - key: SQL_TRANSACTION_TARGET
                 type: LITERAL_STRING
                 text: "'batch'"
-              - key: SQL_TRANSACTION_PREPARED
-                type: BOOL
-                value: 1
         - type: TRANSACTION
-          ast-begin: 8
-          ast-size: 4
+          ast-begin: 6
+          ast-size: 3
           description:
             text: "rollback p..ch''s id';"
             description-begin: 0
@@ -984,13 +978,10 @@ parser-snapshots:
             children:
               - key: SQL_TRANSACTION_COMMAND
                 type: ENUM_SQL_TRANSACTION_COMMAND
-                value: ROLLBACK
+                value: ROLLBACK_PREPARED
               - key: SQL_TRANSACTION_TARGET
                 type: LITERAL_STRING
                 text: "'batch''s id'"
-              - key: SQL_TRANSACTION_PREPARED
-                type: BOOL
-                value: 1
       scanner-errors: []
       parser-errors: []
       line-breaks:
@@ -1124,7 +1115,7 @@ parser-snapshots:
             children:
               - key: SQL_TRANSACTION_COMMAND
                 type: ENUM_SQL_TRANSACTION_COMMAND
-                value: ROLLBACK
+                value: ROLLBACK_TO
               - key: SQL_TRANSACTION_TARGET
                 type: NAME
                 text: "\"Checkpoint\""

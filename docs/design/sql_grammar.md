@@ -112,9 +112,9 @@ planner runs the statements of a transaction as barriers (`planner_dependencies.
 The parse tree adds `StatementType::TRANSACTION`, `OBJECT_SQL_TRANSACTION` and
 `OBJECT_SQL_TRANSACTION_MODE`. The statement has a `SQL_TRANSACTION_COMMAND` enum
 (`ENUM_SQL_TRANSACTION_COMMAND`, a `TransactionCommand`: `BEGIN`, `START`, `COMMIT`, `END`, `ROLLBACK`, `ABORT`,
-`SAVEPOINT`, `RELEASE`, or `PREPARE`), optional `SQL_TRANSACTION_MODES`, and an optional `SQL_TRANSACTION_TARGET`: a
-`NAME` for a savepoint, or a string literal for a prepared transaction. `SQL_TRANSACTION_PREPARED` is true for the
-three prepared forms. A rollback with a savepoint target is `ROLLBACK TO`, so it stays distinct from a full rollback.
+`SAVEPOINT`, `RELEASE`, `ROLLBACK_TO`, `PREPARE`, `COMMIT_PREPARED`, or `ROLLBACK_PREPARED`), optional
+`SQL_TRANSACTION_MODES`, and an optional `SQL_TRANSACTION_TARGET`: a `NAME` for a savepoint, or a string literal for a
+prepared transaction. The command alone says what the statement does, the analyzer and the formatter match on it.
 `WORK`/`TRANSACTION` and the optional `SAVEPOINT` keyword have no semantic difference and are omitted.
 
 Each mode object holds exactly one attribute: `SQL_TRANSACTION_ISOLATION_LEVEL` (an

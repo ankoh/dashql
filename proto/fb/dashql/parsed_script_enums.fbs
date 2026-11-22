@@ -322,6 +322,9 @@ enum TransactionCommand: uint8 {
     SAVEPOINT,
     RELEASE,
     PREPARE,
+    ROLLBACK_TO,
+    COMMIT_PREPARED,
+    ROLLBACK_PREPARED,
 }
 
 enum TransactionIsolationLevel: uint8 {

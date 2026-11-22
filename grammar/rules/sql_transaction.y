@@ -15,10 +15,15 @@ sql_transaction_stmt:
   | sql_transaction_end sql_opt_transaction {
         ctx.object(@$, NodeType::OBJECT_SQL_TRANSACTION, &[attr(Key::SQL_TRANSACTION_COMMAND, $1)])
     }
-  | ROLLBACK sql_opt_transaction sql_transaction_rollback_target {
+  | ROLLBACK sql_opt_transaction {
         ctx.object(@$, NodeType::OBJECT_SQL_TRANSACTION, &[
             attr(Key::SQL_TRANSACTION_COMMAND, enum_node(@1, TransactionCommand::ROLLBACK)),
-            attr(Key::SQL_TRANSACTION_TARGET, $3),
+        ])
+    }
+  | ROLLBACK sql_opt_transaction TO sql_transaction_savepoint {
+        ctx.object(@$, NodeType::OBJECT_SQL_TRANSACTION, &[
+            attr(Key::SQL_TRANSACTION_COMMAND, enum_node(@1, TransactionCommand::ROLLBACK_TO)),
+            attr(Key::SQL_TRANSACTION_TARGET, $4),
         ])
     }
   | SAVEPOINT sql_col_id {
@@ -37,21 +42,18 @@ sql_transaction_stmt:
         ctx.object(@$, NodeType::OBJECT_SQL_TRANSACTION, &[
             attr(Key::SQL_TRANSACTION_COMMAND, enum_node(@1, TransactionCommand::PREPARE)),
             attr(Key::SQL_TRANSACTION_TARGET, const_node(@3, AConstType::STRING)),
-            attr(Key::SQL_TRANSACTION_PREPARED, bool_node(@2, true)),
         ])
     }
   | COMMIT PREPARED SCONST {
         ctx.object(@$, NodeType::OBJECT_SQL_TRANSACTION, &[
-            attr(Key::SQL_TRANSACTION_COMMAND, enum_node(@1, TransactionCommand::COMMIT)),
+            attr(Key::SQL_TRANSACTION_COMMAND, enum_node(@$, TransactionCommand::COMMIT_PREPARED)),
             attr(Key::SQL_TRANSACTION_TARGET, const_node(@3, AConstType::STRING)),
-            attr(Key::SQL_TRANSACTION_PREPARED, bool_node(@2, true)),
         ])
     }
   | ROLLBACK PREPARED SCONST {
         ctx.object(@$, NodeType::OBJECT_SQL_TRANSACTION, &[
-            attr(Key::SQL_TRANSACTION_COMMAND, enum_node(@1, TransactionCommand::ROLLBACK)),
+            attr(Key::SQL_TRANSACTION_COMMAND, enum_node(@$, TransactionCommand::ROLLBACK_PREPARED)),
             attr(Key::SQL_TRANSACTION_TARGET, const_node(@3, AConstType::STRING)),
-            attr(Key::SQL_TRANSACTION_PREPARED, bool_node(@2, true)),
         ])
     }
     ;
@@ -71,11 +73,6 @@ sql_opt_transaction:
 sql_transaction_savepoint:
     sql_col_id           { $1 }
   | SAVEPOINT sql_col_id { $2 }
-    ;
-
-sql_transaction_rollback_target:
-    TO sql_transaction_savepoint { $2 }
-  | %empty                       { null() }
     ;
 
 sql_transaction_modes:

@@ -105,23 +105,23 @@ fn transaction_savepoint_targets() {
         ] {
             let parsed = parse_transaction(&format!("{prefix} {target};"));
             assert_eq!(name(&parsed, child(&parsed, root(&parsed), K::SQL_TRANSACTION_TARGET)), expected);
-            assert!(!parsed.children(root(&parsed)).iter().any(|n| n.attribute_key() == K::SQL_TRANSACTION_PREPARED));
         }
     }
 }
 
 #[test]
 fn transaction_prepared_ids_are_literals() {
-    for (prefix, expected) in
-        [("prepare transaction", C::PREPARE), ("commit prepared", C::COMMIT), ("rollback prepared", C::ROLLBACK)]
-    {
+    for (prefix, expected) in [
+        ("prepare transaction", C::PREPARE),
+        ("commit prepared", C::COMMIT_PREPARED),
+        ("rollback prepared", C::ROLLBACK_PREPARED),
+    ] {
         let parsed = parse_transaction(&format!("{prefix} 'batch''s id';"));
         assert_eq!(command(&parsed), expected);
         let root = root(&parsed);
         let target = child(&parsed, root, K::SQL_TRANSACTION_TARGET);
         assert_eq!(target.node_type(), NodeType::LITERAL_STRING);
         assert_eq!(parsed.node_text(target), "'batch''s id'");
-        assert_eq!(child(&parsed, root, K::SQL_TRANSACTION_PREPARED).children_begin_or_value(), 1);
     }
 }
 
