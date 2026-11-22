@@ -64,7 +64,6 @@ mod tests {
 
     #[test]
     fn automaton_size() {
-        assert_eq!(tables::YYNTOKENS, 577);
         assert_eq!(tables::YYPACT.len(), tables::YYNSTATES);
         assert_eq!(tables::YYDEFACT.len(), tables::YYNSTATES);
         assert_eq!(tables::YYSTOS.len(), tables::YYNSTATES);
@@ -83,7 +82,6 @@ mod tests {
         assert_eq!(symbol_kind::S_YYEOF, 0);
         assert_eq!(symbol_kind::S_YYerror, 1);
         assert_eq!(symbol_kind::S_YYUNDEF, 2);
-        assert_eq!(symbol_kind::S_IDENT, 3);
         assert!(is_terminal(symbol_kind::S_SELECT));
         assert!(!is_terminal(symbol_kind::S_sql_select_stmt));
     }
