@@ -141,9 +141,6 @@ pub struct SalesforceDetails {
     pub setup_error: Option<DetailedError>,
     /// The OAuth flow
     pub oauth_state: Option<SalesforceOAuthState>,
-    /// The account of the login as the user info of Salesforce named it, none while the login didn't resolve it. The
-    /// login of the params may be a hint that the user typed.
-    pub principal: Option<String>,
 }
 
 /// The channel of a connection once it is ready. The connection owns it: a channel that the connection replaces or lets
@@ -344,7 +341,6 @@ impl ConnectionDetails {
             ConnectorDetails::SalesforceDataCloud(salesforce) | ConnectorDetails::Dbcom(salesforce) => {
                 salesforce.setup_error = None;
                 salesforce.oauth_state = None;
-                salesforce.principal = None;
             }
         }
     }

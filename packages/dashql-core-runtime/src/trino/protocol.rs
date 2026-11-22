@@ -9,7 +9,7 @@ use serde_json::Value;
 
 use super::error::{TrinoError, TrinoErrorKind, TrinoResult};
 use crate::connections::{trino_session_defaults, JsonObject, TrinoSessionDefaults};
-use crate::http::base64::{base64_decode, base64_encode};
+use crate::http::base64::base64_encode;
 use crate::http::url::{encode_uri_component, form_encode, set_query_param, url_path};
 use crate::http::{FetchOutcome, HttpMethod, HttpRequest, HttpResponse};
 use crate::salesforce::api::redact_token_diagnostics;
@@ -169,9 +169,6 @@ pub struct TrinoAccessToken {
     pub expires_at: Option<Millis>,
     /// The granted scopes, if the server said
     pub scope: Option<String>,
-    /// The account that logged in: the `sub` of the response or of its OpenID Connect id token, none if the server
-    /// named none
-    pub principal: Option<String>,
 }
 
 impl TrinoAccessToken {
@@ -190,9 +187,6 @@ impl TrinoAccessToken {
         if let Some(scope) = &self.scope {
             token.insert("scope".into(), Value::String(scope.clone()));
         }
-        if let Some(principal) = &self.principal {
-            token.insert("principal".into(), Value::String(principal.clone()));
-        }
         Value::Object(token)
     }
 
@@ -208,25 +202,8 @@ impl TrinoAccessToken {
             refresh_token: optional("refreshToken"),
             expires_at: optional("expiresAt").as_deref().and_then(parse_iso_timestamp),
             scope: optional("scope"),
-            principal: optional("principal"),
         })
     }
-}
-
-/// The `sub` of the payload of a JWT, none for a token that doesn't read
-fn jwt_subject(jwt: &str) -> Option<String> {
-    let payload = jwt.split('.').nth(1)?;
-    let standard: String = payload
-        .chars()
-        .map(|c| match c {
-            '-' => '+',
-            '_' => '/',
-            c => c,
-        })
-        .collect();
-    let bytes = base64_decode(&standard)?;
-    let payload: Value = serde_json::from_slice(&bytes).ok()?;
-    payload.get("sub").and_then(Value::as_str).filter(|sub| !sub.is_empty()).map(str::to_string)
 }
 
 /// A request for a token at an OAuth token endpoint, the fields of the form in order. Its body and its response carry
@@ -276,7 +253,6 @@ pub fn read_token_response(outcome: &FetchOutcome, now: Millis) -> TrinoResult<T
         refresh_token: optional("refresh_token"),
         expires_at: expires_in.map(|seconds| now.saturating_add((seconds * 1000.0) as i64)),
         scope: optional("scope"),
-        principal: optional("sub").or_else(|| optional("id_token").as_deref().and_then(jwt_subject)),
     })
 }
 
@@ -380,10 +356,6 @@ impl TrinoChannel {
         let previous = self.access_token.as_ref();
         if refreshed.refresh_token.is_none() {
             refreshed.refresh_token = previous.and_then(|token| token.refresh_token.clone());
-        }
-        // A refresh without an id token stays the login of the same account
-        if refreshed.principal.is_none() {
-            refreshed.principal = previous.and_then(|token| token.principal.clone());
         }
         self.access_token = Some(refreshed);
         Ok(())

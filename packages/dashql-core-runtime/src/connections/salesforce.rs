@@ -116,7 +116,6 @@ pub(super) fn reduce(
             };
             *setup_params = Some(params);
             salesforce.setup_error = None;
-            salesforce.principal = None;
             *channel_error = None;
             *health_check_error = None;
             salesforce.oauth_state.get_or_insert_with(Default::default).oauth_params = Some(oauth_params);
@@ -150,10 +149,8 @@ pub(super) fn reduce(
         SalesforceAction::RequestingCoreAuthToken => timings.core_access_token_requested_at = Some(now),
         SalesforceAction::ReceivedCoreAuthToken => timings.core_access_token_received_at = Some(now),
         SalesforceAction::ReceivedCoreUserInfo { preferred_username, email } => {
-            // The account becomes the login hint of the next connects and of shared links and files, and the principal
-            // of the cached results of the connection
+            // The account becomes the login hint of the next connects and of shared links and files
             let account = preferred_username.or(email).filter(|account| !account.is_empty());
-            salesforce.principal = account.clone();
             if let Some(params) = setup_params {
                 let login = account.or_else(|| string_field(params, "login").map(str::to_string)).unwrap_or_default();
                 params.insert("login".to_string(), Value::String(login));

@@ -673,7 +673,6 @@ fn oauth_trino_channel(expires_at: i64) -> SharedTrinoChannel {
         refresh_token: Some("refresh-1".into()),
         expires_at: Some(expires_at),
         scope: None,
-        principal: None,
     });
     SharedTrinoChannel::new(channel)
 }

@@ -246,7 +246,6 @@ fn oauth_channel(expires_at: Option<i64>) -> TrinoChannel {
         refresh_token: Some("refresh-1".into()),
         expires_at,
         scope: None,
-        principal: None,
     });
     channel
 }
@@ -1309,28 +1308,6 @@ fn shares_params_without_secrets() {
 
     assert_eq!(login_hint(&params).as_deref(), Some("user"));
     assert_eq!(login_hint(&oauth_params()), None);
-}
-
-#[test]
-fn reads_the_principal_of_a_token_from_its_id_token() {
-    // The payload of the id token names the account, `{"sub":"alice"}`
-    let id_token = format!("e30.{}.c2ln", base64_encode(br#"{"sub":"alice"}"#));
-    let response = json_response(json!({ "access_token": "token-1", "id_token": id_token }));
-    let token = read_token_response(&response, 0).unwrap();
-    assert_eq!(token.principal.as_deref(), Some("alice"));
-    // A response that names the account itself wins, one without an id token names none
-    let response = json_response(json!({ "access_token": "token-1", "sub": "bob" }));
-    assert_eq!(read_token_response(&response, 0).unwrap().principal.as_deref(), Some("bob"));
-    let response = json_response(json!({ "access_token": "token-1" }));
-    assert_eq!(read_token_response(&response, 0).unwrap().principal, None);
-    // A refresh without an id token keeps the account of the login
-    let mut channel = oauth_channel(Some(1_000));
-    if let Some(token) = channel.access_token.as_mut() {
-        token.principal = Some("alice".into());
-    }
-    let TokenRefresh::Started(_) = channel.begin_token_refresh(0) else { panic!("a refresh") };
-    channel.finish_token_refresh(&json_response(json!({ "access_token": "token-2", "expires_in": 60 })), 0).unwrap();
-    assert_eq!(channel.access_token.as_ref().and_then(|token| token.principal.as_deref()), Some("alice"));
 }
 
 #[test]

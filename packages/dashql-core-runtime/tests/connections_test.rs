@@ -1135,18 +1135,15 @@ fn salesforce_collects_the_oauth_state_of_the_steps() {
 
 #[test]
 fn salesforce_stores_the_login_of_the_user_info_the_username_before_the_email() {
-    let principal = |connection: &ConnectionState| connection.details().salesforce().unwrap().principal.clone();
     let mut by_username = salesforce();
     apply(&mut by_username, user_info(Some("user@example.com"), Some("mail@example.com")));
     assert_eq!(salesforce_login(&by_username), Some("user@example.com"));
-    assert_eq!(principal(&by_username).as_deref(), Some("user@example.com"));
     let mut by_email = salesforce();
     apply(&mut by_email, user_info(None, Some("mail@example.com")));
     assert_eq!(salesforce_login(&by_email), Some("mail@example.com"));
-    // User info without an account keeps the login hint, but names no principal
+    // User info without an account keeps the login hint
     apply(&mut by_email, user_info(None, None));
     assert_eq!(salesforce_login(&by_email), Some("mail@example.com"));
-    assert_eq!(principal(&by_email), None);
 }
 
 #[test]
@@ -1181,14 +1178,13 @@ fn salesforce_reset_and_delete_close_the_channel_and_clear_the_setup() {
         apply(&mut connection, ConnectionAction::Salesforce(SalesforceAction::ChannelReady(salesforce_channel())));
         assert!(matches!(connection.details().channel, Some(ConnectionChannel::Salesforce(_))));
 
-        // The channel goes with its tokens, the OAuth flow and the account of the login are forgotten
+        // The channel goes with its tokens, the OAuth flow is forgotten
         apply(&mut connection, stop);
         assert!(connection.details().channel.is_none());
         assert_eq!(connection.details().setup_timings, SetupTimings::default());
         let salesforce = connection.details().salesforce().unwrap();
         assert_eq!(salesforce.setup_error, None);
         assert_eq!(salesforce.oauth_state, None);
-        assert_eq!(salesforce.principal, None);
     }
 }
 
