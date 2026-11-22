@@ -1,5 +1,11 @@
-let SCROLLBAR_WIDTH: number | null = null;
-let SCROLLBAR_HEIGHT: number | null = null;
+interface ScrollbarLayout {
+    /// The width of a vertical scrollbar in the layout, 0 for overlay scrollbars
+    width: number;
+    /// The height of a horizontal scrollbar in the layout, 0 for overlay scrollbars
+    height: number;
+}
+
+let SCROLLBAR_LAYOUT: ScrollbarLayout | null = null;
 
 // Overlay scrollbars report no layout size but still paint over content.
 const OVERLAY_SCROLLBAR_WIDTH = 12;
@@ -10,9 +16,10 @@ const OVERLAY_SCROLLBAR_HEIGHT = 12;
 /// The scrollbar style of old Edge, missing in the DOM types
 type MsOverflowStyle = CSSStyleDeclaration & { msOverflowStyle?: string };
 
-export const useScrollbarWidth = () => {
-    if (SCROLLBAR_WIDTH !== null) {
-        return SCROLLBAR_WIDTH;
+/// Measures the space that the scrollbars take in the layout, once
+function measureScrollbarLayout(): ScrollbarLayout {
+    if (SCROLLBAR_LAYOUT !== null) {
+        return SCROLLBAR_LAYOUT;
     }
 
     // Creating invisible container
@@ -26,40 +33,22 @@ export const useScrollbarWidth = () => {
     const inner = document.createElement('div');
     outer.appendChild(inner);
 
-    // Calculating difference between container's full width and the child width
-    SCROLLBAR_WIDTH = Math.max(
-        outer.offsetWidth - inner.offsetWidth,
-        OVERLAY_SCROLLBAR_WIDTH,
-    );
+    // Calculating difference between container's full size and the child size
+    SCROLLBAR_LAYOUT = {
+        width: outer.offsetWidth - inner.offsetWidth,
+        height: outer.offsetHeight - inner.offsetHeight,
+    };
 
     // Removing temporary elements from the DOM
     outer.parentNode?.removeChild(outer);
-    return SCROLLBAR_WIDTH;
-};
+    return SCROLLBAR_LAYOUT;
+}
 
-export const useScrollbarHeight = () => {
-    if (SCROLLBAR_HEIGHT !== null) {
-        return SCROLLBAR_HEIGHT;
-    }
+/// The width that a vertical scrollbar covers, also when it overlays the content
+export const useScrollbarWidth = () => Math.max(measureScrollbarLayout().width, OVERLAY_SCROLLBAR_WIDTH);
 
-    // Creating invisible container
-    const outer = document.createElement('div');
-    outer.style.visibility = 'hidden';
-    outer.style.overflow = 'scroll';
-    (outer.style as MsOverflowStyle).msOverflowStyle = 'scrollbar';
-    document.body.appendChild(outer);
+/// The height that a horizontal scrollbar covers, also when it overlays the content
+export const useScrollbarHeight = () => Math.max(measureScrollbarLayout().height, OVERLAY_SCROLLBAR_HEIGHT);
 
-    // Creating inner element and placing it in the container
-    const inner = document.createElement('div');
-    outer.appendChild(inner);
-
-    // Calculating difference between container's full height and the child height
-    SCROLLBAR_HEIGHT = Math.max(
-        outer.offsetHeight - inner.offsetHeight,
-        OVERLAY_SCROLLBAR_HEIGHT,
-    );
-
-    // Removing temporary elements from the DOM
-    outer.parentNode?.removeChild(outer);
-    return SCROLLBAR_HEIGHT;
-};
+/// Do the scrollbars overlay the content instead of taking space in the layout, e.g. on macOS
+export const useScrollbarsOverlay = () => measureScrollbarLayout().height === 0;

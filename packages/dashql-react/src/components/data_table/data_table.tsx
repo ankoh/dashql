@@ -14,7 +14,7 @@ import { computeTableLayout, DataTableLayout } from './data_table_layout.js';
 import { useCrossFilters } from './use_cross_filters.js';
 import { useObservedSize } from '../size_observer.js';
 import { useLogger } from '../../logger.js';
-import { useScrollbarHeight } from '../../dom/scrollbar.js';
+import { useScrollbarHeight, useScrollbarsOverlay } from '../../dom/scrollbar.js';
 import { useDataTableOrdering } from './data_table_ordering.js';
 import { useDataTablePortalContainers } from './data_table_portals.js';
 import { ResizedColumnWidths, useDataTableColumnResize } from './data_table_column_resize.js';
@@ -345,8 +345,13 @@ function DataTableGrid(props: Props & { dataTable: arrow.Table }) {
         ? COLUMN_HEADER_HEIGHT + plotsHeight
         : COLUMN_HEADER_HEIGHT;
     const scrollbarHeight = useScrollbarHeight();
+    const scrollbarsOverlay = useScrollbarsOverlay();
     const needsHorizontalScroll = totalColumnsWidth > gridContainerWidth;
-    const horizontalScrollbarHeight = needsHorizontalScroll ? scrollbarHeight : 0;
+    // An overlay scrollbar would leave an empty band between the last row and the row of the hidden rows, it paints
+    // over the last row while scrolling instead
+    const horizontalScrollbarHeight = needsHorizontalScroll && !(scrollbarsOverlay && hiddenRowCount > 0)
+        ? scrollbarHeight
+        : 0;
     const gridContainerHeight = props.fillHeight ? (gridContainerSize?.height ?? 0) : computeGridHeight(
         dataTable.numRows,
         dataRowCount,
