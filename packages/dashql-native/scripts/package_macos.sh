@@ -3,9 +3,10 @@ set -euo pipefail
 
 RUNFILES_ROOT="${RUNFILES_DIR:-$0.runfiles}"
 WORKSPACE_ROOT="${RUNFILES_ROOT}/_main"
-USAGE="usage: package_macos.sh <arm64|x64> <addon-path>"
+USAGE="usage: package_macos.sh <arm64|x64> <addon-path> <rlocation of version.env>"
 ARCH="${1:?${USAGE}}"
 ADDON_PATH="${2:?${USAGE}}"
+VERSION_ENV="${RUNFILES_ROOT}/${3:?${USAGE}}"
 case "${ARCH}" in
     arm64|x64) ;;
     *) echo "unsupported macOS architecture: ${ARCH}" >&2; exit 1 ;;
@@ -17,7 +18,6 @@ mkdir -p "${STAGE}/dist" "${STAGE}/renderer"
 cp -R "${WORKSPACE_ROOT}/packages/dashql-native/dist/." "${STAGE}/dist/"
 cp "${WORKSPACE_ROOT}/NOTICE" "${STAGE}/NOTICE"
 cp "${WORKSPACE_ROOT}/packages/dashql-native/src/preload.cjs" "${STAGE}/preload.cjs"
-VERSION_ENV="${RUNFILES_ROOT}/+dashql_app_version_repository+dashql_app_version/version.env"
 VERSION="$(awk -F= '$1=="DASHQL_VERSION_TEXT"{print $2}' "${VERSION_ENV}")"
 sed -e "s|\"version\": \"[^\"]*\"|\"version\": \"${VERSION}\"|" \
     "${WORKSPACE_ROOT}/packages/dashql-native/package.json" > "${STAGE}/package.json"

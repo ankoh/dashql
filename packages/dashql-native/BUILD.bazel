@@ -81,6 +81,7 @@ sh_binary(
     args = [
         "arm64",
         "$(location //packages/dashql-native/proxy:addon_aarch64)",
+        "$(rlocationpath @dashql_app_version//:version.env)",
     ],
     data = [
         ":compile",
@@ -107,6 +108,7 @@ sh_binary(
     args = [
         "x64",
         "$(location //packages/dashql-native/proxy:addon_x86_64)",
+        "$(rlocationpath @dashql_app_version//:version.env)",
     ],
     data = [
         ":compile",
