@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildEntity, entityId, parseEmbedLink } from './entity.js';
+import { buildEntity, entityId, MAX_TITLE_LENGTH, parseEmbedLink } from './entity.js';
 import { handleRequest, hmacSha256Hex, type Dependencies, type Env } from './worker.js';
 
 const APP = 'https://dev.dashql.app';
@@ -122,7 +122,7 @@ describe('parseEmbedLink', () => {
     it('truncates long file names', () => {
         const name = 'a'.repeat(300);
         const link = parseEmbedLink(`${APP}/embed?file=https%3A%2F%2Fexample.com%2F${name}`, APP);
-        expect(link?.title.length).toBe(120);
+        expect(link?.title.length).toBe(MAX_TITLE_LENGTH);
         expect(link?.title.endsWith('…')).toBe(true);
     });
 });

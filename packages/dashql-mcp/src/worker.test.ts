@@ -2,7 +2,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { describe, expect, it } from 'vitest';
 
-import { handleRequest, renderView, RESOURCE_MIME_TYPE, RESOURCE_URI, TOOL_NAME, type Env } from './worker.js';
+import { handleRequest, PROTOCOL_VERSIONS, renderView, RESOURCE_MIME_TYPE, RESOURCE_URI, TOOL_NAME, type Env } from './worker.js';
 
 const ENV: Env = { CHANNEL: 'dev', APP_ORIGIN: 'https://dev.dashql.app' };
 const URL_MCP = 'https://mcp.dashql.app/dev/mcp';
@@ -34,7 +34,7 @@ describe('the MCP server', () => {
 
     it('offers its newest revision of MCP for an unknown one', async () => {
         const response = await post({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '1999-01-01' } });
-        expect((await response.json()).result.protocolVersion).toBe('2025-11-25');
+        expect((await response.json()).result.protocolVersion).toBe(PROTOCOL_VERSIONS[0]);
     });
 
     it('answers a notification with 202 and nothing else', async () => {

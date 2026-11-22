@@ -34,7 +34,7 @@ const DISPLAY_TYPES: Record<EmbedKind, string> = {
 };
 
 const FILE_FORMATS = new Set(['parquet', 'csv', 'arrow', 'hyper']);
-const MAX_TITLE_LENGTH = 120;
+export const MAX_TITLE_LENGTH = 120;
 
 export const EMBED_MIME_TYPE = 'application/vnd.slack-embed';
 export const PRODUCT_NAME = 'DashQL';
