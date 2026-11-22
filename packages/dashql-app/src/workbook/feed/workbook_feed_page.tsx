@@ -229,7 +229,7 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
     }, [settledWithSkips, requestAttention]);
     const skippedTitle = run != null && run.skippedFiles.length > 0 ? `Need a connection: ${run.skippedFiles.join(', ')}` : undefined;
     const { mode, setMode } = dependencies.useWorkbookViewMode();
-    // The greeter shows the feed, its workbook has nothing to run, show or share until a script promotes it
+    // The greeter has nothing to run or share until a script promotes its workbook, it switches the views like any other
     const ephemeral = props.workbookScripts.ephemeral;
     // A read-only look at a published workbook is imported before it is shared
     const preview = isCloudPreview(props.workbookScripts);
@@ -239,8 +239,8 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
     const attachRef = React.useRef<((files: File[]) => void) | null>(null);
     const attachInputRef = React.useRef<HTMLInputElement>(null);
     React.useEffect(() => {
-        if ((ephemeral || preview) && (mode === WorkbookViewMode.Dashboard || mode === WorkbookViewMode.Dataflow)) setMode(WorkbookViewMode.Workbook);
-    }, [ephemeral, preview, mode, setMode]);
+        if (preview && (mode === WorkbookViewMode.Dashboard || mode === WorkbookViewMode.Dataflow)) setMode(WorkbookViewMode.Workbook);
+    }, [preview, mode, setMode]);
     const dashboardActive = mode === WorkbookViewMode.Dashboard;
     const dataflowActive = mode === WorkbookViewMode.Dataflow;
     const activeView = dashboardActive ? WorkbookViewMode.Dashboard : dataflowActive ? WorkbookViewMode.Dataflow : WorkbookViewMode.Workbook;
@@ -283,7 +283,7 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
         if (next != null) showView(next[0]);
     }, [viewIndex, showView]);
     // A preview shows its scripts only, it runs nothing until it is imported
-    const viewSwitchShown = !ephemeral && !preview && !overviewActive;
+    const viewSwitchShown = !preview && !overviewActive;
     // The groups at the end of the bar. An ephemeral workbook has no actions, a preview has its own.
     const connectionsShown = barConnections.length > 0;
     const actionsShown = preview || !ephemeral;

@@ -468,9 +468,9 @@ describe('WorkbookFeedPage', () => {
         render(scripts(), null);
         expect(end()).toEqual(['workbook-actions-group', 'workbook-bar-separator', 'workbook-views-group']);
 
-        // An ephemeral workbook has neither actions nor views, nothing to separate
+        // An ephemeral workbook has no actions, its connections and its views stay apart
         render({ ...scripts(), ephemeral: true } as WorkbookScripts, main);
-        expect(end()).toEqual(['workbook-connections-group']);
+        expect(end()).toEqual(['workbook-connections-group', 'workbook-bar-separator', 'workbook-views-group']);
     });
 
     it('hides the workbook controls while a connection overview is open', () => {
@@ -495,12 +495,13 @@ describe('WorkbookFeedPage', () => {
         for (const testId of workbookControls) expect(header.querySelector(`[data-testid="${testId}"]`)).not.toBeNull();
     });
 
-    it('keeps only the connections in the header while the workbook is ephemeral', () => {
+    it('keeps the connections and the view switch in the header while the workbook is ephemeral', () => {
         const ephemeral = { ...scripts(), workbookMetadata: { ephemeral: true }, ephemeral: true, scriptOrder: [], scriptKeys: [], scriptConnections: [], scriptRefs: {} };
         const main = testConnection('main', ConnectionHealth.ONLINE);
         act(() => root.render(<WorkbookFeedPage workbookScripts={ephemeral} modifyWorkbookScripts={vi.fn()} connection={main} active dependencies={dependencies} />));
         const header = container.querySelector('header')!;
-        for (const control of ['workbook-view-switch', 'execute-all', 'workbook-actions', 'export-workbook']) {
+        expect(header.querySelector('[data-testid="workbook-view-switch"]')).not.toBeNull();
+        for (const control of ['execute-all', 'workbook-actions', 'export-workbook']) {
             expect(header.querySelector(`[data-testid="${control}"]`)).toBeNull();
         }
         expect(header.querySelector('[data-testid="open-workbench"]')).not.toBeNull();
@@ -508,11 +509,12 @@ describe('WorkbookFeedPage', () => {
         expect(state.setMode).not.toHaveBeenCalled();
     });
 
-    it.each([WorkbookViewMode.Dashboard, WorkbookViewMode.Dataflow])('leaves a view without a switch while the workbook is ephemeral (%s)', mode => {
+    it.each([WorkbookViewMode.Dashboard, WorkbookViewMode.Dataflow])('stays in a view while the workbook is ephemeral (%s)', mode => {
         state.mode = mode;
         const ephemeral = { ...scripts(), workbookMetadata: { ephemeral: true }, ephemeral: true, scriptOrder: [], scriptKeys: [], scriptConnections: [], scriptRefs: {} };
         act(() => root.render(<WorkbookFeedPage workbookScripts={ephemeral} modifyWorkbookScripts={vi.fn()} connection={null} active dependencies={dependencies} />));
-        expect(state.setMode).toHaveBeenCalledWith(WorkbookViewMode.Workbook);
+        expect(state.setMode).not.toHaveBeenCalled();
+        expect(container.querySelector('[data-testid="workbook-view-switch"]')).not.toBeNull();
     });
 
     it('hides the archive export when the flavor does not support it', () => {
