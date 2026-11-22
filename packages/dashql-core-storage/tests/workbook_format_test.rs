@@ -1102,10 +1102,8 @@ fn round_trips_a_bundle_through_the_rows() {
             metadata: r#"{"createdAt":"2026-11-10T10:00:00.000Z"}"#.into()
         }]
     );
-    let key = VersionKey { workbook_id: TEST_WORKBOOK_ID.into(), version_id: version_id.into() };
-    assert_eq!(workbook_tables_key(&tables, "Invalid").unwrap(), key);
-    assert!(tables.scripts.iter().all(|r| r.workbook_id == key.workbook_id && r.version_id == key.version_id));
-    assert!(tables.results.iter().all(|r| r.workbook_id == key.workbook_id && r.version_id == key.version_id));
+    assert!(tables.scripts.iter().all(|r| r.workbook_id == TEST_WORKBOOK_ID && r.version_id == version_id));
+    assert!(tables.results.iter().all(|r| r.workbook_id == TEST_WORKBOOK_ID && r.version_id == version_id));
     assert_eq!(
         tables.scripts.iter().map(|r| (r.position, r.name.as_str(), r.connection_id.as_str())).collect::<Vec<_>>(),
         [(0, "b.sql", TEST_CONNECTION_ID), (1, "a.sql", TABLES_OTHER_CONNECTION_ID)]
@@ -1193,7 +1191,7 @@ fn numbers_the_tables_and_functions_of_all_connections() {
 }
 
 #[test]
-fn rejects_tables_without_exactly_one_version_rows_of_another_and_invalid_json() {
+fn rejects_tables_without_exactly_one_version_and_invalid_json() {
     let tables = workbook_bundle_to_tables(&tables_bundle(), &mut uuids()).unwrap();
     let mut none = tables.clone();
     none.versions.clear();
@@ -1207,12 +1205,6 @@ fn rejects_tables_without_exactly_one_version_rows_of_another_and_invalid_json()
         .unwrap_err()
         .message
         .contains("expected one workbook version, found 2"));
-    let mut other = tables.clone();
-    other.catalog_columns[1].version_id = "00000000-0000-4000-8000-000000000099".into();
-    assert!(workbook_tables_to_bundle(&other, "Invalid workbook tables")
-        .unwrap_err()
-        .message
-        .contains("connection_catalog_columns holds rows of another version"));
     let mut broken = tables.clone();
     broken.connections[0].params = "{".into();
     assert!(workbook_tables_to_bundle(&broken, "Invalid workbook tables")

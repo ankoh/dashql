@@ -404,13 +404,6 @@ pub struct DataTableFile<B> {
     pub crc32: Option<u32>,
 }
 
-/// The key of a version, of its row and of its rows in the other tables
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct VersionKey {
-    pub workbook_id: String,
-    pub version_id: String,
-}
-
 /// The rows of the workbook tables, and the Parquet files of the attachment and result tables
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WorkbookTables<B> {
@@ -772,49 +765,14 @@ fn parse_json(value: &str, error_prefix: &str, table: WorkbookTableName) -> Resu
         .map_err(|_| Error::invalid_argument(format!("{error_prefix}: invalid JSON in {}", table.name())))
 }
 
-/// The key of the rows of a version
-fn row_key<R: WorkbookTableRow>(row: &R) -> VersionKey {
-    let mut cells = row.cells().into_iter();
-    let mut text = || match cells.next() {
-        Some(Cell::Text(text)) => text.unwrap_or_default(),
-        _ => String::new(),
-    };
-    VersionKey { workbook_id: text(), version_id: text() }
-}
-
-/// Check that the rows of a table belong to a version
-fn check_rows_key<R: WorkbookTableRow>(rows: &[R], key: &VersionKey, error_prefix: &str) -> Result<()> {
-    match rows.iter().find(|row| row_key(*row) != *key) {
-        None => Ok(()),
-        Some(_) => {
-            Err(Error::invalid_argument(format!("{error_prefix}: {} holds rows of another version", R::TABLE.name())))
-        }
-    }
-}
-
-/// The key of the one version of a set of tables, every row of the other tables carries it
-pub fn workbook_tables_key<B>(tables: &WorkbookTables<B>, error_prefix: &str) -> Result<VersionKey> {
-    let row = checked_version(tables, error_prefix)?;
-    Ok(VersionKey { workbook_id: row.workbook_id.clone(), version_id: row.version_id.clone() })
-}
-
-/// The row of the one version of a set of tables, after checking that the rows of the other tables carry its key
-fn checked_version<'a, B>(tables: &'a WorkbookTables<B>, error_prefix: &str) -> Result<&'a VersionRow> {
+/// The row of the one version of a set of tables
+fn version_row<'a, B>(tables: &'a WorkbookTables<B>, error_prefix: &str) -> Result<&'a VersionRow> {
     let [row] = tables.versions.as_slice() else {
         return Err(Error::invalid_argument(format!(
             "{error_prefix}: expected one workbook version, found {}",
             tables.versions.len()
         )));
     };
-    let key = VersionKey { workbook_id: row.workbook_id.clone(), version_id: row.version_id.clone() };
-    check_rows_key(&tables.connections, &key, error_prefix)?;
-    check_rows_key(&tables.scripts, &key, error_prefix)?;
-    check_rows_key(&tables.catalog_tables, &key, error_prefix)?;
-    check_rows_key(&tables.catalog_columns, &key, error_prefix)?;
-    check_rows_key(&tables.catalog_functions, &key, error_prefix)?;
-    check_rows_key(&tables.catalog_function_params, &key, error_prefix)?;
-    check_rows_key(&tables.attachments, &key, error_prefix)?;
-    check_rows_key(&tables.results, &key, error_prefix)?;
     Ok(row)
 }
 
@@ -824,7 +782,7 @@ pub fn workbook_tables_to_bundle<B: Clone>(
     tables: &WorkbookTables<B>,
     error_prefix: &str,
 ) -> Result<WorkbookBundle<B>> {
-    let row = checked_version(tables, error_prefix)?;
+    let row = version_row(tables, error_prefix)?;
     let mut connections = tables.connections.clone();
     connections.sort_by_key(|row| row.position);
     // The file names in NFC, like the names of the entries of an archive

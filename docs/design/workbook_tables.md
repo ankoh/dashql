@@ -48,8 +48,8 @@ in NFC.
 - **The key.** `workbook_id` and `version_id` are the first columns of every table but the data tables, a version row
   has a key of its own, every other row the key of its version. An export writes one version under a fresh
   `version_id`, every export of a workbook is a version of its own. A reader takes the tables of exactly one version
-  and refuses rows of another. A cloud gives a published version a key of its own (`cloud.md`), so the key of a file
-  doesn't carry over into it. In a file the key is `text`, in a cloud `uuid`.
+  and doesn't read the key of their rows. A cloud gives a published version a key of its own (`cloud.md`), so the key
+  of a file doesn't carry over into it. In a file the key is `text`, in a cloud `uuid`.
 - **Data tables.** Every attachment and every stored result of a script is a table of its own. `workbook_attachments`
   and `workbook_results` name them, the name is unique across versions. A row of `workbook_results` names the file name
   of its script and the key in the name of its file (`workbook_results.md`); archives of earlier versions name only the
