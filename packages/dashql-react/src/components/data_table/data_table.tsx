@@ -437,6 +437,7 @@ function DataTableGrid(props: Props & { dataTable: arrow.Table }) {
         <div
             className={classNames(styles.root, props.className, {
                 [styles.root_compact]: props.compact,
+                [styles.root_more_rows]: hiddenRowCount > 0,
             })}
             data-electron-drag-region="false"
             style={{

@@ -11,6 +11,12 @@
     margin-bottom: -1px;
 }
 
+/* The row of the hidden rows ends the table, there is no bottom border of a row to collapse. A content-sized host would
+   otherwise size the table a pixel shorter than its rows and cut off the bottom border of the last row. */
+.root_more_rows {
+    margin-bottom: 0;
+}
+
 .root_compact {
     font-size: var(--font_size_compact);
 }
@@ -28,11 +34,12 @@
 }
 
 /* The row under a cut preview, it counts the rows that the preview leaves out. It covers the bottom border of the last
-   row with its own, the lines would double without a horizontal scrollbar between them. */
+   row with its own, the lines would double without a horizontal scrollbar between them. It lies over the column of the
+   row numbers (z-index 5) too, else that column hides the line where the host cuts off the last row. */
 .more_rows {
     flex-shrink: 0;
     position: relative;
-    z-index: 3;
+    z-index: 6;
     margin-top: -1px;
     display: flex;
     align-items: center;
