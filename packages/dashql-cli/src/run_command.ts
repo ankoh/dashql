@@ -387,12 +387,10 @@ async function runHere(
             analyze: false,
             prepareConnection: conn => setupConnection(runtime, conn, env, hyper, signal),
             resultFile: async script => {
-                if (hyper == null) return null;
-                const retained = await runtime.module.retainStoredResult(workbook.workbookId, script);
-                if (retained == null) return null;
+                const root = hyper?.root;
+                if (root == null) return null;
                 // The pins of the process are its own, the file stays until a run of the script replaces it
-                await runtime.module.releaseStoredResult(retained.id);
-                return path.join(hyper.root, STORAGE_WORKBOOKS_FOLDER, workbook.workbookId, RESULTS_FOLDER, retained.name);
+                return await runtime.withStoredResult(workbook.workbookId, script, async name => path.join(root, STORAGE_WORKBOOKS_FOLDER, workbook.workbookId, RESULTS_FOLDER, name));
             },
             onReportError: error => logger.warn('Reporting a script failed', { error: describeRunError(error) }),
         }, emit);

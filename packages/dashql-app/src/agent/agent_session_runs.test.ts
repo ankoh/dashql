@@ -8,11 +8,17 @@ import type { Runtime } from '@akohn/dashql/runtime/runtime';
 import { AGENT_PAUSED_ERROR, AgentSessionRuns, sendStoredResult } from './agent_session_runs.js';
 
 describe('the runs of the agent in the tab', () => {
-    it('sends the stored result of a script while it keeps it, nothing without one', async () => {
+    it('sends the stored result of a script while it is pinned, nothing without one', async () => {
         const order: string[] = [];
         const runtime = {
-            retainStoredResult: vi.fn(async (_workbookId: string, script: string) => script !== 'a.sql' ? null : { id: 7, name: 'a.k.1.parquet' }),
-            releaseStoredResult: vi.fn(async (id: number) => { order.push(`release ${id}`); }),
+            withStoredResult: vi.fn(async (_workbookId: string, script: string, callback: (name: string) => Promise<unknown>) => {
+                if (script !== 'a.sql') return null;
+                try {
+                    return await callback('a.k.1.parquet');
+                } finally {
+                    order.push('release');
+                }
+            }),
         } as unknown as Runtime;
         const results = {
             readFile: vi.fn(async (_workbookId: string, name: string) => {
@@ -25,13 +31,13 @@ describe('the runs of the agent in the tab', () => {
             return `/work/.dashql/workbooks/w/results/${name}`;
         });
         expect(await sendStoredResult(runtime, results, 'w', 'a.sql', write)).toBe('/work/.dashql/workbooks/w/results/a.k.1.parquet');
-        expect(order).toEqual(['read a.k.1.parquet', 'write a.k.1.parquet PAR1', 'release 7']);
+        expect(order).toEqual(['read a.k.1.parquet', 'write a.k.1.parquet PAR1', 'release']);
         expect(await sendStoredResult(runtime, results, 'w', 'other.sql', write)).toBeNull();
         expect(await sendStoredResult(runtime, null, 'w', 'a.sql', write)).toBeNull();
         // A failed write still releases the file
         order.length = 0;
         await expect(sendStoredResult(runtime, results, 'w', 'a.sql', async () => { throw new Error('gone'); })).rejects.toThrow('gone');
-        expect(order).toEqual(['read a.k.1.parquet', 'release 7']);
+        expect(order).toEqual(['read a.k.1.parquet', 'release']);
     });
 
     it('runs nothing for the agent while the user has the workbook', async () => {

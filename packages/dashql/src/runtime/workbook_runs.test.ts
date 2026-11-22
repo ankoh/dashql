@@ -656,6 +656,29 @@ describe('the runs of scripts of the runtime', () => {
         expect(f.cache!.names(f.workbookId)).toHaveLength(1);
     });
 
+    it('pins the file of the stored result of a script while a caller uses it', async () => {
+        const f = await scripts([['foo.sql', 'select 1 as a;']], { cache: true });
+        await f.run('foo.sql');
+        await f.core.module.flushResultWrites();
+        const [name] = f.cache!.names(f.workbookId);
+        const events: string[] = [];
+        f.cache!.pin.mockImplementation(async (_workbookId, pinned) => {
+            events.push(`pin ${pinned}`);
+            return async () => { events.push(`release ${pinned}`); };
+        });
+        const use = async (file: string) => {
+            events.push(`use ${file}`);
+            return file.length;
+        };
+        expect(await f.core.withStoredResult(f.workbookId, 'foo.sql', use)).toBe(name.length);
+        expect(events).toEqual([`pin ${name}`, `use ${name}`, `release ${name}`]);
+        // A use that fails releases the pin as well, a script without a result uses nothing
+        events.length = 0;
+        await expect(f.core.withStoredResult(f.workbookId, 'foo.sql', async () => { throw new Error('gone'); })).rejects.toThrow('gone');
+        expect(events).toEqual([`pin ${name}`, `release ${name}`]);
+        expect(await f.core.withStoredResult(f.workbookId, 'other.sql', use)).toBeNull();
+    });
+
     it('renames the result of a renamed script and removes the result of a deleted one as garbage', async () => {
         const f = await scripts([['foo.sql', 'select 1 as a;'], ['bar.sql', 'select 2 as b;']], { cache: true });
         await f.run('foo.sql');

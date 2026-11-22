@@ -59,7 +59,9 @@ its queries run, the mount stays stale then and the next use tries again: a resu
 Readers pin the files they read with a shared Web Lock named `dashql-workbook-results/<workbook-id>/<name>`, which spans
 the windows of the app. A write pins its new file and its temporary file. A removal or rename only touches a file if it
 gets the exclusive lock at once (`ifAvailable`), pinned files stay and the next listing removes them once they are
-free. The release of a pin resolves once the lock is released.
+free. The release of a pin resolves once the lock is released. A caller of the runtime that hands a file on, the tab of
+an agent session or the command line tool, uses it through `withStoredResult`, which pins the file until the callback
+settled.
 
 ## The Platform and the Core
 

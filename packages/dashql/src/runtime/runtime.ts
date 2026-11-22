@@ -660,16 +660,10 @@ export class Runtime {
         if (!this.stopping) this.module.answerExternalChange(workbookId, prompt, reload);
     }
 
-    /// Keep the stored result of a script until `releaseStoredResult`, e.g. while its file is read: the id of the pin
-    /// and the name of its file below the results of the workbook, null if the script has none
-    async retainStoredResult(workbookId: string, script: string): Promise<{ id: number; name: string } | null> {
-        return await this.live().retainStoredResult(workbookId, script);
-    }
-
-    /// Release a stored result that `retainStoredResult` kept, nothing once the runtime is destroyed
-    async releaseStoredResult(id: number): Promise<void> {
-        if (this.stopping) return;
-        await this.module.releaseStoredResult(id);
+    /// Use the file of the stored result of a script while it is pinned, e.g. to read it: `callback` gets the name of the
+    /// file below the results of the workbook, the pin is released once `callback` settled. Null if the script has none.
+    async withStoredResult<T>(workbookId: string, script: string, callback: (name: string) => Promise<T>): Promise<T | null> {
+        return await this.live().withStoredResult(workbookId, script, callback) as T | null;
     }
 
     // The imports and exports of workbooks

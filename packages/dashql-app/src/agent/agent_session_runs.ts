@@ -13,17 +13,11 @@ import { arrowTableToRows } from '@akohn/dashql-react/vegalite/vegalite_rows';
 
 const LOG_CTX = 'agent_session';
 
-/// Send the file of the stored result of a script, kept while it is read. Resolves with what `write` resolves, null
+/// Send the file of the stored result of a script, pinned while it is read. Resolves with what `write` resolves, null
 /// without a file.
 export async function sendStoredResult(runtime: Runtime, results: WorkbookResultFiles | null, workbookId: string, script: string, write: (name: string, data: Blob) => Promise<string>): Promise<string | null> {
     if (results == null) return null;
-    const retained = await runtime.retainStoredResult(workbookId, script);
-    if (retained == null) return null;
-    try {
-        return await write(retained.name, await results.readFile(workbookId, retained.name));
-    } finally {
-        await runtime.releaseStoredResult(retained.id);
-    }
+    return await runtime.withStoredResult(workbookId, script, async name => await write(name, await results.readFile(workbookId, name)));
 }
 
 /// Render the chart of a script for `dashql vis`: the `@vis vegalite` tag of its last query with a result, as the image

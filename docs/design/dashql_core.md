@@ -383,8 +383,8 @@ See [workbook_graph_execution.md](workbook_graph_execution.md).
 - **Commands over the format.** `exportWorkbook`, `exportConnection`, `readImport`, `commitImport`, `dropImport`
   (archives through `archives` of the platform, results by handle), the static `migrateStorage`,
   `migrateWorkbookFolder`, `checkWorkbookFolders` with `answerExternalChange` for folders that change outside the app,
-  and `retainStoredResult` and `releaseStoredResult`, which keep the stored result of a script while the command line
-  tool or the tab of an agent session hands its file on (`workbook_results.md`).
+  and `withStoredResult`, which pins the file of the stored result of a script while the command line tool or the tab
+  of an agent session hands it on (`workbook_results.md`).
 
 ## The host
 

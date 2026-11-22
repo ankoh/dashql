@@ -55,7 +55,7 @@ use serde::{Deserialize, Serialize};
 use tsify::{Ts, Tsify};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
-use wasm_bindgen_futures::future_to_promise;
+use wasm_bindgen_futures::{future_to_promise, JsFuture};
 
 use crate::host::{lifetime_token, HandleEffect, JsPlatform, JsRuntimePlatform};
 use crate::query_history::view::{ProfileLayoutView, QueryProfileKeys, QueryProfileProgressView, QueryView};
@@ -1040,10 +1040,16 @@ impl Runtime {
         self.runs.show_workbook(workbook_id);
     }
 
-    /// Keep the stored result of a script until `releaseStoredResult`: the id of the pin and the name of its file below
-    /// the results of the workbook, null if the script has none (docs/design/workbook_results.md)
-    #[wasm_bindgen(js_name = retainStoredResult, unchecked_return_type = "Promise<{ id: number; name: string } | null>")]
-    pub fn retain_stored_result(&self, workbook_id: String, script: String) -> Promise {
+    /// Use the file of the stored result of a script while it is pinned: `callback` gets its name below the results of
+    /// the workbook, the pin is released once the promise of `callback` settled. Resolves with what `callback` resolves
+    /// with, null if the script has no stored result (docs/design/workbook_results.md).
+    #[wasm_bindgen(js_name = withStoredResult, unchecked_return_type = "Promise<unknown>")]
+    pub fn with_stored_result(
+        &self,
+        workbook_id: String,
+        script: String,
+        #[wasm_bindgen(unchecked_param_type = "(name: string) => Promise<unknown>")] callback: Function,
+    ) -> Promise {
         let platform = self.platform.clone();
         future_to_promise(async move {
             if !platform.has_results() {
@@ -1052,20 +1058,12 @@ impl Runtime {
             let retained =
                 results::retain(&platform, &workbook_id, &script).await.map_err(|error| error_value(&error))?;
             let Some((id, result)) = retained else { return Ok(JsValue::NULL) };
-            let object = js_sys::Object::new();
-            js_sys::Reflect::set(&object, &JsValue::from_str("id"), &JsValue::from_f64(id as f64))?;
-            js_sys::Reflect::set(&object, &JsValue::from_str("name"), &JsValue::from_str(&result.name))?;
-            Ok(object.into())
-        })
-    }
-
-    /// Release a stored result that `retainStoredResult` kept
-    #[wasm_bindgen(js_name = releaseStoredResult, unchecked_return_type = "Promise<void>")]
-    pub fn release_stored_result(&self, id: f64) -> Promise {
-        let release = self.platform.results_release(id.max(0.0) as u64);
-        future_to_promise(async move {
-            release.await;
-            Ok(JsValue::UNDEFINED)
+            let used = match callback.call1(&JsValue::NULL, &JsValue::from_str(&result.name)) {
+                Ok(value) => JsFuture::from(Promise::resolve(&value)).await,
+                Err(error) => Err(error),
+            };
+            platform.results_release(id).await;
+            used
         })
     }
 
