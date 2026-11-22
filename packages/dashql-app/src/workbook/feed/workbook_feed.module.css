@@ -26,7 +26,8 @@
 .feed_head {
     display: flex;
     flex-direction: column;
-    gap: 32px;
+    /* The gap between the sections of the dashboard */
+    gap: 24px;
     padding: 0 calc(var(--page_gutter) + var(--feed-scrollbar-inset, 0px)) 0 var(--page_gutter);
 }
 

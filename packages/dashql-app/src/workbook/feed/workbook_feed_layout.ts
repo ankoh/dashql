@@ -13,7 +13,7 @@ interface FeedLayoutEntry {
 /// The space above the first script without a head of the feed
 export const FEED_TOP_PADDING = 32;
 /// The space between the label of a section and its content, the gap of `StageSection`
-export const FEED_LABEL_GAP = 10;
+export const FEED_LABEL_GAP = 12;
 /// The space above the first script. The head of the feed ends with the label of the scripts, the first script stands
 /// below it like the content of a section below its label.
 export function feedTopSpace(topInset: number): number {
