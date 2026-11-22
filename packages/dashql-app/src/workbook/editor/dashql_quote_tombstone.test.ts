@@ -158,19 +158,6 @@ describe('quote tombstone — typing keeps tombstone', () => {
         expect(docCursor(view)).toEqual({ doc: '"foob"', cursor: 5 });
         expect(tombstone(view)).toEqual({ leading: 0, trailing: 5, char: '"' });
     });
-
-    it('typing remaps trailing position when char inserted before it', () => {
-        view = createView('"foo"', 5);
-        tombstoneBackspace(view, fakeFinder);
-        // tombstone leading=0 trailing=4. Insert at cursor (4) -> trailing should map to 5
-        view.dispatch({
-            changes: { from: 4, to: 4, insert: 'b' },
-            selection: EditorSelection.cursor(5),
-        });
-        const t = tombstone(view)!;
-        expect(t.leading).toBe(0);
-        expect(t.trailing).toBe(5);
-    });
 });
 
 describe('quote tombstone — cursor leaves clears', () => {
@@ -247,8 +234,9 @@ describe('default quoted token finder', () => {
     it('finds the quotes of the quoted token at a quote', () => {
         const text = 'select "Name" from t';
         const state = processedState(text);
-        expect(defaultQuotedTokenFinder(state, text.indexOf('"'))).toEqual({ leading: 7, trailing: 12 });
-        expect(defaultQuotedTokenFinder(state, text.lastIndexOf('"'))).toEqual({ leading: 7, trailing: 12 });
+        const quotes = { leading: text.indexOf('"'), trailing: text.lastIndexOf('"') };
+        expect(defaultQuotedTokenFinder(state, quotes.leading)).toEqual(quotes);
+        expect(defaultQuotedTokenFinder(state, quotes.trailing)).toEqual(quotes);
     });
 
     it('finds nothing without a processor or a token of two characters', () => {

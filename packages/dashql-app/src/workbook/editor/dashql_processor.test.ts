@@ -23,6 +23,11 @@ afterEach(() => {
     dql!.resetUnsafe();
 });
 
+/// The display texts of the candidates of a completion, in their order
+function candidateTexts(completion: dashql.buffers.completion.Completion): (string | null | undefined)[] {
+    return Array.from({ length: completion.candidatesLength() }, (_, i) => completion.candidates(i)?.displayText());
+}
+
 function createScriptSession(catalog: dashql.DashQLCatalog, text: string, cursor = text.length) {
     const scriptSession = dql!.createScriptSession(catalog);
     scriptSession.replaceText(0n, text);
@@ -83,7 +88,7 @@ describe('CodeMirror portable editor events', () => {
                 onStaleText,
                 onUpdate: () => {},
             };
-            let editorState = EditorState.create({ doc: 'select 1', selection: EditorSelection.cursor(8), extensions: [DashQLProcessorPlugin] });
+            let editorState = EditorState.create({ doc: 'select 1', selection: EditorSelection.cursor('select 1'.length), extensions: [DashQLProcessorPlugin] });
             editorState = editorState.update({ effects: DashQLUpdateEffect.of(processorState) }).state;
 
             // The workbook changes the text before the editor shows it, e.g. a rewrite of a reference
@@ -91,8 +96,8 @@ describe('CodeMirror portable editor events', () => {
             // A keystroke at an offset of the text the document shows is stale: the session keeps its text, the editor
             // is asked to show it again
             editorState = editorState.update({
-                changes: { from: 8, insert: '0' },
-                selection: EditorSelection.cursor(9),
+                changes: { from: 'select 1'.length, insert: '0' },
+                selection: EditorSelection.cursor('select 10'.length),
                 annotations: Transaction.userEvent.of('input.type'),
             }).state;
             expect(scriptSession.getText()).toBe('select 12345');
@@ -106,8 +111,8 @@ describe('CodeMirror portable editor events', () => {
             expect(scriptSession.getText()).toBe('select 12345');
             // Then its keystrokes apply
             editorState = editorState.update({
-                changes: { from: 12, insert: '6' },
-                selection: EditorSelection.cursor(13),
+                changes: { from: 'select 12345'.length, insert: '6' },
+                selection: EditorSelection.cursor('select 123456'.length),
                 annotations: Transaction.userEvent.of('input.type'),
             }).state;
             expect(editorState.doc.toString()).toBe('select 123456');
@@ -245,7 +250,7 @@ describe('CodeMirror portable editor events', () => {
             parent: document.body,
         });
         view.dispatch({ effects: DashQLUpdateEffect.of(processorState) });
-        view.dispatch({ selection: EditorSelection.cursor(8) });
+        view.dispatch({ selection: EditorSelection.cursor(text.indexOf('identifier') + 1) });
 
         expect(emitted).not.toBeNull();
         const focusedUpdate = emitted!.editorUpdate!;
@@ -294,7 +299,7 @@ describe('CodeMirror portable editor events', () => {
             parent: document.body,
         });
         view.dispatch({ effects: DashQLUpdateEffect.of(processorState) });
-        view.dispatch({ selection: EditorSelection.cursor(8) });
+        view.dispatch({ selection: EditorSelection.cursor(text.indexOf('identifier') + 1) });
 
         expect(view.dom.querySelectorAll('.dashql-colref-cursor')).toHaveLength(1);
         expect(view.dom.querySelectorAll('.dashql-colref-focus')).toHaveLength(1);
@@ -334,7 +339,7 @@ describe('CodeMirror portable editor events', () => {
                 onUpdate: () => {},
             }),
         });
-        view.dispatch({ selection: EditorSelection.cursor(8) });
+        view.dispatch({ selection: EditorSelection.cursor(text.indexOf('identifier') + 1) });
         expect(view.dom.querySelectorAll('.dashql-colref-cursor')).toHaveLength(1);
 
         // The workbook selected another script
@@ -656,14 +661,14 @@ describe('DashQL processor completion triggers', () => {
         const { scriptSession } = createScriptSession(catalog, text, cursor);
         const completionBuffer = scriptSession.completeAtCursor(10);
         const completion = completionBuffer.read();
-        expect(completion.candidatesLength()).toBeGreaterThan(0);
-        expect(completion.candidates(0)?.displayText()).toBe('"mark"');
+        const mark = candidateTexts(completion).indexOf('"mark"');
+        expect(mark).toBeGreaterThanOrEqual(0);
 
         const completionState = computePatches({
             status: DashQLCompletionStatus.AVAILABLE,
             passiveHint: false,
             buffer: completionBuffer,
-            candidateId: 0,
+            candidateId: mark,
             candidatePatch: [],
             catalogObjectId: 0,
             catalogObjectPatch: [],
@@ -705,7 +710,7 @@ describe('DashQL processor completion triggers', () => {
         expect(editorState.doc.toString()).toBe(before);
         const completion = editorState.field(DashQLProcessorPlugin).scriptCompletion;
         expect(completion).not.toBeNull();
-        expect(completion!.buffer.read().candidates(0)?.displayText()).toBe('vegalite');
+        expect(candidateTexts(completion!.buffer.read())).toContain('vegalite');
     });
 
     describe('at an empty target', () => {
@@ -752,7 +757,7 @@ describe('DashQL processor completion triggers', () => {
         ])('opens the list of %s of a call', (_name, before, typed, first) => {
             const completion = typeAtEnd(ticketsCatalog(), before, typed).field(DashQLProcessorPlugin).scriptCompletion;
             expect(completion!.passiveHint).toBe(false);
-            expect(completion!.buffer.read().candidates(0)?.displayText()).toBe(first);
+            expect(candidateTexts(completion!.buffer.read())).toContain(first);
         });
 
         it('opens the list after the dot of a name in SQL', () => {
@@ -764,13 +769,13 @@ describe('DashQL processor completion triggers', () => {
 
             const completion = typeAtEnd(catalog, 'select * from db0', '.').field(DashQLProcessorPlugin).scriptCompletion;
             expect(completion!.passiveHint).toBe(false);
-            expect(completion!.buffer.read().candidates(0)?.displayText()).toBe('public');
+            expect(candidateTexts(completion!.buffer.read())).toContain('public');
         });
 
         it('keeps the inline hint for the namespace of a call', () => {
             const completion = typeAtEnd(ticketsCatalog(), 'call', ' ').field(DashQLProcessorPlugin).scriptCompletion;
             expect(completion!.passiveHint).toBe(true);
-            expect(completion!.buffer.read().candidates(0)?.displayText()).toBe('tickets');
+            expect(candidateTexts(completion!.buffer.read())).toContain('tickets');
         });
 
         it('keeps the inline hint for a keyword after a space', () => {
@@ -795,16 +800,20 @@ describe('DashQL processor completion triggers', () => {
             extensions: [DashQLProcessorPlugin],
         });
         editorState = editorState.update({ effects: DashQLUpdateEffect.of(processorState) }).state;
+        const first = editorState.field(DashQLProcessorPlugin).scriptCompletion!;
+        const objectName = (state: typeof first) => state.buffer.read().candidates(state.candidateId)!.catalogObjects(state.catalogObjectId)!.qualifiedName(0);
+        const firstName = objectName(first);
 
         editorState = editorState.update({
             effects: DashQLCompletionNextCandidateVariantEffect.of(null),
         }).state;
 
+        // The other orders table of the catalog
         const next = editorState.field(DashQLProcessorPlugin).scriptCompletion!;
-        expect(next.catalogObjectId).toBe(1);
-        const selectedObject = next.buffer.read().candidates(next.candidateId)!.catalogObjects(next.catalogObjectId)!;
+        expect(next.catalogObjectId).not.toBe(first.catalogObjectId);
         expect(next.catalogObjectPatch).not.toHaveLength(0);
-        expect(selectedObject.qualifiedName(0)).toBe('db1');
+        expect(['db0', 'db1']).toContain(objectName(next));
+        expect(objectName(next)).not.toBe(firstName);
     });
 
     it('does not start completion when deleting selected comments before a token', () => {

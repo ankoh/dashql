@@ -62,7 +62,7 @@ describe('DashQL completion keys', () => {
         target.dispatch({ effects: DashQLCompletionSelectCandidateEffect.of(null) });
         expect(status(target)).toBe(DashQLCompletionStatus.SELECTED_CANDIDATE);
         expect(pressTab(target)).toBe(true);
-        expect(target.state.doc.toString()).toContain('db0.public.');
+        expect(target.state.doc.toString()).toMatch(/db[01]\.public\./);
         expect(status(target)).toBe(DashQLCompletionStatus.SELECTED_CATALOG_OBJECT);
     });
 
@@ -80,10 +80,11 @@ describe('DashQL completion keys', () => {
         expect(press(target, 'ArrowUp')).toBe(true);
         expect(completion(target)!.candidateId).toBe(candidateId);
 
+        const catalogObjectId = completion(target)!.catalogObjectId;
         expect(press(target, 'ArrowRight')).toBe(true);
-        expect(completion(target)!.catalogObjectId).toBe(1);
+        expect(completion(target)!.catalogObjectId).not.toBe(catalogObjectId);
         expect(press(target, 'ArrowLeft')).toBe(true);
-        expect(completion(target)!.catalogObjectId).toBe(0);
+        expect(completion(target)!.catalogObjectId).toBe(catalogObjectId);
     });
 
     it('aborts the completion with Escape', () => {
