@@ -25,11 +25,11 @@ describe('useWorkbenchHidden', () => {
     };
 
     /// Render the hook for the workbook s0, the route says which workbook was imported
-    async function render(importedWorkbookId: string | null, opensInView: boolean) {
+    async function render(importedWorkbookId: string | null) {
         function Probe() {
             current.config = useAppConfig();
             current.route = useRouteContext();
-            [current.hidden, current.setHidden] = useWorkbenchHidden('s0', opensInView);
+            [current.hidden, current.setHidden] = useWorkbenchHidden('s0');
             return null;
         }
         const state: RouteContext = { setupDone: true, confirmedFinishedSetup: true, workbookId: 's0', openingWorkbook: false, importedWorkbookId };
@@ -50,26 +50,23 @@ describe('useWorkbenchHidden', () => {
     }
 
     it('shows the workbench of a workbook that was not imported', async () => {
-        await render(null, true);
+        await render(null);
         expect(current.hidden).toBe(false);
     });
 
-    it('hides the workbench of an imported workbook that opens in a view', async () => {
-        await render('s0', true);
+    it('hides the workbench of an imported workbook', async () => {
+        await render('s0');
         expect(current.hidden).toBe(true);
         expect(current.config?.settings?.workbenchHidden ?? false).toBe(false);
     });
 
-    it.each<[string, string, boolean]>([
-        ['opens in the feed', 's0', false],
-        ['is another workbook', 's1', true],
-    ])('shows the workbench when the imported workbook %s', async (_name, importedWorkbookId, opensInView) => {
-        await render(importedWorkbookId, opensInView);
+    it('shows the workbench when another workbook was imported', async () => {
+        await render('s1');
         expect(current.hidden).toBe(false);
     });
 
     it('settles the import once the workbench is shown, without saving the setting', async () => {
-        await render('s0', true);
+        await render('s0');
         act(() => current.setHidden!(false));
         await vi.waitFor(() => expect(current.route?.importedWorkbookId).toBeNull());
         expect(current.hidden).toBe(false);
@@ -77,7 +74,7 @@ describe('useWorkbenchHidden', () => {
     });
 
     it('saves the setting of a workbook that was not imported', async () => {
-        await render(null, true);
+        await render(null);
         act(() => current.setHidden!(true));
         await vi.waitFor(() => expect(current.hidden).toBe(true));
         expect(current.config?.settings?.workbenchHidden).toBe(true);

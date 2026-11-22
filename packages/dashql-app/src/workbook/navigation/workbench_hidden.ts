@@ -5,16 +5,16 @@ import { SETTLE_IMPORTED_WORKBOOK, useRouteContext, useRouterNavigate } from '..
 
 /// Is the workbench of the workbook page hidden? Saved with the settings of the app, like the width of the nav rail.
 ///
-/// A workbook that was just imported from outside the app (a dropped file, a shared link) and opens in its dashboard or
-/// dataflow shows it without the workbench, whatever the setting says. That comes from where the workbook arrived from,
+/// A workbook that was just imported from outside the app (a dropped file, a shared link) shows its default view without
+/// the workbench, whatever the setting says. That comes from where the workbook arrived from,
 /// not from the workbook, and it is not saved: showing the workbench settles the import, and another workbook ends it.
-export function useWorkbenchHidden(workbookId: string, opensInView: boolean): [boolean, (hidden: boolean) => void] {
+export function useWorkbenchHidden(workbookId: string): [boolean, (hidden: boolean) => void] {
     const config = useAppConfig();
     const reconfigure = useAppReconfigure();
     const route = useRouteContext();
     const navigate = useRouterNavigate();
     const saved = config?.settings?.workbenchHidden ?? false;
-    const imported = opensInView && route.importedWorkbookId != null && route.importedWorkbookId === workbookId;
+    const imported = route.importedWorkbookId != null && route.importedWorkbookId === workbookId;
     const setHidden = React.useCallback((next: boolean) => {
         if (imported) navigate({ type: SETTLE_IMPORTED_WORKBOOK, value: null });
         reconfigure(value => value == null || (value.settings?.workbenchHidden ?? false) === next ? value : {

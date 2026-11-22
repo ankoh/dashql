@@ -529,7 +529,7 @@ async function testAppCatalogFollowsStatements(page, navigate) {
     await table.first().waitFor({ state: 'detached', timeout: 30_000 });
 }
 
-/// The link of a workbook opens a second workbook with its script
+/// The link of a workbook opens a second workbook with its script, without the workbench until it is shown
 async function testAppSharedWorkbook(page, navigate) {
     await openWorkbookWithQuery(page, navigate);
     await page.getByTestId('workbook-actions').click();
@@ -538,8 +538,11 @@ async function testAppSharedWorkbook(page, navigate) {
     await page.waitForFunction(element => element.value.length > 0, await field.elementHandle());
     const link = new URL(await field.inputValue());
     await navigate(`/${link.search}`);
-    await page.getByTestId('workbook-row-menu').nth(1).waitFor();
     await scriptEditor(page, 'select 42 as answer').waitFor();
+    const toggle = page.getByTestId('workbench-toggle');
+    await page.locator('[data-testid="workbench-toggle"][aria-expanded="false"]').waitFor();
+    await toggle.click();
+    await page.getByTestId('workbook-row-menu').nth(1).waitFor();
 }
 
 /// The script of a feed row in the scroll test, the chart makes its card much taller once it has a result.

@@ -178,9 +178,8 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
     }, []);
     const closeOverview = React.useCallback(() => setOverview(null), []);
     // The toggle of the bar hides the workbench. It stays mounted while hidden and keeps its folders, sections and
-    // scroll positions. A workbook just imported, e.g. from a dropped file, hides it in its dashboard or dataflow.
-    const opensInView = viewModeOfDefaultView(props.workbookScripts.defaultView) !== WorkbookViewMode.Workbook;
-    const [sidebarHidden, setSidebarHidden] = dependencies.useWorkbenchHidden(props.workbookScripts.workbookId, opensInView);
+    // scroll positions. A workbook just imported, e.g. from a dropped file, hides it.
+    const [sidebarHidden, setSidebarHidden] = dependencies.useWorkbenchHidden(props.workbookScripts.workbookId);
     const navigationDrawerTriggerRef = React.useRef<HTMLButtonElement>(null);
     // The menu of the workbook actions; Share as URL opens at the menu button, Export .dashql at the button that
     // opened it
