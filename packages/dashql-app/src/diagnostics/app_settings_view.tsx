@@ -131,8 +131,7 @@ export function AppSettings(props: { onClose: () => void; }) {
                 minLogLevel: level,
             }
         }));
-        logger.buffer.setMinLogLevel(level);
-    }, [reconfigure, logger]);
+    }, [reconfigure]);
 
     const clearStorage = React.useCallback(async () => {
         if (!storageReader.backend.clearAllStorage) {
@@ -190,11 +189,6 @@ export function AppSettings(props: { onClose: () => void; }) {
 
     const [colorScheme, setColorScheme] = useColorSchemeSetting();
     const colorSchemes: [ColorScheme | null, string][] = [[null, 'System'], ['light', 'Light'], ['dark', 'Dark']];
-
-    // Apply log level from config on mount
-    React.useEffect(() => {
-        logger.buffer.setMinLogLevel(minLogLevel);
-    }, [minLogLevel, logger]);
 
     return (
         <div className={styles.settings_root}>

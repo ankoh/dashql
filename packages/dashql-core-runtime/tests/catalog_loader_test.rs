@@ -20,7 +20,7 @@ use dashql_core_runtime::catalog_loader::information_schema::{
 use dashql_core_runtime::catalog_loader::pg_attribute::{
     catalog_tables_from_pg_attribute, pg_attribute_query_sql, PgAttributeScope,
 };
-use dashql_core_runtime::catalog_loader::pg_proc::{catalog_sql_from_pg_proc, PG_PROC_QUERY};
+use dashql_core_runtime::catalog_loader::pg_proc::{catalog_sql_from_pg_proc, pg_proc_query};
 use dashql_core_runtime::catalog_loader::prefetched_hyper_functions::{
     qualify_prefetched_hyper_functions, PREFETCHED_HYPER_FUNCTIONS_SQL,
 };
@@ -773,14 +773,15 @@ fn pg_attribute_groups_the_rows_by_table_and_keeps_the_ordinal_positions() {
 
 #[test]
 fn pg_proc_queries_structured_parameters() {
-    assert!(PG_PROC_QUERY.contains("p.proallargtypes IS NOT NULL"));
-    assert!(PG_PROC_QUERY.contains("unnest(p.proallargtypes) WITH ORDINALITY"));
-    assert!(PG_PROC_QUERY.contains("unnest(p.proargtypes) WITH ORDINALITY"));
-    assert!(PG_PROC_QUERY.contains("p.proargnames AS argument_names"));
-    assert!(PG_PROC_QUERY.contains("p.proargmodes AS argument_modes"));
-    assert!(PG_PROC_QUERY.contains("COALESCE(pg_catalog.format_type(p.prorettype, NULL), 'any')"));
-    assert!(PG_PROC_QUERY.contains("p.proretset AS returns_set"));
-    assert!(!PG_PROC_QUERY.contains("pg_get_function_arguments"));
+    let pg_proc = pg_proc_query(None).sql;
+    assert!(pg_proc.contains("p.proallargtypes IS NOT NULL"));
+    assert!(pg_proc.contains("unnest(p.proallargtypes) WITH ORDINALITY"));
+    assert!(pg_proc.contains("unnest(p.proargtypes) WITH ORDINALITY"));
+    assert!(pg_proc.contains("p.proargnames AS argument_names"));
+    assert!(pg_proc.contains("p.proargmodes AS argument_modes"));
+    assert!(pg_proc.contains("COALESCE(pg_catalog.format_type(p.prorettype, NULL), 'any')"));
+    assert!(pg_proc.contains("p.proretset AS returns_set"));
+    assert!(!pg_proc.contains("pg_get_function_arguments"));
 }
 
 #[test]

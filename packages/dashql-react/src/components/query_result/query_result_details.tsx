@@ -9,7 +9,6 @@ import { classNames } from '../../dom/classnames.js';
 import { formatResultDetail } from './query_result_header.js';
 import { TableSearchToolbar, useResultRowCounts } from './query_result_toolbar.js';
 import type { ComputationModel } from '../../models/computation_model.js';
-import type { QueryModel } from '../../models/query_model.js';
 
 /// The height of the header of the details
 const HEADER_HEIGHT = 32;
@@ -78,31 +77,5 @@ export function TableDetails(props: TableDetailsProps): React.ReactElement {
                 })}
             </div>
         </div>
-    );
-}
-
-export interface QueryResultDetailsProps {
-    /// The query of the result: its rows, its size, its search and its cross filters
-    model: QueryModel;
-    /// The controls after the search and the button that clears the cross filters: the download and the actions of the host
-    actions?: React.ReactNode;
-    fitHeight?: boolean;
-    maxHeight?: number;
-    /// The table in the layout that the details leave it
-    table: (layout: QueryResultDetailsLayout) => React.ReactNode;
-}
-
-/// The full result of a query: the details of its table with the size of its result
-export function QueryResultDetails(props: QueryResultDetailsProps): React.ReactElement {
-    return (
-        <TableDetails
-            title="Query Results"
-            computation={props.model.computation}
-            resultTable={props.model.result}
-            actions={props.actions}
-            fitHeight={props.fitHeight}
-            maxHeight={props.maxHeight}
-            table={props.table}
-        />
     );
 }

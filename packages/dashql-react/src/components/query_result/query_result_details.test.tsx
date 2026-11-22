@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { QueryExecutionStatus, type QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 import type { Logger } from '@akohn/dashql/platform/logger/logger';
 import { tableFromArrays } from '@akohn/dashql/platform/testing/arrow_fixtures';
-import { QueryResultDetails } from './query_result_details.js';
+import { TableDetails } from './query_result_details.js';
 import { QueryResultDownloadButton } from './query_result_download_button.js';
 import { LoggerContext } from '../../logger.js';
 import { HostProvider, type DownloadFile } from '../../host.js';
@@ -43,7 +43,7 @@ async function downloadArrow(button: HTMLButtonElement) {
     await act(async () => downloadFormatItem('arrow')!.click());
 }
 
-describe('QueryResultDetails', () => {
+describe('TableDetails', () => {
     let container: HTMLDivElement;
     let root: Root;
 
@@ -51,8 +51,10 @@ describe('QueryResultDetails', () => {
     const render = (current: QueryModel, actions?: React.ReactNode) => act(() => root.render(
         <LoggerContext.Provider value={{ error: logError } as unknown as Logger}>
             <HostProvider value={{ setupCore: null, downloadFile: download }}>
-                <QueryResultDetails
-                    model={current}
+                <TableDetails
+                    title="Query Results"
+                    computation={current.computation}
+                    resultTable={current.result}
                     actions={<><QueryResultDownloadButton model={current} exportParquet={null} />{actions}</>}
                     table={() => <div data-testid="query-result-view" />}
                 />

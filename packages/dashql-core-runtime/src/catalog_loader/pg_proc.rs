@@ -7,8 +7,15 @@ use super::sql::{functions_sql, quote_identifier, FunctionMetadata};
 use super::{CatalogLoadError, CatalogQuery};
 use crate::query::QueryType;
 
-/// The query of the functions of `pg_proc`. Their parameters come as structured columns: types, names and modes.
-pub const PG_PROC_QUERY: &str = "
+/// The query of the functions of `pg_proc`, of the catalog of an attached database if a session attaches several: Hyper
+/// resolves no unqualified name then. Their parameters come as structured columns: types, names and modes.
+pub fn pg_proc_query(database_name: Option<&str>) -> CatalogQuery {
+    let pg_catalog = match database_name {
+        None => String::new(),
+        Some(database) => format!("{}.{}.", quote_identifier(database), quote_identifier("pg_catalog")),
+    };
+    let sql = format!(
+        "
         SELECT
             n.nspname AS function_schema,
             p.proname AS function_name,
@@ -27,24 +34,12 @@ pub const PG_PROC_QUERY: &str = "
             COALESCE(pg_catalog.format_type(p.prorettype, NULL), 'any') AS return_type,
             p.proretset AS returns_set,
             p.prokind AS function_kind
-        FROM pg_proc p
-        JOIN pg_namespace n ON n.oid = p.pronamespace
+        FROM {pg_catalog}pg_proc p
+        JOIN {pg_catalog}pg_namespace n ON n.oid = p.pronamespace
         WHERE p.prokind IN ('f', 'a', 'w', 'p')
         ORDER BY n.nspname, p.proname
-    ";
-
-/// The query of the functions, of the catalog of an attached database if a session attaches several: Hyper resolves no
-/// unqualified name then
-pub fn pg_proc_query(database_name: Option<&str>) -> CatalogQuery {
-    let sql = match database_name {
-        None => PG_PROC_QUERY.to_string(),
-        Some(database) => {
-            let pg_catalog = format!("{}.{}", quote_identifier(database), quote_identifier("pg_catalog"));
-            PG_PROC_QUERY
-                .replace("FROM pg_proc p", &format!("FROM {pg_catalog}.pg_proc p"))
-                .replace("JOIN pg_namespace n", &format!("JOIN {pg_catalog}.pg_namespace n"))
-        }
-    };
+    "
+    );
     CatalogQuery {
         sql,
         query_type: QueryType::CatalogQueryPgProc,
