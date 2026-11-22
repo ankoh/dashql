@@ -1,0 +1,20 @@
+/* A section of a view on the stage, its label is written on the stage above it like on a board. The label has the
+   shape of the group labels of the sidebar, in the subtle color of a detail that does not ask for attention. */
+.section {
+    display: flex;
+    flex-direction: column;
+    /* FEED_LABEL_GAP of the feed, whose scripts stand below their label like the content of a section */
+    gap: 12px;
+    min-width: 0;
+}
+
+.label {
+    margin: 0;
+    color: var(--color_fg_subtle);
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 12px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    user-select: none;
+}

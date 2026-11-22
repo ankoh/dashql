@@ -110,10 +110,16 @@ Escape restores the value, a changed unit or boolean writes it at once. The core
 what the draft is, an input whose type is unknown reads a number, `true`, `false` or a string. A draft that the type
 doesn't read, e.g. `ten` for an integer or `1.5` hours, is marked and not written.
 
-- **Feed and dashboard.** `WorkbookInputStrip` puts the cards on an opaque white bar at the top of the view. In the feed
-  the bar is a row above the scrolling scripts and holds the chip of the attachments, their cards open in a drawer
-  within it. The strip of the dashboard sticks to the top of the page. The inputs belong to the scripts, not to the
-  prompt, so they stay apart from it.
+- **Feed and dashboard.** `WorkbookInputStrip` puts the cards in the section "Parameters" at the top of the view. The
+  views are boards: every section stands on the stage without a bar, its label written above it (`StageSection`). In
+  the feed the parameters and the attachments are the head of the document: they stand above the first script and
+  scroll away with the scripts (a child of the list, the first row leaves their height free, `topInset` of
+  `FeedRowHeightCache`). The head ends with the label "Scripts", the first script stands below it like the content of
+  a section (`feedTopSpace`). A section shows only with content, "Parameters" with at least one parameter. On the
+  landing view of an empty workbook they stand above the greeting. The dashboard has the sections "Parameters",
+  "Scripts" (the scripts without a visualization) and "Visualizations", they scroll alike. The inputs belong to the
+  scripts, not to the prompt, so they stay apart from it. The docked prompt floats over the bottom of the feed with a
+  shadow and stands out of the scripts by the same width left and right, the cards of the scripts lie flat.
 - **Draft inputs.** The prompt shows the inputs of its SQL draft on its header bar, below the bar of Wobble, as soon
   as the draft holds a parameter (`collectDraftInputs`), on the landing view and on the docked prompt. A value is written
   into the draft as `@param` tag like in a script and nothing runs, the tag goes along when the draft is sent. A

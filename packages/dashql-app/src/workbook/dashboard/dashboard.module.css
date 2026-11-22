@@ -3,23 +3,15 @@
     height: 100%;
     min-width: 0;
     display: grid;
-    /* The bar of the inputs above the scrolling cards */
-    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
     grid-template-columns: minmax(0, 1fr);
     /* The stage without its dot grid, which would not line up with the cells of the cards */
     background: var(--stage_vignette), var(--stage_light), var(--stage_color);
 }
 
-/* The rows are explicit, the bar of the inputs is absent without inputs */
-.inputs {
-    grid-row: 1;
-    /* The chips start at the left edge of the cards, the cards stop growing at 1600px */
-    --workbook_input_strip_inline_padding: max(var(--page_gutter), calc((100% - 1600px) / 2));
-}
-
 /* Holds the scroll shadows at the edges of the cards */
 .scroll_container {
-    grid-row: 2;
+    grid-row: 1;
     position: relative;
     min-height: 0;
     overflow: hidden;
@@ -29,21 +21,22 @@
     box-sizing: border-box;
     height: 100%;
     overflow: auto;
-    padding: 16px var(--page_gutter);
+    /* Like the space of the feed above its head */
+    padding: 24px var(--page_gutter) 16px var(--page_gutter);
 }
 
-/* The sections of the board stacked, the scripts without a renderer above the visualizations */
+/* The sections of the board stacked under their labels: the inputs, the scripts without a renderer, the
+   visualizations */
 .sections {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 24px;
     width: 100%;
     max-width: 1600px;
     margin: 0 auto;
 }
 
-.grid,
-.grid_scripts {
+.grid {
     display: grid;
     grid-template-columns: repeat(12, minmax(0, 1fr));
     /* A row is as high as a collapsed card */
@@ -51,13 +44,6 @@
     gap: 12px;
     width: 100%;
     align-content: start;
-}
-
-/* The scripts are set apart from the visualizations by a line below them */
-.grid_scripts {
-    padding-bottom: 16px;
-    border-bottom: 1px solid var(--color_border);
-    box-sizing: content-box;
 }
 
 .card {
@@ -276,10 +262,6 @@
 @media only screen and (max-width: 799px) {
     .scroll {
         padding: 12px 8px;
-    }
-
-    .inputs {
-        --workbook_input_strip_inline_padding: 8px;
     }
 
     .grid {

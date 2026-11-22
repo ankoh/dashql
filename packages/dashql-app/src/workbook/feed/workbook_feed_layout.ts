@@ -10,8 +10,15 @@ interface FeedLayoutEntry {
     estimatedHeight: number;
 }
 
-/// The space above the first script
+/// The space above the first script without a head of the feed
 export const FEED_TOP_PADDING = 32;
+/// The space between the label of a section and its content, the gap of `StageSection`
+export const FEED_LABEL_GAP = 10;
+/// The space above the first script. The head of the feed ends with the label of the scripts, the first script stands
+/// below it like the content of a section below its label.
+export function feedTopSpace(topInset: number): number {
+    return topInset > 0 ? topInset + FEED_LABEL_GAP : FEED_TOP_PADDING;
+}
 /// The space between two scripts, the add buttons of the scripts sit in it
 export const FEED_GAP = 32;
 /// The space below the last script, it holds the add button below the last script
@@ -20,7 +27,8 @@ export const FEED_END_PADDING = 32;
 const MIN_ENTRY_HEIGHT = 40;
 
 /// The heights of the rows of the feed, one row per script.
-/// A row is the card of the script and the space that follows it, the first row also holds the space above the feed.
+/// A row is the card of the script and the space that follows it, the first row also holds the space above the feed
+/// and the inputs of the workbook in it.
 /// The rows measure the cards only, the spaces are added here.
 export class FeedRowHeightCache {
     private readonly measuredHeights = new Map<number, number>();
@@ -32,6 +40,8 @@ export class FeedRowHeightCache {
     private estimateCorrection = 0;
     /// The height of the prompt that floats over the bottom of the feed, the last script scrolls clear of it
     private bottomInset = 0;
+    /// The height of the inputs of the workbook above the first script, they scroll with the scripts
+    private topInset = 0;
 
     constructor(
         private entries: FeedLayoutEntry[],
@@ -54,6 +64,13 @@ export class FeedRowHeightCache {
         return true;
     }
 
+    /// Set the height of the inputs above the first script, returns whether it changed
+    setTopInset(inset: number): boolean {
+        if (inset === this.topInset) return false;
+        this.topInset = inset;
+        return true;
+    }
+
     private updateEstimateCorrection() {
         let excess = 0;
         let measured = 0;
@@ -73,7 +90,7 @@ export class FeedRowHeightCache {
 
     /// The space of a row above its card
     private getLeadingSpace(index: number) {
-        return index === 0 ? FEED_TOP_PADDING : 0;
+        return index === 0 ? feedTopSpace(this.topInset) : 0;
     }
 
     /// The space of a row below its card
@@ -83,7 +100,7 @@ export class FeedRowHeightCache {
 
     getAverageRowHeight() {
         if (this.entries.length === 0) return MIN_ENTRY_HEIGHT;
-        let total = FEED_TOP_PADDING + FEED_END_PADDING + this.bottomInset + (this.entries.length - 1) * FEED_GAP;
+        let total = feedTopSpace(this.topInset) + FEED_END_PADDING + this.bottomInset + (this.entries.length - 1) * FEED_GAP;
         for (const entry of this.entries) total += this.getEntryHeight(entry);
         return total / this.entries.length;
     }
@@ -151,8 +168,9 @@ export function revealScrollOffset(spanTop: number, spanBottom: number, scrollTo
     return Math.abs(target - scrollTop) < 1 ? null : target;
 }
 
-/// The layout of the feed. `bottomInset` is the height of the prompt that floats over the bottom of the feed.
-export function useWorkbookFeedLayout(entries: FeedLayoutEntry[], bottomInset = 0) {
+/// The layout of the feed. `bottomInset` is the height of the prompt that floats over the bottom of the feed, `topInset`
+/// the height of the inputs above the first script.
+export function useWorkbookFeedLayout(entries: FeedLayoutEntry[], bottomInset = 0, topInset = 0) {
     const listContainerRef = React.useRef<HTMLDivElement>(null);
     const listRef = useListRef(null);
     const [heightsVersion, setHeightsVersion] = React.useState(0);
@@ -166,6 +184,7 @@ export function useWorkbookFeedLayout(entries: FeedLayoutEntry[], bottomInset = 
     }
     rowHeightsRef.current.updateEntries(entries);
     rowHeightsRef.current.setBottomInset(bottomInset);
+    rowHeightsRef.current.setTopInset(topInset);
     const rowHeightCache = rowHeightsRef.current;
     const rowHeights = React.useMemo(() => ({
         getAverageRowHeight: () => rowHeightCache.getAverageRowHeight(),
@@ -173,7 +192,7 @@ export function useWorkbookFeedLayout(entries: FeedLayoutEntry[], bottomInset = 
         setRowHeight: rowHeightCache.setRowHeight,
         observeRowElements: () => () => {},
         // eslint-disable-next-line react-hooks/exhaustive-deps -- the cache is mutable, a new object after a measure or a new inset makes the list read its heights again
-    }), [rowHeightCache, heightsVersion, bottomInset]);
+    }), [rowHeightCache, heightsVersion, bottomInset, topInset]);
     // A row above the viewport changed its height: the rows in view stay in place.
     // The browser can't anchor the scroll position itself, the list positions its rows with transforms.
     React.useLayoutEffect(() => {
@@ -182,11 +201,25 @@ export function useWorkbookFeedLayout(entries: FeedLayoutEntry[], bottomInset = 
         const element = listRef.current?.element;
         if (scrollShift !== 0 && element != null) element.scrollTop += scrollShift;
     }, [heightsVersion, listRef]);
+    // The inputs changed their height: the scripts in view stay in place, unless the inputs are in view themselves
+    const shownTopInset = React.useRef(topInset);
+    React.useLayoutEffect(() => {
+        const shift = topInset - shownTopInset.current;
+        const element = listRef.current?.element;
+        if (shift !== 0 && element != null && element.scrollTop > shownTopInset.current) element.scrollTop += shift;
+        shownTopInset.current = topInset;
+    }, [topInset, listRef]);
     const getEntrySpan = React.useCallback((index: number) => rowHeightCache.getEntrySpan(index), [rowHeightCache]);
     const listContainerSize = useObservedSize(listContainerRef);
     const listWidth = listContainerSize?.width ?? 0;
     const listHeight = listContainerSize?.height ?? 0;
     const listScrollbarInset = useScrollbarWidth();
+    // The space that the scrollbar takes from the list, none for an overlay scrollbar
+    const [listScrollbarGutter, setListScrollbarGutter] = React.useState(0);
+    React.useLayoutEffect(() => {
+        const element = listRef.current?.element;
+        if (element != null) setListScrollbarGutter(element.offsetWidth - element.clientWidth);
+    }, [listWidth, listRef]);
 
     return {
         listContainerRef,
@@ -197,5 +230,6 @@ export function useWorkbookFeedLayout(entries: FeedLayoutEntry[], bottomInset = 
         listWidth,
         listHeight,
         listScrollbarInset,
+        listScrollbarGutter,
     };
 }

@@ -9,11 +9,10 @@
     background: var(--stage_background);
     overflow: hidden;
     display: grid;
-    /* The bar of the inputs, then the feed. The docked composer floats over the bottom edge of the feed. */
+    /* The bar of the inputs on the landing view, then the feed. The inputs of a feed with scripts scroll with the
+       scripts. The docked composer floats over the bottom edge of the feed. */
     grid-template-rows: auto minmax(0, 1fr);
     grid-template-columns: minmax(0, 1fr);
-    /* The scripts, the inputs and the composer keep the gutter of the page left and right */
-    --workbook_input_strip_inline_padding: var(--page_gutter);
 }
 
 /* The bar of the inputs, the landing header, the hero composer, then a spacer that keeps the prompt slightly above
@@ -22,10 +21,51 @@
     grid-template-rows: auto minmax(0, 1fr) auto minmax(0, 1.3fr);
 }
 
-/* The rows are explicit, the strip of the inputs is absent without inputs and attachments.
-   The inputs sit on the stage like the scripts, borders and the scroll shadows of the feed mark its edges. */
+/* The head of the feed, the sections of the parameters and the attachments under their labels. It keeps the gutter of
+   the scripts, absent without parameters and attachments. */
+.feed_head {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    padding: 0 calc(var(--page_gutter) + var(--feed-scrollbar-inset, 0px)) 0 var(--page_gutter);
+}
+
+.feed_head:empty {
+    display: none;
+}
+
+/* On the landing view the head stands above the greeting */
 .feed_top_strip {
     grid-row: 1;
+    padding-top: 16px;
+}
+
+/* The head above the first script, in the scrolling list: it scrolls away with the scripts like the head of a
+   document. The first row of the list leaves its height free. Above the rows, whose space above the first card
+   would take its clicks. The size observer of the feed measures the content box of the outer element, the space
+   above the head is the padding of the inner one. */
+.feed_inputs {
+    position: absolute;
+    z-index: 4;
+    top: 0;
+    left: 0;
+    right: 0;
+    /* The add button above the first script reaches into the head, right of its label */
+    pointer-events: none;
+}
+
+.feed_inputs > * > * {
+    pointer-events: auto;
+}
+
+/* Like the padding of the dashboard above its first section */
+.feed_inputs_body {
+    padding-top: 24px;
+}
+
+/* The label of the scripts is no wider than its text, the add button above the first script stays clickable */
+.feed_scripts_label {
+    align-self: flex-start;
 }
 
 /* The greeting stands on the prompt */
@@ -69,21 +109,26 @@
     text-wrap: balance;
 }
 
-/* The docked composer floats over the bottom of the feed. The feed reserves the same space below its last script
-   (--feed-bottom-inset) and fades out over the top of the section, so the fade covers nothing that can't scroll free. */
+/* The docked composer floats over the bottom of the feed, its shadow sets it apart from the cards of the scripts. The
+   feed reserves the same space below its last script (--feed-bottom-inset). */
 .feed_composer_section {
     /* An explicit column, the auto placement would put it next to the feed in the same row */
     grid-area: 2 / 1;
     align-self: end;
     z-index: 1;
-    padding-top: 32px;
-    /* Let clicks through the fade, only the composer itself is interactive */
+    /* Let clicks through the gutters, only the composer itself is interactive */
     pointer-events: none;
 }
 
-/* Lines the composer up with the scripts of the feed, which stop before the scrollbar */
+/* The composer stands out of the scripts of the feed by the same width left and right. The scripts stop before the
+   scrollbar of the list, which the composer section spans. */
 .feed_composer_body {
-    padding: 0 calc(var(--page_gutter) + var(--feed-scrollbar-inset, 0px)) 16px var(--page_gutter);
+    --feed_composer_overhang: 8px;
+    padding:
+        0
+        calc(var(--page_gutter) + var(--feed-scrollbar-inset, 0px) + var(--feed-scrollbar-gutter, 0px) - var(--feed_composer_overhang))
+        16px
+        calc(var(--page_gutter) - var(--feed_composer_overhang));
     pointer-events: auto;
 }
 
@@ -100,37 +145,7 @@
     padding: 0 16px;
 }
 
-/* The attachments are a chip of the strip, their cards open in a drawer within it */
-.feed_data_chip {
-    appearance: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    height: 32px;
-    padding: 0 10px;
-    border: 1px solid var(--color_border);
-    border-radius: var(--border_radius);
-    color: var(--color_fg);
-    background-color: var(--color_bg_card);
-    font-family: var(--font_family);
-    font-size: var(--font_size_caption);
-    font-weight: 600;
-    cursor: pointer;
-}
-
-.feed_data_chip:hover {
-    background-color: var(--color_bg_hover);
-}
-
-.feed_data_count {
-    padding: 0 6px;
-    border-radius: 999px;
-    background-color: var(--color_neutral_muted);
-    color: var(--color_fg_muted);
-    font-weight: 500;
-    line-height: 16px;
-}
-
+/* The attachments in their section, the cards scroll sideways */
 .feed_data_section {
     align-self: flex-start;
     max-width: 100%;
@@ -243,13 +258,11 @@
     position: relative;
     min-height: 0;
     overflow: hidden;
-    /* The scripts fade out over the top of the docked composer and stay hidden behind it, the stage shows through.
-       The scrollbar stays uncovered. Only the alpha of the mask counts, any opaque color does. */
-    --feed_fade_top: calc(100% - var(--feed-bottom-inset, 0px));
-    mask:
-        linear-gradient(to bottom, var(--color_fg) var(--feed_fade_top), transparent calc(var(--feed_fade_top) + 32px))
-            left top / calc(100% - var(--feed-scrollbar-inset, 0px)) 100% no-repeat,
-        linear-gradient(var(--color_fg), var(--color_fg)) right top / var(--feed-scrollbar-inset, 0px) 100% no-repeat;
+}
+
+/* The prompt floats over the bottom edge of the feed, the scripts pass under it without a shadow of the edge */
+.feed_list_container [data-scroll-shadow="bottom"] {
+    display: none;
 }
 
 .feed_list_container[hidden] {

@@ -26,6 +26,7 @@ import {
 } from './dashboard_layout.js';
 import { persistDashboardPlacement, setDashboardRenderer, type DashboardRenderer } from './dashboard_source.js';
 import { WorkbookInputStrip } from '../inputs/workbook_input_strip.js';
+import { StageSection } from '../stage_section.js';
 import { VerticalScrollShadows } from '@akohn/dashql-react/components/vertical_scroll_shadows';
 import * as styles from './dashboard.module.css';
 
@@ -294,61 +295,57 @@ export function Dashboard(props: Props): React.ReactElement {
         return a.row - b.row || a.column - b.column
             || (scriptOrder.get(left.scriptKey) ?? 0) - (scriptOrder.get(right.scriptKey) ?? 0);
     });
-    const renderSection = (section: DashboardSection, label: string) => {
+    const renderSection = (section: DashboardSection, label: string, groupLabel: string) => {
         const sectionScripts = cardScripts.filter(script => placementById.get(script.scriptKey)?.section === section);
         if (sectionScripts.length === 0) return null;
         return (
-            <div
-                className={section === 'scripts' ? styles.grid_scripts : styles.grid}
-                role="group"
-                aria-label={label}
-                style={{ minHeight: dashboardCardHeight(dashboardSectionRows(layout, section)) }}
-            >
-                {sectionScripts.map(script => {
-                    const placement = placementById.get(script.scriptKey)!;
-                    const preferred = preferredPlacement(script);
-                    const shifted = (preferred?.row != null && preferred.row !== placement.row)
-                        || (preferred?.column != null && preferred.column !== placement.column);
-                    return (
-                        <DashboardCard
-                            key={script.scriptKey}
-                            workbookId={props.workbookScripts.workbookId}
-                            script={script}
-                            placement={placement}
-                            columnStep={columnStep}
-                            rowStep={rowStep}
-                            onResize={handleResize}
-                            onResizeCancel={handleResizeCancel}
-                            shifted={shifted}
-                            onVisualize={handleVisualize}
-                            onOpenChart={handleOpenChart}
-                            onRemoveVisualization={handleRemoveVisualization}
-                            onOpenEditor={handleOpenEditor}
-                            onOpenTable={handleOpenTable}
-                            onAcceptDiff={handleAcceptDiff}
-                            onRejectDiff={handleRejectDiff}
-                            runnable={!workbookExecution.runActive && isOnline(script)}
-                            onRun={handleRun}
-                            onStop={handleStop}
-                            onRename={handleRename}
-                            onDelete={handleDelete}
-                            dependencies={dependencies.card}
-                        />
-                    );
-                })}
-            </div>
+            <StageSection label={label}>
+                <div
+                    className={styles.grid}
+                    role="group"
+                    aria-label={groupLabel}
+                    style={{ minHeight: dashboardCardHeight(dashboardSectionRows(layout, section)) }}
+                >
+                    {sectionScripts.map(script => {
+                        const placement = placementById.get(script.scriptKey)!;
+                        const preferred = preferredPlacement(script);
+                        const shifted = (preferred?.row != null && preferred.row !== placement.row)
+                            || (preferred?.column != null && preferred.column !== placement.column);
+                        return (
+                            <DashboardCard
+                                key={script.scriptKey}
+                                workbookId={props.workbookScripts.workbookId}
+                                script={script}
+                                placement={placement}
+                                columnStep={columnStep}
+                                rowStep={rowStep}
+                                onResize={handleResize}
+                                onResizeCancel={handleResizeCancel}
+                                shifted={shifted}
+                                onVisualize={handleVisualize}
+                                onOpenChart={handleOpenChart}
+                                onRemoveVisualization={handleRemoveVisualization}
+                                onOpenEditor={handleOpenEditor}
+                                onOpenTable={handleOpenTable}
+                                onAcceptDiff={handleAcceptDiff}
+                                onRejectDiff={handleRejectDiff}
+                                runnable={!workbookExecution.runActive && isOnline(script)}
+                                onRun={handleRun}
+                                onStop={handleStop}
+                                onRename={handleRename}
+                                onDelete={handleDelete}
+                                dependencies={dependencies.card}
+                            />
+                        );
+                    })}
+                </div>
+            </StageSection>
         );
     };
     return (
         <section className={styles.page} aria-label="Dashboard">
             <div className={styles.sr_only} role="status" aria-live="polite">{announcement}</div>
-            {/* The inputs of the workbook sit on a bar above the scrolling cards */}
-            <WorkbookInputStrip
-                className={styles.inputs}
-                workbookId={props.workbookScripts.workbookId}
-                modifyWorkbookScripts={modifyWorkbookScripts}
-            />
-            {/* The cards scroll under the bar of the inputs, the shadows mark the edges like in the feed */}
+            {/* The shadows mark the edges of the scrolling cards like in the feed */}
             <div className={styles.scroll_container}>
                 <div ref={scrollRef} className={styles.scroll}>
                     {scripts.length === 0 ? (
@@ -358,10 +355,15 @@ export function Dashboard(props: Props): React.ReactElement {
                         </div>
                     ) : (
                         <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-                            {/* The scripts without a renderer on top, the visualizations below. Both sections share the columns. */}
+                            {/* The inputs of the workbook head the page and scroll away with the cards, like in the feed. Then the
+                                scripts without a renderer, the visualizations below. Both sections of cards share the columns. */}
                             <div ref={gridRef} className={styles.sections}>
-                                {renderSection('scripts', 'Scripts without visualization')}
-                                {renderSection('visualizations', 'Visualizations')}
+                                <WorkbookInputStrip
+                                    workbookId={props.workbookScripts.workbookId}
+                                    modifyWorkbookScripts={modifyWorkbookScripts}
+                                />
+                                {renderSection('scripts', 'Scripts', 'Scripts without visualization')}
+                                {renderSection('visualizations', 'Visualizations', 'Visualizations')}
                             </div>
                         </DndContext>
                     )}

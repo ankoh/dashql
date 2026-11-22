@@ -38,6 +38,20 @@ describe('FeedRowHeightCache', () => {
         expect(heights.getEntrySpan(1)).toEqual([186, 388]);
     });
 
+    it('puts the first script below the head of the feed and its label', () => {
+        const heights = new FeedRowHeightCache([
+            { scriptId: 1, estimatedHeight: 122 },
+            { scriptId: 2, estimatedHeight: 202 },
+        ]);
+        expect(heights.setTopInset(54)).toBe(true);
+        expect(heights.setTopInset(54)).toBe(false);
+
+        expect([0, 1].map(index => heights.getRowHeight(index))).toEqual([54 + 10 + 122 + 32, 202 + 32]);
+        expect(heights.getAverageRowHeight()).toBe((54 + 10 + 122 + 32 + 202 + 32) / 2);
+        expect(heights.getEntrySpan(0)).toEqual([64, 186]);
+        expect(heights.getEntrySpan(1)).toEqual([218, 420]);
+    });
+
     it('retains measured script heights by identity while entries update', () => {
         const onChange = vi.fn();
         const heights = new FeedRowHeightCache([

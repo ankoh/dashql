@@ -24,7 +24,7 @@ import {
     type ScriptResultFold, type ScriptResultSlot, type ScriptResultTableSlot,
 } from './script_card.js';
 import { useWorkbookReadOnly } from '../workbook_read_only.js';
-import { FEED_TOP_PADDING } from './workbook_feed_layout.js';
+import { feedTopSpace } from './workbook_feed_layout.js';
 
 // A row of the feed: the card of a script with the buttons around it. The row connects the card: it resolves the model
 // of the script (`useScriptModel`) and renders the parts of the card that read the runtime, the editor and the result.
@@ -52,6 +52,8 @@ export interface ScriptFeedRowProps {
     fold: Omit<ScriptResultFold, 'expanded'>;
     /// The commands of the feed
     feed: ScriptFeedCommands;
+    /// The height of the inputs above the first script, the first row leaves it free
+    topInset: number;
     onRowHeightChange: (index: number, height: number) => void;
     dependencies?: ScriptFeedRowDependencies;
 }
@@ -170,7 +172,7 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
     return (
         <div
             className={styles.feed_row}
-            style={{ ...props.style, paddingTop: props.index === 0 ? FEED_TOP_PADDING : undefined }}
+            style={{ ...props.style, paddingTop: props.index === 0 ? feedTopSpace(props.topInset) : undefined }}
             data-testid="script-feed-row"
         >
             <div

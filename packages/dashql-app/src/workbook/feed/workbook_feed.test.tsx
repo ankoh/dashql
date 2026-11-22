@@ -19,6 +19,7 @@ import { LoggerProvider } from '../../host/logger_provider.js';
 import { HostProvider, type DownloadFile } from '@akohn/dashql-react/host';
 import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
 import { WorkbookFeed, type WorkbookFeedDependencies } from './workbook_feed.js';
+import { feedTopSpace } from './workbook_feed_layout.js';
 import { WorkbookComposerVariant, type WorkbookComposerProps } from './workbook_composer.js';
 import type { AgentSession, AgentSessionArgs, AgentTurn } from '../../agent/agent_session.js';
 import { ComposerMode } from '../../agent/agent_connect.js';
@@ -67,6 +68,7 @@ function baseProps() {
             create: vi.fn(), focus: vi.fn(), delete: vi.fn(), rename: vi.fn(), pickConnection: vi.fn(), moveUp: vi.fn(),
             moveDown: vi.fn(), target: vi.fn(), editorView: vi.fn(),
         },
+        topInset: 0,
         onRowHeightChange: vi.fn(), dependencies,
     };
 }
@@ -634,12 +636,14 @@ describe('Workbook feed composer', () => {
             act(() => feedState.rowProps!.onRowHeightChange(0, 400));
             act(() => feedState.rowProps!.onRowHeightChange(1, 400));
 
-            // An edit shows the text of a script taller than the viewport, below the first script and the gap
+            // An edit shows the text of a script taller than the viewport, below the head of the feed, the first script and
+            // the gap
+            const headTop = () => feedTopSpace(feedState.rowProps!.topInset);
             await act(async () => feedState.sessionArgs!.followScript(2, 'script'));
-            await vi.waitFor(() => expect(lastTop()).toBe(32 + 400 + 32 - 16));
+            await vi.waitFor(() => expect(lastTop()).toBe(headTop() + 400 + 32 - 16));
             // A run shows its results
             await act(async () => feedState.sessionArgs!.followScript(2, 'result'));
-            await vi.waitFor(() => expect(lastTop()).toBe(32 + 400 + 32 + 250 - 16));
+            await vi.waitFor(() => expect(lastTop()).toBe(headTop() + 400 + 32 + 250 - 16));
         } finally {
             scrollTo.mockRestore();
             clientHeight.mockRestore();

@@ -52,6 +52,7 @@ import { ATTACHMENT_EXTENSION } from '@akohn/dashql/platform/storage/storage_bac
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { WorkbookDataCard } from './workbook_data_card.js';
 import { WorkbookInputStrip } from '../inputs/workbook_input_strip.js';
+import { StageLabel, StageSection } from '../stage_section.js';
 import { VerticalScrollShadows } from '@akohn/dashql-react/components/vertical_scroll_shadows';
 import { useObservedSize } from '@akohn/dashql-react/components/size_observer';
 import {
@@ -63,7 +64,7 @@ import {
 } from '../scripts/script_connection_picker.js';
 import { useConnectionLabeler } from '../connections/connection_labels.js';
 import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
-import { ChevronDownIcon, ChevronUpIcon, PlusIcon } from '@akohn/dashql-react/components/symbol_icon';
+import { PlusIcon } from '@akohn/dashql-react/components/symbol_icon';
 import { WorkbookConnectionAttentionContext } from '../connections/workbook_connection_attention.js';
 import { WorkbookComposer, WorkbookComposerVariant } from './workbook_composer.js';
 import { agentActivity, type AgentFollowTarget } from '../../agent/agent_session.js';
@@ -247,7 +248,6 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     const storageReader = dependencies.useStorageReader();
     const attachmentCommands = dependencies.useAttachmentCommands();
     const workbookId = props.workbookScripts.workbookId;
-    const [attachmentsExpanded, setAttachmentsExpanded] = React.useState(false);
     const [attachmentError, setAttachmentError] = React.useState<string | null>(null);
     const attachmentInputRef = React.useRef<HTMLInputElement>(null);
     // The view of the workbook lists its attachments, a changed attachment is listed again
@@ -531,7 +531,20 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     const composerSectionRef = React.useRef<HTMLDivElement>(null);
     const composerSectionSize = useObservedSize(composerSectionRef);
     const bottomInset = entries.length === 0 ? 0 : Math.ceil(composerSectionSize?.height ?? 0);
-    const feedLayout = useWorkbookFeedLayout(entries, bottomInset);
+    // The head stands above the first script and scrolls with the scripts, the first row leaves its height free. The
+    // list mounts again for another workbook, with a new head: the observer follows the element of the callback ref.
+    const [inputsElement, inputsRef] = React.useState<HTMLDivElement | null>(null);
+    const [headHeight, setHeadHeight] = React.useState(0);
+    React.useLayoutEffect(() => {
+        if (inputsElement == null) return;
+        const measure = () => setHeadHeight(Math.ceil(inputsElement.getBoundingClientRect().height));
+        measure();
+        const observer = new ResizeObserver(measure);
+        observer.observe(inputsElement);
+        return () => observer.disconnect();
+    }, [inputsElement]);
+    const topInset = entries.length === 0 ? 0 : headHeight;
+    const feedLayout = useWorkbookFeedLayout(entries, bottomInset, topInset);
     const { listRef: feedListRef, getEntrySpan } = feedLayout;
 
     const handleEditorView = React.useCallback((scriptKey: number, view: EditorView) => {
@@ -724,8 +737,9 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         collapsedResults,
         fold,
         feed: feedCommands,
+        topInset,
         onRowHeightChange: feedLayout.rowHeights.setRowHeight,
-    }), [workbookId, entries, scriptReferences, rowsActive, scriptConnections, storageReader, selectedFileName, scriptDebugMode, formattingDebugMode, keywordCase, collapsedResults, fold, feedCommands, feedLayout.rowHeights.setRowHeight]);
+    }), [workbookId, entries, scriptReferences, rowsActive, scriptConnections, storageReader, selectedFileName, scriptDebugMode, formattingDebugMode, keywordCase, collapsedResults, fold, feedCommands, topInset, feedLayout.rowHeights.setRowHeight]);
 
     const getScrollElement = React.useCallback(() => feedLayout.listRef.current?.element ?? null, [feedLayout.listRef]);
     // The composer drafts on the connection of the next script, against its catalog and the table parameters of the
@@ -770,6 +784,44 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     }), [props.active, composerCaret, composerLastInput]);
     const dockGaze = React.useMemo(() => ({ target: composerCaret }), [composerCaret]);
 
+    // The head of the feed, the parameters and the attachments: above the greeting on the landing view, otherwise above
+    // the first script, where they scroll away with the scripts
+    const feedHead = (scriptsLabel: boolean) => (
+        <>
+            <WorkbookInputStrip workbookId={workbookId} modifyWorkbookScripts={modifyWorkbookScripts} />
+            {attachmentsVisible && (
+                <StageSection label="Attachments" testId="workbook-attachments">
+                    <div className={styles.feed_data_section}>
+                        <input ref={attachmentInputRef} className={styles.feed_data_input} type="file" multiple accept={ATTACHMENT_EXTENSION}
+                            onChange={handleAttachmentInput} aria-label="Add workbook attachments" disabled={!attachmentsEnabled} />
+                        <div className={styles.feed_data_drawer} onDragOver={event => event.preventDefault()} onDrop={handleAttachmentDrop}>
+                            {!readOnly && <IconButton variant={ButtonVariant.Invisible} size={ButtonSize.Small}
+                                aria-label="Add workbook attachments" disabled={!attachmentsEnabled}
+                                onClick={event => {
+                                    event.stopPropagation();
+                                    attachmentInputRef.current?.click();
+                                }}>
+                                <PlusIcon size={16} />
+                            </IconButton>}
+                            <div className={styles.feed_data_cards}>
+                                {attachments.map(attachment => (
+                                    <WorkbookDataCard key={`${workbookId}/${attachment.fileName}`} workbookId={workbookId}
+                                        attachment={attachment} conn={props.conn} storageReader={storageReader} onRemoved={refreshAttachments}
+                                        onMention={handleMentionAttachment}
+                                        onRename={name => handleRenameAttachment(attachment.fileName, name)}
+                                        collides={scriptNames.some(name => name.toLowerCase() === attachment.name.toLowerCase())} />
+                                ))}
+                                {attachments.length === 0 && <div className={styles.feed_data_empty}>Drop files here or add attachments.</div>}
+                            </div>
+                        </div>
+                        {attachmentError != null && <div className={styles.feed_data_error} role="alert">{attachmentError}</div>}
+                    </div>
+                </StageSection>
+            )}
+            {/* The scripts follow below the head, the first row of the list leaves the space below the label */}
+            {scriptsLabel && <StageLabel label="Scripts" className={styles.feed_scripts_label} />}
+        </>
+    );
     // The bar of Wobble on the prompt: the status of the workbook, the agent and the log. On the landing view the
     // greeting is Wobble, the bar leaves it out. A read-only workbook has no prompt, the bar stands alone.
     const statusBar = (variant: WorkbookStatusBarVariant) => (
@@ -789,55 +841,11 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
             data-landing={landing ? '' : undefined}
             style={{
                 '--feed-scrollbar-inset': `${feedLayout.listScrollbarInset}px`,
+                '--feed-scrollbar-gutter': `${feedLayout.listScrollbarGutter}px`,
                 '--feed-bottom-inset': `${bottomInset}px`,
             } as React.CSSProperties}
         >
-            {/* The inputs and the attachments sit on a bar above the feed */}
-            <WorkbookInputStrip
-                className={styles.feed_top_strip}
-                workbookId={workbookId}
-                modifyWorkbookScripts={modifyWorkbookScripts}
-                leading={attachmentsVisible ? (
-                    <button type="button" className={styles.feed_data_chip}
-                        aria-expanded={attachmentsExpanded}
-                        aria-controls="workbook-attachments"
-                        onClick={() => setAttachmentsExpanded(expanded => !expanded)}>
-                        Attached Files
-                        <span className={styles.feed_data_count}>{attachments.length}</span>
-                        {attachmentsExpanded ? <ChevronUpIcon size={14} /> : <ChevronDownIcon size={14} />}
-                    </button>
-                ) : undefined}
-                below={attachmentsVisible && (attachmentsExpanded || attachmentError != null) ? (
-                    <section className={styles.feed_data_section} aria-label="Workbook attachments">
-                        <input ref={attachmentInputRef} className={styles.feed_data_input} type="file" multiple accept={ATTACHMENT_EXTENSION}
-                            onChange={handleAttachmentInput} aria-label="Add workbook attachments" disabled={!attachmentsEnabled} />
-                        {attachmentsExpanded && (
-                            <div id="workbook-attachments" className={styles.feed_data_drawer}
-                                onDragOver={event => event.preventDefault()} onDrop={handleAttachmentDrop}>
-                                {!readOnly && <IconButton variant={ButtonVariant.Invisible} size={ButtonSize.Small}
-                                    aria-label="Add workbook attachments" disabled={!attachmentsEnabled}
-                                    onClick={event => {
-                                        event.stopPropagation();
-                                        attachmentInputRef.current?.click();
-                                    }}>
-                                    <PlusIcon size={16} />
-                                </IconButton>}
-                                <div className={styles.feed_data_cards}>
-                                    {attachments.map(attachment => (
-                                        <WorkbookDataCard key={`${workbookId}/${attachment.fileName}`} workbookId={workbookId}
-                                            attachment={attachment} conn={props.conn} storageReader={storageReader} onRemoved={refreshAttachments}
-                                            onMention={handleMentionAttachment}
-                                            onRename={name => handleRenameAttachment(attachment.fileName, name)}
-                                            collides={scriptNames.some(name => name.toLowerCase() === attachment.name.toLowerCase())} />
-                                    ))}
-                                    {attachments.length === 0 && <div className={styles.feed_data_empty}>Drop files here or add attachments.</div>}
-                                </div>
-                            </div>
-                        )}
-                        {attachmentError != null && <div className={styles.feed_data_error} role="alert">{attachmentError}</div>}
-                    </section>
-                ) : undefined}
-            />
+            {landing && <div className={`${styles.feed_head} ${styles.feed_top_strip}`}>{feedHead(false)}</div>}
             {landing && (
                 <div className={styles.feed_landing_top}>
                     <div className={styles.feed_landing_header}>
@@ -875,7 +883,11 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
                             rowKey={feedRowKey}
                             rowComponent={dependencies.ScriptFeedRow}
                             rowProps={rowProps}
-                        />
+                        >
+                            <div className={styles.feed_inputs} ref={inputsRef}>
+                                <div className={`${styles.feed_head} ${styles.feed_inputs_body}`}>{!landing && entries.length > 0 && feedHead(true)}</div>
+                            </div>
+                        </List>
                     </SortableContext>
                 </DndContext>
                 {props.active && (

@@ -11,6 +11,11 @@
     --prompt_editor_max_height: 30vh;
 }
 
+/* The docked composer floats over the scripts, which lie flat on the stage */
+.composer[data-variant="docked"] {
+    box-shadow: var(--shadow_large);
+}
+
 .composer[data-variant="hero"] {
     --composer_bar_padding: 3px 6px 3px 16px;
     --prompt_editor_max_height: 40vh;
