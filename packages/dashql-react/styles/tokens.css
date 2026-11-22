@@ -91,8 +91,6 @@
 
     /* The backdrop that dims the page behind modal drawers and overlays */
     --color_backdrop: light-dark(hsla(var(--neutral_hue), calc(12% * var(--neutral_tint)), 16%, 0.3), hsla(0, 0%, 0%, 0.5));
-    /* The slight shade over the page behind an open overlay, a menu, a popover or a dialog */
-    --color_overlay_shade: light-dark(hsla(0, 0%, 0%, 0.2), hsla(0, 0%, 0%, 0.44));
 
     /* Elevation */
     --shadow_small: 0 1px 0 light-dark(hsla(var(--neutral_hue), calc(12.7% * var(--neutral_tint)), 13.9%, 0.04), hsla(0, 0%, 0%, 0.2));

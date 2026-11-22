@@ -153,39 +153,8 @@ export interface OverlayProps {
 
 const SLIDE_ANIMATION_DISTANCE = 8;
 
-/// A bit longer than the fade-out of the backdrop in overlay.module.css
-const BACKDROP_FADE_OUT_FALLBACK_MS = 250;
-
-/// The backdrops that are shown and not fading out
-let shownBackdrops = 0;
-
-/// A slight dark shade behind the overlay that fades in when it opens and out when it closes.
-/// The overlay unmounts at once, the shade lives on in the portal root until its fade-out ends.
-/// It goes right before the portal of the overlay and paints below it, clicks pass through.
-/// An overlay over another overlay adds no second shade.
-function useOverlayBackdrop(overlayRef: React.RefObject<HTMLDivElement | null>, centered: boolean) {
-    React.useLayoutEffect(() => {
-        // The portal of the child mounted first, its element is in the portal root already
-        const overlay = overlayRef.current;
-        const portal = centered ? overlay?.parentElement?.parentElement : overlay?.parentElement;
-        const root = portal?.parentElement;
-        if (!portal || !root || shownBackdrops > 0) {
-            return;
-        }
-        const backdrop = document.createElement('div');
-        backdrop.className = styles.backdrop;
-        root.insertBefore(backdrop, portal);
-        shownBackdrops += 1;
-        return () => {
-            shownBackdrops -= 1;
-            backdrop.classList.add(styles.backdrop_closing);
-            const remove = () => backdrop.remove();
-            backdrop.addEventListener('animationend', remove, { once: true });
-            // Also without an animationend (jsdom, animations turned off)
-            setTimeout(remove, BACKDROP_FADE_OUT_FALLBACK_MS);
-        };
-    }, [overlayRef, centered]);
-}
+/// Is a component inside an overlay? An overlay over another overlay adds no second shade.
+const INSIDE_OVERLAY = React.createContext(false);
 
 export const Overlay = React.forwardRef((props: OverlayProps, forwardedRef: React.ForwardedRef<HTMLDivElement>) => {
     // Use a ref as forwarded ref
@@ -207,7 +176,7 @@ export const Overlay = React.forwardRef((props: OverlayProps, forwardedRef: Reac
         initialFocusRef: props.initialFocusRef,
         preventFocusOnOpen: props.preventFocusOnOpen,
     });
-    useOverlayBackdrop(overlayRef, props.centered === true);
+    const shaded = !React.useContext(INSIDE_OVERLAY);
 
     React.useLayoutEffect(() => {
         if (!overlayRef.current?.animate || props.visibility === OverlayVisibility.Hidden) {
@@ -244,11 +213,15 @@ export const Overlay = React.forwardRef((props: OverlayProps, forwardedRef: Reac
         </div>
     );
 
+    // A slight shade over the page behind the overlay fades in when it opens, it goes with the overlay
     return (
         <Portal containerName={props.portalContainerName}>
-            {props.centered ? (
-                <div className={styles.centered_container}>{overlay}</div>
-            ) : overlay}
+            <INSIDE_OVERLAY.Provider value={true}>
+                {shaded && <div className={styles.backdrop} />}
+                {props.centered ? (
+                    <div className={styles.centered_container}>{overlay}</div>
+                ) : overlay}
+            </INSIDE_OVERLAY.Provider>
         </Portal>
     );
 });
