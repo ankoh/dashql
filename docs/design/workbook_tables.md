@@ -36,6 +36,14 @@ the bookmarked view returns the workbook to the feed), and the overlays of the l
 (`Default View` of the export settings). Both change the workbook (`setDefaultView`), not only the export. The app opens
 the default view whenever it shows another workbook, unless the URL names a view (`?view=`) or the shell is open.
 
+A workbook that was just imported from outside the app, a dropped file, a shared link or a version that opens from its
+cloud, shows its dashboard or dataflow without the workbench, whatever the setting of the app says. There is no field in
+the file for it: how a workbook is seen depends on where it comes from, the workbook only names the view. The route
+carries it (`importedWorkbookId` of the route context, set by `OPEN_IMPORTED_WORKBOOK`, or `SELECT_IMPORTED_WORKBOOK`
+for a cloud) and keeps it while the route shows that workbook. Showing the workbench settles the import
+(`SETTLE_IMPORTED_WORKBOOK`) without saving the setting, and another workbook ends it. A workbook of a reload, of a
+Hyper link or of the sidebar opens with the setting.
+
 ## Tables
 
 | Table | Columns after the key |

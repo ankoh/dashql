@@ -25,7 +25,7 @@ import {
 } from '../workbook/persistence/workbook_import_provider.js';
 import { useLogger } from '../host/logger_provider.js';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
-import { SELECT_WORKBOOK, useRouteContext, useRouterNavigate } from '../app/router.js';
+import { SELECT_IMPORTED_WORKBOOK, SELECT_WORKBOOK, useRouteContext, useRouterNavigate } from '../app/router.js';
 import { useEmbeddedDatabaseSetup } from '../host/embedded_database_provider.js';
 import {
     isCloudPreview,
@@ -196,6 +196,10 @@ export function useCloudWorkbooks(): CloudWorkbooks {
     const archiveDatabase = useEmbeddedDatabaseSetup();
     const workbookImport = useWorkbookImport();
     const navigate = useRouterNavigate();
+    // The workbook that the route shows as imported, read by the calls when they run
+    const route = useRouteContext();
+    const importedRef = React.useRef(route.importedWorkbookId);
+    importedRef.current = route.importedWorkbookId;
     const runtime = useOptionalRuntime();
     /// A workbook of the last flush
     const readWorkbook = React.useCallback((workbookId: string) => runtime?.store.get('workbook', workbookId) ?? null, [runtime]);
@@ -298,8 +302,9 @@ export function useCloudWorkbooks(): CloudWorkbooks {
         const shown = options.preview && options.versionId != null
             ? findLinkedWorkbook(workbooks, cloudWorkbookId, { versionId: options.versionId, preview: true })
             : null;
+        // A version opens like a dropped file or a shared link, its dashboard or dataflow without the workbench
         if (shown != null) {
-            navigate({ type: SELECT_WORKBOOK, value: shown.workbookId });
+            navigate({ type: SELECT_IMPORTED_WORKBOOK, value: shown.workbookId });
             return shown.workbookId;
         }
         const { version, tables, preview } = await readVersion(cloudId, cloudWorkbookId, options.versionId);
@@ -314,7 +319,7 @@ export function useCloudWorkbooks(): CloudWorkbooks {
             const again = findLinkedWorkbook(readWorkbooks(), cloudWorkbookId, { versionId: version.versionId, preview: true });
             if (again != null) {
                 workbookImport.dropImport(preview);
-                navigate({ type: SELECT_WORKBOOK, value: again.workbookId });
+                navigate({ type: SELECT_IMPORTED_WORKBOOK, value: again.workbookId });
                 return again.workbookId;
             }
         }
@@ -332,7 +337,7 @@ export function useCloudWorkbooks(): CloudWorkbooks {
         logger.info('Opened a published workbook', {
             workbookId: imported, cloudWorkbookId, versionId: version.versionId, preview: String(options.preview),
         }, LOG_CTX);
-        navigate({ type: SELECT_WORKBOOK, value: imported });
+        navigate({ type: SELECT_IMPORTED_WORKBOOK, value: imported });
         // One preview at a time, the others were left
         if (options.preview) {
             for (const other of readWorkbooks()) {
@@ -359,6 +364,8 @@ export function useCloudWorkbooks(): CloudWorkbooks {
     /// workbook, it only loses its mark. Otherwise the version is imported again, now asking about the connections, and
     /// the preview is discarded.
     const importPreview = React.useCallback(async (workbookId: string) => {
+        // A preview that still shows as imported stays so as the local workbook
+        const shownAsImported = importedRef.current === workbookId;
         const scripts = readWorkbook(workbookId);
         const link = scripts == null ? null : workbookCloudLink(scripts);
         if (link == null || !link.preview) return null;
@@ -375,7 +382,7 @@ export function useCloudWorkbooks(): CloudWorkbooks {
         const imported = await importVersion(preview, versionLink);
         if (imported == null) return null;
         logger.info('Imported a cloud preview again', { workbookId: imported, preview: workbookId, cloudWorkbookId: link.workbookId, versionId: link.versionId }, LOG_CTX);
-        navigate({ type: SELECT_WORKBOOK, value: imported });
+        navigate({ type: shownAsImported ? SELECT_IMPORTED_WORKBOOK : SELECT_WORKBOOK, value: imported });
         await discardPreview(workbookId);
         return imported;
     }, [discardPreview, dispatchScripts, importVersion, logger, navigate, readTables, readWorkbook, readVersion]);

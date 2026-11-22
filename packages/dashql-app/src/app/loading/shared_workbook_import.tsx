@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { OPEN_LINK_WORKBOOK, useRouteContext, useRouterNavigate } from '../router.js';
+import { OPEN_IMPORTED_WORKBOOK, useRouteContext, useRouterNavigate } from '../router.js';
 import { useDashQLCoreSetup } from '../../host/core_provider.js';
 import { useLogger } from '../../host/logger_provider.js';
 import { createTrace } from '@akohn/dashql/platform/logger/trace_context';
@@ -112,7 +112,7 @@ export function useSharedWorkbookImport(
             });
             if (workbookId != null) {
                 traced.debug("Finished link setup", { workbookId }, LOG_CTX);
-                navigate({ type: OPEN_LINK_WORKBOOK, value: workbookId });
+                navigate({ type: OPEN_IMPORTED_WORKBOOK, value: workbookId });
                 return true;
             }
         } else if (data.type === SETUP_WORKBOOK_URL && result != null && remoteAbortRef.current !== remoteAbort) {
@@ -194,7 +194,7 @@ export function useSharedWorkbookImport(
                 choice: importChoice,
             }, LOG_CTX);
             setLoaded(null);
-            navigate({ type: OPEN_LINK_WORKBOOK, value: workbookId });
+            navigate({ type: OPEN_IMPORTED_WORKBOOK, value: workbookId });
         }).catch(error => {
             logger.error('Failed to import loaded workbook', { error: stringifyError(error) }, LOG_CTX);
         }).finally(() => setImportBusy(false));

@@ -5,7 +5,7 @@ import type * as core from '@akohn/dashql';
 import { importedWorkbook, useWorkbookImport, type ConflictChoice, type PreparedImport, type WorkbookImportProgress } from '../workbook/persistence/workbook_import_provider.js';
 import { WorkbookImportCard, type WorkbookFileStepStatus, type WorkbookImportCardDependencies } from '../workbook/persistence/workbook_import_card.js';
 import { IndicatorStatus } from '@akohn/dashql-react/components/status_indicator';
-import { OPEN_LINK_WORKBOOK, useRouterNavigate } from './router.js';
+import { OPEN_IMPORTED_WORKBOOK, useRouterNavigate } from './router.js';
 import { useLogger } from '../host/logger_provider.js';
 import { stringifyError, type LoggerLike } from '@akohn/dashql/platform/logger/logger';
 
@@ -124,7 +124,7 @@ export function FileLoader({ file, onDone, dependencies = DEFAULT_DEPENDENCIES }
     const retry = React.useCallback(() => setAttempt(value => value + 1), []);
     const openImported = React.useCallback(() => {
         if (state.phase !== 'imported') return;
-        navigate({ type: OPEN_LINK_WORKBOOK, value: state.workbookId });
+        navigate({ type: OPEN_IMPORTED_WORKBOOK, value: state.workbookId });
         onDone();
     }, [navigate, onDone, state]);
     const startImport = React.useEffectEvent(async (prepared: PreparedImport, fileByteCount: number, choice: ConflictChoice | null) => {
@@ -148,7 +148,7 @@ export function FileLoader({ file, onDone, dependencies = DEFAULT_DEPENDENCIES }
                 setState({ phase: 'imported', preview, fileByteCount, workbookId, results });
                 return;
             }
-            navigate({ type: OPEN_LINK_WORKBOOK, value: workbookId });
+            navigate({ type: OPEN_IMPORTED_WORKBOOK, value: workbookId });
             onDone();
         } catch (error) {
             logger?.warn('Importing a workbook file failed', { file: file.name, step: progress.step, error: stringifyError(error) }, LOG_CTX);

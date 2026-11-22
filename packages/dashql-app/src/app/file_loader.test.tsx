@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type * as core from '@akohn/dashql';
 
 import type { PreparedImport, WorkbookCommitOptions } from '../workbook/persistence/workbook_import_provider.js';
+import { OPEN_IMPORTED_WORKBOOK } from './router.js';
 
 const state = {
     readImport: vi.fn(),
@@ -292,7 +293,8 @@ describe('FileLoader', () => {
         expect(onDone).not.toHaveBeenCalled();
 
         await act(async () => button(container, 'workbook-import-open')!.click());
-        expect(state.navigate).toHaveBeenCalledWith(expect.objectContaining({ value: 'imported-workbook' }));
+        // A dropped file opens as an imported workbook, its dashboard or dataflow shows without the workbench
+        expect(state.navigate).toHaveBeenCalledWith({ type: OPEN_IMPORTED_WORKBOOK, value: 'imported-workbook' });
         expect(onDone).toHaveBeenCalledOnce();
     });
 });
