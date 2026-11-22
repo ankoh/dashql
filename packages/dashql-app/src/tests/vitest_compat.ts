@@ -251,6 +251,7 @@ const vi = {
     advanceTimersByTime: (milliseconds: number) => clock?.tick(milliseconds),
     // Runs the promise callbacks of every timer before the next one fires
     advanceTimersByTimeAsync: async (milliseconds: number) => { await clock?.tickAsync(milliseconds); },
+    advanceTimersToNextTimer: () => { clock?.next(); return vi; },
     clearAllMocks,
     fn,
     hoisted: <T>(factory: () => T): T => factory(),
@@ -259,6 +260,8 @@ const vi = {
     resetAllMocks,
     restoreAllMocks,
     runAllTimers: () => clock?.runAll(),
+    // Runs the timers that are pending now, not the ones that they schedule
+    runOnlyPendingTimers: () => { clock?.runToLast(); return vi; },
     spyOn,
     stubGlobal,
     unstubAllGlobals,
