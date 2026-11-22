@@ -259,6 +259,10 @@
         order: 3;
         flex-basis: 100%;
     }
+    /* Execute All takes a row of its own, nothing to separate it from */
+    .start_separator {
+        display: none;
+    }
 }
 
 @media only screen and (max-width: 1000px) {

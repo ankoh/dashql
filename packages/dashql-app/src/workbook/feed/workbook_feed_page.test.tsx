@@ -439,7 +439,7 @@ describe('WorkbookFeedPage', () => {
         expect(workbench().checkVisibility()).toBe(true);
     });
 
-    it('starts the bar with the workbench toggle and ends it with the connections, the actions and the views, apart', () => {
+    it('starts the bar with the workbench and the execution and ends it with the connections, the actions and the views, apart', () => {
         const render = (workbookScripts: WorkbookScripts, connection: ConnectionState | null) => act(() => root.render(
             <WorkbookFeedPage
                 workbookScripts={workbookScripts}
@@ -454,6 +454,12 @@ describe('WorkbookFeedPage', () => {
         const header = container.querySelector('header')!;
         const buttons = Array.from(header.querySelectorAll('button')).filter(button => button.dataset.testid !== 'open-workbench');
         expect(buttons[0]?.dataset.testid).toBe('workbench-toggle');
+        // The groups at the start, separated: the workbench, then Execute All with its status
+        const start = () => Array.from(header.children).slice(0, 3).map(child => child.getAttribute('data-testid'));
+        expect(start()).toEqual(['workbook-workbench-group', 'workbook-bar-separator', 'workbook-execution-group']);
+        expect(header.querySelector('[data-testid="workbook-workbench-group"] [data-testid="workbench-toggle"]')).not.toBeNull();
+        expect(header.querySelector('[data-testid="workbook-execution-group"] [data-testid="execute-all"]')).not.toBeNull();
+        expect(header.querySelector('[data-testid="workbook-execution-group"] [data-testid="execution-status"]')).not.toBeNull();
         // The groups at the end, separated: the connections, the actions, the views with the arrows that step through them
         const end = () => Array.from(header.querySelector('[data-testid="workbook-actions-group"], [data-testid="workbook-connections-group"]')!
             .parentElement!.children).map(child => child.getAttribute('data-testid'));
@@ -468,8 +474,10 @@ describe('WorkbookFeedPage', () => {
         render(scripts(), null);
         expect(end()).toEqual(['workbook-actions-group', 'workbook-bar-separator', 'workbook-views-group']);
 
-        // An ephemeral workbook has no actions, its connections and its views stay apart
+        // An ephemeral workbook has neither an execution nor actions, its connections and its views stay apart
         render({ ...scripts(), ephemeral: true } as WorkbookScripts, main);
+        expect(start()[0]).toBe('workbook-workbench-group');
+        expect(start()[1]).not.toBe('workbook-bar-separator');
         expect(end()).toEqual(['workbook-connections-group', 'workbook-bar-separator', 'workbook-views-group']);
     });
 

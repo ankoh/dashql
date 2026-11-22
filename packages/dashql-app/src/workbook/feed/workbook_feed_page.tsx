@@ -85,7 +85,9 @@ const SIDEBAR_MAX_WIDTH = 560;
 const VIEW_SWITCH_HOLD_MS = 220;
 
 /// The line between two groups of the bar
-const BarSeparator = () => <div className={styles.bar_separator} role="separator" aria-orientation="vertical" data-testid="workbook-bar-separator" />;
+const BarSeparator = ({ className }: { className?: string }) => (
+    <div className={classNames(styles.bar_separator, className)} role="separator" aria-orientation="vertical" data-testid="workbook-bar-separator" />
+);
 
 export interface WorkbookFeedPageDependencies {
     WorkbookFeed: typeof WorkbookFeed;
@@ -287,6 +289,8 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
     // The groups at the end of the bar. An ephemeral workbook has no actions, a preview has its own.
     const connectionsShown = barConnections.length > 0;
     const actionsShown = preview || !ephemeral;
+    // Execute All and its status, a preview says next to them that it is read-only
+    const executionShown = preview || !ephemeral;
     React.useEffect(() => {
         if (!pageShown || !viewSwitchShown) return;
         const onKeyDown = (event: KeyboardEvent) => {
@@ -449,67 +453,73 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
                 </main>
                 {/* After the feed in the DOM, so that no-drag rows scrolled behind the bar do not cut holes into its drag region, see docs/design/electron.md */}
                 <header className={styles.view_bar} data-electron-drag-region>
-                    <IconButton className={styles.mobile_menu_button} ref={navigationDrawerTriggerRef} variant={ButtonVariant.Default} aria-label="Open workbook workbench" data-testid="open-workbench" onClick={() => setNavigationDrawerOpen(true)}>
-                        <ThreeBarsIcon />
-                    </IconButton>
-                    <IconButton
-                        className={styles.sidebar_toggle}
-                        size={ButtonSize.Small}
-                        variant={ButtonVariant.Invisible}
-                        aria-label={sidebarHidden ? 'Show workbench' : 'Hide workbench'}
-                        aria-expanded={!sidebarHidden}
-                        data-testid="workbench-toggle"
-                        onClick={() => setSidebarHidden(!sidebarHidden)}
-                    >
-                        {sidebarHidden ? <ExpandSidebarIcon size={16} /> : <CollapseSidebarIcon size={16} />}
-                    </IconButton>
+                    {/* The groups at the start of the bar: the workbench, then the execution of the workbook */}
+                    <div className={styles.bar_group} role="group" aria-label="Workbench" data-testid="workbook-workbench-group">
+                        <IconButton className={styles.mobile_menu_button} ref={navigationDrawerTriggerRef} variant={ButtonVariant.Default} aria-label="Open workbook workbench" data-testid="open-workbench" onClick={() => setNavigationDrawerOpen(true)}>
+                            <ThreeBarsIcon />
+                        </IconButton>
+                        <IconButton
+                            className={styles.sidebar_toggle}
+                            size={ButtonSize.Small}
+                            variant={ButtonVariant.Invisible}
+                            aria-label={sidebarHidden ? 'Show workbench' : 'Hide workbench'}
+                            aria-expanded={!sidebarHidden}
+                            data-testid="workbench-toggle"
+                            onClick={() => setSidebarHidden(!sidebarHidden)}
+                        >
+                            {sidebarHidden ? <ExpandSidebarIcon size={16} /> : <CollapseSidebarIcon size={16} />}
+                        </IconButton>
+                    </div>
                     {/* A connection overview is not part of the workbook, its controls are hidden */}
                     {!overviewActive && <>
-                        {!ephemeral && <div className={styles.execution_controls}>
-                            <Button ref={executeRef} size={ButtonSize.Small} variant={ButtonVariant.Invisible}
-                                leadingVisual={execution.busy ? SquareFillIcon : PaperAirplaneIcon}
-                                aria-label={execution.busy ? 'Stop workbook execution' : 'Execute All'}
-                                data-testid={execution.busy ? 'stop-execution' : 'execute-all'}
-                                // A run waits for the compute database, it reads the cached results
-                                disabled={execution.busy ? run?.phase === 'stopping' : !execution.ready || !scriptConnectionsIdle
-                                    || execution.runActive || props.workbookScripts.scriptOrder.length === 0}
-                                onClick={() => execution.busy ? execution.stop() : execution.start()}>
-                                <span className={styles.action_label}>{execution.busy ? run?.phase === 'stopping' ? 'Stopping' : 'Stop' : 'Execute All'}</span>
-                            </Button>
-                            <div className={styles.execution_status} role="status" aria-live="polite" aria-atomic="true" data-testid="execution-status" data-phase={run?.phase}
-                                title={run?.error ?? skippedTitle} aria-label={run?.error ? `${statusText}: ${run.error}` : undefined}>
-                                {run && <>
-                                    <AnchoredOverlay
-                                        open={executionDetailsOpen} onOpen={() => setExecutionDetailsOpen(true)} onClose={() => setExecutionDetailsOpen(false)}
-                                        side={AnchorSide.OutsideBottom} align={AnchorAlignment.Start} anchorOffset={4}
-                                        renderAnchor={anchorProps => <Button {...anchorProps}
-                                            size={ButtonSize.Small} variant={ButtonVariant.Invisible} aria-label="Show workbook execution details" data-testid="execution-details-toggle"
-                                            leadingVisual={<span className={styles.execution_indicator} aria-hidden="true" data-testid="execution-indicator"><StatusIndicator width="16px" height="16px" status={execution.busy
-                                                ? IndicatorStatus.Running : run.phase === 'failed' ? IndicatorStatus.Failed
-                                                    : run.phase === 'succeeded' ? IndicatorStatus.Succeeded : IndicatorStatus.Skip} /></span>}>
-                                            <span className={styles.execution_progress}>{statusText}</span>
-                                        </Button>}>
-                                        <section className={styles.execution_error_card} role="dialog" aria-label="Workbook execution details" data-testid="execution-details">
-                                            <header className={styles.execution_error_header}>
-                                                <h2 className={styles.execution_details_title}>{run.phase === 'failed' ? 'Execution failed' : 'Workbook execution'}</h2>
-                                                <IconButton size={ButtonSize.Small} variant={ButtonVariant.Invisible}
-                                                    aria-label="Close workbook execution details" data-testid="execution-details-close" onClick={() => setExecutionDetailsOpen(false)}>
-                                                    <CloseIcon size={16} />
-                                                </IconButton>
-                                            </header>
-                                            <div className={styles.execution_details_body}>
-                                                <div>{statusText}</div>
-                                                {run.activeFileName && <div>{run.activeFileName} · statement {run.activeStatementIndex}/{run.activeStatementCount}</div>}
-                                                <div>{run.completedStatements}/{run.totalStatements} statements completed</div>
-                                                {run.error && <div className={styles.execution_error_message}>{run.error}</div>}
-                                            </div>
-                                        </section>
-                                    </AnchoredOverlay>
-                                </>}
-                            </div>
+                        {executionShown && <BarSeparator className={styles.start_separator} />}
+                        {executionShown && <div className={styles.execution_controls} role="group" aria-label="Execution" data-testid="workbook-execution-group">
+                            {!ephemeral && <>
+                                <Button ref={executeRef} size={ButtonSize.Small} variant={ButtonVariant.Invisible}
+                                    leadingVisual={execution.busy ? SquareFillIcon : PaperAirplaneIcon}
+                                    aria-label={execution.busy ? 'Stop workbook execution' : 'Execute All'}
+                                    data-testid={execution.busy ? 'stop-execution' : 'execute-all'}
+                                    // A run waits for the compute database, it reads the cached results
+                                    disabled={execution.busy ? run?.phase === 'stopping' : !execution.ready || !scriptConnectionsIdle
+                                        || execution.runActive || props.workbookScripts.scriptOrder.length === 0}
+                                    onClick={() => execution.busy ? execution.stop() : execution.start()}>
+                                    <span className={styles.action_label}>{execution.busy ? run?.phase === 'stopping' ? 'Stopping' : 'Stop' : 'Execute All'}</span>
+                                </Button>
+                                <div className={styles.execution_status} role="status" aria-live="polite" aria-atomic="true" data-testid="execution-status" data-phase={run?.phase}
+                                    title={run?.error ?? skippedTitle} aria-label={run?.error ? `${statusText}: ${run.error}` : undefined}>
+                                    {run && <>
+                                        <AnchoredOverlay
+                                            open={executionDetailsOpen} onOpen={() => setExecutionDetailsOpen(true)} onClose={() => setExecutionDetailsOpen(false)}
+                                            side={AnchorSide.OutsideBottom} align={AnchorAlignment.Start} anchorOffset={4}
+                                            renderAnchor={anchorProps => <Button {...anchorProps}
+                                                size={ButtonSize.Small} variant={ButtonVariant.Invisible} aria-label="Show workbook execution details" data-testid="execution-details-toggle"
+                                                leadingVisual={<span className={styles.execution_indicator} aria-hidden="true" data-testid="execution-indicator"><StatusIndicator width="16px" height="16px" status={execution.busy
+                                                    ? IndicatorStatus.Running : run.phase === 'failed' ? IndicatorStatus.Failed
+                                                        : run.phase === 'succeeded' ? IndicatorStatus.Succeeded : IndicatorStatus.Skip} /></span>}>
+                                                <span className={styles.execution_progress}>{statusText}</span>
+                                            </Button>}>
+                                            <section className={styles.execution_error_card} role="dialog" aria-label="Workbook execution details" data-testid="execution-details">
+                                                <header className={styles.execution_error_header}>
+                                                    <h2 className={styles.execution_details_title}>{run.phase === 'failed' ? 'Execution failed' : 'Workbook execution'}</h2>
+                                                    <IconButton size={ButtonSize.Small} variant={ButtonVariant.Invisible}
+                                                        aria-label="Close workbook execution details" data-testid="execution-details-close" onClick={() => setExecutionDetailsOpen(false)}>
+                                                        <CloseIcon size={16} />
+                                                    </IconButton>
+                                                </header>
+                                                <div className={styles.execution_details_body}>
+                                                    <div>{statusText}</div>
+                                                    {run.activeFileName && <div>{run.activeFileName} · statement {run.activeStatementIndex}/{run.activeStatementCount}</div>}
+                                                    <div>{run.completedStatements}/{run.totalStatements} statements completed</div>
+                                                    {run.error && <div className={styles.execution_error_message}>{run.error}</div>}
+                                                </div>
+                                            </section>
+                                        </AnchoredOverlay>
+                                    </>}
+                                </div>
+                            </>}
+                            {/* A preview says it is read-only next to Execute All */}
+                            {preview && <CloudPreviewBadge labelClassName={styles.action_label} />}
                         </div>}
-                        {/* A preview says it is read-only next to Execute All */}
-                        {preview && <CloudPreviewBadge labelClassName={styles.action_label} />}
                         {/* The groups at the end of the bar: the connections of the workbook, its actions, then its views. A
                             separator stands between two groups that show. */}
                         <div className={styles.bar_end}>
