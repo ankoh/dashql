@@ -209,8 +209,11 @@ A script has at most one result, so a change of the scripts touches at most one 
 - Renaming a script renames its file, `<old>.<key>.<gen>.parquet` to `<new>.<key>.<gen2>.parquet` with a new
   generation. A file that is read right now stays where it is and is garbage once the read ends: the script runs
   again.
-- Deleting a script removes its file once nobody reads it.
+- Deleting a script leaves files of no script, the next lookup removes them once nobody reads them.
 - Deleting a workbook unmounts its results and removes its folder with them.
+
+Only the lookup and the end of a run remove garbage, also the older files of a renamed script and the files that an
+import replaced. A script that ran to its end without a result removes its files at once (Storing Results).
 
 The lookup of a workbook removes the files that nobody pins and that are garbage: files of no script of the workbook,
 transient files, names that don't parse, older files of a script. While a run holds the workbook the lookup removes

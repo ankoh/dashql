@@ -10,7 +10,7 @@ use std::cell::RefCell;
 use dashql_core_runtime::host::{Host, HostError, LogLevel};
 use dashql_core_runtime::workbook::WorkbookEffect;
 use dashql_core_storage::workbook_format::results::{
-    other_files_of_script, result_file_name, sort_result_files, transient_result_file_name, Generations, ResultListing,
+    files_of_script, result_file_name, sort_result_files, transient_result_file_name, Generations, ResultListing,
     StoredResult,
 };
 
@@ -79,23 +79,22 @@ pub(crate) fn new_transient_file_name(platform: &JsPlatform) -> Result<String, H
     Ok(transient_result_file_name(&platform.random_uuid()?))
 }
 
-/// Remove the files of a script but one, e.g. the older files once a new one was written. Files that are read stay,
-/// the next listing removes them.
+/// Remove the files of a script, e.g. of one that ran to its end without a result. Files that are read stay, the next
+/// listing removes them.
 pub(crate) async fn remove_files_of_script(
     platform: &JsPlatform,
     workbook_id: &str,
     script: &str,
-    keep: Option<&str>,
 ) -> Result<(), HostError> {
     let files = platform.results_files(workbook_id).await?;
-    for name in other_files_of_script(&files, script, keep) {
+    for name in files_of_script(&files, script) {
         platform.results_remove(workbook_id, name).await?;
     }
     Ok(())
 }
 
 /// A script was renamed: its file follows it under a new generation. A file that is read stays where it is, the next
-/// listing removes it and the script runs again.
+/// listing removes it with the older files of the old name and the script runs again.
 pub(crate) async fn rename_script(
     platform: &JsPlatform,
     workbook_id: &str,
@@ -116,36 +115,29 @@ pub(crate) async fn rename_script(
             LOG_TARGET,
         );
     }
-    // A rename that only changes the case keeps the moved file, it is a file of both names
-    remove_files_of_script(platform, workbook_id, from, Some(&name)).await
+    Ok(())
 }
 
-/// The files of the results follow the effects of an action of a workbook: a renamed script takes its file with it, a
-/// deleted script removes it. Nothing without stored results. A change that loses a race, e.g. against a read of the
-/// file, leaves a file of no script, the next listing removes it and the script runs again.
+/// The files of the results follow the effects of an action of a workbook: a renamed script takes its file with it.
+/// Nothing without stored results. The files of a deleted script, the older files of a renamed one and a file that a
+/// rename left behind, e.g. one that was read, are files of no script or older files of a script: the next listing
+/// removes them.
 pub(crate) fn follow_effects(platform: &JsPlatform, workbook_id: &str, effects: &[WorkbookEffect]) {
     if !platform.has_results() {
         return;
     }
     for effect in effects {
+        let WorkbookEffect::RenameScript { from, to } = effect.clone() else { continue };
         let (platform, workbook_id) = (platform.clone(), workbook_id.to_string());
-        match effect.clone() {
-            WorkbookEffect::RenameScript { from, to } => platform.clone().spawn(Box::pin(async move {
-                if let Err(error) = rename_script(&platform, &workbook_id, &from, &to).await {
-                    log_failure(&platform, &workbook_id, "Failed to rename the result of a script", &error);
-                }
-            })),
-            WorkbookEffect::DeleteScript { file_name } => platform.clone().spawn(Box::pin(async move {
-                if let Err(error) = remove_files_of_script(&platform, &workbook_id, &file_name, None).await {
-                    log_failure(&platform, &workbook_id, "Failed to remove the result of a deleted script", &error);
-                }
-            })),
-            _ => {}
-        }
+        platform.clone().spawn(Box::pin(async move {
+            if let Err(error) = rename_script(&platform, &workbook_id, &from, &to).await {
+                platform.log_on(
+                    LogLevel::Warn,
+                    "Failed to rename the result of a script",
+                    &[("workbookId", workbook_id.as_str()), ("error", error.message())],
+                    LOG_TARGET,
+                );
+            }
+        }));
     }
-}
-
-/// Log a failed change of the files of the results
-fn log_failure(platform: &JsPlatform, workbook_id: &str, message: &str, error: &HostError) {
-    platform.log_on(LogLevel::Warn, message, &[("workbookId", workbook_id), ("error", error.message())], LOG_TARGET);
 }

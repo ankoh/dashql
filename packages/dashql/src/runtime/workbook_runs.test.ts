@@ -656,7 +656,7 @@ describe('the runs of scripts of the runtime', () => {
         expect(f.cache!.names(f.workbookId)).toHaveLength(1);
     });
 
-    it('renames the result of a renamed script and removes the result of a deleted one', async () => {
+    it('renames the result of a renamed script and removes the result of a deleted one as garbage', async () => {
         const f = await scripts([['foo.sql', 'select 1 as a;'], ['bar.sql', 'select 2 as b;']], { cache: true });
         await f.run('foo.sql');
         await f.run('bar.sql');
@@ -664,10 +664,12 @@ describe('the runs of scripts of the runtime', () => {
         expect(f.cache!.names(f.workbookId)).toHaveLength(2);
         expect(f.core.dispatch({ workbook: f.workbookId }, { kind: 'renameScript', value: { fileName: 'foo.sql', newName: 'renamed' } }).ok).toBe(true);
         expect(f.core.dispatch({ workbook: f.workbookId }, { kind: 'deleteScript', value: { fileName: 'bar.sql' } }).ok).toBe(true);
-        await vi.waitFor(() => expect(f.cache!.names(f.workbookId)).toEqual([expect.stringMatching(/^renamed\.[0-9a-f]{64}\.[0-9a-f]{20}\.parquet$/)]));
-        // The renamed script reuses its result
+        const renamed = expect.stringMatching(/^renamed\.[0-9a-f]{64}\.[0-9a-f]{20}\.parquet$/);
+        await vi.waitFor(() => expect(f.cache!.names(f.workbookId)).toContainEqual(renamed));
+        // The renamed script reuses its result, the end of the run removes the file of the deleted script
         await f.run('renamed.sql');
         expect(f.executeQuery).toHaveBeenCalledTimes(2);
+        expect(f.cache!.names(f.workbookId)).toEqual([renamed]);
     });
 
     /// Let the changes pause, the runtime checks the stored results then

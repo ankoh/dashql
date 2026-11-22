@@ -254,12 +254,11 @@ pub fn sort_result_files(files: &[ResultFileStat], scripts: Option<&[&str]>, now
     listing
 }
 
-/// The files of a script other than one file, e.g. the older files after a write. Files of other scripts stay.
-pub fn other_files_of_script<'a>(files: &'a [ResultFileStat], script: &str, keep: Option<&str>) -> Vec<&'a str> {
+/// The files of a script, e.g. of one that ran to its end without a result. Files of other scripts stay.
+pub fn files_of_script<'a>(files: &'a [ResultFileStat], script: &str) -> Vec<&'a str> {
     let Some(script) = script_key(script) else { return Vec::new() };
     files
         .iter()
-        .filter(|file| Some(file.name.as_str()) != keep)
         .filter(|file| parse_result_file_name(&file.name).is_some_and(|parsed| file_name_key(parsed.stem) == script))
         .map(|file| file.name.as_str())
         .collect()
@@ -367,12 +366,11 @@ mod tests {
     }
 
     #[test]
-    fn lists_the_other_files_of_a_script() {
+    fn lists_the_files_of_a_script() {
         let a1 = format!("a.{}.00000001.parquet", key('a'));
         let a2 = format!("a.{}.00000002.parquet", key('b'));
         let ab = format!("a.b.{}.00000003.parquet", key('b'));
         let files = [stat(&a1, 1, 0.0), stat(&a2, 1, 0.0), stat(&ab, 1, 0.0), stat("t.transient.parquet", 1, 0.0)];
-        assert_eq!(other_files_of_script(&files, "A.sql", Some(&a2)), vec![a1.as_str()]);
-        assert_eq!(other_files_of_script(&files, "a.sql", None), vec![a1.as_str(), a2.as_str()]);
+        assert_eq!(files_of_script(&files, "A.sql"), vec![a1.as_str(), a2.as_str()]);
     }
 }

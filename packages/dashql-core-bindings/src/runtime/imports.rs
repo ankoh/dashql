@@ -1030,7 +1030,7 @@ impl Imports {
         Some(ImportedResults::from(&outcome))
     }
 
-    /// Add one imported result as the file of a script, the other files of the script go
+    /// Add one imported result as the file of a script
     async fn import_result(
         &self,
         workbook_id: &str,
@@ -1041,8 +1041,8 @@ impl Imports {
         let added = async {
             let name: String = results::new_file_name(&self.platform, script, &result.key)?
                 .ok_or_else(|| HostError::new(format!("the result of {script} has no valid key: {}", result.key)))?;
+            // The older files of the script are garbage of the next listing, the imported file is the newest
             self.platform.results_import(workbook_id, &name, result.bytes.handle, result.crc32).await?;
-            results::remove_files_of_script(&self.platform, workbook_id, script, Some(&name)).await?;
             Ok::<(), HostError>(())
         };
         match added.await {

@@ -854,7 +854,7 @@ impl ExecutorHost for QueryHost {
         let platform = self.platform.clone();
         let workbook_id = workbook_id.to_string();
         let script = script.to_string();
-        async move { results::remove_files_of_script(&platform, &workbook_id, &script, None).await }
+        async move { results::remove_files_of_script(&platform, &workbook_id, &script).await }
     }
 
     fn analyze_result(&self, run: &Rc<QueryRun>) -> impl Future<Output = Result<(), HostError>> + 'static {
