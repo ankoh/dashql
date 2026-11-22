@@ -27,11 +27,10 @@ describe('dashql lint', () => {
 
     it('fails with exit code 1 and shows the error in its line', async () => {
         const output = await lint(testFiles([['a.sql', 'select 1;\nselect 1 +;\n']]), ['a.sql']);
-        expect(output).toEqual({
-            code: 1,
-            stdout: 'a.sql\n  2:11  error    parse    syntax error, unexpected SEMICOLON\n        │ select 1 +;\n        │           ^\n\n1 file, 1 error, 0 warnings\n',
-            stderr: '',
-        });
+        // The layout of the report is the test of sql_report
+        expect(output.code).toBe(1);
+        expect(output.stdout).toContain('2:11');
+        expect(output.stdout.endsWith('1 file, 1 error, 0 warnings\n')).toBe(true);
     });
 
     it('passes with warnings alone and shows them', async () => {

@@ -11,7 +11,7 @@ const FRAME_INTERVAL_MS = 100;
 /// How long a frame of a spinner shows
 const SPINNER_FRAME_MS = 80;
 /// The lines of the region at most, the rest is counted in a last line
-const MAX_REGION_LINES = 12;
+export const MAX_REGION_LINES = 12;
 /// The width of a progress bar
 const BAR_WIDTH = 12;
 

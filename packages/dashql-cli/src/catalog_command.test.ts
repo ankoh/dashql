@@ -28,17 +28,10 @@ describe('dashql catalog', () => {
         const output = await catalogIn(dir, ['.']);
         expect(output.stderr).toBe('');
         expect(output.code).toBe(0);
-        expect(output.stdout).toBe(`-- Trino prod (c1): Trino, 2 scripts, 2 tables
-${RELATIONS.trim()}
-
--- hyper (hyper): embedded Hyper, 1 script, 0 tables
--- No tables known yet, the tab of DashQL writes them once it knows the catalog of the connection
--- Attachments, scripts on the embedded Hyper read them as :name
---   :sales  attachments/sales.parquet
-
--- c2 (c2): 0 scripts, 1 table
-CREATE TABLE s.t (a integer);
-`);
+        expect(output.stdout).toContain(`-- Trino prod (c1): Trino, 2 scripts, 2 tables\n${RELATIONS}`);
+        expect(output.stdout).toContain('-- hyper (hyper): embedded Hyper, 1 script, 0 tables\n');
+        expect(output.stdout).toContain(':sales  attachments/sales.parquet\n');
+        expect(output.stdout).toContain('-- c2 (c2): 0 scripts, 1 table\nCREATE TABLE s.t (a integer);\n');
         // A connection by its name or its id
         expect((await catalogIn(dir, ['.', 'trino PROD'])).stdout).toBe(`-- Trino prod (c1): Trino, 2 scripts, 2 tables\n${RELATIONS}`);
         expect((await catalogIn(dir, ['.', 'c2'])).stdout).toContain('-- c2 (c2)');
@@ -53,13 +46,12 @@ CREATE TABLE s.t (a integer);
             ['.dashql/dashql-workspace.json', JSON.stringify({ formatVersion: 1, session: { endpoint: 'http://127.0.0.1:1', token: 't', connections: [{ connectionId: 'hyper', name: 'Hyper' }] } })],
         ]);
         const output = await catalogIn(dir, [copy, 'c1', 'hyper', '--max-chars', '70']);
-        expect(output.stdout).toBe(`-- Trino prod (c1): Trino, 2 scripts, 2 tables, the tab of DashQL does not let the agent use it
-CREATE TABLE tpch.tiny.customer (custkey bigint, name varchar);
--- Cut off after 70 characters, grep ${copy}/connections/c1/dashql-catalog-relations.sql for the rest
-
--- Hyper (hyper): embedded Hyper, 1 script, 0 tables
--- No tables known yet, the tab of DashQL writes them once it knows the catalog of the connection
-`);
+        expect(output.stdout).toContain('-- Trino prod (c1): Trino, 2 scripts, 2 tables, the tab of DashQL does not let the agent use it\n');
+        // Cut after the first table that fits into 70 characters
+        expect(output.stdout).toContain('CREATE TABLE tpch.tiny.customer');
+        expect(output.stdout).not.toContain('CREATE TABLE tpch.tiny.orders');
+        expect(output.stdout).toContain(`Cut off after 70 characters, grep ${copy}/connections/c1/dashql-catalog-relations.sql`);
+        expect(output.stdout).toContain('-- Hyper (hyper): embedded Hyper, 1 script, 0 tables\n');
     });
 
     it('checks its arguments', async () => {

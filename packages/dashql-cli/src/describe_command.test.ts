@@ -1,10 +1,8 @@
 import path from 'node:path';
 
 import { DESCRIBE_TEXT, DESCRIBE_USAGE, runDescribe } from './describe_command.js';
+import { noWorkspace } from './session_folder.js';
 import { runWith, testFiles, testWorkspace } from './test_process.js';
-
-/// What a command says to a folder that is no workspace, after its name
-const NO_WORKSPACE = 'is no workspace of DashQL, it has no dashql-workspace.json. Pass the workspace that the start of the session of dashql connect names. Only the user sets up a workspace.';
 
 const describeIn = (cwd: string, args: string[]) => runWith(async (a, cli) => runDescribe(a, cli), cwd, args);
 /// The workspace of a folder that testWorkspace set up
@@ -61,10 +59,10 @@ describe('dashql describe', () => {
         expect((await describeIn(ws(none), ['-w', '.'])).stdout).toContain('no session of dashql connect runs in');
         const unset = await describeIn(testFiles([]), []);
         expect(unset.code).toBe(2);
-        expect(unset.stderr).toBe(`error: .dashql ${NO_WORKSPACE}\n`);
+        expect(unset.stderr).toBe(`error: ${noWorkspace('.dashql')}\n`);
         const around = await describeIn(none, ['--workspace', '.']);
         expect(around.code).toBe(2);
-        expect(around.stderr).toBe(`error: . ${NO_WORKSPACE}\n`);
+        expect(around.stderr).toBe(`error: ${noWorkspace('.')}\n`);
     });
 
     it('lists the connections that the tab of the session lets the agent use', async () => {

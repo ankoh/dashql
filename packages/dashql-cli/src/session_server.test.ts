@@ -83,11 +83,12 @@ describe('the session server', () => {
         // The agent edits the copy with a tool of its harness, the stamps follow after the tool
         const stamp = () => server!.state().workbooks[0].files.find(file => file.path === 'scripts/b.sql');
         const before = stamp();
-        writeFileSync(path.join(copy, 'scripts', 'b.sql'), 'select 22, 23\n');
+        const edited = 'select 22, 23\n';
+        writeFileSync(path.join(copy, 'scripts', 'b.sql'), edited);
         const event = { event: 'PostToolUse', status: 'Edit', files: [] };
         const posted = await fetchAgentSession(`http://127.0.0.1:${server.port}/v1/events`, { method: 'POST', headers: { Authorization: `Bearer ${server.token}` }, body: JSON.stringify(event) });
         expect(posted.status).toBe(204);
-        expect(stamp()?.size).toBe(14);
+        expect(stamp()?.size).toBe(Buffer.byteLength(edited));
         expect(stamp()).not.toEqual(before);
 
         // A file of the copy can go on its own

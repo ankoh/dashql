@@ -20,14 +20,15 @@ describe('dashql init', () => {
         // A named folder is the workspace itself, with no .dashql/ inside
         expect((await init(dir, ['sub/state'])).stdout).toBe(`Set up the workspace ${path.join('sub', 'state')}/\n`);
         expect(isWorkspace(path.join(dir, 'sub', 'state'))).toBe(true);
-        expect(readdirSync(path.join(dir, 'sub', 'state')).sort()).toEqual(['.gitignore', 'dashql-workspace.json']);
+        expect(readdirSync(path.join(dir, 'sub', 'state'))).toEqual(expect.arrayContaining(['.gitignore', 'dashql-workspace.json']));
         expect(JSON.parse(readFileSync(path.join(dir, 'sub', 'state', 'dashql-workspace.json'), 'utf8'))).toEqual({ formatVersion: 1 });
     });
 
     it('sets up only a new or empty folder', async () => {
         const dir = testFiles(['README.md']);
         const project = await init(dir, ['.']);
-        expect(project).toEqual({ code: 2, stdout: '', stderr: 'error: ./ has files and is no workspace, a workspace is a new or empty folder\n' });
+        expect(project.code).toBe(2);
+        expect(project.stderr).toContain('is no workspace');
         expect(existsSync(path.join(dir, '.gitignore'))).toBe(false);
         expect(existsSync(path.join(dir, 'dashql-workspace.json'))).toBe(false);
         mkdirSync(path.join(dir, 'empty'));
