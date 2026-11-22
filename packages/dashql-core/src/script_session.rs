@@ -18,7 +18,7 @@
 //!
 //! Projections convert the mostly ascending offsets of a script in one pass (`Utf16Projector`).
 
-use crate::analyzer::{AnalyzedScript, ExpressionInner, TableReference};
+use crate::analyzer::{AnalyzedScript, ExpressionInner, ParameterKind, TableReference};
 use crate::annotation::Annotation;
 use crate::catalog::{Catalog, CatalogEntryId, CatalogLayer, CatalogTableId, QualifiedTableName, PROTO_NULL_U32};
 use crate::compiler::compile;
@@ -36,13 +36,13 @@ use dashql_buffers::completion::CompletionT;
 use dashql_buffers::cursor::RelativeSymbolPosition;
 use dashql_buffers::diff::ScriptDiffT;
 use dashql_buffers::editor::{
-    EditorAnalysisVersionT, EditorBoardPositionT, EditorCommentTagT, EditorCursorSemanticContextT,
-    EditorCursorSemanticKind, EditorCursorStateT, EditorDiagnosticSeverity, EditorDiagnosticSource, EditorDiagnosticT,
-    EditorEvent, EditorEventAction, EditorEventIntent, EditorEventOrigin, EditorEventT, EditorFlowPositionT,
-    EditorOffsetUnit, EditorProcessingStatisticsT, EditorScriptAnnotationsT, EditorSelectionT,
-    EditorSemanticReferenceKind, EditorSemanticResolution, EditorSemanticSpanT, EditorStatementDescriptionT,
-    EditorStatementT, EditorSyntaxSpanT, EditorTableDefinitionT, EditorTextChangeT, EditorTextSpanT,
-    EditorUpdateStatus, EditorUpdateT,
+    EditorAnalysisVersionT, EditorBoardPositionT, EditorCommentTagT, EditorCursorParameterT,
+    EditorCursorSemanticContextT, EditorCursorSemanticKind, EditorCursorStateT, EditorDiagnosticSeverity,
+    EditorDiagnosticSource, EditorDiagnosticT, EditorEvent, EditorEventAction, EditorEventIntent, EditorEventOrigin,
+    EditorEventT, EditorFlowPositionT, EditorOffsetUnit, EditorProcessingStatisticsT, EditorScriptAnnotationsT,
+    EditorSelectionT, EditorSemanticReferenceKind, EditorSemanticResolution, EditorSemanticSpanT,
+    EditorStatementDescriptionT, EditorStatementT, EditorSyntaxSpanT, EditorTableDefinitionT, EditorTextChangeT,
+    EditorTextSpanT, EditorUpdateStatus, EditorUpdateT,
 };
 use dashql_buffers::execution::ScriptCompilationResultT;
 use dashql_buffers::formatting::{FormattingConfigT, KeywordCase};
@@ -164,6 +164,35 @@ fn format_table_name(name: &QualifiedTableName) -> String {
     }
     out.push_str(&name.table_name.text);
     out
+}
+
+/// The named parameter whose text, with its prefix, contains a byte offset or ends at it
+fn cursor_parameter(
+    analyzed: &AnalyzedScript,
+    text_offset: usize,
+    projector: &mut Projector,
+) -> Option<EditorCursorParameterT> {
+    let scanned = &analyzed.parsed.scanned;
+    analyzed.parameters.iter().find_map(|parameter| {
+        let name = parameter.name.as_ref()?;
+        let span = resolve_text_span(&scanned.text, &scanned.symbols, parameter.location);
+        let begin = span.offset as usize;
+        // A named parameter starts with its prefix, positional ones are `$1` and `?`
+        if scanned.text.as_bytes().get(begin) != Some(&b':')
+            || text_offset < begin
+            || text_offset > begin + span.length as usize
+        {
+            return None;
+        }
+        let mut out = EditorCursorParameterT::default();
+        out.name = Some(name.to_string());
+        out.kind = match parameter.kind {
+            ParameterKind::Scalar => dashql_buffers::analyzer::ParameterKind::SCALAR,
+            ParameterKind::Table => dashql_buffers::analyzer::ParameterKind::TABLE,
+        };
+        out.text_span = Some(projector.span(span)?);
+        Some(out)
+    })
 }
 
 /// Converts internal UTF-8 byte offsets to the offset unit of a session
@@ -347,7 +376,6 @@ impl ScriptSession {
     /// `names` (`find_table_parameter`), in text order and in the offset unit of the session. Positional parameters and the
     /// targets of writes reference no script. Empty if the analysis lags behind the text.
     pub fn script_references(&self, names: &[String]) -> Vec<(EditorTextSpanT, Option<usize>)> {
-        use crate::analyzer::ParameterKind;
         use crate::table_parameters::{find_table_parameter, TableParameterLookup};
         use dashql_buffers::parser::AttributeKey;
         let Some((scanned, parsed, analyzed)) = self.script.current_analysis() else {
@@ -1088,7 +1116,8 @@ impl ScriptSession {
             context.related_table_reference_ids = non_empty(related_tables);
             context.related_column_reference_ids = non_empty(related_columns);
         }
-        if context.kind != EditorCursorSemanticKind::NONE {
+        context.parameter = cursor_parameter(analyzed, cursor.text_offset, projector).map(Box::new);
+        if context.kind != EditorCursorSemanticKind::NONE || context.parameter.is_some() {
             update.primary_cursor_context = Some(Box::new(context));
         }
     }

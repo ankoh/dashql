@@ -1,6 +1,7 @@
 include "dashql/status.fbs";
 include "dashql/parsed_script.fbs";
 include "dashql/script_cursor.fbs";
+include "dashql/analyzed_script.fbs";
 
 namespace dashql.buffers.editor;
 
@@ -123,6 +124,16 @@ enum EditorCursorSemanticKind: uint8 {
     COLUMN_REFERENCE,
 }
 
+/// A named parameter under the collapsed primary cursor, `:min` or `from :orders`
+table EditorCursorParameter {
+    /// The name without the prefix and the quotes
+    name: string;
+    /// What the parameter stands for, a scalar value or a table
+    kind: dashql.buffers.analyzer.ParameterKind;
+    /// The span of the parameter with its prefix, in the offset unit of the session
+    text_span: EditorTextSpan;
+}
+
 /// Semantic context for the collapsed primary cursor and refs related to its resolved target.
 table EditorCursorSemanticContext {
     kind: EditorCursorSemanticKind;
@@ -141,6 +152,8 @@ table EditorCursorSemanticContext {
     /// The UTF-8 byte span of the declaration in the text of that script: the column definition
     /// of a resolved column, else the table name. Absent if the declaration has no location.
     declaration_location: dashql.buffers.parser.TextSpan;
+    /// The named parameter under the cursor, also with the kind NONE for a scalar parameter. Absent without one.
+    parameter: EditorCursorParameter;
 }
 
 /// Portable cursor facts used by editor interaction logic.

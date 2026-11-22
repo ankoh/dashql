@@ -1,6 +1,7 @@
 //! Tests of editor sessions: events, offset units, analysis projections, completion, diffs and
 //! catalog publishing. Packed events go through `apply_buffer`.
 
+use dashql_buffers::analyzer::ParameterKind;
 use dashql_buffers::completion::CompletionT;
 use dashql_buffers::cursor::RelativeSymbolPosition;
 use dashql_buffers::diff::ScriptDiffOpCode;
@@ -669,6 +670,41 @@ fn a_cursor_after_an_alias_dot_is_a_column_reference_without_expression() {
     assert_eq!(context.kind, EditorCursorSemanticKind::COLUMN_REFERENCE);
     assert_eq!(context.reference_id, PROTO_NULL_U32);
     assert!(!context.resolved);
+}
+
+#[test]
+fn projects_the_named_parameter_under_the_cursor() {
+    let catalog = new_catalog();
+    let _schema = load_schema(&catalog, "create table items (id int)");
+    let mut session = session(&catalog, UTF8);
+    let text = "select id from :orders where id > :min and id < $1";
+    assert_eq!(analyze(&mut session, text).status, EditorUpdateStatus::OK);
+
+    // A scalar parameter has no reference, the context carries only the parameter, also at its end
+    let min = text.find(":min").unwrap() as u64;
+    for offset in [min, min + 2, min + 4] {
+        let update = session.set_primary_cursor(session.text_version(), offset);
+        let context = update.primary_cursor_context.as_ref().unwrap();
+        assert_eq!(context.kind, EditorCursorSemanticKind::NONE);
+        let parameter = context.parameter.as_ref().unwrap();
+        assert_eq!(parameter.name.as_deref(), Some("min"));
+        assert_eq!(parameter.kind, ParameterKind::SCALAR);
+        let span = parameter.text_span.as_ref().unwrap();
+        assert_eq!((span.offset, span.length), (min, 4));
+    }
+
+    // A table parameter
+    let orders = text.find(":orders").unwrap() as u64;
+    let update = session.set_primary_cursor(session.text_version(), orders + 3);
+    let parameter = update.primary_cursor_context.as_ref().unwrap().parameter.as_ref().unwrap();
+    assert_eq!(parameter.name.as_deref(), Some("orders"));
+    assert_eq!(parameter.kind, ParameterKind::TABLE);
+
+    // Positional parameters and other tokens have none
+    for offset in [text.find("$1").unwrap() as u64 + 1, 8] {
+        let update = session.set_primary_cursor(session.text_version(), offset);
+        assert!(update.primary_cursor_context.as_ref().is_none_or(|c| c.parameter.is_none()));
+    }
 }
 
 /// The analysis version of an update

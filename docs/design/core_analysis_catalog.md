@@ -450,6 +450,12 @@ table (`declaration_catalog_entry_id`) and, for a script, the declaration in it
 that script, not in the offset unit of the session. A descriptor has no location
 (`script_session_test::cursor_context_names_the_descriptor_that_declares_the_table`).
 
+A named parameter under the cursor, `:min` or `from :orders`, is the `parameter` of the context: its name, whether it
+is a scalar or a table (`ParameterKind`) and its span with the prefix, in the offset unit of the session. A cursor at
+the end of the parameter is still on it. A scalar parameter is no reference, its context has the kind `NONE` and only
+the parameter; positional parameters have none
+(`script_session_test::projects_the_named_parameter_under_the_cursor`).
+
 ## Completion's view of the catalog
 
 `Completion` (`completion.rs`) reads the script's analysis (its own name index, scopes, CTEs and
