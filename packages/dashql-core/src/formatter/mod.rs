@@ -636,7 +636,7 @@ impl<'a> Formatter<'a> {
             | K::SQL_CREATE_TABLE_ELEMENTS
             | K::SQL_CREATE_AS_COLUMNS
             | K::SQL_VIEW_COLUMNS
-            | K::SQL_CREATE_FUNCTION_PARAMS
+            | K::SQL_CREATE_FUNCTION_OPTION_VALUE
             | K::SQL_SELECT_WINDOWS
             | K::SQL_SELECT_ROW_LOCKING
             | K::SQL_ROW_LOCKING_OF
@@ -672,8 +672,16 @@ impl<'a> Formatter<'a> {
             K::SQL_SUBQUERY_OPERATOR | K::SQL_DEFINITION_ARG_VALUE | K::SQL_EXPRESSION_OPERATOR => {
                 self.format_operator_path(node)
             }
-            K::SQL_TABLE_CONSTRAINT_ATTRIBUTES | K::SQL_COLUMN_DEF_CONSTRAINTS => self.format_space_list(node),
-            K::EXT_EXPLAIN_OPTIONS | K::SQL_CALL_ARGS => self.format_comma_list(node, false),
+            K::SQL_TABLE_CONSTRAINT_ATTRIBUTES | K::SQL_COLUMN_DEF_CONSTRAINTS | K::SQL_CREATE_FUNCTION_OPTIONS => {
+                self.format_space_list(node)
+            }
+            // Lists that their parent puts in parentheses
+            K::EXT_EXPLAIN_OPTIONS
+            | K::SQL_CALL_ARGS
+            | K::SQL_CREATE_FUNCTION_PARAMS
+            | K::SQL_CREATE_FUNCTION_ORDER_PARAMS
+            | K::SQL_CREATE_FUNCTION_WITH_OPTIONS
+            | K::SQL_FUNCTION_RETURN_TYPE_ATTRIBUTES => self.format_comma_list(node, false),
             K::EXT_EXPLAIN_EXPRESSIONS => {
                 let parts = self.array_regs(node);
                 let (inline_separator, break_separator) = self.comma_separators();
@@ -717,6 +725,7 @@ impl<'a> Formatter<'a> {
             | K::SQL_CREATE_AS_NAME
             | K::SQL_VIEW_NAME
             | K::SQL_CREATE_FUNCTION_NAME
+            | K::SQL_TYPE_TABLE_COLUMN_ATTRIBUTES
             | K::SQL_DROP_NAME
             | K::SQL_ALTER_TABLE_NAME
             | K::SQL_ALTER_ACTION_NEW_TABLE
@@ -2766,6 +2775,12 @@ impl<'a> Formatter<'a> {
             NodeType::OBJECT_SQL_ATTACH_DATABASE => self.format_attach_database(node),
             NodeType::OBJECT_SQL_ATTACH_DATABASE_OPTION => self.format_attach_database_option(node),
             NodeType::OBJECT_SQL_FUNCTION_PARAM => self.format_function_param(node),
+            NodeType::ENUM_SQL_FUNCTION_PARAMETER_MODE => self.format_function_parameter_mode(node),
+            NodeType::OBJECT_SQL_CREATE_FUNCTION_OPTION => self.format_create_function_option(node),
+            NodeType::ENUM_SQL_FUNCTION_OPTION => self.format_function_option_kind(node),
+            NodeType::OBJECT_SQL_FUNCTION_RETURN_TYPE => self.format_function_return_type(node),
+            NodeType::OBJECT_SQL_TABLE_ARG_SEMANTICS => self.format_table_arg_semantics(node),
+            NodeType::OBJECT_SQL_TYPE_TABLE_COLUMN => self.format_type_table_column(node),
             NodeType::OBJECT_EXT_SET => self.format_set(node),
             NodeType::OBJECT_EXT_VARARG_FIELD => self.format_vararg_field(node),
             NodeType::OBJECT_EXT_EXPLAIN => self.format_explain(node),

@@ -368,3 +368,1302 @@ parser-snapshots:
       comments: []
       comment-blocks: []
       comment-warnings: []
+
+  - name: create_function_or_replace_temp
+    input: |-
+      create or replace temp function f(x int) returns int not null
+    expected:
+      statements:
+        - type: CREATE_FUNCTION
+          ast-begin: 0
+          ast-size: 13
+          description:
+            text: "create or ..t not null"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_CREATE_FUNCTION
+            text: "create or ..t not null"
+            children:
+              - key: SQL_CREATE_FUNCTION_NAME
+                type: ARRAY
+                text: "f"
+                children:
+                  - type: NAME
+                    text: "f"
+              - key: SQL_CREATE_FUNCTION_PARAMS
+                type: ARRAY
+                text: "(x int)"
+                children:
+                  - type: OBJECT_SQL_FUNCTION_PARAM
+                    text: "x int"
+                    children:
+                      - key: SQL_FUNCTION_PARAM_NAME
+                        type: NAME
+                        text: "x"
+                      - key: SQL_FUNCTION_PARAM_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "int"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+              - key: SQL_CREATE_FUNCTION_RETURNS
+                type: OBJECT_SQL_TYPENAME
+                text: "int"
+                children:
+                  - key: SQL_TYPENAME_TYPE
+                    type: ENUM_SQL_NUMERIC_TYPE
+                    value: INT4
+              - key: SQL_CREATE_FUNCTION_TEMP
+                type: ENUM_SQL_TEMP_TYPE
+                value: LOCAL
+              - key: SQL_CREATE_FUNCTION_REPLACE
+                type: BOOL
+                value: 1
+              - key: SQL_CREATE_FUNCTION_RETURNS_NOT_NULL
+                type: BOOL
+                value: 1
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: create_function_temporary_not_null
+    input: |-
+      create temporary function f() returns int not null
+    expected:
+      statements:
+        - type: CREATE_FUNCTION
+          ast-begin: 0
+          ast-size: 7
+          description:
+            text: "create tem..t not null"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_CREATE_FUNCTION
+            text: "create tem..t not null"
+            children:
+              - key: SQL_CREATE_FUNCTION_NAME
+                type: ARRAY
+                text: "f"
+                children:
+                  - type: NAME
+                    text: "f"
+              - key: SQL_CREATE_FUNCTION_RETURNS
+                type: OBJECT_SQL_TYPENAME
+                text: "int"
+                children:
+                  - key: SQL_TYPENAME_TYPE
+                    type: ENUM_SQL_NUMERIC_TYPE
+                    value: INT4
+              - key: SQL_CREATE_FUNCTION_TEMP
+                type: ENUM_SQL_TEMP_TYPE
+                value: LOCAL
+              - key: SQL_CREATE_FUNCTION_RETURNS_NOT_NULL
+                type: BOOL
+                value: 1
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: create_function_param_modes
+    input: |-
+      create function f(out a int, inout b int, in out c int, variadic d int[], const e int, constref g int, in h int, i out int, int) returns int
+    expected:
+      statements:
+        - type: CREATE_FUNCTION
+          ast-begin: 0
+          ast-size: 50
+          description:
+            text: "create fun..eturns int"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_CREATE_FUNCTION
+            text: "create fun..eturns int"
+            children:
+              - key: SQL_CREATE_FUNCTION_NAME
+                type: ARRAY
+                text: "f"
+                children:
+                  - type: NAME
+                    text: "f"
+              - key: SQL_CREATE_FUNCTION_PARAMS
+                type: ARRAY
+                text: "(out a int.. int, int)"
+                children:
+                  - type: OBJECT_SQL_FUNCTION_PARAM
+                    text: "out a int"
+                    children:
+                      - key: SQL_FUNCTION_PARAM_NAME
+                        type: NAME
+                        text: "a"
+                      - key: SQL_FUNCTION_PARAM_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "int"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_FUNCTION_PARAM_MODE
+                        type: ENUM_SQL_FUNCTION_PARAMETER_MODE
+                        value: OUT
+                  - type: OBJECT_SQL_FUNCTION_PARAM
+                    text: "inout b int"
+                    children:
+                      - key: SQL_FUNCTION_PARAM_NAME
+                        type: NAME
+                        text: "b"
+                      - key: SQL_FUNCTION_PARAM_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "int"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_FUNCTION_PARAM_MODE
+                        type: ENUM_SQL_FUNCTION_PARAMETER_MODE
+                        value: INOUT
+                  - type: OBJECT_SQL_FUNCTION_PARAM
+                    text: "in out c int"
+                    children:
+                      - key: SQL_FUNCTION_PARAM_NAME
+                        type: NAME
+                        text: "c"
+                      - key: SQL_FUNCTION_PARAM_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "int"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_FUNCTION_PARAM_MODE
+                        type: ENUM_SQL_FUNCTION_PARAMETER_MODE
+                        value: INOUT
+                  - type: OBJECT_SQL_FUNCTION_PARAM
+                    text: "variadic d int[]"
+                    children:
+                      - key: SQL_FUNCTION_PARAM_NAME
+                        type: NAME
+                        text: "d"
+                      - key: SQL_FUNCTION_PARAM_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "int[]"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                          - key: SQL_TYPENAME_ARRAY
+                            type: ARRAY
+                            text: "[]"
+                            children:
+                              - type: BOOL
+                                value: 1
+                      - key: SQL_FUNCTION_PARAM_MODE
+                        type: ENUM_SQL_FUNCTION_PARAMETER_MODE
+                        value: VARIADIC
+                  - type: OBJECT_SQL_FUNCTION_PARAM
+                    text: "const e int"
+                    children:
+                      - key: SQL_FUNCTION_PARAM_NAME
+                        type: NAME
+                        text: "e"
+                      - key: SQL_FUNCTION_PARAM_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "int"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_FUNCTION_PARAM_MODE
+                        type: ENUM_SQL_FUNCTION_PARAMETER_MODE
+                        value: CONST
+                  - type: OBJECT_SQL_FUNCTION_PARAM
+                    text: "constref g int"
+                    children:
+                      - key: SQL_FUNCTION_PARAM_NAME
+                        type: NAME
+                        text: "g"
+                      - key: SQL_FUNCTION_PARAM_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "int"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_FUNCTION_PARAM_MODE
+                        type: ENUM_SQL_FUNCTION_PARAMETER_MODE
+                        value: CONSTREF
+                  - type: OBJECT_SQL_FUNCTION_PARAM
+                    text: "in h int"
+                    children:
+                      - key: SQL_FUNCTION_PARAM_NAME
+                        type: NAME
+                        text: "h"
+                      - key: SQL_FUNCTION_PARAM_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "int"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                  - type: OBJECT_SQL_FUNCTION_PARAM
+                    text: "i out int"
+                    children:
+                      - key: SQL_FUNCTION_PARAM_NAME
+                        type: NAME
+                        text: "i"
+                      - key: SQL_FUNCTION_PARAM_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "int"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_FUNCTION_PARAM_MODE
+                        type: ENUM_SQL_FUNCTION_PARAMETER_MODE
+                        value: OUT
+                  - type: OBJECT_SQL_FUNCTION_PARAM
+                    text: "int"
+                    children:
+                      - key: SQL_FUNCTION_PARAM_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "int"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+              - key: SQL_CREATE_FUNCTION_RETURNS
+                type: OBJECT_SQL_TYPENAME
+                text: "int"
+                children:
+                  - key: SQL_TYPENAME_TYPE
+                    type: ENUM_SQL_NUMERIC_TYPE
+                    value: INT4
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: create_function_param_defaults
+    input: |-
+      create function f(a int not null default 1, b int = 2, c varchar not null) returns int
+    expected:
+      statements:
+        - type: CREATE_FUNCTION
+          ast-begin: 0
+          ast-size: 23
+          description:
+            text: "create fun..eturns int"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_CREATE_FUNCTION
+            text: "create fun..eturns int"
+            children:
+              - key: SQL_CREATE_FUNCTION_NAME
+                type: ARRAY
+                text: "f"
+                children:
+                  - type: NAME
+                    text: "f"
+              - key: SQL_CREATE_FUNCTION_PARAMS
+                type: ARRAY
+                text: "(a int not.. not null)"
+                children:
+                  - type: OBJECT_SQL_FUNCTION_PARAM
+                    text: "a int not .. default 1"
+                    children:
+                      - key: SQL_FUNCTION_PARAM_NAME
+                        type: NAME
+                        text: "a"
+                      - key: SQL_FUNCTION_PARAM_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "int"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_FUNCTION_PARAM_NOT_NULL
+                        type: BOOL
+                        value: 1
+                      - key: SQL_FUNCTION_PARAM_DEFAULT
+                        type: LITERAL_INTEGER
+                        text: "1"
+                  - type: OBJECT_SQL_FUNCTION_PARAM
+                    text: "b int = 2"
+                    children:
+                      - key: SQL_FUNCTION_PARAM_NAME
+                        type: NAME
+                        text: "b"
+                      - key: SQL_FUNCTION_PARAM_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "int"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_FUNCTION_PARAM_DEFAULT
+                        type: LITERAL_INTEGER
+                        text: "2"
+                  - type: OBJECT_SQL_FUNCTION_PARAM
+                    text: "c varchar not null"
+                    children:
+                      - key: SQL_FUNCTION_PARAM_NAME
+                        type: NAME
+                        text: "c"
+                      - key: SQL_FUNCTION_PARAM_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "varchar"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "varchar"
+                            children:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: VARCHAR
+                      - key: SQL_FUNCTION_PARAM_NOT_NULL
+                        type: BOOL
+                        value: 1
+              - key: SQL_CREATE_FUNCTION_RETURNS
+                type: OBJECT_SQL_TYPENAME
+                text: "int"
+                children:
+                  - key: SQL_TYPENAME_TYPE
+                    type: ENUM_SQL_NUMERIC_TYPE
+                    value: INT4
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: create_function_returns_setof
+    input: |-
+      create function f(a t.x%type) returns setof int; create function g() returns setof t.y%type
+    expected:
+      statements:
+        - type: CREATE_FUNCTION
+          ast-begin: 0
+          ast-size: 13
+          description:
+            text: "create fun..setof int;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_CREATE_FUNCTION
+            text: "create fun.. setof int"
+            children:
+              - key: SQL_CREATE_FUNCTION_NAME
+                type: ARRAY
+                text: "f"
+                children:
+                  - type: NAME
+                    text: "f"
+              - key: SQL_CREATE_FUNCTION_PARAMS
+                type: ARRAY
+                text: "(a t.x%type)"
+                children:
+                  - type: OBJECT_SQL_FUNCTION_PARAM
+                    text: "a t.x%type"
+                    children:
+                      - key: SQL_FUNCTION_PARAM_NAME
+                        type: NAME
+                        text: "a"
+                      - key: SQL_FUNCTION_PARAM_TYPE
+                        type: OBJECT_SQL_TYPE_TABLE_COLUMN
+                        text: "t.x%type"
+                        children:
+                          - key: SQL_TYPE_TABLE_COLUMN_NAME
+                            type: NAME
+                            text: "t"
+                          - key: SQL_TYPE_TABLE_COLUMN_ATTRIBUTES
+                            type: ARRAY
+                            text: ".x"
+                            children:
+                              - type: NAME
+                                text: "x"
+              - key: SQL_CREATE_FUNCTION_RETURNS
+                type: OBJECT_SQL_TYPENAME
+                text: "setof int"
+                children:
+                  - key: SQL_TYPENAME_TYPE
+                    type: ENUM_SQL_NUMERIC_TYPE
+                    value: INT4
+                  - key: SQL_TYPENAME_SETOF
+                    type: BOOL
+                    value: 1
+        - type: CREATE_FUNCTION
+          ast-begin: 13
+          ast-size: 9
+          description:
+            text: "create fun..f t.y%type"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_CREATE_FUNCTION
+            text: "create fun..f t.y%type"
+            children:
+              - key: SQL_CREATE_FUNCTION_NAME
+                type: ARRAY
+                text: "g"
+                children:
+                  - type: NAME
+                    text: "g"
+              - key: SQL_CREATE_FUNCTION_RETURNS
+                type: OBJECT_SQL_FUNCTION_RETURN_TYPE
+                text: "setof t.y%type"
+                children:
+                  - key: SQL_FUNCTION_RETURN_TYPE_SETOF
+                    type: BOOL
+                    value: 1
+                  - key: SQL_FUNCTION_RETURN_TYPE_ATTRIBUTES
+                    type: OBJECT_SQL_TYPE_TABLE_COLUMN
+                    text: "t.y%type"
+                    children:
+                      - key: SQL_TYPE_TABLE_COLUMN_NAME
+                        type: NAME
+                        text: "t"
+                      - key: SQL_TYPE_TABLE_COLUMN_ATTRIBUTES
+                        type: ARRAY
+                        text: ".y"
+                        children:
+                          - type: NAME
+                            text: "y"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: create_function_returns_table
+    input: |-
+      create function f() returns table(a int not null, b varchar) pass through with set semantics prune when empty;
+      create function g() returns table no pass through with row semantics;
+      create function h() returns table with set semantics keep when empty;
+      create function i() returns only pass throughs
+    expected:
+      statements:
+        - type: CREATE_FUNCTION
+          ast-begin: 0
+          ast-size: 19
+          description:
+            text: "create fun..hen empty;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_CREATE_FUNCTION
+            text: "create fun..when empty"
+            children:
+              - key: SQL_CREATE_FUNCTION_NAME
+                type: ARRAY
+                text: "f"
+                children:
+                  - type: NAME
+                    text: "f"
+              - key: SQL_CREATE_FUNCTION_RETURNS
+                type: OBJECT_SQL_FUNCTION_RETURN_TYPE
+                text: "table(a in..when empty"
+                children:
+                  - key: SQL_FUNCTION_RETURN_TYPE_ATTRIBUTES
+                    type: ARRAY
+                    text: "a int not .. b varchar"
+                    children:
+                      - type: OBJECT_SQL_FUNCTION_PARAM
+                        text: "a int not null"
+                        children:
+                          - key: SQL_FUNCTION_PARAM_NAME
+                            type: NAME
+                            text: "a"
+                          - key: SQL_FUNCTION_PARAM_TYPE
+                            type: OBJECT_SQL_TYPENAME
+                            text: "int"
+                            children:
+                              - key: SQL_TYPENAME_TYPE
+                                type: ENUM_SQL_NUMERIC_TYPE
+                                value: INT4
+                          - key: SQL_FUNCTION_PARAM_NOT_NULL
+                            type: BOOL
+                            value: 1
+                      - type: OBJECT_SQL_FUNCTION_PARAM
+                        text: "b varchar"
+                        children:
+                          - key: SQL_FUNCTION_PARAM_NAME
+                            type: NAME
+                            text: "b"
+                          - key: SQL_FUNCTION_PARAM_TYPE
+                            type: OBJECT_SQL_TYPENAME
+                            text: "varchar"
+                            children:
+                              - key: SQL_TYPENAME_TYPE
+                                type: OBJECT_SQL_CHARACTER_TYPE
+                                text: "varchar"
+                                children:
+                                  - key: SQL_CHARACTER_TYPE
+                                    type: ENUM_SQL_CHARACTER_TYPE
+                                    value: VARCHAR
+                  - key: SQL_FUNCTION_RETURN_TYPE_TABLE_PASSTHROUGH
+                    type: BOOL
+                    value: 1
+                  - key: SQL_FUNCTION_RETURN_TYPE_TABLE_SEMANTICS
+                    type: OBJECT_SQL_TABLE_ARG_SEMANTICS
+                    text: "with set s..when empty"
+                    children:
+                      - key: SQL_TABLE_ARG_SEMANTICS_SET
+                        type: BOOL
+                        value: 1
+                      - key: SQL_TABLE_ARG_SEMANTICS_PRUNING
+                        type: BOOL
+                        value: 1
+        - type: CREATE_FUNCTION
+          ast-begin: 19
+          ast-size: 7
+          description:
+            text: "create fun..semantics;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_CREATE_FUNCTION
+            text: "create fun.. semantics"
+            children:
+              - key: SQL_CREATE_FUNCTION_NAME
+                type: ARRAY
+                text: "g"
+                children:
+                  - type: NAME
+                    text: "g"
+              - key: SQL_CREATE_FUNCTION_RETURNS
+                type: OBJECT_SQL_FUNCTION_RETURN_TYPE
+                text: "table no p.. semantics"
+                children:
+                  - key: SQL_FUNCTION_RETURN_TYPE_TABLE_PASSTHROUGH
+                    type: BOOL
+                    value: 0
+                  - key: SQL_FUNCTION_RETURN_TYPE_TABLE_SEMANTICS
+                    type: OBJECT_SQL_TABLE_ARG_SEMANTICS
+                    text: "with row semantics"
+                    children:
+                      - key: SQL_TABLE_ARG_SEMANTICS_SET
+                        type: BOOL
+                        value: 0
+        - type: CREATE_FUNCTION
+          ast-begin: 26
+          ast-size: 7
+          description:
+            text: "create fun..hen empty;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_CREATE_FUNCTION
+            text: "create fun..when empty"
+            children:
+              - key: SQL_CREATE_FUNCTION_NAME
+                type: ARRAY
+                text: "h"
+                children:
+                  - type: NAME
+                    text: "h"
+              - key: SQL_CREATE_FUNCTION_RETURNS
+                type: OBJECT_SQL_FUNCTION_RETURN_TYPE
+                text: "table with..when empty"
+                children:
+                  - key: SQL_FUNCTION_RETURN_TYPE_TABLE_SEMANTICS
+                    type: OBJECT_SQL_TABLE_ARG_SEMANTICS
+                    text: "with set s..when empty"
+                    children:
+                      - key: SQL_TABLE_ARG_SEMANTICS_SET
+                        type: BOOL
+                        value: 1
+                      - key: SQL_TABLE_ARG_SEMANTICS_PRUNING
+                        type: BOOL
+                        value: 0
+        - type: CREATE_FUNCTION
+          ast-begin: 33
+          ast-size: 5
+          description:
+            text: "create fun..s throughs"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_CREATE_FUNCTION
+            text: "create fun..s throughs"
+            children:
+              - key: SQL_CREATE_FUNCTION_NAME
+                type: ARRAY
+                text: "i"
+                children:
+                  - type: NAME
+                    text: "i"
+              - key: SQL_CREATE_FUNCTION_RETURNS
+                type: OBJECT_SQL_FUNCTION_RETURN_TYPE
+                text: "only pass throughs"
+                children:
+                  - key: SQL_FUNCTION_RETURN_TYPE_ONLY_PASS_THROUGHS
+                    type: BOOL
+                    value: 1
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [110,111]
+        - text: [180,181]
+        - text: [250,251]
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: create_function_options
+    input: |-
+      create function f(x int) returns int language sql immutable strict as 'select x';
+      create function g(x int) returns int called on null input stable security definer leakproof cost 10 rows 5 as 'a', 'b';
+      create function h(x int) returns int volatile returns null on null input external security invoker not leakproof window language 'plpgsql';
+      create function i() returns int security invoker set search_path = 'public' as 'select 1'
+    expected:
+      statements:
+        - type: CREATE_FUNCTION
+          ast-begin: 0
+          ast-size: 22
+          description:
+            text: "create fun..select x';"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_CREATE_FUNCTION
+            text: "create fun..'select x'"
+            children:
+              - key: SQL_CREATE_FUNCTION_NAME
+                type: ARRAY
+                text: "f"
+                children:
+                  - type: NAME
+                    text: "f"
+              - key: SQL_CREATE_FUNCTION_PARAMS
+                type: ARRAY
+                text: "(x int)"
+                children:
+                  - type: OBJECT_SQL_FUNCTION_PARAM
+                    text: "x int"
+                    children:
+                      - key: SQL_FUNCTION_PARAM_NAME
+                        type: NAME
+                        text: "x"
+                      - key: SQL_FUNCTION_PARAM_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "int"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+              - key: SQL_CREATE_FUNCTION_RETURNS
+                type: OBJECT_SQL_TYPENAME
+                text: "int"
+                children:
+                  - key: SQL_TYPENAME_TYPE
+                    type: ENUM_SQL_NUMERIC_TYPE
+                    value: INT4
+              - key: SQL_CREATE_FUNCTION_OPTIONS
+                type: ARRAY
+                text: "language s..'select x'"
+                children:
+                  - type: OBJECT_SQL_CREATE_FUNCTION_OPTION
+                    text: "language sql"
+                    children:
+                      - key: SQL_CREATE_FUNCTION_OPTION_KIND
+                        type: ENUM_SQL_FUNCTION_OPTION
+                        value: LANGUAGE
+                      - key: SQL_CREATE_FUNCTION_OPTION_VALUE
+                        type: NAME
+                        text: "sql"
+                  - type: OBJECT_SQL_CREATE_FUNCTION_OPTION
+                    text: "immutable"
+                    children:
+                      - key: SQL_CREATE_FUNCTION_OPTION_KIND
+                        type: ENUM_SQL_FUNCTION_OPTION
+                        value: IMMUTABLE
+                  - type: OBJECT_SQL_CREATE_FUNCTION_OPTION
+                    text: "strict"
+                    children:
+                      - key: SQL_CREATE_FUNCTION_OPTION_KIND
+                        type: ENUM_SQL_FUNCTION_OPTION
+                        value: STRICT
+                  - type: OBJECT_SQL_CREATE_FUNCTION_OPTION
+                    text: "as 'select x'"
+                    children:
+                      - key: SQL_CREATE_FUNCTION_OPTION_KIND
+                        type: ENUM_SQL_FUNCTION_OPTION
+                        value: AS
+                      - key: SQL_CREATE_FUNCTION_OPTION_VALUE
+                        type: ARRAY
+                        text: "'select x'"
+                        children:
+                          - type: LITERAL_STRING
+                            text: "'select x'"
+        - type: CREATE_FUNCTION
+          ast-begin: 22
+          ast-size: 30
+          description:
+            text: "create fun.. 'a', 'b';"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_CREATE_FUNCTION
+            text: "create fun..s 'a', 'b'"
+            children:
+              - key: SQL_CREATE_FUNCTION_NAME
+                type: ARRAY
+                text: "g"
+                children:
+                  - type: NAME
+                    text: "g"
+              - key: SQL_CREATE_FUNCTION_PARAMS
+                type: ARRAY
+                text: "(x int)"
+                children:
+                  - type: OBJECT_SQL_FUNCTION_PARAM
+                    text: "x int"
+                    children:
+                      - key: SQL_FUNCTION_PARAM_NAME
+                        type: NAME
+                        text: "x"
+                      - key: SQL_FUNCTION_PARAM_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "int"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+              - key: SQL_CREATE_FUNCTION_RETURNS
+                type: OBJECT_SQL_TYPENAME
+                text: "int"
+                children:
+                  - key: SQL_TYPENAME_TYPE
+                    type: ENUM_SQL_NUMERIC_TYPE
+                    value: INT4
+              - key: SQL_CREATE_FUNCTION_OPTIONS
+                type: ARRAY
+                text: "called on ..s 'a', 'b'"
+                children:
+                  - type: OBJECT_SQL_CREATE_FUNCTION_OPTION
+                    text: "called on ..null input"
+                    children:
+                      - key: SQL_CREATE_FUNCTION_OPTION_KIND
+                        type: ENUM_SQL_FUNCTION_OPTION
+                        value: CALLED_ON_NULL_INPUT
+                  - type: OBJECT_SQL_CREATE_FUNCTION_OPTION
+                    text: "stable"
+                    children:
+                      - key: SQL_CREATE_FUNCTION_OPTION_KIND
+                        type: ENUM_SQL_FUNCTION_OPTION
+                        value: STABLE
+                  - type: OBJECT_SQL_CREATE_FUNCTION_OPTION
+                    text: "security definer"
+                    children:
+                      - key: SQL_CREATE_FUNCTION_OPTION_KIND
+                        type: ENUM_SQL_FUNCTION_OPTION
+                        value: SECURITY_DEFINER
+                  - type: OBJECT_SQL_CREATE_FUNCTION_OPTION
+                    text: "leakproof"
+                    children:
+                      - key: SQL_CREATE_FUNCTION_OPTION_KIND
+                        type: ENUM_SQL_FUNCTION_OPTION
+                        value: LEAKPROOF
+                  - type: OBJECT_SQL_CREATE_FUNCTION_OPTION
+                    text: "cost 10"
+                    children:
+                      - key: SQL_CREATE_FUNCTION_OPTION_KIND
+                        type: ENUM_SQL_FUNCTION_OPTION
+                        value: COST
+                      - key: SQL_CREATE_FUNCTION_OPTION_VALUE
+                        type: LITERAL_INTEGER
+                        text: "10"
+                  - type: OBJECT_SQL_CREATE_FUNCTION_OPTION
+                    text: "rows 5"
+                    children:
+                      - key: SQL_CREATE_FUNCTION_OPTION_KIND
+                        type: ENUM_SQL_FUNCTION_OPTION
+                        value: ROWS
+                      - key: SQL_CREATE_FUNCTION_OPTION_VALUE
+                        type: LITERAL_INTEGER
+                        text: "5"
+                  - type: OBJECT_SQL_CREATE_FUNCTION_OPTION
+                    text: "as 'a', 'b'"
+                    children:
+                      - key: SQL_CREATE_FUNCTION_OPTION_KIND
+                        type: ENUM_SQL_FUNCTION_OPTION
+                        value: AS
+                      - key: SQL_CREATE_FUNCTION_OPTION_VALUE
+                        type: ARRAY
+                        text: "'a', 'b'"
+                        children:
+                          - type: LITERAL_STRING
+                            text: "'a'"
+                          - type: LITERAL_STRING
+                            text: "'b'"
+        - type: CREATE_FUNCTION
+          ast-begin: 52
+          ast-size: 24
+          description:
+            text: "create fun..'plpgsql';"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_CREATE_FUNCTION
+            text: "create fun.. 'plpgsql'"
+            children:
+              - key: SQL_CREATE_FUNCTION_NAME
+                type: ARRAY
+                text: "h"
+                children:
+                  - type: NAME
+                    text: "h"
+              - key: SQL_CREATE_FUNCTION_PARAMS
+                type: ARRAY
+                text: "(x int)"
+                children:
+                  - type: OBJECT_SQL_FUNCTION_PARAM
+                    text: "x int"
+                    children:
+                      - key: SQL_FUNCTION_PARAM_NAME
+                        type: NAME
+                        text: "x"
+                      - key: SQL_FUNCTION_PARAM_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "int"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+              - key: SQL_CREATE_FUNCTION_RETURNS
+                type: OBJECT_SQL_TYPENAME
+                text: "int"
+                children:
+                  - key: SQL_TYPENAME_TYPE
+                    type: ENUM_SQL_NUMERIC_TYPE
+                    value: INT4
+              - key: SQL_CREATE_FUNCTION_OPTIONS
+                type: ARRAY
+                text: "volatile r.. 'plpgsql'"
+                children:
+                  - type: OBJECT_SQL_CREATE_FUNCTION_OPTION
+                    text: "volatile"
+                    children:
+                      - key: SQL_CREATE_FUNCTION_OPTION_KIND
+                        type: ENUM_SQL_FUNCTION_OPTION
+                        value: VOLATILE
+                  - type: OBJECT_SQL_CREATE_FUNCTION_OPTION
+                    text: "returns nu..null input"
+                    children:
+                      - key: SQL_CREATE_FUNCTION_OPTION_KIND
+                        type: ENUM_SQL_FUNCTION_OPTION
+                        value: STRICT
+                  - type: OBJECT_SQL_CREATE_FUNCTION_OPTION
+                    text: "external s..ty invoker"
+                    children:
+                      - key: SQL_CREATE_FUNCTION_OPTION_KIND
+                        type: ENUM_SQL_FUNCTION_OPTION
+                        value: SECURITY_INVOKER
+                  - type: OBJECT_SQL_CREATE_FUNCTION_OPTION
+                    text: "not leakproof"
+                    children:
+                      - key: SQL_CREATE_FUNCTION_OPTION_KIND
+                        type: ENUM_SQL_FUNCTION_OPTION
+                        value: NOT_LEAKPROOF
+                  - type: OBJECT_SQL_CREATE_FUNCTION_OPTION
+                    text: "window"
+                    children:
+                      - key: SQL_CREATE_FUNCTION_OPTION_KIND
+                        type: ENUM_SQL_FUNCTION_OPTION
+                        value: WINDOW
+                  - type: OBJECT_SQL_CREATE_FUNCTION_OPTION
+                    text: "language 'plpgsql'"
+                    children:
+                      - key: SQL_CREATE_FUNCTION_OPTION_KIND
+                        type: ENUM_SQL_FUNCTION_OPTION
+                        value: LANGUAGE
+                      - key: SQL_CREATE_FUNCTION_OPTION_VALUE
+                        type: LITERAL_STRING
+                        text: "'plpgsql'"
+        - type: CREATE_FUNCTION
+          ast-begin: 76
+          ast-size: 18
+          description:
+            text: "create fun..'select 1'"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_CREATE_FUNCTION
+            text: "create fun..'select 1'"
+            children:
+              - key: SQL_CREATE_FUNCTION_NAME
+                type: ARRAY
+                text: "i"
+                children:
+                  - type: NAME
+                    text: "i"
+              - key: SQL_CREATE_FUNCTION_RETURNS
+                type: OBJECT_SQL_TYPENAME
+                text: "int"
+                children:
+                  - key: SQL_TYPENAME_TYPE
+                    type: ENUM_SQL_NUMERIC_TYPE
+                    value: INT4
+              - key: SQL_CREATE_FUNCTION_OPTIONS
+                type: ARRAY
+                text: "security i..'select 1'"
+                children:
+                  - type: OBJECT_SQL_CREATE_FUNCTION_OPTION
+                    text: "security invoker"
+                    children:
+                      - key: SQL_CREATE_FUNCTION_OPTION_KIND
+                        type: ENUM_SQL_FUNCTION_OPTION
+                        value: SECURITY_INVOKER
+                  - type: OBJECT_SQL_CREATE_FUNCTION_OPTION
+                    text: "set search..= 'public'"
+                    children:
+                      - key: SQL_CREATE_FUNCTION_OPTION_KIND
+                        type: ENUM_SQL_FUNCTION_OPTION
+                        value: SET
+                      - key: SQL_CREATE_FUNCTION_OPTION_VALUE
+                        type: OBJECT_EXT_SET
+                        text: "set search..= 'public'"
+                        children:
+                          - key: EXT_SET_VARARGS
+                            type: OBJECT_EXT_VARARG_FIELD
+                            text: "search_pat..= 'public'"
+                            children:
+                              - key: EXT_VARARG_FIELD_KEY
+                                type: NAME
+                                text: "search_path"
+                              - key: EXT_VARARG_FIELD_VALUE
+                                type: LITERAL_STRING
+                                text: "'public'"
+                  - type: OBJECT_SQL_CREATE_FUNCTION_OPTION
+                    text: "as 'select 1'"
+                    children:
+                      - key: SQL_CREATE_FUNCTION_OPTION_KIND
+                        type: ENUM_SQL_FUNCTION_OPTION
+                        value: AS
+                      - key: SQL_CREATE_FUNCTION_OPTION_VALUE
+                        type: ARRAY
+                        text: "'select 1'"
+                        children:
+                          - type: LITERAL_STRING
+                            text: "'select 1'"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [81,82]
+        - text: [201,202]
+        - text: [341,342]
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: create_function_without_returns
+    input: |-
+      create or replace function f(out x int) language sql as 'select 1' with (isstrict = true, cost = 1.5)
+    expected:
+      statements:
+        - type: CREATE_FUNCTION
+          ast-begin: 0
+          ast-size: 25
+          description:
+            text: "create or ..ost = 1.5)"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_CREATE_FUNCTION
+            text: "create or ..ost = 1.5)"
+            children:
+              - key: SQL_CREATE_FUNCTION_REPLACE
+                type: BOOL
+                value: 1
+              - key: SQL_CREATE_FUNCTION_NAME
+                type: ARRAY
+                text: "f"
+                children:
+                  - type: NAME
+                    text: "f"
+              - key: SQL_CREATE_FUNCTION_PARAMS
+                type: ARRAY
+                text: "(out x int)"
+                children:
+                  - type: OBJECT_SQL_FUNCTION_PARAM
+                    text: "out x int"
+                    children:
+                      - key: SQL_FUNCTION_PARAM_NAME
+                        type: NAME
+                        text: "x"
+                      - key: SQL_FUNCTION_PARAM_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "int"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_FUNCTION_PARAM_MODE
+                        type: ENUM_SQL_FUNCTION_PARAMETER_MODE
+                        value: OUT
+              - key: SQL_CREATE_FUNCTION_OPTIONS
+                type: ARRAY
+                text: "language s..'select 1'"
+                children:
+                  - type: OBJECT_SQL_CREATE_FUNCTION_OPTION
+                    text: "language sql"
+                    children:
+                      - key: SQL_CREATE_FUNCTION_OPTION_KIND
+                        type: ENUM_SQL_FUNCTION_OPTION
+                        value: LANGUAGE
+                      - key: SQL_CREATE_FUNCTION_OPTION_VALUE
+                        type: NAME
+                        text: "sql"
+                  - type: OBJECT_SQL_CREATE_FUNCTION_OPTION
+                    text: "as 'select 1'"
+                    children:
+                      - key: SQL_CREATE_FUNCTION_OPTION_KIND
+                        type: ENUM_SQL_FUNCTION_OPTION
+                        value: AS
+                      - key: SQL_CREATE_FUNCTION_OPTION_VALUE
+                        type: ARRAY
+                        text: "'select 1'"
+                        children:
+                          - type: LITERAL_STRING
+                            text: "'select 1'"
+              - key: SQL_CREATE_FUNCTION_WITH_OPTIONS
+                type: ARRAY
+                text: "with (isst..ost = 1.5)"
+                children:
+                  - type: OBJECT_SQL_DEF_ARG
+                    text: "isstrict = true"
+                    children:
+                      - key: SQL_DEFINITION_ARG_KEY
+                        type: NAME
+                        text: "isstrict"
+                      - key: SQL_DEFINITION_ARG_VALUE
+                        type: NAME
+                        text: "true"
+                  - type: OBJECT_SQL_DEF_ARG
+                    text: "cost = 1.5"
+                    children:
+                      - key: SQL_DEFINITION_ARG_KEY
+                        type: NAME
+                        text: "cost"
+                      - key: SQL_DEFINITION_ARG_VALUE
+                        type: LITERAL_FLOAT
+                        text: "1.5"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: create_aggregate_signatures
+    input: |-
+      create temp aggregate a(*) returns bigint;
+      create aggregate b() returns bigint;
+      create aggregate c(order by x int) returns int;
+      create aggregate d(x float8 order by y float8) returns float8
+    expected:
+      statements:
+        - type: CREATE_FUNCTION
+          ast-begin: 0
+          ast-size: 8
+          description:
+            text: "create tem..ns bigint;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_CREATE_FUNCTION
+            text: "create tem..rns bigint"
+            children:
+              - key: SQL_CREATE_FUNCTION_STAR
+                type: BOOL
+                value: 1
+              - key: SQL_CREATE_FUNCTION_NAME
+                type: ARRAY
+                text: "a"
+                children:
+                  - type: NAME
+                    text: "a"
+              - key: SQL_CREATE_FUNCTION_RETURNS
+                type: OBJECT_SQL_TYPENAME
+                text: "bigint"
+                children:
+                  - key: SQL_TYPENAME_TYPE
+                    type: ENUM_SQL_NUMERIC_TYPE
+                    value: INT8
+              - key: SQL_CREATE_FUNCTION_TEMP
+                type: ENUM_SQL_TEMP_TYPE
+                value: LOCAL
+              - key: SQL_CREATE_FUNCTION_IS_AGGREGATE
+                type: BOOL
+                value: 1
+        - type: CREATE_FUNCTION
+          ast-begin: 8
+          ast-size: 7
+          description:
+            text: "create agg..ns bigint;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_CREATE_FUNCTION
+            text: "create agg..rns bigint"
+            children:
+              - key: SQL_CREATE_FUNCTION_PARAMS
+                type: ARRAY
+                text: "()"
+                children: []
+              - key: SQL_CREATE_FUNCTION_NAME
+                type: ARRAY
+                text: "b"
+                children:
+                  - type: NAME
+                    text: "b"
+              - key: SQL_CREATE_FUNCTION_RETURNS
+                type: OBJECT_SQL_TYPENAME
+                text: "bigint"
+                children:
+                  - key: SQL_TYPENAME_TYPE
+                    type: ENUM_SQL_NUMERIC_TYPE
+                    value: INT8
+              - key: SQL_CREATE_FUNCTION_IS_AGGREGATE
+                type: BOOL
+                value: 1
+        - type: CREATE_FUNCTION
+          ast-begin: 15
+          ast-size: 11
+          description:
+            text: "create agg..turns int;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_CREATE_FUNCTION
+            text: "create agg..eturns int"
+            children:
+              - key: SQL_CREATE_FUNCTION_ORDER_PARAMS
+                type: ARRAY
+                text: "x int"
+                children:
+                  - type: OBJECT_SQL_FUNCTION_PARAM
+                    text: "x int"
+                    children:
+                      - key: SQL_FUNCTION_PARAM_NAME
+                        type: NAME
+                        text: "x"
+                      - key: SQL_FUNCTION_PARAM_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "int"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+              - key: SQL_CREATE_FUNCTION_NAME
+                type: ARRAY
+                text: "c"
+                children:
+                  - type: NAME
+                    text: "c"
+              - key: SQL_CREATE_FUNCTION_RETURNS
+                type: OBJECT_SQL_TYPENAME
+                text: "int"
+                children:
+                  - key: SQL_TYPENAME_TYPE
+                    type: ENUM_SQL_NUMERIC_TYPE
+                    value: INT4
+              - key: SQL_CREATE_FUNCTION_IS_AGGREGATE
+                type: BOOL
+                value: 1
+        - type: CREATE_FUNCTION
+          ast-begin: 26
+          ast-size: 19
+          description:
+            text: "create agg..rns float8"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_CREATE_FUNCTION
+            text: "create agg..rns float8"
+            children:
+              - key: SQL_CREATE_FUNCTION_PARAMS
+                type: ARRAY
+                text: "x float8"
+                children:
+                  - type: OBJECT_SQL_FUNCTION_PARAM
+                    text: "x float8"
+                    children:
+                      - key: SQL_FUNCTION_PARAM_NAME
+                        type: NAME
+                        text: "x"
+                      - key: SQL_FUNCTION_PARAM_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "float8"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_GENERIC_TYPE
+                            text: "float8"
+                            children:
+                              - key: SQL_GENERIC_TYPE_NAME
+                                type: NAME
+                                text: "float8"
+              - key: SQL_CREATE_FUNCTION_ORDER_PARAMS
+                type: ARRAY
+                text: "y float8"
+                children:
+                  - type: OBJECT_SQL_FUNCTION_PARAM
+                    text: "y float8"
+                    children:
+                      - key: SQL_FUNCTION_PARAM_NAME
+                        type: NAME
+                        text: "y"
+                      - key: SQL_FUNCTION_PARAM_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "float8"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_GENERIC_TYPE
+                            text: "float8"
+                            children:
+                              - key: SQL_GENERIC_TYPE_NAME
+                                type: NAME
+                                text: "float8"
+              - key: SQL_CREATE_FUNCTION_NAME
+                type: ARRAY
+                text: "d"
+                children:
+                  - type: NAME
+                    text: "d"
+              - key: SQL_CREATE_FUNCTION_RETURNS
+                type: OBJECT_SQL_TYPENAME
+                text: "float8"
+                children:
+                  - key: SQL_TYPENAME_TYPE
+                    type: OBJECT_SQL_GENERIC_TYPE
+                    text: "float8"
+                    children:
+                      - key: SQL_GENERIC_TYPE_NAME
+                        type: NAME
+                        text: "float8"
+              - key: SQL_CREATE_FUNCTION_IS_AGGREGATE
+                type: BOOL
+                value: 1
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [42,43]
+        - text: [79,80]
+        - text: [127,128]
+      comments: []
+      comment-blocks: []
+      comment-warnings: []

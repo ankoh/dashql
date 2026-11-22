@@ -25,9 +25,8 @@ const UNFORMATTABLE: &[&str] = &[
     "SET LOCAL timezone TO 'UTC';",
     "CREATE DATABASE db;",
     "DECLARE c SCROLL CURSOR FOR SELECT x FROM t;",
-    // Clauses that the formatter does not write yet: function options, SQL/JSON, assumed constraints and table
-    // options, external streams
-    "CREATE OR REPLACE FUNCTION f(IN x integer NOT NULL DEFAULT 2) RETURNS integer NOT NULL LANGUAGE SQL AS 'select x';",
+    // Clauses that the formatter does not write yet: SQL/JSON, assumed constraints and table options, external
+    // streams
     "SELECT JSON_VALUE(doc FORMAT JSON, '$.x' RETURNING integer DEFAULT 0 ON EMPTY ERROR ON ERROR) FROM t;",
     "CREATE TABLE t (x integer ASSUMED PRIMARY KEY, y integer REFERENCES u(x)) WITH (countnulls=1);",
     "SELECT * FROM EXTERNAL STREAM events (WITH (CARDINALITY 100));",

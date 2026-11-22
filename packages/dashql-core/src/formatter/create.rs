@@ -1,7 +1,7 @@
 //! CREATE, DROP, ATTACH and SET statements.
 
 use super::{FmtReg, Formatter, FormattingJoinPolicy, K};
-use dashql_buffers::parser::{Node, NodeType, OnCommitOption, TempType};
+use dashql_buffers::parser::{FunctionOption, FunctionParameterMode, Node, NodeType, OnCommitOption, TempType};
 use dashql_parser::attrs;
 
 impl<'a> Formatter<'a> {
@@ -150,29 +150,200 @@ impl<'a> Formatter<'a> {
         self.space_join(&[header, self.reg(statement)], FormattingJoinPolicy::BreakAllOrNone, false)
     }
 
+    /// `[mode] [name] type [not null] [default value]` of a function parameter or of a column of a returned table
     pub(super) fn format_function_param(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
-        let [name, type_node] = attrs!(self.children(node), [K::SQL_FUNCTION_PARAM_NAME, K::SQL_FUNCTION_PARAM_TYPE]);
-        let (Some(name), Some(type_node)) = (name, type_node) else { return self.format_unimplemented(node) };
-        f.concat(&[self.reg(name), f.text(" "), self.reg(type_node)])
+        let [name, type_node, mode, not_null, default] = attrs!(
+            self.children(node),
+            [
+                K::SQL_FUNCTION_PARAM_NAME,
+                K::SQL_FUNCTION_PARAM_TYPE,
+                K::SQL_FUNCTION_PARAM_MODE,
+                K::SQL_FUNCTION_PARAM_NOT_NULL,
+                K::SQL_FUNCTION_PARAM_DEFAULT,
+            ],
+        );
+        let Some(type_node) = type_node else { return self.format_unimplemented(node) };
+        let mut parts = Vec::with_capacity(7);
+        for prefix in [mode, name].into_iter().flatten() {
+            parts.push(self.reg(prefix));
+            parts.push(f.text(" "));
+        }
+        parts.push(self.reg(type_node));
+        if not_null.is_some() {
+            parts.push(f.text(" not null"));
+        }
+        if let Some(default) = default {
+            parts.push(f.text(" default "));
+            parts.push(self.reg(default));
+        }
+        f.concat(&parts)
+    }
+
+    pub(super) fn format_function_parameter_mode(&self, node: &'a Node) -> FmtReg {
+        let f = &self.fmt;
+        match FunctionParameterMode(super::value_u8(node)) {
+            FunctionParameterMode::OUT => f.text("out"),
+            FunctionParameterMode::INOUT => f.text("inout"),
+            FunctionParameterMode::VARIADIC => f.text("variadic"),
+            FunctionParameterMode::CONST => f.text("const"),
+            FunctionParameterMode::CONSTREF => f.text("constref"),
+            _ => self.format_unimplemented(node),
+        }
+    }
+
+    /// The keywords of a function option, empty for SET, whose value starts with `set`
+    pub(super) fn format_function_option_kind(&self, node: &'a Node) -> FmtReg {
+        let f = &self.fmt;
+        match FunctionOption(super::value_u8(node)) {
+            FunctionOption::CALLED_ON_NULL_INPUT => f.text("called on null input"),
+            FunctionOption::STRICT => f.text("strict"),
+            FunctionOption::IMMUTABLE => f.text("immutable"),
+            FunctionOption::STABLE => f.text("stable"),
+            FunctionOption::VOLATILE => f.text("volatile"),
+            FunctionOption::SECURITY_DEFINER => f.text("security definer"),
+            FunctionOption::SECURITY_INVOKER => f.text("security invoker"),
+            FunctionOption::LEAKPROOF => f.text("leakproof"),
+            FunctionOption::NOT_LEAKPROOF => f.text("not leakproof"),
+            FunctionOption::COST => f.text("cost"),
+            FunctionOption::ROWS => f.text("rows"),
+            FunctionOption::SET => f.empty(),
+            FunctionOption::AS => f.text("as"),
+            FunctionOption::LANGUAGE => f.text("language"),
+            FunctionOption::WINDOW => f.text("window"),
+            _ => self.format_unimplemented(node),
+        }
+    }
+
+    pub(super) fn format_create_function_option(&self, node: &'a Node) -> FmtReg {
+        let f = &self.fmt;
+        let [kind, value] =
+            attrs!(self.children(node), [K::SQL_CREATE_FUNCTION_OPTION_KIND, K::SQL_CREATE_FUNCTION_OPTION_VALUE]);
+        let Some(kind) = kind else { return self.format_unimplemented(node) };
+        match value {
+            Some(value) if FunctionOption(super::value_u8(kind)) == FunctionOption::SET => self.reg(value),
+            Some(value) => f.concat(&[self.reg(kind), f.text(" "), self.reg(value)]),
+            None => self.reg(kind),
+        }
+    }
+
+    /// `setof t.c%type`, `table(...)` and `only pass throughs` of a function result
+    pub(super) fn format_function_return_type(&self, node: &'a Node) -> FmtReg {
+        let f = &self.fmt;
+        let [setof, attributes, pass_through, semantics, only_pass_throughs] = attrs!(
+            self.children(node),
+            [
+                K::SQL_FUNCTION_RETURN_TYPE_SETOF,
+                K::SQL_FUNCTION_RETURN_TYPE_ATTRIBUTES,
+                K::SQL_FUNCTION_RETURN_TYPE_TABLE_PASSTHROUGH,
+                K::SQL_FUNCTION_RETURN_TYPE_TABLE_SEMANTICS,
+                K::SQL_FUNCTION_RETURN_TYPE_ONLY_PASS_THROUGHS,
+            ],
+        );
+        if only_pass_throughs.is_some() {
+            return f.text("only pass throughs");
+        }
+        if setof.is_some() {
+            let Some(column_type) = attributes else { return self.format_unimplemented(node) };
+            return f.concat(&[f.text("setof "), self.reg(column_type)]);
+        }
+        let mut parts = vec![f.text("table")];
+        if let Some(columns) = attributes {
+            parts.push(f.parenthesized_list(self.reg(columns)));
+        }
+        match pass_through {
+            Some(pass_through) if super::is_true(Some(pass_through)) => parts.push(f.text(" pass through")),
+            Some(_) => parts.push(f.text(" no pass through")),
+            None => {}
+        }
+        if let Some(semantics) = semantics {
+            parts.push(f.text(" "));
+            parts.push(self.reg(semantics));
+        }
+        f.concat(&parts)
+    }
+
+    /// `with row semantics` or `with set semantics [prune|keep when empty]` of a returned table
+    pub(super) fn format_table_arg_semantics(&self, node: &'a Node) -> FmtReg {
+        let f = &self.fmt;
+        let [set, pruning] =
+            attrs!(self.children(node), [K::SQL_TABLE_ARG_SEMANTICS_SET, K::SQL_TABLE_ARG_SEMANTICS_PRUNING]);
+        if !super::is_true(set) {
+            return f.text("with row semantics");
+        }
+        match pruning {
+            Some(pruning) if super::is_true(Some(pruning)) => f.text("with set semantics prune when empty"),
+            Some(_) => f.text("with set semantics keep when empty"),
+            None => f.text("with set semantics"),
+        }
+    }
+
+    /// `t.c%type`, the type of a table column
+    pub(super) fn format_type_table_column(&self, node: &'a Node) -> FmtReg {
+        let f = &self.fmt;
+        let [name, attributes] =
+            attrs!(self.children(node), [K::SQL_TYPE_TABLE_COLUMN_NAME, K::SQL_TYPE_TABLE_COLUMN_ATTRIBUTES]);
+        let (Some(name), Some(attributes)) = (name, attributes) else { return self.format_unimplemented(node) };
+        f.concat(&[self.reg(name), f.text("."), self.reg(attributes), f.text("%type")])
     }
 
     pub(super) fn format_create_function(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
-        let [name, params, returns, aggregate] = attrs!(
+        let [name, params, order_params, star, returns, not_null, aggregate, replace, temp, options, with] = attrs!(
             self.children(node),
             [
                 K::SQL_CREATE_FUNCTION_NAME,
                 K::SQL_CREATE_FUNCTION_PARAMS,
+                K::SQL_CREATE_FUNCTION_ORDER_PARAMS,
+                K::SQL_CREATE_FUNCTION_STAR,
                 K::SQL_CREATE_FUNCTION_RETURNS,
+                K::SQL_CREATE_FUNCTION_RETURNS_NOT_NULL,
                 K::SQL_CREATE_FUNCTION_IS_AGGREGATE,
+                K::SQL_CREATE_FUNCTION_REPLACE,
+                K::SQL_CREATE_FUNCTION_TEMP,
+                K::SQL_CREATE_FUNCTION_OPTIONS,
+                K::SQL_CREATE_FUNCTION_WITH_OPTIONS,
             ],
         );
-        let (Some(name), Some(returns)) = (name, returns) else { return self.format_unimplemented(node) };
-        let kind = if aggregate.is_some() { "create aggregate " } else { "create function " };
-        let params_reg = params.map(|p| self.reg(p)).unwrap_or(0);
-        let params_reg = if params_reg == 0 { f.text("()") } else { f.parenthesized(params_reg) };
-        f.concat(&[f.text(kind), self.reg(name), params_reg, f.text(" returns "), self.reg(returns)])
+        let Some(name) = name else { return self.format_unimplemented(node) };
+
+        let mut header = vec![f.text("create ")];
+        if replace.is_some() {
+            header.push(f.text("or replace "));
+        }
+        if let Some(temp) = temp {
+            header.push(self.reg(temp));
+            header.push(f.text(" "));
+        }
+        header.push(f.text(if aggregate.is_some() { "aggregate " } else { "function " }));
+        header.push(self.reg(name));
+        // The parameters of an aggregate may end with ordered ones, `(x float8 order by y float8)`
+        let params = params.filter(|p| p.children_count() > 0).map(|p| self.reg(p));
+        let order_params = order_params.map(|p| f.concat(&[f.text("order by "), self.reg(p)]));
+        header.push(match (star, params, order_params) {
+            (Some(_), _, _) => f.text("(*)"),
+            (None, Some(params), Some(order_params)) => {
+                f.parenthesized_list(f.concat(&[params, f.text(" "), order_params]))
+            }
+            (None, Some(params), None) | (None, None, Some(params)) => f.parenthesized_list(params),
+            (None, None, None) => f.text("()"),
+        });
+
+        // The clauses go on indented lines of their own if the statement does not fit on one, the parameters
+        // stay at the indentation of the statement
+        let mut clauses = vec![f.concat(&header)];
+        if let Some(returns) = returns {
+            let not_null = if not_null.is_some() { f.text(" not null") } else { f.empty() };
+            clauses.push(f.indented(f.concat(&[f.text("returns "), self.reg(returns), not_null])));
+        }
+        if let Some(options) = options {
+            clauses.push(f.indented(self.reg(options)));
+        }
+        if let Some(with) = with {
+            clauses.push(f.indented(f.concat(&[f.text("with "), f.parenthesized_list(self.reg(with))])));
+        }
+        let break_separator = f.indented(f.break_());
+        f.join(&clauses, f.text(" "), break_separator, Some(FormattingJoinPolicy::BreakAllOrNone), false)
     }
 
     pub(super) fn format_drop(&self, node: &'a Node, table: bool) -> FmtReg {

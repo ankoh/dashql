@@ -17,3 +17,39 @@ parser-snapshots:
   - name: create_function_many_params
     input: |
       create function bar(x int, y int, z varchar) returns int
+  - name: create_function_or_replace_temp
+    input: |
+      create or replace temp function f(x int) returns int not null
+  - name: create_function_temporary_not_null
+    input: |
+      create temporary function f() returns int not null
+  - name: create_function_param_modes
+    input: |
+      create function f(out a int, inout b int, in out c int, variadic d int[], const e int, constref g int, in h int, i out int, int) returns int
+  - name: create_function_param_defaults
+    input: |
+      create function f(a int not null default 1, b int = 2, c varchar not null) returns int
+  - name: create_function_returns_setof
+    input: |
+      create function f(a t.x%type) returns setof int; create function g() returns setof t.y%type
+  - name: create_function_returns_table
+    input: |
+      create function f() returns table(a int not null, b varchar) pass through with set semantics prune when empty;
+      create function g() returns table no pass through with row semantics;
+      create function h() returns table with set semantics keep when empty;
+      create function i() returns only pass throughs
+  - name: create_function_options
+    input: |
+      create function f(x int) returns int language sql immutable strict as 'select x';
+      create function g(x int) returns int called on null input stable security definer leakproof cost 10 rows 5 as 'a', 'b';
+      create function h(x int) returns int volatile returns null on null input external security invoker not leakproof window language 'plpgsql';
+      create function i() returns int security invoker set search_path = 'public' as 'select 1'
+  - name: create_function_without_returns
+    input: |
+      create or replace function f(out x int) language sql as 'select 1' with (isstrict = true, cost = 1.5)
+  - name: create_aggregate_signatures
+    input: |
+      create temp aggregate a(*) returns bigint;
+      create aggregate b() returns bigint;
+      create aggregate c(order by x int) returns int;
+      create aggregate d(x float8 order by y float8) returns float8

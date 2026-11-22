@@ -226,6 +226,210 @@ formatter-snapshots:
             expected: |-
               create aggregate analytics.total(value integer) returns integer;
 
+  - name: coverage_create_or_replace_temp_function
+    input: |-
+      create or replace temp function analytics.render(value int) returns varchar not null
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              create or replace temporary function analytics.render(value integer) returns varchar not null;
+          - mode: compact
+            expected: |-
+              create or replace temporary function analytics.render(value integer) returns varchar not null;
+          - mode: pretty
+            expected: |-
+              create or replace temporary function analytics.render(value integer) returns varchar not null;
+
+  - name: coverage_create_function_parameter_modes_and_defaults
+    input: |-
+      create function f(out a int, in out b int, variadic c int[], d int not null default 1, e varchar = 'x', int) returns int
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              create function f(out a integer, inout b integer, variadic c integer[], d integer not null default 1, e varchar default 'x', integer) returns integer;
+          - mode: compact
+            expected: |-
+              create function f(
+                out a integer, inout b integer, variadic c integer[], d integer not null default 1, e varchar default 'x', integer
+              )
+                returns integer;
+          - mode: pretty
+            expected: |-
+              create function f(
+                out a integer,
+                inout b integer,
+                variadic c integer[],
+                d integer not null default 1,
+                e varchar default 'x',
+                integer
+              )
+                returns integer;
+
+  - name: coverage_create_function_returns_setof
+    input: |-
+      create function f(a t.x%type) returns setof int; create function g() returns setof t.y%type
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              create function f(a t.x%type) returns setof integer;
+
+              create function g() returns setof t.y%type;
+          - mode: compact
+            expected: |-
+              create function f(a t.x%type) returns setof integer;
+
+              create function g() returns setof t.y%type;
+          - mode: pretty
+            expected: |-
+              create function f(a t.x%type) returns setof integer;
+
+              create function g() returns setof t.y%type;
+
+  - name: coverage_create_function_returns_table
+    input: |-
+      create function f() returns table(a int not null, b varchar) pass through with set semantics prune when empty;
+      create function g() returns table no pass through with row semantics;
+      create function h() returns only pass throughs
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              create function f() returns table(a integer not null, b varchar) pass through with set semantics prune when empty;
+
+              create function g() returns table no pass through with row semantics;
+
+              create function h() returns only pass throughs;
+          - mode: compact
+            expected: |-
+              create function f() returns table(a integer not null, b varchar) pass through with set semantics prune when empty;
+
+              create function g() returns table no pass through with row semantics;
+
+              create function h() returns only pass throughs;
+          - mode: pretty
+            expected: |-
+              create function f() returns table(a integer not null, b varchar) pass through with set semantics prune when empty;
+
+              create function g() returns table no pass through with row semantics;
+
+              create function h() returns only pass throughs;
+
+  - name: coverage_create_function_options
+    input: |-
+      create function f(x int) returns int language sql immutable strict as 'select x';
+      create function g(x int) returns int called on null input stable security definer leakproof cost 10 rows 5 as 'a', 'b';
+      create function h() returns int returns null on null input external security invoker not leakproof window set search_path = 'public' language 'plpgsql'
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              create function f(x integer) returns integer language sql immutable strict as 'select x';
+
+              create function g(x integer) returns integer called on null input stable security definer leakproof cost 10 rows 5 as 'a', 'b';
+
+              create function h() returns integer strict security invoker not leakproof window set search_path = 'public' language 'plpgsql';
+          - mode: compact
+            expected: |-
+              create function f(x integer) returns integer language sql immutable strict as 'select x';
+
+              create function g(x integer)
+                returns integer
+                called on null input stable security definer leakproof cost 10 rows 5 as 'a', 'b';
+
+              create function h()
+                returns integer
+                strict security invoker not leakproof window set search_path = 'public' language 'plpgsql';
+          - mode: pretty
+            expected: |-
+              create function f(x integer) returns integer language sql immutable strict as 'select x';
+
+              create function g(x integer)
+                returns integer
+                called on null input stable security definer leakproof cost 10 rows 5 as 'a', 'b';
+
+              create function h()
+                returns integer
+                strict security invoker not leakproof window set search_path = 'public' language 'plpgsql';
+
+  - name: coverage_create_function_without_returns
+    input: |-
+      create or replace function f(out x int) language sql as 'select 1' with (isstrict = true, cost = 1.5)
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              create or replace function f(out x integer) language sql as 'select 1' with (isstrict = true, cost = 1.5);
+          - mode: compact
+            expected: |-
+              create or replace function f(out x integer) language sql as 'select 1' with (isstrict = true, cost = 1.5);
+          - mode: pretty
+            expected: |-
+              create or replace function f(out x integer) language sql as 'select 1' with (isstrict = true, cost = 1.5);
+
+  - name: coverage_create_aggregate_signatures
+    input: |-
+      create temp aggregate a(*) returns bigint; create aggregate b(order by x int) returns int; create aggregate c(x float8 order by y float8) returns float8
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              create temporary aggregate a(*) returns bigint;
+
+              create aggregate b(order by x integer) returns integer;
+
+              create aggregate c(x float8 order by y float8) returns float8;
+          - mode: compact
+            expected: |-
+              create temporary aggregate a(*) returns bigint;
+
+              create aggregate b(order by x integer) returns integer;
+
+              create aggregate c(x float8 order by y float8) returns float8;
+          - mode: pretty
+            expected: |-
+              create temporary aggregate a(*) returns bigint;
+
+              create aggregate b(order by x integer) returns integer;
+
+              create aggregate c(x float8 order by y float8) returns float8;
+
+  - name: create_function_clauses_on_own_lines
+    input: |-
+      create or replace function analytics.render(value int, label varchar default 'none') returns varchar not null language sql immutable strict as 'select label || value'
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              create or replace function analytics.render(value integer, label varchar default 'none') returns varchar not null language sql immutable strict as 'select label || value';
+          - mode: compact
+            width: 80
+            expected: |-
+              create or replace function analytics.render(
+                value integer, label varchar default 'none'
+              )
+                returns varchar not null
+                language sql immutable strict as 'select label || value';
+          - mode: pretty
+            width: 80
+            expected: |-
+              create or replace function analytics.render(
+                value integer,
+                label varchar default 'none'
+              )
+                returns varchar not null
+                language sql immutable strict as 'select label || value';
+
   - name: coverage_set_scalar
     input: |-
       SET variable = 'value'
