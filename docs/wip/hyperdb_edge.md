@@ -107,8 +107,9 @@ the columns instead.
 
 Agents find most things with SQL, so the topics hold only what SQL doesn't tell, and where Hyper differs from what an
 agent expects of Postgres. `src/node/describe.test.ts` runs every SQL block of every topic against the engine, on a
-database opened as `--db sales.hyper`, so a `hyperdb-wasm` that changes what a topic says fails; it also keeps each
-topic below 80 lines and the index in step with the files. Checked on 0.0.27361:
+database opened as `--db sales.hyper`, so a `hyperdb-wasm` that changes what a topic says fails; it also keeps the
+index in step with the files. A topic stays short, below about 80 lines, since an agent reads it only when its task
+needs it. Checked on 0.0.27361:
 
 | Topic | Notes |
 |---|---|
