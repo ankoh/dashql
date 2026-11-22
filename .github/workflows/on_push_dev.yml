@@ -22,7 +22,6 @@ jobs:
         name: Publish
         uses: ./.github/workflows/publish.yml
         with:
-            npm_tag: dev
             commit: ${{ github.sha }}
             # No Electron release is published from dev, the channel is unused
             channel: latest

@@ -19,7 +19,6 @@ jobs:
         name: Publish
         uses: ./.github/workflows/publish.yml
         with:
-            npm_tag: stable
             commit: ${{ github.sha }}
             channel: stable
             publish_latest_pages: false

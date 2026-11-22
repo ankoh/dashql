@@ -28,7 +28,6 @@ jobs:
         if: ${{ !cancelled() && needs.build.result == 'success' }}
         uses: ./.github/workflows/publish.yml
         with:
-            npm_tag: latest
             commit: ${{ github.sha }}
             channel: latest
             require_tip: true
