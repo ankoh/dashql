@@ -3,7 +3,6 @@ import * as React from 'react';
 import { classNames } from '../dom/classnames.js';
 
 import * as styles from './status_indicator.module.css';
-import { ProgressCounter } from '@akohn/dashql/platform/utils/progress';
 
 export enum IndicatorStatus {
     None,
@@ -33,8 +32,19 @@ function getIndicatorColor(status: IndicatorStatus): string {
     }
 }
 
-export function getStatusFromProgressCounter(counter: ProgressCounter): IndicatorStatus {
-    if (counter.total == null) {
+/// The counts of a step over several items, e.g. a step of the restore of the runtime
+interface ProgressCounts {
+    readonly started: number;
+    readonly succeeded: number;
+    readonly skipped: number;
+    readonly failed: number;
+    /// Null until the total is known
+    readonly total: number | null;
+}
+
+/// The status of a step, none until it has a counter
+export function getStatusFromProgressCounter(counter: ProgressCounts | undefined): IndicatorStatus {
+    if (counter?.total == null) {
         return IndicatorStatus.None;
     }
     if (counter.total == 0) {

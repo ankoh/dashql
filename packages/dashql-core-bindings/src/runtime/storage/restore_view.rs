@@ -40,7 +40,6 @@ impl From<&ProgressCounter> for RestoreProgressCounter {
 #[tsify(missing_as_null)]
 pub struct RestoreProgress {
     pub restore_connections: RestoreProgressCounter,
-    pub restore_catalogs: RestoreProgressCounter,
     pub restore_workbook_scripts: RestoreProgressCounter,
 }
 
@@ -48,7 +47,6 @@ impl From<&RuntimeProgress> for RestoreProgress {
     fn from(progress: &RuntimeProgress) -> Self {
         RestoreProgress {
             restore_connections: (&progress.connections).into(),
-            restore_catalogs: (&progress.catalogs).into(),
             restore_workbook_scripts: (&progress.workbook_scripts).into(),
         }
     }

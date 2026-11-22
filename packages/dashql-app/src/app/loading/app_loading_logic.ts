@@ -1,6 +1,3 @@
-import type * as core from '@akohn/dashql';
-import type { AppLoadingProgress } from './app_loading_progress.js';
-import { ProgressCounter } from '@akohn/dashql/platform/utils/progress';
 import type { RouteContext } from '../router.js';
 import type { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 
@@ -37,22 +34,4 @@ export async function deleteSurplusEphemeralWorkbooks(
 
 export async function shouldFinishInitialNavigation(initialInlineSetup: Promise<boolean> | null): Promise<boolean> {
     return initialInlineSetup == null || !await initialInlineSetup;
-}
-
-/// A counter of the progress of a restore of the runtime
-function progressCounter(counter: core.RestoreProgressCounter): ProgressCounter {
-    const out = new ProgressCounter(counter.total);
-    out.started = counter.started;
-    out.succeeded = counter.succeeded;
-    out.skipped = counter.skipped;
-    out.failed = counter.failed;
-    return out;
-}
-
-/// The progress of a restore of the runtime as the loading page shows it
-export function restoreProgress(progress: core.RestoreProgress): AppLoadingProgress {
-    return {
-        restoreConnections: progressCounter(progress.restoreConnections),
-        restoreWorkbookScripts: progressCounter(progress.restoreWorkbookScripts),
-    };
 }

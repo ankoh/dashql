@@ -82,30 +82,27 @@ pub struct ProgressCounter {
     pub total: Option<u32>,
 }
 
-/// The progress of a restore: the connections, the catalogs and the scripts of the workbooks
+/// The progress of a restore: the connections and the scripts of the workbooks
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct RestoreProgress {
     pub connections: ProgressCounter,
-    pub catalogs: ProgressCounter,
     pub workbook_scripts: ProgressCounter,
 }
 
 impl RestoreProgress {
     fn add_total(&mut self, total: u32) {
-        for counter in [&mut self.connections, &mut self.catalogs, &mut self.workbook_scripts] {
+        for counter in [&mut self.connections, &mut self.workbook_scripts] {
             counter.total = Some(counter.total.unwrap_or(0).saturating_add(total));
         }
     }
 
     fn skip_workbook(&mut self) {
         self.connections.skipped += 1;
-        self.catalogs.skipped += 1;
         self.workbook_scripts.skipped += 1;
     }
 
     fn fail_workbook(&mut self) {
         self.connections.failed += 1;
-        self.catalogs.failed += 1;
         self.workbook_scripts.failed += 1;
     }
 }
@@ -343,11 +340,11 @@ impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
         }
     }
 
-    /// Restore the catalog of a connection from its files, returns false if it failed
-    async fn restore_catalog(&mut self, connection_id: &str, log_context: &[(&str, &str)]) -> bool {
+    /// Restore the catalog of a connection from its files, the connection refreshes a catalog that failed on connect
+    async fn restore_catalog(&mut self, connection_id: &str, log_context: &[(&str, &str)]) {
         let files = load_catalog_files(self.host, connection_id).await;
         let Some(state) = self.states.iter_mut().find(|state| state.connection_id() == connection_id) else {
-            return false;
+            return;
         };
         let restored = match files {
             Ok(files) => apply_catalog_files(state, &files),
@@ -363,7 +360,6 @@ impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
             details.push(("error", error));
             self.log(LogLevel::Warn, "Failed to restore connection catalog, will refresh on connect", &details);
         }
-        restored.succeeded
     }
 
     /// Restore a workbook of the workbook tree
@@ -450,19 +446,11 @@ impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
         // Restore the catalogs of the connections that the workbook registered, the connections of the app manifest
         // restored theirs already
         self.log(LogLevel::Info, "Restoring catalog", &[("workbookId", workbook_id)]);
-        self.progress.catalogs.started += 1;
-        self.report();
-        let mut catalogs_restored = true;
         if self.host.owns_connections() {
             for connection_id in restore.catalogs_to_restore.clone() {
                 let context = [("workbookId", workbook_id), ("connectionId", connection_id.as_str())];
-                catalogs_restored = self.restore_catalog(&connection_id, &context).await && catalogs_restored;
+                self.restore_catalog(&connection_id, &context).await;
             }
-        }
-        if catalogs_restored {
-            self.progress.catalogs.succeeded += 1;
-        } else {
-            self.progress.catalogs.failed += 1;
         }
 
         // Restore the scripts

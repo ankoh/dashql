@@ -1,4 +1,5 @@
 import * as React from 'react';
+import type * as core from '@akohn/dashql';
 import { useLocation } from 'react-router-dom';
 
 import { OPEN_EPHEMERAL_WORKBOOK, OPEN_LINK_WORKBOOK, workbookIdFromPathname, useRouterNavigate } from '../router.js';
@@ -9,8 +10,7 @@ import { useDashQLCoreSetup } from '../../host/core_provider.js';
 import { useLogger } from '../../host/logger_provider.js';
 import { createTrace } from '@akohn/dashql/platform/logger/trace_context';
 import { useEphemeralWorkbook } from '../../workbook/workbook_creation.js';
-import { initialLoadingProgress, type AppLoadingProgress } from './app_loading_progress.js';
-import { deleteSurplusEphemeralWorkbooks, restoreProgress, selectStartupWorkbook, shouldFinishInitialNavigation } from './app_loading_logic.js';
+import { deleteSurplusEphemeralWorkbooks, selectStartupWorkbook, shouldFinishInitialNavigation } from './app_loading_logic.js';
 import { useAppConfig } from '../../config/app_config.js';
 import { useDeleteWorkbook } from '../../workbook/workbook_lifecycle.js';
 import { useEmbeddedDatabaseSetup } from '../../host/embedded_database_provider.js';
@@ -45,8 +45,8 @@ export interface AppSetup {
     done: Promise<void>;
     /// Resolves once the app opened the workbook it starts with
     opened: Promise<void>;
-    /// The progress of the restoration
-    progress: AppLoadingProgress;
+    /// The progress of the restoration, null until it started
+    progress: core.RestoreProgress | null;
     /// The status of the setup of the embedded database
     embeddedDatabaseStatus: IndicatorStatus;
 }
@@ -71,7 +71,7 @@ export function useAppSetup(initialImport: React.RefObject<Promise<boolean> | nu
     const setupEmbeddedDatabase = useEmbeddedDatabaseSetup();
 
     const [embeddedDatabaseStatus, setEmbeddedDatabaseStatus] = React.useState<IndicatorStatus>(IndicatorStatus.None);
-    const [progress, setProgress] = React.useState<AppLoadingProgress>(initialLoadingProgress);
+    const [progress, setProgress] = React.useState<core.RestoreProgress | null>(null);
     const [done, resolveDone] = React.useMemo(() => {
         let resolve: () => void;
         const promise = new Promise<void>(a => { resolve = a; });
@@ -133,9 +133,9 @@ export function useAppSetup(initialImport: React.RefObject<Promise<boolean> | nu
             const restoreStartTime = performance.now();
             const restored = await trackInitialization(
                 "Application state",
-                runtime.restore(progress => setProgress(restoreProgress(progress))),
+                runtime.restore(setProgress),
             );
-            setProgress(restoreProgress(restored.progress));
+            setProgress(restored.progress);
             // The workbooks that the runtime took, in the order of the workbook tree
             const restoredWorkbooks = new Map<string, WorkbookScripts>();
             for (const workbookId of restored.workbookIds) {

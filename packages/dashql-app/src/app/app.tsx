@@ -5,7 +5,6 @@ import { Route, Routes, Navigate, BrowserRouter, HashRouter, useLocation } from 
 import { AppConfigProvider, useAppConfig } from '../config/app_config.js';
 import { AppLoader } from './loading/app_loader.js';
 import { AppLoadingPage } from './app_loading_page.js';
-import { initialLoadingProgress } from './loading/app_loading_progress.js';
 import { IndicatorStatus } from '@akohn/dashql-react/components/status_indicator';
 import { AppOwnershipGate } from './app_ownership_gate.js';
 import { AppSettingsSync, useAppSettingsReady } from '../config/app_settings_sync.js';
@@ -52,7 +51,7 @@ const LOG_CTX = 'app';
 // shows the cloud setup from it.
 const WorkbookProviders = (props: { children: React.ReactElement }) => (
     <SalesforceConnector>
-        <RuntimeProvider loading={<AppLoadingPage pauseAfterSetup={false} progress={INITIAL_LOADING_PROGRESS} embeddedDatabaseStatus={IndicatorStatus.None} />}>
+        <RuntimeProvider loading={<AppLoadingPage pauseAfterSetup={false} progress={null} embeddedDatabaseStatus={IndicatorStatus.None} />}>
             <NativeWorkbookSync />
             <AgentSessionProvider>
                 <WorkbookImportProvider>
@@ -71,9 +70,6 @@ const WorkbookProviders = (props: { children: React.ReactElement }) => (
         </RuntimeProvider>
     </SalesforceConnector>
 );
-
-/// The progress of the loading page before the core is there
-const INITIAL_LOADING_PROGRESS = initialLoadingProgress();
 
 /// The embedded database with the startup options of the app settings.
 /// It waits until the persisted settings are loaded, a change of the options applies with a restart of the app.

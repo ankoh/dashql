@@ -1,4 +1,5 @@
 import * as React from 'react';
+import type * as core from '@akohn/dashql';
 
 import * as baseStyles from '@akohn/dashql-react/components/banner_page.module.css';
 
@@ -6,13 +7,13 @@ import { Button, ButtonVariant } from '@akohn/dashql-react/components/button';
 import { CONFIRM_FINISHED_SETUP, useRouteContext, useRouterNavigate } from './router.js';
 import { getStatusFromProgressCounter, IndicatorStatus } from '@akohn/dashql-react/components/status_indicator';
 import { useDashQLCoreSetup } from '../host/core_provider.js';
-import { AppLoadingProgress } from './loading/app_loading_progress.js';
 import { useStorageMigrationStatus } from '../storage/storage_provider.js';
 import { AppSetupPage } from './app_setup_page.js';
 
 interface Props {
     pauseAfterSetup: boolean;
-    progress: AppLoadingProgress;
+    /// The progress of the restore, null until it started
+    progress: core.RestoreProgress | null;
     embeddedDatabaseStatus: IndicatorStatus;
 }
 
@@ -57,8 +58,8 @@ export const AppLoadingPage: React.FC<Props> = (props: Props) => {
                 applyMigrations: migrationStatus,
                 initializeCore: coreStatus,
                 initializeHyperDB: props.embeddedDatabaseStatus,
-                discoverWorkbooks: getStatusFromProgressCounter(props.progress.restoreConnections),
-                loadWorkbookScripts: getStatusFromProgressCounter(props.progress.restoreWorkbookScripts),
+                discoverWorkbooks: getStatusFromProgressCounter(props.progress?.restoreConnections),
+                loadWorkbookScripts: getStatusFromProgressCounter(props.progress?.restoreWorkbookScripts),
             }}
             actions={props.pauseAfterSetup && (
                 <div className={baseStyles.card_actions}>
