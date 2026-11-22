@@ -30,7 +30,6 @@
 //! backend (a Trino or Hyper query by its request, a channel of the host by `channel_cancel`, also while it opens) and
 //! the task ends as cancelled.
 
-pub mod cache_key;
 pub mod connectors;
 pub mod ipc;
 mod wait;

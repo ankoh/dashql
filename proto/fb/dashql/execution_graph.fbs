@@ -38,9 +38,10 @@ table ExecutionGraphScript {
     /// Is the script a target of the plan? A plan of the session targets the scripts whose results the host doesn't
     /// provide.
     target: bool;
-    /// The cache signature of the AST of the script, empty if it does not parse
+    /// The signature of the script for its result key: its AST, its inputs and its attachments, empty if it does not
+    /// parse (`workbook_run/result_key.rs`)
     signature: string;
-    /// Can the result of the script be cached? Its statements are queries and the scripts it references can be cached.
+    /// May a run reuse the stored result of the script? Its statements are queries and it calls no client function.
     cacheable: bool;
     /// The last statement of the script, the query that a script reference reads
     terminal_statement_id: uint32 = 4294967295;

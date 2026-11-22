@@ -24,7 +24,7 @@ use dashql_core_runtime::query::progress::EngineProgressPayload;
 use dashql_core_runtime::trino::arrow::{
     js_number_string, parse_trino_timestamp_ms, parse_trino_type, rows_to_record_batch, TimeZoneOffsets,
 };
-use dashql_core_runtime::trino::descriptor::{cache_signature, login_hint};
+use dashql_core_runtime::trino::descriptor::login_hint;
 use dashql_core_runtime::trino::protocol::{
     parse_trino_json, read_query_info, read_result_page, read_statement_response, read_token_response,
     ResultPageOutcome, ACCESS_TOKEN_REFRESH_MARGIN_MS,
@@ -1309,25 +1309,6 @@ fn shares_params_without_secrets() {
 
     assert_eq!(login_hint(&params).as_deref(), Some("user"));
     assert_eq!(login_hint(&oauth_params()), None);
-}
-
-#[test]
-fn signs_cached_results_per_user_without_credentials() {
-    let params = object(json!({
-        "endpoint": ENDPOINT,
-        "auth": { "authType": "AUTH_BASIC", "basic": { "username": "user", "secret": "secret" } },
-        "defaultCatalog": "hive",
-        "catalogs": ["hive", "iceberg"],
-    }));
-    // The text is the contract: it goes into the keys of the stored results, another text misses them all
-    assert_eq!(
-        cache_signature(&params).to_string(),
-        r#"{"case":"trino","endpoint":"https://trino.example.com","auth":{"authType":"AUTH_BASIC","user":"user"},"defaults":{"catalog":"hive","schema":null}}"#
-    );
-    assert_eq!(
-        cache_signature(&oauth_params()).to_string(),
-        r#"{"case":"trino","endpoint":"https://trino.example.com","auth":{"authType":"AUTH_OAUTH","oauthAuthUrl":"https://idp/auth","oauthTokenUrl":"https://idp/token","oauthRedirectUrl":"","oauthClientId":"dashql"},"defaults":{"catalog":null,"schema":null}}"#
-    );
 }
 
 #[test]

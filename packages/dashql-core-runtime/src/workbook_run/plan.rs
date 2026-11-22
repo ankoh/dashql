@@ -1,9 +1,8 @@
 //! What a run reads from a plan: the statements with where they come from, the errors of an invalid plan, the scripts
-//! that the scripts of a plan follow, the nodes that a run leaves out, the result keys and the visualizations of the
-//! outputs. Pure functions on an `ExecutionGraphT`, the run in `engine` decides with them.
+//! that the scripts of a plan follow, the nodes that a run leaves out and the visualizations of the outputs. The result
+//! keys are `result_key`. Pure functions on an `ExecutionGraphT`, the run in `engine` decides with them.
 
 use std::collections::{BTreeMap, BTreeSet};
-use std::future::Future;
 
 use dashql_buffers::execution::{CompiledVisualizationT, ExecutionGraphEdgeT, ExecutionGraphNodeT, ExecutionGraphT};
 use serde_json::{json, Value};
@@ -386,95 +385,6 @@ pub fn visualization_is_valid(visualization: &CompiledVisualizationT) -> bool {
         Some("table") => true,
         _ => false,
     }
-}
-
-/// Set the key of a script
-fn set_key(keys: &mut [Option<Option<ResultKey>>], index: usize, key: Option<ResultKey>) {
-    if let Some(slot) = keys.get_mut(index) {
-        *slot = Some(key);
-    }
-}
-
-/// The result key of a script of a plan
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ResultKey {
-    /// The key, the file of the result of the script is named after it
-    pub key: String,
-    /// The signature that the key derives from: the signature of the script and the keys and files of the scripts it
-    /// references, one per line
-    pub signature: String,
-    /// May a run read the stored result of the script instead of running it, if the file has this key? The script and
-    /// the scripts it references are cacheable.
-    pub reusable: bool,
-}
-
-/// The result keys of the scripts of a plan. The key of a script covers its connection, its signature and, for every
-/// script it references, the key and the file of its result (docs/design/workbook_results.md): a new result of a script
-/// is a new key of every script downstream of it. None for scripts that aren't planned or have no signature, whose
-/// connection has no key or that reference such a script. A plan that is invalid for one script keeps the keys of the
-/// others.
-///
-/// `key_of` derives the key of a script from its signature. `file_of` settles the file of the result of a script once its key is known, before the keys of the
-/// scripts downstream of it: the stored file that it keeps or reuses, or the new file that it writes, none without one.
-/// The scripts settle in the order of their references.
-pub async fn result_keys<F, Fut, S, SFut>(graph: &ExecutionGraphT, key_of: F, file_of: S) -> Vec<Option<ResultKey>>
-where
-    F: Fn(u32, String) -> Fut,
-    Fut: Future<Output = Option<String>>,
-    S: Fn(u32, ResultKey) -> SFut,
-    SFut: Future<Output = Option<String>>,
-{
-    let scripts = graph.scripts.as_deref().unwrap_or_default();
-    // A key is derived once the keys of the scripts it references are known, a cycle never gets one
-    let mut keys: Vec<Option<Option<ResultKey>>> = vec![None; scripts.len()];
-    let mut files: Vec<Option<String>> = vec![None; scripts.len()];
-    for _pass in 0..=scripts.len() {
-        let mut progressed = false;
-        for (index, script) in scripts.iter().enumerate() {
-            if keys.get(index).is_some_and(Option::is_some) {
-                continue;
-            }
-            if !script.planned || script.signature.is_none() {
-                set_key(&mut keys, index, None);
-                progressed = true;
-                continue;
-            }
-            let references: Vec<u32> = script.referenced_scripts.clone().unwrap_or_default();
-            let known: Option<Vec<Option<ResultKey>>> =
-                references.iter().map(|r| keys.get(*r as usize).cloned().unwrap_or(Some(None))).collect();
-            let Some(referenced) = known else { continue };
-            progressed = true;
-            if referenced.iter().any(Option::is_none) {
-                set_key(&mut keys, index, None);
-                continue;
-            }
-            let referenced: Vec<ResultKey> = referenced.into_iter().flatten().collect();
-            let mut lines = vec![script.signature.clone().unwrap_or_default()];
-            for (reference, key) in references.iter().zip(&referenced) {
-                match files.get(*reference as usize).cloned().flatten() {
-                    Some(file) => lines.push(format!("{} {file}", key.key)),
-                    None => lines.push(key.key.clone()),
-                }
-            }
-            let signature = lines.join("\n");
-            let key = key_of(index as u32, signature.clone()).await.map(|key| ResultKey {
-                key,
-                signature,
-                reusable: script.cacheable && referenced.iter().all(|r| r.reusable),
-            });
-            if let Some(key) = &key {
-                let file = file_of(index as u32, key.clone()).await;
-                if let Some(slot) = files.get_mut(index) {
-                    *slot = file;
-                }
-            }
-            set_key(&mut keys, index, key);
-        }
-        if !progressed {
-            break;
-        }
-    }
-    keys.into_iter().map(Option::flatten).collect()
 }
 
 #[cfg(test)]

@@ -51,6 +51,8 @@ use session_inputs::{bind_inputs, collect_session_inputs, describe_call, Session
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
+use crate::workbook_run::result_key::{cacheable, script_signature};
+
 /// A relation name: (database, schema, table)
 type Name = (String, String, String);
 
@@ -1313,31 +1315,20 @@ fn finish(
                 meta.planned = planned.get(i).copied().unwrap_or(false);
                 meta.target = targets.contains(&(i as u32));
                 if let Some(p) = prepared.get(i).and_then(Option::as_ref) {
-                    // The signature of the AST, the values that the script binds, `:min=10` per line, and the stamps of the
-                    // attachments it reads, `attachment sales.parquet=<stamp>` per line. The keys of the scripts it
-                    // references cover what they read.
-                    meta.signature = opt(dashql_core::signature::compute_signature(p.parsed).ok().map(|signature| {
-                        // The values in the Hyper dialect, the key covers the connection
-                        let values = bind_inputs(&state.inputs, p, None, FormattingDialect::HYPER).values;
-                        let attachments: BTreeSet<(&str, &str)> = references
-                            .of(i as u32)
-                            .iter()
-                            .filter_map(|r| request.attachments.get(r.attachment? as usize))
-                            .map(|a| (a.file, a.stamp))
-                            .collect();
-                        std::iter::once(signature)
-                            .chain(values.iter().map(|(name, value)| format!(":{name}={value}")))
-                            .chain(attachments.iter().map(|(file, stamp)| format!("attachment {file}={stamp}")))
-                            .collect::<Vec<_>>()
-                            .join("\n")
-                    }));
-                    // Queries only, a client function call asks a service and not the backend. The scripts that a script
-                    // references are single queries or calls, or the plan is invalid, and the key of a script that
-                    // references a call isn't reusable either.
-                    meta.cacheable = p.parses()
-                        && !p.parsed.statements.is_empty()
-                        && p.parsed.statements.iter().all(|s| matches!(s.statement_type, Type::SELECT | Type::EXPLAIN))
-                        && p.analyzed.client_function_calls.is_empty();
+                    // The signature of the script for its result key (`workbook_run::result_key`): the values that it
+                    // binds, in the Hyper dialect whatever the connection, and the attachments that it reads. The keys
+                    // of the scripts it references cover what they read.
+                    let values = bind_inputs(&state.inputs, p, None, FormattingDialect::HYPER).values;
+                    let attachments: BTreeSet<(&str, &str)> = references
+                        .of(i as u32)
+                        .iter()
+                        .filter_map(|r| request.attachments.get(r.attachment? as usize))
+                        .map(|a| (a.file, a.stamp))
+                        .collect();
+                    meta.signature = opt(script_signature(p.parsed, values.iter(), attachments));
+                    // The scripts that a script references are single queries or calls, or the plan is invalid, and the
+                    // key of a script that references a call isn't reusable either
+                    meta.cacheable = cacheable(p.parsed, !p.analyzed.client_function_calls.is_empty());
                     meta.terminal_statement_id = p.terminal().unwrap_or(NONE);
                     meta.referenced_scripts = opt_vec(references.producers_of(i as u32));
                 } else {

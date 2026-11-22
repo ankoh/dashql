@@ -14,6 +14,7 @@
 mod engine;
 pub mod plan;
 pub mod report;
+pub mod result_key;
 
 use std::future::Future;
 use std::pin::Pin;
@@ -22,7 +23,8 @@ use crate::executor::{HostValue, QueryId, StoredFile};
 use crate::host::{Host, HostError};
 use crate::workbook::{ScriptKey, WorkbookEffect};
 pub use engine::{start_run, RunHandle};
-pub use plan::{PlanRun, PlannedStatement, ResultKey};
+pub use plan::{PlanRun, PlannedStatement};
+pub use result_key::ResultKey;
 
 /// The target of the log messages of the runs
 pub const LOG_TARGET: &str = "workbook_execution";
@@ -116,8 +118,6 @@ pub trait RunHost: Host {
     /// Cancel a statement, completes once it is cancelled
     fn cancel(&self, connection_id: &str, query_id: QueryId) -> impl Future<Output = ()> + 'static;
 
-    /// The result key of a signature on a connection, none if the connection has no key
-    fn result_key(&self, connection_id: &str, signature: &str) -> impl Future<Output = Option<String>> + 'static;
     /// Can the statements of a connection run? The scripts of one that can't use their stored results whatever their
     /// keys, the others are skipped with the scripts that follow them.
     fn can_run(&self, connection_id: &str) -> bool;

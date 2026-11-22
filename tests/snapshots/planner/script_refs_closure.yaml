@@ -28,7 +28,7 @@ planner-snapshots:
           target: true
           cacheable: false
           terminal-statement-id: 1
-          signature: "55819948fb720c977a581edf202c54d1"
+          signature: "f73ce7a897092927bf521b7f89887d406854c3dec8a167d98f307881492b0d28"
       entities:
         - catalog-id: '256.65536.4294967296'
           type: TABLE
@@ -101,7 +101,7 @@ planner-snapshots:
           target: false
           cacheable: true
           terminal-statement-id: 0
-          signature: "83535331750a8a5f217be1181659b5d0"
+          signature: "54520949caf0dcadecdd71018b56f8d28aa5c5ad9eb19735bb4492e6a611bf01"
         - name: bar
           text-version: 1
           analyzed-text-version: 1
@@ -109,7 +109,7 @@ planner-snapshots:
           target: true
           cacheable: true
           terminal-statement-id: 0
-          signature: "c49855075db7fc81b583c5fc1263e2ea"
+          signature: "47790eaa3787886335a4bbdf07e7b268f9502326c7cbd0ce2e66584c9e4aff0e"
           references: [foo]
       entities:
         - catalog-id: '256.65536.4294967296'
@@ -186,7 +186,7 @@ planner-snapshots:
           target: false
           cacheable: true
           terminal-statement-id: 0
-          signature: "5749fe93f8e03dc684cbd2429875b9cb"
+          signature: "5d361679cf6d12589ba8284796c02d7769d132b16e60cd407e6b2f046d255df0"
         - name: foo
           connection: trino
           text-version: 1
@@ -195,7 +195,7 @@ planner-snapshots:
           target: false
           cacheable: true
           terminal-statement-id: 0
-          signature: "ea1467533287c6d1e4b533bc7869112a"
+          signature: "2c135678f11dadf7837700da4be612e9fc590eded0bd2994c21acb3301d0ec4d"
           references: [base]
         - name: bar
           connection: local
@@ -205,7 +205,7 @@ planner-snapshots:
           target: true
           cacheable: true
           terminal-statement-id: 0
-          signature: "670fb61433cfa2fc1a498d98d9c9f4c1"
+          signature: "857b812b7b1da19218af5212fa500d79680cfcd1b23e96f5ee134167b8e09de4"
           references: [foo]
       entities:
         - catalog-id: 'trino/256.65536.4294967296'
@@ -312,7 +312,7 @@ planner-snapshots:
           target: false
           cacheable: true
           terminal-statement-id: 0
-          signature: "91551d17072e050d068d8299619d6ac2"
+          signature: "8806b1fafe135c97b3fd8f6678ec294b665ca907669ecae686e1cd39cb2a17cf"
         - name: bar
           connection: local
           text-version: 1
@@ -321,7 +321,7 @@ planner-snapshots:
           target: true
           cacheable: true
           terminal-statement-id: 0
-          signature: "670fb61433cfa2fc1a498d98d9c9f4c1"
+          signature: "857b812b7b1da19218af5212fa500d79680cfcd1b23e96f5ee134167b8e09de4"
           references: [foo]
       entities: []
       unresolved-references: []
@@ -398,7 +398,7 @@ planner-snapshots:
           target: false
           cacheable: true
           terminal-statement-id: 0
-          signature: "91551d17072e050d068d8299619d6ac2"
+          signature: "8806b1fafe135c97b3fd8f6678ec294b665ca907669ecae686e1cd39cb2a17cf"
         - name: foo
           connection: trino
           text-version: 1
@@ -407,7 +407,7 @@ planner-snapshots:
           target: false
           cacheable: true
           terminal-statement-id: 0
-          signature: "e4bbf6f16aaa6ff884d2fe88c1defbfd"
+          signature: "171364c83560d3274e91b71d3b3c5e121da543e647707aff1938192c5daab61c"
           references: [base]
         - name: bar
           connection: local
@@ -417,7 +417,7 @@ planner-snapshots:
           target: true
           cacheable: true
           terminal-statement-id: 0
-          signature: "670fb61433cfa2fc1a498d98d9c9f4c1"
+          signature: "857b812b7b1da19218af5212fa500d79680cfcd1b23e96f5ee134167b8e09de4"
           references: [foo]
       entities: []
       unresolved-references: []
@@ -493,7 +493,7 @@ planner-snapshots:
           analyzed-catalog-revision: 2
           cacheable: true
           terminal-statement-id: 0
-          signature: "91551d17072e050d068d8299619d6ac2"
+          signature: "8806b1fafe135c97b3fd8f6678ec294b665ca907669ecae686e1cd39cb2a17cf"
         - name: bar
           connection: local
           text-version: 1
@@ -501,7 +501,7 @@ planner-snapshots:
           analyzed-catalog-revision: 1
           cacheable: true
           terminal-statement-id: 0
-          signature: "670fb61433cfa2fc1a498d98d9c9f4c1"
+          signature: "857b812b7b1da19218af5212fa500d79680cfcd1b23e96f5ee134167b8e09de4"
           references: [foo]
       entities: []
       unresolved-references: []
@@ -576,7 +576,7 @@ planner-snapshots:
           analyzed-catalog-revision: 2
           cacheable: true
           terminal-statement-id: 0
-          signature: "91551d17072e050d068d8299619d6ac2"
+          signature: "8806b1fafe135c97b3fd8f6678ec294b665ca907669ecae686e1cd39cb2a17cf"
         - name: foo
           connection: trino
           text-version: 1
@@ -584,7 +584,7 @@ planner-snapshots:
           analyzed-catalog-revision: 2
           cacheable: true
           terminal-statement-id: 0
-          signature: "e4bbf6f16aaa6ff884d2fe88c1defbfd"
+          signature: "171364c83560d3274e91b71d3b3c5e121da543e647707aff1938192c5daab61c"
           references: [base]
         - name: bar
           connection: local
@@ -593,7 +593,7 @@ planner-snapshots:
           analyzed-catalog-revision: 1
           cacheable: true
           terminal-statement-id: 0
-          signature: "670fb61433cfa2fc1a498d98d9c9f4c1"
+          signature: "857b812b7b1da19218af5212fa500d79680cfcd1b23e96f5ee134167b8e09de4"
           references: [foo]
       entities:
         - catalog-id: 'trino/256.65536.4294967296'
@@ -716,7 +716,7 @@ planner-snapshots:
           target: true
           cacheable: false
           terminal-statement-id: 1
-          signature: "a244c409eaf7ad2c611dd381493c5b50"
+          signature: "60fa4aa9f590df4673af6e9f46ab0180c4e77da6cddcafe5fb97517c6b0802c5"
       entities: []
       unresolved-references: []
       nodes:
@@ -776,7 +776,7 @@ planner-snapshots:
           target: true
           cacheable: true
           terminal-statement-id: 0
-          signature: "c8595780b6a1d0907207574c4ca84249"
+          signature: "c0990a551fbe18f2bd247597a1991526f505f263515452d4c8d35a944fbff4d5"
       entities: []
       unresolved-references: []
       nodes:
@@ -821,7 +821,7 @@ planner-snapshots:
           target: true
           cacheable: true
           terminal-statement-id: 0
-          signature: "c49855075db7fc81b583c5fc1263e2ea"
+          signature: "47790eaa3787886335a4bbdf07e7b268f9502326c7cbd0ce2e66584c9e4aff0e"
           references: [foo]
       entities: []
       unresolved-references: []
@@ -863,7 +863,7 @@ planner-snapshots:
           target: false
           cacheable: true
           terminal-statement-id: 0
-          signature: "2b97ce5a40e0e1614e916b5d11e7250e"
+          signature: "d73d5aa00b3ddcc9fa06fae26a47d9a8a569f98d375f9f68460ed8a83fa92a5d"
         - name: bar
           text-version: 1
           analyzed-text-version: 1
@@ -871,7 +871,7 @@ planner-snapshots:
           target: true
           cacheable: false
           terminal-statement-id: 1
-          signature: "67ebecf0914faf9fe3122f08e6d7e949"
+          signature: "6ee3fff27e9843d594f8eac1c8deace0bac09f6a4c35a8c2f9f646756009f68d"
           references: [reads]
         - name: baz
           text-version: 1
@@ -880,7 +880,7 @@ planner-snapshots:
           target: true
           cacheable: true
           terminal-statement-id: 0
-          signature: "81532dcb995d8f464807c4b32fba8533"
+          signature: "bbc5b0719c90853666d2aa97031590daea5695e052273f0ac026a73266154fde"
           references: [reads]
       entities:
         - catalog-id: '256.65536.8589934592'

@@ -30,7 +30,7 @@ use dashql_core_runtime::executor::{FailureKind, QueryId, ResultRequest, StoredF
 use dashql_core_runtime::host::{Host, HostError, LogLevel, OnHost};
 use dashql_core_runtime::query::{QueryError, QueryExecutionAction, QueryExecutionState, QueryMetadata, QueryType};
 use dashql_core_runtime::workbook::{next_revision, RunPlanRequest, Workbook, WorkbookAction, WorkbookEffect};
-use dashql_core_runtime::workbook_run::plan::result_keys;
+use dashql_core_runtime::workbook_run::result_key::result_keys;
 use dashql_core_runtime::workbook_run::{
     start_run, PlanRun, ResultKey, RetainedFile, RunFailureKind, RunHandle, RunHost, RunOptions, RunState, ScriptEvent,
     StatementFailure, StatementHandle, StatementRequest, StatementResult, LOG_TARGET,
@@ -930,23 +930,16 @@ impl Runs {
     ) -> Result<LocalFuture<Vec<Option<ResultKey>>>, String> {
         let workbook =
             self.workbooks.get(workbook_id).ok_or_else(|| format!("no workbook registered with id {workbook_id}"))?;
-        let (graph, scripts) = {
+        let (graph, names) = {
             let workbook = workbook.try_borrow().map_err(|_| "the workbook is busy".to_string())?;
             let request = RunPlanRequest {
                 targets: targets.as_deref(),
                 mount_prefix: "/mnt/external/dashql-keys",
                 ..RunPlanRequest::default()
             };
-            let scripts: Vec<(String, String)> = workbook
-                .scripts()
-                .iter()
-                .map(|script| (script.connection().connection_id.clone(), script.file_name().to_string()))
-                .collect();
-            (workbook.plan_run(&request), scripts)
+            let names: Vec<String> = workbook.scripts().iter().map(|script| script.file_name().to_string()).collect();
+            (workbook.plan_run(&request), names)
         };
-        let (scripts, names): (Vec<String>, Vec<String>) = scripts.into_iter().unzip();
-        let connections = self.connections.clone();
-        let scripts = Rc::new(scripts);
         let platform = self.platform.clone();
         let workbook_id = workbook_id.to_string();
         Ok(Box::pin(async move {
@@ -960,15 +953,9 @@ impl Runs {
                 },
                 None => Vec::new(),
             };
-            let key_scripts = scripts.clone();
             result_keys(
                 &graph,
-                move |script, signature| {
-                    connections.result_key(
-                        key_scripts.get(script as usize).map(String::as_str).unwrap_or_default(),
-                        &signature,
-                    )
-                },
+                |_script, key| std::future::ready(Some(key)),
                 |script, _key| std::future::ready(files.get(script as usize).cloned().flatten()),
             )
             .await
@@ -1085,10 +1072,6 @@ impl RunHost for RuntimeRunHost {
 
     fn cancel(&self, _connection_id: &str, query_id: QueryId) -> impl Future<Output = ()> + 'static {
         self.connections.cancel(query_id)
-    }
-
-    fn result_key(&self, connection_id: &str, signature: &str) -> impl Future<Output = Option<String>> + 'static {
-        self.connections.result_key(connection_id, signature)
     }
 
     fn can_run(&self, connection_id: &str) -> bool {

@@ -100,7 +100,6 @@ class TestPlatform {
         results: null,
         crypto: {
             randomUuid: () => `uuid-${this.next}`,
-            sha256: async bytes => new Uint8Array(await crypto.subtle.digest('SHA-256', bytes as Uint8Array<ArrayBuffer>)),
         },
         oauth: NO_OAUTH,
         extensions: { loadSpec: () => Promise.reject(new Error('no extensions')) },

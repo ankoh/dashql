@@ -53,7 +53,7 @@ function platform() {
             cancel: async () => { },
         },
         results: null,
-        crypto: { randomUuid: () => 'uuid', sha256: () => Promise.reject(new Error('no digests')) },
+        crypto: { randomUuid: () => 'uuid' },
         oauth: NO_OAUTH,
         extensions: { loadSpec: () => Promise.reject(new Error('no extensions')) },
         storage: null,

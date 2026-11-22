@@ -83,50 +83,49 @@ or removed.
 
 ## Result Keys
 
-Each result is named after a lowercase SHA-256 digest:
+Each result is named after a lowercase SHA-256 digest of the signature of its script:
 
 ```
-SHA-256("dashql-query-cache-v3" + framed(stableJson(connectionParamsSignature), scriptAstSignature))
+SHA-256("dashql-result-v4\n" + AST signature
+        + ":name=value" per bound input + "attachment file=stamp" per attachment
+        + "<key> <file>" per referenced script)
 ```
 
-The runtime derives the key in Rust (`executor::cache_key` of `dashql-core-runtime`, `Connections::result_key` of the
-bindings): `connection_cache_signature` produces the connector-specific signature from the setup params of the
-connection and excludes transient connection state, `result_key_input` sorts the object keys recursively and frames
-both signatures by their lengths in UTF-16 code units. The platform computes the digest (`crypto.sha256`). DashQL core
-derives the script signature from the parser output: statement order, identifiers, literals, operators, and AST
-structure participate, while whitespace, comments, source offsets, and parser allocation IDs do not. All statements
-contribute, including commands preceding the terminal result statement.
+Everything about the keys is in one file, `workbook_run/result_key.rs` of `dashql-core-runtime`: the signature of the
+AST, the signature of a script, the keys of the scripts of a plan in the order of their references, and SHA-256, our
+own implementation. The key covers what a result depends on in the workbook, never the connection: who ran a query
+and where stays out of the files and the archives.
 
-The plan of a script records its AST signature and whether it is cacheable (`ExecutionGraphScript.signature` and
-`cacheable`). A script that references other scripts with table parameters (`:foo`, see `script_references.md`)
-appends the key of each referenced script and the name of its file to its AST signature, `<key> <file>` per line, or
-the key alone for a script without a file. The name of a file is new for every result, so a new result of `foo.sql`
-is a new key of `bar.sql`, which references it, and of every script downstream of `bar.sql`: a refresh of `foo.sql`
-outdates them, and the next run computes them anew. A run settles the scripts in the order of their references and
-names the file of a script before the keys of the scripts downstream of it: the stored file that it reuses, the new
-file that it writes, named when the run plans, or, for a script that the run doesn't run, e.g. one that another script
-inlines, its stored file. The lookup of the stored results takes the files of the listing. The AST signature of a script that binds
-inputs is followed by their literals, `:min=10` per line (`workbook_inputs.md`), a new value is a new key. A script
-that reads attachments is followed by their stamps, `attachment sales.parquet=<stamp>` per line, a changed file is a
-new key. Every planned script has a result key (`result_keys` in `workbook_run/plan.rs` of the core runtime). For a
-terminal query with `@vis` tags the signature excludes the tags, they are comments: result analysis and visualization
-projection run after the result was read, so visualization-only edits reuse the same raw result.
+- **The AST signature** covers the parser output: statement order, identifiers, literals, operators and the AST
+  structure, the commands before the terminal query too. Whitespace, comments, `@vis` tags, source offsets and
+  parser ids don't count: visualization-only edits reuse the same raw result, its analysis and projection run after
+  it was read.
+- **The script signature** follows the AST signature with the literals of the inputs that the script binds, `:min=10`
+  per line in the Hyper dialect whatever the connection (`workbook_inputs.md`), and the stamps of the attachments
+  that it reads, `attachment sales.parquet=<stamp>` per line: a new value or a changed file is a new key. The planner
+  collects them and records the signature and whether the script is cacheable (`ExecutionGraphScript.signature` and
+  `cacheable`).
+- **References.** A script that references other scripts with table parameters (`:foo`, see `script_references.md`)
+  appends the key of each referenced script and the name of its file, `<key> <file>` per line, or the key alone for a
+  script without a file. The name of a file is new for every result, so a new result of `foo.sql` is a new key of
+  `bar.sql`, which references it, and of every script downstream of `bar.sql`: a refresh of `foo.sql` outdates them,
+  and the next run computes them anew. A run settles the scripts in the order of their references (`result_keys`) and
+  names the file of a script before the keys of the scripts downstream of it: the stored file that it reuses, the new
+  file that it writes, named when the run plans, or, for a script that the run doesn't run, e.g. one that another
+  script inlines, its stored file. The lookup of the stored results takes the files of the listing.
 
-A script whose connection has no key, e.g. a Salesforce connection whose account is still unknown, stores no result;
-a result that it materializes for another script is a transient file.
+A workbook without stored results gives its scripts no keys; a result that a run materializes for another script is
+a transient file then.
 
-The connection signature keys results per login: a result is the result of the user who ran the query, row-level
-security or the sharing rules of Salesforce may show another user other rows of the same tables. A Trino connection
-with basic auth is keyed by its user; one with OAuth by the account of its token, the `sub` of the token response or
-of its OpenID Connect id token. A Salesforce or Database.com connection is keyed by the account that the user info of
-its login named, a login hint that the user typed never keys a result. The credentials stay out, a new token of the
-same login reuses the results. A Hyper connection is keyed by its endpoint, its attached databases and its session
-settings; the Hyper of a link (`V3_HTTP_LINK`) adds the fingerprint of the token of its link (FNV-1a), so another
-Hyper that listens on the same port later never serves the results of an earlier one.
+The connection doesn't key a result. A result of the same workbook is reused after a change of the login or of the
+connection, e.g. another account of a Trino connection, another endpoint, other default catalogs or other attached
+databases of the embedded Hyper, until Refresh replaces it. A result that someone else computed never comes in
+through a key: an import writes its results under a key that matches no script (Exported and Published Results).
 
 The key is a check, not an address: the file of a script is found by the script name, the key in its name tells
-whether the result still fits the script. Keys may change between versions of DashQL, a result of another version is
-shown all the same and runs again once the user runs it.
+whether the result still fits the script. Keys may change between versions of DashQL, change the namespace when anything
+that goes into a key changes: a result of another version is shown all the same, stands in for its script while the
+connection can't run, and runs again once the user runs it on its connection.
 
 ## Reuse
 
@@ -153,9 +152,8 @@ health-check queries.
 connections that are online when the run starts). A script whose connection can't run doesn't run, so it doesn't keep
 the scripts after it from reusing their results: the script can't change what they read during the run. A script of
 such a connection uses its stored result whatever its key: the key of the file is the key of the script for the run
-(`key_of` of `workbook_run/engine.rs`), also for a connection without a key, e.g. a Trino connection with OAuth that
-isn't logged in. A result of another login, of another version of the keys or of an earlier text of the script is
-better than none: a `.dashql` file with its results renders without its connections, also after the keys changed. The
+(`key_of` of `workbook_run/engine.rs`), e.g. for a Trino connection with OAuth that isn't logged in. An imported
+result, a result of another version of the keys or of an earlier text of the script is better than none: a `.dashql` file with its results renders without its connections, also after the keys changed. The
 card marks such a result as outdated, the log names the key of the script and the key of the file. The scripts
 downstream of it cover its file like any reused file and scan it. A refresh uses no stored result. A script of such a
 connection without a stored result, or one that isn't cacheable, is skipped with every statement that follows it. A
@@ -254,18 +252,18 @@ file and its table (`script_name`, `cache_key`, `table_name`, see `workbook_tabl
 every script, also an outdated one: it is what the card shows. It retains the files until the archive holds them.
 
 An import doesn't trust the keys. It adds every result whose script name names a script of the imported workbook as the
-file of that script, with the key of the row in its name (`importFile`), and the cards show the results when the
-workbook opens. A run on a connection that is online reuses an imported result only if its key happens to match, e.g.
-the same version of DashQL on a connection of the same account; otherwise the first run computes it anew. While the
-connection can't run, Execute All uses the imported result whatever its key (Reuse), so a dashboard over a connection
-that the app can't reach, e.g. Trino in the browser, renders from the results of the archive. The import checks the CRC-32 that the
+file of that script, under a key that matches no script (`UNMATCHED_RESULT_KEY`, 64 zeros, `importFile`), and the
+cards show the results when the workbook opens. While the connection of a script can't run, Execute All uses the
+imported result (Reuse), so a dashboard over a connection that the app can't reach, e.g. Trino in the browser,
+renders from the results of the archive. A run on a connection that runs computes it anew under the login of the
+user: row-level security or the sharing rules of Salesforce may show another user other rows of the same tables. The import checks the CRC-32 that the
 archive stores for each stored result while it streams it, a result that differs leaves no file. Each result succeeds
 or fails on its own, the log names each one.
 
 Archives of earlier versions name only the key of a result (`workbook_results` without `script_name`, or
 `results/<key>.parquet` of a folder archive). The import plans the imported workbook once its connections are resolved
 and adds each result whose key is the key of a script as the file of that script; the other results are left out
-and counted.
+and counted. Their keys are keys of earlier versions, which include the connection, so they match no script any more.
 
 A published workbook carries its results the same way, `workbook_results` of the cloud holds the script name too
 (`cloud.md`). A preview of a published version imports them into the results of the preview workbook, and they go
@@ -273,8 +271,9 @@ with it.
 
 - The results hold query data, the toggle says so. The credentials of the connections stay out of the file, the data
   doesn't.
-- An imported result is shown and may be reused if its key matches: an archive from someone else can put results in
-  front of the backend of a connection of the app until Refresh replaces them. Import files only from people you trust.
+- An imported result is shown and stands in for its script while the connection can't run: an archive from someone
+  else can put results in front of a connection of the app until a run on the connection replaces them. Import files
+  only from people you trust.
 - Links never carry results, an import of a link drops them.
 
 ## Upgrading
@@ -295,8 +294,8 @@ leaves the stored results as they were.
 
 ## Limits and Correctness
 
-- The key covers the connection signature and the AST signature, not a TTL, a backend data version or a catalog
-  version. A reused result may be stale after a backend changed: Refresh replaces it.
+- The key covers the signature of the script, not the connection, a TTL, a backend data version or a catalog version.
+  A reused result may be stale after a backend or the connection changed: Refresh replaces it.
 - The key of a script covers the stored files of the scripts it references, not the tables that it reads otherwise. A
   script that reads a table that a script before it creates, without a reference, runs after it in a run of both: the
   creating script is no query, it always runs, and the scripts that follow a script that runs don't reuse their
@@ -309,8 +308,7 @@ leaves the stored results as they were.
 ## Implementation References
 
 - Names, selection and garbage: `packages/dashql-core-storage/src/workbook_format/results.rs`
-- Key derivation: `packages/dashql-core-runtime/src/executor/cache_key.rs`, the signatures of the connectors in
-  `hyper/descriptor.rs`, `trino/descriptor.rs` and `salesforce/mod.rs`
+- Keys, signatures and SHA-256: `packages/dashql-core-runtime/src/workbook_run/result_key.rs`
 - Platform contract: `packages/dashql/src/platform/workbook/workbook_result_files.ts`
 - Executor integration: `packages/dashql-core-bindings/src/runtime/queries.rs` and
   `packages/dashql/src/runtime/query/query_channels.ts`

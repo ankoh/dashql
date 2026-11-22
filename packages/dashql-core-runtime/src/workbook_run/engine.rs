@@ -14,9 +14,10 @@ use std::task::{Context, Poll};
 use dashql_buffers::execution::ExecutionGraphT;
 
 use super::plan::{
-    affected_scripts, describe_plan_errors, edges, nodes, planned_statements, result_keys, script_follows,
-    skipped_nodes, visualization_is_valid, PlanRun, PlannedStatement, ResultKey, NONE,
+    affected_scripts, describe_plan_errors, edges, nodes, planned_statements, script_follows, skipped_nodes,
+    visualization_is_valid, PlanRun, PlannedStatement, NONE,
 };
+use super::result_key::{result_keys, ResultKey};
 use super::{
     RunFailure, RunFailureKind, RunHost, RunOptions, RunPhase, RunResult, RunState, ScriptEvent, StatementRequest,
     StatementResult,
@@ -492,32 +493,34 @@ impl<H: RunHost> Run<H> {
     }
 
     /// The key of the result of a script from its signature
-    /// The key of a script from its signature. A script of a connection that can't run takes the key of its stored file,
-    /// whatever key the script has now or whether it has one: the stored result is all that the run can show of it, so
-    /// another login, another version of the keys or an earlier text of the script never keeps a result from rendering.
-    /// The file stays retained until the run released its files. A refresh reuses nothing and keeps the key.
+    /// The key of a script for the run, none without stored results. A script of a connection that can't run takes the
+    /// key of its stored file, whatever key the script has now: the stored result is all that the run can show of it, so
+    /// another version of the keys or an earlier text of the script never keeps a result from rendering. The file stays
+    /// retained until the run released its files. A refresh reuses nothing and keeps the key.
     fn key_of(self: &Rc<Self>) -> impl Fn(u32, String) -> Pin<Box<dyn Future<Output = Option<String>>>> {
         let run = self.clone();
-        move |script, signature| {
+        move |script, key| {
             let run = run.clone();
             Box::pin(async move {
+                if !run.host.has_results() {
+                    return None;
+                }
                 let connection = run.connection_of(script);
-                let key = run.host.result_key(connection, &signature).await;
-                if run.options.refresh || !run.host.has_results() || run.host.can_run(connection) {
-                    return key;
+                if run.options.refresh || run.host.can_run(connection) {
+                    return Some(key);
                 }
                 let Some(retained) = run.host.result_retain(&run.file(script)).await.ok().flatten() else {
-                    return key;
+                    return Some(key);
                 };
                 run.kept.borrow_mut().push(retained.id);
-                if key.as_deref() != Some(retained.file.key.as_str()) {
+                if key != retained.file.key {
                     run.log(
                         LogLevel::Info,
                         "A script whose connection can't run uses its stored result of another key",
                         vec![
                             detail("workbookId", run.workbook_id.clone()),
                             detail("script", run.file(script)),
-                            detail("key", key.unwrap_or_default()),
+                            detail("key", key),
                             detail("storedKey", retained.file.key.clone()),
                         ],
                     );

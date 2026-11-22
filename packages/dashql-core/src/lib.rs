@@ -25,7 +25,6 @@ pub mod result_projection;
 pub mod script;
 pub mod script_diff;
 pub mod script_session;
-pub mod signature;
 pub mod sql_literal;
 pub mod table_parameters;
 pub mod touched_relations;

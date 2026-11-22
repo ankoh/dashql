@@ -17,6 +17,7 @@ use dashql_core_runtime::connections::label::{connection_params_label_of_value, 
 use dashql_core_runtime::connections::sharing::descriptor_of_params;
 use dashql_core_runtime::handles::Handle;
 use dashql_core_runtime::host::{HostError, LogLevel};
+use dashql_core_runtime::workbook_run::result_key::UNMATCHED_RESULT_KEY;
 use dashql_core_runtime::workbook_run::ResultKey;
 use dashql_core_storage::storage::{HoldReason, WriteError, WriteOutcome, WriteTask};
 use dashql_core_storage::workbook_format::bundle::{
@@ -1030,7 +1031,8 @@ impl Imports {
         Some(ImportedResults::from(&outcome))
     }
 
-    /// Add one imported result as the file of a script
+    /// Add one imported result as the file of a script. The file takes a key that matches no script: the result shows
+    /// and stands in for its script while the connection can't run, a run on the connection computes it anew.
     async fn import_result(
         &self,
         workbook_id: &str,
@@ -1039,8 +1041,8 @@ impl Imports {
         outcome: &mut ImportedWorkbookQueryResults,
     ) {
         let added = async {
-            let name: String = results::new_file_name(&self.platform, script, &result.key)?
-                .ok_or_else(|| HostError::new(format!("the result of {script} has no valid key: {}", result.key)))?;
+            let name: String = results::new_file_name(&self.platform, script, UNMATCHED_RESULT_KEY)?
+                .ok_or_else(|| HostError::new(format!("the result of {script} has no valid name")))?;
             // The older files of the script are garbage of the next listing, the imported file is the newest
             self.platform.results_import(workbook_id, &name, result.bytes.handle, result.crc32).await?;
             Ok::<(), HostError>(())

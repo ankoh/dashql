@@ -166,7 +166,7 @@ platform). Without them, a run mounts no results of other connections and stores
 Hyper (`ScriptConnection.local`).
 
 The result key of a script covers the keys of the scripts it references and the names of their files (`result_keys` in
-`workbook_run/plan.rs` of the core runtime, see `workbook_results.md`): a new result of a script outdates the scripts
+`workbook_run/result_key.rs` of the core runtime, see `workbook_results.md`): a new result of a script outdates the scripts
 downstream of it. When the key is reusable, i.e. the script and the scripts it references are cacheable, a
 materialized script whose stored result has its key is reused instead of running (`materialized` of
 the plan): the plan scans the file of the script. The stored result of the script is reused when nothing it follows

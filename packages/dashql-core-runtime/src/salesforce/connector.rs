@@ -113,15 +113,4 @@ impl Connector for SalesforceConnector {
         (!self.is_dbcom())
             .then_some(&crate::salesforce::client_functions::DATA_360 as &'static dyn ClientFunctionBinding)
     }
-
-    fn cache_signature(&self, params: &JsonObject) -> Value {
-        crate::salesforce::cache_signature(self.connector_type, params)
-    }
-
-    /// A login keys its results by the account of its user info, never by a hint that the user typed
-    fn sign_login(&self, signature: &mut Value, _setup_params: &JsonObject, details: &ConnectionDetails) -> Option<()> {
-        let principal = details.salesforce().and_then(|salesforce| salesforce.principal.clone())?;
-        signature.as_object_mut()?.insert("login".to_string(), Value::String(principal));
-        Some(())
-    }
 }

@@ -10,7 +10,7 @@ use dashql_core_runtime::connections::label::*;
 use dashql_core_runtime::connections::sharing::sanitize_connection_params_for_sharing;
 use dashql_core_runtime::connections::*;
 use dashql_core_runtime::http::{Body, HostBytes};
-use dashql_core_runtime::hyper::descriptor::{cache_signature, reads_attachments};
+use dashql_core_runtime::hyper::descriptor::reads_attachments;
 use dashql_core_runtime::hyper::embedded::*;
 use dashql_core_runtime::hyper::link::*;
 use dashql_core_runtime::hyper::local_cloud::*;
@@ -1098,11 +1098,6 @@ fn the_descriptor_of_the_hyper_connector() {
     let shared = shared["hyper"].as_object().unwrap();
     assert!(!shared.contains_key("metadata") && !shared.contains_key("queryParameters"));
     assert_eq!(shared["tls"], json!({ "clientKeyPath": "", "clientCertPath": "", "caCertsPath": "" }));
-    // The text is the contract: it goes into the keys of the stored results, another text misses them all
-    assert_eq!(
-        cache_signature(&params).to_string(),
-        r#"{"case":"hyper","protocol":"V3_HTTP","channelArgs":{"endpoint":"https://hyper.example","tls":{"clientKeyPath":"/key","clientCertPath":"","caCertsPath":""}},"attachedDatabases":[{"path":"a","alias":"x"},{"path":"b","alias":"y"}],"queryParameters":[["lc_time","de_DE"],["time_zone","UTC"]]}"#
-    );
     assert!(reads_attachments(&ConnectionDetails::default_for(ConnectorType::Hyper)));
     assert!(!reads_attachments(&ConnectionDetails::new(&ConnectionParams::new(ConnectorType::Hyper, params))));
     assert!(!reads_attachments(&ConnectionDetails::default_for(ConnectorType::Trino)));

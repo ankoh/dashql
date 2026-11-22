@@ -59,8 +59,8 @@ export interface RuntimePlatform {
     readonly results: RuntimeResults | null;
     /** The attachments of the workbooks in the compute database. Null without a compute database that reads Parquet files. */
     readonly mounts: RuntimeMounts | null;
-    /** Random ids and the SHA-256 digests of the result keys */
-    crypto: { randomUuid(): string; sha256(bytes: Uint8Array): Promise<Uint8Array> };
+    /** Random ids */
+    crypto: { randomUuid(): string };
     /** The OAuth flows of the setups */
     oauth: RuntimeOAuth;
     /** The specs of the client functions of the extensions, the JSON text */
@@ -1005,19 +1005,6 @@ impl JsPlatform {
     pub fn forget_channel_query(&self, query_id: f64) {
         if let Ok(channels) = self.member("channels") {
             let _ = call(&channels, "forget", &[JsValue::from_f64(query_id)]);
-        }
-    }
-
-    /// The SHA-256 digest of bytes, computed by the platform
-    pub fn sha256(&self, bytes: &[u8]) -> impl Future<Output = Result<Vec<u8>, HostError>> + 'static {
-        let call = self.member("crypto").and_then(|crypto| call(&crypto, "sha256", &[Uint8Array::from(bytes).into()]));
-        async move {
-            let digest = settled(call).await?;
-            if !digest.is_object() {
-                return Err(HostError::new("the platform returned no digest"));
-            }
-            // The bytes may come from another realm, they are copied by value
-            Ok(Uint8Array::new(&digest).to_vec())
         }
     }
 

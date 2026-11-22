@@ -6,7 +6,7 @@ use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use base64::Engine;
 use dashql_core_runtime::clfn::HttpResponse;
 use dashql_core_runtime::connections::sharing::sanitize_connection_params_for_sharing;
-use dashql_core_runtime::connections::{ConnectorType, OAuthPkceChallenge};
+use dashql_core_runtime::connections::OAuthPkceChallenge;
 use dashql_core_runtime::salesforce::api::*;
 use dashql_core_runtime::salesforce::auth::*;
 use dashql_core_runtime::salesforce::client_functions::*;
@@ -573,9 +573,4 @@ fn shares_params_without_the_secret() {
     assert_eq!((shared["appConsumerSecret"].as_str(), shared["login"].as_str()), (Some(""), Some("")));
     assert_eq!(sanitize(true)["login"], "u");
     assert_eq!(login_hint(object), Some("u"));
-    assert_eq!(
-        cache_signature(ConnectorType::SalesforceDataCloud, object),
-        json!({ "case": "salesforce", "instanceUrl": "https://org", "appConsumerKey": "k", "login": "u" })
-    );
-    assert_eq!(cache_signature(ConnectorType::Dbcom, object)["databaseName"], "default");
 }

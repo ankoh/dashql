@@ -7,8 +7,6 @@
 //! queries, a fresh channel and HTTP requests (`catalog_update`). The setups and the queries stay in the modules of the
 //! connectors behind their own host traits, see docs/design/dashql_core.md.
 
-use serde_json::Value;
-
 use super::details::{CatalogNameDefaults, ConnectionDetails, Timestamp};
 use super::params::{ConnectorFeatures, ConnectorType, JsonObject};
 use super::RelationName;
@@ -88,20 +86,6 @@ pub trait Connector: Sync {
     /// The client functions of the connections, none if they have none
     fn client_functions(&self) -> Option<&'static dyn ClientFunctionBinding> {
         None
-    }
-
-    /// The params that identify the results of queries, the key of the query result cache depends on them
-    fn cache_signature(&self, params: &JsonObject) -> Value;
-
-    /// Add what the results of a connection depend on beyond its params, e.g. the account of a login, to the signature
-    /// of its params. None while that is unknown: the results get no reusable key then.
-    fn sign_login(
-        &self,
-        _signature: &mut Value,
-        _setup_params: &JsonObject,
-        _details: &ConnectionDetails,
-    ) -> Option<()> {
-        Some(())
     }
 }
 

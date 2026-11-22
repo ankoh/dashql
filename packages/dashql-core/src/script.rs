@@ -224,7 +224,7 @@ impl Script {
     }
 
     /// Parse if the parsed script is missing or was parsed from another text version (the check of
-    /// `statement_text`, `rewrite_vis_board` and `compute_signature`)
+    /// `statement_text` and `rewrite_vis_board`)
     fn parse_if_text_outdated(&mut self) {
         if self.parsed.as_ref().is_none_or(|p| p.scanned.text_version != self.text_version) {
             self.parse();
@@ -308,15 +308,6 @@ impl Script {
             return Err(Error::status(StatusCode::COMPLETION_MISSES_SCANNER_TOKEN));
         }
         Ok(Completion::compute(cursor, limit))
-    }
-
-    /// Compute the signature
-    pub fn compute_signature(&mut self, parse_if_outdated: bool) -> Result<String> {
-        if parse_if_outdated {
-            self.parse_if_text_outdated();
-        }
-        let parsed = self.parsed.as_ref().ok_or_else(|| Error::status(StatusCode::SCRIPT_NOT_PARSED))?;
-        crate::signature::compute_signature(parsed)
     }
 
     /// The text of the first statement without its separator or surrounding trivia

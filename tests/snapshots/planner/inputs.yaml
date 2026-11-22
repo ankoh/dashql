@@ -23,7 +23,7 @@ planner-snapshots:
           analyzed-catalog-revision: 2
           cacheable: true
           terminal-statement-id: 0
-          signature: "b0fae73f5db45062d9ae495fe16858b3\n:day=date '2024-01-01'\n:delta=-2\n:min=10\n:open=true\n:region='EU'\n:span=interval '3' day"
+          signature: "b28fdce0b3b88e005b3cdf9ebd732521b3fb20ff54a86d7799d2cc80e38f412a\n:day=date '2024-01-01'\n:delta=-2\n:min=10\n:open=true\n:region='EU'\n:span=interval '3' day"
       entities:
         - catalog-id: '256.65536.4294967296'
           type: TABLE
@@ -64,7 +64,7 @@ planner-snapshots:
           analyzed-catalog-revision: 2
           cacheable: true
           terminal-statement-id: 0
-          signature: "ded8e0d965d769a405c03efeef725f81\n:day='2024-01-01'\n:min='10'"
+          signature: "12d74ebba5dc340440f3207dadbc4a0c33e4a98fb8692282ebd034b6e0b27280\n:day='2024-01-01'\n:min='10'"
       entities:
         - catalog-id: '256.65536.4294967296'
           type: TABLE
@@ -102,7 +102,7 @@ planner-snapshots:
           analyzed-catalog-revision: 2
           cacheable: true
           terminal-statement-id: 0
-          signature: "8c818840a422fae9f0bfd48bc8699782"
+          signature: "03bd320ce5dd598b7f34977aac16ed04d6412fb84c901ae70c42789bb139140b"
       entities:
         - catalog-id: '256.65536.4294967296'
           type: TABLE
@@ -157,21 +157,21 @@ planner-snapshots:
           analyzed-catalog-revision: 2
           cacheable: true
           terminal-statement-id: 0
-          signature: "11bbc198ae771a1703b978f786c1dd80\n:min=10"
+          signature: "543d04e1c9bc7b983b93ee48cdd0a9f8cffe48d332b2109d6df61306f12f4fc5\n:min=10"
         - name: b
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 2
           cacheable: true
           terminal-statement-id: 0
-          signature: "11bbc198ae771a1703b978f786c1dd80\n:min=10"
+          signature: "543d04e1c9bc7b983b93ee48cdd0a9f8cffe48d332b2109d6df61306f12f4fc5\n:min=10"
         - name: c
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 2
           cacheable: true
           terminal-statement-id: 0
-          signature: "11bbc198ae771a1703b978f786c1dd80\n:min=30"
+          signature: "543d04e1c9bc7b983b93ee48cdd0a9f8cffe48d332b2109d6df61306f12f4fc5\n:min=30"
       entities:
         - catalog-id: '256.65536.4294967296'
           type: TABLE
@@ -237,14 +237,14 @@ planner-snapshots:
           analyzed-catalog-revision: 2
           cacheable: true
           terminal-statement-id: 0
-          signature: "2ee49e5dba8905562547809e8062c8b7\n:day=date '2024-02-01'\n:min=10\n:span=interval '3' day"
+          signature: "b6d89c6263aa23171e6b95c4af55f212b078230b9b41debd26217014d8bf8285\n:day=date '2024-02-01'\n:min=10\n:span=interval '3' day"
         - name: bar
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 2
           cacheable: true
           terminal-statement-id: 0
-          signature: "1eb88cd0e5c10d28223b70fadc087d1d\n:limit=5"
+          signature: "248c88d61a3678558898c6e01d19728984a98cee29a258155e33816724b6e681\n:limit=5"
           references: [foo]
       entities:
         - catalog-id: '256.65536.4294967296'
@@ -323,7 +323,7 @@ planner-snapshots:
           analyzed-catalog-revision: 2
           cacheable: true
           terminal-statement-id: 0
-          signature: "57a791331afb1a545a563c1a5eec83b5\n:day=date '2024-01-01'\n:name='it''s'\n:span=interval '26' hour"
+          signature: "cb66f2757e8104bcbe2211d40cde92fe49a4e36a231aeb67cd0b36755ee7864d\n:day=date '2024-01-01'\n:name='it''s'\n:span=interval '26' hour"
       entities:
         - catalog-id: 'trino/256.65536.4294967296'
           type: TABLE
@@ -372,7 +372,7 @@ planner-snapshots:
           analyzed-catalog-revision: 2
           cacheable: true
           terminal-statement-id: 0
-          signature: "ed640f36681c7b90f76ac9665e01c7ed"
+          signature: "9e8919148b71d4c50be584376ce712eb2017cbce77b0a57b5b25be1abcefc43f"
       entities:
         - catalog-id: 'trino/256.65536.4294967296'
           type: TABLE

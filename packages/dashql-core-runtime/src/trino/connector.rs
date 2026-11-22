@@ -8,8 +8,8 @@ use crate::connections::connector::Connector;
 use crate::connections::is_truthy;
 use crate::connections::sharing::without;
 use crate::connections::{
-    object, trino_session_defaults, CatalogNameDefaults, ConnectionChannel, ConnectionDetails, ConnectorFeatures,
-    ConnectorType, JsonObject, RelationName, Timestamp,
+    object, trino_session_defaults, CatalogNameDefaults, ConnectionDetails, ConnectorFeatures, ConnectorType,
+    JsonObject, RelationName, Timestamp,
 };
 
 /// The Trino connector
@@ -89,23 +89,5 @@ impl Connector for TrinoConnector {
     ) -> Box<dyn ConnectorCatalogUpdate> {
         let setup_params = details.setup_params.clone().unwrap_or_default();
         Box::new(TrinoCatalogUpdate::new(&setup_params, entries, relations))
-    }
-
-    fn cache_signature(&self, params: &JsonObject) -> Value {
-        crate::trino::descriptor::cache_signature(params)
-    }
-
-    /// A login with OAuth keys its results by the account of its token
-    fn sign_login(&self, signature: &mut Value, setup_params: &JsonObject, details: &ConnectionDetails) -> Option<()> {
-        let oauth = setup_params.get("auth").and_then(|auth| auth.get("authType")).and_then(Value::as_str)
-            == Some("AUTH_OAUTH");
-        if oauth {
-            let token =
-                details.channel.as_ref().and_then(ConnectionChannel::trino).and_then(|trino| trino.access_token());
-            let principal = token.and_then(|token| token.principal)?;
-            let auth = signature.get_mut("auth").and_then(Value::as_object_mut)?;
-            auth.insert("principal".to_string(), Value::String(principal));
-        }
-        Some(())
     }
 }

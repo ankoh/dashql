@@ -8,10 +8,9 @@ use crate::catalog_loader::{CatalogEntries, ConnectorCatalogUpdate};
 use crate::connections::connector::Connector;
 use crate::connections::sharing::without;
 use crate::connections::{
-    object, CatalogNameDefaults, ConnectionChannel, ConnectionDetails, ConnectionParams, ConnectorFeatures,
-    ConnectorType, JsonObject, RelationName, Timestamp, DEFAULT_DATABASE_NAME, HYPER_DEFAULT_SCHEMA,
+    object, CatalogNameDefaults, ConnectionDetails, ConnectorFeatures, ConnectorType, JsonObject, RelationName,
+    Timestamp, DEFAULT_DATABASE_NAME, HYPER_DEFAULT_SCHEMA,
 };
-use crate::hyper::link::{hyper_link_token_fingerprint, is_hyper_link_params};
 
 /// The protocol of the embedded Hyper
 pub const EMBEDDED_PROTOCOL: &str = "WASM";
@@ -118,20 +117,5 @@ impl Connector for HyperConnector {
     ) -> Box<dyn ConnectorCatalogUpdate> {
         let setup_params = details.setup_params.clone().unwrap_or_default();
         Box::new(HyperCatalogUpdate::of_hyper(&setup_params, entries, relations, now))
-    }
-
-    fn cache_signature(&self, params: &JsonObject) -> Value {
-        crate::hyper::descriptor::cache_signature(params)
-    }
-
-    /// The results of the Hyper of a link are keyed by the fingerprint of the token of the link, another Hyper on the
-    /// same port never serves them
-    fn sign_login(&self, signature: &mut Value, setup_params: &JsonObject, details: &ConnectionDetails) -> Option<()> {
-        if is_hyper_link_params(&ConnectionParams::new(ConnectorType::Hyper, setup_params.clone())) {
-            let ConnectionChannel::HyperHttp { auth, .. } = details.channel.as_ref()? else { return None };
-            let token = auth.get("authorization")?;
-            signature.as_object_mut()?.insert("link".to_string(), Value::String(hyper_link_token_fingerprint(token)));
-        }
-        Some(())
     }
 }

@@ -143,7 +143,6 @@ DASHQL_CORE_UNIT_TESTS = [
     "table_parameters_test",
     "script_session_test",
     "script_test",
-    "signature_test",
     "sql_types_test",
     "string_conversion_test",
     "topk_test",

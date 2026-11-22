@@ -168,7 +168,7 @@ that wants the composition would depend on that rather than copy it.
   of the connector (`hyper::connector`, `trino::connector`, `salesforce::connector`). It holds the params key, the
   display name, the features, the default params and their draft rows, the probe of the health check, the queries
   that run at once, whether the catalog outlives the app, the params that sharing keeps, the login hint, the parts of
-  a label, the names of unqualified relations, the signature of the result keys, the update of the catalog and the
+  a label, the names of unqualified relations, the update of the catalog and the
   binding of its client functions (`ClientFunctionBinding`, Data 360 on Salesforce Data Cloud). A call hands the
   binding the channel of its connection, which holds the credentials. A new decision of a connector is a method of
   the trait, not another match. The setups stay one match in the bindings crate (`runtime/setups.rs`): their hosts
@@ -227,9 +227,9 @@ that wants the composition would depend on that rather than copy it.
   relations, and the options of the caller (`QueryOptions`: analyze, publish, throw on error, a client function call,
   the read timeout, the stored result of its script). The platform describes only a channel of the host by its handle (`channels.describe`),
   the targets of the channels that the module speaks come from the connection.
-- **The result key** is the lowercase hex SHA-256 of the signature of the connection (`connection_cache_signature`)
-  and the semantic signature of the script (`executor/cache_key.rs`); the digest comes from `crypto.sha256` of the
-  platform. It names the file of the stored result of the script and tells whether a run may reuse it. See
+- **The result key** is the lowercase hex SHA-256 of the signature of the script, its inputs, its attachments and
+  the results it references, never the connection (`workbook_run/result_key.rs`, SHA-256 of our own). It names the
+  file of the stored result of the script and tells whether a run may reuse it. See
   [workbook_results.md](workbook_results.md).
 - **One run object per query.** `QueryRun` of `queries.rs` lives from the registration of a query to the end of its
   last follow-up (the write of its stored result). It is the run of the executor
@@ -403,7 +403,7 @@ the log may differ. A service adds a trait for its I/O:
 | `connection_setup::OAuthHost`, `SetupHost` | The OAuth flows, PKCE and random ids; connecting and closing channels, the token of a Hyper link, the probe of a health check |
 | `executor::ExecutorHost` | The run of a query (`ExecutorHost::Run`) that every call gets: the events of a query, the parts of its result, the stored results of the workbook, the analysis of a result, host channels, time zones |
 | `catalog_loader::CatalogLoaderHost` | The start and end of updates, metadata queries, the specs of client functions |
-| `workbook_run::RunHost` | Statements, the result keys, preparing connections, stored results, the files of a run (mounts), the workbook |
+| `workbook_run::RunHost` | Statements, preparing connections, stored results, the files of a run (mounts), the workbook |
 | `compute::host::ComputeHost` | The compute database by handle |
 | `workbook_format` (`dashql_core_storage`): `FolderHost`, `StorageRootHost` | Folders and the storage root |
 

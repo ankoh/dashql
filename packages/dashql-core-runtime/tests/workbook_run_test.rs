@@ -91,8 +91,8 @@ struct HostState {
     generations: u32,
     /// The connections that can't run
     offline: BTreeSet<String>,
-    /// The connections without a key of their results
-    unkeyed: BTreeSet<String>,
+    /// Does the workbook store no results? Its scripts have no keys then.
+    without_results: bool,
     /// The texts of statements that fail
     failing: Vec<String>,
     /// How often the run told that it changed the workbook, and the effects it passed on
@@ -198,10 +198,6 @@ impl RunHost for FakeHost {
         std::future::ready(())
     }
 
-    fn result_key(&self, connection_id: &str, signature: &str) -> impl Future<Output = Option<String>> + 'static {
-        let keyed = !self.state.borrow().unkeyed.contains(connection_id);
-        std::future::ready(keyed.then(|| format!("{connection_id}:{signature}")))
-    }
     fn can_run(&self, connection_id: &str) -> bool {
         !self.state.borrow().offline.contains(connection_id)
     }
@@ -228,7 +224,7 @@ impl RunHost for FakeHost {
         }
     }
     fn has_results(&self) -> bool {
-        true
+        !self.state.borrow().without_results
     }
     fn result_retain(&self, script: &str) -> impl Future<Output = Result<Option<RetainedFile>, HostError>> + 'static {
         let key = self.state.borrow().stored.get(script).cloned();
@@ -583,7 +579,6 @@ fn a_new_result_of_a_script_is_a_new_key_of_the_scripts_downstream() {
     let first = s.run(&workbook, workbook_run());
     assert!(first.failure.is_none(), "{:?}", first.failure);
     let [(_, foo_key, foo_file), (_, bar_key, bar_file)] = <[_; 2]>::try_from(stores(&s)).unwrap();
-    assert!(bar_key.ends_with(&format!("{foo_key} {foo_file}")), "{bar_key}");
     let store = |script: &str, key: &str, file: &str| {
         let mut state = s.state.borrow_mut();
         state.stored.insert(script.into(), key.into());
@@ -608,7 +603,7 @@ fn a_new_result_of_a_script_is_a_new_key_of_the_scripts_downstream() {
     assert_eq!(s.events("foo.sql").last().map(String::as_str), Some("cached"));
     let [(script, key, _)] = <[_; 1]>::try_from(stores(&s)).unwrap();
     assert_eq!(script, "bar.sql");
-    assert!(key.ends_with(&format!("{foo_key} {refreshed_file}")), "{key}");
+    assert_ne!(key, bar_key);
 }
 
 #[test]
@@ -622,7 +617,7 @@ fn runs_a_script_whose_stored_result_has_another_key() {
     assert!(result.failure.is_none(), "{:?}", result.failure);
     let statements = &s.state.borrow().statements;
     assert_eq!(statements.len(), 1);
-    assert!(matches!(&statements[0].request.result, StatementResult::Store { key, .. } if key.starts_with("main:")));
+    assert!(matches!(&statements[0].request.result, StatementResult::Store { key, .. } if key.len() == 64));
     // The file of the other key was released at once
     assert!(s.calls().iter().any(|call| call.starts_with("release ")), "{:?}", s.calls());
 }
@@ -696,7 +691,7 @@ fn removes_the_transient_files_of_a_run_after_it_released_their_pins() {
     let workbook = workbook(&[("foo.sql", "select 1 as a", &remote), ("bar.sql", "select count(*) from :foo", &local)]);
     let s = setup(true, Some("/mnt/cache"), 1);
     // A result without a key is a transient file of the run
-    s.state.borrow_mut().unkeyed.insert("remote".to_string());
+    s.state.borrow_mut().without_results = true;
     let result = s.run(&workbook, workbook_run());
     assert!(result.failure.is_none(), "{:?}", result.failure);
     let calls = s.calls();
@@ -834,20 +829,18 @@ fn a_script_of_a_connection_that_can_not_run_uses_its_stored_result_of_any_key()
     let workbook = workbook(&[("foo.sql", "select 1 as a", &remote), ("bar.sql", "select count(*) from :foo", &local)]);
     let s = setup(true, Some("/mnt/cache"), 1);
     {
-        // A result of another login or another version of the keys, the connection has no key while it is logged out
+        // A result of another version of the keys or an imported one
         let mut state = s.state.borrow_mut();
         state.offline.insert("remote".into());
-        state.unkeyed.insert("remote".into());
         state.stored.insert("foo.sql".into(), "other".into());
         state.names.insert("foo.sql".into(), "foo.sql.other.1.parquet".into());
     }
     let result = s.run(&workbook, workbook_run());
     assert!(result.failure.is_none(), "{:?}", result.failure);
-    // foo is read from its file, bar scans the file and stores a result whose key covers it
+    // foo is read from its file, bar scans the file and stores its result
     assert_eq!(s.events("foo.sql").last().map(String::as_str), Some("cached"));
-    let [(script, key, _)] = <[_; 1]>::try_from(stores(&s)).unwrap();
+    let [(script, _, _)] = <[_; 1]>::try_from(stores(&s)).unwrap();
     assert_eq!(script, "bar.sql");
-    assert!(key.ends_with("other foo.sql.other.1.parquet"), "{key}");
     assert!(s.texts().iter().any(|text| text.contains("/mnt/cache/foo.sql.other.1.parquet")), "{:?}", s.texts());
     assert_eq!(s.last_state().skipped_scripts, 0);
     // Every file that the run retained is released

@@ -3,8 +3,7 @@
 //!
 //! A query of a connection is in the history of the connection from the start: `executeQuery` hands out its id from
 //! the registry, registers it and runs it once the runtime described it (`Connections::describe`): the target on the
-//! channel of its connection, the key of its result in the query result cache (`result_key`, the SHA-256 digest
-//! through `crypto` of the platform) and what the executor does around it. The connection owns its channel: the module
+//! channel of its connection and what the executor does around it. The connection owns its channel: the module
 //! speaks Trino, Hyper over HTTP and the Hyper of Salesforce itself, the platform describes only a channel of the host
 //! (`channels.describe`), which it keeps for the query until the run of the query is dropped (`channels.forget`). The
 //! executor reports every event into the history right away, the start and the end of a query as urgent changes, the
@@ -35,7 +34,6 @@ use dashql_core_runtime::clfn::{client_function_binding, ClientFunctionCallDescr
 use dashql_core_runtime::compute::service::AnalysisHandles;
 use dashql_core_runtime::compute::tasks::analyze_table::AnalyzeTableOptions as RuntimeAnalyzeOptions;
 use dashql_core_runtime::connections::{ConnectionAction, ConnectionChannel, ConnectorType, DetailedError};
-use dashql_core_runtime::executor::cache_key::{connection_cache_signature, result_key_input, result_key_of_digest};
 use dashql_core_runtime::executor::{
     ChannelMessage, ClientFunctionTarget, ExecutorHost, ExecutorRun, FailureKind, HostTable, QueryControls, QueryEvent,
     QueryFailure, QueryId, QueryOutcome, QueryRequest, QueryTarget, ResultRequest, StoredFile,
@@ -999,30 +997,6 @@ impl Connections {
             outcome_value(outcome, table)
         });
         (query_id, done)
-    }
-
-    /// The key of the result of a script signature on a connection, none without stored results or before the
-    /// connection has the params of a setup. The key derives from the params of the connector that identify its
-    /// results, the platform computes the SHA-256 digest.
-    pub(crate) fn result_key(
-        &self,
-        connection_id: &str,
-        signature: &str,
-    ) -> impl Future<Output = Option<String>> + 'static {
-        let input = if self.platform.has_results() {
-            let registry = self.registry.borrow();
-            registry.get(connection_id).and_then(|connection| {
-                let state = connection.state.try_borrow().ok()?;
-                Some(result_key_input(&connection_cache_signature(&state)?, signature))
-            })
-        } else {
-            None
-        };
-        let digest = input.map(|input| self.platform.sha256(input.as_bytes()));
-        async move {
-            let digest = digest?.await.ok()?;
-            Some(result_key_of_digest(&digest))
-        }
     }
 
     /// Describe where a query runs and what the executor does around it: the target on the channel of its connection,

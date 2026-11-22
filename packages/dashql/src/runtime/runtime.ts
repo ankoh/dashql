@@ -280,7 +280,6 @@ export class Runtime {
             mounts: database == null ? null : createRunMounts(database, this.handles, this.attachmentMounts),
             crypto: {
                 randomUuid: () => crypto.randomUUID(),
-                sha256: async bytes => new Uint8Array(await crypto.subtle.digest('SHA-256', bytes as Uint8Array<ArrayBuffer>)),
             },
             oauth: this.requests.oauth(),
             extensions: { loadSpec: async extension => JSON.stringify(await loadClientFunctionSpec(extension)) },
