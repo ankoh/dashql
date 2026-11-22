@@ -469,7 +469,7 @@ describe('Workbook feed composer', () => {
         render(workbook(), vi.fn());
         expect(container.querySelector('[data-testid="feed-landing-question"]')).toBeNull();
         expect(feedState.composerProps?.variant).toBe(WorkbookComposerVariant.Docked);
-        expect(feedState.composerProps?.agentWorking).toBe(true);
+        expect(feedState.composerProps?.agentActivity).toBe('thinking');
         expect(feedState.barProps?.session).toBe(feedState.session);
     });
 

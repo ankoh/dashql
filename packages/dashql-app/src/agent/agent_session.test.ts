@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { agentActivity, agentDocumentTitle, AgentSessionActivity, agentSessionActivity, agentSessionOf, formatAgentDuration } from './agent_session.js';
+import { agentActivity, agentDocumentTitle, agentSessionOf, formatAgentDuration, type AgentQuestion } from './agent_session.js';
 import { createAgentSessionState, reduceAgentSessionEvent } from '@akohn/dashql/platform/session/agent_session_state';
 import type { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 
@@ -48,28 +48,31 @@ describe('the session of an agent in the bar of a workbook', () => {
         expect(formatAgentDuration(-5)).toBe('0.0 s');
     });
 
-    it('tells what the agent does for a question: it waits for the user, a tool runs, or it thinks', () => {
-        const question = { question: 'q', status: 'Edit a.sql', waiting: null, interrupted: false, note: null, steps: [] };
+    it('tells what the agent does: it waits for the user, a tool runs, it thinks, or nothing', () => {
+        const question: AgentQuestion = { question: 'q', status: 'Edit a.sql', waiting: null, interrupted: false, note: null, steps: [] };
         const step = (endedAt: number | null) => ({ label: 'Edit a.sql', startedAt: 1, endedAt, failed: false });
-        expect(agentActivity(question)).toEqual({ kind: 'thinking' });
-        expect(agentActivity({ ...question, steps: [step(2)] })).toEqual({ kind: 'thinking' });
-        expect(agentActivity({ ...question, steps: [step(2), step(null)] })).toEqual({ kind: 'tool', text: 'Edit a.sql' });
-        expect(agentActivity({ ...question, steps: [step(null)], waiting: 'an approval' })).toEqual({ kind: 'waiting', text: 'an approval' });
-        expect(agentActivity({ ...question, status: null })).toBeNull();
+        const activity = (q: AgentQuestion, connected = true) => agentActivity({ connected, turns: [{ question: q }] });
+        expect(activity(question)).toEqual({ kind: 'thinking' });
+        expect(activity({ ...question, steps: [step(2)] })).toEqual({ kind: 'thinking' });
+        expect(activity({ ...question, steps: [step(2), step(null)] })).toEqual({ kind: 'tool', text: 'Edit a.sql' });
+        expect(activity({ ...question, steps: [step(null)], waiting: 'an approval' })).toEqual({ kind: 'waiting', text: 'an approval' });
+        expect(activity({ ...question, status: null })).toEqual({ kind: 'idle' });
+        // A session that the page doesn't reach does nothing
+        expect(activity(question, false)).toEqual({ kind: 'idle' });
     });
 
     it('marks the title of the browser tab while the agent works or waits for the user', () => {
+        // The turns of the state of the server have the fields of a question
+        const titleOf = (state: ReturnType<typeof createAgentSessionState>) =>
+            agentDocumentTitle('DashQL', agentActivity({ connected: !state.ended, turns: state.turns.map(question => ({ question })) }));
         let state = createAgentSessionState('claude', '/w', 's1');
-        expect(agentSessionActivity(state)).toBe(AgentSessionActivity.Idle);
+        expect(titleOf(state)).toBe('DashQL');
         state = reduceAgentSessionEvent(state, { event: 'UserPromptSubmit', prompt: 'q' });
-        expect(agentSessionActivity(state)).toBe(AgentSessionActivity.Working);
+        expect(titleOf(state)).toBe('\u25CF DashQL');
         state = reduceAgentSessionEvent(state, { event: 'Notification', notification: 'permission' });
-        expect(agentSessionActivity(state)).toBe(AgentSessionActivity.Waiting);
-        expect(agentSessionActivity({ ...state, ended: true })).toBe(AgentSessionActivity.Idle);
+        expect(titleOf(state)).toBe('(!) DashQL');
+        expect(titleOf({ ...state, ended: true })).toBe('DashQL');
         state = reduceAgentSessionEvent(state, { event: 'Stop' });
-        expect(agentSessionActivity(state)).toBe(AgentSessionActivity.Idle);
-        expect(agentDocumentTitle('DashQL', AgentSessionActivity.Working)).toBe('\u25CF DashQL');
-        expect(agentDocumentTitle('DashQL', AgentSessionActivity.Waiting)).toBe('(!) DashQL');
-        expect(agentDocumentTitle('DashQL', AgentSessionActivity.Idle)).toBe('DashQL');
+        expect(titleOf(state)).toBe('DashQL');
     });
 });

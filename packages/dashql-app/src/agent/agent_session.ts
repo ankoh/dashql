@@ -65,65 +65,41 @@ export interface AgentSession {
     onShowScript: (scriptKey: number) => void;
 }
 
-/// What the agent of a followed session does for the title of the browser tab: it works on a question, it waits for
-/// the user in the terminal, or nothing
-export enum AgentSessionActivity {
-    Idle = 'idle',
-    Working = 'working',
-    Waiting = 'waiting',
-}
-
-/// What the agent of a session does, from the state of its server
-export function agentSessionActivity(state: AgentSessionState): AgentSessionActivity {
-    const open = state.ended ? null : state.turns.find(turn => turn.status != null) ?? null;
-    if (open == null) return AgentSessionActivity.Idle;
-    return open.waiting != null ? AgentSessionActivity.Waiting : AgentSessionActivity.Working;
-}
-
-/// The title of the browser tab with a mark of what the agent does, which a user in the terminal next to it sees
-export function agentDocumentTitle(title: string, activity: AgentSessionActivity): string {
-    switch (activity) {
-        case AgentSessionActivity.Working:
-            return `\u25CF ${title}`;
-        case AgentSessionActivity.Waiting:
-            return `(!) ${title}`;
-        default:
-            return title;
-    }
-}
-
-/// The step of a shell command that runs scripts with `dashql run`, e.g. `DASHQL_TRINO_PASSWORD=… dashql run tpch`
-export const DASHQL_RUN = /(^|[\s/])dashql run\b/;
-
-/// Is the agent working on a question?
-export function isAgentAnswering(question: AgentQuestion): boolean {
-    return question.status != null;
-}
-
-/// Is the agent of a session working on a question? Also while it waits for the user in the terminal.
-export function isAgentWorking(session: AgentSession): boolean {
-    return session.turns.some(turn => isAgentAnswering(turn.question));
-}
-
-/// What the agent does for a question that it works on: it waits for the user in the terminal, a tool runs, or it
-/// thinks between its tools, where the harness tells nothing
+/// What the agent does: nothing, it waits for the user in the terminal on its question, a tool runs, or it thinks
+/// between its tools, where the harness tells nothing
 export type AgentActivity =
+    | { kind: 'idle' }
     | { kind: 'waiting'; text: string }
     | { kind: 'tool'; text: string }
     | { kind: 'thinking' };
 
-/// What the agent does for a question, null once it finished
-export function agentActivity(question: AgentQuestion): AgentActivity | null {
-    if (!isAgentAnswering(question)) return null;
+/// The question of a session for its activity, a question of the model or a turn of the state of the server
+type ActivityQuestion = Pick<AgentQuestion, 'status' | 'waiting'> & { steps: readonly Pick<AgentStep, 'label' | 'endedAt'>[] };
+
+/// What the agent of a session does for the question that it works on, idle without one and while the page doesn't
+/// reach the session
+export function agentActivity(session: { connected: boolean; turns: readonly { question: ActivityQuestion }[] }): AgentActivity {
+    const question = session.connected ? [...session.turns].reverse().find(turn => turn.question.status != null)?.question : undefined;
+    if (question == null) return { kind: 'idle' };
     if (question.waiting != null) return { kind: 'waiting', text: question.waiting };
     const running = [...question.steps].reverse().find(step => step.endedAt == null);
     return running != null ? { kind: 'tool', text: running.label } : { kind: 'thinking' };
 }
 
-/// Does the agent of a session wait for the user in the terminal, e.g. for an approval?
-export function isAgentWaiting(session: AgentSession): boolean {
-    return session.turns.some(turn => agentActivity(turn.question)?.kind === 'waiting');
+/// The title of the browser tab with a mark of what the agent does, which a user in the terminal next to it sees
+export function agentDocumentTitle(title: string, activity: AgentActivity): string {
+    switch (activity.kind) {
+        case 'idle':
+            return title;
+        case 'waiting':
+            return `(!) ${title}`;
+        default:
+            return `\u25CF ${title}`;
+    }
 }
+
+/// The step of a shell command that runs scripts with `dashql run`, e.g. `DASHQL_TRINO_PASSWORD=… dashql run tpch`
+export const DASHQL_RUN = /(^|[\s/])dashql run\b/;
 
 /// A duration in a few characters: `0.4 s`, `12 s`, `2 min 5 s`
 export function formatAgentDuration(ms: number): string {

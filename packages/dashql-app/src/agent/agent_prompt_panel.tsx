@@ -8,9 +8,6 @@ import {
     agentActivity,
     formatAgentDuration,
     harnessLabel,
-    isAgentAnswering,
-    isAgentWaiting,
-    isAgentWorking,
     type AgentSession,
     type AgentStep,
     type AgentTurn,
@@ -73,9 +70,8 @@ const AgentSteps: React.FC<{ steps: AgentStep[] }> = ({ steps }) => {
 /// final message in full.
 const AgentTurnItem: React.FC<{ turn: AgentTurn; session: AgentSession; expanded: boolean; onToggle: () => void }> = ({ turn, session, expanded, onToggle }) => {
     const { questionId, question } = turn;
-    const working = isAgentAnswering(question);
-    const activity = agentActivity(question);
-    const waiting = activity?.kind === 'waiting' ? activity.text : null;
+    const working = question.status != null;
+    const waiting = working ? question.waiting : null;
     const indicator = waiting != null ? IndicatorStatus.Blocked
         : working ? IndicatorStatus.Running
             : question.interrupted ? IndicatorStatus.Skip : IndicatorStatus.Succeeded;
@@ -157,7 +153,7 @@ const AgentTurnItem: React.FC<{ turn: AgentTurn; session: AgentSession; expanded
 
 /// Is a turn expanded unless the user toggled it? The latest turn and the turns the agent works on are.
 function isTurnExpandedByDefault(turn: AgentTurn, index: number, turns: readonly AgentTurn[]): boolean {
-    return index === turns.length - 1 || isAgentAnswering(turn.question);
+    return index === turns.length - 1 || turn.question.status != null;
 }
 
 /// The log of the agent in the bubble of Wobble: the harness, the folder it works in and the questions of the session
@@ -165,7 +161,7 @@ function isTurnExpandedByDefault(turn: AgentTurn, index: number, turns: readonly
 /// The questions scroll within a fixed height, each one expands and collapses.
 /// The scripts only show the edits of the agent.
 export const AgentPromptPanel: React.FC<{ session: AgentSession; onClose?: () => void }> = ({ session, onClose }) => {
-    const working = isAgentWorking(session);
+    const activity = agentActivity(session).kind;
     // The turns that the user expanded or collapsed
     const [toggled, setToggled] = React.useState<ReadonlyMap<number, boolean>>(() => new Map());
     const toggle = React.useCallback((questionId: number, expanded: boolean) => {
@@ -192,7 +188,7 @@ export const AgentPromptPanel: React.FC<{ session: AgentSession; onClose?: () =>
         if (list != null) atBottomRef.current = list.scrollHeight - list.scrollTop - list.clientHeight < 8;
     }, []);
     const detail = session.ended ? 'ended the session' : !session.connected ? 'lost the session'
-        : isAgentWaiting(session) ? 'waits for you in the terminal' : working ? 'working' : `in ${session.folder}`;
+        : activity === 'waiting' ? 'waits for you in the terminal' : activity !== 'idle' ? 'working' : `in ${session.folder}`;
     return (
         <div className={styles.panel} role="region" aria-label="Agent" data-testid="composer-agent">
             <div className={styles.header}>

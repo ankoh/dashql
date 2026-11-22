@@ -15,9 +15,8 @@ import { Store } from '../utils/store.js';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { useLogger } from '../host/logger_provider.js';
 import {
+    agentActivity,
     agentDocumentTitle,
-    AgentSessionActivity,
-    agentSessionActivity,
     agentSessionOf,
     DASHQL_RUN,
     type AgentSession,
@@ -404,12 +403,14 @@ export const AgentSessionProvider: React.FC<React.PropsWithChildren> = (props) =
 const AgentDocumentTitle: React.FC = () => {
     const followed = useFollowedAgentSession();
     const title = useAppFlavor().displayName;
-    const activity = followed == null || !followed.connected ? AgentSessionActivity.Idle : agentSessionActivity(followed.state);
+    // The turns of the state have the fields of a question
+    const marked = followed == null ? title
+        : agentDocumentTitle(title, agentActivity({ connected: followed.connected && !followed.state.ended, turns: followed.state.turns.map(question => ({ question })) }));
     React.useEffect(() => {
-        if (activity === AgentSessionActivity.Idle) return;
-        document.title = agentDocumentTitle(title, activity);
+        if (marked === title) return;
+        document.title = marked;
         return () => { document.title = title; };
-    }, [title, activity]);
+    }, [title, marked]);
     return null;
 };
 

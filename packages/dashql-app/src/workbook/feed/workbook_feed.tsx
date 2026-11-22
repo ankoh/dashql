@@ -66,7 +66,7 @@ import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/compo
 import { ChevronDownIcon, ChevronUpIcon, PlusIcon } from '@akohn/dashql-react/components/symbol_icon';
 import { WorkbookConnectionAttentionContext } from '../connections/workbook_connection_attention.js';
 import { WorkbookComposer, WorkbookComposerVariant } from './workbook_composer.js';
-import { isAgentWorking, type AgentFollowTarget } from '../../agent/agent_session.js';
+import { agentActivity, type AgentFollowTarget } from '../../agent/agent_session.js';
 import { useAgentConnect, useAgentSession } from '../../agent/agent_session_provider.js';
 import { AgentConnectionsPicker } from '../../agent/agent_connections_picker.js';
 import { ComposerMode } from '../../agent/agent_connect.js';
@@ -899,7 +899,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
                         catalog={composerCore.catalog}
                         variant={landing ? WorkbookComposerVariant.Hero : WorkbookComposerVariant.Docked}
                         keywordCase={keywordCase}
-                        agentWorking={session != null && isAgentWorking(session)}
+                        agentActivity={session != null ? agentActivity(session).kind : 'idle'}
                         session={session}
                         connect={agentConnect}
                         onSend={handleComposerSend}

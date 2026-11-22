@@ -17,6 +17,7 @@ type Attention = NonNullable<React.ContextType<typeof WorkbookConnectionAttentio
 import { ComposerMode, type ConnectHarness, DASHQL_CLI_COMMAND } from '../../agent/agent_connect.js';
 import { DASHQL_CLI_VERSION } from '../../globals.js';
 import type { AgentConnect } from '../../agent/agent_session_provider.js';
+import type { AgentActivity } from '../../agent/agent_session.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -68,13 +69,13 @@ describe('Workbook composer', () => {
     });
 
     // The view is created by a chain of effects, wait until the composer hands it out
-    async function render(variant = WorkbookComposerVariant.Docked, offlineWorkbookId: string | null = null, agentWorking = false, bar: React.ReactNode = undefined) {
+    async function render(variant = WorkbookComposerVariant.Docked, offlineWorkbookId: string | null = null, agentActivity: AgentActivity['kind'] = 'idle', bar: React.ReactNode = undefined) {
         const snippets = buildSnippetRegistry(dql, { 'hyper/dates/month.sql': `/**\n * Text.\n */\nselect 42;` });
         act(() => root.render(<LoggerProvider>
             <WorkbookConnectionAttentionContext.Provider value={attention}>
                 <WorkbookComposer instance={dql} catalog={catalog} variant={variant}
                     snippetConnector={ConnectorType.HYPER} snippetRegistry={snippets}
-                    scriptNames={['revenue', 'revenue-2']} targetScriptRef={targetScript} offlineWorkbookId={offlineWorkbookId} agentWorking={agentWorking} bar={bar}
+                    scriptNames={['revenue', 'revenue-2']} targetScriptRef={targetScript} offlineWorkbookId={offlineWorkbookId} agentActivity={agentActivity} bar={bar}
                     keywordCase={core.buffers.formatting.KeywordCase.LOWER} onSend={onSend} setView={v => { view = v; }} />
             </WorkbookConnectionAttentionContext.Provider>
         </LoggerProvider>));
@@ -227,7 +228,7 @@ describe('Workbook composer', () => {
         expect(bar().childElementCount).toBe(0);
         expect(getComputedStyle(bar()).display).toBe('none');
         expect(container.querySelector('[data-agent]')).toBeNull();
-        await render(WorkbookComposerVariant.Docked, null, true, <span data-testid="agent-bar">Agent</span>);
+        await render(WorkbookComposerVariant.Docked, null, 'thinking', <span data-testid="agent-bar">Agent</span>);
         expect(bar().querySelector('[data-testid="agent-bar"]')).not.toBeNull();
         expect(getComputedStyle(bar()).display).not.toBe('none');
         expect(container.querySelector('[data-agent="working"]')).not.toBeNull();
@@ -236,7 +237,7 @@ describe('Workbook composer', () => {
     it('keeps the editor when the bar appears', async () => {
         const editor = await render(WorkbookComposerVariant.Docked);
         act(() => type(editor, 'select 5'));
-        expect(await render(WorkbookComposerVariant.Docked, null, false, <span data-testid="agent-bar">Agent</span>)).toBe(editor);
+        expect(await render(WorkbookComposerVariant.Docked, null, 'idle', <span data-testid="agent-bar">Agent</span>)).toBe(editor);
         expect(container.querySelector('[data-testid="composer-bar"] [data-testid="agent-bar"]')).not.toBeNull();
         expect(editor.state.doc.toString()).toBe('select 5');
     });

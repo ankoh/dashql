@@ -1,4 +1,4 @@
-import { agentActivity, harnessLabel, isAgentWorking, type AgentSession } from './agent_session.js';
+import { agentActivity, harnessLabel, type AgentSession } from './agent_session.js';
 import { WorkbookStatusSource, WorkbookStatusTone, type WorkbookStatus } from '../workbook/status/workbook_status.js';
 
 /// The live statuses of the agent: what it works on, that it waits for the user in the terminal, a session that the
@@ -15,12 +15,11 @@ export function agentLiveStatuses(session: AgentSession | null, now: number): Wo
             at: now,
         }];
     }
-    if (!isAgentWorking(session)) return [];
-    const turn = [...session.turns].reverse().find(turn => turn.question.status != null)!;
-    const activity = agentActivity(turn.question)!;
+    const activity = agentActivity(session);
+    if (activity.kind === 'idle') return [];
     if (activity.kind === 'waiting') {
         return [{
-            key: `agent:${turn.questionId}`,
+            key: 'agent:activity',
             source: WorkbookStatusSource.Agent,
             tone: WorkbookStatusTone.Attention,
             text: `${harnessLabel(session.harness)} waits for you in the terminal`,
@@ -29,7 +28,7 @@ export function agentLiveStatuses(session: AgentSession | null, now: number): Wo
         }];
     }
     return [{
-        key: `agent:${turn.questionId}`,
+        key: 'agent:activity',
         source: WorkbookStatusSource.Agent,
         tone: WorkbookStatusTone.Progress,
         text: `${harnessLabel(session.harness)} works on your question`,

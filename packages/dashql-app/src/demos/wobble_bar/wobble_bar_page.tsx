@@ -6,7 +6,7 @@ import { LogLevel, type LogRecord } from '@akohn/dashql/platform/logger/log_buff
 import { useLogger } from '../../host/logger_provider.js';
 import { WorkbookStatusSource, WorkbookStatusTone, type WorkbookStatus } from '../../workbook/status/workbook_status.js';
 import { agentLiveStatuses } from '../../agent/agent_workbook_status.js';
-import type { AgentSession, AgentTurn } from '../../agent/agent_session.js';
+import { agentActivity, type AgentSession, type AgentTurn } from '../../agent/agent_session.js';
 import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
 import { SegmentedControl, SegmentedControlSize } from '@akohn/dashql-react/components/segmented_control';
 import { PaperAirplaneIcon } from '@akohn/dashql-react/components/symbol_icon';
@@ -294,6 +294,7 @@ function situationWorkbookId(situation: Situation): string {
 function DemoPrompt(props: { situation: Situation }) {
     const { situation } = props;
     const session = situation.session;
+    const activity = session != null ? agentActivity(session).kind : 'idle';
     const store = useSituationStore(situation);
     if (situation.standalone) {
         return (
@@ -305,7 +306,7 @@ function DemoPrompt(props: { situation: Situation }) {
     return (
         <WorkbookStatusContext.Provider value={store}>
             <div className={composerStyles.composer} data-variant={situation.landing ? 'hero' : 'docked'}
-                data-agent={session?.turns.some(turn => turn.question.status != null) ? 'working' : undefined}>
+                data-agent={activity === 'idle' ? undefined : activity === 'waiting' ? 'waiting' : 'working'}>
                 <div className={composerStyles.composer_bar}>
                     <WorkbookStatusBar workbookId={situationWorkbookId(situation)} variant={WorkbookStatusBarVariant.Prompt}
                         session={session} wobble={!situation.landing} gaze={{ pointer: true }} />

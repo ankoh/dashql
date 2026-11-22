@@ -3,7 +3,7 @@ import * as styles from './workbook_status_bar.module.css';
 
 import { Wobble, WobbleMode, type WobbleGaze, type WobbleTuning } from '../../agent/wobble.js';
 import { AgentPromptPanel } from '../../agent/agent_prompt_panel.js';
-import { harnessLabel, isAgentWaiting, isAgentWorking, type AgentSession } from '../../agent/agent_session.js';
+import { agentActivity, harnessLabel, type AgentActivity, type AgentSession } from '../../agent/agent_session.js';
 import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
 import { XIcon } from '@akohn/dashql-react/components/symbol_icon';
 import { IndicatorStatus, StatusDot } from '@akohn/dashql-react/components/status_indicator';
@@ -40,9 +40,9 @@ export interface WorkbookStatusBarProps {
 }
 
 /// The agent at the right end of the bar: the harness of the session and the folder it works in
-function AgentState(props: { session: AgentSession; working: boolean; waiting: boolean }) {
+function AgentState(props: { session: AgentSession; activity: AgentActivity['kind'] }) {
     const { session } = props;
-    const dot = session.ended ? 'ended' : !session.connected ? 'lost' : props.waiting ? 'waiting' : props.working ? 'working' : 'connected';
+    const dot = session.ended ? 'ended' : !session.connected ? 'lost' : props.activity === 'waiting' ? 'waiting' : props.activity === 'idle' ? 'connected' : 'working';
     return (
         <span className={styles.agent} title={`${harnessLabel(session.harness)} in ${session.folder}`}
             data-testid="workbook-agent-state" data-state={dot}>
@@ -88,10 +88,11 @@ export function WorkbookStatusBar(props: WorkbookStatusBarProps): React.ReactEle
     const session = props.session ?? null;
     const wobble = props.wobble ?? true;
     const { status, live, busy } = useWorkbookStatus(props.workbookId);
+    const activity = session != null ? agentActivity(session).kind : 'idle';
     const agentWorking = session != null
-        ? isAgentWorking(session)
+        ? activity !== 'idle'
         : live.some(s => s.source === WorkbookStatusSource.Agent && s.tone === WorkbookStatusTone.Progress);
-    const agentWaiting = session != null && isAgentWaiting(session);
+    const agentWaiting = activity === 'waiting';
     const [open, setOpen] = React.useState(false);
     const bubbleId = React.useId();
     const log = useWorkbookLog(props.workbookId, wobble && open);
@@ -136,7 +137,7 @@ export function WorkbookStatusBar(props: WorkbookStatusBarProps): React.ReactEle
             </span>
             {session != null && (
                 <div className={styles.agent_controls}>
-                    <AgentState session={session} working={agentWorking} waiting={agentWaiting} />
+                    <AgentState session={session} activity={activity} />
                 </div>
             )}
             {wobble && open && (

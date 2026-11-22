@@ -4,7 +4,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AgentPromptPanel, plainAgentNote } from './agent_prompt_panel.js';
-import { harnessLabel, isAgentWorking, type AgentSession } from './agent_session.js';
+import { agentActivity, harnessLabel, type AgentSession } from './agent_session.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -68,7 +68,7 @@ describe('Agent prompt panel', () => {
                 scripts: [{ scriptKey: 7, scriptName: 'orders' }],
             }],
         });
-        expect(isAgentWorking(agent)).toBe(true);
+        expect(agentActivity(agent).kind).toBe('tool');
         act(() => root.render(<AgentPromptPanel session={agent} />));
         expect(detail()).toBe('working');
         const turn = container.querySelector('[data-testid="composer-agent-turn"]')!;
@@ -146,7 +146,7 @@ describe('Agent prompt panel', () => {
                 { questionId: 3, question: { question: 'top customers', status: null, waiting: null, interrupted: false, note: null, steps: [] }, scripts: [{ scriptKey: 4, scriptName: 'top_customers' }] },
             ],
         });
-        expect(isAgentWorking(agent)).toBe(false);
+        expect(agentActivity(agent).kind).toBe('idle');
         act(() => root.render(<AgentPromptPanel session={agent} />));
         const turns = container.querySelectorAll('[data-testid="composer-agent-turn"]');
         expect([...turns].map(turn => turn.getAttribute('data-state'))).toEqual(['done', 'done', 'done']);
