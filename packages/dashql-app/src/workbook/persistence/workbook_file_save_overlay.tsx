@@ -5,7 +5,7 @@ import { DownloadIcon, FileIcon } from '@akohn/dashql-react/components/symbol_ic
 
 import { AnchorAlignment } from '@akohn/dashql-react/dom/anchored_position';
 import { AnchoredOverlay } from '@akohn/dashql-react/components/anchored_overlay';
-import { WorkbookExportSettings, WorkbookExportSettingsView } from './workbook_export_settings_view.js';
+import { WorkbookExportSettings, WorkbookExportSettingsView, useWorkbookDefaultViewSetting } from './workbook_export_settings_view.js';
 import { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { classNames } from '@akohn/dashql-react/dom/classnames';
 import { connectionParamsHaveLoginHint, getConnectionSetupParams } from '@akohn/dashql/platform/connections/connection_params';
@@ -14,7 +14,7 @@ import { useHost } from '@akohn/dashql-react/host';
 import { IconButton } from '@akohn/dashql-react/components/button';
 import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../globals.js';
 import { useWorkbookResults } from '../../storage/workbook_results_provider.js';
-import { useOptionalRuntime, useConnectionViews } from '@akohn/dashql-react/hooks';
+import { useDispatch, useOptionalRuntime, useConnectionViews } from '@akohn/dashql-react/hooks';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
 import type { ExportedResults } from '@akohn/dashql';
 import { stringifyError, type LoggerLike } from '@akohn/dashql/platform/logger/logger';
@@ -78,6 +78,9 @@ export const WorkbookFileSaveOverlay: React.FC<Props> = (props: Props) => {
         withQueryResults: false,
     });
     const results = useWorkbookResults();
+    // The file opens the workbook in its default view, the overlay changes it on the workbook
+    const modifyWorkbook = useDispatch(props.workbookScripts == null ? null : { workbook: props.workbookScripts.workbookId });
+    const defaultView = useWorkbookDefaultViewSetting(props.workbookScripts, modifyWorkbook);
     const logger = useLogger() as LoggerLike | null;
     const runtime = useOptionalRuntime();
 
@@ -209,6 +212,7 @@ export const WorkbookFileSaveOverlay: React.FC<Props> = (props: Props) => {
                     settings={settings}
                     setSettings={setSettings}
                     queryResults={results != null ? { hint: queryResultsHint(resultCounts) } : undefined}
+                    defaultView={defaultView}
                 />
                 {packError != null && <div className={styles.error} role="alert" data-testid="export-error">{packError}</div>}
             </div>

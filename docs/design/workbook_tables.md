@@ -26,6 +26,16 @@ their format: a failure after the registered workbook changed writes them back. 
 cache, a failure to seed them leaves the import alone. The names of the scripts and attachments of the tables are taken
 in NFC.
 
+### Default View
+
+A workbook opens in its default view: `defaultView` of `dashql-workbook.json` and `default_view` of
+`workbook_versions`, `dashboard` or `dataflow`. The field is optional, absent (or unknown) means the feed, and the feed
+is never written. A shared workbook opens in it wherever it arrives, e.g. in its dashboard. The bookmark left of the
+arrows of the view switch marks the view that shows as the default one (filled while the default view shows, again on
+the bookmarked view returns the workbook to the feed), and the overlays of the link and of the file pick it as well
+(`Default View` of the export settings). Both change the workbook (`setDefaultView`), not only the export. The app opens
+the default view whenever it shows another workbook, unless the URL names a view (`?view=`) or the shell is open.
+
 ## Tables
 
 | Table | Columns after the key |

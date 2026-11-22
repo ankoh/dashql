@@ -4,12 +4,12 @@ import * as styles from './workbook_url_share_overlay.module.css';
 
 import { AnchorAlignment } from '@akohn/dashql-react/dom/anchored_position';
 import { AnchoredOverlay } from '@akohn/dashql-react/components/anchored_overlay';
-import { WorkbookExportSettings, WorkbookExportSettingsView } from './workbook_export_settings_view.js';
+import { WorkbookExportSettings, WorkbookExportSettingsView, useWorkbookDefaultViewSetting } from './workbook_export_settings_view.js';
 import { classNames } from '@akohn/dashql-react/dom/classnames';
 import { connectionParamsHaveLoginHint, getConnectionSetupParams } from '@akohn/dashql/platform/connections/connection_params';
 import { useRouteContext } from '../../app/router.js';
 import { ShareURLField } from './share_url_field.js';
-import { useRuntime, useWorkbook, useConnectionViews } from '@akohn/dashql-react/hooks';
+import { useDispatch, useRuntime, useWorkbook, useConnectionViews } from '@akohn/dashql-react/hooks';
 
 interface Props {
     className?: string;
@@ -26,6 +26,9 @@ export const WorkbookURLShareOverlay: React.FC<Props> = (props: Props) => {
     const buttonRef = React.createRef<HTMLButtonElement>();
 
     const workbookScripts = useWorkbook(props.workbookId ?? route.workbookId ?? null);
+    // The link opens the workbook in its default view, the overlay changes it on the workbook
+    const modifyWorkbook = useDispatch(workbookScripts == null ? null : { workbook: workbookScripts.workbookId });
+    const defaultView = useWorkbookDefaultViewSetting(workbookScripts, modifyWorkbook);
     const connections = useConnectionViews(workbookScripts?.connectionIds);
     // The connections are resolved anew on every render, the link follows their ids
     const connectionIds = connections?.map(connection => connection.connectionId).join(',') ?? null;
@@ -91,6 +94,7 @@ export const WorkbookURLShareOverlay: React.FC<Props> = (props: Props) => {
                     withLoginHint={hasLoginHint}
                     settings={settings}
                     setSettings={setSettings}
+                    defaultView={defaultView}
                 />
             </div>
         </AnchoredOverlay>

@@ -1,6 +1,7 @@
 import * as React from 'react';
 
 import { useLocation, useNavigate } from 'react-router-dom';
+import type * as core from '@akohn/dashql';
 
 /// How a workbook is shown
 export enum WorkbookViewMode {
@@ -8,6 +9,30 @@ export enum WorkbookViewMode {
     Shell = 1,
     Dashboard = 2,
     Dataflow = 3,
+}
+
+/// The view mode that a workbook opens in, the workbook (its feed) unless it names the dashboard or the dataflow. A
+/// view that the workbook file doesn't name reads as the feed.
+export function viewModeOfDefaultView(view: core.WorkbookDefaultView | null | undefined): WorkbookViewMode {
+    switch (view) {
+        case 'dashboard': return WorkbookViewMode.Dashboard;
+        case 'dataflow': return WorkbookViewMode.Dataflow;
+        default: return WorkbookViewMode.Workbook;
+    }
+}
+
+/// The default view of a view mode, the shell is no view a workbook opens in
+export function defaultViewOfViewMode(mode: WorkbookViewMode): core.WorkbookDefaultView {
+    switch (mode) {
+        case WorkbookViewMode.Dashboard: return 'dashboard';
+        case WorkbookViewMode.Dataflow: return 'dataflow';
+        default: return 'feed';
+    }
+}
+
+/// Does the URL name a view? A link that names one opens in it, not in the default view of the workbook.
+export function searchNamesView(search: string): boolean {
+    return new URLSearchParams(search).has('view');
 }
 
 /// The views that are part of the URL, as the value of the `view` query parameter

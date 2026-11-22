@@ -129,6 +129,22 @@ describe('WorkbookURLShareOverlay', () => {
         expect((await sharedWorkbook()).workbookId).toBe(TEST_WORKBOOK_ID);
     });
 
+    it('picks the default view of the workbook that the link opens in', async () => {
+        await render({});
+        await waitForURL();
+        const before = urlInput()!.value;
+        expect((await sharedWorkbook()).defaultView).toBeUndefined();
+        // The segments in the order of the view switch: feed, dashboard, dataflow
+        const segment = (index: number) => document.querySelectorAll<HTMLButtonElement>('[data-testid="export-default-view"] button')[index]!;
+        expect(segment(0).getAttribute('aria-current')).toBe('true');
+        await act(async () => segment(1).click());
+        // The workbook changed, not only the link
+        expect(runtime!.store.get('workbook', TEST_WORKBOOK_ID)?.defaultView).toBe('dashboard');
+        expect(segment(1).getAttribute('aria-current')).toBe('true');
+        await waitForURL(before);
+        expect((await sharedWorkbook()).defaultView).toBe('dashboard');
+    });
+
     it('shares nothing for an unknown workbook or a closed overlay', async () => {
         await render({ workbookId: 'unknown' });
         await act(() => new Promise(resolve => setTimeout(resolve, 50)));

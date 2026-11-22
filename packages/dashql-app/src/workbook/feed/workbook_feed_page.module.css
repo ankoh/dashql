@@ -190,6 +190,22 @@
     color: var(--color_fg);
 }
 
+/* The bookmark of the view that the workbook opens in, filled while that view shows, in the dark of the chrome */
+.view_bar .view_default {
+    width: 24px;
+    min-width: 24px;
+    color: var(--color_fg_subtle);
+}
+
+.view_bar .view_default:hover {
+    color: var(--color_fg);
+}
+
+.view_bar .view_default_set,
+.view_bar .view_default_set:hover {
+    color: var(--chrome_bg);
+}
+
 /* At the ends of the views the arrow fades but keeps its place, the switch doesn't move */
 .view_bar .view_step:disabled {
     opacity: 0.35;

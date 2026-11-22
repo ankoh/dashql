@@ -16,7 +16,10 @@ const state = {
     feedUnmounts: 0,
     ephemeral: false,
     pathname: '/workbooks/workbook',
+    search: '',
+    defaultView: 'feed',
     navigate: vi.fn(),
+    setMode: vi.fn(),
 };
 
 const DEFAULT_CONNECTION = { connectionId: 'database' };
@@ -24,10 +27,10 @@ const OTHER_CONNECTION = { connectionId: 'other' };
 const CONNECTIONS = new Map([['database', DEFAULT_CONNECTION], ['other', OTHER_CONNECTION]]);
 
 const dependencies = {
-    useWorkbookViewMode: () => ({ mode: state.mode }),
+    useWorkbookViewMode: () => ({ mode: state.mode, setMode: state.setMode }),
     useWorkbook: () => ({
         workbookMetadata: { ephemeral: state.ephemeral ? true : undefined }, ephemeral: state.ephemeral,
-        workbookId: state.workbookId, name: 'Workbook', pendingConnectionId: 'database', nextScriptConnectionId: 'database', connectionIds: ['database'], scriptConnections: [],
+        workbookId: state.workbookId, name: 'Workbook', defaultView: state.defaultView, pendingConnectionId: 'database', nextScriptConnectionId: 'database', connectionIds: ['database'], scriptConnections: [],
         scriptKeys: [], scriptRefs: {}, scriptOrder: [],
     }),
     useDispatch: () => vi.fn(),
@@ -35,7 +38,7 @@ const dependencies = {
     useLogger: () => ({ warn: vi.fn() }),
     useRouteContext: () => ({ workbookId: state.workbookId }),
     useRouterNavigate: () => state.navigate,
-    useLocation: () => ({ pathname: state.pathname }),
+    useLocation: () => ({ pathname: state.pathname, search: state.search }),
     WorkbookFeedPage: ({ active }: { active: boolean }) => {
         React.useEffect(() => {
             state.feedMounts += 1;
@@ -61,7 +64,10 @@ describe('WorkbookPage view transitions', () => {
         state.feedUnmounts = 0;
         state.ephemeral = false;
         state.pathname = '/workbooks/workbook';
+        state.search = '';
+        state.defaultView = 'feed';
         state.navigate.mockReset();
+        state.setMode.mockReset();
         container = document.createElement('div');
         document.body.appendChild(container);
         root = createRoot(container);
@@ -158,5 +164,30 @@ describe('WorkbookPage view transitions', () => {
         state.workbookId = 'next';
         await act(async () => root.render(<WorkbookPage dependencies={dependencies} />));
         expect(shellConnection()).toBe('database');
+    });
+
+    it('opens a workbook in its default view once', async () => {
+        state.defaultView = 'dashboard';
+        await act(async () => root.render(<WorkbookPage dependencies={dependencies} />));
+        expect(state.setMode).toHaveBeenCalledExactlyOnceWith(WorkbookViewMode.Dashboard);
+        // The user picks another view, the workbook stays in it
+        await act(async () => root.render(<WorkbookPage dependencies={dependencies} />));
+        expect(state.setMode).toHaveBeenCalledOnce();
+        // Another workbook opens in its own default view
+        state.workbookId = 'next';
+        state.defaultView = 'dataflow';
+        await act(async () => root.render(<WorkbookPage dependencies={dependencies} />));
+        expect(state.setMode).toHaveBeenLastCalledWith(WorkbookViewMode.Dataflow);
+    });
+
+    it('keeps the view that the URL names and an open shell', async () => {
+        state.defaultView = 'dashboard';
+        state.search = '?view=dataflow';
+        await act(async () => root.render(<WorkbookPage dependencies={dependencies} />));
+        state.search = '';
+        state.mode = WorkbookViewMode.Shell;
+        state.workbookId = 'next';
+        await act(async () => root.render(<WorkbookPage dependencies={dependencies} />));
+        expect(state.setMode).not.toHaveBeenCalled();
     });
 });

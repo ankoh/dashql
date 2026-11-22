@@ -9,7 +9,7 @@ import { useLogger } from '../host/logger_provider.js';
 import { PROMOTE_WORKBOOK, useRouteContext, useRouterNavigate } from '../app/router.js';
 
 import { WorkbookFeedPage } from './feed/workbook_feed_page.js';
-import { WorkbookViewMode, useWorkbookViewMode } from './workbook_view_mode.js';
+import { WorkbookViewMode, searchNamesView, useWorkbookViewMode, viewModeOfDefaultView } from './workbook_view_mode.js';
 
 const WorkbookShellsPage = React.lazy(() => import('./shell/workbook_shells_page.js'));
 
@@ -60,7 +60,7 @@ export const WorkbookPage: React.FC<Props> = (props: Props) => {
         const connection = connections.get(connectionId);
         if (connection != null) scriptConnections.set(connectionId, connection);
     }
-    const { mode: workbookMode } = dependencies.useWorkbookViewMode();
+    const { mode: workbookMode, setMode: setWorkbookMode } = dependencies.useWorkbookViewMode();
     const workbookPageVisible = workbookMode !== WorkbookViewMode.Shell;
     // The connection of the visible shell, the connection of the next script until another one is picked.
     // Kept while the shell is closed, the shell reopens on the picked connection of the workbook.
@@ -76,7 +76,22 @@ export const WorkbookPage: React.FC<Props> = (props: Props) => {
 
     // The greeter stays at the root until a script promotes its workbook
     const navigate = dependencies.useRouterNavigate();
-    const pathname = dependencies.useLocation().pathname;
+    const location = dependencies.useLocation();
+    const pathname = location.pathname;
+    // A workbook opens in its default view, e.g. the dashboard of a shared workbook: once whenever the page shows
+    // another workbook. A URL that names a view keeps it, an open shell stays open.
+    const shownWorkbookId = workbookScripts?.workbookId ?? null;
+    const defaultMode = viewModeOfDefaultView(workbookScripts?.defaultView);
+    const openedWorkbookId = React.useRef<string | null>(null);
+    const openDefaultView = React.useEffectEvent(() => {
+        if (searchNamesView(location.search) || workbookMode === WorkbookViewMode.Shell) return;
+        if (workbookMode !== defaultMode) setWorkbookMode(defaultMode);
+    });
+    React.useEffect(() => {
+        if (shownWorkbookId == null || openedWorkbookId.current === shownWorkbookId) return;
+        openedWorkbookId.current = shownWorkbookId;
+        openDefaultView();
+    }, [shownWorkbookId]);
     const promotedWorkbookId = workbookScripts != null && !workbookScripts.ephemeral && pathname === '/' ? workbookScripts.workbookId : null;
     React.useEffect(() => {
         if (promotedWorkbookId != null) navigate({ type: PROMOTE_WORKBOOK, value: promotedWorkbookId });

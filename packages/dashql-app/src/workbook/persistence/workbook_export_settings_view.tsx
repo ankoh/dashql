@@ -1,7 +1,41 @@
 import * as React from 'react';
 
 import * as styles from './workbook_export_settings_view.module.css';
+import type * as core from '@akohn/dashql';
 import { ToggleSwitch } from '@akohn/dashql-react/components/toggle_switch';
+import { SegmentedControl, SegmentedControlSize } from '@akohn/dashql-react/components/segmented_control';
+import { SymbolIcon } from '@akohn/dashql-react/components/symbol_icon';
+import { isCloudPreview, type WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
+
+// The views a workbook opens in, with the octicons of the view switch of the workbook bar
+const DEFAULT_VIEWS: [core.WorkbookDefaultView, string, ReturnType<typeof SymbolIcon>][] = [
+    ['feed', 'Feed', SymbolIcon('rows_16')],
+    ['dashboard', 'Dashboard', SymbolIcon('dashboard_16')],
+    ['dataflow', 'Dataflow', SymbolIcon('workflow_16')],
+];
+
+/// The view that the workbook opens in, a property of the workbook that the export carries
+export interface WorkbookDefaultViewSetting {
+    view: core.WorkbookDefaultView;
+    setView: (view: core.WorkbookDefaultView) => void;
+}
+
+/// The default view of a workbook as the export settings show it, none without a workbook. A read-only look at a
+/// published workbook keeps the view it came with.
+export function useWorkbookDefaultViewSetting(
+    workbook: WorkbookScripts | null,
+    modify: (action: { kind: 'setDefaultView'; value: { view: core.WorkbookDefaultView } }) => unknown,
+): WorkbookDefaultViewSetting | undefined {
+    const view = workbook?.defaultView;
+    const shown = workbook != null && !isCloudPreview(workbook);
+    return React.useMemo(
+        () => !shown ? undefined : {
+            view: view ?? 'feed',
+            setView: (next: core.WorkbookDefaultView) => { modify({ kind: 'setDefaultView', value: { view: next } }); },
+        },
+        [shown, view, modify],
+    );
+}
 
 export interface WorkbookExportSettings {
     withCatalog: boolean;
@@ -22,6 +56,9 @@ interface Props {
     withWorkbookParts?: boolean;
     /// Offer the toggle of the query results, with a line below it, e.g. how many scripts have a cached result
     queryResults?: { hint: string | null };
+    /// Offer the choice of the view that the workbook opens in. It changes the workbook, like the bookmark beside the
+    /// view switch of the workbook bar.
+    defaultView?: WorkbookDefaultViewSetting;
 }
 
 export const WorkbookExportSettingsView: React.FC<Props> = (props: Props) => {
@@ -47,9 +84,35 @@ export const WorkbookExportSettingsView: React.FC<Props> = (props: Props) => {
         setSettings({ ...settings, preserveUUIDs: !settings.preserveUUIDs });
     }, [settings, setSettings]);
 
+    const defaultView = props.defaultView;
     return (
         <div className={styles.root}>
             <div className={styles.part_list}>
+                {defaultView != null && <>
+                    <div id="export-default-view-label" className={styles.part_name}>
+                        Default View
+                    </div>
+                    <div className={styles.part_toggle}>
+                        <SegmentedControl
+                            aria-labelledby="export-default-view-label"
+                            data-testid="export-default-view"
+                            size={SegmentedControlSize.Small}
+                            onChange={index => {
+                                const view = DEFAULT_VIEWS[index]?.[0];
+                                if (view != null && view !== defaultView.view) defaultView.setView(view);
+                            }}
+                        >
+                            {DEFAULT_VIEWS.map(([view, label, Icon]) => (
+                                <SegmentedControl.IconButton
+                                    key={view}
+                                    aria-label={label}
+                                    icon={<Icon size={14} />}
+                                    selected={defaultView.view === view}
+                                />
+                            ))}
+                        </SegmentedControl>
+                    </div>
+                </>}
                 <div id="export-toggle-login-hint-label" className={styles.part_name}>
                     Login Hint
                 </div>

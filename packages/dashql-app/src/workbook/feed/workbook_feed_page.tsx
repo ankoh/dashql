@@ -25,7 +25,7 @@ import { WorkbookPrompt, WorkbookPromptPlacement, type WorkbookPromptFeed, type 
 import type { AgentFollowTarget } from '../../agent/agent_session.js';
 import { Dashboard } from '../dashboard/dashboard.js';
 import { DataflowCanvas } from '../dataflow/dataflow_canvas.js';
-import { WorkbookViewMode, useWorkbookViewMode } from '../workbook_view_mode.js';
+import { WorkbookViewMode, defaultViewOfViewMode, useWorkbookViewMode, viewModeOfDefaultView } from '../workbook_view_mode.js';
 import { SegmentedControl, SegmentedControlSize } from '@akohn/dashql-react/components/segmented_control';
 import { PanelResizeHandle } from '@akohn/dashql-react/components/panel_resize_handle';
 import { useWorkbookExecution, useWorkbookShown } from '@akohn/dashql-react/hooks';
@@ -51,6 +51,9 @@ const FileZipIcon = SymbolIcon('file_zip_16');
 const MoreIcon = SymbolIcon('kebab_horizontal');
 const PreviousViewIcon = SymbolIcon('chevron_left_12');
 const NextViewIcon = SymbolIcon('chevron_right_12');
+// The bookmark of the view that the workbook opens in, octicons
+const DefaultViewIcon = SymbolIcon('bookmark_16');
+const DefaultViewSetIcon = SymbolIcon('bookmark_filled_16');
 const CloseIcon = SymbolIcon('x_16');
 // The octicons show the sidebar on the right, flipped it sits on the left like the workbench
 const CollapseSidebarIcon = SymbolIcon('sidebar_collapse_16');
@@ -286,6 +289,22 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
     }, [viewIndex, showView]);
     // A preview shows its scripts only, it runs nothing until it is imported
     const viewSwitchShown = !preview && !overviewActive;
+    // The bookmark beside the switch marks the view that the workbook opens in, also for the people it is shared
+    // with. Marking the bookmarked view again returns the workbook to the feed. The greeter has nothing to share.
+    const defaultView = viewModeOfDefaultView(props.workbookScripts.defaultView);
+    const activeViewIsDefault = activeView === defaultView;
+    const activeViewLabel = WORKBOOK_VIEWS[viewIndex]?.[1] ?? 'Feed';
+    const modifyWorkbookScripts = props.modifyWorkbookScripts;
+    const toggleDefaultView = React.useCallback(() => {
+        const next = activeViewIsDefault ? WorkbookViewMode.Workbook : activeView;
+        if (next === defaultView) return;
+        modifyWorkbookScripts({ kind: 'setDefaultView', value: { view: defaultViewOfViewMode(next) } });
+    }, [activeView, activeViewIsDefault, defaultView, modifyWorkbookScripts]);
+    const defaultViewDescription = !activeViewIsDefault
+        ? `Open the workbook in the ${activeViewLabel.toLowerCase()}`
+        : activeView === WorkbookViewMode.Workbook
+            ? 'The workbook opens in the feed'
+            : `The workbook opens in the ${activeViewLabel.toLowerCase()}, click to open it in the feed`;
     // The groups at the end of the bar. An ephemeral workbook has no actions, a preview has its own.
     const connectionsShown = barConnections.length > 0;
     const actionsShown = preview || !ephemeral;
@@ -614,6 +633,14 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
                             {actionsShown && viewSwitchShown && <BarSeparator />}
                             {/* The arrows beside the switch tell that the arrow keys step through the views */}
                             {viewSwitchShown && <div className={classNames(styles.bar_group, styles.view_switch)} role="group" aria-label="Views" data-testid="workbook-views-group">
+                                {!ephemeral && (
+                                    <IconButton size={ButtonSize.Small} variant={ButtonVariant.Invisible}
+                                        className={classNames(styles.view_default, activeViewIsDefault && styles.view_default_set)}
+                                        aria-label="Default view" aria-pressed={activeViewIsDefault} description={defaultViewDescription}
+                                        data-testid="workbook-view-default" onClick={toggleDefaultView}>
+                                        {activeViewIsDefault ? <DefaultViewSetIcon size={14} /> : <DefaultViewIcon size={14} />}
+                                    </IconButton>
+                                )}
                                 <IconButton size={ButtonSize.Small} variant={ButtonVariant.Invisible} className={styles.view_step}
                                     aria-label="Previous view" description="Previous view (←)" data-testid="workbook-view-previous"
                                     disabled={viewIndex <= 0} onClick={() => stepView(-1)}>

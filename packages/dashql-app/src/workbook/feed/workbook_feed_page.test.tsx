@@ -503,13 +503,40 @@ describe('WorkbookFeedPage', () => {
         for (const testId of workbookControls) expect(header.querySelector(`[data-testid="${testId}"]`)).not.toBeNull();
     });
 
+    it('bookmarks the view that the workbook opens in', () => {
+        const modify = vi.fn();
+        const render = (defaultView: string) => act(() => root.render(<WorkbookFeedPage
+            workbookScripts={{ ...scripts(), defaultView } as WorkbookScripts} modifyWorkbookScripts={modify}
+            connection={null} active dependencies={dependencies} />));
+        const bookmark = () => container.querySelector<HTMLButtonElement>('[data-testid="workbook-view-default"]')!;
+        // The feed is the default view, it can't be bookmarked away
+        render('feed');
+        expect(bookmark().getAttribute('aria-pressed')).toBe('true');
+        act(() => bookmark().click());
+        expect(modify).not.toHaveBeenCalled();
+        // The dashboard shows, the bookmark makes it the default view
+        state.mode = WorkbookViewMode.Dashboard;
+        render('feed');
+        expect(bookmark().getAttribute('aria-pressed')).toBe('false');
+        act(() => bookmark().click());
+        expect(modify).toHaveBeenLastCalledWith({ kind: 'setDefaultView', value: { view: 'dashboard' } });
+        // The bookmarked dashboard returns the workbook to the feed
+        render('dashboard');
+        expect(bookmark().getAttribute('aria-pressed')).toBe('true');
+        act(() => bookmark().click());
+        expect(modify).toHaveBeenLastCalledWith({ kind: 'setDefaultView', value: { view: 'feed' } });
+        // The bookmark sits left of the arrow before the switch
+        const previous = container.querySelector('[data-testid="workbook-view-previous"]')!;
+        expect(bookmark().compareDocumentPosition(previous) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
     it('keeps the connections and the view switch in the header while the workbook is ephemeral', () => {
         const ephemeral = { ...scripts(), workbookMetadata: { ephemeral: true }, ephemeral: true, scriptOrder: [], scriptKeys: [], scriptConnections: [], scriptRefs: {} };
         const main = testConnection('main', ConnectionHealth.ONLINE);
         act(() => root.render(<WorkbookFeedPage workbookScripts={ephemeral} modifyWorkbookScripts={vi.fn()} connection={main} active dependencies={dependencies} />));
         const header = container.querySelector('header')!;
         expect(header.querySelector('[data-testid="workbook-view-switch"]')).not.toBeNull();
-        for (const control of ['execute-all', 'workbook-actions', 'export-workbook']) {
+        for (const control of ['execute-all', 'workbook-actions', 'export-workbook', 'workbook-view-default']) {
             expect(header.querySelector(`[data-testid="${control}"]`)).toBeNull();
         }
         expect(header.querySelector('[data-testid="open-workbench"]')).not.toBeNull();
