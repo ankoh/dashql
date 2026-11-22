@@ -273,6 +273,7 @@ describe('VegaCrossFilterUpdater', () => {
                 return view;
             },
             scale: vi.fn(),
+            resize: () => view,
             runAsync,
         } as VegaCrossFilterView;
         const updater = new VegaCrossFilterUpdater(view, 'source', [{ value: 1 }], 'mask', 'active');
@@ -302,6 +303,7 @@ describe('VegaCrossFilterUpdater', () => {
                 return view;
             },
             scale: vi.fn(() => ({ domain: () => [0, 1] })),
+            resize: vi.fn().mockReturnThis(),
             runAsync,
         } as unknown as VegaCrossFilterView;
         const domains = [{ scaleName: 'x', signalName: 'x_domain' }];
@@ -320,10 +322,12 @@ describe('VegaCrossFilterUpdater', () => {
 
     it('runs a chart that mounts with a filter twice', async () => {
         const runAsync = vi.fn().mockResolvedValue(undefined);
+        const resize = vi.fn().mockReturnThis();
         const view = {
             data: vi.fn().mockReturnThis(),
             signal: vi.fn().mockReturnThis(),
             scale: vi.fn(() => ({ domain: () => [0, 1] })),
+            resize,
             runAsync,
         } as unknown as VegaCrossFilterView;
         const domains = [{ scaleName: 'x', signalName: 'x_domain' }];
@@ -331,6 +335,8 @@ describe('VegaCrossFilterUpdater', () => {
 
         updater.update({ active: true, rows: [{ [MASK_ROW_ID_FIELD]: 1 }] });
         await vi.waitFor(() => expect(runAsync).toHaveBeenCalledTimes(2));
+        // The charts fit their layout only when the rows change, not with every run of a pointer move
+        expect(resize).toHaveBeenCalledTimes(2);
     });
 
     it('drops queued work after disposal', async () => {
@@ -343,6 +349,7 @@ describe('VegaCrossFilterUpdater', () => {
             data: vi.fn().mockReturnThis(),
             signal: vi.fn().mockReturnThis(),
             scale: vi.fn(),
+            resize: vi.fn().mockReturnThis(),
             runAsync,
         } as unknown as VegaCrossFilterView;
         const updater = new VegaCrossFilterUpdater(view, 'source', [], 'mask', 'active');

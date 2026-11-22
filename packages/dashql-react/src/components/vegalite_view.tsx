@@ -233,9 +233,11 @@ export function VegaLiteView(props: VegaLiteViewProps): React.ReactElement {
         // Pin whichever exact dimensions were requested; otherwise fill the container.
         runtimeSpec.width = width != null ? width : 'container';
         runtimeSpec.height = height != null ? height : 'container';
-        // Include axes, legends and titles in the available size, and recalculate their bounds when
-        // data or the container changes instead of relying on fixed outer padding.
-        runtimeSpec.autosize = { type: 'fit', contains: 'padding', resize: true };
+        // Include axes, legends and titles in the available size instead of relying on fixed outer padding.
+        // The layout is fitted again when the container changes and, by the cross-filter updater, when the data
+        // changes, never on every run: a pointer move over the canvas runs the view, and the fit of a temporal axis
+        // with flushed labels can alternate between two widths, the x labels then flickered on hover.
+        runtimeSpec.autosize = { type: 'fit', contains: 'padding', resize: false };
         // Lazy-load vega-embed and vega-interpreter to keep them out of the import graph for non-vis paths.
         dependencies.loadVega().then(({ embed, expressionInterpreter }) => {
             if (disposed) return;

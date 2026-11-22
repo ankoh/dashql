@@ -22,6 +22,8 @@ export interface VegaCrossFilterView {
     data(name: string, values: object[]): VegaCrossFilterView;
     signal(name: string, value: unknown): VegaCrossFilterView;
     scale(name: string): { domain(): unknown[] };
+    /// Fit the layout with the next run, the charts don't fit it on every run
+    resize(): VegaCrossFilterView;
     runAsync(): Promise<unknown>;
 }
 
@@ -279,7 +281,7 @@ export class VegaCrossFilterUpdater {
                                 .data(this.maskDatasetName, [])
                                 .signal(this.maskActiveSignalName, false);
                         }
-                        await view.runAsync();
+                        await view.resize().runAsync();
                         if (this.view !== view) {
                             continue;
                         }
@@ -304,7 +306,8 @@ export class VegaCrossFilterUpdater {
                         .data(this.maskDatasetName, mask.rows)
                         .signal(this.maskActiveSignalName, mask.active);
                 }
-                await view.runAsync();
+                // New rows can change the labels of the axes and legends, the layout fits them
+                await view.resize().runAsync();
             }
         } catch (error: unknown) {
             this.onError(error);

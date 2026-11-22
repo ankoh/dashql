@@ -201,6 +201,15 @@ The updater also handles asynchronous embed completion:
 Computation state already rejects stale filter-task results. Coalescing provides the
 corresponding protection across the asynchronous Vega boundary.
 
+## Layout
+
+The charts are embedded with `autosize: {type: 'fit', contains: 'padding', resize: false}`.
+The layout is fitted when the container resizes and, through `view.resize()` before each
+run of the updater, when the source or the mask changes. It is not fitted on every run:
+a pointer move over the canvas runs the view, and the fit of a temporal axis with flushed
+labels can alternate between two plot widths with two different sets of ticks. With
+`resize: true` the x labels flickered while the pointer moved over the chart.
+
 ## Composition behavior
 
 The named source and leading transforms are installed at the top level. Unit, layer,

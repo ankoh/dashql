@@ -123,7 +123,9 @@ export function VegaLiteChart(props: Props): React.ReactElement {
                 ...withViewEncodings(typeof spec === 'function' ? spec(colors) : spec),
                 width: 'container',
                 height: 'container',
-                autosize: { type: 'fit', contains: 'padding', resize: true },
+                // Fitted when the size or the data changes, not on every run: pointer moves and brushes run the view,
+                // and the fit of a temporal axis with flushed labels can alternate between two widths
+                autosize: { type: 'fit', contains: 'padding', resize: false },
             } as TopLevelSpec;
             const result = await embed(element, runtimeSpec, createEmbedOptions(colors, expressionInterpreter));
             if (disposed) {
@@ -134,7 +136,7 @@ export function VegaLiteChart(props: Props): React.ReactElement {
             applied.current = new Map();
             appliedSignals.current = new Map();
             applyUpdates(vega, view, applied.current, appliedSignals.current, latest.current.datasets, latest.current.signals);
-            await view.runAsync();
+            await view.resize().runAsync();
             viewRef.current = { view, vega };
             onView.current?.(view);
             setError(null);
@@ -158,7 +160,7 @@ export function VegaLiteChart(props: Props): React.ReactElement {
         const current = viewRef.current;
         if (current == null || !ready) return;
         if (applyUpdates(current.vega, current.view, applied.current, appliedSignals.current, props.datasets, signals)) {
-            current.view.runAsync().catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)));
+            current.view.resize().runAsync().catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)));
         }
     }, [ready, props.datasets, signals]);
 
