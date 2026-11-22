@@ -394,6 +394,20 @@ impl<'a> ParseContext<'a> {
         self.array(loc, nodes)
     }
 
+    /// A SET from its attributes: `SET a.b = v` with a single value is an `OBJECT_EXT_SET` with its key path and
+    /// value, every other form an `OBJECT_SQL_SET`
+    pub fn set(&self, loc: SymbolSpan, attrs: impl IntoNodeList) -> Node {
+        let list = attrs.into_node_list(self);
+        let varargs = self
+            .state
+            .borrow()
+            .lists
+            .get(list.0 as usize)
+            .is_some_and(|nodes| nodes.iter().any(|n| n.attribute_key() == AttributeKey::EXT_SET_VARARGS));
+        let node_type = if varargs { NodeType::OBJECT_EXT_SET } else { NodeType::OBJECT_SQL_SET };
+        self.object_ex(loc, node_type, list, false, false)
+    }
+
     /// An object
     pub fn object(&self, loc: SymbolSpan, node_type: NodeType, attrs: impl IntoNodeList) -> Node {
         self.object_ex(loc, node_type, attrs, true, false)
@@ -571,9 +585,7 @@ impl<'a> ParseContext<'a> {
         let root = self.add_node(node);
         let mut state = self.state.borrow_mut();
         let statement_type = match node.node_type() {
-            NodeType::OBJECT_EXT_SET | NodeType::OBJECT_SQL_SET | NodeType::OBJECT_SQL_SET_STATEMENT => {
-                StatementType::SET
-            }
+            NodeType::OBJECT_EXT_SET | NodeType::OBJECT_SQL_SET => StatementType::SET,
             NodeType::OBJECT_SQL_CREATE_AS => StatementType::CREATE_TABLE_AS,
             NodeType::OBJECT_SQL_CREATE => StatementType::CREATE_TABLE,
             NodeType::OBJECT_SQL_VIEW => StatementType::CREATE_VIEW,

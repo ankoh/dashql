@@ -85,6 +85,11 @@ formatter-snapshots:
     dialects:
       hyper:
 
+  - name: coverage_set_local
+    input: SET LOCAL variable = 'value'; SET SESSION variable = 'value'
+    dialects:
+      hyper:
+
   - name: coverage_set_nested
     input: SET variable = ('some' = 42, 'nested' = ('enabled' = true), 'values' = [43, 44])
     dialects:

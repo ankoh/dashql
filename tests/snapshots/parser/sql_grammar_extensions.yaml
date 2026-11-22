@@ -452,34 +452,30 @@ parser-snapshots:
       statements:
         - type: SET
           ast-begin: 0
-          ast-size: 7
+          ast-size: 6
           description:
             text: "SET LOCAL .. TO 'UTC';"
             description-begin: 0
             description-count: 0
           ast:
-            type: OBJECT_SQL_SET_STATEMENT
+            type: OBJECT_SQL_SET
             text: "SET LOCAL ..e TO 'UTC'"
             children:
-              - key: SQL_SET_STATEMENT_LOCAL
+              - key: SQL_SET_NAME
+                type: ARRAY
+                text: "timezone"
+                children:
+                  - type: NAME
+                    text: "timezone"
+              - key: SQL_SET_ARGS
+                type: ARRAY
+                text: "'UTC'"
+                children:
+                  - type: LITERAL_STRING
+                    text: "'UTC'"
+              - key: SQL_SET_LOCAL
                 type: BOOL
                 value: 1
-              - key: SQL_SET_STATEMENT_ARG
-                type: OBJECT_SQL_SET
-                text: "timezone TO 'UTC'"
-                children:
-                  - key: SQL_SET_NAME
-                    type: ARRAY
-                    text: "timezone"
-                    children:
-                      - type: NAME
-                        text: "timezone"
-                  - key: SQL_SET_ARGS
-                    type: ARRAY
-                    text: "'UTC'"
-                    children:
-                      - type: LITERAL_STRING
-                        text: "'UTC'"
       scanner-errors: []
       parser-errors: []
       line-breaks: []

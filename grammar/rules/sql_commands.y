@@ -9,7 +9,7 @@ sql_cmd_alter_db_stmt:
                 attr(Key::SQL_ALTER_DATABASE_LOCALITY, $2),
                 attr(Key::SQL_ALTER_DATABASE_DATABASE, $4),
                 attr(Key::SQL_ALTER_DATABASE_OPTIONS, ctx.array(@6, $6)),
-                attr(Key::SQL_ALTER_DATABASE_ARGS, $8),
+                attr(Key::SQL_ALTER_DATABASE_ARGS, ctx.set(@8, $8)),
             ],
         )
     }
@@ -1184,7 +1184,7 @@ sql_cmd_fetch_stmt:
     ;
 
 sql_cmd_function_set_reset_clause:
-    SET sql_cmd_set_rest_more { $2 }
+    SET sql_cmd_set_rest_more { ctx.set(@$, $2) }
     | sql_cmd_variable_reset_stmt { $1 }
     ;
 
@@ -1982,7 +1982,7 @@ sql_cmd_sequence_option_list:
     ;
 
 sql_cmd_set_reset_clause:
-    SET sql_cmd_set_rest { $2 }
+    SET sql_cmd_set_rest { ctx.set(@$, $2) }
     | sql_cmd_variable_reset_stmt { $1 }
     ;
 
@@ -2999,50 +2999,21 @@ sql_cmd_generic_reset:
 
 sql_cmd_generic_set:
     sql_cmd_var_name TO sql_cmd_var_list {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_SET,
-            &[
-                attr(Key::SQL_SET_NAME, ctx.array(@1, $1)),
-                attr(Key::SQL_SET_ARGS, ctx.array(@3, $3)),
-            ],
-        )
+        ctx.list(&[attr(Key::SQL_SET_NAME, ctx.array(@1, $1)), attr(Key::SQL_SET_ARGS, ctx.array(@3, $3))])
     }
     | sql_cmd_var_name EQUALS vararg_value sql_set_more_values {
         if ctx.list_is_empty($4) {
-            let fields = vararg_field(ctx, @$, $1, $3);
-            ctx.object(@$, NodeType::OBJECT_EXT_SET, &[attr(Key::EXT_SET_VARARGS, fields)])
+            ctx.list(&[attr(Key::EXT_SET_VARARGS, vararg_field(ctx, @$, $1, $3))])
         } else {
             let args = ctx.concat2(&[$3], $4);
-            ctx.object(
-                @$,
-                NodeType::OBJECT_SQL_SET,
-                &[
-                    attr(Key::SQL_SET_NAME, ctx.array(@1, $1)),
-                    attr(Key::SQL_SET_ARGS, ctx.array(@3, args)),
-                ],
-            )
+            ctx.list(&[attr(Key::SQL_SET_NAME, ctx.array(@1, $1)), attr(Key::SQL_SET_ARGS, ctx.array(@3, args))])
         }
     }
     | sql_cmd_var_name TO DEFAULT {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_SET,
-            &[
-                attr(Key::SQL_SET_DEFAULT, bool_node(@$, true)),
-                attr(Key::SQL_SET_NAME, ctx.array(@1, $1)),
-            ],
-        )
+        ctx.list(&[attr(Key::SQL_SET_DEFAULT, bool_node(@3, true)), attr(Key::SQL_SET_NAME, ctx.array(@1, $1))])
     }
     | sql_cmd_var_name EQUALS DEFAULT {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_SET,
-            &[
-                attr(Key::SQL_SET_DEFAULT, bool_node(@$, true)),
-                attr(Key::SQL_SET_NAME, ctx.array(@1, $1)),
-            ],
-        )
+        ctx.list(&[attr(Key::SQL_SET_DEFAULT, bool_node(@3, true)), attr(Key::SQL_SET_NAME, ctx.array(@1, $1))])
     }
     ;
 
@@ -4000,24 +3971,10 @@ sql_cmd_set_clause_list:
 
 sql_cmd_set_rest:
     TRANSACTION sql_transaction_mode_list {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_SET,
-            &[
-                attr(Key::SQL_SET_PARAMETER, enum_node(@$, SessionParameter::TRANSACTION)),
-                attr(Key::SQL_SET_ARGS, ctx.array(@2, $2)),
-            ],
-        )
+        ctx.list(&[attr(Key::SQL_SET_PARAMETER, enum_node(@$, SessionParameter::TRANSACTION)), attr(Key::SQL_SET_ARGS, ctx.array(@2, $2))])
     }
     | SESSION CHARACTERISTICS AS TRANSACTION sql_transaction_mode_list {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_SET,
-            &[
-                attr(Key::SQL_SET_PARAMETER, enum_node(@$, SessionParameter::SESSION_CHARACTERISTICS)),
-                attr(Key::SQL_SET_ARGS, ctx.array(@5, $5)),
-            ],
-        )
+        ctx.list(&[attr(Key::SQL_SET_PARAMETER, enum_node(@$, SessionParameter::SESSION_CHARACTERISTICS)), attr(Key::SQL_SET_ARGS, ctx.array(@5, $5))])
     }
     | sql_cmd_set_rest_more { $1 }
     ;
@@ -4025,86 +3982,16 @@ sql_cmd_set_rest:
 sql_cmd_set_rest_more:
     sql_cmd_generic_set { $1 }
     | sql_cmd_var_name FROM CURRENT_P {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_SET,
-            &[
-                attr(Key::SQL_SET_FROM_CURRENT, bool_node(@$, true)),
-                attr(Key::SQL_SET_NAME, ctx.array(@1, $1)),
-            ],
-        )
+        ctx.list(&[attr(Key::SQL_SET_FROM_CURRENT, bool_node(@$, true)), attr(Key::SQL_SET_NAME, ctx.array(@1, $1))])
     }
-    | TIME ZONE sql_cmd_zone_value {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_SET,
-            &[
-                attr(Key::SQL_SET_PARAMETER, enum_node(@$, SessionParameter::TIME_ZONE)),
-                attr(Key::SQL_SET_ARGS, $3),
-            ],
-        )
-    }
-    | CATALOG_P sql_string_literal {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_SET,
-            &[
-                attr(Key::SQL_SET_PARAMETER, enum_node(@$, SessionParameter::CATALOG)),
-                attr(Key::SQL_SET_ARGS, $2),
-            ],
-        )
-    }
-    | SCHEMA sql_string_literal {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_SET,
-            &[
-                attr(Key::SQL_SET_PARAMETER, enum_node(@$, SessionParameter::SCHEMA)),
-                attr(Key::SQL_SET_ARGS, $2),
-            ],
-        )
-    }
-    | NAMES sql_cmd_opt_encoding {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_SET,
-            &[
-                attr(Key::SQL_SET_PARAMETER, enum_node(@$, SessionParameter::CLIENT_ENCODING)),
-                attr(Key::SQL_SET_ARGS, $2),
-            ],
-        )
-    }
-    | ROLE sql_word_or_string {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_SET,
-            &[
-                attr(Key::SQL_SET_PARAMETER, enum_node(@$, SessionParameter::ROLE)),
-                attr(Key::SQL_SET_ARGS, $2),
-            ],
-        )
-    }
-    | SESSION AUTHORIZATION sql_word_or_string {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_SET,
-            &[
-                attr(Key::SQL_SET_PARAMETER, enum_node(@$, SessionParameter::SESSION_AUTHORIZATION)),
-                attr(Key::SQL_SET_ARGS, $3),
-            ],
-        )
-    }
-    | SESSION AUTHORIZATION DEFAULT { ctx.object(@$,NodeType::OBJECT_SQL_SET,&[attr(Key::SQL_SET_PARAMETER, enum_node(@$, SessionParameter::SESSION_AUTHORIZATION))]) }
-    | TRANSACTION SNAPSHOT sql_string_literal {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_SET,
-            &[
-                attr(Key::SQL_SET_PARAMETER, enum_node(@$, SessionParameter::TRANSACTION_SNAPSHOT)),
-                attr(Key::SQL_SET_ARGS, $3),
-            ],
-        )
-    }
+    | TIME ZONE sql_cmd_zone_value { ctx.list(&[attr(Key::SQL_SET_PARAMETER, enum_node(@$, SessionParameter::TIME_ZONE)), attr(Key::SQL_SET_ARGS, $3)]) }
+    | CATALOG_P sql_string_literal { ctx.list(&[attr(Key::SQL_SET_PARAMETER, enum_node(@$, SessionParameter::CATALOG)), attr(Key::SQL_SET_ARGS, $2)]) }
+    | SCHEMA sql_string_literal { ctx.list(&[attr(Key::SQL_SET_PARAMETER, enum_node(@$, SessionParameter::SCHEMA)), attr(Key::SQL_SET_ARGS, $2)]) }
+    | NAMES sql_cmd_opt_encoding { ctx.list(&[attr(Key::SQL_SET_PARAMETER, enum_node(@$, SessionParameter::CLIENT_ENCODING)), attr(Key::SQL_SET_ARGS, $2)]) }
+    | ROLE sql_word_or_string { ctx.list(&[attr(Key::SQL_SET_PARAMETER, enum_node(@$, SessionParameter::ROLE)), attr(Key::SQL_SET_ARGS, $2)]) }
+    | SESSION AUTHORIZATION sql_word_or_string { ctx.list(&[attr(Key::SQL_SET_PARAMETER, enum_node(@$, SessionParameter::SESSION_AUTHORIZATION)), attr(Key::SQL_SET_ARGS, $3)]) }
+    | SESSION AUTHORIZATION DEFAULT { ctx.list(&[attr(Key::SQL_SET_PARAMETER, enum_node(@$, SessionParameter::SESSION_AUTHORIZATION)), attr(Key::SQL_SET_DEFAULT, bool_node(@3, true))]) }
+    | TRANSACTION SNAPSHOT sql_string_literal { ctx.list(&[attr(Key::SQL_SET_PARAMETER, enum_node(@$, SessionParameter::TRANSACTION_SNAPSHOT)), attr(Key::SQL_SET_ARGS, $3)]) }
     ;
 
 sql_cmd_set_target:

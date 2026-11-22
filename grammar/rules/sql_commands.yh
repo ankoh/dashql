@@ -119,7 +119,7 @@
 %type<Node> sql_cmd_function_with_argtypes;
 %type<NodeList> sql_cmd_function_with_argtypes_list;
 %type<Node> sql_cmd_generic_reset;
-%type<Node> sql_cmd_generic_set;
+%type<NodeList> sql_cmd_generic_set;
 %type<Node> sql_cmd_grantee;
 %type<NodeList> sql_cmd_grantee_list;
 %type<Node> sql_cmd_copy_named_opt_elem;
@@ -199,8 +199,8 @@
 %type<NodeList> sql_cmd_role_list;
 %type<Node> sql_cmd_set_clause;
 %type<NodeList> sql_cmd_set_clause_list;
-%type<Node> sql_cmd_set_rest;
-%type<Node> sql_cmd_set_rest_more;
+%type<NodeList> sql_cmd_set_rest;
+%type<NodeList> sql_cmd_set_rest_more;
 %type<Node> sql_cmd_set_target;
 %type<NodeList> sql_cmd_set_target_list;
 %type<Node> sql_cmd_single_set_clause;

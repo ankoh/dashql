@@ -35,6 +35,11 @@ only repeats the node type (`GRANT`) is not stored. Where the commands share syn
 rules and enums: `NumericType` for the type of a sequence, `IntervalType` for intervals, `OrderDirection` and
 `OrderNullRule` for index elements.
 
+`SET a.b = v` with a single value is an `OBJECT_EXT_SET` with its key path and value, every other SET form
+an `OBJECT_SQL_SET` with its parameter (`SQL_SET_PARAMETER`, a `SessionParameter`) or variable (`SQL_SET_NAME`)
+and its values (`SQL_SET_ARGS`), both with `SQL_SET_LOCAL` for `SET LOCAL` (`ctx.set`, `ext_set.y`). `SET
+SESSION` is the default and not recorded.
+
 ## Trailing Dots
 
 PostgreSQL's scanner emits a single `DOT` token for `.` regardless of context.

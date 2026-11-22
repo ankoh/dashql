@@ -348,8 +348,8 @@ impl<'a> Formatter<'a> {
 
     pub(super) fn format_set(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
-        let [varargs] = attrs!(self.children(node), [K::EXT_SET_VARARGS]);
+        let [varargs, local] = attrs!(self.children(node), [K::EXT_SET_VARARGS, K::SQL_SET_LOCAL]);
         let Some(varargs) = varargs else { return self.format_unimplemented(node) };
-        f.concat(&[f.text("set "), self.reg(varargs)])
+        f.concat(&[f.text(if local.is_some() { "set local " } else { "set " }), self.reg(varargs)])
     }
 }
