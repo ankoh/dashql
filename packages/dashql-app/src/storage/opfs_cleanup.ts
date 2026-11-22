@@ -1,7 +1,6 @@
 import {
     STORAGE_ATTACHMENTS_FOLDER,
     STORAGE_CONNECTIONS_FOLDER,
-    STORAGE_GITIGNORE_FILE,
     STORAGE_MANIFEST_FILE,
     STORAGE_SCRIPTS_FOLDER,
     STORAGE_WORKBOOK_FILE,
@@ -88,7 +87,6 @@ const OPFS_WORKBOOK_ENTRIES = new Map<string, boolean>([
     [STORAGE_SCRIPTS_FOLDER, true],
     [STORAGE_ATTACHMENTS_FOLDER, true],
     [RESULTS_FOLDER, true],
-    [STORAGE_GITIGNORE_FILE, false],
 ]);
 /// A native workbook keeps the mirror of its attachments and its results in the origin private file system
 const NATIVE_WORKBOOK_ENTRIES = new Map<string, boolean>([[STORAGE_ATTACHMENTS_FOLDER, true], [RESULTS_FOLDER, true]]);

@@ -58,8 +58,11 @@ cache/
 ```
 
 The stored results of the scripts live in the mirror of the origin private file system, not in the native folder
-(`workbook_results.md`); its `.gitignore` lists `results/` for a folder that holds them anyway. `cache/` is the folder of
-earlier versions.
+(`workbook_results.md`). The `.gitignore` of a native folder keeps the generated files out of version control: `cache/`,
+the folder of earlier versions, and `*.hyper`. The storage writer of the core decides it: with the first write of the
+workbook file of a workbook it appends the missing entries (`gitignore_with_entries` of `workbook_format/layout.rs`),
+the lines of the user stay. The storage of the platform only loads and saves the file (`loadGitignore`,
+`saveGitignore`); a workbook of the origin private file system has none.
 
 Workbooks don't hold a catalog. The catalog belongs to the connection and lives in the app storage;
 workbook format version 7 removed the catalog copies from workbook folders. A folder that was exported

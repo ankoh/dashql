@@ -1079,9 +1079,10 @@ async fn save_workbook_file<H: StorageHost>(
     Ok(())
 }
 
-/// Keep the results of the scripts and other generated files of a workbook folder out of version control: the first
-/// write of the workbook file of a workbook appends the missing entries to the `.gitignore` of its folder, the lines of
-/// the user stay. A failure only logs, the next writer checks again.
+/// Keep the generated files of a native workbook folder out of version control: the first write of the workbook file
+/// of a workbook appends the missing entries to the `.gitignore` of its folder, the lines of the user stay. A storage
+/// without a `.gitignore`, the origin private file system, loads none and saves nothing. A failure only logs, the next
+/// writer checks again.
 async fn ensure_gitignore<H: StorageHost>(shared: &Rc<Shared<H>>, workbook_id: &str) {
     if !shared.gitignores.borrow_mut().insert(workbook_id.to_string()) {
         return;

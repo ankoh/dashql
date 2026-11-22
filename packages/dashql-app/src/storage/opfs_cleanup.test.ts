@@ -83,6 +83,7 @@ describe('findOPFSCleanupCandidates', () => {
             'logs',
             'notebooks',
             'workbooks/gone',
+            'workbooks/s1/.gitignore',
             'workbooks/s1/cache',
             'workbooks/s1/dashql-session-index.json',
             'workbooks/s1/scripts/page',

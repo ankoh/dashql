@@ -103,9 +103,9 @@ export interface RuntimeStorage {
     deleteScript(workbookId: string, fileName: string, expected?: RuntimeFileStamp | null): Promise<void>;
     /** The file keeps its stamp, a missing source is renamed already */
     renameScript(workbookId: string, from: string, to: string, expectedFrom?: RuntimeFileStamp | null, expectedTo?: RuntimeFileStamp | null): Promise<void>;
-    /** The text of the `.gitignore` of the folder of a workbook, null without one. The runtime decides its entries. */
+    /** The text of the `.gitignore` of the folder of a native workbook, null without one or for a workbook of the origin private file system. The runtime decides its entries. */
     loadGitignore(workbookId: string): Promise<string | null>;
-    /** Write the `.gitignore` of the folder of a workbook */
+    /** Write the `.gitignore` of the folder of a native workbook, nothing for a workbook of the origin private file system */
     saveGitignore(workbookId: string, text: string): Promise<void>;
     /** The names of the attachments, the runtime normalizes them to NFC and orders them naturally */
     listAttachments(workbookId: string): Promise<string[]>;

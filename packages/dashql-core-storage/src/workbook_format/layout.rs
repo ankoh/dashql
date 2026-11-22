@@ -38,9 +38,9 @@ pub const MAX_WORKBOOK_FILES: usize = 2048;
 pub const ATTACHMENT_EXTENSION: &str = dashql_core_runtime::attachments::ATTACHMENT_EXTENSION;
 /// The workbook file up to format version 10
 pub const LEGACY_SESSION_FILE: &str = "dashql-session.json";
-/// The entries of the `.gitignore` of a workbook folder: the results of the scripts, the former query result cache and
-/// Hyper databases
-pub const GITIGNORE_ENTRIES: [&str; 3] = ["results/", "cache/", "*.hyper"];
+/// The entries of the `.gitignore` of a native workbook folder: the former query result cache and Hyper databases. The
+/// results of the scripts stay in the origin private file system.
+pub const GITIGNORE_ENTRIES: [&str; 2] = ["cache/", "*.hyper"];
 /// The folder of the clouds in the OPFS root, a local cloud attaches a database of it
 pub const HYPER_CLOUDS_DIRECTORY: &str = "clouds";
 
@@ -249,12 +249,10 @@ mod tests {
 
     #[test]
     fn appends_the_gitignore_entries() {
-        assert_eq!(gitignore_with_entries(None).as_deref(), Some("results/\ncache/\n*.hyper\n"));
-        assert_eq!(
-            gitignore_with_entries(Some("notes.txt\ncache/")).as_deref(),
-            Some("notes.txt\ncache/\nresults/\n*.hyper\n")
-        );
+        assert_eq!(gitignore_with_entries(None).as_deref(), Some("cache/\n*.hyper\n"));
+        assert_eq!(gitignore_with_entries(Some("notes.txt\ncache/")).as_deref(), Some("notes.txt\ncache/\n*.hyper\n"));
         assert_eq!(gitignore_with_entries(Some("cache/\r\nresults/\n*.hyper\n")), None);
+        assert_eq!(gitignore_with_entries(Some("cache/\r\n*.hyper")), None);
     }
 
     #[test]

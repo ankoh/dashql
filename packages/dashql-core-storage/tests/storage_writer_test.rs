@@ -1688,7 +1688,7 @@ fn appends_the_entries_of_the_app_to_the_gitignore_of_a_workbook_once() {
     h.flush();
     let gitignore = |h: &Harness| h.store.borrow().gitignores.as_ref().unwrap().get(WORKBOOK).cloned();
     // The lines of the user stay, the missing entries follow them
-    assert_eq!(gitignore(&h).as_deref(), Some("notes.txt\ncache/\nresults/\n*.hyper\n"));
+    assert_eq!(gitignore(&h).as_deref(), Some("notes.txt\ncache/\n*.hyper\n"));
     // The writer checks a workbook once, a .gitignore that the user edits later stays as it is
     h.store.borrow_mut().gitignores.as_mut().unwrap().insert(WORKBOOK.to_string(), "mine\n".to_string());
     schedule(&h, properties("renamed"), 0.0);

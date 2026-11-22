@@ -1,4 +1,4 @@
-import { type WorkbookRegistryBackend, type ConnectionEntry, STORAGE_CONNECTIONS_FOLDER, type WorkbookData, type ScriptData, type WorkbookEntry, type StorageManifest, type AppSettings, StorageBackendType, STORAGE_MANIFEST_FILE, STORAGE_WORKBOOKS_FOLDER, STORAGE_WORKBOOK_FILE, STORAGE_SCRIPTS_FOLDER, STORAGE_SHELL_FOLDER, STORAGE_GITIGNORE_FILE } from './storage_backend.js';
+import { type WorkbookRegistryBackend, type ConnectionEntry, STORAGE_CONNECTIONS_FOLDER, type WorkbookData, type ScriptData, type WorkbookEntry, type StorageManifest, type AppSettings, StorageBackendType, STORAGE_MANIFEST_FILE, STORAGE_WORKBOOKS_FOLDER, STORAGE_WORKBOOK_FILE, STORAGE_SCRIPTS_FOLDER, STORAGE_SHELL_FOLDER } from './storage_backend.js';
 import { type DataFile, type DataFileContent, STORAGE_ATTACHMENTS_FOLDER } from './storage_backend.js';
 import type * as core from '../../core/index.js';
 import { sleep } from '../utils/sleep.js';
@@ -330,23 +330,6 @@ export class OPFSStorageBackend implements WorkbookRegistryBackend {
             throw error;
         }
         await this.moveFile(scriptsDir, oldScriptName, scriptsDir, newScriptName);
-    }
-
-    async loadGitignore(workbookId: string): Promise<string | null> {
-        try {
-            const workbookDir = await this.getWorkbookDir(this.workbookRelPath(workbookId), false);
-            return await (await (await workbookDir.getFileHandle(STORAGE_GITIGNORE_FILE)).getFile()).text();
-        } catch (error) {
-            if (isMissingDirectory(error)) return null;
-            throw error;
-        }
-    }
-
-    async saveGitignore(workbookId: string, text: string): Promise<void> {
-        const workbookDir = await this.getWorkbookDir(this.workbookRelPath(workbookId), true);
-        const writable = await (await workbookDir.getFileHandle(STORAGE_GITIGNORE_FILE, { create: true })).createWritable();
-        await writable.write(text);
-        await writable.close();
     }
 
     private async dataDir(workbookId: string, create: boolean): Promise<FileSystemDirectoryHandle | null> {

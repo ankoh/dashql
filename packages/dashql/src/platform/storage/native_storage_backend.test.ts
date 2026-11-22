@@ -34,9 +34,9 @@ describe('NativeStorageBackend V2 flat storage', () => {
 
     it('reads and writes the .gitignore of the folder, the runtime decides its entries', async () => {
         expect(await backend.loadGitignore(TEST_WORKBOOK_ID)).toBeNull();
-        await backend.saveGitignore(TEST_WORKBOOK_ID, 'results/\n');
-        expect(fsStore.files.get(`${DIR}/.gitignore`)).toBe('results/\n');
-        expect(await backend.loadGitignore(TEST_WORKBOOK_ID)).toBe('results/\n');
+        await backend.saveGitignore(TEST_WORKBOOK_ID, 'cache/\n');
+        expect(fsStore.files.get(`${DIR}/.gitignore`)).toBe('cache/\n');
+        expect(await backend.loadGitignore(TEST_WORKBOOK_ID)).toBe('cache/\n');
     });
 
     it('persists rename and delete', async () => {

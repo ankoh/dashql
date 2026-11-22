@@ -12,7 +12,6 @@ query fail. A missing or broken file is a script without a stored result.
 
 ```
 workbooks/<workbook-id>/
-├── .gitignore                         results/
 └── results/
     ├── <script>.<key>.<gen>.parquet   the last result of a script
     └── <uuid>.transient.parquet       a materialized result that is no result of a script
@@ -38,12 +37,9 @@ them would make the next use of the mount refresh it while the queries of the ru
 refuses that. Once the run ended and its writes are done it removes them (`vacuum` of `runs/stored_results.rs`), the
 run resolves after that. A file that is read then stays, the next listing removes it.
 
-The `.gitignore` of a workbook folder holds `results/`, together with the entries of native workbook folders
-(`cache/`, `*.hyper`). The storage writer of the core decides it: with the first write of the workbook file of a
-workbook it appends the missing entries (`gitignore_with_entries` of `workbook_format/layout.rs`), the lines of the user
-stay. The storage of the platform only loads and saves the file (`loadGitignore`, `saveGitignore`). The results of a native workbook live in its folder of the
-origin private file system, `workbooks/<id>/results/`, like the mirror of its attachments: the embedded Hyper mounts
-only folders of the origin private file system. The `.gitignore` of the native folder holds `results/` all the same.
+The results of a native workbook live in its folder of the origin private file system, `workbooks/<id>/results/`, like
+the mirror of its attachments: the embedded Hyper mounts only folders of the origin private file system. The native
+folder holds no results, its `.gitignore` has no entry for them (`native_file_sync.md`).
 
 The compute database mounts the results of a workbook read-write at `/mnt/external/results/<workbook-id>`, like its
 attachments at `/mnt/external/attachments/<workbook-id>`: the core plans with the path (`RESULTS_MOUNT_ROOT` of
