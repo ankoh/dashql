@@ -7,6 +7,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { QueryExecutionStatus } from '@akohn/dashql/platform/query/query_execution_state';
 import type { ScriptData } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { DashboardCard, type DashboardCardDependencies } from './dashboard_card.js';
+import { markdownTemplate } from './dashboard_source.js';
+import { NEW_CHART_SPEC } from '../chart_builder/chart_spec_paths.js';
 import { queryModelOf, resultTableOf, WithResultTables } from '../../tests/result_tables.js';
 import { RenderScheduleContext } from '@akohn/dashql-react/components/deferred';
 import type { RenderSchedule } from '@akohn/dashql-react/dom/calm_frames';
@@ -245,10 +247,10 @@ describe('DashboardCard', () => {
         act(() => button('dashboard-card-renderer-table')!.click());
         expect(onVisualize).not.toHaveBeenCalled();
         act(() => button('dashboard-card-renderer-chart')!.click());
-        expect(onVisualize).toHaveBeenCalledWith(1, 'vegalite', '{"mark":"bar"}');
+        expect(onVisualize).toHaveBeenCalledWith(1, 'vegalite', JSON.stringify(NEW_CHART_SPEC));
         expect(onOpenChart).not.toHaveBeenCalled();
         act(() => button('dashboard-card-renderer-markdown')!.click());
-        expect(onVisualize).toHaveBeenCalledWith(1, 'markdown', '### {{region}}\n{{revenue}}');
+        expect(onVisualize).toHaveBeenCalledWith(1, 'markdown', markdownTemplate(['region', 'revenue']));
 
         // Markdown needs a result for its template
         render(tableScript, null);
@@ -446,9 +448,9 @@ describe('DashboardCard', () => {
             act(() => button('dashboard-card-renderer-table').click());
             expect(callbacks.onVisualize).toHaveBeenCalledWith(1, 'table', '');
             act(() => button('dashboard-card-renderer-markdown').click());
-            expect(callbacks.onVisualize).toHaveBeenCalledWith(1, 'markdown', '### {{region}}\n{{revenue}} · {{year}}');
+            expect(callbacks.onVisualize).toHaveBeenCalledWith(1, 'markdown', markdownTemplate(['region', 'revenue', 'year']));
             act(() => button('dashboard-card-renderer-chart').click());
-            expect(callbacks.onVisualize).toHaveBeenCalledWith(1, 'vegalite', '{"mark":"bar"}');
+            expect(callbacks.onVisualize).toHaveBeenCalledWith(1, 'vegalite', JSON.stringify(NEW_CHART_SPEC));
             act(() => button('dashboard-card-edit').click());
             expect(callbacks.onOpenEditor).toHaveBeenCalledWith(1);
         });

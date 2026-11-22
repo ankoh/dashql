@@ -14,6 +14,8 @@ import type { RenameDraftReferences } from '../scripts/script_rename.js';
 import type { ModifyWorkbookScripts, ScriptData, ScriptDataMap, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import type { DashboardCardDependencies } from './dashboard_card.js';
 import { Dashboard, type DashboardDependencies } from './dashboard.js';
+import { DASHBOARD_COLLAPSED_WIDTH, DASHBOARD_GRID_GAP, DASHBOARD_ROW_HEIGHT } from './dashboard_layout.js';
+import { markdownTemplate } from './dashboard_source.js';
 import { queryModelOf, resultTableOf, WithResultTables } from '../../tests/result_tables.js';
 import { RenderScheduleContext } from '@akohn/dashql-react/components/deferred';
 import { IMMEDIATE_SCHEDULE } from '@akohn/dashql-react/dom/calm_frames';
@@ -178,7 +180,7 @@ describe('Dashboard', () => {
         expect(cards('Scripts without visualization')).toEqual([1]);
         // The trend is placed in the first column, before the sales of the workbook order
         expect(cards('Visualizations')).toEqual([3, 2]);
-        expect(card(1).style.gridColumn).toBe('1 / span 4');
+        expect(card(1).style.gridColumn).toBe(`1 / span ${DASHBOARD_COLLAPSED_WIDTH}`);
         expect(card(2).style.gridColumn).toBe('7 / span 6');
         expect(card(2).style.gridRow).toBe('1 / span 3');
 
@@ -254,7 +256,7 @@ describe('Dashboard', () => {
         modify.mockClear();
         act(() => cardButton(2, 'dashboard-card-renderer-markdown').click());
         expect(actions()).toEqual([
-            { kind: 'setScriptText', value: { scriptKey: 2, text: 'renderer 0 markdown ### {{region}}\n{{revenue}}', withDiff: true } },
+            { kind: 'setScriptText', value: { scriptKey: 2, text: `renderer 0 markdown ${markdownTemplate(['region', 'revenue'])}`, withDiff: true } },
         ]);
         expect(testId('editor-overlay')!.getAttribute('data-script')).toBe('2_sales.sql');
         act(() => testId('editor-accept')!.click());
@@ -322,7 +324,7 @@ describe('Dashboard', () => {
         act(() => resizeHandle(1).dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })));
         expect(modify).not.toHaveBeenCalled();
         act(() => resizeHandle(1).dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true })));
-        expect(actions()).toEqual([{ kind: 'setScriptText', value: { scriptKey: 1, text: 'board 1 0 0 3 1', withDiff: false } }]);
+        expect(actions()).toEqual([{ kind: 'setScriptText', value: { scriptKey: 1, text: `board 1 0 0 ${DASHBOARD_COLLAPSED_WIDTH - 1} 1`, withDiff: false } }]);
     });
 
     it('resizes a card with the pointer and restores the layout of a cancelled resize', async () => {
@@ -330,7 +332,7 @@ describe('Dashboard', () => {
         const pointer = (target: EventTarget, type: string, x: number, y: number) => act(() => {
             target.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: y, pointerId: 1 }));
         });
-        const rowStep = 40 + 12;
+        const rowStep = DASHBOARD_ROW_HEIGHT + DASHBOARD_GRID_GAP;
         const label = () => resizeHandle(2).getAttribute('aria-label');
 
         // Moving the pointer previews the size, a cancel restores it and writes nothing

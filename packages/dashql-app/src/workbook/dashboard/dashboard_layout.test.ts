@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+    DASHBOARD_COLUMN_COUNT,
     DASHBOARD_DEFAULT_HEIGHT,
     DASHBOARD_DEFAULT_WIDTH,
     dashboardPlacementsIntersect,
@@ -14,7 +15,7 @@ describe('dashboard layout', () => {
     it('places unhinted cards row-major with stable defaults', () => {
         expect(placeDashboardItems([{ id: 1 }, { id: 2 }, { id: 3 }])).toEqual([
             { id: 1, section: 'visualizations', row: 0, column: 0, width: DASHBOARD_DEFAULT_WIDTH, height: DASHBOARD_DEFAULT_HEIGHT },
-            { id: 2, section: 'visualizations', row: 0, column: 6, width: DASHBOARD_DEFAULT_WIDTH, height: DASHBOARD_DEFAULT_HEIGHT },
+            { id: 2, section: 'visualizations', row: 0, column: DASHBOARD_DEFAULT_WIDTH, width: DASHBOARD_DEFAULT_WIDTH, height: DASHBOARD_DEFAULT_HEIGHT },
             { id: 3, section: 'visualizations', row: DASHBOARD_DEFAULT_HEIGHT, column: 0, width: DASHBOARD_DEFAULT_WIDTH, height: DASHBOARD_DEFAULT_HEIGHT },
         ]);
     });
@@ -33,9 +34,9 @@ describe('dashboard layout', () => {
         const initial = placeDashboardItems([{ id: 1 }, { id: 2 }, { id: 3 }]);
         const moved = moveDashboardItem(initial, 3, 0, 0);
         expect(moved).toEqual([
-            { id: 1, section: 'visualizations', row: 0, column: 6, width: 6, height: DASHBOARD_DEFAULT_HEIGHT },
-            { id: 2, section: 'visualizations', row: DASHBOARD_DEFAULT_HEIGHT, column: 0, width: 6, height: DASHBOARD_DEFAULT_HEIGHT },
-            { id: 3, section: 'visualizations', row: 0, column: 0, width: 6, height: DASHBOARD_DEFAULT_HEIGHT },
+            { id: 1, section: 'visualizations', row: 0, column: DASHBOARD_DEFAULT_WIDTH, width: DASHBOARD_DEFAULT_WIDTH, height: DASHBOARD_DEFAULT_HEIGHT },
+            { id: 2, section: 'visualizations', row: DASHBOARD_DEFAULT_HEIGHT, column: 0, width: DASHBOARD_DEFAULT_WIDTH, height: DASHBOARD_DEFAULT_HEIGHT },
+            { id: 3, section: 'visualizations', row: 0, column: 0, width: DASHBOARD_DEFAULT_WIDTH, height: DASHBOARD_DEFAULT_HEIGHT },
         ]);
     });
 
@@ -43,8 +44,8 @@ describe('dashboard layout', () => {
         const initial = placeDashboardItems([{ id: 1 }, { id: 2 }]);
         const resized = resizeDashboardItem(initial, 1, 20, 4);
         expect(resized).toEqual([
-            { id: 1, section: 'visualizations', row: 0, column: 0, width: 12, height: 4 },
-            { id: 2, section: 'visualizations', row: 4, column: 0, width: 6, height: DASHBOARD_DEFAULT_HEIGHT },
+            { id: 1, section: 'visualizations', row: 0, column: 0, width: DASHBOARD_COLUMN_COUNT, height: 4 },
+            { id: 2, section: 'visualizations', row: 4, column: 0, width: DASHBOARD_DEFAULT_WIDTH, height: DASHBOARD_DEFAULT_HEIGHT },
         ]);
     });
 
@@ -57,9 +58,9 @@ describe('dashboard layout', () => {
         ]);
         expect(placed).toEqual([
             { id: 1, section: 'scripts', row: 0, column: 0, width: 4, height: 1 },
-            { id: 2, section: 'visualizations', row: 0, column: 6, width: 6, height: DASHBOARD_DEFAULT_HEIGHT },
+            { id: 2, section: 'visualizations', row: 0, column: DASHBOARD_DEFAULT_WIDTH, width: DASHBOARD_DEFAULT_WIDTH, height: DASHBOARD_DEFAULT_HEIGHT },
             { id: 3, section: 'scripts', row: 0, column: 4, width: 4, height: 1 },
-            { id: 4, section: 'visualizations', row: 0, column: 0, width: 6, height: DASHBOARD_DEFAULT_HEIGHT },
+            { id: 4, section: 'visualizations', row: 0, column: 0, width: DASHBOARD_DEFAULT_WIDTH, height: DASHBOARD_DEFAULT_HEIGHT },
         ]);
         expect(dashboardSectionRows(placed, 'scripts')).toBe(1);
         expect(dashboardSectionRows(placed, 'visualizations')).toBe(DASHBOARD_DEFAULT_HEIGHT);
@@ -89,7 +90,7 @@ describe('dashboard layout', () => {
         const moved = moveDashboardItem(initial, 3, 0, 0);
         expect(moved).toEqual([
             { id: 1, section: 'scripts', row: 0, column: 4, width: 4, height: 1 },
-            { id: 2, section: 'visualizations', row: 0, column: 0, width: 6, height: DASHBOARD_DEFAULT_HEIGHT },
+            { id: 2, section: 'visualizations', row: 0, column: 0, width: DASHBOARD_DEFAULT_WIDTH, height: DASHBOARD_DEFAULT_HEIGHT },
             { id: 3, section: 'scripts', row: 0, column: 0, width: 4, height: 1 },
         ]);
     });
