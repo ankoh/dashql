@@ -151,9 +151,15 @@ health-check queries.
 
 **Execute All** also runs while connections of the workbook aren't connected (`can_run` of the host of the run, the
 connections that are online when the run starts). A script whose connection can't run doesn't run, so it doesn't keep
-the scripts after it from reusing their results: the script can't change what they read during the run. The scripts
-of such a connection reuse their results if their keys match, the others are skipped with every statement that
-follows them. A script runs completely or not at all. The run counts the skipped scripts
+the scripts after it from reusing their results: the script can't change what they read during the run. A script of
+such a connection uses its stored result whatever its key: the key of the file is the key of the script for the run
+(`key_of` of `workbook_run/engine.rs`), also for a connection without a key, e.g. a Trino connection with OAuth that
+isn't logged in. A result of another login, of another version of the keys or of an earlier text of the script is
+better than none: a `.dashql` file with its results renders without its connections, also after the keys changed. The
+card marks such a result as outdated, the log names the key of the script and the key of the file. The scripts
+downstream of it cover its file like any reused file and scan it. A refresh uses no stored result. A script of such a
+connection without a stored result, or one that isn't cacheable, is skipped with every statement that follows it. A
+script runs completely or not at all. The run counts the skipped scripts
 (`WorkbookRunState.skippedScripts`, `skippedFiles`), the status shows `3/5 completed · 2 need a connection`, its
 tooltip names the scripts, and the connections of the workbook pulse in the bar once a run of the open page settles. A
 skipped script keeps showing its stored result. The log of a run that skipped scripts names each one with the reason,
@@ -249,8 +255,10 @@ every script, also an outdated one: it is what the card shows. It retains the fi
 
 An import doesn't trust the keys. It adds every result whose script name names a script of the imported workbook as the
 file of that script, with the key of the row in its name (`importFile`), and the cards show the results when the
-workbook opens. A run reuses an imported result only if its key happens to match, e.g. the same version of DashQL on a
-connection of the same account; otherwise the first run computes it anew. The import checks the CRC-32 that the
+workbook opens. A run on a connection that is online reuses an imported result only if its key happens to match, e.g.
+the same version of DashQL on a connection of the same account; otherwise the first run computes it anew. While the
+connection can't run, Execute All uses the imported result whatever its key (Reuse), so a dashboard over a connection
+that the app can't reach, e.g. Trino in the browser, renders from the results of the archive. The import checks the CRC-32 that the
 archive stores for each stored result while it streams it, a result that differs leaves no file. Each result succeeds
 or fails on its own, the log names each one.
 

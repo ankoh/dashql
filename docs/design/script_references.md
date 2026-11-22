@@ -135,7 +135,9 @@ its reusable key doesn't run unless it follows a script that runs: a script whos
 runs, by an edge of the plan, runs too, whether its result is stored or not. Otherwise its stored result is reused and
 the run plans the other scripts again with the reused scripts as `materialized`: a plan of the workbook leaves them
 out, a plan of targets drops the reused targets. A script that inlines a reused script still runs its query, a script
-that scans it reads the stored file. A refresh (`refresh` of `runWorkbook` and `runScript`)
+that scans it reads the stored file. The stored result of a script whose connection can't run counts as reused
+whatever its key (`workbook_results.md`, Reuse): a script on the embedded Hyper that references a Trino script scans
+its stored file while Trino is out of reach. A refresh (`refresh` of `runWorkbook` and `runScript`)
 reuses no stored results and runs every script of the plan. The run (`run_graph`) starts a node once its predecessors are done,
 at most `RunHost::max_concurrent_queries` nodes of a connection run at once (four for a Hyper server, one otherwise), and nodes of different connections run side by
 side. The files of a run are the stored results of the workbook (`results` of the platform, `workbook_results.md`),

@@ -829,6 +829,59 @@ fn skips_the_scripts_of_a_connection_that_can_not_run() {
 }
 
 #[test]
+fn a_script_of_a_connection_that_can_not_run_uses_its_stored_result_of_any_key() {
+    let (local, remote) = (connection("local", true), connection("remote", false));
+    let workbook = workbook(&[("foo.sql", "select 1 as a", &remote), ("bar.sql", "select count(*) from :foo", &local)]);
+    let s = setup(true, Some("/mnt/cache"), 1);
+    {
+        // A result of another login or another version of the keys, the connection has no key while it is logged out
+        let mut state = s.state.borrow_mut();
+        state.offline.insert("remote".into());
+        state.unkeyed.insert("remote".into());
+        state.stored.insert("foo.sql".into(), "other".into());
+        state.names.insert("foo.sql".into(), "foo.sql.other.1.parquet".into());
+    }
+    let result = s.run(&workbook, workbook_run());
+    assert!(result.failure.is_none(), "{:?}", result.failure);
+    // foo is read from its file, bar scans the file and stores a result whose key covers it
+    assert_eq!(s.events("foo.sql").last().map(String::as_str), Some("cached"));
+    let [(script, key, _)] = <[_; 1]>::try_from(stores(&s)).unwrap();
+    assert_eq!(script, "bar.sql");
+    assert!(key.ends_with("other foo.sql.other.1.parquet"), "{key}");
+    assert!(s.texts().iter().any(|text| text.contains("/mnt/cache/foo.sql.other.1.parquet")), "{:?}", s.texts());
+    assert_eq!(s.last_state().skipped_scripts, 0);
+    // Every file that the run retained is released
+    let calls = s.calls();
+    let retained = calls.iter().filter(|call| call.starts_with("retain ")).count();
+    let released = calls.iter().filter(|call| call.starts_with("release ")).count();
+    assert!(retained > 0 && released >= retained, "{calls:?}");
+}
+
+#[test]
+fn a_refresh_skips_the_scripts_of_a_connection_that_can_not_run() {
+    let (a, b) = (connection("a", false), connection("b", false));
+    let workbook = workbook(&[("1_a.sql", "select 1", &a), ("2_b.sql", "select 2", &b)]);
+    let s = setup(true, None, 1);
+    {
+        let mut state = s.state.borrow_mut();
+        state.offline.insert("b".into());
+        state.stored.insert("2_b.sql".into(), "other".into());
+    }
+    let result = s.run(&workbook, RunOptions { refresh: true, ..workbook_run() });
+    assert!(result.failure.is_none(), "{:?}", result.failure);
+    assert_eq!(s.texts(), vec!["select 1"]);
+    assert_eq!(s.events("2_b.sql"), vec!["skipped"]);
+    // Without the refresh the stored result of the other key is shown
+    s.state.borrow_mut().statements.clear();
+    let result = s.run(&workbook, workbook_run());
+    assert!(result.failure.is_none(), "{:?}", result.failure);
+    // The stored result is read while the run settles its keys, before 1_a runs
+    assert_eq!(s.texts(), vec!["select 2", "select 1"]);
+    assert_eq!(s.events("2_b.sql").last().map(String::as_str), Some("cached"));
+    assert_eq!(s.last_state().skipped_scripts, 0);
+}
+
+#[test]
 fn a_run_analyzes_only_the_scripts_with_outdated_analyses() {
     let main = connection("main", false);
     let workbook = workbook(&[

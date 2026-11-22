@@ -118,8 +118,8 @@ pub trait RunHost: Host {
 
     /// The result key of a signature on a connection, none if the connection has no key
     fn result_key(&self, connection_id: &str, signature: &str) -> impl Future<Output = Option<String>> + 'static;
-    /// Can the statements of a connection run? The scripts of one that can't reuse their stored results, the others
-    /// are skipped with the scripts that follow them.
+    /// Can the statements of a connection run? The scripts of one that can't use their stored results whatever their
+    /// keys, the others are skipped with the scripts that follow them.
     fn can_run(&self, connection_id: &str) -> bool;
     /// The statements that a connection runs at once
     fn max_concurrent_queries(&self, connection_id: &str) -> usize;

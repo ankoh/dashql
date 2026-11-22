@@ -492,11 +492,38 @@ impl<H: RunHost> Run<H> {
     }
 
     /// The key of the result of a script from its signature
+    /// The key of a script from its signature. A script of a connection that can't run takes the key of its stored file,
+    /// whatever key the script has now or whether it has one: the stored result is all that the run can show of it, so
+    /// another login, another version of the keys or an earlier text of the script never keeps a result from rendering.
+    /// The file stays retained until the run released its files. A refresh reuses nothing and keeps the key.
     fn key_of(self: &Rc<Self>) -> impl Fn(u32, String) -> Pin<Box<dyn Future<Output = Option<String>>>> {
         let run = self.clone();
         move |script, signature| {
             let run = run.clone();
-            Box::pin(async move { run.host.result_key(run.connection_of(script), &signature).await })
+            Box::pin(async move {
+                let connection = run.connection_of(script);
+                let key = run.host.result_key(connection, &signature).await;
+                if run.options.refresh || !run.host.has_results() || run.host.can_run(connection) {
+                    return key;
+                }
+                let Some(retained) = run.host.result_retain(&run.file(script)).await.ok().flatten() else {
+                    return key;
+                };
+                run.kept.borrow_mut().push(retained.id);
+                if key.as_deref() != Some(retained.file.key.as_str()) {
+                    run.log(
+                        LogLevel::Info,
+                        "A script whose connection can't run uses its stored result of another key",
+                        vec![
+                            detail("workbookId", run.workbook_id.clone()),
+                            detail("script", run.file(script)),
+                            detail("key", key.unwrap_or_default()),
+                            detail("storedKey", retained.file.key.clone()),
+                        ],
+                    );
+                }
+                Some(retained.file.key)
+            })
         }
     }
 
@@ -731,7 +758,7 @@ impl<H: RunHost> Run<H> {
             } else {
                 self.log(
                     LogLevel::Info,
-                    "Running without connections, their scripts reuse the stored results that match",
+                    "Running without connections, their scripts use their stored results",
                     details,
                 );
             }
@@ -911,8 +938,7 @@ impl<H: RunHost> Run<H> {
                 state.skipped_scripts = skipped_count;
                 state.skipped_files = emitted_files;
             });
-            // Why a script didn't reuse its result, with the key it looked for: a key of an imported file that differs,
-            // e.g. from another version of the app or another connection, shows here
+            // Why a script didn't use a stored result, with the key it looked for
             let reason = |index: u32| {
                 let connection = self.connection_of(index);
                 if failed_setups.contains(connection) {
@@ -922,7 +948,7 @@ impl<H: RunHost> Run<H> {
                     return "follows a skipped script".to_string();
                 }
                 match keys.get(index as usize).cloned().flatten() {
-                    None => "no result key".to_string(),
+                    None => "no stored result".to_string(),
                     Some(key) if !key.reusable => format!("result not reusable, key {}", key.key),
                     Some(key) => format!("no stored result of key {}", key.key),
                 }

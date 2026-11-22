@@ -310,7 +310,8 @@ loader. See [catalog_updates.md](catalog_updates.md) and [catalog_batching.md](c
   while the run looked up the stored results, fails the run: its keys and files come from the first plan.
 - A node starts once its predecessors released it, at most `max_concurrent_queries` statements of a connection at once
   (four for a Hyper server, one otherwise). A failed statement cancels the running ones; the nodes of a connection that
-  can't run or be set up are skipped with what follows them.
+  can't run or be set up are skipped with what follows them. A script of a connection that can't run uses its stored
+  result whatever its key, it is skipped only without one.
 - One run holds a workbook. A run of the whole workbook takes the connections of its scripts and starts only while they
   are idle; otherwise it resolves `refused` with the reason. A change of inputs while the workbook is busy stops the run
   and waits in the `run` slice, it is dropped after 5 s.
