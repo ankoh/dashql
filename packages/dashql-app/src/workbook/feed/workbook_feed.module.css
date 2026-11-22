@@ -297,7 +297,7 @@
     padding: 0 calc(var(--page_gutter) + var(--feed-scrollbar-inset, 0px)) 0 var(--page_gutter);
 }
 
-/* The spaces above and below the card keep it hovered, the add buttons in them stay visible.
+/* The spaces above and below the card keep it hovered while the pointer is on an add button in them.
    Between two scripts the spaces overlap, the later script shows its button above, in the same place. */
 .feed_list_item::before,
 .feed_list_item::after {
@@ -316,8 +316,8 @@
     top: 100%;
 }
 
-/* The add buttons of a script, at the right edge of the card in the spaces above and below it.
-   The button below a script and the one above the next script share their place, the hovered row shows its own. */
+/* The add buttons of a script, always visible at the right edge of the card in the spaces above and below it.
+   The button below a script and the one above the next script share their place. */
 .feed_entry_insert {
     appearance: none;
     position: absolute;
@@ -334,9 +334,6 @@
     color: var(--color_fg_muted);
     background: transparent;
     cursor: pointer;
-    /* Hidden but clickable, a pointer on the button hovers its card and shows it */
-    opacity: 0;
-    transition: opacity 80ms ease-out;
 }
 
 .feed_entry_insert[data-edge="above"] {
@@ -349,9 +346,10 @@
     transform: translateY(-50%);
 }
 
-.feed_list_item:hover > .feed_entry_insert,
-.feed_entry_insert:focus-visible {
-    opacity: 1;
+/* Between two scripts the button above the later script is drawn, the one below the earlier script stays clickable
+   underneath without drawing the icon twice */
+.feed_entry_insert[data-shared]:not(:focus-visible) {
+    opacity: 0;
 }
 
 .feed_entry_insert:hover {

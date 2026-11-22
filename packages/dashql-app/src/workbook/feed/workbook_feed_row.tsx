@@ -234,6 +234,7 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                     type="button"
                     className={styles.feed_entry_insert}
                     data-edge="below"
+                    data-shared={entryIndex < props.entries.length - 1 ? '' : undefined}
                     aria-label={`Add script below ${displayName}`}
                     data-testid="script-insert-below"
                     onClick={() => props.feed.create(entryIndex + 1)}
