@@ -57,6 +57,8 @@ genrule(
     visibility = ["//visibility:private"],
 )
 
+# The config of Vite for the builds and the dev server with the version of the build. The paths of @akohn/dashql and
+# @akohn/dashql-react differ between them, the config picks them by the command of Vite.
 genrule(
     name = "vite_config",
     srcs = [
@@ -72,47 +74,7 @@ genrule(
         NPM_VERSION=$$(awk -F= '$$1=="DASHQL_VERSION_NPM"{print $$2}' "$(location @dashql_app_version//:version.env)")
         HYPERDB_WASM_VERSION=$$(awk -F'"' '/"hyperdb-wasm"/{print $$4; exit}' "$(location //:package.json)")
 
-        sed -e "s|__PROTOBUF_PATH__|../../node_modules/@akohn/dashql/dependencies/dashql-protobuf|g" \\
-            -e "s|__JSONSCHEMA_PATH__|../../node_modules/@akohn/dashql/dependencies/dashql-jsonschema|g" \\
-            -e "s|__DASHQL_PATH__|../../node_modules/@akohn/dashql|g" \\
-            -e "s|__DASHQL_GENERATED_PATH__|../../node_modules/@akohn/dashql/dependencies|g" \\
-            -e "s|__REACT_PATH__|../../node_modules/@akohn/dashql-react|g" \\
-            -e "s|__SVG_SYMBOLS_PATH__|./dependencies/svg-symbols/symbols.generated.svg|g" \\
-            -e "s|__SNIPPETS_PATH__|./dependencies/snippets|g" \\
-            -e "s|__EXTENSIONS_PATH__|./dependencies/extensions|g" \\
-            -e "s|__DASHQL_VERSION__|$${VERSION}|g" \\
-            -e "s|__DASHQL_COMMIT__|$${COMMIT}|g" \\
-            -e "s|__DASHQL_NPM_VERSION__|$${NPM_VERSION}|g" \\
-            -e "s|__HYPERDB_WASM_VERSION__|$${HYPERDB_WASM_VERSION}|g" \\
-            $(location vite.config.tpl.ts) > $@
-    """,
-)
-
-# The config of the dev server: the paths of its sandbox, where @akohn/dashql and @akohn/dashql-react are at their paths
-# in the workspace, see //packages/dashql:dev_srcs
-genrule(
-    name = "dev_config",
-    srcs = [
-        "vite.config.tpl.ts",
-        "@dashql_app_version//:version.env",
-        "//:package.json",
-    ],
-    outs = ["vite.config.dev.mts"],
-    cmd = """
-        VERSION=$$(awk -F= '$$1=="DASHQL_VERSION_TEXT"{print $$2}' "$(location @dashql_app_version//:version.env)")
-        COMMIT=$$(awk -F= '$$1=="DASHQL_VERSION_COMMIT"{print $$2}' "$(location @dashql_app_version//:version.env)")
-        NPM_VERSION=$$(awk -F= '$$1=="DASHQL_VERSION_NPM"{print $$2}' "$(location @dashql_app_version//:version.env)")
-        HYPERDB_WASM_VERSION=$$(awk -F'"' '/"hyperdb-wasm"/{print $$4; exit}' "$(location //:package.json)")
-
-        sed -e "s|__PROTOBUF_PATH__|../dashql/dependencies/dashql-protobuf|g" \\
-            -e "s|__JSONSCHEMA_PATH__|../dashql/dependencies/dashql-jsonschema|g" \\
-            -e "s|__DASHQL_PATH__|../dashql|g" \\
-            -e "s|__DASHQL_GENERATED_PATH__|../dashql/dependencies|g" \\
-            -e "s|__REACT_PATH__|../dashql-react|g" \\
-            -e "s|__SVG_SYMBOLS_PATH__|./dependencies/svg-symbols/symbols.generated.svg|g" \\
-            -e "s|__SNIPPETS_PATH__|./dependencies/snippets|g" \\
-            -e "s|__EXTENSIONS_PATH__|./dependencies/extensions|g" \\
-            -e "s|__DASHQL_VERSION__|$${VERSION}|g" \\
+        sed -e "s|__DASHQL_VERSION__|$${VERSION}|g" \\
             -e "s|__DASHQL_COMMIT__|$${COMMIT}|g" \\
             -e "s|__DASHQL_NPM_VERSION__|$${NPM_VERSION}|g" \\
             -e "s|__HYPERDB_WASM_VERSION__|$${HYPERDB_WASM_VERSION}|g" \\
@@ -419,10 +381,9 @@ vite_bin.vite_binary(
 js_run_devserver(
     name = "dev",
     tool = ":_vite_bin",
-    args = ["--config", "vite.config.dev.mts"],
+    args = ["--config", "vite.config.generated.mts"],
     chdir = package_name(),
-    data = [dep for dep in _vite_web_deps if dep != ":vite_config"] + glob(["types/**/*.d.ts"]) + [
-        ":dev_config",
+    data = _vite_web_deps + glob(["types/**/*.d.ts"]) + [
         "tsconfig.bazel.json",
         "//packages/dashql:dev_srcs",
         "//packages/dashql-react:dev_srcs",

@@ -48,22 +48,25 @@ export default vite.defineConfig(({ mode, command }) => {
         .map(file => [`tools_${path.basename(file, '.html')}`, path.join(toolsDir, file)]));
     // The builds and the dev server run in a sandbox of Bazel, the inputs are files of the sandbox. The dev server
     // (js_run_devserver under ibazel) gets the files that a rebuild changes synced into it, and Vite updates the page.
-    // The package root of @akohn/dashql, the bindings of the core module, the runtime and its platforms, a source package
-    const DASHQL_PATH = path.resolve(rootDir, "__DASHQL_PATH__");
+    // The folder of @akohn/dashql and @akohn/dashql-react, source packages: the builds take them from node_modules, the
+    // dev server from their folders in the workspace (//packages/dashql:dev_srcs, //packages/dashql-react:dev_srcs)
+    const packagesDir = command === 'serve' ? '..' : '../../node_modules/@akohn';
+    // The package root of @akohn/dashql, the bindings of the core module, the runtime and its platforms
+    const DASHQL_PATH = path.resolve(rootDir, packagesDir, 'dashql');
     // The package root of @akohn/dashql-react: the hooks and the models of the runtime in React, the components, and the
-    // tokens, fonts and brand code shared with the website, a source package
-    const REACT_PATH = path.resolve(rootDir, "__REACT_PATH__");
+    // tokens, fonts and brand code shared with the website
+    const REACT_PATH = path.resolve(rootDir, packagesDir, 'dashql-react');
     // The generated packages of the core module that the bindings import, folders of Bazel: @akohn/dashql-wasm, the
     // glue and the Wasm of the core and of the dataflow layout, and @akohn/dashql-flatbuffers
-    const DASHQL_GENERATED_PATH = path.resolve(rootDir, "__DASHQL_GENERATED_PATH__");
+    const DASHQL_GENERATED_PATH = path.join(DASHQL_PATH, 'dependencies');
     const DASHQL_WASM_PATH = path.join(DASHQL_GENERATED_PATH, 'dashql-wasm');
-    const PROTOBUF_PATH = path.resolve(rootDir, "__PROTOBUF_PATH__");
-    const JSONSCHEMA_PATH = path.resolve(rootDir, "__JSONSCHEMA_PATH__");
-    const SVG_SYMBOLS_PATH = path.resolve(rootDir, "__SVG_SYMBOLS_PATH__");
+    const PROTOBUF_PATH = path.join(DASHQL_GENERATED_PATH, 'dashql-protobuf');
+    const JSONSCHEMA_PATH = path.join(DASHQL_GENERATED_PATH, 'dashql-jsonschema');
+    const SVG_SYMBOLS_PATH = path.resolve(rootDir, 'dependencies/svg-symbols/symbols.generated.svg');
     // The SQL snippets of examples/snippets, bundled as text
-    const SNIPPETS_PATH = path.resolve(rootDir, "__SNIPPETS_PATH__");
+    const SNIPPETS_PATH = path.resolve(rootDir, 'dependencies/snippets');
     // The extensions: the app bundles their generated specs and their snippets
-    const EXTENSIONS_PATH = path.resolve(rootDir, "__EXTENSIONS_PATH__");
+    const EXTENSIONS_PATH = path.resolve(rootDir, 'dependencies/extensions');
     // copy_to_bin can leave deleted sources in the execroot. Only bundle declared test inputs, the dev server too: a new
     // test file is served after the rebuild that adds it to the manifests.
     const declaredTestInputs = (manifest: string) => includesBrowserTests
