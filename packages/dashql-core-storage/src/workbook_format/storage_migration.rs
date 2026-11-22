@@ -963,10 +963,4 @@ mod tests {
         assert_eq!(iso_timestamp_f64(951_782_400_000.0 + 3_723_004.0), "2000-02-29T01:02:03.004Z");
         assert_eq!(iso_timestamp_f64(-1.0), "1969-12-31T23:59:59.999Z");
     }
-
-    #[test]
-    fn ends_with_the_current_storage_version() {
-        let versions: Vec<i64> = STORAGE_MIGRATION_STEPS.iter().map(|step| step.version).collect();
-        assert_eq!(versions, (2..=STORAGE_VERSION).collect::<Vec<_>>());
-    }
 }

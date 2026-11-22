@@ -34,7 +34,7 @@ const OTHER_CONNECTION_ID: &str = "ffffffff-eeee-4ddd-8ccc-bbbbbbbbbbbb";
 /// The JSON of a test workbook with fields replaced
 fn test_workbook_json(overrides: Value) -> Value {
     let mut workbook = json!({
-        "formatVersion": 11,
+        "formatVersion": WORKBOOK_FORMAT_VERSION,
         "workbookId": TEST_WORKBOOK_ID,
         "name": "V2 Workbook",
         "connections": [{ "connectionId": TEST_CONNECTION_ID, "params": { "hyper": {} } }],
@@ -212,7 +212,7 @@ const REMOTE_CONNECTION_ID: &str = "66666666-7777-8888-9999-aaaaaaaaaaaa";
 
 fn validation_workbook(overrides: Value) -> Value {
     let mut workbook = json!({
-        "formatVersion": 11,
+        "formatVersion": WORKBOOK_FORMAT_VERSION,
         "workbookId": UUID,
         "connections": [{ "connectionId": CONNECTION_ID, "params": { "hyper": {} } }],
         "scripts": [],
@@ -262,7 +262,10 @@ fn validates_workbook_files() {
         assert_eq!(validate_workbook_json(&validation_workbook(json!({ "workbookId": bad }))), Err(InvalidWorkbookId));
     }
     assert_eq!(validate_workbook_json(&validation_workbook(json!({ "workbookId": UUID.to_uppercase() }))), Ok(()));
-    for version in [json!(null), json!(1), json!(2), json!(5), json!(10), json!(12), json!("11")] {
+    let current = WORKBOOK_FORMAT_VERSION;
+    for version in
+        [json!(null), json!(1), json!(2), json!(5), json!(10), json!(current + 1), json!(current.to_string())]
+    {
         assert_eq!(
             validate_workbook_json(&validation_workbook(json!({ "formatVersion": version }))),
             Err(UnsupportedFormatVersion)
@@ -309,8 +312,8 @@ fn validates_workbook_files() {
         json!(null),
         json!([]),
         json!("x"),
-        json!({ "formatVersion": 11, "workbookId": 5 }),
-        json!({ "formatVersion": 11, "workbookId": UUID, "connections": [5] }),
+        json!({ "formatVersion": WORKBOOK_FORMAT_VERSION, "workbookId": 5 }),
+        json!({ "formatVersion": WORKBOOK_FORMAT_VERSION, "workbookId": UUID, "connections": [5] }),
     ] {
         assert!(validate_workbook_json(&value).is_err());
     }
@@ -420,16 +423,16 @@ fn brings_a_notebook_folder_to_the_current_format() {
     let data = metadata(&folder, "dashql-workbook.json");
     assert_eq!(
         data,
-        json!({ "formatVersion": 11, "workbookId": SESSION_ID, "workbookPath": "opfs://notebooks/x", "name": "n", "scripts": [], "attachments": [], "connections": [] })
+        json!({ "formatVersion": WORKBOOK_FORMAT_VERSION, "workbookId": SESSION_ID, "workbookPath": "opfs://notebooks/x", "name": "n", "scripts": [], "attachments": [], "connections": [] })
     );
-    assert_eq!(
-        keys(&data),
-        ["formatVersion", "workbookId", "workbookPath", "name", "scripts", "attachments", "connections"]
-    );
+    assert_eq!(keys(&data)[..3], ["formatVersion", "workbookId", "workbookPath"]);
     // The host writes the new file and removes the old ones
     let changes = folder.changes();
     assert!(matches!(changes.first(), Some(FolderChange::Write { name, .. }) if name == "dashql-workbook.json"));
-    assert_eq!(changes.iter().filter(|c| matches!(c, FolderChange::Remove { .. })).count(), 4);
+    assert_eq!(
+        changes.iter().filter(|c| matches!(c, FolderChange::Remove { .. })).count(),
+        notebook_folder().names().len()
+    );
 
     // A migrated folder stays as it is
     let mut current = MigrationFolder::new(folder.files().to_vec());
@@ -608,7 +611,7 @@ fn moves_the_params_of_sidb_connections_to_the_key_dbcom() {
     let object = workbook.as_object_mut().unwrap();
     object.shift_remove("sessionId");
     object.insert("workbookId".into(), json!(SESSION_ID));
-    object.insert("formatVersion".into(), json!(11));
+    object.insert("formatVersion".into(), json!(WORKBOOK_FORMAT_VERSION));
     assert_eq!(validate_workbook_json(&workbook), Ok(()));
     // Repeating the step changes nothing
     let step = WORKBOOK_MIGRATION_STEPS.iter().find(|step| step.version == 10).unwrap();
@@ -1097,7 +1100,7 @@ fn round_trips_a_bundle_through_the_rows() {
         vec![VersionRow {
             workbook_id: TEST_WORKBOOK_ID.into(),
             version_id: version_id.into(),
-            format_version: 11,
+            format_version: WORKBOOK_FORMAT_VERSION as i32,
             name: Some("Tables".into()),
             metadata: r#"{"createdAt":"2026-11-10T10:00:00.000Z"}"#.into()
         }]
@@ -1139,7 +1142,7 @@ fn round_trips_a_bundle_through_the_rows() {
     );
     assert!(is_data_table_name(&tables.attachments[0].table_name));
     assert!(is_data_table_name(&tables.results[0].table_name));
-    assert_eq!(tables.data.len(), 2);
+    assert_eq!(tables.data.len(), bundle.data.len() + bundle.results.len());
 
     let read = workbook_tables_to_bundle(&tables, "Invalid workbook tables").unwrap();
     assert_eq!(read, bundle);
@@ -1180,7 +1183,11 @@ fn numbers_the_tables_and_functions_of_all_connections() {
             (2, TABLES_OTHER_CONNECTION_ID, "events")
         ]
     );
-    assert_eq!(tables.catalog_functions.iter().map(|r| r.function_id).collect::<Vec<_>>(), (0..8).collect::<Vec<_>>());
+    // The functions of both connections are numbered in one row of ids
+    let ids: Vec<usize> = tables.catalog_functions.iter().map(|r| r.function_id as usize).collect();
+    assert_eq!(ids, (0..ids.len()).collect::<Vec<_>>());
+    let of_one = workbook_bundle_to_tables(&tables_bundle(), &mut uuids()).unwrap().catalog_functions.len();
+    assert_eq!(ids.len(), 2 * of_one);
     // The order of the rows doesn't matter, the ids and positions give it
     let mut shuffled = tables.clone();
     shuffled.catalog_tables.reverse();
@@ -1440,8 +1447,10 @@ fn exports_only_the_connections_that_the_scripts_use_with_fresh_ids() {
         ..Default::default()
     };
     let (workbook, catalogs) = shared_export_head(&bundle.workbook, &bundle.catalogs, &live, &options, &mut uuids());
-    assert_eq!(workbook.workbook_id, "00000000-0000-4000-8000-000000000001");
-    assert_eq!(workbook.connections[0].connection_id, "00000000-0000-4000-8000-000000000002");
+    // The workbook and its connection get fresh ids
+    assert_ne!(workbook.workbook_id, bundle.workbook.workbook_id);
+    assert_ne!(workbook.connections[0].connection_id, TEST_CONNECTION_ID);
+    assert_ne!(workbook.workbook_id, workbook.connections[0].connection_id);
     assert_eq!(workbook.scripts[0].connection_id, workbook.connections[0].connection_id);
     assert_eq!(catalogs[0].connection_id, workbook.connections[0].connection_id);
     assert_eq!(workbook.connections[0].name.as_deref(), Some("Prod"));

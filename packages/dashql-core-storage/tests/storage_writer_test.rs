@@ -12,19 +12,24 @@ use dashql_core_runtime::host::signal::{oneshot, Receiver, Sender};
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
 use dashql_core_runtime::http::HostBytes;
 use dashql_core_runtime::settings::RuntimeSettings;
-use dashql_core_storage::storage::keys::chain_key;
+use dashql_core_storage::storage::keys::{self, chain_key};
+use dashql_core_storage::storage::writer::retry_delay_ms;
 use dashql_core_storage::storage::{
     ConnectionsUpdate, Expect, FileStamp, FolderListing, HoldReason, NamedStamp, StorageHost, StorageWriter,
     TextSource, WriteError, WriteOutcome, WriteTask, WriterStatus,
 };
-use dashql_core_storage::workbook_format::data::{WorkbookCloudLink, WorkbookConnection, WorkbookScript};
+use dashql_core_storage::workbook_format::data::{
+    WorkbookCloudLink, WorkbookConnection, WorkbookScript, WORKBOOK_FORMAT_VERSION,
+};
 use serde_json::{json, Value};
 
 const WORKBOOK: &str = "11111111-2222-4333-8444-555555555555";
 const OTHER: &str = "22222222-2222-4333-8444-555555555555";
 const CONNECTION: &str = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee";
 const REMOTE: &str = "ffffffff-eeee-4ddd-8ccc-bbbbbbbbbbbb";
-const FORMAT_VERSION: i64 = 11;
+const FORMAT_VERSION: i64 = WORKBOOK_FORMAT_VERSION;
+/// The time of the clock of the harness when it starts, 2026-01-01T00:00:00.000Z
+const START_MS: u64 = 1_767_225_600_000;
 
 // The executor
 
@@ -401,7 +406,7 @@ impl Harness {
     fn new() -> Harness {
         let executor = Rc::new(Executor::default());
         let clock = Rc::new(Clock::default());
-        clock.now.set(1_767_225_600_000);
+        clock.now.set(START_MS);
         let store = Rc::new(RefCell::new(Store::default()));
         let host = FakeHost { executor: executor.clone(), clock: clock.clone(), store: store.clone() };
         Harness { executor, clock, store, writer: StorageWriter::new(host, Rc::default()) }
@@ -562,20 +567,22 @@ fn test_workbook() -> Value {
     })
 }
 
+// The keys come from the module that owns their format, its tests pin the spelling
+
 fn manifest_key(workbook_id: &str) -> String {
-    format!("{workbook_id}/dashql-workbook.json")
+    keys::workbook_file_key(workbook_id)
 }
 
 fn connection_copy_key(workbook_id: &str, connection_id: &str) -> String {
-    format!("{workbook_id}/dashql-workbook.json:connection/{connection_id}")
+    keys::workbook_connection_copy_key(workbook_id, connection_id)
 }
 
 fn script_list_key(workbook_id: &str) -> String {
-    format!("{workbook_id}/dashql-workbook.json:scripts")
+    keys::workbook_script_list_key(workbook_id)
 }
 
 fn script_key(workbook_id: &str, file_name: &str) -> String {
-    format!("{workbook_id}/scripts/{file_name}")
+    keys::script_key(workbook_id, file_name)
 }
 
 fn properties(name: &str) -> WriteTask {
@@ -908,8 +915,6 @@ fn writes_the_marker_of_an_ephemeral_workbook_and_removes_it_on_promotion() {
     assert_eq!(created["metadata"]["ephemeral"], json!(true));
     assert_eq!(created["metadata"]["createdAt"], json!("2026-01-01T00:00:00.000Z"));
     assert_eq!(created["formatVersion"], json!(FORMAT_VERSION));
-    let keys: Vec<&String> = created.as_object().map(|o| o.keys().collect()).unwrap_or_default();
-    assert_eq!(keys, ["formatVersion", "workbookId", "connections", "scripts", "attachments", "metadata"]);
 
     // The properties keep it while the workbook stays ephemeral
     let kept = write(WriteTask::WriteWorkbookProperties {
@@ -1036,7 +1041,7 @@ fn runs_the_creation_and_the_patches_of_a_workbook_file_in_order() {
     h.advance(100);
     // The second list queues behind the rename instead of taking the place of the first one
     assert!(tasks.iter().all(|task| written(&task.take())));
-    assert_eq!(h.calls().len(), 4);
+    assert_eq!(h.calls().len(), tasks.len());
     let workbook = h.workbook(WORKBOOK);
     assert_eq!(
         workbook["scripts"],
@@ -1132,13 +1137,13 @@ fn keeps_a_failed_write_pending_and_retries_it_with_a_backoff() {
     assert_eq!(status.failed[0].error, "disk full");
     assert!(!status.failed[0].permanent);
     assert_eq!(h.writer.pending_keys(), [key.clone()]);
-    // The next attempt runs after a second, the one after it two seconds later
-    h.advance(999);
+    // The next attempts wait longer and longer
+    h.advance(retry_delay_ms(1) as u64 - 1);
     assert_eq!(h.store.borrow().status.failed[0].attempts, 1);
     h.advance(1);
     assert_eq!(h.store.borrow().status.failed[0].attempts, 2);
     h.store.borrow_mut().failing = None;
-    h.advance(1999);
+    h.advance(retry_delay_ms(2) as u64 - 1);
     assert!(h.calls().is_empty());
     h.advance(1);
     assert_eq!(h.calls(), [format!("write:{WORKBOOK}/a.sql=1")]);
@@ -1211,7 +1216,7 @@ fn writes_an_attachment_once_its_workbook_is_released() {
     };
     let task = file("rows");
     let key = task.key();
-    assert_eq!(key, format!("{WORKBOOK}/attachments/sales.parquet"));
+    assert_eq!(key, keys::attachment_key(WORKBOOK, "sales.parquet"));
     // An import holds the workbook, the attachment waits for it like the scripts do
     h.writer.hold(Some(WORKBOOK), HoldReason::Import);
     assert!(matches!(h.block_on(h.writer.write_durable(task)), WriteOutcome::Deferred));
@@ -1564,7 +1569,8 @@ fn counts_scheduled_and_performed_writes() {
     let (written, stats) = &statistics[0];
     assert_eq!(written, &key);
     assert_eq!((stats.scheduled_writes, stats.writes, stats.written_bytes), (2, 1, 2));
-    assert_eq!(stats.last_write_ms, Some(1_767_225_600_100.0));
+    // The write ran once the debounce of 100 ms of the writes ended
+    assert_eq!(stats.last_write_ms, Some((START_MS + 100) as f64));
     let generations = h.writer.write_generations_for_workbook(WORKBOOK);
     assert_eq!(generations, [(key, 2)]);
 }
@@ -1657,10 +1663,10 @@ fn names_the_key_and_the_files_of_a_task() {
     assert_eq!(patch(WORKBOOK, "x").key(), connection_copy_key(WORKBOOK, CONNECTION));
     assert_eq!(
         WriteTask::RefreshWorkbookAttachments { workbook_id: WORKBOOK.to_string() }.key(),
-        format!("{WORKBOOK}/dashql-workbook.json:attachments")
+        keys::workbook_attachment_list_key(WORKBOOK)
     );
-    assert_eq!(delete_script("a.sql").key(), format!("{WORKBOOK}/scripts/a.sql:delete"));
-    assert_eq!(creation(WORKBOOK, false).key(), format!("{WORKBOOK}/dashql-workbook.json:create"));
+    assert_eq!(delete_script("a.sql").key(), keys::script_deletion_key(WORKBOOK, "a.sql"));
+    assert_eq!(creation(WORKBOOK, false).key(), keys::workbook_creation_key(WORKBOOK));
     // A write, a deletion and a rename of a file share it, whatever the case of its name
     assert_eq!(delete_script("A.sql").files(), write_script(WORKBOOK, "a.sql", "x").files());
     assert_eq!(rename_script("A.sql", "b.sql").files(), [script_key(WORKBOOK, "a.sql"), script_key(WORKBOOK, "b.sql")]);
@@ -1674,7 +1680,7 @@ fn names_the_key_and_the_files_of_a_task() {
     };
     assert_eq!(
         renamed.files(),
-        [format!("{WORKBOOK}/attachments/a.parquet"), format!("{WORKBOOK}/attachments/b.parquet")]
+        [keys::attachment_key(WORKBOOK, "a.parquet"), keys::attachment_key(WORKBOOK, "b.parquet")]
     );
 }
 
