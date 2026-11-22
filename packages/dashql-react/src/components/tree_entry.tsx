@@ -42,6 +42,7 @@ export function TreeEntry({ depth, expanded, icon, label, selected, className, c
     );
     const props = {
         ...attributes,
+        'data-depth': depth,
         className: classNames(styles.entry, attributes.onClick != null && styles.entry_interactive, selected && styles.entry_selected, className),
         style: { paddingLeft: TREE_ENTRY_PADDING_PX + depth * TREE_ENTRY_INDENT_PX },
     };

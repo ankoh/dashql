@@ -120,9 +120,9 @@ describe('TrinoConnectorSettings', () => {
         return element;
     }
     function valueList(title: string): HTMLElement {
-        const name = [...container.querySelectorAll<HTMLElement>('div')].find(d => d.childElementCount === 0 && d.textContent === title);
-        if (name == null) throw new Error(`no list ${title}`);
-        return name.parentElement!;
+        const list = container.querySelector<HTMLElement>(`[role="group"][aria-label="${title}"]`);
+        if (list == null) throw new Error(`no list ${title}`);
+        return list;
     }
     async function type(label: string, value: string) {
         await act(async () => setInputValue(input(label), value));

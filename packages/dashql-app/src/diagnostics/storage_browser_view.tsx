@@ -175,7 +175,6 @@ function StorageTreeRowComponent(props: RowComponentProps<StorageTreeRowProps>) 
                 <div className={rowContainerClass(props.index)} style={props.style}>
                     <TreeEntry
                         depth={row.depth}
-                        data-depth={row.depth}
                         expanded={row.expanded}
                         icon={row.kind === 'root' ? <FileDirectoryFillIcon size={14} /> : <FileDirectoryIcon size={14} />}
                         label={row.kind === 'root' ? (
@@ -197,7 +196,6 @@ function StorageTreeRowComponent(props: RowComponentProps<StorageTreeRowProps>) 
                 <div className={rowContainerClass(props.index)} style={props.style}>
                     <TreeEntry
                         depth={row.depth}
-                        data-depth={row.depth}
                         icon={<FileIcon size={14} />}
                         label={<TreeEntryName title={row.path}>{row.name}</TreeEntryName>}
                         className={styles.columns}
@@ -211,7 +209,6 @@ function StorageTreeRowComponent(props: RowComponentProps<StorageTreeRowProps>) 
                 <div className={rowContainerClass(props.index)} style={props.style}>
                     <TreeEntry
                         depth={row.depth}
-                        data-depth={row.depth}
                         label={<span className={classNames(styles.status, row.error && styles.status_error)} title={row.text}>{row.text}</span>}
                         className={styles.columns}
                     />

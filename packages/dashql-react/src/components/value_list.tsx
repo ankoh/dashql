@@ -43,7 +43,7 @@ export const ValueListBuilder: React.FC<Props> = (props: Props) => {
     });
 
     return (
-        <div className={classNames(props.className, styles.list)}>
+        <div className={classNames(props.className, styles.list)} role="group" aria-label={props.title}>
             <div className={styles.list_name}>
                 {props.title}
             </div>
