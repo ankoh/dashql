@@ -54,21 +54,6 @@
     font-weight: 600;
 }
 
-.section_count {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 18px;
-    min-height: 18px;
-    padding: 0 5px;
-    border-radius: 20px;
-    color: var(--color_fg);
-    background: var(--color_neutral_muted);
-    font-size: 11px;
-    font-weight: 600;
-    line-height: 1;
-}
-
 .folder_input {
     display: none;
 }

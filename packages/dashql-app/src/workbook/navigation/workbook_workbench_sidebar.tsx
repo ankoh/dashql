@@ -731,7 +731,7 @@ const LocalWorkbookFolderRow: React.FC<{ expanded: boolean; count: number; onTog
                 <span className={styles.tree_caret} aria-hidden="true"><Caret size={12} /></span>
                 <svg width="14" height="14" aria-hidden="true"><use xlinkHref={`${symbols}#device_desktop_24`} /></svg>
                 <span className={styles.workbook_name}>Local</span>
-                <span className={styles.root_count} aria-label={`${count} local ${count === 1 ? 'workbook' : 'workbooks'}`}>{count}</span>
+                <span className={styles.root_count} data-testid="local-workbook-count" aria-label={`${count} local ${count === 1 ? 'workbook' : 'workbooks'}`}>{count}</span>
             </button>
             {/* Where the menu of the cloud is, the counts line up */}
             <span className={styles.root_menu_spacer} aria-hidden="true" />
@@ -876,7 +876,6 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
     );
     const labels = React.useMemo(() => connectionLabels(connectionList), [connectionList]);
     const labelOf = React.useCallback((database: ConnectionState) => connectionLabelOf(database, labels), [labels]);
-    const connectionCount = connectionRows.length;
     const describeUsage = React.useCallback((connectionId: string): ConnectionUsage => {
         const workbookIds = (connections.get(connectionId)?.workbooks ?? []).filter(workbookId => {
             const scripts = scriptsRegistry.get(workbookId);
@@ -1246,13 +1245,6 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
                         <header className={styles.section_header}>
                             <div className={styles.section_title}>
                                 <h2 id="workbench-workbooks-heading" className={styles.section_heading}>Workbooks</h2>
-                                <span
-                                    className={styles.section_count}
-                                    data-testid="workbook-count"
-                                    aria-label={`${workbookCount} ${workbookCount === 1 ? 'workbook' : 'workbooks'}`}
-                                >
-                                    {workbookCount}
-                                </span>
                             </div>
                             <div className={styles.section_actions}>
                                 {storageReader.workbookFolders != null && (
@@ -1386,13 +1378,6 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
                         <header className={styles.section_header}>
                             <div className={styles.section_title}>
                                 <h2 id="workbench-databases-heading" className={styles.section_heading}>Connections</h2>
-                                <span
-                                    className={styles.section_count}
-                                    data-testid="connection-count"
-                                    aria-label={`${connectionCount} ${connectionCount === 1 ? 'connection' : 'connections'}`}
-                                >
-                                    {connectionCount}
-                                </span>
                             </div>
                             <AnchoredOverlay
                                 open={createConnectionOpen}

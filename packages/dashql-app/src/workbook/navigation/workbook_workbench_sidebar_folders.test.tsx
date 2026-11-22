@@ -310,7 +310,7 @@ describe('WorkbookWorkbenchSidebar folders', () => {
             return container.querySelector('[data-testid="workbook-ephemeral-row"]');
         }
         function workbookCount(): string | null | undefined {
-            return container.querySelector('[data-testid="workbook-count"]')?.textContent;
+            return container.querySelector('[data-testid="local-workbook-count"]')?.textContent;
         }
         async function registerInTree(workbookId: string, atStartOfRootWorkbooks: boolean = false): Promise<void> {
             await state.registry.upsertWorkbookEntry({ path: workbookId });

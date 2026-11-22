@@ -247,11 +247,15 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
         });
     }
 
+    function connectionRows(): Element[] {
+        return Array.from(container.querySelectorAll('[data-testid="connection-toggle"]'));
+    }
+
     function groups(): (string | null)[] {
         return Array.from(container.querySelectorAll('[data-testid="connection-group"]')).map(group => group.getAttribute('data-group'));
     }
 
-    it('shows workbook and connection counts', () => {
+    it('lists the local workbooks and the connections of the workbook', () => {
         const main = {
             ...state.local!,
             connectorType: ConnectorType.HYPER,
@@ -282,8 +286,8 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
             instance: {},
         } as unknown as WorkbookScripts} dependencies={dependencies} /></WithCatalogs>));
 
-        expect(byTestId('workbook-count')?.textContent).toBe('1');
-        expect(byTestId('connection-count')?.textContent).toBe('2');
+        expect(byTestId('local-workbook-count')?.textContent).toBe('1');
+        expect(connectionRows()).toHaveLength(2);
     });
 
     it('keeps ordinary settings open for an online database without a completion callback', () => {
@@ -546,7 +550,7 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
         } as unknown as WorkbookScripts} dependencies={dependencies} /></WithCatalogs>));
 
         // The shell connection is not referenced by a workbook of the registry
-        expect(byTestId('connection-count')?.textContent).toBe('2');
+        expect(connectionRows()).toHaveLength(2);
     });
 
     it('groups the connections of the workbook and numbers connections of the same connector', () => {
