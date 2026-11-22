@@ -289,6 +289,8 @@ interface AnalysisFact {
     detail?: string;
     /// Did the analyzer resolve the name?
     resolved?: boolean;
+    /// The AST node of the table ref that a column ref reads
+    source?: number;
 }
 
 /// A row of facts of one kind, the facts linked to the one under the pointer are highlighted in their own color
@@ -340,12 +342,6 @@ const TABLE_RESOLUTIONS: Record<dashql.buffers.analyzer.TableResolutionType, str
     [dashql.buffers.analyzer.TableResolutionType.CTE]: 'cte',
 };
 
-/// A column ref and the table ref that it reads, by their AST nodes
-interface FactLink {
-    column: number;
-    table: number;
-}
-
 /// The kinds of constant expressions as their chips name them
 const CONSTANT_KINDS: Partial<Record<dashql.buffers.algebra.ExpressionSubType, string>> = {
     [dashql.buffers.algebra.ExpressionSubType.Literal]: 'literal',
@@ -382,7 +378,6 @@ function analysisFacts(analyzed: dashql.buffers.analyzer.AnalyzedScriptT, parsed
         };
     });
     const columns: AnalysisFact[] = [];
-    const links: FactLink[] = [];
     const calls: AnalysisFact[] = [];
     analyzed.expressions.forEach((expression, i) => {
         if (expression.innerType === dashql.buffers.algebra.ExpressionSubType.FunctionCallExpression) {
@@ -398,13 +393,13 @@ function analysisFacts(analyzed: dashql.buffers.analyzer.AnalyzedScriptT, parsed
             const resolved = column.resolved;
             const source = column.resolvedSourceAstNodeId;
             const table = source === NONE ? null : tableRefsByNode.get(source) ?? null;
-            if (table != null) links.push({ column: expression.astNodeId, table: source });
             columns.push({
                 key: `c${i}`,
                 node: expression.astNodeId,
                 text: text(expression.symbolSpan),
                 detail: !resolved ? 'unresolved' : source === NONE ? 'output' : table == null ? 'subquery' : `${table.kind} ${table.name}`,
                 resolved,
+                source: table != null ? source : undefined,
             });
         }
     });
@@ -425,7 +420,6 @@ function analysisFacts(analyzed: dashql.buffers.analyzer.AnalyzedScriptT, parsed
         })),
         tableReferences,
         columns,
-        links,
         calls,
         functions: analyzed.functionReferences.map((ref, i): AnalysisFact => ({
             key: `f${i}`,
@@ -469,12 +463,13 @@ function analysisFacts(analyzed: dashql.buffers.analyzer.AnalyzedScriptT, parsed
 
 /// The facts linked to the node under the pointer: the table ref that a column ref reads, or the column refs that read
 /// a table ref
-function linkedFacts(focus: number | null, links: FactLink[]): Set<number> {
+function linkedFacts(focus: number | null, columns: AnalysisFact[]): Set<number> {
     const linked = new Set<number>();
     if (focus == null) return linked;
-    for (const link of links) {
-        if (link.column === focus) linked.add(link.table);
-        if (link.table === focus) linked.add(link.column);
+    for (const column of columns) {
+        if (column.source == null || column.node == null) continue;
+        if (column.node === focus) linked.add(column.source);
+        if (column.source === focus) linked.add(column.node);
     }
     return linked;
 }
@@ -490,7 +485,7 @@ function AnalyzerSection(props: {
 }) {
     const { analyzed, parsed, bytes, focus, setFocus } = props;
     const facts = React.useMemo(() => analysisFacts(analyzed, parsed, bytes), [analyzed, parsed, bytes]);
-    const linked = React.useMemo(() => linkedFacts(focus, facts.links), [focus, facts]);
+    const linked = React.useMemo(() => linkedFacts(focus, facts.columns), [focus, facts]);
     // References to CTEs count as resolved, they have no catalog ids and are not in the index of the resolved tables
     const resolved = facts.tableReferences.filter(fact => fact.resolved).length;
     const summary = [
