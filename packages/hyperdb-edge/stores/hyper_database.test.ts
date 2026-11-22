@@ -61,8 +61,10 @@ describe('HyperDatabase', () => {
     });
 
     it('keeps its tables when opened again', async () => {
+        const rows = await database.query(`SELECT id, v FROM ${database.table('t')} ORDER BY id`);
         await database.close();
         database = await HyperDatabase.open({ file });
-        expect(await database.query(`SELECT count(*) AS n FROM ${database.table('t')}`)).toEqual([{ n: 21n }]);
+        expect(await database.query(`SELECT id, v FROM ${database.table('t')} ORDER BY id`)).toEqual(rows);
+        expect(rows.length).toBeGreaterThan(0);
     });
 });

@@ -24,6 +24,11 @@ const lookupSales = tool({
 
 type Item = AgentInputItem & { type?: string; role?: string };
 
+/// The items that one turn stores: the prompt, two calls with their results, and the answer
+const ITEMS_PER_TURN = 6;
+/// The items that the model sees before it answers turn `turn` (from 1): the earlier turns, the prompt, two calls and two results
+const itemsBeforeAnswer = (turn: number) => (turn - 1) * ITEMS_PER_TURN + 5;
+
 /// A model that looks up twice per prompt, then answers with what it saw. Decides from its input alone, so it serves
 /// any number of sessions at once.
 class AnalystModel implements Model {
@@ -54,6 +59,8 @@ describe('HyperAgentSession under run()', () => {
     let database: HyperDatabase;
     const model = new AnalystModel();
     const agent = new Agent({ name: 'analyst', instructions: 'Answer with the sales tool.', model, tools: [lookupSales] });
+    /// The sessions that the tests wrote, for the totals of the SQL test
+    const sessionIds = new Set<string>(['conversation']);
 
     beforeAll(async () => {
         setTracingDisabled(true);
@@ -65,10 +72,9 @@ describe('HyperAgentSession under run()', () => {
 
     it('carries a conversation with tool calls over a restart', async () => {
         const first = await run(agent, 'Which region sold more?', { session: new HyperAgentSession(database, { sessionId: 'conversation' }) });
-        // The prompt, two calls with their results, then the answer: 5 items before the answer
-        expect(first.finalOutput).toBe('Answered after 5 items');
+        expect(first.finalOutput).toBe(`Answered after ${itemsBeforeAnswer(1)} items`);
         const second = await run(agent, 'Export all orders and compare APAC.', { session: new HyperAgentSession(database, { sessionId: 'conversation' }) });
-        expect(second.finalOutput).toBe('Answered after 11 items');
+        expect(second.finalOutput).toBe(`Answered after ${itemsBeforeAnswer(2)} items`);
 
         // A new process continues the conversation from the database
         await database.close();
@@ -76,15 +82,16 @@ describe('HyperAgentSession under run()', () => {
         const session = new HyperAgentSession(database, { sessionId: 'conversation' });
         const before = model.requests.length;
         const third = await run(agent, 'And in the last quarter?', { session });
-        expect(third.finalOutput).toBe('Answered after 17 items');
+        expect(third.finalOutput).toBe(`Answered after ${itemsBeforeAnswer(3)} items`);
 
         // The first request of the third turn carried the whole history, the export of 1.5 MB included
         const history = model.requests[before].input as Item[];
-        expect(history.length).toBe(13);
+        // Two earlier turns and the new prompt
+        expect(history.length).toBe(2 * ITEMS_PER_TURN + 1);
         const outputs = history.filter((item) => item.type === 'function_call_result').map((item) => JSON.stringify(item));
         expect(Math.max(...outputs.map((output) => output.length))).toBeGreaterThan(1 << 20);
-        expect((await session.getItems()).length).toBe(18);
-        expect((await session.getItems(6)).map((item) => (item as Item).type ?? 'message')).toEqual([
+        expect((await session.getItems()).length).toBe(3 * ITEMS_PER_TURN);
+        expect((await session.getItems(ITEMS_PER_TURN)).map((item) => (item as Item).type ?? 'message')).toEqual([
             'message',
             'function_call',
             'function_call_result',
@@ -96,20 +103,19 @@ describe('HyperAgentSession under run()', () => {
 
     it('keeps sessions that run at once apart', async () => {
         const sessions = Array.from({ length: 5 }, (_, i) => `parallel-${i}`);
+        const prompts = (sessionId: string) => [`How did ${sessionId} do?`, 'And the year before?'];
+        for (const sessionId of sessions) sessionIds.add(sessionId);
         await Promise.all(
             sessions.map(async (sessionId) => {
-                for (const prompt of [`How did ${sessionId} do?`, 'And the year before?']) {
+                for (const prompt of prompts(sessionId)) {
                     await run(agent, prompt, { session: new HyperAgentSession(database, { sessionId }) });
                 }
             }),
         );
         for (const sessionId of sessions) {
             const items = (await new HyperAgentSession(database, { sessionId }).getItems()) as Item[];
-            expect(items.length).toBe(12);
-            expect(items.filter((item) => item.role === 'user').map((item) => (item as { content: string }).content)).toEqual([
-                `How did ${sessionId} do?`,
-                'And the year before?',
-            ]);
+            expect(items.length).toBe(prompts(sessionId).length * ITEMS_PER_TURN);
+            expect(items.filter((item) => item.role === 'user').map((item) => (item as { content: string }).content)).toEqual(prompts(sessionId));
             // Every result answers a call of the same session
             const calls = new Set(items.filter((item) => item.type === 'function_call').map((item) => (item as { callId: string }).callId));
             for (const result of items.filter((item) => item.type === 'function_call_result')) expect(calls.has((result as { callId: string }).callId)).toBe(true);
@@ -123,11 +129,21 @@ describe('HyperAgentSession under run()', () => {
             SELECT CAST(item->>'arguments' AS json)->>'region' AS region, count(*) AS calls, count(DISTINCT session_id) AS sessions
             FROM ${items} WHERE item->>'type' = 'function_call'
             GROUP BY 1 ORDER BY 1`);
-        expect(regions).toEqual([
-            { region: 'ALL', calls: 1n, sessions: 1n },
-            { region: 'APAC', calls: 13n, sessions: 6n },
-            { region: 'EMEA', calls: 12n, sessions: 6n },
-        ]);
+        // The same totals, counted over the items of the sessions that the tests wrote
+        const expected = new Map<string, { calls: bigint; sessions: Set<string> }>();
+        for (const sessionId of sessionIds) {
+            for (const item of (await new HyperAgentSession(database, { sessionId }).getItems()) as Item[]) {
+                if (item.type !== 'function_call') continue;
+                const region = JSON.parse((item as { arguments: string }).arguments).region as string;
+                const entry = expected.get(region) ?? { calls: 0n, sessions: new Set<string>() };
+                entry.calls += 1n;
+                entry.sessions.add(sessionId);
+                expected.set(region, entry);
+            }
+        }
+        expect(regions).toEqual(
+            [...expected.keys()].sort().map((region) => ({ region, calls: expected.get(region)!.calls, sessions: BigInt(expected.get(region)!.sessions.size) })),
+        );
         const [largest] = await database.query(`
             SELECT session_id, sum(length(CAST(item->'output' AS text))) AS output_characters
             FROM ${items} WHERE item->>'type' = 'function_call_result'

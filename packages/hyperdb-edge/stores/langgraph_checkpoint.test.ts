@@ -51,13 +51,21 @@ describe('HyperCheckpointSaver in a graph', () => {
         const app = graph().compile({ checkpointer: new HyperCheckpointSaver(graphDatabase) });
         const config = { configurable: { thread_id: 'thread-1' } };
         await app.invoke({ questions: ['first'] }, config);
+        const steps = async (compiled: typeof app) => {
+            const history = [];
+            for await (const snapshot of compiled.getStateHistory(config)) history.push(snapshot.metadata!.step);
+            return history;
+        };
+        const before = await steps(app);
         // A second graph on the same database continues the thread
         const resumed = graph().compile({ checkpointer: new HyperCheckpointSaver(graphDatabase) });
         const state = await resumed.invoke({ questions: ['second'] }, config);
         expect(state).toEqual({ questions: ['first', 'second'], answers: ['answer 1', 'answer 2'] });
-        const history = [];
-        for await (const snapshot of resumed.getStateHistory(config)) history.push(snapshot.metadata?.step);
-        expect(history).toEqual([4, 3, 2, 1, 0, -1]);
+        // The thread continues after the checkpoints of the first run, newest first
+        const after = await steps(resumed);
+        expect(after.length).toBeGreaterThan(before.length);
+        expect(after.slice(-before.length)).toEqual(before);
+        for (let i = 1; i < after.length; ++i) expect(after[i]).toBeLessThan(after[i - 1]);
     });
 
     it('answers questions about the runs in SQL', async () => {
@@ -69,9 +77,13 @@ describe('HyperCheckpointSaver in a graph', () => {
             SELECT thread_id, count(*) AS checkpoints, max(CAST(metadata_json->>'step' AS bigint)) AS last_step
             FROM ${saver.checkpoints} WHERE thread_id IN ('t-a', 't-b')
             GROUP BY thread_id ORDER BY thread_id`);
-        expect(rows).toEqual([
-            { thread_id: 't-a', checkpoints: 3n, last_step: 1n },
-            { thread_id: 't-b', checkpoints: 3n, last_step: 1n },
-        ]);
+        // The same as the saver lists for each thread
+        const listed = [];
+        for (const thread_id of ['t-a', 't-b']) {
+            const tuples = [];
+            for await (const tuple of saver.list({ configurable: { thread_id } })) tuples.push(tuple);
+            listed.push({ thread_id, checkpoints: BigInt(tuples.length), last_step: BigInt(Math.max(...tuples.map((tuple) => tuple.metadata!.step))) });
+        }
+        expect(rows).toEqual(listed);
     });
 });

@@ -145,7 +145,8 @@ describe('HyperSessionStore', () => {
 
     it('answers questions about the sessions in SQL', async () => {
         const store = new HyperSessionStore(database, { tablePrefix: 'analytics_' });
-        for (const session of ['a', 'b', 'c']) await store.append({ projectKey: 'p', sessionId: session }, transcript(session));
+        const sessions = ['a', 'b', 'c'];
+        for (const session of sessions) await store.append({ projectKey: 'p', sessionId: session }, transcript(session));
         // The tool calls and the tokens of every session, straight from the transcripts
         const rows = await database.query(`
             WITH assistant AS (
@@ -155,10 +156,15 @@ describe('HyperSessionStore', () => {
             FROM assistant, json_array_elements(message->'content') AS x(c)
             WHERE c->>'type' = 'tool_use'
             GROUP BY 1`);
-        expect(rows).toEqual([{ tool: 'Bash', calls: 3n, sessions: 3n }]);
+        // One call per transcript
+        expect(rows).toEqual([{ tool: 'Bash', calls: BigInt(sessions.length), sessions: BigInt(sessions.length) }]);
         const [tokens] = await database.query(`
             SELECT sum(CAST(entry->'message'->'usage'->>'output_tokens' AS bigint)) AS output_tokens
             FROM ${store.entries} WHERE type = 'assistant'`);
-        expect(tokens.output_tokens).toBe(156n);
+        const outputTokens = sessions
+            .flatMap(transcript)
+            .filter((entry) => entry.type === 'assistant')
+            .reduce((sum, entry) => sum + (entry.message as { usage: { output_tokens: number } }).usage.output_tokens, 0);
+        expect(tokens.output_tokens).toBe(BigInt(outputTokens));
     });
 });

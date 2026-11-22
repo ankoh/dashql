@@ -129,6 +129,8 @@ describe('HyperSessionStore under query()', () => {
     let database: HyperDatabase;
     let model: FakeAnthropic;
     let first: { sessionId: string; configDir: string };
+    /// The session of every prompt that the tests asked, for the totals of the SQL test: each looks up EMEA and APAC once
+    const asked: string[] = [];
 
     beforeAll(async () => {
         database = await HyperDatabase.open({ file });
@@ -145,6 +147,7 @@ describe('HyperSessionStore under query()', () => {
         const attachment = Array.from({ length: 40_000 }, (_, i) => `order-${i},EMEA,${(i * 37) % 1000}.00,'shipped'`).join('\n');
         const store = new RecordingStore(database);
         const { sessionId, result } = await ask(model, store, `Which region sold more? Orders:\n${attachment}`, { configDir, sessionStoreFlush: 'eager' });
+        asked.push(sessionId);
         expect(result).toBe('EMEA sold more than APAC, after 2 lookups.');
         first = { sessionId, configDir };
 
@@ -166,6 +169,7 @@ describe('HyperSessionStore under query()', () => {
         const configDir = path.join(ROOT, 'config-resumed');
         const before = model.main.length;
         const { sessionId, result } = await ask(model, new HyperSessionStore(database), 'And in the last quarter?', { configDir, resume: first.sessionId });
+        asked.push(sessionId);
         expect(result).toBe('EMEA sold more than APAC, after 2 lookups.');
 
         // The model saw the conversation that only the store held: the first prompt and its lookups
@@ -179,7 +183,10 @@ describe('HyperSessionStore under query()', () => {
         const [{ project_key: projectKey }] = await database.query(`SELECT DISTINCT project_key FROM ${new HyperSessionStore(database).entries}`);
         expect(sessionId).toBe(first.sessionId);
         const stored = (await new HyperSessionStore(database).load({ projectKey: projectKey as string, sessionId }))!;
-        expect(prompts(stored).map((prompt) => prompt.slice(0, 23))).toEqual(['Which region sold more?', 'And in the last quarter']);
+        const [asked1, asked2, ...rest] = prompts(stored);
+        expect(asked1.startsWith('Which region sold more?')).toBe(true);
+        expect(asked2).toBe('And in the last quarter?');
+        expect(rest).toEqual([]);
     });
 
     it('keeps sessions that run at once apart', async () => {
@@ -188,6 +195,7 @@ describe('HyperSessionStore under query()', () => {
             ['north', 'south', 'west'].map((region) => ask(model, store, `How did ${region} do?`, { configDir: path.join(ROOT, `config-${region}`) })),
         );
         for (const run of runs) expect(run.result).toBe('EMEA sold more than APAC, after 2 lookups.');
+        asked.push(...runs.map((run) => run.sessionId));
         const rows = await database.query(`
             SELECT session_id, count(*) AS entries, count(DISTINCT CAST(entry->>'sessionId' AS text)) AS session_ids
             FROM ${store.entries} WHERE subpath = '' GROUP BY session_id`);
@@ -209,13 +217,14 @@ describe('HyperSessionStore under query()', () => {
             FROM assistant, json_array_elements(content) AS x(c)
             WHERE c->>'type' = 'tool_use' AND c->>'name' = ${`'${LOOKUP}'`}
             GROUP BY 1 ORDER BY 1`);
-        // The first session twice (asked and resumed), three more once
+        // One lookup of each region per prompt
+        const sessions = BigInt(new Set(asked).size);
         expect(lookups).toEqual([
-            { region: 'APAC', calls: 5n, sessions: 4n },
-            { region: 'EMEA', calls: 5n, sessions: 4n },
+            { region: 'APAC', calls: BigInt(asked.length), sessions },
+            { region: 'EMEA', calls: BigInt(asked.length), sessions },
         ]);
         // The sessions that the SDK lists from the summaries, with the first prompt of each
         const summaries = await store.listSessionSummaries((await database.query(`SELECT DISTINCT project_key FROM ${store.entries}`))[0].project_key as string);
-        expect(summaries.length).toBe(4);
+        expect(BigInt(summaries.length)).toBe(sessions);
     });
 });

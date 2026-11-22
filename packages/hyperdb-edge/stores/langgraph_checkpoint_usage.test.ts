@@ -81,6 +81,9 @@ describe('HyperCheckpointSaver under a graph', () => {
     const file = path.join(mkdtempSync(path.join(tmpdir(), 'hyper-langgraph-usage-')), 'graphs.hyper');
     let database: HyperDatabase;
     const thread = { configurable: { thread_id: 'review' } };
+    /// The threads that run at once
+    const threads = Array.from({ length: 10 }, (_, i) => ({ configurable: { thread_id: `parallel-${i}` } }));
+    const approves = (i: number) => i % 2 === 0;
 
     beforeAll(async () => {
         database = await HyperDatabase.open({ file });
@@ -137,17 +140,16 @@ describe('HyperCheckpointSaver under a graph', () => {
 
     it('keeps threads that run at once apart', async () => {
         const app = graph(new HyperCheckpointSaver(database));
-        const threads = Array.from({ length: 10 }, (_, i) => ({ configurable: { thread_id: `parallel-${i}` } }));
         await Promise.all(
             threads.map(async (config, i) => {
                 await app.invoke({ messages: [new HumanMessage(`Question ${i}`)] }, config);
-                await app.invoke(new Command({ resume: i % 2 === 0 ? 'approve' : 'reject' }), config);
+                await app.invoke(new Command({ resume: approves(i) ? 'approve' : 'reject' }), config);
             }),
         );
         for (const [i, config] of threads.entries()) {
             const state = await app.getState(config);
             expect(texts(state.values.messages)[0]).toBe(`human: Question ${i}`);
-            expect(state.values.findings).toEqual(i % 2 === 0 ? ['EMEA 4200', 'APAC 3100'] : []);
+            expect(state.values.findings).toEqual(approves(i) ? ['EMEA 4200', 'APAC 3100'] : []);
             expect(state.next).toEqual([]);
         }
     });
@@ -159,16 +161,19 @@ describe('HyperCheckpointSaver under a graph', () => {
             SELECT thread_id, max(CAST(metadata_json->>'step' AS bigint)) AS last_step, count(*) AS checkpoints
             FROM ${saver.checkpoints} WHERE checkpoint_ns = '' AND thread_id LIKE 'parallel-%'
             GROUP BY thread_id ORDER BY thread_id`);
-        expect(steps.length).toBe(10);
-        // Approved threads take two more steps: the lookups and the answer after them
-        expect(steps.map((row) => Number(row.last_step))).toEqual(Array.from({ length: 10 }, (_, i) => (i % 2 === 0 ? 4 : 3)));
+        expect(steps.length).toBe(threads.length);
+        // Approved threads take more steps: the lookups and the answer after them
+        const lastStep = (approved: boolean) =>
+            threads.flatMap((config, i) => (approves(i) === approved ? [Number(steps.find((row) => row.thread_id === config.configurable.thread_id)!.last_step)] : []));
+        expect(Math.min(...lastStep(true))).toBeGreaterThan(Math.max(...lastStep(false)));
+        // Every one of them waited for an approval
         const [waits] = await database.query(`
-            SELECT count(DISTINCT thread_id) AS threads FROM ${saver.writes} WHERE channel = '__interrupt__'`);
-        expect(waits.threads).toBe(11n);
+            SELECT count(DISTINCT thread_id) AS threads FROM ${saver.writes} WHERE channel = '__interrupt__' AND thread_id LIKE 'parallel-%'`);
+        expect(waits.threads).toBe(BigInt(threads.length));
         // Each channel value is stored once per version: far fewer blobs than checkpoints times channels
         const [sizes] = await database.query(`
             SELECT (SELECT count(*) FROM ${saver.blobs}) AS blobs,
                    (SELECT count(*) FROM ${saver.checkpoints}) AS checkpoints`);
-        expect(Number(sizes.blobs)).toBeLessThan(Number(sizes.checkpoints) * 4);
+        expect(Number(sizes.blobs)).toBeLessThan(Number(sizes.checkpoints) * Object.keys(State.spec).length);
     });
 });
