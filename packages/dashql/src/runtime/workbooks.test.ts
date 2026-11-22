@@ -287,7 +287,7 @@ describe('the workbooks of the runtime', () => {
             rt.flush();
             expect(outdated(b)).toBe(false);
         });
-        await new Promise(resolve => setTimeout(resolve, 200));
+        await rt.clock.elapse();
         rt.flush();
         expect(outdated(c)).toBe(true);
         expect(rt.dispatch({ workbook: workbook.workbookId }, { kind: 'hideScript', value: { scriptKey: b, selected: false } }).ok).toBe(true);

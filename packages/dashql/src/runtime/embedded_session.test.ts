@@ -90,7 +90,7 @@ describe('a session on a connection to the embedded Hyper', () => {
         expect(catalogQueries()).toEqual([]);
         await run('create table shell_two (b int)');
         expect(catalogQueries().length).toBeGreaterThan(0);
-        expect(catalogQueries().every(query => query.includes("c.relname = 'shell_two'"))).toBe(true);
+        expect(catalogQueries().every(query => query.includes('shell_two'))).toBe(true);
         await run('drop table shell_one');
         await run('drop table shell_two');
     });

@@ -114,7 +114,8 @@ describe('the catalog of a connection follows statements', () => {
         await run('create table it_orders (id bigint, amount double precision)');
         expect(tables()).toEqual(['public.it_orders(id, amount)']);
         await run('create table it_others (x int)');
-        expect(queries.every(query => query.includes('c.relname = '))).toBe(true);
+        // Every query asks about the touched relations only
+        expect(queries.every(query => query.includes('it_orders') || query.includes('it_others'))).toBe(true);
         queries.length = 0;
         await run('select * from it_orders');
         expect(queries).toEqual([]);

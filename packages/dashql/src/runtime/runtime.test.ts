@@ -13,6 +13,7 @@ import type { TrinoConnectionParams } from '@akohn/dashql-jsonschema/connection.
 import type { WorkbookData } from '../platform/storage/storage_backend.js';
 import type { EmbeddedComputeDatabase } from '../platform/embedded_database.js';
 import { tableFromArrays } from '../platform/testing/arrow_fixtures.js';
+import { TestClock } from '../core/testing/test_clock.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -202,13 +203,15 @@ describe('the runtime', () => {
             }
         }
         const storage = new FailingBackend();
-        const runtime = createRuntime(testPlatform(storage));
+        const clock = new TestClock();
+        const runtime = createRuntime({ ...testPlatform(storage), clock: clock.clock });
         const connection = runtime.createConnection(newDefaultHyperWasmConnection({ active: false }));
         runtime.createWorkbook(connection.connectionId, 'Failing', false);
         await runtime.destroy();
         const writes = storage.writes;
         expect(writes).toBeGreaterThan(0);
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        // The retry wakes up after the runtime was destroyed
+        await clock.elapse();
         expect(storage.writes).toBe(writes);
     });
 

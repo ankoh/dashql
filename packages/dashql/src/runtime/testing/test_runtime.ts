@@ -13,6 +13,7 @@ import type { ScriptDataMap, WorkbookScripts } from '../../platform/workbook/wor
 import { TestLogger } from '../../platform/testing/test_logger.js';
 import { WorkbookTestBackend } from '../../platform/testing/workbook_test_backend.js';
 import { createRuntimeArchives } from '../workbook_archives.js';
+import { TestClock } from '../../core/testing/test_clock.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -43,6 +44,8 @@ export interface TestRuntimeOptions {
 /// browsers alike
 export interface TestRuntime extends Runtime {
     logger: TestLogger;
+    /// The clock of the runtime, a test ends its waits instead of waiting them out
+    clock: TestClock;
     /// Create a connection in the runtime, set up with its channel if the options have one
     addConnection(options: TestConnectionOptions): Promise<ConnectionState>;
     /// The connection as the runtime holds it now
@@ -138,6 +141,7 @@ export async function restoreTestWorkbook(
 export async function createTestRuntime(options: TestRuntimeOptions = {}): Promise<TestRuntime> {
     const offline = () => { throw new Error('the test has no network'); };
     const logger = new TestLogger();
+    const clock = new TestClock();
     const instance = await testCore();
     const platform: RuntimeOptions = {
         logger,
@@ -150,11 +154,13 @@ export async function createTestRuntime(options: TestRuntimeOptions = {}): Promi
         results: options.results ?? null,
         archives: options.archiveDatabase == null ? undefined : handles => createRuntimeArchives(handles, options.archiveDatabase!),
         catalogLoader: options.catalogLoader === true,
+        clock: clock.clock,
     };
     const runtime = createRuntime(platform);
     const read = runtime.connection.bind(runtime);
     return Object.assign(runtime, {
         logger,
+        clock,
         addConnection(connection: TestConnectionOptions) {
             return createTestConnection(runtime, connection);
         },

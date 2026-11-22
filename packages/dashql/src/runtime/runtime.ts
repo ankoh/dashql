@@ -77,6 +77,9 @@ export interface RuntimeOptions {
     queryCommands?: Partial<QueryCommands> | null;
     /// The timings and limits of the runtime, the defaults of DashQL for what it leaves out
     settings?: core.RuntimeSettings | null;
+    /// The clock that the runtime waits with, the one of the event loop by default. A test passes a clock whose waits it
+    /// can end.
+    clock?: core.RuntimePlatform['clock'] | null;
 }
 
 /// Creates the `.dashql` archives of a platform over the handle table of the runtime
@@ -255,7 +258,7 @@ export class Runtime {
         const logger = this.logger;
         const platform = this.options;
         return {
-            clock: {
+            clock: platform.clock ?? {
                 now: () => Date.now(),
                 sleep: ms => new Promise(resolve => setTimeout(resolve, ms)),
             },

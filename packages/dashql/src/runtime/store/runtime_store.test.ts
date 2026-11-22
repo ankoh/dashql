@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type * as core from '../../core/index.js';
 import { HandleTable } from './handles.js';
-import { RuntimeStore, type RuntimeViewSource, type ViewProjection } from './runtime_store.js';
+import { RESYNC_ATTEMPTS, RuntimeStore, type RuntimeViewSource, type ViewProjection } from './runtime_store.js';
 import type { UpdateScheduler } from './update_scheduler.js';
 
 /// A scheduler that flushes only when the test says so
@@ -114,17 +114,18 @@ describe('RuntimeStore', () => {
 
         // A slice that keeps failing is asked for a few times, then the store drops it until its next change
         fail = true;
-        for (let revision = 3; revision < 7; ++revision) {
+        let revision = 3;
+        for (let attempt = 0; attempt <= RESYNC_ATTEMPTS; ++attempt, ++revision) {
             source.set('connection', 'b', revision, { name: `b${revision}` });
             store.flush();
-            if (revision < 6) expect(store.get('connection', 'b')).toEqual({ name: 'b1' });
+            if (attempt < RESYNC_ATTEMPTS) expect(store.get('connection', 'b')).toEqual({ name: 'b1' });
         }
-        expect(source.resynced.filter(slice => slice === 'connection:b')).toHaveLength(3);
+        expect(source.resynced.filter(slice => slice === 'connection:b')).toHaveLength(RESYNC_ATTEMPTS);
         expect(store.get('connection', 'b')).toBeNull();
         fail = false;
-        source.set('connection', 'b', 7, { name: 'b7' });
+        source.set('connection', 'b', revision, { name: 'fixed' });
         store.flush();
-        expect(store.get('connection', 'b')).toEqual({ name: 'b7' });
+        expect(store.get('connection', 'b')).toEqual({ name: 'fixed' });
     });
 
     it('keeps the views of a kind whose read throws', () => {

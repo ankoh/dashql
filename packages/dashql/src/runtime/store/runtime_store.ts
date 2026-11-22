@@ -15,7 +15,7 @@ export interface RuntimeViewSource {
 }
 
 /// How often a slice whose projection fails is asked for again before the store drops it until it changes
-const RESYNC_ATTEMPTS = 3;
+export const RESYNC_ATTEMPTS = 3;
 
 /// What the store keeps of a slice of a kind: the view as it is, shared with the previous one, or what a projection
 /// builds from it, e.g. a script with its payloads read

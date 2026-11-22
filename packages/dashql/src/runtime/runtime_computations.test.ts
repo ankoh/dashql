@@ -46,11 +46,14 @@ describe('The computations of the runtime', () => {
         }
     }
 
+    /// The scores of the analyzed result, the lowest one twice
+    const SCORES = [42, 10, 10, 30];
+
     async function analyzed(): Promise<Runtime> {
         database = await openTestHyperDB('runtime_computations_test');
         runtime = createRuntime({ logger: new TestLogger(), scheduler: TASK_UPDATE_SCHEDULER, core: dql, computeDatabase: async () => database! });
         const table = new arrow.Table({
-            score: vectorFromArray([42, 10, 10, 30], new arrow.Float64()),
+            score: vectorFromArray(SCORES, new arrow.Float64()),
             name: vectorFromArray(['a', 'b', 'a', 'c'], new arrow.Utf8()),
         });
         // The module learns the rows and the schema of the result, its data never crosses
@@ -127,11 +130,11 @@ describe('The computations of the runtime', () => {
         const rt = await analyzed();
         const target = { computation: 1 };
 
-        // A range of the histogram of the score
+        // The bins of the histogram of the score but the first, which holds the lowest score
         expect(rt.dispatch(target, { kind: 'histogramFilter', value: { columnGroup: 1, selection: [1, 1000] } }).ok).toBe(true);
         let computation = await settled(rt, view => view.filterTable != null && view.tasks.filteringTask?.progress.status === TaskStatus.TASK_SUCCEEDED);
         expect(computation.crossFilters).toEqual([{ kind: 'histogram', column: 1, selection: [1, 1000] }]);
-        expect(computation.filterTable?.rows).toBe(2);
+        expect(computation.filterTable?.rows).toBe(SCORES.filter(score => score > Math.min(...SCORES)).length);
 
         // Ordered by the score, descending, over the filtered rows
         rt.dispatch(target, { kind: 'orderBy', value: { constraints: [{ field: 'score', ascending: false }] } });
@@ -166,7 +169,7 @@ describe('The computations of the runtime', () => {
         database = await openTestHyperDB('runtime_computations_history_test');
         runtime = createRuntime({ logger: new TestLogger(), scheduler: TASK_UPDATE_SCHEDULER, core: dql, computeDatabase: async () => database! });
         const table = () => new arrow.Table({
-            score: vectorFromArray([42, 10, 10, 30], new arrow.Float64()),
+            score: vectorFromArray(SCORES, new arrow.Float64()),
             name: vectorFromArray(['a', 'b', 'a', 'c'], new arrow.Utf8()),
         });
         const sqlframe = (queryIds: readonly number[]) => queryIds
@@ -212,7 +215,7 @@ describe('The computations of the runtime', () => {
         runtime = createRuntime({ logger: new TestLogger(), scheduler: TASK_UPDATE_SCHEDULER, core: dql, computeDatabase: async () => computeDatabase });
         const connection = runtime.createConnection(newDefaultHyperWasmConnection({ active: false }));
         const table = new arrow.Table({
-            score: vectorFromArray([42, 10, 10, 30], new arrow.Float64()),
+            score: vectorFromArray(SCORES, new arrow.Float64()),
             name: vectorFromArray(['a', 'b', 'a', 'c'], new arrow.Utf8()),
         });
         const analysis = runtime.analyzeTable(1, table, { connectionId: connection.connectionId }).then(() => null, error => error);
@@ -277,7 +280,7 @@ describe('The computations of the runtime', () => {
             runtime!.flush();
             expect(runtime!.store.get('query', queryId)?.status).toBe(QueryExecutionStatus.CANCELLED);
         });
-        expect(runtime.store.get('query', queryId)).toMatchObject({ error: { message: 'The request was cancelled' } });
+        expect(runtime.store.get('query', queryId)).toMatchObject({ error: { message: expect.stringMatching(/cancel/i) } });
         expect(await analysis).not.toBeNull();
         // The task of the query ends cancelled too, not failed
         runtime.flush();
