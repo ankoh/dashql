@@ -251,7 +251,7 @@
     position: relative;
     min-width: 0;
     min-height: 0;
-    /* The space that the bar of Wobble, the shrunk composer of the feed, takes over the bottom of the dashboard: its
+    /* The space that the bar of Wobble, the shrunk prompt, takes over the bottom of the dashboard: its
        offset (the bottom padding of the composer), its height (the 28px of the bar, its padding and border) and the
        space above it. The last card scrolls clear of the bar. */
     --status_bar_dock_space: calc(16px + 36px + 16px);
@@ -259,22 +259,14 @@
 
 /* Keep the feed laid out behind alternate content so its measurements and scroll position survive. */
 .feed_layer,
-.feed_layer_hidden,
-.feed_layer_collapsed {
+.feed_layer_hidden {
     position: absolute;
     inset: 0;
 }
 
-.feed_layer_hidden,
-.feed_layer_collapsed {
+.feed_layer_hidden {
     visibility: hidden;
     pointer-events: none;
-}
-
-/* The dashboard and the dataflow show over the hidden feed, its composer floats over them as the bar of Wobble. The
-   rest of the layer is hidden, the clicks pass through it. */
-.feed_layer_collapsed {
-    z-index: 5;
 }
 
 /* The card of a published workbook that is being loaded, centered where the feed is */

@@ -19,7 +19,9 @@ import { WorkbookWorkbenchSidebar } from '../navigation/workbook_workbench_sideb
 import { WorkbookURLShareOverlay } from '../persistence/workbook_url_share_overlay.js';
 import { WorkbookFileSaveOverlay } from '../persistence/workbook_file_save_overlay.js';
 import { ScriptEditorDialog } from '../scripts/script_editor_dialog.js';
-import { WorkbookFeed, type WorkbookFeedRevealRequest } from './workbook_feed.js';
+import { WorkbookFeed, type WorkbookFeedInsets, type WorkbookFeedRevealRequest } from './workbook_feed.js';
+import { WorkbookPrompt, WorkbookPromptPlacement, type WorkbookPromptFeed, type WorkbookPromptHandle } from './workbook_prompt.js';
+import type { AgentFollowTarget } from '../../agent/agent_session.js';
 import { Dashboard } from '../dashboard/dashboard.js';
 import { DataflowCanvas } from '../dataflow/dataflow_canvas.js';
 import { WorkbookViewMode, useWorkbookViewMode } from '../workbook_view_mode.js';
@@ -73,12 +75,13 @@ function usesArrowKeys(target: EventTarget | null): boolean {
 const SIDEBAR_DEFAULT_WIDTH = 276;
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_MAX_WIDTH = 560;
-/// The prompt morphs between the views for 200ms (workbook_composer.module.css, workbook_feed.module.css), the charts and
+/// The prompt morphs between the views for 200ms (workbook_composer.module.css, workbook_prompt.module.css), the charts and
 /// tables of the next view render after it
 const VIEW_SWITCH_HOLD_MS = 220;
 
 export interface WorkbookFeedPageDependencies {
     WorkbookFeed: typeof WorkbookFeed;
+    WorkbookPrompt: typeof WorkbookPrompt;
     ScriptEditorDialog: typeof ScriptEditorDialog;
     WorkbookWorkbenchSidebar: typeof WorkbookWorkbenchSidebar;
     ConnectionOverviewPage: typeof ConnectionOverviewPage;
@@ -97,6 +100,7 @@ export interface WorkbookFeedPageDependencies {
 
 const DEFAULT_DEPENDENCIES: WorkbookFeedPageDependencies = {
     WorkbookFeed,
+    WorkbookPrompt,
     ScriptEditorDialog,
     WorkbookWorkbenchSidebar,
     ConnectionOverviewPage,
@@ -126,7 +130,7 @@ interface Props {
 
 export const WorkbookFeedPage: React.FC<Props> = (props) => {
     const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;
-    // The composer of the feed renames the references in its draft, also for renames in the dataflow
+    // The composer of the prompt renames the references in its draft, also for renames in the feed and the dataflow
     const draftRenameRef = React.useRef<RenameDraftReferences | null>(null);
     // The script that the editor dialog of the dataflow shows. It belongs to the workbook it was opened in and closes
     // when another workbook is selected or the script is gone.
@@ -194,9 +198,9 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
     const skipped = run != null && run.skippedScripts > 0 ? ` · ${run.skippedScripts} need a connection` : '';
     const statusText = !run ? '' : run.phase === 'planning' ? 'Planning...'
         : run.phase === 'stopping' ? `Stopping · ${progress} completed`
-        : run.phase === 'failed' ? `${progress} completed${skipped}`
-        : run.phase === 'cancelled' ? `Stopped · ${progress} completed`
-        : run.phase === 'succeeded' ? (skipped ? `${progress} completed${skipped}` : `${progress} succeeded`) : `${progress} completed${skipped}`;
+            : run.phase === 'failed' ? `${progress} completed${skipped}`
+                : run.phase === 'cancelled' ? `Stopped · ${progress} completed`
+                    : run.phase === 'succeeded' ? (skipped ? `${progress} completed${skipped}` : `${progress} succeeded`) : `${progress} completed${skipped}`;
     // A run that skipped scripts points at the connections that they need once it settles, nothing opens by itself. A
     // run that settled before the page mounted doesn't, e.g. when the workbook is opened again.
     const settledWithSkips = (run?.phase === 'succeeded' || run?.phase === 'failed') && run.skippedScripts > 0;
@@ -240,10 +244,12 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
     // A version of a published workbook that is being loaded takes the place of the views
     const cloudLoading = useCloudWorkbookLoading() != null;
     const feedActive = props.active && !dashboardActive && !dataflowActive && !overviewActive && !cloudLoading;
-    // The dashboard and the dataflow show over the hidden feed, its composer stays visible as the bar of Wobble. It
-    // shrinks into the bar when they show and grows into the prompt when the feed shows again. The workbook page is
-    // active in the feed only, it shows in the dashboard and the dataflow too.
+    // The prompt floats over the views of the workbook. It docks below the scripts of the feed, shrinks into the bar of
+    // Wobble when the dashboard or the dataflow show and grows into the prompt when the feed shows again. The workbook
+    // page is active in the feed only, it shows in the dashboard and the dataflow too.
     const composerCollapsed = (dashboardActive || dataflowActive) && !overviewActive && !cloudLoading;
+    const promptPlacement = feedActive ? WorkbookPromptPlacement.Feed
+        : composerCollapsed ? WorkbookPromptPlacement.Collapsed : WorkbookPromptPlacement.Hidden;
     const pageShown = props.active || dashboardActive || dataflowActive;
     useFileDropHandler(pageShown ? files => {
         const attach = attachRef.current;
@@ -285,6 +291,30 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
         if (mode !== WorkbookViewMode.Workbook) setMode(WorkbookViewMode.Workbook);
         setRevealRequest({ workbookId, fileName });
     }, [mode, setMode, setOverviewConnectionId]);
+    // The prompt and the feed ask each other through handles: the feed mentions its scripts in the question of the
+    // prompt, the prompt has the feed follow the agent and show the scripts it appends
+    const promptRef = React.useRef<WorkbookPromptHandle | null>(null);
+    const feedRef = React.useRef<WorkbookPromptFeed | null>(null);
+    const modeRef = React.useRef(mode);
+    modeRef.current = mode;
+    const promptFeed = React.useMemo<WorkbookPromptFeed>(() => ({
+        follow: (scriptKey: number, target: AgentFollowTarget) => feedRef.current?.follow(scriptKey, target),
+        // A script that the user picks in the log of the agent shows in the feed
+        show: (scriptKey: number) => {
+            setOverviewConnectionId(null);
+            setDetails(null);
+            if (modeRef.current !== WorkbookViewMode.Workbook) setMode(WorkbookViewMode.Workbook);
+            feedRef.current?.show(scriptKey);
+        },
+        followAgent: () => feedRef.current?.followAgent(),
+        appended: () => feedRef.current?.appended(),
+    }), [setMode, setOverviewConnectionId]);
+    // The feed keeps the space of the docked prompt below its last script, also while the prompt is shrunk over
+    // another view and the rows of the hidden feed stay where they are
+    const [feedInsets, setFeedInsets] = React.useState<WorkbookFeedInsets | undefined>(undefined);
+    const [promptHeight, setPromptHeight] = React.useState(0);
+    const feedBottomInset = React.useRef(promptHeight);
+    if (promptPlacement === WorkbookPromptPlacement.Feed) feedBottomInset.current = promptHeight;
     const workbench = (closeAfterSelection: boolean) => (
         <dependencies.WorkbookWorkbenchSidebar
             workbookScripts={props.workbookScripts}
@@ -299,259 +329,275 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
 
     return (
         <WorkbookReadOnlyContext.Provider value={preview}>
-        <div className={styles.page} style={{ '--workbook_navigation_sidebar_width': `${sidebarWidth}px` } as React.CSSProperties}>
-            <aside className={styles.navigation_sidebar}>
-                {workbench(false)}
-            </aside>
-            <PanelResizeHandle
-                className={styles.navigation_sidebar_separator}
-                size={sidebarWidth}
-                minSize={SIDEBAR_MIN_WIDTH}
-                maxSize={SIDEBAR_MAX_WIDTH}
-                onResize={setSidebarWidth}
-                label="Resize workbench and workbook"
-            />
-            <main className={styles.body_container} id="workbook-body">
-                <div className={styles.content_container}>
-                    {cloudLoading && (
-                        <div className={styles.loading_layer}>
-                            <dependencies.CloudWorkbookLoadingCard />
-                        </div>
-                    )}
-                    <div className={feedActive ? styles.feed_layer : composerCollapsed ? styles.feed_layer_collapsed : styles.feed_layer_hidden}>
-                        <dependencies.WorkbookFeed
-                            workbookScripts={props.workbookScripts}
-                            modifyWorkbookScripts={props.modifyWorkbookScripts}
-                            draftRenameRef={draftRenameRef}
-                            active={feedActive}
-                            revealRequest={revealRequest}
-                            attachRef={attachRef}
-                            collapsed={composerCollapsed}
-                            conn={props.connection}
-                            scriptConnections={props.scriptConnections}
-                        />
-                    </div>
-                    {overviewConnectionId != null && !cloudLoading && (
-                        <dependencies.ConnectionOverviewPage
-                            connectionId={overviewConnectionId}
-                            onClose={closeOverview}
-                        />
-                    )}
-                    {cloudOverviewId != null && !cloudLoading && (
-                        <dependencies.CloudOverviewPage
-                            key={cloudOverviewId}
-                            connectionId={cloudOverviewId}
-                            onClose={closeOverview}
-                        />
-                    )}
-                    {dashboardActive && !overviewActive && !cloudLoading && (
-                        <dependencies.Dashboard
-                            workbookScripts={props.workbookScripts}
-                            modifyWorkbookScripts={props.modifyWorkbookScripts}
-                            scriptConnections={scriptConnections}
-                            draftRenameRef={draftRenameRef}
-                        />
-                    )}
-                    {dataflowActive && !overviewActive && !cloudLoading && (
-                        <div className={styles.dataflow_layout}>
-                            <div className={styles.dataflow_canvas}>
-                                <dependencies.DataflowCanvas
-                                    key={props.workbookScripts.workbookId}
-                                    workbookScripts={props.workbookScripts}
-                                    modifyWorkbookScripts={props.modifyWorkbookScripts}
-                                    scriptConnections={scriptConnections}
-                                    draftRenameRef={draftRenameRef}
-                                    onInspect={inspectScript}
-                                />
+            <div className={styles.page} style={{ '--workbook_navigation_sidebar_width': `${sidebarWidth}px` } as React.CSSProperties}>
+                <aside className={styles.navigation_sidebar}>
+                    {workbench(false)}
+                </aside>
+                <PanelResizeHandle
+                    className={styles.navigation_sidebar_separator}
+                    size={sidebarWidth}
+                    minSize={SIDEBAR_MIN_WIDTH}
+                    maxSize={SIDEBAR_MAX_WIDTH}
+                    onResize={setSidebarWidth}
+                    label="Resize workbench and workbook"
+                />
+                <main className={styles.body_container} id="workbook-body">
+                    <div className={styles.content_container}>
+                        {cloudLoading && (
+                            <div className={styles.loading_layer}>
+                                <dependencies.CloudWorkbookLoadingCard />
                             </div>
-                            {showDetails && (
-                                <dependencies.ScriptEditorDialog
-                                    key={details.scriptId}
-                                    workbookScripts={props.workbookScripts}
-                                    modifyWorkbookScripts={props.modifyWorkbookScripts}
-                                    scriptKey={details.scriptId}
-                                    scriptConnections={scriptConnections}
-                                    draftRenameRef={draftRenameRef}
-                                    onNavigateToScript={inspectScript}
-                                    onClose={closeDetails}
-                                />
-                            )}
-                        </div>
-                    )}
-                </div>
-            </main>
-            {/* After the feed in the DOM, so that no-drag rows scrolled behind the bar do not cut holes into its drag region, see docs/design/electron.md */}
-            <header className={styles.view_bar} data-electron-drag-region>
-                <IconButton className={styles.mobile_menu_button} ref={navigationDrawerTriggerRef} variant={ButtonVariant.Default} aria-label="Open workbook workbench" data-testid="open-workbench" onClick={() => setNavigationDrawerOpen(true)}>
-                    <ThreeBarsIcon />
-                </IconButton>
-                {/* A connection overview is not part of the workbook, its controls are hidden */}
-                {!overviewActive && <>
-                    {/* The arrows beside the switch tell that the arrow keys step through the views */}
-                    {viewSwitchShown && <div className={styles.view_switch}>
-                        <IconButton size={ButtonSize.Small} variant={ButtonVariant.Invisible} className={styles.view_step}
-                            aria-label="Previous view" description="Previous view (←)" data-testid="workbook-view-previous"
-                            disabled={viewIndex <= 0} onClick={() => stepView(-1)}>
-                            <PreviousViewIcon size={12} />
-                        </IconButton>
-                        <SegmentedControl
-                            aria-label="Workbook view"
-                            data-testid="workbook-view-switch"
-                            size={SegmentedControlSize.Small}
-                            onChange={(selectedIndex) => showView(WORKBOOK_VIEWS[selectedIndex]?.[0] ?? WorkbookViewMode.Workbook)}
-                        >
-                            {WORKBOOK_VIEWS.map(([view, label, Icon]) => (
-                                <SegmentedControl.IconButton
-                                    key={view}
-                                    className={styles.view_switch_button}
-                                    aria-label={label}
-                                    icon={<Icon size={14} />}
-                                    selected={activeView === view}
-                                />
-                            ))}
-                        </SegmentedControl>
-                        <IconButton size={ButtonSize.Small} variant={ButtonVariant.Invisible} className={styles.view_step}
-                            aria-label="Next view" description="Next view (→)" data-testid="workbook-view-next"
-                            disabled={viewIndex >= WORKBOOK_VIEWS.length - 1} onClick={() => stepView(1)}>
-                            <NextViewIcon size={12} />
-                        </IconButton>
-                    </div>}
-                    {!ephemeral && <div className={styles.execution_controls}>
-                        <Button ref={executeRef} size={ButtonSize.Small} variant={ButtonVariant.Invisible}
-                            leadingVisual={execution.busy ? SquareFillIcon : PaperAirplaneIcon}
-                            aria-label={execution.busy ? 'Stop workbook execution' : 'Execute All'}
-                            data-testid={execution.busy ? 'stop-execution' : 'execute-all'}
-                            // A run waits for the compute database, it reads the cached results
-                            disabled={execution.busy ? run?.phase === 'stopping' : !execution.ready || !scriptConnectionsIdle
-                                || execution.runActive || props.workbookScripts.scriptOrder.length === 0}
-                            onClick={() => execution.busy ? execution.stop() : execution.start()}>
-                            <span className={styles.action_label}>{execution.busy ? run?.phase === 'stopping' ? 'Stopping' : 'Stop' : 'Execute All'}</span>
-                        </Button>
-                        <div className={styles.execution_status} role="status" aria-live="polite" aria-atomic="true" data-testid="execution-status" data-phase={run?.phase}
-                            title={run?.error ?? skippedTitle} aria-label={run?.error ? `${statusText}: ${run.error}` : undefined}>
-                            {run && <>
-                                <AnchoredOverlay
-                                    open={executionDetailsOpen} onOpen={() => setExecutionDetailsOpen(true)} onClose={() => setExecutionDetailsOpen(false)}
-                                    side={AnchorSide.OutsideBottom} align={AnchorAlignment.Start} anchorOffset={4}
-                                    renderAnchor={anchorProps => <Button {...anchorProps}
-                                        size={ButtonSize.Small} variant={ButtonVariant.Invisible} aria-label="Show workbook execution details" data-testid="execution-details-toggle"
-                                        leadingVisual={<span className={styles.execution_indicator} aria-hidden="true" data-testid="execution-indicator"><StatusIndicator width="16px" height="16px" status={execution.busy
-                                            ? IndicatorStatus.Running : run.phase === 'failed' ? IndicatorStatus.Failed
-                                                : run.phase === 'succeeded' ? IndicatorStatus.Succeeded : IndicatorStatus.Skip} /></span>}>
-                                        <span className={styles.execution_progress}>{statusText}</span>
-                                    </Button>}>
-                                    <section className={styles.execution_error_card} role="dialog" aria-label="Workbook execution details" data-testid="execution-details">
-                                        <header className={styles.execution_error_header}>
-                                            <h2 className={styles.execution_details_title}>{run.phase === 'failed' ? 'Execution failed' : 'Workbook execution'}</h2>
-                                            <IconButton size={ButtonSize.Small} variant={ButtonVariant.Invisible}
-                                                aria-label="Close workbook execution details" data-testid="execution-details-close" onClick={() => setExecutionDetailsOpen(false)}>
-                                                <CloseIcon size={16} />
-                                            </IconButton>
-                                        </header>
-                                        <div className={styles.execution_details_body}>
-                                            <div>{statusText}</div>
-                                            {run.activeFileName && <div>{run.activeFileName} · statement {run.activeStatementIndex}/{run.activeStatementCount}</div>}
-                                            <div>{run.completedStatements}/{run.totalStatements} statements completed</div>
-                                            {run.error && <div className={styles.execution_error_message}>{run.error}</div>}
-                                        </div>
-                                    </section>
-                                </AnchoredOverlay>
-                            </>}
-                        </div>
-                    </div>}
-                    {/* A preview says it is read-only next to Execute All */}
-                    {preview && <CloudPreviewBadge labelClassName={styles.action_label} />}
-                    <div className={styles.header_actions}>
-                        {/* The connections of the workbook, the user sees which one is not connected */}
-                        {/* A preview shows its connections locked, the import maps them */}
-                        <dependencies.WorkbookConnectionButtons connections={barConnections} attention={connectionAttention?.active === true} />
-                        {preview && <CloudPreviewActions workbookId={props.workbookScripts.workbookId} labelClassName={styles.action_label} />}
-                        {exportButton && !ephemeral && !preview && (
-                            <Button ref={exportTriggerRef} size={ButtonSize.Small} variant={ButtonVariant.Invisible} leadingVisual={FileZipIcon} aria-label="Export .dashql" data-testid="export-workbook" aria-expanded={exportOpen === 'button'} onClick={() => {
-                                setShareOpen(false);
-                                setExportOpen(value => value === 'button' ? null : 'button');
-                            }}>
-                                <span className={styles.action_label}>Export .dashql</span>
-                            </Button>
                         )}
-                        {!ephemeral && !preview && (
-                            <AnchoredOverlay
-                                open={menuOpen}
-                                onOpen={() => setMenuOpen(true)}
-                                onClose={() => setMenuOpen(false)}
-                                side={AnchorSide.OutsideBottom}
-                                align={AnchorAlignment.End}
-                                anchorOffset={4}
-                                anchorRef={menuTriggerRef}
-                                returnFocusRef={menuTriggerRef}
-                                renderAnchor={anchorProps => (
-                                    <IconButton {...anchorProps} ref={menuTriggerRef} size={ButtonSize.Small} variant={ButtonVariant.Invisible}
-                                        aria-label="More workbook actions" data-testid="workbook-actions">
-                                        <MoreIcon size={16} />
-                                    </IconButton>
-                                )}
-                            >
-                                <div className={actionMenuStyles.menu} role="dialog" aria-label="Workbook actions">
-                                    <ActionList.List aria-label="Workbook actions">
-                                        <ActionList.ListItem data-testid="workbook-action" data-action="share-url" onClick={() => {
-                                            setMenuOpen(false);
-                                            setExportOpen(null);
-                                            setShareOpen(true);
-                                        }}>
-                                            <ActionList.Leading><LinkIcon size={16} /></ActionList.Leading>
-                                            <ActionList.ItemText>Share as URL</ActionList.ItemText>
-                                        </ActionList.ListItem>
-                                        {/* The list takes elements only, the fragments wrap the optional items */}
-                                        <>{archiveExport && (
-                                            <ActionList.ListItem data-testid="workbook-action" data-action="export" onClick={() => {
-                                                setMenuOpen(false);
-                                                setShareOpen(false);
-                                                setExportOpen('menu');
-                                            }}>
-                                                <ActionList.Leading><FileZipIcon size={16} /></ActionList.Leading>
-                                                <ActionList.ItemText>Export .dashql</ActionList.ItemText>
-                                            </ActionList.ListItem>
-                                        )}</>
-                                        <>{attachmentsVisible && (
-                                            <ActionList.ListItem data-testid="workbook-action" data-action="attach" disabled={!attachEnabled} onClick={() => {
-                                                setMenuOpen(false);
-                                                attachInputRef.current?.click();
-                                            }}>
-                                                <ActionList.Leading><PaperclipIcon size={16} /></ActionList.Leading>
-                                                <ActionList.ItemText>Attach File</ActionList.ItemText>
-                                            </ActionList.ListItem>
-                                        )}</>
-                                    </ActionList.List>
-                                </div>
-                            </AnchoredOverlay>
-                        )}
-                        <dependencies.WorkbookURLShareOverlay workbookId={props.workbookScripts.workbookId} isOpen={shareOpen} setIsOpen={setShareOpen} anchorRef={menuTriggerRef} />
-                        {archiveExport && !ephemeral && !preview && (
-                            <dependencies.WorkbookFileSaveOverlay
-                                isOpen={exportOpen != null}
-                                setIsOpen={setExportOverlayOpen}
-                                anchorRef={exportOpen === 'button' ? exportTriggerRef : menuTriggerRef}
+                        <div className={feedActive ? styles.feed_layer : styles.feed_layer_hidden}>
+                            <dependencies.WorkbookFeed
                                 workbookScripts={props.workbookScripts}
-                                fileName={props.workbookScripts.name ?? props.workbookScripts.workbookMetadata.originalFileName ?? 'workbook'}
+                                modifyWorkbookScripts={props.modifyWorkbookScripts}
+                                draftRenameRef={draftRenameRef}
+                                active={feedActive}
+                                revealRequest={revealRequest}
+                                attachRef={attachRef}
+                                bottomInset={feedBottomInset.current}
+                                promptRef={promptRef}
+                                handleRef={feedRef}
+                                onInsets={setFeedInsets}
+                                conn={props.connection}
+                                scriptConnections={props.scriptConnections}
+                            />
+                        </div>
+                        {overviewConnectionId != null && !cloudLoading && (
+                            <dependencies.ConnectionOverviewPage
+                                connectionId={overviewConnectionId}
+                                onClose={closeOverview}
                             />
                         )}
-                        {attachmentsVisible && (
-                            <input ref={attachInputRef} className={styles.attach_input} type="file" multiple accept={ATTACHMENT_EXTENSION}
-                                aria-label="Attach files to the workbook" disabled={!attachEnabled} onChange={event => {
-                                    const files = event.target.files == null ? [] : Array.from(event.target.files);
-                                    event.target.value = '';
-                                    if (files.length > 0) attachRef.current?.(files);
-                                }} />
+                        {cloudOverviewId != null && !cloudLoading && (
+                            <dependencies.CloudOverviewPage
+                                key={cloudOverviewId}
+                                connectionId={cloudOverviewId}
+                                onClose={closeOverview}
+                            />
                         )}
+                        {dashboardActive && !overviewActive && !cloudLoading && (
+                            <dependencies.Dashboard
+                                workbookScripts={props.workbookScripts}
+                                modifyWorkbookScripts={props.modifyWorkbookScripts}
+                                scriptConnections={scriptConnections}
+                                draftRenameRef={draftRenameRef}
+                            />
+                        )}
+                        {dataflowActive && !overviewActive && !cloudLoading && (
+                            <div className={styles.dataflow_layout}>
+                                <div className={styles.dataflow_canvas}>
+                                    <dependencies.DataflowCanvas
+                                        key={props.workbookScripts.workbookId}
+                                        workbookScripts={props.workbookScripts}
+                                        modifyWorkbookScripts={props.modifyWorkbookScripts}
+                                        scriptConnections={scriptConnections}
+                                        draftRenameRef={draftRenameRef}
+                                        onInspect={inspectScript}
+                                    />
+                                </div>
+                                {showDetails && (
+                                    <dependencies.ScriptEditorDialog
+                                        key={details.scriptId}
+                                        workbookScripts={props.workbookScripts}
+                                        modifyWorkbookScripts={props.modifyWorkbookScripts}
+                                        scriptKey={details.scriptId}
+                                        scriptConnections={scriptConnections}
+                                        draftRenameRef={draftRenameRef}
+                                        onNavigateToScript={inspectScript}
+                                        onClose={closeDetails}
+                                    />
+                                )}
+                            </div>
+                        )}
+                        {/* Over the views, the composer keeps its draft and its focus when the view switches */}
+                        <dependencies.WorkbookPrompt
+                            workbookScripts={props.workbookScripts}
+                            modifyWorkbookScripts={props.modifyWorkbookScripts}
+                            conn={props.connection}
+                            scriptConnections={props.scriptConnections}
+                            placement={promptPlacement}
+                            feed={promptFeed}
+                            handleRef={promptRef}
+                            draftRenameRef={draftRenameRef}
+                            feedInsets={feedInsets}
+                            onHeight={setPromptHeight}
+                        />
                     </div>
-                </>}
-            </header>
-            {navigationDrawerOpen && (
-                <dependencies.WorkbookNavigationDrawer open onClose={() => setNavigationDrawerOpen(false)} returnFocusRef={navigationDrawerTriggerRef}>
-                    {workbench(true)}
-                </dependencies.WorkbookNavigationDrawer>
-            )}
-        </div>
+                </main>
+                {/* After the feed in the DOM, so that no-drag rows scrolled behind the bar do not cut holes into its drag region, see docs/design/electron.md */}
+                <header className={styles.view_bar} data-electron-drag-region>
+                    <IconButton className={styles.mobile_menu_button} ref={navigationDrawerTriggerRef} variant={ButtonVariant.Default} aria-label="Open workbook workbench" data-testid="open-workbench" onClick={() => setNavigationDrawerOpen(true)}>
+                        <ThreeBarsIcon />
+                    </IconButton>
+                    {/* A connection overview is not part of the workbook, its controls are hidden */}
+                    {!overviewActive && <>
+                        {/* The arrows beside the switch tell that the arrow keys step through the views */}
+                        {viewSwitchShown && <div className={styles.view_switch}>
+                            <IconButton size={ButtonSize.Small} variant={ButtonVariant.Invisible} className={styles.view_step}
+                                aria-label="Previous view" description="Previous view (←)" data-testid="workbook-view-previous"
+                                disabled={viewIndex <= 0} onClick={() => stepView(-1)}>
+                                <PreviousViewIcon size={12} />
+                            </IconButton>
+                            <SegmentedControl
+                                aria-label="Workbook view"
+                                data-testid="workbook-view-switch"
+                                size={SegmentedControlSize.Small}
+                                onChange={(selectedIndex) => showView(WORKBOOK_VIEWS[selectedIndex]?.[0] ?? WorkbookViewMode.Workbook)}
+                            >
+                                {WORKBOOK_VIEWS.map(([view, label, Icon]) => (
+                                    <SegmentedControl.IconButton
+                                        key={view}
+                                        className={styles.view_switch_button}
+                                        aria-label={label}
+                                        icon={<Icon size={14} />}
+                                        selected={activeView === view}
+                                    />
+                                ))}
+                            </SegmentedControl>
+                            <IconButton size={ButtonSize.Small} variant={ButtonVariant.Invisible} className={styles.view_step}
+                                aria-label="Next view" description="Next view (→)" data-testid="workbook-view-next"
+                                disabled={viewIndex >= WORKBOOK_VIEWS.length - 1} onClick={() => stepView(1)}>
+                                <NextViewIcon size={12} />
+                            </IconButton>
+                        </div>}
+                        {!ephemeral && <div className={styles.execution_controls}>
+                            <Button ref={executeRef} size={ButtonSize.Small} variant={ButtonVariant.Invisible}
+                                leadingVisual={execution.busy ? SquareFillIcon : PaperAirplaneIcon}
+                                aria-label={execution.busy ? 'Stop workbook execution' : 'Execute All'}
+                                data-testid={execution.busy ? 'stop-execution' : 'execute-all'}
+                                // A run waits for the compute database, it reads the cached results
+                                disabled={execution.busy ? run?.phase === 'stopping' : !execution.ready || !scriptConnectionsIdle
+                                    || execution.runActive || props.workbookScripts.scriptOrder.length === 0}
+                                onClick={() => execution.busy ? execution.stop() : execution.start()}>
+                                <span className={styles.action_label}>{execution.busy ? run?.phase === 'stopping' ? 'Stopping' : 'Stop' : 'Execute All'}</span>
+                            </Button>
+                            <div className={styles.execution_status} role="status" aria-live="polite" aria-atomic="true" data-testid="execution-status" data-phase={run?.phase}
+                                title={run?.error ?? skippedTitle} aria-label={run?.error ? `${statusText}: ${run.error}` : undefined}>
+                                {run && <>
+                                    <AnchoredOverlay
+                                        open={executionDetailsOpen} onOpen={() => setExecutionDetailsOpen(true)} onClose={() => setExecutionDetailsOpen(false)}
+                                        side={AnchorSide.OutsideBottom} align={AnchorAlignment.Start} anchorOffset={4}
+                                        renderAnchor={anchorProps => <Button {...anchorProps}
+                                            size={ButtonSize.Small} variant={ButtonVariant.Invisible} aria-label="Show workbook execution details" data-testid="execution-details-toggle"
+                                            leadingVisual={<span className={styles.execution_indicator} aria-hidden="true" data-testid="execution-indicator"><StatusIndicator width="16px" height="16px" status={execution.busy
+                                                ? IndicatorStatus.Running : run.phase === 'failed' ? IndicatorStatus.Failed
+                                                    : run.phase === 'succeeded' ? IndicatorStatus.Succeeded : IndicatorStatus.Skip} /></span>}>
+                                            <span className={styles.execution_progress}>{statusText}</span>
+                                        </Button>}>
+                                        <section className={styles.execution_error_card} role="dialog" aria-label="Workbook execution details" data-testid="execution-details">
+                                            <header className={styles.execution_error_header}>
+                                                <h2 className={styles.execution_details_title}>{run.phase === 'failed' ? 'Execution failed' : 'Workbook execution'}</h2>
+                                                <IconButton size={ButtonSize.Small} variant={ButtonVariant.Invisible}
+                                                    aria-label="Close workbook execution details" data-testid="execution-details-close" onClick={() => setExecutionDetailsOpen(false)}>
+                                                    <CloseIcon size={16} />
+                                                </IconButton>
+                                            </header>
+                                            <div className={styles.execution_details_body}>
+                                                <div>{statusText}</div>
+                                                {run.activeFileName && <div>{run.activeFileName} · statement {run.activeStatementIndex}/{run.activeStatementCount}</div>}
+                                                <div>{run.completedStatements}/{run.totalStatements} statements completed</div>
+                                                {run.error && <div className={styles.execution_error_message}>{run.error}</div>}
+                                            </div>
+                                        </section>
+                                    </AnchoredOverlay>
+                                </>}
+                            </div>
+                        </div>}
+                        {/* A preview says it is read-only next to Execute All */}
+                        {preview && <CloudPreviewBadge labelClassName={styles.action_label} />}
+                        <div className={styles.header_actions}>
+                            {/* The connections of the workbook, the user sees which one is not connected */}
+                            {/* A preview shows its connections locked, the import maps them */}
+                            <dependencies.WorkbookConnectionButtons connections={barConnections} attention={connectionAttention?.active === true} />
+                            {preview && <CloudPreviewActions workbookId={props.workbookScripts.workbookId} labelClassName={styles.action_label} />}
+                            {exportButton && !ephemeral && !preview && (
+                                <Button ref={exportTriggerRef} size={ButtonSize.Small} variant={ButtonVariant.Invisible} leadingVisual={FileZipIcon} aria-label="Export .dashql" data-testid="export-workbook" aria-expanded={exportOpen === 'button'} onClick={() => {
+                                    setShareOpen(false);
+                                    setExportOpen(value => value === 'button' ? null : 'button');
+                                }}>
+                                    <span className={styles.action_label}>Export .dashql</span>
+                                </Button>
+                            )}
+                            {!ephemeral && !preview && (
+                                <AnchoredOverlay
+                                    open={menuOpen}
+                                    onOpen={() => setMenuOpen(true)}
+                                    onClose={() => setMenuOpen(false)}
+                                    side={AnchorSide.OutsideBottom}
+                                    align={AnchorAlignment.End}
+                                    anchorOffset={4}
+                                    anchorRef={menuTriggerRef}
+                                    returnFocusRef={menuTriggerRef}
+                                    renderAnchor={anchorProps => (
+                                        <IconButton {...anchorProps} ref={menuTriggerRef} size={ButtonSize.Small} variant={ButtonVariant.Invisible}
+                                            aria-label="More workbook actions" data-testid="workbook-actions">
+                                            <MoreIcon size={16} />
+                                        </IconButton>
+                                    )}
+                                >
+                                    <div className={actionMenuStyles.menu} role="dialog" aria-label="Workbook actions">
+                                        <ActionList.List aria-label="Workbook actions">
+                                            <ActionList.ListItem data-testid="workbook-action" data-action="share-url" onClick={() => {
+                                                setMenuOpen(false);
+                                                setExportOpen(null);
+                                                setShareOpen(true);
+                                            }}>
+                                                <ActionList.Leading><LinkIcon size={16} /></ActionList.Leading>
+                                                <ActionList.ItemText>Share as URL</ActionList.ItemText>
+                                            </ActionList.ListItem>
+                                            {/* The list takes elements only, the fragments wrap the optional items */}
+                                            <>{archiveExport && (
+                                                <ActionList.ListItem data-testid="workbook-action" data-action="export" onClick={() => {
+                                                    setMenuOpen(false);
+                                                    setShareOpen(false);
+                                                    setExportOpen('menu');
+                                                }}>
+                                                    <ActionList.Leading><FileZipIcon size={16} /></ActionList.Leading>
+                                                    <ActionList.ItemText>Export .dashql</ActionList.ItemText>
+                                                </ActionList.ListItem>
+                                            )}</>
+                                            <>{attachmentsVisible && (
+                                                <ActionList.ListItem data-testid="workbook-action" data-action="attach" disabled={!attachEnabled} onClick={() => {
+                                                    setMenuOpen(false);
+                                                    attachInputRef.current?.click();
+                                                }}>
+                                                    <ActionList.Leading><PaperclipIcon size={16} /></ActionList.Leading>
+                                                    <ActionList.ItemText>Attach File</ActionList.ItemText>
+                                                </ActionList.ListItem>
+                                            )}</>
+                                        </ActionList.List>
+                                    </div>
+                                </AnchoredOverlay>
+                            )}
+                            <dependencies.WorkbookURLShareOverlay workbookId={props.workbookScripts.workbookId} isOpen={shareOpen} setIsOpen={setShareOpen} anchorRef={menuTriggerRef} />
+                            {archiveExport && !ephemeral && !preview && (
+                                <dependencies.WorkbookFileSaveOverlay
+                                    isOpen={exportOpen != null}
+                                    setIsOpen={setExportOverlayOpen}
+                                    anchorRef={exportOpen === 'button' ? exportTriggerRef : menuTriggerRef}
+                                    workbookScripts={props.workbookScripts}
+                                    fileName={props.workbookScripts.name ?? props.workbookScripts.workbookMetadata.originalFileName ?? 'workbook'}
+                                />
+                            )}
+                            {attachmentsVisible && (
+                                <input ref={attachInputRef} className={styles.attach_input} type="file" multiple accept={ATTACHMENT_EXTENSION}
+                                    aria-label="Attach files to the workbook" disabled={!attachEnabled} onChange={event => {
+                                        const files = event.target.files == null ? [] : Array.from(event.target.files);
+                                        event.target.value = '';
+                                        if (files.length > 0) attachRef.current?.(files);
+                                    }} />
+                            )}
+                        </div>
+                    </>}
+                </header>
+                {navigationDrawerOpen && (
+                    <dependencies.WorkbookNavigationDrawer open onClose={() => setNavigationDrawerOpen(false)} returnFocusRef={navigationDrawerTriggerRef}>
+                        {workbench(true)}
+                    </dependencies.WorkbookNavigationDrawer>
+                )}
+            </div>
         </WorkbookReadOnlyContext.Provider>
     );
 };

@@ -10,6 +10,7 @@ import { WorkbookConnectionAttentionContext } from '../connections/workbook_conn
 import { FlavorProvider } from '../../config/flavor_provider.js';
 import { DBCOM_FLAVOR } from '../../config/flavors.js';
 import { scriptSelectionOf } from '../scripts/script_selection.js';
+import { WorkbookPromptPlacement } from './workbook_prompt.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -27,6 +28,7 @@ interface TestExecution {
 
 const state = {
     feedProps: null as PropsOf<'WorkbookFeed'> | null,
+    promptProps: null as PropsOf<'WorkbookPrompt'> | null,
     mode: WorkbookViewMode.Workbook,
     setMode: vi.fn(),
     dashboardProps: null as PropsOf<'Dashboard'> | null,
@@ -44,6 +46,10 @@ function testConnection(connectionId: string, connectionHealth: ConnectionHealth
 const dependencies: WorkbookFeedPageDependencies = {
     WorkbookFeed: (props: PropsOf<'WorkbookFeed'>) => {
         state.feedProps = props;
+        return null;
+    },
+    WorkbookPrompt: (props: PropsOf<'WorkbookPrompt'>) => {
+        state.promptProps = props;
         return null;
     },
     ScriptEditorDialog: () => null,
@@ -108,6 +114,7 @@ describe('WorkbookFeedPage', () => {
 
     beforeEach(() => {
         state.feedProps = null;
+        state.promptProps = null;
         state.dataflowProps = null;
         state.mode = WorkbookViewMode.Workbook;
         state.setMode.mockReset();
@@ -496,15 +503,52 @@ describe('WorkbookFeedPage', () => {
         expect(container.querySelector('[data-testid="dashboard"]')).not.toBeNull();
         expect(state.dashboardProps).toMatchObject({ workbookScripts, modifyWorkbookScripts });
         expect(state.feedProps?.active).toBe(false);
-        // The composer of the feed shrinks to the bar of Wobble over the dashboard
-        expect(state.feedProps?.collapsed).toBe(true);
+        // The prompt shrinks to the bar of Wobble over the dashboard
+        expect(state.promptProps?.placement).toBe(WorkbookPromptPlacement.Collapsed);
         const buttons = container.querySelectorAll<HTMLButtonElement>('[data-testid="workbook-view-switch"] button');
         expect(buttons[1]?.getAttribute('aria-current')).toBe('true');
         act(() => buttons[0]?.click());
         expect(state.setMode).toHaveBeenCalledWith(WorkbookViewMode.Workbook);
         // A connection overview hides the bar with the dashboard
         act(() => state.sidebarProps!.onOpenOverview!('database'));
-        expect(state.feedProps?.collapsed).toBe(false);
+        expect(state.promptProps?.placement).toBe(WorkbookPromptPlacement.Hidden);
+    });
+
+    it('connects the prompt over the views with the feed', () => {
+        const workbookScripts = scripts();
+        act(() => root.render(
+            <WorkbookFeedPage workbookScripts={workbookScripts} modifyWorkbookScripts={vi.fn()} connection={null} active dependencies={dependencies} />,
+        ));
+        expect(state.promptProps?.placement).toBe(WorkbookPromptPlacement.Feed);
+        expect(state.promptProps?.workbookScripts).toBe(workbookScripts);
+        // The feed keeps the height of the docked prompt free below its last script
+        act(() => state.promptProps!.onHeight!(96));
+        expect(state.feedProps?.bottomInset).toBe(96);
+        // The feed gets what the prompt asks of it and the prompt of the feed
+        const feed = { follow: vi.fn(), show: vi.fn(), followAgent: vi.fn(), appended: vi.fn() };
+        (state.feedProps!.handleRef as unknown as React.RefObject<typeof feed>).current = feed;
+        state.promptProps!.feed.follow(1, 'result');
+        state.promptProps!.feed.followAgent();
+        state.promptProps!.feed.appended();
+        expect(feed.follow).toHaveBeenCalledExactlyOnceWith(1, 'result');
+        expect(feed.followAgent).toHaveBeenCalledOnce();
+        expect(feed.appended).toHaveBeenCalledOnce();
+        expect(state.feedProps!.promptRef).toBe(state.promptProps!.handleRef);
+    });
+
+    it('shows a script that the user picks in the log of the agent in the feed', () => {
+        state.mode = WorkbookViewMode.Dashboard;
+        act(() => root.render(
+            <WorkbookFeedPage workbookScripts={scripts()} modifyWorkbookScripts={vi.fn()} connection={null} active={false} dependencies={dependencies} />,
+        ));
+        // The prompt shrunk over the dashboard keeps the space of the docked prompt in the hidden feed
+        act(() => state.promptProps!.onHeight!(40));
+        expect(state.feedProps?.bottomInset).toBe(0);
+        const show = vi.fn();
+        (state.feedProps!.handleRef as unknown as React.RefObject<{ show: typeof show }>).current = { show };
+        act(() => state.promptProps!.feed.show(1));
+        expect(state.setMode).toHaveBeenCalledWith(WorkbookViewMode.Workbook);
+        expect(show).toHaveBeenCalledExactlyOnceWith(1);
     });
 
     it('steps through the views with the arrow keys and the arrows beside the switch', () => {
@@ -567,7 +611,7 @@ describe('WorkbookFeedPage', () => {
         expect(container.querySelector('[data-testid="dataflow"]')).not.toBeNull();
         expect(state.dataflowProps).toMatchObject({ workbookScripts, modifyWorkbookScripts });
         expect(state.feedProps?.active).toBe(false);
-        expect(state.feedProps?.collapsed).toBe(true);
+        expect(state.promptProps?.placement).toBe(WorkbookPromptPlacement.Collapsed);
         const buttons = container.querySelectorAll<HTMLButtonElement>('[data-testid="workbook-view-switch"] button');
         expect([...buttons].map(viewLabel)).toEqual(['Feed', 'Dashboard', 'Dataflow']);
         expect(buttons[2]?.getAttribute('aria-current')).toBe('true');

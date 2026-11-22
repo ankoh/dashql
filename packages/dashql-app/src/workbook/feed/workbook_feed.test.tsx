@@ -20,10 +20,7 @@ import { HostProvider, type DownloadFile } from '@akohn/dashql-react/host';
 import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
 import { WorkbookFeed, type WorkbookFeedDependencies } from './workbook_feed.js';
 import { feedTopSpace } from './workbook_feed_layout.js';
-import { WorkbookComposerVariant, type WorkbookComposerProps } from './workbook_composer.js';
-import type { AgentSession, AgentSessionArgs, AgentTurn } from '../../agent/agent_session.js';
-import { ComposerMode } from '../../agent/agent_connect.js';
-import type { AgentConnect } from '../../agent/agent_session_provider.js';
+import type { WorkbookPromptFeed } from './workbook_prompt.js';
 import type { ModifyWorkbookScripts, ScriptData, ScriptDataMap, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import type { EditorView } from '@codemirror/view';
 import { ScriptReferenceKind } from '@akohn/dashql/platform/workbook/script_reference_check';
@@ -247,26 +244,16 @@ describe('V2 workbook feed rows', () => {
     });
 });
 
-describe('Workbook feed composer', () => {
+describe('Workbook feed', () => {
     /// The props of a row of the feed
     type RowProps = React.ComponentProps<WorkbookFeedDependencies['ScriptFeedRow']>;
     const feedState = {
         keyHandlers: [] as Parameters<WorkbookFeedDependencies['useKeyEvents']>[0],
-        composerProps: null as WorkbookComposerProps | null,
-        /// The props of the bar of Wobble above the composer, null while the feed shows none
-        barProps: null as React.ComponentProps<WorkbookFeedDependencies['WorkbookStatusBar']> | null,
-        /// The bar that rendered the props last
-        barOwner: null as object | null,
-        runScript: vi.fn(),
         /// The scripts of the workbook that the feed shows, and the workbook that the runtime holds after an action
         scripts: {} as ScriptDataMap,
         next: null as (WorkbookScripts & { scripts: ScriptDataMap }) | null,
-        /// The session of an agent in the terminal that the feed gets, and what the feed gave it
-        session: null as AgentSession | null,
-        connect: null as AgentConnect | null,
-        sessionArgs: null as AgentSessionArgs | null,
-        submit: vi.fn(),
-        view: null as ReturnType<typeof fakeView> | null,
+        /// What the prompt asks of the feed
+        handle: React.createRef<WorkbookPromptFeed>(),
         rowProps: null as RowProps | null,
         /// The heights of the text and the results of the scripts that the rows lay out
         rowLayouts: new Map<number, { text: number; result: number }>(),
@@ -283,33 +270,10 @@ describe('Workbook feed composer', () => {
         useStorageReader: () => storageReader,
         useAttachmentCommands: () => attachmentCommands,
         usePickScriptConnection: () => vi.fn(),
-        usePickPendingConnection: () => vi.fn(),
         useKeyEvents: handlers => { feedState.keyHandlers = handlers; },
-        useScriptRun: () => feedState.runScript,
         useWorkbookScriptMap: () => feedState.scripts,
         useWorkbookDerived: () => feedState.derived,
         useLiveScriptReader: () => (key: number) => feedState.next?.scripts[key] ?? null,
-        useComposerCore: () => ({ instance: {}, catalog: {}, tableParameters: { attach: () => false }, connectorType: ConnectorType.HYPER }) as unknown as ReturnType<WorkbookFeedDependencies['useComposerCore']>,
-        useAgentSession: (args: AgentSessionArgs) => { feedState.sessionArgs = args; return feedState.session; },
-        useAgentConnect: () => feedState.connect,
-        WorkbookComposer: (props: WorkbookComposerProps) => {
-            feedState.composerProps = props;
-            if (props.submitRef) props.submitRef.current = feedState.submit;
-            const { setView } = props;
-            // The composer reads the text, the focus and the dispatch of the view
-            React.useEffect(() => setView?.(feedState.view as unknown as EditorView | null), [setView]);
-            return <div data-testid="composer">{props.bar}</div>;
-        },
-        WorkbookStatusBar: (props) => {
-            // A new composer mounts its bar before the old one unmounts, only the latest bar clears the props
-            const owner = React.useRef({});
-            feedState.barProps = props;
-            feedState.barOwner = owner.current;
-            React.useEffect(() => () => {
-                if (feedState.barOwner === owner.current) feedState.barProps = null;
-            }, []);
-            return <div data-testid="workbook-status-bar" />;
-        },
         ScriptFeedRow: (props: RowProps) => {
             feedState.rowProps = props;
             const entry = props.entries[props.index];
@@ -348,35 +312,17 @@ describe('Workbook feed composer', () => {
     /// Every action of the feed applies
     const APPLIED = { ok: true, changed: true, error: null, id: null };
 
-    /// The workbook with a catalog for the composer, the composer drafts the next script on the pending connection
-    function fakeView(text: string, hasFocus = true) {
-        return {
-            hasFocus,
-            state: { doc: { toString: () => text, length: text.length } },
-            dispatch: vi.fn(),
-            focus: vi.fn(),
-        };
-    }
-
     let container: HTMLDivElement;
     let root: Root;
     // The attention of the connections that the tests read, its request is a mock
     let attention: Attention & { request: Mock<Attention['request']> };
     beforeEach(() => {
         feedState.keyHandlers = [];
-        feedState.composerProps = null;
-        feedState.barProps = null;
-        feedState.runScript.mockReset();
-        feedState.submit.mockReset();
-        feedState.session = null;
-        feedState.connect = null;
-        feedState.sessionArgs = null;
         feedState.rowProps = null;
         feedState.rowLayouts.clear();
         feedState.derived = null;
         feedState.scripts = {};
         feedState.next = null;
-        feedState.view = fakeView('');
         attention = { active: false, request: vi.fn<Attention['request']>() };
         container = document.createElement('div');
         document.body.appendChild(container);
@@ -389,139 +335,32 @@ describe('Workbook feed composer', () => {
         act(() => root.render(<LoggerProvider>
             <WorkbookConnectionAttentionContext.Provider value={attention}>
                 <WorkbookFeed workbookScripts={workbookScripts} modifyWorkbookScripts={modifyWorkbookScripts}
-                    conn={conn} scriptConnections={scriptConnections} active={true} dependencies={feedDependencies} />
+                    conn={conn} scriptConnections={scriptConnections} active={true} handleRef={feedState.handle} dependencies={feedDependencies} />
             </WorkbookConnectionAttentionContext.Provider>
         </LoggerProvider>));
     }
 
-    /// The session of Claude Code in the terminal with its questions
-    function agentSession(turns: AgentTurn[] = []): AgentSession {
-        return { id: 's1', harness: 'claude', folder: '/agent', connected: true, ended: false, turns, onDismiss: vi.fn(), onShowScript: vi.fn() };
-    }
-    /// A question that the agent works on
-    const question = (questionId: number, status: string | null = 'Edit scripts/1_alpha.sql'): AgentTurn => ({
-        questionId,
-        question: { question: 'how many rows', status, waiting: null, interrupted: false, note: null, steps: [] },
-        scripts: [],
-    });
-
-    it('greets an empty workbook with the hero composer', () => {
-        render(workbook(), vi.fn());
-        expect(container.querySelector('[data-testid="feed-landing-question"]')).not.toBeNull();
-        expect(feedState.composerProps?.variant).toBe(WorkbookComposerVariant.Hero);
-    });
-
-    it('docks the composer below the scripts of a workbook', () => {
-        render(workbook(['1_alpha.sql']), vi.fn());
-        expect(container.querySelector('[data-testid="feed-landing-question"]')).toBeNull();
-        expect(feedState.composerProps?.variant).toBe(WorkbookComposerVariant.Docked);
-    });
-
-    it('shrinks the composer to the bar of Wobble over another view of the workbook', () => {
-        const renderCollapsed = (collapsed: boolean) => act(() => root.render(<LoggerProvider>
-            <WorkbookConnectionAttentionContext.Provider value={attention}>
-                <WorkbookFeed workbookScripts={workbook()} modifyWorkbookScripts={vi.fn()} conn={onlineConn}
-                    active={!collapsed} collapsed={collapsed} dependencies={feedDependencies} />
-            </WorkbookConnectionAttentionContext.Provider>
+    it('shows the head of an empty workbook above the greeting of the prompt instead of the list', () => {
+        const onInsets = vi.fn();
+        feedState.scripts = {};
+        act(() => root.render(<LoggerProvider>
+            <WorkbookFeed workbookScripts={workbook()} modifyWorkbookScripts={vi.fn()} conn={onlineConn} active={true}
+                onInsets={onInsets} dependencies={feedDependencies} />
         </LoggerProvider>));
-        feedState.scripts = workbook().scripts;
-        renderCollapsed(true);
-        // The empty workbook docks its composer under the other view, Wobble stays awake in the bar
-        const body = container.querySelector<HTMLElement>('[data-testid="feed-list"]')!.parentElement!;
-        expect(body.hasAttribute('data-collapsed')).toBe(true);
-        expect(feedState.composerProps).toMatchObject({ variant: WorkbookComposerVariant.Docked, collapsed: true });
-        expect(feedState.barProps).toMatchObject({ wobble: true, paused: false });
+        expect(container.querySelector<HTMLElement>('[data-testid="feed-list"]')?.hidden).toBe(true);
+        expect(onInsets).toHaveBeenLastCalledWith(expect.objectContaining({ head: expect.any(Number) }));
 
-        renderCollapsed(false);
-        expect(body.hasAttribute('data-collapsed')).toBe(false);
-        expect(feedState.composerProps).toMatchObject({ variant: WorkbookComposerVariant.Hero, collapsed: false });
-    });
-
-    it('appends a sent draft as a script and runs it', async () => {
-        const next = workbook(['1_alpha.sql']);
-        feedState.next = next;
-        const modify = vi.fn(() => ({ ...APPLIED, id: 1 }));
-        render(workbook(), modify);
-        await act(async () => feedState.composerProps!.onSend('select 1'));
-        expect(modify).toHaveBeenCalledExactlyOnceWith({ kind: 'createScript', value: expect.objectContaining({ text: 'select 1' }) });
-        await vi.waitFor(() => expect(feedState.runScript).toHaveBeenCalledOnce());
-        expect(feedState.runScript).toHaveBeenCalledExactlyOnceWith(next.workbookId, next.scripts[1].scriptKey);
-        expect(attention.request).not.toHaveBeenCalled();
-    });
-
-    it('keeps the composer draft while the connection of the next script is not connected', () => {
-        render(workbook(), vi.fn());
-        expect(feedState.composerProps?.offlineWorkbookId).toBeNull();
-        render(workbook(), vi.fn(), { ...onlineConn, connectionHealth: ConnectionHealth.NOT_STARTED });
-        expect(feedState.composerProps?.offlineWorkbookId).toBe('workbook');
-    });
-
-    it('only creates the script without a healthy connection', async () => {
-        feedState.next = workbook(['1_alpha.sql']);
-        const modify = vi.fn(() => ({ ...APPLIED, id: 1 }));
-        render(workbook(), modify, null);
-        await act(async () => feedState.composerProps!.onSend('select 1'));
-        expect(modify).toHaveBeenCalledOnce();
-        await vi.waitFor(() => expect(attention.request).toHaveBeenCalledExactlyOnceWith());
-        expect(feedState.runScript).not.toHaveBeenCalled();
-    });
-
-    it('sends the draft on Ctrl+E only while the composer has focus', async () => {
-        feedState.view = fakeView('select 2', false);
         render(workbook(['1_alpha.sql']), vi.fn());
-        const handler = feedState.keyHandlers.find(h => h.key === 'e' && h.ctrlKey && h.capture)!;
-        const event = { preventDefault: vi.fn(), stopPropagation: vi.fn() };
-        handler.callback(event as unknown as KeyboardEvent);
-        expect(event.stopPropagation).not.toHaveBeenCalled();
-        expect(feedState.submit).not.toHaveBeenCalled();
-
-        feedState.view!.hasFocus = true;
-        await act(async () => handler.callback(event as unknown as KeyboardEvent));
-        expect(event.stopPropagation).toHaveBeenCalledOnce();
-        expect(feedState.submit).toHaveBeenCalledOnce();
-    });
-
-    it('passes the session of an agent in the terminal to the bar and closes the prompt', async () => {
-        render(workbook(), vi.fn());
-        expect(feedState.barProps).toMatchObject({ workbookId: 'workbook', variant: 'prompt', session: null });
-        expect(feedState.composerProps?.session).toBeNull();
-
-        // An empty workbook greets until the agent works on a question, then the composer docks
-        feedState.session = agentSession();
-        render(workbook(), vi.fn());
-        expect(container.querySelector('[data-testid="feed-landing-question"]')).not.toBeNull();
-        expect(feedState.composerProps?.session).toBe(feedState.session);
-        feedState.session = agentSession([question(1)]);
-        render(workbook(), vi.fn());
-        expect(container.querySelector('[data-testid="feed-landing-question"]')).toBeNull();
-        expect(feedState.composerProps?.variant).toBe(WorkbookComposerVariant.Docked);
-        expect(feedState.composerProps?.agentActivity).toBe('thinking');
-        expect(feedState.barProps?.session).toBe(feedState.session);
-    });
-
-    it('greets an empty workbook again once the prompt switches back to SQL', () => {
-        feedState.session = agentSession([question(1, null)]);
-        feedState.connect = { mode: ComposerMode.Ai } as AgentConnect;
-        render(workbook(), vi.fn());
-        expect(container.querySelector('[data-testid="feed-landing-question"]')).toBeNull();
-        expect(feedState.composerProps?.variant).toBe(WorkbookComposerVariant.Docked);
-
-        // The tab still follows the session with its questions
-        feedState.connect = { mode: ComposerMode.Sql } as AgentConnect;
-        render(workbook(), vi.fn());
-        expect(container.querySelector('[data-testid="feed-landing-question"]')).not.toBeNull();
-        expect(feedState.composerProps?.variant).toBe(WorkbookComposerVariant.Hero);
-        expect(feedState.barProps?.session).toBe(feedState.session);
+        expect(container.querySelector<HTMLElement>('[data-testid="feed-list"]')?.hidden).toBe(false);
     });
 
     it('shows a script that the user picks in the log of the agent', async () => {
         const scrollTo = vi.spyOn(Element.prototype, 'scrollTo').mockImplementation(() => { });
         const clientHeight = vi.spyOn(Element.prototype, 'clientHeight', 'get').mockReturnValue(100);
         try {
-            feedState.session = agentSession();
             render(workbook(['1_alpha.sql', '2_beta.sql', '3_gamma.sql']), vi.fn());
             scrollTo.mockClear();
-            await act(async () => feedState.sessionArgs!.showScript(3));
+            await act(async () => feedState.handle.current!.show(3));
             expect(scrollTo).toHaveBeenCalledOnce();
         } finally {
             scrollTo.mockRestore();
@@ -530,7 +369,6 @@ describe('Workbook feed composer', () => {
     });
 
     it('follows the agent to the scripts it edits and runs until the user takes over the feed', async () => {
-        feedState.session = agentSession([question(1)]);
         // A short viewport that keeps the scripts apart, scrolling moves it
         const clientHeight = vi.spyOn(Element.prototype, 'clientHeight', 'get').mockReturnValue(100);
         const scrollTo = vi.spyOn(Element.prototype, 'scrollTo').mockImplementation(function (this: Element, options?: ScrollToOptions | number) {
@@ -540,31 +378,32 @@ describe('Workbook feed composer', () => {
         try {
             render(workbook(['1_alpha.sql', '2_beta.sql', '3_gamma.sql']), vi.fn());
             scrollTo.mockClear();
+            // The agent works on a question
+            act(() => feedState.handle.current!.followAgent());
 
             // An edit below the viewport scrolls to the script, a script in view stays where it is
-            await act(async () => feedState.sessionArgs!.followScript(3, 'script'));
+            await act(async () => feedState.handle.current!.follow(3, 'script'));
             expect(scrollTo).toHaveBeenCalledOnce();
             const scrolled = (scrollTo.mock.calls[0][0] as ScrollToOptions).top!;
             expect(scrolled).toBeGreaterThan(0);
-            await act(async () => feedState.sessionArgs!.followScript(3, 'script'));
+            await act(async () => feedState.handle.current!.follow(3, 'script'));
             expect(scrollTo).toHaveBeenCalledOnce();
 
             // A run of another script while the agent still works scrolls back to it.
             // The first script scrolls to the top of the feed, with the add button above it.
-            await act(async () => feedState.sessionArgs!.followScript(1, 'result'));
+            await act(async () => feedState.handle.current!.follow(1, 'result'));
             expect(scrollTo).toHaveBeenCalledTimes(2);
             expect(scrolled).toBeGreaterThan(0);
             expect((scrollTo.mock.calls[1][0] as ScrollToOptions).top!).toBe(0);
 
             // Once the user scrolls the feed, the agent's edits stay where they are
             act(() => container.querySelector('[data-testid="feed-list"]')!.dispatchEvent(new WheelEvent('wheel', { bubbles: true })));
-            await act(async () => feedState.sessionArgs!.followScript(3, 'script'));
+            await act(async () => feedState.handle.current!.follow(3, 'script'));
             expect(scrollTo).toHaveBeenCalledTimes(2);
 
             // The next question in the terminal follows the agent again
-            feedState.session = agentSession([question(1, null), question(2)]);
-            render(workbook(['1_alpha.sql', '2_beta.sql', '3_gamma.sql']), vi.fn());
-            await act(async () => feedState.sessionArgs!.followScript(3, 'script'));
+            act(() => feedState.handle.current!.followAgent());
+            await act(async () => feedState.handle.current!.follow(3, 'script'));
             expect(scrollTo).toHaveBeenCalledTimes(3);
         } finally {
             scrollTo.mockRestore();
@@ -674,7 +513,6 @@ describe('Workbook feed composer', () => {
     });
 
     it('follows the agent to the results of a script it runs', async () => {
-        feedState.session = agentSession([question(1)]);
         feedState.rowLayouts.set(2, { text: 250, result: 150 });
         const clientHeight = vi.spyOn(Element.prototype, 'clientHeight', 'get').mockReturnValue(100);
         const scrollTo = vi.spyOn(Element.prototype, 'scrollTo').mockImplementation(function (this: Element, options?: ScrollToOptions | number) {
@@ -684,17 +522,38 @@ describe('Workbook feed composer', () => {
         const lastTop = () => (scrollTo.mock.lastCall?.[0] as ScrollToOptions | undefined)?.top;
         try {
             render(workbook(['1_alpha.sql', '2_beta.sql']), vi.fn());
+            act(() => feedState.handle.current!.followAgent());
             act(() => feedState.rowProps!.onRowHeightChange(0, 400));
             act(() => feedState.rowProps!.onRowHeightChange(1, 400));
 
             // An edit shows the text of a script taller than the viewport, below the head of the feed, the first script and
             // the gap
             const headTop = () => feedTopSpace(feedState.rowProps!.topInset);
-            await act(async () => feedState.sessionArgs!.followScript(2, 'script'));
+            await act(async () => feedState.handle.current!.follow(2, 'script'));
             await vi.waitFor(() => expect(lastTop()).toBe(headTop() + 400 + 32 - 16));
             // A run shows its results
-            await act(async () => feedState.sessionArgs!.followScript(2, 'result'));
+            await act(async () => feedState.handle.current!.follow(2, 'result'));
             await vi.waitFor(() => expect(lastTop()).toBe(headTop() + 400 + 32 + 250 - 16));
+        } finally {
+            scrollTo.mockRestore();
+            clientHeight.mockRestore();
+        }
+    });
+
+    it('scrolls to the end once the script that the prompt appends is in the feed', () => {
+        const clientHeight = vi.spyOn(Element.prototype, 'clientHeight', 'get').mockReturnValue(100);
+        const scrollTo = vi.spyOn(Element.prototype, 'scrollTo').mockImplementation(() => { });
+        try {
+            render(workbook(['1_alpha.sql', '2_beta.sql']), vi.fn());
+            for (let i = 0; i < 2; ++i) act(() => feedState.rowProps!.onRowHeightChange(i, 200));
+            scrollTo.mockClear();
+            // Another script of the workbook doesn't scroll
+            render(workbook(['1_alpha.sql', '2_beta.sql', '3_gamma.sql']), vi.fn());
+            expect(scrollTo).not.toHaveBeenCalled();
+
+            act(() => feedState.handle.current!.appended());
+            render(workbook(['1_alpha.sql', '2_beta.sql', '3_gamma.sql', '4_delta.sql']), vi.fn());
+            expect(scrollTo).toHaveBeenCalled();
         } finally {
             scrollTo.mockRestore();
             clientHeight.mockRestore();

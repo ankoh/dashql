@@ -1,0 +1,124 @@
+/* The prompt floats over the views of the workbook, only the composer, the bar and the greeting take clicks */
+.prompt_layer {
+    /* The composer narrows and shrinks when another view shows, like its prompt (workbook_composer.module.css) */
+    --prompt_morph: 200ms cubic-bezier(0.2, 0, 0, 1);
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    display: grid;
+    /* The docked composer at the bottom of the views */
+    grid-template-rows: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr);
+    pointer-events: none;
+}
+
+/* An overview or another page shows, the prompt keeps its draft */
+.prompt_layer[data-placement='hidden'] {
+    visibility: hidden;
+}
+
+/* The head of the feed, the greeting, the hero composer, then a spacer that keeps the prompt slightly above center */
+.prompt_layer[data-landing] {
+    grid-template-rows: var(--prompt_feed_head, 0px) minmax(0, 1fr) auto minmax(0, 1.3fr);
+}
+
+/* The greeting stands on the prompt */
+.landing_top {
+    grid-row: 2;
+    align-self: end;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.landing_header {
+    width: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    padding: 32px 16px 24px 16px;
+    transition: opacity 120ms ease-out;
+    pointer-events: auto;
+}
+
+.landing_wobble {
+    width: 72px;
+    height: 72px;
+    flex-shrink: 0;
+    color: var(--agent_fg);
+}
+
+/* The question of the agent, right of Wobble */
+.landing_question {
+    margin: 0;
+    color: var(--agent_fg);
+    font-size: 20px;
+    font-weight: 400;
+    font-style: italic;
+    line-height: 1.3;
+    text-wrap: balance;
+}
+
+/* The docked composer floats over the bottom of the feed, its shadow sets it apart from the cards of the scripts. The
+   feed reserves the same space below its last script. */
+.prompt_section {
+    grid-area: 2 / 1;
+    align-self: end;
+    /* Let clicks through the gutters, only the composer itself is interactive */
+    pointer-events: none;
+}
+
+/* The composer stands out of the scripts of the feed by the same width left and right. The scripts stop before the
+   scrollbar of the list, which the composer section spans. */
+.prompt_body {
+    --prompt_overhang: 8px;
+    padding:
+        0
+        calc(var(--page_gutter) + var(--prompt_scrollbar_inset, 0px) + var(--prompt_scrollbar_gutter, 0px) - var(--prompt_overhang))
+        16px
+        calc(var(--page_gutter) - var(--prompt_overhang));
+    pointer-events: auto;
+    transition: padding var(--prompt_morph);
+}
+
+/* The composer narrows to the bar of the other views of the workbook and widens to the prompt of the feed */
+.prompt_body > * {
+    max-width: 100%;
+    margin-inline: auto;
+    transition: max-width var(--prompt_morph);
+}
+
+/* Another view shows, the composer stays visible over it as the bar of Wobble, as wide as the bar of the dataflow and
+   the dashboard was */
+.prompt_layer[data-placement='collapsed'] .prompt_body {
+    padding: 0 var(--page_gutter) 16px var(--page_gutter);
+}
+
+.prompt_layer[data-placement='collapsed'] .prompt_body > * {
+    max-width: 720px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .prompt_body,
+    .prompt_body > * {
+        transition: none;
+    }
+}
+
+.prompt_layer[data-landing] .prompt_section {
+    grid-area: 3 / 1;
+    align-self: auto;
+    justify-self: center;
+    width: min(720px, 100%);
+    box-sizing: border-box;
+    padding-top: 0;
+}
+
+.prompt_layer[data-landing] .prompt_body {
+    padding: 0 16px;
+}

@@ -5,8 +5,6 @@ import * as styles from './workbook_feed.module.css';
 
 import type { EditorView } from '@codemirror/view';
 import { useAppConfig } from '../../config/app_config.js';
-import { AgentGreeting } from '../../agent/agent_greeting.js';
-import type { WobbleTuning } from '../../agent/wobble.js';
 
 import { List } from 'react-window';
 import {
@@ -25,14 +23,13 @@ import {
     verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 
-import { ConnectionHealth, ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
+import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { useWorkbookReadOnly } from '../workbook_read_only.js';
 import { deleteScript, useScriptSelection, useSelectedScriptRef } from '../scripts/script_selection.js';
-import { getScriptRefs, type ModifyWorkbookScripts, type ScriptData, type WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
+import { getScriptRefs, type ModifyWorkbookScripts, type WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { createScriptAction, useLiveScriptReader } from '../scripts/script_creation.js';
-import { useCatalog, useOptionalRuntime, useRuntime, useScriptRun, useWorkbookDerived, useWorkbookExecution, useWorkbookScriptMap } from '@akohn/dashql-react/hooks';
+import { useOptionalRuntime, useRuntime, useWorkbookDerived, useWorkbookScriptMap } from '@akohn/dashql-react/hooks';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
-import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { renameAttachment } from '../attachment_rename.js';
 import { scriptDisplayName } from '@akohn/dashql/platform/workbook/script_types';
 import { insertMentionAtCursor, useLastFocusedEditor } from '../editor/editor_focus.js';
@@ -41,7 +38,6 @@ import { renameScript, type RenameDraftReferences } from '../scripts/script_rena
 import { type KeyEventHandler, useKeyEvents } from '@akohn/dashql-react/dom/key_events';
 import { useStorageReader } from '../../storage/storage_provider.js';
 import { quoteIdentifier as quoteSqlIdentifier } from '@akohn/dashql/platform/utils/sql_quote';
-import type { WorkbookTableParameters } from './workbook_composer.js';
 import { useLogger } from '../../host/logger_provider.js';
 import { FEED_GAP, revealScrollOffset, useWorkbookFeedLayout } from './workbook_feed_layout.js';
 import { ScriptFeedRow, type ScriptFeedRowProps } from './workbook_feed_row.js';
@@ -55,27 +51,16 @@ import { StageLabel, StageSection } from '../stage_section.js';
 import { WorkbookInputOverlay, type WorkbookInputOverlayTarget } from '../inputs/workbook_input_overlay.js';
 import type { ScriptReferenceReport } from '@akohn/dashql/platform/workbook/script_reference_check';
 import { VerticalScrollShadows } from '@akohn/dashql-react/components/vertical_scroll_shadows';
-import { useObservedSize } from '@akohn/dashql-react/components/size_observer';
 import {
-    ScriptConnectionPicker,
     scriptConnectionView,
-    usePickPendingConnection,
     usePickScriptConnection,
     type ScriptConnectionView,
 } from '../scripts/script_connection_picker.js';
 import { useConnectionLabeler } from '../connections/connection_labels.js';
-import { WorkbookConnectionAttentionContext } from '../connections/workbook_connection_attention.js';
-import { WorkbookComposer, WorkbookComposerVariant } from './workbook_composer.js';
-import { agentActivity, type AgentFollowTarget } from '../../agent/agent_session.js';
-import { useAgentConnect, useAgentSession } from '../../agent/agent_session_provider.js';
-import { AgentConnectionsPicker } from '../../agent/agent_connections_picker.js';
-import { ComposerMode } from '../../agent/agent_connect.js';
-import { agentLiveStatuses, diffAgentQuestions } from '../../agent/agent_workbook_status.js';
-import { WorkbookStatusBar, WorkbookStatusBarVariant } from '../status/workbook_status_bar.js';
-import { useLiveWorkbookStatuses, useReportWorkbookOutcomes, useWorkbookOutcomeTransitions } from '../status/workbook_status_store.js';
-import { useWorkbookStatusSources } from '../status/use_workbook_status_sources.js';
+import type { AgentFollowTarget } from '../../agent/agent_session.js';
+import { useLiveWorkbookStatuses, useReportWorkbookOutcomes } from '../status/workbook_status_store.js';
 import { WorkbookStatusSource, WorkbookStatusTone, type WorkbookStatus } from '../status/workbook_status.js';
-import { useCloudPublishStatus } from '../../cloud/cloud_publish_status.js';
+import type { WorkbookPromptFeed, WorkbookPromptHandle } from './workbook_prompt.js';
 
 export interface WorkbookFeedProps {
     workbookScripts: WorkbookScripts;
@@ -95,10 +80,25 @@ export interface WorkbookFeedProps {
     /// Receives the function that attaches files to the workbook, for the files dropped on the page or picked in its
     /// menu. Null while the workbook takes no attachments.
     attachRef?: React.RefObject<((files: File[]) => void) | null>;
-    /// Another view of the workbook shows over the hidden feed. The composer stays visible over it, shrunk to the bar
-    /// of Wobble, and grows into the prompt again when the feed shows.
-    collapsed?: boolean;
+    /// The height of the prompt docked over the bottom of the feed, the last script scrolls clear of it
+    bottomInset?: number;
+    /// The prompt of the workbook, the feed mentions its scripts and attachments in its question
+    promptRef?: React.RefObject<WorkbookPromptHandle | null>;
+    /// Receives what the prompt asks of the feed: follow the agent, show a script, scroll to an appended script
+    handleRef?: React.Ref<WorkbookPromptFeed>;
+    /// The parts of the feed that the prompt lines up with
+    onInsets?: (insets: WorkbookFeedInsets) => void;
     dependencies?: WorkbookFeedDependencies;
+}
+
+/// The parts of the feed that the prompt over it lines up with
+export interface WorkbookFeedInsets {
+    /// The height of the head above an empty feed, the greeting stands below it
+    head: number;
+    /// The space between the scripts and the scrollbar of the list
+    scrollbarInset: number;
+    /// The width of the scrollbar of the list
+    scrollbarGutter: number;
 }
 
 /// A script that the feed scrolls into view once its workbook shows
@@ -112,17 +112,10 @@ export interface WorkbookFeedDependencies {
     /// The commands of the runtime that attach files and list the attachments again
     useAttachmentCommands: () => Pick<Runtime, 'attachFiles' | 'refreshAttachments'>;
     usePickScriptConnection: typeof usePickScriptConnection;
-    usePickPendingConnection: typeof usePickPendingConnection;
     useKeyEvents: typeof useKeyEvents;
-    useScriptRun: typeof useScriptRun;
     useWorkbookScriptMap: typeof useWorkbookScriptMap;
     useWorkbookDerived: typeof useWorkbookDerived;
     useLiveScriptReader: typeof useLiveScriptReader;
-    useComposerCore: typeof useComposerCore;
-    useAgentSession: typeof useAgentSession;
-    useAgentConnect: typeof useAgentConnect;
-    WorkbookComposer: typeof WorkbookComposer;
-    WorkbookStatusBar: typeof WorkbookStatusBar;
     ScriptFeedRow: typeof ScriptFeedRow;
 }
 
@@ -130,17 +123,10 @@ const DEFAULT_DEPENDENCIES: WorkbookFeedDependencies = {
     useStorageReader,
     useAttachmentCommands: () => useRuntime(),
     usePickScriptConnection,
-    usePickPendingConnection,
     useKeyEvents,
-    useScriptRun,
     useWorkbookScriptMap,
     useWorkbookDerived,
     useLiveScriptReader,
-    useComposerCore,
-    useAgentSession,
-    useAgentConnect,
-    WorkbookComposer,
-    WorkbookStatusBar,
     ScriptFeedRow,
 };
 
@@ -176,35 +162,6 @@ function feedRowKey(index: number, rowProps: ScriptFeedRowProps): React.Key {
 function estimateFeedEntryHeight(scriptText: string) {
     return FEED_ENTRY_CHROME_HEIGHT + Math.max(1, scriptText.split('\n').length) * FEED_EDITOR_LINE_HEIGHT;
 }
-
-/// What the composer drafts with: the core, the catalog of the connection of the next script, the table parameters of
-/// the workbook and the connector of the connection. Null until the runtime has its core.
-export interface ComposerCore {
-    instance: dashql.DashQL;
-    catalog: dashql.DashQLCatalog;
-    tableParameters: WorkbookTableParameters;
-    connectorType: ConnectorType | null;
-}
-
-/// The core of the composer of a workbook on the connection of its next script
-export function useComposerCore(workbookId: string, connectionId: string | null): ComposerCore | null {
-    const runtime = useOptionalRuntime();
-    const instance = runtime?.core ?? null;
-    const catalog = useCatalog(connectionId);
-    return React.useMemo(() => {
-        if (runtime == null || instance == null || connectionId == null) return null;
-        if (catalog == null) return null;
-        return {
-            instance,
-            catalog,
-            tableParameters: { attach: session => runtime.attachTableParameters(workbookId, session) },
-            connectorType: runtime.connection(connectionId)?.connectorType as ConnectorType | undefined ?? null,
-        };
-    }, [runtime, instance, workbookId, connectionId, catalog]);
-}
-
-/// Wobble moves more and faster on the empty workbook than by default, it is the only thing moving on the page
-const LANDING_WOBBLE_TUNING: Partial<WobbleTuning> = { wobble: 0.03, wobbleSpeed: 2 };
 
 export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;
@@ -247,9 +204,6 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         [props.conn],
     );
     const scriptConnections = useScriptConnectionViews(props.scriptConnections ?? defaultConnections);
-    // The composer drafts the next script, on the connection that the script will run on
-    const composerConnectionId = props.workbookScripts.nextScriptConnectionId ?? null;
-    const composerCore = dependencies.useComposerCore(props.workbookScripts.workbookId, composerConnectionId);
     const storageReader = dependencies.useStorageReader();
     const attachmentCommands = dependencies.useAttachmentCommands();
     const workbookId = props.workbookScripts.workbookId;
@@ -298,19 +252,6 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     }], [attachingFiles]);
     useLiveWorkbookStatuses(workbookId, 'files', filesLive);
 
-    // The runs, the connections and the publishes of the workbook tell its status, the bars of Wobble show it in
-    // every view. The feed stays mounted while the other views show.
-    const execution = useWorkbookExecution(workbookId);
-    const publishStatus = useCloudPublishStatus(workbookId);
-    const statusLabeler = useConnectionLabeler();
-    useWorkbookStatusSources({
-        workbookScripts: props.workbookScripts,
-        scripts,
-        connections: props.scriptConnections ?? defaultConnections,
-        label: statusLabeler,
-        execution: execution.state,
-        publish: publishStatus,
-    });
     // The page takes the files in, dropped on it or picked in its menu
     const attachRef = props.attachRef;
     React.useEffect(() => {
@@ -327,8 +268,6 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     const latest = React.useRef({ workbookScripts: props.workbookScripts, scripts, scriptConnections });
     latest.current = { workbookScripts: props.workbookScripts, scripts, scriptConnections };
     const pickScriptConnection = dependencies.usePickScriptConnection(props.workbookScripts.workbookId, modifyWorkbookScripts);
-    // New scripts, and the draft of the composer, use the default connection of the workbook
-    const pickPendingConnection = dependencies.usePickPendingConnection(modifyWorkbookScripts);
 
     const pendingCreatedScriptKeyRef = React.useRef<number | null>(null);
     const editorViewsRef = React.useRef(new Map<number, EditorView>());
@@ -341,11 +280,6 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     const handleFocus = React.useCallback((fileName: string) => {
         selection.selectFile(latest.current.workbookScripts, fileName);
     }, [selection]);
-
-    // A script runs while its own connection is online
-    const isScriptOnline = (scriptData: ScriptData) =>
-        latest.current.scriptConnections.get(scriptData.connectionId)?.connectionHealth === ConnectionHealth.ONLINE;
-    const runScript = dependencies.useScriptRun();
 
     const handleDelete = React.useCallback((fileName: string) => {
         deleteScript(selection, latest.current.workbookScripts, modifyWorkbookScripts, fileName);
@@ -425,30 +359,27 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         });
     }, []);
 
-    const [composerView, setComposerView] = React.useState<EditorView | null>(null);
-    const composerSubmitRef = React.useRef<(() => void) | null>(null);
-    // The mention button of a script references it in the question of the composer
-    const composerTargetScriptRef = React.useRef<((name: string) => void) | null>(null);
     // A mention of a script goes to the cursor of the script editor that had the focus last, other than the editor of
-    // the script itself, or into the composer
+    // the script itself, or into the question of the prompt
     const lastFocusedEditor = useLastFocusedEditor();
+    const runtime = useOptionalRuntime();
+    const promptRef = props.promptRef;
     // The mention of a table parameter, a script that is not `fileName` reads it
     const handleMention = React.useCallback((name: string, fileName: string | null) => {
         const view = lastFocusedEditor();
-        if (view != null && view !== composerView) {
+        if (view != null && view !== promptRef?.current?.view) {
             const scriptKey = view.state.field(DashQLProcessorPlugin, false)?.scriptKey;
             const target = scriptKey != null ? latest.current.scripts[scriptKey] : undefined;
             if (target != null && target.fileName !== fileName) {
-                insertMentionAtCursor(view, `:${composerCore?.instance.quoteIdentifier(name) ?? quoteSqlIdentifier(name)}`);
+                insertMentionAtCursor(view, `:${runtime?.core?.quoteIdentifier(name) ?? quoteSqlIdentifier(name)}`);
                 return;
             }
         }
-        composerTargetScriptRef.current?.(name);
-    }, [lastFocusedEditor, composerView, composerCore]);
+        promptRef?.current?.mention(name);
+    }, [lastFocusedEditor, promptRef, runtime]);
     const handleTargetScript = React.useCallback((fileName: string) => handleMention(scriptDisplayName(fileName), fileName), [handleMention]);
     const handleMentionAttachment = React.useCallback((name: string) => handleMention(name, null), [handleMention]);
     // An attachment renames like a script, the scripts and the draft that read it follow
-    const runtime = useOptionalRuntime();
     const handleRenameAttachment = React.useCallback((fileName: string, name: string) => {
         if (runtime == null) return;
         void renameAttachment(runtime, latest.current.workbookScripts, fileName, name, composerRenameScriptRef.current)
@@ -515,32 +446,13 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
                 }
             },
         },
-        {
-            // Ctrl+E executes the selected script globally. While the composer has focus, it sends the
-            // draft instead of running a script the user isn't looking at.
-            key: 'e',
-            ctrlKey: true,
-            capture: true,
-            callback: (event: KeyboardEvent) => {
-                if (!feedActive || composerView == null || !composerView.hasFocus) {
-                    return;
-                }
-                event.preventDefault();
-                event.stopPropagation();
-                composerSubmitRef.current?.();
-            },
-        },
-    ], [feedActive, composerView, handleAcceptDiff, handleRejectDiff, selection]);
+    ], [feedActive, handleAcceptDiff, handleRejectDiff, selection]);
     dependencies.useKeyEvents(keyHandlers);
 
-    // The docked prompt floats over the bottom of the feed, the last script scrolls clear of it
-    const composerSectionRef = React.useRef<HTMLDivElement>(null);
-    const composerSectionSize = useObservedSize(composerSectionRef);
-    // The feed keeps the space of the prompt while the composer is shrunk over another view, the hidden rows stay
-    const measuredBottomInset = entries.length === 0 ? 0 : Math.ceil(composerSectionSize?.height ?? 0);
-    const expandedBottomInset = React.useRef(measuredBottomInset);
-    if (!props.collapsed) expandedBottomInset.current = measuredBottomInset;
-    const bottomInset = props.collapsed ? expandedBottomInset.current : measuredBottomInset;
+    // The docked prompt floats over the bottom of the feed, the last script scrolls clear of it. An empty feed shows
+    // its head above the greeting of the prompt.
+    const landing = entries.length === 0;
+    const bottomInset = landing ? 0 : props.bottomInset ?? 0;
     // The head stands above the first script and scrolls with the scripts, the first row leaves its height free. The
     // list mounts again for another workbook, with a new head: the observer follows the element of the callback ref.
     const [inputsElement, inputsRef] = React.useState<HTMLDivElement | null>(null);
@@ -556,6 +468,22 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     const topInset = entries.length === 0 ? 0 : headHeight;
     const feedLayout = useWorkbookFeedLayout(entries, bottomInset, topInset);
     const { listRef: feedListRef, getEntrySpan } = feedLayout;
+    // The head above an empty feed, the prompt places the greeting below it
+    const [landingHeadElement, landingHeadRef] = React.useState<HTMLDivElement | null>(null);
+    const [landingHeadHeight, setLandingHeadHeight] = React.useState(0);
+    React.useLayoutEffect(() => {
+        if (landingHeadElement == null) return;
+        const measure = () => setLandingHeadHeight(Math.ceil(landingHeadElement.getBoundingClientRect().height));
+        measure();
+        const observer = new ResizeObserver(measure);
+        observer.observe(landingHeadElement);
+        return () => observer.disconnect();
+    }, [landingHeadElement]);
+    const { onInsets } = props;
+    const insetHead = landing ? landingHeadHeight : 0;
+    React.useEffect(() => {
+        onInsets?.({ head: insetHead, scrollbarInset: feedLayout.listScrollbarInset, scrollbarGutter: feedLayout.listScrollbarGutter });
+    }, [onInsets, insetHead, feedLayout.listScrollbarInset, feedLayout.listScrollbarGutter]);
 
     const handleEditorView = React.useCallback((scriptKey: number, view: EditorView) => {
         editorViewsRef.current.set(scriptKey, view);
@@ -564,30 +492,8 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         requestAnimationFrame(() => view.focus());
     }, []);
 
-    // The composer appends its draft as a new script and runs it right away.
-    // The composer keeps a SQL draft while its connection is not connected, a script that the agent writes
-    // on a connection that is not connected is only created and the connection asks for attention.
-    const connectionAttention = React.useContext(WorkbookConnectionAttentionContext);
+    // The prompt appends its draft as a new script, the feed scrolls to the end once the script is in it
     const pendingScrollToEndRef = React.useRef(false);
-    const appendScript = React.useCallback(async (text: string) => {
-        const prev = latest.current.workbookScripts;
-        // The outcome names the created script by its key, it is selected
-        const outcome = modifyWorkbookScripts(createScriptAction(prev, { text }));
-        if (!outcome.ok || typeof outcome.id !== 'number') return null;
-        pendingScrollToEndRef.current = true;
-        selection.select(prev.workbookId, outcome.id);
-        const scriptData = readScript(outcome.id);
-        return scriptData != null ? { workbookId: prev.workbookId, scriptData } : null;
-    }, [modifyWorkbookScripts, selection, readScript]);
-    const runAppendedScript = React.useCallback((workbookId: string, scriptData: ScriptData) => {
-        // The agent may write the script on another connection than the one of the composer
-        if (!isScriptOnline(scriptData)) {
-            connectionAttention?.request();
-            return;
-        }
-        if (runScript == null) return;
-        void runScript(workbookId, scriptData.scriptKey);
-    }, [connectionAttention, runScript]);
 
     // Scroll a script into view.
     // A script with results that does not fit shows its results, once its row is mounted and the results are measured.
@@ -694,37 +600,25 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         }
     }, [modifyWorkbookScripts, selection]);
 
-    // The agent of a session in the terminal answers questions in the scripts of the workbook, the page watches
+    // The agent of a session in the terminal answers questions in the scripts of the workbook, the prompt follows the
+    // session and the feed shows the scripts of the agent
     const handleShowAgentScript = React.useCallback((scriptKey: number) => {
         const scriptData = latest.current.scripts[scriptKey];
         if (scriptData == null) return;
         handleFocus(scriptData.fileName);
         revealScript(scriptKey, 'script');
     }, [handleFocus, revealScript]);
-    const session = dependencies.useAgentSession({
-        workbookScripts: props.workbookScripts,
-        followScript: followAgentScript,
-        showScript: handleShowAgentScript,
-    });
-    const agentConnect = dependencies.useAgentConnect();
-    // Every new question of the session follows the agent again
-    const latestQuestionId = session != null && session.turns.length > 0 ? session.turns[session.turns.length - 1].questionId : null;
-    React.useEffect(() => {
-        if (latestQuestionId != null) followAgentRef.current = true;
-    }, [latestQuestionId]);
-    // The agent tells what it works on, its questions go to the log
-    const agentLive = React.useMemo(() => agentLiveStatuses(session, Date.now()), [session]);
-    useLiveWorkbookStatuses(workbookId, 'agent', agentLive);
-    useWorkbookOutcomeTransitions(workbookId, session, (prev, next) => diffAgentQuestions(prev, next, Date.now()));
-
-    const handleComposerSend = React.useCallback((text: string) => {
+    React.useImperativeHandle(props.handleRef, () => ({
+        follow: followAgentScript,
+        show: handleShowAgentScript,
+        // Every new question of the session follows the agent again
+        followAgent: () => { followAgentRef.current = true; },
         // The appended script takes over the feed
-        stopFollowingAgent();
-        logger.debug('Running the composer draft', { characters: String(text.length) }, LOG_CTX);
-        void appendScript(text).then(appended => {
-            if (appended != null) runAppendedScript(appended.workbookId, appended.scriptData);
-        });
-    }, [appendScript, runAppendedScript, stopFollowingAgent, logger]);
+        appended: () => {
+            stopFollowingAgent();
+            pendingScrollToEndRef.current = true;
+        },
+    }), [followAgentScript, handleShowAgentScript, stopFollowingAgent]);
     React.useEffect(() => {
         if (!pendingScrollToEndRef.current || entries.length === 0) return;
         pendingScrollToEndRef.current = false;
@@ -776,48 +670,6 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     }), [workbookId, entries, scriptReferences, rowsActive, scriptConnections, storageReader, selectedFileName, scriptDebugMode, formattingDebugMode, keywordCase, collapsedResults, fold, feedCommands, handleParameterClick, topInset, feedLayout.rowHeights.setRowHeight]);
 
     const getScrollElement = React.useCallback(() => feedLayout.listRef.current?.element ?? null, [feedLayout.listRef]);
-    // The composer drafts on the connection of the next script, against its catalog and the table parameters of the
-    // workbook
-    const composerConnectorType = (composerConnectionId == null ? null : scriptConnections.get(composerConnectionId)?.connectorInfo.connectorType)
-        ?? composerCore?.connectorType ?? ConnectorType.HYPER;
-
-    // An empty workbook greets the user with the composer in place of the feed, until the agent of a session works on a
-    // question. The tab follows its session after a switch back to SQL, the questions of the agent dock the composer
-    // in AI only. The composer stays at the same position in the tree so it keeps focus when the view docks it.
-    const agentTurns = agentConnect?.mode === ComposerMode.Sql ? 0 : session?.turns.length ?? 0;
-    // The composer shrunk over another view is docked
-    const landing = !props.collapsed && entries.length === 0 && agentTurns === 0;
-    // While the user writes, Wobble watches the caret of the composer
-    const composerCaret = React.useCallback(() => {
-        const head = composerView?.state?.selection?.main.head;
-        if (composerView == null || head == null || !composerView.hasFocus) return null;
-        const coords = composerView.coordsAtPos(head);
-        return coords == null ? null : { x: coords.left, y: (coords.top + coords.bottom) / 2 };
-    }, [composerView]);
-    // Wobble gets excited about every keystroke in the composer, a ref keeps the feed from rendering per key
-    const lastComposerInput = React.useRef<number | null>(null);
-    React.useEffect(() => {
-        const dom = composerView?.contentDOM;
-        if (dom == null || typeof dom.addEventListener !== 'function') return;
-        const onKeyDown = (event: KeyboardEvent) => {
-            if (event.key.length === 1 || event.key === 'Backspace' || event.key === 'Delete' || event.key === 'Enter') {
-                lastComposerInput.current = performance.now();
-            }
-        };
-        dom.addEventListener('keydown', onKeyDown);
-        return () => dom.removeEventListener('keydown', onKeyDown);
-    }, [composerView]);
-    const composerLastInput = React.useCallback(() => lastComposerInput.current, []);
-    const landingWobble = React.useMemo(() => ({
-        className: styles.feed_landing_wobble,
-        'data-testid': 'feed-landing-wobble',
-        label: 'DashQL agent',
-        paused: !props.active,
-        tuning: LANDING_WOBBLE_TUNING,
-        gaze: { pointer: true, target: composerCaret },
-        lastInput: composerLastInput,
-    }), [props.active, composerCaret, composerLastInput]);
-    const dockGaze = React.useMemo(() => ({ target: composerCaret }), [composerCaret]);
 
     // The head of the feed, the attachments and the parameters: above the greeting on the landing view, otherwise above
     // the first script, where they scroll away with the scripts
@@ -847,42 +699,16 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
             {scriptsLabel && <StageLabel label="Scripts" className={styles.feed_scripts_label} />}
         </>
     );
-    // The bar of Wobble on the prompt: the status of the workbook, the agent and the log. On the landing view the
-    // greeting is Wobble, the bar leaves it out. A read-only workbook has no prompt, the bar stands alone.
-    const statusBar = (variant: WorkbookStatusBarVariant) => (
-        <dependencies.WorkbookStatusBar
-            workbookId={workbookId}
-            variant={variant}
-            session={readOnly ? null : session}
-            wobble={!landing}
-            gaze={dockGaze}
-            lastInput={composerLastInput}
-            paused={!props.active && !props.collapsed}
-        />
-    );
     return (
         <div
             ref={bodyRef}
             className={styles.feed_body_container}
             data-landing={landing ? '' : undefined}
-            data-collapsed={props.collapsed ? '' : undefined}
             style={{
                 '--feed-scrollbar-inset': `${feedLayout.listScrollbarInset}px`,
-                '--feed-scrollbar-gutter': `${feedLayout.listScrollbarGutter}px`,
-                '--feed-bottom-inset': `${bottomInset}px`,
             } as React.CSSProperties}
         >
-            {landing && <div className={`${styles.feed_head} ${styles.feed_top_strip}`}>{feedHead(false)}</div>}
-            {landing && (
-                <div className={styles.feed_landing_top}>
-                    <div className={styles.feed_landing_header}>
-                        <AgentGreeting
-                            wobble={landingWobble}
-                            questionClassName={styles.feed_landing_question}
-                            questionTestId="feed-landing-question" />
-                    </div>
-                </div>
-            )}
+            {landing && <div className={`${styles.feed_head} ${styles.feed_top_strip}`} ref={landingHeadRef}>{feedHead(false)}</div>}
             {/* Hidden rather than unmounted on the landing view, the size observer binds to the element once */}
             <div className={styles.feed_list_container} ref={feedLayout.listContainerRef} hidden={landing} data-testid="feed-list"
                 onWheel={stopFollowingAgent} onTouchMove={stopFollowingAgent} onPointerDown={stopFollowingAgent} onKeyDown={stopFollowingAgent}>
@@ -912,7 +738,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
                             rowProps={rowProps}
                         >
                             <div className={styles.feed_inputs} ref={inputsRef}>
-                                <div className={`${styles.feed_head} ${styles.feed_inputs_body}`}>{!landing && entries.length > 0 && feedHead(true)}</div>
+                                <div className={`${styles.feed_head} ${styles.feed_inputs_body}`}>{!landing && feedHead(true)}</div>
                             </div>
                         </List>
                     </SortableContext>
@@ -933,52 +759,6 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
                 getScrollElement={getScrollElement}
                 onClose={closeInputOverlay}
             />
-            {readOnly && !landing && (
-                <div className={styles.feed_composer_section} ref={composerSectionRef}>
-                    <div className={styles.feed_composer_body}>{statusBar(WorkbookStatusBarVariant.Standalone)}</div>
-                </div>
-            )}
-            {!readOnly && <div className={styles.feed_composer_section} ref={composerSectionRef}>
-                <div className={styles.feed_composer_body}>
-                    {/* Without a composer the other views still show the bar */}
-                    {props.collapsed && (composerConnectionId == null || composerCore == null) && statusBar(WorkbookStatusBarVariant.Standalone)}
-                    {composerConnectionId != null && composerCore != null && <dependencies.WorkbookComposer
-                        key={props.workbookScripts.workbookId}
-                        instance={composerCore.instance}
-                        catalog={composerCore.catalog}
-                        variant={landing ? WorkbookComposerVariant.Hero : WorkbookComposerVariant.Docked}
-                        collapsed={props.collapsed}
-                        keywordCase={keywordCase}
-                        agentActivity={session != null ? agentActivity(session).kind : 'idle'}
-                        session={session}
-                        connect={agentConnect}
-                        onSend={handleComposerSend}
-                        bar={statusBar(WorkbookStatusBarVariant.Prompt)}
-                        setView={setComposerView}
-                        submitRef={composerSubmitRef}
-                        scriptNames={scriptNames}
-                        targetScriptRef={composerTargetScriptRef}
-                        renameScriptRef={composerRenameScriptRef}
-                        tableParameters={composerCore.tableParameters}
-                        snippetConnector={composerConnectorType}
-                        offlineWorkbookId={scriptConnections.get(composerConnectionId)?.connectionHealth === ConnectionHealth.ONLINE
-                            ? null : props.workbookScripts.workbookId}
-                        connectionPicker={(
-                            <ScriptConnectionPicker
-                                workbookId={props.workbookScripts.workbookId}
-                                scriptName="new"
-                                connection={scriptConnections.get(composerConnectionId) ?? null}
-                                disabled={false}
-                                onPick={pickPendingConnection}
-                                testId="composer-connection-picker"
-                            />
-                        )}
-                        agentConnectionsPicker={agentConnect == null ? undefined : (
-                            <AgentConnectionsPicker workbookId={props.workbookScripts.workbookId} connect={agentConnect} />
-                        )}
-                    />}
-                </div>
-            </div>}
         </div>
     );
 };

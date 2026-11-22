@@ -2,8 +2,6 @@
 
 
 .feed_body_container {
-    /* The composer narrows and shrinks when another view shows, like its prompt (workbook_composer.module.css) */
-    --feed_composer_morph: 200ms cubic-bezier(0.2, 0, 0, 1);
     position: relative;
     height: 100%;
     width: 100%;
@@ -11,16 +9,10 @@
     background: var(--stage_background);
     overflow: hidden;
     display: grid;
-    /* The bar of the inputs on the landing view, then the feed. The inputs of a feed with scripts scroll with the
-       scripts. The docked composer floats over the bottom edge of the feed. */
+    /* The head of an empty feed, then the feed. The head of a feed with scripts scrolls with the scripts. The prompt
+       of the page floats over the bottom edge of the feed (workbook_prompt.module.css). */
     grid-template-rows: auto minmax(0, 1fr);
     grid-template-columns: minmax(0, 1fr);
-}
-
-/* The bar of the inputs, the landing header, the hero composer, then a spacer that keeps the prompt slightly above
-   center */
-.feed_body_container[data-landing] {
-    grid-template-rows: auto minmax(0, 1fr) auto minmax(0, 1.3fr);
 }
 
 /* The head of the feed, the sections of the parameters and the attachments under their labels. It keeps the gutter of
@@ -37,7 +29,7 @@
     display: none;
 }
 
-/* On the landing view the head stands above the greeting */
+/* The head of an empty feed stands above the greeting of the prompt */
 .feed_top_strip {
     grid-row: 1;
     padding-top: 16px;
@@ -69,112 +61,6 @@
 /* The label of the scripts is no wider than its text, the add button above the first script stays clickable */
 .feed_scripts_label {
     align-self: flex-start;
-}
-
-/* The greeting stands on the prompt */
-.feed_landing_top {
-    grid-row: 2;
-    align-self: end;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.feed_landing_header {
-    width: 100%;
-    box-sizing: border-box;
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: center;
-    gap: 24px;
-    padding: 32px 16px 24px 16px;
-    transition: opacity 120ms ease-out;
-}
-
-.feed_landing_wobble {
-    width: 72px;
-    height: 72px;
-    flex-shrink: 0;
-    color: var(--agent_fg);
-}
-
-/* The question of the agent, right of Wobble */
-.feed_landing_question {
-    margin: 0;
-    color: var(--agent_fg);
-    font-size: 20px;
-    font-weight: 400;
-    font-style: italic;
-    line-height: 1.3;
-    text-wrap: balance;
-}
-
-/* The docked composer floats over the bottom of the feed, its shadow sets it apart from the cards of the scripts. The
-   feed reserves the same space below its last script (--feed-bottom-inset). */
-.feed_composer_section {
-    /* An explicit column, the auto placement would put it next to the feed in the same row */
-    grid-area: 2 / 1;
-    align-self: end;
-    z-index: 1;
-    /* Let clicks through the gutters, only the composer itself is interactive */
-    pointer-events: none;
-}
-
-/* The composer stands out of the scripts of the feed by the same width left and right. The scripts stop before the
-   scrollbar of the list, which the composer section spans. */
-.feed_composer_body {
-    --feed_composer_overhang: 8px;
-    padding:
-        0
-        calc(var(--page_gutter) + var(--feed-scrollbar-inset, 0px) + var(--feed-scrollbar-gutter, 0px) - var(--feed_composer_overhang))
-        16px
-        calc(var(--page_gutter) - var(--feed_composer_overhang));
-    pointer-events: auto;
-    transition: padding var(--feed_composer_morph);
-}
-
-/* The composer narrows to the bar of the other views of the workbook and widens to the prompt of the feed */
-.feed_composer_body > * {
-    max-width: 100%;
-    margin-inline: auto;
-    transition: max-width var(--feed_composer_morph);
-}
-
-/* Another view shows over the hidden feed, the composer stays visible over it as the bar of Wobble, as wide as the
-   bar of the dataflow and the dashboard was */
-.feed_body_container[data-collapsed] .feed_composer_section {
-    visibility: visible;
-}
-
-.feed_body_container[data-collapsed] .feed_composer_body {
-    padding: 0 var(--page_gutter) 16px var(--page_gutter);
-}
-
-.feed_body_container[data-collapsed] .feed_composer_body > * {
-    max-width: 720px;
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .feed_composer_body,
-    .feed_composer_body > * {
-        transition: none;
-    }
-}
-
-.feed_body_container[data-landing] .feed_composer_section {
-    grid-area: 3 / 1;
-    align-self: auto;
-    justify-self: center;
-    width: min(720px, 100%);
-    box-sizing: border-box;
-    padding-top: 0;
-}
-
-.feed_body_container[data-landing] .feed_composer_body {
-    padding: 0 16px;
 }
 
 /* The attachments in their section, the cards scroll sideways */

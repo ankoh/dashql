@@ -266,10 +266,16 @@ stays the one place the page talks to.
   covers the end of the feed, where the scripts of the agent appear while it works. A turn can be dismissed, not
   stopped.
 - **The feed** follows the agent to the scripts it edits and runs until the user scrolls, clicks or types in it, also
-  to a new script once the tab created it.
+  to a new script once the tab created it. A script that the user picks in the log shows in the feed, also from the
+  dashboard or the dataflow.
+- **The prompt** (`workbook/feed/workbook_prompt.tsx`) belongs to the page of the workbook, not to one of its views: it
+  floats over the feed, the dashboard and the dataflow, holds the composer, the bar of Wobble and the greeting, and
+  follows the session of the agent. The feed is one of the three views; the prompt asks it through a handle to follow
+  the agent, to show a script and to scroll to an appended script, the feed asks the prompt to mention a script.
 - **The composer** takes SQL in SQL and nothing in AI, see [Connecting from the page](#connecting-from-the-page).
-  Over the dashboard and the dataflow it shrinks into the bar of Wobble, one element with the prompt of the feed: the
-  prompt collapses with its draft and the inputs of the draft, and grows out of the bar when the feed shows again.
+  It docks below the scripts of the feed and shrinks into the bar of Wobble over the dashboard and the dataflow, one
+  element with the prompt: it collapses with its draft and the inputs of the draft, and grows out of the bar when the
+  feed shows again.
 - **Wobble** stays: the greeting of an empty workbook and the face of the bar.
 
 ## Tests
