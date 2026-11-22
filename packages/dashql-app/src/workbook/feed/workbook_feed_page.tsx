@@ -45,6 +45,8 @@ import { useRenderSchedule } from '@akohn/dashql-react/components/deferred';
 
 const FileZipIcon = SymbolIcon('file_zip_16');
 const MoreIcon = SymbolIcon('kebab_horizontal');
+const PreviousViewIcon = SymbolIcon('chevron_left_12');
+const NextViewIcon = SymbolIcon('chevron_right_12');
 const CloseIcon = SymbolIcon('x_16');
 // The views of the workbook view switch, octicons
 const FeedViewIcon = SymbolIcon('rows_16');
@@ -56,6 +58,17 @@ const WORKBOOK_VIEWS: [WorkbookViewMode, string, typeof FeedViewIcon][] = [
     [WorkbookViewMode.Dashboard, 'Dashboard', DashboardViewIcon],
     [WorkbookViewMode.Dataflow, 'Dataflow', DataflowViewIcon],
 ];
+/// The elements that move with the arrow keys themselves: text, editors, composite widgets and dialogs. Elsewhere the
+/// arrow keys switch the views of the workbook.
+const ARROW_KEY_TARGETS = [
+    'input', 'textarea', 'select', '[contenteditable]:not([contenteditable="false"])',
+    '[role="grid"]', '[role="treegrid"]', '[role="listbox"]', '[role="menu"]', '[role="menubar"]', '[role="radiogroup"]',
+    '[role="slider"]', '[role="tablist"]', '[role="tree"]', '[role="dialog"]',
+].join(', ');
+
+function usesArrowKeys(target: EventTarget | null): boolean {
+    return target instanceof Element && target.closest(ARROW_KEY_TARGETS) != null;
+}
 /// The width of the workbench sidebar in pixels, the handle next to it resizes it
 const SIDEBAR_DEFAULT_WIDTH = 276;
 const SIDEBAR_MIN_WIDTH = 200;
@@ -238,6 +251,32 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
         attach(files);
         return true;
     } : null);
+    // The views in the order of the switch, the arrow keys and the arrows beside the switch step through them
+    const viewIndex = WORKBOOK_VIEWS.findIndex(([view]) => view === activeView);
+    const showView = React.useCallback((view: WorkbookViewMode) => {
+        setOverviewConnectionId(null);
+        // The editor dialog belongs to the dataflow view
+        setDetails(null);
+        setMode(view);
+    }, [setMode, setOverviewConnectionId]);
+    const stepView = React.useCallback((step: number) => {
+        const next = WORKBOOK_VIEWS[viewIndex + step];
+        if (next != null) showView(next[0]);
+    }, [viewIndex, showView]);
+    // A preview shows its scripts only, it runs nothing until it is imported
+    const viewSwitchShown = !ephemeral && !preview && !overviewActive;
+    React.useEffect(() => {
+        if (!pageShown || !viewSwitchShown) return;
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+            const step = event.key === 'ArrowLeft' ? -1 : event.key === 'ArrowRight' ? 1 : 0;
+            if (step === 0 || usesArrowKeys(event.target)) return;
+            event.preventDefault();
+            stepView(step);
+        };
+        document.addEventListener('keydown', onKeyDown);
+        return () => document.removeEventListener('keydown', onKeyDown);
+    }, [pageShown, viewSwitchShown, stepView]);
     // A script opened from the sidebar shows in the feed
     const [revealRequest, setRevealRequest] = React.useState<WorkbookFeedRevealRequest | null>(null);
     const openScript = React.useCallback((workbookId: string, fileName: string) => {
@@ -348,28 +387,35 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
                 </IconButton>
                 {/* A connection overview is not part of the workbook, its controls are hidden */}
                 {!overviewActive && <>
-                    {/* A preview shows its scripts only, it runs nothing until it is imported */}
-                    {!ephemeral && !preview && <SegmentedControl
-                        aria-label="Workbook view"
-                        data-testid="workbook-view-switch"
-                        size={SegmentedControlSize.Small}
-                        onChange={(selectedIndex) => {
-                            setOverviewConnectionId(null);
-                            // The editor dialog belongs to the dataflow view
-                            setDetails(null);
-                            setMode(WORKBOOK_VIEWS[selectedIndex]?.[0] ?? WorkbookViewMode.Workbook);
-                        }}
-                    >
-                        {WORKBOOK_VIEWS.map(([view, label, Icon]) => (
-                            <SegmentedControl.IconButton
-                                key={view}
-                                className={styles.view_switch_button}
-                                aria-label={label}
-                                icon={<Icon size={14} />}
-                                selected={activeView === view}
-                            />
-                        ))}
-                    </SegmentedControl>}
+                    {/* The arrows beside the switch tell that the arrow keys step through the views */}
+                    {viewSwitchShown && <div className={styles.view_switch}>
+                        <IconButton size={ButtonSize.Small} variant={ButtonVariant.Invisible} className={styles.view_step}
+                            aria-label="Previous view" description="Previous view (←)" data-testid="workbook-view-previous"
+                            disabled={viewIndex <= 0} onClick={() => stepView(-1)}>
+                            <PreviousViewIcon size={12} />
+                        </IconButton>
+                        <SegmentedControl
+                            aria-label="Workbook view"
+                            data-testid="workbook-view-switch"
+                            size={SegmentedControlSize.Small}
+                            onChange={(selectedIndex) => showView(WORKBOOK_VIEWS[selectedIndex]?.[0] ?? WorkbookViewMode.Workbook)}
+                        >
+                            {WORKBOOK_VIEWS.map(([view, label, Icon]) => (
+                                <SegmentedControl.IconButton
+                                    key={view}
+                                    className={styles.view_switch_button}
+                                    aria-label={label}
+                                    icon={<Icon size={14} />}
+                                    selected={activeView === view}
+                                />
+                            ))}
+                        </SegmentedControl>
+                        <IconButton size={ButtonSize.Small} variant={ButtonVariant.Invisible} className={styles.view_step}
+                            aria-label="Next view" description="Next view (→)" data-testid="workbook-view-next"
+                            disabled={viewIndex >= WORKBOOK_VIEWS.length - 1} onClick={() => stepView(1)}>
+                            <NextViewIcon size={12} />
+                        </IconButton>
+                    </div>}
                     {!ephemeral && <div className={styles.execution_controls}>
                         <Button ref={executeRef} size={ButtonSize.Small} variant={ButtonVariant.Invisible}
                             leadingVisual={execution.busy ? SquareFillIcon : PaperAirplaneIcon}

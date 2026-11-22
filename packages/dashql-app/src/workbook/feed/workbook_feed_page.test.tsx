@@ -507,6 +507,44 @@ describe('WorkbookFeedPage', () => {
         expect(state.feedProps?.collapsed).toBe(false);
     });
 
+    it('steps through the views with the arrow keys and the arrows beside the switch', () => {
+        state.mode = WorkbookViewMode.Dashboard;
+        act(() => root.render(
+            <WorkbookFeedPage workbookScripts={scripts()} modifyWorkbookScripts={vi.fn()} connection={null} active={false} dependencies={dependencies} />,
+        ));
+        const press = (key: string, target: EventTarget = document.body) => act(() => {
+            target.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+        });
+        press('ArrowRight');
+        expect(state.setMode).toHaveBeenLastCalledWith(WorkbookViewMode.Dataflow);
+        press('ArrowLeft');
+        expect(state.setMode).toHaveBeenLastCalledWith(WorkbookViewMode.Workbook);
+
+        // Text and a key with a modifier keep their arrow keys
+        state.setMode.mockClear();
+        const input = document.createElement('input');
+        container.appendChild(input);
+        press('ArrowLeft', input);
+        act(() => { document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', altKey: true, bubbles: true })); });
+        expect(state.setMode).not.toHaveBeenCalled();
+
+        const button = (id: string) => container.querySelector<HTMLButtonElement>(`[data-testid="${id}"]`)!;
+        act(() => button('workbook-view-previous').click());
+        expect(state.setMode).toHaveBeenLastCalledWith(WorkbookViewMode.Workbook);
+        act(() => button('workbook-view-next').click());
+        expect(state.setMode).toHaveBeenLastCalledWith(WorkbookViewMode.Dataflow);
+
+        // The feed is the first view, nothing is left of it
+        state.mode = WorkbookViewMode.Workbook;
+        act(() => root.render(
+            <WorkbookFeedPage workbookScripts={scripts()} modifyWorkbookScripts={vi.fn()} connection={null} active dependencies={dependencies} />,
+        ));
+        expect(button('workbook-view-previous').disabled).toBe(true);
+        state.setMode.mockClear();
+        press('ArrowLeft');
+        expect(state.setMode).not.toHaveBeenCalled();
+    });
+
     it('offers the Dataflow view after the Dashboard', () => {
         act(() => root.render(
             <WorkbookFeedPage workbookScripts={scripts()} modifyWorkbookScripts={vi.fn()} connection={null} active dependencies={dependencies} />,
