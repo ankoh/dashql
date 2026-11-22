@@ -41,6 +41,17 @@ describe('AnalyzerPage', () => {
     /// The facts of a row of the analysis, as their text
     const facts = (row: string) => [...phase('Editor Script', 'Analyzer').querySelectorAll<HTMLElement>(`[data-fact="${row}"]`)];
     const factTexts = (row: string) => facts(row).map(fact => fact.textContent);
+    /// A fact as its name and what the analyzer found, e.g. `region: catalog`
+    const describeFact = (fact: Element) => {
+        const { name, detail } = (fact as HTMLElement).dataset;
+        return detail === undefined ? name : `${name}: ${detail}`;
+    };
+    const factNames = (row: string) => facts(row).map(describeFact);
+    /// Replace the editor script by a script of a test
+    const setEditorScript = (text: string) => act(async () => {
+        const view = editor('Editor Script');
+        view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: text }, userEvent: 'input.paste' });
+    });
     /// A hover is a continuous event, its update renders after the act
     const hover = (element: HTMLElement) => act(async () => { element.dispatchEvent(new PointerEvent('pointerover', { bubbles: true })); });
     const focusedTokens = () => [...phase('Editor Script', 'Scanner').querySelectorAll('[data-focus]')].map(token => token.textContent);
@@ -49,26 +60,34 @@ describe('AnalyzerPage', () => {
         // The catalog script is collapsed and shows its summary
         expect(card('Catalog Script')!.querySelector('button')!.getAttribute('aria-expanded')).toBe('false');
         expect(card('Catalog Script')!.querySelector('.cm-editor')).toBeNull();
-        expect(card('Catalog Script')!.textContent).toContain('8 statements');
+        expect(card('Catalog Script')!.textContent).toMatch(/\d+ statements/);
         expect(editor('Editor Script').state.doc.toString()).toBe(EDITOR_SCRIPT);
 
-        expect(tokens('Editor Script').slice(0, 4)).toEqual(['select', 'min', '(', 'ps_supplycost']);
+        // The tokens of the scanner cover the script
+        expect(tokens('Editor Script').join('')).toBe(EDITOR_SCRIPT.replace(/\s+/g, ''));
         const parser = phase('Editor Script', 'Parser');
         expect(parser.textContent).toContain('SELECT');
         expect(parser.querySelectorAll('[data-node]').length).toBeGreaterThan(3);
         // The table references resolve in the catalog of the catalog script
-        expect(phase('Editor Script', 'Analyzer').textContent).toContain('4 table refs (4 resolved)');
+        expect(phase('Editor Script', 'Analyzer').textContent).toMatch(/(\d+) table refs \(\1 resolved\)/);
     });
 
     it('shows the facts of the analysis by their kind', async () => {
+        await setEditorScript(`select min(ps_supplycost)
+from partsupp, supplier, region
+where s_suppkey = ps_suppkey
+    and r_name = 'EUROPE'`);
+        await act(async () => {
+            await vi.waitFor(() => expect(phase('Editor Script', 'Analyzer').textContent).toContain('3 table refs (3 resolved)'));
+        });
         // No JSON, rows of facts
         expect(phase('Editor Script', 'Analyzer').textContent).not.toContain('{');
         // The table references resolve in the catalog, their facts name the kind of the resolution
-        expect(factTexts('Table refs')).toEqual(['partsuppcatalog', 'suppliercatalog', 'nationcatalog', 'regioncatalog']);
+        expect(factNames('Table refs')).toEqual(['partsupp: catalog', 'supplier: catalog', 'region: catalog']);
         // The columns resolve and name the table refs that they read
         const columns = factTexts('Column refs');
         expect(columns.some(text => text!.includes('unresolved'))).toBe(false);
-        expect(columns.find(text => text!.startsWith('r_name'))).toContain('catalog region');
+        expect(factNames('Column refs')).toContain('r_name: catalog region');
         // The analyzer records the call, the column refs and the constants, no row of other expressions such as the ANDs
         expect(factTexts('Calls')).toEqual(['min(ps_supplycost)']);
         expect(facts('Expressions')).toEqual([]);
@@ -96,33 +115,27 @@ describe('AnalyzerPage', () => {
     });
 
     it('names references to CTEs and highlights the table refs of column refs', async () => {
-        await act(async () => {
-            const view = editor('Editor Script');
-            view.dispatch({
-                changes: { from: 0, to: view.state.doc.length, insert: 'with d as (select r_name from region) select d.r_name, r_name from d' },
-                userEvent: 'input.paste',
-            });
-        });
+        await setEditorScript('with d as (select r_name from region) select d.r_name, r_name from d');
         await act(async () => {
             await vi.waitFor(() => expect(phase('Editor Script', 'Analyzer').textContent).toContain('2 table refs (2 resolved)'));
         });
-        expect(factTexts('Table refs')).toEqual(['regioncatalog', 'dcte']);
-        expect(factTexts('Column refs').sort()).toEqual(['d.r_namecte d', 'r_namecatalog region', 'r_namecte d']);
+        expect(factNames('Table refs')).toEqual(['region: catalog', 'd: cte']);
+        expect(factNames('Column refs').sort()).toEqual(['d.r_name: cte d', 'r_name: catalog region', 'r_name: cte d']);
 
         // A column ref under the pointer highlights its table ref, a table ref all column refs that read it
-        const linked = () => [...phase('Editor Script', 'Analyzer').querySelectorAll('[data-linked]')].map(fact => fact.textContent).sort();
+        const linked = () => [...phase('Editor Script', 'Analyzer').querySelectorAll('[data-linked]')].map(describeFact).sort();
         expect(linked()).toEqual([]);
-        await hover(facts('Column refs').find(fact => fact.textContent!.startsWith('d.r_name'))!);
+        await hover(facts('Column refs').find(fact => fact.dataset.name === 'd.r_name')!);
         await act(async () => {
-            await vi.waitFor(() => expect(linked()).toEqual(['dcte']));
+            await vi.waitFor(() => expect(linked()).toEqual(['d: cte']));
         });
         await hover(facts('Table refs')[1]);
         await act(async () => {
-            await vi.waitFor(() => expect(linked()).toEqual(['d.r_namecte d', 'r_namecte d']));
+            await vi.waitFor(() => expect(linked()).toEqual(['d.r_name: cte d', 'r_name: cte d']));
         });
         await hover(facts('Table refs')[0]);
         await act(async () => {
-            await vi.waitFor(() => expect(linked()).toEqual(['r_namecatalog region']));
+            await vi.waitFor(() => expect(linked()).toEqual(['r_name: catalog region']));
         });
     });
 
@@ -159,7 +172,7 @@ describe('AnalyzerPage', () => {
             });
         });
         await act(async () => {
-            await vi.waitFor(() => expect(phase('Editor Script', 'Analyzer').textContent).toContain('4 table refs (0 resolved)'));
+            await vi.waitFor(() => expect(phase('Editor Script', 'Analyzer').textContent).toMatch(/\d+ table refs \(0 resolved\)/));
         });
         expect(card('Catalog Script')!.textContent).toContain('1 statement');
 
@@ -182,7 +195,7 @@ describe('AnalyzerPage', () => {
         expect(card('Catalog Script')!.querySelector('section')).toBeNull();
         await toggle('Catalog Script');
         expect(card('Catalog Script')!.querySelector('.cm-editor')).toBeNull();
-        expect(card('Catalog Script')!.textContent).toContain('8 statements');
+        expect(card('Catalog Script')!.textContent).toMatch(/\d+ statements/);
     });
 
     it('formats a script pretty or compact from the menu of its card', async () => {

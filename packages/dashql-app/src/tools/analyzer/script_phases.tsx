@@ -316,6 +316,8 @@ function FactRow(props: { title: string; facts: AnalysisFact[]; focus: number | 
                             )}
                             data-ast-node={fact.node ?? undefined}
                             data-fact={props.title}
+                            data-name={text}
+                            data-detail={fact.detail}
                             data-focus={focused || undefined}
                             data-linked={linked || undefined}
                         >
