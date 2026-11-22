@@ -1,5 +1,5 @@
 // hyperdb-edge for the agent integration tests: the command as an agent calls it, and its skill
-import { chmodSync, copyFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { chmodSync, copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -32,8 +32,9 @@ export function installEdgeSkill(skillsDir) {
     copyFileSync(SKILL, join(dir, 'SKILL.md'));
 }
 
-/// The start of the description of the skill, to find it in what the harness sends the model
-export const SKILL_DESCRIPTION = 'Run SQL on Hyper, the SQL engine of hyperdb-wasm';
+/// The start of the description of the skill in its frontmatter, its first two clauses, to find it in what the harness
+/// sends the model
+export const SKILL_DESCRIPTION = readFileSync(SKILL, 'utf8').match(/^description: (.*)$/m)[1].split(',').slice(0, 2).join(',');
 
 /// A compiled module of hyperdb-edge, e.g. node/session.js or adapters/anthropic.js
 export function importEdge(module) {

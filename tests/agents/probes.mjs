@@ -54,6 +54,13 @@ export async function followDashQLSession(port, token) {
     return state;
 }
 
+/// The turns of the state of a session with only the fields that `expected` names, the steps as their label and whether
+/// they failed: compare it with `expected`, fields that the session model adds don't matter
+export function pickTurns(turns, expected) {
+    return turns.map((turn, i) =>
+        Object.fromEntries(Object.keys(expected[i] ?? {}).map(key => [key, key === 'steps' ? turn.steps.map(({ label, failed }) => ({ label, failed })) : turn[key]])));
+}
+
 /// A port that is free right now
 export async function freePort() {
     const server = net.createServer();

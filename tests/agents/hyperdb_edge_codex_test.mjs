@@ -75,7 +75,7 @@ test('run keeps a database in the workspace across calls, without network', asyn
         ],
     });
     assert.equal(results[0].exitCode, 0, results[0].output);
-    assert.equal(results[0].output, 'CREATE\n\nINSERT 2');
+    assert.match(results[0].output, /INSERT 2/);
     assert.equal(results[1].exitCode, 0, results[1].output);
     assert.deepEqual(JSON.parse(results[1].output).rows, [['north', 10], ['south', 20]]);
     assert.ok(existsSync(join(work, 'sales.hyper')));

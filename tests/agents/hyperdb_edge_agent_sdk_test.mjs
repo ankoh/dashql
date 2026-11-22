@@ -91,8 +91,9 @@ test('the calls of one turn run in the order of the model', async () => {
     ]);
     const [turn] = results;
     assert.deepEqual(turn.map(result => result.tool_use_id), ['toolu_a', 'toolu_b', 'toolu_c']);
-    assert.equal(toolResultText(turn[0]), 'CREATE\n\nINSERT 2');
-    assert.match(toolResultText(turn[1]), /^n\n-\n2\n\(1 row\)$/);
+    // The layout of the results is the test of format.ts
+    assert.match(toolResultText(turn[0]), /INSERT 2/);
+    assert.match(toolResultText(turn[1]), /\b2\b/);
     assert.match(toolResultText(turn[2]), /^# files/);
     for (const result of turn) assert.notEqual(result.is_error, true, toolResultText(result));
 });

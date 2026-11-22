@@ -71,9 +71,10 @@ test('the calls of one turn run one after another in the order of the model', as
     ]);
     const [turn] = results;
     assert.deepEqual(turn.map(result => result.tool_use_id), ['toolu_a', 'toolu_b', 'toolu_c']);
-    assert.equal(toolResultText(turn[0]), 'CREATE\n\nINSERT 2');
+    // The layout of the results is the test of format.ts
+    assert.match(toolResultText(turn[0]), /INSERT 2/);
     // The select ran after the insert of the call before it
-    assert.match(toolResultText(turn[1]), /^n\n-\n2\n\(1 row\)$/);
+    assert.match(toolResultText(turn[1]), /\b2\b/);
     assert.match(toolResultText(turn[2]), /^# files/);
     for (const result of turn) assert.notEqual(result.is_error, true, toolResultText(result));
 });
@@ -92,7 +93,8 @@ test('a failing statement is an error result, and the next turn goes on', async 
 
 test('max_rows cuts the rows of a result', async () => {
     const { results } = await runTurns([[toolUse('run_sql', { sql: 'select g from generate_series(1, 50) as s(g) order by g', max_rows: 3 })]]);
-    assert.equal(toolResultText(results[0][0]), 'g\n-\n1\n2\n3\n(50 rows, 3 shown)');
+    assert.match(toolResultText(results[0][0]), /\(50 rows, 3 shown\)/);
+    assert.doesNotMatch(toolResultText(results[0][0]), /\b4\b/);
 });
 
 test('an unknown topic is an error result', async () => {
