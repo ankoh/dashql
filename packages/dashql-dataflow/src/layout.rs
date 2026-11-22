@@ -687,8 +687,11 @@ mod tests {
         let config = DataflowLayoutConfig::default();
         let g =
             box_geometry(&DataflowLayoutBox { statements: 2, chart_statement: Some(0), ..Default::default() }, &config);
-        assert_eq!(g.rows, vec![40.0, 40.0 + 32.0 + 8.0 + 200.0]);
-        assert_eq!(g.height, 40.0 + 32.0 + 8.0 + 200.0 + 32.0 + 8.0);
+        // The rows start below the header, the chart sits below its statement
+        let first = config.header_height + config.row_padding;
+        let second = first + config.row_height + config.row_padding + config.chart_height;
+        assert_eq!(g.rows, vec![first, second]);
+        assert_eq!(g.height, second + config.row_height + config.row_padding);
         // A box with a chart is wider than a box without one
         assert_eq!(g.width, config.chart_box_width);
         assert_eq!(
@@ -705,11 +708,12 @@ mod tests {
         };
         let sized = box_geometry(&sized, &config);
         assert_eq!(sized.width, 400.0);
-        assert_eq!(sized.rows, vec![40.0, 40.0 + 32.0 + 8.0 + 96.0]);
+        assert_eq!(sized.rows, vec![first, first + config.row_height + config.row_padding + 96.0]);
         let collapsed =
             box_geometry(&DataflowLayoutBox { statements: 2, collapsed: true, ..Default::default() }, &config);
-        assert_eq!(collapsed.height, 32.0);
-        assert_eq!(collapsed.port(1, &config), 16.0);
+        // A collapsed box is its header, its edges meet the middle of it
+        assert_eq!(collapsed.height, config.header_height);
+        assert_eq!(collapsed.port(1, &config), config.header_height / 2.0);
     }
 
     #[test]
@@ -748,13 +752,16 @@ mod tests {
     #[test]
     fn boxes_without_edges_go_into_rows_below() {
         let config = DataflowLayoutConfig::default();
-        let boxes = [data(1), data(1), data(1), data(1), data(1), data(1), data(1)];
+        // Two connected boxes, then one full row of boxes without edges and one more box
+        let per_row = config.isolated_per_row;
+        let boxes: Vec<_> = (0..2 + per_row + 1).map(|_| data(1)).collect();
         let g = compute_dataflow_layout(&boxes, &[edge(0, 0, 1, 0)], &config);
-        let bottom = g[0].y.max(g[1].y) + 80.0;
+        let bottom = (g[0].y + g[0].height).max(g[1].y + g[1].height);
         assert!(g[2..].iter().all(|b| b.y > bottom));
-        assert_eq!(g[2].y, g[5].y);
-        assert!(g[6].y > g[2].y);
-        assert_eq!(g[6].x, g[2].x);
+        let (first, last, next) = (&g[2], &g[2 + per_row - 1], &g[2 + per_row]);
+        assert_eq!(first.y, last.y);
+        assert!(next.y > first.y);
+        assert_eq!(next.x, first.x);
     }
 
     #[test]
