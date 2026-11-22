@@ -35,8 +35,8 @@ describe('DashQL TPCH Parsing', () => {
         const parserResult = script.getParsed();
         const parsedScript = parserResult.read();
         expect(parsedScript.statementsLength()).toEqual(8);
-        for (let i = 0; i < 8; ++i) {
-            expect(parsedScript.statements(0)!.statementType()).toEqual(dashql.buffers.parser.StatementType.CREATE_TABLE);
+        for (let i = 0; i < parsedScript.statementsLength(); ++i) {
+            expect(parsedScript.statements(i)!.statementType()).toEqual(dashql.buffers.parser.StatementType.CREATE_TABLE);
         }
         expect(parsedScript.parserErrorsLength()).toEqual(0);
 
