@@ -1,0 +1,222 @@
+.card {
+    border: 1px solid var(--color_border);
+    border-radius: var(--border_radius);
+    background-color: var(--color_bg_card);
+    overflow: hidden;
+}
+
+.header {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    column-gap: 8px;
+    height: 36px;
+    padding: 0 12px;
+    border-bottom: 1px solid var(--color_border);
+}
+
+.icon {
+    color: var(--color_fg_muted);
+    flex-shrink: 0;
+}
+
+.name {
+    font-family: var(--font_family_mono);
+    font-size: 13px;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.shape {
+    font-size: 12px;
+    color: var(--color_fg_muted);
+    white-space: nowrap;
+}
+
+.size {
+    margin-left: auto;
+    font-family: var(--font_family_mono);
+    font-size: 12px;
+    color: var(--color_fg_muted);
+    white-space: nowrap;
+}
+
+.show_table {
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+.body {
+    display: flex;
+    flex-direction: column;
+    row-gap: 12px;
+    padding: 12px 16px 16px;
+    font-size: 12px;
+}
+
+.waiting {
+    padding: 16px 0;
+    color: var(--color_fg_muted);
+}
+
+.converting {
+    display: flex;
+    flex-direction: column;
+    row-gap: 8px;
+    padding: 4px 0;
+    color: var(--color_fg_muted);
+}
+
+.summary {
+    color: var(--color_fg_muted);
+}
+
+.section_note {
+    font-weight: 400;
+}
+
+.error {
+    color: var(--color_danger_fg);
+    font-family: var(--font_family_mono);
+    white-space: pre-wrap;
+}
+
+/* The facts of the format as a line of chips */
+.facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.facts li {
+    padding: 2px 8px;
+    border: 1px solid var(--color_border);
+    border-radius: 10px;
+    font-family: var(--font_family_mono);
+    color: var(--color_fg_muted);
+}
+
+.problem {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    column-gap: 8px;
+    padding: 8px 10px;
+    border: 1px solid var(--color_border);
+    border-radius: var(--border_radius);
+    border-color: var(--color_attention_border);
+    color: var(--color_attention_fg);
+}
+
+.problem svg {
+    flex-shrink: 0;
+}
+
+.section_title {
+    font-weight: 600;
+    color: var(--color_fg_muted);
+}
+
+.schema,
+.preview {
+    border-collapse: collapse;
+    font-family: var(--font_family_mono);
+}
+
+.schema th,
+.preview th {
+    text-align: left;
+    font-weight: 600;
+    color: var(--color_fg_muted);
+    border-bottom: 1px solid var(--color_border);
+    white-space: nowrap;
+}
+
+.schema th,
+.schema td {
+    padding: 3px 16px 3px 0;
+}
+
+.schema tbody tr + tr td {
+    border-top: 1px solid var(--color_border_muted);
+}
+
+.column_name {
+    font-weight: 600;
+}
+
+.column_type {
+    color: var(--color_accent_fg);
+    white-space: nowrap;
+}
+
+.column_nulls {
+    text-align: right;
+    color: var(--color_fg_muted);
+}
+
+.column_note {
+    color: var(--color_fg_muted);
+}
+
+/* The preview scrolls in both directions, its header stays */
+.preview_scroll {
+    max-height: 320px;
+    overflow: auto;
+    border: 1px solid var(--color_border);
+    border-radius: var(--border_radius);
+}
+
+.preview th {
+    position: sticky;
+    top: 0;
+    background-color: var(--color_bg_card);
+}
+
+.preview th,
+.preview td {
+    padding: 3px 10px;
+    max-width: 320px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.preview tbody tr + tr td {
+    border-top: 1px solid var(--color_border_muted);
+}
+
+.preview_type {
+    font-weight: 400;
+    font-size: 11px;
+    color: var(--color_accent_fg);
+}
+
+.null {
+    color: var(--color_fg_muted);
+    font-style: italic;
+}
+
+.actions {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    column-gap: 12px;
+}
+
+.actions .error {
+    margin-right: auto;
+}
+
+/* The table of Hyper in a fixed height */
+.table {
+    height: 480px;
+    display: grid;
+    grid-template-rows: 100%;
+}

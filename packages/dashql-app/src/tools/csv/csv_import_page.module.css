@@ -1,0 +1,86 @@
+/* The body doesn't scroll, the page does and grows with its cards */
+.page {
+    height: 100%;
+    overflow-y: auto;
+    background-color: var(--color_bg);
+    color: var(--color_fg);
+}
+
+.page_dragging {
+    outline: 2px dashed var(--color_accent_fg);
+    outline-offset: -8px;
+}
+
+.content {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 32px 16px;
+    display: flex;
+    flex-direction: column;
+    row-gap: 16px;
+}
+
+.header {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    column-gap: 16px;
+}
+
+.title {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.subtitle {
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--color_fg_muted);
+}
+
+.input {
+    display: none;
+}
+
+.dropzone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    row-gap: 12px;
+    min-height: 240px;
+
+    border: 1px dashed var(--color_border);
+    border-radius: var(--border_radius);
+    background-color: var(--color_bg_card);
+    color: var(--color_fg_muted);
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.dropzone:hover {
+    border-color: var(--color_accent_fg);
+    color: var(--color_fg);
+}
+
+.loading {
+    padding: 32px 16px;
+    font-size: 12px;
+    color: var(--color_fg_muted);
+    text-align: center;
+}
+
+/* The table of the full table card fills the body of the card, or takes the height of its rows */
+.details_table {
+    height: 100%;
+    display: grid;
+    grid-template-rows: 100%;
+}
+
+.details_table_fit_height {
+    height: auto;
+    grid-template-rows: auto;
+}

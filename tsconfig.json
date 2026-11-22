@@ -49,6 +49,12 @@
             "@akohn/dashql-flatbuffers/*": [
                 "./bazel-bin/packages/dashql/dependencies/dashql-flatbuffers/*"
             ],
+            "@akohn/csv-sniffer": [
+                "./packages/csv-sniffer/ts/index.ts"
+            ],
+            "@akohn/csv-sniffer/wasm": [
+                "./bazel-bin/packages/csv-sniffer/wasm/csv_sniffer.wasm"
+            ],
             "@akohn/hyperdb-edge/*": [
                 "./packages/hyperdb-edge/src/*.ts"
             ],

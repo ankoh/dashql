@@ -179,6 +179,7 @@ ts_project(
     validator = ":_tsc_bin",
     deps = [
         "//:node_modules",
+        "//:node_modules/@akohn/csv-sniffer",
         "//:node_modules/@akohn/dashql",
         "//:node_modules/@akohn/dashql-react",
     ],
@@ -194,6 +195,7 @@ _vite_web_deps = [
     ":example_snippets",
     ":extensions",
     ":vite_config",
+    "//:node_modules/@akohn/csv-sniffer",
     "//:node_modules/@akohn/dashql",
     "//:node_modules/@akohn/dashql-react",
     ":dep_svg_symbols",
@@ -385,6 +387,7 @@ js_run_devserver(
     chdir = package_name(),
     data = _vite_web_deps + glob(["types/**/*.d.ts"]) + [
         "tsconfig.bazel.json",
+        "//packages/csv-sniffer:dev_srcs",
         "//packages/dashql:dev_srcs",
         "//packages/dashql-react:dev_srcs",
         # The type checker of the dev server resolves the imports and the types of tsconfig.bazel.json

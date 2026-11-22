@@ -64,6 +64,12 @@ npm_link_package(
     src = "//packages/hyperdb-edge:npm_package",
 )
 
+# The CSV sniffer, a package of its own: the schema of a CSV file for the CSV reader of Hyper, in a Wasm module
+npm_link_package(
+    name = "node_modules/@akohn/csv-sniffer",
+    src = "//packages/csv-sniffer:npm_package",
+)
+
 # The DashQL runtime in React: the hooks, models and components that //packages/dashql-app and other hosts share,
 # and the code, tokens and fonts shared by //packages/dashql-app and //packages/dashql-org.
 npm_link_package(

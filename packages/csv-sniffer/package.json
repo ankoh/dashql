@@ -1,0 +1,12 @@
+{
+  "name": "@akohn/csv-sniffer",
+  "version": "0.0.0",
+  "description": "Finds the schema of a CSV file for the CSV reader of Hyper, in a Wasm module of its own. The dialect detection is adopted from csv-nose. A source package: the TypeScript with the generated glue and Wasm",
+  "private": true,
+  "type": "module",
+  "license": "MPL-2.0",
+  "exports": {
+    ".": "./ts/index.ts",
+    "./wasm": "./wasm/csv_sniffer.wasm"
+  }
+}

@@ -1,0 +1,252 @@
+# @akohn/csv-sniffer: finds the schema of a CSV file so that the CSV reader of Hyper can read it, see
+# docs/design/csv_sniffer.md. A package of its own, independent of DashQL: the Rust crate (src/, the dialect detection
+# in src/dialect adopted from csv-nose, MIT, LICENSE-MIT), its bindings (bindings/lib.rs) as a Wasm module, and the
+# TypeScript wrapper (ts/) that reads the chunks of a file. A source package like @akohn/dashql, linked as
+# //:node_modules/@akohn/csv-sniffer: the glue and the Wasm are generated into wasm/.
+#
+# All third-party crates resolve from the isolated @core_crates universe (MODULE.bazel).
+
+load("@aspect_bazel_lib//lib:copy_to_bin.bzl", "copy_to_bin")
+load("@aspect_rules_js//npm:defs.bzl", "npm_package")
+load("@npm//:typescript/package_json.bzl", typescript_bin = "bin")
+load("@npm//:vitest/package_json.bzl", vitest_bin = "bin")
+load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_library", "rust_shared_library", "rust_test")
+load("@rules_rust_wasm_bindgen//:defs.bzl", "rust_wasm_bindgen")
+load("//bazel:rust_safety.bzl", "rust_safety_test")
+load("//bazel:rustfmt.bzl", "rustfmt_test")
+load("//bazel:eslint.bzl", "eslint_test")
+load("//bazel:wasm_tools.bzl", "optimize_wasm", "wasm_bindgen_module")
+
+package(default_visibility = ["//visibility:public"])
+
+rust_library(
+    name = "csv_sniffer",
+    srcs = glob(["src/**/*.rs"]),
+    crate_name = "csv_sniffer",
+    crate_root = "src/lib.rs",
+    edition = "2021",
+    lint_config = "//bazel:rust_safety_lints",
+    deps = [
+        "@core_crates//:arrow-array",
+        "@core_crates//:arrow-schema",
+        "@core_crates//:chardetng",
+        "@core_crates//:csv",
+        "@core_crates//:encoding_rs",
+        "@core_crates//:parquet",
+        "@core_crates//:regex",
+        "@core_crates//:serde",
+        "@core_crates//:serde_json",
+    ],
+)
+
+rust_test(
+    name = "csv_sniffer_unit_tests",
+    size = "small",
+    crate = ":csv_sniffer",
+    deps = [
+        "@core_crates//:arrow-cast",
+        "@core_crates//:bytes",
+    ],
+)
+
+rust_test(
+    name = "csv_sniffer_fixture_tests",
+    size = "small",
+    srcs = ["tests/fixtures.rs"],
+    compile_data = ["tests/data/nyc_311_sample_200.csv"],
+    edition = "2021",
+    deps = [":csv_sniffer"],
+)
+
+# The wasm-bindgen API of the sniffer
+CSV_BINDINGS_DEPS = [
+    ":csv_sniffer",
+    "@core_crates//:serde",
+    "@core_crates//:serde-wasm-bindgen",
+    "@core_crates//:serde_json",
+    "@core_crates//:tsify",
+    "@core_crates//:wasm-bindgen",
+]
+
+rust_shared_library(
+    name = "csv_sniffer_bindings",
+    srcs = ["bindings/lib.rs"],
+    crate_name = "csv_sniffer_bindings",
+    crate_root = "bindings/lib.rs",
+    edition = "2021",
+    target_compatible_with = ["@platforms//cpu:wasm32"],
+    deps = CSV_BINDINGS_DEPS,
+)
+
+# The same crate for the host, only for clippy: the bindings compile on the host and fail only when they call JS
+rust_library(
+    name = "csv_sniffer_bindings_lint",
+    srcs = ["bindings/lib.rs"],
+    crate_name = "csv_sniffer_bindings",
+    crate_root = "bindings/lib.rs",
+    edition = "2021",
+    lint_config = "//bazel:rust_safety_lints",
+    tags = ["manual"],
+    deps = CSV_BINDINGS_DEPS,
+)
+
+# Clippy with the safety lints, see //bazel:rust_safety.bzl
+rust_safety_test(
+    name = "clippy_test",
+    deps = [
+        ":csv_sniffer",
+        ":csv_sniffer_bindings_lint",
+    ],
+)
+
+# The wasm_file attribute transitions to wasm32, independent of the host --platforms.
+rust_wasm_bindgen(
+    name = "csv_sniffer_bindgen",
+    out_name = "csv_sniffer",
+    target = "web",
+    wasm_file = ":csv_sniffer_bindings",
+)
+
+wasm_bindgen_module(
+    name = "csv_sniffer_bindgen_wasm",
+    bindgen = ":csv_sniffer_bindgen",
+)
+
+# Release: wasm-opt -O3 + strip; dev: copy through unchanged.
+optimize_wasm(
+    name = "csv_wasm",
+    src = ":csv_sniffer_bindgen_wasm",
+    out = "csv_sniffer_bg.wasm",
+)
+
+# rustfmt of the Rust files of the package, see //bazel:rustfmt.bzl
+rustfmt_test(
+    name = "rustfmt_test",
+    srcs = glob(["**/*.rs"]),
+)
+
+# The glue of wasm-bindgen and the Wasm in wasm/ of the package. The glue loads the Wasm next to it and exports its URL
+# as `wasmUrl`, which bundlers turn into an asset. Symbol.dispose needs lib esnext.disposable, the declarations drop it.
+genrule(
+    name = "glue",
+    srcs = [
+        ":csv_sniffer_bindgen",
+        ":csv_wasm",
+    ],
+    outs = [
+        "wasm/csv_sniffer.js",
+        "wasm/csv_sniffer.d.ts",
+        "wasm/csv_sniffer.wasm",
+    ],
+    cmd = """
+OUT="$(RULEDIR)/wasm"
+for src in $(locations :csv_sniffer_bindgen); do
+    case "$$src" in
+        */csv_sniffer.js)
+            sed "s/csv_sniffer_bg[.]wasm/csv_sniffer.wasm/g" "$$src" > "$$OUT/csv_sniffer.js"
+            printf '\\n/** The URL of the module next to this glue */\\nexport const wasmUrl = new URL(%s, import.meta.url);\\n' "'./csv_sniffer.wasm'" >> "$$OUT/csv_sniffer.js"
+            ;;
+        */csv_sniffer.d.ts)
+            sed '/[[]Symbol[.]dispose[]]/d' "$$src" > "$$OUT/csv_sniffer.d.ts"
+            printf '\\n/** The URL of the module next to this glue */\\nexport declare const wasmUrl: URL;\\n' >> "$$OUT/csv_sniffer.d.ts"
+            ;;
+    esac
+done
+cp "$(location :csv_wasm)" "$$OUT/csv_sniffer.wasm"
+""",
+)
+
+_TS_SOURCES = glob(["ts/**/*.ts"])
+
+_TS_MODULES = glob(
+    ["ts/**/*.ts"],
+    exclude = ["ts/**/*.test.ts"],
+)
+
+copy_to_bin(
+    name = "typecheck_inputs",
+    srcs = _TS_SOURCES + [
+        "package.json",
+        "tsconfig.bazel.json",
+        "tsconfig.json",
+        "vitest.config.mjs",
+    ],
+)
+
+# The wrapper against the WebWorker lib, without the DOM and the types of Node
+typescript_bin.tsc_test(
+    name = "tsc_typecheck_test",
+    size = "small",
+    args = ["--project", "tsconfig.bazel.json"],
+    chdir = package_name(),
+    data = [
+        ":glue",
+        ":typecheck_inputs",
+    ],
+)
+
+# The wrapper and its tests with the types of Node
+typescript_bin.tsc_test(
+    name = "tsc_typecheck_node_test",
+    size = "small",
+    args = ["--project", "tsconfig.json"],
+    chdir = package_name(),
+    data = [
+        ":glue",
+        ":typecheck_inputs",
+        "//:node_modules/@types/node",
+        "//:node_modules/hyperdb-wasm",
+        "//:node_modules/vitest",
+    ],
+)
+
+# The tests in Node: the wrapper on the Wasm, and the queries of scanned files in the embedded Hyper (hyperdb-wasm)
+vitest_bin.vitest_test(
+    name = "test",
+    size = "medium",
+    args = [
+        "run",
+        "--config",
+        "vitest.config.mjs",
+    ],
+    chdir = package_name(),
+    data = [
+        ":glue",
+        ":typecheck_inputs",
+        "//:node_modules/hyperdb-wasm",
+        "//:node_modules/vitest",
+    ],
+)
+
+_PACKAGE_FILES = [
+    "LICENSE-MIT",
+    "package.json",
+    ":glue",
+] + _TS_MODULES
+
+# The source package, linked as //:node_modules/@akohn/csv-sniffer: the TypeScript with the glue and the Wasm
+npm_package(
+    name = "npm_package",
+    package = "@akohn/csv-sniffer",
+    srcs = _PACKAGE_FILES,
+    include_transitive_sources = False,
+    include_transitive_types = False,
+)
+
+# The files of the package at their paths in the workspace, for the dev server of the app, see //packages/dashql:dev_srcs
+copy_to_bin(
+    name = "dev_srcs",
+    srcs = _PACKAGE_FILES,
+)
+
+# ESLint with the rules of the root eslint.config.mjs, see docs/agents/build_bazel_targets.md
+eslint_test()
+
+# The throughput of the reader, the scan and the conversion on a generated file, run with -c opt
+rust_binary(
+    name = "convert_bench",
+    srcs = ["bench/convert_bench.rs"],
+    edition = "2021",
+    tags = ["manual"],
+    deps = [":csv_sniffer"],
+)

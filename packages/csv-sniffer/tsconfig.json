@@ -1,0 +1,20 @@
+// For editors and //packages/csv-sniffer:tsc_typecheck_node_test: the wrapper and its tests with the types of Node and
+// the WebWorker lib (WebAssembly, Blob). The glue and the Wasm in wasm/ are outputs of Bazel, rootDirs finds them in
+// bazel-bin next to the sources.
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "customConditions": ["node"],
+    "lib": ["ES2023", "WebWorker"],
+    "types": ["node", "vitest/globals"],
+    "rootDirs": [".", "../../bazel-bin/packages/csv-sniffer"],
+    "strict": true,
+    "noImplicitAny": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "noEmit": true
+  },
+  "include": ["ts/**/*.ts"]
+}

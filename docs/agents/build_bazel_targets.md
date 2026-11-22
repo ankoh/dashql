@@ -55,6 +55,7 @@ bazel build //...
 | `//tools/pack:vacuum` | Remove complete expired release versions, including old updater blockmaps |
 | `//packages/dashql-core-bindings:core_wasm` | Core Wasm module (Rust, wasm-bindgen) with the core and the shell, shipped by `@akohn/dashql`. It needs no database, hyperdb-wasm stays optional |
 | `//packages/dashql-dataflow:dataflow_wasm` | Dataflow Wasm module of the dataflow canvas (ELK), shipped by `@akohn/dashql`, loaded when the canvas opens |
+| `//packages/csv-sniffer:npm_package` | `@akohn/csv-sniffer`, linked as `//:node_modules/@akohn/csv-sniffer`: the schema of a CSV file for the CSV reader of Hyper, a package of its own with its Wasm (`:csv_wasm`, the glue in `wasm/` by `:glue`) and the TypeScript wrapper, a source package, see `docs/design/csv_sniffer.md` |
 | `//packages/dashql-core:dashql_core` | Core library (Rust), the language: scripts, catalog, analyzer, cursor, completion, formatter, script diff, and the scripts on it: editor sessions, compilation, batch, the relations that statements touch, visualizations |
 | `//packages/dashql-core-runtime:dashql_core_runtime` | The state of DashQL in Rust on the core and its scripts: the workbook, the planner across its scripts, connections, queries, computations and the services on a host, see `docs/design/dashql_core.md` |
 | `//packages/dashql-core-storage:dashql_core_storage` | The storage of DashQL on the runtime: the storage writer, the restore, the workbook format and the saves of the connections, wired in by the bindings, see `docs/design/dashql_core.md` |
@@ -114,6 +115,7 @@ bazel test //...
 | `//packages/dashql-core-shell:all` | Shell tests, Clippy with the safety lints |
 | `//packages/dashql-core-profile:all` | Query profile unit tests, and the plan and progress snapshot tests, Clippy with the safety lints |
 | `//packages/dashql-dataflow:all` | Dataflow layout and routing unit tests, Clippy with the safety lints |
+| `//packages/csv-sniffer:all` | `@akohn/csv-sniffer`: the unit tests of the crate (with those of the code adopted from csv-nose), the NYC 311 sample, Clippy with the safety lints, rustfmt, the type checks and ESLint of the wrapper, and its tests in Node, with the queries in hyperdb-wasm (`:test`) |
 | `//<package>:rustfmt_test` | `rustfmt --check` of the Rust files of a package with Rust code, part of its `:all`, see "rustfmt" |
 | `//packages/dashql-core:dashql_core_unit_tests` | Core unit tests |
 | `//tests/snapshots:parser_snapshot_test` | Parser snapshot tests |
@@ -533,7 +535,7 @@ bazel test //packages/dashql-native/proxy:test //tools/pack:test
 # The core
 bazel test //packages/dashql-parser:all //packages/dashql-core:all //packages/dashql-core-runtime:all \
     //packages/dashql-core-shell:all //packages/dashql-core-profile:all \
-    //packages/dashql-dataflow:all //tests/snapshots:all
+    //packages/dashql-dataflow:all //packages/csv-sniffer:all //tests/snapshots:all
 ```
 
 ### The npm Package of DashQL

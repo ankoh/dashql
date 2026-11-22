@@ -38,6 +38,18 @@ crate_core.spec(package = "org-eclipse-elk-alg-layered", version = "=0.12.2")
 crate_core.spec(package = "org-eclipse-elk-core", version = "=0.12.2")
 crate_core.spec(package = "org-eclipse-elk-graph", version = "=0.12.2")
 
+# The CSV sniffer (//packages/csv-sniffer): the parser of the candidate dialects, the patterns of the cell types and the
+# detection and decoding of legacy encodings, adopted from csv-nose
+crate_core.spec(package = "chardetng", version = "=1.0.0")
+crate_core.spec(package = "csv", version = "=1.4.0")
+crate_core.spec(package = "encoding_rs", version = "=0.8.35")
+crate_core.spec(package = "regex", version = "=1.13.2")
+
+# The conversion of CSV files to Parquet (//packages/csv-sniffer): the writer of arrow-rs with Snappy and LZ4, both in
+# Rust (zstd needs C); bytes for the readers of its tests
+crate_core.spec(package = "bytes", version = "=1.12.1")
+crate_core.spec(package = "parquet", default_features = False, features = ["arrow", "lz4", "snap"], version = "=60.1.0")
+
 # Lexer generator of the SQL scanner (dashql_parser::scanner)
 crate_core.spec(package = "logos", version = "=0.16.1")
 

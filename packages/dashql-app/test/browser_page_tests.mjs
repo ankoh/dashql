@@ -870,6 +870,21 @@ async function testUnpackerTool(page, navigate) {
     await page.getByRole('alert').filter({ hasText: 'script.sql is not a ZIP archive' }).waitFor();
 }
 
+/// The CSV import tool on the tools page: the sniffer samples a file, a worker converts it to Parquet in the origin
+/// private file system, and Hyper reads it
+async function testCsvImportTool(page, navigate) {
+    await navigate('/tools.html#/csv');
+    await page.getByRole('heading', { name: 'CSV Import' }).waitFor();
+    const csv = 'id,name,day\n1,ann,2024-01-31\n2,bob,2024-02-01\n3,carl,2024-02-02\n';
+    await page.getByLabel('Open a CSV file').setInputFiles({ name: 'people.csv', mimeType: 'text/csv', buffer: Buffer.from(csv) });
+    const schema = page.getByRole('table', { name: 'Schema' });
+    await schema.getByText('DATE', { exact: true }).waitFor();
+    await page.getByRole('button', { name: 'Convert to Parquet' }).click();
+    await page.getByRole('table', { name: 'Parts' }).waitFor();
+    await page.getByRole('button', { name: 'Load into Hyper' }).click();
+    await page.getByRole('region', { name: 'Table of people.csv' }).getByText('3 rows, 3 columns').waitFor();
+}
+
 /// The analyzer tool on the tools page: the scripts are scanned, parsed and analyzed against the catalog script
 async function testAnalyzerTool(page, navigate) {
     await navigate('/tools.html#/analyzer');
@@ -903,6 +918,7 @@ const PAGE_TESTS = [
     { name: 'demos', options: DESKTOP, test: testDemos },
     { name: 'embed', options: NARROW, test: testEmbed },
     { name: 'tools_unpacker', options: DESKTOP, test: testUnpackerTool },
+    { name: 'tools_csv_import', options: DESKTOP, test: testCsvImportTool },
     { name: 'tools_analyzer', options: DESKTOP, test: testAnalyzerTool },
     { name: 'oauth', options: DESKTOP, test: testOAuth },
 ];

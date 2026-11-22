@@ -17,3 +17,23 @@ export async function readParquetFile(database: EmbeddedComputeDatabase, file: B
         await database.removeExternalFile(path);
     }
 }
+
+/// Read Parquet files with a query over their paths, e.g. the parts of a table that a UNION ALL reads as one
+export async function readParquetFiles(
+    database: EmbeddedComputeDatabase,
+    files: readonly Blob[],
+    query: (paths: string[]) => string,
+): Promise<arrow.Table> {
+    const paths: string[] = [];
+    try {
+        for (const file of files) paths.push(await database.registerExternalFile(`${crypto.randomUUID()}.parquet`, file));
+        const connection = await database.connect({ pooled: true });
+        try {
+            return await connection.query(query(paths));
+        } finally {
+            await connection.close();
+        }
+    } finally {
+        for (const path of paths) await database.removeExternalFile(path);
+    }
+}

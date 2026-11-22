@@ -1,0 +1,17 @@
+// The wrapper against the WebWorker lib, without the DOM and the types of Node: it runs in browsers and workers
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "WebWorker"],
+    "types": [],
+    "strict": true,
+    "noImplicitAny": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "noEmit": true
+  },
+  "include": ["ts/*.ts"],
+  "exclude": ["ts/*.test.ts"]
+}

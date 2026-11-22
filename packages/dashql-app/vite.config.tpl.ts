@@ -42,14 +42,16 @@ export default vite.defineConfig(({ mode, command }) => {
     const entrypointsDir = path.join(rootDir, 'entrypoints');
     // The builds and the dev server run in a sandbox of Bazel, the inputs are files of the sandbox. The dev server
     // (js_run_devserver under ibazel) gets the files that a rebuild changes synced into it, and Vite updates the page.
-    // The folder of @akohn/dashql and @akohn/dashql-react, source packages: the builds take them from node_modules, the
-    // dev server from their folders in the workspace (//packages/dashql:dev_srcs, //packages/dashql-react:dev_srcs)
+    // The folder of @akohn/dashql, @akohn/dashql-react and @akohn/csv-sniffer, source packages: the builds take them from
+    // node_modules, the dev server from their folders in the workspace (their :dev_srcs)
     const packagesDir = command === 'serve' ? '..' : '../../node_modules/@akohn';
     // The package root of @akohn/dashql, the bindings of the core module, the runtime and its platforms
     const DASHQL_PATH = path.resolve(rootDir, packagesDir, 'dashql');
     // The package root of @akohn/dashql-react: the hooks and the models of the runtime in React, the components, and the
     // tokens, fonts and brand code shared with the website
     const REACT_PATH = path.resolve(rootDir, packagesDir, 'dashql-react');
+    // The package root of @akohn/csv-sniffer, the schema of a CSV file for Hyper with its glue and Wasm
+    const CSV_SNIFFER_PATH = path.resolve(rootDir, packagesDir, 'csv-sniffer');
     // The generated packages of the core module that the bindings import, folders of Bazel: @akohn/dashql-wasm, the
     // glue and the Wasm of the core and of the dataflow layout, and @akohn/dashql-flatbuffers
     const DASHQL_GENERATED_PATH = path.join(DASHQL_PATH, 'dependencies');
@@ -380,6 +382,8 @@ export default vite.defineConfig(({ mode, command }) => {
                     find: /^@akohn\/dashql\/dataflow-wasm(\?.*)?$/,
                     replacement: path.join(DASHQL_WASM_PATH, 'dashql_dataflow.wasm') + "$1",
                 },
+                { find: /^@akohn\/csv-sniffer$/, replacement: path.join(CSV_SNIFFER_PATH, 'ts/index.ts') },
+                { find: /^@akohn\/csv-sniffer\/wasm(\?.*)?$/, replacement: path.join(CSV_SNIFFER_PATH, 'wasm/csv_sniffer.wasm') + '$1' },
                 {
                     find: /^@dashql\/hyperdb-wasm-worker\?url$/,
                     replacement: path.resolve(rootDir, '../../node_modules/hyperdb-wasm/dist/browser_worker.js') + '?url',

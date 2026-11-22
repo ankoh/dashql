@@ -33,6 +33,7 @@ start with `packages/` or `extensions/`.
   `design/examples.md` (demos), `design/ui_icons.md` (the SVG symbol atlas), `design/app_theme.md` (colors)
 - Connections: `design/oauth_salesforce.md`, `misc/setup_data_cloud.md`, `misc/salesforce_v3_http.md`,
   `design/hyper_links.md`, `misc/setup_hyperd.md`
+- CSV: `design/csv_sniffer.md` (`@akohn/csv-sniffer`, the schema of a CSV file for the CSV reader of Hyper)
 - Client functions: `design/client_functions.md`, `design/extensions.md`, `design/extensions/api_survey.md`, the Data
   360 extension in `extensions/d360-api/clfn/docs/` (`overview.md`, `functions.md`, `api_notes.md`)
 - Agents: `design/agent_integration.md` (start here), `design/agent_session.md`, `design/agent_integration_tests.md`,

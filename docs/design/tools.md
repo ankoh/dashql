@@ -56,6 +56,31 @@ aggregates. The page loads no client function specs and no flavor.
 `src/tools/unpacker/unpacker_page.test.tsx` writes an archive with Hyper and zip.js, drops it on the page, reads a
 table and opens and closes its full table. The page test boots the real page and drops a file that is no archive.
 
+## CSV Import
+
+`tools.html#/csv` samples a CSV file, converts it to Parquet files with temporary workers and reads them with Hyper,
+see [csv_sniffer.md](csv_sniffer.md). A file is dropped on the page or chosen with Open File. The card of the file
+shows the format of its sample as chips (the encoding, the delimiter, the quote, the header, the lines skipped before
+the data), the problems of the first MiB, the columns of the sample with their types, their NULLs and a note (the
+pattern of a date with the day first, the words read as NULL), and the first 50 rows as a preview. Convert to Parquet
+starts a worker per range of the file and shows the bytes that they read. The card then lists the Parquet files with
+their rows, sizes and the columns whose types a part widened, and the time of the conversion. Load into Hyper mounts
+the files and runs the query over the parts; the table is a computation (`useTableComputation`) and shows in a card
+below, in the data table of the app (`DataTableView`), with a button that opens the full table over the page
+(`ResultTableOverlay`). An error of Hyper shows next to the button. Another file replaces the cards, stops a running
+conversion, deletes the Parquet files of the origin private file system and the computation.
+
+| Part | Module |
+|------|--------|
+| Providers: logger, embedded Hyper, core, `StandaloneRuntime` | `src/tools/csv/csv_import.tsx` |
+| Drop zone, file picker, the sample, the conversion, the load into Hyper, the table and the full table | `csv_import_page.tsx` |
+| The card of a file and the card of its table, components with plain props and the table as a slot | `csv_file_card.tsx` |
+| The loader of the Wasm of `@akohn/csv-sniffer`, once per page | `csv_module.ts` |
+
+`src/tools/csv/csv_file_card.test.tsx` renders the cards in every state, `csv_import_page.test.tsx` drops a file with a
+comment, NULL words and dates with the day first, converts it with a worker into OPFS, loads it into Hyper and opens the
+full table, and drops an empty file. The page test boots the real page, converts a file and loads it.
+
 ## Analyzer
 
 `tools.html#/analyzer` shows what the core knows about a script after each phase. It has two cards: the catalog script,

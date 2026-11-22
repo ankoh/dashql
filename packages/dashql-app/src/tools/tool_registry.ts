@@ -24,6 +24,12 @@ export const TOOLS: readonly ToolEntry[] = [
         load: () => import('./unpacker/unpacker.js'),
     },
     {
+        id: 'csv',
+        title: 'CSV Import',
+        description: 'Drop a CSV file, look at the schema the sniffer finds and read the file with Hyper.',
+        load: () => import('./csv/csv_import.js'),
+    },
+    {
         id: 'analyzer',
         title: 'Analyzer',
         description: 'Edit a script against a catalog and look at its tokens, its AST and its analysis.',

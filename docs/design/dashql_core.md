@@ -22,6 +22,8 @@ the rules that keep the module alive. The deep design docs are linked where a to
 | `dashql_core_bindings` | `packages/dashql-core-bindings` | The wasm-bindgen bindings of all of the above: the classes of the core and the `Runtime` of DashQL with its platform | all of the above |
 | `dashql_dataflow` | `packages/dashql-dataflow` | The layout of the dataflow canvas with ELK (elk-rs) | |
 | `dashql_dataflow_bindings` | `packages/dashql-dataflow/bindings` | The second module, for the layout only, loaded when the canvas opens, so the core module carries no ELK | dataflow |
+| `csv_sniffer` | `packages/csv-sniffer` | The schema of a CSV file for the CSV reader of Hyper, the dialect adopted from csv-nose; a package of its own (`@akohn/csv-sniffer`), not part of DashQL, see [csv_sniffer.md](csv_sniffer.md) | |
+| `csv_sniffer_bindings` | `packages/csv-sniffer/bindings` | The module of `@akohn/csv-sniffer`, loaded when a page reads a CSV file | csv_sniffer |
 
 All third-party crates of these come from the isolated `@core_crates` universe (`bazel/crates/core.MODULE.bazel`).
 `packages/dashql-native/proxy` (the gRPC proxy of the desktop app) is Rust as well but not part of the core.
@@ -478,6 +480,8 @@ The layout of the dataflow canvas (`dashql-dataflow`) is a wasm module of its ow
 canvas, so it takes the same lints: its `clippy_test` checks the crate and its bindings, the latter as the host build
 `:dashql_dataflow_bindings_lint`. The layout looks up boxes and grid cells by index with `get` and skips one that is
 missing, which happens only when an invariant of the layout breaks. The crates of ELK are third-party and not linted.
+The CSV sniffer (`csv-sniffer`, the package `@akohn/csv-sniffer`) is the same: a module of its own with the lints on the
+crate, the code adopted from csv-nose included, and its bindings (`:csv_sniffer_bindings_lint`).
 
 `dashql-core-runtime` and `dashql-core-bindings` also fail Clippy on any warning (`#![cfg_attr(clippy, deny(warnings))]` in
 their `lib.rs`), with a few style lints allowed by choice there: `large_enum_variant`, `result_large_err`,
