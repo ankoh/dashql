@@ -58,15 +58,13 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
-        - score: 60
-          value: similar_name_0
+        - value: similar_name_0
           name-tags: [TABLE_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,RESOLVING_TABLE]
           location: "s"
           location-qualified: "s"
           objects:
-            - score: 40
-              type: table
+            - type: table
               id: "256.65536.4294967296"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,RESOLVING_TABLE]
               qualified: similar_name_0
@@ -74,14 +72,12 @@ completion-snapshots:
               prefer-qualified: 0
               detail: "2 columns"
               columns: ["apple integer","juice0 integer"]
-        - score: 57
-          value: set
+        - value: set
           candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "s"
           location-qualified: "s"
           objects: []
-        - score: 55
-          value: sample
+        - value: sample
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "s"
           location-qualified: "s"

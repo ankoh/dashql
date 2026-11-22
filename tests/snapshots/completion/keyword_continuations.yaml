@@ -20,33 +20,28 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
-        - score: 58
-          value: group
+        - value: group
           keyword-continuation: by
           candidate-tags: [KEYWORD_B,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "gro"
           location-qualified: "gro"
           objects: []
-        - score: 55
-          value: grouping
+        - value: grouping
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "gro"
           location-qualified: "gro"
           objects: []
-        - score: 55
-          value: groups
+        - value: groups
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "gro"
           location-qualified: "gro"
           objects: []
-        - score: 50
-          value: gro
+        - value: gro
           candidate-tags: [IDENTITY]
           location: "gro"
           location-qualified: "gro"
           objects: []
-        - score: 4
-          value: where
+        - value: where
           candidate-tags: [KEYWORD_A,EXPECTED_PARSER_SYMBOL]
           location: "gro"
           location-qualified: "gro"
@@ -73,33 +68,28 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
-        - score: 58
-          value: order
+        - value: order
           keyword-continuation: by
           candidate-tags: [KEYWORD_B,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "ord"
           location-qualified: "ord"
           objects: []
-        - score: 55
-          value: ordinality
+        - value: ordinality
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "ord"
           location-qualified: "ord"
           objects: []
-        - score: 50
-          value: ord
+        - value: ord
           candidate-tags: [IDENTITY]
           location: "ord"
           location-qualified: "ord"
           objects: []
-        - score: 50
-          value: password
+        - value: password
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
           location: "ord"
           location-qualified: "ord"
           objects: []
-        - score: 4
-          value: where
+        - value: where
           candidate-tags: [KEYWORD_A,EXPECTED_PARSER_SYMBOL]
           location: "ord"
           location-qualified: "ord"
@@ -124,34 +114,29 @@ completion-snapshots:
       limit: 5
       strategy: DEFAULT
       entries:
-        - score: 4294967295
-          value: part
+        - value: part
           candidate-tags: [IDENTITY]
           location: "part"
           location-qualified: "part"
           objects: []
-        - score: 55
-          value: partial
+        - value: partial
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "part"
           location-qualified: "part"
           objects: []
-        - score: 55
-          value: partition
+        - value: partition
           keyword-continuation: by
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "part"
           location-qualified: "part"
           objects: []
-        - score: 3
-          value: order
+        - value: order
           keyword-continuation: by
           candidate-tags: [KEYWORD_B,EXPECTED_PARSER_SYMBOL]
           location: "part"
           location-qualified: "part"
           objects: []
-        - score: 2
-          value: by
+        - value: by
           candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL]
           location: "part"
           location-qualified: "part"
@@ -178,34 +163,29 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
-        - score: 55
-          value: inner
+        - value: inner
           keyword-continuation: join
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "inn"
           location-qualified: "inn"
           objects: []
-        - score: 50
-          value: inn
+        - value: inn
           candidate-tags: [IDENTITY]
           location: "inn"
           location-qualified: "inn"
           objects: []
-        - score: 4
-          value: where
+        - value: where
           candidate-tags: [KEYWORD_A,EXPECTED_PARSER_SYMBOL]
           location: "inn"
           location-qualified: "inn"
           objects: []
-        - score: 3
-          value: group
+        - value: group
           keyword-continuation: by
           candidate-tags: [KEYWORD_B,EXPECTED_PARSER_SYMBOL]
           location: "inn"
           location-qualified: "inn"
           objects: []
-        - score: 3
-          value: order
+        - value: order
           keyword-continuation: by
           candidate-tags: [KEYWORD_B,EXPECTED_PARSER_SYMBOL]
           location: "inn"
@@ -233,34 +213,29 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
-        - score: 55
-          value: left
+        - value: left
           keyword-continuation: outer
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "lef"
           location-qualified: "lef"
           objects: []
-        - score: 50
-          value: lef
+        - value: lef
           candidate-tags: [IDENTITY]
           location: "lef"
           location-qualified: "lef"
           objects: []
-        - score: 4
-          value: where
+        - value: where
           candidate-tags: [KEYWORD_A,EXPECTED_PARSER_SYMBOL]
           location: "lef"
           location-qualified: "lef"
           objects: []
-        - score: 3
-          value: group
+        - value: group
           keyword-continuation: by
           candidate-tags: [KEYWORD_B,EXPECTED_PARSER_SYMBOL]
           location: "lef"
           location-qualified: "lef"
           objects: []
-        - score: 3
-          value: order
+        - value: order
           keyword-continuation: by
           candidate-tags: [KEYWORD_B,EXPECTED_PARSER_SYMBOL]
           location: "lef"
@@ -282,33 +257,28 @@ completion-snapshots:
       limit: 5
       strategy: DEFAULT
       entries:
-        - score: 55
-          value: insert
+        - value: insert
           keyword-continuation: into
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "inser"
           location-qualified: "inser"
           objects: []
-        - score: 4
-          value: select
+        - value: select
           candidate-tags: [KEYWORD_A,EXPECTED_PARSER_SYMBOL]
           location: "inser"
           location-qualified: "inser"
           objects: []
-        - score: 2
-          value: set
+        - value: set
           candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL]
           location: "inser"
           location-qualified: "inser"
           objects: []
-        - score: 2
-          value: with
+        - value: with
           candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL]
           location: "inser"
           location-qualified: "inser"
           objects: []
-        - score: 0
-          value: abort
+        - value: abort
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL]
           location: "inser"
           location-qualified: "inser"
@@ -329,33 +299,28 @@ completion-snapshots:
       limit: 5
       strategy: DEFAULT
       entries:
-        - score: 55
-          value: create
+        - value: create
           keyword-continuation: table
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "creat"
           location-qualified: "creat"
           objects: []
-        - score: 4
-          value: select
+        - value: select
           candidate-tags: [KEYWORD_A,EXPECTED_PARSER_SYMBOL]
           location: "creat"
           location-qualified: "creat"
           objects: []
-        - score: 2
-          value: set
+        - value: set
           candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL]
           location: "creat"
           location-qualified: "creat"
           objects: []
-        - score: 2
-          value: with
+        - value: with
           candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL]
           location: "creat"
           location-qualified: "creat"
           objects: []
-        - score: 0
-          value: abort
+        - value: abort
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL]
           location: "creat"
           location-qualified: "creat"
@@ -376,33 +341,28 @@ completion-snapshots:
       limit: 5
       strategy: DEFAULT
       entries:
-        - score: 4294967295
-          value: fore
+        - value: fore
           candidate-tags: [IDENTITY]
           location: "fore"
           location-qualified: "fore"
           objects: []
-        - score: 55
-          value: foreign
+        - value: foreign
           keyword-continuation: key
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "fore"
           location-qualified: "fore"
           objects: []
-        - score: 50
-          value: before
+        - value: before
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
           location: "fore"
           location-qualified: "fore"
           objects: []
-        - score: 50
-          value: xmlforest
+        - value: xmlforest
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
           location: "fore"
           location-qualified: "fore"
           objects: []
-        - score: 2
-          value: by
+        - value: by
           candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL]
           location: "fore"
           location-qualified: "fore"
@@ -438,23 +398,20 @@ completion-snapshots:
       limit: 5
       strategy: DEFAULT
       entries:
-        - score: 4294967295
-          value: fo
+        - value: fo
           keyword-continuation: as
           candidate-tags: [IDENTITY]
           location: "fo"
           location-qualified: "fo"
           objects: []
-        - score: 57
-          value: foo
+        - value: foo
           keyword-continuation: as
           name-tags: [TABLE_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
           location: "fo"
           location-qualified: "fo"
           objects:
-            - score: 37
-              type: table
+            - type: table
               id: "256.65536.4294967296"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: foo
@@ -462,22 +419,19 @@ completion-snapshots:
               prefer-qualified: 0
               detail: "1 column"
               columns: ["a integer"]
-        - score: 55
-          value: following
+        - value: following
           keyword-continuation: as
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "fo"
           location-qualified: "fo"
           objects: []
-        - score: 55
-          value: force
+        - value: force
           keyword-continuation: as
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "fo"
           location-qualified: "fo"
           objects: []
-        - score: 55
-          value: forcefully
+        - value: forcefully
           keyword-continuation: as
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "fo"
@@ -499,32 +453,27 @@ completion-snapshots:
       limit: 5
       strategy: DEFAULT
       entries:
-        - score: 55
-          value: fetch
+        - value: fetch
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "fetc"
           location-qualified: "fetc"
           objects: []
-        - score: 4
-          value: select
+        - value: select
           candidate-tags: [KEYWORD_A,EXPECTED_PARSER_SYMBOL]
           location: "fetc"
           location-qualified: "fetc"
           objects: []
-        - score: 2
-          value: set
+        - value: set
           candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL]
           location: "fetc"
           location-qualified: "fetc"
           objects: []
-        - score: 2
-          value: with
+        - value: with
           candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL]
           location: "fetc"
           location-qualified: "fetc"
           objects: []
-        - score: 0
-          value: abort
+        - value: abort
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL]
           location: "fetc"
           location-qualified: "fetc"
@@ -567,41 +516,35 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
-        - score: 59
-          value: ba
+        - value: ba
           candidate-tags: [IDENTITY]
           location: "ba"
           location-qualified: "ba"
           objects: []
-        - score: 57
-          value: bar
+        - value: bar
           name-tags: [COLUMN_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
           location: "ba"
           location-qualified: "ba"
           objects:
-            - score: 37
-              type: column
+            - type: column
               id: "256.65536.4294967296.0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: foo.bar
               qualified-idx: 1
               prefer-qualified: 0
               detail: "integer · foo"
-        - score: 55
-          value: backward
+        - value: backward
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "ba"
           location-qualified: "ba"
           objects: []
-        - score: 50
-          value: database
+        - value: database
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
           location: "ba"
           location-qualified: "ba"
           objects: []
-        - score: 50
-          value: global
+        - value: global
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
           location: "ba"
           location-qualified: "ba"

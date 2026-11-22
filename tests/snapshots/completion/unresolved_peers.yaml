@@ -52,36 +52,31 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
-        - score: 59
-          value: ju
+        - value: ju
           candidate-tags: [IDENTITY]
           location: "ju"
           location-qualified: "ju"
           objects: []
-        - score: 56
-          value: juice0
+        - value: juice0
           name-tags: [COLUMN_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,UNRESOLVED_PEER]
           location: "ju"
           location-qualified: "ju"
           objects:
-            - score: 36
-              type: column
+            - type: column
               id: "256.65536.4294967296.1"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,UNRESOLVED_PEER]
               qualified: foo.juice0
               qualified-idx: 1
               prefer-qualified: 0
               detail: "integer · foo"
-        - score: 55
-          value: juice1
+        - value: juice1
           name-tags: [COLUMN_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "ju"
           location-qualified: "ju"
           objects:
-            - score: 35
-              type: column
+            - type: column
               id: "256.65536.4294967297.0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH]
               qualified: bar.juice1

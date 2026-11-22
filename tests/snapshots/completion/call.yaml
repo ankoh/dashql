@@ -15,8 +15,7 @@ completion-snapshots:
       limit: 3
       strategy: DEFAULT
       entries:
-        - score: 1048576
-          value: tickets
+        - value: tickets
           name-tags: [SCHEMA_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: "tic"
@@ -40,20 +39,17 @@ completion-snapshots:
       limit: 3
       strategy: DEFAULT
       entries:
-        - score: 55
-          value: call
+        - value: call
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "cal"
           location-qualified: "cal"
           objects: []
-        - score: 4
-          value: select
+        - value: select
           candidate-tags: [KEYWORD_A,EXPECTED_PARSER_SYMBOL]
           location: "cal"
           location-qualified: "cal"
           objects: []
-        - score: 2
-          value: set
+        - value: set
           candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL]
           location: "cal"
           location-qualified: "cal"
@@ -74,20 +70,17 @@ completion-snapshots:
       limit: 3
       strategy: DEFAULT
       entries:
-        - score: 4
-          value: select
+        - value: select
           candidate-tags: [KEYWORD_A,EXPECTED_PARSER_SYMBOL]
           location: "cal"
           location-qualified: "cal"
           objects: []
-        - score: 2
-          value: set
+        - value: set
           candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL]
           location: "cal"
           location-qualified: "cal"
           objects: []
-        - score: 2
-          value: with
+        - value: with
           candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL]
           location: "cal"
           location-qualified: "cal"
@@ -115,8 +108,7 @@ completion-snapshots:
       symbol: OBJECT_EXT_TRAILING_DOT
       relative: END_OF_SYMBOL
       entries:
-        - score: 1048577
-          value: ticket_feed
+        - value: ticket_feed
           name-tags: [FUNCTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
@@ -133,8 +125,7 @@ completion-snapshots:
               description: "The number of pages to read, 1 without this option."
           facts: ["Endpoint GET /feed","Paging url"]
           objects: []
-        - score: 1048577
-          value: ticket_list
+        - value: ticket_list
           name-tags: [FUNCTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
@@ -160,8 +151,7 @@ completion-snapshots:
           example: "CALL tickets.ticket_list (project => 'CORE');"
           facts: ["Family Tickets","Endpoint GET /projects/{project}/tickets","Paging token"]
           objects: []
-        - score: 1048577
-          value: ticket_search
+        - value: ticket_search
           name-tags: [FUNCTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
@@ -188,8 +178,7 @@ completion-snapshots:
       strategy: DEFAULT
       client-function-name: 1
       entries:
-        - score: 1048576
-          value: webhook_create
+        - value: webhook_create
           name-tags: [FUNCTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: "web"
@@ -236,8 +225,7 @@ completion-snapshots:
       strategy: DEFAULT
       client-function-name: 1
       entries:
-        - score: 1310720
-          value: project
+        - value: project
           name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
@@ -245,24 +233,21 @@ completion-snapshots:
           detail: "string · required"
           description: "The key of the project."
           objects: []
-        - score: 1048577
-          value: page_size
+        - value: page_size
           name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
           detail: "integer"
           objects: []
-        - score: 1048577
-          value: page_token
+        - value: page_token
           name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
           detail: "string"
           objects: []
-        - score: 1048576
-          value: _next
+        - value: _next
           name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
@@ -270,8 +255,7 @@ completion-snapshots:
           detail: "string"
           description: "The page to read, a next value of the service, e.g. from `_meta`. `null` means the first page."
           objects: []
-        - score: 1048576
-          value: _pages
+        - value: _pages
           name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
@@ -297,24 +281,21 @@ completion-snapshots:
       strategy: DEFAULT
       client-function-name: 1
       entries:
-        - score: 1048577
-          value: page_size
+        - value: page_size
           name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: "pa"
           location-qualified: "pa"
           detail: "integer"
           objects: []
-        - score: 1048577
-          value: page_token
+        - value: page_token
           name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: "pa"
           location-qualified: "pa"
           detail: "string"
           objects: []
-        - score: 0
-          value: _pages
+        - value: _pages
           name-tags: [OPTION_NAME]
           candidate-tags: [SUBSTRING_MATCH]
           location: "pa"
@@ -340,16 +321,14 @@ completion-snapshots:
       strategy: DEFAULT
       client-function-name: 1
       entries:
-        - score: 1048577
-          value: labels
+        - value: labels
           name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: "l"
           location-qualified: "l"
           detail: "any"
           objects: []
-        - score: 262144
-          value: title
+        - value: title
           name-tags: [OPTION_NAME]
           candidate-tags: [SUBSTRING_MATCH]
           location: "l"
@@ -374,8 +353,7 @@ completion-snapshots:
       strategy: DEFAULT
       client-function-name: 1
       entries:
-        - score: 1310720
-          value: title
+        - value: title
           name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: "title"
@@ -405,24 +383,21 @@ completion-snapshots:
       strategy: DEFAULT
       client-function-name: 1
       entries:
-        - score: 1048577
-          value: page_size
+        - value: page_size
           name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
           detail: "integer"
           objects: []
-        - score: 1048577
-          value: page_token
+        - value: page_token
           name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
           detail: "string"
           objects: []
-        - score: 1048576
-          value: _next
+        - value: _next
           name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
@@ -430,8 +405,7 @@ completion-snapshots:
           detail: "string"
           description: "The page to read, a next value of the service, e.g. from `_meta`. `null` means the first page."
           objects: []
-        - score: 1048576
-          value: _pages
+        - value: _pages
           name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
@@ -462,24 +436,21 @@ completion-snapshots:
       strategy: DEFAULT
       client-function-name: 1
       entries:
-        - score: 1048577
-          value: page_size
+        - value: page_size
           name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
           detail: "integer"
           objects: []
-        - score: 1048577
-          value: page_token
+        - value: page_token
           name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
           detail: "string"
           objects: []
-        - score: 1048576
-          value: _next
+        - value: _next
           name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
@@ -487,8 +458,7 @@ completion-snapshots:
           detail: "string"
           description: "The page to read, a next value of the service, e.g. from `_meta`. `null` means the first page."
           objects: []
-        - score: 1048576
-          value: _pages
+        - value: _pages
           name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
@@ -531,8 +501,7 @@ completion-snapshots:
       strategy: DEFAULT
       client-function-name: 1
       entries:
-        - score: 1310720
-          value: id
+        - value: id
           name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
@@ -540,8 +509,7 @@ completion-snapshots:
           detail: "integer · required"
           description: "The id of the user."
           objects: []
-        - score: 1048577
-          value: notify
+        - value: notify
           name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
@@ -584,8 +552,7 @@ completion-snapshots:
       strategy: DEFAULT
       client-function-name: 1
       entries:
-        - score: 1310720
-          value: id
+        - value: id
           name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
@@ -593,8 +560,7 @@ completion-snapshots:
           detail: "integer · required"
           description: "The id of the user."
           objects: []
-        - score: 1048577
-          value: notify
+        - value: notify
           name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
@@ -645,8 +611,7 @@ completion-snapshots:
       strategy: DEFAULT
       client-function-name: 1
       entries:
-        - score: 1310720
-          value: id
+        - value: id
           name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
@@ -654,8 +619,7 @@ completion-snapshots:
           detail: "integer · required"
           description: "The id of the user."
           objects: []
-        - score: 1048577
-          value: notify
+        - value: notify
           name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
@@ -685,16 +649,14 @@ completion-snapshots:
       strategy: DEFAULT
       client-function-name: 1
       entries:
-        - score: 1048577
-          value: children
+        - value: children
           name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
           parameters: ["name string","children"]
           objects: []
-        - score: 1048577
-          value: name
+        - value: name
           name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
@@ -742,8 +704,7 @@ completion-snapshots:
       strategy: DEFAULT
       client-function-name: 1
       entries:
-        - score: 1310720
-          value: id
+        - value: id
           name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
@@ -751,8 +712,7 @@ completion-snapshots:
           detail: "integer · required"
           description: "The id of the user."
           objects: []
-        - score: 1048577
-          value: notify
+        - value: notify
           name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
@@ -791,21 +751,18 @@ completion-snapshots:
       limit: 3
       strategy: DEFAULT
       entries:
-        - score: 4294967295
-          value: ale
+        - value: ale
           candidate-tags: [IDENTITY]
           location: "ale"
           location-qualified: "ale"
           objects: []
-        - score: 57
-          value: alerts
+        - value: alerts
           name-tags: [TABLE_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
           location: "ale"
           location-qualified: "ale"
           objects:
-            - score: 37
-              type: table
+            - type: table
               id: "256.65536.4294967296"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: alerts
@@ -813,8 +770,7 @@ completion-snapshots:
               prefer-qualified: 0
               detail: "1 column"
               columns: ["host text"]
-        - score: 50
-          value: coalesce
+        - value: coalesce
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
           location: "ale"
           location-qualified: "ale"
@@ -845,24 +801,21 @@ completion-snapshots:
       strategy: DEFAULT
       client-function-name: 1
       entries:
-        - score: 1310720
-          value: project
+        - value: project
           name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
           detail: "string · required"
           objects: []
-        - score: 1310720
-          value: title
+        - value: title
           name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
           detail: "string · required"
           objects: []
-        - score: 1048577
-          value: '"X-Trace-Id"'
+        - value: '"X-Trace-Id"'
           name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
@@ -902,20 +855,17 @@ completion-snapshots:
       symbol: OBJECT_SQL_CALL
       relative: END_OF_SYMBOL
       entries:
-        - score: 59
-          value: select
+        - value: select
           candidate-tags: [KEYWORD_A,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "sel"
           location-qualified: "sel"
           objects: []
-        - score: 2
-          value: set
+        - value: set
           candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL]
           location: "sel"
           location-qualified: "sel"
           objects: []
-        - score: 2
-          value: with
+        - value: with
           candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL]
           location: "sel"
           location-qualified: "sel"
@@ -938,8 +888,7 @@ completion-snapshots:
       strategy: DEFAULT
       client-function-name: 1
       entries:
-        - score: 1048577
-          value: '"X-Trace-Id"'
+        - value: '"X-Trace-Id"'
           name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: "X"
@@ -964,8 +913,7 @@ completion-snapshots:
       strategy: DEFAULT
       client-function-name: 1
       entries:
-        - score: 1310720
-          value: id
+        - value: id
           name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
@@ -995,8 +943,7 @@ completion-snapshots:
       strategy: DEFAULT
       client-function-name: 1
       entries:
-        - score: 1048576
-          value: _poll
+        - value: _poll
           name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: "_"
@@ -1004,8 +951,7 @@ completion-snapshots:
           detail: "string"
           description: "The pending result to poll, the `_poll` column of an earlier result."
           objects: []
-        - score: 1048576
-          value: _wait
+        - value: _wait
           name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: "_"
@@ -1031,24 +977,21 @@ completion-snapshots:
       strategy: DEFAULT
       client-function-name: 1
       entries:
-        - score: 1048577
-          value: cron
+        - value: cron
           name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
           detail: "string"
           objects: []
-        - score: 1048577
-          value: event
+        - value: event
           name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
           detail: "string"
           objects: []
-        - score: 1048577
-          value: filter
+        - value: filter
           name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
@@ -1078,8 +1021,7 @@ completion-snapshots:
       strategy: DEFAULT
       client-function-name: 1
       entries:
-        - score: 1048577
-          value: filter
+        - value: filter
           name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
@@ -1109,16 +1051,14 @@ completion-snapshots:
       strategy: DEFAULT
       client-function-name: 1
       entries:
-        - score: 1310720
-          value: queue
+        - value: queue
           name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""
           location-qualified: ""
           detail: "string · required"
           objects: []
-        - score: 1048577
-          value: owner
+        - value: owner
           name-tags: [OPTION_NAME]
           candidate-tags: [PREFIX_MATCH]
           location: ""

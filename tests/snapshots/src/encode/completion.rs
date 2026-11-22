@@ -104,7 +104,6 @@ pub fn encode_completion(out: &mut Map, completion: &Completion) {
         .iter()
         .map(|candidate| {
             let mut m = Map::new();
-            m.int("score", candidate.score as i64);
             m.plain("value", &candidate.completion_text);
             if let Some(continuation) = candidate.keyword_continuation {
                 m.plain("keyword-continuation", continuation);
@@ -128,7 +127,6 @@ pub fn encode_completion(out: &mut Map, completion: &Completion) {
                 .map(|&co| {
                     let object = &completion.candidate_objects[co];
                     let mut o = Map::new();
-                    o.int("score", object.score as i64);
                     let (kind, id) = match object.object {
                         CandidateObjectRef::Database(id) => ("database", format!("{}", id.unpack_database_id())),
                         CandidateObjectRef::Schema(id) => {

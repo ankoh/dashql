@@ -26,8 +26,7 @@ completion-snapshots:
       no-target: 1
       strategy: DEFAULT
       entries:
-        - score: 2
-          value: vis
+        - value: vis
           candidate-tags: [PREFIX_MATCH]
           location: "v"
           location-qualified: "v"
@@ -88,8 +87,7 @@ completion-snapshots:
       no-target: 1
       strategy: DEFAULT
       entries:
-        - score: 2
-          value: vegalite
+        - value: vegalite
           candidate-tags: [PREFIX_MATCH]
           location: "ve"
           location-qualified: "ve"
@@ -137,8 +135,7 @@ completion-snapshots:
       no-target: 1
       strategy: DEFAULT
       entries:
-        - score: 2
-          value: height=
+        - value: height=
           candidate-tags: [PREFIX_MATCH]
           location: "h"
           location-qualified: "h"
@@ -180,8 +177,7 @@ completion-snapshots:
       no-target: 1
       strategy: DEFAULT
       entries:
-        - score: 2
-          value: y=
+        - value: y=
           candidate-tags: [PREFIX_MATCH]
           location: "y"
           location-qualified: "y"
@@ -217,8 +213,7 @@ completion-snapshots:
       no-target: 1
       strategy: DEFAULT
       entries:
-        - score: 2
-          value: '"mark"'
+        - value: '"mark"'
           candidate-tags: [PREFIX_MATCH]
           location: "\"ma"
           location-qualified: "\"ma"
@@ -256,20 +251,17 @@ completion-snapshots:
       no-target: 1
       strategy: DEFAULT
       entries:
-        - score: 72
-          value: '"x"'
+        - value: '"x"'
           candidate-tags: [PREFIX_MATCH]
           location: "\""
           location-qualified: "\""
           objects: []
-        - score: 71
-          value: '"y"'
+        - value: '"y"'
           candidate-tags: [PREFIX_MATCH]
           location: "\""
           location-qualified: "\""
           objects: []
-        - score: 70
-          value: '"color"'
+        - value: '"color"'
           candidate-tags: [PREFIX_MATCH]
           location: "\""
           location-qualified: "\""
@@ -309,20 +301,17 @@ completion-snapshots:
       no-target: 1
       strategy: DEFAULT
       entries:
-        - score: 8
-          value: '"bar"'
+        - value: '"bar"'
           candidate-tags: [PREFIX_MATCH]
           location: "\"b\""
           location-qualified: "\"b\""
           objects: []
-        - score: 7
-          value: '"boxplot"'
+        - value: '"boxplot"'
           candidate-tags: [PREFIX_MATCH]
           location: "\"b\""
           location-qualified: "\"b\""
           objects: []
-        - score: 2
-          value: '"errorband"'
+        - value: '"errorband"'
           candidate-tags: [SUBSTRING_MATCH]
           location: "\"b\""
           location-qualified: "\"b\""
@@ -402,14 +391,12 @@ completion-snapshots:
       no-target: 1
       strategy: DEFAULT
       entries:
-        - score: 4
-          value: '"region"'
+        - value: '"region"'
           candidate-tags: [PREFIX_MATCH]
           location: "\"re\""
           location-qualified: "\"re\""
           objects: []
-        - score: 1
-          value: '"total_revenue"'
+        - value: '"total_revenue"'
           candidate-tags: [SUBSTRING_MATCH]
           location: "\"re\""
           location-qualified: "\"re\""
@@ -447,14 +434,12 @@ completion-snapshots:
       no-target: 1
       strategy: DEFAULT
       entries:
-        - score: 4
-          value: '"type"'
+        - value: '"type"'
           candidate-tags: [PREFIX_MATCH]
           location: "ty"
           location-qualified: "ty"
           objects: []
-        - score: 1
-          value: '"formatType"'
+        - value: '"formatType"'
           candidate-tags: [SUBSTRING_MATCH]
           location: "ty"
           location-qualified: "ty"
@@ -494,8 +479,7 @@ completion-snapshots:
       no-target: 1
       strategy: DEFAULT
       entries:
-        - score: 2
-          value: '"quantitative"'
+        - value: '"quantitative"'
           candidate-tags: [PREFIX_MATCH]
           location: "\"q\""
           location-qualified: "\"q\""
@@ -535,20 +519,17 @@ completion-snapshots:
       no-target: 1
       strategy: DEFAULT
       entries:
-        - score: 10
-          value: '"line"'
+        - value: '"line"'
           candidate-tags: [PREFIX_MATCH]
           location: "\"l\""
           location-qualified: "\"l\""
           objects: []
-        - score: 4
-          value: '"rule"'
+        - value: '"rule"'
           candidate-tags: [SUBSTRING_MATCH]
           location: "\"l\""
           location-qualified: "\"l\""
           objects: []
-        - score: 3
-          value: '"circle"'
+        - value: '"circle"'
           candidate-tags: [SUBSTRING_MATCH]
           location: "\"l\""
           location-qualified: "\"l\""
@@ -584,20 +565,17 @@ completion-snapshots:
       no-target: 1
       strategy: DEFAULT
       entries:
-        - score: 6
-          value: '"opacity"'
+        - value: '"opacity"'
           candidate-tags: [PREFIX_MATCH]
           location: "\"op\""
           location-qualified: "\"op\""
           objects: []
-        - score: 2
-          value: '"fillOpacity"'
+        - value: '"fillOpacity"'
           candidate-tags: [SUBSTRING_MATCH]
           location: "\"op\""
           location-qualified: "\"op\""
           objects: []
-        - score: 1
-          value: '"strokeOpacity"'
+        - value: '"strokeOpacity"'
           candidate-tags: [SUBSTRING_MATCH]
           location: "\"op\""
           location-qualified: "\"op\""
@@ -637,20 +615,17 @@ completion-snapshots:
       no-target: 1
       strategy: DEFAULT
       entries:
-        - score: 9
-          value: '"area"'
+        - value: '"area"'
           candidate-tags: [PREFIX_MATCH]
           location: "\"ar\""
           location-qualified: "\"ar\""
           objects: []
-        - score: 8
-          value: '"arc"'
+        - value: '"arc"'
           candidate-tags: [PREFIX_MATCH]
           location: "\"ar\""
           location-qualified: "\"ar\""
           objects: []
-        - score: 5
-          value: '"bar"'
+        - value: '"bar"'
           candidate-tags: [SUBSTRING_MATCH]
           location: "\"ar\""
           location-qualified: "\"ar\""
@@ -690,8 +665,7 @@ completion-snapshots:
       no-target: 1
       strategy: DEFAULT
       entries:
-        - score: 2
-          value: '"sum"'
+        - value: '"sum"'
           candidate-tags: [PREFIX_MATCH]
           location: "\"su\""
           location-qualified: "\"su\""
@@ -731,20 +705,17 @@ completion-snapshots:
       no-target: 1
       strategy: DEFAULT
       entries:
-        - score: 14
-          value: '"month"'
+        - value: '"month"'
           candidate-tags: [PREFIX_MATCH]
           location: "\"mo\""
           location-qualified: "\"mo\""
           objects: []
-        - score: 8
-          value: '"monthdate"'
+        - value: '"monthdate"'
           candidate-tags: [PREFIX_MATCH]
           location: "\"mo\""
           location-qualified: "\"mo\""
           objects: []
-        - score: 6
-          value: '"yearmonth"'
+        - value: '"yearmonth"'
           candidate-tags: [SUBSTRING_MATCH]
           location: "\"mo\""
           location-qualified: "\"mo\""
@@ -780,8 +751,7 @@ completion-snapshots:
       no-target: 1
       strategy: DEFAULT
       entries:
-        - score: 2
-          value: '"type"'
+        - value: '"type"'
           candidate-tags: [PREFIX_MATCH]
           location: "\"ty\""
           location-qualified: "\"ty\""
@@ -821,14 +791,12 @@ completion-snapshots:
       no-target: 1
       strategy: DEFAULT
       entries:
-        - score: 4
-          value: '"log"'
+        - value: '"log"'
           candidate-tags: [PREFIX_MATCH]
           location: "\"lo\""
           location-qualified: "\"lo\""
           objects: []
-        - score: 1
-          value: '"symlog"'
+        - value: '"symlog"'
           candidate-tags: [SUBSTRING_MATCH]
           location: "\"lo\""
           location-qualified: "\"lo\""
@@ -864,20 +832,17 @@ completion-snapshots:
       no-target: 1
       strategy: DEFAULT
       entries:
-        - score: 12
-          value: '"title"'
+        - value: '"title"'
           candidate-tags: [PREFIX_MATCH]
           location: "\"ti\""
           location-qualified: "\"ti\""
           objects: []
-        - score: 11
-          value: '"ticks"'
+        - value: '"ticks"'
           candidate-tags: [PREFIX_MATCH]
           location: "\"ti\""
           location-qualified: "\"ti\""
           objects: []
-        - score: 10
-          value: '"tickCount"'
+        - value: '"tickCount"'
           candidate-tags: [PREFIX_MATCH]
           location: "\"ti\""
           location-qualified: "\"ti\""
@@ -913,20 +878,17 @@ completion-snapshots:
       no-target: 1
       strategy: DEFAULT
       entries:
-        - score: 6
-          value: '"orient"'
+        - value: '"orient"'
           candidate-tags: [PREFIX_MATCH]
           location: "\"or\""
           location-qualified: "\"or\""
           objects: []
-        - score: 2
-          value: '"format"'
+        - value: '"format"'
           candidate-tags: [SUBSTRING_MATCH]
           location: "\"or\""
           location-qualified: "\"or\""
           objects: []
-        - score: 1
-          value: '"formatType"'
+        - value: '"formatType"'
           candidate-tags: [SUBSTRING_MATCH]
           location: "\"or\""
           location-qualified: "\"or\""
@@ -962,14 +924,12 @@ completion-snapshots:
       no-target: 1
       strategy: DEFAULT
       entries:
-        - score: 4
-          value: '"type"'
+        - value: '"type"'
           candidate-tags: [PREFIX_MATCH]
           location: "\"ty\""
           location-qualified: "\"ty\""
           objects: []
-        - score: 1
-          value: '"formatType"'
+        - value: '"formatType"'
           candidate-tags: [SUBSTRING_MATCH]
           location: "\"ty\""
           location-qualified: "\"ty\""
@@ -1016,14 +976,12 @@ completion-snapshots:
       no-target: 1
       strategy: DEFAULT
       entries:
-        - score: 4
-          value: '"region"'
+        - value: '"region"'
           candidate-tags: [PREFIX_MATCH]
           location: "\"re\""
           location-qualified: "\"re\""
           objects: []
-        - score: 3
-          value: '"revenue"'
+        - value: '"revenue"'
           candidate-tags: [PREFIX_MATCH]
           location: "\"re\""
           location-qualified: "\"re\""
@@ -1090,14 +1048,12 @@ completion-snapshots:
       no-target: 1
       strategy: DEFAULT
       entries:
-        - score: 4
-          value: region
+        - value: region
           candidate-tags: [PREFIX_MATCH]
           location: "re"
           location-qualified: "re"
           objects: []
-        - score: 3
-          value: revenue
+        - value: revenue
           candidate-tags: [PREFIX_MATCH]
           location: "re"
           location-qualified: "re"

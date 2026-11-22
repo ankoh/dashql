@@ -66,36 +66,31 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
-        - score: 82
-          value: event
+        - value: event
           name-tags: [COLUMN_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE,EXACT_MATCH]
           location: "event"
           location-qualified: "event"
           objects:
-            - score: 62
-              type: column
+            - type: column
               id: "256.65536.4294967296.4"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE,EXACT_MATCH]
               qualified: iceberg.some_events.some_queries.event
               qualified-idx: 3
               prefer-qualified: 0
               detail: "text · some_queries"
-        - score: 70
-          value: event
+        - value: event
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXACT_MATCH]
           location: "event"
           location-qualified: "event"
           objects: []
-        - score: 67
-          value: event_timestamp
+        - value: event_timestamp
           name-tags: [COLUMN_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
           location: "event"
           location-qualified: "event"
           objects:
-            - score: 47
-              type: column
+            - type: column
               id: "256.65536.4294967296.5"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: iceberg.some_events.some_queries.event_timestamp

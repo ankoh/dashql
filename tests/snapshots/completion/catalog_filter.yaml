@@ -52,36 +52,31 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
-        - score: 67
-          value: attr1
+        - value: attr1
           name-tags: [COLUMN_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
           location: "attr"
           location-qualified: "attr"
           objects:
-            - score: 47
-              type: column
+            - type: column
               id: "256.65536.4294967296.0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: tablea.attr1
               qualified-idx: 1
               prefer-qualified: 0
               detail: "integer · tablea"
-        - score: 59
-          value: attr
+        - value: attr
           candidate-tags: [IDENTITY]
           location: "attr"
           location-qualified: "attr"
           objects: []
-        - score: 57
-          value: attr2
+        - value: attr2
           name-tags: [COLUMN_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
           location: "attr"
           location-qualified: "attr"
           objects:
-            - score: 37
-              type: column
+            - type: column
               id: "256.65536.4294967297.0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: tableb.attr2

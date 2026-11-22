@@ -597,36 +597,31 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
-        - score: 59
-          value: s_co
+        - value: s_co
           candidate-tags: [IDENTITY]
           location: "s_co"
           location-qualified: "s_co"
           objects: []
-        - score: 57
-          value: s_comment
+        - value: s_comment
           name-tags: [COLUMN_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
           location: "s_co"
           location-qualified: "s_co"
           objects:
-            - score: 37
-              type: column
+            - type: column
               id: "256.65536.4294967297.6"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: supplier.s_comment
               qualified-idx: 1
               prefer-qualified: 0
               detail: "varchar(101) · supplier"
-        - score: 52
-          value: ps_comment
+        - value: ps_comment
           name-tags: [COLUMN_NAME]
           candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
           location: "s_co"
           location-qualified: "s_co"
           objects:
-            - score: 32
-              type: column
+            - type: column
               id: "256.65536.4294967298.4"
               candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: partsupp.ps_comment
@@ -1231,15 +1226,13 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
-        - score: 57
-          value: part
+        - value: part
           name-tags: [TABLE_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
           location: "p"
           location-qualified: "p"
           objects:
-            - score: 37
-              type: table
+            - type: table
               id: "256.65536.4294967296"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: part
@@ -1247,15 +1240,13 @@ completion-snapshots:
               prefer-qualified: 0
               detail: "9 columns"
               columns: ["p_partkey integer","p_name varchar(55)","p_mfgr char(25)","p_brand char(10)","p_type varchar(25)","p_size integer","p_container char(10)","p_retailprice numeric(12,2)","p_comment varchar(23)"]
-        - score: 57
-          value: partsupp
+        - value: partsupp
           name-tags: [TABLE_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
           location: "p"
           location-qualified: "p"
           objects:
-            - score: 37
-              type: table
+            - type: table
               id: "256.65536.4294967298"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: partsupp
@@ -1263,8 +1254,7 @@ completion-snapshots:
               prefer-qualified: 0
               detail: "5 columns"
               columns: ["ps_partkey integer","ps_suppkey integer","ps_availqty integer","ps_supplycost numeric(12,2)","ps_comment varchar(199)"]
-        - score: 55
-          value: parallel
+        - value: parallel
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "p"
           location-qualified: "p"
@@ -1873,45 +1863,39 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
-        - score: 62
-          value: l_orderkey
+        - value: l_orderkey
           name-tags: [COLUMN_NAME]
           candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
           location: "ke"
           location-qualified: "ke"
           objects:
-            - score: 42
-              type: column
+            - type: column
               id: "256.65536.4294967301.0"
               candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: lineitem.l_orderkey
               qualified-idx: 1
               prefer-qualified: 0
               detail: "integer · lineitem"
-        - score: 62
-          value: l_partkey
+        - value: l_partkey
           name-tags: [COLUMN_NAME]
           candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
           location: "ke"
           location-qualified: "ke"
           objects:
-            - score: 42
-              type: column
+            - type: column
               id: "256.65536.4294967301.1"
               candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: lineitem.l_partkey
               qualified-idx: 1
               prefer-qualified: 0
               detail: "integer · lineitem"
-        - score: 62
-          value: l_suppkey
+        - value: l_suppkey
           name-tags: [COLUMN_NAME]
           candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
           location: "ke"
           location-qualified: "ke"
           objects:
-            - score: 42
-              type: column
+            - type: column
               id: "256.65536.4294967301.2"
               candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: lineitem.l_suppkey

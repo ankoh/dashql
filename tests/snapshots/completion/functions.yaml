@@ -32,88 +32,76 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
-        - score: 59
-          value: my
+        - value: my
           candidate-tags: [IDENTITY]
           location: "my"
           location-qualified: "my"
           objects: []
-        - score: 47
-          value: myagg
+        - value: myagg
           name-tags: [FUNCTION_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
           location: "my"
           location-qualified: "my"
           objects:
-            - score: 37
-              type: function
+            - type: function
               id: "256.65536.4294967300"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: myagg
               qualified-idx: 0
               prefer-qualified: 0
               detail: "aggregate"
-        - score: 47
-          value: myany
+        - value: myany
           name-tags: [FUNCTION_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
           location: "my"
           location-qualified: "my"
           objects:
-            - score: 37
-              type: function
+            - type: function
               id: "256.65536.4294967301"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: myany
               qualified-idx: 0
               prefer-qualified: 0
-        - score: 47
-          value: mymax
+        - value: mymax
           name-tags: [FUNCTION_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
           location: "my"
           location-qualified: "my"
           objects:
-            - score: 37
-              type: function
+            - type: function
               id: "256.65536.4294967299"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: mymax
               qualified-idx: 0
               prefer-qualified: 0
               detail: "(x int) → int · aggregate"
-        - score: 47
-          value: myproc
+        - value: myproc
           name-tags: [FUNCTION_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
           location: "my"
           location-qualified: "my"
           objects:
-            - score: 37
-              type: function
+            - type: function
               id: "256.65536.4294967298"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: myproc
               qualified-idx: 0
               prefer-qualified: 0
               detail: "(x int)"
-        - score: 47
-          value: mysum
+        - value: mysum
           name-tags: [FUNCTION_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
           location: "my"
           location-qualified: "my"
           objects:
-            - score: 37
-              type: function
+            - type: function
               id: "256.65536.4294967296"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: mysum
               qualified-idx: 0
               prefer-qualified: 0
               detail: "(x int, y text) → int"
-            - score: 37
-              type: function
+            - type: function
               id: "256.65536.4294967297"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: mysum
@@ -178,66 +166,57 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
-        - score: 67
-          value: mya
+        - value: mya
           name-tags: [COLUMN_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
           location: "my"
           location-qualified: "my"
           objects:
-            - score: 47
-              type: column
+            - type: column
               id: "256.65536.4294967296.0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: mytable.mya
               qualified-idx: 1
               prefer-qualified: 0
               detail: "integer · mytable"
-        - score: 67
-          value: myb
+        - value: myb
           name-tags: [COLUMN_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
           location: "my"
           location-qualified: "my"
           objects:
-            - score: 47
-              type: column
+            - type: column
               id: "256.65536.4294967296.1"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: mytable.myb
               qualified-idx: 1
               prefer-qualified: 0
               detail: "integer · mytable"
-        - score: 59
-          value: my
+        - value: my
           candidate-tags: [IDENTITY]
           location: "my"
           location-qualified: "my"
           objects: []
-        - score: 57
-          value: myc
+        - value: myc
           name-tags: [COLUMN_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
           location: "my"
           location-qualified: "my"
           objects:
-            - score: 37
-              type: column
+            - type: column
               id: "256.65536.4294967297.0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: myone.myc
               qualified-idx: 1
               prefer-qualified: 0
               detail: "integer · myone"
-        - score: 47
-          value: myone
+        - value: myone
           name-tags: [TABLE_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
           location: "my"
           location-qualified: "my"
           objects:
-            - score: 37
-              type: table
+            - type: table
               id: "256.65536.4294967297"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: myone
@@ -245,15 +224,13 @@ completion-snapshots:
               prefer-qualified: 0
               detail: "1 column"
               columns: ["myc integer"]
-        - score: 47
-          value: mytable
+        - value: mytable
           name-tags: [TABLE_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
           location: "my"
           location-qualified: "my"
           objects:
-            - score: 37
-              type: table
+            - type: table
               id: "256.65536.4294967296"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: mytable
@@ -303,15 +280,13 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
-        - score: 55
-          value: myview
+        - value: myview
           name-tags: [TABLE_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "my"
           location-qualified: "my"
           objects:
-            - score: 35
-              type: table
+            - type: table
               id: "256.65536.4294967296"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH]
               qualified: myview
@@ -319,14 +294,12 @@ completion-snapshots:
               prefer-qualified: 0
               detail: "view · 1 column"
               columns: ["a"]
-        - score: 50
-          value: my
+        - value: my
           candidate-tags: [IDENTITY]
           location: "my"
           location-qualified: "my"
           objects: []
-        - score: 4
-          value: where
+        - value: where
           candidate-tags: [KEYWORD_A,EXPECTED_PARSER_SYMBOL]
           location: "my"
           location-qualified: "my"

@@ -34,15 +34,13 @@ completion-snapshots:
       symbol: OBJECT_EXT_TRAILING_DOT
       relative: END_OF_SYMBOL
       entries:
-        - score: 22
-          value: foo
+        - value: foo
           name-tags: [TABLE_NAME]
           candidate-tags: [DOT_RESOLUTION_TABLE]
           location: ""
           location-qualified: "dbname.schemaname."
           objects:
-            - score: 2
-              type: table
+            - type: table
               id: "256.65536.4294967296"
               candidate-tags: [DOT_RESOLUTION_TABLE]
               qualified: dbname.schemaname.foo
@@ -92,15 +90,13 @@ completion-snapshots:
       symbol: OBJECT_EXT_TRAILING_DOT
       relative: END_OF_SYMBOL
       entries:
-        - score: 22
-          value: a
+        - value: a
           name-tags: [COLUMN_NAME]
           candidate-tags: [DOT_RESOLUTION_COLUMN]
           location: ""
           location-qualified: "f."
           objects:
-            - score: 2
-              type: column
+            - type: column
               id: "256.65536.4294967296.0"
               candidate-tags: [DOT_RESOLUTION_COLUMN]
               qualified: f.a
@@ -149,15 +145,13 @@ completion-snapshots:
       symbol: OBJECT_EXT_TRAILING_DOT
       relative: END_OF_SYMBOL
       entries:
-        - score: 22
-          value: a
+        - value: a
           name-tags: [COLUMN_NAME]
           candidate-tags: [DOT_RESOLUTION_COLUMN]
           location: ""
           location-qualified: "f."
           objects:
-            - score: 2
-              type: column
+            - type: column
               id: "256.65536.4294967296.0"
               candidate-tags: [DOT_RESOLUTION_COLUMN]
               qualified: f.a
@@ -206,15 +200,13 @@ completion-snapshots:
       symbol: OBJECT_EXT_TRAILING_DOT
       relative: END_OF_SYMBOL
       entries:
-        - score: 22
-          value: a
+        - value: a
           name-tags: [COLUMN_NAME]
           candidate-tags: [DOT_RESOLUTION_COLUMN]
           location: ""
           location-qualified: "f."
           objects:
-            - score: 2
-              type: column
+            - type: column
               id: "256.65536.4294967296.0"
               candidate-tags: [DOT_RESOLUTION_COLUMN]
               qualified: f.a
@@ -285,45 +277,39 @@ completion-snapshots:
       symbol: OBJECT_EXT_TRAILING_DOT
       relative: END_OF_SYMBOL
       entries:
-        - score: 22
-          value: a
+        - value: a
           name-tags: [COLUMN_NAME]
           candidate-tags: [DOT_RESOLUTION_COLUMN]
           location: ""
           location-qualified: "alias."
           objects:
-            - score: 2
-              type: column
+            - type: column
               id: "256.65536.4294967296.0"
               candidate-tags: [DOT_RESOLUTION_COLUMN]
               qualified: alias.a
               qualified-idx: 1
               prefer-qualified: 1
               detail: "integer · foo"
-        - score: 22
-          value: b
+        - value: b
           name-tags: [COLUMN_NAME]
           candidate-tags: [DOT_RESOLUTION_COLUMN]
           location: ""
           location-qualified: "alias."
           objects:
-            - score: 2
-              type: column
+            - type: column
               id: "256.65536.4294967296.1"
               candidate-tags: [DOT_RESOLUTION_COLUMN]
               qualified: alias.b
               qualified-idx: 1
               prefer-qualified: 1
               detail: "integer · foo"
-        - score: 22
-          value: c
+        - value: c
           name-tags: [COLUMN_NAME]
           candidate-tags: [DOT_RESOLUTION_COLUMN]
           location: ""
           location-qualified: "alias."
           objects:
-            - score: 2
-              type: column
+            - type: column
               id: "256.65536.4294967296.2"
               candidate-tags: [DOT_RESOLUTION_COLUMN]
               qualified: alias.c
@@ -400,45 +386,39 @@ completion-snapshots:
       symbol: OBJECT_EXT_TRAILING_DOT
       relative: END_OF_SYMBOL
       entries:
-        - score: 22
-          value: a
+        - value: a
           name-tags: [COLUMN_NAME]
           candidate-tags: [DOT_RESOLUTION_COLUMN]
           location: ""
           location-qualified: "f."
           objects:
-            - score: 2
-              type: column
+            - type: column
               id: "256.65536.4294967296.0"
               candidate-tags: [DOT_RESOLUTION_COLUMN]
               qualified: f.a
               qualified-idx: 1
               prefer-qualified: 1
               detail: "integer · foo"
-        - score: 22
-          value: b
+        - value: b
           name-tags: [COLUMN_NAME]
           candidate-tags: [DOT_RESOLUTION_COLUMN]
           location: ""
           location-qualified: "f."
           objects:
-            - score: 2
-              type: column
+            - type: column
               id: "256.65536.4294967296.1"
               candidate-tags: [DOT_RESOLUTION_COLUMN]
               qualified: f.b
               qualified-idx: 1
               prefer-qualified: 1
               detail: "integer · foo"
-        - score: 22
-          value: c
+        - value: c
           name-tags: [COLUMN_NAME]
           candidate-tags: [DOT_RESOLUTION_COLUMN]
           location: ""
           location-qualified: "f."
           objects:
-            - score: 2
-              type: column
+            - type: column
               id: "256.65536.4294967296.2"
               candidate-tags: [DOT_RESOLUTION_COLUMN]
               qualified: f.c
@@ -515,45 +495,39 @@ completion-snapshots:
       symbol: OBJECT_EXT_TRAILING_DOT
       relative: END_OF_SYMBOL
       entries:
-        - score: 22
-          value: d
+        - value: d
           name-tags: [COLUMN_NAME]
           candidate-tags: [DOT_RESOLUTION_COLUMN]
           location: ""
           location-qualified: "b."
           objects:
-            - score: 2
-              type: column
+            - type: column
               id: "256.65536.4294967297.0"
               candidate-tags: [DOT_RESOLUTION_COLUMN]
               qualified: b.d
               qualified-idx: 1
               prefer-qualified: 1
               detail: "integer · bar"
-        - score: 22
-          value: e
+        - value: e
           name-tags: [COLUMN_NAME]
           candidate-tags: [DOT_RESOLUTION_COLUMN]
           location: ""
           location-qualified: "b."
           objects:
-            - score: 2
-              type: column
+            - type: column
               id: "256.65536.4294967297.1"
               candidate-tags: [DOT_RESOLUTION_COLUMN]
               qualified: b.e
               qualified-idx: 1
               prefer-qualified: 1
               detail: "integer · bar"
-        - score: 22
-          value: f
+        - value: f
           name-tags: [COLUMN_NAME]
           candidate-tags: [DOT_RESOLUTION_COLUMN]
           location: ""
           location-qualified: "b."
           objects:
-            - score: 2
-              type: column
+            - type: column
               id: "256.65536.4294967297.2"
               candidate-tags: [DOT_RESOLUTION_COLUMN]
               qualified: b.f
@@ -614,45 +588,39 @@ completion-snapshots:
       symbol: OBJECT_EXT_TRAILING_DOT
       relative: END_OF_SYMBOL
       entries:
-        - score: 22
-          value: a
+        - value: a
           name-tags: [COLUMN_NAME]
           candidate-tags: [DOT_RESOLUTION_COLUMN]
           location: ""
           location-qualified: "f."
           objects:
-            - score: 2
-              type: column
+            - type: column
               id: "256.65536.4294967296.0"
               candidate-tags: [DOT_RESOLUTION_COLUMN]
               qualified: f.a
               qualified-idx: 1
               prefer-qualified: 1
               detail: "integer · foo"
-        - score: 22
-          value: b
+        - value: b
           name-tags: [COLUMN_NAME]
           candidate-tags: [DOT_RESOLUTION_COLUMN]
           location: ""
           location-qualified: "f."
           objects:
-            - score: 2
-              type: column
+            - type: column
               id: "256.65536.4294967296.1"
               candidate-tags: [DOT_RESOLUTION_COLUMN]
               qualified: f.b
               qualified-idx: 1
               prefer-qualified: 1
               detail: "integer · foo"
-        - score: 22
-          value: c
+        - value: c
           name-tags: [COLUMN_NAME]
           candidate-tags: [DOT_RESOLUTION_COLUMN]
           location: ""
           location-qualified: "f."
           objects:
-            - score: 2
-              type: column
+            - type: column
               id: "256.65536.4294967296.2"
               candidate-tags: [DOT_RESOLUTION_COLUMN]
               qualified: f.c
@@ -704,30 +672,26 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
-        - score: 57
-          value: apple
+        - value: apple
           name-tags: [COLUMN_NAME]
           candidate-tags: [DOT_RESOLUTION_COLUMN,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "ap"
           location-qualified: "f.ap"
           objects:
-            - score: 37
-              type: column
+            - type: column
               id: "256.65536.4294967296.0"
               candidate-tags: [DOT_RESOLUTION_COLUMN,PREFIX_MATCH,SUBSTRING_MATCH]
               qualified: f.apple
               qualified-idx: 1
               prefer-qualified: 1
               detail: "integer · foo"
-        - score: 22
-          value: juice
+        - value: juice
           name-tags: [COLUMN_NAME]
           candidate-tags: [DOT_RESOLUTION_COLUMN]
           location: "ap"
           location-qualified: "f.ap"
           objects:
-            - score: 2
-              type: column
+            - type: column
               id: "256.65536.4294967296.1"
               candidate-tags: [DOT_RESOLUTION_COLUMN]
               qualified: f.juice

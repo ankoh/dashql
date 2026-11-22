@@ -374,45 +374,39 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
-        - score: 69
-          value: name
+        - value: name
           name-tags: [COLUMN_NAME]
           candidate-tags: [DOT_RESOLUTION_COLUMN,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
           location: "na"
           location-qualified: "t.na"
           objects:
-            - score: 49
-              type: column
+            - type: column
               id: "256.65536.4294967296.2"
               candidate-tags: [DOT_RESOLUTION_COLUMN,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: t.name
               qualified-idx: 1
               prefer-qualified: 0
               detail: "text · t"
-        - score: 34
-          value: a
+        - value: a
           name-tags: [COLUMN_NAME]
           candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
           location: "na"
           location-qualified: "t.na"
           objects:
-            - score: 14
-              type: column
+            - type: column
               id: "256.65536.4294967296.0"
               candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: t.a
               qualified-idx: 1
               prefer-qualified: 0
               detail: "integer · t"
-        - score: 34
-          value: b
+        - value: b
           name-tags: [COLUMN_NAME]
           candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
           location: "na"
           location-qualified: "t.na"
           objects:
-            - score: 14
-              type: column
+            - type: column
               id: "256.65536.4294967296.1"
               candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: t.b
@@ -448,59 +442,51 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
-        - score: 59
-          value: my
+        - value: my
           candidate-tags: [IDENTITY]
           location: "my"
           location-qualified: "my"
           objects: []
-        - score: 47
-          value: myabs
+        - value: myabs
           name-tags: [FUNCTION_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
           location: "my"
           location-qualified: "my"
           objects:
-            - score: 37
-              type: function
+            - type: function
               id: "257.65538.4294967298"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: myabs
               qualified-idx: 0
               prefer-qualified: 0
               detail: "(x int) → int"
-        - score: 47
-          value: mymax
+        - value: mymax
           name-tags: [FUNCTION_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
           location: "my"
           location-qualified: "my"
           objects:
-            - score: 37
-              type: function
+            - type: function
               id: "257.65537.4294967297"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: sch2.mymax
               qualified-idx: 1
               prefer-qualified: 0
               detail: "(x int) → int"
-        - score: 47
-          value: mysum
+        - value: mysum
           name-tags: [FUNCTION_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
           location: "my"
           location-qualified: "my"
           objects:
-            - score: 37
-              type: function
+            - type: function
               id: "256.65536.4294967296"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: db1.sch1.mysum
               qualified-idx: 2
               prefer-qualified: 0
               detail: "(x int) → int"
-        - score: 4
-          value: from
+        - value: from
           candidate-tags: [KEYWORD_A,EXPECTED_PARSER_SYMBOL]
           location: "my"
           location-qualified: "my"
@@ -552,59 +538,51 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
-        - score: 59
-          value: my
+        - value: my
           candidate-tags: [IDENTITY]
           location: "my"
           location-qualified: "my"
           objects: []
-        - score: 47
-          value: myabs
+        - value: myabs
           name-tags: [FUNCTION_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
           location: "my"
           location-qualified: "my"
           objects:
-            - score: 37
-              type: function
+            - type: function
               id: "257.65538.4294967298"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: myabs
               qualified-idx: 0
               prefer-qualified: 0
               detail: "(x int) → int"
-        - score: 47
-          value: mymax
+        - value: mymax
           name-tags: [FUNCTION_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
           location: "my"
           location-qualified: "my"
           objects:
-            - score: 37
-              type: function
+            - type: function
               id: "257.65537.4294967297"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: sch2.mymax
               qualified-idx: 1
               prefer-qualified: 0
               detail: "(x int) → int"
-        - score: 47
-          value: mysum
+        - value: mysum
           name-tags: [FUNCTION_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
           location: "my"
           location-qualified: "my"
           objects:
-            - score: 37
-              type: function
+            - type: function
               id: "256.65536.4294967296"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: db1.sch1.mysum
               qualified-idx: 2
               prefer-qualified: 0
               detail: "(x int) → int"
-        - score: 3
-          value: group
+        - value: group
           keyword-continuation: by
           candidate-tags: [KEYWORD_B,EXPECTED_PARSER_SYMBOL]
           location: "my"
@@ -668,15 +646,13 @@ completion-snapshots:
       symbol: NAME
       relative: BEGIN_OF_SYMBOL
       entries:
-        - score: 57
-          value: t
+        - value: t
           name-tags: [TABLE_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
           location: "t"
           location-qualified: "t"
           objects:
-            - score: 37
-              type: table
+            - type: table
               id: "256.65536.4294967296"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: t
@@ -684,26 +660,22 @@ completion-snapshots:
               prefer-qualified: 0
               detail: "3 columns"
               columns: ["a integer","b integer","name text"]
-        - score: 50
-          value: t
+        - value: t
           candidate-tags: [IDENTITY]
           location: "t"
           location-qualified: "t"
           objects: []
-        - score: 37
-          value: text
+        - value: text
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
           location: "t"
           location-qualified: "t"
           objects: []
-        - score: 4
-          value: where
+        - value: where
           candidate-tags: [KEYWORD_A,EXPECTED_PARSER_SYMBOL]
           location: "t"
           location-qualified: "t"
           objects: []
-        - score: 3
-          value: group
+        - value: group
           keyword-continuation: by
           candidate-tags: [KEYWORD_B,EXPECTED_PARSER_SYMBOL]
           location: "t"
@@ -774,58 +746,50 @@ completion-snapshots:
       symbol: NAME
       relative: BEGIN_OF_SYMBOL
       entries:
-        - score: 67
-          value: name
+        - value: name
           name-tags: [COLUMN_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
           location: "a"
           location-qualified: "a"
           objects:
-            - score: 47
-              type: column
+            - type: column
               id: "256.65536.4294967296.2"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: t.name
               qualified-idx: 1
               prefer-qualified: 0
               detail: "text · t"
-        - score: 59
-          value: a
+        - value: a
           candidate-tags: [IDENTITY]
           location: "a"
           location-qualified: "a"
           objects: []
-        - score: 57
-          value: a
+        - value: a
           name-tags: [COLUMN_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
           location: "a"
           location-qualified: "a"
           objects:
-            - score: 47
-              type: column
+            - type: column
               id: "256.65536.4294967296.0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: t.a
               qualified-idx: 1
               prefer-qualified: 0
               detail: "integer · t"
-            - score: 37
-              type: column
+            - type: column
               id: "256.65536.4294967297.0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: u.a
               qualified-idx: 1
               prefer-qualified: 0
               detail: "integer · u"
-        - score: 3
-          value: by
+        - value: by
           candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,SUFFIX_DEPTH_MANY]
           location: "a"
           location-qualified: "a"
           objects: []
-        - score: 3
-          value: set
+        - value: set
           candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,SUFFIX_DEPTH_MANY]
           location: "a"
           location-qualified: "a"
@@ -1299,32 +1263,27 @@ completion-snapshots:
       symbol: NAME
       relative: MID_OF_SYMBOL
       entries:
-        - score: 3
-          value: by
+        - value: by
           candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,SUFFIX_DEPTH_MANY]
           location: "aaaaaaaaaa..aaaaaaaaaa"
           location-qualified: "aaaaaaaaaa..aaaaaaaaaa"
           objects: []
-        - score: 3
-          value: set
+        - value: set
           candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,SUFFIX_DEPTH_MANY]
           location: "aaaaaaaaaa..aaaaaaaaaa"
           location-qualified: "aaaaaaaaaa..aaaaaaaaaa"
           objects: []
-        - score: 1
-          value: abort
+        - value: abort
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUFFIX_DEPTH_MANY]
           location: "aaaaaaaaaa..aaaaaaaaaa"
           location-qualified: "aaaaaaaaaa..aaaaaaaaaa"
           objects: []
-        - score: 1
-          value: absent
+        - value: absent
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUFFIX_DEPTH_MANY]
           location: "aaaaaaaaaa..aaaaaaaaaa"
           location-qualified: "aaaaaaaaaa..aaaaaaaaaa"
           objects: []
-        - score: 1
-          value: absolute
+        - value: absolute
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUFFIX_DEPTH_MANY]
           location: "aaaaaaaaaa..aaaaaaaaaa"
           location-qualified: "aaaaaaaaaa..aaaaaaaaaa"
@@ -1410,41 +1369,35 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
-        - score: 67
-          value: name
+        - value: name
           name-tags: [COLUMN_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
           location: "na"
           location-qualified: "na"
           objects:
-            - score: 47
-              type: column
+            - type: column
               id: "256.65536.4294967296.2"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: t.name
               qualified-idx: 1
               prefer-qualified: 0
               detail: "text · t"
-        - score: 59
-          value: na
+        - value: na
           candidate-tags: [IDENTITY]
           location: "na"
           location-qualified: "na"
           objects: []
-        - score: 56
-          value: name
+        - value: name
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "na"
           location-qualified: "na"
           objects: []
-        - score: 56
-          value: names
+        - value: names
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "na"
           location-qualified: "na"
           objects: []
-        - score: 56
-          value: national
+        - value: national
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "na"
           location-qualified: "na"
@@ -1515,33 +1468,28 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
-        - score: 67
-          value: name
+        - value: name
           name-tags: [COLUMN_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
           location: "na"
           location-qualified: "na"
           objects: []
-        - score: 59
-          value: na
+        - value: na
           candidate-tags: [IDENTITY]
           location: "na"
           location-qualified: "na"
           objects: []
-        - score: 56
-          value: name
+        - value: name
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "na"
           location-qualified: "na"
           objects: []
-        - score: 56
-          value: names
+        - value: names
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "na"
           location-qualified: "na"
           objects: []
-        - score: 56
-          value: national
+        - value: national
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "na"
           location-qualified: "na"
@@ -1630,41 +1578,35 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
-        - score: 4294967295
-          value: na
+        - value: na
           candidate-tags: [IDENTITY]
           location: "na"
           location-qualified: "na"
           objects: []
-        - score: 67
-          value: name
+        - value: name
           name-tags: [COLUMN_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
           location: "na"
           location-qualified: "na"
           objects:
-            - score: 47
-              type: column
+            - type: column
               id: "256.65536.4294967296.2"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: t.name
               qualified-idx: 1
               prefer-qualified: 0
               detail: "text · t"
-        - score: 56
-          value: name
+        - value: name
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "na"
           location-qualified: "na"
           objects: []
-        - score: 56
-          value: names
+        - value: names
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "na"
           location-qualified: "na"
           objects: []
-        - score: 56
-          value: national
+        - value: national
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "na"
           location-qualified: "na"
@@ -1720,21 +1662,18 @@ completion-snapshots:
       limit: 5
       strategy: DEFAULT
       entries:
-        - score: 4294967295
-          value: u
+        - value: u
           candidate-tags: [IDENTITY]
           location: "u"
           location-qualified: "u"
           objects: []
-        - score: 72
-          value: u
+        - value: u
           name-tags: [TABLE_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,EXACT_MATCH]
           location: "u"
           location-qualified: "u"
           objects:
-            - score: 52
-              type: table
+            - type: table
               id: "256.65536.4294967297"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,EXACT_MATCH]
               qualified: u
@@ -1742,20 +1681,17 @@ completion-snapshots:
               prefer-qualified: 0
               detail: "2 columns"
               columns: ["a integer","c integer"]
-        - score: 55
-          value: unbounded
+        - value: unbounded
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "u"
           location-qualified: "u"
           objects: []
-        - score: 55
-          value: uncommitted
+        - value: uncommitted
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "u"
           location-qualified: "u"
           objects: []
-        - score: 55
-          value: unconditional
+        - value: unconditional
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "u"
           location-qualified: "u"
@@ -1824,41 +1760,35 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
-        - score: 67
-          value: name
+        - value: name
           name-tags: [COLUMN_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
           location: "na"
           location-qualified: "na"
           objects:
-            - score: 47
-              type: column
+            - type: column
               id: "256.65536.4294967296.2"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: t.name
               qualified-idx: 1
               prefer-qualified: 0
               detail: "text · t"
-        - score: 59
-          value: na
+        - value: na
           candidate-tags: [IDENTITY]
           location: "na"
           location-qualified: "na"
           objects: []
-        - score: 55
-          value: name
+        - value: name
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "na"
           location-qualified: "na"
           objects: []
-        - score: 55
-          value: names
+        - value: names
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "na"
           location-qualified: "na"
           objects: []
-        - score: 55
-          value: national
+        - value: national
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "na"
           location-qualified: "na"
@@ -1932,41 +1862,35 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
-        - score: 67
-          value: name
+        - value: name
           name-tags: [COLUMN_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
           location: "na"
           location-qualified: "na"
           objects:
-            - score: 47
-              type: column
+            - type: column
               id: "256.65536.4294967296.2"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: t.name
               qualified-idx: 1
               prefer-qualified: 0
               detail: "text · t"
-        - score: 59
-          value: na
+        - value: na
           candidate-tags: [IDENTITY]
           location: "na"
           location-qualified: "na"
           objects: []
-        - score: 55
-          value: name
+        - value: name
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "na"
           location-qualified: "na"
           objects: []
-        - score: 55
-          value: names
+        - value: names
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "na"
           location-qualified: "na"
           objects: []
-        - score: 55
-          value: national
+        - value: national
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "na"
           location-qualified: "na"
@@ -2036,32 +1960,27 @@ completion-snapshots:
       symbol: NAME
       relative: MID_OF_SYMBOL
       entries:
-        - score: 4294967295
-          value: total
+        - value: total
           candidate-tags: [IDENTITY]
           location: "total"
           location-qualified: "total"
           objects: []
-        - score: 71
-          value: to
+        - value: to
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,EXACT_MATCH,SUFFIX_DEPTH_MANY]
           location: "total"
           location-qualified: "total"
           objects: []
-        - score: 51
-          value: descriptor
+        - value: descriptor
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "total"
           location-qualified: "total"
           objects: []
-        - score: 51
-          value: into
+        - value: into
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "total"
           location-qualified: "total"
           objects: []
-        - score: 51
-          value: operator
+        - value: operator
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "total"
           location-qualified: "total"
@@ -2140,15 +2059,13 @@ completion-snapshots:
       symbol: ARRAY
       relative: END_OF_SYMBOL
       entries:
-        - score: 32
-          value: a
+        - value: a
           name-tags: [COLUMN_NAME]
           candidate-tags: [DOT_RESOLUTION_COLUMN,IN_NAME_SCOPE]
           location: ""
           location-qualified: "u."
           objects: []
-        - score: 32
-          value: c
+        - value: c
           name-tags: [COLUMN_NAME]
           candidate-tags: [DOT_RESOLUTION_COLUMN,IN_NAME_SCOPE]
           location: ""
@@ -2205,49 +2122,42 @@ completion-snapshots:
       limit: 5
       strategy: DEFAULT
       entries:
-        - score: 4294967295
-          value: a
+        - value: a
           candidate-tags: [IDENTITY]
           location: "a"
           location-qualified: "a"
           objects: []
-        - score: 72
-          value: a
+        - value: a
           name-tags: [COLUMN_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,EXACT_MATCH]
           location: "a"
           location-qualified: "a"
           objects:
-            - score: 52
-              type: column
+            - type: column
               id: "256.65536.4294967296.0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,EXACT_MATCH]
               qualified: t.a
               qualified-idx: 1
               prefer-qualified: 0
               detail: "integer · t"
-            - score: 52
-              type: column
+            - type: column
               id: "256.65536.4294967297.0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,EXACT_MATCH]
               qualified: u.a
               qualified-idx: 1
               prefer-qualified: 0
               detail: "integer · u"
-        - score: 55
-          value: abort
+        - value: abort
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "a"
           location-qualified: "a"
           objects: []
-        - score: 55
-          value: absent
+        - value: absent
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "a"
           location-qualified: "a"
           objects: []
-        - score: 55
-          value: absolute
+        - value: absolute
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "a"
           location-qualified: "a"
@@ -2303,32 +2213,27 @@ completion-snapshots:
       limit: 5
       strategy: DEFAULT
       entries:
-        - score: 4294967295
-          value: in
+        - value: in
           candidate-tags: [IDENTITY]
           location: "in"
           location-qualified: "in"
           objects: []
-        - score: 55
-          value: including
+        - value: including
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "in"
           location-qualified: "in"
           objects: []
-        - score: 55
-          value: increment
+        - value: increment
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "in"
           location-qualified: "in"
           objects: []
-        - score: 55
-          value: index
+        - value: index
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "in"
           location-qualified: "in"
           objects: []
-        - score: 55
-          value: indexes
+        - value: indexes
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "in"
           location-qualified: "in"
@@ -2371,33 +2276,28 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
-        - score: 70
-          value: a
+        - value: a
           name-tags: [COLUMN_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,EXACT_MATCH]
           location: "a"
           location-qualified: "a"
           objects: []
-        - score: 59
-          value: a
+        - value: a
           candidate-tags: [IDENTITY]
           location: "a"
           location-qualified: "a"
           objects: []
-        - score: 55
-          value: abort
+        - value: abort
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "a"
           location-qualified: "a"
           objects: []
-        - score: 55
-          value: absent
+        - value: absent
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "a"
           location-qualified: "a"
           objects: []
-        - score: 55
-          value: absolute
+        - value: absolute
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "a"
           location-qualified: "a"
@@ -2479,58 +2379,50 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
-        - score: 83
-          value: a
+        - value: a
           name-tags: [COLUMN_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,UNRESOLVED_PEER,THROUGH_CATALOG,IN_NAME_SCOPE,EXACT_MATCH]
           location: "a"
           location-qualified: "a"
           objects:
-            - score: 63
-              type: column
+            - type: column
               id: "256.65536.4294967296.0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,UNRESOLVED_PEER,THROUGH_CATALOG,IN_NAME_SCOPE,EXACT_MATCH]
               qualified: t.a
               qualified-idx: 1
               prefer-qualified: 1
               detail: "integer · t"
-            - score: 63
-              type: column
+            - type: column
               id: "256.65536.4294967297.0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,UNRESOLVED_PEER,THROUGH_CATALOG,IN_NAME_SCOPE,EXACT_MATCH]
               qualified: u.a
               qualified-idx: 1
               prefer-qualified: 1
               detail: "integer · u"
-        - score: 63
-          value: name
+        - value: name
           name-tags: [COLUMN_NAME]
           candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,UNRESOLVED_PEER,THROUGH_CATALOG,IN_NAME_SCOPE]
           location: "a"
           location-qualified: "a"
           objects:
-            - score: 43
-              type: column
+            - type: column
               id: "256.65536.4294967296.2"
               candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,UNRESOLVED_PEER,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: t.name
               qualified-idx: 1
               prefer-qualified: 0
               detail: "text · t"
-        - score: 59
-          value: a
+        - value: a
           candidate-tags: [IDENTITY]
           location: "a"
           location-qualified: "a"
           objects: []
-        - score: 55
-          value: abort
+        - value: abort
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "a"
           location-qualified: "a"
           objects: []
-        - score: 55
-          value: absent
+        - value: absent
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "a"
           location-qualified: "a"
@@ -2598,41 +2490,35 @@ completion-snapshots:
       symbol: NAME
       relative: MID_OF_SYMBOL
       entries:
-        - score: 67
-          value: name
+        - value: name
           name-tags: [COLUMN_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
           location: "\"na\""
           location-qualified: "\"na\""
           objects:
-            - score: 47
-              type: column
+            - type: column
               id: "256.65536.4294967296.2"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: t.name
               qualified-idx: 1
               prefer-qualified: 0
               detail: "text · t"
-        - score: 59
-          value: '"na"'
+        - value: '"na"'
           candidate-tags: [IDENTITY]
           location: "\"na\""
           location-qualified: "\"na\""
           objects: []
-        - score: 56
-          value: name
+        - value: name
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "\"na\""
           location-qualified: "\"na\""
           objects: []
-        - score: 56
-          value: names
+        - value: names
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "\"na\""
           location-qualified: "\"na\""
           objects: []
-        - score: 56
-          value: national
+        - value: national
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "\"na\""
           location-qualified: "\"na\""
@@ -2700,41 +2586,35 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
-        - score: 67
-          value: name
+        - value: name
           name-tags: [COLUMN_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
           location: "NA"
           location-qualified: "NA"
           objects:
-            - score: 47
-              type: column
+            - type: column
               id: "256.65536.4294967296.2"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: t.name
               qualified-idx: 1
               prefer-qualified: 0
               detail: "text · t"
-        - score: 59
-          value: NA
+        - value: NA
           candidate-tags: [IDENTITY]
           location: "NA"
           location-qualified: "NA"
           objects: []
-        - score: 56
-          value: name
+        - value: name
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "NA"
           location-qualified: "NA"
           objects: []
-        - score: 56
-          value: names
+        - value: names
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "NA"
           location-qualified: "NA"
           objects: []
-        - score: 56
-          value: national
+        - value: national
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
           location: "NA"
           location-qualified: "NA"
@@ -2815,41 +2695,35 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
-        - score: 67
-          value: name
+        - value: name
           name-tags: [COLUMN_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
           location: "na"
           location-qualified: "na"
           objects:
-            - score: 47
-              type: column
+            - type: column
               id: "256.65536.4294967296.2"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: t.name
               qualified-idx: 1
               prefer-qualified: 0
               detail: "text · t"
-        - score: 59
-          value: na
+        - value: na
           candidate-tags: [IDENTITY]
           location: "na"
           location-qualified: "na"
           objects: []
-        - score: 55
-          value: name
+        - value: name
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "na"
           location-qualified: "na"
           objects: []
-        - score: 55
-          value: names
+        - value: names
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "na"
           location-qualified: "na"
           objects: []
-        - score: 55
-          value: national
+        - value: national
           candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           location: "na"
           location-qualified: "na"

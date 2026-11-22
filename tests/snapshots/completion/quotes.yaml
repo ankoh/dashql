@@ -36,15 +36,13 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
-        - score: 72
-          value: region
+        - value: region
           name-tags: [TABLE_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,EXACT_MATCH]
           location: "region"
           location-qualified: "region"
           objects:
-            - score: 52
-              type: table
+            - type: table
               id: "256.65536.4294967296"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,EXACT_MATCH]
               qualified: region
@@ -52,35 +50,30 @@ completion-snapshots:
               prefer-qualified: 0
               detail: "1 column"
               columns: ["r_regionkey integer"]
-        - score: 52
-          value: r_regionkey
+        - value: r_regionkey
           name-tags: [COLUMN_NAME]
           candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
           location: "region"
           location-qualified: "region"
           objects:
-            - score: 42
-              type: column
+            - type: column
               id: "256.65536.4294967296.0"
               candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: region.r_regionkey
               qualified-idx: 1
               prefer-qualified: 0
               detail: "integer · region"
-        - score: 50
-          value: region
+        - value: region
           candidate-tags: [IDENTITY]
           location: "region"
           location-qualified: "region"
           objects: []
-        - score: 4
-          value: where
+        - value: where
           candidate-tags: [KEYWORD_A,EXPECTED_PARSER_SYMBOL]
           location: "region"
           location-qualified: "region"
           objects: []
-        - score: 3
-          value: group
+        - value: group
           keyword-continuation: by
           candidate-tags: [KEYWORD_B,EXPECTED_PARSER_SYMBOL]
           location: "region"
@@ -124,15 +117,13 @@ completion-snapshots:
       symbol: NAME
       relative: END_OF_SYMBOL
       entries:
-        - score: 72
-          value: Region
+        - value: Region
           name-tags: [TABLE_NAME]
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,EXACT_MATCH]
           location: "\"Region\""
           location-qualified: "\"Region\""
           objects:
-            - score: 52
-              type: table
+            - type: table
               id: "256.65536.4294967296"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,EXACT_MATCH]
               qualified: '"Region"'
@@ -140,35 +131,30 @@ completion-snapshots:
               prefer-qualified: 0
               detail: "1 column"
               columns: ["r_regionkey integer"]
-        - score: 52
-          value: r_regionkey
+        - value: r_regionkey
           name-tags: [COLUMN_NAME]
           candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
           location: "\"Region\""
           location-qualified: "\"Region\""
           objects:
-            - score: 42
-              type: column
+            - type: column
               id: "256.65536.4294967296.0"
               candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: '"Region".r_regionkey'
               qualified-idx: 1
               prefer-qualified: 0
               detail: "integer · Region"
-        - score: 50
-          value: '"Region"'
+        - value: '"Region"'
           candidate-tags: [IDENTITY]
           location: "\"Region\""
           location-qualified: "\"Region\""
           objects: []
-        - score: 4
-          value: where
+        - value: where
           candidate-tags: [KEYWORD_A,EXPECTED_PARSER_SYMBOL]
           location: "\"Region\""
           location-qualified: "\"Region\""
           objects: []
-        - score: 3
-          value: group
+        - value: group
           keyword-continuation: by
           candidate-tags: [KEYWORD_B,EXPECTED_PARSER_SYMBOL]
           location: "\"Region\""
