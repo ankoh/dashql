@@ -5,7 +5,7 @@ import type * as core from '@akohn/dashql';
 import type { Runtime, Settled } from '@akohn/dashql/runtime/runtime';
 import type { StoreView } from '@akohn/dashql/runtime/store/runtime_store';
 import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
-import type { EmbeddedComputeDatabase } from '@akohn/dashql/platform/embedded_database';
+import type { EmbeddedClientContext, EmbeddedComputeDatabase } from '@akohn/dashql/platform/embedded_database';
 import type { QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import type { ScriptData, ScriptDataMap, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
@@ -236,6 +236,63 @@ export function useQueryProfileDetail(queryId: number | null, enabled = true) {
 export const useComputation = (tableId: number | null | undefined) => useView('computation', tableId);
 /// Dispatch actions to the computation of a result
 export const useComputationDispatch = (tableId: number | null | undefined) => useDispatch(tableId == null ? null : { computation: tableId });
+
+/// A table that a host loads and the runtime analyzes as a computation, see useTableComputation()
+export type TableComputationState =
+    /// Nothing loaded yet
+    | { status: 'idle' }
+    | { status: 'loading' }
+    | { status: 'failed'; error: string }
+    /// Loaded and analyzed as the computation `tableId`
+    | { status: 'ready'; tableId: number; table: arrow.Table };
+
+/// Load a table and analyze it as a computation, e.g. for a data table without column plots: the analysis skips the
+/// column aggregates, and the queries of the computation run with the client context. A new `load` loads again, null
+/// loads nothing. The shown table stays until the next one is analyzed, ordered like it, and then its computation goes.
+/// A failed load keeps it. The computation of a load that is replaced before it ends goes when it ends, the shown one
+/// when the component unmounts.
+export function useTableComputation(load: (() => Promise<arrow.Table>) | null, clientContext: EmbeddedClientContext | null = null): TableComputationState {
+    const runtime = useRuntime();
+    const [state, setState] = React.useState<TableComputationState>({ status: 'idle' });
+    const shown = React.useRef<number | null>(null);
+    const release = React.useCallback((tableId: number) => {
+        runtime.dispatch({ computation: tableId }, { kind: 'deleteComputation' });
+    }, [runtime]);
+    React.useEffect(() => () => {
+        if (shown.current != null) release(shown.current);
+        shown.current = null;
+    }, [release]);
+    React.useEffect(() => {
+        if (load == null) return;
+        let current = true;
+        setState(state => state.status === 'ready' ? state : { status: 'loading' });
+        void (async () => {
+            let tableId: number | null = null;
+            try {
+                const table = await load();
+                if (!current) return;
+                tableId = runtime.allocateId();
+                // An ordering of fields that the table doesn't have is skipped
+                const ordering = shown.current == null ? [] : runtime.store.get('computation', shown.current)?.dataTableOrdering ?? [];
+                await runtime.analyzeTable(tableId, table, { clientContext, columnAggregates: false, ordering });
+                if (!current) {
+                    release(tableId);
+                    return;
+                }
+                const previous = shown.current;
+                shown.current = tableId;
+                setState({ status: 'ready', tableId, table });
+                if (previous != null) release(previous);
+            } catch (error) {
+                if (tableId != null) release(tableId);
+                runtime.logger.warn('Loading a table failed', { error: stringifyError(error) }, LOG_CTX);
+                if (current) setState(state => state.status === 'ready' ? state : { status: 'failed', error: stringifyError(error) });
+            }
+        })();
+        return () => { current = false; };
+    }, [runtime, release, load, clientContext]);
+    return state;
+}
 
 // The runs
 

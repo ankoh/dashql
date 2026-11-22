@@ -1,7 +1,7 @@
 import { archiveError, BlobReader, BlobWriter, ZipReader, type FileEntry } from '@akohn/dashql/platform/workbook/workbook_zip';
 
 // The entries of a `.dashql` file as the unpacker tool lists them. Only the ZIP container: the Parquet files are read
-// by the embedded Hyper when a card opens, see use_parquet_computation.ts.
+// by the embedded Hyper when a card opens, see unpacker_page.tsx.
 
 /// The compression method of an entry that is stored as it is
 const STORED = 0;

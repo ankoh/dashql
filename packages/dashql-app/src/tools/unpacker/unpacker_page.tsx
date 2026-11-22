@@ -7,13 +7,13 @@ import { ResultTableOverlay } from '@akohn/dashql-react/components/query_result/
 import { FileIcon, UploadIcon } from '@akohn/dashql-react/components/symbol_icon';
 import { classNames } from '@akohn/dashql-react/dom/classnames';
 import { formatBytes } from '@akohn/dashql-react/format/format';
-import { useComputation } from '@akohn/dashql-react/hooks';
+import { useComputation, useRuntime, useTableComputation } from '@akohn/dashql-react/hooks';
 import { useComputationModel } from '@akohn/dashql-react/models/computation_model';
+import { readParquetFile } from '@akohn/dashql/platform/hyperdb/hyperdb_parquet_read';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { DataTableView } from '../../results/data_table_view.js';
-import { ParquetFileCard } from './parquet_file_card.js';
+import { ParquetFileCard, type ParquetTableState } from './parquet_file_card.js';
 import { isParquetFile, openArchive, type ArchiveFile, type UnpackedArchive } from './unpacker_archive.js';
-import { useParquetComputation } from './use_parquet_computation.js';
 import * as styles from './unpacker_page.module.css';
 
 /// The rows of the preview of a card, like the preview of a result in the feed: the column names open the full table
@@ -63,12 +63,19 @@ function ParquetTableOverlay(props: { fileName: string; tableId: number; onClose
     );
 }
 
-/// The card of a Parquet file. The file is read when the card first opens and stays read while the archive is shown.
+/// The card of a Parquet file. The file is read with the compute database of the runtime when the card first opens,
+/// and its computation stays while the archive is shown, so that a card that opens again shows it at once.
 function ParquetFileEntry(props: { file: ArchiveFile }) {
     const [expanded, setExpanded] = React.useState(false);
     const [opened, setOpened] = React.useState(false);
     const [tableShown, setTableShown] = React.useState(false);
-    const table = useParquetComputation(props.file, opened);
+    const runtime = useRuntime();
+    const { file } = props;
+    const load = React.useCallback(async () => readParquetFile(await runtime.computeDatabase.get(), await file.read()), [runtime, file]);
+    const computation = useTableComputation(opened ? load : null);
+    const table: ParquetTableState = computation.status === 'ready'
+        ? { status: 'ready', tableId: computation.tableId, rows: computation.table.numRows, columns: computation.table.numCols }
+        : computation;
     const toggle = React.useCallback(() => {
         setExpanded(expanded => !expanded);
         setOpened(true);

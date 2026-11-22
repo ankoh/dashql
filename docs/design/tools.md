@@ -43,9 +43,8 @@ entries as other entries.
 | Part | Module |
 |------|--------|
 | Providers: logger, embedded Hyper, core, `StandaloneRuntime` | `src/tools/unpacker/unpacker.tsx` |
-| Drop zone, file picker, the cards, the preview and the full table of a file (`TableDetails` of `@akohn/dashql-react`, the details of any analyzed table) | `unpacker_page.tsx` |
+| Drop zone, file picker, the cards, the preview and the full table of a file (`TableDetails` of `@akohn/dashql-react`, the details of any analyzed table). A Parquet file is a computation (`useTableComputation` of `@akohn/dashql-react/hooks`): Hyper scans it (`readParquetFile` of `platform/hyperdb/hyperdb_parquet_read.ts`, shared with the import), the runtime analyzes it | `unpacker_page.tsx` |
 | The ZIP container (zip.js): entries, sizes, the bytes of a file, read into memory with its CRC-32 checked | `unpacker_archive.ts` |
-| A Parquet file as a computation: Hyper scans it (`readParquetFile` of `platform/hyperdb/hyperdb_parquet_read.ts`, shared with the import), the runtime analyzes it (`analyzeTable`) | `use_parquet_computation.ts` |
 | The card of a file, a component with plain props and the table as a slot | `parquet_file_card.tsx` |
 
 The computation of a file stays while its archive is shown, a card that opens again shows it at once. Another file
