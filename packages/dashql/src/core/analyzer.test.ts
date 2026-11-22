@@ -27,7 +27,7 @@ describe('DashQL Analyzer', () => {
         expect(extAnalyzedPtr.read().tablesLength()).toEqual(1);
 
         catalog.loadScript(extScript, dashql.buffers.catalog.CatalogLayer.SESSION);
-        expect(catalog.containsEntryId(1)).toBeTruthy();
+        expect(catalog.containsEntryId(extScript.getCatalogEntryId())).toBeTruthy();
 
         const mainScript = dql!.createScript(catalog);
         mainScript.insertTextAt(0, 'select * from foo');

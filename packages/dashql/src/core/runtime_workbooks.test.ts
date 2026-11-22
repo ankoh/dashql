@@ -35,12 +35,9 @@ function createRuntime(storage?: MemoryStorage, connectionId: string | null = 'm
     return { runtime, ...platform };
 }
 
-/// Wait until the typing paused and the runtime derived the workbooks again
-const typingPause = () => new Promise(resolve => setTimeout(resolve, 300));
-
-/// The changed slices as `kind:id`
+/// The changed slices as `kind:id`, sorted, the runtime names them in no particular order
 const changesOf = (runtime: dashql.Runtime, kinds?: string[]) =>
-    runtime.takeChanges().changes.filter(change => kinds == null || kinds.includes(change.kind)).map(change => `${change.kind}:${change.id}${change.revision == null ? ' gone' : ''}`);
+    runtime.takeChanges().changes.filter(change => kinds == null || kinds.includes(change.kind)).map(change => `${change.kind}:${change.id}${change.revision == null ? ' gone' : ''}`).sort();
 
 /// An editor event of typed text at an offset of a text version, packed
 function typedEvent(textVersion: bigint, offset: number, text: string): Uint8Array {
@@ -90,7 +87,7 @@ describe('The workbooks of the runtime', () => {
         const { runtime, storage } = createRuntime();
         const created = runtime.dispatch('app', { kind: 'createWorkbook', value: { workbookId: 'w', connectionId: 'main', name: 'Sales' } });
         expect(created).toMatchObject({ ok: true, id: 'w' });
-        expect(changesOf(runtime, ['workbookList', 'workbook', 'connection'])).toEqual(['connection:main', 'workbookList:root', 'workbook:w']);
+        expect(changesOf(runtime, ['workbookList', 'workbook', 'connection'])).toEqual(['connection:main', 'workbook:w', 'workbookList:root']);
         expect(viewOf(runtime, 'workbook', 'w')).toMatchObject({ workbookId: 'w', name: 'Sales', pendingConnectionId: 'main', scriptKeys: [], connectionIds: ['main'] });
         // The connection knows the workbook that uses it, it can't be deleted
         expect(viewOf(runtime, 'connection', 'main')!.workbooks).toEqual(['w']);
@@ -123,7 +120,7 @@ describe('The workbooks of the runtime', () => {
     });
 
     it('take a keystroke as the change of the script only, what the workbook derives follows once the typing paused', async () => {
-        const { runtime } = createRuntime();
+        const { runtime, clock } = createRuntime();
         runtime.dispatch('app', { kind: 'createWorkbook', value: { workbookId: 'w', connectionId: 'main' } });
         runtime.dispatch({ workbook: 'w' }, { kind: 'createScript', value: { text: 'select 1', base: 'alpha' } });
         runtime.dispatch({ workbook: 'w' }, { kind: 'createScript', value: { text: 'select 2', base: 'beta' } });
@@ -144,7 +141,7 @@ describe('The workbooks of the runtime', () => {
         // The planner runs over every script of the workbook, the derived view waits until the typing paused
         type(runtime, 'w', alpha, 9, '0');
         expect(changesOf(runtime)).toEqual([`script:${alpha}`]);
-        await typingPause();
+        await clock.elapse();
         expect(changesOf(runtime, ['script', 'workbookDerived'])).toEqual(['workbookDerived:w']);
         runtime.free();
     });

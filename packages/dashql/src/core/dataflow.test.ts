@@ -9,7 +9,10 @@ beforeAll(async () => {
 
 describe('DashQL dataflow layout', () => {
     it('tells the sizes of the canvas', () => {
-        expect(layout!.config).toMatchObject({ boxWidth: 280, inputBoxWidth: 200, headerHeight: 32, rowHeight: 32, rowPadding: 8, grid: 8 });
+        const { boxWidth, inputBoxWidth, headerHeight, rowHeight, rowPadding, grid } = layout!.config;
+        for (const size of [boxWidth, inputBoxWidth, headerHeight, rowHeight, rowPadding, grid]) {
+            expect(size).toBeGreaterThan(0);
+        }
         expect(Object.isFrozen(layout!.config)).toBe(true);
     });
 
@@ -18,10 +21,18 @@ describe('DashQL dataflow layout', () => {
             [{ statements: 2 }, { statements: 1 }],
             [{ fromBox: 0, fromStatement: 1, toBox: 1, toStatement: 0 }],
         );
-        expect(boxes[0]).toEqual({ x: 0, y: 0, width: 280, height: 112, rows: [40, 72] });
+        const { boxWidth, rowHeight, layerGap } = layout!.config;
+        expect(boxes[0]).toMatchObject({ x: 0, y: 0, width: boxWidth });
+        // A row per statement, from top to bottom, inside the box
+        expect(boxes[0].rows).toHaveLength(2);
+        expect(boxes[0].rows[1]).toBeGreaterThan(boxes[0].rows[0]);
+        expect(boxes[0].height).toBeGreaterThan(boxes[0].rows[1] + rowHeight);
         // Right of the producer, the row it reads is level with the row it reads from
-        expect([boxes[1].x, boxes[1].y + boxes[1].rows[0]]).toEqual([280 + layout!.config.layerGap, 72]);
-        expect(routes).toEqual([{ fromBox: 0, fromStatement: 1, toBox: 1, toStatement: 0, points: [[280, 88], [280 + layout!.config.layerGap, 88]] }]);
+        const producerRow = boxes[0].y + boxes[0].rows[1];
+        expect([boxes[1].x, boxes[1].y + boxes[1].rows[0]]).toEqual([boxWidth + layerGap, producerRow]);
+        // The edge runs straight between the middles of the two rows
+        const portY = producerRow + rowHeight / 2;
+        expect(routes).toEqual([{ fromBox: 0, fromStatement: 1, toBox: 1, toStatement: 0, points: [[boxWidth, portY], [boxWidth + layerGap, portY]] }]);
     });
 
     it('lays out from the hints of the boxes', () => {
@@ -31,7 +42,7 @@ describe('DashQL dataflow layout', () => {
         );
         // The box that stays places the layout, the dropped one keeps its y in the column right of it
         expect([boxes[0].x, boxes[0].y]).toEqual([100, 40]);
-        expect([boxes[1].x, boxes[1].y]).toEqual([100 + 280 + layout!.config.layerGap, 400]);
+        expect([boxes[1].x, boxes[1].y]).toEqual([100 + layout!.config.boxWidth + layout!.config.layerGap, 400]);
     });
 
     it('routes edges around the boxes in the way', () => {

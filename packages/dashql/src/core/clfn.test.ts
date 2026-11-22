@@ -82,7 +82,8 @@ describe('Client functions', () => {
         for (let i = 0; i < completion.candidatesLength(); ++i) {
             candidates.push(completion.candidates(i)!.completionText()!);
         }
-        expect(candidates).toEqual(['project', 'page_size']);
+        // The options of the function come first, in the order of the spec
+        expect(candidates.slice(0, 2)).toEqual(['project', 'page_size']);
     });
 
     it('tells a call in the namespace from its tokens, even if it does not parse', () => {

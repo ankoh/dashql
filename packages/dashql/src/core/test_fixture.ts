@@ -1,6 +1,7 @@
 import { wasmUrl as coreWasmUrl } from '@akohn/dashql-wasm/dashql_core.js';
 import { wasmUrl as dataflowWasmUrl } from '@akohn/dashql-wasm/dashql_dataflow.js';
 import type { RuntimeOAuth, RuntimePlatform, RuntimeStorage } from './runtime.js';
+import { TestClock } from './testing/test_clock.js';
 
 let wasmBinary: Promise<Uint8Array> | undefined;
 
@@ -139,7 +140,8 @@ export class MemoryStorage implements RuntimeStorage {
 }
 
 /// A platform of a test: the handle table, the storage in memory, timers of the event loop and no other I/O
-export function testPlatform(storage: MemoryStorage = new MemoryStorage()): { platform: RuntimePlatform; storage: MemoryStorage; changed: boolean[]; logs: string[]; handleObjects: () => IterableIterator<unknown> } {
+export function testPlatform(storage: MemoryStorage = new MemoryStorage()): { platform: RuntimePlatform; storage: MemoryStorage; clock: TestClock; changed: boolean[]; logs: string[]; handleObjects: () => IterableIterator<unknown> } {
+    const clock = new TestClock();
     const changed: boolean[] = [];
     const logs: string[] = [];
     const objects = new Map<number, unknown>();
@@ -147,7 +149,7 @@ export function testPlatform(storage: MemoryStorage = new MemoryStorage()): { pl
     let uuid = 0;
     const none = () => { throw new Error('the platform of the test has none'); };
     const platform: RuntimePlatform = {
-        clock: { now: () => Date.now(), sleep: ms => new Promise(resolve => setTimeout(resolve, ms)) },
+        clock: clock.clock,
         log: (level, message, details) => {
             if (level !== 'debug') logs.push(`${level}: ${message} ${JSON.stringify(Object.fromEntries(details))}`);
         },
@@ -190,5 +192,5 @@ export function testPlatform(storage: MemoryStorage = new MemoryStorage()): { pl
             changed.push(urgent);
         },
     };
-    return { platform, storage, changed, logs, handleObjects: () => objects.values() };
+    return { platform, storage, clock, changed, logs, handleObjects: () => objects.values() };
 }

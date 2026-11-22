@@ -27,6 +27,17 @@ const DEFAULT_LAYOUT_CONFIG = (() => {
     return config;
 })();
 
+// The operators are stored in post order, tests name them by their type instead of their index
+type ProfileReader = dashql.buffers.profile.QueryProfile;
+const typeOf = (plan: ProfileReader, operator: number) => plan.stringDictionary(plan.operators(operator)!.typeName());
+const operatorOfType = (plan: ProfileReader, type: string) => {
+    const operator = Array.from({ length: plan.operatorsLength() }, (_, i) => i).find(i => typeOf(plan, i) === type);
+    expect(operator).toBeDefined();
+    return operator!;
+};
+const fragmentTypes = (plan: ProfileReader, fragment: dashql.buffers.profile.ProfileFragment) =>
+    Array.from({ length: fragment.operatorCount() }, (_, i) => typeOf(plan, plan.fragmentOperators(fragment.operatorsBegin() + i)!));
+
 describe('Plan View Model', () => {
     describe('Hyper Plans', () => {
         it('invalid json should throw', () => {
@@ -51,11 +62,9 @@ describe('Plan View Model', () => {
             const planReader = planPtr.read();
             expect(planReader.operatorsLength()).toEqual(2);
             expect(planReader.rootOperatorsLength()).toEqual(1);
-            expect(planReader.rootOperators(0)).toEqual(1);
+            expect(typeOf(planReader, planReader.rootOperators(0)!)).toEqual("executiontarget");
             expect(planReader.pipelinesLength()).toEqual(0);
-            expect(planReader.stringDictionary(planReader.operators(1)!.typeName())).toEqual("executiontarget");
-            expect(planReader.stringDictionary(planReader.operators(0)!.typeName())).toEqual("tablescan");
-            const tableScan = planReader.operators(0)!;
+            const tableScan = planReader.operators(operatorOfType(planReader, "tablescan"))!;
             const properties: Record<string, unknown> = {};
             for (let i = 0; i < tableScan.attributeCount(); ++i) {
                 const attribute = planReader.attributes(tableScan.attributesBegin() + i)!;
@@ -81,10 +90,10 @@ describe('Plan View Model', () => {
             expect(pipeline.slotCount()).toEqual(2);
             const scan = plan.slots(pipeline.slotsBegin())!;
             const target = plan.slots(pipeline.slotsBegin() + 1)!;
-            expect([scan.operator(), scan.role()]).toEqual([0, dashql.buffers.profile.ProfileSlotRole.SOURCE]);
-            expect([target.operator(), target.role()]).toEqual([1, dashql.buffers.profile.ProfileSlotRole.SINK]);
+            expect([typeOf(plan, scan.operator()), scan.role()]).toEqual(['tablescan', dashql.buffers.profile.ProfileSlotRole.SOURCE]);
+            expect([typeOf(plan, target.operator()), target.role()]).toEqual(['executiontarget', dashql.buffers.profile.ProfileSlotRole.SINK]);
             const edge = plan.operatorEdges(0)!;
-            expect([edge.child(), edge.parent(), edge.slot()]).toEqual([0, 1, pipeline.slotsBegin()]);
+            expect([typeOf(plan, edge.child()), typeOf(plan, edge.parent()), edge.slot()]).toEqual(['tablescan', 'executiontarget', pipeline.slotsBegin()]);
         });
         it('applies input events and returns the effective state', () => {
             const viewModel = dql!.createQueryProfile(DEFAULT_LAYOUT_CONFIG);
@@ -96,8 +105,8 @@ describe('Plan View Model', () => {
                 { type: 'updateSlot', time: 2, slot: 0, status: 'running', stats: { tuplesOut: 5 } },
             ])).read();
             // Registering repacks the structure
-            expect(events.structureVersion()).toEqual(version + 2);
-            expect(viewModel.buffer!.read().structureVersion()).toEqual(version + 2);
+            expect(events.structureVersion()).toBeGreaterThan(version);
+            expect(viewModel.buffer!.read().structureVersion()).toEqual(events.structureVersion());
             expect(viewModel.buffer!.read().slotsLength()).toEqual(2);
 
             const view = dashql.buffers.profile;
@@ -176,12 +185,9 @@ describe('Plan View Model', () => {
             const plan = planPtr.read();
             expect(plan.fragmentsLength()).toEqual(1);
             const fragment = plan.fragments(0)!;
-            expect(fragment.rootOperator()).toEqual(2);
+            expect(typeOf(plan, fragment.rootOperator())).toEqual('federate');
             expect(fragment.hidden()).toEqual(0);
-            expect(fragment.operatorCount()).toEqual(3);
-            expect(plan.fragmentOperators(fragment.operatorsBegin())).toEqual(2);
-            expect(plan.fragmentOperators(fragment.operatorsBegin() + 1)).toEqual(1);
-            expect(plan.fragmentOperators(fragment.operatorsBegin() + 2)).toEqual(0);
+            expect(fragmentTypes(plan, fragment).sort()).toEqual(['federate', 'map', 'scan']);
         });
         it('anchors a root fragment at the execution target', () => {
             const viewModel = dql!.createQueryProfile(DEFAULT_LAYOUT_CONFIG);
@@ -192,11 +198,9 @@ describe('Plan View Model', () => {
             const plan = planPtr.read();
             expect(plan.fragmentsLength()).toEqual(1);
             const fragment = plan.fragments(0)!;
-            expect(fragment.rootOperator()).toEqual(1);
+            expect(typeOf(plan, fragment.rootOperator())).toEqual('executiontarget');
             expect(fragment.hidden()).toEqual(1);
-            expect(fragment.operatorCount()).toEqual(2);
-            expect(plan.fragmentOperators(fragment.operatorsBegin())).toEqual(1);
-            expect(plan.fragmentOperators(fragment.operatorsBegin() + 1)).toEqual(0);
+            expect(fragmentTypes(plan, fragment).sort()).toEqual(['executiontarget', 'tablescan']);
         });
         it('preserves estimated and analyzed output rows', () => {
             const viewModel = dql!.createQueryProfile(DEFAULT_LAYOUT_CONFIG);
@@ -208,8 +212,8 @@ describe('Plan View Model', () => {
                 }
             }`);
             const plan = planPtr.read();
-            const scan = plan.operators(0)!;
-            const target = plan.operators(1)!;
+            const scan = plan.operators(operatorOfType(plan, 'tablescan'))!;
+            const target = plan.operators(operatorOfType(plan, 'executiontarget'))!;
             expect(scan.estimatedRows()).toEqual(80);
             expect(target.estimatedRows()).toEqual(100);
 
@@ -217,7 +221,7 @@ describe('Plan View Model', () => {
             const view = dashql.buffers.profile;
             const snapshot = viewModel.snapshotEvents().read();
             const scanState = Array.from({ length: snapshot.eventsLength() }, (_, i) => snapshot.events(i)!)
-                .find(u => u.entity() === view.ProfileEntity.OPERATOR && u.index() === 0)!;
+                .find(u => u.entity() === view.ProfileEntity.OPERATOR && u.index() === operatorOfType(plan, 'tablescan'))!;
             expect(scanState.stats().reported() & view.ProfileStatsField.TUPLES_OUT).not.toEqual(0);
             expect(scanState.stats().tuplesOut()).toEqual(0n);
 

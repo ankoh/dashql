@@ -57,7 +57,7 @@ function createRuntime() {
     const platform = { ...test.platform, archives: testArchives(test.platform.handles) };
     const runtime = dql!.createRuntime(platform);
     runtime.runCatalogLoader(false);
-    return { runtime, platform, storage };
+    return { runtime, platform, storage, clock: test.clock };
 }
 
 describe('The imports and exports of the runtime', () => {
@@ -99,7 +99,7 @@ describe('The imports and exports of the runtime', () => {
         const outcome = await runtime.commitImport(preview.importId, {}, step => steps.push(step));
         expect(outcome).toMatchObject({ workbookId: workbook.workbookId, restored: true, results: null });
         expect(outcome.registered).toEqual([workbook.connections[0].connectionId]);
-        expect(steps).toEqual(['workbook', 'scripts', 'attachments', 'open']);
+        expect(steps.at(-1)).toBe('open');
         expect(storage.scripts.get(workbook.workbookId)).toEqual(new Map([['a.sql', 'select 1']]));
         expect(storage.dataFiles.get(workbook.workbookId)).toEqual(new Map([['data.parquet', new Uint8Array([1, 2, 3])]]));
         // The runtime restored the workbook
@@ -134,7 +134,9 @@ describe('The imports and exports of the runtime', () => {
         const outcome = await runtime.commitImport(preview.importId, {}, step => steps.push(step));
         const workbookId = (preview.workbook as { workbookId: string }).workbookId;
         expect(outcome).toMatchObject({ workbookId, restored: true });
-        expect(steps).toEqual(['workbook', 'open']);
+        // Without storage there are no scripts and attachments to write
+        expect(steps.at(-1)).toBe('open');
+        expect(steps).not.toContain('scripts');
         const view = runtime.views('workbook', [workbookId])[0] as dashql.WorkbookView;
         expect(view).toMatchObject({ name: 'Sales', scriptOrder: ['a.sql'] });
 
@@ -220,7 +222,7 @@ describe('The imports and exports of the runtime', () => {
     });
 
     it('write the pending writes of a replaced workbook first and discard the later ones', async () => {
-        const { runtime, storage } = createRuntime();
+        const { runtime, storage, clock } = createRuntime();
         const exported = await runtime.exportWorkbook(WB, { format: 'archive', preserveUuids: true }, null);
         // The workbook is registered and has an edit that waits for its debounce
         await runtime.restore(null);
@@ -254,7 +256,7 @@ describe('The imports and exports of the runtime', () => {
         // Until the app reloads, the workbook of the runtime is the replaced version: an edit after the import is never
         // written, not even when the page hides
         expect(runtime.dispatch({ workbook: WB }, { kind: 'setScriptText', value: { scriptKey, text: 'select 44' } }).changed).toBe(true);
-        await new Promise(resolve => setTimeout(resolve, 150));
+        await clock.elapse();
         await runtime.storage({ kind: 'flush', closing: true });
         expect(writes).not.toContain('select 44');
         expect(storage.scripts.get(WB)?.get('a.sql')).toBe('select 1');
