@@ -45,7 +45,7 @@ const EMPTY_REGISTRY: SnippetRegistry = { snippets: [], byId: new Map(), errors:
 /// The bounds of the width of the snippet list, the preview keeps the rest
 const LIST_WIDTH_DEFAULT = 300;
 const LIST_WIDTH_MIN = 180;
-const PREVIEW_WIDTH_MIN = 320;
+export const PREVIEW_WIDTH_MIN = 320;
 const LIST_WIDTH_KEY_STEP = 16;
 
 /// The width of the snippet list and the handlers of the handle on its border that resizes it

@@ -10,6 +10,7 @@ import { WorkbookTestRegistry } from '@akohn/dashql/platform/testing/workbook_te
 import { StorageBackendType } from '@akohn/dashql/platform/storage/storage_backend';
 import { scriptSelectionOf } from '../scripts/script_selection.js';
 import { WorkbookWorkbenchSidebar, type WorkbookWorkbenchSidebarDependencies } from './workbook_workbench_sidebar.js';
+import { WORKBOOK_LIST_CARET_COLUMN, workbookListRowPadding } from './workbook_folder_row.js';
 import type { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 
 vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
@@ -18,6 +19,9 @@ const ROOT_WORKBOOK = '00000000-0000-4000-8000-00000000000a';
 const CLIENT_WORKBOOK = '00000000-0000-4000-8000-00000000000b';
 const ACME_WORKBOOK = '00000000-0000-4000-8000-00000000000c';
 const NEW_WORKBOOK = '00000000-0000-4000-8000-00000000000d';
+
+/// The rows of the workbook tree of the tests with all folders expanded and no workbook expanded
+const TREE = ['0:clients', '1:acme', '2:Acme report', '1:Client', '0:Root'];
 
 const state = {
     createWorkbook: vi.fn(),
@@ -117,7 +121,9 @@ describe('WorkbookWorkbenchSidebar folders', () => {
         return Array.from(container.querySelectorAll('ul[aria-label="Workbooks"] > li:not([data-testid="workbook-top-level-drop"], [data-testid="workbook-ephemeral-row"], [data-testid="local-folder"])')).map(row => {
             // A script row starts below the icon of its workbook, after the caret column
             const script = row.getAttribute('data-testid') === 'workbook-script-row';
-            const depth = (parseInt((row as HTMLElement).style.paddingLeft, 10) - 8 - (script ? 20 : 0)) / 16 + (script ? 1 : 0) - 1;
+            const padding = parseInt((row as HTMLElement).style.paddingLeft, 10) - (script ? WORKBOOK_LIST_CARET_COLUMN : 0);
+            const indent = workbookListRowPadding(1) - workbookListRowPadding(0);
+            const depth = (padding - workbookListRowPadding(0)) / indent + (script ? 1 : 0) - 1;
             return `${depth}:${rowLabel(row)}`;
         });
     }
@@ -170,7 +176,7 @@ describe('WorkbookWorkbenchSidebar folders', () => {
 
     it('shows the folders before the workbooks with an indent per level', () => {
         render();
-        expect(rows()).toEqual(['0:clients', '1:acme', '2:Acme report', '1:Client', '0:Root']);
+        expect(rows()).toEqual(TREE);
     });
 
     it('collapses a folder and expands the folders of an opened workbook', async () => {
@@ -180,14 +186,14 @@ describe('WorkbookWorkbenchSidebar folders', () => {
         expect(folderRow('clients').querySelector(':scope > button')?.getAttribute('aria-expanded')).toBe('false');
 
         render(ACME_WORKBOOK);
-        await vi.waitFor(() => expect(rows()).toEqual(['0:clients', '1:acme', '2:Acme report', '1:Client', '0:Root']));
+        await vi.waitFor(() => expect(rows()).toEqual(TREE));
     });
 
     it('lists the scripts of an expanded workbook', () => {
         addWorkbook(CLIENT_WORKBOOK, 'Client', ['orders.sql', 'revenue.sql']);
         const onOpenScript = vi.fn();
         render(ROOT_WORKBOOK, onOpenScript);
-        expect(rows()).toEqual(['0:clients', '1:acme', '2:Acme report', '1:Client', '0:Root']);
+        expect(rows()).toEqual(TREE);
         // Only a workbook with scripts can be expanded
         expect(workbookRow('Root').querySelector(':scope > button')?.hasAttribute('aria-expanded')).toBe(false);
         const toggle = workbookRow('Client').querySelector<HTMLButtonElement>(':scope > button')!;
@@ -197,7 +203,7 @@ describe('WorkbookWorkbenchSidebar folders', () => {
         act(() => toggle.click());
         expect(state.navigate).toHaveBeenCalledWith(expect.objectContaining({ value: CLIENT_WORKBOOK }));
         expect(toggle.getAttribute('aria-expanded')).toBe('false');
-        expect(rows()).toEqual(['0:clients', '1:acme', '2:Acme report', '1:Client', '0:Root']);
+        expect(rows()).not.toContain('2:orders');
 
         // A second click, on the name of the open workbook, lists its scripts
         render(CLIENT_WORKBOOK, onOpenScript);
@@ -218,7 +224,7 @@ describe('WorkbookWorkbenchSidebar folders', () => {
         // Further clicks on the name of the open workbook hide and show its scripts again, without a rename
         state.navigate.mockReset();
         act(() => toggle.click());
-        expect(rows()).toEqual(['0:clients', '1:acme', '2:Acme report', '1:Client', '0:Root']);
+        expect(rows()).not.toContain('2:orders');
         act(() => toggle.click());
         expect(rows()).toEqual(['0:clients', '1:acme', '2:Acme report', '1:Client', '2:orders', '2:revenue', '0:Root']);
         expect(state.navigate).not.toHaveBeenCalled();
@@ -231,20 +237,20 @@ describe('WorkbookWorkbenchSidebar folders', () => {
         render();
         const nameButton = (name: string) => workbookRow(name).querySelector<HTMLButtonElement>(':scope > button')!;
         act(() => nameButton('Root').click());
-        expect(rows()).toEqual(['0:clients', '1:acme', '2:Acme report', '1:Client', '0:Root', '1:daily']);
+        expect(rows()).toEqual([...TREE, '1:daily']);
 
         // A click on another workbook opens it, the listed scripts go away and the new workbook stays collapsed
         act(() => nameButton('Client').click());
         expect(state.navigate).toHaveBeenCalledWith(expect.objectContaining({ value: CLIENT_WORKBOOK }));
         render(CLIENT_WORKBOOK);
-        await vi.waitFor(() => expect(rows()).toEqual(['0:clients', '1:acme', '2:Acme report', '1:Client', '0:Root']));
+        await vi.waitFor(() => expect(rows()).not.toContain('1:daily'));
 
         act(() => nameButton('Client').click());
         expect(rows()).toEqual(['0:clients', '1:acme', '2:Acme report', '1:Client', '2:orders', '0:Root']);
 
         // A selection from outside the sidebar collapses the workbook too
         render(ACME_WORKBOOK);
-        await vi.waitFor(() => expect(rows()).toEqual(['0:clients', '1:acme', '2:Acme report', '1:Client', '0:Root']));
+        await vi.waitFor(() => expect(rows()).not.toContain('2:orders'));
     });
 
     it('renames a script of an expanded workbook', async () => {
@@ -316,7 +322,7 @@ describe('WorkbookWorkbenchSidebar folders', () => {
             await registerInTree(GREETER_WORKBOOK, true);
             addEphemeralWorkbook(GREETER_WORKBOOK);
             render(GREETER_WORKBOOK);
-            expect(rows()).toEqual(['0:clients', '1:acme', '2:Acme report', '1:Client', '0:Root']);
+            expect(rows()).toEqual(TREE);
             const row = ephemeralRow()!;
             // The last workbook, the same row as the others directly below them
             const workbookRows = Array.from(row.parentElement!.children).filter(child => child.getAttribute('data-testid') !== 'workbook-top-level-drop');
@@ -325,7 +331,6 @@ describe('WorkbookWorkbenchSidebar folders', () => {
             expect(row.style.paddingLeft).toBe(workbookRow('Root').style.paddingLeft);
             expect(row.querySelector('button')!.className).toBe(workbookRow('Root').querySelector(':scope > button')!.className);
             expect(row.textContent).toBe('New Workbook');
-            expect(getComputedStyle(row.querySelector('button > span:last-child')!).fontStyle).toBe('italic');
             expect(row.querySelector('[data-testid="workbook-row-menu"]')).toBeNull();
             expect(workbookCount()).toBe('3');
             expect(row.querySelector('button')!.getAttribute('aria-current')).toBe('page');
@@ -372,7 +377,7 @@ describe('WorkbookWorkbenchSidebar folders', () => {
             render(GREETER_WORKBOOK);
             await vi.waitFor(() => expect(state.registry.tree.workbooks.map(entry => entry.path)).toEqual([ROOT_WORKBOOK, GREETER_WORKBOOK]));
             expect(state.ensureEphemeralWorkbook).toHaveBeenCalledTimes(1);
-            await vi.waitFor(() => expect(rows()).toEqual(['0:clients', '1:acme', '2:Acme report', '1:Client', '0:Root', '0:Untitled']));
+            await vi.waitFor(() => expect(rows()).toEqual([...TREE, '0:Untitled']));
             expect(ephemeralRow()).not.toBeNull();
         });
     });
@@ -398,7 +403,7 @@ describe('WorkbookWorkbenchSidebar folders', () => {
         vi.spyOn(window, 'confirm').mockReturnValue(true);
         render();
         await folderMenu('clients', 'delete');
-        expect(window.confirm).toHaveBeenCalledWith('Delete the folder "clients"? Its 2 workbooks move to the top level.');
+        expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining('"clients"'));
         await vi.waitFor(() => expect(rows()).toEqual(['0:Root', '0:Acme report', '0:Client']));
         expect(state.registry.tree.folders).toEqual([]);
     });

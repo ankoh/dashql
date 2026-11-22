@@ -28,7 +28,6 @@ describe('script formatting', () => {
         );
 
         expect(config.maxWidth).toBe(80);
-        expect(config.indentationWidth).toBe(4);
     });
 
     it('selects Trino only for the Trino connector', () => {

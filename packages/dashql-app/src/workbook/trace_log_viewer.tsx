@@ -29,6 +29,9 @@ interface TraceLogViewerProps {
     fill?: boolean;
 }
 
+/// The height of the log viewport without a height, rows or fill mode
+export const DEFAULT_TRACE_LOG_HEIGHT = 200;
+
 export const TraceLogViewer: React.FC<TraceLogViewerProps> = (props: TraceLogViewerProps) => {
     const logger = useLogger();
     // The trace subscription drives the re-renders, poll the log version only when showing all logs
@@ -90,7 +93,7 @@ export const TraceLogViewer: React.FC<TraceLogViewerProps> = (props: TraceLogVie
         ? Math.min(rowCount, props.maxRows) * ROW_HEIGHT
         : props.fill
             ? (containerSize?.height ?? 0)
-            : (props.height ?? 200);
+            : (props.height ?? DEFAULT_TRACE_LOG_HEIGHT);
 
     // Redraw whenever the log version changes or filtered logs change
     const seenLogRows = React.useRef<number>(0);

@@ -10,7 +10,7 @@ import type { Logger } from '@akohn/dashql/platform/logger/logger';
 import { LoggerProvider, useLogger } from '../host/logger_provider.js';
 import { testLogRecord } from '@akohn/dashql/platform/testing/test_logger';
 import { ROW_HEIGHT } from '../diagnostics/logs/log_viewer.js';
-import { TraceLogViewer } from './trace_log_viewer.js';
+import { DEFAULT_TRACE_LOG_HEIGHT, TraceLogViewer } from './trace_log_viewer.js';
 
 describe('TraceLogViewer', () => {
     let container: HTMLDivElement;
@@ -81,8 +81,8 @@ describe('TraceLogViewer', () => {
             log('second', 7);
         });
         expect(rowMessages()).toEqual(['first', 'second']);
-        // The fixed default height of 200 pixels
-        expect((container.firstElementChild as HTMLElement).style.height).toBe('200px');
+        // The fixed default height
+        expect((container.firstElementChild as HTMLElement).style.height).toBe(`${DEFAULT_TRACE_LOG_HEIGHT}px`);
 
         await act(async () => {
             log('third', 7);

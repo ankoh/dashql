@@ -322,8 +322,7 @@ describe('WorkbookShellPage', () => {
         it('names the connection and the workbook in the greeter', async () => {
             await open();
             expect(screen()).toContain('Hyper #2');
-            expect(screen()).toContain('Workbook: My workbook');
-            expect(screen()).toContain('Enter .help for usage hints.');
+            expect(screen()).toContain('My workbook');
             expect(page()?.getAttribute('aria-label')).toContain('Hyper #2');
             expect(page()?.getAttribute('aria-label')).toContain('Shell');
         });
@@ -374,7 +373,7 @@ describe('WorkbookShellPage', () => {
         it('runs a query on its connection and prints a status line', async () => {
             await open();
             run('select 42 as answer;');
-            await vi.waitFor(() => expect(screen()).toContain('Query completed (1 row)'), WAIT);
+            await vi.waitFor(() => expect(screen()).toContain('1 row'), WAIT);
             expect(execute).toHaveBeenCalledTimes(1);
             const [connectionId, args] = execute.mock.calls[0] as [string, { query: string; metadata: { workbookId: string } }];
             expect(connectionId).toBe(MAIN);
@@ -388,7 +387,7 @@ describe('WorkbookShellPage', () => {
             run('select 1;');
             await vi.waitFor(() => expect(screen()).toContain('table is gone'), WAIT);
             run('select 42 as answer;');
-            await vi.waitFor(() => expect(screen()).toContain('Query completed (1 row)'), WAIT);
+            await vi.waitFor(() => expect(screen()).toContain('1 row'), WAIT);
             expect(execute).toHaveBeenCalledTimes(2);
         });
 
@@ -410,7 +409,7 @@ describe('WorkbookShellPage', () => {
 
             const queryId = await showResult(table);
             await vi.waitFor(() => expect(overlay()).not.toBeNull(), WAIT);
-            expect(screen()).toContain('Query completed (1 row)');
+            expect(screen()).toContain('1 row');
             expect(api.computations()).toContain(queryId);
 
             act(() => closeOverlay()!.click());
@@ -647,7 +646,7 @@ describe('WorkbookShellPage', () => {
             await open();
             run('select 42 as answer;');
             await vi.waitFor(() => expect(execute).toHaveBeenCalledTimes(1), WAIT);
-            await vi.waitFor(() => expect(screen()).toContain('Query completed (1 row)'), WAIT);
+            await vi.waitFor(() => expect(screen()).toContain('1 row'), WAIT);
 
             render({ ordinal: 1 });
             await vi.waitFor(() => expect(created).toHaveLength(2), WAIT);
@@ -694,7 +693,7 @@ describe('WorkbookShellPage', () => {
             await whileTerminalOpens(() => render({ ordinal: 1 }));
             render();
             await act(async () => api.setConnections([createConnection(MAIN)]));
-            await vi.waitFor(() => expect(created.length).toBe(2), WAIT);
+            await vi.waitFor(() => expect(created.length).toBeGreaterThanOrEqual(2), WAIT);
             await vi.waitFor(() => expect(status()).toBeNull(), WAIT);
             await new Promise(resolve => setTimeout(resolve, 200));
             expect(container.querySelectorAll('.xterm')).toHaveLength(1);

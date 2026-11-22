@@ -4,7 +4,8 @@ import * as Immutable from 'immutable';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { createTestRoot } from '@akohn/dashql-react/testing/react_root';
-import { ScriptStatisticsBar } from './script_statistics_bar.js';
+import { formatNanoseconds } from '@akohn/dashql-react/format/format';
+import { HISTORY_HEADROOM, HISTORY_LENGTH, ScriptStatisticsBar } from './script_statistics_bar.js';
 import * as styles from './script_statistics_bar.module.css';
 
 function reading(scannerNs: number, parserNs: number, analyzerNs: number, bytes: number) {
@@ -48,22 +49,24 @@ describe('ScriptStatisticsBar', () => {
         expect(names()).toEqual(['M', 'S', 'P', 'A']);
         expect(readings()).toEqual(['3 kB', '2 us', '4.00 ms', '1.5 s']);
 
-        // A history of 20 bars, the highest reading is at 1/1.2 of the height
+        // A full history of bars, the highest reading below the headroom
+        const top = 100 / HISTORY_HEADROOM;
         const memory = bars(0);
-        expect(memory.length).toBe(20);
-        expect(parseFloat(memory[0])).toBeCloseTo(100 / 1.2 / 2);
-        expect(parseFloat(memory[1])).toBeCloseTo(100 / 1.2);
+        expect(memory.length).toBe(HISTORY_LENGTH);
+        expect(parseFloat(memory[0])).toBeCloseTo(top / 2);
+        expect(parseFloat(memory[1])).toBeCloseTo(top);
         expect(memory.slice(2).every(height => height === '0%')).toBe(true);
-        expect(parseFloat(bars(1)[0])).toBeCloseTo(100 / 1.2 / 3);
-        expect(parseFloat(bars(3)[0])).toBeCloseTo(100 / 1.2);
-        expect(parseFloat(bars(3)[1])).toBeCloseTo(100 / 1.2 / 2);
+        expect(parseFloat(bars(1)[0])).toBeCloseTo(top / 3);
+        expect(parseFloat(bars(3)[0])).toBeCloseTo(top);
+        expect(parseFloat(bars(3)[1])).toBeCloseTo(top / 2);
     });
 
-    it('draws at most the first 20 readings', () => {
-        const stats = Immutable.List(Array.from({ length: 25 }, (_, i) => reading(i + 1, 1, 1, 100)));
+    it('draws at most the first readings of a history', () => {
+        const count = HISTORY_LENGTH + 5;
+        const stats = Immutable.List(Array.from({ length: count }, (_, i) => reading(i + 1, 1, 1, 100)));
         root.render(<ScriptStatisticsBar stats={stats} />);
-        expect(bars(1).length).toBe(20);
-        expect(readings()[1]).toBe('25.0 ns');
-        expect(parseFloat(bars(1)[19])).toBeCloseTo(100 / 1.2);
+        expect(bars(1).length).toBe(HISTORY_LENGTH);
+        expect(readings()[1]).toBe(formatNanoseconds(count));
+        expect(parseFloat(bars(1)[HISTORY_LENGTH - 1])).toBeCloseTo(100 / HISTORY_HEADROOM);
     });
 });

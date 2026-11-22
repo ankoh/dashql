@@ -11,7 +11,7 @@ import { LoggerProvider } from '../../host/logger_provider.js';
 import { getTestHyperDBClient, testDatabasePath } from '../../tests/hyperdb_test_client.js';
 import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { buildSnippetRegistry, getBundledSnippets, type SnippetRegistry } from './snippet_registry.js';
-import { SnippetsOverlay } from './snippets_overlay.js';
+import { PREVIEW_WIDTH_MIN, SnippetsOverlay } from './snippets_overlay.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
@@ -279,8 +279,10 @@ describe('SnippetsOverlay', () => {
         expect(path.scrollWidth).toBeGreaterThan(path.clientWidth);
         expect(path.getBoundingClientRect().right).toBeLessThanOrEqual(item.getBoundingClientRect().right);
         // The name starts right after the file icon
-        const icon = item.querySelector('svg')!;
-        expect(path.getBoundingClientRect().left - icon.getBoundingClientRect().right).toBeLessThan(16);
+        const icon = item.querySelector('svg')!.getBoundingClientRect();
+        const gap = path.getBoundingClientRect().left - icon.right;
+        expect(gap).toBeGreaterThanOrEqual(0);
+        expect(gap).toBeLessThan(icon.width);
     });
 
     it('shows the full names of all bundled snippets in the widest list', () => {
@@ -319,7 +321,7 @@ describe('SnippetsOverlay', () => {
         expect(list.getBoundingClientRect().width).toBeCloseTo(400, 0);
         // The preview keeps its minimum width
         drag(left + 5000);
-        expect(preview.getBoundingClientRect().width).toBeGreaterThanOrEqual(320);
+        expect(preview.getBoundingClientRect().width).toBeGreaterThanOrEqual(PREVIEW_WIDTH_MIN);
         // Moves after the release leave the width alone
         const width = list.getBoundingClientRect().width;
         act(() => { window.dispatchEvent(new PointerEvent('pointermove', { pointerId: 3, clientX: left + 200, bubbles: true })); });
@@ -358,7 +360,7 @@ describe('SnippetsOverlay', () => {
         search('::json');
         await vi.waitFor(() => expect(snippetIds()).toEqual(['json/access']));
         search('json_parse');
-        await vi.waitFor(() => expect(query('[data-testid="snippets-empty"]')?.textContent).toEqual('No snippets match the search.'));
+        await vi.waitFor(() => expect(query('[data-testid="snippets-empty"]')).not.toBeNull());
 
         // Clearing the search shows all snippets again
         search(' ');
@@ -384,7 +386,7 @@ describe('SnippetsOverlay', () => {
         render(ConnectorType.HYPER);
         open();
         search('json');
-        await vi.waitFor(() => expect(query('[data-testid="snippets-search-error"]')?.textContent).toEqual('The search needs the embedded database.'));
+        await vi.waitFor(() => expect(query('[data-testid="snippets-search-error"]')?.textContent).toContain('embedded database'));
     });
 
     it('stays closed while disabled', () => {

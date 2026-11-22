@@ -8,6 +8,11 @@ import { classNames } from '@akohn/dashql-react/dom/classnames';
 
 import * as styles from './script_statistics_bar.module.css';
 
+/// The number of readings that a history shows
+export const HISTORY_LENGTH = 20;
+/// The headroom above the highest reading of a history, as a factor of it
+export const HISTORY_HEADROOM = 1.2;
+
 interface HistoryProps {
     data: Float64Array;
     maximum: number;
@@ -15,7 +20,7 @@ interface HistoryProps {
 
 const History: React.FC<HistoryProps> = (props: HistoryProps) => {
     const out = [];
-    const scaledMax = props.maximum * 1.2;
+    const scaledMax = props.maximum * HISTORY_HEADROOM;
     for (let i = 0; i < props.data.length; ++i) {
         const percent = (props.data[i] * 100) / scaledMax;
         out.push(
@@ -65,8 +70,8 @@ export const ScriptStatisticsBar: React.FC<Props> = (props: Props) => {
     const lastElapsedAnalyzer = last.analyzerLastElapsedNs;
     const lastTotalMemory = computeTotalMemory(last);
 
-    const n = Math.min(stats.size, 20);
-    const bufferSize = Math.max(n, 20);
+    const n = Math.min(stats.size, HISTORY_LENGTH);
+    const bufferSize = Math.max(n, HISTORY_LENGTH);
     const elapsedScannerHistory = new Float64Array(bufferSize);
     const elapsedParserHistory = new Float64Array(bufferSize);
     const elapsedAnalyzerHistory = new Float64Array(bufferSize);

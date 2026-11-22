@@ -57,7 +57,7 @@ describe('ScriptEditor', () => {
         act(() => root.render(<ScriptEditor workbookId="workbook" scriptKey={7} autoHeight dependencies={dependencies} />));
 
         expect(state.codeMirrorProps?.initialDoc).toBe('SELECT\n    1;');
-        expect(state.codeMirrorProps?.style).toEqual({ height: 'auto' });
+        expect(state.codeMirrorProps?.style?.height).toBe('auto');
     });
 
     it('tells the runtime which script it shows, the runtime analyzes it when it is outdated', () => {

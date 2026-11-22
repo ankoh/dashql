@@ -56,7 +56,7 @@ describe('EntryStatusBar', () => {
         act(() => root.render(
             <EntryStatusBar status={{
                 kind: EntryStatusKind.Query,
-                indicator: 2,
+                indicator: IndicatorStatus.Failed,
                 message: 'relation does not exist',
                 traceId: 42,
                 errorDetail: {
@@ -92,7 +92,7 @@ describe('EntryStatusBar', () => {
         act(() => root.render(
             <EntryStatusBar status={{
                 kind: EntryStatusKind.Query,
-                indicator: 1,
+                indicator: IndicatorStatus.Running,
                 message: 'Statement executed successfully',
                 traceId: 42,
                 errorDetail: null,

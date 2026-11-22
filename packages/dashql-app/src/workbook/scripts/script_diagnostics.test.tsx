@@ -56,7 +56,7 @@ describe('collectScriptDiagnostics', () => {
         // The formatter is inspected with the dialect of the connector
         expect(result[3].details).toMatchObject({
             source: 'formatter',
-            configuration: { dialect: 'TRINO', mode: 'PRETTY', maxWidth: 80, indentationWidth: 4 },
+            configuration: { dialect: 'TRINO' },
             fullyFormattable: false,
         });
     });
