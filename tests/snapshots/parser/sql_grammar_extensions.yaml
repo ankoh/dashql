@@ -1150,3 +1150,551 @@ parser-snapshots:
       comments: []
       comment-blocks: []
       comment-warnings: []
+
+  - name: select_group_by_all
+    input: |-
+      SELECT a, count(*) FROM t GROUP BY ALL; SELECT a FROM t GROUP BY ALL a;
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 16
+          description:
+            text: "SELECT a, ..UP BY ALL;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "SELECT a, ..OUP BY ALL"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "a, count(*)"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "a"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "a"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "a"
+                            children:
+                              - type: NAME
+                                text: "a"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "count(*)"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_FUNCTION_EXPRESSION
+                        text: "count(*)"
+                        children:
+                          - key: SQL_FUNCTION_NAME
+                            type: ARRAY
+                            text: "count"
+                            children:
+                              - type: NAME
+                                text: "count"
+                          - key: SQL_FUNCTION_ARGUMENTS_STAR
+                            type: BOOL
+                            value: 1
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "FROM t"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "t"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "t"
+                        children:
+                          - type: NAME
+                            text: "t"
+              - key: SQL_SELECT_GROUP_ALL
+                type: BOOL
+                value: 1
+        - type: SELECT
+          ast-begin: 16
+          ast-size: 17
+          description:
+            text: "SELECT a F.. BY ALL a;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "SELECT a F..P BY ALL a"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "a"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "a"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "a"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "a"
+                            children:
+                              - type: NAME
+                                text: "a"
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "FROM t"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "t"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "t"
+                        children:
+                          - type: NAME
+                            text: "t"
+              - key: SQL_SELECT_GROUP_ALL
+                type: BOOL
+                value: 1
+              - key: SQL_SELECT_GROUPS
+                type: ARRAY
+                text: "GROUP BY ALL a"
+                children:
+                  - type: OBJECT_SQL_GROUP_BY_ITEM
+                    text: "a"
+                    children:
+                      - key: SQL_GROUP_BY_ITEM_TYPE
+                        type: ENUM_SQL_GROUP_BY_ITEM_TYPE
+                        value: EXPRESSION
+                      - key: SQL_GROUP_BY_ITEM_ARG
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "a"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "a"
+                            children:
+                              - type: NAME
+                                text: "a"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: select_null_treatment
+    input: |-
+      SELECT first_value(x) IGNORE NULLS OVER w, last_value(x) RESPECT NULLS OVER w, nth_value(x, 2) FROM LAST IGNORE NULLS OVER w FROM t WINDOW w AS (ORDER BY y);
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 51
+          description:
+            text: "SELECT fir..DER BY y);"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "SELECT fir..RDER BY y)"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "first_valu..LLS OVER w"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "first_valu..LLS OVER w"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_FUNCTION_EXPRESSION
+                        text: "first_valu..LLS OVER w"
+                        children:
+                          - key: SQL_FUNCTION_NAME
+                            type: ARRAY
+                            text: "first_value"
+                            children:
+                              - type: NAME
+                                text: "first_value"
+                          - key: SQL_FUNCTION_ARGUMENTS
+                            type: ARRAY
+                            text: "x"
+                            children:
+                              - type: OBJECT_SQL_FUNCTION_ARG
+                                text: "x"
+                                children:
+                                  - key: SQL_FUNCTION_ARG_VALUE
+                                    type: OBJECT_SQL_COLUMN_REF
+                                    text: "x"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "x"
+                                        children:
+                                          - type: NAME
+                                            text: "x"
+                          - key: SQL_FUNCTION_IGNORE_NULLS
+                            type: BOOL
+                            value: 1
+                          - key: SQL_FUNCTION_OVER
+                            type: NAME
+                            text: "w"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "last_value..LLS OVER w"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_FUNCTION_EXPRESSION
+                        text: "last_value..LLS OVER w"
+                        children:
+                          - key: SQL_FUNCTION_NAME
+                            type: ARRAY
+                            text: "last_value"
+                            children:
+                              - type: NAME
+                                text: "last_value"
+                          - key: SQL_FUNCTION_ARGUMENTS
+                            type: ARRAY
+                            text: "x"
+                            children:
+                              - type: OBJECT_SQL_FUNCTION_ARG
+                                text: "x"
+                                children:
+                                  - key: SQL_FUNCTION_ARG_VALUE
+                                    type: OBJECT_SQL_COLUMN_REF
+                                    text: "x"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "x"
+                                        children:
+                                          - type: NAME
+                                            text: "x"
+                          - key: SQL_FUNCTION_IGNORE_NULLS
+                            type: BOOL
+                            value: 0
+                          - key: SQL_FUNCTION_OVER
+                            type: NAME
+                            text: "w"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "nth_value(..LLS OVER w"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_FUNCTION_EXPRESSION
+                        text: "nth_value(..LLS OVER w"
+                        children:
+                          - key: SQL_FUNCTION_NAME
+                            type: ARRAY
+                            text: "nth_value"
+                            children:
+                              - type: NAME
+                                text: "nth_value"
+                          - key: SQL_FUNCTION_ARGUMENTS
+                            type: ARRAY
+                            text: "x, 2"
+                            children:
+                              - type: OBJECT_SQL_FUNCTION_ARG
+                                text: "x"
+                                children:
+                                  - key: SQL_FUNCTION_ARG_VALUE
+                                    type: OBJECT_SQL_COLUMN_REF
+                                    text: "x"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "x"
+                                        children:
+                                          - type: NAME
+                                            text: "x"
+                              - type: OBJECT_SQL_FUNCTION_ARG
+                                text: "2"
+                                children:
+                                  - key: SQL_FUNCTION_ARG_VALUE
+                                    type: LITERAL_INTEGER
+                                    text: "2"
+                          - key: SQL_FUNCTION_FROM_LAST
+                            type: BOOL
+                            value: 1
+                          - key: SQL_FUNCTION_IGNORE_NULLS
+                            type: BOOL
+                            value: 1
+                          - key: SQL_FUNCTION_OVER
+                            type: NAME
+                            text: "w"
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "FROM t"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "t"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "t"
+                        children:
+                          - type: NAME
+                            text: "t"
+              - key: SQL_SELECT_WINDOWS
+                type: ARRAY
+                text: "WINDOW w A..RDER BY y)"
+                children:
+                  - type: OBJECT_SQL_WINDOW_DEF
+                    text: "w AS (ORDER BY y)"
+                    children:
+                      - key: SQL_WINDOW_DEF_NAME
+                        type: NAME
+                        text: "w"
+                      - key: SQL_WINDOW_DEF_FRAME
+                        type: OBJECT_SQL_WINDOW_FRAME
+                        text: "(ORDER BY y)"
+                        children:
+                          - key: SQL_WINDOW_FRAME_ORDER
+                            type: ARRAY
+                            text: "ORDER BY y"
+                            children:
+                              - type: OBJECT_SQL_ORDER
+                                text: "y"
+                                children:
+                                  - key: SQL_ORDER_VALUE
+                                    type: OBJECT_SQL_COLUMN_REF
+                                    text: "y"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "y"
+                                        children:
+                                          - type: NAME
+                                            text: "y"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: select_with_ordinality
+    input: |-
+      SELECT * FROM t WITH ORDINALITY (n) AS u, unnest(a) WITH ORDINALITY (i);
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 24
+          description:
+            text: "SELECT * F..ALITY (i);"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "SELECT * F..NALITY (i)"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "*"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "*"
+                    children:
+                      - key: SQL_RESULT_TARGET_STAR
+                        type: BOOL
+                        value: 1
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "FROM t WIT..NALITY (i)"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "t WITH ORD..Y (n) AS u"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "t"
+                        children:
+                          - type: NAME
+                            text: "t"
+                      - key: SQL_TABLEREF_ORDINALITY
+                        type: OBJECT_SQL_ORDINALITY
+                        text: "WITH ORDINALITY (n)"
+                        children:
+                          - key: SQL_ORDINALITY_ENABLED
+                            type: BOOL
+                            value: 1
+                          - key: SQL_ORDINALITY_NAME
+                            type: NAME
+                            text: "n"
+                      - key: SQL_TABLEREF_ALIAS
+                        type: NAME
+                        text: "u"
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "unnest(a) ..NALITY (i)"
+                    children:
+                      - key: SQL_TABLEREF_TABLE
+                        type: OBJECT_SQL_FUNCTION_TABLE
+                        text: "unnest(a) ..NALITY (i)"
+                        children:
+                          - key: SQL_FUNCTION_TABLE_FUNCTION
+                            type: OBJECT_SQL_FUNCTION_EXPRESSION
+                            text: "unnest(a)"
+                            children:
+                              - key: SQL_FUNCTION_NAME
+                                type: ARRAY
+                                text: "unnest"
+                                children:
+                                  - type: NAME
+                                    text: "unnest"
+                              - key: SQL_FUNCTION_ARGUMENTS
+                                type: ARRAY
+                                text: "a"
+                                children:
+                                  - type: OBJECT_SQL_FUNCTION_ARG
+                                    text: "a"
+                                    children:
+                                      - key: SQL_FUNCTION_ARG_VALUE
+                                        type: OBJECT_SQL_COLUMN_REF
+                                        text: "a"
+                                        children:
+                                          - key: SQL_COLUMN_REF_PATH
+                                            type: ARRAY
+                                            text: "a"
+                                            children:
+                                              - type: NAME
+                                                text: "a"
+                          - key: SQL_FUNCTION_TABLE_WITH_ORDINALITY
+                            type: BOOL
+                            value: 1
+                          - key: SQL_FUNCTION_TABLE_ORDINALITY_NAME
+                            type: NAME
+                            text: "i"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: select_fetch_row_with_ties
+    input: |-
+      SELECT * FROM t ORDER BY x FETCH FIRST ROW WITH TIES;
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 15
+          description:
+            text: "SELECT * F..WITH TIES;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "SELECT * F.. WITH TIES"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "*"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "*"
+                    children:
+                      - key: SQL_RESULT_TARGET_STAR
+                        type: BOOL
+                        value: 1
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "FROM t"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "t"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "t"
+                        children:
+                          - type: NAME
+                            text: "t"
+              - key: SQL_SELECT_LIMIT
+                type: BOOL
+                value: 1
+              - key: SQL_SELECT_LIMIT_WITH_TIES
+                type: BOOL
+                value: 1
+              - key: SQL_SELECT_ORDER
+                type: ARRAY
+                text: "ORDER BY x"
+                children:
+                  - type: OBJECT_SQL_ORDER
+                    text: "x"
+                    children:
+                      - key: SQL_ORDER_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "x"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "x"
+                            children:
+                              - type: NAME
+                                text: "x"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: select_aggregation_threshold
+    input: |-
+      SELECT WITH AGGREGATION_THRESHOLD x FROM t;
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 11
+          description:
+            text: "SELECT WIT.. x FROM t;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "SELECT WIT..D x FROM t"
+            children:
+              - key: SQL_SELECT_WITH_AGGREGATION_THRESHOLD
+                type: BOOL
+                value: 1
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "x"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "x"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "x"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "x"
+                            children:
+                              - type: NAME
+                                text: "x"
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "FROM t"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "t"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "t"
+                        children:
+                          - type: NAME
+                            text: "t"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []

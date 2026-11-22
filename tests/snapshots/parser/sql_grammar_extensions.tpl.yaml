@@ -40,3 +40,15 @@ parser-snapshots:
     input: CREATE DATABASE db;
   - name: typed_cursor
     input: DECLARE c SCROLL CURSOR FOR SELECT x FROM t;
+  - name: select_group_by_all
+    input: SELECT a, count(*) FROM t GROUP BY ALL; SELECT a FROM t GROUP BY ALL a;
+  - name: select_null_treatment
+    input: >-
+      SELECT first_value(x) IGNORE NULLS OVER w, last_value(x) RESPECT NULLS OVER w,
+      nth_value(x, 2) FROM LAST IGNORE NULLS OVER w FROM t WINDOW w AS (ORDER BY y);
+  - name: select_with_ordinality
+    input: SELECT * FROM t WITH ORDINALITY (n) AS u, unnest(a) WITH ORDINALITY (i);
+  - name: select_fetch_row_with_ties
+    input: SELECT * FROM t ORDER BY x FETCH FIRST ROW WITH TIES;
+  - name: select_aggregation_threshold
+    input: SELECT WITH AGGREGATION_THRESHOLD x FROM t;

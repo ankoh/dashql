@@ -42,6 +42,28 @@ impl<'a> Formatter<'a> {
         child < parent || (child == parent && index > 0)
     }
 
+    /// The LIMIT of a select: `limit all`, `limit n`, or `fetch first n rows with ties`
+    fn format_select_limit(
+        &self,
+        limit: Option<&'a Node>,
+        limit_all: Option<&'a Node>,
+        with_ties: bool,
+    ) -> Option<FmtReg> {
+        let f = &self.fmt;
+        if limit_all.is_some() {
+            return Some(f.text("limit all"));
+        }
+        let limit = limit?;
+        // `fetch first row only` has no count, it limits to one row
+        let no_count = limit.node_type() == NodeType::BOOL && limit.children_begin_or_value() != 0;
+        Some(match (with_ties, no_count) {
+            (true, true) => f.text("fetch first row with ties"),
+            (true, false) => f.concat(&[f.text("fetch first "), self.reg(limit), f.text(" rows with ties")]),
+            (false, true) => f.text("limit 1"),
+            (false, false) => f.concat(&[f.text("limit "), self.reg(limit)]),
+        })
+    }
+
     pub(super) fn format_select(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
         #[rustfmt::skip]
@@ -49,7 +71,8 @@ impl<'a> Formatter<'a> {
             select_all, select_distinct, select_targets, select_into, select_from, select_where, select_groups,
             select_having, select_windows, select_order, select_row_locking, select_with_ctes, select_with_recursive,
             select_offset, select_limit, select_limit_all, select_sample, select_values, select_table,
-            combine_operation, combine_modifier, combine_input, select_statement,
+            combine_operation, combine_modifier, combine_input, select_statement, group_all, group_distinct,
+            with_ties, aggregation_threshold,
         ] = attrs!(self.children(node), [
                 K::SQL_SELECT_ALL,
                 K::SQL_SELECT_DISTINCT,
@@ -74,8 +97,13 @@ impl<'a> Formatter<'a> {
                 K::SQL_COMBINE_MODIFIER,
                 K::SQL_COMBINE_INPUT,
                 K::SQL_SELECT_EXPRESSION_STATEMENT,
+                K::SQL_SELECT_GROUP_ALL,
+                K::SQL_SELECT_GROUP_DISTINCT,
+                K::SQL_SELECT_LIMIT_WITH_TIES,
+                K::SQL_SELECT_WITH_AGGREGATION_THRESHOLD,
             ],
         );
+        let with_ties = super::is_true(with_ties);
 
         let mut query = 0;
         if let Some(select_statement) = select_statement {
@@ -118,15 +146,7 @@ impl<'a> Formatter<'a> {
             if let Some(select_order) = select_order {
                 tail.push(f.concat(&[f.text("order by "), self.reg(select_order)]));
             }
-            if select_limit_all.is_some() {
-                tail.push(f.text("limit all"));
-            } else if let Some(select_limit) = select_limit {
-                let mut body = self.reg(select_limit);
-                if select_limit.node_type() == NodeType::BOOL && select_limit.children_begin_or_value() != 0 {
-                    body = f.text("1");
-                }
-                tail.push(f.concat(&[f.text("limit "), body]));
-            }
+            tail.extend(self.format_select_limit(select_limit, select_limit_all, with_ties));
             if let Some(select_offset) = select_offset {
                 tail.push(f.concat(&[f.text("offset "), self.reg(select_offset)]));
             }
@@ -165,29 +185,32 @@ impl<'a> Formatter<'a> {
             }
             // A select without targets is valid SQL, `select from t`
             let has_source = select_values.is_some() || select_table.is_some();
+            let select = if aggregation_threshold.is_some() { "select with aggregation_threshold" } else { "select" };
             if select_targets.is_none_or(|t| t.children_count() == 0) && !has_source {
-                clauses.push(f.text(if select_distinct.is_some() {
-                    "select distinct"
+                let modifier = if select_distinct.is_some() {
+                    " distinct"
                 } else if select_all.is_some() {
-                    "select all"
+                    " all"
                 } else {
-                    "select"
-                }));
+                    ""
+                };
+                clauses.push(f.concat(&[f.text(select), f.text(modifier)]));
             } else if let Some(select_targets) = select_targets {
                 let body = self.reg(select_targets);
                 match select_distinct.filter(|d| d.node_type() == NodeType::ARRAY) {
                     Some(select_distinct) if select_distinct.children_count() > 0 => {
                         let on_cols = self.reg(select_distinct);
                         clauses.push(f.concat(&[
-                            f.text("select distinct on "),
+                            f.text(select),
+                            f.text(" distinct on "),
                             f.parenthesized(on_cols),
                             f.text(" "),
                             body,
                         ]));
                     }
-                    Some(_) => clauses.push(f.concat(&[f.text("select distinct "), body])),
-                    None if select_all.is_some() => clauses.push(f.concat(&[f.text("select all "), body])),
-                    None => clauses.push(f.concat(&[f.text("select "), body])),
+                    Some(_) => clauses.push(f.concat(&[f.text(select), f.text(" distinct "), body])),
+                    None if select_all.is_some() => clauses.push(f.concat(&[f.text(select), f.text(" all "), body])),
+                    None => clauses.push(f.concat(&[f.text(select), f.text(" "), body])),
                 }
             }
             if let Some(select_into) = select_into {
@@ -203,8 +226,19 @@ impl<'a> Formatter<'a> {
             if let Some(select_where) = select_where {
                 clauses.push(f.concat(&[f.text("where "), self.reg(select_where)]));
             }
-            if let Some(select_groups) = select_groups {
-                clauses.push(f.concat(&[f.text("group by "), self.reg(select_groups)]));
+            let group_by = if group_all.is_some() {
+                "group by all"
+            } else if group_distinct.is_some() {
+                "group by distinct"
+            } else {
+                "group by"
+            };
+            match select_groups {
+                Some(select_groups) => {
+                    clauses.push(f.concat(&[f.text(group_by), f.text(" "), self.reg(select_groups)]))
+                }
+                None if group_all.is_some() => clauses.push(f.text(group_by)),
+                None => {}
             }
             if let Some(select_having) = select_having {
                 clauses.push(f.concat(&[f.text("having "), self.reg(select_having)]));
@@ -226,15 +260,7 @@ impl<'a> Formatter<'a> {
             if let Some(select_order) = select_order {
                 clauses.push(f.concat(&[f.text("order by "), self.reg(select_order)]));
             }
-            if select_limit_all.is_some() {
-                clauses.push(f.text("limit all"));
-            } else if let Some(select_limit) = select_limit {
-                let mut body = self.reg(select_limit);
-                if select_limit.node_type() == NodeType::BOOL && select_limit.children_begin_or_value() != 0 {
-                    body = f.text("1");
-                }
-                clauses.push(f.concat(&[f.text("limit "), body]));
-            }
+            clauses.extend(self.format_select_limit(select_limit, select_limit_all, with_ties));
             if let Some(select_offset) = select_offset {
                 clauses.push(f.concat(&[f.text("offset "), self.reg(select_offset)]));
             }

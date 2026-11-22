@@ -746,7 +746,7 @@ impl<'a> Formatter<'a> {
 
     fn format_table_ref(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
-        let [name, alias, table, lateral, sample, only] = attrs!(
+        let [name, alias, table, lateral, sample, only, ordinality] = attrs!(
             self.children(node),
             [
                 K::SQL_TABLEREF_NAME,
@@ -755,6 +755,7 @@ impl<'a> Formatter<'a> {
                 K::SQL_TABLEREF_LATERAL,
                 K::SQL_TABLEREF_SAMPLE,
                 K::SQL_TABLEREF_ONLY,
+                K::SQL_TABLEREF_ORDINALITY,
             ],
         );
 
@@ -775,6 +776,9 @@ impl<'a> Formatter<'a> {
         }
         if is_true(lateral) {
             base_reg = f.concat(&[f.text("lateral "), base_reg]);
+        }
+        if let Some(ordinality) = ordinality {
+            base_reg = f.concat(&[base_reg, f.text(" "), self.reg_or_placeholder(ordinality)]);
         }
         if let Some(alias) = alias {
             let alias_reg = self.reg(alias);
@@ -1288,10 +1292,16 @@ impl<'a> Formatter<'a> {
     // -----------------------------------------------------------------------------------------
 
     fn format_order(&self, node: &'a Node) -> FmtReg {
-        let [value, direction, nullrule] =
-            attrs!(self.children(node), [K::SQL_ORDER_VALUE, K::SQL_ORDER_DIRECTION, K::SQL_ORDER_NULLRULE]);
-        let Some(value) = value else { return self.format_unimplemented(node) };
-        let mut parts = vec![self.reg(value)];
+        let [value, all, direction, nullrule] = attrs!(
+            self.children(node),
+            [K::SQL_ORDER_VALUE, K::SQL_ORDER_ALL, K::SQL_ORDER_DIRECTION, K::SQL_ORDER_NULLRULE]
+        );
+        let mut parts = match (value, all) {
+            (Some(value), None) => vec![self.reg(value)],
+            // `order by all`
+            (None, Some(_)) => vec![self.fmt.text("all")],
+            _ => return self.format_unimplemented(node),
+        };
         if let Some(direction) = direction {
             parts.push(self.reg(direction));
         }
@@ -1829,7 +1839,7 @@ impl<'a> Formatter<'a> {
         #[rustfmt::skip]
         let [
             star, all, distinct, variadic, over, within_group, filter, name, args, order, cast_args, extract_args,
-            overlay_args, position_args, substring_args, treat_args, trim_args,
+            overlay_args, position_args, substring_args, treat_args, trim_args, from_last, ignore_nulls,
         ] = attrs!(self.children(node), [
                 K::SQL_FUNCTION_ARGUMENTS_STAR,
                 K::SQL_FUNCTION_ALL,
@@ -1848,6 +1858,8 @@ impl<'a> Formatter<'a> {
                 K::SQL_FUNCTION_SUBSTRING_ARGS,
                 K::SQL_FUNCTION_TREAT_ARGS,
                 K::SQL_FUNCTION_TRIM_ARGS,
+                K::SQL_FUNCTION_FROM_LAST,
+                K::SQL_FUNCTION_IGNORE_NULLS,
             ],
         );
         let Some(name) = name else { return self.format_unimplemented(node) };
@@ -1970,6 +1982,16 @@ impl<'a> Formatter<'a> {
             f.concat(&[name_reg, f.parenthesized(call_body)])
         };
 
+        // `nth_value(x, 2) from last`
+        if let Some(from_last) = from_last {
+            result = f.concat(&[result, f.text(if is_true(Some(from_last)) { " from last" } else { " from first" })]);
+        }
+        if let Some(ignore_nulls) = ignore_nulls {
+            result = f.concat(&[
+                result,
+                f.text(if is_true(Some(ignore_nulls)) { " ignore nulls" } else { " respect nulls" }),
+            ]);
+        }
         if let Some(filter) = filter {
             let filter_reg = self.reg(filter);
             if filter_reg == 0 {
@@ -2099,9 +2121,14 @@ impl<'a> Formatter<'a> {
 
     fn format_function_table(&self, node: &'a Node) -> FmtReg {
         let f = &self.fmt;
-        let [function, rows_from, with_ordinality] = attrs!(
+        let [function, rows_from, with_ordinality, ordinality_name] = attrs!(
             self.children(node),
-            [K::SQL_FUNCTION_TABLE_FUNCTION, K::SQL_FUNCTION_TABLE_ROWS_FROM, K::SQL_FUNCTION_TABLE_WITH_ORDINALITY],
+            [
+                K::SQL_FUNCTION_TABLE_FUNCTION,
+                K::SQL_FUNCTION_TABLE_ROWS_FROM,
+                K::SQL_FUNCTION_TABLE_WITH_ORDINALITY,
+                K::SQL_FUNCTION_TABLE_ORDINALITY_NAME,
+            ],
         );
         let mut base_reg = 0;
         if let Some(function) = function {
@@ -2120,7 +2147,20 @@ impl<'a> Formatter<'a> {
         if is_true(with_ordinality) {
             base_reg = f.concat(&[base_reg, f.text(" with ordinality")]);
         }
+        if let Some(ordinality_name) = ordinality_name {
+            base_reg = f.concat(&[base_reg, f.text(" "), f.parenthesized(self.reg_or_placeholder(ordinality_name))]);
+        }
         base_reg
+    }
+
+    /// The WITH ORDINALITY of a table reference, `t with ordinality (n)`
+    fn format_ordinality(&self, node: &'a Node) -> FmtReg {
+        let f = &self.fmt;
+        let [name] = attrs!(self.children(node), [K::SQL_ORDINALITY_NAME]);
+        match name {
+            Some(name) => f.concat(&[f.text("with ordinality "), f.parenthesized(self.reg_or_placeholder(name))]),
+            None => f.text("with ordinality"),
+        }
     }
 
     // -----------------------------------------------------------------------------------------
@@ -2822,6 +2862,7 @@ impl<'a> Formatter<'a> {
             | NodeType::OBJECT_SQL_FUNCTION_TRIM_ARGS => f.empty(),
             NodeType::ENUM_SQL_KNOWN_FUNCTION => f.empty(),
             NodeType::OBJECT_SQL_FUNCTION_TABLE => self.format_function_table(node),
+            NodeType::OBJECT_SQL_ORDINALITY => self.format_ordinality(node),
             NodeType::OBJECT_SQL_WINDOW_FRAME => self.format_window_frame(node),
             NodeType::OBJECT_SQL_WINDOW_BOUND => self.format_window_bound(node),
             NodeType::ENUM_SQL_WINDOW_BOUND_MODE => self.format_window_bound_mode(node),

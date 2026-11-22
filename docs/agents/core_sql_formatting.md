@@ -70,7 +70,8 @@ Target:
 - `//packages/dashql-core:formatter_roundtrip_test` (`packages/dashql-core/tests/formatter_roundtrip.rs`)
 
 Every error-free script of the parser snapshots (`tests/snapshots/parser/*.yaml`) must be fully formattable, and its
-output must parse without errors again. Without comments, formatting the output a second time must not change it.
+output must parse without errors again, to a tree with the same node types and attribute keys. Without comments,
+formatting the output a second time must not change it.
 
 ## 5) Add a JS API formatting test (recommended)
 

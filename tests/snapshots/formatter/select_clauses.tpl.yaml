@@ -79,3 +79,35 @@ formatter-snapshots:
     input: select * from source fetch first row only
     dialects:
       hyper:
+
+  - name: coverage_group_by_all
+    input: select a, count(*) from source group by all; select a from source group by all a, b; select a from source group by distinct rollup(a, b)
+    dialects:
+      hyper:
+
+  - name: coverage_order_by_all
+    input: select a, b from source order by all desc nulls last
+    dialects:
+      hyper:
+
+  - name: coverage_fetch_with_ties
+    input: select * from source order by a fetch first 2 rows with ties; select * from source order by a fetch next row with ties
+    dialects:
+      hyper:
+
+  - name: coverage_null_treatment
+    input: >-
+      select first_value(a) ignore nulls over (order by b), last_value(a) respect nulls over w,
+      nth_value(a, 2) from last ignore nulls over w from source window w as (order by b)
+    dialects:
+      hyper:
+
+  - name: coverage_with_ordinality
+    input: select * from source with ordinality (n) as s, unnest(xs) with ordinality as u(x, n), generate_series(1, 3) with ordinality (i)
+    dialects:
+      hyper:
+
+  - name: coverage_aggregation_threshold
+    input: select with aggregation_threshold a, count(*) from source group by a
+    dialects:
+      hyper:
