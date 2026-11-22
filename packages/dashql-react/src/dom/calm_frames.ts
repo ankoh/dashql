@@ -6,6 +6,13 @@ export interface RenderSchedule {
     schedule(task: () => void): () => void;
     /// Hold the tasks for the given milliseconds, e.g. while a view transition runs
     hold(ms: number): void;
+    /// Suspend the heavy renders until the returned function resumes them, e.g. while a panel is dragged. Rendered
+    /// content shows its skeleton again and stays mounted, it comes back in calm frames.
+    suspend: () => () => void;
+    /// Whether the renders are suspended
+    suspended: () => boolean;
+    /// Call the listener when the renders are suspended or resumed, returns the function that unsubscribes it
+    subscribe: (listener: () => void) => () => void;
 }
 
 /// A task waits at most this long for an idle period, a busy page still makes progress
@@ -31,6 +38,8 @@ function whenIdle(callback: () => void): () => void {
 export class CalmFrameSchedule implements RenderSchedule {
     private readonly tasks = new Set<() => void>();
     private heldUntil = 0;
+    private suspensions = 0;
+    private readonly listeners = new Set<() => void>();
     /// Stops the wait for the next task, null while nothing waits
     private stopWaiting: (() => void) | null = null;
 
@@ -49,8 +58,38 @@ export class CalmFrameSchedule implements RenderSchedule {
         this.wake();
     }
 
+    // Arrow functions, React reads them unbound in useSyncExternalStore
+    suspend = (): () => void => {
+        let resumed = false;
+        this.suspensions += 1;
+        if (this.suspensions === 1) {
+            this.stopWaiting?.();
+            this.stopWaiting = null;
+            this.notify();
+        }
+        return () => {
+            if (resumed) return;
+            resumed = true;
+            this.suspensions -= 1;
+            if (this.suspensions > 0) return;
+            this.notify();
+            this.wake();
+        };
+    };
+
+    suspended = (): boolean => this.suspensions > 0;
+
+    subscribe = (listener: () => void): () => void => {
+        this.listeners.add(listener);
+        return () => { this.listeners.delete(listener); };
+    };
+
+    private notify(): void {
+        for (const listener of [...this.listeners]) listener();
+    }
+
     private wake(): void {
-        if (this.stopWaiting != null || this.tasks.size === 0) return;
+        if (this.stopWaiting != null || this.tasks.size === 0 || this.suspensions > 0) return;
         const held = this.heldUntil - performance.now();
         if (held > 0) {
             const timeout = setTimeout(() => {
@@ -79,6 +118,9 @@ export const IMMEDIATE_SCHEDULE: RenderSchedule = {
         return () => {};
     },
     hold: () => {},
+    suspend: () => () => {},
+    suspended: () => false,
+    subscribe: () => () => {},
 };
 
 /// The schedule of the app

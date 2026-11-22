@@ -16,6 +16,8 @@ describe('Deferred', () => {
     let tasks: (() => void)[];
     let dropped: number;
     let schedule: RenderSchedule;
+    let suspended: boolean;
+    let listeners: Set<() => void>;
 
     beforeEach(() => {
         container = document.createElement('div');
@@ -23,12 +25,27 @@ describe('Deferred', () => {
         root = createRoot(container);
         tasks = [];
         dropped = 0;
+        suspended = false;
+        listeners = new Set();
+        const setSuspended = (value: boolean) => {
+            suspended = value;
+            for (const listener of listeners) listener();
+        };
         schedule = {
             schedule: task => {
                 tasks.push(task);
                 return () => { dropped += 1; };
             },
             hold: vi.fn(),
+            suspend: () => {
+                setSuspended(true);
+                return () => setSuspended(false);
+            },
+            suspended: () => suspended,
+            subscribe: listener => {
+                listeners.add(listener);
+                return () => { listeners.delete(listener); };
+            },
         };
     });
 
@@ -66,5 +83,50 @@ describe('Deferred', () => {
         expect(tasks).toHaveLength(1);
         act(() => root.render(<></>));
         expect(dropped).toBe(1);
+    });
+
+    it('shows the fallback over its mounted content while suspended and the content again in a calm frame', () => {
+        const mounts = vi.fn();
+        function Content() {
+            React.useEffect(() => mounts(), []);
+            return <span data-testid="content">chart</span>;
+        }
+        render(<Content />);
+        act(() => tasks.shift()!());
+        expect(skeleton()).toBeNull();
+        expect(mounts).toHaveBeenCalledOnce();
+
+        let resume: () => void = () => {};
+        act(() => { resume = schedule.suspend(); });
+        expect(skeleton()).not.toBeNull();
+        // The content stays mounted below the fallback, a suspension doesn't schedule it again
+        expect(container.querySelector('[data-testid="content"]')).not.toBeNull();
+        expect(tasks).toHaveLength(0);
+
+        act(() => resume());
+        expect(skeleton()).not.toBeNull();
+        expect(tasks).toHaveLength(1);
+        act(() => tasks.shift()!());
+        expect(skeleton()).toBeNull();
+        expect(container.textContent).toBe('chart');
+        expect(mounts).toHaveBeenCalledOnce();
+    });
+
+    it('renders immediate content right away and shows the fallback only while suspended', () => {
+        act(() => root.render(
+            <RenderScheduleContext.Provider value={schedule}>
+                <Deferred immediate fallback={<Skeleton />}><span>chart</span></Deferred>
+            </RenderScheduleContext.Provider>,
+        ));
+        expect(skeleton()).toBeNull();
+        expect(container.textContent).toBe('chart');
+        expect(tasks).toHaveLength(0);
+
+        let resume: () => void = () => {};
+        act(() => { resume = schedule.suspend(); });
+        expect(skeleton()).not.toBeNull();
+        act(() => resume());
+        act(() => tasks.shift()!());
+        expect(skeleton()).toBeNull();
     });
 });

@@ -35,6 +35,25 @@ describe('CalmFrameSchedule', () => {
         await vi.waitFor(() => expect(ran).toEqual(['a']));
     });
 
+    it('holds the tasks while suspended and tells its listeners', async () => {
+        const schedule = new CalmFrameSchedule();
+        const ran: string[] = [];
+        const changes: boolean[] = [];
+        schedule.subscribe(() => changes.push(schedule.suspended()));
+        const resumeOuter = schedule.suspend();
+        const resumeInner = schedule.suspend();
+        schedule.schedule(() => ran.push('a'));
+        resumeInner();
+        await sleep(60);
+        expect(ran).toEqual([]);
+        expect(schedule.suspended()).toBe(true);
+        resumeOuter();
+        // A second call of a resume does nothing
+        resumeOuter();
+        expect(changes).toEqual([true, false]);
+        await vi.waitFor(() => expect(ran).toEqual(['a']));
+    });
+
     it('runs a function scheduled twice twice', async () => {
         const schedule = new CalmFrameSchedule();
         const task = vi.fn();

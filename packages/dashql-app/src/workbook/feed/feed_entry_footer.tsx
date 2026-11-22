@@ -16,6 +16,8 @@ import { TabHeader, formatRowCountDetail } from '@akohn/dashql-react/components/
 import { resultRowCount } from '@akohn/dashql-react/components/query_result/query_result_toolbar';
 import { QueryResultHeader } from '../../results/query_result_header.js';
 import { ChartDownloadButton } from '@akohn/dashql-react/components/visualization/chart_download_button';
+import { Deferred } from '@akohn/dashql-react/components/deferred';
+import { Skeleton } from '@akohn/dashql-react/components/skeleton';
 
 const FEED_LIMIT_RESULT_ROWS = 6;
 /// The Log tab's viewport auto-expands to fit its rows and caps at this many (then scrolls).
@@ -232,11 +234,14 @@ export const FeedEntryFooter: React.FC<FeedEntryFooterProps> = (props) => {
                 />
                 {model != null && (
                     <div className={styles.visualization_body}>
-                        <VisualizationDispatch
-                            model={model}
-                            visualizeQuery={props.visualizeQuery}
-                            height={FEED_VISUALIZATION_HEIGHT}
-                        />
+                        {/* The chart shows its skeleton while the sidebar is dragged, it lays out once after the drag */}
+                        <Deferred immediate fallback={<Skeleton />}>
+                            <VisualizationDispatch
+                                model={model}
+                                visualizeQuery={props.visualizeQuery}
+                                height={FEED_VISUALIZATION_HEIGHT}
+                            />
+                        </Deferred>
                     </div>
                 )}
             </div>

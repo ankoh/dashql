@@ -11,6 +11,8 @@ export interface PanelResizeHandleProps {
     minSize: number;
     maxSize: number;
     onResize: (size: number) => void;
+    /// A drag began, returns what to do when it ends
+    onDragStart?: () => () => void;
     label?: string;
     className?: string;
 }
@@ -27,6 +29,7 @@ export const PanelResizeHandle: React.FC<PanelResizeHandleProps> = (props) => {
     const drag = useSeparatorDrag('x', {
         onMove: (position, start) => resize(size + position - start),
         onCancel: () => onResize(size),
+        onDragStart: props.onDragStart,
         onKey: key => resize(key === 'decrease' ? size - KEYBOARD_STEP : key === 'increase' ? size + KEYBOARD_STEP : key === 'min' ? minSize : maxSize),
     });
 

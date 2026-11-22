@@ -11,7 +11,7 @@ import { markdownTemplate } from './dashboard_source.js';
 import { NEW_CHART_SPEC } from '../chart_builder/chart_spec_paths.js';
 import { queryModelOf, resultTableOf, WithResultTables } from '../../tests/result_tables.js';
 import { RenderScheduleContext } from '@akohn/dashql-react/components/deferred';
-import type { RenderSchedule } from '@akohn/dashql-react/dom/calm_frames';
+import { IMMEDIATE_SCHEDULE, type RenderSchedule } from '@akohn/dashql-react/dom/calm_frames';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -77,7 +77,7 @@ describe('DashboardCard', () => {
     it('shows the skeleton of a result until a calm frame renders it', () => {
         // The schedule runs its tasks when the test says so
         const tasks: (() => void)[] = [];
-        const schedule: RenderSchedule = { schedule: task => { tasks.push(task); return () => {}; }, hold: vi.fn() };
+        const schedule: RenderSchedule = { ...IMMEDIATE_SCHEDULE, schedule: task => { tasks.push(task); return () => {}; }, hold: vi.fn() };
         const result = { schema: { fields: [{ name: 'region' }] } };
         const model = queryModelOf({ queryId: 7, status: QueryExecutionStatus.SUCCEEDED, resultTable: resultTableOf(result as never) } as never);
         act(() => root.render(

@@ -339,6 +339,8 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
                     minSize={SIDEBAR_MIN_WIDTH}
                     maxSize={SIDEBAR_MAX_WIDTH}
                     onResize={setSidebarWidth}
+                    // The charts and tables of the cards show their skeletons while the sidebar is dragged
+                    onDragStart={renderSchedule.suspend}
                     label="Resize workbench and workbook"
                 />
                 <main className={styles.body_container} id="workbook-body">

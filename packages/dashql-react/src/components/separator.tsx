@@ -16,6 +16,8 @@ export interface SeparatorDragHandlers {
     onCancel: () => void;
     /// A press that didn't become a drag
     onClick?: () => void;
+    /// A press became a drag, returns what to do when the drag ends, e.g. resume the renders that it suspended
+    onDragStart?: () => () => void;
     /// A key: one step towards the start or the end of the axis, or to the minimum or the maximum
     onKey: (key: 'decrease' | 'increase' | 'min' | 'max') => void;
 }
@@ -58,13 +60,19 @@ export function useSeparatorDrag(axis: SeparatorAxis, handlers: SeparatorDragHan
         const pointerId = event.pointerId;
         const start = position(event);
         let pointerMoved = false;
+        let endDrag: (() => void) | undefined;
         const handlePointerMove = (moveEvent: PointerEvent) => {
             if (moveEvent.pointerId !== pointerId) return;
             moveEvent.preventDefault();
-            pointerMoved ||= Math.abs(position(moveEvent) - start) >= DRAG_THRESHOLD;
+            if (!pointerMoved && Math.abs(position(moveEvent) - start) >= DRAG_THRESHOLD) {
+                pointerMoved = true;
+                endDrag = handlers.onDragStart?.();
+            }
             if (pointerMoved) handlers.onMove(position(moveEvent), start);
         };
         const stopDragging = () => {
+            endDrag?.();
+            endDrag = undefined;
             window.removeEventListener('pointermove', handlePointerMove);
             window.removeEventListener('pointerup', handlePointerEnd);
             window.removeEventListener('pointercancel', handlePointerEnd);
