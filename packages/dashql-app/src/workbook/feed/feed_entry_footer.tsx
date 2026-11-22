@@ -24,7 +24,7 @@ const FEED_LIMIT_LOG_ROWS = 6;
 /// feed while scrolling. Only the vega-lite renderer honors this.
 const FEED_VISUALIZATION_HEIGHT = 180;
 /// The height of the plan in the Progress tab. The plan and its statistics are fetched while the tab is open.
-const FEED_PROFILE_HEIGHT = 240;
+export const FEED_PROFILE_HEIGHT = 240;
 
 /// The result tabs of a feed entry. The tab strip lives in the entry status bar and the panel of the
 /// selected tab below it, so the row owns the selection through `useFeedEntryTabs`.

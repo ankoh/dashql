@@ -8,7 +8,7 @@ import { QueryExecutionStatus } from '@akohn/dashql/platform/query/query_executi
 
 import type { ResolvedVisualizeQuery } from '@akohn/dashql/platform/workbook/script_types';
 import * as dashql from '@akohn/dashql';
-import { FeedEntryFooter, FeedEntryTab, FeedEntryTabStrip, useFeedEntryTabs } from './feed_entry_footer.js';
+import { FEED_PROFILE_HEIGHT, FeedEntryFooter, FeedEntryTab, FeedEntryTabStrip, useFeedEntryTabs } from './feed_entry_footer.js';
 import type { QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 import { tableFromArrays } from '@akohn/dashql/platform/testing/arrow_fixtures';
 import { RuntimeContextProvider } from '@akohn/dashql-react/hooks';
@@ -211,7 +211,7 @@ describe('FeedEntryFooter', () => {
             </RuntimeContextProvider>,
         ));
         const profile = container.querySelector<HTMLElement>('[data-testid="query-progress-profile"]');
-        expect(profile?.style.height).toEqual('240px');
+        expect(profile?.style.height).toEqual(`${FEED_PROFILE_HEIGHT}px`);
         expect(profile?.querySelector('[aria-label="Query execution plan with 2 operators"]')).not.toBeNull();
         act(() => root.unmount());
         root = createRoot(container);

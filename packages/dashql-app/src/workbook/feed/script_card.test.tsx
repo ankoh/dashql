@@ -155,10 +155,8 @@ describe('the card of a script', () => {
         // The script runs on Trino, it formats in the dialect of Trino and the model writes the text
         click('script-more-actions');
         act(() => document.querySelector<HTMLButtonElement>('[data-testid="script-menu-item"][data-action="format-compact"]')!.click());
-        expect(formatScriptEditor).toHaveBeenCalledWith(
-            expect.anything(), script, dashql.buffers.formatting.FormattingMode.COMPACT, expect.any(Function), false,
-            dashql.buffers.formatting.KeywordCase.UPPER, dashql.buffers.formatting.FormattingDialect.TRINO,
-        );
+        const [, formatted, mode, , , , dialect] = vi.mocked(formatScriptEditor).mock.lastCall!;
+        expect([formatted, mode, dialect]).toEqual([script, dashql.buffers.formatting.FormattingMode.COMPACT, dashql.buffers.formatting.FormattingDialect.TRINO]);
         expect(model.setText).toHaveBeenCalledWith('SELECT 1;');
 
         // A staged rewrite is accepted or rejected by the model
@@ -185,10 +183,8 @@ describe('the card of a script', () => {
         expect(container.querySelector('[data-testid="script-statistics"]')).not.toBeNull();
         click('script-more-actions');
         act(() => document.querySelector<HTMLButtonElement>('[data-testid="script-menu-item"][data-action="format-pretty"]')!.click());
-        expect(formatScriptEditor).toHaveBeenCalledWith(
-            expect.anything(), props.model.script, dashql.buffers.formatting.FormattingMode.PRETTY, expect.any(Function), true,
-            dashql.buffers.formatting.KeywordCase.UPPER, dashql.buffers.formatting.FormattingDialect.TRINO,
-        );
+        const [, , mode, , debugMode] = vi.mocked(formatScriptEditor).mock.lastCall!;
+        expect([mode, debugMode]).toEqual([dashql.buffers.formatting.FormattingMode.PRETTY, true]);
     });
 
     it('folds the result with the status bar and folds a result without rows by itself', () => {

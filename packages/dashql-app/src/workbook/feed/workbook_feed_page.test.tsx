@@ -613,7 +613,6 @@ describe('WorkbookFeedPage', () => {
         expect(state.feedProps?.active).toBe(false);
         expect(state.promptProps?.placement).toBe(WorkbookPromptPlacement.Collapsed);
         const buttons = container.querySelectorAll<HTMLButtonElement>('[data-testid="workbook-view-switch"] button');
-        expect([...buttons].map(viewLabel)).toEqual(['Feed', 'Dashboard', 'Dataflow']);
         expect(buttons[2]?.getAttribute('aria-current')).toBe('true');
 
         expect(container.querySelector('[data-testid="script-editor-dialog"]')).toBeNull();

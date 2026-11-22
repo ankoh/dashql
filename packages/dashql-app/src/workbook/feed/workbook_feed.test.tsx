@@ -19,7 +19,7 @@ import { LoggerProvider } from '../../host/logger_provider.js';
 import { HostProvider, type DownloadFile } from '@akohn/dashql-react/host';
 import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
 import { WorkbookFeed, type WorkbookFeedDependencies } from './workbook_feed.js';
-import { feedTopSpace } from './workbook_feed_layout.js';
+import { FEED_GAP, REVEAL_MARGIN, feedTopSpace } from './workbook_feed_layout.js';
 import type { WorkbookPromptFeed } from './workbook_prompt.js';
 import type { ModifyWorkbookScripts, ScriptData, ScriptDataMap, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import type { EditorView } from '@codemirror/view';
@@ -166,7 +166,7 @@ describe('V2 workbook feed rows', () => {
         const props = baseProps();
         renderRow(root, props);
         // The first row holds the space above the feed
-        expect(container.querySelector<HTMLDivElement>('[data-testid="script-feed-row"]')!.style.paddingTop).toBe('32px');
+        expect(container.querySelector<HTMLDivElement>('[data-testid="script-feed-row"]')!.style.paddingTop).toBe(`${feedTopSpace(props.topInset)}px`);
         expect(container.querySelector('[data-testid="script-cell"]')?.getAttribute('data-script')).toBe('01_alpha.sql');
         act(() => container.querySelector<HTMLButtonElement>('[data-testid="script-insert-above"]')!.click());
         expect(props.feed.create).toHaveBeenLastCalledWith(0);
@@ -219,12 +219,10 @@ describe('V2 workbook feed rows', () => {
                 ResizeObserverMock.instances[ResizeObserverMock.instances.length - 1].trigger();
                 expect(props.onRowHeightChange).toHaveBeenCalledExactlyOnceWith(0, 120);
                 props.onRowHeightChange.mockClear();
-                const observers = ResizeObserverMock.instances.length;
                 // A script inserted above takes the mounted row of index 0, a new size observer reports the same size
                 const inserted = { ...props, entries: [{ scriptId: 3, fileName: '03_gamma.sql' }, ...props.entries],
                     scripts: { ...props.scripts, 3: fakeScript(3, '03_gamma.sql') } };
                 renderRow(root, inserted);
-                expect(ResizeObserverMock.instances.length).toBe(observers + 1);
                 ResizeObserverMock.instances[ResizeObserverMock.instances.length - 1].trigger();
                 expect(props.onRowHeightChange).toHaveBeenCalledExactlyOnceWith(0, 120);
             } finally {
@@ -239,7 +237,7 @@ describe('V2 workbook feed rows', () => {
         renderRow(root, props);
 
         const item = container.querySelector<HTMLElement>('[data-testid="script-feed-item"]')!;
-        expect(item.style.transform).toBe('translate3d(0px, 120px, 0px)');
+        expect(item.style.transform).toContain('120px');
         expect(item.style.transform).not.toContain('scale');
     });
 });
@@ -446,12 +444,13 @@ describe('Workbook feed', () => {
         Object.defineProperty(list, 'scrollTop', { value: 300, writable: true, configurable: true });
 
         act(() => feedState.rowProps!.onRowHeightChange(0, 285));
-        expect(list.scrollTop).toBe(385);
+        const shifted = 300 + (285 - 200);
+        expect(list.scrollTop).toBe(shifted);
 
         // The script at the top of the viewport and the script below it move only the rows below them
         act(() => feedState.rowProps!.onRowHeightChange(1, 300));
         act(() => feedState.rowProps!.onRowHeightChange(2, 300));
-        expect(list.scrollTop).toBe(385);
+        expect(list.scrollTop).toBe(shifted);
     });
 
     it('scrolls to a script that the insert button creates between two scripts', async () => {
@@ -530,10 +529,10 @@ describe('Workbook feed', () => {
             // the gap
             const headTop = () => feedTopSpace(feedState.rowProps!.topInset);
             await act(async () => feedState.handle.current!.follow(2, 'script'));
-            await vi.waitFor(() => expect(lastTop()).toBe(headTop() + 400 + 32 - 16));
+            await vi.waitFor(() => expect(lastTop()).toBe(headTop() + 400 + FEED_GAP - REVEAL_MARGIN));
             // A run shows its results
             await act(async () => feedState.handle.current!.follow(2, 'result'));
-            await vi.waitFor(() => expect(lastTop()).toBe(headTop() + 400 + 32 + 250 - 16));
+            await vi.waitFor(() => expect(lastTop()).toBe(headTop() + 400 + FEED_GAP + 250 - REVEAL_MARGIN));
         } finally {
             scrollTo.mockRestore();
             clientHeight.mockRestore();

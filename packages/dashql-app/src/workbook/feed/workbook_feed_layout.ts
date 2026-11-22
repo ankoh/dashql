@@ -156,7 +156,7 @@ export class FeedRowHeightCache {
 }
 
 /// The space kept around a revealed script
-const REVEAL_MARGIN = 16;
+export const REVEAL_MARGIN = 16;
 
 /// The scroll offset that brings a span of the list into view, null if it is in view already.
 /// A span taller than the viewport shows its start, the agent's script reads from the top.

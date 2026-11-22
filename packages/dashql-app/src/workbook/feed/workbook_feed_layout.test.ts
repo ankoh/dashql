@@ -1,6 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { FeedRowHeightCache, revealScrollOffset } from './workbook_feed_layout.js';
+import {
+    FEED_END_PADDING as END,
+    FEED_GAP as GAP,
+    FEED_LABEL_GAP as LABEL_GAP,
+    FEED_TOP_PADDING as TOP,
+    FeedRowHeightCache,
+    REVEAL_MARGIN,
+    revealScrollOffset,
+} from './workbook_feed_layout.js';
 
 describe('FeedRowHeightCache', () => {
     it('adds the spaces of the feed to the script estimates before rows mount', () => {
@@ -12,17 +20,17 @@ describe('FeedRowHeightCache', () => {
 
         // The top padding, the gaps between the scripts, the end padding
         expect([0, 1, 2].map(index => heights.getRowHeight(index))).toEqual([
-            32 + 122 + 32, 202 + 32, 82 + 32,
+            TOP + 122 + GAP, 202 + GAP, 82 + END,
         ]);
         expect(heights.getRowHeight(3)).toBeUndefined();
-        expect(heights.getAverageRowHeight()).toBe((32 + 122 + 32 + 202 + 32 + 82 + 32) / 3);
+        expect(heights.getAverageRowHeight()).toBe((TOP + 122 + GAP + 202 + GAP + 82 + END) / 3);
     });
 
     it('holds both paddings in the row of a single script', () => {
         const heights = new FeedRowHeightCache([{ scriptId: 1, estimatedHeight: 122 }]);
 
-        expect(heights.getRowHeight(0)).toBe(32 + 122 + 32);
-        expect(heights.getEntrySpan(0)).toEqual([32, 154]);
+        expect(heights.getRowHeight(0)).toBe(TOP + 122 + END);
+        expect(heights.getEntrySpan(0)).toEqual([TOP, TOP + 122]);
     });
 
     it('adds the prompt over the bottom of the feed to the end padding only', () => {
@@ -33,9 +41,10 @@ describe('FeedRowHeightCache', () => {
         expect(heights.setBottomInset(90)).toBe(true);
         expect(heights.setBottomInset(90)).toBe(false);
 
-        expect([0, 1].map(index => heights.getRowHeight(index))).toEqual([32 + 122 + 32, 202 + 32 + 90]);
-        expect(heights.getAverageRowHeight()).toBe((32 + 122 + 32 + 202 + 32 + 90) / 2);
-        expect(heights.getEntrySpan(1)).toEqual([186, 388]);
+        expect([0, 1].map(index => heights.getRowHeight(index))).toEqual([TOP + 122 + GAP, 202 + END + 90]);
+        expect(heights.getAverageRowHeight()).toBe((TOP + 122 + GAP + 202 + END + 90) / 2);
+        const secondTop = TOP + 122 + GAP;
+        expect(heights.getEntrySpan(1)).toEqual([secondTop, secondTop + 202]);
     });
 
     it('puts the first script below the head of the feed and its label', () => {
@@ -46,10 +55,12 @@ describe('FeedRowHeightCache', () => {
         expect(heights.setTopInset(54)).toBe(true);
         expect(heights.setTopInset(54)).toBe(false);
 
-        expect([0, 1].map(index => heights.getRowHeight(index))).toEqual([54 + 12 + 122 + 32, 202 + 32]);
-        expect(heights.getAverageRowHeight()).toBe((54 + 12 + 122 + 32 + 202 + 32) / 2);
-        expect(heights.getEntrySpan(0)).toEqual([66, 188]);
-        expect(heights.getEntrySpan(1)).toEqual([220, 422]);
+        // The head of the feed and the gap below its label
+        const head = 54 + LABEL_GAP;
+        expect([0, 1].map(index => heights.getRowHeight(index))).toEqual([head + 122 + GAP, 202 + END]);
+        expect(heights.getAverageRowHeight()).toBe((head + 122 + GAP + 202 + END) / 2);
+        expect(heights.getEntrySpan(0)).toEqual([head, head + 122]);
+        expect(heights.getEntrySpan(1)).toEqual([head + 122 + GAP, head + 122 + GAP + 202]);
     });
 
     it('retains measured script heights by identity while entries update', () => {
@@ -65,12 +76,12 @@ describe('FeedRowHeightCache', () => {
         ]);
 
         // Script 1 measures 25px below its new estimate, the unmeasured script 2 follows
-        expect(heights.getRowHeight(0)).toBe(32 + 177 + 32);
-        expect(heights.getRowHeight(1)).toBe(137 + 32);
+        expect(heights.getRowHeight(0)).toBe(TOP + 177 + GAP);
+        expect(heights.getRowHeight(1)).toBe(137 + END);
         expect(onChange).toHaveBeenCalledOnce();
     });
 
-    /// Four measured scripts of 100px: the rows start at 0, 164, 296 and 428
+    /// Four measured scripts of 100px
     function measuredHeights(scrollOffset: number) {
         const onChange = vi.fn();
         const heights = new FeedRowHeightCache(
@@ -123,7 +134,10 @@ describe('FeedRowHeightCache', () => {
         heights.setRowHeight(0, 504);
         heights.setRowHeight(1, 304);
 
-        expect([0, 1, 2].map(index => heights.getEntrySpan(index)[1] - heights.getEntrySpan(index)[0])).toEqual([504, 304, 440]);
+        // Both measured scripts exceed their estimates by 300px on average
+        expect([0, 1, 2].map(index => heights.getEntrySpan(index)[1] - heights.getEntrySpan(index)[0])).toEqual([
+            504, 304, 140 + (400 + 200) / 2,
+        ]);
     });
 
     it('keeps the extrapolated height of a long feed close to its rows', () => {
@@ -147,9 +161,11 @@ describe('FeedRowHeightCache', () => {
         heights.setRowHeight(0, 137);
 
         // Script 2 is not measured, it follows the 15px excess of script 1
-        expect([0, 1, 2].map(index => heights.getRowOffset(index))).toEqual([0, 201, 450]);
-        expect(heights.getEntrySpan(0)).toEqual([32, 169]);
-        expect(heights.getEntrySpan(1)).toEqual([201, 418]);
+        const first = TOP + 137 + GAP;
+        const second = 202 + 15 + END;
+        expect([0, 1, 2].map(index => heights.getRowOffset(index))).toEqual([0, first, first + second]);
+        expect(heights.getEntrySpan(0)).toEqual([TOP, TOP + 137]);
+        expect(heights.getEntrySpan(1)).toEqual([first, first + 202 + 15]);
     });
 });
 
@@ -159,15 +175,15 @@ describe('revealScrollOffset', () => {
     });
 
     it('scrolls up to a span above the viewport', () => {
-        expect(revealScrollOffset(100, 200, 400, 300)).toBe(84);
+        expect(revealScrollOffset(100, 200, 400, 300)).toBe(100 - REVEAL_MARGIN);
     });
 
     it('scrolls a span below the viewport just above the composer', () => {
-        expect(revealScrollOffset(500, 600, 0, 300)).toBe(316);
+        expect(revealScrollOffset(500, 600, 0, 300)).toBe(600 + REVEAL_MARGIN - 300);
     });
 
     it('shows the start of a span taller than the viewport', () => {
-        expect(revealScrollOffset(500, 1200, 0, 300)).toBe(484);
-        expect(revealScrollOffset(500, 1200, 484, 300)).toBeNull();
+        expect(revealScrollOffset(500, 1200, 0, 300)).toBe(500 - REVEAL_MARGIN);
+        expect(revealScrollOffset(500, 1200, 500 - REVEAL_MARGIN, 300)).toBeNull();
     });
 });
