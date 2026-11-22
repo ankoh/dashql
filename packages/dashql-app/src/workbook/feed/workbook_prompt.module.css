@@ -82,12 +82,13 @@
         calc(var(--page_gutter) + var(--prompt_scrollbar_inset, 0px) + var(--prompt_scrollbar_gutter, 0px) - var(--prompt_overhang))
         16px
         calc(var(--page_gutter) - var(--prompt_overhang));
-    pointer-events: auto;
     transition: padding var(--prompt_morph);
 }
 
-/* The composer narrows to the bar of the other views of the workbook and widens to the prompt of the feed */
+/* The composer narrows to the bar of the other views of the workbook and widens to the prompt of the feed. Only the
+   composer takes clicks, its padding lets them through to the view below, e.g. the controls of the dataflow. */
 .prompt_body > * {
+    pointer-events: auto;
     max-width: 100%;
     margin-inline: auto;
     transition: max-width var(--prompt_morph);
