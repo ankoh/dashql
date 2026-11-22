@@ -5,7 +5,7 @@ onlyBuiltDependencies:
   - electron
   - electron-winstaller
 minimumReleaseAgeExclude:
-  - hyperdb-wasm@0.0.27368-dev.wasm.ge0a6b4a9
+  - hyperdb-wasm@0.0.27499-dev.wasm.g2c696bfb
 allowBuilds:
   '@parcel/watcher': true
   electron: true
