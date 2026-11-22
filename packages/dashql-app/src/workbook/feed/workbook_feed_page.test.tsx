@@ -55,7 +55,11 @@ const dependencies: WorkbookFeedPageDependencies = {
     ScriptEditorDialog: () => null,
     WorkbookWorkbenchSidebar: (props: PropsOf<'WorkbookWorkbenchSidebar'>) => {
         state.sidebarProps = props;
-        return null;
+        return <nav data-testid="workbench" />;
+    },
+    useWorkbenchHidden: () => {
+        const [hidden, setHidden] = React.useState(false);
+        return [hidden, setHidden];
     },
     ConnectionOverviewPage: () => null,
     CloudOverviewPage: () => null,
@@ -407,6 +411,68 @@ describe('WorkbookFeedPage', () => {
         expect(header.querySelector('[data-testid="workbook-storage"]')).toBeNull();
     });
 
+    it('hides the workbench and shows it again from the toggle of the bar', () => {
+        act(() => root.render(
+            <WorkbookFeedPage
+                workbookScripts={scripts()}
+                modifyWorkbookScripts={vi.fn()}
+                connection={{ connectionId: 'database' } as ConnectionState}
+                active
+                dependencies={dependencies}
+            />,
+        ));
+        const toggle = container.querySelector<HTMLButtonElement>('header [data-testid="workbench-toggle"]')!;
+        const workbench = () => container.querySelector<HTMLElement>('[data-testid="workbench"]')!;
+        expect(toggle.getAttribute('aria-expanded')).toBe('true');
+        expect(toggle.getAttribute('aria-label')).toBe('Hide workbench');
+        expect(workbench().checkVisibility()).toBe(true);
+
+        act(() => toggle.click());
+        expect(toggle.getAttribute('aria-expanded')).toBe('false');
+        expect(toggle.getAttribute('aria-label')).toBe('Show workbench');
+        // The workbench stays mounted and keeps its state, nothing takes its place
+        expect(workbench().checkVisibility()).toBe(false);
+        expect(container.querySelector('aside')!.getBoundingClientRect().width).toBe(0);
+
+        act(() => toggle.click());
+        expect(toggle.getAttribute('aria-expanded')).toBe('true');
+        expect(workbench().checkVisibility()).toBe(true);
+    });
+
+    it('starts the bar with the workbench toggle and ends it with the connections, the actions and the views, apart', () => {
+        const render = (workbookScripts: WorkbookScripts, connection: ConnectionState | null) => act(() => root.render(
+            <WorkbookFeedPage
+                workbookScripts={workbookScripts}
+                modifyWorkbookScripts={vi.fn()}
+                connection={connection}
+                active
+                dependencies={dependencies}
+            />,
+        ));
+        const main = testConnection('main', ConnectionHealth.ONLINE);
+        render(scripts(), main);
+        const header = container.querySelector('header')!;
+        const buttons = Array.from(header.querySelectorAll('button')).filter(button => button.dataset.testid !== 'open-workbench');
+        expect(buttons[0]?.dataset.testid).toBe('workbench-toggle');
+        // The groups at the end, separated: the connections, the actions, the views with the arrows that step through them
+        const end = () => Array.from(header.querySelector('[data-testid="workbook-actions-group"], [data-testid="workbook-connections-group"]')!
+            .parentElement!.children).map(child => child.getAttribute('data-testid'));
+        expect(end()).toEqual(['workbook-connections-group', 'workbook-bar-separator', 'workbook-actions-group',
+            'workbook-bar-separator', 'workbook-views-group']);
+        expect(state.connectionButtonsProps?.connections).toEqual([main]);
+        expect(header.querySelector('[data-testid="workbook-actions-group"] [data-testid="workbook-actions"]')).not.toBeNull();
+        expect(header.querySelector('[data-testid="workbook-views-group"] [data-testid="workbook-view-switch"]')).not.toBeNull();
+        expect(buttons[buttons.length - 1]?.dataset.testid).toBe('workbook-view-next');
+
+        // A workbook without a known connection leaves out the group of the connections and its separator
+        render(scripts(), null);
+        expect(end()).toEqual(['workbook-actions-group', 'workbook-bar-separator', 'workbook-views-group']);
+
+        // An ephemeral workbook has neither actions nor views, nothing to separate
+        render({ ...scripts(), ephemeral: true } as WorkbookScripts, main);
+        expect(end()).toEqual(['workbook-connections-group']);
+    });
+
     it('hides the workbook controls while a connection overview is open', () => {
         act(() => root.render(
             <WorkbookFeedPage
@@ -431,13 +497,14 @@ describe('WorkbookFeedPage', () => {
 
     it('keeps only the connections in the header while the workbook is ephemeral', () => {
         const ephemeral = { ...scripts(), workbookMetadata: { ephemeral: true }, ephemeral: true, scriptOrder: [], scriptKeys: [], scriptConnections: [], scriptRefs: {} };
-        act(() => root.render(<WorkbookFeedPage workbookScripts={ephemeral} modifyWorkbookScripts={vi.fn()} connection={null} active dependencies={dependencies} />));
+        const main = testConnection('main', ConnectionHealth.ONLINE);
+        act(() => root.render(<WorkbookFeedPage workbookScripts={ephemeral} modifyWorkbookScripts={vi.fn()} connection={main} active dependencies={dependencies} />));
         const header = container.querySelector('header')!;
         for (const control of ['workbook-view-switch', 'execute-all', 'workbook-actions', 'export-workbook']) {
             expect(header.querySelector(`[data-testid="${control}"]`)).toBeNull();
         }
         expect(header.querySelector('[data-testid="open-workbench"]')).not.toBeNull();
-        expect(state.connectionButtonsProps).not.toBeNull();
+        expect(state.connectionButtonsProps?.connections).toEqual([main]);
         expect(state.setMode).not.toHaveBeenCalled();
     });
 

@@ -1,10 +1,9 @@
 .buttons {
     display: flex;
     align-items: center;
-    gap: 4px;
+    /* The gap of the items of the bar it sits in */
+    gap: var(--workbook_bar_item_gap, 4px);
     min-width: 0;
-    /* Set apart from the workbook actions to the right */
-    margin-right: 12px;
 }
 
 /* The look and the hover outline are the ones of the other buttons of the bar */

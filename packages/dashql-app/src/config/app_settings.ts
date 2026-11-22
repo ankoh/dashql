@@ -11,6 +11,8 @@ export interface AppSettings {
     macWindowLayout?: boolean;
     /// Show the labels of the buttons in a wide rail on the left
     navRailWide?: boolean;
+    /// Hide the workbench of the workbook page, its workbooks and connections
+    workbenchHidden?: boolean;
     scriptDebugMode?: boolean;
     tableDebugMode?: boolean;
     formattingDebugMode?: boolean;

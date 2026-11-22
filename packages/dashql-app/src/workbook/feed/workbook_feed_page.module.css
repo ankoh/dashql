@@ -1,6 +1,8 @@
 .page {
     --workbook_header_height: 40px;
     --workbook_navigation_sidebar_width: 276px;
+    /* The space between the items of a group of the bar, e.g. Execute All and its status */
+    --workbook_bar_item_gap: 6px;
     width: 100%;
     height: 100%;
     display: grid;
@@ -22,6 +24,10 @@
     .page {
         grid-template-columns: 100%;
     }
+    /* The narrow page opens the workbench in a drawer */
+    .sidebar_toggle {
+        display: none;
+    }
     .navigation_sidebar,
     .page .navigation_sidebar_separator {
         display: none;
@@ -38,6 +44,14 @@
         grid-template-columns: var(--workbook_navigation_sidebar_width) 6px minmax(0, 1fr);
     }
     .mobile_menu_button {
+        display: none;
+    }
+    /* The hidden workbench leaves the page to the workbook, it stays mounted and keeps its state */
+    .page.page_sidebar_hidden {
+        grid-template-columns: 0 0 minmax(0, 1fr);
+    }
+    .page.page_sidebar_hidden .navigation_sidebar,
+    .page.page_sidebar_hidden .navigation_sidebar_separator {
         display: none;
     }
     .navigation_sidebar {
@@ -65,6 +79,20 @@
         grid-column: 3;
         background-color: var(--color_bg_pane_subtle);
     }
+}
+
+/* The octicons show the sidebar on the right, flipped it sits on the left like the workbench */
+.view_bar .sidebar_toggle {
+    flex-shrink: 0;
+    color: var(--color_fg_muted);
+}
+
+.view_bar .sidebar_toggle:hover {
+    color: var(--color_fg);
+}
+
+.sidebar_toggle svg {
+    transform: scaleX(-1);
 }
 
 .body_container {
@@ -95,12 +123,29 @@
     }
 }
 
-.header_actions {
+/* The end of the bar holds groups of controls, a separator divides them */
+.bar_end {
     display: flex;
     align-items: center;
-    gap: 4px;
+    column-gap: 8px;
     margin-left: auto;
     flex-shrink: 0;
+}
+
+.bar_group {
+    display: flex;
+    align-items: center;
+    column-gap: var(--workbook_bar_item_gap);
+    flex-shrink: 0;
+}
+
+.bar_separator {
+    width: 1px;
+    height: 20px;
+    /* With the gap of the bar, 12px on either side */
+    margin: 0 4px;
+    flex-shrink: 0;
+    background-color: var(--color_border);
 }
 
 /* The file input that Attach File of the menu opens */
@@ -118,11 +163,8 @@
 }
 
 /* The switch of the views between the arrows that step through them, like the arrow keys */
-.view_switch {
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    flex-shrink: 0;
+.bar_group.view_switch {
+    column-gap: 2px;
 }
 
 .view_bar .view_step {
@@ -143,7 +185,7 @@
 .execution_controls {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--workbook_bar_item_gap);
     min-width: 0;
     max-width: 100%;
 }
@@ -223,11 +265,13 @@
     .action_label {
         display: none;
     }
-    .header_actions button {
+    .connections_group button,
+    .actions_group button {
         min-width: 28px;
         padding: 0 6px;
     }
-    .header_actions button > span > span:first-child {
+    .connections_group button > span > span:first-child,
+    .actions_group button > span > span:first-child {
         margin-right: 0;
     }
 }
@@ -240,8 +284,7 @@
         gap: 4px;
         padding: 0 4px;
     }
-    .header_actions {
-        gap: 0;
+    .bar_end {
         flex-basis: 100%;
         justify-content: flex-end;
     }
