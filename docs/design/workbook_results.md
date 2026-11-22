@@ -47,10 +47,12 @@ attachments at `/mnt/external/attachments/<workbook-id>`: the core plans with th
 the database, not to a runtime: destroying a runtime leaves them, deleting a workbook removes its mount. Hyper writes a
 result with `COPY ... TO` into the mount and reads it with `external('<path>', format => 'parquet')`, fetching the
 byte ranges it needs. A result is written as a transient file and moved to its name once it is complete, so readers
-never see a partial file. After the files of a workbook were removed or renamed, the next use of its mount refreshes it
-(`refreshExternalDirectory`), the database looks the paths up again and forgets the files that are gone. A refresh
-doesn't wait for readers, queries that run keep reading the files they opened. The database refuses a refresh while
-its queries run, the mount stays stale then and the next use tries again: a result never reuses a name.
+never see a partial file. A browser that can't move a file copies it to its name, the listing takes an empty file that
+is younger than an hour for one that is being copied. After the files of a workbook were removed or renamed, the next
+use of its mount refreshes it (`refreshExternalDirectory`), the database looks the paths up again and forgets the files
+that are gone. A refresh doesn't wait for readers, queries that run keep reading the files they opened. The database
+refuses a refresh while its queries run, the mount stays stale then and the next use tries again: a result never
+reuses a name.
 
 Readers pin the files they read with a shared Web Lock named `dashql-workbook-results/<workbook-id>/<name>`, which spans
 the windows of the app. A write pins its new file and its temporary file. A removal or rename only touches a file if it
@@ -63,7 +65,7 @@ settled.
 
 The platform only lists, reads, writes, moves and removes files (`WorkbookResultFiles`,
 `packages/dashql/src/platform/workbook/workbook_result_files.ts`, over the origin private file system or the root of
-Node). The core decides everything else (`runs/results.rs` of the bindings over `workbook_format/results.rs`): the
+Node). The core decides everything else (`runtime/results.rs` of the bindings over `workbook_format/results.rs`): the
 names of new files, which file is the result of a script, which files are garbage, when a file is read, written, renamed
 or removed.
 
@@ -180,13 +182,13 @@ Loading a workbook doesn't read its results. Showing it does: the feed page tell
 workbook (`showWorkbook(workbookId)`), and the first time a workbook is shown, the runtime reads the stored
 result of every script that has no result yet, one after the other once the compute database is set up. The read is a
 run of the workbook that runs nothing (`stored` of the run options, `read_stored` of `workbook_run/engine.rs`): it
-plans the workbook and reads, in feed order, the stored file of every script with a result node whatever its key, pinned
-until the read ended. It derives no keys. Its plan is tolerant (`PlanScope::Tolerant`,
-`planner.md`), so a script that can't be planned, e.g. one without a current analysis, is left out and leaves the
-others alone. A script whose plan has an error, e.g. an unknown reference, shows its stored result too. Each read is a
-query of the connection of the script that only reads the file: the card shows the result like the result of a run,
-marked as stored. A script whose key differs from the key in the name of its file is marked as outdated; running it
-computes a new result. A script whose visualization doesn't decode reads nothing.
+plans the workbook and reads, in feed order, the stored file of every script with a result node whatever its key,
+pinned until the read ended. It derives no keys. Its plan is tolerant (`PlanScope::Tolerant`, `planner.md`), so a
+script that can't be planned, e.g. one without a current analysis, is left out and leaves the others alone. A script
+whose plan has an error, e.g. an unknown reference, shows its stored result too. Each read is a query of the connection
+of the script that only reads the file: the card shows the result like the result of a run, marked as stored. A script
+whose key differs from the key in the name of its file is marked as outdated; running it computes a new result. A
+script whose visualization doesn't decode reads nothing.
 
 The read is a run of the workbook for the app as well: it holds the workbook (`held` of the run slice is `open`) and
 reports its state like Execute All (`state` of the run slice), counting the scripts that it looks at. The bar shows its
@@ -208,16 +210,15 @@ A script has at most one result, so a change of the scripts touches at most one 
 - Renaming a script renames its file, `<old>.<key>.<gen>.parquet` to `<new>.<key>.<gen2>.parquet` with a new
   generation. A file that is read right now stays where it is and is garbage once the read ends: the script runs
   again.
-- Deleting a script leaves files of no script, the next lookup removes them once nobody reads them.
+- Deleting a script leaves files of no script, garbage of the next lookup.
 - Deleting a workbook unmounts its results and removes its folder with them.
 
-Only the lookup and the end of a run remove garbage, also the older files of a renamed script and the files that an
-import replaced. A script that ran to its end without a result removes its files at once (Storing Results).
-
-The lookup of a workbook removes the files that nobody pins and that are garbage: files of no script of the workbook,
-transient files, names that don't parse, older files of a script. While a run holds the workbook the lookup removes
-nothing, the run removes the garbage once it ended (`vacuum`). A rename that lost a race against a read leaves a file
-of the old name, the next lookup removes it.
+Only the lookup of a workbook and the end of a run remove garbage, the files that nobody pins and that are files of no
+script of the workbook, transient files, names that don't parse or older files of a script, e.g. those of a renamed
+script or those that an import replaced. While a run holds the workbook the lookup removes nothing, the run removes the
+garbage once it ended (`vacuum`). A lookup waits for the analyses of the workbook, the end of a run doesn't. A rename
+that lost a race against a read leaves a file of the old name, the next lookup removes it. A script that ran to its end
+without a result removes its files at once (Storing Results).
 
 ## Script References
 
@@ -305,6 +306,8 @@ leaves the stored results as they were.
 - Platform contract: `packages/dashql/src/platform/workbook/workbook_result_files.ts`
 - Executor integration: `packages/dashql-core-bindings/src/runtime/queries.rs` and
   `packages/dashql/src/runtime/query/query_channels.ts`
-- Runs, stored results of the views, renames and deletes: `packages/dashql-core-bindings/src/runtime/runs/results.rs`
+- Renames, writes and garbage: `packages/dashql-core-bindings/src/runtime/results.rs`; the stored results of the views,
+  the read on open and the vacuum after a run: `runtime/runs/stored_results.rs`; the read on open:
+  `packages/dashql-core-runtime/src/workbook_run/engine.rs`
 - Files of runs: `createRunMounts` in `packages/dashql/src/runtime/run_mounts.ts`
 - Exported and imported results: `packages/dashql-core-bindings/src/runtime/exports.rs` and `imports.rs`

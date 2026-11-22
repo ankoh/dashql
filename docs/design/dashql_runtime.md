@@ -339,10 +339,10 @@ is a typed method with its contract rather than a generated table, the app reads
 
 The app calls the module only through the facade, which also passes on the commands that need nothing of it:
 `allocateId`, `catalogRelationsFile`, `bindHyperLink`, `revealConnectionSecrets`, `exportConnection`,
-`exportedResults`, `withStoredResult`, `dropImport`, `checkWorkbookFolders` and `answerExternalChange`; `//packages/dashql-app:component_boundary_test` fails on a
-`runtime.module` in a module of the app. The command line tool and the tests reach the module (`runtime.module`) for
-the rest, e.g. `runCatalogLoader`, `resultKeys`, `migrateWorkbookFolder`, `queryProgressRecording` and
-`followQueryProgress`.
+`exportedResults`, `withStoredResult`, `dropImport`, `checkWorkbookFolders` and `answerExternalChange`;
+`//packages/dashql-app:component_boundary_test` fails on a `runtime.module` in a module of the app. The command line
+tool and the tests reach the module (`runtime.module`) for the rest, e.g. `runCatalogLoader`, `resultKeys`,
+`migrateWorkbookFolder`, `queryProgressRecording` and `followQueryProgress`.
 
 **Reported runs.** `runWorkbookReported` (`src/runtime/workbook_run_report.ts`) runs the scripts of a workbook and
 reports what happens as `RunEvent`s (`src/platform/workbook/run_events.ts`): `dashql run` prints them, and a tab that
