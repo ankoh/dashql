@@ -52,8 +52,7 @@
 }
 
 .resize_handle:hover,
-.resize_handle:active,
-.resize_handle:focus-visible {
+.resize_handle:active {
     background: linear-gradient(to right, transparent 2px, var(--color_focus) 2px, var(--color_focus) 5px, transparent 5px);
 }
 
@@ -71,11 +70,6 @@
 /* The folders of the categories with their snippet files, as in the storage browser */
 .tree {
     padding: 8px;
-}
-
-/* The list takes the focus when the overlay opens, its items show the selection */
-.list:focus {
-    outline: none;
 }
 
 .empty {

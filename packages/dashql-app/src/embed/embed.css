@@ -2,6 +2,11 @@
     color-scheme: light dark;
 }
 
+/* No focus rings unless a component asks for one, like the app (styles/globals.css) */
+:where(:focus, :focus-visible) {
+    outline: none;
+}
+
 body {
     margin: 0;
     background: var(--color_bg);

@@ -34,11 +34,6 @@
     cursor: not-allowed;
 }
 
-.root:focus-visible {
-    outline: none;
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color_focus) 35%, transparent);
-}
-
 .handle {
     display: block;
     width: var(--toggle-handle-size);

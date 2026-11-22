@@ -85,11 +85,6 @@
     cursor: pointer;
 }
 
-.tree_entry_toggle:focus-visible {
-    outline: 2px solid var(--color_focus);
-    outline-offset: 2px;
-}
-
 .tree_entry_spacer {
     width: 12px;
 }
@@ -120,10 +115,6 @@
     font-family: var(--font_family);
     font-size: 13px;
     font-weight: 500;
-}
-
-.connection_rename_input:focus {
-    outline: none;
 }
 
 .tree_entry_children {

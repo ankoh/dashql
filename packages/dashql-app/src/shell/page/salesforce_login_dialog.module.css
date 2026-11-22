@@ -35,12 +35,6 @@
     background: var(--color_bg_hover);
 }
 
-.history_button:focus-visible,
-.history_overlay button:focus-visible {
-    outline: 2px solid var(--color_focus);
-    outline-offset: 1px;
-}
-
 .history_overlay {
     position: absolute;
     z-index: 10;

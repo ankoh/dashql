@@ -79,12 +79,6 @@
     background-color: var(--color_bg_selected);
 }
 
-.cm-panel.cm-search .cm-button:focus-visible,
-.cm-panel.cm-search [name='close']:focus-visible {
-    outline: 2px solid var(--color_focus);
-    outline-offset: -1px;
-}
-
 .cm-panel.cm-search label {
     display: inline-flex;
     align-items: center;

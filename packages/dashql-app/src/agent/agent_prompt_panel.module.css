@@ -92,12 +92,6 @@
     cursor: pointer;
 }
 
-.turn_toggle:focus-visible {
-    outline: 2px solid var(--agent_accent);
-    outline-offset: 1px;
-    border-radius: 4px;
-}
-
 /* The icons, the scripts and the buttons sit in the middle of the first line of the question */
 .turn_chevron {
     flex: none;
@@ -164,11 +158,6 @@
 .turn_script:hover {
     border-color: var(--agent_accent);
     color: var(--agent_accent_text);
-}
-
-.turn_script:focus-visible {
-    outline: 2px solid var(--agent_accent);
-    outline-offset: 1px;
 }
 
 /* The uses of tools of a turn, one line each with the time it took */

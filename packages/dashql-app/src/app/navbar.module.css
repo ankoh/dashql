@@ -214,11 +214,6 @@
     border: 1px solid var(--color_border) !important;
 }
 
-.tab_button:focus-visible {
-    outline: 2px solid var(--color_focus);
-    outline-offset: 1px;
-}
-
 .tab_navbar {
     display: block;
 }

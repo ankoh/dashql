@@ -10,11 +10,6 @@
 /* A viewport in a container of fixed height, the fit centers the plan in what is visible */
 .viewport[data-fill="true"] { height: 100%; }
 
-.viewport:focus-visible {
-    outline: 2px solid var(--color_focus);
-    outline-offset: 2px;
-}
-
 .svg {
     display: block;
     width: 100%;
@@ -54,8 +49,6 @@
     --graph_node_background: var(--color_accent_muted);
     --graph_node_border_color: var(--color_accent_fg);
 }
-.operator:focus { outline: none; }
-
 /* The status icon of an operator, like the status indicators of the app. The controller sets the status, CSS
    shows its icon. */
 .status [data-status-icon] { display: none; fill: currentColor; }

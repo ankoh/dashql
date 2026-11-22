@@ -48,11 +48,6 @@
     background-color: var(--shell_hover);
 }
 
-.trigger:focus-visible {
-    outline: 2px solid var(--shell_focus);
-    outline-offset: -2px;
-}
-
 .trigger_icon {
     flex-shrink: 0;
     color: var(--color_fg_on_emphasis);

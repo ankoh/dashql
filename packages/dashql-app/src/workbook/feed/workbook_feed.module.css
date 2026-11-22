@@ -383,11 +383,6 @@
     color: var(--color_fg);
 }
 
-.feed_entry_insert:focus-visible {
-    outline: 2px solid var(--color_focus);
-    outline-offset: 2px;
-}
-
 .feed_entry_pair {
     width: 100%;
     box-sizing: border-box;
@@ -419,11 +414,6 @@
 
 .feed_entry_drag_handle:active {
     cursor: grabbing;
-}
-
-.feed_entry_drag_handle:focus-visible {
-    outline: 2px solid var(--color_focus);
-    outline-offset: 2px;
 }
 
 .feed_entry_cell {
@@ -549,11 +539,6 @@ button.feed_entry_mention {
 .feed_entry_mention:active:not([aria-disabled="true"]):not([data-editing]) {
     background-color: var(--color_bg_selected);
     border-color: var(--color_fg_subtle);
-}
-
-.feed_entry_mention:focus-visible {
-    outline: 2px solid var(--color_focus);
-    outline-offset: 1px;
 }
 
 /* Without an agent the tag can not mention the script, a double click still renames it */

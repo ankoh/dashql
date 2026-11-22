@@ -230,10 +230,6 @@
     font-weight: 500;
 }
 
-.workbook_rename_input:focus {
-    outline: none;
-}
-
 /* The rename input of a script replaces its name, next to the file icon */
 .script_rename {
     display: grid;

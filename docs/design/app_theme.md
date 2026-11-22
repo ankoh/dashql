@@ -44,7 +44,7 @@ deliberately, with a role that other stylesheets can share. The groups:
 | Page | `--page_background`, `--color_bg_pane`, `--color_bg_pane_subtle` | The one background of a page, and the panes on it, like the sidebar and the bars above the stage |
 | Text | `--color_fg`, `--color_fg_muted`, `--color_fg_subtle`, `--color_fg_on_emphasis`, `--color_fg_inverse` | Default, secondary, placeholder and disabled, text on emphasis backgrounds, text on the inverse surface |
 | Borders | `--color_border`, `--color_border_muted`, `--color_border_strong` | Cards and controls, dividers inside them, the edges and nodes of graphs |
-| Accent | `--color_accent_fg`, `--color_accent_emphasis`, `--color_accent_muted`, `--color_focus` | Links and highlights, solid accent backgrounds, highlighted rows, focus rings |
+| Accent | `--color_accent_fg`, `--color_accent_emphasis`, `--color_accent_muted`, `--color_focus` | Links and highlights, solid accent backgrounds, highlighted rows, the focus rings of text fields |
 | Status | `--color_{success,danger,attention,neutral,done}_{fg,emphasis,muted}` | Status text and icons, solid status backgrounds with white text, muted status backgrounds |
 | Primary button | `--color_primary_emphasis`, `_hover`, `_active`, `_disabled` | The primary action |
 | Elevation | `--shadow_small`, `--shadow_medium`, `--shadow_large`, `--shadow_extra_large` | Box shadows with their offsets |
@@ -54,6 +54,11 @@ deliberately, with a role that other stylesheets can share. The groups:
 | Charts | `--chart_color_1..8` | Categorical series, the first one is a single series |
 | Code | `--code_*` | The editors and code views, the Xcode palettes of `@akohn/dashql-react/theme/xcode_palette` |
 | Agent | `--agent_gradient_1..3`, `--agent_accent`, `--agent_accent_text`, `--agent_fg` | The agent, Wobble and its question |
+
+Focus rings are off unless a component asks for one: `styles/globals.css` (and `embed/embed.css`) drops the outline
+of every focused element with a selector without specificity, a rule of a component wins over it. Only the text fields
+ask for a ring, the `--color_focus` border of `TextInput` and of the input cards, since it tells where the keys go. Other
+controls show the keyboard focus like their hover, if at all, e.g. the rows of the trees.
 
 Translucent derivations of a token are fine where no token fits, e.g. `color-mix(in srgb, var(--color_success_fg) 18%,
 transparent)` for the inserted statements of a diff.

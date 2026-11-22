@@ -48,11 +48,6 @@
     --tag_outline_color: var(--shell_fg_subtle);
 }
 
-.brand:focus-visible {
-    outline: 2px solid var(--color_fg_on_emphasis);
-    outline-offset: -2px;
-}
-
 .actions {
     display: flex;
     align-items: center;
@@ -80,11 +75,6 @@
 .action_button:hover {
     border-color: var(--shell_bg);
     background: var(--shell_bg);
-}
-
-.action_button:focus-visible {
-    outline: 2px solid var(--color_fg_on_emphasis);
-    outline-offset: 1px;
 }
 
 .action_icon {
@@ -144,11 +134,6 @@
 .version_link_button:hover {
     border-color: var(--color_border);
     background: var(--color_bg_hover);
-}
-
-.version_link_button:focus-visible {
-    outline: 2px solid currentColor;
-    outline-offset: 1px;
 }
 
 @media (max-width: 600px) {

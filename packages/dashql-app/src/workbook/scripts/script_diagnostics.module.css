@@ -66,11 +66,6 @@
     border-color: var(--color_border);
 }
 
-.item:focus-visible {
-    outline: 2px solid var(--color_focus);
-    outline-offset: -2px;
-}
-
 .warning_icon,
 .error_icon {
     display: inline-flex;

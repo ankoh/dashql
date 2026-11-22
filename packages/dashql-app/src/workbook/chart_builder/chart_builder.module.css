@@ -232,12 +232,6 @@
     text-align: left;
 }
 
-.section_toggle:focus-visible {
-    outline: 2px solid var(--color_focus);
-    outline-offset: 2px;
-    border-radius: 4px;
-}
-
 .section_toggle > .builder_heading {
     flex: 0 0 auto;
 }
@@ -306,12 +300,6 @@
     background: var(--color_bg_card);
     color: var(--color_accent_fg);
     font-weight: 600;
-}
-
-.layer_button:focus-visible,
-.layer_add:focus-visible {
-    outline: 2px solid var(--color_focus);
-    outline-offset: 1px;
 }
 
 .layer_name {
@@ -389,11 +377,6 @@
     cursor: grab;
     touch-action: none;
     border-radius: 6px;
-}
-
-.column_item:focus-visible {
-    outline: 2px solid var(--color_focus);
-    outline-offset: 1px;
 }
 
 .column_item_source {

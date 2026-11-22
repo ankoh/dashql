@@ -11,11 +11,6 @@
     background: var(--stage_background);
 }
 
-.viewport:focus-visible {
-    outline: 2px solid var(--color_focus);
-    outline-offset: -2px;
-}
-
 .svg {
     display: block;
     width: 100%;
@@ -66,8 +61,6 @@
     cursor: move;
 }
 
-.header:focus { outline: none; }
-
 .header_hit {
     fill: transparent;
 }
@@ -75,14 +68,6 @@
 /* The whole box takes the pointer, so the hover stays in the padding between the rows */
 .hover_hit {
     fill: transparent;
-}
-
-/* Only keyboard focus marks the header, a selected box outlines its card */
-.header:focus-visible .header_hit {
-    fill: var(--color_accent_muted);
-    stroke: var(--color_focus);
-    stroke-width: 1.5px;
-    vector-effect: non-scaling-stroke;
 }
 
 .title {
@@ -137,7 +122,6 @@
 .statement {
     cursor: pointer;
 }
-.statement:focus { outline: none; }
 .statement:hover {
     --graph_node_background: var(--color_bg_subtle);
 }
@@ -217,7 +201,6 @@
 .add:focus-visible {
     opacity: 1;
 }
-.add:focus { outline: none; }
 .add circle {
     fill: var(--color_bg_card);
     stroke: var(--color_accent_fg);
@@ -270,7 +253,6 @@
 .resize_handle[data-chart="true"] {
     cursor: nwse-resize;
 }
-.resize_handle:focus { outline: none; }
 .resize_hit {
     fill: transparent;
 }
@@ -283,9 +265,4 @@
 .resize_handle:hover,
 .box[data-resizing="true"] .resize_handle {
     color: var(--color_fg_muted);
-}
-.resize_handle:focus-visible .resize_hit {
-    stroke: var(--color_focus);
-    stroke-width: 1.5px;
-    vector-effect: non-scaling-stroke;
 }
