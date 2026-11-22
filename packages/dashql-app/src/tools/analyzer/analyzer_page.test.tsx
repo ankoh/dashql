@@ -186,15 +186,15 @@ describe('AnalyzerPage', () => {
     });
 
     it('formats a script pretty or compact from the menu of its card', async () => {
-        const formatButton = (title: string) => [...card(title)!.querySelectorAll<HTMLButtonElement>('button')].find(button => button.textContent === 'Format') ?? null;
+        const menuButton = (title: string) => card(title)!.querySelector<HTMLButtonElement>('[data-testid="script-more-actions"]');
         const format = async (title: string, mode: 'pretty' | 'compact') => {
-            await act(async () => formatButton(title)!.click());
+            await act(async () => menuButton(title)!.click());
             const item = document.querySelector<HTMLElement>(`[data-action="format-${mode}"]`);
             expect(item).not.toBeNull();
             await act(async () => item!.click());
         };
-        // A collapsed card has no editor and no button
-        expect(formatButton('Catalog Script')).toBeNull();
+        // A collapsed card has no editor and no menu
+        expect(menuButton('Catalog Script')).toBeNull();
         // The script of the page is formatted pretty already
         await format('Editor Script', 'pretty');
         expect(editor('Editor Script').state.doc.toString()).toBe(EDITOR_SCRIPT);
@@ -208,7 +208,10 @@ describe('AnalyzerPage', () => {
         // The session follows the editor, the analysis shows the formatted script
         expect(tokens('Editor Script')).toContain('r_name');
         await toggle('Catalog Script');
-        expect(formatButton('Catalog Script')).not.toBeNull();
+        expect(menuButton('Catalog Script')).not.toBeNull();
+        // The menu formats the scripts, they can't be deleted
+        await act(async () => menuButton('Catalog Script')!.click());
+        expect(document.querySelector('[data-action="delete"]')).toBeNull();
     });
 
     it('keeps the analysis of a collapsed editor script', async () => {

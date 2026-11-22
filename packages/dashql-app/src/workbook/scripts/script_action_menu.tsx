@@ -23,7 +23,8 @@ interface Props {
     scriptName: string;
     formatDisabled: boolean;
     onFormat: (mode: dashql.buffers.formatting.FormattingMode) => void;
-    onDelete: () => void;
+    /// Delete the script, the menu offers a delete action
+    onDelete?: () => void;
     /// Edit the name of the script in place, the menu offers a rename action
     onRename?: () => void;
     /// Add a script above or below the script, the menu offers the add actions
@@ -127,15 +128,17 @@ export const ScriptActionMenu: React.FC<Props> = (props) => {
                             <ActionList.ItemText>Storage</ActionList.ItemText>
                         </ActionList.ListItem>
                     )}</>
-                    <ActionList.ListItem
-                        data-testid="script-menu-item"
-                        data-action="delete"
-                        className={styles.delete_action}
-                        onClick={() => run(props.onDelete)}
-                    >
-                        <ActionList.Leading><TrashIcon size={16} /></ActionList.Leading>
-                        <ActionList.ItemText>Delete</ActionList.ItemText>
-                    </ActionList.ListItem>
+                    <>{props.onDelete != null && (
+                        <ActionList.ListItem
+                            data-testid="script-menu-item"
+                            data-action="delete"
+                            className={styles.delete_action}
+                            onClick={() => run(props.onDelete!)}
+                        >
+                            <ActionList.Leading><TrashIcon size={16} /></ActionList.Leading>
+                            <ActionList.ItemText>Delete</ActionList.ItemText>
+                        </ActionList.ListItem>
+                    )}</>
                 </ActionList.List>
             </div>
             )}

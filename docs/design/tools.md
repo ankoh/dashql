@@ -61,10 +61,10 @@ table and opens and closes its full table. The page test boots the real page and
 collapsed when the page opens, the TPC-H schema of `static/examples/tpch/schema.sql`, and the editor script, the
 subquery of TPC-H query 2, formatted. Each card has the editor of a feed entry on a script session of its own
 (`createScriptSession`), with the highlighting, the completion and the diagnostics of the core. The editors grow with
-their scripts, and the page scrolls. The Format button in the header of an expanded card opens Format Pretty and Format
-Compact like the action menu of a feed entry. Pretty formats at the default width of the formatter (80), compact at the
-width of the editor, like the format dialog of the shell; the editor applies the changes. Below the editor of the editor
-script is a section per phase:
+their scripts, and the page scrolls. The header of an expanded card has the action menu of a feed entry
+(`ScriptActionMenu`) with Format Pretty and Format Compact only (`formatScriptEditor`). Pretty formats at the default
+width of the formatter (80), compact at the width of the editor, like the format dialog of the shell; the editor applies
+the changes. Below the editor of the editor script is a section per phase:
 
 - **Scanner.** The tokens of the parse as a wrapping line, colored by their type, the comments between them.
 - **Parser.** The nodes of the AST as a wrapping line of chips in the order of the array of the parser, a label at the
@@ -80,10 +80,11 @@ script is a section per phase:
   AST node and its tokens, a node under the pointer in the AST its facts. A column reference under the pointer
   highlights its table reference in purple, a table reference the column references that read it.
 
-Both sessions share a catalog. A new analysis of the catalog script loads it into the catalog (`loadIntoCatalog`), and
-the editor of the editor script analyzes it again. The page reads the phases from the session (`getParsed`,
-`getAnalyzed`), the spans of the buffers count UTF-8 bytes and the page decodes the text of a span from the bytes of the
-script. It needs the core only: no runtime, no database.
+Both sessions share a catalog. A new analysis of the catalog script loads it into the catalog (`loadIntoCatalog`), the
+page analyzes the editor script again and hands the update to its editor if the card is expanded. After each analysis
+the page reads the phases from the session once (`getParsed`, `getAnalyzed`) and counts the statements and errors of the
+summary from them. The spans of the buffers count UTF-8 bytes, the page decodes the text of a span from the bytes of
+the script. It needs the core only: no runtime, no database.
 
 | Part | Module |
 |------|--------|
@@ -92,7 +93,6 @@ script. It needs the core only: no runtime, no database.
 | The editor of a session | `analyzer_editor.tsx` |
 | The card of a script, a component with the editor and the phases as slots | `analyzer_card.tsx` |
 | The sections of the phases | `script_phases.tsx` |
-| The Format button with its menu of Format Pretty and Format Compact | `format_menu.tsx` |
 
 `src/tools/analyzer/analyzer_page.test.tsx` checks the phases of the editor script, the facts of the analysis, the
 highlighting of a node, both formatting modes and that the editor script follows a change of the catalog script. The

@@ -16,22 +16,23 @@ export function measureScriptFormatWidth(editorView: Pick<EditorView, 'defaultCh
     return Math.max(MIN_FORMAT_WIDTH, Math.floor(availableWidth / charWidth));
 }
 
+/// Format the script of an editor, at the width of the editor unless a width is given
 export function formatScriptEditor(
     editorView: EditorView | null,
-    scriptData: ScriptData | null,
+    scriptData: { scriptSession: Pick<ScriptData['scriptSession'], 'format'> } | null,
     mode: dashql.buffers.formatting.FormattingMode,
     onFormattedText: (text: string) => void,
     debugMode: boolean = false,
     keywordCase: dashql.buffers.formatting.KeywordCase = dashql.buffers.formatting.KeywordCase.LOWER,
     dialect: dashql.buffers.formatting.FormattingDialect = dashql.buffers.formatting.FormattingDialect.HYPER,
+    maxWidth?: number,
 ): boolean {
     if (editorView == null || scriptData == null) return false;
 
     let formattedScript: dashql.DashQLScript | null = null;
     try {
-        const maxWidth = measureScriptFormatWidth(editorView);
         formattedScript = scriptData.scriptSession.format(
-            createScriptFormatConfig(mode, debugMode, maxWidth, keywordCase, dialect),
+            createScriptFormatConfig(mode, debugMode, maxWidth ?? measureScriptFormatWidth(editorView), keywordCase, dialect),
             null,
         );
         const formattedText = formattedScript.toString();

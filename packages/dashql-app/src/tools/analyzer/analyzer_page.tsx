@@ -4,12 +4,13 @@ import * as dashql from '@akohn/dashql';
 import type { EditorView } from '@codemirror/view';
 
 import { CodeIcon, DatabaseIcon } from '@akohn/dashql-react/components/symbol_icon';
-import { stringifyError } from '@akohn/dashql/platform/logger/logger';
+import { type Logger, stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { useDashQLCore } from '../../host/core_provider.js';
 import { useLogger } from '../../host/logger_provider.js';
-import { createScriptFormatConfig, DEFAULT_FORMAT_WIDTH } from '../../workbook/scripts/script_format.js';
-import { measureScriptFormatWidth } from '../../workbook/editor/script_format_editor.js';
-import { FormatMenu } from './format_menu.js';
+import { DEFAULT_FORMAT_WIDTH } from '../../workbook/scripts/script_format.js';
+import { formatScriptEditor } from '../../workbook/editor/script_format_editor.js';
+import { DashQLProcessorPlugin, DashQLUpdateEffect } from '../../workbook/editor/dashql_processor.js';
+import { ScriptActionMenu } from '../../workbook/scripts/script_action_menu.js';
 import { AnalyzerCard } from './analyzer_card.js';
 import { AnalyzerEditor } from './analyzer_editor.js';
 import { ScriptPhases, type ScriptPhasesProps } from './script_phases.js';
@@ -34,38 +35,23 @@ interface AnalyzerScripts {
     editorScript: dashql.DashQLScriptSession;
 }
 
-/// What the phases know about the script of a session, read after an analysis
-function readPhases(session: dashql.DashQLScriptSession): ScriptPhasesProps {
-    return {
-        text: session.getText(),
-        parsed: session.getParsed().unpack(),
-        analyzed: session.getAnalyzed().unpack(),
-    };
+/// What the phases know about the script of a session, and the summary of its card: its statements and errors
+interface ScriptState {
+    phases: ScriptPhasesProps;
+    summary: string;
 }
 
-/// The summary of a script in the header of its card: its statements and errors
-function summarize(session: dashql.DashQLScriptSession): string {
-    const parsed = session.getParsed().read();
-    const statements = parsed.statementsLength();
-    const errors = parsed.scannerErrorsLength() + parsed.parserErrorsLength() + session.getAnalyzed().read().errorsLength();
-    return `${statements} ${statements === 1 ? 'statement' : 'statements'}` + (errors > 0 ? `, ${errors} ${errors === 1 ? 'error' : 'errors'}` : '');
-}
-
-const renderPhases = (phases: ScriptPhasesProps | null) => () => phases == null ? null : <ScriptPhases {...phases} />;
-
-/// Format the script of a session. Pretty mode formats at the default width of the formatter: it breaks a clause only
-/// if it doesn't fit, a wide editor would keep the clauses on one line. Compact mode fills the width of the editor.
-/// Both like the format dialog of the shell. The editor applies the changes, so the cursor and the history stay, and
-/// the session analyzes the new text. Throws if the formatter can't format the script.
-function formatScript(core: dashql.DashQL, session: dashql.DashQLScriptSession, view: EditorView, mode: dashql.buffers.formatting.FormattingMode): void {
-    const width = mode === dashql.buffers.formatting.FormattingMode.COMPACT ? measureScriptFormatWidth(view) : DEFAULT_FORMAT_WIDTH;
-    const formatted = session.format(createScriptFormatConfig(mode, false, width));
+/// Read the phases of the script of a session after an analysis
+function readScript(session: dashql.DashQLScriptSession, name: string, logger: Logger): ScriptState | null {
     try {
-        const from = view.state.doc.toString();
-        const to = formatted.toString();
-        if (from !== to) view.dispatch({ changes: core.textChange(from, to) });
-    } finally {
-        formatted.destroy();
+        const phases = { text: session.getText(), parsed: session.getParsed().unpack(), analyzed: session.getAnalyzed().unpack() };
+        const statements = phases.parsed.statements.length;
+        const errors = phases.parsed.scannerErrors.length + phases.parsed.parserErrors.length + phases.analyzed.errors.length;
+        const summary = `${statements} ${statements === 1 ? 'statement' : 'statements'}` + (errors > 0 ? `, ${errors} ${errors === 1 ? 'error' : 'errors'}` : '');
+        return { phases, summary };
+    } catch (e) {
+        logger.error(`Failed to read the ${name}`, { error: stringifyError(e) }, LOG_CTX);
+        return null;
     }
 }
 
@@ -94,98 +80,84 @@ function AnalyzerScripts(props: { core: dashql.DashQL }) {
     // The catalog script is collapsed when the page opens, its summary shows that it holds the schema
     const [catalogExpanded, setCatalogExpanded] = React.useState(false);
     const [editorExpanded, setEditorExpanded] = React.useState(true);
-    // The catalog script shows only its summary, the editor script its phases
-    const [catalogSummary, setCatalogSummary] = React.useState('');
-    const [editorSummary, setEditorSummary] = React.useState('');
-    const [editorPhases, setEditorPhases] = React.useState<ScriptPhasesProps | null>(null);
-    // Counts the loads of the catalog script into the catalog, the editor script is analyzed again after each
-    const [catalogRevision, setCatalogRevision] = React.useState(0);
+    // Count the analyses of the scripts, the page reads a script once after each
+    const [catalogRevision, bumpCatalog] = React.useReducer((revision: number) => revision + 1, 0);
+    const [editorRevision, bumpEditor] = React.useReducer((revision: number) => revision + 1, 0);
+    const catalogState = React.useMemo(
+        () => readScript(scripts.catalogScript, 'catalog script', logger),
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- the session is mutable, the revision counts its analyses
+        [scripts, logger, catalogRevision],
+    );
+    const editorState = React.useMemo(
+        () => readScript(scripts.editorScript, 'editor script', logger),
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- the session is mutable, the revision counts its analyses
+        [scripts, logger, editorRevision],
+    );
 
-    const readCatalog = React.useCallback(() => {
-        try {
-            setCatalogSummary(summarize(scripts.catalogScript));
-        } catch (e) {
-            logger.error('Failed to read the catalog script', { error: stringifyError(e) }, LOG_CTX);
-        }
-    }, [scripts, logger]);
-    const readEditor = React.useCallback(() => {
-        try {
-            setEditorSummary(summarize(scripts.editorScript));
-            setEditorPhases(readPhases(scripts.editorScript));
-        } catch (e) {
-            logger.error('Failed to read the phases of the editor script', { error: stringifyError(e) }, LOG_CTX);
-        }
-    }, [scripts, logger]);
+    // The views of the editors while the cards are expanded, the action menus format through them
+    const [catalogView, setCatalogView] = React.useState<EditorView | null>(null);
+    const [editorView, setEditorView] = React.useState<EditorView | null>(null);
 
-    // A new analysis of a changed catalog script replaces its tables in the catalog. A load changes the catalog, which
-    // the catalog script analyzes again with the next cursor move: that analysis of the same text loads nothing.
+    // A new analysis of a changed catalog script replaces its tables in the catalog, and the page analyzes the editor
+    // script again, an expanded editor shows that analysis. A load changes the catalog, which the catalog script
+    // analyzes again with the next cursor move: that analysis of the same text loads nothing.
     const loadedText = React.useRef(scripts.catalogScript.getTextVersion());
-    const onCatalogAnalysis = React.useCallback(() => {
-        readCatalog();
+    const onCatalogAnalysis = () => {
+        bumpCatalog();
         const textVersion = scripts.catalogScript.getTextVersion();
         if (loadedText.current === textVersion) return;
         try {
             scripts.catalogScript.loadIntoCatalog();
             loadedText.current = textVersion;
+            const update = scripts.editorScript.analyze();
+            editorView?.dispatch({ effects: DashQLUpdateEffect.of({ ...editorView.state.field(DashQLProcessorPlugin), editorUpdate: update }) });
         } catch (e) {
             logger.error('Failed to load the catalog script into the catalog', { error: stringifyError(e) }, LOG_CTX);
         }
-        setCatalogRevision(revision => revision + 1);
-    }, [scripts, readCatalog, logger]);
-    const onEditorAnalysis = readEditor;
+        bumpEditor();
+    };
 
-    // The views of the editors while the cards are expanded, the format buttons go through them
-    const [catalogView, setCatalogView] = React.useState<EditorView | null>(null);
-    const [editorView, setEditorView] = React.useState<EditorView | null>(null);
-    const formatMenu = (name: string, session: dashql.DashQLScriptSession, view: EditorView | null) => () => (
-        <FormatMenu
+    // Pretty mode formats at the default width of the formatter: it breaks a clause only if it doesn't fit, a wide
+    // editor would keep the clauses on one line. Compact mode fills the width of the editor. Both like the format
+    // dialog of the shell. The editor applies the changes, so the cursor and the history stay, and the session
+    // analyzes the new text.
+    const actionMenu = (name: string, session: dashql.DashQLScriptSession, view: EditorView | null) => () => (
+        <ScriptActionMenu
             scriptName={name}
-            disabled={view == null}
-            onFormat={mode => {
-                if (view == null) return;
-                try {
-                    formatScript(props.core, session, view, mode);
-                } catch (e) {
-                    logger.warn('The script cannot be formatted', { error: stringifyError(e) }, LOG_CTX);
-                }
-                view.focus();
-            }}
+            formatDisabled={view == null}
+            onFormat={mode => formatScriptEditor(
+                view,
+                { scriptSession: session },
+                mode,
+                text => view?.dispatch({ changes: props.core.textChange(view.state.doc.toString(), text) }),
+                false,
+                undefined,
+                undefined,
+                mode === dashql.buffers.formatting.FormattingMode.PRETTY ? DEFAULT_FORMAT_WIDTH : undefined,
+            )}
         />
     );
-
-    // The phases of the scripts when the page opens, the editors report every analysis after
-    React.useLayoutEffect(() => {
-        readCatalog();
-        readEditor();
-    }, [readCatalog, readEditor]);
-    // After the catalog changed, the editor of the editor script analyzes it again. A collapsed card has no editor, the
-    // page analyzes the script itself.
-    React.useEffect(() => {
-        if (editorExpanded || catalogRevision === 0) return;
-        scripts.editorScript.analyze();
-        onEditorAnalysis();
-    }, [scripts, editorExpanded, catalogRevision, onEditorAnalysis]);
 
     return (
         <div className={styles.cards}>
             <AnalyzerCard
                 title="Catalog Script"
                 icon={DatabaseIcon}
-                summary={catalogSummary}
+                summary={catalogState?.summary ?? ''}
                 expanded={catalogExpanded}
                 onToggle={() => setCatalogExpanded(expanded => !expanded)}
-                editor={() => <AnalyzerEditor session={scripts.catalogScript} catalogRevision={0} onAnalysis={onCatalogAnalysis} onView={setCatalogView} />}
-                actions={formatMenu('catalog script', scripts.catalogScript, catalogView)}
+                editor={() => <AnalyzerEditor session={scripts.catalogScript} onAnalysis={onCatalogAnalysis} onView={setCatalogView} />}
+                actions={actionMenu('catalog', scripts.catalogScript, catalogView)}
             />
             <AnalyzerCard
                 title="Editor Script"
                 icon={CodeIcon}
-                summary={editorSummary}
+                summary={editorState?.summary ?? ''}
                 expanded={editorExpanded}
                 onToggle={() => setEditorExpanded(expanded => !expanded)}
-                editor={() => <AnalyzerEditor session={scripts.editorScript} catalogRevision={catalogRevision} onAnalysis={onEditorAnalysis} onView={setEditorView} />}
-                phases={renderPhases(editorPhases)}
-                actions={formatMenu('editor script', scripts.editorScript, editorView)}
+                editor={() => <AnalyzerEditor session={scripts.editorScript} onAnalysis={bumpEditor} onView={setEditorView} />}
+                phases={() => editorState == null ? null : <ScriptPhases {...editorState.phases} />}
+                actions={actionMenu('editor', scripts.editorScript, editorView)}
             />
         </div>
     );
