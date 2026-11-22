@@ -16,10 +16,21 @@
     overflow: hidden;
     /* One background behind the panes and the stage, the dark page shows it through them */
     background: var(--page_background);
-    /* The edge of the card against the chrome. An outline follows the rounded corners and is drawn over the panes,
-       which reach the edge of the card. */
-    outline: 1px solid var(--color_border);
-    outline-offset: -1px;
+    /* The containing block of the edge below */
+    position: relative;
+}
+
+/* The edge of the card against the chrome, drawn over the panes that reach it. An outline of the page would be painted
+   under positioned panes, e.g. the halves of the split of the workbench, and lose its left side. The edge stays above
+   the layers of the page (the bar of Wobble at 20) and below the completion list and the drawer. */
+.page::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 30;
+    border: 1px solid var(--color_border);
+    border-radius: inherit;
+    pointer-events: none;
 }
 
 @media only screen and (max-width: 799px) {
