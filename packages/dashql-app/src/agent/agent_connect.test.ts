@@ -6,17 +6,17 @@ import { DASHQL_CLI_VERSION } from '../globals.js';
 import { agentConnectCommandLines, DASHQL_CLI_COMMAND, newAgentConnectTarget } from './agent_connect.js';
 
 describe('agent connect', () => {
-    it('picks a dynamic loopback port and a secret that a link would take too', () => {
+    it('picks a loopback port below the ports of connections and a secret that a link would take too', () => {
         for (let i = 0; i < 100; ++i) {
             const target = newAgentConnectTarget();
             const port = Number(new URL(target.endpoint).port);
-            expect(port).toBeGreaterThanOrEqual(49152);
-            expect(port).toBeLessThanOrEqual(65535);
+            expect(port).toBeGreaterThanOrEqual(20000);
+            expect(port).toBeLessThanOrEqual(32767);
             expect(target.token).toMatch(/^[\w-]{24}$/);
             expect(parseAgentSessionTarget(target.endpoint, target.token)).toEqual(target);
         }
-        expect(newAgentConnectTarget(bytes => bytes.fill(0xff))).toEqual({ endpoint: 'http://127.0.0.1:65535', token: '________________________' });
-        expect(newAgentConnectTarget(bytes => bytes.fill(0))).toEqual({ endpoint: 'http://127.0.0.1:49152', token: 'AAAAAAAAAAAAAAAAAAAAAAAA' });
+        expect(newAgentConnectTarget(bytes => bytes.fill(0xff))).toEqual({ endpoint: 'http://127.0.0.1:21695', token: '________________________' });
+        expect(newAgentConnectTarget(bytes => bytes.fill(0))).toEqual({ endpoint: 'http://127.0.0.1:20000', token: 'AAAAAAAAAAAAAAAAAAAAAAAA' });
     });
 
     it('runs the command line tool of its own build from the public registry', () => {

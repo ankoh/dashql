@@ -25,7 +25,7 @@ minutes ago. A fresh terminal starts in the home folder: there, `connect` fails 
 all of home. A switch between Claude Code and Codex follows the switch of SQL and AI while AI is on. The editor keeps
 its draft for SQL.
 
-- **The tab picks the address.** The first switch to AI picks a random port of 49152–65535 on `127.0.0.1` and a random
+- **The tab picks the address.** The first switch to AI picks a random port of 20000–32767 on `127.0.0.1` and a random
   secret, and follows that target like the target of a link, trying it every 2 s until a server answers
   (`agent/agent_connect.ts`, `AgentSessionProvider`). The tab keeps the target, the mode and the harness in the
   storage of the tab, a reload waits on the same line.

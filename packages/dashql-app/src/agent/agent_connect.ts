@@ -19,9 +19,11 @@ const NPX_LINES = ['npx -y', '--registry=https://registry.npmjs.org/', '--min-re
 const DASHQL_CLI_PACKAGE = `@akohn/dashql-cli@${DASHQL_CLI_VERSION}`;
 export const DASHQL_CLI_COMMAND = [...NPX_LINES, DASHQL_CLI_PACKAGE].join(' ');
 
-/// The ports that a page picks for the server of a session, the dynamic ports that the system hands out rarely
-const MIN_PORT = 49152;
-const MAX_PORT = 65535;
+/// The ports that a page picks for the server of a session: below the ports that the systems hand out to connections by
+/// default, Linux from 32768 to 60999, macOS and Windows from 49152. A port that the system had given to a connection
+/// fails `dashql connect` with EADDRINUSE, which happened in CI on port 60968.
+const MIN_PORT = 20000;
+const MAX_PORT = 32767;
 /// The random bytes of a secret
 const SECRET_BYTES = 18;
 
