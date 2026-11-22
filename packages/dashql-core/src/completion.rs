@@ -282,7 +282,7 @@ fn describe_function(function: &FunctionDeclaration) -> CandidateInfo {
 }
 
 /// The columns that a list shows of a table. Top candidates pay for it on every keystroke, and a table can be wide.
-const MAX_DESCRIBED_COLUMNS: usize = 200;
+pub const MAX_DESCRIBED_COLUMNS: usize = 200;
 
 /// What a list shows about a table
 fn describe_table(table: &TableDeclaration) -> CandidateInfo {

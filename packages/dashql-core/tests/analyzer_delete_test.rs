@@ -189,6 +189,13 @@ fn unresolved_target_remains_write_and_statements_are_isolated() {
     assert_eq!(analyzed.table_references[1].ast_statement_id, Some(1));
     let missing = analyzed.table_references[0].inner.as_ref().expect("relation expression");
     assert!(missing.resolved_table.is_none());
-    let last = analyzed.expressions[3].column_ref().expect("column ref");
-    assert!(last.resolved.is_resolved());
+    // The unqualified `id` returned by the second statement resolves against its own target
+    let returned = analyzed
+        .expressions
+        .iter()
+        .filter(|e| e.ast_statement_id == Some(1))
+        .filter_map(|e| e.column_ref())
+        .find(|c| c.column_name.table_alias.is_none() && c.column_name.column_name.text() == "id")
+        .expect("column ref");
+    assert!(returned.resolved.is_resolved());
 }

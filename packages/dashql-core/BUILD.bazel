@@ -117,6 +117,7 @@ rust_test(
     srcs = ["tests/buffers_enums.rs"],
     edition = "2021",
     deps = [
+        ":dashql_core",
         "//proto/fb:dashql_buffers_rs",
         "@core_crates//:flatbuffers",
     ],

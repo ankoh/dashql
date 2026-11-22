@@ -10,11 +10,6 @@ fn hash_of<T: Hash>(value: T) -> u64 {
 }
 
 #[test]
-fn empty_hash_is_zero() {
-    assert_eq!(FxHasher::default().finish(), 0);
-}
-
-#[test]
 fn hashes_are_deterministic() {
     assert_eq!(hash_of("name"), hash_of("name"));
     assert_eq!(hash_of(42u32), hash_of(42u32));

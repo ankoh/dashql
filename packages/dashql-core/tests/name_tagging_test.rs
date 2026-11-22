@@ -16,23 +16,25 @@ const SCHEMA_NAME: u8 = NameTag::SCHEMA_NAME.0;
 const DATABASE_NAME: u8 = NameTag::DATABASE_NAME.0;
 
 fn test(script: &str, expected: &[(&str, u8)]) {
-    // The analyzer registers the empty name for unqualified table names
-    let mut expected = expected.to_vec();
-    expected.push(("", DATABASE_NAME | SCHEMA_NAME));
-
     let scanned = Arc::new(scan(script, 0, 0));
     let parsed = Arc::new(parse(scanned));
     assert!(parsed.errors.is_empty(), "{}", parsed.errors[0].message);
     let catalog = Catalog::new();
     let analyzed = analyze(parsed, &catalog).unwrap();
 
-    let names: Vec<&str> = analyzed.names.iter().map(|n| n.text.as_str()).collect();
-    assert_eq!(names.len(), expected.len(), "{names:?}");
-    for (i, (name, tags)) in expected.iter().enumerate() {
-        let have = analyzed.names.get(i as u32);
-        assert_eq!(have.text, *name, "{i}");
-        assert_eq!(analyzed.name_tags[i].0, *tags, "{i}");
-    }
+    // The names with their tags, looked up by text. The analyzer also registers the empty name for unqualified table
+    // names, which is left out.
+    let mut have: Vec<(&str, u8)> = analyzed
+        .names
+        .iter()
+        .enumerate()
+        .filter(|(_, n)| !n.text.is_empty())
+        .map(|(i, n)| (n.text.as_str(), analyzed.name_tags[i].0))
+        .collect();
+    have.sort();
+    let mut expected = expected.to_vec();
+    expected.sort();
+    assert_eq!(have, expected);
 }
 
 #[test]

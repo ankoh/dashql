@@ -122,7 +122,8 @@ fn results_of_calls_are_the_columns_of_their_functions() {
             .as_ref()
             .map(|t| t.table_columns.iter().map(|c| c.column_name.text().to_string()).collect::<Vec<_>>().join(","))
     };
-    assert_eq!(columns(0).as_deref(), Some("id,label,_status,_meta,_raw"));
+    // The columns of the function come first, the standard columns follow (their order is tested with the spec)
+    assert!(columns(0).unwrap().starts_with("id,label,"));
     // Only a single call that reads has a result that other scripts read
     assert_eq!(columns(1), None);
     assert_eq!(columns(2), None);

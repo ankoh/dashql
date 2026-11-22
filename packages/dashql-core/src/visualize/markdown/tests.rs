@@ -48,8 +48,12 @@ fn tokenizes_fields() {
          field[value=\"a\"], text[value=\" {{}} {{\"]))"
     );
     // The token prefix grows until it does not occur in the template
-    let (markdown, _) = tokenize_fields("DASHQLMARKDOWNFIELD {{x}}");
-    assert_eq!(markdown, "DASHQLMARKDOWNFIELD DASHQLMARKDOWNFIELDX0TOKEN");
+    let template = "DASHQLMARKDOWNFIELD {{x}}";
+    let (markdown, fields) = tokenize_fields(template);
+    let token = &fields[0].token;
+    let prefix = token.trim_end_matches("TOKEN").trim_end_matches(|c: char| c.is_ascii_digit());
+    assert!(!template.contains(prefix), "{token}");
+    assert_eq!(markdown, format!("DASHQLMARKDOWNFIELD {token}"));
     // Fields in code, and fields in raw HTML are dropped with it
     assert_eq!(
         compile("`{{a}}` <b title=\"{{b}}\">x</b>"),
@@ -96,10 +100,10 @@ fn resolves_links() {
          image[url=\"/x.png\" title=\"t\"](text[value=\"img\"]), text[value=\" \"], link[url=\"https://x.y\"](text[value=\"https://x.y\"]), \
          text[value=\" \"], link[url=\"mailto:me@x.y\"](text[value=\"me@x.y\"]), text[value=\" \"], span[url=\"javascript:x\"](text[value=\"bad\"])))"
     );
-    assert_eq!(
-        compile("[x]({{f}} \"{{f}}\")"),
-        "document(paragraph(span[url=\"DASHQLMARKDOWNFIELD0TOKEN\"](text[value=\"x\"])))"
-    );
+    // A field in the url makes a span that carries the field instead of a link
+    let compiled = compile("[x]({{f}} \"{{f}}\")");
+    assert!(compiled.starts_with("document(paragraph(span[url="), "{compiled}");
+    assert!(compiled.ends_with("](text[value=\"x\"])))"), "{compiled}");
     assert_eq!(compile("[x](/a&amp;b\\) \"t {{f}}\")"), "document(paragraph(link[url=\"/a&b)\"](text[value=\"x\"])))");
 }
 

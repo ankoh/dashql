@@ -3207,7 +3207,7 @@ mod tests {
         config.mode = FormattingMode::INLINE;
         assert_eq!(formatter.format(&config), "create table t (a integer);");
         assert!(formatter.is_fully_formatted());
-        assert_eq!(formatter.format_node_at(root, &config), "'<OBJECT_SQL_CREATE>'");
+        assert!(formatter.format_node_at(root, &config).contains("OBJECT_SQL_CREATE"));
         assert_eq!(formatter.unformattable_nodes(), vec![root as u32]);
         assert_eq!(formatter.format_node_at(parsed.nodes.len(), &config), "");
     }

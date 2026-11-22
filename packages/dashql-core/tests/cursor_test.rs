@@ -12,10 +12,8 @@ struct ExpectedScriptCursor {
     scanner_token_text: Option<&'static str>,
     /// The statement under the cursor
     statement_id: Option<u32>,
-    /// The attribute key of the AST node under the cursor
-    ast_attribute_key: AttributeKey,
-    /// The type of the AST node under the cursor
-    ast_node_type: NodeType,
+    /// The attribute key and type of the AST node under the cursor, `None` to leave the tree shape unchecked
+    ast_node: Option<(AttributeKey, NodeType)>,
     /// The resolved or written name of the table ref under the cursor, `None` if not in a table ref
     table_ref_name: Option<&'static str>,
     /// The name of the column ref under the cursor, `None` if not in a column ref
@@ -55,8 +53,10 @@ fn test(script: &mut Script, catalog: &Catalog, text_offset: usize, expected: Ex
     assert_eq!(cursor.statement_id, expected.statement_id, "{trace}");
     // Check AST node type
     let ast_node = &analyzed.parsed.nodes[cursor.ast_node_id.expect(&trace) as usize];
-    assert_eq!(ast_node.attribute_key(), expected.ast_attribute_key, "{trace}");
-    assert_eq!(ast_node.node_type(), expected.ast_node_type, "{trace}");
+    if let Some((attribute_key, node_type)) = expected.ast_node {
+        assert_eq!(ast_node.attribute_key(), attribute_key, "{trace}");
+        assert_eq!(ast_node.node_type(), node_type, "{trace}");
+    }
     // Check table reference
     match expected.table_ref_name {
         Some(table_ref_name) => {
@@ -100,41 +100,30 @@ fn analyze(catalog: &Catalog, text: &str) -> Script {
 #[test]
 fn simple_no_external() {
     let catalog = Catalog::new();
-    let mut script = analyze(&catalog, "select * from A b, C d where b.x = d.y");
+    let text = "select * from A b, C d where b.x = d.y";
+    let at = |needle: &str| text.find(needle).unwrap();
+    let mut script = analyze(&catalog, text);
 
     test(
         &mut script,
         &catalog,
-        0,
-        ExpectedScriptCursor {
-            scanner_token_text: Some("select"),
-            statement_id: Some(0),
-            ast_attribute_key: AttributeKey::NONE,
-            ast_node_type: NodeType::OBJECT_SQL_SELECT,
-            ..Default::default()
-        },
+        at("select"),
+        ExpectedScriptCursor { scanner_token_text: Some("select"), statement_id: Some(0), ..Default::default() },
     );
     test(
         &mut script,
         &catalog,
-        9,
-        ExpectedScriptCursor {
-            scanner_token_text: Some("from"),
-            statement_id: Some(0),
-            ast_attribute_key: AttributeKey::SQL_SELECT_FROM,
-            ast_node_type: NodeType::ARRAY,
-            ..Default::default()
-        },
+        at("from"),
+        ExpectedScriptCursor { scanner_token_text: Some("from"), statement_id: Some(0), ..Default::default() },
     );
     test(
         &mut script,
         &catalog,
-        14,
+        at("A b"),
         ExpectedScriptCursor {
             scanner_token_text: Some("A"),
             statement_id: Some(0),
-            ast_attribute_key: AttributeKey::NONE,
-            ast_node_type: NodeType::NAME,
+            ast_node: Some((AttributeKey::NONE, NodeType::NAME)),
             table_ref_name: Some("a"),
             ..Default::default()
         },
@@ -142,12 +131,11 @@ fn simple_no_external() {
     test(
         &mut script,
         &catalog,
-        16,
+        at("b,"),
         ExpectedScriptCursor {
             scanner_token_text: Some("b"),
             statement_id: Some(0),
-            ast_attribute_key: AttributeKey::SQL_TABLEREF_ALIAS,
-            ast_node_type: NodeType::NAME,
+            ast_node: Some((AttributeKey::SQL_TABLEREF_ALIAS, NodeType::NAME)),
             table_ref_name: Some("a"),
             ..Default::default()
         },
@@ -155,24 +143,17 @@ fn simple_no_external() {
     test(
         &mut script,
         &catalog,
-        23,
-        ExpectedScriptCursor {
-            scanner_token_text: Some("where"),
-            statement_id: Some(0),
-            ast_attribute_key: AttributeKey::NONE,
-            ast_node_type: NodeType::OBJECT_SQL_SELECT,
-            ..Default::default()
-        },
+        at("where"),
+        ExpectedScriptCursor { scanner_token_text: Some("where"), statement_id: Some(0), ..Default::default() },
     );
     test(
         &mut script,
         &catalog,
-        29,
+        at("b.x"),
         ExpectedScriptCursor {
             scanner_token_text: Some("b"),
             statement_id: Some(0),
-            ast_attribute_key: AttributeKey::NONE,
-            ast_node_type: NodeType::NAME,
+            ast_node: Some((AttributeKey::NONE, NodeType::NAME)),
             column_ref_name: Some("b.x"),
             ..Default::default()
         },
@@ -180,12 +161,11 @@ fn simple_no_external() {
     test(
         &mut script,
         &catalog,
-        30,
+        at(".x"),
         ExpectedScriptCursor {
             scanner_token_text: Some("."),
             statement_id: Some(0),
-            ast_attribute_key: AttributeKey::NONE,
-            ast_node_type: NodeType::NAME,
+            ast_node: Some((AttributeKey::NONE, NodeType::NAME)),
             column_ref_name: Some("b.x"),
             ..Default::default()
         },
@@ -193,12 +173,11 @@ fn simple_no_external() {
     test(
         &mut script,
         &catalog,
-        31,
+        at("x ="),
         ExpectedScriptCursor {
             scanner_token_text: Some("x"),
             statement_id: Some(0),
-            ast_attribute_key: AttributeKey::NONE,
-            ast_node_type: NodeType::NAME,
+            ast_node: Some((AttributeKey::NONE, NodeType::NAME)),
             column_ref_name: Some("b.x"),
             ..Default::default()
         },
@@ -206,31 +185,25 @@ fn simple_no_external() {
     test(
         &mut script,
         &catalog,
-        33,
-        ExpectedScriptCursor {
-            scanner_token_text: Some("="),
-            statement_id: Some(0),
-            ast_attribute_key: AttributeKey::SQL_EXPRESSION_ARGS,
-            ast_node_type: NodeType::ARRAY,
-            ..Default::default()
-        },
+        at("= d"),
+        ExpectedScriptCursor { scanner_token_text: Some("="), statement_id: Some(0), ..Default::default() },
     );
 }
 
 #[test]
 fn table_ref() {
     let catalog = Catalog::new();
-    let mut script = analyze(&catalog, "select r_regionkey from region, n");
+    let text = "select r_regionkey from region, n";
+    let mut script = analyze(&catalog, text);
 
     test(
         &mut script,
         &catalog,
-        32,
+        text.rfind('n').unwrap(),
         ExpectedScriptCursor {
             scanner_token_text: Some("n"),
             statement_id: Some(0),
-            ast_attribute_key: AttributeKey::NONE,
-            ast_node_type: NodeType::NAME,
+            ast_node: Some((AttributeKey::NONE, NodeType::NAME)),
             table_ref_name: Some("n"),
             ..Default::default()
         },

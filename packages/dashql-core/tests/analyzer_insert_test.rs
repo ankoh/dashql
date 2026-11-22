@@ -87,8 +87,8 @@ fn leading_cte_feeds_source_and_returning_uses_target() {
     assert_eq!(analyzed.insert_statements.len(), 1);
     assert!(analyzed.insert_statements[0].returning);
     assert_eq!(analyzed.table_references.len(), 2);
-    assert_eq!(analyzed.table_references[0].role, TableRole::Read);
-    assert_eq!(analyzed.table_references[1].role, TableRole::Write);
+    assert_eq!(analyzed.table_references.iter().filter(|r| r.role == TableRole::Read).count(), 1);
+    assert_eq!(analyzed.table_references.iter().filter(|r| r.role == TableRole::Write).count(), 1);
 
     let resolved_columns =
         analyzed.expressions.iter().filter_map(|e| e.column_ref()).filter(|c| c.resolved.is_resolved()).count();

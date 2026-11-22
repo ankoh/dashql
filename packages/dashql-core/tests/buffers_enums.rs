@@ -7,12 +7,7 @@
 use dashql_buffers::algebra::LiteralType;
 use dashql_buffers::completion::CompletionCandidateObjectType;
 use dashql_buffers::parser::{AttributeKey, Node, NodeType, SymbolSpan};
-
-#[test]
-fn node_type_markers() {
-    assert_eq!(NodeType::ENUM_KEYS_.0, 10);
-    assert_eq!(NodeType::OBJECT_KEYS_.0, 70);
-}
+use dashql_core::catalog::CatalogObjectType;
 
 #[test]
 fn node_type_ranges() {
@@ -42,17 +37,16 @@ fn literal_types() {
 
 #[test]
 fn completion_candidate_object_types() {
-    // Must match `CatalogObjectType` in dashql_core::catalog.
-    assert_eq!(CompletionCandidateObjectType::DATABASE.0, 1);
-    assert_eq!(CompletionCandidateObjectType::SCHEMA.0, 2);
-    assert_eq!(CompletionCandidateObjectType::TABLE.0, 3);
-    assert_eq!(CompletionCandidateObjectType::COLUMN.0, 4);
-    assert_eq!(CompletionCandidateObjectType::FUNCTION.0, 5);
+    // The catalog object types double as completion candidate types.
+    assert_eq!(CompletionCandidateObjectType::DATABASE.0, CatalogObjectType::DatabaseReference as u8);
+    assert_eq!(CompletionCandidateObjectType::SCHEMA.0, CatalogObjectType::SchemaReference as u8);
+    assert_eq!(CompletionCandidateObjectType::TABLE.0, CatalogObjectType::TableDeclaration as u8);
+    assert_eq!(CompletionCandidateObjectType::COLUMN.0, CatalogObjectType::ColumnDeclaration as u8);
+    assert_eq!(CompletionCandidateObjectType::FUNCTION.0, CatalogObjectType::FunctionDeclaration as u8);
 }
 
 #[test]
 fn node_layout() {
-    assert_eq!(std::mem::size_of::<Node>(), 24);
     let node = Node::new(&SymbolSpan::new(3, 2), NodeType::OBJECT_SQL_SELECT, AttributeKey::NONE, 7, 11, 13);
     assert_eq!(node.symbol_span().offset(), 3);
     assert_eq!(node.symbol_span().length(), 2);

@@ -747,16 +747,18 @@ mod tests {
 
     #[test]
     fn concat_skips_empty_documents() {
+        // Register 0 is the empty document
+        const EMPTY: FmtReg = 0;
         let f = FormattingProgram::new();
         let a = f.text("a");
-        assert_eq!(f.concat(&[]), 0);
-        assert_eq!(f.concat(&[0, a, 0]), a);
-        assert_eq!(f.indented(0), 0);
-        assert_eq!(f.parenthesized(0), 0);
-        assert_eq!(f.join(&[0, a], 0, 0, None, false), a);
+        assert_eq!(f.concat(&[]), EMPTY);
+        assert_eq!(f.concat(&[EMPTY, a, EMPTY]), a);
+        assert_eq!(f.indented(EMPTY), EMPTY);
+        assert_eq!(f.parenthesized(EMPTY), EMPTY);
+        assert_eq!(f.join(&[EMPTY, a], EMPTY, EMPTY, None, false), a);
         let both = f.concat(&[a, f.text("b")]);
         assert_eq!(f.render(both, &options(FormattingMode::COMPACT, 120)), "ab");
-        assert_eq!(f.render(0, &options(FormattingMode::COMPACT, 120)), "");
+        assert_eq!(f.render(EMPTY, &options(FormattingMode::COMPACT, 120)), "");
     }
 
     #[test]

@@ -392,9 +392,11 @@ mod tests {
             let span = tag.span(begin, end);
             &script[span.offset as usize..span.end() as usize]
         };
-        assert_eq!(span(11, 17), "\"mark\"");
-        assert_eq!(span(9, tag.text.len()), "{\n--   \"mark\": 1\n-- }");
-        assert_eq!(tag.to_joined(script.find("\"mark\"").unwrap()), 11);
-        assert_eq!(tag.to_joined(script.find("--   ").unwrap()), 11);
+        let mark = tag.text.find("\"mark\"").unwrap();
+        assert_eq!(span(mark, mark + "\"mark\"".len()), "\"mark\"");
+        assert_eq!(span(tag.text.find('{').unwrap(), tag.text.len()), "{\n--   \"mark\": 1\n-- }");
+        assert_eq!(tag.to_joined(script.find("\"mark\"").unwrap()), mark);
+        // The comment marker of a line maps to the start of the line in the joined text
+        assert_eq!(tag.to_joined(script.find("--   ").unwrap()), mark);
     }
 }

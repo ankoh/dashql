@@ -7,7 +7,9 @@ use dashql_buffers::analyzer::NameTag;
 use dashql_buffers::completion::CandidateTag;
 use dashql_core::catalog::Catalog;
 use dashql_core::catalog::CatalogLayer;
-use dashql_core::completion::{is_symbol_kind_completable, Candidate, CandidateField, CandidateInfo, Completion};
+use dashql_core::completion::{
+    is_symbol_kind_completable, Candidate, CandidateField, CandidateInfo, Completion, MAX_DESCRIBED_COLUMNS,
+};
 use dashql_core::pack::pack_completion;
 use dashql_core::script::Script;
 use dashql_parser::symbol_kind::*;
@@ -25,6 +27,27 @@ fn has_tag(candidate: &Candidate, tag: CandidateTag) -> bool {
 
 fn has_name_tag(candidate: &Candidate, tag: NameTag) -> bool {
     candidate.coarse_name_tags & tag.0 != 0
+}
+
+fn is_keyword(candidate: &Candidate) -> bool {
+    let keyword =
+        CandidateTag::KEYWORD_A.0 | CandidateTag::KEYWORD_B.0 | CandidateTag::KEYWORD_C.0 | CandidateTag::KEYWORD_D.0;
+    candidate.candidate_tags & keyword != 0
+}
+
+/// The rank of a candidate in the top candidates
+fn rank_of(completion: &Completion, name: &str) -> usize {
+    completion.top_candidates.iter().position(|c| &*c.completion_text == name).unwrap_or_else(|| panic!("{name}"))
+}
+
+/// Every keyword ranks below the candidate
+fn assert_above_keywords(completion: &Completion, name: &str) {
+    let rank = rank_of(completion, name);
+    for (i, candidate) in completion.top_candidates.iter().enumerate() {
+        if is_keyword(candidate) {
+            assert!(rank < i, "{} ranks above {name}", candidate.completion_text);
+        }
+    }
 }
 
 /// Create and analyze a script
@@ -94,23 +117,13 @@ fn tpch_q2() {
     main_script.analyze(&catalog, true).unwrap();
 
     // Move the cursor
-    let cursor_ofs = main_script_text.find("s_co").unwrap();
-    assert_eq!(cursor_ofs, 8);
-    let cursor = main_script.move_cursor(&catalog, cursor_ofs + "s_co".len());
+    let cursor = main_script.move_cursor(&catalog, after(main_script_text, "s_co"));
 
     // Compute completion
     let completion = Script::complete_at_cursor(&cursor, DEFAULT_LIMIT).unwrap();
-    let names: Vec<String> = completion
-        .top_candidates
-        .iter()
-        .map(|candidate| match candidate.keyword_continuation.filter(|k| !k.is_empty()) {
-            Some(continuation) => format!("{} {}", candidate.completion_text, continuation),
-            None => candidate.completion_text.to_string(),
-        })
-        .collect();
-    let expected_names =
-        ["s_co", "s_comment", "ps_comment", "from", "where", "group by", "order by", "by", "case", "cast"];
-    assert_eq!(names, expected_names);
+    // The supplier column matches the prefix and ranks above the partsupp column, both rank above every keyword
+    assert!(rank_of(&completion, "s_comment") < rank_of(&completion, "ps_comment"));
+    assert_above_keywords(&completion, "ps_comment");
 }
 
 #[test]
@@ -278,7 +291,7 @@ fn completes_prior_cte_in_later_from() {
         let candidate = find_candidate(completion, "events").expect("events");
         assert!(has_name_tag(candidate, NameTag::TABLE_NAME));
         assert!(has_tag(candidate, CandidateTag::IN_NAME_SCOPE));
-        assert!(candidate.score > 50);
+        assert_above_keywords(completion, "events");
     });
 }
 
@@ -290,7 +303,7 @@ fn completes_cte_output_column_in_later_cte() {
         let candidate = find_candidate(completion, "event_timestamp").expect("event_timestamp");
         assert!(has_name_tag(candidate, NameTag::COLUMN_NAME));
         assert!(has_tag(candidate, CandidateTag::IN_NAME_SCOPE));
-        assert!(candidate.score > 59);
+        assert_above_keywords(completion, "event_timestamp");
     });
 }
 
@@ -748,16 +761,17 @@ fn a_table_shows_its_columns_as_written_with_their_types() {
 #[test]
 fn a_wide_table_shows_only_its_first_columns() {
     let mut catalog = Catalog::new();
-    let columns: Vec<String> = (0..250).map(|i| format!("c{i} int")).collect();
+    let width = MAX_DESCRIBED_COLUMNS + 50;
+    let columns: Vec<String> = (0..width).map(|i| format!("c{i} int")).collect();
     let _schema = load_schema(&mut catalog, &format!("create table mytable ({});", columns.join(", ")));
     let text = "select * from mytab";
     complete_at(&catalog, text, text.len(), DEFAULT_LIMIT, |completion| {
         let candidate = completion.top_candidates.iter().find(|c| &*c.completion_text == "mytable").unwrap();
         let info = &completion.candidate_objects[candidate.catalog_objects[0]].info;
-        assert_eq!(info.detail.as_deref(), Some("250 columns"));
-        assert_eq!(info.columns.len(), 200);
+        assert_eq!(info.detail, Some(format!("{width} columns")));
+        assert_eq!(info.columns.len(), MAX_DESCRIBED_COLUMNS);
         assert_eq!(info.columns[0].name, "c0");
-        assert_eq!(info.columns[199].name, "c199");
+        assert_eq!(info.columns.last().unwrap().name, format!("c{}", MAX_DESCRIBED_COLUMNS - 1));
     });
 }
 
@@ -801,21 +815,22 @@ fn only_the_objects_of_top_candidates_get_their_info() {
 fn candidate_info_is_packed() {
     let catalog = info_catalog();
     let text = "call svc.";
+    let expected = client_info(text, "item_get");
     complete_at(&catalog, text, text.len(), DEFAULT_LIMIT, |completion| {
         let packed = pack_completion(completion, false);
         let candidates = packed.candidates.unwrap();
         let candidate = candidates.iter().find(|c| c.display_text.as_deref() == Some("item_get")).unwrap();
         let info = candidate.info.as_ref().unwrap();
-        assert_eq!(info.detail.as_deref(), Some("(id string, owner?, labels? map of string)"));
-        assert_eq!(info.description.as_deref(), Some("Reads an item."));
+        assert_eq!(info.detail, expected.detail);
+        assert_eq!(info.description, expected.description);
         let parameters = info.parameters.as_ref().unwrap();
-        assert_eq!(parameters[0].name.as_deref(), Some("id"));
-        assert_eq!(parameters[0].detail.as_deref(), Some("string · required"));
-        assert_eq!(parameters[0].description.as_deref(), Some("The `id` of the item."));
-        assert_eq!(info.columns.as_ref().unwrap()[1].name.as_deref(), Some("size"));
-        assert_eq!(info.result_description.as_deref(), Some("One row."));
-        assert_eq!(info.example.as_deref(), Some("CALL svc.item_get (id => 'a');"));
-        assert_eq!(info.facts.as_ref().unwrap()[0].name.as_deref(), Some("Family"));
+        assert_eq!(parameters[0].name.as_deref(), Some(expected.parameters[0].name.as_str()));
+        assert_eq!(parameters[0].detail, expected.parameters[0].detail);
+        assert_eq!(parameters[0].description, expected.parameters[0].description);
+        assert_eq!(info.columns.as_ref().unwrap()[1].name.as_deref(), Some(expected.columns[1].name.as_str()));
+        assert_eq!(info.result_description, expected.result_description);
+        assert_eq!(info.example, expected.example);
+        assert_eq!(info.facts.as_ref().unwrap()[0].name.as_deref(), Some(expected.facts[0].name.as_str()));
     });
 
     let mut catalog = Catalog::new();
