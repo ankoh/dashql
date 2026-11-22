@@ -126,6 +126,21 @@
     50% { opacity: 0.35; transform: scale(0.75); }
 }
 
+/* A bar over a prompt shows and hides it on a click */
+.bar[data-prompt] {
+    cursor: pointer;
+}
+
+.bar[data-prompt] .agent {
+    cursor: inherit;
+}
+
+/* The chevron at the right end of a bar over a prompt, for the keyboard */
+.prompt_toggle {
+    flex: none;
+    color: var(--color_fg_muted);
+}
+
 /* The agent at the right end */
 .agent_controls {
     flex: none;

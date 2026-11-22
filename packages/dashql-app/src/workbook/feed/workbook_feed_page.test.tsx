@@ -608,7 +608,7 @@ describe('WorkbookFeedPage', () => {
         expect(state.dashboardProps).toMatchObject({ workbookScripts, modifyWorkbookScripts });
         expect(state.feedProps?.active).toBe(false);
         // The prompt shrinks to the bar of Wobble over the dashboard
-        expect(state.promptProps?.placement).toBe(WorkbookPromptPlacement.Collapsed);
+        expect(state.promptProps?.placement).toBe(WorkbookPromptPlacement.Overlay);
         const buttons = container.querySelectorAll<HTMLButtonElement>('[data-testid="workbook-view-switch"] button');
         expect(buttons[1]?.getAttribute('aria-current')).toBe('true');
         act(() => buttons[0]?.click());
@@ -638,6 +638,30 @@ describe('WorkbookFeedPage', () => {
         expect(feed.followAgent).toHaveBeenCalledOnce();
         expect(feed.appended).toHaveBeenCalledOnce();
         expect(state.feedProps!.promptRef).toBe(state.promptProps!.handleRef);
+    });
+
+    it('shows the composer in the feed and shrinks it over the other views until a click on the bar', () => {
+        const workbookScripts = scripts();
+        const render = (mode: WorkbookViewMode) => {
+            state.mode = mode;
+            act(() => root.render(
+                <WorkbookFeedPage workbookScripts={workbookScripts} modifyWorkbookScripts={vi.fn()} connection={null}
+                    active={mode === WorkbookViewMode.Workbook} dependencies={dependencies} />,
+            ));
+        };
+        render(WorkbookViewMode.Workbook);
+        expect(state.promptProps?.expanded).toBe(true);
+        act(() => state.promptProps!.onExpandedChange!(false));
+        expect(state.promptProps?.expanded).toBe(false);
+        // A switch of the view returns the composer to the default of the view
+        render(WorkbookViewMode.Dashboard);
+        expect(state.promptProps).toMatchObject({ placement: WorkbookPromptPlacement.Overlay, expanded: false });
+        act(() => state.promptProps!.onExpandedChange!(true));
+        expect(state.promptProps?.expanded).toBe(true);
+        render(WorkbookViewMode.Dataflow);
+        expect(state.promptProps?.expanded).toBe(false);
+        render(WorkbookViewMode.Workbook);
+        expect(state.promptProps?.expanded).toBe(true);
     });
 
     it('shows a script that the user picks in the log of the agent in the feed', () => {
@@ -715,7 +739,7 @@ describe('WorkbookFeedPage', () => {
         expect(container.querySelector('[data-testid="dataflow"]')).not.toBeNull();
         expect(state.dataflowProps).toMatchObject({ workbookScripts, modifyWorkbookScripts });
         expect(state.feedProps?.active).toBe(false);
-        expect(state.promptProps?.placement).toBe(WorkbookPromptPlacement.Collapsed);
+        expect(state.promptProps?.placement).toBe(WorkbookPromptPlacement.Overlay);
         const buttons = container.querySelectorAll<HTMLButtonElement>('[data-testid="workbook-view-switch"] button');
         expect(buttons[2]?.getAttribute('aria-current')).toBe('true');
 

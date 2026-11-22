@@ -30,7 +30,7 @@ import { useAgentConnect, useAgentSession } from '../../agent/agent_session_prov
 import { AgentConnectionsPicker } from '../../agent/agent_connections_picker.js';
 import { ComposerMode } from '../../agent/agent_connect.js';
 import { agentLiveStatuses, diffAgentQuestions } from '../../agent/agent_workbook_status.js';
-import { WorkbookStatusBar, WorkbookStatusBarVariant } from '../status/workbook_status_bar.js';
+import { WorkbookStatusBar, WorkbookStatusBarVariant, type WorkbookStatusBarPrompt } from '../status/workbook_status_bar.js';
 import { useLiveWorkbookStatuses, useWorkbookOutcomeTransitions } from '../status/workbook_status_store.js';
 import { useWorkbookStatusSources } from '../status/use_workbook_status_sources.js';
 import { useCloudPublishStatus } from '../../cloud/cloud_publish_status.js';
@@ -39,8 +39,8 @@ import { useCloudPublishStatus } from '../../cloud/cloud_publish_status.js';
 export enum WorkbookPromptPlacement {
     /// Over the feed: the greeting and the hero composer of an empty workbook, else docked below the scripts
     Feed,
-    /// Shrunk to the bar of Wobble over the dashboard and the dataflow
-    Collapsed,
+    /// Over the dashboard and the dataflow, as wide as their bar
+    Overlay,
     /// Hidden behind an overview or another page, it keeps its draft
     Hidden,
 }
@@ -74,6 +74,11 @@ export interface WorkbookPromptProps {
     scriptConnections?: ReadonlyMap<string, ConnectionState>;
     /// Where the prompt shows
     placement: WorkbookPromptPlacement;
+    /// Is the composer shown below the bar of Wobble? Else it shrinks into the bar, with its draft. The greeting of an
+    /// empty workbook always shows it.
+    expanded: boolean;
+    /// A click on the bar of Wobble shows or hides the composer
+    onExpandedChange?: (expanded: boolean) => void;
     /// The feed of the workbook that follows the agent and shows the appended scripts
     feed: WorkbookPromptFeed;
     /// Receives what the feed asks of the prompt
@@ -147,8 +152,9 @@ export function useComposerCore(workbookId: string, connectionId: string | null)
 const LANDING_WOBBLE_TUNING: Partial<WobbleTuning> = { wobble: 0.03, wobbleSpeed: 2 };
 
 /// The prompt of a workbook over its views: the composer that drafts the next script or asks the agent, and the bar of
-/// Wobble with the status of the workbook. It greets an empty workbook, docks below the scripts of the feed and shrinks
-/// to the bar over the dashboard and the dataflow.
+/// Wobble with the status of the workbook. It greets an empty workbook, docks below the scripts of the feed and floats
+/// over the dashboard and the dataflow. A click on the bar shrinks the composer into the bar and grows it out again,
+/// in every view; a new script shows in all of them.
 export const WorkbookPrompt: React.FC<WorkbookPromptProps> = (props) => {
     const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;
     const { modifyWorkbookScripts, feed } = props;
@@ -157,7 +163,6 @@ export const WorkbookPrompt: React.FC<WorkbookPromptProps> = (props) => {
     const keywordCase = getKeywordCase(config?.settings);
     const workbookId = props.workbookScripts.workbookId;
     const readOnly = useWorkbookReadOnly();
-    const collapsed = props.placement === WorkbookPromptPlacement.Collapsed;
     const overFeed = props.placement === WorkbookPromptPlacement.Feed;
     const scripts = dependencies.useWorkbookScriptMap(workbookId);
     const defaultConnections = React.useMemo(
@@ -261,6 +266,34 @@ export const WorkbookPrompt: React.FC<WorkbookPromptProps> = (props) => {
         mention: name => targetScriptRef.current?.(name),
     }), [composerView]);
 
+    // An empty workbook greets the user with the composer in place of the feed, until the agent of a session works on a
+    // question. The tab follows its session after a switch back to SQL, the questions of the agent dock the composer
+    // in AI only. The composer stays at the same position in the tree so it keeps focus when the view docks it. The
+    // composer over another view is docked.
+    const agentTurns = agentConnect?.mode === ComposerMode.Sql ? 0 : session?.turns.length ?? 0;
+    const landing = overFeed && props.workbookScripts.scriptOrder.length === 0 && agentTurns === 0;
+    // The composer shrinks into the bar of Wobble and grows out of it on a click on the bar, the greeting shows it
+    const collapsed = !landing && !props.expanded;
+    const composerShown = props.placement !== WorkbookPromptPlacement.Hidden && !collapsed;
+    const { onExpandedChange } = props;
+    const focusOnExpand = React.useRef(false);
+    const togglePrompt = React.useMemo(() => {
+        if (landing || onExpandedChange == null) return undefined;
+        return {
+            expanded: !collapsed,
+            onToggle: () => {
+                // The composer that grows out of the bar takes the focus, the user writes right away
+                focusOnExpand.current = collapsed;
+                onExpandedChange(collapsed);
+            },
+        };
+    }, [landing, collapsed, onExpandedChange]);
+    React.useEffect(() => {
+        if (collapsed || !focusOnExpand.current) return;
+        focusOnExpand.current = false;
+        composerView?.focus();
+    }, [collapsed, composerView]);
+
     // Ctrl+E executes the selected script globally. While the composer has focus, it sends the draft instead of
     // running a script the user isn't looking at.
     const keyHandlers = React.useMemo<KeyEventHandler[]>(() => [{
@@ -268,20 +301,13 @@ export const WorkbookPrompt: React.FC<WorkbookPromptProps> = (props) => {
         ctrlKey: true,
         capture: true,
         callback: (event: KeyboardEvent) => {
-            if (!overFeed || composerView == null || !composerView.hasFocus) return;
+            if (!composerShown || composerView == null || !composerView.hasFocus) return;
             event.preventDefault();
             event.stopPropagation();
             submitRef.current?.();
         },
-    }], [overFeed, composerView]);
+    }], [composerShown, composerView]);
     dependencies.useKeyEvents(keyHandlers);
-
-    // An empty workbook greets the user with the composer in place of the feed, until the agent of a session works on a
-    // question. The tab follows its session after a switch back to SQL, the questions of the agent dock the composer
-    // in AI only. The composer stays at the same position in the tree so it keeps focus when the view docks it. The
-    // composer shrunk over another view is docked.
-    const agentTurns = agentConnect?.mode === ComposerMode.Sql ? 0 : session?.turns.length ?? 0;
-    const landing = !collapsed && props.workbookScripts.scriptOrder.length === 0 && agentTurns === 0;
 
     // While the user writes, Wobble watches the caret of the composer
     const composerCaret = React.useCallback(() => {
@@ -323,10 +349,11 @@ export const WorkbookPrompt: React.FC<WorkbookPromptProps> = (props) => {
 
     // The bar of Wobble on the prompt: the status of the workbook, the agent and the log. On the landing view the
     // greeting is Wobble, the bar leaves it out. A read-only workbook has no prompt, the bar stands alone.
-    const statusBar = (variant: WorkbookStatusBarVariant) => (
+    const statusBar = (variant: WorkbookStatusBarVariant, prompt?: WorkbookStatusBarPrompt) => (
         <dependencies.WorkbookStatusBar
             workbookId={workbookId}
             variant={variant}
+            prompt={prompt}
             session={readOnly ? null : session}
             wobble={!landing}
             gaze={dockGaze}
@@ -335,7 +362,7 @@ export const WorkbookPrompt: React.FC<WorkbookPromptProps> = (props) => {
         />
     );
     const insets = props.feedInsets ?? NO_INSETS;
-    const placement = overFeed ? 'feed' : collapsed ? 'collapsed' : 'hidden';
+    const placement = overFeed ? 'feed' : props.placement === WorkbookPromptPlacement.Overlay ? 'overlay' : 'hidden';
     return (
         <div
             className={styles.prompt_layer}
@@ -366,7 +393,7 @@ export const WorkbookPrompt: React.FC<WorkbookPromptProps> = (props) => {
             {!readOnly && <div className={styles.prompt_section} ref={setSection}>
                 <div className={styles.prompt_body}>
                     {/* Without a composer the other views still show the bar */}
-                    {collapsed && (composerConnectionId == null || composerCore == null) && statusBar(WorkbookStatusBarVariant.Standalone)}
+                    {props.placement === WorkbookPromptPlacement.Overlay && (composerConnectionId == null || composerCore == null) && statusBar(WorkbookStatusBarVariant.Standalone)}
                     {composerConnectionId != null && composerCore != null && <dependencies.WorkbookComposer
                         key={workbookId}
                         instance={composerCore.instance}
@@ -378,7 +405,7 @@ export const WorkbookPrompt: React.FC<WorkbookPromptProps> = (props) => {
                         session={session}
                         connect={agentConnect}
                         onSend={handleSend}
-                        bar={statusBar(WorkbookStatusBarVariant.Prompt)}
+                        bar={statusBar(WorkbookStatusBarVariant.Prompt, togglePrompt)}
                         setView={setComposerView}
                         submitRef={submitRef}
                         scriptNames={scriptNames}

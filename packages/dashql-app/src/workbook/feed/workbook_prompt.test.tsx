@@ -137,12 +137,14 @@ describe('Workbook prompt', () => {
     afterEach(() => { act(() => root.unmount()); container.remove(); });
 
     function render(workbookScripts: WorkbookScripts & { scripts: ScriptDataMap }, modifyWorkbookScripts: ModifyWorkbookScripts = vi.fn(),
-        conn: ConnectionState | null = onlineConn, placement = WorkbookPromptPlacement.Feed) {
+        conn: ConnectionState | null = onlineConn, placement = WorkbookPromptPlacement.Feed,
+        expanded = placement === WorkbookPromptPlacement.Feed, onExpandedChange?: (expanded: boolean) => void) {
         promptState.scripts = workbookScripts.scripts;
         act(() => root.render(<LoggerProvider>
             <WorkbookConnectionAttentionContext.Provider value={attention}>
                 <WorkbookPrompt workbookScripts={workbookScripts} modifyWorkbookScripts={modifyWorkbookScripts} conn={conn}
-                    placement={placement} feed={feed} handleRef={handle} dependencies={promptDependencies} />
+                    placement={placement} expanded={expanded} onExpandedChange={onExpandedChange} feed={feed} handleRef={handle}
+                    dependencies={promptDependencies} />
             </WorkbookConnectionAttentionContext.Provider>
         </LoggerProvider>));
     }
@@ -162,9 +164,9 @@ describe('Workbook prompt', () => {
     });
 
     it('shrinks the composer to the bar of Wobble over another view of the workbook', () => {
-        render(workbook(), vi.fn(), onlineConn, WorkbookPromptPlacement.Collapsed);
+        render(workbook(), vi.fn(), onlineConn, WorkbookPromptPlacement.Overlay);
         // The empty workbook docks its composer under the other view, Wobble stays awake in the bar
-        expect(layer().dataset.placement).toBe('collapsed');
+        expect(layer().dataset.placement).toBe('overlay');
         expect(greeting()).toBeNull();
         expect(promptState.composerProps).toMatchObject({ variant: WorkbookComposerVariant.Docked, collapsed: true });
         expect(promptState.barProps).toMatchObject({ wobble: true, paused: false });
@@ -177,6 +179,44 @@ describe('Workbook prompt', () => {
         render(workbook(['1_alpha.sql']), vi.fn(), onlineConn, WorkbookPromptPlacement.Hidden);
         expect(layer().dataset.placement).toBe('hidden');
         expect(promptState.barProps).toMatchObject({ paused: true });
+    });
+
+    it('shows and hides the composer on a click on the bar of Wobble, in every view', async () => {
+        const onExpandedChange = vi.fn();
+        // Over another view the composer grows out of the bar and takes the focus
+        promptState.view = fakeView('', false);
+        render(workbook(['1_alpha.sql']), vi.fn(), onlineConn, WorkbookPromptPlacement.Overlay, false, onExpandedChange);
+        expect(promptState.composerProps?.collapsed).toBe(true);
+        expect(promptState.barProps?.prompt?.expanded).toBe(false);
+        act(() => promptState.barProps!.prompt!.onToggle());
+        expect(onExpandedChange).toHaveBeenCalledExactlyOnceWith(true);
+        render(workbook(['1_alpha.sql']), vi.fn(), onlineConn, WorkbookPromptPlacement.Overlay, true, onExpandedChange);
+        expect(promptState.composerProps).toMatchObject({ variant: WorkbookComposerVariant.Docked, collapsed: false });
+        expect(promptState.view.focus).toHaveBeenCalledOnce();
+
+        // The composer over another view sends its draft on Ctrl+E like over the feed
+        promptState.view.hasFocus = true;
+        const handler = promptState.keyHandlers.find(h => h.key === 'e' && h.ctrlKey && h.capture)!;
+        await act(async () => handler.callback({ preventDefault: vi.fn(), stopPropagation: vi.fn() } as unknown as KeyboardEvent));
+        expect(promptState.submit).toHaveBeenCalledOnce();
+
+        // Over the feed it shrinks into the bar, it keeps no focus to give
+        render(workbook(['1_alpha.sql']), vi.fn(), onlineConn, WorkbookPromptPlacement.Feed, true, onExpandedChange);
+        expect(promptState.barProps?.prompt?.expanded).toBe(true);
+        act(() => promptState.barProps!.prompt!.onToggle());
+        expect(onExpandedChange).toHaveBeenLastCalledWith(false);
+        render(workbook(['1_alpha.sql']), vi.fn(), onlineConn, WorkbookPromptPlacement.Feed, false, onExpandedChange);
+        expect(promptState.composerProps?.collapsed).toBe(true);
+        expect(promptState.view.focus).toHaveBeenCalledOnce();
+        // A shrunk composer sends nothing on Ctrl+E, the key runs the selected script
+        const shrunkHandler = promptState.keyHandlers.find(h => h.key === 'e' && h.ctrlKey && h.capture)!;
+        await act(async () => shrunkHandler.callback({ preventDefault: vi.fn(), stopPropagation: vi.fn() } as unknown as KeyboardEvent));
+        expect(promptState.submit).toHaveBeenCalledOnce();
+
+        // The greeting of an empty workbook always shows the composer, its bar takes no click
+        render(workbook(), vi.fn(), onlineConn, WorkbookPromptPlacement.Feed, false, onExpandedChange);
+        expect(promptState.composerProps).toMatchObject({ variant: WorkbookComposerVariant.Hero, collapsed: false });
+        expect(promptState.barProps?.prompt).toBeUndefined();
     });
 
     it('appends a sent draft as a script, runs it and has the feed show it', async () => {

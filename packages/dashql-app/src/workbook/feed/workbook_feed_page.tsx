@@ -264,12 +264,18 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
     // A version of a published workbook that is being loaded takes the place of the views
     const cloudLoading = useCloudWorkbookLoading() != null;
     const feedActive = props.active && !dashboardActive && !dataflowActive && !overviewActive && !cloudLoading;
-    // The prompt floats over the views of the workbook. It docks below the scripts of the feed, shrinks into the bar of
-    // Wobble when the dashboard or the dataflow show and grows into the prompt when the feed shows again. The workbook
-    // page is active in the feed only, it shows in the dashboard and the dataflow too.
-    const composerCollapsed = (dashboardActive || dataflowActive) && !overviewActive && !cloudLoading;
+    // The prompt floats over the views of the workbook and creates scripts in every one of them. It docks below the
+    // scripts of the feed and floats over the dashboard and the dataflow. The workbook page is active in the feed only,
+    // it shows in the dashboard and the dataflow too.
+    const otherViewShown = (dashboardActive || dataflowActive) && !overviewActive && !cloudLoading;
     const promptPlacement = feedActive ? WorkbookPromptPlacement.Feed
-        : composerCollapsed ? WorkbookPromptPlacement.Collapsed : WorkbookPromptPlacement.Hidden;
+        : otherViewShown ? WorkbookPromptPlacement.Overlay : WorkbookPromptPlacement.Hidden;
+    // A click on the bar of Wobble shows or hides the composer. A switch of the view returns it to the default of the
+    // view: shown in the feed, shrunk into the bar over the dashboard and the dataflow. An overview keeps it.
+    const [promptToggle, setPromptToggle] = React.useState<{ view: WorkbookViewMode; expanded: boolean } | null>(null);
+    if (promptToggle != null && promptToggle.view !== activeView) setPromptToggle(null);
+    const promptExpanded = promptToggle?.view === activeView ? promptToggle.expanded : activeView === WorkbookViewMode.Workbook;
+    const togglePrompt = React.useCallback((expanded: boolean) => setPromptToggle({ view: activeView, expanded }), [activeView]);
     const pageShown = props.active || dashboardActive || dataflowActive;
     useFileDropHandler(pageShown ? files => {
         const attach = attachRef.current;
@@ -464,6 +470,8 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
                             conn={props.connection}
                             scriptConnections={props.scriptConnections}
                             placement={promptPlacement}
+                            expanded={promptExpanded}
+                            onExpandedChange={togglePrompt}
                             feed={promptFeed}
                             handleRef={promptRef}
                             draftRenameRef={draftRenameRef}

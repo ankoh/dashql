@@ -165,6 +165,33 @@ describe('Workbook status bar', () => {
         expect(agentState()!.dataset.state).toBe('ended');
     });
 
+    it('shows and hides the prompt below it on a click on the bar or its chevron', () => {
+        const onToggle = vi.fn();
+        render();
+        const bar = () => container.querySelector<HTMLElement>('[data-testid="workbook-status-bar"]')!;
+        const toggle = () => container.querySelector<HTMLButtonElement>('[data-testid="workbook-prompt-toggle"]');
+        // Without a prompt the bar takes no click
+        expect(toggle()).toBeNull();
+        expect(bar().dataset.prompt).toBeUndefined();
+
+        render({ prompt: { expanded: false, onToggle } });
+        expect(bar().dataset.prompt).toBe('collapsed');
+        expect(toggle()!.getAttribute('aria-expanded')).toBe('false');
+        act(() => statusLine().click());
+        expect(onToggle).toHaveBeenCalledOnce();
+        act(() => toggle()!.click());
+        expect(onToggle).toHaveBeenCalledTimes(2);
+        // Wobble and its log keep their clicks
+        act(() => wobble().click());
+        expect(bubble()).not.toBeNull();
+        act(() => (bubble() as HTMLElement).click());
+        expect(onToggle).toHaveBeenCalledTimes(2);
+
+        render({ prompt: { expanded: true, onToggle } });
+        expect(bar().dataset.prompt).toBe('expanded');
+        expect(toggle()!.getAttribute('aria-label')).toBe('Hide the prompt');
+    });
+
     it('leaves Wobble out on the landing view', () => {
         render({ wobble: false });
         expect(container.querySelector('[data-testid="workbook-wobble"]')).toBeNull();

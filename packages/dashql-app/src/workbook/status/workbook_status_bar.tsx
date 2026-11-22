@@ -5,7 +5,7 @@ import { Wobble, WobbleMode, type WobbleGaze, type WobbleTuning } from '../../ag
 import { AgentPromptPanel } from '../../agent/agent_prompt_panel.js';
 import { agentActivity, harnessLabel, type AgentActivity, type AgentSession } from '../../agent/agent_session.js';
 import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
-import { XIcon } from '@akohn/dashql-react/components/symbol_icon';
+import { ChevronDownIcon, ChevronUpIcon, XIcon } from '@akohn/dashql-react/components/symbol_icon';
 import { IndicatorStatus, StatusDot } from '@akohn/dashql-react/components/status_indicator';
 import { WorkbookStatusSource, WorkbookStatusTone } from './workbook_status.js';
 import { useWorkbookLog } from './workbook_log.js';
@@ -37,7 +37,20 @@ export interface WorkbookStatusBarProps {
     lastInput?: () => number | null;
     /// Stops the animation of Wobble, e.g. while the view is hidden
     paused?: boolean;
+    /// The prompt below the bar: a click on the bar or its chevron shows or hides it. Without, the bar takes no click.
+    prompt?: WorkbookStatusBarPrompt;
 }
+
+/// The prompt that the bar shows and hides
+export interface WorkbookStatusBarPrompt {
+    /// Is the prompt shown below the bar?
+    expanded: boolean;
+    /// Show or hide the prompt
+    onToggle: () => void;
+}
+
+/// The parts of the bar that handle a click themselves
+const BAR_CONTROLS = 'button, a, input, select, textarea, [role="button"]';
 
 /// The agent at the right end of the bar: the harness of the session and the folder it works in
 function AgentState(props: { session: AgentSession; activity: AgentActivity['kind'] }) {
@@ -109,8 +122,20 @@ export function WorkbookStatusBar(props: WorkbookStatusBarProps): React.ReactEle
         if (list != null) list.scrollTop = list.scrollHeight;
     }, [newest, open]);
     const agentTurns = session != null && session.turns.length > 0;
+    // A click on the background of the bar shows or hides the prompt, Wobble, the log and the controls keep theirs
+    const prompt = props.prompt ?? null;
+    const handleBarClick = React.useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+        const target = event.target;
+        if (prompt == null || event.button !== 0 || !(target instanceof Element)) return;
+        // The overlays of the log are portals, their events still bubble through here
+        if (!event.currentTarget.contains(target) || bubbleRef.current?.contains(target)) return;
+        if (target.closest(BAR_CONTROLS) != null) return;
+        prompt.onToggle();
+    }, [prompt]);
     return (
-        <div className={styles.bar} data-variant={props.variant} data-testid="workbook-status-bar">
+        <div className={styles.bar} data-variant={props.variant} data-testid="workbook-status-bar"
+            data-prompt={prompt == null ? undefined : prompt.expanded ? 'expanded' : 'collapsed'}
+            onClick={prompt == null ? undefined : handleBarClick}>
             {wobble && (
                 <button
                     type="button"
@@ -139,6 +164,20 @@ export function WorkbookStatusBar(props: WorkbookStatusBarProps): React.ReactEle
                 <div className={styles.agent_controls}>
                     <AgentState session={session} activity={activity} />
                 </div>
+            )}
+            {prompt != null && (
+                <IconButton
+                    className={styles.prompt_toggle}
+                    variant={ButtonVariant.Invisible}
+                    size={ButtonSize.Small}
+                    aria-label={prompt.expanded ? 'Hide the prompt' : 'Show the prompt'}
+                    aria-expanded={prompt.expanded}
+                    tooltipDirection="n"
+                    data-testid="workbook-prompt-toggle"
+                    onClick={prompt.onToggle}
+                >
+                    {prompt.expanded ? <ChevronDownIcon size={16} /> : <ChevronUpIcon size={16} />}
+                </IconButton>
             )}
             {wobble && open && (
                 <div id={bubbleId} ref={bubbleRef} className={styles.bubble} data-testid="workbook-bubble">

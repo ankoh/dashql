@@ -95,13 +95,13 @@
     transition: max-width var(--prompt_morph);
 }
 
-/* Another view shows, the composer stays visible over it as the bar of Wobble, as wide as the bar of the dataflow and
-   the dashboard was */
-.prompt_layer[data-placement='collapsed'] .prompt_body {
+/* Another view shows, the composer floats over it as wide as the bar of the dataflow and the dashboard was, shrunk
+   into the bar of Wobble until a click on the bar */
+.prompt_layer[data-placement='overlay'] .prompt_body {
     padding: 0 var(--page_gutter) 16px var(--page_gutter);
 }
 
-.prompt_layer[data-placement='collapsed'] .prompt_body > * {
+.prompt_layer[data-placement='overlay'] .prompt_body > * {
     max-width: 720px;
 }
 
