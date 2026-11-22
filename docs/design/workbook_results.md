@@ -245,7 +245,7 @@ window removes them.
 
 ## Exported and Published Results
 
-The **Query Results** toggle of the export of a `.dashql` file, off by default, adds the stored results of the scripts
+The **Query Results** toggle of the export of a `.dashql` file, on by default, adds the stored results of the scripts
 to the archive, e.g. to hand a slow dashboard with its data to someone without access to its connections. Every result
 is a table of its own, `workbook_result_<id>.parquet`, and a row of `workbook_results` names its script, the key of its
 file and its table (`script_name`, `cache_key`, `table_name`, see `workbook_tables.md`). The export takes the file of

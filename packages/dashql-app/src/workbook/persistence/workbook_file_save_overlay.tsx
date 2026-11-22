@@ -22,7 +22,8 @@ import { useLogger } from '../../host/logger_provider.js';
 
 const LOG_CTX = 'workbook_export';
 
-/// Pack the workbook into an archive with the runtime. The stored results go in only if the settings ask for them.
+/// Pack the workbook into an archive with the runtime. The stored results go in only if the settings ask for them, they
+/// do by default.
 async function packAndCompressFile(
     runtime: Runtime,
     workbookId: string,
@@ -75,7 +76,7 @@ export const WorkbookFileSaveOverlay: React.FC<Props> = (props: Props) => {
         withCatalog: true,
         withLoginHint: true,
         preserveUUIDs: false,
-        withQueryResults: false,
+        withQueryResults: true,
     });
     const results = useWorkbookResults();
     // The file opens the workbook in its default view, the overlay changes it on the workbook

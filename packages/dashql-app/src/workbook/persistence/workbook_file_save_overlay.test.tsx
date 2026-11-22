@@ -155,7 +155,7 @@ describe('WorkbookFileSaveOverlay', () => {
         expect((await savedWorkbook()).workbook.workbookId).toBe(TEST_WORKBOOK_ID);
     });
 
-    it('carries the stored results of the scripts only when asked to', async () => {
+    it('carries the stored results of the scripts by default, without them when asked to', async () => {
         // A result of 200 kB, the size of the file shows it
         const bytes = new Uint8Array(200_000);
         bytes.set([80, 65, 82, 49]);
@@ -188,29 +188,31 @@ describe('WorkbookFileSaveOverlay', () => {
             </WorkbookResultsProvider>,
         ));
         await waitForFile();
-        expect(toggle('query-results').getAttribute('aria-checked')).toBe('false');
+        // The results are on by default
+        expect(toggle('query-results').getAttribute('aria-checked')).toBe('true');
         await act(async () => {
             await vi.waitFor(() => expect(document.querySelector('[data-testid="export-query-results-hint"]')?.textContent)
                 .toContain('1 of 2'));
         });
-        let saved = await savedWorkbook();
-        expect(saved.results).toBe(0);
-        let archive = await JSZip.loadAsync(saved.bytes);
-        expect(archive.file(/^workbook_result/)).toEqual([]);
-
-        act(() => toggle('query-results').click());
-        await waitForFile();
         // The results are read when the file is saved, not before. The size counts them already.
         expect(results.readFile).not.toHaveBeenCalled();
         expect(document.body.textContent).toMatch(/~\s20\d(\.\d+)? kB/);
-        saved = await savedWorkbook();
+        let saved = await savedWorkbook();
         expect(results.readFile).toHaveBeenCalledWith(TEST_WORKBOOK_ID, name);
         expect(saved.bytes.size).toBeGreaterThan(bytes.length);
-        archive = await JSZip.loadAsync(saved.bytes);
+        let archive = await JSZip.loadAsync(saved.bytes);
         const resultTables = archive.file(/^workbook_result_/);
         expect(resultTables).toHaveLength(1);
         expect(await resultTables[0].async('uint8array')).toEqual(bytes);
         expect(saved.results).toBe(1);
+
+        act(() => toggle('query-results').click());
+        await waitForFile();
+        expect(toggle('query-results').getAttribute('aria-checked')).toBe('false');
+        saved = await savedWorkbook();
+        expect(saved.results).toBe(0);
+        archive = await JSZip.loadAsync(saved.bytes);
+        expect(archive.file(/^workbook_result/)).toEqual([]);
     });
 
     it('packs nothing while the overlay is closed or without a workbook', async () => {
