@@ -9,8 +9,8 @@
 use crate::analyzer::*;
 use crate::catalog::*;
 use dashql_buffers::algebra::{
-    BinaryExpressionT, ColumnRefExpressionT, ColumnResolutionType, ComparisonT, ConstIntervalCastT, ExpressionSubTypeT,
-    ExpressionT, FunctionCallExpressionT, LiteralT, ResolvedColumnT,
+    BinaryExpressionT, ColumnRefExpressionT, ComparisonT, ConstIntervalCastT, ExpressionSubTypeT, ExpressionT,
+    FunctionCallExpressionT, LiteralT, ResolvedColumnT,
 };
 use dashql_buffers::analyzer::{
     AnalyzedScriptT, AnalyzerErrorT, ClientFunctionCallT, ClientFunctionEffect as PackedClientFunctionEffect,
@@ -460,11 +460,7 @@ fn pack_expression(script: &AnalyzedScript, expr: &Expression) -> ExpressionT {
                 ast_scope_root: c.ast_scope_root.unwrap_or(u32::MAX),
                 column_name: Some(Box::new(qualified_column_name(&c.column_name))),
                 resolved_column: c.resolved_ids.as_ref().map(|ids| Box::new(resolved_column(ids))),
-                resolution: match c.resolved {
-                    ColumnResolution::Unresolved => ColumnResolutionType::UNRESOLVED,
-                    ColumnResolution::TableColumn(_) => ColumnResolutionType::TABLE_COLUMN,
-                    ColumnResolution::ScopeColumn { .. } => ColumnResolutionType::SCOPE_COLUMN,
-                },
+                resolved: c.resolved.is_resolved(),
                 resolved_source_ast_node_id: c.resolved_source.unwrap_or(PROTO_NULL_U32),
             })))
         }

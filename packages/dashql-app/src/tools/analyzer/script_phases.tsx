@@ -395,7 +395,7 @@ function analysisFacts(analyzed: dashql.buffers.analyzer.AnalyzedScriptT, parsed
         } else if (expression.innerType === dashql.buffers.algebra.ExpressionSubType.ColumnRefExpression) {
             // A column names the table ref that it reads, a derived table, or an output column of its own scope
             const column = expression.inner as dashql.buffers.algebra.ColumnRefExpressionT;
-            const resolved = column.resolution !== dashql.buffers.algebra.ColumnResolutionType.UNRESOLVED;
+            const resolved = column.resolved;
             const source = column.resolvedSourceAstNodeId;
             const table = source === NONE ? null : tableRefsByNode.get(source) ?? null;
             if (table != null) links.push({ column: expression.astNodeId, table: source });

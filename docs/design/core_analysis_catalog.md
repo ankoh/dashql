@@ -315,8 +315,9 @@ entry: the script itself or any catalog entry.
 A table reference keeps its resolution on its `RelationExpression`: `resolved_table` (catalog ids) for a table of the
 script, a catalog entry or a table parameter, `resolved_cte` (a `CteLoc`) for a read of a CTE. Only an unqualified name
 reads a CTE, as in PostgreSQL. A column reference keeps `resolved_source`, the AST node of the FROM item it reads (a
-table reference or a derived table), none for an output column of its own scope. The packed buffers name the kinds:
-`TableResolutionType` on a `TableReference` and `ColumnResolutionType` on a `ColumnRefExpression`.
+table reference or a derived table), none for an output column of its own scope. The packed buffers name the kind of
+a table reference (`TableResolutionType` on a `TableReference`) and whether a column reference resolved (`resolved` on
+a `ColumnRefExpression`).
 
 The rules follow PostgreSQL and Hyper:
 
