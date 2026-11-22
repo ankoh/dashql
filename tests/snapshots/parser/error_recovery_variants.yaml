@@ -943,7 +943,7 @@ parser-snapshots:
       statements:
         - type: UPDATE
           ast-begin: 2
-          ast-size: 8
+          ast-size: 7
           description:
             text: "update t set a = ;"
             description-begin: 0
@@ -969,9 +969,6 @@ parser-snapshots:
                   - type: OBJECT_SQL_ASSIGNMENT
                     text: "a = ;"
                     children:
-                      - key: SQL_ASSIGNMENT_KIND
-                        type: NAME
-                        text: "a = ;"
                       - key: SQL_ASSIGNMENT_COLUMNS
                         type: NAME
                         text: "a"

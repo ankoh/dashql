@@ -21,7 +21,7 @@ sql_cmd_alter_group_stmt:
             @$,
             NodeType::OBJECT_SQL_ALTER_ROLE,
             &[
-                attr(Key::SQL_ALTER_ROLE_KIND, ctx.name_from_keyword(@$, "add")),
+                attr(Key::SQL_ALTER_ROLE_ACTION, enum_node(@$, AlterRoleAction::ADD)),
                 attr(Key::SQL_ALTER_ROLE_ROLE, $3),
                 attr(Key::SQL_ALTER_ROLE_ARGS, ctx.array(@6, $6)),
             ],
@@ -32,7 +32,7 @@ sql_cmd_alter_group_stmt:
             @$,
             NodeType::OBJECT_SQL_ALTER_ROLE,
             &[
-                attr(Key::SQL_ALTER_ROLE_KIND, ctx.name_from_keyword(@$, "drop")),
+                attr(Key::SQL_ALTER_ROLE_ACTION, enum_node(@$, AlterRoleAction::DROP)),
                 attr(Key::SQL_ALTER_ROLE_ROLE, $3),
                 attr(Key::SQL_ALTER_ROLE_ARGS, ctx.array(@6, $6)),
             ],
@@ -46,7 +46,7 @@ sql_cmd_alter_opt_role_elem:
             @$,
             NodeType::OBJECT_SQL_ROLE_ELEMENT,
             &[
-                attr(Key::SQL_ROLE_ELEMENT_KIND, ctx.name_from_keyword(@$, "password")),
+                attr(Key::SQL_ROLE_ELEMENT_KIND, enum_node(@$, RoleOption::PASSWORD)),
                 attr(Key::SQL_ROLE_ELEMENT_ARG, $2),
             ],
         )
@@ -55,7 +55,7 @@ sql_cmd_alter_opt_role_elem:
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_ROLE_ELEMENT,
-            &[attr(Key::SQL_ROLE_ELEMENT_KIND, ctx.name_from_keyword(@$, "password"))],
+            &[attr(Key::SQL_ROLE_ELEMENT_KIND, enum_node(@$, RoleOption::PASSWORD))],
         )
     }
     | ENCRYPTED PASSWORD sql_string_literal {
@@ -63,7 +63,8 @@ sql_cmd_alter_opt_role_elem:
             @$,
             NodeType::OBJECT_SQL_ROLE_ELEMENT,
             &[
-                attr(Key::SQL_ROLE_ELEMENT_KIND, ctx.name_from_keyword(@$, "encryptedpassword")),
+                attr(Key::SQL_ROLE_ELEMENT_KIND, enum_node(@$, RoleOption::PASSWORD)),
+                attr(Key::SQL_ROLE_ELEMENT_ENCRYPTED, bool_node(@$, true)),
                 attr(Key::SQL_ROLE_ELEMENT_ARG, $3),
             ],
         )
@@ -73,7 +74,8 @@ sql_cmd_alter_opt_role_elem:
             @$,
             NodeType::OBJECT_SQL_ROLE_ELEMENT,
             &[
-                attr(Key::SQL_ROLE_ELEMENT_KIND, ctx.name_from_keyword(@$, "unencryptedpassword")),
+                attr(Key::SQL_ROLE_ELEMENT_KIND, enum_node(@$, RoleOption::PASSWORD)),
+                attr(Key::SQL_ROLE_ELEMENT_ENCRYPTED, bool_node(@$, false)),
                 attr(Key::SQL_ROLE_ELEMENT_ARG, $3),
             ],
         )
@@ -82,7 +84,7 @@ sql_cmd_alter_opt_role_elem:
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_ROLE_ELEMENT,
-            &[attr(Key::SQL_ROLE_ELEMENT_KIND, ctx.name_from_keyword(@$, "inherit"))],
+            &[attr(Key::SQL_ROLE_ELEMENT_KIND, enum_node(@$, RoleOption::INHERIT))],
         )
     }
     | CONNECTION LIMIT sql_signed_iconst {
@@ -90,7 +92,7 @@ sql_cmd_alter_opt_role_elem:
             @$,
             NodeType::OBJECT_SQL_ROLE_ELEMENT,
             &[
-                attr(Key::SQL_ROLE_ELEMENT_KIND, ctx.name_from_keyword(@$, "connectionlimit")),
+                attr(Key::SQL_ROLE_ELEMENT_KIND, enum_node(@$, RoleOption::CONNECTION_LIMIT)),
                 attr(Key::SQL_ROLE_ELEMENT_ARG, $3),
             ],
         )
@@ -100,7 +102,7 @@ sql_cmd_alter_opt_role_elem:
             @$,
             NodeType::OBJECT_SQL_ROLE_ELEMENT,
             &[
-                attr(Key::SQL_ROLE_ELEMENT_KIND, ctx.name_from_keyword(@$, "validuntil")),
+                attr(Key::SQL_ROLE_ELEMENT_KIND, enum_node(@$, RoleOption::VALID_UNTIL)),
                 attr(Key::SQL_ROLE_ELEMENT_ARG, $3),
             ],
         )
@@ -110,7 +112,6 @@ sql_cmd_alter_opt_role_elem:
             @$,
             NodeType::OBJECT_SQL_ROLE_ELEMENT,
             &[
-                attr(Key::SQL_ROLE_ELEMENT_KIND, ctx.name_from_keyword(@$, "generic")),
                 attr(Key::SQL_ROLE_ELEMENT_ARG, name_from_identifier(@1, $1)),
             ],
         )
@@ -128,7 +129,7 @@ sql_cmd_alter_role_set_stmt:
             @$,
             NodeType::OBJECT_SQL_ALTER_ROLE,
             &[
-                attr(Key::SQL_ALTER_ROLE_KIND, ctx.name_from_keyword(@$, "settings")),
+                attr(Key::SQL_ALTER_ROLE_ACTION, enum_node(@$, AlterRoleAction::SET)),
                 attr(Key::SQL_ALTER_ROLE_ROLE, $3),
                 attr(Key::SQL_ALTER_ROLE_DATABASE, $4),
                 attr(Key::SQL_ALTER_ROLE_ARGS, $5),
@@ -140,7 +141,7 @@ sql_cmd_alter_role_set_stmt:
             @$,
             NodeType::OBJECT_SQL_ALTER_ROLE,
             &[
-                attr(Key::SQL_ALTER_ROLE_KIND, ctx.name_from_keyword(@$, "settings")),
+                attr(Key::SQL_ALTER_ROLE_ACTION, enum_node(@$, AlterRoleAction::SET)),
                 attr(Key::SQL_ALTER_ROLE_DATABASE, $4),
                 attr(Key::SQL_ALTER_ROLE_ARGS, $5),
             ],
@@ -177,7 +178,7 @@ sql_cmd_alter_seq_stmt:
             @$,
             NodeType::OBJECT_SQL_ALTER_SEQUENCE,
             &[
-                attr(Key::SQL_ALTER_SEQUENCE_KIND, ctx.name_from_keyword(@$, "ifexists")),
+                attr(Key::SQL_ALTER_SEQUENCE_IF_EXISTS, bool_node(@$, true)),
                 attr(Key::SQL_ALTER_SEQUENCE_NAME, $5),
                 attr(Key::SQL_ALTER_SEQUENCE_OPTIONS, ctx.array(@6, $6)),
             ],
@@ -191,7 +192,7 @@ sql_cmd_alter_user_set_stmt:
             @$,
             NodeType::OBJECT_SQL_ALTER_ROLE,
             &[
-                attr(Key::SQL_ALTER_ROLE_KIND, ctx.name_from_keyword(@$, "settings")),
+                attr(Key::SQL_ALTER_ROLE_ACTION, enum_node(@$, AlterRoleAction::SET)),
                 attr(Key::SQL_ALTER_ROLE_ROLE, $3),
                 attr(Key::SQL_ALTER_ROLE_ARGS, $4),
             ],
@@ -234,7 +235,7 @@ sql_cmd_close_external_stream_stmt:
             @$,
             NodeType::OBJECT_SQL_CLOSE_STREAM,
             &[
-                attr(Key::SQL_CLOSE_STREAM_KIND, ctx.name_from_keyword(@$, "ifexists")),
+                attr(Key::SQL_CLOSE_STREAM_IF_EXISTS, bool_node(@$, true)),
                 attr(Key::SQL_CLOSE_STREAM_NAME, $6),
             ],
         )
@@ -265,7 +266,7 @@ sql_cmd_copy_stmt:
             @$,
             NodeType::OBJECT_SQL_COPY,
             &[
-                attr(Key::SQL_COPY_KIND, ctx.name_from_keyword(@$, "from")),
+                attr(Key::SQL_COPY_DIRECTION, enum_node(@$, CopyDirection::FROM)),
                 attr(Key::SQL_COPY_BINARY, $2),
                 attr(Key::SQL_COPY_RELATION, $3),
                 attr(Key::SQL_COPY_COLUMNS, ctx.array(@4, $4)),
@@ -281,7 +282,7 @@ sql_cmd_copy_stmt:
             @$,
             NodeType::OBJECT_SQL_COPY,
             &[
-                attr(Key::SQL_COPY_KIND, ctx.name_from_keyword(@$, "to")),
+                attr(Key::SQL_COPY_DIRECTION, enum_node(@$, CopyDirection::TO)),
                 attr(Key::SQL_COPY_BINARY, $2),
                 attr(Key::SQL_COPY_RELATION, $3),
                 attr(Key::SQL_COPY_COLUMNS, ctx.array(@4, $4)),
@@ -298,7 +299,7 @@ sql_cmd_copy_stmt:
             @$,
             NodeType::OBJECT_SQL_COPY,
             &[
-                attr(Key::SQL_COPY_KIND, ctx.name_from_keyword(@$, "to")),
+                attr(Key::SQL_COPY_DIRECTION, enum_node(@$, CopyDirection::TO)),
                 attr(Key::SQL_COPY_QUERY, $2),
                 attr(Key::SQL_COPY_LOCATION, $4),
                 attr(Key::SQL_COPY_OPTIONS, ctx.array(@6, $6)),
@@ -327,7 +328,7 @@ sql_cmd_create_db_from_stmt:
             @$,
             NodeType::OBJECT_SQL_CREATE_DATABASE_COPY,
             &[
-                attr(Key::SQL_CREATE_DATABASE_COPY_KIND, ctx.name_from_keyword(@$, "ifnotexists")),
+                attr(Key::SQL_CREATE_DATABASE_COPY_IF_NOT_EXISTS, bool_node(@$, true)),
                 attr(Key::SQL_CREATE_DATABASE_COPY_LOCALITY, $2),
                 attr(Key::SQL_CREATE_DATABASE_COPY_TARGET, $7),
                 attr(Key::SQL_CREATE_DATABASE_COPY_OPTIONS, ctx.array(@9, $9)),
@@ -355,7 +356,7 @@ sql_cmd_create_db_stmt:
             @$,
             NodeType::OBJECT_SQL_CREATE_DATABASE,
             &[
-                attr(Key::SQL_CREATE_DATABASE_KIND, ctx.name_from_keyword(@$, "ifnotexists")),
+                attr(Key::SQL_CREATE_DATABASE_IF_NOT_EXISTS, bool_node(@$, true)),
                 attr(Key::SQL_CREATE_DATABASE_LOCALITY, $2),
                 attr(Key::SQL_CREATE_DATABASE_NAME, $7),
                 attr(Key::SQL_CREATE_DATABASE_OPTIONS, ctx.array(@9, $9)),
@@ -383,7 +384,7 @@ sql_cmd_create_external_stream_stmt:
             @$,
             NodeType::OBJECT_SQL_CREATE_EXTERNAL_STREAM,
             &[
-                attr(Key::SQL_CREATE_EXTERNAL_STREAM_KIND, ctx.name_from_keyword(@$, "ifnotexists")),
+                attr(Key::SQL_CREATE_EXTERNAL_STREAM_IF_NOT_EXISTS, bool_node(@$, true)),
                 attr(Key::SQL_CREATE_EXTERNAL_STREAM_TEMP, $2),
                 attr(Key::SQL_CREATE_EXTERNAL_STREAM_TYPE, $3),
                 attr(Key::SQL_CREATE_EXTERNAL_STREAM_NAME, $7),
@@ -412,7 +413,7 @@ sql_cmd_create_external_table_stmt:
             @$,
             NodeType::OBJECT_SQL_CREATE_EXTERNAL_TABLE,
             &[
-                attr(Key::SQL_CREATE_EXTERNAL_TABLE_KIND, ctx.name_from_keyword(@$, "ifnotexists")),
+                attr(Key::SQL_CREATE_EXTERNAL_TABLE_IF_NOT_EXISTS, bool_node(@$, true)),
                 attr(Key::SQL_CREATE_EXTERNAL_TABLE_TEMP, $2),
                 attr(Key::SQL_CREATE_EXTERNAL_TABLE_NAME, $8),
                 attr(Key::SQL_CREATE_EXTERNAL_TABLE_SCHEMA, $9),
@@ -439,7 +440,7 @@ sql_cmd_create_external_table_stmt:
             @$,
             NodeType::OBJECT_SQL_CREATE_EXTERNAL_TABLE,
             &[
-                attr(Key::SQL_CREATE_EXTERNAL_TABLE_KIND, ctx.name_from_keyword(@$, "ifnotexists")),
+                attr(Key::SQL_CREATE_EXTERNAL_TABLE_IF_NOT_EXISTS, bool_node(@$, true)),
                 attr(Key::SQL_CREATE_EXTERNAL_TABLE_TEMP, $2),
                 attr(Key::SQL_CREATE_EXTERNAL_TABLE_NAME, $8),
                 attr(Key::SQL_CREATE_EXTERNAL_TABLE_SCHEMA, $9),
@@ -467,7 +468,7 @@ sql_cmd_create_external_table_stmt:
             @$,
             NodeType::OBJECT_SQL_CREATE_EXTERNAL_TABLE,
             &[
-                attr(Key::SQL_CREATE_EXTERNAL_TABLE_KIND, ctx.name_from_keyword(@$, "ifnotexists")),
+                attr(Key::SQL_CREATE_EXTERNAL_TABLE_IF_NOT_EXISTS, bool_node(@$, true)),
                 attr(Key::SQL_CREATE_EXTERNAL_TABLE_TEMP, $2),
                 attr(Key::SQL_CREATE_EXTERNAL_TABLE_NAME, $8),
                 attr(Key::SQL_CREATE_EXTERNAL_TABLE_SCHEMA, $9),
@@ -625,7 +626,7 @@ sql_cmd_create_group_stmt:
             @$,
             NodeType::OBJECT_SQL_CREATE_ROLE,
             &[
-                attr(Key::SQL_CREATE_ROLE_KIND, ctx.name_from_keyword(@$, "group")),
+                attr(Key::SQL_CREATE_ROLE_TYPE, enum_node(@$, RoleType::GROUP)),
                 attr(Key::SQL_CREATE_ROLE_ROLE, $3),
                 attr(Key::SQL_CREATE_ROLE_OPTIONS, ctx.array(@5, $5)),
             ],
@@ -654,7 +655,7 @@ sql_cmd_create_index_stmt:
             @$,
             NodeType::OBJECT_SQL_CREATE_INDEX,
             &[
-                attr(Key::SQL_CREATE_INDEX_KIND, ctx.name_from_keyword(@$, "ifnotexists")),
+                attr(Key::SQL_CREATE_INDEX_IF_NOT_EXISTS, bool_node(@$, true)),
                 attr(Key::SQL_CREATE_INDEX_UNIQUE, $2),
                 attr(Key::SQL_CREATE_INDEX_CONCURRENT, $4),
                 attr(Key::SQL_CREATE_INDEX_NAME, $8),
@@ -674,7 +675,7 @@ sql_cmd_create_opt_role_elem:
             @$,
             NodeType::OBJECT_SQL_ROLE_ELEMENT,
             &[
-                attr(Key::SQL_ROLE_ELEMENT_KIND, ctx.name_from_keyword(@$, "adminmembers")),
+                attr(Key::SQL_ROLE_ELEMENT_KIND, enum_node(@$, RoleOption::ADMIN)),
                 attr(Key::SQL_ROLE_ELEMENT_ARG, ctx.array(@2, $2)),
             ],
         )
@@ -684,7 +685,7 @@ sql_cmd_create_opt_role_elem:
             @$,
             NodeType::OBJECT_SQL_ROLE_ELEMENT,
             &[
-                attr(Key::SQL_ROLE_ELEMENT_KIND, ctx.name_from_keyword(@$, "members")),
+                attr(Key::SQL_ROLE_ELEMENT_KIND, enum_node(@$, RoleOption::ROLE)),
                 attr(Key::SQL_ROLE_ELEMENT_ARG, ctx.array(@2, $2)),
             ],
         )
@@ -694,7 +695,7 @@ sql_cmd_create_opt_role_elem:
             @$,
             NodeType::OBJECT_SQL_ROLE_ELEMENT,
             &[
-                attr(Key::SQL_ROLE_ELEMENT_KIND, ctx.name_from_keyword(@$, "addroleto")),
+                attr(Key::SQL_ROLE_ELEMENT_KIND, enum_node(@$, RoleOption::IN_ROLE)),
                 attr(Key::SQL_ROLE_ELEMENT_ARG, ctx.array(@3, $3)),
             ],
         )
@@ -707,7 +708,7 @@ sql_cmd_create_role_stmt:
             @$,
             NodeType::OBJECT_SQL_CREATE_ROLE,
             &[
-                attr(Key::SQL_CREATE_ROLE_KIND, ctx.name_from_keyword(@$, "role")),
+                attr(Key::SQL_CREATE_ROLE_TYPE, enum_node(@$, RoleType::ROLE)),
                 attr(Key::SQL_CREATE_ROLE_ROLE, $3),
                 attr(Key::SQL_CREATE_ROLE_OPTIONS, ctx.array(@5, $5)),
             ],
@@ -732,7 +733,7 @@ sql_cmd_create_seq_stmt:
             @$,
             NodeType::OBJECT_SQL_CREATE_SEQUENCE,
             &[
-                attr(Key::SQL_CREATE_SEQUENCE_KIND, ctx.name_from_keyword(@$, "ifnotexists")),
+                attr(Key::SQL_CREATE_SEQUENCE_IF_NOT_EXISTS, bool_node(@$, true)),
                 attr(Key::SQL_CREATE_SEQUENCE_TEMP, $2),
                 attr(Key::SQL_CREATE_SEQUENCE_NAME, $7),
                 attr(Key::SQL_CREATE_SEQUENCE_OPTIONS, ctx.array(@8, $8)),
@@ -747,7 +748,7 @@ sql_cmd_create_user_stmt:
             @$,
             NodeType::OBJECT_SQL_CREATE_ROLE,
             &[
-                attr(Key::SQL_CREATE_ROLE_KIND, ctx.name_from_keyword(@$, "user")),
+                attr(Key::SQL_CREATE_ROLE_TYPE, enum_node(@$, RoleType::USER)),
                 attr(Key::SQL_CREATE_ROLE_ROLE, $3),
                 attr(Key::SQL_CREATE_ROLE_OPTIONS, ctx.array(@5, $5)),
             ],
@@ -770,7 +771,7 @@ sql_cmd_declare_cursor_stmt:
             &[
                 attr(Key::SQL_DECLARE_CURSOR_NAME, $2),
                 attr(Key::SQL_DECLARE_CURSOR_OPTIONS, ctx.array(@3, $3)),
-                attr(Key::SQL_DECLARE_CURSOR_HOLD_OPTION, $5),
+                attr(Key::SQL_DECLARE_CURSOR_WITH_HOLD, $5),
                 attr(Key::SQL_DECLARE_CURSOR_QUERY, $7),
             ],
         )
@@ -783,7 +784,7 @@ sql_cmd_define_stmt:
             @$,
             NodeType::OBJECT_SQL_CREATE_DEFINITION,
             &[
-                attr(Key::SQL_CREATE_DEFINITION_KIND, ctx.name_from_keyword(@$, "aggregate")),
+                attr(Key::SQL_CREATE_DEFINITION_KIND, enum_node(@$, DefinitionType::AGGREGATE)),
                 attr(Key::SQL_CREATE_DEFINITION_TEMP, $2),
                 attr(Key::SQL_CREATE_DEFINITION_NAME, ctx.array(@4, $4)),
                 attr(Key::SQL_CREATE_DEFINITION_ARGS, $5),
@@ -796,7 +797,8 @@ sql_cmd_define_stmt:
             @$,
             NodeType::OBJECT_SQL_CREATE_DEFINITION,
             &[
-                attr(Key::SQL_CREATE_DEFINITION_KIND, ctx.name_from_keyword(@$, "aggregateold")),
+                attr(Key::SQL_CREATE_DEFINITION_KIND, enum_node(@$, DefinitionType::AGGREGATE)),
+                attr(Key::SQL_CREATE_DEFINITION_OLD_SYNTAX, bool_node(@$, true)),
                 attr(Key::SQL_CREATE_DEFINITION_TEMP, $2),
                 attr(Key::SQL_CREATE_DEFINITION_NAME, ctx.array(@4, $4)),
                 attr(Key::SQL_CREATE_DEFINITION_DEFINITION, ctx.array(@5, $5)),
@@ -808,7 +810,7 @@ sql_cmd_define_stmt:
             @$,
             NodeType::OBJECT_SQL_CREATE_DEFINITION,
             &[
-                attr(Key::SQL_CREATE_DEFINITION_KIND, ctx.name_from_keyword(@$, "operator")),
+                attr(Key::SQL_CREATE_DEFINITION_KIND, enum_node(@$, DefinitionType::OPERATOR)),
                 attr(Key::SQL_CREATE_DEFINITION_TEMP, $2),
                 attr(Key::SQL_CREATE_DEFINITION_NAME, ctx.array(@4, $4)),
                 attr(Key::SQL_CREATE_DEFINITION_DEFINITION, ctx.array(@5, $5)),
@@ -820,7 +822,7 @@ sql_cmd_define_stmt:
             @$,
             NodeType::OBJECT_SQL_CREATE_DEFINITION,
             &[
-                attr(Key::SQL_CREATE_DEFINITION_KIND, ctx.name_from_keyword(@$, "type")),
+                attr(Key::SQL_CREATE_DEFINITION_KIND, enum_node(@$, DefinitionType::TYPE)),
                 attr(Key::SQL_CREATE_DEFINITION_TEMP, $2),
                 attr(Key::SQL_CREATE_DEFINITION_NAME, ctx.array(@4, $4)),
                 attr(Key::SQL_CREATE_DEFINITION_DEFINITION, ctx.array(@5, $5)),
@@ -832,7 +834,7 @@ sql_cmd_define_stmt:
             @$,
             NodeType::OBJECT_SQL_CREATE_DEFINITION,
             &[
-                attr(Key::SQL_CREATE_DEFINITION_KIND, ctx.name_from_keyword(@$, "typeshell")),
+                attr(Key::SQL_CREATE_DEFINITION_KIND, enum_node(@$, DefinitionType::TYPE)),
                 attr(Key::SQL_CREATE_DEFINITION_TEMP, $2),
                 attr(Key::SQL_CREATE_DEFINITION_NAME, ctx.array(@4, $4)),
             ],
@@ -843,7 +845,7 @@ sql_cmd_define_stmt:
             @$,
             NodeType::OBJECT_SQL_CREATE_DEFINITION,
             &[
-                attr(Key::SQL_CREATE_DEFINITION_KIND, ctx.name_from_keyword(@$, "structtype")),
+                attr(Key::SQL_CREATE_DEFINITION_KIND, enum_node(@$, DefinitionType::STRUCT)),
                 attr(Key::SQL_CREATE_DEFINITION_TEMP, $2),
                 attr(Key::SQL_CREATE_DEFINITION_NAME, ctx.array(@4, $4)),
                 attr(Key::SQL_CREATE_DEFINITION_DEFINITION, ctx.array(@7, $7)),
@@ -855,7 +857,7 @@ sql_cmd_define_stmt:
             @$,
             NodeType::OBJECT_SQL_CREATE_DEFINITION,
             &[
-                attr(Key::SQL_CREATE_DEFINITION_KIND, ctx.name_from_keyword(@$, "enumtype")),
+                attr(Key::SQL_CREATE_DEFINITION_KIND, enum_node(@$, DefinitionType::ENUM)),
                 attr(Key::SQL_CREATE_DEFINITION_TEMP, $2),
                 attr(Key::SQL_CREATE_DEFINITION_NAME, ctx.array(@4, $4)),
                 attr(Key::SQL_CREATE_DEFINITION_DEFINITION, ctx.array(@8, $8)),
@@ -867,7 +869,7 @@ sql_cmd_define_stmt:
             @$,
             NodeType::OBJECT_SQL_CREATE_DEFINITION,
             &[
-                attr(Key::SQL_CREATE_DEFINITION_KIND, ctx.name_from_keyword(@$, "rangetype")),
+                attr(Key::SQL_CREATE_DEFINITION_KIND, enum_node(@$, DefinitionType::RANGE)),
                 attr(Key::SQL_CREATE_DEFINITION_TEMP, $2),
                 attr(Key::SQL_CREATE_DEFINITION_NAME, ctx.array(@4, $4)),
                 attr(Key::SQL_CREATE_DEFINITION_DEFINITION, ctx.array(@7, $7)),
@@ -879,7 +881,7 @@ sql_cmd_define_stmt:
             @$,
             NodeType::OBJECT_SQL_CREATE_DEFINITION,
             &[
-                attr(Key::SQL_CREATE_DEFINITION_KIND, ctx.name_from_keyword(@$, "domain")),
+                attr(Key::SQL_CREATE_DEFINITION_KIND, enum_node(@$, DefinitionType::DOMAIN)),
                 attr(Key::SQL_CREATE_DEFINITION_TEMP, $2),
                 attr(Key::SQL_CREATE_DEFINITION_NAME, ctx.array(@4, $4)),
                 attr(Key::SQL_CREATE_DEFINITION_DEFINITION, $6),
@@ -891,7 +893,7 @@ sql_cmd_define_stmt:
             @$,
             NodeType::OBJECT_SQL_CREATE_DEFINITION,
             &[
-                attr(Key::SQL_CREATE_DEFINITION_KIND, ctx.name_from_keyword(@$, "domain")),
+                attr(Key::SQL_CREATE_DEFINITION_KIND, enum_node(@$, DefinitionType::DOMAIN)),
                 attr(Key::SQL_CREATE_DEFINITION_TEMP, $2),
                 attr(Key::SQL_CREATE_DEFINITION_NAME, ctx.array(@4, $4)),
                 attr(Key::SQL_CREATE_DEFINITION_DEFINITION, $6),
@@ -904,7 +906,7 @@ sql_cmd_define_stmt:
             @$,
             NodeType::OBJECT_SQL_CREATE_DEFINITION,
             &[
-                attr(Key::SQL_CREATE_DEFINITION_KIND, ctx.name_from_keyword(@$, "textsearchparser")),
+                attr(Key::SQL_CREATE_DEFINITION_KIND, enum_node(@$, DefinitionType::TEXT_SEARCH_PARSER)),
                 attr(Key::SQL_CREATE_DEFINITION_NAME, ctx.array(@5, $5)),
                 attr(Key::SQL_CREATE_DEFINITION_DEFINITION, ctx.array(@6, $6)),
             ],
@@ -915,7 +917,7 @@ sql_cmd_define_stmt:
             @$,
             NodeType::OBJECT_SQL_CREATE_DEFINITION,
             &[
-                attr(Key::SQL_CREATE_DEFINITION_KIND, ctx.name_from_keyword(@$, "textsearchdictionary")),
+                attr(Key::SQL_CREATE_DEFINITION_KIND, enum_node(@$, DefinitionType::TEXT_SEARCH_DICTIONARY)),
                 attr(Key::SQL_CREATE_DEFINITION_NAME, ctx.array(@5, $5)),
                 attr(Key::SQL_CREATE_DEFINITION_DEFINITION, ctx.array(@6, $6)),
             ],
@@ -926,7 +928,7 @@ sql_cmd_define_stmt:
             @$,
             NodeType::OBJECT_SQL_CREATE_DEFINITION,
             &[
-                attr(Key::SQL_CREATE_DEFINITION_KIND, ctx.name_from_keyword(@$, "textsearchtemplate")),
+                attr(Key::SQL_CREATE_DEFINITION_KIND, enum_node(@$, DefinitionType::TEXT_SEARCH_TEMPLATE)),
                 attr(Key::SQL_CREATE_DEFINITION_NAME, ctx.array(@5, $5)),
                 attr(Key::SQL_CREATE_DEFINITION_DEFINITION, ctx.array(@6, $6)),
             ],
@@ -937,10 +939,7 @@ sql_cmd_define_stmt:
             @$,
             NodeType::OBJECT_SQL_CREATE_DEFINITION,
             &[
-                attr(
-                    Key::SQL_CREATE_DEFINITION_KIND,
-                    ctx.name_from_keyword(@$, "textsearchconfiguration"),
-                ),
+                attr(Key::SQL_CREATE_DEFINITION_KIND, enum_node(@$, DefinitionType::TEXT_SEARCH_CONFIGURATION)),
                 attr(Key::SQL_CREATE_DEFINITION_NAME, ctx.array(@5, $5)),
                 attr(Key::SQL_CREATE_DEFINITION_DEFINITION, ctx.array(@6, $6)),
             ],
@@ -951,7 +950,7 @@ sql_cmd_define_stmt:
             @$,
             NodeType::OBJECT_SQL_CREATE_DEFINITION,
             &[
-                attr(Key::SQL_CREATE_DEFINITION_KIND, ctx.name_from_keyword(@$, "collation")),
+                attr(Key::SQL_CREATE_DEFINITION_KIND, enum_node(@$, DefinitionType::COLLATION)),
                 attr(Key::SQL_CREATE_DEFINITION_NAME, ctx.array(@3, $3)),
                 attr(Key::SQL_CREATE_DEFINITION_DEFINITION, ctx.array(@4, $4)),
             ],
@@ -962,9 +961,9 @@ sql_cmd_define_stmt:
             @$,
             NodeType::OBJECT_SQL_CREATE_DEFINITION,
             &[
-                attr(Key::SQL_CREATE_DEFINITION_KIND, ctx.name_from_keyword(@$, "collationcopy")),
+                attr(Key::SQL_CREATE_DEFINITION_KIND, enum_node(@$, DefinitionType::COLLATION)),
                 attr(Key::SQL_CREATE_DEFINITION_NAME, ctx.array(@3, $3)),
-                attr(Key::SQL_CREATE_DEFINITION_DEFINITION, ctx.array(@5, $5)),
+                attr(Key::SQL_CREATE_DEFINITION_FROM, ctx.array(@5, $5)),
             ],
         )
     }
@@ -988,7 +987,7 @@ sql_cmd_drop_db_stmt:
             @$,
             NodeType::OBJECT_SQL_DROP_DATABASE,
             &[
-                attr(Key::SQL_DROP_DATABASE_KIND, ctx.name_from_keyword(@$, "ifexists")),
+                attr(Key::SQL_DROP_DATABASE_IF_EXISTS, bool_node(@$, true)),
                 attr(Key::SQL_DROP_DATABASE_LOCALITY, $2),
                 attr(Key::SQL_DROP_DATABASE_NAME, $6),
             ],
@@ -1013,7 +1012,7 @@ sql_cmd_drop_func_stmt:
             @$,
             NodeType::OBJECT_SQL_DROP_FUNCTION,
             &[
-                attr(Key::SQL_DROP_FUNCTION_KIND, ctx.name_from_keyword(@$, "ifexists")),
+                attr(Key::SQL_DROP_FUNCTION_IF_EXISTS, bool_node(@$, true)),
                 attr(Key::SQL_DROP_FUNCTION_NAME, ctx.array(@5, $5)),
                 attr(Key::SQL_DROP_FUNCTION_ARGUMENTS, ctx.array(@6, $6)),
                 attr(Key::SQL_DROP_FUNCTION_BEHAVIOR, $7),
@@ -1029,7 +1028,7 @@ sql_cmd_drop_group_stmt:
             @$,
             NodeType::OBJECT_SQL_DROP_ROLE,
             &[
-                attr(Key::SQL_DROP_ROLE_KIND, ctx.name_from_keyword(@$, "ifexists")),
+                attr(Key::SQL_DROP_ROLE_IF_EXISTS, bool_node(@$, true)),
                 attr(Key::SQL_DROP_ROLE_ROLES, ctx.array(@5, $5)),
             ],
         )
@@ -1043,7 +1042,7 @@ sql_cmd_drop_role_stmt:
             @$,
             NodeType::OBJECT_SQL_DROP_ROLE,
             &[
-                attr(Key::SQL_DROP_ROLE_KIND, ctx.name_from_keyword(@$, "ifexists")),
+                attr(Key::SQL_DROP_ROLE_IF_EXISTS, bool_node(@$, true)),
                 attr(Key::SQL_DROP_ROLE_ROLES, ctx.array(@5, $5)),
             ],
         )
@@ -1056,7 +1055,7 @@ sql_cmd_drop_stmt:
             @$,
             NodeType::OBJECT_SQL_DROP,
             &[
-                attr(Key::SQL_DROP_KIND, ctx.name_from_keyword(@$, "ifexists")),
+                attr(Key::SQL_DROP_IF_EXISTS, bool_node(@$, true)),
                 attr(Key::SQL_DROP_TYPE, $2),
                 attr(Key::SQL_DROP_NAME, ctx.array(@5, $5)),
                 attr(Key::SQL_DROP_BEHAVIOR, $6),
@@ -1079,7 +1078,8 @@ sql_cmd_drop_stmt:
             @$,
             NodeType::OBJECT_SQL_DROP,
             &[
-                attr(Key::SQL_DROP_KIND, ctx.name_from_keyword(@$, "indexconcurrently")),
+                attr(Key::SQL_DROP_TYPE, enum_node(@2, DropObjectType::INDEX)),
+                attr(Key::SQL_DROP_CONCURRENTLY, bool_node(@$, true)),
                 attr(Key::SQL_DROP_NAME, ctx.array(@4, $4)),
                 attr(Key::SQL_DROP_BEHAVIOR, $5),
             ],
@@ -1090,7 +1090,9 @@ sql_cmd_drop_stmt:
             @$,
             NodeType::OBJECT_SQL_DROP,
             &[
-                attr(Key::SQL_DROP_KIND, ctx.name_from_keyword(@$, "indexconcurrentlyifexists")),
+                attr(Key::SQL_DROP_TYPE, enum_node(@2, DropObjectType::INDEX)),
+                attr(Key::SQL_DROP_CONCURRENTLY, bool_node(@$, true)),
+                attr(Key::SQL_DROP_IF_EXISTS, bool_node(@$, true)),
                 attr(Key::SQL_DROP_NAME, ctx.array(@6, $6)),
                 attr(Key::SQL_DROP_BEHAVIOR, $7),
             ],
@@ -1105,7 +1107,7 @@ sql_cmd_drop_user_stmt:
             @$,
             NodeType::OBJECT_SQL_DROP_ROLE,
             &[
-                attr(Key::SQL_DROP_ROLE_KIND, ctx.name_from_keyword(@$, "ifexists")),
+                attr(Key::SQL_DROP_ROLE_IF_EXISTS, bool_node(@$, true)),
                 attr(Key::SQL_DROP_ROLE_ROLES, ctx.array(@5, $5)),
             ],
         )
@@ -1131,7 +1133,7 @@ sql_cmd_export_db_stmt:
             @$,
             NodeType::OBJECT_SQL_CREATE_DATABASE_COPY,
             &[
-                attr(Key::SQL_CREATE_DATABASE_COPY_KIND, ctx.name_from_keyword(@$, "export")),
+                attr(Key::SQL_CREATE_DATABASE_COPY_DIRECTION, enum_node(@$, DatabaseCopyDirection::EXPORT)),
                 attr(Key::SQL_CREATE_DATABASE_COPY_SOURCE_LOCALITY, $2),
                 attr(Key::SQL_CREATE_DATABASE_COPY_SOURCE, $4),
                 attr(Key::SQL_CREATE_DATABASE_COPY_SOURCE_OPTIONS, ctx.array(@6, $6)),
@@ -1163,7 +1165,7 @@ sql_cmd_fetch_stmt:
             @$,
             NodeType::OBJECT_SQL_FETCH,
             &[
-                attr(Key::SQL_FETCH_KIND, ctx.name_from_keyword(@$, "move")),
+                attr(Key::SQL_FETCH_MOVE, bool_node(@$, true)),
                 attr(Key::SQL_FETCH_DIRECTION, $2),
                 attr(Key::SQL_FETCH_NAME, $4),
             ],
@@ -1174,7 +1176,7 @@ sql_cmd_fetch_stmt:
             @$,
             NodeType::OBJECT_SQL_FETCH,
             &[
-                attr(Key::SQL_FETCH_KIND, ctx.name_from_keyword(@$, "move")),
+                attr(Key::SQL_FETCH_MOVE, bool_node(@$, true)),
                 attr(Key::SQL_FETCH_NAME, $2),
             ],
         )
@@ -1192,7 +1194,6 @@ sql_cmd_grant_role_stmt:
             @$,
             NodeType::OBJECT_SQL_GRANT_ROLE,
             &[
-                attr(Key::SQL_GRANT_ROLE_KIND, ctx.name_from_keyword(@$, "grant")),
                 attr(Key::SQL_GRANT_ROLE_ROLES, ctx.array(@2, $2)),
                 attr(Key::SQL_GRANT_ROLE_GRANTEES, ctx.array(@4, $4)),
                 attr(Key::SQL_GRANT_ROLE_BEHAVIOR, $5),
@@ -1208,7 +1209,6 @@ sql_cmd_grant_stmt:
             @$,
             NodeType::OBJECT_SQL_GRANT,
             &[
-                attr(Key::SQL_GRANT_KIND, ctx.name_from_keyword(@$, "grant")),
                 attr(Key::SQL_GRANT_PRIVILEGES, $2),
                 attr(Key::SQL_GRANT_TARGET, $4),
                 attr(Key::SQL_GRANT_GRANTEES, ctx.array(@6, $6)),
@@ -1224,7 +1224,7 @@ sql_cmd_import_db_stmt:
             @$,
             NodeType::OBJECT_SQL_CREATE_DATABASE_COPY,
             &[
-                attr(Key::SQL_CREATE_DATABASE_COPY_KIND, ctx.name_from_keyword(@$, "import")),
+                attr(Key::SQL_CREATE_DATABASE_COPY_DIRECTION, enum_node(@$, DatabaseCopyDirection::IMPORT)),
                 attr(Key::SQL_CREATE_DATABASE_COPY_LOCALITY, $2),
                 attr(Key::SQL_CREATE_DATABASE_COPY_TARGET, $4),
                 attr(Key::SQL_CREATE_DATABASE_COPY_OPTIONS, ctx.array(@6, $6)),
@@ -1238,7 +1238,8 @@ sql_cmd_import_db_stmt:
             @$,
             NodeType::OBJECT_SQL_CREATE_DATABASE_COPY,
             &[
-                attr(Key::SQL_CREATE_DATABASE_COPY_KIND, ctx.name_from_keyword(@$, "importifnotexists")),
+                attr(Key::SQL_CREATE_DATABASE_COPY_DIRECTION, enum_node(@$, DatabaseCopyDirection::IMPORT)),
+                attr(Key::SQL_CREATE_DATABASE_COPY_IF_NOT_EXISTS, bool_node(@$, true)),
                 attr(Key::SQL_CREATE_DATABASE_COPY_LOCALITY, $2),
                 attr(Key::SQL_CREATE_DATABASE_COPY_TARGET, $7),
                 attr(Key::SQL_CREATE_DATABASE_COPY_OPTIONS, ctx.array(@9, $9)),
@@ -1298,7 +1299,7 @@ sql_cmd_rename_stmt:
             @$,
             NodeType::OBJECT_SQL_RENAME_OBJECT,
             &[
-                attr(Key::SQL_RENAME_OBJECT_KIND, ctx.name_from_keyword(@$, "aggregate")),
+                attr(Key::SQL_RENAME_OBJECT_KIND, enum_node(@$, RenameObjectType::AGGREGATE)),
                 attr(Key::SQL_RENAME_OBJECT_NAME, ctx.array(@3, $3)),
                 attr(Key::SQL_RENAME_OBJECT_ARG, $4),
                 attr(Key::SQL_RENAME_OBJECT_NEW_NAME, $7),
@@ -1310,7 +1311,7 @@ sql_cmd_rename_stmt:
             @$,
             NodeType::OBJECT_SQL_RENAME_OBJECT,
             &[
-                attr(Key::SQL_RENAME_OBJECT_KIND, ctx.name_from_keyword(@$, "collation")),
+                attr(Key::SQL_RENAME_OBJECT_KIND, enum_node(@$, RenameObjectType::COLLATION)),
                 attr(Key::SQL_RENAME_OBJECT_NAME, ctx.array(@3, $3)),
                 attr(Key::SQL_RENAME_OBJECT_NEW_NAME, $6),
             ],
@@ -1321,7 +1322,7 @@ sql_cmd_rename_stmt:
             @$,
             NodeType::OBJECT_SQL_RENAME_OBJECT,
             &[
-                attr(Key::SQL_RENAME_OBJECT_KIND, ctx.name_from_keyword(@$, "conversion")),
+                attr(Key::SQL_RENAME_OBJECT_KIND, enum_node(@$, RenameObjectType::CONVERSION)),
                 attr(Key::SQL_RENAME_OBJECT_NAME, ctx.array(@3, $3)),
                 attr(Key::SQL_RENAME_OBJECT_NEW_NAME, $6),
             ],
@@ -1332,7 +1333,7 @@ sql_cmd_rename_stmt:
             @$,
             NodeType::OBJECT_SQL_RENAME_OBJECT,
             &[
-                attr(Key::SQL_RENAME_OBJECT_KIND, ctx.name_from_keyword(@$, "database")),
+                attr(Key::SQL_RENAME_OBJECT_KIND, enum_node(@$, RenameObjectType::DATABASE)),
                 attr(Key::SQL_RENAME_OBJECT_LOCALITY, $2),
                 attr(Key::SQL_RENAME_OBJECT_NAME, $4),
                 attr(Key::SQL_RENAME_OBJECT_NEW_NAME, $7),
@@ -1344,7 +1345,7 @@ sql_cmd_rename_stmt:
             @$,
             NodeType::OBJECT_SQL_RENAME_OBJECT,
             &[
-                attr(Key::SQL_RENAME_OBJECT_KIND, ctx.name_from_keyword(@$, "domain")),
+                attr(Key::SQL_RENAME_OBJECT_KIND, enum_node(@$, RenameObjectType::DOMAIN)),
                 attr(Key::SQL_RENAME_OBJECT_NAME, ctx.array(@3, $3)),
                 attr(Key::SQL_RENAME_OBJECT_NEW_NAME, $6),
             ],
@@ -1355,7 +1356,7 @@ sql_cmd_rename_stmt:
             @$,
             NodeType::OBJECT_SQL_RENAME_OBJECT,
             &[
-                attr(Key::SQL_RENAME_OBJECT_KIND, ctx.name_from_keyword(@$, "domainconstraint")),
+                attr(Key::SQL_RENAME_OBJECT_KIND, enum_node(@$, RenameObjectType::DOMAIN_CONSTRAINT)),
                 attr(Key::SQL_RENAME_OBJECT_NAME, ctx.array(@3, $3)),
                 attr(Key::SQL_RENAME_OBJECT_ARG, $6),
                 attr(Key::SQL_RENAME_OBJECT_NEW_NAME, $8),
@@ -1367,7 +1368,7 @@ sql_cmd_rename_stmt:
             @$,
             NodeType::OBJECT_SQL_RENAME_OBJECT,
             &[
-                attr(Key::SQL_RENAME_OBJECT_KIND, ctx.name_from_keyword(@$, "fdw")),
+                attr(Key::SQL_RENAME_OBJECT_KIND, enum_node(@$, RenameObjectType::FOREIGN_DATA_WRAPPER)),
                 attr(Key::SQL_RENAME_OBJECT_NAME, $5),
                 attr(Key::SQL_RENAME_OBJECT_NEW_NAME, $8),
             ],
@@ -1378,7 +1379,7 @@ sql_cmd_rename_stmt:
             @$,
             NodeType::OBJECT_SQL_RENAME_OBJECT,
             &[
-                attr(Key::SQL_RENAME_OBJECT_KIND, ctx.name_from_keyword(@$, "function")),
+                attr(Key::SQL_RENAME_OBJECT_KIND, enum_node(@$, RenameObjectType::FUNCTION)),
                 attr(Key::SQL_RENAME_OBJECT_NAME, $3),
                 attr(Key::SQL_RENAME_OBJECT_NEW_NAME, $6),
             ],
@@ -1389,7 +1390,7 @@ sql_cmd_rename_stmt:
             @$,
             NodeType::OBJECT_SQL_RENAME_OBJECT,
             &[
-                attr(Key::SQL_RENAME_OBJECT_KIND, ctx.name_from_keyword(@$, "role")),
+                attr(Key::SQL_RENAME_OBJECT_KIND, enum_node(@$, RenameObjectType::ROLE)),
                 attr(Key::SQL_RENAME_OBJECT_NAME, $3),
                 attr(Key::SQL_RENAME_OBJECT_NEW_NAME, $6),
             ],
@@ -1400,7 +1401,7 @@ sql_cmd_rename_stmt:
             @$,
             NodeType::OBJECT_SQL_RENAME_OBJECT,
             &[
-                attr(Key::SQL_RENAME_OBJECT_KIND, ctx.name_from_keyword(@$, "language")),
+                attr(Key::SQL_RENAME_OBJECT_KIND, enum_node(@$, RenameObjectType::LANGUAGE)),
                 attr(Key::SQL_RENAME_OBJECT_NAME, $4),
                 attr(Key::SQL_RENAME_OBJECT_NEW_NAME, $7),
             ],
@@ -1411,7 +1412,7 @@ sql_cmd_rename_stmt:
             @$,
             NodeType::OBJECT_SQL_RENAME_OBJECT,
             &[
-                attr(Key::SQL_RENAME_OBJECT_KIND, ctx.name_from_keyword(@$, "operatorclass")),
+                attr(Key::SQL_RENAME_OBJECT_KIND, enum_node(@$, RenameObjectType::OPERATOR_CLASS)),
                 attr(Key::SQL_RENAME_OBJECT_NAME, ctx.array(@4, $4)),
                 attr(Key::SQL_RENAME_OBJECT_ARG, $6),
                 attr(Key::SQL_RENAME_OBJECT_NEW_NAME, $9),
@@ -1423,7 +1424,7 @@ sql_cmd_rename_stmt:
             @$,
             NodeType::OBJECT_SQL_RENAME_OBJECT,
             &[
-                attr(Key::SQL_RENAME_OBJECT_KIND, ctx.name_from_keyword(@$, "operatorfamily")),
+                attr(Key::SQL_RENAME_OBJECT_KIND, enum_node(@$, RenameObjectType::OPERATOR_FAMILY)),
                 attr(Key::SQL_RENAME_OBJECT_NAME, ctx.array(@4, $4)),
                 attr(Key::SQL_RENAME_OBJECT_ARG, $6),
                 attr(Key::SQL_RENAME_OBJECT_NEW_NAME, $9),
@@ -1435,7 +1436,7 @@ sql_cmd_rename_stmt:
             @$,
             NodeType::OBJECT_SQL_RENAME_OBJECT,
             &[
-                attr(Key::SQL_RENAME_OBJECT_KIND, ctx.name_from_keyword(@$, "policy")),
+                attr(Key::SQL_RENAME_OBJECT_KIND, enum_node(@$, RenameObjectType::POLICY)),
                 attr(Key::SQL_RENAME_OBJECT_NAME, $3),
                 attr(Key::SQL_RENAME_OBJECT_ARG, $5),
                 attr(Key::SQL_RENAME_OBJECT_NEW_NAME, $8),
@@ -1447,7 +1448,8 @@ sql_cmd_rename_stmt:
             @$,
             NodeType::OBJECT_SQL_RENAME_OBJECT,
             &[
-                attr(Key::SQL_RENAME_OBJECT_KIND, ctx.name_from_keyword(@$, "policyifexists")),
+                attr(Key::SQL_RENAME_OBJECT_KIND, enum_node(@$, RenameObjectType::POLICY)),
+                attr(Key::SQL_RENAME_OBJECT_IF_EXISTS, bool_node(@$, true)),
                 attr(Key::SQL_RENAME_OBJECT_NAME, $5),
                 attr(Key::SQL_RENAME_OBJECT_ARG, $7),
                 attr(Key::SQL_RENAME_OBJECT_NEW_NAME, $10),
@@ -1459,7 +1461,7 @@ sql_cmd_rename_stmt:
             @$,
             NodeType::OBJECT_SQL_RENAME_OBJECT,
             &[
-                attr(Key::SQL_RENAME_OBJECT_KIND, ctx.name_from_keyword(@$, "server")),
+                attr(Key::SQL_RENAME_OBJECT_KIND, enum_node(@$, RenameObjectType::SERVER)),
                 attr(Key::SQL_RENAME_OBJECT_NAME, $3),
                 attr(Key::SQL_RENAME_OBJECT_NEW_NAME, $6),
             ],
@@ -1470,7 +1472,7 @@ sql_cmd_rename_stmt:
             @$,
             NodeType::OBJECT_SQL_RENAME_OBJECT,
             &[
-                attr(Key::SQL_RENAME_OBJECT_KIND, ctx.name_from_keyword(@$, "sequence")),
+                attr(Key::SQL_RENAME_OBJECT_KIND, enum_node(@$, RenameObjectType::SEQUENCE)),
                 attr(Key::SQL_RENAME_OBJECT_NAME, $3),
                 attr(Key::SQL_RENAME_OBJECT_NEW_NAME, $6),
             ],
@@ -1481,7 +1483,8 @@ sql_cmd_rename_stmt:
             @$,
             NodeType::OBJECT_SQL_RENAME_OBJECT,
             &[
-                attr(Key::SQL_RENAME_OBJECT_KIND, ctx.name_from_keyword(@$, "sequenceifexists")),
+                attr(Key::SQL_RENAME_OBJECT_KIND, enum_node(@$, RenameObjectType::SEQUENCE)),
+                attr(Key::SQL_RENAME_OBJECT_IF_EXISTS, bool_node(@$, true)),
                 attr(Key::SQL_RENAME_OBJECT_NAME, $5),
                 attr(Key::SQL_RENAME_OBJECT_NEW_NAME, $8),
             ],
@@ -1492,7 +1495,7 @@ sql_cmd_rename_stmt:
             @$,
             NodeType::OBJECT_SQL_RENAME_OBJECT,
             &[
-                attr(Key::SQL_RENAME_OBJECT_KIND, ctx.name_from_keyword(@$, "materializedview")),
+                attr(Key::SQL_RENAME_OBJECT_KIND, enum_node(@$, RenameObjectType::MATERIALIZED_VIEW)),
                 attr(Key::SQL_RENAME_OBJECT_NAME, $4),
                 attr(Key::SQL_RENAME_OBJECT_NEW_NAME, $7),
             ],
@@ -1503,7 +1506,8 @@ sql_cmd_rename_stmt:
             @$,
             NodeType::OBJECT_SQL_RENAME_OBJECT,
             &[
-                attr(Key::SQL_RENAME_OBJECT_KIND, ctx.name_from_keyword(@$, "materializedviewifexists")),
+                attr(Key::SQL_RENAME_OBJECT_KIND, enum_node(@$, RenameObjectType::MATERIALIZED_VIEW)),
+                attr(Key::SQL_RENAME_OBJECT_IF_EXISTS, bool_node(@$, true)),
                 attr(Key::SQL_RENAME_OBJECT_NAME, $6),
                 attr(Key::SQL_RENAME_OBJECT_NEW_NAME, $9),
             ],
@@ -1514,7 +1518,7 @@ sql_cmd_rename_stmt:
             @$,
             NodeType::OBJECT_SQL_RENAME_OBJECT,
             &[
-                attr(Key::SQL_RENAME_OBJECT_KIND, ctx.name_from_keyword(@$, "index")),
+                attr(Key::SQL_RENAME_OBJECT_KIND, enum_node(@$, RenameObjectType::INDEX)),
                 attr(Key::SQL_RENAME_OBJECT_NAME, $3),
                 attr(Key::SQL_RENAME_OBJECT_NEW_NAME, $6),
             ],
@@ -1525,7 +1529,8 @@ sql_cmd_rename_stmt:
             @$,
             NodeType::OBJECT_SQL_RENAME_OBJECT,
             &[
-                attr(Key::SQL_RENAME_OBJECT_KIND, ctx.name_from_keyword(@$, "indexifexists")),
+                attr(Key::SQL_RENAME_OBJECT_KIND, enum_node(@$, RenameObjectType::INDEX)),
+                attr(Key::SQL_RENAME_OBJECT_IF_EXISTS, bool_node(@$, true)),
                 attr(Key::SQL_RENAME_OBJECT_NAME, $5),
                 attr(Key::SQL_RENAME_OBJECT_NEW_NAME, $8),
             ],
@@ -1536,7 +1541,7 @@ sql_cmd_rename_stmt:
             @$,
             NodeType::OBJECT_SQL_RENAME_OBJECT,
             &[
-                attr(Key::SQL_RENAME_OBJECT_KIND, ctx.name_from_keyword(@$, "foreigntable")),
+                attr(Key::SQL_RENAME_OBJECT_KIND, enum_node(@$, RenameObjectType::FOREIGN_TABLE)),
                 attr(
                     Key::SQL_RENAME_OBJECT_NAME,
                     ctx.object(@4, NodeType::OBJECT_SQL_TABLEREF, $4),
@@ -1550,7 +1555,8 @@ sql_cmd_rename_stmt:
             @$,
             NodeType::OBJECT_SQL_RENAME_OBJECT,
             &[
-                attr(Key::SQL_RENAME_OBJECT_KIND, ctx.name_from_keyword(@$, "foreigntableifexists")),
+                attr(Key::SQL_RENAME_OBJECT_KIND, enum_node(@$, RenameObjectType::FOREIGN_TABLE)),
+                attr(Key::SQL_RENAME_OBJECT_IF_EXISTS, bool_node(@$, true)),
                 attr(
                     Key::SQL_RENAME_OBJECT_NAME,
                     ctx.object(@6, NodeType::OBJECT_SQL_TABLEREF, $6),
@@ -1564,7 +1570,7 @@ sql_cmd_rename_stmt:
             @$,
             NodeType::OBJECT_SQL_RENAME_OBJECT,
             &[
-                attr(Key::SQL_RENAME_OBJECT_KIND, ctx.name_from_keyword(@$, "matviewcolumn")),
+                attr(Key::SQL_RENAME_OBJECT_KIND, enum_node(@$, RenameObjectType::MATERIALIZED_VIEW_COLUMN)),
                 attr(Key::SQL_RENAME_OBJECT_NAME, $7),
                 attr(Key::SQL_RENAME_OBJECT_ARG, $4),
                 attr(Key::SQL_RENAME_OBJECT_NEW_NAME, $9),
@@ -1576,7 +1582,8 @@ sql_cmd_rename_stmt:
             @$,
             NodeType::OBJECT_SQL_RENAME_OBJECT,
             &[
-                attr(Key::SQL_RENAME_OBJECT_KIND, ctx.name_from_keyword(@$, "matviewcolumnifexists")),
+                attr(Key::SQL_RENAME_OBJECT_KIND, enum_node(@$, RenameObjectType::MATERIALIZED_VIEW_COLUMN)),
+                attr(Key::SQL_RENAME_OBJECT_IF_EXISTS, bool_node(@$, true)),
                 attr(Key::SQL_RENAME_OBJECT_NAME, $9),
                 attr(Key::SQL_RENAME_OBJECT_ARG, $6),
                 attr(Key::SQL_RENAME_OBJECT_NEW_NAME, $11),
@@ -1588,7 +1595,7 @@ sql_cmd_rename_stmt:
             @$,
             NodeType::OBJECT_SQL_RENAME_OBJECT,
             &[
-                attr(Key::SQL_RENAME_OBJECT_KIND, ctx.name_from_keyword(@$, "foreigntablecolumn")),
+                attr(Key::SQL_RENAME_OBJECT_KIND, enum_node(@$, RenameObjectType::FOREIGN_TABLE_COLUMN)),
                 attr(Key::SQL_RENAME_OBJECT_NAME, $7),
                 attr(
                     Key::SQL_RENAME_OBJECT_ARG,
@@ -1603,10 +1610,8 @@ sql_cmd_rename_stmt:
             @$,
             NodeType::OBJECT_SQL_RENAME_OBJECT,
             &[
-                attr(
-                    Key::SQL_RENAME_OBJECT_KIND,
-                    ctx.name_from_keyword(@$, "foreigntablecolumnifexists"),
-                ),
+                attr(Key::SQL_RENAME_OBJECT_KIND, enum_node(@$, RenameObjectType::FOREIGN_TABLE_COLUMN)),
+                attr(Key::SQL_RENAME_OBJECT_IF_EXISTS, bool_node(@$, true)),
                 attr(Key::SQL_RENAME_OBJECT_NAME, $9),
                 attr(
                     Key::SQL_RENAME_OBJECT_ARG,
@@ -1621,7 +1626,7 @@ sql_cmd_rename_stmt:
             @$,
             NodeType::OBJECT_SQL_RENAME_OBJECT,
             &[
-                attr(Key::SQL_RENAME_OBJECT_KIND, ctx.name_from_keyword(@$, "rule")),
+                attr(Key::SQL_RENAME_OBJECT_KIND, enum_node(@$, RenameObjectType::RULE)),
                 attr(Key::SQL_RENAME_OBJECT_NAME, $3),
                 attr(Key::SQL_RENAME_OBJECT_ARG, $5),
                 attr(Key::SQL_RENAME_OBJECT_NEW_NAME, $8),
@@ -1633,7 +1638,7 @@ sql_cmd_rename_stmt:
             @$,
             NodeType::OBJECT_SQL_RENAME_OBJECT,
             &[
-                attr(Key::SQL_RENAME_OBJECT_KIND, ctx.name_from_keyword(@$, "trigger")),
+                attr(Key::SQL_RENAME_OBJECT_KIND, enum_node(@$, RenameObjectType::TRIGGER)),
                 attr(Key::SQL_RENAME_OBJECT_NAME, $3),
                 attr(Key::SQL_RENAME_OBJECT_ARG, $5),
                 attr(Key::SQL_RENAME_OBJECT_NEW_NAME, $8),
@@ -1645,7 +1650,7 @@ sql_cmd_rename_stmt:
             @$,
             NodeType::OBJECT_SQL_RENAME_OBJECT,
             &[
-                attr(Key::SQL_RENAME_OBJECT_KIND, ctx.name_from_keyword(@$, "eventtrigger")),
+                attr(Key::SQL_RENAME_OBJECT_KIND, enum_node(@$, RenameObjectType::EVENT_TRIGGER)),
                 attr(Key::SQL_RENAME_OBJECT_NAME, $4),
                 attr(Key::SQL_RENAME_OBJECT_NEW_NAME, $7),
             ],
@@ -1656,7 +1661,7 @@ sql_cmd_rename_stmt:
             @$,
             NodeType::OBJECT_SQL_RENAME_OBJECT,
             &[
-                attr(Key::SQL_RENAME_OBJECT_KIND, ctx.name_from_keyword(@$, "role")),
+                attr(Key::SQL_RENAME_OBJECT_KIND, enum_node(@$, RenameObjectType::ROLE)),
                 attr(Key::SQL_RENAME_OBJECT_NAME, $3),
                 attr(Key::SQL_RENAME_OBJECT_NEW_NAME, $6),
             ],
@@ -1667,7 +1672,7 @@ sql_cmd_rename_stmt:
             @$,
             NodeType::OBJECT_SQL_RENAME_OBJECT,
             &[
-                attr(Key::SQL_RENAME_OBJECT_KIND, ctx.name_from_keyword(@$, "role")),
+                attr(Key::SQL_RENAME_OBJECT_KIND, enum_node(@$, RenameObjectType::ROLE)),
                 attr(Key::SQL_RENAME_OBJECT_NAME, $3),
                 attr(Key::SQL_RENAME_OBJECT_NEW_NAME, $6),
             ],
@@ -1678,7 +1683,7 @@ sql_cmd_rename_stmt:
             @$,
             NodeType::OBJECT_SQL_RENAME_OBJECT,
             &[
-                attr(Key::SQL_RENAME_OBJECT_KIND, ctx.name_from_keyword(@$, "tablespace")),
+                attr(Key::SQL_RENAME_OBJECT_KIND, enum_node(@$, RenameObjectType::TABLESPACE)),
                 attr(Key::SQL_RENAME_OBJECT_NAME, $3),
                 attr(Key::SQL_RENAME_OBJECT_NEW_NAME, $6),
             ],
@@ -1689,7 +1694,7 @@ sql_cmd_rename_stmt:
             @$,
             NodeType::OBJECT_SQL_RENAME_OBJECT,
             &[
-                attr(Key::SQL_RENAME_OBJECT_KIND, ctx.name_from_keyword(@$, "textsearchparser")),
+                attr(Key::SQL_RENAME_OBJECT_KIND, enum_node(@$, RenameObjectType::TEXT_SEARCH_PARSER)),
                 attr(Key::SQL_RENAME_OBJECT_NAME, ctx.array(@5, $5)),
                 attr(Key::SQL_RENAME_OBJECT_NEW_NAME, $8),
             ],
@@ -1700,7 +1705,7 @@ sql_cmd_rename_stmt:
             @$,
             NodeType::OBJECT_SQL_RENAME_OBJECT,
             &[
-                attr(Key::SQL_RENAME_OBJECT_KIND, ctx.name_from_keyword(@$, "textsearchdictionary")),
+                attr(Key::SQL_RENAME_OBJECT_KIND, enum_node(@$, RenameObjectType::TEXT_SEARCH_DICTIONARY)),
                 attr(Key::SQL_RENAME_OBJECT_NAME, ctx.array(@5, $5)),
                 attr(Key::SQL_RENAME_OBJECT_NEW_NAME, $8),
             ],
@@ -1711,7 +1716,7 @@ sql_cmd_rename_stmt:
             @$,
             NodeType::OBJECT_SQL_RENAME_OBJECT,
             &[
-                attr(Key::SQL_RENAME_OBJECT_KIND, ctx.name_from_keyword(@$, "textsearchtemplate")),
+                attr(Key::SQL_RENAME_OBJECT_KIND, enum_node(@$, RenameObjectType::TEXT_SEARCH_TEMPLATE)),
                 attr(Key::SQL_RENAME_OBJECT_NAME, ctx.array(@5, $5)),
                 attr(Key::SQL_RENAME_OBJECT_NEW_NAME, $8),
             ],
@@ -1722,7 +1727,7 @@ sql_cmd_rename_stmt:
             @$,
             NodeType::OBJECT_SQL_RENAME_OBJECT,
             &[
-                attr(Key::SQL_RENAME_OBJECT_KIND, ctx.name_from_keyword(@$, "textsearchconfiguration")),
+                attr(Key::SQL_RENAME_OBJECT_KIND, enum_node(@$, RenameObjectType::TEXT_SEARCH_CONFIGURATION)),
                 attr(Key::SQL_RENAME_OBJECT_NAME, ctx.array(@5, $5)),
                 attr(Key::SQL_RENAME_OBJECT_NEW_NAME, $8),
             ],
@@ -1733,7 +1738,7 @@ sql_cmd_rename_stmt:
             @$,
             NodeType::OBJECT_SQL_RENAME_OBJECT,
             &[
-                attr(Key::SQL_RENAME_OBJECT_KIND, ctx.name_from_keyword(@$, "type")),
+                attr(Key::SQL_RENAME_OBJECT_KIND, enum_node(@$, RenameObjectType::TYPE)),
                 attr(Key::SQL_RENAME_OBJECT_NAME, ctx.array(@3, $3)),
                 attr(Key::SQL_RENAME_OBJECT_NEW_NAME, $6),
             ],
@@ -1744,7 +1749,7 @@ sql_cmd_rename_stmt:
             @$,
             NodeType::OBJECT_SQL_RENAME_OBJECT,
             &[
-                attr(Key::SQL_RENAME_OBJECT_KIND, ctx.name_from_keyword(@$, "typeattribute")),
+                attr(Key::SQL_RENAME_OBJECT_KIND, enum_node(@$, RenameObjectType::TYPE_ATTRIBUTE)),
                 attr(Key::SQL_RENAME_OBJECT_NAME, $6),
                 attr(Key::SQL_RENAME_OBJECT_ARG, ctx.array(@3, $3)),
                 attr(Key::SQL_RENAME_OBJECT_NEW_NAME, $8),
@@ -1760,7 +1765,6 @@ sql_cmd_revoke_role_stmt:
             @$,
             NodeType::OBJECT_SQL_REVOKE_ROLE,
             &[
-                attr(Key::SQL_REVOKE_ROLE_KIND, ctx.name_from_keyword(@$, "revoke")),
                 attr(Key::SQL_REVOKE_ROLE_ROLES, ctx.array(@2, $2)),
                 attr(Key::SQL_REVOKE_ROLE_GRANTEES, ctx.array(@4, $4)),
                 attr(Key::SQL_REVOKE_ROLE_BEHAVIOR, $6),
@@ -1773,7 +1777,7 @@ sql_cmd_revoke_role_stmt:
             @$,
             NodeType::OBJECT_SQL_REVOKE_ROLE,
             &[
-                attr(Key::SQL_REVOKE_ROLE_KIND, ctx.name_from_keyword(@$, "revokeadmin")),
+                attr(Key::SQL_REVOKE_ROLE_ADMIN_OPTION, bool_node(@$, true)),
                 attr(Key::SQL_REVOKE_ROLE_ROLES, ctx.array(@5, $5)),
                 attr(Key::SQL_REVOKE_ROLE_GRANTEES, ctx.array(@7, $7)),
                 attr(Key::SQL_REVOKE_ROLE_BEHAVIOR, $9),
@@ -1789,7 +1793,6 @@ sql_cmd_revoke_stmt:
             @$,
             NodeType::OBJECT_SQL_REVOKE,
             &[
-                attr(Key::SQL_REVOKE_KIND, ctx.name_from_keyword(@$, "revoke")),
                 attr(Key::SQL_REVOKE_PRIVILEGES, $2),
                 attr(Key::SQL_REVOKE_TARGET, $4),
                 attr(Key::SQL_REVOKE_GRANTEES, ctx.array(@6, $6)),
@@ -1802,7 +1805,7 @@ sql_cmd_revoke_stmt:
             @$,
             NodeType::OBJECT_SQL_REVOKE,
             &[
-                attr(Key::SQL_REVOKE_KIND, ctx.name_from_keyword(@$, "revokegrant")),
+                attr(Key::SQL_REVOKE_GRANT_OPTION, bool_node(@$, true)),
                 attr(Key::SQL_REVOKE_PRIVILEGES, $5),
                 attr(Key::SQL_REVOKE_TARGET, $7),
                 attr(Key::SQL_REVOKE_GRANTEES, ctx.array(@9, $9)),
@@ -1822,7 +1825,7 @@ sql_cmd_sequence_option_item:
             @$,
             NodeType::OBJECT_SQL_SEQUENCE_OPTION,
             &[
-                attr(Key::SQL_SEQUENCE_OPTION_KIND, ctx.name_from_keyword(@$, "datatype")),
+                attr(Key::SQL_SEQUENCE_OPTION_KIND, enum_node(@$, SequenceOption::AS)),
                 attr(Key::SQL_SEQUENCE_OPTION_VALUE, $2),
             ],
         )
@@ -1832,7 +1835,7 @@ sql_cmd_sequence_option_item:
             @$,
             NodeType::OBJECT_SQL_SEQUENCE_OPTION,
             &[
-                attr(Key::SQL_SEQUENCE_OPTION_KIND, ctx.name_from_keyword(@$, "increment")),
+                attr(Key::SQL_SEQUENCE_OPTION_KIND, enum_node(@$, SequenceOption::INCREMENT)),
                 attr(Key::SQL_SEQUENCE_OPTION_VALUE, $2),
             ],
         )
@@ -1842,7 +1845,7 @@ sql_cmd_sequence_option_item:
             @$,
             NodeType::OBJECT_SQL_SEQUENCE_OPTION,
             &[
-                attr(Key::SQL_SEQUENCE_OPTION_KIND, ctx.name_from_keyword(@$, "increment")),
+                attr(Key::SQL_SEQUENCE_OPTION_KIND, enum_node(@$, SequenceOption::INCREMENT)),
                 attr(Key::SQL_SEQUENCE_OPTION_VALUE, $3),
             ],
         )
@@ -1852,7 +1855,7 @@ sql_cmd_sequence_option_item:
             @$,
             NodeType::OBJECT_SQL_SEQUENCE_OPTION,
             &[
-                attr(Key::SQL_SEQUENCE_OPTION_KIND, ctx.name_from_keyword(@$, "minvalue")),
+                attr(Key::SQL_SEQUENCE_OPTION_KIND, enum_node(@$, SequenceOption::MIN_VALUE)),
                 attr(Key::SQL_SEQUENCE_OPTION_VALUE, $2),
             ],
         )
@@ -1861,7 +1864,10 @@ sql_cmd_sequence_option_item:
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_SEQUENCE_OPTION,
-            &[attr(Key::SQL_SEQUENCE_OPTION_KIND, ctx.name_from_keyword(@$, "nominvalue"))],
+            &[
+                attr(Key::SQL_SEQUENCE_OPTION_KIND, enum_node(@$, SequenceOption::MIN_VALUE)),
+                attr(Key::SQL_SEQUENCE_OPTION_NO, bool_node(@$, true)),
+            ],
         )
     }
     | MAXVALUE sql_signed_iconst {
@@ -1869,7 +1875,7 @@ sql_cmd_sequence_option_item:
             @$,
             NodeType::OBJECT_SQL_SEQUENCE_OPTION,
             &[
-                attr(Key::SQL_SEQUENCE_OPTION_KIND, ctx.name_from_keyword(@$, "maxvalue")),
+                attr(Key::SQL_SEQUENCE_OPTION_KIND, enum_node(@$, SequenceOption::MAX_VALUE)),
                 attr(Key::SQL_SEQUENCE_OPTION_VALUE, $2),
             ],
         )
@@ -1878,7 +1884,10 @@ sql_cmd_sequence_option_item:
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_SEQUENCE_OPTION,
-            &[attr(Key::SQL_SEQUENCE_OPTION_KIND, ctx.name_from_keyword(@$, "nomaxvalue"))],
+            &[
+                attr(Key::SQL_SEQUENCE_OPTION_KIND, enum_node(@$, SequenceOption::MAX_VALUE)),
+                attr(Key::SQL_SEQUENCE_OPTION_NO, bool_node(@$, true)),
+            ],
         )
     }
     | START sql_signed_iconst {
@@ -1886,7 +1895,7 @@ sql_cmd_sequence_option_item:
             @$,
             NodeType::OBJECT_SQL_SEQUENCE_OPTION,
             &[
-                attr(Key::SQL_SEQUENCE_OPTION_KIND, ctx.name_from_keyword(@$, "startwith")),
+                attr(Key::SQL_SEQUENCE_OPTION_KIND, enum_node(@$, SequenceOption::START)),
                 attr(Key::SQL_SEQUENCE_OPTION_VALUE, $2),
             ],
         )
@@ -1896,7 +1905,7 @@ sql_cmd_sequence_option_item:
             @$,
             NodeType::OBJECT_SQL_SEQUENCE_OPTION,
             &[
-                attr(Key::SQL_SEQUENCE_OPTION_KIND, ctx.name_from_keyword(@$, "startwith")),
+                attr(Key::SQL_SEQUENCE_OPTION_KIND, enum_node(@$, SequenceOption::START)),
                 attr(Key::SQL_SEQUENCE_OPTION_VALUE, $3),
             ],
         )
@@ -1906,7 +1915,7 @@ sql_cmd_sequence_option_item:
             @$,
             NodeType::OBJECT_SQL_SEQUENCE_OPTION,
             &[
-                attr(Key::SQL_SEQUENCE_OPTION_KIND, ctx.name_from_keyword(@$, "restartwith")),
+                attr(Key::SQL_SEQUENCE_OPTION_KIND, enum_node(@$, SequenceOption::RESTART)),
                 attr(Key::SQL_SEQUENCE_OPTION_VALUE, $2),
             ],
         )
@@ -1916,7 +1925,7 @@ sql_cmd_sequence_option_item:
             @$,
             NodeType::OBJECT_SQL_SEQUENCE_OPTION,
             &[
-                attr(Key::SQL_SEQUENCE_OPTION_KIND, ctx.name_from_keyword(@$, "restartwith")),
+                attr(Key::SQL_SEQUENCE_OPTION_KIND, enum_node(@$, SequenceOption::RESTART)),
                 attr(Key::SQL_SEQUENCE_OPTION_VALUE, $3),
             ],
         )
@@ -1925,7 +1934,7 @@ sql_cmd_sequence_option_item:
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_SEQUENCE_OPTION,
-            &[attr(Key::SQL_SEQUENCE_OPTION_KIND, ctx.name_from_keyword(@$, "restart"))],
+            &[attr(Key::SQL_SEQUENCE_OPTION_KIND, enum_node(@$, SequenceOption::RESTART))],
         )
     }
     | CACHE sql_signed_iconst {
@@ -1933,7 +1942,7 @@ sql_cmd_sequence_option_item:
             @$,
             NodeType::OBJECT_SQL_SEQUENCE_OPTION,
             &[
-                attr(Key::SQL_SEQUENCE_OPTION_KIND, ctx.name_from_keyword(@$, "cache")),
+                attr(Key::SQL_SEQUENCE_OPTION_KIND, enum_node(@$, SequenceOption::CACHE)),
                 attr(Key::SQL_SEQUENCE_OPTION_VALUE, $2),
             ],
         )
@@ -1942,14 +1951,17 @@ sql_cmd_sequence_option_item:
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_SEQUENCE_OPTION,
-            &[attr(Key::SQL_SEQUENCE_OPTION_KIND, ctx.name_from_keyword(@$, "cycle"))],
+            &[attr(Key::SQL_SEQUENCE_OPTION_KIND, enum_node(@$, SequenceOption::CYCLE))],
         )
     }
     | NO CYCLE {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_SEQUENCE_OPTION,
-            &[attr(Key::SQL_SEQUENCE_OPTION_KIND, ctx.name_from_keyword(@$, "nocycle"))],
+            &[
+                attr(Key::SQL_SEQUENCE_OPTION_KIND, enum_node(@$, SequenceOption::CYCLE)),
+                attr(Key::SQL_SEQUENCE_OPTION_NO, bool_node(@$, true)),
+            ],
         )
     }
     | OWNED BY sql_columnref {
@@ -1957,7 +1969,7 @@ sql_cmd_sequence_option_item:
             @$,
             NodeType::OBJECT_SQL_SEQUENCE_OPTION,
             &[
-                attr(Key::SQL_SEQUENCE_OPTION_KIND, ctx.name_from_keyword(@$, "owner")),
+                attr(Key::SQL_SEQUENCE_OPTION_KIND, enum_node(@$, SequenceOption::OWNED_BY)),
                 attr(Key::SQL_SEQUENCE_OPTION_VALUE, $3),
             ],
         )
@@ -1975,21 +1987,9 @@ sql_cmd_set_reset_clause:
     ;
 
 sql_cmd_stream_type:
-    BOUNDED EXTERNAL STREAM {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_STREAM_TYPE,
-            &[attr(Key::SQL_STREAM_TYPE_KIND, ctx.name_from_keyword(@$, "bounded"))],
-        )
-    }
-    | BUFFERED EXTERNAL STREAM {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_STREAM_TYPE,
-            &[attr(Key::SQL_STREAM_TYPE_KIND, ctx.name_from_keyword(@$, "buffered"))],
-        )
-    }
-    | EXTERNAL STREAM { ctx.object_ex(@$,NodeType::OBJECT_SQL_STREAM_TYPE,NO_NODES,false,false) }
+    BOUNDED EXTERNAL STREAM { enum_node(@$, StreamType::BOUNDED) }
+    | BUFFERED EXTERNAL STREAM { enum_node(@$, StreamType::BUFFERED) }
+    | EXTERNAL STREAM { null() }
     ;
 
 sql_cmd_truncate_stmt:
@@ -2023,7 +2023,7 @@ sql_cmd_unload_db_stmt:
             @$,
             NodeType::OBJECT_SQL_UNLOAD_DATABASE,
             &[
-                attr(Key::SQL_UNLOAD_DATABASE_KIND, ctx.name_from_keyword(@$, "forcefully")),
+                attr(Key::SQL_UNLOAD_DATABASE_FORCEFULLY, bool_node(@$, true)),
                 attr(Key::SQL_UNLOAD_DATABASE_LOCALITY, $2),
                 attr(Key::SQL_UNLOAD_DATABASE_NAME, $4),
                 attr(Key::SQL_UNLOAD_DATABASE_DEFRAGMENT, $6),
@@ -2035,7 +2035,7 @@ sql_cmd_unload_db_stmt:
             @$,
             NodeType::OBJECT_SQL_UNLOAD_DATABASE,
             &[
-                attr(Key::SQL_UNLOAD_DATABASE_KIND, ctx.name_from_keyword(@$, "gracefully")),
+                attr(Key::SQL_UNLOAD_DATABASE_FORCEFULLY, bool_node(@$, false)),
                 attr(Key::SQL_UNLOAD_DATABASE_LOCALITY, $2),
                 attr(Key::SQL_UNLOAD_DATABASE_NAME, $4),
                 attr(Key::SQL_UNLOAD_DATABASE_DEFRAGMENT, $6),
@@ -2106,27 +2106,26 @@ sql_cmd_variable_show_stmt:
             @$,
             NodeType::OBJECT_SQL_SHOW,
             &[
-                attr(Key::SQL_SHOW_KIND, ctx.name_from_keyword(@$, "variable")),
                 attr(Key::SQL_SHOW_ARG, ctx.array(@2, $2)),
             ],
         )
     }
-    | SHOW TIME ZONE { ctx.object(@$,NodeType::OBJECT_SQL_SHOW,&[attr(Key::SQL_SHOW_KIND,ctx.name_from_keyword(@$,"timezone"))]) }
+    | SHOW TIME ZONE { ctx.object(@$,NodeType::OBJECT_SQL_SHOW,&[attr(Key::SQL_SHOW_PARAMETER, enum_node(@$, SessionParameter::TIME_ZONE))]) }
     | SHOW TRANSACTION ISOLATION LEVEL {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_SHOW,
-            &[attr(Key::SQL_SHOW_KIND, ctx.name_from_keyword(@$, "transactionisolation"))],
+            &[attr(Key::SQL_SHOW_PARAMETER, enum_node(@$, SessionParameter::TRANSACTION_ISOLATION))],
         )
     }
     | SHOW SESSION AUTHORIZATION {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_SHOW,
-            &[attr(Key::SQL_SHOW_KIND, ctx.name_from_keyword(@$, "sessionauthorization"))],
+            &[attr(Key::SQL_SHOW_PARAMETER, enum_node(@$, SessionParameter::SESSION_AUTHORIZATION))],
         )
     }
-    | SHOW ALL { ctx.object(@$,NodeType::OBJECT_SQL_SHOW,&[attr(Key::SQL_SHOW_KIND,ctx.name_from_keyword(@$,"all"))]) }
+    | SHOW ALL { ctx.object(@$,NodeType::OBJECT_SQL_SHOW,&[attr(Key::SQL_SHOW_PARAMETER, enum_node(@$, SessionParameter::ALL))]) }
     ;
 
 sql_cmd_access_method:
@@ -2151,8 +2150,8 @@ sql_cmd_aggr_args_list:
     ;
 
 sql_cmd_analyze:
-    ANALYZE { ctx.name_from_keyword(@1,$1) }
-    | ANALYSE { ctx.name_from_keyword(@1,$1) }
+    ANALYZE { null() }
+    | ANALYSE { null() }
     ;
 
 sql_cmd_any_name_list:
@@ -2162,48 +2161,12 @@ sql_cmd_any_name_list:
 
 sql_cmd_arg_class:
     IN_P { null() }
-    | OUT_P {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_FUNCTION_PARAMETER_MODE,
-            &[attr(Key::SQL_FUNCTION_PARAMETER_MODE_KIND, ctx.name_from_keyword(@$, "out"))],
-        )
-    }
-    | INOUT {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_FUNCTION_PARAMETER_MODE,
-            &[attr(Key::SQL_FUNCTION_PARAMETER_MODE_KIND, ctx.name_from_keyword(@$, "inout"))],
-        )
-    }
-    | IN_P OUT_P {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_FUNCTION_PARAMETER_MODE,
-            &[attr(Key::SQL_FUNCTION_PARAMETER_MODE_KIND, ctx.name_from_keyword(@$, "inout"))],
-        )
-    }
-    | VARIADIC {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_FUNCTION_PARAMETER_MODE,
-            &[attr(Key::SQL_FUNCTION_PARAMETER_MODE_KIND, ctx.name_from_keyword(@$, "variadic"))],
-        )
-    }
-    | CONST {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_FUNCTION_PARAMETER_MODE,
-            &[attr(Key::SQL_FUNCTION_PARAMETER_MODE_KIND, ctx.name_from_keyword(@$, "const"))],
-        )
-    }
-    | CONSTREF {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_FUNCTION_PARAMETER_MODE,
-            &[attr(Key::SQL_FUNCTION_PARAMETER_MODE_KIND, ctx.name_from_keyword(@$, "constref"))],
-        )
-    }
+    | OUT_P { enum_node(@$, FunctionParameterMode::OUT) }
+    | INOUT { enum_node(@$, FunctionParameterMode::INOUT) }
+    | IN_P OUT_P { enum_node(@$, FunctionParameterMode::INOUT) }
+    | VARIADIC { enum_node(@$, FunctionParameterMode::VARIADIC) }
+    | CONST { enum_node(@$, FunctionParameterMode::CONST) }
+    | CONSTREF { enum_node(@$, FunctionParameterMode::CONSTREF) }
     ;
 
 sql_cmd_array_external_location_descriptor_list:
@@ -2237,84 +2200,84 @@ sql_cmd_common_func_opt_item:
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_CREATE_FUNCTION_OPTION,
-            &[attr(Key::SQL_CREATE_FUNCTION_OPTION_KIND, ctx.name_from_keyword(@$, "notstrict"))],
+            &[attr(Key::SQL_CREATE_FUNCTION_OPTION_KIND, enum_node(@$, FunctionOption::CALLED_ON_NULL_INPUT))],
         )
     }
     | RETURNS NULL_P ON NULL_P INPUT_P {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_CREATE_FUNCTION_OPTION,
-            &[attr(Key::SQL_CREATE_FUNCTION_OPTION_KIND, ctx.name_from_keyword(@$, "strict"))],
+            &[attr(Key::SQL_CREATE_FUNCTION_OPTION_KIND, enum_node(@$, FunctionOption::STRICT))],
         )
     }
     | STRICT_P {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_CREATE_FUNCTION_OPTION,
-            &[attr(Key::SQL_CREATE_FUNCTION_OPTION_KIND, ctx.name_from_keyword(@$, "strict"))],
+            &[attr(Key::SQL_CREATE_FUNCTION_OPTION_KIND, enum_node(@$, FunctionOption::STRICT))],
         )
     }
     | IMMUTABLE {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_CREATE_FUNCTION_OPTION,
-            &[attr(Key::SQL_CREATE_FUNCTION_OPTION_KIND, ctx.name_from_keyword(@$, "immutable"))],
+            &[attr(Key::SQL_CREATE_FUNCTION_OPTION_KIND, enum_node(@$, FunctionOption::IMMUTABLE))],
         )
     }
     | STABLE {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_CREATE_FUNCTION_OPTION,
-            &[attr(Key::SQL_CREATE_FUNCTION_OPTION_KIND, ctx.name_from_keyword(@$, "stable"))],
+            &[attr(Key::SQL_CREATE_FUNCTION_OPTION_KIND, enum_node(@$, FunctionOption::STABLE))],
         )
     }
     | VOLATILE {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_CREATE_FUNCTION_OPTION,
-            &[attr(Key::SQL_CREATE_FUNCTION_OPTION_KIND, ctx.name_from_keyword(@$, "volatile"))],
+            &[attr(Key::SQL_CREATE_FUNCTION_OPTION_KIND, enum_node(@$, FunctionOption::VOLATILE))],
         )
     }
     | EXTERNAL SECURITY DEFINER {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_CREATE_FUNCTION_OPTION,
-            &[attr(Key::SQL_CREATE_FUNCTION_OPTION_KIND, ctx.name_from_keyword(@$, "securitydefiner"))],
+            &[attr(Key::SQL_CREATE_FUNCTION_OPTION_KIND, enum_node(@$, FunctionOption::SECURITY_DEFINER))],
         )
     }
     | EXTERNAL SECURITY INVOKER {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_CREATE_FUNCTION_OPTION,
-            &[attr(Key::SQL_CREATE_FUNCTION_OPTION_KIND, ctx.name_from_keyword(@$, "securityinvoker"))],
+            &[attr(Key::SQL_CREATE_FUNCTION_OPTION_KIND, enum_node(@$, FunctionOption::SECURITY_INVOKER))],
         )
     }
     | SECURITY DEFINER {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_CREATE_FUNCTION_OPTION,
-            &[attr(Key::SQL_CREATE_FUNCTION_OPTION_KIND, ctx.name_from_keyword(@$, "securitydefiner"))],
+            &[attr(Key::SQL_CREATE_FUNCTION_OPTION_KIND, enum_node(@$, FunctionOption::SECURITY_DEFINER))],
         )
     }
     | SECURITY INVOKER {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_CREATE_FUNCTION_OPTION,
-            &[attr(Key::SQL_CREATE_FUNCTION_OPTION_KIND, ctx.name_from_keyword(@$, "securityinvoker"))],
+            &[attr(Key::SQL_CREATE_FUNCTION_OPTION_KIND, enum_node(@$, FunctionOption::SECURITY_INVOKER))],
         )
     }
     | LEAKPROOF {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_CREATE_FUNCTION_OPTION,
-            &[attr(Key::SQL_CREATE_FUNCTION_OPTION_KIND, ctx.name_from_keyword(@$, "leakproof"))],
+            &[attr(Key::SQL_CREATE_FUNCTION_OPTION_KIND, enum_node(@$, FunctionOption::LEAKPROOF))],
         )
     }
     | NOT LEAKPROOF {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_CREATE_FUNCTION_OPTION,
-            &[attr(Key::SQL_CREATE_FUNCTION_OPTION_KIND, ctx.name_from_keyword(@$, "notleakproof"))],
+            &[attr(Key::SQL_CREATE_FUNCTION_OPTION_KIND, enum_node(@$, FunctionOption::NOT_LEAKPROOF))],
         )
     }
     | COST sql_numeric_only {
@@ -2322,7 +2285,7 @@ sql_cmd_common_func_opt_item:
             @$,
             NodeType::OBJECT_SQL_CREATE_FUNCTION_OPTION,
             &[
-                attr(Key::SQL_CREATE_FUNCTION_OPTION_KIND, ctx.name_from_keyword(@$, "cost")),
+                attr(Key::SQL_CREATE_FUNCTION_OPTION_KIND, enum_node(@$, FunctionOption::COST)),
                 attr(Key::SQL_CREATE_FUNCTION_OPTION_VALUE, $2),
             ],
         )
@@ -2332,7 +2295,7 @@ sql_cmd_common_func_opt_item:
             @$,
             NodeType::OBJECT_SQL_CREATE_FUNCTION_OPTION,
             &[
-                attr(Key::SQL_CREATE_FUNCTION_OPTION_KIND, ctx.name_from_keyword(@$, "rows")),
+                attr(Key::SQL_CREATE_FUNCTION_OPTION_KIND, enum_node(@$, FunctionOption::ROWS)),
                 attr(Key::SQL_CREATE_FUNCTION_OPTION_VALUE, $2),
             ],
         )
@@ -2342,7 +2305,7 @@ sql_cmd_common_func_opt_item:
             @$,
             NodeType::OBJECT_SQL_CREATE_FUNCTION_OPTION,
             &[
-                attr(Key::SQL_CREATE_FUNCTION_OPTION_KIND, ctx.name_from_keyword(@$, "set")),
+                attr(Key::SQL_CREATE_FUNCTION_OPTION_KIND, enum_node(@$, FunctionOption::SET)),
                 attr(Key::SQL_CREATE_FUNCTION_OPTION_VALUE, $1),
             ],
         )
@@ -2355,7 +2318,7 @@ sql_cmd_copy_delimiter:
             @$,
             NodeType::OBJECT_SQL_COPY_OPTION,
             &[
-                attr(Key::SQL_COPY_OPTION_KIND, ctx.name_from_keyword(@$, "delimiter")),
+                attr(Key::SQL_COPY_OPTION_KIND, enum_node(@$, CopyOption::DELIMITER)),
                 attr(Key::SQL_COPY_OPTION_VALUE, $3),
             ],
         )
@@ -2366,13 +2329,7 @@ sql_cmd_copy_delimiter:
 sql_cmd_copy_generic_opt_arg:
     sql_setting_value { $1 }
     | sql_numeric_only { $1 }
-    | STAR {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_COPY_OPTION,
-            &[attr(Key::SQL_COPY_OPTION_KIND, ctx.name_from_keyword(@$, "generic"))],
-        )
-    }
+    | STAR { operator_node(@1) }
     | LRB sql_cmd_copy_generic_opt_arg_list RRB { ctx.array(@$, $2) }
     | %empty { null() }
     ;
@@ -2396,15 +2353,15 @@ sql_cmd_copy_opt_item:
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_COPY_OPTION,
-            &[attr(Key::SQL_COPY_OPTION_KIND, ctx.name_from_keyword(@$, "binary"))],
+            &[attr(Key::SQL_COPY_OPTION_KIND, enum_node(@$, CopyOption::BINARY))],
         )
     }
-    | OIDS { ctx.object(@$,NodeType::OBJECT_SQL_COPY_OPTION,&[attr(Key::SQL_COPY_OPTION_KIND,ctx.name_from_keyword(@$,"oids"))]) }
+    | OIDS { ctx.object(@$,NodeType::OBJECT_SQL_COPY_OPTION,&[attr(Key::SQL_COPY_OPTION_KIND, enum_node(@$, CopyOption::OIDS))]) }
     | FREEZE {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_COPY_OPTION,
-            &[attr(Key::SQL_COPY_OPTION_KIND, ctx.name_from_keyword(@$, "freeze"))],
+            &[attr(Key::SQL_COPY_OPTION_KIND, enum_node(@$, CopyOption::FREEZE))],
         )
     }
     | DELIMITER sql_cmd_opt_as sql_string_literal {
@@ -2412,7 +2369,7 @@ sql_cmd_copy_opt_item:
             @$,
             NodeType::OBJECT_SQL_COPY_OPTION,
             &[
-                attr(Key::SQL_COPY_OPTION_KIND, ctx.name_from_keyword(@$, "delimiter")),
+                attr(Key::SQL_COPY_OPTION_KIND, enum_node(@$, CopyOption::DELIMITER)),
                 attr(Key::SQL_COPY_OPTION_VALUE, $3),
             ],
         )
@@ -2422,17 +2379,17 @@ sql_cmd_copy_opt_item:
             @$,
             NodeType::OBJECT_SQL_COPY_OPTION,
             &[
-                attr(Key::SQL_COPY_OPTION_KIND, ctx.name_from_keyword(@$, "null")),
+                attr(Key::SQL_COPY_OPTION_KIND, enum_node(@$, CopyOption::NULL_)),
                 attr(Key::SQL_COPY_OPTION_VALUE, $3),
             ],
         )
     }
-    | CSV { ctx.object(@$,NodeType::OBJECT_SQL_COPY_OPTION,&[attr(Key::SQL_COPY_OPTION_KIND,ctx.name_from_keyword(@$,"csv"))]) }
+    | CSV { ctx.object(@$,NodeType::OBJECT_SQL_COPY_OPTION,&[attr(Key::SQL_COPY_OPTION_KIND, enum_node(@$, CopyOption::CSV))]) }
     | HEADER_P {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_COPY_OPTION,
-            &[attr(Key::SQL_COPY_OPTION_KIND, ctx.name_from_keyword(@$, "header"))],
+            &[attr(Key::SQL_COPY_OPTION_KIND, enum_node(@$, CopyOption::HEADER))],
         )
     }
     | QUOTE sql_cmd_opt_as sql_string_literal {
@@ -2440,7 +2397,7 @@ sql_cmd_copy_opt_item:
             @$,
             NodeType::OBJECT_SQL_COPY_OPTION,
             &[
-                attr(Key::SQL_COPY_OPTION_KIND, ctx.name_from_keyword(@$, "quote")),
+                attr(Key::SQL_COPY_OPTION_KIND, enum_node(@$, CopyOption::QUOTE)),
                 attr(Key::SQL_COPY_OPTION_VALUE, $3),
             ],
         )
@@ -2450,7 +2407,7 @@ sql_cmd_copy_opt_item:
             @$,
             NodeType::OBJECT_SQL_COPY_OPTION,
             &[
-                attr(Key::SQL_COPY_OPTION_KIND, ctx.name_from_keyword(@$, "escape")),
+                attr(Key::SQL_COPY_OPTION_KIND, enum_node(@$, CopyOption::ESCAPE)),
                 attr(Key::SQL_COPY_OPTION_VALUE, $3),
             ],
         )
@@ -2460,7 +2417,7 @@ sql_cmd_copy_opt_item:
             @$,
             NodeType::OBJECT_SQL_COPY_OPTION,
             &[
-                attr(Key::SQL_COPY_OPTION_KIND, ctx.name_from_keyword(@$, "forcequote")),
+                attr(Key::SQL_COPY_OPTION_KIND, enum_node(@$, CopyOption::FORCE_QUOTE)),
                 attr(Key::SQL_COPY_OPTION_VALUE, ctx.array(@3, $3)),
             ],
         )
@@ -2469,7 +2426,7 @@ sql_cmd_copy_opt_item:
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_COPY_OPTION,
-            &[attr(Key::SQL_COPY_OPTION_KIND, ctx.name_from_keyword(@$, "forcequote"))],
+            &[attr(Key::SQL_COPY_OPTION_KIND, enum_node(@$, CopyOption::FORCE_QUOTE))],
         )
     }
     | FORCE NOT NULL_P sql_column_list {
@@ -2477,7 +2434,7 @@ sql_cmd_copy_opt_item:
             @$,
             NodeType::OBJECT_SQL_COPY_OPTION,
             &[
-                attr(Key::SQL_COPY_OPTION_KIND, ctx.name_from_keyword(@$, "forcenotnull")),
+                attr(Key::SQL_COPY_OPTION_KIND, enum_node(@$, CopyOption::FORCE_NOT_NULL)),
                 attr(Key::SQL_COPY_OPTION_VALUE, ctx.array(@4, $4)),
             ],
         )
@@ -2487,7 +2444,7 @@ sql_cmd_copy_opt_item:
             @$,
             NodeType::OBJECT_SQL_COPY_OPTION,
             &[
-                attr(Key::SQL_COPY_OPTION_KIND, ctx.name_from_keyword(@$, "forcenull")),
+                attr(Key::SQL_COPY_OPTION_KIND, enum_node(@$, CopyOption::FORCE_NULL)),
                 attr(Key::SQL_COPY_OPTION_VALUE, ctx.array(@3, $3)),
             ],
         )
@@ -2497,7 +2454,7 @@ sql_cmd_copy_opt_item:
             @$,
             NodeType::OBJECT_SQL_COPY_OPTION,
             &[
-                attr(Key::SQL_COPY_OPTION_KIND, ctx.name_from_keyword(@$, "encoding")),
+                attr(Key::SQL_COPY_OPTION_KIND, enum_node(@$, CopyOption::ENCODING)),
                 attr(Key::SQL_COPY_OPTION_VALUE, $2),
             ],
         )
@@ -2506,7 +2463,7 @@ sql_cmd_copy_opt_item:
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_COPY_OPTION,
-            &[attr(Key::SQL_COPY_OPTION_KIND, ctx.name_from_keyword(@$, "sanitize"))],
+            &[attr(Key::SQL_COPY_OPTION_KIND, enum_node(@$, CopyOption::SANITIZE))],
         )
     }
     ;
@@ -2565,7 +2522,6 @@ sql_cmd_createdb_opt_name:
             @$,
             NodeType::OBJECT_SQL_CREATE_DATABASE_OPTION,
             &[
-                attr(Key::SQL_CREATE_DATABASE_OPTION_KIND, ctx.name_from_keyword(@$, "generic")),
                 attr(Key::SQL_CREATE_DATABASE_OPTION_NAME, name_from_identifier(@1, $1)),
             ],
         )
@@ -2575,7 +2531,6 @@ sql_cmd_createdb_opt_name:
             @$,
             NodeType::OBJECT_SQL_CREATE_DATABASE_OPTION,
             &[
-                attr(Key::SQL_CREATE_DATABASE_OPTION_KIND, ctx.name_from_keyword(@$, "generic")),
                 attr(Key::SQL_CREATE_DATABASE_OPTION_NAME, ctx.name_from_keyword(@1, $1)),
             ],
         )
@@ -2584,42 +2539,42 @@ sql_cmd_createdb_opt_name:
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_CREATE_DATABASE_OPTION,
-            &[attr(Key::SQL_CREATE_DATABASE_OPTION_KIND, ctx.name_from_keyword(@$, "connectionlimit"))],
+            &[attr(Key::SQL_CREATE_DATABASE_OPTION_KIND, enum_node(@$, DatabaseOption::CONNECTION_LIMIT))],
         )
     }
     | ENCODING {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_CREATE_DATABASE_OPTION,
-            &[attr(Key::SQL_CREATE_DATABASE_OPTION_KIND, ctx.name_from_keyword(@$, "encoding"))],
+            &[attr(Key::SQL_CREATE_DATABASE_OPTION_KIND, enum_node(@$, DatabaseOption::ENCODING))],
         )
     }
     | LOCATION {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_CREATE_DATABASE_OPTION,
-            &[attr(Key::SQL_CREATE_DATABASE_OPTION_KIND, ctx.name_from_keyword(@$, "location"))],
+            &[attr(Key::SQL_CREATE_DATABASE_OPTION_KIND, enum_node(@$, DatabaseOption::LOCATION))],
         )
     }
     | OWNER {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_CREATE_DATABASE_OPTION,
-            &[attr(Key::SQL_CREATE_DATABASE_OPTION_KIND, ctx.name_from_keyword(@$, "owner"))],
+            &[attr(Key::SQL_CREATE_DATABASE_OPTION_KIND, enum_node(@$, DatabaseOption::OWNER))],
         )
     }
     | TABLESPACE {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_CREATE_DATABASE_OPTION,
-            &[attr(Key::SQL_CREATE_DATABASE_OPTION_KIND, ctx.name_from_keyword(@$, "tablespace"))],
+            &[attr(Key::SQL_CREATE_DATABASE_OPTION_KIND, enum_node(@$, DatabaseOption::TABLESPACE))],
         )
     }
     | TEMPLATE {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_CREATE_DATABASE_OPTION,
-            &[attr(Key::SQL_CREATE_DATABASE_OPTION_KIND, ctx.name_from_keyword(@$, "template"))],
+            &[attr(Key::SQL_CREATE_DATABASE_OPTION_KIND, enum_node(@$, DatabaseOption::TEMPLATE))],
         )
     }
     ;
@@ -2630,7 +2585,7 @@ sql_cmd_createfunc_opt_item:
             @$,
             NodeType::OBJECT_SQL_CREATE_FUNCTION_OPTION,
             &[
-                attr(Key::SQL_CREATE_FUNCTION_OPTION_KIND, ctx.name_from_keyword(@$, "body")),
+                attr(Key::SQL_CREATE_FUNCTION_OPTION_KIND, enum_node(@$, FunctionOption::AS)),
                 attr(Key::SQL_CREATE_FUNCTION_OPTION_VALUE, ctx.array(@2, $2)),
             ],
         )
@@ -2640,7 +2595,7 @@ sql_cmd_createfunc_opt_item:
             @$,
             NodeType::OBJECT_SQL_CREATE_FUNCTION_OPTION,
             &[
-                attr(Key::SQL_CREATE_FUNCTION_OPTION_KIND, ctx.name_from_keyword(@$, "language")),
+                attr(Key::SQL_CREATE_FUNCTION_OPTION_KIND, enum_node(@$, FunctionOption::LANGUAGE)),
                 attr(Key::SQL_CREATE_FUNCTION_OPTION_VALUE, $2),
             ],
         )
@@ -2649,7 +2604,7 @@ sql_cmd_createfunc_opt_item:
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_CREATE_FUNCTION_OPTION,
-            &[attr(Key::SQL_CREATE_FUNCTION_OPTION_KIND, ctx.name_from_keyword(@$, "window"))],
+            &[attr(Key::SQL_CREATE_FUNCTION_OPTION_KIND, enum_node(@$, FunctionOption::WINDOW))],
         )
     }
     | sql_cmd_common_func_opt_item { $1 }
@@ -2676,34 +2631,10 @@ sql_cmd_cursor_name:
     ;
 
 sql_cmd_cursor_option:
-    NO SCROLL {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_CURSOR_OPTION,
-            &[attr(Key::SQL_CURSOR_OPTION_KIND, ctx.name_from_keyword(@$, "noscroll"))],
-        )
-    }
-    | SCROLL {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_CURSOR_OPTION,
-            &[attr(Key::SQL_CURSOR_OPTION_KIND, ctx.name_from_keyword(@$, "scroll"))],
-        )
-    }
-    | BINARY {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_CURSOR_OPTION,
-            &[attr(Key::SQL_CURSOR_OPTION_KIND, ctx.name_from_keyword(@$, "binary"))],
-        )
-    }
-    | INSENSITIVE {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_CURSOR_OPTION,
-            &[attr(Key::SQL_CURSOR_OPTION_KIND, ctx.name_from_keyword(@$, "insensitive"))],
-        )
-    }
+    NO SCROLL { enum_node(@$, CursorOption::NO_SCROLL) }
+    | SCROLL { enum_node(@$, CursorOption::SCROLL) }
+    | BINARY { enum_node(@$, CursorOption::BINARY) }
+    | INSENSITIVE { enum_node(@$, CursorOption::INSENSITIVE) }
     ;
 
 sql_cmd_cursor_options:
@@ -2759,54 +2690,18 @@ sql_cmd_domain_constant_expr:
     ;
 
 sql_cmd_drop_type:
-    EXTERNAL STREAM {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_DROP_TYPE,
-            &[attr(Key::SQL_DROP_TYPE_KIND, ctx.name_from_keyword(@$, "externalstream"))],
-        )
-    }
-    | EXTERNAL TABLE {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_DROP_TYPE,
-            &[attr(Key::SQL_DROP_TYPE_KIND, ctx.name_from_keyword(@$, "externaltable"))],
-        )
-    }
-    | SEQUENCE { ctx.object(@$,NodeType::OBJECT_SQL_DROP_TYPE,&[attr(Key::SQL_DROP_TYPE_KIND,ctx.name_from_keyword(@$,"sequence"))]) }
-    | MATERIALIZED VIEW {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_DROP_TYPE,
-            &[attr(Key::SQL_DROP_TYPE_KIND, ctx.name_from_keyword(@$, "materializedview"))],
-        )
-    }
-    | INDEX { ctx.object(@$,NodeType::OBJECT_SQL_DROP_TYPE,&[attr(Key::SQL_DROP_TYPE_KIND,ctx.name_from_keyword(@$,"index"))]) }
-    | FOREIGN TABLE {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_DROP_TYPE,
-            &[attr(Key::SQL_DROP_TYPE_KIND, ctx.name_from_keyword(@$, "foreigntable"))],
-        )
-    }
-    | EVENT TRIGGER {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_DROP_TYPE,
-            &[attr(Key::SQL_DROP_TYPE_KIND, ctx.name_from_keyword(@$, "eventtrigger"))],
-        )
-    }
-    | TYPE_P { ctx.object(@$,NodeType::OBJECT_SQL_DROP_TYPE,&[attr(Key::SQL_DROP_TYPE_KIND,ctx.name_from_keyword(@$,"type"))]) }
-    | DOMAIN_P { ctx.object(@$,NodeType::OBJECT_SQL_DROP_TYPE,&[attr(Key::SQL_DROP_TYPE_KIND,ctx.name_from_keyword(@$,"domain"))]) }
-    | COLLATION { ctx.object(@$,NodeType::OBJECT_SQL_DROP_TYPE,&[attr(Key::SQL_DROP_TYPE_KIND,ctx.name_from_keyword(@$,"collation"))]) }
-    | CONVERSION_P {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_DROP_TYPE,
-            &[attr(Key::SQL_DROP_TYPE_KIND, ctx.name_from_keyword(@$, "conversion"))],
-        )
-    }
-    | EXTENSION { ctx.object(@$,NodeType::OBJECT_SQL_DROP_TYPE,&[attr(Key::SQL_DROP_TYPE_KIND,ctx.name_from_keyword(@$,"extension"))]) }
+    EXTERNAL STREAM { enum_node(@$, DropObjectType::EXTERNAL_STREAM) }
+    | EXTERNAL TABLE { enum_node(@$, DropObjectType::EXTERNAL_TABLE) }
+    | SEQUENCE { enum_node(@$, DropObjectType::SEQUENCE) }
+    | MATERIALIZED VIEW { enum_node(@$, DropObjectType::MATERIALIZED_VIEW) }
+    | INDEX { enum_node(@$, DropObjectType::INDEX) }
+    | FOREIGN TABLE { enum_node(@$, DropObjectType::FOREIGN_TABLE) }
+    | EVENT TRIGGER { enum_node(@$, DropObjectType::EVENT_TRIGGER) }
+    | TYPE_P { enum_node(@$, DropObjectType::TYPE) }
+    | DOMAIN_P { enum_node(@$, DropObjectType::DOMAIN) }
+    | COLLATION { enum_node(@$, DropObjectType::COLLATION) }
+    | CONVERSION_P { enum_node(@$, DropObjectType::CONVERSION) }
+    | EXTENSION { enum_node(@$, DropObjectType::EXTENSION) }
     ;
 
 sql_cmd_enum_val_list:
@@ -2847,28 +2742,28 @@ sql_cmd_fetch_args:
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_FETCH_DIRECTION,
-            &[attr(Key::SQL_FETCH_DIRECTION_KIND, ctx.name_from_keyword(@$, "next"))],
+            &[attr(Key::SQL_FETCH_DIRECTION_KIND, enum_node(@$, FetchDirection::NEXT))],
         )
     }
     | PRIOR {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_FETCH_DIRECTION,
-            &[attr(Key::SQL_FETCH_DIRECTION_KIND, ctx.name_from_keyword(@$, "prior"))],
+            &[attr(Key::SQL_FETCH_DIRECTION_KIND, enum_node(@$, FetchDirection::PRIOR))],
         )
     }
     | FIRST_P {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_FETCH_DIRECTION,
-            &[attr(Key::SQL_FETCH_DIRECTION_KIND, ctx.name_from_keyword(@$, "first"))],
+            &[attr(Key::SQL_FETCH_DIRECTION_KIND, enum_node(@$, FetchDirection::FIRST))],
         )
     }
     | LAST_P {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_FETCH_DIRECTION,
-            &[attr(Key::SQL_FETCH_DIRECTION_KIND, ctx.name_from_keyword(@$, "last"))],
+            &[attr(Key::SQL_FETCH_DIRECTION_KIND, enum_node(@$, FetchDirection::LAST))],
         )
     }
     | ABSOLUTE_P sql_signed_iconst {
@@ -2876,7 +2771,7 @@ sql_cmd_fetch_args:
             @$,
             NodeType::OBJECT_SQL_FETCH_DIRECTION,
             &[
-                attr(Key::SQL_FETCH_DIRECTION_KIND, ctx.name_from_keyword(@$, "absolute")),
+                attr(Key::SQL_FETCH_DIRECTION_KIND, enum_node(@$, FetchDirection::ABSOLUTE)),
                 attr(Key::SQL_FETCH_DIRECTION_COUNT, $2),
             ],
         )
@@ -2886,7 +2781,7 @@ sql_cmd_fetch_args:
             @$,
             NodeType::OBJECT_SQL_FETCH_DIRECTION,
             &[
-                attr(Key::SQL_FETCH_DIRECTION_KIND, ctx.name_from_keyword(@$, "relative")),
+                attr(Key::SQL_FETCH_DIRECTION_KIND, enum_node(@$, FetchDirection::RELATIVE)),
                 attr(Key::SQL_FETCH_DIRECTION_COUNT, $2),
             ],
         )
@@ -2896,7 +2791,6 @@ sql_cmd_fetch_args:
             @$,
             NodeType::OBJECT_SQL_FETCH_DIRECTION,
             &[
-                attr(Key::SQL_FETCH_DIRECTION_KIND, ctx.name_from_keyword(@$, "count")),
                 attr(Key::SQL_FETCH_DIRECTION_COUNT, $1),
             ],
         )
@@ -2905,14 +2799,14 @@ sql_cmd_fetch_args:
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_FETCH_DIRECTION,
-            &[attr(Key::SQL_FETCH_DIRECTION_KIND, ctx.name_from_keyword(@$, "all"))],
+            &[attr(Key::SQL_FETCH_DIRECTION_ALL, bool_node(@$, true))],
         )
     }
     | FORWARD {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_FETCH_DIRECTION,
-            &[attr(Key::SQL_FETCH_DIRECTION_KIND, ctx.name_from_keyword(@$, "forward"))],
+            &[attr(Key::SQL_FETCH_DIRECTION_KIND, enum_node(@$, FetchDirection::FORWARD))],
         )
     }
     | FORWARD sql_signed_iconst {
@@ -2920,7 +2814,7 @@ sql_cmd_fetch_args:
             @$,
             NodeType::OBJECT_SQL_FETCH_DIRECTION,
             &[
-                attr(Key::SQL_FETCH_DIRECTION_KIND, ctx.name_from_keyword(@$, "forwardcount")),
+                attr(Key::SQL_FETCH_DIRECTION_KIND, enum_node(@$, FetchDirection::FORWARD)),
                 attr(Key::SQL_FETCH_DIRECTION_COUNT, $2),
             ],
         )
@@ -2929,14 +2823,17 @@ sql_cmd_fetch_args:
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_FETCH_DIRECTION,
-            &[attr(Key::SQL_FETCH_DIRECTION_KIND, ctx.name_from_keyword(@$, "forwardall"))],
+            &[
+                attr(Key::SQL_FETCH_DIRECTION_KIND, enum_node(@$, FetchDirection::FORWARD)),
+                attr(Key::SQL_FETCH_DIRECTION_ALL, bool_node(@$, true)),
+            ],
         )
     }
     | BACKWARD {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_FETCH_DIRECTION,
-            &[attr(Key::SQL_FETCH_DIRECTION_KIND, ctx.name_from_keyword(@$, "backward"))],
+            &[attr(Key::SQL_FETCH_DIRECTION_KIND, enum_node(@$, FetchDirection::BACKWARD))],
         )
     }
     | BACKWARD sql_signed_iconst {
@@ -2944,7 +2841,7 @@ sql_cmd_fetch_args:
             @$,
             NodeType::OBJECT_SQL_FETCH_DIRECTION,
             &[
-                attr(Key::SQL_FETCH_DIRECTION_KIND, ctx.name_from_keyword(@$, "backwardcount")),
+                attr(Key::SQL_FETCH_DIRECTION_KIND, enum_node(@$, FetchDirection::BACKWARD)),
                 attr(Key::SQL_FETCH_DIRECTION_COUNT, $2),
             ],
         )
@@ -2953,7 +2850,10 @@ sql_cmd_fetch_args:
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_FETCH_DIRECTION,
-            &[attr(Key::SQL_FETCH_DIRECTION_KIND, ctx.name_from_keyword(@$, "backwardall"))],
+            &[
+                attr(Key::SQL_FETCH_DIRECTION_KIND, enum_node(@$, FetchDirection::BACKWARD)),
+                attr(Key::SQL_FETCH_DIRECTION_ALL, bool_node(@$, true)),
+            ],
         )
     }
     ;
@@ -3000,8 +2900,7 @@ sql_cmd_func_arg_type:
             @$,
             NodeType::OBJECT_SQL_FUNCTION_RETURN_TYPE,
             &[
-                attr(Key::SQL_FUNCTION_RETURN_TYPE_KIND, ctx.name_from_keyword(@$, "setof")),
-                attr(Key::SQL_FUNCTION_RETURN_TYPE_TYPE, ctx.name_from_keyword(@1, $1)),
+                attr(Key::SQL_FUNCTION_RETURN_TYPE_SETOF, bool_node(@$, true)),
                 attr(Key::SQL_FUNCTION_RETURN_TYPE_ATTRIBUTES, $2),
             ],
         )
@@ -3011,7 +2910,6 @@ sql_cmd_func_arg_type:
             @$,
             NodeType::OBJECT_SQL_FUNCTION_RETURN_TYPE,
             &[
-                attr(Key::SQL_FUNCTION_RETURN_TYPE_KIND, ctx.name_from_keyword(@$, "table")),
                 attr(Key::SQL_FUNCTION_RETURN_TYPE_ATTRIBUTES, ctx.array(@3, $3)),
                 attr(Key::SQL_FUNCTION_RETURN_TYPE_TABLE_PASSTHROUGH, $5),
                 attr(Key::SQL_FUNCTION_RETURN_TYPE_TABLE_SEMANTICS, $6),
@@ -3023,7 +2921,6 @@ sql_cmd_func_arg_type:
             @$,
             NodeType::OBJECT_SQL_FUNCTION_RETURN_TYPE,
             &[
-                attr(Key::SQL_FUNCTION_RETURN_TYPE_KIND, ctx.name_from_keyword(@$, "table")),
                 attr(Key::SQL_FUNCTION_RETURN_TYPE_TABLE_PASSTHROUGH, $2),
                 attr(Key::SQL_FUNCTION_RETURN_TYPE_TABLE_SEMANTICS, $3),
             ],
@@ -3033,7 +2930,7 @@ sql_cmd_func_arg_type:
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_FUNCTION_RETURN_TYPE,
-            &[attr(Key::SQL_FUNCTION_RETURN_TYPE_KIND, ctx.name_from_keyword(@$, "onlypassthroughs"))],
+            &[attr(Key::SQL_FUNCTION_RETURN_TYPE_ONLY_PASS_THROUGHS, bool_node(@$, true))],
         )
     }
     ;
@@ -3092,13 +2989,12 @@ sql_cmd_generic_reset:
             @$,
             NodeType::OBJECT_SQL_RESET,
             &[
-                attr(Key::SQL_RESET_KIND, ctx.name_from_keyword(@$, "variable")),
                 attr(Key::SQL_RESET_ARG, ctx.array(@1, $1)),
             ],
         )
     }
-    | ALL { ctx.object(@$,NodeType::OBJECT_SQL_RESET,&[attr(Key::SQL_RESET_KIND,ctx.name_from_keyword(@$,"all"))]) }
-    | ALL GLOBAL { ctx.object(@$,NodeType::OBJECT_SQL_RESET,&[attr(Key::SQL_RESET_KIND,ctx.name_from_keyword(@$,"allglobal"))]) }
+    | ALL { ctx.object(@$,NodeType::OBJECT_SQL_RESET,&[attr(Key::SQL_RESET_PARAMETER, enum_node(@$, SessionParameter::ALL))]) }
+    | ALL GLOBAL { ctx.object(@$,NodeType::OBJECT_SQL_RESET,&[attr(Key::SQL_RESET_PARAMETER, enum_node(@$, SessionParameter::ALL)), attr(Key::SQL_RESET_GLOBAL, bool_node(@$, true))]) }
     ;
 
 sql_cmd_generic_set:
@@ -3107,7 +3003,6 @@ sql_cmd_generic_set:
             @$,
             NodeType::OBJECT_SQL_SET,
             &[
-                attr(Key::SQL_SET_KIND, ctx.name_from_keyword(@$, "value")),
                 attr(Key::SQL_SET_NAME, ctx.array(@1, $1)),
                 attr(Key::SQL_SET_ARGS, ctx.array(@3, $3)),
             ],
@@ -3134,7 +3029,7 @@ sql_cmd_generic_set:
             @$,
             NodeType::OBJECT_SQL_SET,
             &[
-                attr(Key::SQL_SET_KIND, ctx.name_from_keyword(@$, "default")),
+                attr(Key::SQL_SET_DEFAULT, bool_node(@$, true)),
                 attr(Key::SQL_SET_NAME, ctx.array(@1, $1)),
             ],
         )
@@ -3144,7 +3039,7 @@ sql_cmd_generic_set:
             @$,
             NodeType::OBJECT_SQL_SET,
             &[
-                attr(Key::SQL_SET_KIND, ctx.name_from_keyword(@$, "default")),
+                attr(Key::SQL_SET_DEFAULT, bool_node(@$, true)),
                 attr(Key::SQL_SET_NAME, ctx.array(@1, $1)),
             ],
         )
@@ -3227,7 +3122,7 @@ sql_cmd_merge_delete:
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_MERGE_ACTION,
-            &[attr(Key::SQL_MERGE_ACTION_KIND, ctx.name_from_keyword(@$, "delete"))],
+            &[attr(Key::SQL_MERGE_ACTION_KIND, enum_node(@$, MergeAction::DELETE))],
         )
     }
     ;
@@ -3237,7 +3132,7 @@ sql_cmd_merge_do_nothing:
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_MERGE_ACTION,
-            &[attr(Key::SQL_MERGE_ACTION_KIND, ctx.name_from_keyword(@$, "donothing"))],
+            &[attr(Key::SQL_MERGE_ACTION_KIND, enum_node(@$, MergeAction::DO_NOTHING))],
         )
     }
     ;
@@ -3248,7 +3143,7 @@ sql_cmd_merge_insert:
             @$,
             NodeType::OBJECT_SQL_MERGE_ACTION,
             &[
-                attr(Key::SQL_MERGE_ACTION_KIND, ctx.name_from_keyword(@$, "insert")),
+                attr(Key::SQL_MERGE_ACTION_KIND, enum_node(@$, MergeAction::INSERT)),
                 attr(Key::SQL_MERGE_ACTION_VALUES, ctx.array(@3, $3)),
             ],
         )
@@ -3258,7 +3153,7 @@ sql_cmd_merge_insert:
             @$,
             NodeType::OBJECT_SQL_MERGE_ACTION,
             &[
-                attr(Key::SQL_MERGE_ACTION_KIND, ctx.name_from_keyword(@$, "insert")),
+                attr(Key::SQL_MERGE_ACTION_KIND, enum_node(@$, MergeAction::INSERT)),
                 attr(Key::SQL_MERGE_ACTION_COLUMNS, ctx.array(@3, $3)),
                 attr(Key::SQL_MERGE_ACTION_VALUES, ctx.array(@6, $6)),
             ],
@@ -3283,7 +3178,7 @@ sql_cmd_merge_update:
             @$,
             NodeType::OBJECT_SQL_MERGE_ACTION,
             &[
-                attr(Key::SQL_MERGE_ACTION_KIND, ctx.name_from_keyword(@$, "update")),
+                attr(Key::SQL_MERGE_ACTION_KIND, enum_node(@$, MergeAction::UPDATE)),
                 attr(Key::SQL_MERGE_ACTION_TARGET, ctx.array(@3, $3)),
             ],
         )
@@ -3296,7 +3191,7 @@ sql_cmd_merge_when_clause:
             @$,
             NodeType::OBJECT_SQL_MERGE_WHEN_CLAUSE,
             &[
-                attr(Key::SQL_MERGE_WHEN_CLAUSE_KIND, ctx.name_from_keyword(@$, "matched")),
+                attr(Key::SQL_MERGE_WHEN_CLAUSE_KIND, enum_node(@$, MergeMatch::MATCHED)),
                 attr(Key::SQL_MERGE_WHEN_CLAUSE_CONDITION, $3),
                 attr(Key::SQL_MERGE_WHEN_CLAUSE_ACTION, $5),
             ],
@@ -3307,7 +3202,7 @@ sql_cmd_merge_when_clause:
             @$,
             NodeType::OBJECT_SQL_MERGE_WHEN_CLAUSE,
             &[
-                attr(Key::SQL_MERGE_WHEN_CLAUSE_KIND, ctx.name_from_keyword(@$, "notmatchedbysource")),
+                attr(Key::SQL_MERGE_WHEN_CLAUSE_KIND, enum_node(@$, MergeMatch::NOT_MATCHED_BY_SOURCE)),
                 attr(Key::SQL_MERGE_WHEN_CLAUSE_CONDITION, $6),
                 attr(Key::SQL_MERGE_WHEN_CLAUSE_ACTION, $8),
             ],
@@ -3318,7 +3213,7 @@ sql_cmd_merge_when_clause:
             @$,
             NodeType::OBJECT_SQL_MERGE_WHEN_CLAUSE,
             &[
-                attr(Key::SQL_MERGE_WHEN_CLAUSE_KIND, ctx.name_from_keyword(@$, "notmatchedbytarget")),
+                attr(Key::SQL_MERGE_WHEN_CLAUSE_KIND, enum_node(@$, MergeMatch::NOT_MATCHED_BY_TARGET)),
                 attr(Key::SQL_MERGE_WHEN_CLAUSE_CONDITION, $4),
                 attr(Key::SQL_MERGE_WHEN_CLAUSE_ACTION, $6),
             ],
@@ -3329,7 +3224,7 @@ sql_cmd_merge_when_clause:
             @$,
             NodeType::OBJECT_SQL_MERGE_WHEN_CLAUSE,
             &[
-                attr(Key::SQL_MERGE_WHEN_CLAUSE_KIND, ctx.name_from_keyword(@$, "notmatchedbytarget")),
+                attr(Key::SQL_MERGE_WHEN_CLAUSE_KIND, enum_node(@$, MergeMatch::NOT_MATCHED_BY_TARGET)),
                 attr(Key::SQL_MERGE_WHEN_CLAUSE_CONDITION, $6),
                 attr(Key::SQL_MERGE_WHEN_CLAUSE_ACTION, $8),
             ],
@@ -3348,7 +3243,7 @@ sql_cmd_multiple_set_clause:
             @$,
             NodeType::OBJECT_SQL_ASSIGNMENT,
             &[
-                attr(Key::SQL_ASSIGNMENT_KIND, ctx.name_from_keyword(@$, "multiple")),
+                attr(Key::SQL_ASSIGNMENT_MULTIPLE, bool_node(@$, true)),
                 attr(Key::SQL_ASSIGNMENT_COLUMNS, ctx.array(@2, $2)),
                 attr(Key::SQL_ASSIGNMENT_VALUE, ctx.array(@5, $5)),
             ],
@@ -3359,7 +3254,7 @@ sql_cmd_multiple_set_clause:
             @$,
             NodeType::OBJECT_SQL_ASSIGNMENT,
             &[
-                attr(Key::SQL_ASSIGNMENT_KIND, ctx.name_from_keyword(@$, "multiple")),
+                attr(Key::SQL_ASSIGNMENT_MULTIPLE, bool_node(@$, true)),
                 attr(Key::SQL_ASSIGNMENT_COLUMNS, ctx.array(@2, $2)),
                 attr(Key::SQL_ASSIGNMENT_VALUE, ctx.array(@6, $6)),
             ],
@@ -3370,7 +3265,7 @@ sql_cmd_multiple_set_clause:
             @$,
             NodeType::OBJECT_SQL_ASSIGNMENT,
             &[
-                attr(Key::SQL_ASSIGNMENT_KIND, ctx.name_from_keyword(@$, "multiplesubquery")),
+                attr(Key::SQL_ASSIGNMENT_MULTIPLE, bool_node(@$, true)),
                 attr(Key::SQL_ASSIGNMENT_COLUMNS, ctx.array(@2, $2)),
                 attr(Key::SQL_ASSIGNMENT_VALUE, $5),
             ],
@@ -3442,7 +3337,7 @@ sql_cmd_opt__sequence_option_list:
     ;
 
 sql_cmd_opt_as:
-    AS { ctx.name_from_keyword(@1,$1) }
+    AS { null() }
     | %empty { null() }
     ;
 
@@ -3456,7 +3351,7 @@ sql_cmd_opt_binary:
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_COPY_OPTION,
-            &[attr(Key::SQL_COPY_OPTION_KIND, ctx.name_from_keyword(@$, "binary"))],
+            &[attr(Key::SQL_COPY_OPTION_KIND, enum_node(@$, CopyOption::BINARY))],
         )
     }
     | %empty { null() }
@@ -3483,31 +3378,13 @@ sql_cmd_opt_concurrently:
     ;
 
 sql_cmd_opt_db_locality:
-    LOCAL { ctx.object(@$,NodeType::OBJECT_SQL_DB_LOCALITY,&[attr(Key::SQL_DB_LOCALITY_KIND,ctx.name_from_keyword(@$,"local"))]) }
-    | %empty {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_DB_LOCALITY,
-            &[attr(Key::SQL_DB_LOCALITY_KIND, ctx.name_from_keyword(@$, "global"))],
-        )
-    }
+    LOCAL { enum_node(@$, DatabaseLocality::LOCAL) }
+    | %empty { enum_node(@$, DatabaseLocality::GLOBAL) }
     ;
 
 sql_cmd_opt_drop_behavior:
-    CASCADE {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_DROP_BEHAVIOR,
-            &[attr(Key::SQL_DROP_BEHAVIOR_KIND, ctx.name_from_keyword(@$, "cascade"))],
-        )
-    }
-    | RESTRICT {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_DROP_BEHAVIOR,
-            &[attr(Key::SQL_DROP_BEHAVIOR_KIND, ctx.name_from_keyword(@$, "restrict"))],
-        )
-    }
+    CASCADE { enum_node(@$, DropBehavior::CASCADE) }
+    | RESTRICT { enum_node(@$, DropBehavior::RESTRICT) }
     | %empty { null() }
     ;
 
@@ -3523,7 +3400,7 @@ sql_cmd_opt_enum_val_list:
     ;
 
 sql_cmd_opt_equal:
-    EQUALS { operator_node(@1) }
+    EQUALS { null() }
     | %empty { null() }
     ;
 
@@ -3534,8 +3411,8 @@ sql_cmd_opt_external_stream_options:
     ;
 
 sql_cmd_opt_from_in:
-    FROM { ctx.name_from_keyword(@1,$1) }
-    | IN_P { ctx.name_from_keyword(@1,$1) }
+    FROM { null() }
+    | IN_P { null() }
     | %empty { null() }
     ;
 
@@ -3556,20 +3433,8 @@ sql_cmd_opt_granted_by:
 
 sql_cmd_opt_hold:
     %empty { null() }
-    | WITH HOLD {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_CURSOR_HOLD_OPTION,
-            &[attr(Key::SQL_CURSOR_HOLD_OPTION_KIND, ctx.name_from_keyword(@$, "withhold"))],
-        )
-    }
-    | WITHOUT HOLD {
-        ctx.object(
-            @$,
-            NodeType::OBJECT_SQL_CURSOR_HOLD_OPTION,
-            &[attr(Key::SQL_CURSOR_HOLD_OPTION_KIND, ctx.name_from_keyword(@$, "withouthold"))],
-        )
-    }
+    | WITH HOLD { bool_node(@$, true) }
+    | WITHOUT HOLD { bool_node(@$, false) }
     ;
 
 sql_cmd_opt_in_database:
@@ -3593,7 +3458,7 @@ sql_cmd_opt_name_list:
     ;
 
 sql_cmd_opt_oids:
-    WITH OIDS { ctx.object(@$,NodeType::OBJECT_SQL_COPY_OPTION,&[attr(Key::SQL_COPY_OPTION_KIND,ctx.name_from_keyword(@$,"oids"))]) }
+    WITH OIDS { ctx.object(@$,NodeType::OBJECT_SQL_COPY_OPTION,&[attr(Key::SQL_COPY_OPTION_KIND, enum_node(@$, CopyOption::OIDS))]) }
     | %empty { null() }
     ;
 
@@ -3630,7 +3495,7 @@ sql_cmd_opt_table_arg_semantics:
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_TABLE_ARG_SEMANTICS,
-            &[attr(Key::SQL_TABLE_ARG_SEMANTICS_KIND, ctx.name_from_keyword(@$, "rowsemantics"))],
+            &[attr(Key::SQL_TABLE_ARG_SEMANTICS_SET, bool_node(@$, false))],
         )
     }
     | WITH SET SEMANTICS sql_cmd_opt_table_arg_pruning {
@@ -3638,7 +3503,7 @@ sql_cmd_opt_table_arg_semantics:
             @$,
             NodeType::OBJECT_SQL_TABLE_ARG_SEMANTICS,
             &[
-                attr(Key::SQL_TABLE_ARG_SEMANTICS_KIND, ctx.name_from_keyword(@$, "setsemantics")),
+                attr(Key::SQL_TABLE_ARG_SEMANTICS_SET, bool_node(@$, true)),
                 attr(Key::SQL_TABLE_ARG_SEMANTICS_PRUNING, $4),
             ],
         )
@@ -3662,12 +3527,12 @@ sql_cmd_opt_unique:
     ;
 
 sql_cmd_opt_unload_defragment:
-    WITH DEFRAGMENTATION { ctx.name_from_keyword(@1,$1) }
+    WITH DEFRAGMENTATION { bool_node(@$, true) }
     | %empty { null() }
     ;
 
 sql_cmd_opt_using:
-    USING { ctx.name_from_keyword(@1,$1) }
+    USING { null() }
     | %empty { null() }
     ;
 
@@ -3677,8 +3542,8 @@ sql_cmd_opt_verbose:
     ;
 
 sql_cmd_opt_with:
-    WITH { ctx.name_from_keyword(@1,$1) }
-    | WITH_LA { operator_node(@1) }
+    WITH { null() }
+    | WITH_LA { null() }
     | %empty { null() }
     ;
 
@@ -3688,7 +3553,6 @@ sql_cmd_postgres_copy_generic_opt_elem:
             @$,
             NodeType::OBJECT_SQL_COPY_OPTION,
             &[
-                attr(Key::SQL_COPY_OPTION_KIND, ctx.name_from_keyword(@$, "generic")),
                 attr(Key::SQL_COPY_OPTION_NAME, $1),
                 attr(Key::SQL_COPY_OPTION_VALUE, $2),
             ],
@@ -3728,7 +3592,7 @@ sql_cmd_privilege:
             @$,
             NodeType::OBJECT_SQL_GRANT_ACCESS_PRIVILEGE,
             &[
-                attr(Key::SQL_GRANT_ACCESS_PRIVILEGE_KIND, ctx.name_from_keyword(@$, "select")),
+                attr(Key::SQL_GRANT_ACCESS_PRIVILEGE_KIND, enum_node(@$, Privilege::SELECT)),
                 attr(Key::SQL_GRANT_ACCESS_PRIVILEGE_COLUMNS, ctx.array(@2, $2)),
             ],
         )
@@ -3738,7 +3602,7 @@ sql_cmd_privilege:
             @$,
             NodeType::OBJECT_SQL_GRANT_ACCESS_PRIVILEGE,
             &[
-                attr(Key::SQL_GRANT_ACCESS_PRIVILEGE_KIND, ctx.name_from_keyword(@$, "references")),
+                attr(Key::SQL_GRANT_ACCESS_PRIVILEGE_KIND, enum_node(@$, Privilege::REFERENCES)),
                 attr(Key::SQL_GRANT_ACCESS_PRIVILEGE_COLUMNS, ctx.array(@2, $2)),
             ],
         )
@@ -3748,7 +3612,7 @@ sql_cmd_privilege:
             @$,
             NodeType::OBJECT_SQL_GRANT_ACCESS_PRIVILEGE,
             &[
-                attr(Key::SQL_GRANT_ACCESS_PRIVILEGE_KIND, ctx.name_from_keyword(@$, "create")),
+                attr(Key::SQL_GRANT_ACCESS_PRIVILEGE_KIND, enum_node(@$, Privilege::CREATE)),
                 attr(Key::SQL_GRANT_ACCESS_PRIVILEGE_COLUMNS, ctx.array(@2, $2)),
             ],
         )
@@ -3758,7 +3622,6 @@ sql_cmd_privilege:
             @$,
             NodeType::OBJECT_SQL_GRANT_ACCESS_PRIVILEGE,
             &[
-                attr(Key::SQL_GRANT_ACCESS_PRIVILEGE_KIND, ctx.name_from_keyword(@$, "generic")),
                 attr(Key::SQL_GRANT_ACCESS_PRIVILEGE_NAME, $1),
                 attr(Key::SQL_GRANT_ACCESS_PRIVILEGE_COLUMNS, ctx.array(@2, $2)),
             ],
@@ -3777,7 +3640,7 @@ sql_cmd_privilege_target:
             @$,
             NodeType::OBJECT_SQL_GRANT_TARGET,
             &[
-                attr(Key::SQL_GRANT_TARGET_KIND, ctx.name_from_keyword(@$, "relation")),
+                attr(Key::SQL_GRANT_TARGET_KIND, enum_node(@$, GrantTargetType::RELATION)),
                 attr(Key::SQL_GRANT_TARGET_OBJECTS, ctx.array(@1, $1)),
             ],
         )
@@ -3787,7 +3650,7 @@ sql_cmd_privilege_target:
             @$,
             NodeType::OBJECT_SQL_GRANT_TARGET,
             &[
-                attr(Key::SQL_GRANT_TARGET_KIND, ctx.name_from_keyword(@$, "relation")),
+                attr(Key::SQL_GRANT_TARGET_KIND, enum_node(@$, GrantTargetType::RELATION)),
                 attr(Key::SQL_GRANT_TARGET_OBJECTS, ctx.array(@2, $2)),
             ],
         )
@@ -3797,7 +3660,7 @@ sql_cmd_privilege_target:
             @$,
             NodeType::OBJECT_SQL_GRANT_TARGET,
             &[
-                attr(Key::SQL_GRANT_TARGET_KIND, ctx.name_from_keyword(@$, "sequence")),
+                attr(Key::SQL_GRANT_TARGET_KIND, enum_node(@$, GrantTargetType::SEQUENCE)),
                 attr(Key::SQL_GRANT_TARGET_OBJECTS, ctx.array(@2, $2)),
             ],
         )
@@ -3807,7 +3670,7 @@ sql_cmd_privilege_target:
             @$,
             NodeType::OBJECT_SQL_GRANT_TARGET,
             &[
-                attr(Key::SQL_GRANT_TARGET_KIND, ctx.name_from_keyword(@$, "fdw")),
+                attr(Key::SQL_GRANT_TARGET_KIND, enum_node(@$, GrantTargetType::FOREIGN_DATA_WRAPPER)),
                 attr(Key::SQL_GRANT_TARGET_OBJECTS, ctx.array(@4, $4)),
             ],
         )
@@ -3817,7 +3680,7 @@ sql_cmd_privilege_target:
             @$,
             NodeType::OBJECT_SQL_GRANT_TARGET,
             &[
-                attr(Key::SQL_GRANT_TARGET_KIND, ctx.name_from_keyword(@$, "foreignserver")),
+                attr(Key::SQL_GRANT_TARGET_KIND, enum_node(@$, GrantTargetType::FOREIGN_SERVER)),
                 attr(Key::SQL_GRANT_TARGET_OBJECTS, ctx.array(@3, $3)),
             ],
         )
@@ -3827,7 +3690,7 @@ sql_cmd_privilege_target:
             @$,
             NodeType::OBJECT_SQL_GRANT_TARGET,
             &[
-                attr(Key::SQL_GRANT_TARGET_KIND, ctx.name_from_keyword(@$, "function")),
+                attr(Key::SQL_GRANT_TARGET_KIND, enum_node(@$, GrantTargetType::FUNCTION)),
                 attr(Key::SQL_GRANT_TARGET_OBJECTS, ctx.array(@2, $2)),
             ],
         )
@@ -3837,7 +3700,7 @@ sql_cmd_privilege_target:
             @$,
             NodeType::OBJECT_SQL_GRANT_TARGET,
             &[
-                attr(Key::SQL_GRANT_TARGET_KIND, ctx.name_from_keyword(@$, "database")),
+                attr(Key::SQL_GRANT_TARGET_KIND, enum_node(@$, GrantTargetType::DATABASE)),
                 attr(Key::SQL_GRANT_TARGET_OBJECTS, ctx.array(@2, $2)),
             ],
         )
@@ -3847,7 +3710,7 @@ sql_cmd_privilege_target:
             @$,
             NodeType::OBJECT_SQL_GRANT_TARGET,
             &[
-                attr(Key::SQL_GRANT_TARGET_KIND, ctx.name_from_keyword(@$, "domain")),
+                attr(Key::SQL_GRANT_TARGET_KIND, enum_node(@$, GrantTargetType::DOMAIN)),
                 attr(Key::SQL_GRANT_TARGET_OBJECTS, ctx.array(@2, $2)),
             ],
         )
@@ -3857,7 +3720,7 @@ sql_cmd_privilege_target:
             @$,
             NodeType::OBJECT_SQL_GRANT_TARGET,
             &[
-                attr(Key::SQL_GRANT_TARGET_KIND, ctx.name_from_keyword(@$, "language")),
+                attr(Key::SQL_GRANT_TARGET_KIND, enum_node(@$, GrantTargetType::LANGUAGE)),
                 attr(Key::SQL_GRANT_TARGET_OBJECTS, ctx.array(@2, $2)),
             ],
         )
@@ -3867,7 +3730,7 @@ sql_cmd_privilege_target:
             @$,
             NodeType::OBJECT_SQL_GRANT_TARGET,
             &[
-                attr(Key::SQL_GRANT_TARGET_KIND, ctx.name_from_keyword(@$, "largeobject")),
+                attr(Key::SQL_GRANT_TARGET_KIND, enum_node(@$, GrantTargetType::LARGE_OBJECT)),
                 attr(Key::SQL_GRANT_TARGET_OBJECTS, ctx.array(@3, $3)),
             ],
         )
@@ -3877,7 +3740,7 @@ sql_cmd_privilege_target:
             @$,
             NodeType::OBJECT_SQL_GRANT_TARGET,
             &[
-                attr(Key::SQL_GRANT_TARGET_KIND, ctx.name_from_keyword(@$, "schema")),
+                attr(Key::SQL_GRANT_TARGET_KIND, enum_node(@$, GrantTargetType::SCHEMA)),
                 attr(Key::SQL_GRANT_TARGET_OBJECTS, ctx.array(@2, $2)),
             ],
         )
@@ -3887,7 +3750,7 @@ sql_cmd_privilege_target:
             @$,
             NodeType::OBJECT_SQL_GRANT_TARGET,
             &[
-                attr(Key::SQL_GRANT_TARGET_KIND, ctx.name_from_keyword(@$, "tablespace")),
+                attr(Key::SQL_GRANT_TARGET_KIND, enum_node(@$, GrantTargetType::TABLESPACE)),
                 attr(Key::SQL_GRANT_TARGET_OBJECTS, ctx.array(@2, $2)),
             ],
         )
@@ -3897,7 +3760,7 @@ sql_cmd_privilege_target:
             @$,
             NodeType::OBJECT_SQL_GRANT_TARGET,
             &[
-                attr(Key::SQL_GRANT_TARGET_KIND, ctx.name_from_keyword(@$, "type")),
+                attr(Key::SQL_GRANT_TARGET_KIND, enum_node(@$, GrantTargetType::TYPE)),
                 attr(Key::SQL_GRANT_TARGET_OBJECTS, ctx.array(@2, $2)),
             ],
         )
@@ -3907,7 +3770,8 @@ sql_cmd_privilege_target:
             @$,
             NodeType::OBJECT_SQL_GRANT_TARGET,
             &[
-                attr(Key::SQL_GRANT_TARGET_KIND, ctx.name_from_keyword(@$, "alltablesinschema")),
+                attr(Key::SQL_GRANT_TARGET_KIND, enum_node(@$, GrantTargetType::RELATION)),
+                attr(Key::SQL_GRANT_TARGET_ALL_IN_SCHEMA, bool_node(@$, true)),
                 attr(Key::SQL_GRANT_TARGET_OBJECTS, ctx.array(@5, $5)),
             ],
         )
@@ -3917,7 +3781,8 @@ sql_cmd_privilege_target:
             @$,
             NodeType::OBJECT_SQL_GRANT_TARGET,
             &[
-                attr(Key::SQL_GRANT_TARGET_KIND, ctx.name_from_keyword(@$, "allsequencesinschema")),
+                attr(Key::SQL_GRANT_TARGET_KIND, enum_node(@$, GrantTargetType::SEQUENCE)),
+                attr(Key::SQL_GRANT_TARGET_ALL_IN_SCHEMA, bool_node(@$, true)),
                 attr(Key::SQL_GRANT_TARGET_OBJECTS, ctx.array(@5, $5)),
             ],
         )
@@ -3927,7 +3792,8 @@ sql_cmd_privilege_target:
             @$,
             NodeType::OBJECT_SQL_GRANT_TARGET,
             &[
-                attr(Key::SQL_GRANT_TARGET_KIND, ctx.name_from_keyword(@$, "allfunctionsinschema")),
+                attr(Key::SQL_GRANT_TARGET_KIND, enum_node(@$, GrantTargetType::FUNCTION)),
+                attr(Key::SQL_GRANT_TARGET_ALL_IN_SCHEMA, bool_node(@$, true)),
                 attr(Key::SQL_GRANT_TARGET_OBJECTS, ctx.array(@5, $5)),
             ],
         )
@@ -3940,14 +3806,14 @@ sql_cmd_privileges:
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_GRANT_ACCESS_PRIVILEGE,
-            &[attr(Key::SQL_GRANT_ACCESS_PRIVILEGE_KIND, ctx.name_from_keyword(@$, "all"))],
+            &[attr(Key::SQL_GRANT_ACCESS_PRIVILEGE_KIND, enum_node(@$, Privilege::ALL))],
         )
     }
     | ALL PRIVILEGES {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_GRANT_ACCESS_PRIVILEGE,
-            &[attr(Key::SQL_GRANT_ACCESS_PRIVILEGE_KIND, ctx.name_from_keyword(@$, "all"))],
+            &[attr(Key::SQL_GRANT_ACCESS_PRIVILEGE_KIND, enum_node(@$, Privilege::ALL))],
         )
     }
     | ALL LRB sql_column_list RRB {
@@ -3955,7 +3821,7 @@ sql_cmd_privileges:
             @$,
             NodeType::OBJECT_SQL_GRANT_ACCESS_PRIVILEGE,
             &[
-                attr(Key::SQL_GRANT_ACCESS_PRIVILEGE_KIND, ctx.name_from_keyword(@$, "all")),
+                attr(Key::SQL_GRANT_ACCESS_PRIVILEGE_KIND, enum_node(@$, Privilege::ALL)),
                 attr(Key::SQL_GRANT_ACCESS_PRIVILEGE_COLUMNS, ctx.array(@3, $3)),
             ],
         )
@@ -3965,7 +3831,7 @@ sql_cmd_privileges:
             @$,
             NodeType::OBJECT_SQL_GRANT_ACCESS_PRIVILEGE,
             &[
-                attr(Key::SQL_GRANT_ACCESS_PRIVILEGE_KIND, ctx.name_from_keyword(@$, "all")),
+                attr(Key::SQL_GRANT_ACCESS_PRIVILEGE_KIND, enum_node(@$, Privilege::ALL)),
                 attr(Key::SQL_GRANT_ACCESS_PRIVILEGE_COLUMNS, ctx.array(@4, $4)),
             ],
         )
@@ -4100,19 +3966,19 @@ sql_cmd_reserved_keyword:
 
 sql_cmd_reset_rest:
     sql_cmd_generic_reset { $1 }
-    | TIME ZONE { ctx.object(@$,NodeType::OBJECT_SQL_RESET,&[attr(Key::SQL_RESET_KIND,ctx.name_from_keyword(@$,"timezone"))]) }
+    | TIME ZONE { ctx.object(@$,NodeType::OBJECT_SQL_RESET,&[attr(Key::SQL_RESET_PARAMETER, enum_node(@$, SessionParameter::TIME_ZONE))]) }
     | TRANSACTION ISOLATION LEVEL {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_RESET,
-            &[attr(Key::SQL_RESET_KIND, ctx.name_from_keyword(@$, "transactionisolation"))],
+            &[attr(Key::SQL_RESET_PARAMETER, enum_node(@$, SessionParameter::TRANSACTION_ISOLATION))],
         )
     }
     | SESSION AUTHORIZATION {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_RESET,
-            &[attr(Key::SQL_RESET_KIND, ctx.name_from_keyword(@$, "sessionauthorization"))],
+            &[attr(Key::SQL_RESET_PARAMETER, enum_node(@$, SessionParameter::SESSION_AUTHORIZATION))],
         )
     }
     ;
@@ -4138,7 +4004,7 @@ sql_cmd_set_rest:
             @$,
             NodeType::OBJECT_SQL_SET,
             &[
-                attr(Key::SQL_SET_KIND, ctx.name_from_keyword(@$, "transaction")),
+                attr(Key::SQL_SET_PARAMETER, enum_node(@$, SessionParameter::TRANSACTION)),
                 attr(Key::SQL_SET_ARGS, ctx.array(@2, $2)),
             ],
         )
@@ -4148,7 +4014,7 @@ sql_cmd_set_rest:
             @$,
             NodeType::OBJECT_SQL_SET,
             &[
-                attr(Key::SQL_SET_KIND, ctx.name_from_keyword(@$, "sessioncharacteristics")),
+                attr(Key::SQL_SET_PARAMETER, enum_node(@$, SessionParameter::SESSION_CHARACTERISTICS)),
                 attr(Key::SQL_SET_ARGS, ctx.array(@5, $5)),
             ],
         )
@@ -4163,7 +4029,7 @@ sql_cmd_set_rest_more:
             @$,
             NodeType::OBJECT_SQL_SET,
             &[
-                attr(Key::SQL_SET_KIND, ctx.name_from_keyword(@$, "current")),
+                attr(Key::SQL_SET_FROM_CURRENT, bool_node(@$, true)),
                 attr(Key::SQL_SET_NAME, ctx.array(@1, $1)),
             ],
         )
@@ -4173,7 +4039,7 @@ sql_cmd_set_rest_more:
             @$,
             NodeType::OBJECT_SQL_SET,
             &[
-                attr(Key::SQL_SET_KIND, ctx.name_from_keyword(@$, "timezone")),
+                attr(Key::SQL_SET_PARAMETER, enum_node(@$, SessionParameter::TIME_ZONE)),
                 attr(Key::SQL_SET_ARGS, $3),
             ],
         )
@@ -4183,7 +4049,7 @@ sql_cmd_set_rest_more:
             @$,
             NodeType::OBJECT_SQL_SET,
             &[
-                attr(Key::SQL_SET_KIND, ctx.name_from_keyword(@$, "catalog")),
+                attr(Key::SQL_SET_PARAMETER, enum_node(@$, SessionParameter::CATALOG)),
                 attr(Key::SQL_SET_ARGS, $2),
             ],
         )
@@ -4193,7 +4059,7 @@ sql_cmd_set_rest_more:
             @$,
             NodeType::OBJECT_SQL_SET,
             &[
-                attr(Key::SQL_SET_KIND, ctx.name_from_keyword(@$, "schema")),
+                attr(Key::SQL_SET_PARAMETER, enum_node(@$, SessionParameter::SCHEMA)),
                 attr(Key::SQL_SET_ARGS, $2),
             ],
         )
@@ -4203,7 +4069,7 @@ sql_cmd_set_rest_more:
             @$,
             NodeType::OBJECT_SQL_SET,
             &[
-                attr(Key::SQL_SET_KIND, ctx.name_from_keyword(@$, "clientencoding")),
+                attr(Key::SQL_SET_PARAMETER, enum_node(@$, SessionParameter::CLIENT_ENCODING)),
                 attr(Key::SQL_SET_ARGS, $2),
             ],
         )
@@ -4213,7 +4079,7 @@ sql_cmd_set_rest_more:
             @$,
             NodeType::OBJECT_SQL_SET,
             &[
-                attr(Key::SQL_SET_KIND, ctx.name_from_keyword(@$, "role")),
+                attr(Key::SQL_SET_PARAMETER, enum_node(@$, SessionParameter::ROLE)),
                 attr(Key::SQL_SET_ARGS, $2),
             ],
         )
@@ -4223,18 +4089,18 @@ sql_cmd_set_rest_more:
             @$,
             NodeType::OBJECT_SQL_SET,
             &[
-                attr(Key::SQL_SET_KIND, ctx.name_from_keyword(@$, "sessionauthorization")),
+                attr(Key::SQL_SET_PARAMETER, enum_node(@$, SessionParameter::SESSION_AUTHORIZATION)),
                 attr(Key::SQL_SET_ARGS, $3),
             ],
         )
     }
-    | SESSION AUTHORIZATION DEFAULT { ctx.object(@$,NodeType::OBJECT_SQL_SET,&[attr(Key::SQL_SET_KIND,ctx.name_from_keyword(@$,"sessionauthorization"))]) }
+    | SESSION AUTHORIZATION DEFAULT { ctx.object(@$,NodeType::OBJECT_SQL_SET,&[attr(Key::SQL_SET_PARAMETER, enum_node(@$, SessionParameter::SESSION_AUTHORIZATION))]) }
     | TRANSACTION SNAPSHOT sql_string_literal {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_SET,
             &[
-                attr(Key::SQL_SET_KIND, ctx.name_from_keyword(@$, "transactionsnapshot")),
+                attr(Key::SQL_SET_PARAMETER, enum_node(@$, SessionParameter::TRANSACTION_SNAPSHOT)),
                 attr(Key::SQL_SET_ARGS, $3),
             ],
         )
@@ -4256,7 +4122,6 @@ sql_cmd_single_set_clause:
             @$,
             NodeType::OBJECT_SQL_ASSIGNMENT,
             &[
-                attr(Key::SQL_ASSIGNMENT_KIND, ctx.name_from_keyword(@$, "single")),
                 attr(Key::SQL_ASSIGNMENT_COLUMNS, $1),
                 attr(Key::SQL_ASSIGNMENT_VALUE, $3),
             ],
@@ -4328,7 +4193,7 @@ sql_cmd_zone_value:
             @$,
             NodeType::OBJECT_SQL_ZONE_VALUE,
             &[
-                attr(Key::SQL_ZONE_VALUE_KIND, ctx.name_from_keyword(@$, "literal")),
+                attr(Key::SQL_ZONE_VALUE_KIND, enum_node(@$, ZoneValueType::LITERAL)),
                 attr(Key::SQL_ZONE_VALUE_ARG, $1),
             ],
         )
@@ -4338,7 +4203,7 @@ sql_cmd_zone_value:
             @$,
             NodeType::OBJECT_SQL_ZONE_VALUE,
             &[
-                attr(Key::SQL_ZONE_VALUE_KIND, ctx.name_from_keyword(@$, "literal")),
+                attr(Key::SQL_ZONE_VALUE_KIND, enum_node(@$, ZoneValueType::LITERAL)),
                 attr(Key::SQL_ZONE_VALUE_ARG, name_from_identifier(@1, $1)),
             ],
         )
@@ -4348,7 +4213,7 @@ sql_cmd_zone_value:
             @$,
             NodeType::OBJECT_SQL_ZONE_VALUE,
             &[
-                attr(Key::SQL_ZONE_VALUE_KIND, ctx.name_from_keyword(@$, "interval")),
+                attr(Key::SQL_ZONE_VALUE_KIND, enum_node(@$, ZoneValueType::INTERVAL)),
                 attr(Key::SQL_ZONE_VALUE_ARG, $2),
                 attr(Key::SQL_ZONE_VALUE_MOD, $3),
             ],
@@ -4359,7 +4224,7 @@ sql_cmd_zone_value:
             @$,
             NodeType::OBJECT_SQL_ZONE_VALUE,
             &[
-                attr(Key::SQL_ZONE_VALUE_KIND, ctx.name_from_keyword(@$, "intervalgeneric")),
+                attr(Key::SQL_ZONE_VALUE_KIND, enum_node(@$, ZoneValueType::INTERVAL)),
                 attr(Key::SQL_ZONE_VALUE_MOD, $3),
                 attr(Key::SQL_ZONE_VALUE_ARG, $5),
             ],
@@ -4370,7 +4235,7 @@ sql_cmd_zone_value:
             @$,
             NodeType::OBJECT_SQL_ZONE_VALUE,
             &[
-                attr(Key::SQL_ZONE_VALUE_KIND, ctx.name_from_keyword(@$, "numeric")),
+                attr(Key::SQL_ZONE_VALUE_KIND, enum_node(@$, ZoneValueType::NUMERIC)),
                 attr(Key::SQL_ZONE_VALUE_ARG, $1),
             ],
         )

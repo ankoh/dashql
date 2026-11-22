@@ -14,7 +14,7 @@ planner-snapshots:
           analyzed-catalog-revision: 1
           cacheable: true
           terminal-statement-id: 0
-          signature: "e5aa29865d581c7c5bc3ae389f15aced"
+          signature: "c49855075db7fc81b583c5fc1263e2ea"
       entities: []
       unresolved-references: []
       nodes: []
@@ -52,21 +52,21 @@ planner-snapshots:
           analyzed-catalog-revision: 1
           cacheable: true
           terminal-statement-id: 0
-          signature: "5102107ecd8798ce196f51a3f722854f"
+          signature: "2b97ce5a40e0e1614e916b5d11e7250e"
         - name: FOO
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 1
           cacheable: true
           terminal-statement-id: 0
-          signature: "1556f6d4e439da279b77e220bdf7a310"
+          signature: "1ce342d7a5a3eb073b6f7151fa0a83d8"
         - name: bar
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 1
           cacheable: true
           terminal-statement-id: 0
-          signature: "e5aa29865d581c7c5bc3ae389f15aced"
+          signature: "c49855075db7fc81b583c5fc1263e2ea"
       entities: []
       unresolved-references: []
       nodes: []
@@ -102,7 +102,7 @@ planner-snapshots:
           analyzed-catalog-revision: 1
           cacheable: true
           terminal-statement-id: 1
-          signature: "4bd8d7bf521b14a08bb77e4d98a6e07c"
+          signature: "ad757551d494c25913978d3245f2c0ab"
       entities: []
       unresolved-references: []
       nodes: []
@@ -146,14 +146,14 @@ planner-snapshots:
           analyzed-catalog-revision: 1
           cacheable: true
           terminal-statement-id: 0
-          signature: "5102107ecd8798ce196f51a3f722854f"
+          signature: "2b97ce5a40e0e1614e916b5d11e7250e"
         - name: bar
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 1
           cacheable: false
           terminal-statement-id: 1
-          signature: "4b549ce5225d3b72a07c83ef7215099e"
+          signature: "b737e8c7de282d12a059043d6b2e45ca"
       entities: []
       unresolved-references: []
       nodes: []
@@ -198,14 +198,14 @@ planner-snapshots:
           analyzed-catalog-revision: 2
           cacheable: true
           terminal-statement-id: 0
-          signature: "2f44cef39f1b3bb05cecc93f4fb46591"
+          signature: "d351f41eb4ba48589ac6b7eddf205129"
         - name: bar
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 2
           cacheable: false
           terminal-statement-id: 0
-          signature: "2a2a53787e1fd04765fd18ff111838e0"
+          signature: "f430c9f0d35690672ac32d3a86413b6c"
           references: [foo]
       entities: []
       unresolved-references: []
@@ -253,34 +253,34 @@ planner-snapshots:
           analyzed-catalog-revision: 3
           cacheable: false
           terminal-statement-id: 0
-          signature: "bfc312555722470ab2ac1f970d3c364b"
+          signature: "6e951484ca1929c6aee2e6e42192eba3"
         - name: creates
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 3
           cacheable: false
           terminal-statement-id: 0
-          signature: "d5b516a8db7c8355697b0c90a1fbc11e"
+          signature: "528960889b61828d8aca92dacac02052"
         - name: explains
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 3
           cacheable: true
           terminal-statement-id: 0
-          signature: "d7286521cdf5078a0ce8ea0c44e6722f"
+          signature: "88b371787131afba550d3b57efae4e4f"
         - name: empty
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 3
           cacheable: false
-          signature: "5ca4284d7335a9ac761ff51ebc5e2566"
+          signature: "4ff54522f5e63f49b36512ebe63f35e9"
         - name: bar
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 3
           cacheable: true
           terminal-statement-id: 0
-          signature: "e989c89a6f8774ce1834605c5a8bed03"
+          signature: "88d381589227a020a145df8ed313fc7d"
           references: [inserts,creates,explains,empty]
       entities: []
       unresolved-references: []
@@ -349,7 +349,7 @@ planner-snapshots:
           analyzed-catalog-revision: 1
           cacheable: true
           terminal-statement-id: 0
-          signature: "e5aa29865d581c7c5bc3ae389f15aced"
+          signature: "c49855075db7fc81b583c5fc1263e2ea"
           references: [foo]
       entities: []
       unresolved-references: []
@@ -385,7 +385,7 @@ planner-snapshots:
           analyzed-catalog-revision: 1
           cacheable: true
           terminal-statement-id: 0
-          signature: "e5aa29865d581c7c5bc3ae389f15aced"
+          signature: "c49855075db7fc81b583c5fc1263e2ea"
           references: [foo]
       entities: []
       unresolved-references: []
@@ -431,7 +431,7 @@ planner-snapshots:
           analyzed-catalog-revision: 1
           cacheable: true
           terminal-statement-id: 0
-          signature: "edc8e50baba7a5c4bf2c3ad7877a8091"
+          signature: "8dc8fd7c74a6d54c5759e87add9efa85"
           references: [b]
         - name: b
           text-version: 1
@@ -439,7 +439,7 @@ planner-snapshots:
           analyzed-catalog-revision: 1
           cacheable: true
           terminal-statement-id: 0
-          signature: "23451ec3f5516377f1bd481c2501b7e0"
+          signature: "d707c1b1e498fdfd02945599120780da"
           references: [a]
         - name: c
           text-version: 1
@@ -447,7 +447,7 @@ planner-snapshots:
           analyzed-catalog-revision: 1
           cacheable: true
           terminal-statement-id: 0
-          signature: "02b9e6ffcc4bea0bfacc8bc2ec455bec"
+          signature: "7674a16d7e61eaa542d008f8de54ae32"
           references: [d]
         - name: d
           text-version: 1
@@ -455,7 +455,7 @@ planner-snapshots:
           analyzed-catalog-revision: 1
           cacheable: true
           terminal-statement-id: 0
-          signature: "29f2e01de6f56ccd5410548f84208f8e"
+          signature: "ab038f327115b691e9f893334b71b64e"
           references: [e]
         - name: e
           text-version: 1
@@ -463,7 +463,7 @@ planner-snapshots:
           analyzed-catalog-revision: 1
           cacheable: true
           terminal-statement-id: 0
-          signature: "9abf1c1aa1eee16822820484fd9e6d69"
+          signature: "7cea0540a80a076ef038f1d72b2a5757"
           references: [c]
       entities: []
       unresolved-references: []
@@ -531,21 +531,21 @@ planner-snapshots:
           analyzed-catalog-revision: 2
           cacheable: false
           terminal-statement-id: 1
-          signature: "cdb9ce83783931175dba8727e2a35ec1"
+          signature: "31f60821c4ca6bbfa93b425306588491"
         - name: two
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 2
           cacheable: true
           terminal-statement-id: 1
-          signature: "309db407905b0d11a2f3e744f99d6453"
+          signature: "1b9338a9c009780bf313346513f42a91"
         - name: bar
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 2
           cacheable: true
           terminal-statement-id: 0
-          signature: "17f2365ebabca889e7f6fb46dc6f8d22"
+          signature: "bf94df56d1aea995320678c6f8c414ba"
           references: [foo,two]
       entities: []
       unresolved-references: []

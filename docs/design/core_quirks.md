@@ -35,7 +35,7 @@ entry when you find another one. The headings name where the behavior lives.
 
 ## FlatBuffers enums (`proto/fb/dashql/parsed_script.fbs`)
 
-- **`NodeType` ordinals are ranged.** Enums sit between `ENUM_KEYS_` (10) and `OBJECT_KEYS_` (41),
+- **`NodeType` ordinals are ranged.** Enums sit between `ENUM_KEYS_` (10) and `OBJECT_KEYS_` (70),
   objects above `OBJECT_KEYS_`. The signatures hash the raw values, so removing or reordering values
   needs a bump of `SCRIPT_SIGNATURE_VERSION`. Pinned by `//packages/dashql-core:dashql_buffers_test`.
 

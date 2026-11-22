@@ -330,3 +330,276 @@ enum TransactionIsolationLevel: uint8 {
     REPEATABLE_READ,
     SERIALIZABLE,
 }
+
+enum AlterRoleAction: uint8 {
+    ADD,
+    DROP,
+    SET,
+}
+
+enum CopyDirection: uint8 {
+    FROM,
+    TO,
+}
+
+enum CopyOption: uint8 {
+    BINARY,
+    CSV,
+    DELIMITER,
+    ENCODING,
+    ESCAPE,
+    FORCE_NOT_NULL,
+    FORCE_NULL,
+    FORCE_QUOTE,
+    FREEZE,
+    HEADER,
+    NULL_,
+    OIDS,
+    QUOTE,
+    SANITIZE,
+}
+
+enum CursorOption: uint8 {
+    BINARY,
+    INSENSITIVE,
+    NO_SCROLL,
+    SCROLL,
+}
+
+enum DatabaseCopyDirection: uint8 {
+    EXPORT,
+    IMPORT,
+}
+
+enum DatabaseLocality: uint8 {
+    LOCAL,
+    GLOBAL,
+}
+
+enum DatabaseOption: uint8 {
+    CONNECTION_LIMIT,
+    ENCODING,
+    LOCATION,
+    OWNER,
+    TABLESPACE,
+    TEMPLATE,
+}
+
+enum DefinitionType: uint8 {
+    AGGREGATE,
+    COLLATION,
+    DOMAIN,
+    ENUM,
+    OPERATOR,
+    RANGE,
+    STRUCT,
+    TEXT_SEARCH_DICTIONARY,
+    TEXT_SEARCH_CONFIGURATION,
+    TEXT_SEARCH_PARSER,
+    TEXT_SEARCH_TEMPLATE,
+    TYPE,
+}
+
+enum DropBehavior: uint8 {
+    CASCADE,
+    RESTRICT,
+}
+
+enum DropObjectType: uint8 {
+    COLLATION,
+    CONVERSION,
+    DOMAIN,
+    EVENT_TRIGGER,
+    EXTENSION,
+    EXTERNAL_STREAM,
+    EXTERNAL_TABLE,
+    FOREIGN_TABLE,
+    INDEX,
+    MATERIALIZED_VIEW,
+    SEQUENCE,
+    TYPE,
+}
+
+enum FetchDirection: uint8 {
+    NEXT,
+    PRIOR,
+    FIRST,
+    LAST,
+    ABSOLUTE,
+    RELATIVE,
+    FORWARD,
+    BACKWARD,
+}
+
+enum FunctionOption: uint8 {
+    CALLED_ON_NULL_INPUT,
+    STRICT,
+    IMMUTABLE,
+    STABLE,
+    VOLATILE,
+    SECURITY_DEFINER,
+    SECURITY_INVOKER,
+    LEAKPROOF,
+    NOT_LEAKPROOF,
+    COST,
+    ROWS,
+    SET,
+    AS,
+    LANGUAGE,
+    WINDOW,
+}
+
+enum FunctionParameterMode: uint8 {
+    OUT,
+    INOUT,
+    VARIADIC,
+    CONST,
+    CONSTREF,
+}
+
+enum GrantTargetType: uint8 {
+    DATABASE,
+    DOMAIN,
+    FOREIGN_DATA_WRAPPER,
+    FOREIGN_SERVER,
+    FUNCTION,
+    LANGUAGE,
+    LARGE_OBJECT,
+    RELATION,
+    SCHEMA,
+    SEQUENCE,
+    TABLESPACE,
+    TYPE,
+}
+
+enum JsonBehavior: uint8 {
+    NULL_,
+    ERROR,
+    TRUE,
+    FALSE,
+    UNKNOWN,
+    EMPTY_ARRAY,
+    EMPTY_OBJECT,
+    DEFAULT,
+}
+
+enum JsonWrapper: uint8 {
+    WITHOUT,
+    CONDITIONAL,
+    UNCONDITIONAL,
+}
+
+enum MergeAction: uint8 {
+    UPDATE,
+    DELETE,
+    INSERT,
+    DO_NOTHING,
+}
+
+enum MergeMatch: uint8 {
+    MATCHED,
+    NOT_MATCHED_BY_SOURCE,
+    NOT_MATCHED_BY_TARGET,
+}
+
+enum Privilege: uint8 {
+    ALL,
+    CREATE,
+    REFERENCES,
+    SELECT,
+}
+
+enum RenameObjectType: uint8 {
+    AGGREGATE,
+    COLLATION,
+    CONVERSION,
+    DATABASE,
+    DOMAIN,
+    DOMAIN_CONSTRAINT,
+    EVENT_TRIGGER,
+    FOREIGN_DATA_WRAPPER,
+    FOREIGN_TABLE,
+    FOREIGN_TABLE_COLUMN,
+    FUNCTION,
+    INDEX,
+    LANGUAGE,
+    MATERIALIZED_VIEW,
+    MATERIALIZED_VIEW_COLUMN,
+    OPERATOR_CLASS,
+    OPERATOR_FAMILY,
+    POLICY,
+    ROLE,
+    RULE,
+    SEQUENCE,
+    SERVER,
+    TABLESPACE,
+    TEXT_SEARCH_CONFIGURATION,
+    TEXT_SEARCH_DICTIONARY,
+    TEXT_SEARCH_PARSER,
+    TEXT_SEARCH_TEMPLATE,
+    TRIGGER,
+    TYPE,
+    TYPE_ATTRIBUTE,
+}
+
+enum RoleOption: uint8 {
+    IN_ROLE,
+    ADMIN,
+    CONNECTION_LIMIT,
+    INHERIT,
+    ROLE,
+    PASSWORD,
+    VALID_UNTIL,
+}
+
+enum RoleType: uint8 {
+    ROLE,
+    USER,
+    GROUP,
+}
+
+enum SequenceOption: uint8 {
+    AS,
+    CACHE,
+    CYCLE,
+    INCREMENT,
+    MAX_VALUE,
+    MIN_VALUE,
+    OWNED_BY,
+    RESTART,
+    START,
+}
+
+enum SessionParameter: uint8 {
+    ALL,
+    CATALOG,
+    CLIENT_ENCODING,
+    ROLE,
+    SCHEMA,
+    SESSION_AUTHORIZATION,
+    SESSION_CHARACTERISTICS,
+    TIME_ZONE,
+    TRANSACTION,
+    TRANSACTION_ISOLATION,
+    TRANSACTION_SNAPSHOT,
+}
+
+enum StreamType: uint8 {
+    BOUNDED,
+    BUFFERED,
+}
+
+enum TableLikeOption: uint8 {
+    DEFAULTS,
+    CONSTRAINTS,
+    INDEXES,
+    STORAGE,
+    COMMENTS,
+    ALL,
+}
+
+enum ZoneValueType: uint8 {
+    LITERAL,
+    INTERVAL,
+    NUMERIC,
+}

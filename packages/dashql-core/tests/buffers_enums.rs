@@ -11,7 +11,7 @@ use dashql_buffers::parser::{AttributeKey, Node, NodeType, SymbolSpan};
 #[test]
 fn node_type_markers() {
     assert_eq!(NodeType::ENUM_KEYS_.0, 10);
-    assert_eq!(NodeType::OBJECT_KEYS_.0, 43);
+    assert_eq!(NodeType::OBJECT_KEYS_.0, 70);
 }
 
 #[test]

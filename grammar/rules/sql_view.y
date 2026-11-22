@@ -11,7 +11,7 @@ CREATE_P sql_opt_temp sql_view_recursive VIEW sql_qualified_name sql_opt_column_
                 attr(Key::SQL_VIEW_COLUMNS, ctx.array(@6, $6)),
                 attr(Key::SQL_VIEW_OPTIONS, ctx.array(@7, $7)),
                 attr(Key::SQL_VIEW_STATEMENT, ctx.object(@9, NodeType::OBJECT_SQL_SELECT, $9)),
-                attr(Key::SQL_VIEW_CHECK, $10),
+                attr(Key::SQL_VIEW_CHECK_LOCAL, $10),
             ],
         )
     }
@@ -30,10 +30,15 @@ CREATE_P sql_opt_temp sql_view_recursive VIEW sql_qualified_name sql_opt_column_
                     Key::SQL_VIEW_STATEMENT,
                     ctx.object(@11, NodeType::OBJECT_SQL_SELECT, $11),
                 ),
-                attr(Key::SQL_VIEW_CHECK, $12),
+                attr(Key::SQL_VIEW_CHECK_LOCAL, $12),
             ],
         )
     }
     ;
 sql_view_recursive: RECURSIVE { bool_node(@$,true) } | %empty { null() };
-sql_view_check: WITH CHECK_P OPTION { ctx.name_from_keyword(@$,"cascaded") } | WITH CASCADED CHECK_P OPTION { ctx.name_from_keyword(@$,"cascaded") } | WITH LOCAL CHECK_P OPTION { ctx.name_from_keyword(@$,"local") } | %empty { null() };
+sql_view_check:
+    WITH CHECK_P OPTION { bool_node(@$, false) }
+  | WITH CASCADED CHECK_P OPTION { bool_node(@$, false) }
+  | WITH LOCAL CHECK_P OPTION { bool_node(@$, true) }
+  | %empty { null() }
+    ;

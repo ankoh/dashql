@@ -1,6 +1,9 @@
 use super::{parse, ParsedScript};
 use crate::scanner::scan;
-use dashql_buffers::parser::{AttributeKey as K, NodeType, StatementType};
+use dashql_buffers::parser::{
+    AttributeKey as K, DropObjectType, FetchDirection, GrantTargetType, JsonBehavior, MergeAction, MergeMatch,
+    NodeType, SequenceOption, SessionParameter, StatementType,
+};
 use std::sync::Arc;
 
 fn parse_sql(sql: &str) -> ParsedScript {
@@ -168,6 +171,19 @@ fn field<'a>(
         .unwrap_or_else(|| panic!("missing {key:?} in {node:?}"))
 }
 
+/// The value of an enum node of a type
+fn enum_value(node: &dashql_buffers::parser::Node, node_type: NodeType) -> u8 {
+    assert_eq!(node.node_type(), node_type);
+    node.children_begin_or_value() as u8
+}
+
+/// Is a boolean attribute set?
+fn flag(parsed: &ParsedScript, node: &dashql_buffers::parser::Node, key: K) -> bool {
+    let value = field(parsed, node, key);
+    assert_eq!(value.node_type(), NodeType::BOOL);
+    value.children_begin_or_value() != 0
+}
+
 fn keyword<'a>(parsed: &'a ParsedScript, node: &dashql_buffers::parser::Node) -> &'a str {
     assert_eq!(node.node_type(), NodeType::NAME);
     &parsed.scanned.names.get(node.children_begin_or_value()).text
@@ -206,12 +222,12 @@ fn update_has_target_assignments_ctes_and_returning() {
     let assignments = parsed.children(field(&parsed, update, K::SQL_UPDATE_ASSIGNMENTS));
     assert_eq!(assignments.len(), 2);
     assert_eq!(assignments[0].node_type(), NodeType::OBJECT_SQL_ASSIGNMENT);
-    assert_eq!(keyword(&parsed, field(&parsed, &assignments[0], K::SQL_ASSIGNMENT_KIND)), "single");
+    assert!(!parsed.children(&assignments[0]).iter().any(|n| n.attribute_key() == K::SQL_ASSIGNMENT_MULTIPLE));
     assert_eq!(
         field(&parsed, &assignments[0], K::SQL_ASSIGNMENT_VALUE).node_type(),
         NodeType::OBJECT_SQL_NARY_EXPRESSION
     );
-    assert_eq!(keyword(&parsed, field(&parsed, &assignments[1], K::SQL_ASSIGNMENT_KIND)), "multiple");
+    assert!(flag(&parsed, &assignments[1], K::SQL_ASSIGNMENT_MULTIPLE));
     assert_eq!(parsed.children(field(&parsed, &assignments[1], K::SQL_ASSIGNMENT_COLUMNS)).len(), 2);
     assert_eq!(parsed.children(field(&parsed, update, K::SQL_UPDATE_FROM)).len(), 1);
     assert_eq!(parsed.children(field(&parsed, update, K::SQL_UPDATE_RETURNING)).len(), 1);
@@ -226,15 +242,17 @@ fn merge_preserves_match_kinds_conditions_and_actions() {
     let clauses = parsed.children(field(&parsed, merge, K::SQL_MERGE_CLAUSES));
     assert_eq!(clauses.len(), 3);
     for (clause, kind, action) in [
-        (&clauses[0], "matched", "update"),
-        (&clauses[1], "notmatchedbysource", "delete"),
-        (&clauses[2], "notmatchedbytarget", "insert"),
+        (&clauses[0], MergeMatch::MATCHED, MergeAction::UPDATE),
+        (&clauses[1], MergeMatch::NOT_MATCHED_BY_SOURCE, MergeAction::DELETE),
+        (&clauses[2], MergeMatch::NOT_MATCHED_BY_TARGET, MergeAction::INSERT),
     ] {
         assert_eq!(clause.node_type(), NodeType::OBJECT_SQL_MERGE_WHEN_CLAUSE);
-        assert_eq!(keyword(&parsed, field(&parsed, clause, K::SQL_MERGE_WHEN_CLAUSE_KIND)), kind);
+        let kind_node = field(&parsed, clause, K::SQL_MERGE_WHEN_CLAUSE_KIND);
+        assert_eq!(MergeMatch(enum_value(kind_node, NodeType::ENUM_SQL_MERGE_MATCH)), kind);
         let value = field(&parsed, clause, K::SQL_MERGE_WHEN_CLAUSE_ACTION);
         assert_eq!(value.node_type(), NodeType::OBJECT_SQL_MERGE_ACTION);
-        assert_eq!(keyword(&parsed, field(&parsed, value, K::SQL_MERGE_ACTION_KIND)), action);
+        let action_node = field(&parsed, value, K::SQL_MERGE_ACTION_KIND);
+        assert_eq!(MergeAction(enum_value(action_node, NodeType::ENUM_SQL_MERGE_ACTION)), action);
     }
     assert_eq!(parsed.node_text(field(&parsed, &clauses[0], K::SQL_MERGE_WHEN_CLAUSE_CONDITION)), "u.y > 0");
 }
@@ -267,10 +285,12 @@ fn json_value_has_input_path_return_type_and_behavior_fields() {
     assert_eq!(field(&parsed, value, K::SQL_JSON_RETURNING).node_type(), NodeType::OBJECT_SQL_TYPENAME);
     let behaviors = field(&parsed, value, K::SQL_JSON_BEHAVIORS);
     let empty = field(&parsed, behaviors, K::SQL_JSON_ON_EMPTY);
-    assert_eq!(keyword(&parsed, field(&parsed, empty, K::SQL_JSON_BEHAVIOR_KIND)), "default");
+    let kind = field(&parsed, empty, K::SQL_JSON_BEHAVIOR_KIND);
+    assert_eq!(JsonBehavior(enum_value(kind, NodeType::ENUM_SQL_JSON_BEHAVIOR)), JsonBehavior::DEFAULT);
     assert_eq!(parsed.node_text(field(&parsed, empty, K::SQL_JSON_BEHAVIOR_DEFAULT)), "0");
     let error = field(&parsed, behaviors, K::SQL_JSON_ON_ERROR);
-    assert_eq!(keyword(&parsed, field(&parsed, error, K::SQL_JSON_BEHAVIOR_KIND)), "error");
+    let kind = field(&parsed, error, K::SQL_JSON_BEHAVIOR_KIND);
+    assert_eq!(JsonBehavior(enum_value(kind, NodeType::ENUM_SQL_JSON_BEHAVIOR)), JsonBehavior::ERROR);
 }
 
 #[test]
@@ -323,4 +343,49 @@ fn external_stream_cardinality_is_a_numeric_expression() {
     let cardinality = field(&parsed, stream, K::SQL_EXTERNAL_STREAM_CARDINALITY);
     assert_eq!(cardinality.node_type(), NodeType::LITERAL_FLOAT);
     assert_eq!(parsed.node_text(cardinality), "12.5");
+}
+
+#[test]
+fn command_kinds_are_enums_and_flags() {
+    // DROP INDEX CONCURRENTLY IF EXISTS splits into its object type and two flags
+    let parsed = valid_sql("DROP INDEX CONCURRENTLY IF EXISTS i CASCADE");
+    let drop = root(&parsed);
+    assert_eq!(drop.node_type(), NodeType::OBJECT_SQL_DROP);
+    let object_type = field(&parsed, drop, K::SQL_DROP_TYPE);
+    assert_eq!(DropObjectType(enum_value(object_type, NodeType::ENUM_SQL_DROP_OBJECT_TYPE)), DropObjectType::INDEX);
+    assert!(flag(&parsed, drop, K::SQL_DROP_CONCURRENTLY));
+    assert!(flag(&parsed, drop, K::SQL_DROP_IF_EXISTS));
+
+    // FETCH BACKWARD ALL is a direction with the ALL flag, MOVE a flag of the FETCH
+    let parsed = valid_sql("MOVE BACKWARD ALL FROM c");
+    let fetch = root(&parsed);
+    assert!(flag(&parsed, fetch, K::SQL_FETCH_MOVE));
+    let direction = field(&parsed, fetch, K::SQL_FETCH_DIRECTION);
+    let kind = field(&parsed, direction, K::SQL_FETCH_DIRECTION_KIND);
+    assert_eq!(FetchDirection(enum_value(kind, NodeType::ENUM_SQL_FETCH_DIRECTION)), FetchDirection::BACKWARD);
+    assert!(flag(&parsed, direction, K::SQL_FETCH_DIRECTION_ALL));
+
+    // GRANT ON ALL TABLES IN SCHEMA is a relation target with the ALL IN SCHEMA flag
+    let parsed = valid_sql("GRANT SELECT ON ALL TABLES IN SCHEMA s TO r");
+    let target = field(&parsed, root(&parsed), K::SQL_GRANT_TARGET);
+    let kind = field(&parsed, target, K::SQL_GRANT_TARGET_KIND);
+    assert_eq!(GrantTargetType(enum_value(kind, NodeType::ENUM_SQL_GRANT_TARGET_TYPE)), GrantTargetType::RELATION);
+    assert!(flag(&parsed, target, K::SQL_GRANT_TARGET_ALL_IN_SCHEMA));
+
+    // NO MAXVALUE is the MAXVALUE option with the NO flag
+    let parsed = valid_sql("CREATE SEQUENCE s NO MAXVALUE");
+    let options = parsed.children(field(&parsed, root(&parsed), K::SQL_CREATE_SEQUENCE_OPTIONS));
+    let kind = field(&parsed, &options[0], K::SQL_SEQUENCE_OPTION_KIND);
+    assert_eq!(SequenceOption(enum_value(kind, NodeType::ENUM_SQL_SEQUENCE_OPTION)), SequenceOption::MAX_VALUE);
+    assert!(flag(&parsed, &options[0], K::SQL_SEQUENCE_OPTION_NO));
+
+    // SHOW TIME ZONE names the parameter, SET x TO DEFAULT is a flag
+    let parsed = valid_sql("SHOW TIME ZONE");
+    let parameter = field(&parsed, root(&parsed), K::SQL_SHOW_PARAMETER);
+    assert_eq!(
+        SessionParameter(enum_value(parameter, NodeType::ENUM_SQL_SESSION_PARAMETER)),
+        SessionParameter::TIME_ZONE
+    );
+    let parsed = valid_sql("SET search_path TO DEFAULT");
+    assert!(flag(&parsed, root(&parsed), K::SQL_SET_DEFAULT));
 }

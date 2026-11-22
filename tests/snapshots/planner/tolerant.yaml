@@ -28,7 +28,7 @@ planner-snapshots:
           analyzed-catalog-revision: 2
           cacheable: false
           terminal-statement-id: 0
-          signature: "d5b516a8db7c8355697b0c90a1fbc11e"
+          signature: "528960889b61828d8aca92dacac02052"
         - name: stale
           text-version: 2
           analyzed-text-version: 1
@@ -40,7 +40,7 @@ planner-snapshots:
           analyzed-catalog-revision: 2
           cacheable: true
           terminal-statement-id: 0
-          signature: "c11aa6fff24d6080415e60895e8aeb29"
+          signature: "3b8cfae5ed6139d42778e3ea9727ce95"
           references: [stale]
         - name: unknown
           text-version: 1
@@ -48,14 +48,14 @@ planner-snapshots:
           analyzed-catalog-revision: 2
           cacheable: true
           terminal-statement-id: 0
-          signature: "c5f3db00f066ac76a809216e21bb4ed7"
+          signature: "e8294c1e0c885a3b00bf6964082f6704"
         - name: report
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 2
           cacheable: true
           terminal-statement-id: 0
-          signature: "b880ede1f34cb3a7dde013be66433550"
+          signature: "fa52c266df3003bce12ea88308265405"
       entities:
         - catalog-id: '256.65536.4294967296'
           type: TABLE
@@ -151,21 +151,21 @@ planner-snapshots:
           analyzed-catalog-revision: 2
           cacheable: false
           terminal-statement-id: 1
-          signature: "61a382ca4ffce4515d2c811a968cc3ef"
+          signature: "78b9c5c36399bbb8f655e76a6d658040"
         - name: report
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 2
           cacheable: true
           terminal-statement-id: 0
-          signature: "c4016b94abfa8ff83756947efb489aa9"
+          signature: "83535331750a8a5f217be1181659b5d0"
         - name: chart
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 2
           cacheable: true
           terminal-statement-id: 0
-          signature: "86374731db672633309913d36a3cd4f4"
+          signature: "c3384fd1667aa8ac47f87842712e45e1"
           references: [report]
       entities:
         - catalog-id: '256.65536.4294967296'

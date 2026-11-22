@@ -38,7 +38,7 @@ planner-snapshots:
           analyzed-catalog-revision: 2
           cacheable: false
           terminal-statement-id: 0
-          signature: "706088f41eed3ea104baff429b34c3a2"
+          signature: "82ea48956e87e061ee3e12c9bf3f7206"
         - name: remote
           connection: trino
           text-version: 1
@@ -46,7 +46,7 @@ planner-snapshots:
           analyzed-catalog-revision: 2
           cacheable: true
           terminal-statement-id: 0
-          signature: "ec2b7dd30034b40e90c227cc3ebef08b"
+          signature: "d1cd4c1456c7e5ad31286f268d043c12"
         - name: report
           connection: local
           text-version: 1
@@ -54,7 +54,7 @@ planner-snapshots:
           analyzed-catalog-revision: 2
           cacheable: true
           terminal-statement-id: 0
-          signature: "786497d821bdd25e11a6d135d03bd6ff"
+          signature: "39a85fa0256ff2c1f1e122ccdacf93b2"
       entities:
         - catalog-id: 'local/256.65536.4294967296'
           type: TABLE
@@ -142,7 +142,7 @@ planner-snapshots:
           analyzed-catalog-revision: 1
           cacheable: true
           terminal-statement-id: 0
-          signature: "b11646388411378d9b700ff6ce8b9df6"
+          signature: "dcba6b850a1aeb40b28084b52ca20db5"
         - name: remote
           connection: trino
           text-version: 1
@@ -150,7 +150,7 @@ planner-snapshots:
           analyzed-catalog-revision: 2
           cacheable: true
           terminal-statement-id: 0
-          signature: "ec2b7dd30034b40e90c227cc3ebef08b"
+          signature: "d1cd4c1456c7e5ad31286f268d043c12"
         - name: after
           connection: local
           text-version: 1
@@ -158,7 +158,7 @@ planner-snapshots:
           analyzed-catalog-revision: 1
           cacheable: true
           terminal-statement-id: 0
-          signature: "7644bf709ae2e17ccb4f32e7abe480fd"
+          signature: "f2e2239fef76989d37844d48087b12d2"
       entities:
         - catalog-id: 'trino/256.65536.4294967296'
           type: TABLE
@@ -243,7 +243,7 @@ planner-snapshots:
           analyzed-catalog-revision: 1
           cacheable: true
           terminal-statement-id: 0
-          signature: "7644bf709ae2e17ccb4f32e7abe480fd"
+          signature: "f2e2239fef76989d37844d48087b12d2"
         - name: drops
           connection: trino
           text-version: 1
@@ -251,7 +251,7 @@ planner-snapshots:
           analyzed-catalog-revision: 2
           cacheable: false
           terminal-statement-id: 0
-          signature: "5805cdb321df575b7e124b8dcd4a7f34"
+          signature: "1d8dc3a6e13372c6c2b9dfa8128e2777"
       entities:
         - catalog-id: 'trino/256.65536.4294967296'
           type: TABLE
@@ -320,7 +320,7 @@ planner-snapshots:
           analyzed-catalog-revision: 2
           cacheable: false
           terminal-statement-id: 0
-          signature: "d5b516a8db7c8355697b0c90a1fbc11e"
+          signature: "528960889b61828d8aca92dacac02052"
         - name: create_remote
           connection: trino
           text-version: 1
@@ -328,7 +328,7 @@ planner-snapshots:
           analyzed-catalog-revision: 2
           cacheable: false
           terminal-statement-id: 0
-          signature: "d5b516a8db7c8355697b0c90a1fbc11e"
+          signature: "528960889b61828d8aca92dacac02052"
         - name: read_local
           connection: local
           text-version: 1
@@ -336,7 +336,7 @@ planner-snapshots:
           analyzed-catalog-revision: 2
           cacheable: true
           terminal-statement-id: 0
-          signature: "8954d003ae757b9f6ab7d60520a7c3a8"
+          signature: "3b35cda38a07fb69afbe0b468a89a70a"
         - name: read_remote
           connection: trino
           text-version: 1
@@ -344,7 +344,7 @@ planner-snapshots:
           analyzed-catalog-revision: 2
           cacheable: true
           terminal-statement-id: 0
-          signature: "8954d003ae757b9f6ab7d60520a7c3a8"
+          signature: "3b35cda38a07fb69afbe0b468a89a70a"
       entities:
         - catalog-id: 'local/256.65536.4294967296'
           type: TABLE
@@ -446,7 +446,7 @@ planner-snapshots:
           analyzed-catalog-revision: 3
           cacheable: true
           terminal-statement-id: 0
-          signature: "78d563f01ab08d0b29f812d86149d698"
+          signature: "19209f139a85b1734b6f2507f062bf6c"
         - name: rebuild
           connection: hyper
           text-version: 1
@@ -454,7 +454,7 @@ planner-snapshots:
           analyzed-catalog-revision: 3
           cacheable: false
           terminal-statement-id: 1
-          signature: "4554b1f382a01c2a8a6814a30dcba59e"
+          signature: "30e018d682c9bc068598cc14c87d048e"
         - name: after
           connection: hyper
           text-version: 1
@@ -462,7 +462,7 @@ planner-snapshots:
           analyzed-catalog-revision: 3
           cacheable: true
           terminal-statement-id: 0
-          signature: "6066b5c74fe8d48d65c858f15f40453a"
+          signature: "73d76a8c0d7103a2cbf51d27a674b3db"
       entities:
         - catalog-id: 'hyper/256.65536.4294967296'
           type: TABLE

@@ -7,7 +7,7 @@ parser-snapshots:
       statements:
         - type: UPDATE
           ast-begin: 0
-          ast-size: 14
+          ast-size: 13
           description:
             text: "UPDATE t S..TURNING x;"
             description-begin: 0
@@ -33,9 +33,6 @@ parser-snapshots:
                   - type: OBJECT_SQL_ASSIGNMENT
                     text: "x = 1"
                     children:
-                      - key: SQL_ASSIGNMENT_KIND
-                        type: NAME
-                        text: "x = 1"
                       - key: SQL_ASSIGNMENT_COLUMNS
                         type: NAME
                         text: "x"
@@ -107,9 +104,9 @@ parser-snapshots:
             type: OBJECT_SQL_COPY
             text: "COPY (SELE..)) TO NULL"
             children:
-              - key: SQL_COPY_KIND
-                type: NAME
-                text: "COPY (SELE..)) TO NULL"
+              - key: SQL_COPY_DIRECTION
+                type: ENUM_SQL_COPY_DIRECTION
+                value: TO
               - key: SQL_COPY_QUERY
                 type: OBJECT_SQL_SELECT
                 text: "(SELECT JS..wer': 42))"
@@ -190,7 +187,7 @@ parser-snapshots:
       statements:
         - type: MERGE
           ast-begin: 0
-          ast-size: 51
+          ast-size: 50
           description:
             text: "MERGE INTO..(u.x,u.y);"
             description-begin: 0
@@ -260,15 +257,15 @@ parser-snapshots:
                     text: "WHEN MATCH.. SET y=u.y"
                     children:
                       - key: SQL_MERGE_WHEN_CLAUSE_KIND
-                        type: NAME
-                        text: "WHEN MATCH.. SET y=u.y"
+                        type: ENUM_SQL_MERGE_MATCH
+                        value: MATCHED
                       - key: SQL_MERGE_WHEN_CLAUSE_ACTION
                         type: OBJECT_SQL_MERGE_ACTION
                         text: "UPDATE SET y=u.y"
                         children:
                           - key: SQL_MERGE_ACTION_KIND
-                            type: NAME
-                            text: "UPDATE SET y=u.y"
+                            type: ENUM_SQL_MERGE_ACTION
+                            value: UPDATE
                           - key: SQL_MERGE_ACTION_TARGET
                             type: ARRAY
                             text: "y=u.y"
@@ -276,9 +273,6 @@ parser-snapshots:
                               - type: OBJECT_SQL_ASSIGNMENT
                                 text: "y=u.y"
                                 children:
-                                  - key: SQL_ASSIGNMENT_KIND
-                                    type: NAME
-                                    text: "y=u.y"
                                   - key: SQL_ASSIGNMENT_COLUMNS
                                     type: NAME
                                     text: "y"
@@ -298,28 +292,28 @@ parser-snapshots:
                     text: "WHEN NOT M..HEN DELETE"
                     children:
                       - key: SQL_MERGE_WHEN_CLAUSE_KIND
-                        type: NAME
-                        text: "WHEN NOT M..HEN DELETE"
+                        type: ENUM_SQL_MERGE_MATCH
+                        value: NOT_MATCHED_BY_SOURCE
                       - key: SQL_MERGE_WHEN_CLAUSE_ACTION
                         type: OBJECT_SQL_MERGE_ACTION
                         text: "DELETE"
                         children:
                           - key: SQL_MERGE_ACTION_KIND
-                            type: NAME
-                            text: "DELETE"
+                            type: ENUM_SQL_MERGE_ACTION
+                            value: DELETE
                   - type: OBJECT_SQL_MERGE_WHEN_CLAUSE
                     text: "WHEN NOT M.. (u.x,u.y)"
                     children:
                       - key: SQL_MERGE_WHEN_CLAUSE_KIND
-                        type: NAME
-                        text: "WHEN NOT M.. (u.x,u.y)"
+                        type: ENUM_SQL_MERGE_MATCH
+                        value: NOT_MATCHED_BY_TARGET
                       - key: SQL_MERGE_WHEN_CLAUSE_ACTION
                         type: OBJECT_SQL_MERGE_ACTION
                         text: "INSERT (x,.. (u.x,u.y)"
                         children:
                           - key: SQL_MERGE_ACTION_KIND
-                            type: NAME
-                            text: "INSERT (x,.. (u.x,u.y)"
+                            type: ENUM_SQL_MERGE_ACTION
+                            value: INSERT
                           - key: SQL_MERGE_ACTION_COLUMNS
                             type: ARRAY
                             text: "x,y"
@@ -368,7 +362,7 @@ parser-snapshots:
       statements:
         - type: PREPARE
           ast-begin: 0
-          ast-size: 22
+          ast-size: 21
           description:
             text: "PREPARE p(..TURNING x;"
             description-begin: 0
@@ -411,9 +405,6 @@ parser-snapshots:
                       - type: OBJECT_SQL_ASSIGNMENT
                         text: "x=$1"
                         children:
-                          - key: SQL_ASSIGNMENT_KIND
-                            type: NAME
-                            text: "x=$1"
                           - key: SQL_ASSIGNMENT_COLUMNS
                             type: NAME
                             text: "x"
@@ -461,7 +452,7 @@ parser-snapshots:
       statements:
         - type: SET
           ast-begin: 0
-          ast-size: 8
+          ast-size: 7
           description:
             text: "SET LOCAL .. TO 'UTC';"
             description-begin: 0
@@ -477,9 +468,6 @@ parser-snapshots:
                 type: OBJECT_SQL_SET
                 text: "timezone TO 'UTC'"
                 children:
-                  - key: SQL_SET_KIND
-                    type: NAME
-                    text: "timezone TO 'UTC'"
                   - key: SQL_SET_NAME
                     type: ARRAY
                     text: "timezone"
@@ -565,8 +553,8 @@ parser-snapshots:
                     text: "LANGUAGE SQL"
                     children:
                       - key: SQL_CREATE_FUNCTION_OPTION_KIND
-                        type: NAME
-                        text: "LANGUAGE SQL"
+                        type: ENUM_SQL_FUNCTION_OPTION
+                        value: LANGUAGE
                       - key: SQL_CREATE_FUNCTION_OPTION_VALUE
                         type: NAME
                         text: "SQL"
@@ -574,8 +562,8 @@ parser-snapshots:
                     text: "AS 'select x'"
                     children:
                       - key: SQL_CREATE_FUNCTION_OPTION_KIND
-                        type: NAME
-                        text: "AS 'select x'"
+                        type: ENUM_SQL_FUNCTION_OPTION
+                        value: AS
                       - key: SQL_CREATE_FUNCTION_OPTION_VALUE
                         type: ARRAY
                         text: "'select x'"
@@ -652,8 +640,8 @@ parser-snapshots:
                                 text: "DEFAULT 0"
                                 children:
                                   - key: SQL_JSON_BEHAVIOR_KIND
-                                    type: NAME
-                                    text: "DEFAULT"
+                                    type: ENUM_SQL_JSON_BEHAVIOR
+                                    value: DEFAULT
                                   - key: SQL_JSON_BEHAVIOR_DEFAULT
                                     type: LITERAL_INTEGER
                                     text: "0"
@@ -662,8 +650,8 @@ parser-snapshots:
                                 text: "ERROR"
                                 children:
                                   - key: SQL_JSON_BEHAVIOR_KIND
-                                    type: NAME
-                                    text: "ERROR"
+                                    type: ENUM_SQL_JSON_BEHAVIOR
+                                    value: ERROR
               - key: SQL_SELECT_FROM
                 type: ARRAY
                 text: "FROM t"
@@ -1055,7 +1043,7 @@ parser-snapshots:
       statements:
         - type: CREATE_DATABASE
           ast-begin: 0
-          ast-size: 4
+          ast-size: 3
           description:
             text: "CREATE DATABASE db;"
             description-begin: 0
@@ -1065,12 +1053,8 @@ parser-snapshots:
             text: "CREATE DATABASE db"
             children:
               - key: SQL_CREATE_DATABASE_LOCALITY
-                type: OBJECT_SQL_DB_LOCALITY
-                text: ""
-                children:
-                  - key: SQL_DB_LOCALITY_KIND
-                    type: NAME
-                    text: ""
+                type: ENUM_SQL_DATABASE_LOCALITY
+                value: GLOBAL
               - key: SQL_CREATE_DATABASE_NAME
                 type: NAME
                 text: "db"
@@ -1088,7 +1072,7 @@ parser-snapshots:
       statements:
         - type: DECLARE_CURSOR
           ast-begin: 0
-          ast-size: 15
+          ast-size: 14
           description:
             text: "DECLARE c .. x FROM t;"
             description-begin: 0
@@ -1104,12 +1088,8 @@ parser-snapshots:
                 type: ARRAY
                 text: "SCROLL"
                 children:
-                  - type: OBJECT_SQL_CURSOR_OPTION
-                    text: "SCROLL"
-                    children:
-                      - key: SQL_CURSOR_OPTION_KIND
-                        type: NAME
-                        text: "SCROLL"
+                  - type: ENUM_SQL_CURSOR_OPTION
+                    value: SCROLL
               - key: SQL_DECLARE_CURSOR_QUERY
                 type: OBJECT_SQL_SELECT
                 text: "SELECT x FROM t"

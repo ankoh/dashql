@@ -574,7 +574,7 @@ sql_table_like_option: INCLUDING sql_table_like_kind {
             @$,
             NodeType::OBJECT_SQL_TABLE_LIKE_OPTION,
             &[
-                attr(Key::SQL_TABLE_LIKE_OPTION_NAME, $2),
+                attr(Key::SQL_TABLE_LIKE_OPTION_KIND, $2),
                 attr(Key::SQL_TABLE_LIKE_OPTION_INCLUDE, bool_node(@1, true)),
             ],
         )
@@ -583,9 +583,16 @@ sql_table_like_option: INCLUDING sql_table_like_kind {
             @$,
             NodeType::OBJECT_SQL_TABLE_LIKE_OPTION,
             &[
-                attr(Key::SQL_TABLE_LIKE_OPTION_NAME, $2),
+                attr(Key::SQL_TABLE_LIKE_OPTION_KIND, $2),
                 attr(Key::SQL_TABLE_LIKE_OPTION_INCLUDE, bool_node(@1, false)),
             ],
         )
     };
-sql_table_like_kind: DEFAULTS { ctx.name_from_keyword(@1,$1) } | CONSTRAINTS { ctx.name_from_keyword(@1,$1) } | INDEXES { ctx.name_from_keyword(@1,$1) } | STORAGE { ctx.name_from_keyword(@1,$1) } | COMMENTS { ctx.name_from_keyword(@1,$1) } | ALL { ctx.name_from_keyword(@1,$1) };
+sql_table_like_kind:
+    DEFAULTS { enum_node(@1, TableLikeOption::DEFAULTS) }
+  | CONSTRAINTS { enum_node(@1, TableLikeOption::CONSTRAINTS) }
+  | INDEXES { enum_node(@1, TableLikeOption::INDEXES) }
+  | STORAGE { enum_node(@1, TableLikeOption::STORAGE) }
+  | COMMENTS { enum_node(@1, TableLikeOption::COMMENTS) }
+  | ALL { enum_node(@1, TableLikeOption::ALL) }
+    ;

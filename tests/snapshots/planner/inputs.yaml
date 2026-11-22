@@ -23,7 +23,7 @@ planner-snapshots:
           analyzed-catalog-revision: 2
           cacheable: true
           terminal-statement-id: 0
-          signature: "5b84e1c5cfb15585ab24c85528b92a72\n:day=date '2024-01-01'\n:delta=-2\n:min=10\n:open=true\n:region='EU'\n:span=interval '3' day"
+          signature: "b0fae73f5db45062d9ae495fe16858b3\n:day=date '2024-01-01'\n:delta=-2\n:min=10\n:open=true\n:region='EU'\n:span=interval '3' day"
       entities:
         - catalog-id: '256.65536.4294967296'
           type: TABLE
@@ -64,7 +64,7 @@ planner-snapshots:
           analyzed-catalog-revision: 2
           cacheable: true
           terminal-statement-id: 0
-          signature: "d30363be382e6d539918271865edd918\n:day='2024-01-01'\n:min='10'"
+          signature: "ded8e0d965d769a405c03efeef725f81\n:day='2024-01-01'\n:min='10'"
       entities:
         - catalog-id: '256.65536.4294967296'
           type: TABLE
@@ -102,7 +102,7 @@ planner-snapshots:
           analyzed-catalog-revision: 2
           cacheable: true
           terminal-statement-id: 0
-          signature: "c062304cb07401d886d38f3c1fe67cd9"
+          signature: "8c818840a422fae9f0bfd48bc8699782"
       entities:
         - catalog-id: '256.65536.4294967296'
           type: TABLE
@@ -157,21 +157,21 @@ planner-snapshots:
           analyzed-catalog-revision: 2
           cacheable: true
           terminal-statement-id: 0
-          signature: "e9a77435558731956b69bacb8184ef5e\n:min=10"
+          signature: "11bbc198ae771a1703b978f786c1dd80\n:min=10"
         - name: b
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 2
           cacheable: true
           terminal-statement-id: 0
-          signature: "e9a77435558731956b69bacb8184ef5e\n:min=10"
+          signature: "11bbc198ae771a1703b978f786c1dd80\n:min=10"
         - name: c
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 2
           cacheable: true
           terminal-statement-id: 0
-          signature: "e9a77435558731956b69bacb8184ef5e\n:min=30"
+          signature: "11bbc198ae771a1703b978f786c1dd80\n:min=30"
       entities:
         - catalog-id: '256.65536.4294967296'
           type: TABLE
@@ -237,14 +237,14 @@ planner-snapshots:
           analyzed-catalog-revision: 2
           cacheable: true
           terminal-statement-id: 0
-          signature: "18831175ecec23e65dfc835f4214b60b\n:day=date '2024-02-01'\n:min=10\n:span=interval '3' day"
+          signature: "2ee49e5dba8905562547809e8062c8b7\n:day=date '2024-02-01'\n:min=10\n:span=interval '3' day"
         - name: bar
           text-version: 1
           analyzed-text-version: 1
           analyzed-catalog-revision: 2
           cacheable: true
           terminal-statement-id: 0
-          signature: "19cf4e0019ca8eddfdcd4f32cb3e0716\n:limit=5"
+          signature: "1eb88cd0e5c10d28223b70fadc087d1d\n:limit=5"
           references: [foo]
       entities:
         - catalog-id: '256.65536.4294967296'
@@ -323,7 +323,7 @@ planner-snapshots:
           analyzed-catalog-revision: 2
           cacheable: true
           terminal-statement-id: 0
-          signature: "f9ef8699632bb267b9dfbeee73546030\n:day=date '2024-01-01'\n:name='it''s'\n:span=interval '26' hour"
+          signature: "57a791331afb1a545a563c1a5eec83b5\n:day=date '2024-01-01'\n:name='it''s'\n:span=interval '26' hour"
       entities:
         - catalog-id: 'trino/256.65536.4294967296'
           type: TABLE
@@ -372,7 +372,7 @@ planner-snapshots:
           analyzed-catalog-revision: 2
           cacheable: true
           terminal-statement-id: 0
-          signature: "e5269232c2e38f233b208ddafc640d70"
+          signature: "ed640f36681c7b90f76ac9665e01c7ed"
       entities:
         - catalog-id: 'trino/256.65536.4294967296'
           type: TABLE

@@ -136,14 +136,14 @@ sql_json_returning:
   | %empty { null() }
     ;
 sql_json_wrapper:
-    WITHOUT WRAPPER { ctx.name_from_keyword(@$,"without") }
-  | WITHOUT ARRAY_LA WRAPPER { ctx.name_from_keyword(@$,"without") }
-  | WITH WRAPPER { ctx.name_from_keyword(@$,"with") }
-  | WITH ARRAY_LA WRAPPER { ctx.name_from_keyword(@$,"with") }
-  | WITH CONDITIONAL ARRAY_LA WRAPPER { ctx.name_from_keyword(@$,"conditional") }
-  | WITH UNCONDITIONAL ARRAY_LA WRAPPER { ctx.name_from_keyword(@$,"unconditional") }
-  | WITH CONDITIONAL WRAPPER { ctx.name_from_keyword(@$,"conditional") }
-  | WITH UNCONDITIONAL WRAPPER { ctx.name_from_keyword(@$,"unconditional") }
+    WITHOUT WRAPPER { enum_node(@$, JsonWrapper::WITHOUT) }
+  | WITHOUT ARRAY_LA WRAPPER { enum_node(@$, JsonWrapper::WITHOUT) }
+  | WITH WRAPPER { enum_node(@$, JsonWrapper::UNCONDITIONAL) }
+  | WITH ARRAY_LA WRAPPER { enum_node(@$, JsonWrapper::UNCONDITIONAL) }
+  | WITH CONDITIONAL ARRAY_LA WRAPPER { enum_node(@$, JsonWrapper::CONDITIONAL) }
+  | WITH UNCONDITIONAL ARRAY_LA WRAPPER { enum_node(@$, JsonWrapper::UNCONDITIONAL) }
+  | WITH CONDITIONAL WRAPPER { enum_node(@$, JsonWrapper::CONDITIONAL) }
+  | WITH UNCONDITIONAL WRAPPER { enum_node(@$, JsonWrapper::UNCONDITIONAL) }
   | %empty { null() }
     ;
 sql_json_quotes:
@@ -157,49 +157,49 @@ sql_json_behavior:
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_JSON_BEHAVIOR,
-            &[attr(Key::SQL_JSON_BEHAVIOR_KIND, ctx.name_from_keyword(@$, "null"))],
+            &[attr(Key::SQL_JSON_BEHAVIOR_KIND, enum_node(@$, JsonBehavior::NULL_))],
         )
     }
   | ERROR_P {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_JSON_BEHAVIOR,
-            &[attr(Key::SQL_JSON_BEHAVIOR_KIND, ctx.name_from_keyword(@$, "error"))],
+            &[attr(Key::SQL_JSON_BEHAVIOR_KIND, enum_node(@$, JsonBehavior::ERROR))],
         )
     }
   | TRUE_P {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_JSON_BEHAVIOR,
-            &[attr(Key::SQL_JSON_BEHAVIOR_KIND, ctx.name_from_keyword(@$, "true"))],
+            &[attr(Key::SQL_JSON_BEHAVIOR_KIND, enum_node(@$, JsonBehavior::TRUE))],
         )
     }
   | FALSE_P {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_JSON_BEHAVIOR,
-            &[attr(Key::SQL_JSON_BEHAVIOR_KIND, ctx.name_from_keyword(@$, "false"))],
+            &[attr(Key::SQL_JSON_BEHAVIOR_KIND, enum_node(@$, JsonBehavior::FALSE))],
         )
     }
   | UNKNOWN {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_JSON_BEHAVIOR,
-            &[attr(Key::SQL_JSON_BEHAVIOR_KIND, ctx.name_from_keyword(@$, "unknown"))],
+            &[attr(Key::SQL_JSON_BEHAVIOR_KIND, enum_node(@$, JsonBehavior::UNKNOWN))],
         )
     }
   | EMPTY ARRAY {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_JSON_BEHAVIOR,
-            &[attr(Key::SQL_JSON_BEHAVIOR_KIND, ctx.name_from_keyword(@$, "empty array"))],
+            &[attr(Key::SQL_JSON_BEHAVIOR_KIND, enum_node(@$, JsonBehavior::EMPTY_ARRAY))],
         )
     }
   | EMPTY OBJECT_P {
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_JSON_BEHAVIOR,
-            &[attr(Key::SQL_JSON_BEHAVIOR_KIND, ctx.name_from_keyword(@$, "empty object"))],
+            &[attr(Key::SQL_JSON_BEHAVIOR_KIND, enum_node(@$, JsonBehavior::EMPTY_OBJECT))],
         )
     }
   | DEFAULT sql_a_expr {
@@ -207,7 +207,7 @@ sql_json_behavior:
             @$,
             NodeType::OBJECT_SQL_JSON_BEHAVIOR,
             &[
-                attr(Key::SQL_JSON_BEHAVIOR_KIND, ctx.name_from_keyword(@1, "default")),
+                attr(Key::SQL_JSON_BEHAVIOR_KIND, enum_node(@1, JsonBehavior::DEFAULT)),
                 attr(Key::SQL_JSON_BEHAVIOR_DEFAULT, ctx.expression($2)),
             ],
         )

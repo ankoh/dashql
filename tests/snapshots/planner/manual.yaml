@@ -34,7 +34,7 @@ planner-snapshots:
           analyzed-catalog-revision: 2
           cacheable: true
           terminal-statement-id: 0
-          signature: "e74ab897e452d694ac9472219c858915"
+          signature: "dfd57159455a36314fde907aaf33c0ee"
         - name: west
           connection: db
           text-version: 1
@@ -42,7 +42,7 @@ planner-snapshots:
           analyzed-catalog-revision: 2
           cacheable: true
           terminal-statement-id: 0
-          signature: "20549d17d4d66cdcd19f7d1f29818d21"
+          signature: "10586e67488d061345df024f41da658c"
           references: [orders_all]
         - name: other
           connection: db
@@ -51,7 +51,7 @@ planner-snapshots:
           analyzed-catalog-revision: 2
           cacheable: true
           terminal-statement-id: 0
-          signature: "786497d821bdd25e11a6d135d03bd6ff"
+          signature: "39a85fa0256ff2c1f1e122ccdacf93b2"
       entities:
         - catalog-id: 'db/256.65536.4294967296'
           type: TABLE
@@ -133,7 +133,7 @@ planner-snapshots:
           target: true
           cacheable: true
           terminal-statement-id: 0
-          signature: "e74ab897e452d694ac9472219c858915"
+          signature: "dfd57159455a36314fde907aaf33c0ee"
         - name: west
           connection: db
           text-version: 1
@@ -198,7 +198,7 @@ planner-snapshots:
           analyzed-catalog-revision: 2
           cacheable: true
           terminal-statement-id: 0
-          signature: "e74ab897e452d694ac9472219c858915"
+          signature: "dfd57159455a36314fde907aaf33c0ee"
         - name: west
           connection: db
           text-version: 1
@@ -206,7 +206,7 @@ planner-snapshots:
           analyzed-catalog-revision: 2
           cacheable: true
           terminal-statement-id: 0
-          signature: "20549d17d4d66cdcd19f7d1f29818d21"
+          signature: "10586e67488d061345df024f41da658c"
           references: [orders_all]
       entities:
         - catalog-id: 'db/256.65536.4294967296'
@@ -293,7 +293,7 @@ planner-snapshots:
           target: false
           cacheable: true
           terminal-statement-id: 0
-          signature: "e74ab897e452d694ac9472219c858915"
+          signature: "dfd57159455a36314fde907aaf33c0ee"
         - name: west
           connection: local
           text-version: 1
@@ -302,7 +302,7 @@ planner-snapshots:
           target: true
           cacheable: true
           terminal-statement-id: 0
-          signature: "20549d17d4d66cdcd19f7d1f29818d21"
+          signature: "10586e67488d061345df024f41da658c"
           references: [orders_all]
       entities: []
       unresolved-references: []

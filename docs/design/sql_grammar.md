@@ -12,9 +12,9 @@ function, and window nodes; UPDATE, MERGE, COPY, prepared statements, session co
 database commands, and additional DDL use dedicated statement and clause nodes. There is no secondary
 recognizer, parse retry, generic rule node, or token-sequence fallback.
 
-The schema removes the unreleased generic syntax node/attributes and appends explicit SQL object,
-attribute, statement, and enum values. Existing semantic node and attribute values retain their
-ordinals. New flags and optional children are absent for old forms. Ordered lists preserve ordering,
+The schema has explicit SQL object, attribute, statement, and enum values. The enum node types sit in
+the range of the enums, so adding one shifts the ordinals of the objects (`SCRIPT_SIGNATURE_VERSION`). New
+flags and optional children are absent for old forms. Ordered lists preserve ordering,
 duplicate options, and all operands; command and clause variants remain distinguishable. The tests
 assert the statement and clause shapes, not just acceptance. Analyzer, formatter, and runtime support
 for newly modeled constructs remain separate work.
@@ -24,6 +24,16 @@ PREPARE/EXECUTE/DEALLOCATE; settings and cursor operations; database and DDL obj
 parameters, and options; SQL/JSON values and behavior clauses; table-valued/lambda arguments; and
 SELECT attributes for grouping modifiers, star exclusion, limits, ordering, ordinality, and windows.
 All child SQL expressions and subqueries reuse the ordinary expression and SELECT nodes.
+
+The kind of a statement or clause is a flatbuffer enum (`MergeAction`, `MergeMatch`, `FetchDirection`,
+`SessionParameter`, `DropObjectType`, `RenameObjectType`, `GrantTargetType`, `FunctionOption`, `SequenceOption`,
+`JsonBehavior`, ...) or a boolean (`SQL_*_IF_EXISTS`, `SQL_DROP_CONCURRENTLY`, `SQL_FETCH_MOVE`,
+`SQL_SEQUENCE_OPTION_NO`, `SQL_VIEW_CHECK_LOCAL`, ...), never a keyword `NAME`: the highlighting colors a keyword
+under a single-symbol `NAME` as an identifier. A combined form is split into its parts, `DROP INDEX CONCURRENTLY IF
+EXISTS` is the object type `INDEX` with the flags `SQL_DROP_CONCURRENTLY` and `SQL_DROP_IF_EXISTS`, and a kind that
+only repeats the node type (`GRANT`) is not stored. Where the commands share syntax with queries they reuse their
+rules and enums: `NumericType` for the type of a sequence, `IntervalType` for intervals, `OrderDirection` and
+`OrderNullRule` for index elements.
 
 ## Trailing Dots
 
