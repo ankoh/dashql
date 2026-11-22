@@ -186,6 +186,18 @@ fn ctes_do_not_correlate_with_the_from_clause() {
 }
 
 #[test]
+fn qualified_refs_of_a_recursive_cte_resolve_after_its_scope() {
+    let test = NameResolutionTest::new();
+    // The outputs of a recursive CTE are known only after the scopes below it, r.n binds to r and resolves later
+    assert_eq!(
+        test.resolve(
+            "with recursive r(n) as (select 1 union all select r.n + 1 from r where r.n < 3) select r.n from r"
+        ),
+        ["r.n -> local", "r.n -> local", "r.n -> local"]
+    );
+}
+
+#[test]
 fn qualified_star_forwards_the_columns_of_one_source() {
     let test = NameResolutionTest::new();
     let resolved = test.resolve("select q.c, q.a from (select s.* from t, (select c from u) s) q");

@@ -324,25 +324,20 @@ impl<'a> AnalysisState<'a> {
         Some(QualifiedTableName { ast_node_id, database_name: db, schema_name: schema, table_name: table })
     }
 
-    /// Read a qualified column name.
-    /// Paths with more than two names access fields of a row-typed column.
-    pub fn read_qualified_column_name(&mut self, node: Option<&Node>) -> Option<QualifiedColumnName> {
-        let node = node?;
-        let path = self.read_name_path(node);
+    /// The qualified column name of the names of a column ref path, its first two names. More names qualify the column
+    /// with the schema of its table, or access fields of a row-typed column.
+    pub fn qualified_column_name(&mut self, node: &Node, path: &[Name]) -> Option<QualifiedColumnName> {
         let ast_node_id = Some(self.node_id(node));
-        match *path.as_slice() {
+        match path {
             [] => None,
             [column] => {
-                let column = self.name(column);
-                self.tag(&column, NameTag::COLUMN_NAME);
-                Some(QualifiedColumnName { ast_node_id, table_alias: None, column_name: column })
+                self.tag(column, NameTag::COLUMN_NAME);
+                Some(QualifiedColumnName { ast_node_id, table_alias: None, column_name: column.clone() })
             }
             [alias, column, ..] => {
-                let alias = self.name(alias);
-                let column = self.name(column);
-                self.tag(&alias, NameTag::TABLE_ALIAS);
-                self.tag(&column, NameTag::COLUMN_NAME);
-                Some(QualifiedColumnName { ast_node_id, table_alias: Some(alias), column_name: column })
+                self.tag(alias, NameTag::TABLE_ALIAS);
+                self.tag(column, NameTag::COLUMN_NAME);
+                Some(QualifiedColumnName { ast_node_id, table_alias: Some(alias.clone()), column_name: column.clone() })
             }
         }
     }
