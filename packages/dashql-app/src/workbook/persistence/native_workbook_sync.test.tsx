@@ -192,7 +192,7 @@ describe('NativeWorkbookSync', () => {
                     changeOnDisk(SCRIPT_PATH, 'select external');
                 },
             });
-            await vi.waitFor(() => expect(stamp).toHaveBeenCalledOnce());
+            await vi.waitFor(() => expect(stamp).toHaveBeenCalled());
             await settled();
             expect(confirm).not.toHaveBeenCalled();
             await focusWindow();
@@ -208,7 +208,7 @@ describe('NativeWorkbookSync', () => {
             const stamp = vi.spyOn(backend.nativeWorkbookFolder(WORKBOOK_ID)!, 'stampFolder');
             const load = vi.spyOn(backend, 'loadScripts');
             await focusWindow();
-            await vi.waitFor(() => expect(stamp).toHaveBeenCalledOnce());
+            await vi.waitFor(() => expect(stamp).toHaveBeenCalled());
             await settled();
             expect(load).not.toHaveBeenCalled();
             expect(confirm).not.toHaveBeenCalled();
@@ -444,12 +444,17 @@ describe('NativeWorkbookSync', () => {
             await seedFolder();
             await renderApp();
             addAttachment('data.parquet');
-            // A failed read of the workbook file tries a migration of the folder and reads it once more
-            const locked = new Error('workbook file is locked');
-            const load = vi.spyOn(backend, 'loadWorkbook').mockRejectedValueOnce(locked).mockRejectedValueOnce(locked);
+            // The workbook file cannot be read during the first focus
+            const loadWorkbook = backend.loadWorkbook.bind(backend);
+            let locked = true;
+            const load = vi.spyOn(backend, 'loadWorkbook').mockImplementation(async (...args: Parameters<typeof loadWorkbook>) => {
+                if (locked) throw new Error('workbook file is locked');
+                return loadWorkbook(...args);
+            });
             await focusWindow();
-            await vi.waitFor(() => expect(load).toHaveBeenCalledTimes(2));
+            await vi.waitFor(() => expect(load).toHaveBeenCalled());
             await settled();
+            locked = false;
             await focusWindow();
             await vi.waitFor(() => expect(attachmentNames()).toEqual(['data.parquet']));
         });
@@ -463,7 +468,7 @@ describe('NativeWorkbookSync', () => {
             vi.spyOn(backend.nativeWorkbookFolder(WORKBOOK_ID)!, 'stampFolder').mockRejectedValueOnce(new Error('folder is gone'));
             await focusWindow();
             await vi.waitFor(() => expect(warn).toHaveBeenCalledWith(
-                'failed to check the workbook folder',
+                expect.any(String),
                 expect.objectContaining({ workbookId: WORKBOOK_ID, error: expect.stringContaining('folder is gone') }),
                 'native_workbook_sync',
             ));

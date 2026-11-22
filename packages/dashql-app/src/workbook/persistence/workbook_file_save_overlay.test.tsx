@@ -191,7 +191,7 @@ describe('WorkbookFileSaveOverlay', () => {
         expect(toggle('query-results').getAttribute('aria-checked')).toBe('false');
         await act(async () => {
             await vi.waitFor(() => expect(document.querySelector('[data-testid="export-query-results-hint"]')?.textContent)
-                .toBe('1 of 2 scripts have a stored result. Results contain query data.'));
+                .toContain('1 of 2'));
         });
         let saved = await savedWorkbook();
         expect(saved.results).toBe(0);

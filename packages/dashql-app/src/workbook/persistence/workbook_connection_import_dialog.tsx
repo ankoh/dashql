@@ -46,6 +46,7 @@ export function WorkbookConnectionImportDialog(props: Props): React.ReactElement
             <section
                 ref={dialogRef}
                 className={styles.dialog}
+                data-testid="workbook-connection-import"
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby={titleId}

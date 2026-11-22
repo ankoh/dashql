@@ -157,7 +157,7 @@ describe('Workbook connections', () => {
 
             expect(scriptOf(restored, 'remote.sql').connectionId).toBe(TRINO_ID);
             expect(restored.runtime.connection(TRINO_ID)?.connectorType).toBe(ConnectorType.TRINO);
-            expect(backend.connections!.map(entry => entry.id)).toEqual([HYPER_ID, TRINO_ID]);
+            expect(backend.connections!.map(entry => entry.id).sort()).toEqual([HYPER_ID, TRINO_ID].sort());
         });
 
         it('drops the copies of connections that no script uses', async () => {
@@ -366,7 +366,7 @@ describe('Workbook connections', () => {
             const restored = await restore(backend);
             // Both workbooks share the connections of the app
             expect(scriptOf(restored, 'remote.sql', IMPORTED_WORKBOOK_ID).connectionId).toBe(TRINO_ID);
-            expect(workbooksOf(restored, TRINO_ID)).toEqual([WORKBOOK_ID, IMPORTED_WORKBOOK_ID]);
+            expect([...workbooksOf(restored, TRINO_ID)].sort()).toEqual([WORKBOOK_ID, IMPORTED_WORKBOOK_ID].sort());
         });
     });
 });

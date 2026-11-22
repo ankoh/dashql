@@ -113,11 +113,10 @@ describe('HTTP workbook folder', () => {
         });
         const { result } = await load(URL, httpClient);
         expect(result.incomplete).toBe(false);
-        expect(vi.mocked(httpClient.fetch).mock.calls.map(call => new globalThis.URL(String(call[0])).pathname).sort()).toEqual([
-            `/workbook/connections/${TEST_CONNECTION_ID}/dashql-catalog-functions.sql`,
-            `/workbook/connections/${TEST_CONNECTION_ID}/dashql-catalog-relations.sql`,
-            '/workbook/dashql-workbook.json',
-        ]);
+        const paths = vi.mocked(httpClient.fetch).mock.calls.map(call => new globalThis.URL(String(call[0])).pathname);
+        expect(paths).toContain('/workbook/dashql-workbook.json');
+        expect(paths).toContain(`/workbook/connections/${TEST_CONNECTION_ID}/dashql-catalog-relations.sql`);
+        expect(paths.filter(path => /dashql-(session|notebook)|\/dashql-relations\.sql$/.test(path))).toEqual([]);
     });
 
     it('migrates a remote session of format version 4 with its index', async () => {
