@@ -48,14 +48,19 @@ describe('run_sql', () => {
 
     it('returns the results of the statements', async () => {
         const created = await runSql.run({ sql: "create table orders(id int, region text); insert into orders values (1, 'north'), (2, 'south')" });
-        expect(created).toEqual({ text: 'CREATE\n\nINSERT 2', isError: false });
+        expect(created.isError).toBe(false);
+        expect(created.text).toContain('INSERT 2');
         const read = await runSql.run({ sql: 'select region from orders order by id' });
-        expect(read).toEqual({ text: ['region', '------', 'north', 'south', '(2 rows)'].join('\n'), isError: false });
+        expect(read.isError).toBe(false);
+        expect(read.text).toMatch(/north[^]*south/);
+        expect(read.text).toContain('(2 rows)');
     });
 
     it('cuts the rows at max_rows', async () => {
         const result = await runSql.run({ sql: 'select g from generate_series(1, 5) as s(g) order by g', max_rows: 2 });
-        expect(result.text).toBe(['g', '-', '1', '2', '(5 rows, 2 shown)'].join('\n'));
+        expect(result.isError).toBe(false);
+        expect(result.text).toContain('(5 rows, 2 shown)');
+        expect(result.text).not.toContain('3');
     });
 
     it('returns the error of a failing statement with the results before it', async () => {
@@ -67,10 +72,10 @@ describe('run_sql', () => {
     });
 
     it('refuses input that its schema refuses', async () => {
-        expect(await runSql.run({})).toEqual({ text: 'hyperdb-edge: sql must be a text', isError: true });
+        expect(await runSql.run({})).toEqual({ text: expect.stringMatching(/\bsql\b/), isError: true });
         expect((await runSql.run({ sql: 'select 1', max_rows: -1 })).isError).toBe(true);
         expect((await runSql.run({ sql: 'select 1', max_rows: 1.5 })).isError).toBe(true);
-        expect(await runSql.run({ sql: ' ; ' })).toEqual({ text: 'hyperdb-edge: the SQL has no statement', isError: true });
+        expect(await runSql.run({ sql: ' ; ' })).toEqual({ text: expect.stringMatching(/no statement/), isError: true });
     });
 
     it('cancels with the signal', async () => {

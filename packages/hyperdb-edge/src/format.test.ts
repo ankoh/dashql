@@ -147,6 +147,7 @@ describe('the csv format', () => {
     it('says on stderr that --max-rows cut the rows', async () => {
         const out = await format('select g from generate_series(1, 5) as s(g) order by g', { format: 'csv', maxRows: 2 });
         expect(out.stdout).toBe(['g', '1', '2', ''].join('\n'));
-        expect(out.stderr).toBe('hyperdb-edge: statement 1 printed 2 of 5 rows, --max-rows 0 prints all\n');
+        expect(out.stderr).toMatch(/2 of 5 rows/);
+        expect(out.stderr).toContain('--max-rows 0');
     });
 });

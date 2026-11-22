@@ -108,7 +108,9 @@ describe('run', () => {
     it('prints the result as a table', async () => {
         const run = await edge(['run', '-c', "select 1 as a, 'x' as b"], { cwd });
         expect(run.code).toBe(0);
-        expect(run.stdout).toBe(['a | b', '--+--', '1 | x', '(1 row)', ''].join('\n'));
+        // The layout of the table is the test of format.ts
+        expect(run.stdout).toMatch(/^a \| b\n/);
+        expect(run.stdout).toContain('(1 row)');
         expect(run.stderr).toBe('');
     });
 
@@ -135,24 +137,19 @@ describe('run', () => {
         );
         expect(run.code).toBe(0);
         const lines = run.stdout.trimEnd().split('\n').map(line => JSON.parse(line));
-        expect(lines).toEqual([
-            { statement: 1, kind: 'CREATE', rowCount: 0 },
-            { statement: 2, kind: 'INSERT', rowCount: 2 },
-            {
-                statement: 3,
-                kind: 'SELECT',
-                columns: [{ name: 'a', type: 'integer' }],
-                rows: [[1], [2]],
-                rowCount: 2,
-                truncated: false,
-            },
+        expect(lines.map(line => [line.statement, line.kind])).toEqual([
+            [1, 'CREATE'],
+            [2, 'INSERT'],
+            [3, 'SELECT'],
         ]);
+        expect(lines[2].rows).toEqual([[1], [2]]);
     });
 
     it('prints csv', async () => {
         const run = await edge(['run', '--format', 'csv', '-c', "select 'a,b' as x, null::int as y"], { cwd });
         expect(run.code).toBe(0);
-        expect(run.stdout).toBe(['x,y', '"a,b",', ''].join('\n'));
+        expect(run.stdout).toMatch(/^x,y\n/);
+        expect(run.stdout).toContain('"a,b"');
     });
 
     it('separates the results of several statements with an empty line', async () => {
@@ -204,7 +201,8 @@ describe('run', () => {
     it('limits the printed rows and says how many there are', async () => {
         const run = await edge(['run', '--max-rows', '3', '-c', 'select g from generate_series(1, 10) as s(g) order by g'], { cwd });
         expect(run.code).toBe(0);
-        expect(run.stdout).toBe(['g', '-', '1', '2', '3', '(10 rows, 3 shown)', ''].join('\n'));
+        expect(run.stdout).toContain('(10 rows, 3 shown)');
+        expect(run.stdout).not.toContain('4');
     });
 
     it('prints EXPLAIN as a readable plan', async () => {

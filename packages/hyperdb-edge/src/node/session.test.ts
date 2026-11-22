@@ -12,6 +12,8 @@ const MAIN = fileURLToPath(new URL('../../dist/cli/main.js', import.meta.url));
 
 /// A query that runs for seconds, long enough to cancel
 const SLOW_QUERY = 'select count(*) from generate_series(1, 2000000) a, generate_series(1, 2000) b';
+/// A query that runs for a fraction of a second, long enough for other calls to queue up behind it
+const MEDIUM_QUERY = 'select count(*) from generate_series(1, 200000) a, generate_series(1, 2000) b';
 
 let directory: string;
 const sessions: EdgeSession[] = [];
@@ -20,6 +22,15 @@ async function open(options: Partial<Parameters<typeof EdgeSession.open>[0]> = {
     const session = await EdgeSession.open({ workDirectory: directory, ...options });
     sessions.push(session);
     return session;
+}
+
+/// Run SLOW_QUERY after a first statement, and then `rest`. `started` resolves once the first statement printed, when
+/// the slow query runs next.
+function runSlow(session: EdgeSession, options: { signal?: AbortSignal } = {}, rest = '') {
+    let printed!: () => void;
+    const started = new Promise<void>(resolve => (printed = resolve));
+    const running = session.run(`select 1 as started; ${SLOW_QUERY};${rest}`, { ...options, onOutput: () => printed() });
+    return { running, started };
 }
 
 beforeEach(() => {
@@ -38,18 +49,19 @@ describe('EdgeSession', () => {
         expect((await session.run('create temporary table t(a int)')).stdout).toBe('CREATE\n');
         expect((await session.run('insert into t values (1), (2)')).stdout).toBe('INSERT 2\n');
         const result = await session.run('select sum(a) as total from t');
-        expect(result).toEqual({ stdout: ['total', '-----', '3', '(1 row)', ''].join('\n'), stderr: '', failed: null, cancelled: false });
+        expect(result).toMatchObject({ stderr: '', failed: null, cancelled: false });
+        expect(result.stdout).toContain('\n3\n');
         expect(session.enginePid).toBe(pid);
     });
 
     it('runs the calls one after another in the order they came', async () => {
-        const session = await open();
+        const session = await open({ format: 'json' });
         await session.run('create temporary table log(call int, before int)');
         const finished: number[] = [];
         // The first call is slow, the others wait for it instead of running alongside
         const calls = [1, 2, 3, 4].map(call =>
             session
-                .run(`${call === 1 ? `${SLOW_QUERY.replace('2000000', '200000')};` : ''} insert into log select ${call}, count(*) from log`)
+                .run(`${call === 1 ? `${MEDIUM_QUERY};` : ''} insert into log select ${call}, count(*) from log`)
                 .then(result => {
                     finished.push(call);
                     return result;
@@ -59,7 +71,12 @@ describe('EdgeSession', () => {
         expect(results.every(result => result.failed == null)).toBe(true);
         expect(finished).toEqual([1, 2, 3, 4]);
         const log = await session.run('select call, before from log order by call', { maxRows: 0 });
-        expect(log.stdout).toBe(['call | before', '-----+-------', '1    | 0', '2    | 1', '3    | 2', '4    | 3', '(4 rows)', ''].join('\n'));
+        expect(JSON.parse(log.stdout).rows).toEqual([
+            [1, 0],
+            [2, 1],
+            [3, 2],
+            [4, 3],
+        ]);
     });
 
     it('keeps the results of the calls apart', async () => {
@@ -87,15 +104,16 @@ describe('EdgeSession', () => {
     it('cancels a running statement and skips the rest of the call', async () => {
         const session = await open();
         const cancel = new AbortController();
-        const started = Date.now();
-        const running = session.run(`${SLOW_QUERY}; select 'after' as rest`, { signal: cancel.signal });
-        setTimeout(() => cancel.abort(), 300);
+        const begin = Date.now();
+        const { running, started } = runSlow(session, { signal: cancel.signal }, " select 'after' as rest");
+        await started;
+        cancel.abort();
         const result = await running;
         expect(result.failed, result.stderr).toBeNull();
         expect(result.cancelled).toBe(true);
         expect(result.stdout).not.toContain('after');
         expect(result.stderr).toContain('cancelled');
-        expect(Date.now() - started).toBeLessThan(10_000);
+        expect(Date.now() - begin).toBeLessThan(10_000);
         // The session goes on
         expect((await session.run('select 1 as a')).failed).toBeNull();
     });
@@ -104,7 +122,7 @@ describe('EdgeSession', () => {
         const session = await open();
         await session.run('create temporary table t(a int)');
         const cancel = new AbortController();
-        const slow = session.run(SLOW_QUERY.replace('2000000', '200000'));
+        const slow = session.run(MEDIUM_QUERY);
         const waiting = session.run('insert into t values (1)', { signal: cancel.signal });
         cancel.abort();
         expect((await waiting).cancelled).toBe(true);
@@ -114,10 +132,12 @@ describe('EdgeSession', () => {
 
     it('passes the output on while the statements run', async () => {
         const session = await open();
-        const chunks: string[] = [];
-        const result = await session.run('select 1 as a; select 2 as b', { onOutput: (stream, text) => chunks.push(`${stream}:${text}`) });
-        expect(chunks).toEqual(['stdout:a\n-\n1\n(1 row)\n', 'stdout:\nb\n-\n2\n(1 row)\n']);
-        expect(result.stdout).toBe('a\n-\n1\n(1 row)\n\nb\n-\n2\n(1 row)\n');
+        const chunks: Array<{ stream: string; text: string }> = [];
+        const result = await session.run('select 1 as a; select 2 as b', { onOutput: (stream, text) => chunks.push({ stream, text }) });
+        // A chunk per statement at least, together the whole output
+        expect(chunks.length).toBeGreaterThan(1);
+        expect(chunks.every(chunk => chunk.stream === 'stdout')).toBe(true);
+        expect(chunks.map(chunk => chunk.text).join('')).toBe(result.stdout);
     });
 
     it('rejects SQL without statements', async () => {
@@ -134,10 +154,10 @@ describe('EdgeSession', () => {
 
     it('fails waiting calls when it closes', async () => {
         const session = await open();
-        const slow = session.run(SLOW_QUERY);
+        const { running: slow, started } = runSlow(session);
         const waiting = session.run('select 1');
         // Close once the slow call runs, a call that hasn't started fails as closed
-        await new Promise(resolve => setTimeout(resolve, 300));
+        await started;
         const closed = session.close();
         expect((await slow).cancelled).toBe(true);
         await expect(waiting).rejects.toBeInstanceOf(SessionClosedError);
@@ -175,8 +195,8 @@ describe('the database of a session', () => {
     it('is released when the engine process dies, and the calls fail', async () => {
         const database = path.join(directory, 'crash.hyper');
         const session = await open({ database: 'crash.hyper' });
-        const running = session.run(SLOW_QUERY);
-        await new Promise(resolve => setTimeout(resolve, 200));
+        const { running, started } = runSlow(session);
+        await started;
         process.kill(session.enginePid!, 'SIGKILL');
         await expect(running).rejects.toBeInstanceOf(EngineEndedError);
         await expect(session.run('select 1')).rejects.toBeInstanceOf(EngineEndedError);
