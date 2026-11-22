@@ -384,8 +384,6 @@ browser_test(
     bundle = ":pages",
     data = BROWSER_TEST_DATA,
     entry_point = "test/browser_test_driver.mjs",
-    executable = "@playwright_chromium//:chromium",
-    runtime = "@playwright_chromium//:runtime",
     tags = BROWSER_TEST_TAGS,
 )
 
@@ -395,9 +393,6 @@ browser_test(
     bundle = ":pages",
     data = BROWSER_TEST_DATA,
     entry_point = "test/browser_test_driver.mjs",
-    env = {"MOZ_DISABLE_CONTENT_SANDBOX": "1"},
-    executable = "//bazel:playwright_firefox",
-    executable_root = True,
     tags = BROWSER_TEST_TAGS,
 )
 
@@ -410,8 +405,6 @@ browser_test(
     data = BROWSER_TEST_DATA,
     entry_point = "test/browser_test_driver.mjs",
     env = {"DASHQL_BROWSER_COVERAGE": "1"},
-    executable = "@playwright_chromium//:chromium",
-    runtime = "@playwright_chromium//:runtime",
     tags = BROWSER_TEST_TAGS + ["manual"],
 )
 

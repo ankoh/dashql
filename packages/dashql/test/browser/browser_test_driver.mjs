@@ -1,14 +1,11 @@
 import { createReadStream, realpathSync, statSync } from 'node:fs';
 import { createServer } from 'node:http';
-import { extname, join, resolve, sep } from 'node:path';
+import { extname, resolve, sep } from 'node:path';
 import * as playwright from 'playwright-core';
 
 const root = resolve(process.argv[2]);
 const browserName = process.env.DASHQL_BROWSER ?? 'chromium';
-const executableRoot = process.env.DASHQL_BROWSER_EXECUTABLE_ROOT;
-const executablePath = executableRoot
-    ? join(executableRoot, process.platform === 'darwin' ? 'firefox/Nightly.app/Contents/MacOS/firefox' : 'firefox/firefox')
-    : process.env.DASHQL_BROWSER_EXECUTABLE;
+const executablePath = process.env.DASHQL_BROWSER_EXECUTABLE;
 const mimeTypes = { '.html': 'text/html', '.js': 'text/javascript', '.wasm': 'application/wasm', '.json': 'application/json' };
 const server = createServer((request, response) => {
     const pathname = new URL(request.url ?? '/', 'http://localhost').pathname;

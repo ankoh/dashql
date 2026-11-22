@@ -12,6 +12,12 @@ _FIREFOX_MIRRORS = [
     "https://cdn.playwright.dev",
 ]
 
+# The executable of Firefox in its archive per OS, the browser tests find it in //bazel:playwright_firefox
+FIREFOX_EXECUTABLES = {
+    "darwin": "firefox/Nightly.app/Contents/MacOS/firefox",
+    "linux": "firefox/firefox",
+}
+
 # (archive, sha256, executable) per platform, the first folder of the executable holds the browser
 _CHROMIUM_PLATFORMS = {
     ("darwin", "aarch64"): (
@@ -40,22 +46,22 @@ _FIREFOX_PLATFORMS = {
     ("darwin", "aarch64"): (
         "firefox-mac-arm64.zip",
         "9691b4a07405d8faf8a44f6378d66db480d36159d9e9c4ed1d6066687697e1f2",
-        "firefox/Nightly.app/Contents/MacOS/firefox",
+        FIREFOX_EXECUTABLES["darwin"],
     ),
     ("darwin", "x86_64"): (
         "firefox-mac.zip",
         "f31ac41e6450c5c9040fc7290f3da8a6a5f5672b0075f18b37cbd28fbf95ad36",
-        "firefox/Nightly.app/Contents/MacOS/firefox",
+        FIREFOX_EXECUTABLES["darwin"],
     ),
     ("linux", "aarch64"): (
         "firefox-ubuntu-24.04-arm64.zip",
         "0c60e94f3095eb5503dda490ab0ae5d338783a94511ed6fb410c2d7fdcbe29f9",
-        "firefox/firefox",
+        FIREFOX_EXECUTABLES["linux"],
     ),
     ("linux", "x86_64"): (
         "firefox-ubuntu-24.04.zip",
         "189ce3e09c61776010ab8a7cbffaa016b8b1914d3c9b50cb5ab6d0c5db4c368f",
-        "firefox/firefox",
+        FIREFOX_EXECUTABLES["linux"],
     ),
 }
 
@@ -87,12 +93,14 @@ def _playwright_repository_impl(repository_ctx):
         fail("Playwright {} is not available for {}-{}".format(browser, os_key, arch))
     archive, sha256, executable = platform
     repository_ctx.download_and_extract(url = [url.format(archive) for url in urls], sha256 = sha256)
+    # The browser tests run Chromium from here and Firefox from one folder of its runtime (//bazel:playwright_firefox)
+    alias = 'alias(name = "chromium", actual = "{}")'.format(executable) if browser == "chromium" else ""
     repository_ctx.file("BUILD.bazel", content = """
 package(default_visibility = ["//visibility:public"])
 exports_files(["{executable}"])
-alias(name = "{browser}", actual = "{executable}")
+{alias}
 filegroup(name = "runtime", srcs = glob(["{folder}/**"]))
-""".format(browser = browser, executable = executable, folder = executable.split("/")[0]))
+""".format(alias = alias, executable = executable, folder = executable.split("/")[0]))
 
 playwright_repository = repository_rule(
     implementation = _playwright_repository_impl,

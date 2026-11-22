@@ -17,10 +17,7 @@ const outputs = process.env.TEST_UNDECLARED_OUTPUTS_DIR;
 const collectCoverage = process.env.DASHQL_BROWSER_COVERAGE === '1';
 const pageTestsOnly = process.env.DASHQL_BROWSER_PAGE_TESTS_ONLY === '1';
 if (collectCoverage && browserName !== 'chromium') throw new Error('Coverage needs the V8 profiler of Chromium');
-const executableRoot = process.env.DASHQL_BROWSER_EXECUTABLE_ROOT;
-const executablePath = executableRoot
-    ? join(executableRoot, process.platform === 'darwin' ? 'firefox/Nightly.app/Contents/MacOS/firefox' : 'firefox/firefox')
-    : process.env.DASHQL_BROWSER_EXECUTABLE;
+const executablePath = process.env.DASHQL_BROWSER_EXECUTABLE;
 // The pages of a run share the test files, every page has a browser context and a Hyper of its own. A page keeps about
 // two cores busy, more than one page per four cores barely gets faster. Coverage reads the counters of one page.
 const shardCount = requestedFile || collectCoverage

@@ -52,8 +52,6 @@ browser_test(
     browser = "chromium",
     bundle = ":bundle",
     entry_point = "browser_test_driver.mjs",
-    executable = "@playwright_chromium//:chromium",
-    runtime = "@playwright_chromium//:runtime",
 )
 
 browser_test(
@@ -61,9 +59,6 @@ browser_test(
     browser = "firefox",
     bundle = ":bundle",
     entry_point = "browser_test_driver.mjs",
-    env = {"MOZ_DISABLE_CONTENT_SANDBOX": "1"},
-    executable = "//bazel:playwright_firefox",
-    executable_root = True,
 )
 
 # ESLint with the rules of the root eslint.config.mjs, see docs/agents/build_bazel_targets.md
