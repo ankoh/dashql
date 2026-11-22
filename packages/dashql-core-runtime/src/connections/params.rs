@@ -78,7 +78,7 @@ impl ConnectorType {
 }
 
 /// The params of a connection: the params of its connector
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConnectionParams {
     /// The connector
     pub connector: ConnectorType,
@@ -130,7 +130,12 @@ impl ConnectionParams {
 
     /// The params as JSON, e.g. `{"trino": {...}}`
     pub fn to_json(&self) -> String {
-        Value::Object(self.to_object()).to_string()
+        self.to_value().to_string()
+    }
+
+    /// The params as a JSON value, e.g. `{"trino": {...}}`
+    pub fn to_value(&self) -> Value {
+        Value::Object(self.to_object())
     }
 
     /// The params as a JSON object, e.g. `{"trino": {...}}`

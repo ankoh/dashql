@@ -162,7 +162,7 @@ impl Exports {
         for id in ids {
             let Some(connection) = registry.get(&id) else { continue };
             let Ok(state) = connection.state.try_borrow() else { continue };
-            params.insert(id.clone(), Value::Object(state.params().to_object()));
+            params.insert(id.clone(), state.params().to_value());
             if let Some(name) = state.name() {
                 names.insert(id, name.to_string());
             }

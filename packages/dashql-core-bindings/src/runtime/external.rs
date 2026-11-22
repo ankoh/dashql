@@ -497,7 +497,7 @@ impl ExternalChanges {
             let mut embedded = None;
             for (connection_id, connection) in registry.connections() {
                 let Ok(state) = connection.state.try_borrow() else { continue };
-                let params = Value::Object(state.params().to_object());
+                let params = state.params().to_value();
                 if embedded.is_none() && is_hyper_wasm_connection(&state) {
                     embedded =
                         Some(ResolvedConnection { connection_id: connection_id.to_string(), params: params.clone() });
@@ -539,7 +539,7 @@ impl ExternalChanges {
         let host = JsStorage { platform: self.platform.clone(), state: self.storage.clone() };
         let catalog = dashql_core_runtime::workbook::new_catalog();
         let state = connection_state(&host, &stored, catalog)?;
-        let params = Value::Object(state.params().to_object());
+        let params = state.params().to_value();
         let connection_id = self.connections.adopt(state)?;
         Ok(ResolvedConnection { connection_id, params })
     }

@@ -746,7 +746,7 @@ impl Restorer {
         let mut live = Vec::new();
         for (connection_id, connection) in self.connections.registry.borrow().connections() {
             let Ok(state) = connection.state.try_borrow() else { continue };
-            let params = serde_json::Value::Object(state.params().to_object());
+            let params = state.params().to_value();
             let connection =
                 RestoreConnection { connection_id: connection_id.to_string(), params, params_draft: None, name: None };
             live.push(LiveConnection { connection, script_connection: script_connection_of(&state) });
@@ -1633,9 +1633,7 @@ impl Runtime {
             return Err(JsError::new("connection params must be an object"));
         };
         let params = ConnectionParams::from_object(fields).map_err(js_error)?.without_draft_rows();
-        JsonValue(serde_json::Value::Object(params.to_object()))
-            .to_js()
-            .map_err(|error| JsError::new(&error.to_string()))
+        JsonValue(params.to_value()).to_js().map_err(|error| JsError::new(&error.to_string()))
     }
 
     /// The login hint of connection params (the account username or login), null if there is none. Fails on params of
@@ -1691,9 +1689,7 @@ impl Runtime {
     #[wasm_bindgen(js_name = localCloudParams, unchecked_return_type = "Record<string, unknown>")]
     pub fn local_cloud_params() -> Result<JsValue, JsError> {
         let params = dashql_core_runtime::hyper::local_cloud::local_cloud_params();
-        JsonValue(serde_json::Value::Object(params.to_object()))
-            .to_js()
-            .map_err(|error| JsError::new(&error.to_string()))
+        JsonValue(params.to_value()).to_js().map_err(|error| JsError::new(&error.to_string()))
     }
 
     /// Build the workbook tree of the directories of `workbooktree/` as the platform lists them (`{ name, folderFile,

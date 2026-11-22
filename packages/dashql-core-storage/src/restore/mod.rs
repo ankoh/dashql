@@ -611,7 +611,7 @@ impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
             for entry in &pending.connection_entries {
                 let mut json = entry.to_json();
                 if let (Some(state), Some(fields)) = (self.state(&entry.id), json.as_object_mut()) {
-                    fields.insert("params".to_string(), Value::Object(state.params().to_object()));
+                    fields.insert("params".to_string(), state.params().to_value());
                 }
                 let task = WriteTask::WriteConnectionEntry { entry: json };
                 writes.push(PendingWrite { result: writer.write_durable(task), what: entry.id.clone() });
@@ -627,7 +627,7 @@ impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
         if copies {
             for (workbook_id, connection_id) in &pending.workbook_copies {
                 let Some(state) = self.state(connection_id) else { continue };
-                let copy = WorkbookConnection::new(connection_id.clone(), Value::Object(state.params().to_object()));
+                let copy = WorkbookConnection::new(connection_id.clone(), state.params().to_value());
                 let task =
                     WriteTask::PatchWorkbookConnection { workbook_id: workbook_id.clone(), copy, replaced: Vec::new() };
                 writes.push(PendingWrite {

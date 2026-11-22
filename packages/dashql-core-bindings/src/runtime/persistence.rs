@@ -13,6 +13,7 @@ use std::future::Future;
 use std::pin::Pin;
 use std::rc::Rc;
 
+use dashql_core_runtime::connections::ConnectionParams;
 use dashql_core_runtime::handles::Handle;
 use dashql_core_runtime::host::HostError;
 use dashql_core_runtime::workbook::WorkbookEffect;
@@ -137,8 +138,8 @@ impl Drop for MemoryFiles {
 }
 
 /// The copy of a connection in a workbook file, null params for a connection without
-pub(crate) fn connection_copy(connection_id: &str, params: Option<Value>) -> WorkbookConnection {
-    WorkbookConnection::new(connection_id, params.unwrap_or(Value::Null))
+pub(crate) fn connection_copy(connection_id: &str, params: Option<&ConnectionParams>) -> WorkbookConnection {
+    WorkbookConnection::new(connection_id, params.map_or(Value::Null, ConnectionParams::to_value))
 }
 
 /// A workbook to write, `Persistence::create_workbook`
@@ -146,7 +147,7 @@ pub(crate) struct CreatedWorkbook {
     pub workbook_id: String,
     pub name: Option<String>,
     /// The connection of its first script, its id and its params
-    pub connection: (String, Option<Value>),
+    pub connection: (String, Option<ConnectionParams>),
     pub ephemeral: bool,
     pub original_file_name: Option<String>,
 }
@@ -204,7 +205,7 @@ impl Persistence {
         let task = WriteTask::CreateWorkbook {
             workbook_id: created.workbook_id,
             name: created.name,
-            connection: Some(connection_copy(&connection_id, params)),
+            connection: Some(connection_copy(&connection_id, params.as_ref())),
             ephemeral: created.ephemeral,
             original_file_name: created.original_file_name,
         };
@@ -260,7 +261,7 @@ impl Persistence {
                     connections: list
                         .connections
                         .iter()
-                        .map(|c| connection_copy(&c.connection_id, Some(c.params.clone())))
+                        .map(|c| connection_copy(&c.connection_id, Some(&c.params)))
                         .collect(),
                 },
                 WorkbookEffect::WriteProperties { name, ephemeral, origin } => {
@@ -276,7 +277,7 @@ impl Persistence {
                     for from in replaces {
                         let task = WriteTask::PatchWorkbookConnection {
                             workbook_id: workbook_id.to_string(),
-                            copy: connection_copy(&connection_id, params.clone()),
+                            copy: connection_copy(&connection_id, params.as_ref()),
                             replaced: vec![from.clone()],
                         };
                         self.write(task, DEBOUNCE_MS);

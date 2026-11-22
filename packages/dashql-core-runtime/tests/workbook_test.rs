@@ -7,16 +7,16 @@ use std::sync::Arc;
 use dashql_buffers::editor::{EditorEventOrigin, EditorEventT, EditorOffsetUnit, EditorSelectionT, EditorTextChangeT};
 use dashql_buffers::formatting::FormattingDialect;
 use dashql_core_runtime::attachments::{renamed_attachment_file_name, DataFile, WorkbookAttachment};
+use dashql_core_runtime::connections::ConnectionParams;
 use dashql_core_runtime::workbook::{
     new_catalog, text_change, ConnectionCopy, EditorUpdateId, ExternalChanges, ScriptConnection,
     ScriptConnectionProfile, ScriptKey, ScriptList, ScriptListEntry, ScriptPlacement, ScriptStoredResult, StoredScript,
     TextChange, Workbook, WorkbookAction, WorkbookEffect, WorkbookOrigin,
 };
-use serde_json::Value;
 
 /// Connection params of their JSON text
-fn json_params(text: &str) -> Value {
-    serde_json::from_str(text).unwrap()
+fn json_params(text: &str) -> ConnectionParams {
+    ConnectionParams::from_json(text).unwrap()
 }
 
 /// What the scripts read of a connection of a test
@@ -684,7 +684,9 @@ fn moves_the_scripts_and_the_pending_connection_of_a_merged_connection() {
         .unwrap();
     let (alpha, beta) = (key(&workbook, "alpha.sql"), key(&workbook, "beta.sql"));
     let pending = Rc::new(ScriptConnection::new("main", main.catalog.clone(), profile(Some(MAIN_PARAMS))));
-    workbook.apply(WorkbookAction::SetPendingConnection { connection: connection("other", Some("{}")) }).unwrap();
+    workbook
+        .apply(WorkbookAction::SetPendingConnection { connection: connection("other", Some(MAIN_PARAMS)) })
+        .unwrap();
     workbook.apply(WorkbookAction::SetPendingConnection { connection: pending }).unwrap();
     let target = connection("target", Some(r#"{"hyper":{"protocol":"WASM"}}"#));
     let outcome =
@@ -1276,7 +1278,7 @@ fn a_script_of_a_merged_connection_keeps_what_its_session_does_not_hold() {
         (before.pending_diff().map(|diff| diff.revision), before.statistics().count(), before.editor_update().cloned());
     assert!(diff.is_some() && statistics > 0 && update.is_some());
     assert_eq!(before.unresolved_connection_id(), Some("missing"));
-    let target = connection("target", Some("{}"));
+    let target = connection("target", Some(MAIN_PARAMS));
     workbook.apply(WorkbookAction::ReplaceConnection { from: "main".into(), into: target.clone() }).unwrap();
     let moved = workbook.script(alpha).unwrap();
     assert!(Rc::ptr_eq(moved.connection(), &target));

@@ -639,7 +639,7 @@ impl Imports {
         let live_params = |id: &str| -> Option<Value> {
             let connection = registry.get(id)?;
             let state = connection.state.try_borrow().ok()?;
-            Some(Value::Object(state.params().to_object()))
+            Some(state.params().to_value())
         };
         let mut entries: Vec<ConnectionEntry> = Vec::new();
         // Logged once the registry is no longer borrowed, the logger is JS
@@ -664,7 +664,7 @@ impl Imports {
             }
             let Ok(state) = connection.state.try_borrow() else { continue };
             if !registry.workbooks_of(id).is_empty() || is_hyper_wasm_connection(&state) {
-                let mut entry = ConnectionEntry::new(id, Value::Object(state.params().to_object()));
+                let mut entry = ConnectionEntry::new(id, state.params().to_value());
                 entry.name = state.name().map(str::to_string);
                 entries.push(entry);
             }

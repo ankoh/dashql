@@ -28,6 +28,7 @@ use dashql_core::vis_rewrite::VisRenderer;
 use crate::attachments::{
     attachment_parameter_name, read_workbook_attachments, renamed_attachment_file_name, DataFile, WorkbookAttachment,
 };
+use crate::connections::ConnectionParams;
 use crate::names::{free_workbook_name, script_display_name, script_file_name, unique_script_base};
 use crate::planner::dataflow::{derive_session_dataflow, Dataflow};
 use crate::planner::script_references::check_script_references;
@@ -60,8 +61,8 @@ pub struct ScriptConnectionProfile {
     pub dialect: FormattingDialect,
     /// Is the connection the embedded Hyper, which scans the results of scripts of other connections?
     pub local: bool,
-    /// The params of the connection as the workbook file holds a copy of them, opaque JSON
-    pub params: Option<serde_json::Value>,
+    /// The params of the connection as the workbook file holds a copy of them
+    pub params: Option<ConnectionParams>,
     /// The database of relations without a database name
     pub default_database: String,
     /// The schema of relations without a schema name
@@ -94,7 +95,7 @@ impl ScriptConnection {
     pub fn local(&self) -> bool {
         self.profile.borrow().local
     }
-    pub fn params(&self) -> Option<serde_json::Value> {
+    pub fn params(&self) -> Option<ConnectionParams> {
         self.profile.borrow().params.clone()
     }
     pub fn has_params(&self) -> bool {
@@ -600,8 +601,8 @@ pub struct ScriptListEntry {
 pub struct ConnectionCopy {
     /// The id of the connection
     pub connection_id: String,
-    /// The params of the connection, opaque JSON
-    pub params: serde_json::Value,
+    /// The params of the connection
+    pub params: ConnectionParams,
 }
 
 /// The script list of the workbook file: the scripts in feed order and the copies of their connections
@@ -629,7 +630,7 @@ pub enum WorkbookEffect {
     /// Write the properties of the workbook file: its name, whether it is ephemeral and its origin
     WriteProperties { name: Option<String>, ephemeral: bool, origin: Option<WorkbookOrigin> },
     /// Replace connections in the workbook file with another one
-    PatchConnection { connection_id: String, params: Option<serde_json::Value>, replaces: Vec<String> },
+    PatchConnection { connection_id: String, params: Option<ConnectionParams>, replaces: Vec<String> },
 }
 
 /// Names an editor update of a script: the session it came from and its serial (`WorkbookScript::editor_update_serial`)

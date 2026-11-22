@@ -461,7 +461,7 @@ impl Connections {
             let state = connection.state.borrow();
             let params = saved_params(&state, given.as_ref());
             let entry = saved_entry(&connection_id, &state, &params);
-            let params = Value::Object(params.to_object());
+            let params = params.to_value();
             let workbooks = registry.workbooks_of(&connection_id).to_vec();
             let writer = self
                 .writer
@@ -482,7 +482,7 @@ impl Connections {
                         .get(&connection_id)
                         .map(|connection| {
                             let state = connection.state.borrow();
-                            Value::Object(state.params_draft().unwrap_or(state.params()).to_object())
+                            state.params_draft().unwrap_or(state.params()).to_value()
                         })
                         .unwrap_or(Value::Null);
                     let error = JsValue::from(JsError::new(error.what()));

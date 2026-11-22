@@ -334,7 +334,7 @@ impl ConnectionState {
                 FormattingDialect::HYPER
             },
             local: false,
-            params: Some(serde_json::Value::Object(params.to_object())),
+            params: Some(params.clone()),
             default_database: defaults.database_name,
             default_schema: defaults.schema_name,
         }

@@ -772,9 +772,7 @@ pub struct HyperLinkView {
 impl HyperLinkView {
     /// The view of a link and its binding
     pub fn of(target: rt_link::HyperLinkTarget, binding: rt_link::HyperLinkBinding) -> Self {
-        let params = |params: dashql_core_runtime::connections::ConnectionParams| {
-            JsonValue(serde_json::Value::Object(params.to_object()))
-        };
+        let params = |params: dashql_core_runtime::connections::ConnectionParams| JsonValue(params.to_value());
         let confirmation = match binding {
             rt_link::HyperLinkBinding::Existing { .. } => None,
             _ => rt_link::hyper_link_confirmation(&target),
