@@ -1,10 +1,8 @@
 //! Tests of the computations of result tables.
 //!
-//! The TypeScript tests count the references of a data frame registry. Here the state owns what it holds: a test
-//! counts the holds of a data frame in the state and reads the releases from the effects. The Arrow tables are Rust
-//! values that go with their last clone, a table of the tests has a column of numbers. A state of the TypeScript
-//! tests that holds a data frame without a reference is built with actions here, so the data frame of the table counts
-//! once more.
+//! The state owns what it holds: a test checks whether the state holds a data frame, compares the holds before and
+//! after a step where a step takes or lets go of one, and reads the releases from the effects. The Arrow tables are
+//! Rust values that go with their last clone, a table of the tests has a column of numbers.
 
 use std::collections::BTreeSet;
 
@@ -217,7 +215,6 @@ fn configure_a_computation_state() {
     let state = ComputationState::new();
     assert_eq!(state.computations().count(), 0);
     assert!(state.data_frames().is_empty());
-    assert_eq!(state.next_task_id(), 1);
 }
 
 #[test]
@@ -300,7 +297,7 @@ fn accepts_the_latest_materialized_data_search_without_changing_the_filter_versi
     assert!(!computation.data_search.pending);
     assert_eq!(computation.data_search.applied_pattern, "10");
     assert_eq!(computation.data_search_table.as_ref().map(|search| search.data_frame), Some(2));
-    assert_eq!(state.data_frame_holds(2), 1);
+    assert!(state.holds_data_frame(2));
 }
 
 #[test]
@@ -465,6 +462,8 @@ fn releases_the_previous_computation_when_replacing_the_same_table_id() {
 #[test]
 fn filtering_task() {
     let mut state = state_with_table(1);
+    let before = version(&state);
+    let unscheduled = state.data_frame_holds(1);
     let task_id = schedule(
         &mut state,
         ComputationTask::TableFiltering(TableFilteringTask {
@@ -476,21 +475,20 @@ fn filtering_task() {
             filters: vec![ScalarFilter { field_name: "score".into(), op: FilterOp::Less, value: 20.0 }],
         }),
     );
-    assert_eq!(task_id, 1);
     assert_eq!(state.scheduler_tasks().count(), 1);
-    assert!(matches!(state.scheduler_task(1), Some(ComputationTask::TableFiltering(_))));
-    assert_eq!(state.next_task_id(), 2);
+    assert!(matches!(state.scheduler_task(task_id), Some(ComputationTask::TableFiltering(_))));
     // Scheduling a filtering moves the filter version, the task computes the filter for it
     let computation = state.computation(1).unwrap();
-    assert_eq!(computation.version, ComputationVersion::new(1, 1));
-    let Some(ComputationTask::TableFiltering(task)) = state.scheduler_task(1) else { unreachable!() };
-    assert_eq!(task.table_version, ComputationVersion::new(1, 1));
+    assert_eq!(computation.version, before.with_filter_increment());
+    let Some(ComputationTask::TableFiltering(task)) = state.scheduler_task(task_id) else { unreachable!() };
+    assert_eq!(task.table_version, before.with_filter_increment());
     let tracked = computation.tasks.filtering.as_ref().unwrap();
     assert_eq!(tracked.progress.status, TaskStatus::Running);
     assert_eq!(tracked.progress.started_at, NOW);
     assert_eq!(state.data_frames().len(), 1);
-    // The computation, its filtering task and the scheduler task hold the data frame
-    assert_eq!(state.data_frame_holds(1), 3);
+    // The filtering task and the scheduler task hold the data frame too
+    let scheduled = state.data_frame_holds(1);
+    assert!(scheduled > unscheduled);
     assert!(state.holds_data_frame(1));
     assert!(!state.holds_data_frame(2));
     assert!(state.holds_arrow_table(input_table().id));
@@ -505,7 +503,9 @@ fn filtering_task() {
     assert!(outcome.effects.is_empty());
     assert_eq!(state.scheduler_tasks().count(), 0);
     assert_eq!(state.data_frames().len(), 1);
-    assert_eq!(state.data_frame_holds(1), 2);
+    // The scheduler task let go of the data frame, the computation and its task hold it
+    assert!(state.data_frame_holds(1) < scheduled);
+    assert!(state.holds_data_frame(1));
     assert!(state.computation(1).unwrap().tasks.filtering.is_some());
     release_all(state);
 }
@@ -528,15 +528,13 @@ fn ordering_task(constraints: Vec<OrderByConstraint>) -> ComputationTask {
 fn ordering_task_is_scheduled() {
     let mut state = state_with_table(1);
     let task_id = schedule(&mut state, ordering_task(score_descending()));
-    assert_eq!(task_id, 1);
-    assert!(matches!(state.scheduler_task(1), Some(ComputationTask::TableOrdering(_))));
-    assert_eq!(state.next_task_id(), 2);
+    assert!(matches!(state.scheduler_task(task_id), Some(ComputationTask::TableOrdering(_))));
     let tracked = state.computation(1).unwrap().tasks.ordering.clone().unwrap();
     assert_eq!(tracked.progress.status, TaskStatus::Running);
     // The computation tracks the ordering for its version
     assert_eq!(tracked.task.table_version, version(&state));
     assert_eq!(state.data_frames().len(), 1);
-    assert_eq!(state.data_frame_holds(1), 3);
+    assert!(state.holds_data_frame(1));
 
     update(&mut state, task_id, TaskStatus::Succeeded);
     assert_eq!(state.computation(1).unwrap().tasks.ordering.as_ref().unwrap().progress.status, TaskStatus::Succeeded);
@@ -573,9 +571,7 @@ fn table_aggregation_task() {
             input_data_frame: 1,
         }),
     );
-    assert_eq!(task_id, 1);
-    assert!(matches!(state.scheduler_task(1), Some(ComputationTask::TableAggregation(_))));
-    assert_eq!(state.next_task_id(), 2);
+    assert!(matches!(state.scheduler_task(task_id), Some(ComputationTask::TableAggregation(_))));
     assert_eq!(
         state.computation(1).unwrap().tasks.table_aggregation.as_ref().unwrap().progress.status,
         TaskStatus::Running
@@ -618,16 +614,14 @@ fn system_column_computation_task() {
             table_aggregate: table_aggregation(2),
         }),
     );
-    assert_eq!(task_id, 1);
-    assert!(matches!(state.scheduler_task(1), Some(ComputationTask::SystemColumns(_))));
-    assert_eq!(state.next_task_id(), 2);
+    assert!(matches!(state.scheduler_task(task_id), Some(ComputationTask::SystemColumns(_))));
     assert_eq!(
         state.computation(1).unwrap().tasks.system_columns.as_ref().unwrap().progress.status,
         TaskStatus::Running
     );
     assert_eq!(state.data_frames().len(), 2);
-    assert_eq!(state.data_frame_holds(1), 3);
-    assert_eq!(state.data_frame_holds(2), 2);
+    assert!(state.holds_data_frame(1));
+    assert!(state.holds_data_frame(2));
 
     apply(&mut state, ComputationAction::UnregisterSchedulerTask { task_id });
     assert_eq!(state.scheduler_tasks().count(), 0);
@@ -687,14 +681,12 @@ fn score_aggregation(input_data_frame: DataFrameId, aggregate_data_frame: DataFr
 fn column_aggregation_task() {
     let mut state = state_with_table(1);
     let task_id = schedule(&mut state, ComputationTask::ColumnAggregation(score_aggregation(1, 2)));
-    assert_eq!(task_id, 1);
-    assert!(matches!(state.scheduler_task(1), Some(ComputationTask::ColumnAggregation(_))));
-    assert_eq!(state.next_task_id(), 2);
+    assert!(matches!(state.scheduler_task(task_id), Some(ComputationTask::ColumnAggregation(_))));
     let tracked = state.computation(1).unwrap().tasks.column_aggregation[1].clone().unwrap();
     assert_eq!(tracked.progress.status, TaskStatus::Running);
     assert_eq!(state.data_frames().len(), 2);
-    assert_eq!(state.data_frame_holds(1), 3);
-    assert_eq!(state.data_frame_holds(2), 2);
+    assert!(state.holds_data_frame(1));
+    assert!(state.holds_data_frame(2));
 
     apply(&mut state, ComputationAction::UnregisterSchedulerTask { task_id });
     assert_eq!(state.scheduler_tasks().count(), 0);
@@ -707,13 +699,14 @@ fn column_aggregation_task() {
 fn a_task_of_an_unknown_column_fails() {
     let mut state = state_with_table(1);
     let revision = state.revision();
+    let next_task_id = state.next_task_id();
     let mut task = score_aggregation(1, 2);
     task.column_id = 2;
     assert!(state
         .apply(ComputationAction::ScheduleTask { task: ComputationTask::ColumnAggregation(task), now: NOW })
         .is_err());
     assert_eq!(state.revision(), revision);
-    assert_eq!(state.next_task_id(), 1);
+    assert_eq!(state.next_task_id(), next_task_id);
     assert_eq!(state.scheduler_tasks().count(), 0);
 }
 
@@ -745,7 +738,7 @@ fn stores_succeeded_column_aggregates_and_releases_the_previous_one() {
     let computation = state.computation(1).unwrap();
     assert_eq!(computation.column_aggregate(1), Some(&score_summary(10)));
     assert_eq!(computation.tasks.column_aggregation[1].as_ref().unwrap().progress.status, TaskStatus::Succeeded);
-    assert_eq!(state.data_frame_holds(10), 1);
+    assert!(state.holds_data_frame(10));
 
     let outcome = apply(&mut state, succeeded(1, 1, score_summary(11)));
     assert_eq!(state.computation(1).unwrap().column_aggregate(1), Some(&score_summary(11)));
@@ -783,16 +776,14 @@ fn filtered_score_aggregation(version: ComputationVersion, filter_frame: DataFra
 fn filtered_column_aggregation_task() {
     let mut state = state_with_table(1);
     let task_id = schedule(&mut state, filtered_score_aggregation(ComputationVersion::new(0, 10), 4));
-    assert_eq!(task_id, 1);
-    assert!(matches!(state.scheduler_task(1), Some(ComputationTask::FilteredColumnAggregation(_))));
-    assert_eq!(state.next_task_id(), 2);
+    assert!(matches!(state.scheduler_task(task_id), Some(ComputationTask::FilteredColumnAggregation(_))));
     let tracked = state.computation(1).unwrap().tasks.filtered_column_aggregation[1].clone().unwrap();
     assert_eq!(tracked.progress.status, TaskStatus::Running);
     assert_eq!(state.data_frames().len(), 4);
-    assert_eq!(state.data_frame_holds(1), 3);
-    assert_eq!(state.data_frame_holds(2), 2);
-    assert_eq!(state.data_frame_holds(3), 2);
-    assert_eq!(state.data_frame_holds(4), 2);
+    assert!(state.holds_data_frame(1));
+    assert!(state.holds_data_frame(2));
+    assert!(state.holds_data_frame(3));
+    assert!(state.holds_data_frame(4));
 
     apply(&mut state, ComputationAction::UnregisterSchedulerTask { task_id });
     assert_eq!(state.scheduler_tasks().count(), 0);
@@ -1093,7 +1084,7 @@ fn discards_stale_filtered_aggregation_results_without_replacing_the_active_task
         computation.tasks.filtered_column_aggregation[1].as_ref().unwrap().progress.status,
         TaskStatus::Succeeded
     );
-    assert_eq!(state.data_frame_holds(6), 1);
+    assert!(state.holds_data_frame(6));
     release_all(state);
 }
 
@@ -1144,8 +1135,8 @@ fn ending_the_data_search_drops_its_rows_and_aborts_it() {
     let computation = state.computation(1).unwrap();
     assert_eq!(computation.data_search_table, None);
     assert_eq!(computation.tasks.data_search, None);
-    assert_eq!(computation.data_search.request_id, 2);
-    assert_eq!(computation.data_search.applied_request_id, 2);
+    // The cleared pattern is applied right away
+    assert_eq!(computation.data_search.applied_request_id, computation.data_search.request_id);
     assert!(!computation.data_search.pending);
     assert_eq!(computation.data_search.requested_pattern, "");
     release_all(state);

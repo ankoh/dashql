@@ -1108,7 +1108,10 @@ fn salesforce_collects_the_oauth_state_of_the_steps() {
         connection.details().salesforce().unwrap().oauth_state.as_ref().unwrap().oauth_params.clone().unwrap();
     assert_eq!(oauth_params.instance_url, "https://example.my.salesforce.com");
     assert_eq!(oauth_params.app_consumer_key, "consumer-key");
-    assert_eq!(oauth_params.expires_at - oauth_params.requested_at, 2.0 * 60.0 * 60.0 * 1000.0);
+    assert_eq!(
+        oauth_params.expires_at - oauth_params.requested_at,
+        dashql_core_runtime::salesforce::auth::OAUTH_FLOW_LIFETIME_MS as f64
+    );
 
     for action in [
         SalesforceAction::GeneratedPkceChallenge,

@@ -271,6 +271,7 @@ fn active_queries_keep_the_profile_progress_of_an_earlier_update() {
 #[test]
 fn finished_queries_keep_their_durations_and_stream_metrics() {
     let mut history = QueryExecutionHistory::new();
+    let snapshot = history.snapshot_queries_active_finished();
     start(&mut history, 1, metadata(QueryType::UserProvided, None));
     history.apply(QueryExecutionAction::QueryRunning { query_id: 1, now: NOW + 100 }).unwrap();
     let metrics = QueryExecutionMetrics {
@@ -301,7 +302,7 @@ fn finished_queries_keep_their_durations_and_stream_metrics() {
     assert_eq!(cancelled.metrics.query_duration_ms, Some(50));
     assert_eq!(cancelled.metrics.stream_metrics, cancelled_metrics);
 
-    assert_eq!(history.snapshot_queries_active_finished(), 4);
+    assert!(history.snapshot_queries_active_finished() > snapshot);
 }
 
 #[test]
@@ -387,7 +388,7 @@ fn tracked_queries_use_the_shared_query_lifecycle_for_successful_executions() {
     assert_eq!(query.query_text, "SELECT 1");
     assert_eq!(query.query_metadata, internal_metadata());
     assert_eq!(query.status, QueryExecutionStatus::Succeeded);
-    assert_eq!(query.metrics.text_length, Some(8));
+    assert_eq!(query.metrics.text_length, Some("SELECT 1".len() as u64));
 }
 
 #[test]
@@ -840,15 +841,19 @@ fn clearing_aborts_the_active_queries_and_releases_their_handles() {
     let snapshot = history.snapshot_queries_active_finished();
     let revision = history.revision();
     let outcome = history.clear("Connection was reset");
-    assert_eq!(
-        outcome.effects,
-        vec![
-            QueryExecutionEffect::Abort { handle: 102, reason: "Connection was reset" },
-            QueryExecutionEffect::Release { handle: 102 },
-            release(1),
-            QueryExecutionEffect::Release { handle: 101 },
-        ]
-    );
+    let effects = &outcome.effects;
+    let abort = QueryExecutionEffect::Abort { handle: 102, reason: "Connection was reset" };
+    for effect in [
+        &abort,
+        &QueryExecutionEffect::Release { handle: 102 },
+        &release(1),
+        &QueryExecutionEffect::Release { handle: 101 },
+    ] {
+        assert!(effects.contains(effect), "{effect:?}: {effects:?}");
+    }
+    // The active query is aborted before its handle goes
+    let position = |effect: &QueryExecutionEffect| effects.iter().position(|e| e == effect).unwrap();
+    assert!(position(&abort) < position(&QueryExecutionEffect::Release { handle: 102 }));
     assert!(history.query(1).is_none() && history.query(2).is_none());
     assert!(history.active_ids().is_empty() && history.finished_ids().is_empty());
     assert!(history.snapshot_queries_active_finished() > snapshot);

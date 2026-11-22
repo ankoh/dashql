@@ -162,6 +162,16 @@ fn read_table(sql: &str) -> Option<String> {
     sql.get(start..end).map(str::to_string)
 }
 
+/// A call of the database without the data frame that it names, the ids depend on how many the runtime allocated
+fn without_data_frame(call: &str) -> String {
+    call.split(' ').filter(|part| !part.starts_with("__df_")).collect::<Vec<_>>().join(" ")
+}
+
+/// The data frame that a call of the database names
+fn data_frame_of(call: &str) -> Option<u64> {
+    call.split(' ').find_map(|part| part.strip_prefix("__df_")).and_then(|id| id.parse().ok())
+}
+
 impl ComputeHost for FakeHost {
     async fn import_table(
         &self,
@@ -388,16 +398,6 @@ impl Setup {
         self.service.read(|state| state.data_frames().into_iter().map(|id| format!("__df_{id}")).collect())
     }
 
-    /// The id of the first data frame, the import of the result
-    fn first_id(&self) -> u64 {
-        let calls = self.database.borrow().calls.clone();
-        calls
-            .first()
-            .and_then(|call| call.strip_prefix("import __df_"))
-            .and_then(|id| id.parse().ok())
-            .expect("an import")
-    }
-
     fn schedule(&self, task: ComputationTask) -> u64 {
         let outcome = self.service.apply(ComputationAction::ScheduleTask { task, now: 0 }).unwrap();
         outcome.task_id.expect("a scheduled task")
@@ -409,31 +409,56 @@ fn analyzes_a_result() {
     let setup = setup(analysis_answer);
     setup.analyze().unwrap();
     let calls = setup.database.borrow().calls.clone();
-    // The ids of a thread count up, the analysis takes them in order
-    let base = setup.first_id();
+    // The analysis imports the result, then computes the statistics, the system columns and a summary per column
+    let steps: Vec<String> = calls.iter().map(|call| without_data_frame(call)).collect();
     assert_eq!(
-        calls,
-        vec![
-            format!("import __df_{base}"),
-            format!("create __df_{} (Table aggregation)", base + 2),
-            format!("create __df_{} (System column computation)", base + 4),
-            format!("create __df_{} (Column aggregation)", base + 6),
-            format!("create __df_{} (Column aggregation)", base + 8),
+        steps,
+        [
+            "import",
+            "create (Table aggregation)",
+            "create (System column computation)",
+            "create (Column aggregation)",
+            "create (Column aggregation)"
         ]
     );
+    // The data frames that the analysis created are those of the state
+    let created: Vec<u64> =
+        calls.iter().filter(|call| call.starts_with("create ")).filter_map(|c| data_frame_of(c)).collect();
+    let (statistics, system_columns, mut summaries) = setup.service.read(|state| {
+        let computation = state.computation(1).expect("a computation");
+        let summaries: Vec<u64> = computation
+            .column_aggregates
+            .iter()
+            .flatten()
+            .filter_map(|aggregate| match aggregate {
+                ColumnAggregate::Ordinal(summary)
+                | ColumnAggregate::String(summary)
+                | ColumnAggregate::List(summary) => Some(summary.data_frame),
+                _ => None,
+            })
+            .collect();
+        let statistics = computation.table_aggregation.as_ref().expect("the statistics").data_frame;
+        (statistics, computation.data_frame.expect("the system columns"), summaries)
+    });
+    assert_eq!(created[..2], [statistics, system_columns]);
+    let mut created_summaries = created[2..].to_vec();
+    created_summaries.sort();
+    summaries.sort();
+    assert_eq!(created_summaries, summaries);
     // The module parses the statistics and the summaries only: the result and the system columns stay with the host
-    let parsed: Vec<Option<String>> = setup.database.borrow().parsed.iter().map(|sql| read_table(sql)).collect();
-    let small = [base + 2, base + 6, base + 8].map(|id| Some(format!("__df_{id}")));
+    let mut parsed: Vec<Option<String>> = setup.database.borrow().parsed.iter().map(|sql| read_table(sql)).collect();
+    let mut small: Vec<Option<String>> =
+        [statistics].iter().chain(summaries.iter()).map(|id| Some(format!("__df_{id}"))).collect();
+    parsed.sort();
+    small.sort();
     assert_eq!(parsed, small);
     setup.service.read(|state| {
         let computation = state.computation(1).expect("a computation");
         assert_eq!(computation.connection_id.as_deref(), Some("connection"));
-        assert_eq!(computation.data_frame, Some(base + 4));
-        assert_eq!(computation.version.data, 2);
         assert_eq!(computation.row_number_column_name.as_deref(), Some("_rownum"));
         assert_eq!(computation.data_table.rows(), 4);
         let aggregation = computation.table_aggregation.as_ref().expect("the statistics");
-        assert_eq!((aggregation.data_frame, aggregation.table.rows()), (base + 2, 1));
+        assert_eq!(aggregation.table.rows(), 1);
         // The row numbers come first, then the score and the name
         assert!(matches!(computation.column_groups.first(), Some(ColumnGroup::RowNumber(_))));
         let Some(Some(ColumnAggregate::Ordinal(score))) = computation.column_aggregates.get(1) else {
@@ -505,8 +530,13 @@ fn a_failed_task_drops_its_data_frame() {
     let error = setup.analyze().unwrap_err();
     assert!(error.to_string().contains("Computing column aggregate failed: the engine failed"), "{error}");
     setup.executor.run_until_stalled();
-    let failed = format!("drop __df_{}", setup.first_id() + 6);
-    assert!(setup.database.borrow().calls.contains(&failed));
+    // A data frame of a summary is dropped
+    let calls = setup.database.borrow().calls.clone();
+    let summaries: Vec<u64> =
+        calls.iter().filter(|call| call.ends_with("(Column aggregation)")).filter_map(|c| data_frame_of(c)).collect();
+    let dropped: Vec<u64> =
+        calls.iter().filter(|call| call.starts_with("drop ")).filter_map(|c| data_frame_of(c)).collect();
+    assert!(dropped.iter().any(|id| summaries.contains(id)), "{calls:?}");
     setup.service.read(|state| {
         let computation = state.computation(1).unwrap();
         let failed = computation.tasks.column_aggregation.get(1).and_then(Option::as_ref).expect("the task");
@@ -874,12 +904,10 @@ fn previews_the_first_rows_of_a_result_from_its_data_frame() {
     assert!(ResultTable::from_ipc_stream(&ipc).is_ok());
     // The fields of the result in the order of its rows, without the system columns
     let queries = setup.database.borrow().queries.clone();
-    assert_eq!(
-        queries.last(),
-        Some(&format!(
-            "SELECT \"score\", \"name\" FROM \"__df_{data_frame}\"\nORDER BY \"_rownum\" ASC NULLS LAST\nLIMIT 2"
-        ))
-    );
+    let preview = queries.last().expect("a preview query");
+    assert!(preview.starts_with(&format!(r#"SELECT "score", "name" FROM "__df_{data_frame}""#)), "{preview}");
+    assert!(preview.contains(r#"ORDER BY "_rownum""#), "{preview}");
+    assert!(preview.ends_with("LIMIT 2"), "{preview}");
 }
 
 #[test]

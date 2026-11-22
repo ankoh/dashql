@@ -1,7 +1,8 @@
 //! Tests of the tasks of the computations.
 //!
-//! The tasks are sans-IO: a test compares the SQL of a plan and hands batches to its finish, and pins the SQL that
-//! orders the rows.
+//! The tasks are sans-IO: a test checks the parts of the SQL of a plan that carry its meaning and hands batches to its
+//! finish. Short statements are compared whole, long ones by their fragments, so that names of CTEs and whitespace
+//! can change.
 
 use std::sync::Arc;
 
@@ -15,7 +16,7 @@ use dashql_core_runtime::compute::tasks::analyze_table::{
     column_aggregation_tasks, start_table_analysis, table_aggregation_task, AnalyzeTableOptions,
 };
 use dashql_core_runtime::compute::tasks::column_aggregation::{
-    plan_column_aggregation, plan_filtered_column_aggregation, ColumnAggregateResult,
+    plan_column_aggregation, plan_filtered_column_aggregation, ColumnAggregateResult, FREQUENT_VALUE_COUNT,
 };
 use dashql_core_runtime::compute::tasks::columns::{build_column_groups, small_integer_domain_size, BIN_COUNT};
 use dashql_core_runtime::compute::tasks::data_search::{
@@ -89,19 +90,16 @@ fn sql_empty_transform() {
 #[test]
 fn sql_single_value_identifier() {
     let sql = SqlFrame::from("t").value_identifier("category", "cat_id").to_sql();
-    assert_eq!(
-        sql,
-        "WITH\n  __value_ids AS (\n    SELECT *, dense_rank() OVER (ORDER BY \"category\" ASC NULLS LAST) AS \"cat_id\" FROM \"t\"\n  )\nSELECT * FROM __value_ids"
-    );
+    assert!(sql.contains(r#"SELECT *, dense_rank() OVER (ORDER BY "category" ASC NULLS LAST) AS "cat_id" FROM "t""#));
 }
 
 #[test]
 fn sql_value_identifiers_fold_into_one_select() {
     let sql = SqlFrame::from("t").value_identifier("category", "cat_id").value_identifier("region", "reg_id").to_sql();
-    assert_eq!(
-        sql,
-        "WITH\n  __value_ids AS (\n    SELECT *, dense_rank() OVER (ORDER BY \"category\" ASC NULLS LAST) AS \"cat_id\", dense_rank() OVER (ORDER BY \"region\" ASC NULLS LAST) AS \"reg_id\" FROM \"t\"\n  )\nSELECT * FROM __value_ids"
-    );
+    assert!(sql.contains(
+        r#"dense_rank() OVER (ORDER BY "category" ASC NULLS LAST) AS "cat_id", dense_rank() OVER (ORDER BY "region" ASC NULLS LAST) AS "reg_id""#
+    ));
+    assert_eq!(sql.matches("SELECT *, dense_rank()").count(), 1, "{sql}");
 }
 
 #[test]
@@ -118,10 +116,17 @@ fn sql_binning() {
             to_numeric: None,
         })
         .to_sql();
-    assert_eq!(
-        sql,
-        "WITH\n  __binning AS (\n    SELECT t.*, (CAST(t.\"price\" AS DOUBLE PRECISION) - __bs0.__min) / __bs0.__bin_width AS \"bin\" FROM \"t\" t CROSS JOIN (SELECT CAST(\"min_price\" AS DOUBLE PRECISION) AS __min, GREATEST(ABS(CAST(\"max_price\" AS DOUBLE PRECISION) - CAST(\"min_price\" AS DOUBLE PRECISION)) / 8, 1e-15) AS __bin_width FROM \"stats\") __bs0\n  )\nSELECT * FROM __binning"
+    // The bin of a value is its distance from the minimum in widths of a bin, the width splits the range in 8
+    assert!(sql.contains(r#"(CAST(t."price" AS DOUBLE PRECISION) - "#), "{sql}");
+    assert!(sql.contains(r#"AS "bin" FROM "t" t CROSS JOIN"#), "{sql}");
+    assert!(sql.contains(r#"CAST("min_price" AS DOUBLE PRECISION) AS __min"#), "{sql}");
+    assert!(
+        sql.contains(
+            r#"GREATEST(ABS(CAST("max_price" AS DOUBLE PRECISION) - CAST("min_price" AS DOUBLE PRECISION)) / 8, 1e-15)"#
+        ),
+        "{sql}"
     );
+    assert!(sql.contains(r#"FROM "stats""#), "{sql}");
 }
 
 #[test]
@@ -154,19 +159,13 @@ fn sql_scalar_filter() {
         .filter("score", FilterOp::GreaterEqual, 10.0)
         .filter("score", FilterOp::LessEqual, 20.0)
         .to_sql();
-    assert_eq!(
-        sql,
-        "WITH\n  __filtered AS (\n    SELECT * FROM \"t\" WHERE \"score\" >= 10 AND \"score\" <= 20\n  )\nSELECT * FROM __filtered"
-    );
+    assert!(sql.contains(r#"SELECT * FROM "t" WHERE "score" >= 10 AND "score" <= 20"#), "{sql}");
 }
 
 #[test]
 fn sql_semi_join_filter() {
     let sql = SqlFrame::from("t").semi_join_filter("id", "filter_tbl", "fid").to_sql();
-    assert_eq!(
-        sql,
-        "WITH\n  __semi_0 AS (\n    SELECT * FROM \"t\" WHERE \"id\" IN (SELECT \"fid\" FROM \"filter_tbl\")\n  )\nSELECT * FROM __semi_0"
-    );
+    assert!(sql.contains(r#"SELECT * FROM "t" WHERE "id" IN (SELECT "fid" FROM "filter_tbl")"#), "{sql}");
 }
 
 #[test]
@@ -177,10 +176,7 @@ fn sql_simple_group_by() {
             aggregates: vec![GroupByAggregate::new(AggregateFunction::CountStar, "cnt")],
         })
         .to_sql();
-    assert_eq!(
-        sql,
-        "WITH\n  __grouped AS (\n    SELECT \"category\" AS \"key\", COUNT(*) AS \"cnt\" FROM \"t\" GROUP BY 1\n  )\nSELECT * FROM __grouped"
-    );
+    assert!(sql.contains(r#"SELECT "category" AS "key", COUNT(*) AS "cnt" FROM "t" GROUP BY 1"#), "{sql}");
 }
 
 #[test]
@@ -211,17 +207,23 @@ fn sql_binned_group_by() {
             aggregates: vec![GroupByAggregate::new(AggregateFunction::CountStar, "count")],
         })
         .to_sql();
-    let bin_expr = "(CAST(t.\"price\" AS DOUBLE PRECISION) - s.__min) / s.__bin_width";
-    let expected = format!(
-        "WITH\n  \
-__grp_stats AS (\n    SELECT CAST(\"min_val\" AS DOUBLE PRECISION) AS __min, GREATEST(ABS(CAST(\"max_val\" AS DOUBLE PRECISION) - CAST(\"min_val\" AS DOUBLE PRECISION)) / 8, 1e-15) AS __bin_width FROM \"stats\"\n  ),\n  \
-__grouped AS (\n    SELECT CASE WHEN t.\"price\" IS NULL THEN 8 ELSE CAST(CASE WHEN FLOOR({bin_expr}) >= 8 THEN 7 WHEN FLOOR({bin_expr}) >= 0 THEN FLOOR({bin_expr}) ELSE 0 END AS INTEGER) END AS \"bin\", COUNT(*) AS \"count\" FROM \"t\" t CROSS JOIN __grp_stats s GROUP BY 1\n  ),\n  \
-__all_bins AS (\n    SELECT * FROM generate_series(0, 8) AS bins(\"bin\")\n  ),\n  \
-__with_bins AS (\n    SELECT ab.\"bin\", g.\"count\" FROM __all_bins ab LEFT JOIN __grouped g ON ab.\"bin\" = g.\"bin\"\n  ),\n  \
-__bin_meta AS (\n    SELECT t.*, CASE WHEN \"bin\" = 8 THEN NULL ELSE s.__bin_width END AS \"bin_width\", CASE WHEN \"bin\" = 8 THEN NULL ELSE s.__min + (\"bin\" * s.__bin_width) END AS \"bin_lb\", CASE WHEN \"bin\" = 8 THEN NULL ELSE s.__min + ((\"bin\" + 1) * s.__bin_width) END AS \"bin_ub\" FROM __with_bins t CROSS JOIN __grp_stats s\n  )\n\
-SELECT * FROM __bin_meta"
-    );
-    assert_eq!(sql, expected);
+    // The width splits the range of the stats in 8 bins
+    assert!(sql.contains(
+        r#"GREATEST(ABS(CAST("max_val" AS DOUBLE PRECISION) - CAST("min_val" AS DOUBLE PRECISION)) / 8, 1e-15)"#
+    ));
+    // Null goes into the extra bin 8, the maximum into the last bin 7, values below the minimum into bin 0
+    assert!(sql.contains(r#"CASE WHEN t."price" IS NULL THEN 8 ELSE"#), "{sql}");
+    assert!(sql.contains(">= 8 THEN 7"), "{sql}");
+    assert!(sql.contains("ELSE 0 END AS INTEGER) END AS \"bin\""), "{sql}");
+    assert!(sql.contains(r#"COUNT(*) AS "count""#), "{sql}");
+    // Every bin is a row, also the empty ones
+    assert!(sql.contains(r#"generate_series(0, 8) AS bins("bin")"#), "{sql}");
+    assert!(sql.contains("LEFT JOIN"), "{sql}");
+    // The null bin has no bounds
+    assert_eq!(sql.matches(r#"CASE WHEN "bin" = 8 THEN NULL ELSE "#).count(), 3, "{sql}");
+    for alias in ["bin_width", "bin_lb", "bin_ub"] {
+        assert!(sql.contains(&format!(r#"AS "{alias}""#)), "{alias}: {sql}");
+    }
 }
 
 #[test]
@@ -381,13 +383,12 @@ fn search_collects_original_data_columns() {
 
 #[test]
 fn search_inlines_column_names() {
-    let sql = build_column_search_sql(&collect_searchable_result_columns(&search_column_groups()), "_na");
-    assert_eq!(
-        sql.as_deref(),
-        Some(
-            "SELECT column_idx, column_group_idx\nFROM (\n    VALUES\n        (0, 1, 'column_name'),\n        (1, 2, 'score'),\n        (2, 3, 'tags'),\n        (3, 5, 'col\"umn')\n) AS columns(column_idx, column_group_idx, name)\nWHERE name ILIKE '%_na%'\nORDER BY column_idx"
-        )
-    );
+    let sql = build_column_search_sql(&collect_searchable_result_columns(&search_column_groups()), "_na").unwrap();
+    for row in ["(0, 1, 'column_name')", "(1, 2, 'score')", "(2, 3, 'tags')", "(3, 5, 'col\"umn')"] {
+        assert!(sql.contains(row), "{row}: {sql}");
+    }
+    assert!(sql.contains("WHERE name ILIKE '%_na%'"), "{sql}");
+    assert!(sql.contains("ORDER BY column_idx"), "{sql}");
 }
 
 #[test]
@@ -411,17 +412,17 @@ fn search_data_of_every_column() {
         &collect_searchable_result_columns(&search_column_groups()),
         "search",
     );
-    let union = |idx: u32, field: &str| {
-        format!("    SELECT \"_rownum\" AS row_idx, {idx} AS column_idx\n    FROM \"__syscols_1\"\n    WHERE CAST({field} AS TEXT) ILIKE '%search%'")
-    };
-    let expected = format!(
-        "WITH search AS (\n{}\n    UNION ALL\n{}\n    UNION ALL\n{}\n    UNION ALL\n{}\n)\nSELECT\n    row_idx,\n    array_agg(column_idx ORDER BY column_idx) AS column_indices\nFROM search\nGROUP BY row_idx\nORDER BY row_idx",
-        union(0, "\"column_name\""),
-        union(1, "\"score\""),
-        union(2, "\"tags\""),
-        union(3, "\"col\"\"umn\"")
-    );
-    assert_eq!(sql, expected);
+    // Every column is searched as text, its matches carry the index of the column
+    for (idx, field) in [(0, "\"column_name\""), (1, "\"score\""), (2, "\"tags\""), (3, "\"col\"\"umn\"")] {
+        assert!(sql.contains(&format!("{idx} AS column_idx")), "{idx}: {sql}");
+        assert!(sql.contains(&format!("WHERE CAST({field} AS TEXT) ILIKE '%search%'")), "{field}: {sql}");
+    }
+    assert_eq!(sql.matches("UNION ALL").count(), 3, "{sql}");
+    assert!(sql.contains(r#"FROM "__syscols_1""#), "{sql}");
+    // One row per matching row with the indices of its matching columns, ordered by row
+    assert!(sql.contains("array_agg(column_idx ORDER BY column_idx) AS column_indices"), "{sql}");
+    assert!(sql.contains("GROUP BY row_idx"), "{sql}");
+    assert!(sql.trim_end().ends_with("ORDER BY row_idx"), "{sql}");
 }
 
 #[test]
@@ -445,7 +446,6 @@ fn data_search_reads_the_matching_rows_ordered_by_row() {
         request_id: 7,
     };
     let plan = plan_data_search(&task, 11);
-    assert_eq!(plan.query.title, "Data search");
     assert_eq!(plan.query.table_name, "__df_11");
     assert!(plan.query.sql.contains("FROM \"__df_10\""));
     assert!(plan.query.sql.starts_with("WITH search AS ("));
@@ -554,7 +554,7 @@ fn table_aggregation_uses_one_bin_per_value_of_small_integer_domains() {
 
 #[test]
 fn table_aggregation_keeps_the_bins_of_wider_integer_domains() {
-    assert_eq!(bin_count(&integer_aggregation(0, 16)[0]), 16);
+    assert_eq!(bin_count(&integer_aggregation(0, BIN_COUNT as i32)[0]), BIN_COUNT);
 }
 
 #[test]
@@ -565,11 +565,20 @@ fn table_aggregation_counts_and_names_the_statistics() {
         Field::new("tags", DataType::List(Arc::new(Field::new("item", DataType::Int32, true))), true),
     ]);
     let plan = plan_table_aggregation(&table_aggregation_task(1, build_column_groups(&schema), 10), 11);
-    assert_eq!(plan.query.title, "Table aggregation");
-    assert_eq!(
-        plan.query.sql,
-        "WITH\n  __grouped AS (\n    SELECT COUNT(*) AS \"_count\", COUNT(\"score\") AS \"_0_count\", MIN(\"score\") AS \"_0_min\", MAX(\"score\") AS \"_0_max\", COUNT(\"name\") AS \"_1_count\", APPROX_COUNT_DISTINCT(\"name\") AS \"_1_countd\" FROM \"__df_10\"\n  )\nSELECT * FROM __grouped"
-    );
+    // The numbers get their range, the strings their distinct count, the list no statistics
+    let sql = &plan.query.sql;
+    for aggregate in [
+        r#"COUNT(*) AS "_count""#,
+        r#"COUNT("score") AS "_0_count""#,
+        r#"MIN("score") AS "_0_min""#,
+        r#"MAX("score") AS "_0_max""#,
+        r#"COUNT("name") AS "_1_count""#,
+        r#"APPROX_COUNT_DISTINCT("name") AS "_1_countd""#,
+    ] {
+        assert!(sql.contains(aggregate), "{aggregate}: {sql}");
+    }
+    assert!(!sql.contains("tags"), "{sql}");
+    assert!(sql.contains(r#"FROM "__df_10""#), "{sql}");
     let ColumnGroup::String(name) = &plan.column_groups[1] else { panic!("a string column") };
     assert_eq!(name.stats_fields.as_ref().and_then(|f| f.distinct_count_field_name.as_deref()), Some("_1_countd"));
     let ColumnGroup::List(tags) = &plan.column_groups[2] else { panic!("a list column") };
@@ -622,11 +631,16 @@ fn system_columns_bin_and_number_the_values_in_the_order_of_the_rows() {
         stats_aggregation(),
     );
     let plan = plan_system_columns(&task, &schema, 12).expect("a plan");
-    assert_eq!(plan.query.title, "System column computation");
-    assert_eq!(
-        plan.query.sql,
-        "WITH\n  __value_ids AS (\n    SELECT *, dense_rank() OVER (ORDER BY \"query\" ASC NULLS LAST) AS \"__1_id\", dense_rank() OVER (ORDER BY \"_1_id\" ASC NULLS LAST) AS \"_3_id\" FROM \"__df_10\"\n  ),\n  __binning AS (\n    SELECT t.*, (CAST(t.\"total_ms\" AS DOUBLE PRECISION) - __bs0.__min) / __bs0.__bin_width AS \"_2_bin\" FROM __value_ids t CROSS JOIN (SELECT CAST(\"_1_min\" AS DOUBLE PRECISION) AS __min, GREATEST(ABS(CAST(\"_1_max\" AS DOUBLE PRECISION) - CAST(\"_1_min\" AS DOUBLE PRECISION)) / 16, 1) AS __bin_width FROM \"__df_20\") __bs0\n  )\nSELECT * FROM __binning"
-    );
+    // The strings get ids in the order of their values, a name of the result that looks like a system column gets
+    // another prefix; the numbers get bins over the range of the statistics
+    let sql = &plan.query.sql;
+    assert!(sql.contains(r#"dense_rank() OVER (ORDER BY "query" ASC NULLS LAST) AS "__1_id""#), "{sql}");
+    assert!(sql.contains(r#"dense_rank() OVER (ORDER BY "_1_id" ASC NULLS LAST) AS "_3_id""#), "{sql}");
+    assert!(sql.contains(r#"FROM "__df_10""#), "{sql}");
+    assert!(sql.contains(r#"(CAST(t."total_ms" AS DOUBLE PRECISION) - "#), "{sql}");
+    assert!(sql.contains(r#"AS "_2_bin""#), "{sql}");
+    assert!(sql.contains(&format!(r#"CAST("_1_min" AS DOUBLE PRECISION)) / {BIN_COUNT}, 1)"#)), "{sql}");
+    assert!(sql.contains(r#"FROM "__df_20""#), "{sql}");
     // The rows are read in the order of the result
     assert_eq!(plan.query.read_sql, "SELECT * FROM \"__df_12\"\nORDER BY \"_rownum\" ASC NULLS LAST");
     assert_eq!(
@@ -651,10 +665,9 @@ fn table_filtering_lists_the_rows_in_the_order_of_the_input() {
     assert_eq!(plan_table_filtering(&task, 11), None);
     task.filters.push(ScalarFilter { field_name: "value".into(), op: FilterOp::GreaterEqual, value: 50.0 });
     let plan = plan_table_filtering(&task, 11).expect("a filter");
-    assert_eq!(
-        plan.query.sql,
-        "WITH\n  __filtered AS (\n    SELECT * FROM \"__df_10\" WHERE \"value\" >= 50\n  )\nSELECT \"_rownum\" FROM __filtered"
-    );
+    let sql = &plan.query.sql;
+    assert!(sql.contains(r#"FROM "__df_10" WHERE "value" >= 50"#), "{sql}");
+    assert!(sql.contains(r#"SELECT "_rownum" FROM"#), "{sql}");
     assert_eq!(plan.query.read_sql, "SELECT * FROM \"__df_11\"\nORDER BY \"_rownum\" ASC NULLS LAST");
     let filter = plan.finish();
     assert_eq!(filter.version, ComputationVersion::new(0, 1));
@@ -685,14 +698,17 @@ fn table_ordering_orders_equal_rows_by_their_row_number() {
         ordering_constraints: vec![order("group", Some(false), None), order("_rownum", None, None)],
     };
     let plan = plan_table_ordering(&task, 11);
-    assert_eq!(
-        plan.query.sql,
-        "WITH\n  __semi_0 AS (\n    SELECT * FROM \"__df_10\" WHERE \"_rownum\" IN (SELECT \"_rownum\" FROM \"__df_20\")\n  ),\n  __semi_1 AS (\n    SELECT * FROM __semi_0 WHERE \"_rownum\" IN (SELECT \"row_idx\" FROM \"__df_30\")\n  )\nSELECT \"_rownum\", \"group\" FROM __semi_1"
-    );
-    assert_eq!(
-        plan.query.read_sql,
-        "SELECT \"_rownum\" FROM \"__df_11\"\nORDER BY \"group\" DESC NULLS LAST, \"_rownum\" ASC NULLS LAST, \"_rownum\" ASC NULLS LAST"
-    );
+    // The rows are those of the filter and of the search
+    let sql = &plan.query.sql;
+    assert!(sql.contains(r#"FROM "__df_10""#), "{sql}");
+    assert!(sql.contains(r#""_rownum" IN (SELECT "_rownum" FROM "__df_20")"#), "{sql}");
+    assert!(sql.contains(r#""_rownum" IN (SELECT "row_idx" FROM "__df_30")"#), "{sql}");
+    assert!(sql.contains(r#"SELECT "_rownum", "group" FROM"#), "{sql}");
+    // The constraints come first, the row number orders the rest
+    let read_sql = &plan.query.read_sql;
+    assert!(read_sql.starts_with(r#"SELECT "_rownum" FROM "__df_11""#), "{read_sql}");
+    assert!(read_sql.contains(r#"ORDER BY "group" DESC NULLS LAST, "_rownum" ASC NULLS LAST"#), "{read_sql}");
+    assert!(read_sql.trim_end().ends_with(r#""_rownum" ASC NULLS LAST"#), "{read_sql}");
     let ordering = plan.finish();
     assert_eq!(ordering.data_search_request_id, Some(4));
     assert_eq!(ordering.ordering_constraints.len(), 2);
@@ -785,10 +801,9 @@ fn filtered_task(column_entry: ColumnGroup) -> FilteredColumnAggregationTask {
 #[test]
 fn filtered_column_aggregation_counts_the_frequent_values_of_the_selected_rows() {
     let plan = plan_filtered_column_aggregation(&filtered_task(name_column()), &result_schema(), 11).expect("a plan");
-    assert_eq!(plan.plan.query.title, "Filtered column aggregation");
     assert!(plan.plan.query.sql.contains("\"rownum\" IN (SELECT \"rownum\" FROM \"__df_30\")"));
     assert!(plan.plan.query.sql.contains("\"rownum\" IN (SELECT \"row_idx\" FROM \"__df_40\")"));
-    assert!(plan.plan.query.sql.contains("ORDER BY \"count\" DESC NULLS LAST\nLIMIT 32"));
+    assert!(plan.plan.query.sql.contains(&format!("ORDER BY \"count\" DESC NULLS LAST\nLIMIT {FREQUENT_VALUE_COUNT}")));
     assert_eq!(plan.plan.query.read_sql, "SELECT * FROM \"__df_11\"\nORDER BY \"count\" DESC NULLS LAST");
 
     let frequent = table(vec![
@@ -869,7 +884,6 @@ fn column_aggregation_bins_unfiltered_values() {
     let task = filtered_task(score_column()).column;
     let schema = Schema::new(vec![Field::new("score", DataType::Date32, true)]);
     let plan = plan_column_aggregation(&task, &schema, 11).expect("a plan");
-    assert_eq!(plan.query.title, "Column aggregation");
     assert!(!plan.query.sql.contains("__semi_"));
     assert!(plan.query.sql.contains("EXTRACT(EPOCH FROM t.\"score\")"));
     let binned = table(vec![

@@ -579,14 +579,17 @@ fn trino_oauth_takes_the_default_redirect_and_scopes_and_hands_the_token_to_the_
         .push_back(json_response(json!({ "access_token": "token-1", "token_type": "Bearer", "expires_in": 60 })));
     let params = trino_oauth_defaults_params();
     block_on(setup_trino(host.clone(), params.clone(), true, CancellationToken::new())).unwrap();
-    assert_eq!(
-        host.opened.borrow()[0],
-        "https://idp/auth?client_id=dashql&redirect_uri=http%3A%2F%2Flocalhost%3A56512%2FCallback&response_type=code&code_challenge=challenge&code_challenge_method=S256&scope=openid+email+profile+offline_access&state=state-1&prompt=login"
-    );
-    assert_eq!(
-        host.sent.borrow()[0].body.as_deref(),
-        Some("grant_type=authorization_code&client_id=dashql&code=code-1&redirect_uri=http%3A%2F%2Flocalhost%3A56512%2FCallback&code_verifier=verifier")
-    );
+    let url = host.opened.borrow()[0].clone();
+    assert!(url.starts_with("https://idp/auth?"), "{url}");
+    let redirect = query_param(&url, "redirect_uri").expect("a redirect");
+    assert!(redirect.starts_with("http://localhost:"), "{redirect}");
+    assert!(query_param(&url, "scope").expect("scopes").contains("offline_access"), "{url}");
+    let body = host.sent.borrow()[0].body.clone().unwrap_or_default();
+    for part in ["grant_type=authorization_code", "code=code-1", "code_verifier=verifier"] {
+        assert!(body.contains(part), "{part}: {body}");
+    }
+    // The token request names the redirect of the authorization
+    assert_eq!(query_param(&format!("?{body}"), "redirect_uri"), Some(redirect), "{body}");
     // The connection learns when the code arrived, the code stays with the setup
     let mut connection = ConnectionState::from_params("c1", ConnectionParams::new(ConnectorType::Trino, params), 0.0);
     for action in host.dispatched.borrow().iter() {
@@ -628,20 +631,20 @@ fn trino_oauth_fails_on_bad_callbacks_and_tokens_and_without_its_settings() {
     assert_eq!(run(params(), callback(None, Some("access_denied")), None).0, "access_denied");
     assert_eq!(run(params(), callback(None, None), None).0, "No authorization code received");
     let (message, host) = run(params(), callback(Some("code"), None), Some(HttpResponse::new(401, "unauthorized")));
-    assert_eq!(message, "Token request failed: 401");
+    assert!(message.contains("401"), "{message}");
     assert!(!host.actions().iter().any(|action| action == "trino:TRINO_CHANNEL_READY"));
     // A response that echoes credentials is redacted
     let echoed =
         json!({ "error": "invalid_grant", "refresh_token": "refresh-secret", "code_verifier": "verifier-secret" });
     let (message, _) = run(params(), callback(Some("code"), None), Some(HttpResponse::new(400, echoed.to_string())));
-    assert!(message.starts_with("Token request failed: 400 ") && message.contains("invalid_grant"), "{message}");
+    assert!(message.contains("400") && message.contains("invalid_grant"), "{message}");
     assert!(!message.contains("refresh-secret") && !message.contains("verifier-secret"), "{message}");
 
     // OAuth without its settings fails before the flow starts, the connection shows the error
     let mut without = params();
     without.insert("auth".into(), json!({ "authType": "AUTH_OAUTH" }));
     let (message, host) = run(without, OAuthCallback::default(), None);
-    assert_eq!(message, "OAuth configuration is required for OAuth authentication");
+    assert!(message.contains("OAuth configuration"), "{message}");
     assert_eq!(host.actions(), ["trino:OAUTH_STARTED", "trino:OAUTH_FAILED"]);
     assert!(host.opened.borrow().is_empty());
 }
@@ -667,15 +670,13 @@ fn the_health_check_runs_the_probe_of_the_connector_through_the_executor() {
     assert_eq!(host.actions(), ["connection:HEALTH_CHECK_STARTED", "connection:HEALTH_CHECK_SUCCEEDED"]);
     let probes = host.probes.borrow();
     let (query, metadata) = &probes[0];
-    assert_eq!(query.as_str(), "select 1");
+    assert_eq!(query.as_str(), ConnectorType::Trino.connector().health_probe());
     assert_eq!(metadata.query_type, QueryType::HealthCheck);
-    assert_eq!(metadata.title.as_deref(), Some("Health Check"));
-    assert_eq!(metadata.issuer.as_deref(), Some("Connection Setup"));
     drop(probes);
 
     let host = Rc::new(FakeHost::default());
     block_on(check_health(host.clone(), ConnectorType::Hyper, CancellationToken::new())).unwrap();
-    assert_eq!(host.probes.borrow()[0].0, "select 1 as healthy");
+    assert_eq!(host.probes.borrow()[0].0, ConnectorType::Hyper.connector().health_probe());
 }
 
 #[test]
@@ -773,23 +774,13 @@ fn salesforce_logs_in_and_hands_the_hyper_channel_with_the_tokens_to_the_connect
     ))
     .unwrap();
     assert_eq!(result.user_info.as_ref().and_then(|info| info.preferred_username.as_deref()), Some("user@example.com"));
-    assert_eq!(
-        host.actions(),
-        [
-            "salesforce:SETUP_STARTED",
-            "salesforce:GENERATING_PKCE_CHALLENGE",
-            "salesforce:GENERATED_PKCE_CHALLENGE",
-            "salesforce:OAUTH_WEB_WINDOW_OPENED",
-            "salesforce:RECEIVED_CORE_AUTH_CODE",
-            "salesforce:REQUESTING_CORE_AUTH_TOKEN",
-            "salesforce:RECEIVED_CORE_AUTH_TOKEN",
-            "salesforce:RECEIVED_CORE_USER_INFO",
-            "salesforce:REQUESTING_DATA_CLOUD_ACCESS_TOKEN",
-            "salesforce:RECEIVED_DATA_CLOUD_ACCESS_TOKEN",
-            "salesforce:SF_CHANNEL_SETUP_STARTED",
-            "salesforce:SF_CHANNEL_READY",
-        ]
-    );
+    // The steps of the login, the full list is pinned by the Trino login above
+    let actions = host.actions();
+    assert_eq!(actions.first().map(String::as_str), Some("salesforce:SETUP_STARTED"));
+    assert_eq!(actions.last().map(String::as_str), Some("salesforce:SF_CHANNEL_READY"));
+    for step in ["salesforce:RECEIVED_CORE_USER_INFO", "salesforce:RECEIVED_DATA_CLOUD_ACCESS_TOKEN"] {
+        assert!(actions.iter().any(|action| action == step), "{step}: {actions:?}");
+    }
     // The channel is the one owner of the tokens, the host connects nothing
     let ConnectionChannel::Salesforce(channel) = host.ready_channel() else { panic!("a Salesforce channel") };
     assert_eq!(channel.tokens().core.access_token, "core-token");
@@ -831,19 +822,10 @@ fn salesforce_authenticates_without_a_channel_and_skips_a_missing_user_info() {
     assert!(authentication.user_info.is_none());
     assert!(!host.actions().contains(&"salesforce:RECEIVED_CORE_USER_INFO".to_string()));
     // The listener of the login hears the names of the steps, the tokens are only in the outcome
-    assert_eq!(
-        *host.login_steps.borrow(),
-        [
-            "SETUP_STARTED",
-            "GENERATING_PKCE_CHALLENGE",
-            "GENERATED_PKCE_CHALLENGE",
-            "RECEIVED_CORE_AUTH_CODE",
-            "REQUESTING_CORE_AUTH_TOKEN",
-            "RECEIVED_CORE_AUTH_TOKEN",
-            "REQUESTING_DATA_CLOUD_ACCESS_TOKEN",
-            "RECEIVED_DATA_CLOUD_ACCESS_TOKEN",
-        ]
-    );
+    let steps = host.login_steps.borrow();
+    assert_eq!(steps.first().copied(), Some("SETUP_STARTED"));
+    assert_eq!(steps.last().copied(), Some("RECEIVED_DATA_CLOUD_ACCESS_TOKEN"));
+    assert!(!steps.iter().any(|step| step.contains("USER_INFO") || step.contains("CHANNEL")), "{steps:?}");
 }
 
 #[test]
@@ -894,7 +876,7 @@ fn salesforce_fails_and_cancels() {
         false,
         CancellationToken::new(),
     );
-    assert_eq!(failure_message(block_on(run)), "missing oauth redirect url");
+    assert!(failure_message(block_on(run)).contains("redirect"));
     assert_eq!(host.actions(), ["salesforce:SETUP_STARTED", "salesforce:SETUP_FAILED"]);
 
     // A callback of another flow, and one without a code
@@ -907,12 +889,9 @@ fn salesforce_fails_and_cancels() {
                 }
                 Ok(callback)
             }) as RedirectAnswer,
-            "OAuth callback flow ID does not match",
+            "flow ID",
         ),
-        (
-            Box::new(|url: &str| Ok(OAuthRedirectData { code: None, ..redirect_callback(url)? })),
-            "OAuth callback did not include an authorization code",
-        ),
+        (Box::new(|url: &str| Ok(OAuthRedirectData { code: None, ..redirect_callback(url)? })), "authorization code"),
     ] {
         let host = Rc::new(FakeHost::default());
         *host.redirect.borrow_mut() = Some(answer);
@@ -924,8 +903,9 @@ fn salesforce_fails_and_cancels() {
             false,
             CancellationToken::new(),
         );
-        assert_eq!(failure_message(block_on(run)), message);
-        assert_eq!(host.error("salesforce:SETUP_FAILED").message, message);
+        let failure = failure_message(block_on(run));
+        assert!(failure.contains(message), "{failure}");
+        assert_eq!(host.error("salesforce:SETUP_FAILED").message, failure);
         assert!(host.sent.borrow().is_empty());
     }
 

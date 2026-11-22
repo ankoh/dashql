@@ -367,7 +367,9 @@ fn stages_the_chart_spec_for_the_vis_tag_of_the_last_statement() {
 
     // A query without tags gets a new comment in front of the last statement
     workbook.apply(WorkbookAction::SetScriptVisSpec { key: alpha, spec: r#"{"mark":"bar"}"#.into() }).unwrap();
-    assert!(text(&workbook, alpha).starts_with("create table t (a int);\n/**\n * @vis vegalite\n"));
+    let staged = text(&workbook, alpha);
+    let tag = staged.find("@vis vegalite").expect("a vis tag");
+    assert!(staged.starts_with("create table t (a int);") && tag < staged.find("select 2").unwrap(), "{staged}");
     // The compiled spec reads the result of the query
     let spec = vegalite_spec(&workbook, alpha).unwrap();
     assert!(spec.contains(r#""mark": "bar""#) && spec.contains(r#""$sql""#), "{spec}");

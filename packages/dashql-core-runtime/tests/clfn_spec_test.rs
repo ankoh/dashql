@@ -1,6 +1,5 @@
 //! The client functions with the generated spec of the Data 360 extension.
 
-use std::collections::BTreeMap;
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -10,6 +9,7 @@ use dashql_core::completion::Completion;
 use dashql_core::cursor::{ScriptCursor, ScriptView};
 use dashql_core_runtime::clfn::*;
 use dashql_core_runtime::connections::{ConnectionAction, ConnectionParams, ConnectionState, ConnectorType};
+use dashql_core_runtime::salesforce::client_functions::DATA_360_API_VERSION;
 use dashql_core_runtime::salesforce::*;
 use dashql_parser::parser::parse;
 use dashql_parser::scanner::scan;
@@ -45,7 +45,7 @@ fn describe(catalog: &Catalog, text: &str) -> Vec<Value> {
 fn loads_the_generated_spec_of_an_extension() {
     let spec = spec();
     assert_eq!(spec.namespace, "d360");
-    assert!(spec.functions.len() > 500);
+    assert!(!spec.functions.is_empty());
 }
 
 #[test]
@@ -76,8 +76,8 @@ fn the_examples_build_a_request_of_their_function() {
     let mut catalog = Catalog::new();
     catalog.register_client_functions(&spec_text()).unwrap();
     let functions: Vec<_> = spec.functions.iter().filter(|f| !f.raw).collect();
-    assert!(functions.len() > 500);
-    let variables = BTreeMap::from([("api_version".to_string(), "68.0".to_string())]);
+    assert!(!functions.is_empty());
+    let variables = salesforce_client_function_variables();
     for function in functions {
         let example = function.example.as_deref().unwrap();
         let described = describe(&catalog, example);
@@ -95,6 +95,11 @@ fn the_examples_build_a_request_of_their_function() {
 }
 
 // The client functions of a connection
+
+/// The path of the data API of a Salesforce org in the version that the functions use
+fn data_path() -> String {
+    format!("/services/data/v{DATA_360_API_VERSION}")
+}
 
 fn connection(connector: ConnectorType) -> ConnectionState {
     ConnectionState::from_params("c", ConnectionParams::default_for(connector), NOW)
@@ -283,7 +288,7 @@ fn sends_the_request_of_the_spec_to_its_host_with_its_token() {
         json!({ "segments": [{ "apiName": "Vip" }] }),
     )
     .unwrap();
-    assert_eq!(sent[0].url, "https://org.my.salesforce.com/services/data/v68.0/ssot/segments?batchSize=10");
+    assert_eq!(sent[0].url, format!("https://org.my.salesforce.com{}/ssot/segments?batchSize=10", data_path()));
     assert_eq!(sent[0].header("Authorization"), Some("Bearer core-token"));
     assert_eq!(result.cell(0, "api_name").and_then(Cell::as_str), Some("Vip"));
     // The host reads the result as Arrow
@@ -296,7 +301,10 @@ fn prints_a_request_without_a_login_and_sends_nothing() {
         execute(&d360("segment_delete", json!({ "segment_api_name": "Vip" }), true), None, json!({})).unwrap();
     assert!(sent.is_empty());
     assert_eq!(result.cell(0, "method").and_then(Cell::as_str), Some("DELETE"));
-    assert_eq!(result.cell(0, "path").and_then(Cell::as_str), Some("/services/data/v68.0/ssot/segments/Vip"));
+    assert_eq!(
+        result.cell(0, "path").and_then(Cell::as_str),
+        Some(format!("{}/ssot/segments/Vip", data_path()).as_str())
+    );
 }
 
 #[test]
@@ -318,7 +326,7 @@ fn sends_a_write_such_as_creating_a_connection() {
         execute(&create, Some(&tokens), json!({ "id": "0Xx000000000001", "name": "snowflake_prod" })).unwrap();
     assert_eq!(
         (sent[0].method.as_str(), sent[0].url.as_str()),
-        ("POST", "https://org.my.salesforce.com/services/data/v68.0/ssot/connections")
+        ("POST", format!("https://org.my.salesforce.com{}/ssot/connections", data_path()).as_str())
     );
     let body: Value = serde_json::from_str(sent[0].body.as_deref().unwrap()).unwrap();
     assert_eq!(

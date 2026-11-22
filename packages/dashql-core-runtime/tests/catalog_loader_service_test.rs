@@ -13,6 +13,8 @@ use std::task::{Context, Poll, Wake, Waker};
 use arrow_array::{ArrayRef, Int32Array, RecordBatch, StringArray};
 use serde_json::{json, Value};
 
+use dashql_core_runtime::catalog_loader::scheduler::TOUCHED_RETRY_DELAY_MS;
+use dashql_core_runtime::catalog_loader::service::{BUSY_RETRY_MS, SUPERSEDED_MESSAGE};
 use dashql_core_runtime::catalog_loader::tables::relations_file_of_entry;
 use dashql_core_runtime::catalog_loader::{
     CatalogLoaderHost, CatalogLoaderService, CatalogQuery, CatalogUpdateOutcome, FollowedConnection,
@@ -24,6 +26,7 @@ use dashql_core_runtime::http::{CancellationToken, HttpHost, HttpRequest, HttpRe
 use dashql_core_runtime::query::{
     QueryExecutionAction, QueryExecutionHistory, QueryExecutionState, QueryMetadata, QueryType,
 };
+use dashql_core_runtime::salesforce::api::SALESFORCE_METADATA_ENTITY_TYPES;
 use dashql_core_runtime::settings::RuntimeSettings;
 
 /// 2026-01-01T00:00:00.000Z
@@ -214,6 +217,43 @@ impl FakeHost {
         let sender = self.state.borrow_mut().queries[index].answer.take().expect("the query waits for its answer");
         sender.send(answer.map_err(HostError::new));
         self.run();
+    }
+
+    /// The index of the oldest query that waits for its answer and isn't cancelled
+    fn waiting(&self) -> Option<usize> {
+        let state = self.state.borrow();
+        state.queries.iter().position(|query| query.answer.is_some() && !query.token.is_cancelled())
+    }
+
+    /// Answer the oldest query that waits
+    fn answer_next(&self, answer: Result<Vec<RecordBatch>, &str>) {
+        let index = self.waiting().expect("a query that waits");
+        self.answer(index, answer);
+    }
+
+    /// Answer the queries of the update that waits until it ends, its relations with the rows and its functions
+    /// with none, however many queries it needs
+    fn finish_update(&self, relations: Vec<RecordBatch>) {
+        let index = self.waiting().expect("a query that waits");
+        let task_id = self.state.borrow().queries[index].task_id;
+        while let Some(index) = self.waiting() {
+            let (task, query_type) = {
+                let state = self.state.borrow();
+                (state.queries[index].task_id, state.queries[index].query.query_type)
+            };
+            if task != task_id {
+                break;
+            }
+            let rows = if query_type == QueryType::CatalogQueryPgProc { Vec::new() } else { relations.clone() };
+            self.answer(index, Ok(rows));
+        }
+    }
+
+    /// The type and the text of the latest query
+    fn last_query(&self) -> (QueryType, String) {
+        let state = self.state.borrow();
+        let query = &state.queries.last().expect("a query").query;
+        (query.query_type, query.sql.clone())
     }
 
     /// Apply an action to a connection, like the registry of the app
@@ -439,7 +479,7 @@ fn a_forced_refresh_of_a_busy_connection_waits_for_it() {
         assert_eq!(host.query_count(), 0);
     }
     // The loader looks again shortly and starts the refresh
-    host.advance(10);
+    host.advance(BUSY_RETRY_MS as u64);
     assert_eq!(host.query_count(), 1);
     assert_eq!(host.events(), ["started 1 full"]);
 }
@@ -468,16 +508,15 @@ fn a_forced_refresh_aborts_the_running_update_once_and_runs_after_it() {
     assert!(!host.query_cancelled(1));
     assert_eq!(
         host.updates("database").tasks_finished.get(&1).unwrap().error.as_ref().unwrap().message,
-        "Superseded by forced catalog refresh"
+        SUPERSEDED_MESSAGE
     );
 
     host.observe();
     assert_eq!(host.query_count(), 2);
-    host.answer(1, Ok(pg_rows("orders")));
+    host.answer_next(Ok(pg_rows("orders")));
     // A Hyper server reads its functions from pg_proc
-    assert_eq!(host.query_count(), 3);
-    assert_eq!(host.state.borrow().queries[2].query.query_type, QueryType::CatalogQueryPgProc);
-    host.answer(2, Ok(Vec::new()));
+    assert_eq!(host.last_query().0, QueryType::CatalogQueryPgProc);
+    host.finish_update(Vec::new());
     assert!(host.events().contains(&"finished 2 Succeeded".to_string()), "{:?}", host.events());
     assert!(host.events().contains(&"announced database".to_string()));
     assert!(relations_text(&host).contains("orders"));
@@ -491,8 +530,9 @@ fn a_forced_refresh_aborts_the_running_update_once_and_runs_after_it() {
         .contains("-- Catalog Source: Hyper pg_proc"));
     // The host hears that the loader changed the connection
     assert!(host.events().contains(&"connection database".to_string()), "{:?}", host.events());
+    let queries = host.query_count();
     host.observe();
-    assert_eq!(host.query_count(), 3);
+    assert_eq!(host.query_count(), queries);
 }
 
 #[test]
@@ -511,11 +551,11 @@ fn an_update_that_failed_is_tried_once_more_without_another_request() {
     assert!(!host.events().iter().any(|event| event.starts_with("announced")));
     assert!(host.logged("Failed to update catalog"));
     // The request that wasn't forced is still queued and the connection isn't described
-    assert_eq!(host.query_count(), 2);
-    host.answer(1, Ok(pg_rows("orders")));
-    host.answer(2, Ok(Vec::new()));
+    assert!(host.waiting().is_some());
+    host.finish_update(pg_rows("orders"));
+    let queries = host.query_count();
     host.observe();
-    assert_eq!(host.query_count(), 3);
+    assert_eq!(host.query_count(), queries);
 }
 
 #[test]
@@ -528,15 +568,14 @@ fn a_request_after_a_refresh_that_described_the_connection_is_consumed() {
     host.run();
     host.service().enqueue("database", false);
     host.run();
-    host.answer(0, Ok(pg_rows("orders")));
-    host.answer(1, Ok(Vec::new()));
-    assert_eq!(host.query_count(), 2);
+    host.finish_update(pg_rows("orders"));
+    let queries = host.query_count();
     host.observe();
-    assert_eq!(host.query_count(), 2);
+    assert_eq!(host.query_count(), queries);
     host.service().enqueue("database", true);
     host.run();
-    assert_eq!(host.query_count(), 3);
-    assert!(!host.query_cancelled(2));
+    assert!(host.query_count() > queries);
+    assert!(!host.query_cancelled(queries));
 }
 
 #[test]
@@ -551,7 +590,6 @@ fn a_database_com_connection_reads_the_hyper_cloud_database_it_attaches() {
     assert_eq!(texts.len(), 1);
     assert!(texts[0].contains("\"lakehouse\".\"_hyper_catalog\""), "{}", texts[0]);
     assert!(host.state.borrow().queries[0].query.title.contains("lakehouse"));
-    assert_eq!(host.state.borrow().queries[0].task_id, 1);
 }
 
 // The connections that come online
@@ -642,10 +680,9 @@ fn the_relations_wait_for_a_running_refresh_that_may_have_read_them_too_early() 
     touch(&host);
     host.observe();
     assert_eq!(host.query_count(), 1);
-    host.answer(0, Ok(pg_rows("customers")));
-    host.answer(1, Ok(Vec::new()));
-    assert_eq!(host.query_count(), 3);
-    assert!(host.query_texts()[2].contains("'orders'"));
+    host.finish_update(pg_rows("customers"));
+    // The lookup follows the refresh
+    assert!(host.last_query().1.contains("'orders'"), "{}", host.last_query().1);
 }
 
 #[test]
@@ -658,7 +695,7 @@ fn the_relations_are_asked_about_again_after_a_wait_when_the_update_failed() {
     assert_eq!(host.updates("database").touched_relations, vec![orders()]);
     assert_eq!(host.updates("database").touched_failures, 1);
     host.observe();
-    host.advance(1999);
+    host.advance(TOUCHED_RETRY_DELAY_MS as u64 - 1);
     assert_eq!(host.query_count(), 1);
     host.advance(1);
     assert_eq!(host.query_count(), 2);
@@ -693,12 +730,9 @@ fn a_forced_refresh_runs_ahead_of_a_lookup_that_keeps_coming_back() {
     host.run();
     assert!(host.query_cancelled(0));
     // The refresh runs, the lookup gave its relation back and follows it
-    assert_eq!(host.query_count(), 2);
-    assert!(!host.query_texts()[1].contains("'orders'"));
-    host.answer(1, Ok(pg_rows("customers")));
-    host.answer(2, Ok(Vec::new()));
-    assert_eq!(host.query_count(), 4);
-    assert!(host.query_texts()[3].contains("'orders'"));
+    assert!(!host.last_query().1.contains("'orders'"));
+    host.finish_update(pg_rows("customers"));
+    assert!(host.last_query().1.contains("'orders'"), "{}", host.last_query().1);
 }
 
 // Cancellation
@@ -731,7 +765,7 @@ fn a_running_update_logs_that_it_still_runs() {
     host.observe();
     host.service().enqueue("database", true);
     host.run();
-    host.advance(5000);
+    host.advance(RuntimeSettings::default().catalog_heartbeat_ms as u64);
     assert!(host.logged("Catalog update in progress"));
     host.answer(0, Ok(pg_rows("orders")));
     assert!(host.logged("Finished catalog update"));
@@ -784,7 +818,7 @@ fn salesforce_fetches_its_metadata_from_the_instance() {
     host.run();
     assert!(host.events().contains(&"finished 1 Succeeded".to_string()), "{:?}", host.events());
     let sent: Vec<String> = host.state.borrow().sent.iter().map(|request| request.url.clone()).collect();
-    assert_eq!(sent.len(), 3);
+    assert_eq!(sent.len(), SALESFORCE_METADATA_ENTITY_TYPES.len());
     assert!(sent[0].starts_with("https://example.my.salesforce.com/services/data/"), "{}", sent[0]);
     assert!(sent[0].contains("entityType=DataModelObject"));
     let logs = host.state.borrow().logs.clone();

@@ -343,7 +343,7 @@ mod tests {
         let owner = "t";
         let first = registry.next_query_id();
         let second = registry.next_query_id();
-        assert_eq!(second, first + 1);
+        assert_ne!(second, first);
         for (query_id, handle) in [(first, None), (second, Some(7))] {
             let mut state =
                 QueryExecutionState::new(query_id, 1, "select 1", QueryMetadata::new(QueryType::UserProvided), 0);

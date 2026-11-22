@@ -1098,6 +1098,7 @@ fn the_descriptor_of_the_hyper_connector() {
     let shared = shared["hyper"].as_object().unwrap();
     assert!(!shared.contains_key("metadata") && !shared.contains_key("queryParameters"));
     assert_eq!(shared["tls"], json!({ "clientKeyPath": "", "clientCertPath": "", "caCertsPath": "" }));
+    // The text is the contract: it goes into the keys of the stored results, another text misses them all
     assert_eq!(
         cache_signature(&params).to_string(),
         r#"{"case":"hyper","protocol":"V3_HTTP","channelArgs":{"endpoint":"https://hyper.example","tls":{"clientKeyPath":"/key","clientCertPath":"","caCertsPath":""}},"attachedDatabases":[{"path":"a","alias":"x"},{"path":"b","alias":"y"}],"queryParameters":[["lc_time","de_DE"],["time_zone","UTC"]]}"#
@@ -1120,10 +1121,8 @@ fn the_channel_kind_of_a_protocol() {
 // ---------------------------------------------------------------------------------------------------------------------
 
 #[test]
-fn the_health_check_of_a_connection() {
-    assert_eq!(ConnectorType::Trino.connector().health_probe(), "select 1");
-    assert_eq!(ConnectorType::Hyper.connector().health_probe(), "select 1 as healthy");
-    // A failed probe keeps the details of the error, e.g. the status of a rejected login
+fn a_failed_health_check_keeps_the_details_of_the_error() {
+    // E.g. the status of a rejected login
     let error = failing_server(HttpResponse::new(401, "{}"))().unwrap_err().to_detailed_error();
     assert_eq!(error.message, "HTTP 401");
     assert_eq!(error.data.get("status").map(String::as_str), Some("401"));

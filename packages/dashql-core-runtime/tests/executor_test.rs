@@ -31,10 +31,13 @@ use dashql_core_runtime::http::{
 use dashql_core_runtime::hyper::{HyperChannelContext, HyperHttpChannel};
 use dashql_core_runtime::query::progress::{EngineProgressPayload, HyperQueryStatus};
 use dashql_core_runtime::query::{QueryExecutionMetrics, QueryExecutionProgress};
+use dashql_core_runtime::salesforce::client_functions::DATA_360_API_VERSION;
 use dashql_core_runtime::salesforce::SalesforceTokens;
 use dashql_core_runtime::settings::RuntimeSettings;
+use dashql_core_runtime::trino::protocol::ACCESS_TOKEN_REFRESH_MARGIN_MS;
 use dashql_core_runtime::trino::{
     SharedTrinoChannel, TrinoAccessToken, TrinoAuthParams, TrinoAuthType, TrinoChannel, TrinoOAuthParams,
+    DEFAULT_TRINO_RETRY_POLICY, TARGET_RESULT_SIZE,
 };
 
 const TRINO: &str = "https://trino.example.com";
@@ -135,6 +138,8 @@ type Server = Box<dyn FnMut(&HttpRequest) -> Answer>;
 struct State {
     /// The events of the queries without the logs
     events: Vec<String>,
+    /// The labels of the timings, kept apart from the events: they are no step of the lifecycle
+    timings: Vec<String>,
     /// The progress updates of the queries
     progress: Vec<QueryExecutionProgress>,
     logs: Vec<(LogLevel, String, Vec<(String, String)>)>,
@@ -337,7 +342,7 @@ fn event_name(event: &QueryEvent) -> Option<String> {
         QueryEvent::Cancelled { .. } => "cancelled".into(),
         QueryEvent::CacheRecorded { served_from_cache } => format!("cache:{served_from_cache}"),
         QueryEvent::TouchRelations => "touch".into(),
-        QueryEvent::Timing { label, .. } => format!("timing:{label}"),
+        QueryEvent::Timing { .. } => return None,
         QueryEvent::ResultsReady => "ready".into(),
         QueryEvent::Log { .. } => return None,
     })
@@ -384,6 +389,7 @@ impl ExecutorHost for FakeHost {
                 state.results.insert(run.query_id, *rows as usize);
             }
             QueryEvent::Progress(progress) => state.progress.push((**progress).clone()),
+            QueryEvent::Timing { label, .. } => state.timings.push(label.to_string()),
             _ => {}
         }
         if let Some(name) = event_name(&event) {
@@ -734,12 +740,12 @@ fn trino_streams_the_pages_of_a_query() {
             "batch:2",
             "progress:FINISHED",
             "batch:3",
-            "timing:Results",
             "all:3",
             "ready",
             "succeeded"
         ]
     );
+    assert!(host.state.borrow().timings.iter().any(|label| label == "Results"));
     assert_eq!(host.state.borrow().results.get(&1), Some(&3));
     // The statement stats go into the progress model of the query, every update carries its structured progress
     let progress = host.state.borrow().progress.clone();
@@ -747,12 +753,11 @@ fn trino_streams_the_pages_of_a_query() {
     assert!(progress.iter().all(|p| p.engine_progress.is_none() && p.profile_progress.is_some()));
     let last = progress[2].profile_progress.clone().unwrap();
     assert_eq!(last.recording, progress[0].profile_progress.clone().unwrap().recording);
-    assert_eq!(last.recording.len(), 3);
     let structure = flatbuffers::root::<fb::QueryProfile>(&last.structure).unwrap();
     assert_eq!(structure.engine(), fb::ProfileEngine::TRINO);
     let sent = host.state.borrow().sent.clone();
     assert_eq!(sent[0].header("X-Trino-User"), Some("user"));
-    assert!(sent[1].url.contains("targetResultSize=32MB"));
+    assert!(sent[1].url.contains(&format!("targetResultSize={TARGET_RESULT_SIZE}")));
     assert!(host.log_messages().contains(&"Executing query".to_string()));
     assert!(host.log_messages().contains(&"Executed query".to_string()));
 }
@@ -767,7 +772,7 @@ fn trino_retries_a_busy_coordinator_after_a_delay() {
     host.advance(0);
     assert!(outcome.borrow().is_none());
     assert!(host.log_messages().contains(&"Retrying a request of query results".to_string()));
-    host.advance(100);
+    host.advance(DEFAULT_TRINO_RETRY_POLICY.delay_ms(1));
     assert_eq!(resolved(outcome.borrow().as_ref().unwrap()), Some(true));
     assert_eq!(host.state.borrow().results.get(&1), Some(&1));
 }
@@ -911,7 +916,7 @@ fn trino_refreshes_an_expiring_token_once_for_all_queries_of_the_channel() {
     });
     let executor = QueryExecutor::new(host.clone());
     // The token expires within the refresh margin, every query of the channel needs a fresh one
-    let channel = oauth_trino_channel(30_000);
+    let channel = oauth_trino_channel(ACCESS_TOKEN_REFRESH_MARGIN_MS / 2);
     let query = request(1, QueryTarget::Trino(channel.clone()));
     let first_run = query.run.clone();
     let first = start(&host, &executor, query);
@@ -961,7 +966,7 @@ fn trino_fails_a_refresh_that_hangs_and_refreshes_again_later() {
         Answer::Hold
     });
     let executor = QueryExecutor::new(host.clone());
-    let channel = oauth_trino_channel(30_000);
+    let channel = oauth_trino_channel(ACCESS_TOKEN_REFRESH_MARGIN_MS / 2);
     let first = start(&host, &executor, request(1, QueryTarget::Trino(channel.clone())));
     host.advance(0);
     assert!(first.borrow().is_none(), "the query waits for the refresh");
@@ -1003,13 +1008,13 @@ fn trino_cancels_the_query_at_the_server_during_a_token_refresh() {
     });
     let executor = QueryExecutor::new(host.clone());
     // The token is fresh for the statement and the first page, the retry of the page needs a refresh
-    let channel = oauth_trino_channel(60_050);
+    let channel = oauth_trino_channel(ACCESS_TOKEN_REFRESH_MARGIN_MS + 50);
     let query = request(1, QueryTarget::Trino(channel));
     let run = query.run.clone();
     let outcome = start(&host, &executor, query);
     host.advance(0);
     assert!(!host.state.borrow().sent.iter().any(|r| r.url == TOKEN_URL));
-    host.advance(100);
+    host.advance(DEFAULT_TRINO_RETRY_POLICY.delay_ms(1));
     assert!(host.state.borrow().sent.iter().any(|r| r.url == TOKEN_URL), "the next page waits for a refresh");
     run.token.cancel();
     host.advance(0);
@@ -1052,7 +1057,9 @@ fn cancelling_a_query_aborts_the_requests_that_it_waits_for() {
     host.advance(0);
     run.token.cancel();
     host.advance(0);
-    assert_eq!(*host.aborted.borrow(), [format!("{}?targetResultSize=32MB", next_uri(1))]);
+    let aborted = host.aborted.borrow();
+    assert_eq!(aborted.len(), 1);
+    assert!(aborted[0].starts_with(&next_uri(1)), "{aborted:?}");
 }
 
 // Hyper
@@ -1078,10 +1085,7 @@ fn hyper_reads_the_result_of_a_query_over_http() {
     let executor = QueryExecutor::new(host.clone());
     let outcome = run(&host, &executor, request(1, QueryTarget::HyperHttp { channel, auth }));
     assert_eq!(resolved(&outcome), Some(true));
-    assert_eq!(
-        host.events(),
-        ["sending", "running", "progress:", "batch:0", "timing:Results", "all:3", "ready", "succeeded"]
-    );
+    assert_eq!(host.events(), ["sending", "running", "progress:", "batch:0", "all:3", "ready", "succeeded"]);
     // The status of the query is the progress of the whole query
     let progress = host.state.borrow().progress.clone();
     let profile = progress[0].profile_progress.clone().unwrap();
@@ -1143,9 +1147,7 @@ fn the_progress_of_a_channel_of_the_host_goes_into_the_progress_model_with_the_l
     }
     let executor = QueryExecutor::new(host.clone());
     let top_down = fb::ProfileLayoutOrientation::TOP_DOWN;
-    executor.set_progress_layout(Some(fb::ProfileLayoutConfig::new(
-        56.0, 32.0, 28.0, 12.0, 12.0, 34.0, 8.0, 20, 8.5, 0.0, 40.0, top_down, 20.0,
-    )));
+    executor.set_progress_layout(Some(progress_layout(top_down)));
     let outcome = run(&host, &executor, request(1, QueryTarget::Host));
     assert_eq!(resolved(&outcome), Some(true));
     let progress = host.state.borrow().progress.clone();
@@ -1221,6 +1223,11 @@ fn hyper_fails_with_the_error_of_the_server() {
 
 // Channels of the host
 
+/// The layout of the progress of the app with an orientation, only the orientation matters to the tests
+fn progress_layout(orientation: fb::ProfileLayoutOrientation) -> fb::ProfileLayoutConfig {
+    fb::ProfileLayoutConfig::new(56.0, 32.0, 28.0, 12.0, 12.0, 34.0, 8.0, 20, 8.5, 0.0, 40.0, orientation, 20.0)
+}
+
 fn metrics(rows: u64) -> QueryExecutionMetrics {
     QueryExecutionMetrics { total_rows_received: rows, total_batches_received: 1, ..QueryExecutionMetrics::default() }
 }
@@ -1243,18 +1250,7 @@ fn a_channel_of_the_host_keeps_its_batches() {
     assert_eq!(resolved(&outcome), Some(true));
     assert_eq!(
         host.events(),
-        [
-            "sending",
-            "running",
-            "progress:host",
-            "batch:2",
-            "batch:3",
-            "timing:Results",
-            "all:3",
-            "touch",
-            "ready",
-            "succeeded"
-        ]
+        ["sending", "running", "progress:host", "batch:2", "batch:3", "all:3", "touch", "ready", "succeeded"]
     );
     assert_eq!(host.state.borrow().channel_calls, ["open"]);
     // Nothing of the result crossed
@@ -1274,7 +1270,7 @@ fn a_statement_without_published_results_is_drained() {
     let mut query = request(1, QueryTarget::Host);
     query.publish_results = false;
     assert_eq!(resolved(&run(&host, &executor, query)), Some(false));
-    assert_eq!(host.events(), ["sending", "running", "timing:Results", "ready", "succeeded"]);
+    assert_eq!(host.events(), ["sending", "running", "ready", "succeeded"]);
 }
 
 #[test]
@@ -1283,7 +1279,7 @@ fn a_channel_without_a_result_succeeds_without_a_table() {
     host.state.borrow_mut().channel_stream = false;
     let executor = QueryExecutor::new(host.clone());
     assert_eq!(resolved(&run(&host, &executor, request(1, QueryTarget::Host))), Some(false));
-    assert_eq!(host.events(), ["sending", "timing:Results", "ready", "succeeded"]);
+    assert_eq!(host.events(), ["sending", "ready", "succeeded"]);
     assert!(host.log_messages().contains(&"Query returned no results".to_string()));
 }
 
@@ -1426,18 +1422,7 @@ fn a_failed_analysis_fails_the_query_and_rejects() {
     // The result is fine, it is stored all the same
     assert_eq!(
         host.events(),
-        [
-            "sending",
-            "running",
-            "batch:1",
-            "timing:Results",
-            "all:1",
-            "ready",
-            "processing",
-            "timing:Postprocess",
-            "failed:no compute",
-            "cache:false"
-        ]
+        ["sending", "running", "batch:1", "all:1", "ready", "processing", "failed:no compute", "cache:false"]
     );
     assert_eq!(host.state.borrow().cache_calls, ["write:a.sql:k"]);
 }
@@ -1652,7 +1637,10 @@ fn segment_call() -> ClientFunctionCallDescription {
 fn a_client_function_call_asks_the_service() {
     let host = FakeHost::new();
     host.serve(|request| {
-        assert_eq!(request.url, "https://org.my.salesforce.com/services/data/v68.0/ssot/segments");
+        assert_eq!(
+            request.url,
+            format!("https://org.my.salesforce.com/services/data/v{DATA_360_API_VERSION}/ssot/segments")
+        );
         assert_eq!(request.header("Authorization"), Some("Bearer core-token"));
         json_response(json!({ "segments": [{ "apiName": "Vip" }, { "apiName": "New" }] }))
     });

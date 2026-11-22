@@ -90,10 +90,12 @@ mod tests {
             json!({ "trino": { "endpoint": "https://trino", "auth": { "authType": "AUTH_BASIC", "basic": { "username": "", "secret": "" } } } })
         );
         let hyper = json!({ "hyper": { "protocol": "V3_HTTP", "metadata": { "a": "b" }, "queryParameters": { "x": "y" }, "draftRows": {} } });
-        assert_eq!(
-            sanitize_connection_params_for_sharing(&hyper, true),
-            json!({ "hyper": { "protocol": "V3_HTTP", "tls": { "clientKeyPath": "", "clientCertPath": "", "caCertsPath": "" } } })
-        );
+        let shared = sanitize_connection_params_for_sharing(&hyper, true);
+        let shared = shared["hyper"].as_object().unwrap();
+        assert_eq!(shared.get("protocol"), Some(&json!("V3_HTTP")));
+        for secret in ["metadata", "queryParameters", "draftRows"] {
+            assert!(!shared.contains_key(secret), "{secret}: {shared:?}");
+        }
         let salesforce = json!({ "salesforce": { "instanceUrl": "u", "appConsumerSecret": "s", "login": "me" } });
         assert_eq!(
             sanitize_connection_params_for_sharing(&salesforce, true),

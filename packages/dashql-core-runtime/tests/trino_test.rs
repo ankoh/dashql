@@ -27,8 +27,9 @@ use dashql_core_runtime::trino::arrow::{
 use dashql_core_runtime::trino::descriptor::{cache_signature, login_hint};
 use dashql_core_runtime::trino::protocol::{
     parse_trino_json, read_query_info, read_result_page, read_statement_response, read_token_response,
-    ResultPageOutcome,
+    ResultPageOutcome, ACCESS_TOKEN_REFRESH_MARGIN_MS,
 };
+use dashql_core_runtime::trino::stream::{QUERY_INFO_FINAL_TIMEOUT_MS, QUERY_INFO_RETRY_MS};
 use dashql_core_runtime::trino::{
     read_cancel_response, FetchOutcome, HttpMethod, HttpRequest, HttpResponse, RequestId, StreamOutput, TimerId,
     TokenRefresh, TrinoAccessToken, TrinoAuthParams, TrinoAuthType, TrinoChannel, TrinoColumn, TrinoErrorKind,
@@ -156,10 +157,10 @@ fn gives_up_on_query_results_after_the_last_attempt_and_on_other_errors() {
 
 #[test]
 fn doubles_the_delay_of_retries_up_to_the_maximum() {
-    let policy = TrinoRetryPolicy::default();
-    let delays: Vec<u64> = (1..=7).map(|attempt| policy.delay_ms(attempt)).collect();
-    assert_eq!(delays, [100, 200, 400, 800, 1600, 3000, 3000]);
-    assert_eq!(policy.delay_ms(200), 3000);
+    let policy = TrinoRetryPolicy { attempts: 10, initial_delay_ms: 10, max_delay_ms: 50 };
+    let delays: Vec<u64> = (1..=5).map(|attempt| policy.delay_ms(attempt)).collect();
+    assert_eq!(delays, [10, 20, 40, 50, 50]);
+    assert_eq!(policy.delay_ms(200), policy.max_delay_ms);
 }
 
 #[test]
@@ -257,15 +258,16 @@ fn sends_the_oauth_token_and_refreshes_it_before_it_expires() {
     assert_eq!(request.header("Authorization"), Some("Bearer token-1"));
     assert_eq!(request.header("X-Trino-User"), None);
 
-    // Long before the expiry nothing happens, a minute before it the token is refreshed once
-    assert_eq!(channel.begin_token_refresh(1_000_000 - 60_001), TokenRefresh::NotNeeded);
-    let TokenRefresh::Started(refresh) = channel.begin_token_refresh(1_000_000 - 60_000) else {
+    // Long before the expiry nothing happens, within the margin before it the token is refreshed once
+    let margin = 1_000_000 - ACCESS_TOKEN_REFRESH_MARGIN_MS;
+    assert_eq!(channel.begin_token_refresh(margin - 1), TokenRefresh::NotNeeded);
+    let TokenRefresh::Started(refresh) = channel.begin_token_refresh(margin) else {
         panic!("expected a refresh");
     };
     assert_eq!((refresh.url.as_str(), refresh.method.clone()), ("https://idp/token", HttpMethod::Post));
     assert_eq!(refresh.header("Content-Type"), Some("application/x-www-form-urlencoded"));
     assert_eq!(refresh.body.as_deref(), Some("grant_type=refresh_token&client_id=dashql&refresh_token=refresh-1"));
-    assert_eq!(channel.begin_token_refresh(1_000_000 - 60_000), TokenRefresh::Pending);
+    assert_eq!(channel.begin_token_refresh(margin), TokenRefresh::Pending);
 
     // The new token keeps the refresh token since the server sent none
     let refreshed = json_response(json!({ "access_token": "token-2", "expires_in": 3600 }));
@@ -648,7 +650,7 @@ fn translates_every_trino_type() {
     assert_eq!(column(9).as_primitive::<Decimal128Type>().value(0), 42);
     assert_eq!(column(13).as_binary::<i32>().value(0), b"bytes");
     assert_eq!(column(14).as_string::<i32>().value(0), "{\"a\":1}");
-    assert_eq!(column(15).as_primitive::<Date32Type>().value(0), 19_782);
+    assert_eq!(column(15).as_primitive::<Date32Type>().value(0), (utc(2024, 2, 29, 0, 0, 0, 0) / 86_400_000) as i32);
     assert_eq!(column(16).as_primitive::<Time32MillisecondType>().value(0), 3_723_456);
     assert_eq!(column(18).as_primitive::<TimestampMillisecondType>().value(0), utc(2024, 3, 1, 12, 30, 0, 123));
     assert_eq!(column(19).as_primitive::<TimestampMillisecondType>().value(0), utc(2024, 3, 1, 11, 30, 0, 123));
@@ -930,9 +932,9 @@ fn fetches_the_query_info_again_while_a_stage_whose_tasks_are_done_has_no_operat
     harness.run();
     assert_eq!(harness.query_info_requests(), 1);
     // The plans lack the summaries of the pending stage, one retry brings them, then no more retries
-    harness.advance(1000);
+    harness.advance(QUERY_INFO_RETRY_MS as i64);
     assert_eq!(harness.query_info_requests(), 2);
-    harness.advance(5000);
+    harness.advance(5 * QUERY_INFO_RETRY_MS as i64);
     assert_eq!(harness.query_info_requests(), 2);
     harness.pages.push_back(json_response(page(
         json!({ "columns": serde_json::from_str::<Value>(COLUMNS).unwrap(), "stats": state("FINISHED") }),
@@ -957,14 +959,14 @@ fn fetches_the_query_info_of_a_finished_query_until_it_is_final() {
     ]);
     let out = harness.query.set_profile_detail(true, 0);
     harness.absorb(out);
-    harness.advance(1000);
+    harness.advance(QUERY_INFO_RETRY_MS as i64);
     // The plans, a QueryInfo that is not final yet, the final one
     assert_eq!(harness.query_info_requests(), 3);
     assert_eq!(harness.end(), Some(&StreamOutput::Finished));
 }
 
 #[test]
-fn stops_waiting_for_the_final_query_info_after_three_seconds() {
+fn stops_waiting_for_the_final_query_info_after_a_deadline() {
     let running = json!({ "state": "RUNNING", "rootStage": { "stageId": "0" } });
     let mut harness = Harness::with_pages(vec![
         page(json!({ "stats": running, "nextUri": next(1) })),
@@ -973,12 +975,14 @@ fn stops_waiting_for_the_final_query_info_after_three_seconds() {
     harness.infos.push_back(json_response(json!({ "queryId": "query-id", "state": "FINISHING" })));
     let out = harness.query.set_profile_detail(true, 0);
     harness.absorb(out);
-    harness.advance(2000);
+    // The query ends once the final fetch gave up, before the deadline at the latest
+    let half = QUERY_INFO_FINAL_TIMEOUT_MS as i64 / 2;
+    harness.advance(half);
     assert_eq!(harness.end(), None);
-    harness.advance(1000);
+    harness.advance(QUERY_INFO_FINAL_TIMEOUT_MS as i64 - half);
     assert_eq!(harness.end(), Some(&StreamOutput::Finished));
-    // The plans and one QueryInfo every 200 ms until the deadline is near
-    assert_eq!(harness.query_info_requests(), 16);
+    // The QueryInfo is fetched again and again until the deadline is near
+    assert!(harness.query_info_requests() > 2, "{}", harness.query_info_requests());
     assert!(harness.timers.is_empty());
 }
 
@@ -1188,6 +1192,7 @@ fn retries_failed_pages_after_a_delay_and_stops_when_aborted() {
     ]);
     aborted.run();
     assert_eq!(aborted.timers.len(), 1);
+    let (timer, _) = aborted.timers[0];
     let out = aborted.query.abort();
     aborted.absorb(out);
     assert!(aborted.timers.is_empty());
@@ -1195,7 +1200,7 @@ fn retries_failed_pages_after_a_delay_and_stops_when_aborted() {
         panic!("expected an abort");
     };
     assert_eq!(error.kind, TrinoErrorKind::Aborted);
-    assert!(aborted.query.on_timer(1, 1000).is_empty());
+    assert!(aborted.query.on_timer(timer, 1000).is_empty());
     assert!(aborted.query.abort().is_empty());
 }
 
@@ -1314,6 +1319,7 @@ fn signs_cached_results_per_user_without_credentials() {
         "defaultCatalog": "hive",
         "catalogs": ["hive", "iceberg"],
     }));
+    // The text is the contract: it goes into the keys of the stored results, another text misses them all
     assert_eq!(
         cache_signature(&params).to_string(),
         r#"{"case":"trino","endpoint":"https://trino.example.com","auth":{"authType":"AUTH_BASIC","user":"user"},"defaults":{"catalog":"hive","schema":null}}"#

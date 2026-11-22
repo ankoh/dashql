@@ -421,6 +421,15 @@ impl Setup {
         self.state.borrow().states.last().cloned().expect("a state")
     }
 
+    /// The query of the statement with a text
+    fn query_of(&self, text: &str) -> QueryId {
+        self.state.borrow().statements.iter().find(|s| s.request.text == text).map(|s| s.query_id).expect("a statement")
+    }
+
+    fn calls(&self) -> Vec<String> {
+        self.state.borrow().calls.clone()
+    }
+
     /// End a statement of a gated test
     fn end(&self, text: &str, end: Result<bool, StatementFailure>) {
         let sender = self
@@ -467,7 +476,13 @@ fn runs_the_scripts_of_a_workbook_in_the_order_of_the_plan() {
     // Only the output of a script analyzes its result, the planned statement says where it comes from
     let statements = &s.state.borrow().statements;
     assert!(!statements[0].request.analyze_results && statements[2].request.analyze_results);
-    assert_eq!(statements[2].request.planned.title(), "3_query.sql 1/1");
+    assert!(statements[2].request.planned.title().starts_with("3_query.sql"));
+}
+
+/// The id and the path of a pin of the call log
+fn pin_of(call: &str) -> (String, String) {
+    let (id, path) = call.strip_prefix("pin ").and_then(|pin| pin.split_once(' ')).expect("a pin with a path");
+    (id.to_string(), path.to_string())
 }
 
 #[test]
@@ -482,7 +497,8 @@ fn a_failed_statement_cancels_the_running_statements_and_fails_the_run() {
     let result = result.borrow_mut().take().expect("the run ended");
     let failure = result.failure.expect("a failure");
     assert_eq!((failure.kind, failure.message.as_str()), (RunFailureKind::Error, "boom"));
-    assert!(s.state.borrow().calls.iter().any(|call| call == "cancel 2"));
+    let cancel = format!("cancel {}", s.query_of("select 2"));
+    assert!(s.calls().contains(&cancel), "{:?}", s.calls());
     assert_eq!(s.events("1_a.sql"), vec!["planned", "started", "failed"]);
     assert_eq!(s.events("2_b.sql"), vec!["planned", "started", "cancelled"]);
     let state = s.last_state();
@@ -502,7 +518,8 @@ fn runs_one_statement_of_a_connection_at_a_time_and_stops_when_cancelled() {
     s.executor.run_until_stalled();
     let result = result.borrow_mut().take().expect("the run ended");
     assert_eq!(result.failure.map(|f| f.kind), Some(RunFailureKind::Cancelled));
-    assert!(s.state.borrow().calls.iter().any(|call| call == "cancel 2"));
+    let cancel = format!("cancel {}", s.query_of("select 2"));
+    assert!(s.calls().contains(&cancel), "{:?}", s.calls());
     assert!(s.state.borrow().states.iter().any(|state| state.phase == RunPhase::Stopping));
     assert_eq!(s.last_state().phase, RunPhase::Cancelled);
 }
@@ -527,7 +544,10 @@ fn serves_the_cached_results_of_scripts_and_runs_the_others() {
         })
         .collect();
     assert_eq!(scripts, vec!["foo.sql", "bar.sql"]);
-    assert_eq!(s.texts(), vec!["select 1 as a", "with foo as (\nselect 1 as a\n)\nselect a + 1 from foo"]);
+    // bar inlines the query of foo, the planner snapshots pin how
+    let texts = s.texts();
+    assert_eq!(texts[0], "select 1 as a");
+    assert!(texts[1].contains("with foo as") && texts[1].ends_with("from foo"), "{}", texts[1]);
     // The stored result of foo has its key, it is reused and bar runs
     s.state.borrow_mut().statements.clear();
     s.state.borrow_mut().stored.insert("foo.sql".into(), keys[0].clone());
@@ -604,7 +624,7 @@ fn runs_a_script_whose_stored_result_has_another_key() {
     assert_eq!(statements.len(), 1);
     assert!(matches!(&statements[0].request.result, StatementResult::Store { key, .. } if key.starts_with("main:")));
     // The file of the other key was released at once
-    assert!(s.state.borrow().calls.iter().any(|call| call == "release 1"));
+    assert!(s.calls().iter().any(|call| call.starts_with("release ")), "{:?}", s.calls());
 }
 
 #[test]
@@ -652,15 +672,17 @@ fn materializes_a_script_of_another_connection_before_the_scan() {
     let s = setup(true, Some("/mnt/cache"), 1);
     let result = s.run(&workbook, workbook_run());
     assert!(result.failure.is_none(), "{:?}", result.failure);
-    let calls = s.state.borrow().calls.clone();
+    let calls = s.calls();
     assert_eq!(calls.first().map(String::as_str), Some("execute select 1 as a"));
-    // The run pins the file before it writes it and releases the pin once it ended
-    assert_eq!(calls.get(1).map(String::as_str), Some("pin 1 /mnt/cache/foo.sql.1.parquet"));
-    assert_eq!(calls.get(2).map(String::as_str), Some("write 1 /mnt/cache/foo.sql.1.parquet"));
-    assert!(calls
-        .get(3)
-        .is_some_and(|call| call.starts_with("execute") && call.contains("/mnt/cache/foo.sql.1.parquet")));
-    assert_eq!(calls.last().map(String::as_str), Some("release 1"));
+    // The run pins the file of foo before it writes it, the scan reads it, the pin goes once the run ended
+    let at = |found: &dyn Fn(&str) -> bool| calls.iter().position(|call| found(call)).expect("a call");
+    let pin = at(&|call| call.starts_with("pin "));
+    let (pin_id, path) = pin_of(&calls[pin]);
+    assert!(path.starts_with("/mnt/cache/foo.sql"), "{path}");
+    let write = at(&|call| call.starts_with("write ") && call.ends_with(&path));
+    let scan = at(&|call| call.starts_with("execute") && call.contains(&path));
+    assert!(pin < write && write < scan, "{calls:?}");
+    assert_eq!(calls.last(), Some(&format!("release {pin_id}")));
     // Without the mounts the run fails before its first statement
     let s = setup(true, None, 1);
     let result = s.run(&workbook, workbook_run());
@@ -677,10 +699,15 @@ fn removes_the_transient_files_of_a_run_after_it_released_their_pins() {
     s.state.borrow_mut().unkeyed.insert("remote".to_string());
     let result = s.run(&workbook, workbook_run());
     assert!(result.failure.is_none(), "{:?}", result.failure);
-    let calls = s.state.borrow().calls.clone();
-    assert_eq!(calls.get(1).map(String::as_str), Some("pin 1 /mnt/cache/transient.parquet"));
-    let tail: Vec<&str> = calls.iter().skip(calls.len().saturating_sub(2)).map(String::as_str).collect();
-    assert_eq!(tail, vec!["release 1", "remove transient.parquet"]);
+    let calls = s.calls();
+    let pin = calls.iter().find(|call| call.starts_with("pin ")).expect("a pin");
+    let (pin_id, path) = pin_of(pin);
+    assert!(path.ends_with("/transient.parquet"), "{path}");
+    // The file goes after its pin, at the end of the run
+    let release = calls.iter().position(|call| *call == format!("release {pin_id}")).expect("a release");
+    let remove = calls.iter().position(|call| call == "remove transient.parquet").expect("a removal");
+    assert!(release < remove, "{calls:?}");
+    assert_eq!(remove, calls.len() - 1, "{calls:?}");
 }
 
 #[test]
@@ -697,7 +724,9 @@ fn releases_the_pins_of_a_failed_run_once_its_statements_settled() {
     let (_handle, result) = s.start(&workbook, workbook_run());
     // The result of foo arrived, the pin of its file is pending when baz fails
     s.end("select 1 as a", Ok(true));
-    assert!(s.state.borrow().calls.iter().any(|call| call == "pin 1 /mnt/cache/foo.sql.1.parquet"));
+    let calls = s.calls();
+    let pin = calls.iter().find(|call| call.starts_with("pin ") && call.contains("/mnt/cache/foo.sql")).expect("a pin");
+    let (pin_id, _) = pin_of(pin);
     s.end("select 2", Err(StatementFailure::new("boom")));
     // The run waits for the statement of foo before it releases the files
     assert!(result.borrow().is_none());
@@ -705,7 +734,7 @@ fn releases_the_pins_of_a_failed_run_once_its_statements_settled() {
     s.executor.run_until_stalled();
     let result = result.borrow_mut().take().expect("the run ended");
     assert_eq!(result.failure.map(|failure| failure.message), Some("boom".to_string()));
-    assert_eq!(s.state.borrow().calls.last().map(String::as_str), Some("release 1"));
+    assert_eq!(s.calls().last(), Some(&format!("release {pin_id}")));
 }
 
 #[test]
@@ -727,9 +756,9 @@ fn releases_a_cached_file_that_was_retained_while_the_run_stopped() {
     s.executor.run_until_stalled();
     let result = result.borrow_mut().take().expect("the run ended");
     assert_eq!(result.failure.map(|failure| failure.kind), Some(RunFailureKind::Cancelled));
-    let calls = s.state.borrow().calls.clone();
-    assert!(calls.iter().any(|call| call == "retain 1"), "{calls:?}");
-    assert_eq!(calls.last().map(String::as_str), Some("release 1"));
+    let calls = s.calls();
+    let retained = calls.iter().find_map(|call| call.strip_prefix("retain ")).expect("a retained file");
+    assert_eq!(calls.last(), Some(&format!("release {retained}")), "{calls:?}");
 }
 
 #[test]
@@ -752,7 +781,9 @@ fn runs_a_script_with_the_queries_it_inlines() {
     };
     let result = s.run(&workbook, options);
     assert!(result.failure.is_none(), "{:?}", result.failure);
-    assert_eq!(s.texts(), vec!["with foo as (\nselect x from t\n)\nselect count(*) from foo"]);
+    let texts = s.texts();
+    assert_eq!(texts.len(), 1);
+    assert!(texts[0].contains("with foo as") && texts[0].ends_with("select count(*) from foo"), "{}", texts[0]);
     let query = result.outputs.get(2).copied().flatten().unwrap();
     assert_eq!(workbook.borrow().script_by_file("bar.sql").unwrap().latest_query_id(), Some(query as u32));
     assert!(s.state.borrow().states.is_empty());

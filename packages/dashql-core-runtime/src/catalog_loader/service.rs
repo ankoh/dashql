@@ -133,7 +133,7 @@ impl<H: CatalogLoaderHost> Clone for CatalogLoaderService<H> {
 }
 
 /// The wait before the loader schedules a refresh again that a busy connection held back
-const BUSY_RETRY_MS: f64 = 10.0;
+pub const BUSY_RETRY_MS: f64 = 10.0;
 
 /// The views of the scheduler on connections that are borrowed
 fn views<'a>(borrowed: &'a [(String, Ref<'a, ConnectionState>, usize)]) -> Vec<CatalogLoaderConnection<'a>> {

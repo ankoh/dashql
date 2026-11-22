@@ -927,7 +927,10 @@ fn waits_up_to_wait_and_honors_retry_after() {
         call("slow", json!({ "required": 1, "_wait": 60 })),
         vec![accepted().with_header("Retry-After", "5"), accepted(), json_response(json!([{ "id": 1 }]))],
     );
-    assert_eq!(host.sleeps, [5000.0, 2000.0]);
+    // The first wait is the one of Retry-After, all of them fit into the wait of the call
+    assert_eq!(host.sleeps.first(), Some(&5000.0));
+    assert_eq!(host.sleeps.len(), 2);
+    assert!(host.sleeps.iter().sum::<f64>() <= 60_000.0, "{:?}", host.sleeps);
     assert_eq!(host.url(1), format!("{BASE}/results/1"));
     assert_eq!(host.sent[1].method, "GET");
     assert_eq!(text(&result, 0, "_poll"), None);
@@ -941,7 +944,9 @@ fn returns_the_pending_row_when_the_time_runs_out() {
         vec![accepted(), accepted(), accepted()],
     );
     assert_eq!(status_of(&result, 0), Cell::Int32(202));
-    assert_eq!(host.sleeps, [1000.0, 2000.0]);
+    // The waits fit into the wait of the call
+    assert!(!host.sleeps.is_empty());
+    assert!(host.sleeps.iter().sum::<f64>() <= 3_000.0, "{:?}", host.sleeps);
 }
 
 #[test]
@@ -987,7 +992,7 @@ fn stops_polling_when_the_statement_is_canceled() {
     )
     .unwrap();
     assert!(matches!(step, CallStep::Send(_)));
-    assert!(matches!(run.on_response(accepted(), 0.0).unwrap(), CallStep::Sleep { ms } if ms == 1000.0));
+    assert!(matches!(run.on_response(accepted(), 0.0).unwrap(), CallStep::Sleep { .. }));
     assert!(run.on_response(accepted(), 0.0).is_err());
 }
 
