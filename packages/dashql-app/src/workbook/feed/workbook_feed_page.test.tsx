@@ -633,7 +633,7 @@ describe('WorkbookFeedPage', () => {
         (state.feedProps!.handleRef as unknown as React.RefObject<typeof feed>).current = feed;
         state.promptProps!.feed.follow(1, 'result');
         state.promptProps!.feed.followAgent();
-        state.promptProps!.feed.appended();
+        state.promptProps!.feed.appended(1);
         expect(feed.follow).toHaveBeenCalledExactlyOnceWith(1, 'result');
         expect(feed.followAgent).toHaveBeenCalledOnce();
         expect(feed.appended).toHaveBeenCalledOnce();
@@ -662,6 +662,40 @@ describe('WorkbookFeedPage', () => {
         expect(state.promptProps?.expanded).toBe(false);
         render(WorkbookViewMode.Workbook);
         expect(state.promptProps?.expanded).toBe(true);
+    });
+
+    it('shows a script that the prompt appended in the dashboard and the dataflow', () => {
+        const workbookScripts = scripts();
+        const feed = { follow: vi.fn(), show: vi.fn(), followAgent: vi.fn(), appended: vi.fn() };
+        const render = (mode: WorkbookViewMode) => {
+            state.mode = mode;
+            act(() => root.render(
+                <WorkbookFeedPage workbookScripts={workbookScripts} modifyWorkbookScripts={vi.fn()} connection={null}
+                    active={mode === WorkbookViewMode.Workbook} dependencies={dependencies} />,
+            ));
+            (state.feedProps!.handleRef as unknown as React.RefObject<typeof feed>).current = feed;
+        };
+        // The feed scrolls to an appended script itself
+        render(WorkbookViewMode.Workbook);
+        act(() => state.promptProps!.feed.appended(1));
+        expect(feed.appended).toHaveBeenLastCalledWith(1);
+
+        render(WorkbookViewMode.Dashboard);
+        expect(state.dashboardProps?.revealRequest).toBeNull();
+        act(() => state.promptProps!.feed.appended(2));
+        expect(state.dashboardProps?.revealRequest).toMatchObject({ scriptKey: 2 });
+        // The hidden feed still scrolls to its end
+        expect(feed.appended).toHaveBeenLastCalledWith(2);
+
+        // The dataflow keeps the prompt over its bottom free, a switch of the view drops the request
+        render(WorkbookViewMode.Dataflow);
+        expect(state.dataflowProps?.revealRequest).toBeNull();
+        act(() => state.promptProps!.onHeight!(180));
+        expect(state.dataflowProps?.bottomInset?.()).toBe(180);
+        act(() => state.promptProps!.feed.appended(3));
+        expect(state.dataflowProps?.revealRequest).toMatchObject({ scriptKey: 3 });
+        render(WorkbookViewMode.Dashboard);
+        expect(state.dashboardProps?.revealRequest).toBeNull();
     });
 
     it('shows a script that the user picks in the log of the agent in the feed', () => {

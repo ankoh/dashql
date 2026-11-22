@@ -84,6 +84,8 @@ function usesArrowKeys(target: EventTarget | null): boolean {
 const SIDEBAR_DEFAULT_WIDTH = 276;
 const SIDEBAR_MIN_WIDTH = 200;
 const SIDEBAR_MAX_WIDTH = 560;
+/// The space above the prompt over the dashboard, the last card ends there
+const OVERLAY_GAP = 16;
 
 /// The line between two groups of the bar
 const BarSeparator = ({ className }: { className?: string }) => (
@@ -341,6 +343,11 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
     // The prompt and the feed ask each other through handles: the feed mentions its scripts in the question of the
     // prompt, the prompt has the feed follow the agent and show the scripts it appends
     const promptRef = React.useRef<WorkbookPromptHandle | null>(null);
+    // The script that the dashboard or the dataflow shows, until the view switches or an overview covers it
+    const [viewReveal, setViewReveal] = React.useState<{ view: WorkbookViewMode; scriptKey: number } | null>(null);
+    if (viewReveal != null && (viewReveal.view !== activeView || !otherViewShown)) setViewReveal(null);
+    const dashboardReveal = viewReveal?.view === WorkbookViewMode.Dashboard ? viewReveal : null;
+    const dataflowReveal = viewReveal?.view === WorkbookViewMode.Dataflow ? viewReveal : null;
     const feedRef = React.useRef<WorkbookPromptFeed | null>(null);
     const modeRef = React.useRef(mode);
     modeRef.current = mode;
@@ -354,7 +361,11 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
             feedRef.current?.show(scriptKey);
         },
         followAgent: () => feedRef.current?.followAgent(),
-        appended: () => feedRef.current?.appended(),
+        // The feed scrolls to the end also while it is hidden, the dashboard and the dataflow show the new script
+        appended: (scriptKey: number) => {
+            feedRef.current?.appended(scriptKey);
+            if (modeRef.current !== WorkbookViewMode.Workbook) setViewReveal({ view: modeRef.current, scriptKey });
+        },
     }), [setMode, setOverviewConnectionId]);
     // The feed keeps the space of the docked prompt below its last script, also while the prompt is shrunk over
     // another view and the rows of the hidden feed stay where they are
@@ -362,6 +373,12 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
     const [promptHeight, setPromptHeight] = React.useState(0);
     const feedBottomInset = React.useRef(promptHeight);
     if (promptPlacement === WorkbookPromptPlacement.Feed) feedBottomInset.current = promptHeight;
+    // Over the dashboard and the dataflow the prompt covers their bottom, the last card scrolls clear of it and a
+    // revealed box stays above it. The stylesheet has the space of the bar until the prompt is measured.
+    const overlayInset = promptPlacement === WorkbookPromptPlacement.Overlay ? promptHeight : 0;
+    const overlayInsetRef = React.useRef(overlayInset);
+    overlayInsetRef.current = overlayInset;
+    const readOverlayInset = React.useCallback(() => overlayInsetRef.current, []);
     const workbench = (closeAfterSelection: boolean) => (
         <dependencies.WorkbookWorkbenchSidebar
             workbookScripts={props.workbookScripts}
@@ -394,7 +411,11 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
                     label="Resize workbench and workbook"
                 />
                 <main className={styles.body_container} id="workbook-body">
-                    <div ref={contentRef} className={styles.content_container}>
+                    <div
+                        ref={contentRef}
+                        className={styles.content_container}
+                        style={overlayInset > 0 ? { '--status_bar_dock_space': `${overlayInset + OVERLAY_GAP}px` } as React.CSSProperties : undefined}
+                    >
                         {cloudLoading && (
                             <div className={styles.loading_layer}>
                                 <dependencies.CloudWorkbookLoadingCard />
@@ -435,6 +456,7 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
                                 modifyWorkbookScripts={props.modifyWorkbookScripts}
                                 scriptConnections={scriptConnections}
                                 draftRenameRef={draftRenameRef}
+                                revealRequest={dashboardReveal}
                             />
                         )}
                         {dataflowActive && !overviewActive && !cloudLoading && (
@@ -447,6 +469,8 @@ export const WorkbookFeedPage: React.FC<Props> = (props) => {
                                         scriptConnections={scriptConnections}
                                         draftRenameRef={draftRenameRef}
                                         onInspect={inspectScript}
+                                        revealRequest={dataflowReveal}
+                                        bottomInset={readOverlayInset}
                                     />
                                 </div>
                                 {showDetails && (

@@ -251,6 +251,27 @@ describe('DataflowCanvas', () => {
         expect(second.y).not.toBe(first.y);
     });
 
+    it('moves a requested box into view above the prompt', async () => {
+        render();
+        // A script far away from the boxes that the canvas fitted
+        show(withTestScript(test, 'far.sql', '/** @flow x=4000 y=3000 */\nselect a from t'));
+        const request = { scriptKey: key('far.sql') };
+        const bottomInset = () => 150;
+        act(() => root.render(
+            <DataflowCanvas workbookScripts={workbook} modifyWorkbookScripts={modify} revealRequest={request} bottomInset={bottomInset} dependencies={dependencies} />,
+        ));
+        const frame = () => container.querySelector<SVGRectElement>(`rect[data-dataflow-card="${key('far.sql')}"]`)!;
+        expect(frame().getAttribute('data-selected')).toBe('false');
+        const viewport = container.querySelector<HTMLElement>('[data-testid="dataflow-canvas"]')!.getBoundingClientRect();
+        await vi.waitFor(() => {
+            const rect = frame().getBoundingClientRect();
+            expect(rect.left).toBeGreaterThanOrEqual(viewport.left);
+            expect(rect.right).toBeLessThanOrEqual(viewport.right);
+            expect(rect.top).toBeGreaterThanOrEqual(viewport.top);
+            expect(rect.bottom).toBeLessThanOrEqual(viewport.bottom - 150 + 1);
+        });
+    });
+
     it('drops a box at the last position of a fast drag', () => {
         render();
         const header = box('report.sql').querySelector<SVGGElement>('[data-dataflow-handle]')!;

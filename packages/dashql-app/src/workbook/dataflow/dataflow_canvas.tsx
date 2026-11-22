@@ -29,6 +29,7 @@ import {
     dataflowLayoutInput,
     EDGE_BADGE_HEIGHT,
     fitDataflowScene,
+    revealDataflowBox,
     resizeDataflowBox,
     selectedEdges,
     type DataflowBoxPosition,
@@ -91,7 +92,16 @@ interface Props {
     draftRenameRef?: React.RefObject<RenameDraftReferences | null>;
     /// Open the script in the editor dialog
     onInspect?: (scriptKey: number) => void;
+    /// A script to show, e.g. one that the prompt created: the canvas moves its box into view, once
+    revealRequest?: DataflowRevealRequest | null;
+    /// The height that the prompt covers at the bottom of the canvas, a revealed box stays above it
+    bottomInset?: () => number;
     dependencies?: DataflowCanvasDependencies;
+}
+
+/// A script that the canvas shows, a new request shows it again
+export interface DataflowRevealRequest {
+    scriptKey: number;
 }
 
 interface Position {
@@ -348,6 +358,24 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
         fittedRef.current = true;
         fit();
     }, [fit, scene.boxes.length]);
+    // A requested script shows once its box is laid out with its statements, at the same zoom. It isn't selected, the
+    // outline of a selected box would stay on it.
+    const revealedRef = React.useRef<DataflowRevealRequest | null>(null);
+    const revealRequest = props.revealRequest ?? null;
+    const { bottomInset } = props;
+    React.useLayoutEffect(() => {
+        if (revealRequest == null || revealRequest === revealedRef.current) return;
+        const box = scene.boxes.find(b => b.script.scriptKey === revealRequest.scriptKey);
+        const viewport = viewportRef.current;
+        const svg = svgRef.current;
+        const behavior = zoomRef.current;
+        if (box == null || box.script.statements.length === 0 || viewport == null || svg == null || behavior == null) return;
+        revealedRef.current = revealRequest;
+        const current = transformRef.current;
+        const target = revealDataflowBox(box, current, viewport.clientWidth, viewport.clientHeight, bottomInset?.() ?? 0);
+        if (target == null) return;
+        select(svg).transition().duration(160).call(behavior.transform, zoomIdentity.translate(target.x, target.y).scale(current.k));
+    }, [revealRequest, scene.boxes, bottomInset]);
     const zoomBy = React.useCallback((factor: number) => {
         const svg = svgRef.current;
         const behavior = zoomRef.current;

@@ -83,7 +83,28 @@ interface Props {
     scriptConnections?: ReadonlyMap<string, ConnectionState>;
     /// The function that renames the references in the draft of the composer
     draftRenameRef?: React.RefObject<RenameDraftReferences | null>;
+    /// A script to show, e.g. one that the prompt created: the board scrolls its card into view, once
+    revealRequest?: DashboardRevealRequest | null;
     dependencies?: DashboardDependencies;
+}
+
+/// A script that the board shows, a new request shows it again
+export interface DashboardRevealRequest {
+    scriptKey: number;
+}
+
+/// The space above the cards that a revealed card keeps
+const REVEAL_TOP_INSET = 16;
+
+/// The scroll position that shows an item of a scrolled list between the insets, moving as little as possible, or null
+/// when the item shows already. An item higher than the space shows its top. `itemTop` counts from the top of the
+/// scrolled content.
+export function revealScrollTop(scrollTop: number, viewportHeight: number, itemTop: number, itemHeight: number, insetTop: number, insetBottom: number): number | null {
+    const low = scrollTop + insetTop;
+    const high = scrollTop + viewportHeight - insetBottom;
+    if (itemTop >= low && itemTop + itemHeight <= high) return null;
+    if (itemTop < low || itemHeight > high - low) return itemTop - insetTop;
+    return itemTop + itemHeight - (viewportHeight - insetBottom);
 }
 
 /// Every script of the workbook is a card, in the order of the workbook
@@ -286,6 +307,25 @@ export function Dashboard(props: Props): React.ReactElement {
     }, [overlay, modifyWorkbookScripts]);
     const overlayScript = overlay == null ? null : scriptMap[overlay.scriptKey] ?? null;
 
+    // A requested card shows once the layout placed it, clear of the prompt over the bottom of the board, which the
+    // bottom padding of the scrolled cards keeps free
+    const revealedRef = React.useRef<DashboardRevealRequest | null>(null);
+    const revealRequest = props.revealRequest ?? null;
+    React.useLayoutEffect(() => {
+        const scroll = scrollRef.current;
+        if (revealRequest == null || revealRequest === revealedRef.current || scroll == null) return;
+        const card = scroll.querySelector<HTMLElement>(`[data-dashboard-card="${revealRequest.scriptKey}"]`);
+        if (card == null) return;
+        revealedRef.current = revealRequest;
+        const scrollRect = scroll.getBoundingClientRect();
+        const cardRect = card.getBoundingClientRect();
+        const insetBottom = Number.parseFloat(getComputedStyle(scroll).paddingBottom) || 0;
+        const top = revealScrollTop(scroll.scrollTop, scroll.clientHeight, cardRect.top - scrollRect.top + scroll.scrollTop, cardRect.height, REVEAL_TOP_INSET, insetBottom);
+        if (top == null) return;
+        const reducedMotion = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+        scroll.scrollTo({ top, behavior: reducedMotion ? 'auto' : 'smooth' });
+    }, [revealRequest, layout]);
+
     const placementById = new Map(layout.map(item => [item.id, item]));
     const scriptOrder = new Map(scripts.map((script, index) => [script.scriptKey, index]));
     const cardScripts = [...scripts].sort((left, right) => {
@@ -347,7 +387,7 @@ export function Dashboard(props: Props): React.ReactElement {
             <div className={styles.sr_only} role="status" aria-live="polite">{announcement}</div>
             {/* The shadows mark the edges of the scrolling cards like in the feed */}
             <div className={styles.scroll_container}>
-                <div ref={scrollRef} className={styles.scroll}>
+                <div ref={scrollRef} className={styles.scroll} data-testid="dashboard-scroll">
                     {scripts.length === 0 ? (
                         <div className={styles.empty_state}>
                             <strong>No scripts yet</strong>

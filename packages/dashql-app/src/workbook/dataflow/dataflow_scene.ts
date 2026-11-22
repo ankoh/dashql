@@ -580,3 +580,20 @@ export function fitDataflowScene(bounds: Rect, viewportWidth: number, viewportHe
     return { x, y, scale };
 }
 
+/// The shift along one axis that moves a span into the space between `low` and `high`, as little as possible. A span
+/// larger than the space shows its start.
+function revealShift(start: number, size: number, low: number, high: number): number {
+    if (start >= low && start + size <= high) return 0;
+    if (start < low || size > high - low) return low - start;
+    return high - (start + size);
+}
+
+/// The translation of the canvas that shows a box in the viewport at the same scale, moving the canvas as little as
+/// possible, or null when the box shows already. The prompt covers `bottomInset` at the bottom of the viewport.
+export function revealDataflowBox(box: Rect, transform: { x: number; y: number; k: number }, viewportWidth: number, viewportHeight: number, bottomInset = 0, padding = 32): { x: number; y: number } | null {
+    const { x, y, k } = transform;
+    const dx = revealShift(box.x * k + x, box.width * k, padding, viewportWidth - padding);
+    const dy = revealShift(box.y * k + y, box.height * k, padding, viewportHeight - bottomInset - padding);
+    return dx === 0 && dy === 0 ? null : { x: x + dx, y: y + dy };
+}
+

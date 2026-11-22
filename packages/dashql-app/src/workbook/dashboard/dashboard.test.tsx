@@ -13,7 +13,7 @@ import { flushContinuousUpdates } from '@akohn/dashql-react/testing/react_act';
 import type { RenameDraftReferences } from '../scripts/script_rename.js';
 import type { ModifyWorkbookScripts, ScriptData, ScriptDataMap, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import type { DashboardCardDependencies } from './dashboard_card.js';
-import { Dashboard, type DashboardDependencies } from './dashboard.js';
+import { Dashboard, revealScrollTop, type DashboardDependencies, type DashboardRevealRequest } from './dashboard.js';
 import { DASHBOARD_COLLAPSED_WIDTH, DASHBOARD_GRID_GAP, DASHBOARD_ROW_HEIGHT } from './dashboard_layout.js';
 import { markdownTemplate } from './dashboard_source.js';
 import { queryModelOf, resultTableOf, WithResultTables } from '../../tests/result_tables.js';
@@ -138,7 +138,7 @@ describe('Dashboard', () => {
     const backend = new WorkbookTestBackend();
     const online = new Map([['db', { connectionHealth: ConnectionHealth.ONLINE } as ConnectionState]]);
 
-    function render(workbookScripts: WorkbookScripts & { scripts: ScriptDataMap }, extra: { scriptConnections?: ReadonlyMap<string, ConnectionState>; draftRenameRef?: React.RefObject<RenameDraftReferences | null> } = {}) {
+    function render(workbookScripts: WorkbookScripts & { scripts: ScriptDataMap }, extra: { scriptConnections?: ReadonlyMap<string, ConnectionState>; draftRenameRef?: React.RefObject<RenameDraftReferences | null>; revealRequest?: DashboardRevealRequest } = {}) {
         act(() => root.render(
             <LoggerProvider>
                 <StorageProvider backend={backend}>
@@ -151,6 +151,7 @@ describe('Dashboard', () => {
                                 modifyWorkbookScripts={modify as unknown as ModifyWorkbookScripts}
                                 scriptConnections={extra.scriptConnections ?? online}
                                 draftRenameRef={extra.draftRenameRef}
+                                revealRequest={extra.revealRequest}
                                 dependencies={dependencies}
                             /></WithResultTables>
                         </RenderScheduleContext.Provider>
@@ -168,6 +169,44 @@ describe('Dashboard', () => {
     const testId = (id: string) => document.querySelector<HTMLElement>(`[data-testid="${id}"]`);
     const actions = () => modify.mock.calls.map(([action]) => action);
     const resizeHandle = (key: number) => card(key).querySelector<HTMLButtonElement>('button[aria-label^="Resize"]')!;
+
+    it('scrolls a requested card into view once, clear of the prompt over the bottom', () => {
+        const reducedMotion = globalThis.matchMedia;
+        // The board scrolls right away, without the smooth scroll
+        globalThis.matchMedia = ((query: string) => ({ matches: query.includes('prefers-reduced-motion') })) as typeof globalThis.matchMedia;
+        try {
+            container.style.setProperty('--status_bar_dock_space', '120px');
+            const far = script(4, '4_far.sql', { vis: { renderer: 'table', spec: { row: 40, column: 0, width: 6, height: 3 } }, latestQueryId: 20 });
+            render(workbook(SETUP, SALES, far));
+            const scroll = container.querySelector<HTMLElement>('[data-testid="dashboard-scroll"]')!;
+            expect(scroll.scrollTop).toBe(0);
+            const request = { scriptKey: 4 };
+            render(workbook(SETUP, SALES, far), { revealRequest: request });
+            expect(scroll.scrollTop).toBeGreaterThan(0);
+            const scrollRect = scroll.getBoundingClientRect();
+            const cardRect = card(4).getBoundingClientRect();
+            expect(cardRect.bottom).toBeLessThanOrEqual(scrollRect.bottom - 120 + 1);
+            expect(cardRect.top).toBeGreaterThanOrEqual(scrollRect.top);
+
+            // The same request doesn't scroll again, e.g. after the user scrolled away
+            scroll.scrollTop = 0;
+            render(workbook(SETUP, SALES, far, TREND), { revealRequest: request });
+            expect(scroll.scrollTop).toBe(0);
+        } finally {
+            globalThis.matchMedia = reducedMotion;
+        }
+    });
+
+    it('scrolls as little as possible to show a card between the insets', () => {
+        // Shows already
+        expect(revealScrollTop(0, 500, 100, 100, 16, 80)).toBeNull();
+        // Below the space, its bottom ends above the inset at the bottom
+        expect(revealScrollTop(0, 500, 600, 100, 16, 80)).toBe(600 + 100 - 420);
+        // Above the space, its top ends below the inset at the top
+        expect(revealScrollTop(400, 500, 300, 100, 16, 80)).toBe(284);
+        // Higher than the space, its top shows
+        expect(revealScrollTop(0, 500, 600, 1000, 16, 80)).toBe(584);
+    });
 
     it('shows an empty state without scripts', () => {
         render(workbook());

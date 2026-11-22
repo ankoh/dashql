@@ -273,11 +273,12 @@ stays the one place the page talks to.
   follows the session of the agent. The feed is one of the three views; the prompt asks it through a handle to follow
   the agent, to show a script and to scroll to an appended script, the feed asks the prompt to mention a script.
 - **The composer** takes SQL in SQL and nothing in AI, see [Connecting from the page](#connecting-from-the-page).
-  It docks below the scripts of the feed and floats over the dashboard and the dataflow, and creates scripts in every
-  view. A click on the bar of Wobble (or its chevron) shrinks it into the bar with its draft and the inputs of the
-  draft, and grows it out again; it then takes the focus. A switch of the view returns it to the default of the view:
-  shown in the feed, shrunk into the bar over the dashboard and the dataflow. The greeting of an empty workbook always
-  shows it.
+  It docks below the scripts of the feed and floats over the dashboard and the dataflow, and a new script shows in
+  every view: the feed scrolls to its end, the dashboard scrolls the card into view and the dataflow moves the box
+  into view at the same zoom, both above the prompt that covers their bottom. A click on the bar of Wobble (or its
+  chevron) shrinks it into the bar with its draft and the inputs of the draft, and grows it out again; it then takes
+  the focus. A switch of the view returns it to the default of the view: shown in the feed, shrunk into the bar over
+  the dashboard and the dataflow. The greeting of an empty workbook always shows it.
 - **Wobble** stays: the greeting of an empty workbook and the face of the bar.
 
 ## Tests

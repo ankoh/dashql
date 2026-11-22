@@ -226,7 +226,7 @@ describe('Workbook prompt', () => {
         render(workbook(), modify);
         await act(async () => promptState.composerProps!.onSend('select 1'));
         expect(modify).toHaveBeenCalledExactlyOnceWith({ kind: 'createScript', value: expect.objectContaining({ text: 'select 1' }) });
-        expect(feed.appended).toHaveBeenCalledOnce();
+        expect(feed.appended).toHaveBeenCalledExactlyOnceWith(1);
         await vi.waitFor(() => expect(promptState.runScript).toHaveBeenCalledOnce());
         expect(promptState.runScript).toHaveBeenCalledExactlyOnceWith(next.workbookId, next.scripts[1].scriptKey);
         expect(attention.request).not.toHaveBeenCalled();

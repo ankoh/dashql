@@ -53,8 +53,8 @@ export interface WorkbookPromptFeed {
     show: (scriptKey: number) => void;
     /// The agent works on a new question, the feed follows it again
     followAgent: () => void;
-    /// The prompt appended a script, the feed scrolls to it
-    appended: () => void;
+    /// The prompt appended a script, the view that shows scrolls to it: the feed, the dashboard or the dataflow
+    appended: (scriptKey: number) => void;
 }
 
 /// What the feed asks of the prompt
@@ -216,7 +216,7 @@ export const WorkbookPrompt: React.FC<WorkbookPromptProps> = (props) => {
         // The outcome names the created script by its key, it is selected
         const outcome = modifyWorkbookScripts(createScriptAction(prev, { text }));
         if (!outcome.ok || typeof outcome.id !== 'number') return null;
-        feed.appended();
+        feed.appended(outcome.id);
         selection.select(prev.workbookId, outcome.id);
         const scriptData = readScript(outcome.id);
         return scriptData != null ? { workbookId: prev.workbookId, scriptData } : null;

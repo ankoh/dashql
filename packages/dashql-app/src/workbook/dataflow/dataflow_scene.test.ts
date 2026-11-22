@@ -9,6 +9,7 @@ import {
     dataflowLayoutInput,
     fitDataflowScene,
     nodeKeyOfScript,
+    revealDataflowBox,
     resizeDataflowBox,
     selectedEdges,
 } from './dataflow_scene.js';
@@ -272,5 +273,18 @@ describe('dataflow scene', () => {
         expect(fitDataflowScene({ x: 0, y: 0, width: 100, height: 100 }, 1000, 1000)).toEqual({ x: 450, y: 450, scale: 1 });
         const fit = fitDataflowScene({ x: 0, y: 0, width: 2000, height: 100 }, 1064, 600);
         expect(fit.scale).toBe(0.5);
+    });
+
+    it('moves the canvas as little as possible to show a box above the prompt', () => {
+        const box = { x: 100, y: 100, width: 200, height: 100 };
+        // Shows already
+        expect(revealDataflowBox(box, { x: 0, y: 0, k: 1 }, 1000, 600)).toBeNull();
+        // Right of the viewport and behind the prompt at the bottom, at half the scale
+        const far = { x: 2000, y: 1000, width: 200, height: 100 };
+        expect(revealDataflowBox(far, { x: 0, y: 0, k: 0.5 }, 1000, 600, 100)).toEqual({ x: 1000 - 32 - 1100, y: 600 - 100 - 32 - 550 });
+        // Left of and above the viewport
+        expect(revealDataflowBox(box, { x: -500, y: -300, k: 1 }, 1000, 600)).toEqual({ x: -68, y: -68 });
+        // Larger than the viewport, its top left corner shows
+        expect(revealDataflowBox({ x: 0, y: 0, width: 2000, height: 2000 }, { x: -50, y: 0, k: 1 }, 1000, 600)).toEqual({ x: 32, y: 32 });
     });
 });

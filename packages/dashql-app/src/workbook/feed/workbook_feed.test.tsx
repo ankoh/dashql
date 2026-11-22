@@ -550,7 +550,7 @@ describe('Workbook feed', () => {
             render(workbook(['1_alpha.sql', '2_beta.sql', '3_gamma.sql']), vi.fn());
             expect(scrollTo).not.toHaveBeenCalled();
 
-            act(() => feedState.handle.current!.appended());
+            act(() => feedState.handle.current!.appended(4));
             render(workbook(['1_alpha.sql', '2_beta.sql', '3_gamma.sql', '4_delta.sql']), vi.fn());
             expect(scrollTo).toHaveBeenCalled();
         } finally {
