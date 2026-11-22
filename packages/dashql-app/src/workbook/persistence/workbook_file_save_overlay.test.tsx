@@ -170,7 +170,7 @@ describe('WorkbookFileSaveOverlay', () => {
         const workbook = runtime!.store.get('workbook', TEST_WORKBOOK_ID)!;
         const [script] = workbook.scriptOrder;
         // A stored result is named by the script without `.sql`
-        const name = results.put(TEST_WORKBOOK_ID, `${script.replace(/\.sql$/, '')}.${'a'.repeat(64)}.00000001.parquet`, null, bytes);
+        const name = results.put(TEST_WORKBOOK_ID, `${script.replace(/\.sql$/, '')}.${'a'.repeat(64)}.00000000000100000001.parquet`, null, bytes);
         await root.render(withHost(
             <WorkbookResultsProvider results={results}>
                 <LoggerProvider>

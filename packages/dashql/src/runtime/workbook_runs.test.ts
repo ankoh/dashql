@@ -634,7 +634,7 @@ describe('the runs of scripts of the runtime', () => {
     it('reads the stored results of a workbook when it is first shown, whatever their keys, and runs nothing', async () => {
         const f = await scripts([['foo.sql', 'select 1 as a;'], ['bar.sql', 'select 2 as b;']], { cache: true });
         // A result of an import, of another version of the app: its key is no key of the script here
-        const name = f.cache!.put(f.workbookId, `foo.${'0'.repeat(64)}.00000001.parquet`, tableFromArrays({ a: Int32Array.from([41]) }));
+        const name = f.cache!.put(f.workbookId, `foo.${'0'.repeat(64)}.00000000000100000001.parquet`, tableFromArrays({ a: Int32Array.from([41]) }));
         f.core.showWorkbook(f.workbookId);
         await vi.waitFor(() => expect(f.script('foo.sql').latestResultQueryId).not.toBeNull());
         const query = queryView(f.core, f.script('foo.sql').latestResultQueryId!)!;

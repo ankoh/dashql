@@ -23,10 +23,9 @@ workbooks/<workbook-id>/
 - `<key>` is the result key of the script when the result was written, 64 lowercase hex digits (Result Keys below).
 - `<gen>` is 20 lowercase hex digits, new for every file: the time the run named the file in milliseconds since the
   epoch, 12 digits, and a sequence, 8 digits, that counts up within a millisecond and starts at a random number in a new
-  one (`Generations`). The names of the files of a script sort by the time they were named, and the time is when the
-  result was written. A path is never written twice: the compute database remembers the files that it opened below a
-  mount and would read the old bytes of a reused path. Earlier versions wrote 8 random digits, these files still parse
-  and sort before the others, by their modification times.
+  one (`Generations`). The files of a script sort by their generations, the modification times of the files don't
+  count, and the time of the generation is when the result was written. A path is never written twice: the compute
+  database remembers the files that it opened below a mount and would read the old bytes of a reused path.
 - A transient file, `<uuid>.transient.parquet`, is a materialized result that a run scans but that is no result of a
   script, e.g. a script that runs on request. It is garbage once nobody pins it.
 

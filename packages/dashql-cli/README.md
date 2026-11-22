@@ -167,7 +167,7 @@ nations.sql  ok  25 rows  0.3 s
   0         | ALGERIA   | AFRICA
   1         | ARGENTINA | AMERICA
   … 23 more
-  .dashql/workbooks/ab12…/results/nations.sql.5f0e…c2.8d1a77c0.parquet
+  .dashql/workbooks/ab12…/results/nations.5f0e…c2.019aa52e1c4f0b7d2e10.parquet
 broken.sql  failed  0.4 s
   line 1:8: Column 'nope' cannot be resolved
   │ select nope from orders
