@@ -1,6 +1,7 @@
 import * as React from 'react';
 
 import { classNames } from '../dom/classnames.js';
+import { SEPARATOR_CLASSES, useSeparatorDrag } from './separator.js';
 import * as styles from './vertical_split.module.css';
 
 const DEFAULT_SEPARATOR_SIZE = 12;
@@ -33,10 +34,7 @@ export const VerticalSplit: React.FC<VerticalSplitProps> = (props) => {
     const separatorSize = props.separatorSize ?? DEFAULT_SEPARATOR_SIZE;
     const [ratio, setRatio] = React.useState(defaultRatio);
     const [ratioBounds, setRatioBounds] = React.useState<[number, number]>([defaultRatio, defaultRatio]);
-    const [isDragging, setIsDragging] = React.useState(false);
     const containerRef = React.useRef<HTMLDivElement>(null);
-    const stopDraggingRef = React.useRef<(() => void) | null>(null);
-    const ratioWhenDraggingStartedRef = React.useRef(defaultRatio);
 
     const getRatioBounds = React.useCallback((): [number, number] => {
         const height = containerRef.current?.getBoundingClientRect().height ?? 0;
@@ -72,74 +70,25 @@ export const VerticalSplit: React.FC<VerticalSplitProps> = (props) => {
         return () => observer.disconnect();
     }, [getRatioBounds]);
 
-    const handlePointerDown = React.useCallback((event: React.PointerEvent<HTMLDivElement>) => {
-        if (event.button !== 0) return;
-        event.preventDefault();
-        stopDraggingRef.current?.();
-        setIsDragging(true);
-        ratioWhenDraggingStartedRef.current = ratio;
+    const drag = useSeparatorDrag('y', {
+        onMove: resizeToPointer,
+        onCancel: () => setRatio(ratio),
+        // A click swaps the sizes of the panels
+        onClick: () => {
+            const [minimum, maximum] = getRatioBounds();
+            setRatio(clamp(1 - ratio, minimum, maximum));
+        },
+        onKey: key => {
+            const [minimum, maximum] = getRatioBounds();
+            const next = key === 'decrease' ? ratio - KEYBOARD_STEP : key === 'increase' ? ratio + KEYBOARD_STEP : key === 'min' ? minimum : maximum;
+            setRatio(clamp(next, minimum, maximum));
+        },
+    });
 
-        const pointerId = event.pointerId;
-        const startY = event.clientY;
-        let pointerMoved = false;
-        const handlePointerMove = (moveEvent: PointerEvent) => {
-            if (moveEvent.pointerId !== pointerId) return;
-            moveEvent.preventDefault();
-            pointerMoved ||= Math.abs(moveEvent.clientY - startY) >= 3;
-            if (!pointerMoved) return;
-            resizeToPointer(moveEvent.clientY);
-        };
-        const stopDragging = () => {
-            window.removeEventListener('pointermove', handlePointerMove);
-            window.removeEventListener('pointerup', handlePointerEnd);
-            window.removeEventListener('pointercancel', handlePointerEnd);
-            if (stopDraggingRef.current === stopDragging) stopDraggingRef.current = null;
-            setIsDragging(false);
-        };
-        const handlePointerEnd = (endEvent: PointerEvent) => {
-            if (endEvent.pointerId !== pointerId) return;
-            if (endEvent.type === 'pointercancel') {
-                setRatio(ratioWhenDraggingStartedRef.current);
-            } else if (!pointerMoved) {
-                const [minimum, maximum] = getRatioBounds();
-                setRatio(clamp(1 - ratio, minimum, maximum));
-            }
-            stopDragging();
-        };
-
-        window.addEventListener('pointermove', handlePointerMove);
-        window.addEventListener('pointerup', handlePointerEnd);
-        window.addEventListener('pointercancel', handlePointerEnd);
-        stopDraggingRef.current = stopDragging;
-    }, [getRatioBounds, ratio, resizeToPointer]);
-
-    const handleKeyDown = React.useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
-        const [minimum, maximum] = getRatioBounds();
-        let nextRatio: number | null = null;
-        switch (event.key) {
-            case 'ArrowUp':
-                nextRatio = ratio - KEYBOARD_STEP;
-                break;
-            case 'ArrowDown':
-                nextRatio = ratio + KEYBOARD_STEP;
-                break;
-            case 'Home':
-                nextRatio = minimum;
-                break;
-            case 'End':
-                nextRatio = maximum;
-                break;
-        }
-        if (nextRatio == null) return;
-        event.preventDefault();
-        setRatio(clamp(nextRatio, minimum, maximum));
-    }, [getRatioBounds, ratio]);
-
-    React.useEffect(() => () => stopDraggingRef.current?.(), []);
-
+    const stopDragging = drag.stop;
     React.useEffect(() => {
-        if (props.secondCollapsed) stopDraggingRef.current?.();
-    }, [props.secondCollapsed]);
+        if (props.secondCollapsed) stopDragging();
+    }, [props.secondCollapsed, stopDragging]);
 
     const ratioPercent = Math.round(ratio * 100);
     const gridTemplateRows = props.secondCollapsed
@@ -148,9 +97,7 @@ export const VerticalSplit: React.FC<VerticalSplitProps> = (props) => {
     return (
         <div
             ref={containerRef}
-            className={classNames(styles.container, props.className, {
-                [styles.dragging]: isDragging,
-            })}
+            className={classNames(styles.container, props.className)}
             style={{ gridTemplateRows }}
         >
             <div className={styles.first}>{props.first}</div>
@@ -158,7 +105,9 @@ export const VerticalSplit: React.FC<VerticalSplitProps> = (props) => {
                 <div className={styles.collapsed_separator} aria-hidden="true" />
             ) : (
                 <div
-                    className={classNames(styles.separator, props.separatorClassName)}
+                    className={classNames(SEPARATOR_CLASSES.y, props.separatorClassName, {
+                        [SEPARATOR_CLASSES.dragging]: drag.dragging,
+                    })}
                     role="separator"
                     data-electron-drag-region="false"
                     tabIndex={0}
@@ -169,10 +118,10 @@ export const VerticalSplit: React.FC<VerticalSplitProps> = (props) => {
                     aria-valuenow={ratioPercent}
                     aria-valuetext={`${ratioPercent}% for the top panel`}
                     title="Drag to resize; click to swap panel sizes"
-                    onPointerDown={handlePointerDown}
-                    onKeyDown={handleKeyDown}
+                    onPointerDown={drag.onPointerDown}
+                    onKeyDown={drag.onKeyDown}
                 >
-                    <span className={styles.handle} aria-hidden="true" />
+                    <span className={SEPARATOR_CLASSES.handle} aria-hidden="true" />
                 </div>
             )}
             <div className={styles.second}>{props.second}</div>

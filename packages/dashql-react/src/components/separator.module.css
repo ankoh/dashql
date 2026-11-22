@@ -1,0 +1,67 @@
+/* A separator between two panels, see useSeparatorDrag: a slim bar with a grip. Along y it is a row between a top
+   and a bottom panel, along x a column between a left and a right one. */
+.separator_x,
+.separator_y {
+    display: grid;
+    place-items: center;
+    min-width: 0;
+    min-height: 0;
+    touch-action: none;
+    outline: none;
+    box-sizing: border-box;
+}
+
+.separator_x {
+    min-width: 8px;
+    cursor: col-resize;
+    border-left: 1px solid var(--color_border);
+}
+
+.separator_y {
+    min-height: 8px;
+    cursor: row-resize;
+    border-top: 1px solid var(--color_border);
+}
+
+.handle {
+    border-radius: 2px;
+    background-color: var(--color_border);
+}
+
+.separator_x .handle {
+    width: 2px;
+    height: 32px;
+}
+
+.separator_y .handle {
+    width: 32px;
+    height: 2px;
+}
+
+.separator_x:hover .handle,
+.separator_y:hover .handle,
+.dragging .handle {
+    background-color: var(--color_fg);
+}
+
+.separator_x:focus-visible .handle,
+.separator_y:focus-visible .handle {
+    outline: 2px solid var(--color_focus);
+    outline-offset: 3px;
+}
+
+/* On the document while a separator is dragged */
+:global(html).resizing_x {
+    cursor: col-resize;
+    user-select: none;
+}
+
+:global(html).resizing_y {
+    cursor: row-resize;
+    user-select: none;
+}
+
+:global(html).resizing_x body,
+:global(html).resizing_y body {
+    pointer-events: none;
+}

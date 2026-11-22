@@ -13,46 +13,7 @@
     min-height: 0;
 }
 
-.separator {
-    display: grid;
-    place-items: center;
-    min-width: 0;
-    min-height: 8px;
-    cursor: row-resize;
-    touch-action: none;
-    outline: none;
-    border-top: 1px solid var(--color_border);
-    box-sizing: border-box;
-}
-
 .collapsed_separator {
     min-width: 0;
     min-height: 12px;
-}
-
-.handle {
-    width: 32px;
-    height: 2px;
-    border-radius: 2px;
-    background-color: var(--color_border);
-}
-
-.separator:hover .handle,
-.dragging .handle {
-    background-color: var(--color_fg);
-}
-
-.separator:focus-visible .handle {
-    outline: 2px solid var(--color_focus);
-    outline-offset: 3px;
-}
-
-.dragging {
-    cursor: row-resize;
-    user-select: none;
-}
-
-.dragging .first,
-.dragging .second {
-    pointer-events: none;
 }
