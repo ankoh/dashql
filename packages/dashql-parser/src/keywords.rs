@@ -26,6 +26,8 @@ pub struct Keyword {
     pub symbol: SymbolKind,
     /// The category
     pub category: KeywordCategory,
+    /// May the keyword be a column label without AS (`select 1 abort`)?
+    pub bare_label: bool,
 }
 
 impl Keyword {

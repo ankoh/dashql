@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
 """Generate the Rust keyword table of the scanner from grammar/lists/*.list.
 
-Each list line is an X-macro `X(CATEGORY, "name", TOKEN)`, shared with the C++ scanner. The
-output is a Rust module (to be declared inside dashql-parser, next to `tables`) that defines
-`KEYWORDS`, sorted by name for binary search, and `MAX_KEYWORD_LENGTH`.
+Each list line is an X-macro `X(CATEGORY, "name", TOKEN, LABEL)`, shared with the grammar assembly.
+LABEL is BARE_LABEL for a keyword that may be a column label without AS, as in PostgreSQL's kwlist,
+and AS_LABEL otherwise. The output is a Rust module (to be declared inside dashql-parser, next to
+`tables`) that defines `KEYWORDS`, sorted by name for binary search, and `MAX_KEYWORD_LENGTH`.
 """
 
 import argparse
 import re
 import sys
 
-ENTRY = re.compile(r'^X\((\w+),\s*"([^"]+)",\s*(\w+)\)\s*$')
+ENTRY = re.compile(r'^X\((\w+),\s*"([^"]+)",\s*(\w+),\s*(BARE_LABEL|AS_LABEL)\)\s*$')
 
 CATEGORIES = {
     "SQL_COLUMN_NAME": "SqlColumnName",
@@ -31,10 +32,10 @@ def read_lists(paths):
                 m = ENTRY.match(line)
                 if not m:
                     raise SystemExit(f"{path}: cannot parse {line!r}")
-                category, name, token = m.groups()
+                category, name, token, label = m.groups()
                 if category not in CATEGORIES:
                     raise SystemExit(f"{path}: unknown category {category}")
-                keywords.append((name, token, CATEGORIES[category]))
+                keywords.append((name, token, CATEGORIES[category], label == "BARE_LABEL"))
     names = [k[0] for k in keywords]
     duplicates = sorted({n for n in names if names.count(n) > 1})
     if duplicates:
@@ -57,7 +58,7 @@ def fnv1a(data: bytes) -> int:
 
 def lookup_table(keywords):
     table = [0] * TABLE_SIZE
-    for i, (name, _, _) in enumerate(keywords):
+    for i, (name, _, _, _) in enumerate(keywords):
         slot = fnv1a(name.encode("utf-8")) & (TABLE_SIZE - 1)
         while table[slot] != 0:
             slot = (slot + 1) & (TABLE_SIZE - 1)
@@ -83,9 +84,10 @@ def main() -> int:
         "/// All keywords, sorted by name.",
         "pub static KEYWORDS: &[Keyword] = &[",
     ]
-    for name, token, category in keywords:
+    for name, token, category, bare_label in keywords:
         out.append(
-            f'    Keyword {{ name: "{name}", symbol: symbol_kind::S_{token}, category: KeywordCategory::{category} }},'
+            f'    Keyword {{ name: "{name}", symbol: symbol_kind::S_{token}, category: KeywordCategory::{category}, '
+            f"bare_label: {'true' if bare_label else 'false'} }},"
         )
     out.append("];")
     out.append("")

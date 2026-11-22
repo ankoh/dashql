@@ -9,28 +9,47 @@ import os
 import sys
 from typing import Optional
 
-def token_from_list_line(line: str) -> Optional[str]:
-    """Extract token from X(CATEGORY, "keyword", TOKEN) - third field, strip trailing )."""
+# The rule of the keywords that may be a column label without AS (BARE_LABEL)
+BARE_LABEL_RULE = "sql_bare_label_keywords"
+
+
+def entry_from_list_line(line: str) -> Optional[tuple[str, bool]]:
+    """Extract (token, bare label) from X(CATEGORY, "keyword", TOKEN, BARE_LABEL | AS_LABEL)."""
     line = line.strip()
     if not line or line.startswith("#"):
         return None
-    parts = line.split(",")
-    if len(parts) < 3:
-        return None
-    third = parts[2].strip().rstrip(")")
-    return third.strip() if third else None
+    parts = [p.strip() for p in line.rstrip(")").split(",")]
+    if len(parts) != 4 or parts[3] not in ("BARE_LABEL", "AS_LABEL"):
+        raise SystemExit(f"cannot parse keyword {line!r}")
+    return parts[2], parts[3] == "BARE_LABEL"
 
 
-def process_keyword_list(path: str) -> tuple[str, list[str]]:
-    """Return (basename without .list, list of token names)."""
+def process_keyword_list(path: str) -> tuple[str, list[str], list[str]]:
+    """Return (basename without .list, list of token names, list of bare label token names)."""
     basename = os.path.splitext(os.path.basename(path))[0]
     tokens = []
+    bare = []
     with open(path) as f:
         for line in f:
-            t = token_from_list_line(line)
-            if t:
-                tokens.append(t)
-    return basename, tokens
+            entry = entry_from_list_line(line)
+            if entry:
+                tokens.append(entry[0])
+                if entry[1]:
+                    bare.append(entry[0])
+    return basename, tokens, bare
+
+
+def write_rule(out, name: str, tokens: list[str]):
+    """A rule that passes through the text of its keywords"""
+    out.write("\n")
+    out.write(name)
+    out.write(":")
+    for i, t in enumerate(tokens):
+        if i > 0:
+            out.write(" | ")
+        out.write(t)
+        out.write("{ $1 }")
+    out.write(";\n\n")
 
 
 def main():
@@ -48,8 +67,10 @@ def main():
         with open(args.prologue) as f:
             out.write(f.read())
 
+        bare = []
         for path in args.keyword_lists:
-            basename, tokens = process_keyword_list(path)
+            basename, tokens, bare_tokens = process_keyword_list(path)
+            bare.extend(bare_tokens)
             if not tokens:
                 continue
             out.write("\n%type<Str> ")
@@ -57,6 +78,7 @@ def main():
             out.write("\n%token<Str> ")
             out.write(" ".join(tokens))
             out.write("\n")
+        out.write(f"\n%type<Str> {BARE_LABEL_RULE}\n")
 
         with open(args.precedences) as f:
             out.write(f.read())
@@ -68,18 +90,10 @@ def main():
         out.write("%%\n")
 
         for path in args.keyword_lists:
-            basename, tokens = process_keyword_list(path)
-            if not tokens:
-                continue
-            out.write("\n")
-            out.write(basename)
-            out.write(":")
-            for i, t in enumerate(tokens):
-                if i > 0:
-                    out.write(" | ")
-                out.write(t)
-                out.write("{ $1 }")
-            out.write(";\n\n")
+            basename, tokens, _ = process_keyword_list(path)
+            if tokens:
+                write_rule(out, basename, tokens)
+        write_rule(out, BARE_LABEL_RULE, sorted(bare))
 
         for path in args.rule_files:
             with open(path) as f:

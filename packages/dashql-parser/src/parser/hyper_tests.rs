@@ -23,9 +23,9 @@ fn accepts_hyper_grammar() {
 }
 
 #[test]
-fn accepts_hyper_bare_aliases() {
+fn accepts_bare_label_keywords() {
     let mut failures = Vec::new();
-    for word in include_str!("hyper_aliases.txt").lines() {
+    for word in crate::keywords::KEYWORDS.iter().filter(|k| k.bare_label).map(|k| k.name) {
         let sql = format!("SELECT 1 {word}");
         let parsed = parse_sql(&sql);
         if !parsed.errors.is_empty() {

@@ -123,11 +123,15 @@ The grammar is modular and assembled at build time by `grammar/assemble_grammar.
 The final `.y` file is composed in this order:
 
 1. **Prologue** (`prologue.y`) — Rust skeleton options (`api.rust.*`), the `use` of the action helpers, token declarations
-2. **Keyword token declarations** — generated from `lists/*.list` files
+2. **Keyword token declarations** — generated from `lists/*.list` files. Each line is
+   `X(CATEGORY, "name", TOKEN, LABEL)`; like PostgreSQL's `kwlist.h`, `LABEL` is `BARE_LABEL` for a keyword
+   that may follow an expression as its label (`select 1 abort`) and `AS_LABEL` for one that needs `AS`. The
+   keyword table of the scanner (`Keyword::bare_label`) carries the flag too.
 3. **Precedences** (`precedences.y`) — operator precedence and associativity
 4. **Type declarations** (`rules/*.yh`) — `%type` directives mapping nonterminals to Rust types
 5. **`%%`** — start of rules section
-6. **Keyword identity rules** — generated pass-through rules for keyword categories
+6. **Keyword identity rules** — generated pass-through rules for keyword categories, and
+   `sql_bare_label_keywords` for the keywords that may be a column label without `AS`
 7. **Rule files** (`rules/*.y`) — the actual grammar productions
 8. **`%%`** — end
 
