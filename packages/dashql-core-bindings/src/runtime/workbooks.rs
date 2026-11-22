@@ -812,6 +812,7 @@ pub(crate) fn workbook_view(entry: &WorkbookEntry, workbook: &Workbook) -> Workb
     WorkbookView {
         workbook_id: entry.id.clone(),
         name: workbook.name().map(str::to_string),
+        default_view: workbook.default_view().into(),
         workbook_metadata: JsonValue(Value::Object(metadata)),
         ephemeral: workbook.ephemeral(),
         pending_connection_id: workbook.pending_connection().map(|c| c.connection_id.clone()),

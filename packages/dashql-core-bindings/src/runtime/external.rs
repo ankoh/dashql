@@ -374,11 +374,16 @@ impl ExternalChanges {
             return Ok(Checked::Settled);
         };
         let stored_name = stored_file.display_name().map(str::to_string);
+        let stored_view = stored_file.default_view;
         let matches = {
             let stored =
                 self.workbooks.stored_scripts(stored.scripts.clone()).map_err(|error| HostError::new(error.what()))?;
             match workbook.try_borrow() {
-                Ok(workbook) => workbook.matches_stored_scripts(&stored) && workbook.name() == stored_name.as_deref(),
+                Ok(workbook) => {
+                    workbook.matches_stored_scripts(&stored)
+                        && workbook.name() == stored_name.as_deref()
+                        && workbook.default_view() == stored_view
+                }
                 // A workbook that another task holds is checked again, it is not taken as changed
                 Err(_) => return Ok(Checked::Busy),
             }
@@ -451,9 +456,12 @@ impl ExternalChanges {
             self.workbooks
                 .replace_from_storage(workbook_id, stored.scripts)
                 .map_err(|error| HostError::new(error.what()))?;
-            // The name on disk wins as well
+            // The name and the default view on disk win as well
             self.workbooks
                 .apply(workbook_id, WorkbookAction::RenameWorkbook { name: stored_name })
+                .map_err(|error| HostError::new(error.what()))?;
+            self.workbooks
+                .apply(workbook_id, WorkbookAction::SetDefaultView { view: stored_view })
                 .map_err(|error| HostError::new(error.what()))?;
             self.runs.describe_attachments();
         }

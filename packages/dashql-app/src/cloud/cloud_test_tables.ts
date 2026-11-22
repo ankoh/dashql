@@ -60,7 +60,8 @@ export function testWorkbookTables(spec: TestWorkbookTables): WorkbookTables {
     const tables = emptyWorkbookTables();
     const { workbook } = spec;
     const key: VersionKeyColumns = { workbook_id: workbook.workbookId, version_id: crypto.randomUUID() };
-    tables.workbook_versions.push({ ...key, format_version: workbook.formatVersion, name: workbook.name ?? null, metadata: JSON.stringify(workbook.metadata) });
+    tables.workbook_versions.push({ ...key, format_version: workbook.formatVersion, name: workbook.name ?? null, metadata: JSON.stringify(workbook.metadata),
+        default_view: workbook.defaultView ?? null });
     workbook.connections.forEach((connection, position) => tables.workbook_connections.push({
         ...key,
         position,

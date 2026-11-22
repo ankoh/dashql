@@ -106,6 +106,17 @@ describe('The workbooks of the runtime', () => {
         await runtime.storage({ kind: 'flush' });
         expect(storage.scripts.get('w')).toEqual(new Map([['alpha.sql', 'create table t (x int)'], ['beta.sql', 'select x from t']]));
         expect(storage.workbooks.get('w')).toMatchObject({ name: 'Sales' });
+        expect(storage.workbooks.get('w')).not.toHaveProperty('defaultView');
+
+        // The view that the workbook opens in is written with its properties, the feed is left out
+        expect(viewOf(runtime, 'workbook', 'w')!.defaultView).toBe('feed');
+        expect(runtime.dispatch({ workbook: 'w' }, { kind: 'setDefaultView', value: { view: 'dashboard' } }).changed).toBe(true);
+        expect(viewOf(runtime, 'workbook', 'w')!.defaultView).toBe('dashboard');
+        await runtime.storage({ kind: 'flush' });
+        expect(storage.workbooks.get('w')).toMatchObject({ name: 'Sales', defaultView: 'dashboard' });
+        runtime.dispatch({ workbook: 'w' }, { kind: 'setDefaultView', value: { view: 'feed' } });
+        await runtime.storage({ kind: 'flush' });
+        expect(storage.workbooks.get('w')).not.toHaveProperty('defaultView');
 
         // A failed action leaves the workbook as it was
         expect(runtime.dispatch({ workbook: 'w' }, { kind: 'setScriptText', value: { scriptKey: 999, text: 'x' } }).changed).toBe(false);

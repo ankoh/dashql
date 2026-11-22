@@ -29,6 +29,7 @@ use crate::workbook_format::validation::{
 };
 use dashql_core_runtime::connections::sharing::connection_params_equal;
 use dashql_core_runtime::connections::{ConnectionParams, ConnectorType};
+use dashql_core_runtime::workbook::WorkbookDefaultView;
 
 /// A connection that the restore knows
 #[derive(Debug, Clone, PartialEq)]
@@ -103,6 +104,8 @@ pub struct RestoredWorkbookPlan {
     pub workbook_id: String,
     /// The trimmed name, None without one
     pub name: Option<String>,
+    /// The view that the workbook opens in
+    pub default_view: WorkbookDefaultView,
     /// The metadata, without the ephemeral marker of a promoted workbook
     pub metadata: WorkbookMetadata,
     /// The scripts in feed order with their connections
@@ -361,6 +364,7 @@ impl RestorePlanner {
         Ok(RestoredWorkbookPlan {
             workbook_id,
             name: restore.data.display_name().map(str::to_string),
+            default_view: restore.data.default_view,
             metadata,
             scripts: resolved.scripts,
             pending_connection: resolved.pending_connection,

@@ -30,7 +30,7 @@ in NFC.
 
 | Table | Columns after the key |
 |-------|-------------------------|
-| `workbook_versions` | `format_version`, `name`, `metadata` (JSON text), one row per version |
+| `workbook_versions` | `format_version`, `name`, `metadata` (JSON text), `default_view`, one row per version |
 | `workbook_connections` | `position`, `connection_id`, `name`, `params` (JSON text, sanitized for sharing) |
 | `workbook_scripts` | `position`, `name`, `connection_id`, `text` |
 | `connection_catalog_tables` | `table_id`, `connection_id`, `database_name`, `schema_name`, `table_name` |

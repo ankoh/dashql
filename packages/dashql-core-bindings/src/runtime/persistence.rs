@@ -264,11 +264,12 @@ impl Persistence {
                         .map(|c| connection_copy(&c.connection_id, Some(&c.params)))
                         .collect(),
                 },
-                WorkbookEffect::WriteProperties { name, ephemeral, origin } => {
+                WorkbookEffect::WriteProperties { name, default_view, ephemeral, origin } => {
                     let link = cloud.and_then(StoredCloudLink::from_json);
                     WriteTask::WriteWorkbookProperties {
                         workbook_id: workbook_id.to_string(),
                         name,
+                        default_view,
                         ephemeral,
                         cloud: origin.and(link),
                     }

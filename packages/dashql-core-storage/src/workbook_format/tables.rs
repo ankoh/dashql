@@ -130,8 +130,14 @@ impl WorkbookTableName {
 
     /// The columns of the table, the key of the version first
     pub fn columns(self) -> &'static [TableColumn] {
-        const VERSIONS: [TableColumn; 5] =
-            [WORKBOOK_ID, VERSION_ID, integer("format_version"), text("name", true), text("metadata", false)];
+        const VERSIONS: [TableColumn; 6] = [
+            WORKBOOK_ID,
+            VERSION_ID,
+            integer("format_version"),
+            text("name", true),
+            text("metadata", false),
+            text("default_view", true),
+        ];
         const CONNECTIONS: [TableColumn; 6] = [
             WORKBOOK_ID,
             VERSION_ID,
@@ -304,6 +310,8 @@ row!(
     name: Option<String> => text,
     /// The metadata of the workbook as JSON
     metadata: String => string,
+    /// The view that the workbook opens in, null for the feed
+    default_view: Option<String> => text,
 });
 row!(
     /// A connection of the workbook
@@ -645,6 +653,7 @@ pub fn workbook_bundle_to_tables<B: Clone>(
         format_version: i32::try_from(workbook.format_version).unwrap_or(0),
         name: workbook.name.clone(),
         metadata: to_text(&workbook.metadata.to_json()),
+        default_view: workbook.default_view.stored().map(str::to_string),
     });
     for (position, connection) in workbook.connections.iter().enumerate() {
         tables.connections.push(ConnectionRow {
@@ -798,6 +807,9 @@ pub fn workbook_tables_to_bundle<B: Clone>(
     workbook.insert("workbookId".into(), json!(row.workbook_id));
     if let Some(name) = &row.name {
         workbook.insert("name".into(), json!(name));
+    }
+    if let Some(view) = &row.default_view {
+        workbook.insert("defaultView".into(), json!(view));
     }
     let mut connection_values = Vec::with_capacity(connections.len());
     for connection in &connections {

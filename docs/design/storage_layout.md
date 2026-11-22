@@ -95,7 +95,7 @@ the lock of the manifest.
 ### Workbooks
 
 A workbook folder holds `dashql-workbook.json` (schema `proto/json/dashql/app_workbook.json`: `formatVersion`,
-`workbookId`, `name`, `connections`, `scripts`, `attachments`, `metadata`) and
+`workbookId`, `name`, `defaultView`, `connections`, `scripts`, `attachments`, `metadata`) and
 the files it lists. Format 8 and older kept `settings.cacheQueryResults`, format 9 drops it.
 
 - `scripts/` holds one file per script, named by the script. Names compare in NFC and without case: two names that

@@ -14,6 +14,7 @@ use dashql_core_runtime::connections::sharing::sanitize_connection_params_for_sh
 use dashql_core_runtime::connections::{
     ConnectionDetails, ConnectionParams, ConnectionState, ConnectionStateOptions, ConnectorType, JsonObject,
 };
+use dashql_core_runtime::workbook::WorkbookDefaultView;
 use dashql_core_storage::storage::workbook_file::{properties_patch, upsert_connection_entry};
 use dashql_core_storage::workbook_format::bundle::*;
 use dashql_core_storage::workbook_format::connection_import::*;
@@ -370,6 +371,7 @@ fn recognizes_the_embedded_database() {
 fn round_trips_the_workbook_file() {
     let json = test_workbook_json(json!({
         "storageType": "native",
+        "defaultView": "dashboard",
         "metadata": { "createdAt": "2026-01-01T00:00:00Z", "ephemeral": true, "cloud": { "workbookId": "w", "versionId": "v", "connectionId": "c" }, "future": 1 },
         "connections": [{ "connectionId": TEST_CONNECTION_ID, "params": { "hyper": {} }, "paramsDraft": { "hyper": { "endpoint": "x" } }, "other": true }],
         "unknown": [1, 2],
@@ -378,8 +380,18 @@ fn round_trips_the_workbook_file() {
     assert!(!data.malformed_lists);
     assert_eq!(data.storage_type, Some(StorageType::Native));
     assert!(data.metadata.is_ephemeral());
+    assert_eq!(data.default_view, WorkbookDefaultView::Dashboard);
     assert_eq!(data.to_json(), json);
     assert_eq!(WorkbookData::from_text(&data.to_text()), Some(data));
+}
+
+#[test]
+fn reads_the_feed_for_a_missing_or_unknown_default_view_and_leaves_it_out() {
+    for view in [json!("feed"), json!("board"), json!(1)] {
+        let data = WorkbookData::from_json(&test_workbook_json(json!({ "defaultView": view })));
+        assert_eq!(data.default_view, WorkbookDefaultView::Feed);
+        assert!(data.to_json().get("defaultView").is_none());
+    }
 }
 
 // ---- workbook migrations ------------------------------------------------------------------------
@@ -1102,7 +1114,8 @@ fn round_trips_a_bundle_through_the_rows() {
             version_id: version_id.into(),
             format_version: WORKBOOK_FORMAT_VERSION as i32,
             name: Some("Tables".into()),
-            metadata: r#"{"createdAt":"2026-11-10T10:00:00.000Z"}"#.into()
+            metadata: r#"{"createdAt":"2026-11-10T10:00:00.000Z"}"#.into(),
+            default_view: None,
         }]
     );
     assert!(tables.scripts.iter().all(|r| r.workbook_id == TEST_WORKBOOK_ID && r.version_id == version_id));
@@ -1146,6 +1159,15 @@ fn round_trips_a_bundle_through_the_rows() {
 
     let read = workbook_tables_to_bundle(&tables, "Invalid workbook tables").unwrap();
     assert_eq!(read, bundle);
+}
+
+#[test]
+fn round_trips_the_default_view_through_the_rows() {
+    let mut bundle = tables_bundle();
+    bundle.workbook.default_view = WorkbookDefaultView::Dataflow;
+    let tables = workbook_bundle_to_tables(&bundle, &mut uuids()).unwrap();
+    assert_eq!(tables.versions[0].default_view.as_deref(), Some("dataflow"));
+    assert_eq!(workbook_tables_to_bundle(&tables, "Invalid").unwrap(), bundle);
 }
 
 #[test]
@@ -1688,7 +1710,8 @@ fn keeps_an_empty_ephemeral_workbook_and_promotes_one_that_holds_scripts() {
     assert_eq!(crashed.pending().promoted_workbooks, [TEST_WORKBOOK_ID]);
     // The writer promotes the workbook with its properties as the file holds them
     let stored = WorkbookData::from_json(&workbook);
-    let promoted = properties_patch(&stored, stored.name.as_deref(), false, stored.metadata.cloud.as_ref());
+    let promoted =
+        properties_patch(&stored, stored.name.as_deref(), stored.default_view, false, stored.metadata.cloud.as_ref());
     assert!(!promoted.to_json()["metadata"].as_object().unwrap().contains_key("ephemeral"));
 }
 

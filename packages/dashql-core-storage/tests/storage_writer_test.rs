@@ -12,6 +12,7 @@ use dashql_core_runtime::host::signal::{oneshot, Receiver, Sender};
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
 use dashql_core_runtime::http::HostBytes;
 use dashql_core_runtime::settings::RuntimeSettings;
+use dashql_core_runtime::workbook::WorkbookDefaultView;
 use dashql_core_storage::storage::keys::{self, chain_key};
 use dashql_core_storage::storage::writer::retry_delay_ms;
 use dashql_core_storage::storage::{
@@ -589,6 +590,7 @@ fn properties(name: &str) -> WriteTask {
     WriteTask::WriteWorkbookProperties {
         workbook_id: WORKBOOK.to_string(),
         name: Some(name.to_string()),
+        default_view: WorkbookDefaultView::Feed,
         ephemeral: false,
         cloud: None,
     }
@@ -920,6 +922,7 @@ fn writes_the_marker_of_an_ephemeral_workbook_and_removes_it_on_promotion() {
     let kept = write(WriteTask::WriteWorkbookProperties {
         workbook_id: WORKBOOK.to_string(),
         name: Some("New Workbook".to_string()),
+        default_view: WorkbookDefaultView::Feed,
         ephemeral: true,
         cloud: None,
     });
@@ -942,6 +945,7 @@ fn a_rename_in_the_same_turn_as_the_creation_never_replaces_it() {
             WriteTask::WriteWorkbookProperties {
                 workbook_id: WORKBOOK.to_string(),
                 name: Some("Named".to_string()),
+                default_view: WorkbookDefaultView::Feed,
                 ephemeral: true,
                 cloud: None,
             },
@@ -968,6 +972,7 @@ fn writes_and_removes_the_link_to_the_cloud_with_the_properties() {
         let task = WriteTask::WriteWorkbookProperties {
             workbook_id: WORKBOOK.to_string(),
             name: Some("Published".to_string()),
+            default_view: WorkbookDefaultView::Feed,
             ephemeral: false,
             cloud,
         };
@@ -1462,6 +1467,7 @@ fn holds_a_write_that_would_overwrite_an_external_change_until_the_workbook_resu
     let other = WriteTask::WriteWorkbookProperties {
         workbook_id: OTHER.to_string(),
         name: Some("x".to_string()),
+        default_view: WorkbookDefaultView::Feed,
         ephemeral: false,
         cloud: None,
     };

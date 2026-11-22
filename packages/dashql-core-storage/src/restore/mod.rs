@@ -36,7 +36,7 @@ use dashql_core_runtime::attachments::DataFile;
 use dashql_core_runtime::connections::{ConnectionAction, ConnectionParams, ConnectionState, ConnectionStateOptions};
 use dashql_core_runtime::host::{Host, HostError, LogLevel};
 use dashql_core_runtime::time::iso_timestamp_f64;
-use dashql_core_runtime::workbook::{new_catalog, ScriptConnection, Workbook, WorkbookOrigin};
+use dashql_core_runtime::workbook::{new_catalog, ScriptConnection, Workbook, WorkbookDefaultView, WorkbookOrigin};
 
 /// What the restore asks of the platform: the workbook tree, the workbook file, the scripts and attachments of a
 /// workbook, the connections of the app manifest and the files of a connection. Stored files are untrusted, the restore
@@ -221,10 +221,11 @@ enum WorkbookOutcome {
     ScriptsFailed(InvalidWorkbook),
 }
 
-/// A promoted workbook with the name and the cloud link that its file holds
+/// A promoted workbook with the name, the default view and the cloud link that its file holds
 struct Promotion {
     workbook_id: String,
     name: Option<String>,
+    default_view: WorkbookDefaultView,
     cloud: Option<WorkbookCloudLink>,
 }
 
@@ -514,6 +515,7 @@ impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
         };
         let texts: HashMap<String, String> = scripts.unwrap_or_default().into_iter().collect();
         let promoted = plan.promoted;
+        let default_view = plan.default_view;
         let created = match self.create_registered_connections() {
             Ok(()) => self.create_workbook(plan, metadata, &texts, &data_files),
             Err(error) => Err(error),
@@ -522,7 +524,12 @@ impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
             Ok(restored) => {
                 if promoted {
                     let cloud = restored.metadata.get("cloud").and_then(WorkbookCloudLink::from_json);
-                    self.promotions.push(Promotion { workbook_id: workbook_id.to_string(), name: stored_name, cloud });
+                    self.promotions.push(Promotion {
+                        workbook_id: workbook_id.to_string(),
+                        name: stored_name,
+                        default_view,
+                        cloud,
+                    });
                 }
                 let count = restored.workbook.scripts().len().to_string();
                 self.log(
@@ -566,6 +573,7 @@ impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
         data_files: &[DataFile],
     ) -> Result<RestoredWorkbook> {
         let mut workbook = Workbook::new(&plan.workbook_id, plan.name.clone(), None, self.offset_unit);
+        workbook.set_stored_default_view(plan.default_view);
         let mut connection_ids: Vec<String> = Vec::new();
         if plan.metadata.is_ephemeral() {
             workbook.set_ephemeral(true);
@@ -649,6 +657,7 @@ impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
             let task = WriteTask::WriteWorkbookProperties {
                 workbook_id: promotion.workbook_id.clone(),
                 name: promotion.name,
+                default_view: promotion.default_view,
                 ephemeral: false,
                 cloud: promotion.cloud,
             };

@@ -326,7 +326,9 @@ Clients of different versions share the tables, an app that wasn't reloaded keep
 tables evolve by migrations (`CLOUD_MIGRATIONS`), a list that only grows, and the first one creates the tables. A
 migration declares the tables it creates and the columns it adds, so the columns of the tables follow from the number of
 migrations that ran (`cloudColumnsAfter`). The second migration adds `script_name` to `workbook_results`, the script that
-a result belongs to; rows of the first version have none and are matched by their key. The `cloud_store` table has one row:
+a result belongs to; rows of the first version have none and are matched by their key. The third adds `default_view` to
+`workbook_versions`, the view that a published workbook opens in (`workbook_tables.md`); null is the feed. The
+`cloud_store` table has one row:
 
 | Column | Type | |
 |--------|------|-|

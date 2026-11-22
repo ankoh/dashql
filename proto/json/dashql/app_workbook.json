@@ -31,6 +31,11 @@
       "type": "string",
       "description": "User-supplied workbook name shown as the primary label in the workbook bar and selector. Absent (or empty) means the user never named the workbook, and the UI falls back to the display path."
     },
+    "defaultView": {
+      "type": "string",
+      "enum": ["feed", "dashboard", "dataflow"],
+      "description": "The view that the workbook opens in, also for the people it is shared with. Optional: absent (or unknown) means the feed, which is never written."
+    },
     "connections": {
       "type": "array",
       "items": {

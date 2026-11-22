@@ -6,13 +6,44 @@
 //! key. A payload crosses only when its key differs from the one that the host holds.
 
 use dashql_core_runtime::attachments::{DataFile, WorkbookAttachment};
-use dashql_core_runtime::workbook::{ExternalChanges, TextChange, WorkbookOrigin, WorkbookScript};
+use dashql_core_runtime::workbook::{
+    ExternalChanges, TextChange, WorkbookDefaultView as CoreDefaultView, WorkbookOrigin, WorkbookScript,
+};
 use serde::{Deserialize, Serialize};
 use tsify::Tsify;
 
 use super::editor_update_key;
 use crate::runtime::storage::restore_view::RestoredInvalidWorkbook;
 use crate::views::{FlatBufferBytes, JsonValue};
+
+/// The view that a workbook opens in
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub enum WorkbookDefaultView {
+    Feed,
+    Dashboard,
+    Dataflow,
+}
+
+impl From<CoreDefaultView> for WorkbookDefaultView {
+    fn from(view: CoreDefaultView) -> Self {
+        match view {
+            CoreDefaultView::Feed => WorkbookDefaultView::Feed,
+            CoreDefaultView::Dashboard => WorkbookDefaultView::Dashboard,
+            CoreDefaultView::Dataflow => WorkbookDefaultView::Dataflow,
+        }
+    }
+}
+
+impl From<WorkbookDefaultView> for CoreDefaultView {
+    fn from(view: WorkbookDefaultView) -> Self {
+        match view {
+            WorkbookDefaultView::Feed => CoreDefaultView::Feed,
+            WorkbookDefaultView::Dashboard => CoreDefaultView::Dashboard,
+            WorkbookDefaultView::Dataflow => CoreDefaultView::Dataflow,
+        }
+    }
+}
 
 /// The published workbook of a cloud that a workbook came from or was published to: the origin of the workbook in
 /// DashQL, a preview is a read-only workbook
@@ -100,6 +131,8 @@ impl From<&WorkbookAttachment> for WorkbookAttachmentView {
 pub struct WorkbookView {
     pub workbook_id: String,
     pub name: Option<String>,
+    /// The view that the workbook opens in
+    pub default_view: WorkbookDefaultView,
     /// The metadata of the workbook file: the origin, whether it is ephemeral, the whole link to a cloud
     pub workbook_metadata: JsonValue,
     pub ephemeral: bool,

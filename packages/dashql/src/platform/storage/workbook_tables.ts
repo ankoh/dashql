@@ -73,6 +73,9 @@ export interface VersionRow extends VersionKeyColumns {
     name: string | null;
     /// The metadata of the workbook as JSON
     metadata: string;
+    /// The view that the workbook opens in, 'dashboard' or 'dataflow', null for the feed. Missing in tables of
+    /// earlier versions.
+    default_view?: string | null;
 }
 
 export interface ConnectionRow extends VersionKeyColumns {

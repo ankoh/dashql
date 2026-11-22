@@ -633,6 +633,7 @@ impl Runtime {
                 return DispatchOutcome::changed(false);
             }
             W::RenameWorkbook { name } => A::RenameWorkbook { name },
+            W::SetDefaultView { view } => A::SetDefaultView { view: view.into() },
             W::SetScriptConnection { file_name, connection_id } => match connection(&connection_id) {
                 Ok(connection) => A::SetScriptConnection { file_name, connection },
                 Err(error) => return DispatchOutcome::failed(error),

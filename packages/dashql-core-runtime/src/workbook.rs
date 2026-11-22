@@ -137,6 +137,45 @@ pub struct WorkbookOrigin {
     pub read_only: bool,
 }
 
+/// The view that a workbook opens in, the feed unless the workbook names another one. A shared workbook opens in it
+/// too, e.g. in its dashboard. The workbook file and the workbook tables leave out the feed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum WorkbookDefaultView {
+    /// The scripts of the workbook one below the other
+    #[default]
+    Feed,
+    /// The cards of the scripts on a board
+    Dashboard,
+    /// The scripts and the relations between them on a canvas
+    Dataflow,
+}
+
+impl WorkbookDefaultView {
+    /// The name in the workbook file and the workbook tables
+    pub fn as_str(self) -> &'static str {
+        match self {
+            WorkbookDefaultView::Feed => "feed",
+            WorkbookDefaultView::Dashboard => "dashboard",
+            WorkbookDefaultView::Dataflow => "dataflow",
+        }
+    }
+
+    /// The view of a name, None for any other name
+    pub fn parse(name: &str) -> Option<Self> {
+        match name {
+            "feed" => Some(WorkbookDefaultView::Feed),
+            "dashboard" => Some(WorkbookDefaultView::Dashboard),
+            "dataflow" => Some(WorkbookDefaultView::Dataflow),
+            _ => None,
+        }
+    }
+
+    /// The name as a file stores it, None for the feed
+    pub fn stored(self) -> Option<&'static str> {
+        (self != WorkbookDefaultView::Feed).then(|| self.as_str())
+    }
+}
+
 /// A script as storage holds it
 pub struct StoredScript {
     /// The file name
@@ -627,8 +666,13 @@ pub enum WorkbookEffect {
     RenameDataFile { from: String, to: String },
     /// Write the script list of the workbook file
     WriteScriptList(ScriptList),
-    /// Write the properties of the workbook file: its name, whether it is ephemeral and its origin
-    WriteProperties { name: Option<String>, ephemeral: bool, origin: Option<WorkbookOrigin> },
+    /// Write the properties of the workbook file: its name, the view it opens in, whether it is ephemeral and its origin
+    WriteProperties {
+        name: Option<String>,
+        default_view: WorkbookDefaultView,
+        ephemeral: bool,
+        origin: Option<WorkbookOrigin>,
+    },
     /// Replace connections in the workbook file with another one
     PatchConnection { connection_id: String, params: Option<ConnectionParams>, replaces: Vec<String> },
 }
@@ -686,6 +730,8 @@ pub enum WorkbookAction {
     SetStoredResult { key: ScriptKey, stored: Option<ScriptStoredResult> },
     /// Rename the workbook, an empty name removes the name
     RenameWorkbook { name: Option<String> },
+    /// Pick the view that the workbook opens in
+    SetDefaultView { view: WorkbookDefaultView },
     /// Move a script to another connection. It keeps its key, its text and its queries, and picking the connection it
     /// runs on replaces a reference to an unresolved connection.
     SetScriptConnection { file_name: String, connection: Rc<ScriptConnection> },
@@ -725,6 +771,7 @@ impl WorkbookAction {
             | WorkbookAction::AcceptPendingDiff { .. }
             | WorkbookAction::RejectPendingDiff { .. }
             | WorkbookAction::RenameWorkbook { .. }
+            | WorkbookAction::SetDefaultView { .. }
             | WorkbookAction::RenameAttachment { .. }
             | WorkbookAction::SetWorkbookInput { .. }
             | WorkbookAction::SetScriptConnection { .. } => true,
@@ -750,6 +797,7 @@ impl WorkbookAction {
                 | WorkbookAction::RegisterScriptResult { .. }
                 | WorkbookAction::SetStoredResult { .. }
                 | WorkbookAction::RenameWorkbook { .. }
+                | WorkbookAction::SetDefaultView { .. }
                 | WorkbookAction::SetPendingConnection { .. }
                 | WorkbookAction::DetachConnection { .. }
                 | WorkbookAction::SetOrigin { .. }
@@ -793,6 +841,8 @@ pub struct Workbook {
     id: String,
     /// The name of the workbook, independent of its connections
     name: Option<String>,
+    /// The view that the workbook opens in
+    default_view: WorkbookDefaultView,
     /// Is the workbook the ephemeral workbook of the greeter?
     ephemeral: bool,
     /// The connection of the next appended script when no script determines it
@@ -826,6 +876,7 @@ impl Workbook {
         Self {
             id: id.to_string(),
             name,
+            default_view: WorkbookDefaultView::Feed,
             ephemeral: false,
             pending_connection,
             scripts: Vec::new(),
@@ -853,6 +904,12 @@ impl Workbook {
     /// scripts
     pub fn set_stored_pending_connection(&mut self, connection: Option<Rc<ScriptConnection>>) {
         self.pending_connection = connection;
+        self.revision = next_revision();
+    }
+
+    /// Set the view that storage holds when a workbook is restored
+    pub fn set_stored_default_view(&mut self, view: WorkbookDefaultView) {
+        self.default_view = view;
         self.revision = next_revision();
     }
 
@@ -1311,6 +1368,10 @@ impl Workbook {
     pub fn name(&self) -> Option<&str> {
         self.name.as_deref()
     }
+    /// The view that the workbook opens in
+    pub fn default_view(&self) -> WorkbookDefaultView {
+        self.default_view
+    }
     pub fn ephemeral(&self) -> bool {
         self.ephemeral
     }
@@ -1554,6 +1615,13 @@ impl Workbook {
                     outcome.effects.push(self.properties_write());
                 }
             }
+            WorkbookAction::SetDefaultView { view } => {
+                if view != self.default_view {
+                    self.default_view = view;
+                    outcome.changed = true;
+                    outcome.effects.push(self.properties_write());
+                }
+            }
         }
         if outcome.changed {
             // The table parameters read the results of the scripts and the attachments
@@ -1617,6 +1685,7 @@ impl Workbook {
     fn properties_write(&self) -> WorkbookEffect {
         WorkbookEffect::WriteProperties {
             name: self.name.clone(),
+            default_view: self.default_view,
             ephemeral: self.ephemeral,
             origin: self.origin.clone(),
         }

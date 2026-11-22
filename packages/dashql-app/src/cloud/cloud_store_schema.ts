@@ -116,6 +116,8 @@ export const CLOUD_MIGRATIONS: readonly CloudMigration[] = [
     { description: 'Create the tables of the published workbooks', tables: TABLES_1 },
     // A result belongs to its script, the key in its name only tells whether it fits the script (workbook_results.md)
     { description: 'Name the scripts of the published query results', columns: { workbook_results: [column('script_name', 'text', true)] } },
+    // The view that a published workbook opens in, null for the feed
+    { description: 'Name the default views of the published workbooks', columns: { workbook_versions: [column('default_view', 'text', true)] } },
 ];
 
 /// The columns of the tables after a number of migrations, by table
