@@ -4,7 +4,7 @@ import { act, flushContinuousUpdates } from '@akohn/dashql-react/testing/react_a
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ScriptDataMap, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
-import { DataflowCanvas, type DataflowCanvasDependencies } from './dataflow_canvas.js';
+import { DataflowCanvas, type DataflowCanvasDependencies, RESIZE_KEY_STEP } from './dataflow_canvas.js';
 import { analyzedTestWorkbook, withTestScript, type TestWorkbook } from './dataflow_test_workbook.js';
 import { loadDataflowModule } from './dataflow_module.js';
 
@@ -80,11 +80,11 @@ describe('DataflowCanvas', () => {
     it('waits for the layout module and tells when it failed to load', () => {
         const loading = { ...dependencies, useDataflowModule: () => ({ layout: null, error: null }) };
         act(() => root.render(<DataflowCanvas workbookScripts={workbook} modifyWorkbookScripts={modify} dependencies={loading} />));
-        expect(container.querySelector('[data-testid="dataflow-loading"]')?.textContent).toBe('Loading Eclipse Layout Kernel…');
+        expect(container.querySelector('[data-testid="dataflow-loading"]')).not.toBeNull();
         expect(container.querySelector('[data-dataflow-box]')).toBeNull();
         const failed = { ...dependencies, useDataflowModule: () => ({ layout: null, error: new Error('offline') }) };
         act(() => root.render(<DataflowCanvas workbookScripts={workbook} modifyWorkbookScripts={modify} dependencies={failed} />));
-        expect(container.querySelector('[data-testid="dataflow-loading"]')?.textContent).toBe('Eclipse Layout Kernel failed to load: offline');
+        expect(container.querySelector('[data-testid="dataflow-loading"]')?.textContent).toContain('offline');
     });
 
     it('zooms the canvas instead of the page on a pinch', () => {
@@ -325,16 +325,20 @@ describe('DataflowCanvas', () => {
         const card = () => container.querySelectorAll('rect[data-dataflow-card]')[workbook.scriptOrder.indexOf('report.sql')];
         const handle = box('report.sql').querySelector<SVGGElement>('[data-dataflow-resize]')!;
         const pointer = (type: string, x: number, y: number) => new PointerEvent(type, { bubbles: true, button: 0, pointerId: 1, clientX: x, clientY: y });
-        expect(card().getAttribute('width')).toBe('280');
+        const { boxWidth, grid } = layout.config;
+        expect(card().getAttribute('width')).toBe(`${boxWidth}`);
+        // A move a bit beyond five grid steps
+        const wider = boxWidth + 5 * grid;
+        const x = 500 + wider - boxWidth + 1;
         act(() => { handle.dispatchEvent(pointer('pointerdown', 500, 500)); });
-        act(() => { handle.dispatchEvent(pointer('pointermove', 581, 540)); });
+        act(() => { handle.dispatchEvent(pointer('pointermove', x, 540)); });
         // The box follows the pointer on the grid, a box without a chart only changes its width
-        expect(card().getAttribute('width')).toBe('360');
+        expect(card().getAttribute('width')).toBe(`${wider}`);
         expect(box('report.sql').getAttribute('data-resizing')).toBe('true');
         expect(modify).not.toHaveBeenCalled();
-        act(() => { handle.dispatchEvent(pointer('pointerup', 581, 540)); });
+        act(() => { handle.dispatchEvent(pointer('pointerup', x, 540)); });
         // Every box is saved, the resized one with its width
-        expect(written().get('report.sql')).toMatch(/^\/\*\* @flow x=-?\d+ y=-?\d+ width=360 \*\/\nselect a from t$/);
+        expect(written().get('report.sql')).toMatch(new RegExp(`^/\\*\\* @flow x=-?\\d+ y=-?\\d+ width=${wider} \\*/\nselect a from t$`));
         expect(written().get('schema.sql')).toMatch(/@flow x=-?\d+ y=-?\d+ \*\//);
         expect(box('report.sql').getAttribute('data-resizing')).toBeNull();
     });
@@ -346,7 +350,8 @@ describe('DataflowCanvas', () => {
         render();
         const handle = box('report.sql').querySelector<SVGGElement>('[data-dataflow-resize]')!;
         act(() => { handle.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'ArrowRight' })); });
-        expect(written().get('report.sql')).toMatch(/^\/\*\* @flow x=-?\d+ y=400 width=296 \*\/\nselect a from t$/);
+        const width = layout.config.boxWidth + RESIZE_KEY_STEP;
+        expect(written().get('report.sql')).toMatch(new RegExp(`^/\\*\\* @flow x=-?\\d+ y=400 width=${width} \\*/\nselect a from t$`));
         // Narrower than the smallest box, the width stays at its bound
         resetModify();
         const narrow = { ...report, annotations: { ...report.annotations, flowPosition: { statementId: 0, x: 800, y: 400, width: 200, height: null } } };

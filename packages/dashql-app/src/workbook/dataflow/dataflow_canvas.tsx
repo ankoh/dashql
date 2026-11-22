@@ -55,7 +55,7 @@ const LABEL_CHAR_WIDTH = 8;
 const CHART_BORDER = 1;
 /// The resize handle in the bottom right corner of a box, and the step of a resize with the arrow keys
 const RESIZE_HANDLE = 16;
-const RESIZE_KEY_STEP = 16;
+export const RESIZE_KEY_STEP = 16;
 /// The canvas draws every box with its statements
 const NEVER_COLLAPSED = () => false;
 

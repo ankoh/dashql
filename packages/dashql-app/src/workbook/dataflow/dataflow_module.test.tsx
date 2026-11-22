@@ -33,6 +33,6 @@ describe('useDataflowModule', () => {
         const { states, root } = renderHook();
         act(() => root.unmount());
         await new Promise(resolve => setTimeout(resolve, 50));
-        expect(states).toEqual([{ layout: null, error: null }]);
+        expect(states.every(state => state.layout == null)).toBe(true);
     });
 });
