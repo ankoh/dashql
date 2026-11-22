@@ -40,12 +40,6 @@ export default vite.defineConfig(({ mode, command }) => {
     // entrypoints/oauth.html is /oauth.html. They reach the sources and the favicons with ../src and ../static. The
     // --outDir of a build is relative to this root, and the out dir is outside of it.
     const entrypointsDir = path.join(rootDir, 'entrypoints');
-    // The tools, a page each in entrypoints/tools/, built as tools/<id>.html and served by Pages as /tools/<id>, see
-    // docs/design/tools.md
-    const toolsDir = path.join(entrypointsDir, 'tools');
-    const toolInputs = Object.fromEntries(nodeFs.readdirSync(toolsDir)
-        .filter(file => file.endsWith('.html'))
-        .map(file => [`tools_${path.basename(file, '.html')}`, path.join(toolsDir, file)]));
     // The builds and the dev server run in a sandbox of Bazel, the inputs are files of the sandbox. The dev server
     // (js_run_devserver under ibazel) gets the files that a rebuild changes synced into it, and Vite updates the page.
     // The folder of @akohn/dashql and @akohn/dashql-react, source packages: the builds take them from node_modules, the
@@ -218,8 +212,8 @@ export default vite.defineConfig(({ mode, command }) => {
 
     // The browser resolves the ../src and ../static of a page against its URL, /oauth.html points to /src, which the dev
     // server would look up in the root. The dev server reads files outside of the root under /@fs instead. A build
-    // resolves them against the file of the page. A page of a subfolder climbs further, tools/unpacker.html with
-    // ../../src. A deployment serves static/ at /static, like /static/config.json, the dev server does that too.
+    // resolves them against the file of the page. A deployment serves static/ at /static, like /static/config.json, the
+    // dev server does that too.
     const entrypointFiles = {
         name: 'dashql-entrypoint-files',
         apply: 'serve' as const,
@@ -232,7 +226,7 @@ export default vite.defineConfig(({ mode, command }) => {
         transformIndexHtml: {
             order: 'pre' as const,
             handler(html: string): string {
-                return html.replace(/(\s(?:src|href|content)=")(?:\.\.\/)+(src|static)\//g, `$1/@fs${rootDir}/$2/`);
+                return html.replace(/(\s(?:src|href|content)=")\.\.\/(src|static)\//g, `$1/@fs${rootDir}/$2/`);
             },
         },
     };
@@ -317,7 +311,7 @@ export default vite.defineConfig(({ mode, command }) => {
                     demos: path.join(entrypointsDir, "demos.html"),
                     embed: path.join(entrypointsDir, "embed.html"),
                     oauth_redirect: path.join(entrypointsDir, "oauth.html"),
-                    ...toolInputs,
+                    tools: path.join(entrypointsDir, "tools.html"),
                     ...(includesBrowserTests ? {
                         tests: path.join(entrypointsDir, "tests.html"),
                         tests_frame: path.join(entrypointsDir, "tests-frame.html"),

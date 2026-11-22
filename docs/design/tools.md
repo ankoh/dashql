@@ -1,35 +1,37 @@
 # Tools
 
-A tool is a page of its own next to the app, for a task that needs a part of DashQL but not the app: look into a file,
-check a format, try a component. A tool sets up only the parts it uses, so it is also the reference for a host that
-embeds a piece of DashQL without the whole app.
+A tool is a page of its own next to the app, a route of the tools page, for a task that needs a part of DashQL but not
+the app: look into a file, check a format, try a component. A tool sets up only the parts it uses, so it is also the
+reference for a host that embeds a piece of DashQL without the whole app.
 
 The Tools tab of the internals overlay lists them (`src/diagnostics/tools_view.tsx`). On the web a link opens the tool
 in a new tab of the same origin, the desktop app opens it on dashql.app in the browser: its window shows only the app.
+
+## The tools page
+
+`tools.html` (`packages/dashql-app/entrypoints/tools.html`, `src/tools/tools.tsx`) hosts every tool like `demos.html`
+hosts the demos: the routes are hashes, `tools.html#/<id>`, so every host serves the page without rewrites, and the
+page of a tool is a lazy chunk. Without a route it lists the tools. The page provides the logger and the theme, the
+page of a tool the rest of its providers. Its `<meta>` policy allows `'wasm-unsafe-eval'`, the tools load the Wasm of
+the core and of Hyper, see [app_csp.md](app_csp.md).
 
 ## Adding a tool
 
 | Part | Where |
 |------|-------|
-| Entry page | `packages/dashql-app/entrypoints/tools/<id>.html`, built as `tools/<id>.html` |
-| Sources | `packages/dashql-app/src/tools/<id>/`, the entry module renders the providers of the tool |
-| Listing | `TOOLS` of `src/tools/tool_registry.ts` |
+| Sources | `packages/dashql-app/src/tools/<id>/`, the default export of the entry module is the page with the providers of the tool |
+| Listing | `TOOLS` of `src/tools/tool_registry.ts`: id, title, description, `load()` |
 | Page test | `PAGE_TESTS` of `packages/dashql-app/test/browser_page_tests.mjs` |
 
-- **URL.** Cloudflare Pages serves `tools/<id>.html` as `/tools/<id>` and redirects the `.html` URL there. The dev
-  server and the server of the browser tests serve the page under the same path. `_headers` revalidates `/tools/*`
-  like the other entry pages.
-- **Build.** Every html file of `entrypoints/tools/` is an input of the build (`toolInputs` in `vite.config.tpl.ts`),
-  no config changes. The page reaches the sources and favicons with `../../src` and `../../static`.
-- **Content-Security-Policy.** The page carries its own `<meta>` policy like every entry page, with
-  `'wasm-unsafe-eval'` only if it loads a Wasm module, see [app_csp.md](app_csp.md).
+The build needs no changes: `tools.html` is already an input of vite.
+
 - **Providers.** Only those the tool uses. `StandaloneRuntime` (`src/host/standalone_runtime.tsx`) gives a runtime
   without storage and connections, without an HTTP client if the page sends no requests, for the hooks, models and
   components of `@akohn/dashql-react`. A tool without computations or scripts needs no core at all.
 
 ## Unpacker
 
-`/tools/unpacker` shows what a `.dashql` file holds ([workbook_tables.md](workbook_tables.md)): a card of the file,
+`tools.html#/unpacker` shows what a `.dashql` file holds ([workbook_tables.md](workbook_tables.md)): a card of the file,
 and below it, indented, a card per Parquet file of the archive and the other entries in a list. A line from below the
 icon of the file turns to each of them with a round corner, drawn in CSS: the headers of the cards have a fixed height
 and the line turns to their middle. A card reads its file when it first opens and shows a preview of
@@ -56,7 +58,7 @@ table and opens and closes its full table. The page test boots the real page and
 
 ## Analyzer
 
-`/tools/analyzer` shows what the core knows about a script after each phase. It has two cards: the catalog script,
+`tools.html#/analyzer` shows what the core knows about a script after each phase. It has two cards: the catalog script,
 collapsed when the page opens, the TPC-H schema of `static/examples/tpch/schema.sql`, and the editor script, the
 subquery of TPC-H query 2, formatted. Each card has the editor of a feed entry on a script session of its own
 (`createScriptSession`), with the highlighting, the completion and the diagnostics of the core. The editors grow with

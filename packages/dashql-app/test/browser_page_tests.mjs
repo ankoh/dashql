@@ -1,4 +1,4 @@
-// Tests of the real pages of the bundle: index.html, shell.html, demos.html, embed.html, oauth.html and the tools.
+// Tests of the real pages of the bundle: index.html, shell.html, demos.html, embed.html, oauth.html and tools.html.
 //
 // Their entry points call createRoot when they are imported, so a test in the test frame can't load them, and tests in
 // the frame replace parts of the composition with fakes. These tests boot the pages like a browser does, with the
@@ -858,19 +858,19 @@ async function testEmbed(page, navigate) {
     if (!probe.steps.some(step => step.detail.includes('n=5000000'))) throw new Error(`Hyper returned ${JSON.stringify(probe.steps)}`);
 }
 
-/// The unpacker tool on its own page, served without the extension like Pages serves it. The browser tests of the app
-/// read real archives, the page only boots and reports a file that is no archive.
+/// The unpacker tool on the tools page. The browser tests of the app read real archives, the page only boots and reports
+/// a file that is no archive.
 async function testUnpackerTool(page, navigate) {
-    await navigate('/tools/unpacker');
+    await navigate('/tools.html#/unpacker');
     await page.getByRole('heading', { name: 'Unpacker' }).waitFor();
     await page.getByRole('button', { name: /Drop a \.dashql file/ }).waitFor();
     await page.getByLabel('Open a .dashql file').setInputFiles({ name: 'script.sql', mimeType: 'text/plain', buffer: Buffer.from('select 1;') });
     await page.getByRole('alert').filter({ hasText: 'script.sql is not a ZIP archive' }).waitFor();
 }
 
-/// The analyzer tool on its own page: the scripts are scanned, parsed and analyzed against the catalog script
+/// The analyzer tool on the tools page: the scripts are scanned, parsed and analyzed against the catalog script
 async function testAnalyzerTool(page, navigate) {
-    await navigate('/tools/analyzer');
+    await navigate('/tools.html#/analyzer');
     await page.getByRole('heading', { name: 'Analyzer' }).waitFor();
     const editorScript = page.getByRole('region', { name: 'Editor Script' });
     await editorScript.getByRole('region', { name: 'Scanner' }).getByText('ps_supplycost', { exact: true }).first().waitFor();

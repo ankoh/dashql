@@ -130,7 +130,7 @@ describe('InternalsViewer', () => {
 
         // A tool opens its page next to the app
         await act(async () => tab('Tools').click());
-        expect(root.container.querySelector('a[href="/tools/unpacker"]')?.getAttribute('target')).toBe('_blank');
+        expect(root.container.querySelector('a[href="/tools.html#/unpacker"]')?.getAttribute('target')).toBe('_blank');
 
         // The queries of every connection, the finished before the active ones
         await act(async () => tab('Query execution history').click());
