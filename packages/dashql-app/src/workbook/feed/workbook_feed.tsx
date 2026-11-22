@@ -36,7 +36,7 @@ import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info
 import { renameAttachment } from '../attachment_rename.js';
 import { scriptDisplayName } from '@akohn/dashql/platform/workbook/script_types';
 import { insertMentionAtCursor, useLastFocusedEditor } from '../editor/editor_focus.js';
-import { DashQLProcessorPlugin } from '../editor/dashql_processor.js';
+import { DashQLProcessorPlugin, type DashQLParameterClick } from '../editor/dashql_processor.js';
 import { renameScript, type RenameDraftReferences } from '../scripts/script_rename.js';
 import { type KeyEventHandler, useKeyEvents } from '@akohn/dashql-react/dom/key_events';
 import { useStorageReader } from '../../storage/storage_provider.js';
@@ -53,6 +53,8 @@ import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { WorkbookDataCard } from './workbook_data_card.js';
 import { WorkbookInputStrip } from '../inputs/workbook_input_strip.js';
 import { StageLabel, StageSection } from '../stage_section.js';
+import { WorkbookInputOverlay, type WorkbookInputOverlayTarget } from '../inputs/workbook_input_overlay.js';
+import type { ScriptReferenceReport } from '@akohn/dashql/platform/workbook/script_reference_check';
 import { VerticalScrollShadows } from '@akohn/dashql-react/components/vertical_scroll_shadows';
 import { useObservedSize } from '@akohn/dashql-react/components/size_observer';
 import {
@@ -643,6 +645,28 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         setFollowRequest(n => n + 1);
     }, [revealRequest, props.active, props.workbookScripts.workbookId, props.workbookScripts.scriptRefs]);
 
+    // A click on a scalar parameter in a script opens its input at the parameter, a click on a table parameter brings
+    // the card of the script it references into view
+    const bodyRef = React.useRef<HTMLDivElement>(null);
+    const [inputOverlay, setInputOverlay] = React.useState<WorkbookInputOverlayTarget | null>(null);
+    const closeInputOverlay = React.useCallback(() => setInputOverlay(null), []);
+    const scriptReferencesRef = React.useRef<ReadonlyMap<number, ScriptReferenceReport> | undefined>(undefined);
+    const handleParameterClick = React.useCallback((scriptKey: number, click: DashQLParameterClick, view: EditorView) => {
+        if (!click.table) {
+            setInputOverlay({ name: click.name, view, from: click.from, to: click.to });
+            return;
+        }
+        // Every use of a name references the same script
+        const mark = scriptReferencesRef.current?.get(scriptKey)?.marks.find(m => m.parameter === click.name);
+        const fileName = mark?.target ?? null;
+        const target = fileName == null ? null : latest.current.workbookScripts.scriptRefs[fileName]?.scriptId;
+        if (fileName == null || target == null || target === scriptKey) return;
+        handleFocus(fileName);
+        followAgentRef.current = false;
+        followedRef.current = { scriptKey: target, target: 'script' };
+        setFollowRequest(n => n + 1);
+    }, [handleFocus]);
+
     const handleCreate = React.useCallback((index: number) => {
         const prev = latest.current.workbookScripts;
         // The outcome names the created script by its key, it is selected
@@ -701,6 +725,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
 
     // The checked script references of every script, the runtime checks them again when an analysis changes
     const scriptReferences = dependencies.useWorkbookDerived(workbookId)?.references;
+    scriptReferencesRef.current = scriptReferences;
     // The rows mount their editors once the list has a width. The list takes a width only after the size observer of
     // a container that was hidden reports, and a wrapped editor that measures at no width estimates the height of its
     // lines at a few characters per row, and gets no resize event to correct that.
@@ -737,9 +762,10 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         collapsedResults,
         fold,
         feed: feedCommands,
+        onParameterClick: handleParameterClick,
         topInset,
         onRowHeightChange: feedLayout.rowHeights.setRowHeight,
-    }), [workbookId, entries, scriptReferences, rowsActive, scriptConnections, storageReader, selectedFileName, scriptDebugMode, formattingDebugMode, keywordCase, collapsedResults, fold, feedCommands, topInset, feedLayout.rowHeights.setRowHeight]);
+    }), [workbookId, entries, scriptReferences, rowsActive, scriptConnections, storageReader, selectedFileName, scriptDebugMode, formattingDebugMode, keywordCase, collapsedResults, fold, feedCommands, handleParameterClick, topInset, feedLayout.rowHeights.setRowHeight]);
 
     const getScrollElement = React.useCallback(() => feedLayout.listRef.current?.element ?? null, [feedLayout.listRef]);
     // The composer drafts on the connection of the next script, against its catalog and the table parameters of the
@@ -837,6 +863,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     );
     return (
         <div
+            ref={bodyRef}
             className={styles.feed_body_container}
             data-landing={landing ? '' : undefined}
             style={{
@@ -898,6 +925,14 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
                     />
                 )}
             </div>
+            <WorkbookInputOverlay
+                workbookId={workbookId}
+                modifyWorkbookScripts={modifyWorkbookScripts}
+                target={inputOverlay}
+                containerRef={bodyRef}
+                getScrollElement={getScrollElement}
+                onClose={closeInputOverlay}
+            />
             {readOnly && !landing && (
                 <div className={styles.feed_composer_section} ref={composerSectionRef}>
                     <div className={styles.feed_composer_body}>{statusBar(WorkbookStatusBarVariant.Standalone)}</div>

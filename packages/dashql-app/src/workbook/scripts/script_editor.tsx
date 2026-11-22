@@ -5,7 +5,7 @@ import { EditorView } from '@codemirror/view';
 import { ChangeSpec, Compartment, EditorSelection, StateEffect, EditorState } from '@codemirror/state';
 
 import { CodeMirror, createCodeMirrorExtensions } from '../editor/codemirror.js';
-import { DashQLProcessorPlugin, DashQLUpdateEffect } from '../editor/dashql_processor.js';
+import { DashQLProcessorPlugin, DashQLUpdateEffect, type DashQLParameterClick } from '../editor/dashql_processor.js';
 import { DashQLProcessorUpdateOut } from '../editor/completion/dashql_completion_state.js';
 import { isCloudPreview, type ModifyWorkbookScripts, type ScriptData } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import type { Runtime } from '@akohn/dashql/runtime/runtime';
@@ -30,6 +30,8 @@ export interface ScriptEditorProps {
     setView?: (view: EditorView) => void;
     onFocus?: () => void;
     onNavigateToScript?: (scriptKey: number) => void;
+    /// A click on a named parameter of the script, `:min` or `from :orders`
+    onParameterClick?: (click: DashQLParameterClick, view: EditorView) => void;
     dependencies?: ScriptEditorDependencies;
 }
 
@@ -94,7 +96,7 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
         if (config == null || view == null || scriptData == null) return;
         // Binding a script replaces the editor state, which has to keep the extensions of the mount
         const createExtensions = () => [...dependencies.createCodeMirrorExtensions(), ...extraExtensions];
-        updateEditor(view, runtime, scriptData, selected, modifyScripts, logger, config, createExtensions, props.onNavigateToScript);
+        updateEditor(view, runtime, scriptData, selected, modifyScripts, logger, config, createExtensions, props.onNavigateToScript, props.onParameterClick);
     });
     React.useEffect(() => bindScript(), [
         config,
@@ -105,6 +107,7 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
         selected,
         scriptData?.connectionId,
         props.onNavigateToScript,
+        props.onParameterClick,
     ]);
     // The editor follows an import of the preview and the switch between the agent and the user
     React.useEffect(() => {
@@ -149,7 +152,7 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
 
 /// Bring the editor up to date with a script. `resync` compares the document with the text of the session also when the
 /// update of the script didn't move, e.g. after an event of the editor was stale.
-function updateEditor(view: EditorView, runtime: Runtime | null, scriptData: ScriptData, selected: boolean, modifyScripts: ModifyWorkbookScripts, logger: Logger, config: AppConfig, createExtensions: typeof createCodeMirrorExtensions, onNavigateToScript?: (scriptKey: number) => void, resync = false) {
+function updateEditor(view: EditorView, runtime: Runtime | null, scriptData: ScriptData, selected: boolean, modifyScripts: ModifyWorkbookScripts, logger: Logger, config: AppConfig, createExtensions: typeof createCodeMirrorExtensions, onNavigateToScript?: (scriptKey: number) => void, onParameterClick?: (click: DashQLParameterClick, view: EditorView) => void, resync = false) {
     const state = view.state.field(DashQLProcessorPlugin);
     const changes: ChangeSpec[] = [];
     const effects: StateEffect<unknown>[] = [];
@@ -256,7 +259,7 @@ function updateEditor(view: EditorView, runtime: Runtime | null, scriptData: Scr
         if (view.state.field(DashQLProcessorPlugin).scriptSession !== scriptData.scriptSession) return;
         const latest = runtime?.store.get('script', scriptData.scriptKey) ?? scriptData;
         if (latest.scriptSession !== scriptData.scriptSession) return;
-        updateEditor(view, runtime, latest, selected, modifyScripts, logger, config, createExtensions, onNavigateToScript, true);
+        updateEditor(view, runtime, latest, selected, modifyScripts, logger, config, createExtensions, onNavigateToScript, onParameterClick, true);
     });
 
 
@@ -279,6 +282,7 @@ function updateEditor(view: EditorView, runtime: Runtime | null, scriptData: Scr
 
             lookupScriptSession: (scriptKey) => runtime?.store.get('script', scriptKey)?.scriptSession ?? null,
             onNavigateToScript,
+            onParameterClick,
 
             onUpdate: updateScript,
         }),

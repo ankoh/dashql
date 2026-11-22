@@ -1,5 +1,6 @@
 import * as dashql from '@akohn/dashql';
 
+import type { EditorView } from '@codemirror/view';
 import { EditorState, Facet, StateField, StateEffect, StateEffectType, Text, Transaction } from '@codemirror/state';
 
 import { deriveFocusFromCompletionCandidates, deriveFocusFromEditorUpdate, SemanticUserFocus } from './semantic_focus.js';
@@ -9,6 +10,18 @@ import type { DashQLScriptKey } from '@akohn/dashql/platform/workbook/script_edi
 
 export const DASHQL_COMPLETION_LIMIT = 10;
 const LOG_PREFIX = '[workbook-editor-debug]';
+
+/// A click on a named parameter in an editor
+export interface DashQLParameterClick {
+    /// The name of the parameter without the prefix and the quotes
+    name: string;
+    /// Is the parameter a table, a reference to a script or an attachment? Otherwise it is a scalar value, an input of
+    /// the workbook.
+    table: boolean;
+    /// The span of the parameter with its prefix in the document
+    from: number;
+    to: number;
+}
 
 /// A state that is propagated from the outside into processor
 export type DashQLProcessorUpdateIn = DashQLProcessorUpdateOut & {
@@ -34,6 +47,8 @@ export type DashQLProcessorUpdateIn = DashQLProcessorUpdateOut & {
     lookupScriptSession?: (scriptKey: DashQLScriptKey) => dashql.DashQLScriptSessionReader | null;
     /// Navigate to a workbook script definition.
     onNavigateToScript?: (scriptKey: DashQLScriptKey) => void;
+    /// A click on a named parameter of the script, `:min` or `from :orders`, see `DashQLParameterClickPlugin`
+    onParameterClick?: (click: DashQLParameterClick, view: EditorView) => void;
 
     /// This callback is called when the editor updates the script, the cursor, completions.
     /// The callee is responsible for keeping FlatBufferPtrs alive and clean them up once they get overwritten.
@@ -171,6 +186,7 @@ export const DashQLProcessorPlugin: StateField<DashQLProcessorState> = StateFiel
             keywordCase: dashql.buffers.formatting.KeywordCase.LOWER,
             lookupScriptSession: undefined,
             onNavigateToScript: undefined,
+            onParameterClick: undefined,
 
             onUpdate: () => { },
         };

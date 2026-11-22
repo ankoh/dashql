@@ -120,6 +120,13 @@ doesn't read, e.g. `ten` for an integer or `1.5` hours, is marked and not writte
   "Scripts" (the scripts without a visualization) and "Visualizations", they scroll alike. The inputs belong to the
   scripts, not to the prompt, so they stay apart from it. The docked prompt floats over the bottom of the feed with a
   shadow and stands out of the scripts by the same width left and right, the cards of the scripts lie flat.
+- **Parameters in the scripts.** A click on a scalar parameter in the editor of a script in the feed opens its input in
+  an overlay below the parameter (`WorkbookInputOverlay`), the same card as in the strip, so an input that scrolled
+  away stays at hand. The overlay follows the parameter while the feed scrolls and closes once it is out of view. A
+  click on a table parameter, `from :orders`, brings the card of the referenced script into view and selects it. The
+  core names the parameter under the cursor that the click placed (`parameter` of the cursor context of an editor
+  update), `DashQLParameterClickPlugin` only checks that the click hit its text; a click beside it, a double click or a
+  click with a modifier only places the cursor.
 - **Draft inputs.** The prompt shows the inputs of its SQL draft on its header bar, below the bar of Wobble, as soon
   as the draft holds a parameter (`collectDraftInputs`), on the landing view and on the docked prompt. A value is written
   into the draft as `@param` tag like in a script and nothing runs, the tag goes along when the draft is sent. A

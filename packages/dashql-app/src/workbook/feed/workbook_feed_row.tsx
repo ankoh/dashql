@@ -16,6 +16,8 @@ import { scriptDisplayName } from '@akohn/dashql/platform/workbook/script_types'
 import type { ScriptReferenceReport } from '@akohn/dashql/platform/workbook/script_reference_check';
 import { useScriptModel } from '@akohn/dashql-react/models/script_model';
 import { ScriptEditor } from '../scripts/script_editor.js';
+import type { EditorView } from '@codemirror/view';
+import type { DashQLParameterClick } from '../editor/dashql_processor.js';
 import type { ScriptConnectionView } from '../scripts/script_connection_picker.js';
 import { ResultTableOverlay } from '../../results/result_table_overlay.js';
 import { FeedEntryFooter } from './feed_entry_footer.js';
@@ -52,6 +54,8 @@ export interface ScriptFeedRowProps {
     fold: Omit<ScriptResultFold, 'expanded'>;
     /// The commands of the feed
     feed: ScriptFeedCommands;
+    /// A click on a named parameter in the editor of a script
+    onParameterClick: (scriptKey: number, click: DashQLParameterClick, view: EditorView) => void;
     /// The height of the inputs above the first script, the first row leaves it free
     topInset: number;
     onRowHeightChange: (index: number, height: number) => void;
@@ -143,6 +147,10 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
     // The parts of the card that read the runtime
     const query = model?.query ?? null;
     const visualizeQuery = model?.script.annotations.visualizeQuery ?? null;
+    const { onParameterClick } = props;
+    const handleParameterClick = React.useCallback((click: DashQLParameterClick, view: EditorView) => {
+        if (scriptKey != null) onParameterClick(scriptKey, click, view);
+    }, [scriptKey, onParameterClick]);
     const editor = React.useCallback((slot: ScriptEditorSlot) => scriptKey == null ? null : (
         <ScriptEditor
             workbookId={props.workbookId}
@@ -152,8 +160,9 @@ export function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
             lineWrapping
             onFocus={slot.onFocus}
             setView={slot.setView}
+            onParameterClick={handleParameterClick}
         />
-    ), [props.workbookId, scriptKey]);
+    ), [props.workbookId, scriptKey, handleParameterClick]);
     const resultPanel = React.useCallback((slot: ScriptResultSlot) => query == null ? null : (
         <FeedEntryFooter
             workbookId={props.workbookId}

@@ -26,6 +26,7 @@ import { ComposerMode } from '../../agent/agent_connect.js';
 import type { AgentConnect } from '../../agent/agent_session_provider.js';
 import type { ModifyWorkbookScripts, ScriptData, ScriptDataMap, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import type { EditorView } from '@codemirror/view';
+import { ScriptReferenceKind } from '@akohn/dashql/platform/workbook/script_reference_check';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -68,7 +69,7 @@ function baseProps() {
             create: vi.fn(), focus: vi.fn(), delete: vi.fn(), rename: vi.fn(), pickConnection: vi.fn(), moveUp: vi.fn(),
             moveDown: vi.fn(), target: vi.fn(), editorView: vi.fn(),
         },
-        topInset: 0,
+        onParameterClick: vi.fn(), topInset: 0,
         onRowHeightChange: vi.fn(), dependencies,
     };
 }
@@ -269,6 +270,8 @@ describe('Workbook feed composer', () => {
         rowProps: null as RowProps | null,
         /// The heights of the text and the results of the scripts that the rows lay out
         rowLayouts: new Map<number, { text: number; result: number }>(),
+        /// The derived state of the workbook that the feed reads, e.g. the checked script references
+        derived: null as ReturnType<WorkbookFeedDependencies['useWorkbookDerived']>,
     };
     // Stable like the storage contexts
     const storageReader = { backend: {} } as unknown as ReturnType<WorkbookFeedDependencies['useStorageReader']>;
@@ -284,7 +287,7 @@ describe('Workbook feed composer', () => {
         useKeyEvents: handlers => { feedState.keyHandlers = handlers; },
         useScriptRun: () => feedState.runScript,
         useWorkbookScriptMap: () => feedState.scripts,
-        useWorkbookDerived: () => null,
+        useWorkbookDerived: () => feedState.derived,
         useLiveScriptReader: () => (key: number) => feedState.next?.scripts[key] ?? null,
         useComposerCore: () => ({ instance: {}, catalog: {}, tableParameters: { attach: () => false }, connectorType: ConnectorType.HYPER }) as unknown as ReturnType<WorkbookFeedDependencies['useComposerCore']>,
         useAgentSession: (args: AgentSessionArgs) => { feedState.sessionArgs = args; return feedState.session; },
@@ -370,6 +373,7 @@ describe('Workbook feed composer', () => {
         feedState.sessionArgs = null;
         feedState.rowProps = null;
         feedState.rowLayouts.clear();
+        feedState.derived = null;
         feedState.scripts = {};
         feedState.next = null;
         feedState.view = fakeView('');
@@ -542,6 +546,33 @@ describe('Workbook feed composer', () => {
             render(workbook(['1_alpha.sql', '2_beta.sql', '3_gamma.sql']), vi.fn());
             await act(async () => feedState.sessionArgs!.followScript(3, 'script'));
             expect(scrollTo).toHaveBeenCalledTimes(3);
+        } finally {
+            scrollTo.mockRestore();
+            clientHeight.mockRestore();
+        }
+    });
+
+    it('brings the script that a clicked table parameter references into view', async () => {
+        const clientHeight = vi.spyOn(Element.prototype, 'clientHeight', 'get').mockReturnValue(100);
+        const scrollTo = vi.spyOn(Element.prototype, 'scrollTo').mockImplementation(function (this: Element, options?: ScrollToOptions | number) {
+            const top = typeof options === 'object' ? options.top ?? 0 : 0;
+            Object.defineProperty(this, 'scrollTop', { value: top, configurable: true });
+        });
+        try {
+            // `from :gamma` in the first script references the third
+            const mark = { from: 14, to: 20, parameter: 'gamma', target: '3_gamma.sql', attachment: null, kind: ScriptReferenceKind.Inline, errors: [] };
+            feedState.derived = { inputs: [], references: new Map([[1, { textVersion: 1n, marks: [mark] }]]) } as unknown as typeof feedState.derived;
+            const modify = vi.fn(() => APPLIED);
+            render(workbook(['1_alpha.sql', '2_beta.sql', '3_gamma.sql']), modify);
+            scrollTo.mockClear();
+            const view = {} as EditorView;
+
+            // A click on a parameter that references no script, then on the reference to the third script
+            await act(async () => feedState.rowProps!.onParameterClick(1, { name: 'delta', table: true, from: 30, to: 36 }, view));
+            expect(scrollTo).not.toHaveBeenCalled();
+            await act(async () => feedState.rowProps!.onParameterClick(1, { name: 'gamma', table: true, from: 14, to: 20 }, view));
+            expect(scrollTo).toHaveBeenCalledOnce();
+            expect((scrollTo.mock.calls[0][0] as ScrollToOptions).top!).toBeGreaterThan(0);
         } finally {
             scrollTo.mockRestore();
             clientHeight.mockRestore();

@@ -203,3 +203,13 @@
     0%, 100% { opacity: 1; }
     50% { opacity: 0.3; }
 }
+
+/* The overlay of an input at a parameter in an editor, see WorkbookInputOverlay. The anchor covers the parameter. */
+.overlay_anchor {
+    position: absolute;
+    pointer-events: none;
+}
+
+.overlay {
+    padding: 6px;
+}
