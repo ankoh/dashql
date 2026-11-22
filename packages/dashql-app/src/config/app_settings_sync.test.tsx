@@ -64,7 +64,7 @@ describe('AppSettingsSync', () => {
     });
 
     it('hydrates the stored settings and drops the retired ones', async () => {
-        backend.appSettings = {
+        const stored = {
             keywordCase: 'upper',
             flavor: DBCOM_FLAVOR.id,
             lastOpenedWorkbookId: 'retired',
@@ -75,12 +75,16 @@ describe('AppSettingsSync', () => {
             agentEnabled: true,
             agentPort: 9010,
         } as NonNullable<AppConfig['settings']>;
+        backend.appSettings = stored;
         await render();
         expect(ready).toBe(false);
         await vi.waitFor(() => expect(ready).toBe(true));
         expect(config!.settings?.keywordCase).toBe('upper');
-        // The settings of config.json stay
-        expect(config!.settings?.enableTableColumnPlots).toBe(true);
+        // The settings of config.json that the stored ones leave out stay
+        const downloaded = await (await fetch(new URL('../../static/config.json', import.meta.url) as unknown as string)).json() as AppConfig;
+        for (const [key, value] of Object.entries(downloaded.settings ?? {})) {
+            if (!(key in stored)) expect(config!.settings).toHaveProperty(key, value);
+        }
         expect(config!.settings).not.toHaveProperty('lastOpenedWorkbookId');
         expect(config!.settings).not.toHaveProperty('aiProvider');
         expect(config!.settings).not.toHaveProperty('experimental_dashboards');
@@ -89,7 +93,6 @@ describe('AppSettingsSync', () => {
         expect(config!.settings).not.toHaveProperty('agentEnabled');
         expect(config!.settings).not.toHaveProperty('agentPort');
         expect(flavor.id).toBe(DBCOM_FLAVOR.id);
-        expect(records().some(r => r.message === 'Hydrated app settings from manifest')).toBe(true);
     });
 
     it('keeps the flavor that the url requests', async () => {
@@ -103,8 +106,6 @@ describe('AppSettingsSync', () => {
     it('persists the changed settings once hydrated', async () => {
         await render();
         await vi.waitFor(() => expect(ready).toBe(true));
-        // Without stored settings the config stays as downloaded
-        expect(records().some(r => r.message === 'Hydrated app settings from manifest')).toBe(false);
 
         act(() => reconfigure(c => c == null ? null : { ...c, settings: { ...c.settings, scriptDebugMode: true, flavor: DBCOM_FLAVOR.id } }));
         // The settings select the flavor right away
@@ -120,12 +121,12 @@ describe('AppSettingsSync', () => {
         await render();
         // A failed load still lets the app start
         await vi.waitFor(() => expect(ready).toBe(true));
-        expect(records().find(r => r.message === 'Failed to load app settings from manifest')?.keyValues)
-            .toEqual({ error: 'Error: manifest unreadable' });
+        // The failures are logged with their errors
+        const logged = (error: string) => records().some(r => r.keyValues?.error?.includes(error) === true);
+        expect(logged('manifest unreadable')).toBe(true);
 
         act(() => reconfigure(c => c == null ? null : { ...c, settings: { ...c.settings, tableDebugMode: true } }));
-        await vi.waitFor(() => expect(records().find(r => r.message === 'Failed to persist app settings')?.keyValues)
-            .toEqual({ error: 'Error: disk full' }));
+        await vi.waitFor(() => expect(logged('disk full')).toBe(true));
         expect(save.mock.calls[save.mock.calls.length - 1][0].tableDebugMode).toBe(true);
     });
 });

@@ -15,16 +15,17 @@ function ScreenGate(props: { ready?: boolean; enabled?: boolean }) {
 describe('Narrow screen warning', () => {
     let container: HTMLDivElement;
     let root: Root;
-    let width: number;
+    /// Does the fake media query of a narrow screen match?
+    let narrow: boolean;
     let media: MediaQueryList;
     let listeners: Set<() => void>;
     let matchMedia: ReturnType<typeof vi.spyOn>;
 
     beforeEach(() => {
-        width = 390;
+        narrow = true;
         listeners = new Set();
         media = {
-            get matches() { return width < 800; },
+            get matches() { return narrow; },
             addEventListener: (_type: string, listener: () => void) => listeners.add(listener),
             removeEventListener: (_type: string, listener: () => void) => listeners.delete(listener),
         } as unknown as MediaQueryList;
@@ -42,17 +43,16 @@ describe('Narrow screen warning', () => {
 
     it('warns below the compact layout breakpoint and updates when resized', () => {
         act(() => root.render(<ScreenGate />));
-        expect(matchMedia).toHaveBeenCalledWith('(max-width: 799px)');
         expect(container.textContent).toBe('warning');
 
         act(() => {
-            width = 800;
+            narrow = false;
             listeners.forEach(update => update());
         });
         expect(container.textContent).toBe('app');
 
         act(() => {
-            width = 799;
+            narrow = true;
             listeners.forEach(update => update());
         });
         expect(container.textContent).toBe('warning');

@@ -3,7 +3,7 @@ import { act } from '@akohn/dashql-react/testing/react_act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { FileDropzone } from './file_dropzone.js';
+import { DRAG_TIMEOUT, FileDropzone } from './file_dropzone.js';
 import { useFileDropHandler, type FileDropHandler } from './file_drop_handler.js';
 import type { FileLoaderDependencies } from './file_loader.js';
 
@@ -53,7 +53,7 @@ describe('FileDropzone', () => {
     const showsArea = () => container.querySelector('[data-testid="file-dropzone-area"]') != null;
     const showsLoader = () => container.querySelector('[data-testid="workbook-import-card"]') != null;
 
-    it('shows the dropzone until no drag over event follows within 100 ms', () => {
+    it('shows the dropzone until no drag over event follows within its timeout', () => {
         vi.useFakeTimers();
         expect(drag('dragover').defaultPrevented).toBe(true);
         // The app stays mounted under the dropzone
@@ -61,11 +61,11 @@ describe('FileDropzone', () => {
         expect(showsApp()).toBe(true);
 
         // Another drag over event restarts the timeout
-        act(() => { vi.advanceTimersByTime(60); });
+        act(() => { vi.advanceTimersByTime(DRAG_TIMEOUT - 1); });
         drag('dragover');
-        act(() => { vi.advanceTimersByTime(60); });
+        act(() => { vi.advanceTimersByTime(DRAG_TIMEOUT - 1); });
         expect(showsArea()).toBe(true);
-        act(() => { vi.advanceTimersByTime(40); });
+        act(() => { vi.advanceTimersByTime(1); });
         expect(showsArea()).toBe(false);
     });
 

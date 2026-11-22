@@ -6,7 +6,7 @@ import { FlavorLogo } from '../config/flavor_provider.js';
 import { FileDropHandlers, type FileDropHandler } from './file_drop_handler.js';
 
 /// A drag stops when no drag over event follows within this time
-const DRAG_TIMEOUT = 100;
+export const DRAG_TIMEOUT = 100;
 
 function FileDropzoneArea() {
     return (

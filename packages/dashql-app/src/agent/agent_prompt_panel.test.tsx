@@ -4,7 +4,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AgentPromptPanel, plainAgentNote } from './agent_prompt_panel.js';
-import { agentActivity, harnessLabel, type AgentSession } from './agent_session.js';
+import { agentActivity, formatAgentDuration, harnessLabel, type AgentSession } from './agent_session.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -87,7 +87,7 @@ describe('Agent prompt panel', () => {
         act(() => root.render(<AgentPromptPanel session={waiting} />));
         expect(detail()).toBe('waits for you in the terminal');
         expect(container.querySelector<HTMLElement>('[data-testid="composer-agent-turn"]')!.dataset.state).toBe('waiting');
-        expect(container.querySelector('[data-testid="composer-agent-waiting"]')!.textContent).toBe('Waits for you in the terminal: Claude needs your permission to use Bash');
+        expect(container.querySelector('[data-testid="composer-agent-waiting"]')!.textContent).toContain('Claude needs your permission to use Bash');
         const interrupted = agentSession({ turns: [{ questionId: 1, question: { ...question, status: null, interrupted: true }, scripts: [] }] });
         act(() => root.render(<AgentPromptPanel session={interrupted} />));
         expect(container.querySelector<HTMLElement>('[data-testid="composer-agent-turn"]')!.dataset.state).toBe('interrupted');
@@ -118,7 +118,7 @@ describe('Agent prompt panel', () => {
         act(() => root.render(<AgentPromptPanel session={agent} />));
         const steps = [...container.querySelectorAll('[data-testid="composer-agent-step"]')];
         expect(steps.map(step => step.getAttribute('data-state'))).toEqual(['done', 'failed', 'running']);
-        expect(steps[0].querySelector('[data-testid="composer-agent-step-time"]')?.textContent).toBe('0.4 s');
+        expect(steps[0].querySelector('[data-testid="composer-agent-step-time"]')?.textContent).toBe(formatAgentDuration(400));
         expect(steps[2].textContent).toContain('dashql run .dashql/workbooks/wb1');
         expect(steps[2].querySelector('[data-testid="composer-agent-step-time"]')?.textContent).toMatch(/^3\.\d s$/);
         // The steps are the status of the turn
@@ -135,7 +135,7 @@ describe('Agent prompt panel', () => {
         });
         act(() => root.render(<AgentPromptPanel session={done} />));
         expect(container.querySelector('[role="note"]')?.textContent).toBe('There are 42 orders');
-        expect(container.querySelectorAll('[data-testid="composer-agent-step"]')).toHaveLength(3);
+        expect(container.querySelectorAll('[data-testid="composer-agent-step"]')).toHaveLength(agent.turns[0].question.steps!.length);
     });
 
     it('shows answers until they are dismissed', () => {

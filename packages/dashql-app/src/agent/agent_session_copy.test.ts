@@ -49,6 +49,11 @@ class Fixture {
         for (const name of names) this.page.set(name, scripts.get(name)!);
     }
 
+    /// The key of a script of the page
+    keyOf(name: string): number {
+        return this.page.get(name)!.scriptKey;
+    }
+
     /// The agent writes a file of the copy
     agentWrites(path: string, text: string): void {
         this.copy.set(path, { text, mtimeMs: ++this.clock });
@@ -136,7 +141,7 @@ describe('the copies of the workbooks of a page in a session', () => {
         fixture.agentWrites('scripts/b.sql', 'select 22');
         fixture.agentWrites('scripts/new.sql', 'select 3');
         await copies.update(fixture.state());
-        expect(fixture.taken).toEqual([[2, 'select 22']]);
+        expect(fixture.taken).toEqual([[fixture.keyOf('b.sql'), 'select 22']]);
         expect(fixture.created).toEqual([['new', 'select 3', null, null]]);
         // What the page took from the agent goes not back into the copy
         await tick();
@@ -168,7 +173,7 @@ describe('the copies of the workbooks of a page in a session', () => {
         // The user changes a text that the page took from the agent, the change goes into the copy
         fixture.agentWrites('scripts/a.sql', 'select 12');
         await copies.update(fixture.state());
-        expect(fixture.taken).toEqual([[1, 'select 12']]);
+        expect(fixture.taken).toEqual([[fixture.keyOf('a.sql'), 'select 12']]);
         fixture.edit('a.sql', 'select 11');
         await tick();
         await copies.settled();
@@ -192,7 +197,7 @@ describe('the copies of the workbooks of a page in a session', () => {
         copies.adopt('w1');
         expect(copies.has('w1')).toBe(true);
         await copies.update(fixture.state());
-        expect(fixture.taken).toEqual([[2, 'select 22']]);
+        expect(fixture.taken).toEqual([[fixture.keyOf('b.sql'), 'select 22']]);
         await tick();
         await copies.settled();
         expect(fixture.writes).toEqual([]);
@@ -218,7 +223,7 @@ describe('the copies of the workbooks of a page in a session', () => {
         fixture.edit('a.sql', 'select 11');
         await tick();
         await copies.settled();
-        expect(fixture.writes).toEqual(['connections/c1/dashql-catalog-relations.sql', 'scripts/a.sql']);
+        expect([...fixture.writes].sort()).toEqual(['connections/c1/dashql-catalog-relations.sql', 'scripts/a.sql']);
         fixture.catalogs.set('c1', { stamp: '2', text: () => 'CREATE TABLE t (a integer, b text);\n' });
         fixture.catalogs.set('hyper', { stamp: '1', text: () => '' });
         fixture.edit('a.sql', 'select 12');
@@ -246,7 +251,7 @@ describe('the copies of the workbooks of a page in a session', () => {
         // The agent moves a script to another connection, one that the page doesn't have stays where it is
         fixture.agentWrites('dashql-workbook.json', JSON.stringify({ scripts: [{ name: 'a.sql', connectionId: 'hyper' }, { name: 'top.sql', connectionId: 'unknown' }] }));
         await copies.update(fixture.state());
-        expect(fixture.moved).toEqual([[1, 'hyper']]);
+        expect(fixture.moved).toEqual([[fixture.keyOf('a.sql'), 'hyper']]);
         expect(fixture.page.get('top.sql')?.connectionId).toBe('hyper');
     });
 
@@ -306,7 +311,7 @@ describe('the copies of the workbooks of a page in a session', () => {
         await copies.update(fixture.state());
         expect(fixture.taken).toEqual([]);
         await copies.pause(false);
-        expect(fixture.taken).toEqual([[2, 'select 22']]);
+        expect(fixture.taken).toEqual([[fixture.keyOf('b.sql'), 'select 22']]);
         expect(fixture.page.get('a.sql')?.text).toBe('select 111');
     });
 

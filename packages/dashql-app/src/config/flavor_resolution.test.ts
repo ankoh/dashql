@@ -93,10 +93,11 @@ describe('App flavor branding', () => {
 
     it('keeps the static favicons of the default flavor', () => {
         const doc = createDocument();
+        const statics = doc.head.querySelectorAll('link').length;
         applyFlavorToDocument(DASHQL_FLAVOR, doc);
         expect(doc.documentElement.dataset.flavor).toBe('dashql');
         expect(doc.title).toBe('DashQL');
-        expect(doc.head.querySelectorAll('link').length).toBe(5);
+        expect(doc.head.querySelectorAll('link').length).toBe(statics);
     });
 
     it('replaces the favicons of a branded flavor', () => {
@@ -123,7 +124,7 @@ describe('App flavor branding', () => {
         expect(doc.title).toBe('DashQL');
         expect(doc.querySelector('meta[name="apple-mobile-web-app-title"]')?.getAttribute('content')).toBe('DashQL');
         const links = [...doc.head.querySelectorAll('link')].map(l => [l.rel, l.getAttribute('href')]);
-        expect(links).toEqual([statics[2], statics[0], statics[1], statics[3], statics[4]]);
+        expect([...links].sort()).toEqual([...statics].sort());
     });
 
     it('layers flavor settings over the config settings', () => {

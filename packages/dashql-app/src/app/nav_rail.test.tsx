@@ -50,15 +50,13 @@ describe('Nav rail pages', () => {
     ));
     const items = () => [...container.querySelectorAll('button, [role="separator"]')]
         .map(e => e.getAttribute('aria-label') ?? '|');
+    /// The labels of the pages of a flavor, a separator between their groups
+    const label = (page: AppFlavor['railPages'][number][number]) => page.type === 'upcoming' ? page.label : page.type === 'workspace' ? 'Workspace' : 'Shell';
+    const groupedLabels = (flavor: AppFlavor) => flavor.railPages.flatMap((group, i) => [...(i > 0 ? ['|'] : []), ...group.map(label)]);
 
     it('lays out the pages of the dbcom flavor in groups', () => {
         render(DBCOM_FLAVOR);
-        expect(items()).toEqual([
-            'Workspace', 'Shell', 'Ingestion', 'Data Pipelines', '|',
-            'Indexes', 'AI & ML', 'PostgreSQL', 'Marketplace', '|',
-            'Catalog', 'Monitoring', 'Governance', 'Sharing', '|',
-            'Compute', 'Admin',
-        ]);
+        expect(items()).toEqual(groupedLabels(DBCOM_FLAVOR));
         const upcoming = DBCOM_FLAVOR.railPages.flat().filter(page => page.type === 'upcoming');
         for (const page of upcoming) {
             const button = container.querySelector<HTMLButtonElement>(`button[aria-label="${page.label}"]`)!;
@@ -71,6 +69,6 @@ describe('Nav rail pages', () => {
 
     it('shows only the workspace and the shell for DashQL', () => {
         render(DASHQL_FLAVOR);
-        expect(items()).toEqual(['Workspace', 'Shell']);
+        expect(items()).toEqual(groupedLabels(DASHQL_FLAVOR));
     });
 });

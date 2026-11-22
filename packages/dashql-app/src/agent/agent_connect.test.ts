@@ -28,6 +28,6 @@ describe('agent connect', () => {
     it('writes the lines of dashql connect, an option on every line', () => {
         const lines = agentConnectCommandLines('codex', { endpoint: 'http://127.0.0.1:51234', token: 'k3x9' });
         expect(lines.join(' ')).toBe(`${DASHQL_CLI_COMMAND} connect --launch codex --port 51234 --secret k3x9`);
-        expect(lines.slice(4)).toEqual(['--launch codex', '--port 51234', '--secret k3x9']);
+        expect(lines.slice(-3)).toEqual(['--launch codex', '--port 51234', '--secret k3x9']);
     });
 });

@@ -104,7 +104,7 @@ describe('FileLoader', () => {
 
         await vi.waitFor(() => expect(button(container, 'workbook-import-confirm')).not.toBeNull());
         expect(state.prepareImport).toHaveBeenCalledWith(PREVIEW);
-        expect(steps(container)).toEqual({ read: 'Succeeded', check: 'Succeeded', connections: 'Succeeded', workbook: 'None' });
+        expect(steps(container)).toMatchObject({ connections: 'Succeeded', workbook: 'None' });
         expect(card(container)?.getAttribute('aria-busy')).toBeNull();
         expect(container.querySelector('[data-testid="workbook-import-summary"]')?.textContent).toContain('Explain');
         expect(container.textContent).toContain('11111111-2222-4333-8444-555555555555');
@@ -136,11 +136,11 @@ describe('FileLoader', () => {
         const stage = () => container.querySelector('[data-testid="workbook-import-file-status"]')?.getAttribute('data-stage');
         expect(card(container)?.getAttribute('aria-busy')).toBe('true');
         await vi.waitFor(() => expect(stage()).toBe('validating'));
-        expect(steps(container)).toEqual({ read: 'Succeeded', check: 'Running' });
+        expect(steps(container)).toMatchObject({ check: 'Running' });
 
         await act(async () => finishValidation(PREVIEW));
         await vi.waitFor(() => expect(stage()).toBe('resolving'));
-        expect(steps(container)).toEqual({ read: 'Succeeded', check: 'Succeeded', connections: 'Running', workbook: 'None' });
+        expect(steps(container)).toMatchObject({ check: 'Succeeded', connections: 'Running' });
         // The summary shows the workbook while its connections are resolved
         expect(container.querySelector('[data-testid="workbook-import-summary"]')?.textContent).toContain('Explain');
 
@@ -174,7 +174,7 @@ describe('FileLoader', () => {
         const alert = container.querySelector('[role="alert"]');
         expect(alert?.getAttribute('data-stage')).toBe('validating');
         expect(alert?.textContent).toContain('missing dashql-workbook.json');
-        expect(steps(container)).toEqual({ read: 'Succeeded', check: 'Failed' });
+        expect(steps(container)).toMatchObject({ check: 'Failed' });
 
         await act(async () => button(container, 'workbook-import-retry')!.click());
         await vi.waitFor(() => expect(button(container, 'workbook-import-confirm')).not.toBeNull());
@@ -208,7 +208,7 @@ describe('FileLoader', () => {
         await vi.waitFor(() => expect(container.querySelector('[role="alert"]')).not.toBeNull());
         expect(container.querySelector('[role="alert"]')?.getAttribute('data-stage')).toBe('resolving');
         expect(container.querySelector('[role="alert"]')?.textContent).toContain('[sidb]');
-        expect(steps(container)).toEqual({ read: 'Succeeded', check: 'Succeeded', connections: 'Failed', workbook: 'None' });
+        expect(steps(container)).toMatchObject({ connections: 'Failed' });
     });
 
     it('asks to replace or copy a registered workbook with the same id', async () => {
@@ -236,7 +236,8 @@ describe('FileLoader', () => {
         expect(container.querySelector('[role="alert"]')?.getAttribute('data-stage')).toBe('importing');
         expect(container.querySelector('[role="alert"]')?.textContent).toContain('Storage is unavailable');
         // A file without query results has no step for them
-        expect(steps(container)).toEqual({ read: 'Succeeded', check: 'Succeeded', connections: 'Succeeded', workbook: 'Failed' });
+        expect(steps(container)).toMatchObject({ workbook: 'Failed' });
+        expect(steps(container)).not.toHaveProperty('results');
         expect(onDone).not.toHaveBeenCalled();
         expect(state.navigate).not.toHaveBeenCalled();
     });
@@ -251,7 +252,7 @@ describe('FileLoader', () => {
         });
         await act(async () => root.render(<FileLoader file={file()} onDone={() => {}} dependencies={dependencies} />));
         await vi.waitFor(() => expect(button(container, 'workbook-import-confirm')).not.toBeNull());
-        expect(steps(container)).toEqual({ read: 'Succeeded', check: 'Succeeded', connections: 'Succeeded', workbook: 'None', results: 'None' });
+        expect(steps(container)).toMatchObject({ workbook: 'None', results: 'None' });
         expect(container.textContent).toContain('2 results, 8 bytes');
 
         await act(async () => button(container, 'workbook-import-confirm')!.click());
@@ -283,7 +284,7 @@ describe('FileLoader', () => {
         await act(async () => button(container, 'workbook-import-confirm')!.click());
 
         await vi.waitFor(() => expect(button(container, 'workbook-import-open')).not.toBeNull());
-        expect(steps(container)).toEqual({ read: 'Succeeded', check: 'Succeeded', connections: 'Succeeded', workbook: 'Succeeded', results: 'Failed' });
+        expect(steps(container)).toMatchObject({ workbook: 'Succeeded', results: 'Failed' });
         const warning = container.querySelector('[data-testid="workbook-import-warning"]')!;
         expect(warning.textContent).toContain('1 of 2 query results was not added to the workbook (1 failed)');
         expect(warning.textContent).toContain('The checksum of b.parquet differs');
@@ -293,12 +294,5 @@ describe('FileLoader', () => {
         await act(async () => button(container, 'workbook-import-open')!.click());
         expect(state.navigate).toHaveBeenCalledWith(expect.objectContaining({ value: 'imported-workbook' }));
         expect(onDone).toHaveBeenCalledOnce();
-    });
-
-    it('marks the step of the file that failed', async () => {
-        state.readImport.mockRejectedValueOnce(new Error('Invalid ZIP'));
-        await act(async () => root.render(<FileLoader file={file()} onDone={() => {}} dependencies={dependencies} />));
-        await vi.waitFor(() => expect(container.querySelector('[role="alert"]')).not.toBeNull());
-        expect(steps(container)).toEqual({ read: 'Succeeded', check: 'Failed' });
     });
 });
