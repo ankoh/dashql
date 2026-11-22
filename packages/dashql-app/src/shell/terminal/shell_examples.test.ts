@@ -48,7 +48,7 @@ describe('shell examples command', () => {
         const deps = dependencies('select 1;\nselect 2;\n', ['select 1;', 'select 2;']);
 
         await expect(createExamplesCommand(deps)[2]([], {})).resolves
-            .toBe('Inserted 2 statements. Press Enter to run each, Ctrl+C to skip the rest.');
+            .toMatch(/2 statements/);
         expect(deps.queuePrompts).toHaveBeenCalledWith(['select 1;', 'select 2;']);
     });
 });

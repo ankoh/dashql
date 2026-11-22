@@ -159,7 +159,7 @@ describe('browser shell renderer', () => {
         expect(shell.renderTerminalQueryProgress).toHaveBeenLastCalledWith('Executing query');
         expect(write).toHaveBeenLastCalledWith('progress: Executing query');
 
-        vi.advanceTimersByTime(80);
+        vi.advanceTimersToNextTimer();
         expect(shell.renderTerminalQueryProgress).toHaveBeenLastCalledWith('', true);
         expect(write).toHaveBeenLastCalledWith('next frame');
 
@@ -170,11 +170,11 @@ describe('browser shell renderer', () => {
         expect(shell.clearTerminalQueryProgress).toHaveBeenCalledOnce();
         expect(write).toHaveBeenLastCalledWith('clear progress');
         const callsAfterClear = write.mock.calls.length;
-        vi.advanceTimersByTime(160);
+        vi.runOnlyPendingTimers();
         expect(write).toHaveBeenCalledTimes(callsAfterClear);
     });
 
-    it('can stop animation without clearing C++ terminal progress state', () => {
+    it('can stop animation without clearing the progress state of the shell core', () => {
         vi.useFakeTimers();
         const write = vi.fn();
         const shell = {
@@ -185,7 +185,7 @@ describe('browser shell renderer', () => {
 
         progress.update('Executing query');
         progress.stop();
-        vi.advanceTimersByTime(160);
+        vi.runOnlyPendingTimers();
 
         expect(shell.clearTerminalQueryProgress).not.toHaveBeenCalled();
         expect(write).toHaveBeenCalledOnce();
@@ -201,7 +201,7 @@ describe('browser shell renderer', () => {
         const progress = new TerminalQueryProgress(shell as never, write, true);
 
         progress.update('Executing query');
-        vi.advanceTimersByTime(800);
+        vi.runOnlyPendingTimers();
 
         expect(write).toHaveBeenCalledOnce();
         expect(shell.renderTerminalQueryProgress).toHaveBeenCalledOnce();

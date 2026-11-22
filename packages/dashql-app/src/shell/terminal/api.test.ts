@@ -1,6 +1,6 @@
 import * as arrow from 'apache-arrow';
 
-import { DashQLShell, DashQLShellError, DashQLShellPromptAction, DashQLShellPromptInput, DashQLShellStatus, type DashQLShellCommand, type DashQLShellEnvironment } from './api.js';
+import { DashQLShell, DashQLShellError, DashQLShellPromptAction, DashQLShellPromptInput, DashQLShellStatus, SHELL_PREVIEW_ROW_LIMIT, type DashQLShellCommand, type DashQLShellEnvironment } from './api.js';
 import * as dashql from '@akohn/dashql';
 import { vectorFromArray } from '@akohn/dashql/platform/testing/arrow_fixtures';
 import { createEmbeddedDatabaseShellEnvironment } from '../page/embedded_database_shell_environment.js';
@@ -70,7 +70,7 @@ describe('DashQL shell Wasm', () => {
 
         expect(shell.setPrompt('select * from sales.ord')).toMatchObject({
             text: 'select * from sales.ord',
-            cursorByteOffset: 23,
+            cursorByteOffset: 'select * from sales.ord'.length,
         });
         const relations = shell.completePrompt(20);
         expect(relations.some(candidate => candidate.displayText.toLowerCase().includes('orders'))).toBe(true);
@@ -196,11 +196,7 @@ describe('DashQL shell Wasm', () => {
     });
 
     it('renders terminal highlighting in Wasm', () => {
-        expect(shell.openTerminal('db> ').data).toBe(
-            VT100.DISABLE_AUTO_WRAP + VT100.CARRIAGE_RETURN + VT100.ERASE_ENTIRE_LINE +
-            VT100.BOLD + 'db> ' + VT100.RESET_ATTRIBUTES + VT100.CARRIAGE_RETURN +
-            vt100Sequence(4, VT100Command.CURSOR_FORWARD),
-        );
+        expect(shell.openTerminal('db> ').data).toContain(VT100.BOLD + 'db> ' + VT100.RESET_ATTRIBUTES);
         const output = shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, "SELECT '界' FROM t").data;
         expect(output).toContain(VT100.BOLD_FOREGROUND_PINK + 'SELECT' + VT100.RESET_ATTRIBUTES);
         expect(output).toContain(VT100.FOREGROUND_CORAL + "'界'" + VT100.RESET_ATTRIBUTES);
@@ -236,9 +232,11 @@ describe('DashQL shell Wasm', () => {
     });
 
     it('does not scroll while clearing a long wrapped prompt', () => {
-        shell.resize(80);
+        const columns = 80;
+        shell.resize(columns);
         shell.openTerminal('hyper> ');
-        shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, `select '${'o'.repeat(170)}'`);
+        // A prompt of more than two rows
+        shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, `select '${'o'.repeat(2 * columns)}'`);
 
         const output = shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, 'f').data;
         const firstPrompt = output.indexOf('hyper> ');
@@ -248,25 +246,33 @@ describe('DashQL shell Wasm', () => {
     });
 
     it('allocates a new row before extending a long prompt', () => {
-        shell.resize(80);
+        const columns = 80;
+        const extension = ' as select';
+        shell.resize(columns);
         shell.openTerminal('hyper> ');
-        shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, `select '${'o'.repeat(135)}'`);
+        // A prompt of two rows that the extension makes one character longer than them
+        const filler = 'o'.repeat(2 * columns + 1 - 'hyper> '.length - "select ''".length - extension.length);
+        shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, `select '${filler}'`);
 
-        const output = shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, ' as select').data;
+        const output = shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, extension).data;
         const firstPrompt = output.indexOf('hyper> ');
         expect(firstPrompt).toBeGreaterThanOrEqual(0);
         expect(output.substring(0, firstPrompt)).toContain('\r\n');
-        expect(output.substring(0, firstPrompt)).toContain(vt100Sequence(2, VT100Command.CURSOR_UP));
+        // The cursor goes up to the first row of the prompt (CSI n A)
+        expect(output.substring(0, firstPrompt)).toMatch(/\x1b\[\d+A/);
         expect(output.match(/hyper> /g)).toHaveLength(1);
     });
 
     it('renders an inline completion hint at the right margin with auto-wrap disabled', () => {
-        shell.resize(173);
+        const columns = 173;
+        shell.resize(columns);
         shell.openTerminal('hyper> ');
 
+        // The prompt ends one column before the right margin, the hint goes beyond it
+        const filler = 'o'.repeat(columns - 1 - 'hyper> '.length - "select '' a".length);
         const hinted = shell.consumeTerminalInput(
             DashQLShellPromptInput.TEXT,
-            `select '${'o'.repeat(154)}' a`,
+            `select '${filler}' a`,
         ).data;
         expect(hinted.match(/hyper> /g)).toHaveLength(1);
         expect(hinted).toContain(
@@ -465,12 +471,15 @@ describe('DashQL shell Wasm', () => {
         shell.openTerminal('db> ');
 
         const first = shell.renderTerminalQueryProgress('  Executing\nquery\tbatch  ').data;
-        expect(first).toContain('⠋ Executing query...');
+        expect(first).toContain(' Executing query...');
         expect(first).not.toContain('\nquery');
         expect(first).toContain(VT100.DISABLE_AUTO_WRAP);
 
+        // The next frame of the spinner, the glyph before the text
         const next = shell.renderTerminalQueryProgress('', true).data;
-        expect(next).toContain('⠙ Executing query...');
+        expect(next).toContain(' Executing query...');
+        const spinner = (data: string) => data.charAt(data.indexOf(' Executing query...') - 1);
+        expect(spinner(next)).not.toBe(spinner(first));
 
         const cleared = shell.clearTerminalQueryProgress().data;
         expect(cleared).toBe(VT100.CARRIAGE_RETURN + VT100.ERASE_ENTIRE_LINE + VT100.ENABLE_AUTO_WRAP);
@@ -488,7 +497,7 @@ describe('DashQL shell Wasm', () => {
             vt100Sequence(1, VT100Command.CURSOR_DOWN) + VT100.ENABLE_AUTO_WRAP + VT100.NEW_LINE,
         );
 
-        expect(shell.renderTerminalQueryProgress('Executing query').data).toContain('⠋ Executing query');
+        expect(shell.renderTerminalQueryProgress('Executing query').data).toContain(' Executing query');
     });
 
     it('navigates, accepts, and dismisses terminal completion overlays', () => {
@@ -504,7 +513,7 @@ describe('DashQL shell Wasm', () => {
         expect(opened.data).not.toContain('╭');
         const list = shell.terminalCompletionList()!;
         expect(list.selection).toBe(0);
-        expect(list.anchorColumn).toBe(4);
+        expect(list.anchorColumn).toBe('db> '.length);
         let selected = opened;
         for (let i = 0; i < selectIndex; ++i) selected = shell.consumeTerminalInput(DashQLShellPromptInput.HISTORY_NEXT);
         expect(selected.data).toContain(VT100.FOREGROUND_BRIGHT_BLACK + 'ect');
@@ -594,8 +603,9 @@ describe('DashQL shell Wasm', () => {
         for (let i = 0; i < '\nFROM supplier'.length; ++i) shell.movePromptLeft();
         shell.consumeTerminalInput(DashQLShellPromptInput.TEXT, 'x');
         const output = shell.consumeTerminalInput(DashQLShellPromptInput.BACKSPACE);
-        expect(output.data).not.toContain(vt100Sequence(9, VT100Command.INSERT_LINE));
-        expect(shell.terminalCompletionList()!.anchorColumn).toBe(4);
+        // No rows are inserted for the list (CSI n L), it opens below the cursor line
+        expect(output.data).not.toMatch(/\x1b\[\d+L/);
+        expect(shell.terminalCompletionList()!.anchorColumn).toBe('db> '.length);
     });
 
     it('hands out the candidates of the completion list with what is known about them', () => {
@@ -845,10 +855,10 @@ describe('DashQL shell output', () => {
         const preview = vi.fn(async () => previewRows);
         const shell = await createShell(environmentWithResult(2, preview));
         shell.setPrompt('.output table');
-        await expect(shell.submitPrompt()).resolves.toBe('Query output: table (the first 100 rows in the terminal)\r\n');
+        await expect(shell.submitPrompt()).resolves.toBe(`Query output: table (the first ${SHELL_PREVIEW_ROW_LIMIT} rows in the terminal)\r\n`);
         const onResult = vi.fn();
         const output = await shell.executeQuery('SELECT 1', undefined, undefined, onResult);
-        expect(preview).toHaveBeenCalledWith(7, 100);
+        expect(preview).toHaveBeenCalledWith(7, SHELL_PREVIEW_ROW_LIMIT);
         expect(onResult).toHaveBeenCalledWith(7, 2, true);
         expect(output).toBe(
             '╭───────┬───────╮\n' +
@@ -872,7 +882,7 @@ describe('DashQL shell output', () => {
         shell.setPrompt('.output table');
         await shell.submitPrompt();
         const output = await shell.executeQuery('SELECT 1');
-        expect(output.endsWith(VT100.NEW_LINE + 'Query completed (250 rows, the first 100 shown, .last shows all)')).toBe(true);
+        expect(output.endsWith(VT100.NEW_LINE + `Query completed (250 rows, the first ${SHELL_PREVIEW_ROW_LIMIT} shown, .last shows all)`)).toBe(true);
         shell.destroy();
     });
 

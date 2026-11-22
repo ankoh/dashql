@@ -46,11 +46,11 @@ describe('browser shell prompt queue', () => {
         input.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true, ...init }));
     }
 
-    async function settle() {
-        for (let i = 0; i < 20 && promptText().length === 0 && queries.length > 0; ++i) {
-            await new Promise(resolve => setTimeout(resolve, 10));
-        }
-        await new Promise(resolve => setTimeout(resolve, 50));
+    /// Wait until the shell ran a number of queries and finished them. The end of a query is a chain of promise jobs, a
+    /// task after them sees the prompt that follows it.
+    async function settle(count: number) {
+        await vi.waitFor(() => expect(queries).toHaveLength(count));
+        await new Promise(resolve => setTimeout(resolve));
     }
 
     it('fills in each queued prompt after the previous one ran', async () => {
@@ -59,12 +59,11 @@ describe('browser shell prompt queue', () => {
         expect(queries).toEqual([]);
 
         press('Enter');
-        await settle();
-        expect(queries).toHaveLength(1);
+        await settle(1);
         expect(promptText()).toBe('select 2;');
 
         press('Enter');
-        await settle();
+        await settle(2);
         expect(queries).toHaveLength(2);
         expect(promptText()).toBe('');
     });
@@ -76,7 +75,7 @@ describe('browser shell prompt queue', () => {
 
         shell.setPrompt('select 3;');
         press('Enter');
-        await settle();
+        await settle(1);
         expect(queries).toHaveLength(1);
         expect(promptText()).toBe('');
     });
@@ -133,8 +132,8 @@ describe('browser shell replacement', () => {
         oldShell.setPrompt('select 1;');
         press('Enter');
         await vi.waitFor(() => expect(oldQueries).toHaveLength(1));
-        // Let the old shell finish its prompt
-        await new Promise(resolve => setTimeout(resolve, 50));
+        // Let the old shell finish its prompt, a chain of promise jobs
+        await new Promise(resolve => setTimeout(resolve));
 
         controller.replaceShell(newShell);
         press('ArrowUp');
@@ -162,7 +161,8 @@ describe('browser shell replacement', () => {
             press('Enter');
             expect(newQueries).toEqual(['select 3']);
         });
-        await new Promise(resolve => setTimeout(resolve, 50));
+        // The old shell finished its aborted query, a chain of promise jobs, and ran nothing more
+        await new Promise(resolve => setTimeout(resolve));
         expect(oldQueries).toEqual(['select 1']);
         expect(newShell.movePromptRight().text).toBe('');
     });

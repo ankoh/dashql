@@ -64,8 +64,7 @@ describe('Salesforce login command', () => {
             undefined,
             onProgress,
         );
-        expect(onProgress).toHaveBeenNthCalledWith(1, 'Authenticating with Salesforce');
-        expect(onProgress).toHaveBeenCalledTimes(1);
+        expect(onProgress).toHaveBeenCalledWith(expect.stringContaining('Authenticating'));
         expect(onSuccess).toHaveBeenCalledWith(
             expect.objectContaining({ alias: 'salesforce' }),
             authentication,

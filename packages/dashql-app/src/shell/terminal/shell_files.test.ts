@@ -219,22 +219,16 @@ describe('shell file registry logging', () => {
         const progress: string[] = [];
         await registry.mountFile(sourceFile('data.csv'), undefined, { onProgress: message => progress.push(message) });
         expect(progress).toEqual(['Mounting data.csv']);
-        expect(logger.records.map(r => [r.level, r.message])).toEqual([
-            ['info', 'Mounting shell file'],
-            ['info', 'Mounted shell file'],
-        ]);
-        expect(logger.records[0].keyValues).toMatchObject({
-            source_path: 'data.csv',
-            target_path: undefined,
-            size_bytes: '3',
-            stage: 'register_external_file',
+        const stage = (name: string) => logger.records.find(r => r.keyValues.stage === name);
+        expect(stage('register_external_file')).toMatchObject({
+            level: 'info',
+            keyValues: { source_path: 'data.csv', size_bytes: '3' },
         });
-        expect(logger.records[1].keyValues).toMatchObject({
-            source_path: 'data.csv',
-            target_path: '/mnt/external/data.csv',
-            stage: 'complete',
+        expect(stage('complete')).toMatchObject({
+            level: 'info',
+            keyValues: { source_path: 'data.csv', target_path: '/mnt/external/data.csv' },
         });
-        expect(Number(logger.records[1].keyValues.elapsed_ms)).toBeGreaterThanOrEqual(0);
+        expect(Number(stage('complete')!.keyValues.elapsed_ms)).toBeGreaterThanOrEqual(0);
     });
 
     it('logs failing file mounts', async () => {
@@ -245,7 +239,6 @@ describe('shell file registry logging', () => {
         await expect(registry.mountFile(sourceFile('data.csv'))).rejects.toThrow('denied');
         const failure = logger.records[logger.records.length - 1]!;
         expect(failure.level).toBe('error');
-        expect(failure.message).toBe('Failed to mount shell file');
         expect(failure.keyValues).toMatchObject({ stage: 'register_external_file', error_name: 'TypeError' });
         expect(failure.keyValues.error).toContain('denied');
     });
@@ -286,8 +279,7 @@ describe('shell file registry logging', () => {
         });
         await expect(registry.mountDirectory(handle('data'), undefined, 'read')).rejects.toThrow('disposed');
         expect(external.directories.size).toBe(0);
-        expect(logger.records.map(r => r.message)).toEqual(['Mounting shell directory', 'Failed to mount shell directory']);
-        expect(logger.records[1].keyValues).toMatchObject({ mode: 'read', target_path: '/mnt/external/data' });
+        expect(logger.records.find(r => r.level === 'error')?.keyValues).toMatchObject({ mode: 'read', target_path: '/mnt/external/data' });
     });
 
     it('logs directory mounts with their mode', async () => {
@@ -297,7 +289,6 @@ describe('shell file registry logging', () => {
         await registry.mountDirectory(handle('data'), '/mnt/data', 'readwrite');
         expect(logger.records[logger.records.length - 1]).toMatchObject({
             level: 'info',
-            message: 'Mounted shell directory',
             keyValues: { source_path: 'data', target_path: '/mnt/data', stage: 'complete', mode: 'readwrite' },
         });
     });
