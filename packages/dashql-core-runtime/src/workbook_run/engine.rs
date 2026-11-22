@@ -138,8 +138,6 @@ struct Settled {
     cached: BTreeMap<u32, String>,
     /// The names of the new files of the scripts that run
     names: BTreeMap<u32, String>,
-    /// The queries that read the stored results of the scripts that reused them
-    served: BTreeMap<u32, QueryId>,
     /// Why the run stopped while it reused a result, e.g. a cancel
     failure: Option<RunFailure>,
 }
@@ -153,9 +151,6 @@ struct Settling<'a> {
     follows: &'a [BTreeSet<u32>],
     /// May the scripts reuse their stored results?
     reuse: bool,
-    /// The scripts whose stored results a read of the stored results leaves alone: they show a result already or
-    /// their visualization doesn't decode
-    unread: &'a BTreeSet<u32>,
     settled: &'a RefCell<Settled>,
 }
 
@@ -510,23 +505,18 @@ impl<H: RunHost> Run<H> {
     /// script that runs, every other script with a result node writes a new file under a name that the run gives it
     /// now, and a script without one keeps its stored file, e.g. a script that another one inlines. The keys
     /// downstream of a script cover its file.
-    ///
-    /// A read of the stored results (`RunOptions::stored`) runs no script: it reads the stored file of every script
-    /// with a result node, whatever its key, except the scripts in `unread`.
     async fn settle_results(
         self: &Rc<Self>,
         graph: &ExecutionGraphT,
         visualizations: &[Option<ScriptVisualization>],
-        unread: &BTreeSet<u32>,
     ) -> Result<(Vec<Option<ResultKey>>, Settled), RunFailure> {
         let count = self.files.len();
         let statements = planned_statements(graph, &self.files, &self.options.run);
         let follows = script_follows(graph, count);
         // A script of a connection that can't run doesn't run, the scripts that follow it reuse their stored results:
         // the script can't change what they read during the run
-        let stored = self.options.stored;
         let settled = RefCell::new(Settled {
-            runs: self.connections.iter().map(|connection| !stored && self.host.can_run(connection)).collect(),
+            runs: self.connections.iter().map(|connection| self.host.can_run(connection)).collect(),
             ..Settled::default()
         });
         let plan = Settling {
@@ -535,7 +525,6 @@ impl<H: RunHost> Run<H> {
             visualizations,
             follows: &follows,
             reuse: !self.options.refresh && self.host.has_results(),
-            unread,
             settled: &settled,
         };
         let keys = result_keys(graph, self.key_of(), |script, key| self.settle_result(&plan, script, key)).await;
@@ -555,21 +544,6 @@ impl<H: RunHost> Run<H> {
         else {
             return self.keep_stored(script).await;
         };
-        // A read of the stored results reads the file of the script whatever its key and runs nothing
-        if self.options.stored {
-            if plan.unread.contains(&script) {
-                return self.keep_stored(script).await;
-            }
-            let name = match self.reuse_stored(plan, script, result_node, &key).await {
-                Ok(name) => name,
-                Err(failure) => {
-                    plan.settled.borrow_mut().failure = Some(failure);
-                    None
-                }
-            };
-            self.emit(|state| state.completed_scripts += 1);
-            return name;
-        }
         let blocked = plan.follows.get(script as usize).is_some_and(|earlier| {
             let settled = plan.settled.borrow();
             earlier.iter().any(|e| settled.runs.get(*e as usize) == Some(&true))
@@ -601,10 +575,9 @@ impl<H: RunHost> Run<H> {
         let host = self.host.clone();
         let file = self.file(script);
         let retained = host.result_retain(&file).await.ok().flatten();
-        // A file of another key is no result of the script as it is now, the script runs. A read of the stored
-        // results takes it all the same.
+        // A file of another key is no result of the script as it is now, the script runs
         let retained = match retained {
-            Some(retained) if retained.file.key != key.key && !self.options.stored => {
+            Some(retained) if retained.file.key != key.key => {
                 host.result_release(retained.id).await;
                 None
             }
@@ -617,7 +590,7 @@ impl<H: RunHost> Run<H> {
         self.check_cancelled()?;
         let Some(retained) = retained else { return Ok(None) };
         let Some(served) = self
-            .serve_cached(plan.graph, script, result_node, key, &retained.file, plan.statements, plan.visualizations)
+            .serve_cached(plan.graph, script, result_node, &retained.file, plan.statements, plan.visualizations)
             .await?
         else {
             return Ok(None);
@@ -628,11 +601,8 @@ impl<H: RunHost> Run<H> {
                 *run = false;
             }
             settled.cached.insert(script, retained.file.name.clone());
-            settled.served.insert(script, served);
         }
-        if !self.options.stored {
-            self.host.script_event(&file, &ScriptEvent::Cached { key: key.key.clone(), query_id: served });
-        }
+        self.host.script_event(&file, &ScriptEvent::Cached { key: key.key.clone(), query_id: served });
         self.cooperate().await?;
         Ok(Some(retained.file.name))
     }
@@ -806,7 +776,7 @@ impl<H: RunHost> Run<H> {
         self.validate(&graph, true)?;
         self.check_cancelled()?;
         // The keys of the scripts, the stored results that they reuse and the names of the files that they write
-        let (keys, settled) = self.settle_results(&graph, &visualizations, &BTreeSet::new()).await?;
+        let (keys, settled) = self.settle_results(&graph, &visualizations).await?;
         let Settled { cached: cached_files, names, .. } = settled;
 
         // Scripts without statements are done right away, so are the scripts that reused their results
@@ -974,19 +944,21 @@ impl<H: RunHost> Run<H> {
 
     /// Read the stored result of every script that shows no result yet, whatever its key, and run nothing: the workbook
     /// opened. The plan is tolerant, a script that can't be planned, e.g. one that names an unknown script, leaves the
-    /// others alone. The results settle like those of a run whose connections can't run, see `settle_results`.
+    /// others alone. A script reads the file of its result node, one whose visualization doesn't decode reads nothing.
     async fn read_stored(self: &Rc<Self>, graph: &ExecutionGraphT) -> Result<Vec<Option<QueryId>>, RunFailure> {
         let count = self.files.len();
+        let mut outputs = vec![None; count];
         if !self.host.has_results() {
-            return Ok(vec![None; count]);
+            return Ok(outputs);
         }
-        let (visualizations, mut unread) = Self::decoded_visualizations(graph);
-        unread.extend((0..count as u32).filter(|script| self.shows_result(*script)));
-        let reads: BTreeSet<u32> = nodes(graph)
-            .iter()
-            .filter(|node| node.script_result && !unread.contains(&node.script))
-            .map(|node| node.script)
-            .collect();
+        let (visualizations, invalid) = Self::decoded_visualizations(graph);
+        // The result node of every script that reads its file, in feed order
+        let mut reads: BTreeMap<u32, usize> = BTreeMap::new();
+        for (index, node) in nodes(graph).iter().enumerate() {
+            if node.script_result && !invalid.contains(&node.script) && !self.shows_result(node.script) {
+                reads.entry(node.script).or_insert(index);
+            }
+        }
         let total = reads.len();
         self.emit(|state| {
             state.phase = RunPhase::Running;
@@ -994,10 +966,25 @@ impl<H: RunHost> Run<H> {
         });
         self.validate(graph, true)?;
         self.check_cancelled()?;
-        let (_, settled) = self.settle_results(graph, &visualizations, &unread).await?;
-        // A script without a result key has no stored result to read
-        self.emit(|state| state.completed_scripts = total);
-        Ok((0..count as u32).map(|script| settled.served.get(&script).copied()).collect())
+        let statements = planned_statements(graph, &self.files, &self.options.run);
+        for (script, node) in reads {
+            // The file stays pinned until the run released its files
+            let retained = self.host.result_retain(&self.file(script)).await.ok().flatten();
+            if let Some(retained) = &retained {
+                self.kept.borrow_mut().push(retained.id);
+            }
+            self.check_cancelled()?;
+            if let Some(retained) = retained {
+                let served =
+                    self.serve_cached(graph, script, node, &retained.file, &statements, &visualizations).await?;
+                if let Some(output) = outputs.get_mut(script as usize) {
+                    *output = served;
+                }
+                self.cooperate().await?;
+            }
+            self.emit(|state| state.completed_scripts += 1);
+        }
+        Ok(outputs)
     }
 
     /// Does a script show a result already, e.g. of a run before the workbook opened?
@@ -1009,13 +996,11 @@ impl<H: RunHost> Run<H> {
     }
 
     /// Reuse the stored result of a script, the query of the result or none if the file is gone
-    #[allow(clippy::too_many_arguments)]
     async fn serve_cached(
         self: &Rc<Self>,
         graph: &ExecutionGraphT,
         script: u32,
         result_node: usize,
-        key: &ResultKey,
         file: &StoredFile,
         statements: &[PlannedStatement],
         visualizations: &[Option<ScriptVisualization>],
@@ -1025,7 +1010,7 @@ impl<H: RunHost> Run<H> {
         statement.cached = true;
         let Some(script_key) = self.keys.get(script as usize).copied() else { return Ok(None) };
         let connection_id = self.connection_of(script).to_string();
-        let mut details = vec![detail("workbookId", self.workbook_id.clone()), detail("key", key.key.clone())];
+        let mut details = vec![detail("workbookId", self.workbook_id.clone()), detail("key", file.key.clone())];
         details.extend(statement.log_fields());
         let request = StatementRequest {
             connection_id: connection_id.clone(),
@@ -1066,7 +1051,7 @@ impl<H: RunHost> Run<H> {
                         detail("workbookId", self.workbook_id.clone()),
                         detail("query", query_id.to_string()),
                         detail("script", self.file(script)),
-                        detail("key", key.key.clone()),
+                        detail("key", file.key.clone()),
                     ],
                 );
                 return Ok(None);

@@ -183,9 +183,9 @@ the run of the query owns the table that it read, then the query ends as cancell
 Loading a workbook doesn't read its results. Showing it does: the feed page tells the runtime that it shows a
 workbook (`showWorkbook(workbookId)`), and the first time a workbook is shown, the runtime reads the stored
 result of every script that has no result yet, one after the other once the compute database is set up. The read is a
-run of the workbook that runs nothing (`stored` of the run options) and goes the way of every run: it plans the
-workbook and settles the results of the scripts in the order of their references, like a run whose connections can't
-run, except that it takes the stored file of a script whatever its key. Its plan is tolerant (`PlanScope::Tolerant`,
+run of the workbook that runs nothing (`stored` of the run options, `read_stored` of `workbook_run/engine.rs`): it
+plans the workbook and reads, in feed order, the stored file of every script with a result node whatever its key, pinned
+until the read ended. It derives no keys. Its plan is tolerant (`PlanScope::Tolerant`,
 `planner.md`), so a script that can't be planned, e.g. one without a current analysis, is left out and leaves the
 others alone. A script whose plan has an error, e.g. an unknown reference, shows its stored result too. Each read is a
 query of the connection of the script that only reads the file: the card shows the result like the result of a run,
