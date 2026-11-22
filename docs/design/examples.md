@@ -91,13 +91,14 @@ log any more, its reads of the log and its writes ran next to the first queries 
 - **Workload**: `HyperLogWorkload` (`hyper_log_workload.ts`) sends the queries of `sql/` round robin, off, 1 or 5 per
   second, at most 4 at a time. The table `workload_events` (`sql/schema.sql`) holds 200,000 events in the user database
   of the page. The queries are attributed to the connection `hyper_log_demo` by their client context
-  (`connectionClientContext`); `distinct_users.sql` runs like a computation of the app on a pooled connection
-  (`sqlframeClientContext`), and `failing.sql` divides by zero, so the log holds errors too.
-- **Monitor**: `HyperLogMetrics` (`hyper_log_metrics.ts`) extracts the log with a `HyperDBIncrementalExtract` and
-  a `HyperDBLogSource` (`hyperdb_log_extract.ts`) every 5 seconds into a monitoring database, the query ends whose
-  client context names the connection and the resource samples. It backfills the retained log when it opens and reads
-  the offset of the clock of the log with a marker query. The monitoring database lives in an OPFS instance folder of
-  the page, which goes with the page.
+  (`hyperLogClientContext`, kind `user`); `distinct_users.sql` runs like a computation of the app on a pooled
+  connection (kind `sqlframe`), and `failing.sql` divides by zero, so the log holds errors too.
+- **Monitor**: `HyperLogMetrics` (`hyper_log_metrics.ts`) extracts the log of the HyperDB WASM of the page with a
+  `HyperDBIncrementalExtract` and a `HyperDBLogSource` (`hyperdb_log_extract.ts`) every 5 seconds into a monitoring
+  database, the query ends whose client context names the connection and the resource samples. It backfills the
+  retained log when it opens. The log writes the local time of the page, the queries of the extract turn it into
+  milliseconds since the epoch with the time zone offset of the page. The monitoring database lives in an OPFS
+  instance folder of the page, which goes with the page. The page passes the monitor to the dashboard as a prop.
 - **Dashboard**: `HyperLogDashboard` (`hyper_log_dashboard.tsx`) charts the activity, the latencies, the engine and the
   resource samples, and lists the queries of the extract in a data table of the app (`query_table.tsx`). The table
   analyzes its rows as a computation, so the page instantiates the core (`DashQLCoreProvider`) and runs a

@@ -5,8 +5,7 @@ import { getTestHyperDBClient, testDatabasePath } from '../../tests/hyperdb_test
 import { HyperDB, type HyperDBClient, type HyperDBConnection } from '@akohn/dashql/platform/hyperdb/hyperdb_wasm';
 import { HyperDB as HyperDBEngine } from 'hyperdb-wasm';
 import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
-import { HyperLogMetrics, queryEndsQuery, readQueryEnds } from './hyper_log_metrics.js';
-import { connectionClientContext, sqlframeClientContext } from '../../connections/hyper/hyper_client_context.js';
+import { HyperLogMetrics, hyperLogClientContext, queryEndsQuery, readQueryEnds } from './hyper_log_metrics.js';
 import { QueryScope } from './hyper_log_stats.js';
 import { recentQueriesSql, queryShapesSql } from './hyper_log_query_sql.js';
 
@@ -28,13 +27,6 @@ describe('Hyper log query SQL', () => {
             defaultDatabasePath: await testDatabasePath(`dashql-query-sql-${nextDatabase++}.hyper`),
             terminateEngine: false,
         });
-        // Poll explicitly, the timer would race with the assertions
-        logMetrics = new HyperLogMetrics({
-            logger: new TestLogger(),
-            pollIntervalMs: 3_600_000,
-            sink: async () => database!,
-            prepareDatabase: async connectionId => await testDatabasePath(`dashql-query-sql-monitoring-${connectionId}.hyper`),
-        });
     }, 60_000);
 
     afterEach(async () => {
@@ -54,7 +46,7 @@ describe('Hyper log query SQL', () => {
     async function connect(connectionId: string | null = null): Promise<HyperDBConnection> {
         const connection = connectionId == null
             ? await database!.connect()
-            : await database!.connect({ defaultDatabase: 'hyper', clientContext: connectionClientContext(connectionId) });
+            : await database!.connect({ defaultDatabase: 'hyper', clientContext: hyperLogClientContext(connectionId, 'user') });
         connections.push(connection);
         return connection;
     }
@@ -73,23 +65,30 @@ describe('Hyper log query SQL', () => {
     /// The tests share the log of one Hyper, the connection id is unique.
     async function runQueries(): Promise<{ queryEnds: string; read: (sql: string) => Promise<arrow.Table> }> {
         const connectionId = crypto.randomUUID();
-        logMetrics!.watch({ database: database!, sessions: true }, connectionId);
-        expect(await logMetrics!.opened(connectionId)).toBe(true);
+        // Poll explicitly, the timer would race with the assertions
+        logMetrics = new HyperLogMetrics({
+            logger: new TestLogger(),
+            connectionId,
+            source: database!,
+            sink: database!,
+            pollIntervalMs: 3_600_000,
+            prepareDatabase: async () => await testDatabasePath(`dashql-query-sql-monitoring-${connectionId}.hyper`),
+        });
+        expect(await logMetrics!.opened()).toBe(true);
         const connection = await connect(connectionId);
         const other = await connect(crypto.randomUUID());
         await connection.query('SELECT 1 AS v WHERE 2 > 1');
         await connection.query('SELECT 1 AS v WHERE 3 > 1');
         await expect(connection.query('SELECT * FROM query_sql_missing_table')).rejects.toThrow();
-        const compute = await database!.connect({ pooled: true, clientContext: sqlframeClientContext(connectionId) });
+        const compute = await database!.connect({ pooled: true, clientContext: hyperLogClientContext(connectionId, 'sqlframe') });
         await compute.query('SELECT 3 AS sqlframe_query');
         await compute.close();
         await other.query('SELECT 4 AS other_query');
-        const state = logMetrics!.state.current.get(connectionId)!;
-        const queryEnds = queryEndsQuery(state.queryEnds!, state.clockOffsetMs!);
-        const read = (sql: string) => logMetrics!.query(connectionId, sql);
+        const queryEnds = queryEndsQuery(logMetrics!.state.current.queryEnds!);
+        const read = (sql: string) => logMetrics!.query(sql);
         // One poll is not enough: the log may not hold the end of a query yet right after its result
         await vi.waitFor(async () => {
-            await logMetrics!.poll(connectionId);
+            await logMetrics!.poll();
             const ended = readQueryEnds(await read(queryEnds));
             expect(ended.map(query => query.query)).toEqual(expect.arrayContaining([
                 'SELECT 1 AS v WHERE 2 > 1',

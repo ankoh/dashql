@@ -15,7 +15,7 @@ import {
     hyperLogQueryEndsTable,
     isHyperLogFlushTimeout,
 } from './hyperdb_log_extract.js';
-import type { DashQLClientContext } from '../../connections/hyper/hyper_client_context.js';
+import type { EmbeddedClientContext } from '@akohn/dashql/platform/embedded_database';
 import type { Logger } from '@akohn/dashql/platform/logger/logger';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { Store } from '../../utils/store.js';
@@ -27,7 +27,7 @@ const LOG_CTX = 'hyper_log_metrics';
 /// A poll reads all events since the last one, e.g. the resource usage that the embedded Hyper logs every second.
 /// Every poll is about 15 queries of the monitor itself, which the extract of an embedded Hyper keeps too.
 const DEFAULT_POLL_INTERVAL_MS = 5_000;
-/// The alias of the monitoring database of a connection on the connections of its monitor
+/// The alias of the monitoring database on the connections of the monitor
 const MONITORING_ALIAS = 'monitoring';
 /// The attempts to open an extract while reading the log times out, e.g. on a Hyper under load, and the pause between them
 const OPEN_ATTEMPTS = 5;
@@ -72,22 +72,21 @@ export interface HyperQueryEnd {
     rows: number | null;
     /// The rows that the compilation and the execution processed
     processedRows: number;
-    /// The kind of the query from its client context, see DashQLClientContext
+    /// The kind of the query from its client context, see HyperLogQueryType
     queryType: string | null;
     /// Did the app run the query and not the user? E.g. a computation (SQLFrame) on a pooled compute connection, or a
     /// read of the Hyper log.
     sentByApp: boolean;
 }
 
-/// The client context that attributes the queries of the overview of a connection to the connection
-export function overviewClientContext(connectionId: string): DashQLClientContext & Record<string, unknown> {
-    return { dashql: { connectionId, queryType: 'overview' } };
-}
+/// The kind of a query in its client context: of the user on the sessions of a connection, of a computation on a pooled
+/// connection (`sqlframe`, like the core attributes them), of the reader of the dashboard (`overview`) or of the monitor
+/// that reads the Hyper log and writes the extract (`monitor`)
+export type HyperLogQueryType = 'user' | 'sqlframe' | 'overview' | 'monitor';
 
-/// The client context of the connections of the log monitor of a connection, they read the Hyper log and write the
-/// extract
-function monitorClientContext(connectionId: string): DashQLClientContext & Record<string, unknown> {
-    return { dashql: { connectionId, queryType: 'monitor' } };
+/// The client context that attributes a query to a connection, which Hyper logs as ctx.client
+export function hyperLogClientContext(connectionId: string, queryType: HyperLogQueryType): EmbeddedClientContext {
+    return { dashql: { connectionId, queryType } };
 }
 
 /// A sample of the resource usage of a Hyper process, from a row of the resource metrics of the extract.
@@ -126,8 +125,8 @@ const RESOURCE_METRICS_TABLE: HyperDBExtractTable = {
     maxAgeMs: RETENTION_MS,
 };
 
-/// The events of the extract of a connection: the query-end events that its client context names, and the
-/// resource-metrics events of the Hyper process
+/// The events of the extract: the query-end events whose client context names the connection, and the resource-metrics
+/// events of the Hyper process
 function metricsSourceQuery(connectionId: string): string {
     return `
         SELECT * FROM log
@@ -145,39 +144,33 @@ export interface ExtractRowRange {
 }
 
 /// The time of a log event in milliseconds since the epoch.
-/// The log writes the wall-clock time of the Hyper host as timestamp without time zone, see HyperLogState.clockOffsetMs.
-function epochMs(clockOffsetMs: number): string {
-    return `(extract(epoch from ts) * 1000 - ${clockOffsetMs})::double precision`;
-}
-
-/// The time of a log event in the time zone of the app, as timestamp without time zone
-function localTimestamp(clockOffsetMs: number): string {
-    const shiftMs = -new Date().getTimezoneOffset() * 60_000 - clockOffsetMs;
-    return shiftMs === 0 ? 'ts' : `ts + interval '${shiftMs / 1000} seconds'`;
+/// The embedded Hyper logs the wall-clock time of the page as timestamp without time zone, in the time zone of the app.
+function epochMs(): string {
+    return `(extract(epoch from ts) * 1000 + ${new Date().getTimezoneOffset() * 60_000})::double precision`;
 }
 
 /// The predicate of the rows of a range
-function rangePredicate(clockOffsetMs: number, range: ExtractRowRange): string {
-    return `${HYPER_EXTRACT_ROW_COLUMN} > ${range.afterRow} AND ${epochMs(clockOffsetMs)} >= ${range.since}`;
+function rangePredicate(range: ExtractRowRange): string {
+    return `${HYPER_EXTRACT_ROW_COLUMN} > ${range.afterRow} AND ${epochMs()} >= ${range.since}`;
 }
 
-/// The finished queries in the query ends of the extract of a connection, with their sent_by_app, epoch_ms (the end in
-/// milliseconds since the epoch) and local_ts (the end in the time zone of the app)
-export function queryEndsQuery(queryEnds: string, clockOffsetMs: number, range?: ExtractRowRange): string {
+/// The finished queries in the query ends of the extract, with their sent_by_app, epoch_ms (the end in milliseconds
+/// since the epoch) and local_ts (the end in the time zone of the app)
+export function queryEndsQuery(queryEnds: string, range?: ExtractRowRange): string {
     return `
         SELECT
             *,
-            ${epochMs(clockOffsetMs)} AS epoch_ms,
-            ${localTimestamp(clockOffsetMs)} AS local_ts,
+            ${epochMs()} AS epoch_ms,
+            ts AS local_ts,
             client_query_type IS DISTINCT FROM 'user' AS sent_by_app
         FROM ${queryEnds}
-        ${range == null ? '' : `WHERE ${rangePredicate(clockOffsetMs, range)}`}
+        ${range == null ? '' : `WHERE ${rangePredicate(range)}`}
     `;
 }
 
 /// The resource samples in the resource metrics of the extract, with their epoch_ms
-export function resourceSamplesQuery(resourceMetrics: string, clockOffsetMs: number, range: ExtractRowRange): string {
-    return `SELECT *, ${epochMs(clockOffsetMs)} AS epoch_ms FROM ${resourceMetrics} WHERE ${rangePredicate(clockOffsetMs, range)}`;
+export function resourceSamplesQuery(resourceMetrics: string, range: ExtractRowRange): string {
+    return `SELECT *, ${epochMs()} AS epoch_ms FROM ${resourceMetrics} WHERE ${rangePredicate(range)}`;
 }
 
 function nullableNumber(value: unknown): number | null {
@@ -244,10 +237,8 @@ export function readResourceSamples(table: arrow.Table): HyperResourceSample[] {
     return samples.sort((l, r) => l.sampledAt - r.sampledAt);
 }
 
-/// The status of the monitor of the Hyper log of a connection
+/// The status of the monitor of the Hyper log
 export enum HyperLogStatus {
-    /// The log of the connection is not monitored, e.g. before the setup of the connection
-    Closed = 'closed',
     /// The monitor opens the extract
     Opening = 'opening',
     /// The extract is open and polled
@@ -256,7 +247,7 @@ export enum HyperLogStatus {
     Unavailable = 'unavailable',
 }
 
-/// Why the Hyper log of a connection cannot be read
+/// Why the Hyper log cannot be read
 export interface HyperLogError {
     /// Does the Hyper refuse to read its log, e.g. without experimental_hyper_introspection_functions?
     /// Otherwise reading or extracting the log failed, e.g. after the Hyper was terminated.
@@ -265,7 +256,7 @@ export interface HyperLogError {
     message: string;
 }
 
-/// The state of the extract of the Hyper log of a connection
+/// The state of the extract of the Hyper log
 export interface HyperLogState {
     /// The status of the monitor
     status: HyperLogStatus;
@@ -275,9 +266,6 @@ export interface HyperLogState {
     queryEnds: string | null;
     /// The qualified table of the resource samples on the reader, see resourceSamplesQuery()
     resourceMetrics: string | null;
-    /// The offset of the wall clock of the log from UTC in milliseconds, e.g. 7,200,000 for a Hyper in UTC+2.
-    /// The log writes the wall-clock time of the Hyper host, which is not the time zone of the app for a remote Hyper.
-    clockOffsetMs: number | null;
     /// The transfers that appended rows to the extract, it changes with every new row
     transfers: number;
     /// Does the Hyper log its resource usage? Null until a poll after the open tells, false while no transfer found a
@@ -285,123 +273,94 @@ export interface HyperLogState {
     resourceUsageLogged: boolean | null;
 }
 
-/// The state of a connection without an open extract
-export const CLOSED_LOG_STATE: HyperLogState = {
-    status: HyperLogStatus.Closed,
-    error: null,
-    queryEnds: null,
-    resourceMetrics: null,
-    clockOffsetMs: null,
-    transfers: 0,
-    resourceUsageLogged: null,
-};
-
-/// The open extract of a connection and its reader
+/// The open extract and its reader
 interface OpenHyperLog {
     /// The extract
     extract: HyperDBIncrementalExtract;
-    /// The connection that reads the extract for the overview, with the monitoring database attached
+    /// The connection that reads the extract for the dashboard, with the monitoring database attached
     reader: EmbeddedConnection;
-}
-
-/// The Hyper whose log is monitored
-export interface HyperLogOrigin {
-    /// The Hyper, e.g. the embedded Hyper or a channel to a remote Hyper
-    database: HyperDBSourceDatabase;
-    /// Do the connections to the Hyper keep their sessions? A poll then reads the log scope of its session, otherwise
-    /// the whole retained log, see HyperDBLogSource.
-    sessions: boolean;
-}
-
-/// The monitor of the log of a connection
-interface HyperLogMonitor {
-    /// The Hyper whose log is read
-    origin: HyperLogOrigin;
-    /// Opens the extract and its reader, resolves to null when the log cannot be read
-    log: Promise<OpenHyperLog | null>;
-    /// The last read of the reader, the reads run one after another
-    reading: Promise<unknown>;
 }
 
 /// Options of the Hyper log metrics.
 export interface HyperLogMetricsOptions {
     /// The logger
     logger: Logger;
+    /// The connection whose queries the extract holds, by their client context, see hyperLogClientContext()
+    connectionId: string;
+    /// The Hyper whose log is read, its connections keep their sessions
+    source: HyperDBSourceDatabase;
+    /// The embedded Hyper that holds the monitoring database, its compute database stages the transfers
+    sink: EmbeddedComputeDatabase;
+    /// Prepare the monitoring database, e.g. create its folder, and return its path
+    prepareDatabase: () => Promise<string>;
     /// The polling interval in milliseconds
     pollIntervalMs?: number;
-    /// The pause between the attempts to open an extract while reading the log times out, in milliseconds
+    /// The pause between the attempts to open the extract while reading the log times out, in milliseconds
     openRetryMs?: number;
-    /// Prepare the monitoring database of a connection, e.g. create the folder of the connection, and return its path
-    prepareDatabase: (connectionId: string) => Promise<string>;
-    /// The embedded Hyper that holds the monitoring databases, its compute database stages the transfers
-    sink: () => Promise<EmbeddedComputeDatabase>;
 }
 
-/// The finished queries of the connections to a Hyper and the resource samples of the Hyper, extracted from its log
-/// into the monitoring database of every connection, every poll interval.
+/// The finished queries of a connection to the embedded Hyper and the resource samples of the Hyper, extracted from its
+/// log into a monitoring database every poll interval. The monitor opens the extract when it is created.
 ///
-/// The extract of a connection holds the queries whose client context names the connection, see DashQLClientContext:
-/// the queries of the user and the app, and the reads and writes of its own log monitor. Its reader reads the
-/// extract with the client context of the overview. The resource samples describe the whole Hyper process, which the
-/// connections to the same Hyper share.
-///
-/// The monitoring databases live in the embedded Hyper, also for a remote Hyper.
+/// The extract holds the queries whose client context names the connection: the queries of the user and the app, and
+/// the reads and writes of the monitor itself. Its reader reads the extract with the client context of the overview.
 ///
 /// Limits:
-/// - The connections to the same Hyper monitor its log one by one, each reads the resource samples again.
-/// - A Hyper without sessions, e.g. over gRPC or HTTP, is read from the watermark with every poll, which reads its whole
-///   retained log.
-/// - The log files of earlier Hyper processes cannot be backfilled, the extract misses the queries while no app
-///   window monitored the connection.
+/// - The log files of earlier Hyper processes cannot be backfilled.
 /// - Resource samples are only logged with log_resource_usage_interval set.
 /// - A Hyper that does not let the app read its log, e.g. without experimental_hyper_introspection_functions, leaves the
-///   monitor unavailable. The connection itself works as before, the monitor does not retry.
+///   monitor unavailable. The monitor does not retry.
 /// - A read of the log that times out on a Hyper under load is retried, see isHyperLogFlushTimeout(). The extract then
 ///   falls behind until the reads succeed again, also without a notice in the state.
 export class HyperLogMetrics {
-    /// The states of the extracts by connection
-    readonly state = new Store<ReadonlyMap<string, HyperLogState>>(new Map());
-    /// The monitors by connection
-    private readonly monitors = new Map<string, HyperLogMonitor>();
+    /// The state of the extract
+    readonly state = new Store<HyperLogState>({
+        status: HyperLogStatus.Opening,
+        error: null,
+        queryEnds: null,
+        resourceMetrics: null,
+        transfers: 0,
+        resourceUsageLogged: null,
+    });
+    /// Opens the extract and its reader, resolves to null when the log cannot be read or the monitor stopped
+    private readonly log: Promise<OpenHyperLog | null>;
+    /// The last read of the reader, the reads run one after another
+    private reading: Promise<unknown> = Promise.resolve();
+    /// Was the monitor stopped, e.g. after an error?
+    private stopped = false;
 
-    constructor(private readonly options: HyperLogMetricsOptions) {}
-
-    /// Extract the log of the Hyper of a connection, e.g. of the embedded Hyper. Another Hyper replaces the watched
-    /// one, e.g. after the hand-over of the app to another tab. The backfill of the extract reads the retained log.
-    watch(origin: HyperLogOrigin, connectionId: string): void {
-        if (this.monitors.get(connectionId)?.origin.database === origin.database) return;
-        void this.forget(connectionId);
-        const monitor: HyperLogMonitor = { origin, log: Promise.resolve(null), reading: Promise.resolve() };
-        this.monitors.set(connectionId, monitor);
-        this.updateState(connectionId, { ...CLOSED_LOG_STATE, status: HyperLogStatus.Opening });
-        monitor.log = this.open(connectionId, monitor);
+    constructor(private readonly options: HyperLogMetricsOptions) {
+        this.log = this.open();
     }
 
-    /// Wait until the extract of a connection is open, false when it cannot be read
-    async opened(connectionId: string): Promise<boolean> {
-        const monitor = this.monitors.get(connectionId);
-        return monitor != null && (await monitor.log) != null;
+    /// The connection whose queries the extract holds
+    get connectionId(): string {
+        return this.options.connectionId;
     }
 
-    /// Read the extract of a connection on its reader, e.g. with queryEndsQuery(). The reads run one after another.
-    async query(connectionId: string, sql: string): Promise<arrow.Table> {
-        const monitor = this.monitors.get(connectionId);
-        if (monitor == null) throw new Error(`the Hyper log of the connection ${connectionId} is not monitored`);
-        const read = monitor.reading.catch(() => {}).then(async () => {
-            const log = await monitor.log;
-            if (log == null) throw new Error(`the Hyper log extract of the connection ${connectionId} cannot be read`);
+    /// Wait until the extract is open, false when it cannot be read
+    async opened(): Promise<boolean> {
+        return (await this.log) != null;
+    }
+
+    /// Read the extract on its reader, e.g. with queryEndsQuery(). The reads run one after another.
+    async query(sql: string): Promise<arrow.Table> {
+        if (this.stopped) throw new Error('the monitor of the Hyper log is stopped');
+        const read = this.reading.catch(() => {}).then(async () => {
+            const log = await this.log;
+            if (log == null) throw new Error('the Hyper log extract cannot be read');
             return await log.reader.query(sql);
         });
-        monitor.reading = read;
+        this.reading = read;
         return await read;
     }
 
     /// Transfer the events that were logged since the last poll, e.g. in tests that do not wait for the interval
-    async poll(connectionId: string): Promise<void> {
-        const log = await this.monitors.get(connectionId)?.log;
-        if (log == null) return;
+    async poll(): Promise<void> {
+        const log = await this.log;
+        if (log == null || this.stopped) return;
         try {
-            this.transferred(connectionId, await log.extract.poll());
+            this.transferred(await log.extract.poll());
         } catch (error) {
             // The next poll reads the same events
             if (!isHyperLogFlushTimeout(error)) throw error;
@@ -409,47 +368,27 @@ export class HyperLogMetrics {
         }
     }
 
-    /// Stop the monitors of all connections except the given ones, e.g. of deleted connections.
-    /// A stopped monitor closes the monitoring database of its connection.
-    retain(connectionIds: ReadonlySet<string>): void {
-        for (const connectionId of [...this.monitors.keys()]) {
-            if (!connectionIds.has(connectionId)) void this.forget(connectionId);
-        }
-        // The unavailable monitors were stopped already, but kept their state
-        for (const connectionId of [...this.state.current.keys()]) {
-            if (!connectionIds.has(connectionId)) this.updateState(connectionId, null);
-        }
-    }
-
-    /// Stop the monitor of a connection and close its monitoring database
-    async forget(connectionId: string): Promise<void> {
-        const monitor = this.monitors.get(connectionId);
-        if (monitor == null) return;
-        this.monitors.delete(connectionId);
-        this.updateState(connectionId, null);
-        await monitor.reading.catch(() => {});
-        const log = await monitor.log;
+    /// Stop the monitor and close the monitoring database
+    async stop(): Promise<void> {
+        this.stopped = true;
+        await this.reading.catch(() => {});
+        const log = await this.log;
         await log?.reader.close().catch(() => {});
         await log?.extract.stop().catch(() => {});
     }
 
-    /// Stop the monitors of all connections
-    async stop(): Promise<void> {
-        await Promise.all([...this.monitors.keys()].map(connectionId => this.forget(connectionId)));
-    }
-
-    /// Open the extract of a connection and its reader, and start polling.
-    /// A failure leaves the connection unavailable with the error, e.g. for a Hyper that does not let the app read its log.
+    /// Open the extract and its reader, and start polling.
+    /// A failure leaves the monitor unavailable with the error, e.g. for a Hyper that does not let the app read its log.
     /// A read of the log that times out is tried again first.
-    private async open(connectionId: string, monitor: HyperLogMonitor): Promise<OpenHyperLog | null> {
+    private async open(): Promise<OpenHyperLog | null> {
         for (let attempt = 1; ; ++attempt) {
             try {
-                return await this.openOnce(connectionId, monitor);
+                return await this.openOnce();
             } catch (error) {
                 if (attempt < OPEN_ATTEMPTS && isHyperLogFlushTimeout(error)) {
-                    this.options.logger.info('Opening the Hyper log extract timed out', { connectionId, attempt: String(attempt) }, LOG_CTX);
+                    this.options.logger.info('Opening the Hyper log extract timed out', { attempt: String(attempt) }, LOG_CTX);
                     await new Promise(resolve => setTimeout(resolve, this.options.openRetryMs ?? OPEN_RETRY_MS));
-                    if (this.monitors.get(connectionId) !== monitor) return null;
+                    if (this.stopped) return null;
                     continue;
                 }
                 if (error instanceof HyperLogUnreadableError) {
@@ -457,62 +396,48 @@ export class HyperLogMetrics {
                 } else {
                     this.options.logger.warn('Opening the Hyper log extract failed', { error: stringifyError(error) }, LOG_CTX);
                 }
-                if (this.monitors.get(connectionId) === monitor) this.fail(connectionId, error);
+                this.fail(error);
                 return null;
             }
         }
     }
 
-    /// Open the extract of a connection and its reader, and start polling. A failure closes them again and throws.
-    private async openOnce(connectionId: string, monitor: HyperLogMonitor): Promise<OpenHyperLog | null> {
-        const { origin } = monitor;
-        const source = new HyperDBLogSource(metricsSourceQuery(connectionId), origin.sessions);
+    /// Open the extract and its reader, and start polling. A failure closes them again and throws.
+    private async openOnce(): Promise<OpenHyperLog | null> {
+        const { connectionId, logger, sink } = this.options;
         let extract: HyperDBIncrementalExtract | null = null;
         let reader: EmbeddedConnection | null = null;
-        let clockOffsetMs: number;
         // The steps of the open, in the debug log
-        const logger = this.options.logger;
         let stepStart = performance.now();
         const step = (name: string) => {
             const now = performance.now();
-            logger.debug('Opening the Hyper log extract', { connectionId, step: name, durationMs: (now - stepStart).toFixed(1) }, LOG_CTX);
+            logger.debug('Opening the Hyper log extract', { step: name, durationMs: (now - stepStart).toFixed(1) }, LOG_CTX);
             stepStart = now;
         };
+        const path = await this.options.prepareDatabase();
+        step('prepared the monitoring database');
         try {
-            const path = await this.options.prepareDatabase(connectionId);
-            step('prepared the monitoring database');
-            const sink = await this.options.sink();
-            step('set up the embedded Hyper');
             extract = await HyperDBIncrementalExtract.open({
-                sourceDatabase: origin.database,
-                source,
+                sourceDatabase: this.options.source,
+                source: new HyperDBLogSource(metricsSourceQuery(connectionId)),
                 sink,
                 databasePath: path,
                 databaseAlias: MONITORING_ALIAS,
                 tables: [QUERY_ENDS_TABLE, RESOURCE_METRICS_TABLE],
-                clientContext: monitorClientContext(connectionId),
+                clientContext: hyperLogClientContext(connectionId, 'monitor'),
                 intervalMs: this.options.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS,
-                onTransfer: transfer => this.transferred(connectionId, transfer),
-                onRebuild: reason => this.options.logger.info('Rebuilding the extract of the Hyper log', { connectionId, reason }, LOG_CTX),
+                onTransfer: transfer => this.transferred(transfer),
+                onRebuild: reason => logger.info('Rebuilding the extract of the Hyper log', { reason }, LOG_CTX),
                 logger,
                 onError: error => {
-                    // A Hyper that was terminated, e.g. by a hand-over to another tab, fails every poll.
-                    // Setting up the connection again starts a new monitor.
-                    this.options.logger.warn('Polling the Hyper log failed', { error: stringifyError(error) }, LOG_CTX);
+                    // A Hyper that was terminated fails every poll
+                    logger.warn('Polling the Hyper log failed', { error: stringifyError(error) }, LOG_CTX);
                     // The next poll reads the events of a read that timed out
-                    if (isHyperLogFlushTimeout(error)) return;
-                    if (this.monitors.get(connectionId) === monitor) this.fail(connectionId, error);
+                    if (!isHyperLogFlushTimeout(error)) this.fail(error);
                 },
             });
             step('opened the extract');
-            const clock = await origin.database.connect({ clientContext: monitorClientContext(connectionId) });
-            try {
-                clockOffsetMs = await source.readClockOffset(clock);
-            } finally {
-                await clock.close().catch(() => {});
-            }
-            step('read the clock offset of the log');
-            reader = await sink.connect({ clientContext: overviewClientContext(connectionId) });
+            reader = await sink.connect({ clientContext: hyperLogClientContext(connectionId, 'overview') });
             await reader.execute(`ATTACH DATABASE ${quoteIdentifier(path)} AS ${quoteIdentifier(MONITORING_ALIAS)}`);
             step('attached the reader');
         } catch (error) {
@@ -520,17 +445,16 @@ export class HyperLogMetrics {
             await extract?.stop().catch(() => {});
             throw error;
         }
-        if (this.monitors.get(connectionId) !== monitor) {
+        if (this.stopped) {
             await reader.close().catch(() => {});
             await extract.stop().catch(() => {});
             return null;
         }
-        this.updateState(connectionId, {
+        this.state.update({
             status: HyperLogStatus.Open,
             error: null,
             queryEnds: extract.tableName(QUERY_ENDS_TABLE.name),
             resourceMetrics: extract.tableName(RESOURCE_METRICS_TABLE.name),
-            clockOffsetMs,
             transfers: 1,
             // The backfill read the retained log, a Hyper that just started may not have logged a sample yet
             resourceUsageLogged: (extract.backfill.tables[RESOURCE_METRICS_TABLE.name] ?? 0) > 0 ? true : null,
@@ -539,39 +463,33 @@ export class HyperLogMetrics {
         return { extract, reader };
     }
 
-    /// Stop the monitor of a connection after an error, its state keeps the error until the connection is watched again
-    private fail(connectionId: string, error: unknown): void {
-        void this.forget(connectionId);
-        this.updateState(connectionId, {
-            ...CLOSED_LOG_STATE,
+    /// Stop the monitor after an error, its state keeps the error
+    private fail(error: unknown): void {
+        if (this.stopped) return;
+        void this.stop();
+        this.state.update({
             status: HyperLogStatus.Unavailable,
             error: {
                 unreadable: error instanceof HyperLogUnreadableError,
                 message: error instanceof Error ? error.message : String(error),
             },
+            queryEnds: null,
+            resourceMetrics: null,
+            transfers: 0,
+            resourceUsageLogged: null,
         });
     }
 
-    private transferred(connectionId: string, transfer: HyperDBExtractTransfer): void {
-        const state = this.state.current.get(connectionId);
-        if (state == null || state.status !== HyperLogStatus.Open) return;
+    private transferred(transfer: HyperDBExtractTransfer): void {
+        const state = this.state.current;
+        if (state.status !== HyperLogStatus.Open) return;
         // A Hyper that logs its resource usage logs a sample every interval, a poll without one marks it as not logged
         const resourceUsageLogged = state.resourceUsageLogged === true || (transfer.tables[RESOURCE_METRICS_TABLE.name] ?? 0) > 0;
         if (transfer.appended === 0 && resourceUsageLogged === state.resourceUsageLogged) return;
-        this.updateState(connectionId, {
+        this.state.update({
             ...state,
             transfers: state.transfers + (transfer.appended === 0 ? 0 : 1),
             resourceUsageLogged,
-        });
-    }
-
-    /// Replace the state of a connection, null removes it
-    private updateState(connectionId: string, state: HyperLogState | null): void {
-        this.state.update(states => {
-            const next = new Map(states);
-            if (state == null) next.delete(connectionId);
-            else next.set(connectionId, state);
-            return next;
         });
     }
 }

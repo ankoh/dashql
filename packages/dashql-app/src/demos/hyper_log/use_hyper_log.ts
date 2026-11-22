@@ -3,8 +3,7 @@ import * as React from 'react';
 import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { useLogger } from '../../host/logger_provider.js';
 import {
-    CLOSED_LOG_STATE,
-    HyperLogMetrics,
+    type HyperLogMetrics,
     lastExtractRow,
     queryEndsQuery,
     readQueryEnds,
@@ -17,41 +16,15 @@ import {
 
 const LOG_CTX = 'hyper_log_metrics';
 
-const LOG_METRICS_CTX = React.createContext<HyperLogMetrics | null>(null);
-
-/// The time that the rows of a connection reach back, the largest window of the connection metrics
+/// The time that the rows reach back, the largest window of the dashboard
 const RETAINED_MS = 60 * 60_000;
 
-interface Props {
-    /// The metrics to provide, the page stops them when it unmounts
-    metrics: HyperLogMetrics;
-    /// The children
-    children: React.ReactElement;
+/// The state of the extract of the Hyper log, it changes with every transfer of new rows
+export function useHyperLogState(metrics: HyperLogMetrics): HyperLogState {
+    return React.useSyncExternalStore(metrics.state.subscribe, metrics.state.get);
 }
 
-/// Provides the extracts of the Hyper logs that a page monitors, e.g. the Hyper log demo
-export const HyperLogMetricsProvider: React.FC<Props> = (props: Props) => {
-    const logMetrics = props.metrics;
-    React.useEffect(() => () => { void logMetrics.stop(); }, [logMetrics]);
-    return <LOG_METRICS_CTX.Provider value={logMetrics}>{props.children}</LOG_METRICS_CTX.Provider>;
-};
-
-/// The Hyper log metrics, null outside of a HyperLogMetricsProvider
-export function useHyperLogMetrics(): HyperLogMetrics | null {
-    return React.useContext(LOG_METRICS_CTX);
-}
-
-const NO_STATES: ReadonlyMap<string, HyperLogState> = new Map();
-const NO_SUBSCRIPTION = () => () => {};
-
-/// The state of the extract of the Hyper log of a connection, it changes with every transfer of new rows
-export function useHyperLogState(connectionId: string): HyperLogState {
-    const logMetrics = useHyperLogMetrics();
-    const states = React.useSyncExternalStore(logMetrics?.state.subscribe ?? NO_SUBSCRIPTION, () => logMetrics?.state.current ?? NO_STATES);
-    return states.get(connectionId) ?? CLOSED_LOG_STATE;
-}
-
-/// The rows of a connection in the extract of the Hyper log
+/// The rows of the extract of the Hyper log
 export interface HyperLogRows {
     /// The finished queries of the connection, ordered by their end, see queryEndsQuery()
     queries: HyperQueryEnd[];
@@ -73,17 +46,16 @@ function appendRows<T>(rows: T[], added: T[], time: (row: T) => number, since: n
     return first < 0 ? [] : all.slice(first);
 }
 
-/// The rows of a connection of the last hour, read from its extract with the reader of its monitor.
+/// The rows of the last hour, read from the extract with the reader of the monitor.
 /// Every transfer of the extract reads the rows after the last read row and appends them.
-export function useHyperLogRows(connectionId: string): HyperLogRows {
+export function useHyperLogRows(metrics: HyperLogMetrics): HyperLogRows {
     const logger = useLogger();
-    const logMetrics = useHyperLogMetrics();
-    const state = useHyperLogState(connectionId);
+    const state = useHyperLogState(metrics);
     const [rows, setRows] = React.useState<HyperLogRows>(NO_ROWS);
     const reader = React.useRef({
-        /// The connection of the read rows
-        connectionId: null as string | null,
-        /// Changes with the connection, the reads of an earlier generation are dropped
+        /// The monitor of the read rows
+        metrics: null as HyperLogMetrics | null,
+        /// Changes with the monitor, the reads of an earlier generation are dropped
         generation: 0,
         /// The last read row of the query ends and the resource metrics, the row numbers of an extract never repeat
         queryEndsRow: 0,
@@ -95,12 +67,12 @@ export function useHyperLogRows(connectionId: string): HyperLogRows {
     });
 
     React.useEffect(() => {
-        const { queryEnds, resourceMetrics, clockOffsetMs } = state;
-        if (logMetrics == null || queryEnds == null || resourceMetrics == null || clockOffsetMs == null) return;
+        const { queryEnds, resourceMetrics } = state;
+        if (queryEnds == null || resourceMetrics == null) return;
         const current = reader.current;
-        // Start over for another connection
-        if (current.connectionId !== connectionId) {
-            current.connectionId = connectionId;
+        // Start over for another monitor
+        if (current.metrics !== metrics) {
+            current.metrics = metrics;
             current.generation += 1;
             current.queryEndsRow = 0;
             current.resourceMetricsRow = 0;
@@ -115,8 +87,8 @@ export function useHyperLogRows(connectionId: string): HyperLogRows {
             if (current.generation !== generation) return;
             current.queued = false;
             const since = Date.now() - RETAINED_MS;
-            const queryTable = await logMetrics.query(connectionId, queryEndsQuery(queryEnds, clockOffsetMs, { afterRow: current.queryEndsRow, since }));
-            const sampleTable = await logMetrics.query(connectionId, resourceSamplesQuery(resourceMetrics, clockOffsetMs, { afterRow: current.resourceMetricsRow, since }));
+            const queryTable = await metrics.query(queryEndsQuery(queryEnds, { afterRow: current.queryEndsRow, since }));
+            const sampleTable = await metrics.query(resourceSamplesQuery(resourceMetrics, { afterRow: current.resourceMetricsRow, since }));
             if (current.generation !== generation) return;
             current.queryEndsRow = Math.max(current.queryEndsRow, lastExtractRow(queryTable));
             current.resourceMetricsRow = Math.max(current.resourceMetricsRow, lastExtractRow(sampleTable));
@@ -129,6 +101,6 @@ export function useHyperLogRows(connectionId: string): HyperLogRows {
         }).catch(error => {
             logger.warn('Reading the Hyper log extract failed', { error: stringifyError(error) }, LOG_CTX);
         });
-    }, [state, connectionId, logMetrics, logger]);
+    }, [state, metrics, logger]);
     return rows;
 }

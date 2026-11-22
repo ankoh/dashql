@@ -11,7 +11,6 @@ import { StandaloneRuntime } from '../../host/standalone_runtime.js';
 import { useDemoDataSource, type DemoDataSource } from '../shared/data_source.js';
 import { HyperLogDashboard } from './hyper_log_dashboard.js';
 import { HyperLogMetrics } from './hyper_log_metrics.js';
-import { HyperLogMetricsProvider } from './hyper_log_metrics_provider.js';
 import { createWorkloadTable, DEMO_CONNECTION_ID, HyperLogWorkload, type WorkloadCounts } from './hyper_log_workload.js';
 import * as styles from './hyper_log_page.module.css';
 
@@ -31,13 +30,14 @@ function useHyperLogMonitor(source: DemoDataSource | null): HyperLogMetrics | nu
         let instance: Promise<HyperDBOPFSInstance> | null = null;
         const monitor = new HyperLogMetrics({
             logger,
-            sink: async () => source.embedded,
+            connectionId: DEMO_CONNECTION_ID,
+            source: source.database,
+            sink: source.embedded,
             prepareDatabase: async () => {
                 instance ??= createHyperDBOPFSInstance();
                 return `${(await instance).directoryPath}/monitoring.hyper`;
             },
         });
-        monitor.watch({ database: source.database, sessions: true }, DEMO_CONNECTION_ID);
         setMetrics(monitor);
         return () => {
             void monitor.stop().then(async () => {
@@ -121,12 +121,10 @@ const HyperLogDemo: React.FC = () => {
             </header>
             <main className={styles.main}>
                 {metrics != null && (
-                    <HyperLogMetricsProvider metrics={metrics}>
-                        <HyperLogDashboard
-                            connectionId={DEMO_CONNECTION_ID}
-                            engine={<span data-testid="detail-version">{source?.version == null ? 'Hyper' : `Hyper ${source.version}`} · embedded (WebAssembly)</span>}
-                        />
-                    </HyperLogMetricsProvider>
+                    <HyperLogDashboard
+                        metrics={metrics}
+                        engine={<span data-testid="detail-version">{source?.version == null ? 'Hyper' : `Hyper ${source.version}`} · embedded (WebAssembly)</span>}
+                    />
                 )}
             </main>
         </div>

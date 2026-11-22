@@ -1,5 +1,5 @@
 import type { EmbeddedComputeDatabase, EmbeddedConnection } from '@akohn/dashql/platform/embedded_database';
-import { connectionClientContext, sqlframeClientContext } from '../../connections/hyper/hyper_client_context.js';
+import { hyperLogClientContext } from './hyper_log_metrics.js';
 
 import SCHEMA_SQL from './sql/schema.sql?raw';
 import AGGREGATE_SQL from './sql/aggregate.sql?raw';
@@ -46,8 +46,8 @@ export interface WorkloadCounts {
 /// on a pooled connection
 async function connect(database: EmbeddedComputeDatabase, sentByApp: boolean): Promise<EmbeddedConnection> {
     return sentByApp
-        ? await database.connect({ pooled: true, defaultDatabase: 'hyper', clientContext: sqlframeClientContext(DEMO_CONNECTION_ID) })
-        : await database.connect({ defaultDatabase: 'hyper', clientContext: connectionClientContext(DEMO_CONNECTION_ID) });
+        ? await database.connect({ pooled: true, defaultDatabase: 'hyper', clientContext: hyperLogClientContext(DEMO_CONNECTION_ID, 'sqlframe') })
+        : await database.connect({ defaultDatabase: 'hyper', clientContext: hyperLogClientContext(DEMO_CONNECTION_ID, 'user') });
 }
 
 /// Create the table that the workload reads

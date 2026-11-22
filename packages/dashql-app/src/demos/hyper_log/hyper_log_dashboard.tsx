@@ -11,9 +11,9 @@ import { SyncIcon } from '@akohn/dashql-react/components/symbol_icon';
 import { Tooltip } from '@akohn/dashql-react/components/tooltip';
 import { VegaLiteChart, type VegaSignals } from '@akohn/dashql-react/components/vegalite_chart';
 import type { ChartColors } from '@akohn/dashql-react/vegalite/vegalite_theme';
-import type { HyperLogError, HyperQueryEnd, HyperResourceSample } from './hyper_log_metrics.js';
-import { overviewClientContext, queryEndsQuery } from './hyper_log_metrics.js';
-import { useHyperLogMetrics, useHyperLogRows, useHyperLogState } from './hyper_log_metrics_provider.js';
+import type { HyperLogError, HyperLogMetrics, HyperQueryEnd, HyperResourceSample } from './hyper_log_metrics.js';
+import { hyperLogClientContext, queryEndsQuery } from './hyper_log_metrics.js';
+import { useHyperLogRows, useHyperLogState } from './use_hyper_log.js';
 import {
     bucketQueries,
     bucketSamples,
@@ -420,30 +420,21 @@ export interface HyperLogDashboardViewDependencies {
 const DEFAULT_DEPENDENCIES: HyperLogDashboardViewDependencies = { QueryTable };
 
 interface Props {
-    /// The id of the connection
-    connectionId: string;
+    /// The monitor of the Hyper log
+    metrics: HyperLogMetrics;
     /// The facts about the Hyper of the connection, shown in the header of the engine
     engine?: React.ReactNode;
 }
 
 /// The activity and the metrics of a Hyper connection and of its Hyper, from the extract of the Hyper log
-export const HyperLogDashboard: React.FC<Props> = (props: Props) => {
-    const logMetrics = useHyperLogMetrics();
-    const { queries, samples } = useHyperLogRows(props.connectionId);
-    const logState = useHyperLogState(props.connectionId);
-    const { queryEnds: queryEndsTable, clockOffsetMs } = logState;
-    const queryEnds = React.useMemo(
-        () => queryEndsTable == null || clockOffsetMs == null ? null : queryEndsQuery(queryEndsTable, clockOffsetMs),
-        [queryEndsTable, clockOffsetMs],
-    );
-    const clientContext = React.useMemo(() => overviewClientContext(props.connectionId), [props.connectionId]);
-    const runQuery = React.useCallback(async (sql: string) => {
-        if (logMetrics == null) throw new Error('the Hyper log is not monitored');
-        return await logMetrics.query(props.connectionId, sql);
-    }, [logMetrics, props.connectionId]);
-    const refresh = React.useCallback(async () => {
-        await logMetrics?.poll(props.connectionId);
-    }, [logMetrics, props.connectionId]);
+export const HyperLogDashboard: React.FC<Props> = ({ metrics, engine }: Props) => {
+    const { queries, samples } = useHyperLogRows(metrics);
+    const logState = useHyperLogState(metrics);
+    const queryEndsTable = logState.queryEnds;
+    const queryEnds = React.useMemo(() => queryEndsTable == null ? null : queryEndsQuery(queryEndsTable), [queryEndsTable]);
+    const clientContext = React.useMemo(() => hyperLogClientContext(metrics.connectionId, 'overview'), [metrics]);
+    const runQuery = React.useCallback((sql: string) => metrics.query(sql), [metrics]);
+    const refresh = React.useCallback(() => metrics.poll(), [metrics]);
     return (
         <HyperLogDashboardView
             queries={queries}
@@ -454,7 +445,7 @@ export const HyperLogDashboard: React.FC<Props> = (props: Props) => {
             samples={samples}
             logError={logState.error}
             resourceUsageLogged={logState.resourceUsageLogged}
-            engine={props.engine}
+            engine={engine}
         />
     );
 };

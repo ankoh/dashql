@@ -504,27 +504,6 @@ describe('HyperDB Wasm log extract', () => {
         }
     }, 60_000);
 
-    it('extracts every event from the watermark without sessions', async () => {
-        const worker = await database!.connect();
-        const tag = uniqueTag('sessionless');
-        try {
-            await openExtract({ source: new HyperDBLogSource(undefined, false) });
-            await failQueries(worker, `${tag}_a`, 2);
-            await extract!.poll();
-            await failQueries(worker, `${tag}_b`, 1);
-            await extract!.poll();
-            await extract!.poll();
-            const connection = await openReader();
-            expect(await countUserErrors(connection, `${tag}_a`)).toBe(2);
-            expect(await countUserErrors(connection, `${tag}_b`)).toBe(1);
-            expect(await readNumber(connection, `
-                SELECT count(*) AS n FROM (SELECT * FROM ${EVENTS} GROUP BY ALL HAVING count(*) > 1) duplicates
-            `)).toBe(0);
-        } finally {
-            await worker.close();
-        }
-    }, 60_000);
-
     it('attributes the queries of its connections by their client context', async () => {
         const worker = await database!.connect();
         const tag = uniqueTag('context');
