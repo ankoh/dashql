@@ -49,7 +49,7 @@ export interface LogRecord {
     keyValues: LogKeyValues;
 }
 
-const TARGET_CHUNK_SIZE = 1024;
+export const TARGET_CHUNK_SIZE = 1024;
 
 class FrozenLogChunk {
     /// The entries of the chunk

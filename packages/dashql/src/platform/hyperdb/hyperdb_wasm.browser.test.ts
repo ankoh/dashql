@@ -8,6 +8,7 @@ import { HyperDB as HyperDBEngineClass } from 'hyperdb-wasm';
 
 import {
     HyperDB,
+    MAX_IDLE_SESSIONS,
     type HyperDBEngine,
     type HyperDBClient,
     type HyperDBOptions,
@@ -647,15 +648,16 @@ describe('HyperDB embedded database adapter', () => {
         const client = new FakeHyperDBEngineClient();
         const database = await createDatabase(client);
 
-        const connections = await Promise.all(Array.from({ length: 6 }, () => database.connect({ pooled: true })));
+        const beyond = 2;
+        const connections = await Promise.all(Array.from({ length: MAX_IDLE_SESSIONS + beyond }, () => database.connect({ pooled: true })));
         for (const connection of connections) {
             await connection.close();
         }
 
-        expect(client.connectCount).toBe(6);
-        expect(client.disconnectCount).toBe(2);
+        expect(client.connectCount).toBe(connections.length);
+        expect(client.disconnectCount).toBe(beyond);
         await database.terminate();
-        expect(client.disconnectCount).toBe(6);
+        expect(client.disconnectCount).toBe(connections.length);
     });
 
     it('rejects a closed connection while its session serves the next connection', async () => {

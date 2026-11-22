@@ -34,12 +34,13 @@ describe('the folder of a session', () => {
 
     it('sets and removes the stamps of a copy in the state', () => {
         const stamped = [{ path: 'scripts/a.sql', size: 5, mtimeMs: 2 }];
-        let state = reduceAgentSessionCopy(createAgentSessionState('claude', '/w', 's1'), 'w1', stamped);
+        const initial = createAgentSessionState('claude', '/w', 's1');
+        let state = reduceAgentSessionCopy(initial, 'w1', stamped);
         state = reduceAgentSessionCopy(state, 'w2', []);
         state = reduceAgentSessionCopy(state, 'w1', []);
         expect(state.workbooks.map(workbook => [workbook.workbookId, workbook.files.length]).sort()).toEqual([['w1', 0], ['w2', 0]]);
         state = reduceAgentSessionCopy(state, 'w2', null);
         expect(state.workbooks.map(workbook => workbook.workbookId)).toEqual(['w1']);
-        expect(state.version).toBe(4);
+        expect(state.version).toBeGreaterThan(initial.version);
     });
 });

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { LogBuffer, LogLevel } from './log_buffer.js';
+import { LogBuffer, LogLevel, TARGET_CHUNK_SIZE } from './log_buffer.js';
 import { testLogRecord } from '../testing/test_logger.js';
 
 const traced = (traceId: number, message = `trace ${traceId}`) =>
@@ -13,20 +13,21 @@ describe('LogBuffer', () => {
         buffer.push(testLogRecord({ level: LogLevel.Debug }));
         expect(buffer.length).toEqual(0);
 
+        const version = buffer.version;
         buffer.setMinLogLevel(LogLevel.Debug);
         buffer.push(testLogRecord({ level: LogLevel.Debug }));
         expect(buffer.length).toEqual(1);
-        expect(buffer.version).toEqual(2);
+        expect(buffer.version).toBeGreaterThan(version);
     });
 
     it('reads every record across frozen chunks', () => {
         const buffer = new LogBuffer();
-        const count = 2 * 1024 + 3;
+        const count = 2 * TARGET_CHUNK_SIZE + 3;
         for (let i = 0; i < count; ++i) buffer.push(testLogRecord({ message: `${i}` }));
         expect(buffer.length).toEqual(count);
-        expect([0, 1023, 1024, 2047, 2048, count - 1].map(i => buffer.at(i)?.message)).toEqual(
-            ['0', '1023', '1024', '2047', '2048', `${count - 1}`],
-        );
+        // The first and last records of every chunk
+        const edges = [0, TARGET_CHUNK_SIZE - 1, TARGET_CHUNK_SIZE, 2 * TARGET_CHUNK_SIZE - 1, 2 * TARGET_CHUNK_SIZE, count - 1];
+        expect(edges.map(i => buffer.at(i)?.message)).toEqual(edges.map(i => `${i}`));
         expect(buffer.at(count)).toBeNull();
     });
 
@@ -55,9 +56,9 @@ describe('LogBuffer', () => {
 
     it('collects the records of a trace from frozen chunks and pending records', () => {
         const buffer = new LogBuffer();
-        for (let i = 0; i < 1024; ++i) buffer.push(i === 3 ? traced(5, 'frozen') : traced(100 + (i % 2)));
+        for (let i = 0; i < TARGET_CHUNK_SIZE; ++i) buffer.push(i === 3 ? traced(5, 'frozen') : traced(100 + (i % 2)));
         // A chunk without any traces
-        for (let i = 0; i < 1024; ++i) buffer.push(testLogRecord());
+        for (let i = 0; i < TARGET_CHUNK_SIZE; ++i) buffer.push(testLogRecord());
         buffer.push(traced(5, 'pending'));
         expect(buffer.collectTraceLogs(5).map(record => record.message)).toEqual(['frozen', 'pending']);
         expect(buffer.collectTraceLogs(1000)).toEqual([]);

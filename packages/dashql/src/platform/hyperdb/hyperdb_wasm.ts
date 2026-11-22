@@ -119,7 +119,7 @@ function yieldToEventLoop(): Promise<void> {
 // ATTACH is expensive since Hyper loads the statistics of every table in the database, and the compute code
 // opens a connection per statement. Connections are only pooled when the caller opts in.
 // A session keeps the client context it was connected with, the sessions are pooled per client context.
-const MAX_IDLE_SESSIONS = 4;
+export const MAX_IDLE_SESSIONS = 4;
 
 /// The key of the idle sessions with a default database, attached databases and a client context
 function poolKey(alias: string | null, attached: readonly EmbeddedAttachedDatabase[], clientContext: string | null): string {
