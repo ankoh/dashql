@@ -82,7 +82,8 @@ function bufferString(value: string | Uint8Array | null | undefined, fallback: s
     return value == null ? fallback : new TextDecoder().decode(value) || fallback;
 }
 
-function analyzeSql(
+/// Analyze the raw SQL and check that both views can format it
+function validateSql(
     core: dashql.DashQL,
     catalog: dashql.DashQLCatalog,
     text: string,
@@ -91,14 +92,10 @@ function analyzeSql(
     if (text.length === 0) return { update: null, diagnostic: null };
 
     const session = core.createScriptSession(catalog);
-    const script = core.createScript(catalog);
     try {
         session.replaceText(0n, text);
         const update = session.analyze();
-        script.replaceText(text);
-        script.parse();
-        const parsed = script.getParsed();
-        const parsedReader = parsed.read();
+        const parsedReader = session.getParsed().read();
         if (parsedReader.scannerErrorsLength() > 0) {
             return {
                 update,
@@ -120,14 +117,25 @@ function analyzeSql(
             compactWidth,
         );
         const prettyConfig = createScriptFormatConfig(dashql.buffers.formatting.FormattingMode.PRETTY);
-        if (!script.isFullyFormattable(compactConfig, false) || !script.isFullyFormattable(prettyConfig, false)) {
+        if (!session.isFullyFormattable(compactConfig) || !session.isFullyFormattable(prettyConfig)) {
             return { update, diagnostic: 'This SQL contains syntax that cannot be formatted' };
         }
         return { update, diagnostic: null };
     } catch (error) {
         return { update: null, diagnostic: errorMessage(error) };
     } finally {
-        script.destroy();
+        session.destroy();
+    }
+}
+
+/// Analyze SQL for the decorations of the editor
+function analyzeSql(core: dashql.DashQL, catalog: dashql.DashQLCatalog, text: string): dashql.buffers.editor.EditorUpdateT | null {
+    if (text.length === 0) return null;
+    const session = core.createScriptSession(catalog);
+    try {
+        session.replaceText(0n, text);
+        return session.analyze();
+    } finally {
         session.destroy();
     }
 }
@@ -185,13 +193,6 @@ function FormatDialog(props: FormatDialogProps) {
         return view == null ? 80 : measureScriptFormatWidth(view);
     }, []);
 
-    const validateRaw = React.useCallback((text: string, width: number = measureWidth()) => {
-        const validation = analyzeSql(props.core, props.catalog, text, width);
-        rawUpdateRef.current = validation.update;
-        setDiagnostic(validation.diagnostic);
-        return validation;
-    }, [measureWidth, props.catalog, props.core]);
-
     const cancelValidation = React.useCallback(() => {
         if (validationTimerRef.current != null) {
             clearTimeout(validationTimerRef.current);
@@ -209,11 +210,15 @@ function FormatDialog(props: FormatDialogProps) {
     // Validate the raw text and update the decorations of the raw view
     const runValidation = React.useCallback(() => {
         cancelValidation();
-        const validation = validateRaw(rawTextRef.current, validationWidthRef.current);
+        const validation = validateSql(props.core, props.catalog, rawTextRef.current, validationWidthRef.current);
+        rawUpdateRef.current = validation.update;
+        setDiagnostic(validation.diagnostic);
         const view = editorViewRef.current;
-        if (view == null || changingViewRef.current || view.state.doc.toString() !== rawTextRef.current) return;
-        view.dispatch({ effects: DashQLScannerDecorationUpdateEffect.of(validation.update) });
-    }, [cancelValidation, validateRaw]);
+        if (view != null && !changingViewRef.current && view.state.doc.toString() === rawTextRef.current) {
+            view.dispatch({ effects: DashQLScannerDecorationUpdateEffect.of(validation.update) });
+        }
+        return validation;
+    }, [cancelValidation, props.catalog, props.core]);
 
     onRawChangeRef.current = (text: string) => {
         rawTextRef.current = text;
@@ -260,21 +265,18 @@ function FormatDialog(props: FormatDialogProps) {
     const showMode = React.useCallback((nextMode: FormatMode, refresh = false) => {
         const view = editorViewRef.current;
         if (view == null || (nextMode === mode && !refresh)) return;
-        // Validate pending edits right away
-        if (validationTimerRef.current != null) runValidation();
-
         let text = rawTextRef.current;
         let update = rawUpdateRef.current;
         let readonly = false;
         if (nextMode !== FormatMode.Raw) {
-            const validation = validateRaw(text);
-            if (validation.diagnostic != null) {
+            // Validate the raw text with pending edits right away
+            if (runValidation().diagnostic != null) {
                 setMode(FormatMode.Raw);
                 return;
             }
             try {
                 text = formatSql(props.core, props.catalog, text, nextMode, measureWidth(), keywordCase);
-                update = analyzeSql(props.core, props.catalog, text, measureWidth()).update;
+                update = analyzeSql(props.core, props.catalog, text);
                 readonly = true;
             } catch (error) {
                 setDiagnostic(errorMessage(error));
@@ -301,7 +303,7 @@ function FormatDialog(props: FormatDialogProps) {
             changingViewRef.current = false;
         }
         setMode(nextMode);
-    }, [measureWidth, mode, props.catalog, props.core, validateRaw, keywordCase, runValidation]);
+    }, [measureWidth, mode, props.catalog, props.core, keywordCase, runValidation]);
 
     const renderedCase = React.useRef(keywordCase);
     React.useEffect(() => {
