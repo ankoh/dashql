@@ -4,9 +4,17 @@ import { BASE64URL_CODEC } from '@akohn/dashql/platform/utils/base64';
 /// The hash never reaches the server and does not collide with the ?data= setup links of the app.
 export const SHARE_SCRIPT_HASH_PARAMETER = 'script';
 
-/// Pipe bytes through a (de)compression stream.
+/// The largest script that a link shares, in UTF-8 bytes. A link inflates to at most this many bytes, a crafted link
+/// can't make the page inflate gigabytes.
+export const MAX_SHARE_SCRIPT_BYTES = 1024 * 1024;
+
+/// Pipe bytes through a (de)compression stream, fail once the output exceeds `maxBytes`.
 /// Reads the stream directly, Firefox logs corrupt input as console error when reading it through a Response.
-async function pipeBytes(bytes: Uint8Array, transform: CompressionStream | DecompressionStream): Promise<ArrayBuffer> {
+async function pipeBytes(
+    bytes: Uint8Array,
+    transform: CompressionStream | DecompressionStream,
+    maxBytes: number = Number.POSITIVE_INFINITY,
+): Promise<ArrayBuffer> {
     const writer = transform.writable.getWriter();
     const written = writer.write(bytes as Uint8Array<ArrayBuffer>).then(() => writer.close());
     // A failed write also fails the read below, report the read error
@@ -15,8 +23,14 @@ async function pipeBytes(bytes: Uint8Array, transform: CompressionStream | Decom
     const chunks: Uint8Array[] = [];
     let length = 0;
     for (let chunk = await reader.read(); !chunk.done; chunk = await reader.read()) {
-        chunks.push(chunk.value);
         length += chunk.value.byteLength;
+        if (length > maxBytes) {
+            const error = new Error(`shared script is larger than ${formatMiB(maxBytes)}`);
+            // Stop the stream, the rest of the input is not inflated
+            await reader.cancel(error).catch(() => {});
+            throw error;
+        }
+        chunks.push(chunk.value);
     }
     await written;
     const out = new Uint8Array(length);
@@ -28,9 +42,17 @@ async function pipeBytes(bytes: Uint8Array, transform: CompressionStream | Decom
     return out.buffer;
 }
 
-/// Encode a script as base64url of its deflated UTF-8 bytes
+function formatMiB(bytes: number): string {
+    return `${bytes / (1024 * 1024)} MiB`;
+}
+
+/// Encode a script as base64url of its deflated UTF-8 bytes, a script larger than MAX_SHARE_SCRIPT_BYTES fails
 export async function encodeShareScript(script: string): Promise<string> {
-    const deflated = await pipeBytes(new TextEncoder().encode(script), new CompressionStream('deflate-raw'));
+    const bytes = new TextEncoder().encode(script);
+    if (bytes.byteLength > MAX_SHARE_SCRIPT_BYTES) {
+        throw new Error(`script is larger than ${formatMiB(MAX_SHARE_SCRIPT_BYTES)}, the largest script a link shares`);
+    }
+    const deflated = await pipeBytes(bytes, new CompressionStream('deflate-raw'));
     return BASE64URL_CODEC.encode(deflated);
 }
 
@@ -40,7 +62,7 @@ export async function decodeShareScript(payload: string): Promise<string> {
         throw new Error('shared script is not valid base64url');
     }
     const deflated = new Uint8Array(BASE64URL_CODEC.decode(payload));
-    const inflated = await pipeBytes(deflated, new DecompressionStream('deflate-raw'));
+    const inflated = await pipeBytes(deflated, new DecompressionStream('deflate-raw'), MAX_SHARE_SCRIPT_BYTES);
     return new TextDecoder('utf-8', { fatal: true }).decode(inflated);
 }
 
