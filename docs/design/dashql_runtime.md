@@ -233,10 +233,10 @@ next `takeChanges`.
 Actions apply at once, views follow with the flush: a read right after a dispatch sees the last flush, a read after its
 `settled` sees the action. The commands of the facade that wait for the state of the module flush the store once they
 settled (`settled` of `runtime.ts`): `analyzeTable`, `saveConnection`, `retrySave`, `setupConnection`, `settleCatalog`,
-`restore`, `restoreWorkbook`, `deleteInvalidWorkbook`, `attachFiles`, `renameAttachment`, `detachFile`, `refreshAttachments`,
-`runWorkbook`, `runScript` and `commitImport`. `createConnection`, `createWorkbook` and `deleteWorkbook` flush right
-after their action. The others, e.g. `execute`, `cancel`, `authenticateSalesforce`, the exports and `readImport`, leave
-the views to the next flush.
+`restore`, `restoreWorkbook`, `deleteInvalidWorkbook`, `removeWorkbook`, `attachFiles`, `renameAttachment`, `detachFile`,
+`refreshAttachments`, `runWorkbook`, `runScript` and `commitImport`. `createConnection`, `createWorkbook` and
+`deleteWorkbook` flush right after their action. The others, e.g. `execute`, `cancel`, `authenticateSalesforce`, the
+exports and `readImport`, leave the views to the next flush.
 
 ### The store and its projections
 
@@ -327,7 +327,7 @@ is a typed method with its contract rather than a generated table, the app reads
 | `createConnection`, `connection`, `catalog`, `channel`, `saveConnection`, `retrySave` | Connections and their saves |
 | `setupConnection`, `cancelSetup`, `authenticateSalesforce`, `refreshCatalog` | Setups, the login of the shell and refreshes of catalogs |
 | `openSession`, `closeSession`, `settleCatalog` | The session of the shell on a connection, see [Catalogs and sessions](#catalogs-and-sessions) |
-| `createWorkbook`, `deleteWorkbook`, `applyEditorEvent`, `attachTableParameters` | Workbooks and editors |
+| `createWorkbook`, `deleteWorkbook`, `removeWorkbook`, `applyEditorEvent`, `attachTableParameters` | Workbooks and editors; `deleteWorkbook` drops a workbook with its run and the computations of the results of its queries, `removeWorkbook` deletes its files first and keeps it when that fails |
 | `restore`, `restoreWorkbook`, `deleteInvalidWorkbook` | The restore |
 | `attachFiles`, `renameAttachment`, `detachFile`, `refreshAttachments` | Attachments |
 | `runWorkbook`, `runScript`, `stopRun`, `cancelScript`, `setUpOpenedWorkbook` | Runs; `cancelScript` stops the run of the workbook while one is busy, else cancels the latest query of the script; the setups of the connections of an opened workbook |

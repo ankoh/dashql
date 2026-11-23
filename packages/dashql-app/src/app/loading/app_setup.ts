@@ -64,10 +64,9 @@ export function useAppSetup(initialImport: React.RefObject<Promise<boolean> | nu
     const navigate = useRouterNavigate();
     const setupCore = useDashQLCoreSetup();
     const ephemeralWorkbook = useEphemeralWorkbook();
-    const deleteWorkbookScripts = useDeleteWorkbook();
+    const deleteWorkbook = useDeleteWorkbook();
     const pathname = useLocation().pathname;
     const runtime = useRuntime();
-    const storageWriter = runtime.storage;
     const setupEmbeddedDatabase = useEmbeddedDatabaseSetup();
 
     const [embeddedDatabaseStatus, setEmbeddedDatabaseStatus] = React.useState<IndicatorStatus>(IndicatorStatus.None);
@@ -176,10 +175,7 @@ export function useAppSetup(initialImport: React.RefObject<Promise<boolean> | nu
             connections.set(embedded.connectionId, embedded);
 
             // The app holds exactly one ephemeral workbook, whatever it opens below
-            await deleteSurplusEphemeralWorkbooks(restoredWorkbooks.values(), async workbookId => {
-                await storageWriter.deleteWorkbook(workbookId);
-                deleteWorkbookScripts(workbookId);
-            }, (workbookId, error) => {
+            await deleteSurplusEphemeralWorkbooks(restoredWorkbooks.values(), deleteWorkbook, (workbookId, error) => {
                 traced.warn("Failed to delete a surplus ephemeral workbook", { workbookId, error: stringifyError(error) }, LOG_CTX);
             });
             const greeter = ephemeralWorkbook(newWorkbookConnection(connections, allocateConnection, getHyperLinkTabState().current));

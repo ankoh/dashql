@@ -5,7 +5,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { ConnectionParams } from '../platform/connections/connection_params.js';
+import type { EmbeddedComputeDatabase } from '../platform/embedded_database.js';
+import { QueryType } from '../platform/query/query_execution_state.js';
 import type { WorkbookData } from '../platform/storage/storage_backend.js';
+import { tableFromArrays } from '../platform/testing/arrow_fixtures.js';
 import { createTestRuntime, restoreTestWorkbook, testCore, type TestRuntime } from './testing/test_runtime.js';
 import { TEST_CONNECTION_ID, TEST_WORKBOOK_ID, WorkbookTestBackend, WorkbookTestRegistry, testWorkbook } from '../platform/testing/workbook_test_backend.js';
 
@@ -294,6 +297,56 @@ describe('the workbooks of the runtime', () => {
         expect(rt.store.get('workbook', workbook.workbookId)).toBeNull();
         expect(rt.connection(TEST_CONNECTION_ID).workbooks).toEqual([]);
         expect(rt.dispatch({ connection: OTHER_CONNECTION_ID }, { kind: 'deleteConnection' }).ok).toBe(true);
+    });
+
+    describe('removing a workbook', () => {
+        /// A finished query of a workbook on the connection of the test, with a computation of its result
+        function queryWithComputation(rt: TestRuntime, workbookId: string): number {
+            const metadata = { queryType: QueryType.USER_PROVIDED, title: null, description: null, issuer: null, userProvided: true, workbookId };
+            const ticket = rt.module.executeQuery(TEST_CONNECTION_ID, { text: 'select 1', metadata, traceId: 1 }, new Error('the query of the test ended'), null);
+            void ticket.done.catch(() => { });
+            // The analysis starts the computation of the result, without a compute database it stops after that
+            void rt.analyzeTable(ticket.queryId, tableFromArrays({ value: [1] })).catch(() => { });
+            return ticket.queryId;
+        }
+
+        async function setUp(storage: WorkbookTestBackend) {
+            const rt = runtime = await createTestRuntime({ storage, computeDatabase: {} as EmbeddedComputeDatabase });
+            await rt.addConnection({ connectionId: TEST_CONNECTION_ID, params: HYPER });
+            const removed = rt.addWorkbook(TEST_CONNECTION_ID, [['a.sql', 'select 1;']], { name: 'Removed' });
+            const kept = rt.addWorkbook(TEST_CONNECTION_ID, [['b.sql', 'select 2;']], { name: 'Kept' });
+            await rt.storage.flush();
+            const queries = [queryWithComputation(rt, removed.workbookId), queryWithComputation(rt, kept.workbookId)];
+            await vi.waitFor(() => {
+                rt.flush();
+                expect(rt.store.ids('computation')).toEqual(expect.arrayContaining(queries));
+            });
+            return { rt, removed: removed.workbookId, kept: kept.workbookId, queries };
+        }
+
+        it('deletes its files, then drops it with the computations of its queries', async () => {
+            const storage = new WorkbookTestBackend();
+            const { rt, removed, kept, queries: [ofRemoved, ofKept] } = await setUp(storage);
+            expect(storage.workbooks.has(removed)).toBe(true);
+
+            await rt.removeWorkbook(removed);
+            expect(storage.workbooks.has(removed)).toBe(false);
+            expect(rt.store.get('workbook', removed)).toBeNull();
+            expect(rt.store.ids('computation')).not.toContain(ofRemoved);
+            expect(rt.store.ids('computation')).toContain(ofKept);
+            // The queries stay in the history of the connection
+            expect(rt.connection(TEST_CONNECTION_ID).queriesFinishedOrdered).toContain(ofRemoved);
+            expect(rt.store.get('workbook', kept)).not.toBeNull();
+        });
+
+        it('keeps a workbook whose files the storage fails to delete', async () => {
+            const storage = new WorkbookTestBackend();
+            const { rt, removed, queries: [ofRemoved] } = await setUp(storage);
+            vi.spyOn(storage, 'deleteWorkbook').mockRejectedValueOnce(new Error('the disk is gone'));
+            await expect(rt.removeWorkbook(removed)).rejects.toThrow('the disk is gone');
+            expect(rt.store.get('workbook', removed)).not.toBeNull();
+            expect(rt.store.ids('computation')).toContain(ofRemoved);
+        });
     });
 
     it('analyzes the outdated scripts that the editors show', async () => {

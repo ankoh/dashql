@@ -1,7 +1,6 @@
 import * as React from 'react';
 
 import { useOptionalRuntime, useWorkbooks } from '@akohn/dashql-react/hooks';
-import { findWorkbookQueries } from '@akohn/dashql/platform/connections/connection_state';
 import type { WorkbookCloudLink } from '@akohn/dashql/platform/storage/storage_backend';
 import { useStorageReader } from '../storage/storage_provider.js';
 import type * as core from '@akohn/dashql';
@@ -221,21 +220,13 @@ export function useCloudWorkbooks(): CloudWorkbooks {
         if (runtime == null || storageWriter == null || scripts == null || !isCloudPreview(scripts) || discarding.has(workbookId)) return;
         discarding.add(workbookId);
         try {
-            // The queries of the preview go with it, the connections stay
+            // The computations of the queries of the preview go with it, the connections stay
             const connections = scripts.connectionIds;
             try {
-                await storageWriter.deleteWorkbook(workbookId);
+                await deleteScripts(workbookId);
             } catch (error) {
                 logger.warn('Discarding a cloud preview failed', { workbookId, error: stringifyError(error) }, LOG_CTX);
                 return;
-            }
-            deleteScripts(workbookId);
-            for (const connectionId of connections) {
-                const connection = runtime.store.get('connection', connectionId);
-                if (connection == null) continue;
-                for (const queryId of findWorkbookQueries(connection, workbookId, queryId => runtime.store.get('query', queryId))) {
-                    runtime.dispatch({ computation: queryId }, { kind: 'deleteComputation' });
-                }
             }
             // The connections that the preview registered go with it
             const manifest = storageReader.workbookFolders == null ? null : await storageReader.workbookFolders.loadManifest();

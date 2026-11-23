@@ -430,7 +430,6 @@ export class Runtime {
     async retrySave(connectionId: string, workbookIds: string[]): Promise<core.ConnectionSaveOutcome | null> {
         return await this.settled(this.live().retrySave(connectionId, workbookIds));
     }
-
     // The setups
 
     /// Set up a connection with its connector: the channel of its params or of the params of the options, then the
@@ -535,7 +534,8 @@ export class Runtime {
         return created;
     }
 
-    /// Drop a workbook, its scripts leave the catalogs of their connections. Its files stay.
+    /// Drop a workbook, its scripts leave the catalogs of their connections, its run stops and the computations of the
+    /// results of its queries go. Its files stay.
     deleteWorkbook(workbookId: string): void {
         this.dispatch('app', { kind: 'deleteWorkbook', value: { workbookId } });
         this.store.flush();
@@ -597,6 +597,12 @@ export class Runtime {
     /// Delete the files of a workbook that was refused a load and drop it from the list
     async deleteInvalidWorkbook(workbookId: string): Promise<void> {
         await this.settled(this.live().deleteInvalidWorkbook(workbookId));
+    }
+
+    /// Delete a workbook with its files: the storage deletes the files, then the workbook leaves the runtime like with
+    /// `deleteWorkbook`. Rejects with what the storage failed with, the workbook stays then.
+    async removeWorkbook(workbookId: string): Promise<void> {
+        await this.settled(this.live().removeWorkbook(workbookId));
     }
 
     // The attachments of workbooks

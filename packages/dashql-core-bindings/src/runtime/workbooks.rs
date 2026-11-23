@@ -659,8 +659,18 @@ impl Workbooks {
         }
     }
 
-    /// Drop a workbook, its scripts leave the catalogs of their connections. Its files stay.
+    /// Drop a workbook, its scripts leave the catalogs of their connections. The computations of the results of its
+    /// queries go with it, the queries stay in the histories of their connections. Its files stay.
     pub fn delete(&self, workbook_id: &str) -> bool {
+        let queries = self
+            .connections
+            .registry
+            .try_borrow()
+            .map(|registry| registry.workbook_queries(workbook_id))
+            .unwrap_or_default();
+        for query_id in queries {
+            self.connections.delete_computation_of(query_id);
+        }
         let removed = {
             let mut entries = self.entries.borrow_mut();
             let position = entries.iter().position(|entry| entry.id == workbook_id);

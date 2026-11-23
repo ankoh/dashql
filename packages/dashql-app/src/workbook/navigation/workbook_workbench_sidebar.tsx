@@ -48,7 +48,7 @@ import {
 } from '@akohn/dashql-react/components/symbol_icon';
 import { classNames } from '@akohn/dashql-react/dom/classnames';
 import { OPEN_WORKBOOK, SELECT_WORKBOOK, useRouterNavigate } from '../../app/router.js';
-import { findWorkbookQueries, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
+import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import {
     newConnectionFromParams,
     createAttachedConnectionParamsForConnector,
@@ -1173,20 +1173,12 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
     const deleteWorkbook = React.useCallback(async (item: WorkbookItem) => {
         const action = item.isNative ? 'Unlink' : 'Delete';
         if (!window.confirm(`${action} "${item.label}"?${item.isNative ? ' The folder and its files will remain on disk.' : ''}`)) return;
+        // Connections outlive the workbooks that reference them, the runtime drops the workbook's own computations
         try {
-            await storageWriter.deleteWorkbook(item.workbookId);
+            await deleteWorkbookFromRuntime(item.workbookId);
         } catch (error) {
-            console.error('Failed to delete workbook from storage:', error);
+            logger.error('deleting a workbook failed', { workbookId: item.workbookId, error: String(error) }, 'workbook_workbench');
             return;
-        }
-        deleteWorkbookFromRuntime(item.workbookId);
-        // Connections outlive the workbooks that reference them, only the workbook's own
-        // computations are dropped.
-        const readQuery = (queryId: number) => runtime.store.get('query', queryId);
-        for (const database of item.connections) {
-            for (const queryId of findWorkbookQueries(database, item.workbookId, readQuery)) {
-                runtime.dispatch({ computation: queryId }, { kind: 'deleteComputation' });
-            }
         }
 
         if (item.workbookId === props.workbookScripts.workbookId) {
@@ -1194,7 +1186,7 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
             if (next != null) navigate({ type: OPEN_WORKBOOK, value: next.workbookId });
             else openGreeter();
         }
-    }, [deleteWorkbookFromRuntime, navigate, openGreeter, runtime, workbooks, props.workbookScripts.workbookId, storageWriter]);
+    }, [deleteWorkbookFromRuntime, logger, navigate, openGreeter, workbooks, props.workbookScripts.workbookId]);
 
     const openWorkbook = React.useCallback((item: WorkbookItem) => {
         navigate({ type: SELECT_WORKBOOK, value: item.workbookId });

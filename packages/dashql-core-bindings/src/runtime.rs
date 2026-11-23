@@ -1813,6 +1813,20 @@ impl Runtime {
         })
     }
 
+    /// Delete a workbook with its files: the storage deletes the files, then the workbook leaves the runtime like with
+    /// the action `deleteWorkbook`, with its run and the computations of the results of its queries. Rejects with what
+    /// the storage failed with, the workbook stays then.
+    #[wasm_bindgen(js_name = removeWorkbook, unchecked_return_type = "Promise<void>")]
+    pub fn remove_workbook(&self, workbook_id: String) -> Promise {
+        let deletion = self.workbooks.persistence.delete_workbook(&workbook_id);
+        let workbooks = self.workbooks.clone();
+        future_to_promise(async move {
+            deletion.await.map_err(|error| error_value(&error))?;
+            workbooks.delete(&workbook_id);
+            Ok(JsValue::UNDEFINED)
+        })
+    }
+
     // The runs of workbooks
 
     /// Run the scripts of a workbook: all of them, the targets with what they need, or the scripts that a change of

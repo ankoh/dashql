@@ -274,6 +274,23 @@ impl ConnectionRegistry {
         connection.map(|(id, connection)| (id.clone(), connection.queries.clone()))
     }
 
+    /// The queries that a workbook issued on all connections, per connection the active ones first. A history that is
+    /// in use is skipped.
+    pub fn workbook_queries(&self, workbook_id: &str) -> Vec<QueryId> {
+        let mut queries = Vec::new();
+        for (_, connection) in &self.connections {
+            let Ok(history) = connection.queries.try_borrow() else { continue };
+            let of_workbook = |query_id: &&QueryId| {
+                history
+                    .query(**query_id)
+                    .is_some_and(|query| query.query_metadata.workbook_id.as_deref() == Some(workbook_id))
+            };
+            queries.extend(history.active_ids().iter().filter(of_workbook));
+            queries.extend(history.finished_ids().iter().filter(of_workbook));
+        }
+        queries
+    }
+
     /// Apply an action to a query of the history of a connection. The id of a new query comes from `next_query_id`.
     pub fn apply_query(&mut self, connection_id: &str, action: QueryExecutionAction) -> Result<RegistryOutcome> {
         let history = self
@@ -357,6 +374,45 @@ mod tests {
         assert!(outcome.effects.contains(&RegistryEffect::Abort { handle: 7, reason: "Connection was reset" }));
         assert!(outcome.effects.contains(&RegistryEffect::Release { handle: 7 }));
         assert!(registry.get("t").unwrap().queries.borrow().active_ids().is_empty());
+    }
+
+    /// Start a query of a workbook on a connection, a finished one succeeds right away
+    fn start_query(
+        registry: &mut ConnectionRegistry,
+        connection_id: &str,
+        workbook_id: Option<&str>,
+        finished: bool,
+    ) -> QueryId {
+        let query_id = registry.next_query_id();
+        let metadata = QueryMetadata {
+            workbook_id: workbook_id.map(str::to_string),
+            ..QueryMetadata::new(QueryType::UserProvided)
+        };
+        let state = QueryExecutionState::new(query_id, 1, "select 1", metadata, 0);
+        registry.apply_query(connection_id, QueryExecutionAction::ExecuteQuery { state: Box::new(state) }).unwrap();
+        if finished {
+            registry.apply_query(connection_id, QueryExecutionAction::QuerySucceeded { query_id, now: 0 }).unwrap();
+        }
+        query_id
+    }
+
+    #[test]
+    fn finds_the_queries_of_a_workbook_on_every_connection_the_active_ones_first() {
+        let mut registry = ConnectionRegistry::new();
+        registry.insert(trino("a")).unwrap();
+        registry.insert(trino("b")).unwrap();
+        let finished = start_query(&mut registry, "a", Some("w"), true);
+        let active = start_query(&mut registry, "a", Some("w"), false);
+        start_query(&mut registry, "a", Some("other"), false);
+        start_query(&mut registry, "a", None, true);
+        let elsewhere = start_query(&mut registry, "b", Some("w"), true);
+        assert_eq!(registry.workbook_queries("w"), [active, finished, elsewhere]);
+        assert!(registry.workbook_queries("gone").is_empty());
+        // A history in use is skipped
+        let held = registry.get("b").unwrap().queries.clone();
+        let held = held.borrow_mut();
+        assert_eq!(registry.workbook_queries("w"), [active, finished]);
+        drop(held);
     }
 
     #[test]

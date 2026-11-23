@@ -59,13 +59,14 @@ export function useCreateWorkbook(): (connectionId: string, name: string, epheme
     }, [runtime]);
 }
 
-/// Drop a workbook from the runtime, its scripts leave the catalogs of their connections. The selection of the app
-/// forgets it.
-export function useDeleteWorkbook(): (workbookId: string) => void {
+/// Delete a workbook with its files, see `removeWorkbook` of the runtime: its scripts leave the catalogs of their
+/// connections and the computations of the results of its queries go. The selection of the app forgets it. Rejects
+/// with what the storage failed with, the workbook stays then.
+export function useDeleteWorkbook(): (workbookId: string) => Promise<void> {
     const runtime = useLazyRuntime();
     const selection = useScriptSelection();
-    return React.useCallback((workbookId: string) => {
-        runtime().deleteWorkbook(workbookId);
+    return React.useCallback(async (workbookId: string) => {
+        await runtime().removeWorkbook(workbookId);
         selection.forget(workbookId);
     }, [runtime, selection]);
 }
