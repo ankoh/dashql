@@ -7,8 +7,8 @@
 //! (see [`COMMENT_TAGS`]). Any other `@word` is ordinary text. A tag runs to the next tag line or to
 //! the end of the comment, like the block tags of Javadoc: in a block comment the comment end closes the
 //! last tag, in a run of line comments the end of the run. Tags whose content is one line end at their line
-//! if it has content (see [`Grouper::ends_at_its_line`]): the args of `@board`, `@flow` and `@vis table`, and
-//! the value of `@param :name = <literal>`. Text before the first tag of a block comment and the lines after a
+//! if it has content (see [`Grouper::ends_at_its_line`]): the args of `@board`, `@flow`, `@vis table` and
+//! `@vis kpi`, and the value of `@param :name = <literal>`. Text before the first tag of a block comment and the lines after a
 //! tag that ends at its line are ordinary blocks. Older scripts close the last region of line comments with
 //! `-- @end`, the line is still accepted and ends the region, comments after it are ordinary comments.
 //!
@@ -173,9 +173,9 @@ impl<'a> Grouper<'a> {
     }
 
     /// Does a tag end at its line? Tags whose content is one line end there if their line has content, the lines
-    /// after them are ordinary text: `@board` and `@flow` with their args, `@vis table` and the `@vis board`,
-    /// `@vis card` and `@vis flow` of older scripts, and `@param :name = <literal>`. The Javadoc `@param x ...`,
-    /// `@vis vegalite`, `@vis markdown` and the free text of `@manual` run to the next tag.
+    /// after them are ordinary text: `@board` and `@flow` with their args, `@vis table`, `@vis kpi` with its args,
+    /// the `@vis board`, `@vis card` and `@vis flow` of older scripts, and `@param :name = <literal>`. The Javadoc
+    /// `@param x ...`, `@vis vegalite`, `@vis markdown` and the free text of `@manual` run to the next tag.
     fn ends_at_its_line(&self, tag: &Tag) -> bool {
         let rest = self.slice(tag.rest);
         match self.slice(tag.name) {
@@ -184,7 +184,7 @@ impl<'a> Grouper<'a> {
             b"param" => rest.starts_with(b":"),
             b"vis" => {
                 let kind = rest.split(|c| is_horizontal_space(*c)).next().unwrap_or_default();
-                matches!(kind, b"table" | b"board" | b"card" | b"flow")
+                matches!(kind, b"table" | b"kpi" | b"board" | b"card" | b"flow")
             }
             _ => false,
         }

@@ -3,6 +3,8 @@ import path from 'node:path';
 
 import * as arrow from 'apache-arrow';
 
+import * as core from '@akohn/dashql';
+
 import { createDashQLCoreSetup } from '@akohn/dashql/platform/node/node_core';
 import {
     followAgentSession,
@@ -65,7 +67,7 @@ const PNG = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 
 describe('dashql vis', () => {
     it('reads the chart of a script with the core', async () => {
         const dql = await createDashQLCoreSetup()('test');
-        expect(scriptChart(dql, charted(BAR))).toEqual({ renderer: 'vegalite', spec: BAR, errors: [] });
+        expect(scriptChart(dql, charted(BAR))).toEqual({ renderer: 'vegalite', spec: BAR, kpi: null, errors: [] });
         expect(scriptChart(dql, `-- @vis table\n${REVENUE}`).renderer).toBe('table');
         expect(scriptChart(dql, REVENUE).renderer).toBeNull();
     });
@@ -131,6 +133,50 @@ describe('dashql vis', () => {
             await server.close();
         }
     });
+
+    it('reads a KPI card with the core', async () => {
+        const dql = await createDashQLCoreSetup()('test');
+        const chart = scriptChart(dql, `/* @vis kpi value=revenue x=region delta=first */\n${REVENUE}`);
+        expect(chart.renderer).toBe('kpi');
+        expect(chart.kpi?.valueColumn).toBe('revenue');
+        expect(chart.kpi?.delta).toBe(core.buffers.visualization.KpiDelta.FIRST);
+        // The warnings of the tag, but not those about columns, which the result checks
+        const warned = scriptChart(dql, `/* @vis kpi value=total delta=last */\n${REVENUE}`);
+        expect(warned.errors).toEqual(['unknown @vis kpi delta "last", expected previous, first, none']);
+    });
+
+    it('prints what a KPI card shows and what is likely not meant', async () => {
+        const series = (order: string) => `/**
+ * Revenue
+ *
+ * @vis kpi value=revenue x=day
+ */
+select * from (values (1, 100), (2, 110), (3, 121)) t(day, revenue) order by day ${order};
+`;
+        const dir = hyperWorkbook([
+            ['revenue.sql', series('asc')],
+            ['unordered.sql', series('desc')],
+            ['total.sql', '/* @vis kpi */\nselect 42 as total;\n'],
+        ]);
+        const output = await vis(dir, ['.', 'revenue']);
+        expect(output.stderr).toBe('');
+        expect(output.stdout).toBe([
+            'revenue.sql: @vis kpi, 3 rows, columns day, revenue',
+            '  KPI card: revenue 121, ▲ +10% against the previous row, a chart of 3 points over day',
+            'No problems.',
+            '',
+        ].join('\n'));
+        expect(output.code).toBe(0);
+
+        const unordered = await vis(dir, ['.', 'unordered']);
+        expect(unordered.code).toBe(1);
+        expect(unordered.stdout).toContain('  KPI card: revenue 100, ▼ -9.1% against the previous row, a chart of 3 points in the order of the rows\n');
+        expect(unordered.stdout).toContain('  - the rows are not in the order of day, the card shows the last row and compares it with the row before it: add order by day\n');
+
+        const total = await vis(dir, ['.', 'total']);
+        expect(total.stdout).toContain('  KPI card: total 42, one row: no change and no chart\n');
+        expect(total.code).toBe(0);
+    }, 60_000);
 
     it('says when a script has no chart and checks its arguments', async () => {
         const dir = hyperWorkbook([['revenue.sql', `${REVENUE};\n`]]);

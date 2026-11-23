@@ -9,9 +9,11 @@
 //! ```
 //!
 //! A `@vis` tag starts with its kind. `vegalite` takes a Vega-Lite spec as JSON object without `data`,
-//! `markdown` takes a row template and `table` takes nothing. `@board` takes the dashboard placement as
+//! `markdown` takes a row template, `kpi` the columns of its value and of its x axis and its delta as `key=value`
+//! args, and `table` takes nothing. `@board` takes the dashboard placement as
 //! `key=value` args, on any statement: the board places a script by the `@board` of its last statement, a statement
-//! without a renderer is a collapsed card. A statement has at most one renderer (`vegalite`, `markdown` or `table`)
+//! without a renderer is a collapsed card. A statement has at most one renderer (`vegalite`, `markdown`, `kpi` or
+//! `table`)
 //! and at most one board placement, the first one wins. `@flow` takes the placement of the script on the dataflow
 //! canvas as `x=.. y=.. width=.. height=..`, each part optional, on any statement, and a script has at most one, the
 //! first one in statement order wins.
@@ -140,8 +142,12 @@ struct StatementTags {
     vegalite: Option<Map<String, Value>>,
     /// The Markdown row template
     markdown: Option<String>,
+    /// The KPI card
+    kpi: Option<KpiSpec>,
     /// The dashboard placement and the tag that set it
     board: Option<(DashboardSpec, TextSpan)>,
+    /// The placement of a card without a `@board` or without a size in it
+    default_board: DashboardSpec,
 }
 
 impl StatementTags {
@@ -200,16 +206,7 @@ impl StatementTags {
                     continue;
                 }
                 let span = find_field(json, field).map_or(kind, |(b, e)| tag.span(body + b, body + e));
-                let mut listed: Vec<&str> = columns.iter().map(String::as_str).collect();
-                listed.sort_unstable();
-                let more = listed.len().saturating_sub(LISTED_COLUMNS);
-                listed.truncate(LISTED_COLUMNS);
-                let mut message =
-                    format!("unknown field \"{field}\", the statement has the columns {}", listed.join(", "));
-                if more > 0 {
-                    message.push_str(&format!(" and {more} more"));
-                }
-                warn(state, span, message);
+                warn(state, span, unknown_column_message("field", field, columns));
             }
         }
         self.vegalite = Some(spec);
@@ -221,8 +218,51 @@ impl StatementTags {
             return;
         }
         let [row, column, width, height] = read_args(state, tag, args, "board", ["row", "column", "width", "height"]);
-        self.board = Some((normalize_board(state, row, column, width, height), kind));
+        self.board = Some((normalize_board(state, self.default_board.clone(), row, column, width, height), kind));
     }
+
+    /// Read the args of `@vis kpi`: the columns `value` and `x`, each a name of an output column, and the `delta`
+    fn read_kpi(&mut self, state: &mut AnalysisState, tag: &TagText, args: usize, columns: Option<&HashSet<String>>) {
+        let [value, x, delta] = read_arg_texts(state, tag, args, "vis kpi", ["value", "x", "delta"]);
+        let mut column = |state: &mut AnalysisState, arg: Option<(&str, TextSpan)>| {
+            let (name, span) = arg?;
+            if name.is_empty() {
+                warn(state, span, "@vis kpi needs a column name after =".into());
+                return None;
+            }
+            if let Some(columns) = columns.filter(|columns| !columns.contains(name)) {
+                warn(state, span, unknown_column_message("column", name, columns));
+            }
+            Some(name.to_string())
+        };
+        let value = column(state, value);
+        let x = column(state, x);
+        let delta = match delta {
+            None => KpiDelta::default(),
+            Some((name, span)) => KpiDelta::from_name(name).unwrap_or_else(|| {
+                warn(
+                    state,
+                    span,
+                    format!("unknown @vis kpi delta \"{name}\", expected {}", KpiDelta::NAMES.join(", ")),
+                );
+                KpiDelta::default()
+            }),
+        };
+        self.kpi = Some(KpiSpec { value, x, delta });
+    }
+}
+
+/// The message of a name that is no output column of the statement, a `field` of Vega-Lite or a `column`
+fn unknown_column_message(what: &str, name: &str, columns: &HashSet<String>) -> String {
+    let mut listed: Vec<&str> = columns.iter().map(String::as_str).collect();
+    listed.sort_unstable();
+    let more = listed.len().saturating_sub(LISTED_COLUMNS);
+    listed.truncate(LISTED_COLUMNS);
+    let mut message = format!("unknown {what} \"{name}\", the statement has the columns {}", listed.join(", "));
+    if more > 0 {
+        message.push_str(&format!(" and {more} more"));
+    }
+    message
 }
 
 /// Read the `key=value` args of a `@board` or `@flow` tag, the integer value of every key of `keys`
@@ -233,6 +273,27 @@ fn read_args<const N: usize>(
     kind: &str,
     keys: [&str; N],
 ) -> [Option<(i64, TextSpan)>; N] {
+    let texts = read_arg_texts(state, tag, args, kind, keys);
+    let mut values = [None; N];
+    for ((value, text), key) in values.iter_mut().zip(texts).zip(keys) {
+        let Some((text, span)) = text else { continue };
+        match text.parse::<i64>() {
+            Ok(parsed) => *value = Some((parsed, span)),
+            Err(_) => warn(state, span, format!("@{kind} {key} must be an integer")),
+        }
+    }
+    values
+}
+
+/// Read the `key=value` args of a tag, the text of the value of every key of `keys` with the span of its arg. The
+/// first arg of a key wins.
+fn read_arg_texts<'t, const N: usize>(
+    state: &mut AnalysisState,
+    tag: &'t TagText,
+    args: usize,
+    kind: &str,
+    keys: [&str; N],
+) -> [Option<(&'t str, TextSpan)>; N] {
     let mut values = [None; N];
     let mut at = args;
     while at < tag.text.len() {
@@ -256,13 +317,8 @@ fn read_args<const N: usize>(
             warn(state, span, format!("unknown @{kind} arg \"{key}\", expected {expected}"));
             continue;
         };
-        match value.parse::<i64>() {
-            Ok(value) => {
-                if let Some(v) = values.get_mut(slot) {
-                    *v = Some((value, span));
-                }
-            }
-            Err(_) => warn(state, span, format!("@{kind} {key} must be an integer")),
+        if let Some(v) = values.get_mut(slot) {
+            *v = Some((value, span));
         }
     }
     values
@@ -323,16 +379,16 @@ fn find_key(json: &str, key: &str) -> Option<(usize, usize)> {
         .map(|t| (t.begin, t.end))
 }
 
-/// Normalize the dashboard placement: coordinates are non-negative, the width is 1 to 12, the height at
-/// least 1, and a board placement is moved left to fit the grid
+/// Normalize the dashboard placement over the default of the card: coordinates are non-negative, the width is 1 to
+/// 12, the height at least 1, and a board placement is moved left to fit the grid
 fn normalize_board(
     state: &mut AnalysisState,
+    mut spec: DashboardSpec,
     row: Option<(i64, TextSpan)>,
     column: Option<(i64, TextSpan)>,
     width: Option<(i64, TextSpan)>,
     height: Option<(i64, TextSpan)>,
 ) -> DashboardSpec {
-    let mut spec = DashboardSpec::default();
     let mut column_was_clamped = false;
     if let Some((value, span)) = row {
         if value < 0 {
@@ -460,6 +516,16 @@ pub(super) fn analyze(state: &mut AnalysisState) {
         let query = is_query(statement.statement_type);
         let columns = if query { statement_columns(state, statement.root) } else { None };
         let mut out = StatementTags::default();
+        // A KPI card is small unless its placement sizes it, the first renderer is the one of the statement
+        let renderer = tags
+            .iter()
+            .filter(|(_, name)| *name == VIS_TAG)
+            .map(|(block, _)| tag_kind(parsed, block))
+            .find(|kind| matches!(*kind, "vegalite" | "markdown" | "kpi" | "table"));
+        if query && renderer == Some("kpi") {
+            out.default_board.width = DashboardSpec::KPI_WIDTH;
+            out.default_board.height = DashboardSpec::KPI_HEIGHT;
+        }
         for (block, name) in tags {
             let Some(lines) =
                 blocks.lines.get(block.lines_begin as usize..(block.lines_begin + block.lines_count) as usize)
@@ -503,6 +569,11 @@ pub(super) fn analyze(state: &mut AnalysisState) {
                         out.markdown = Some(tag.text.get(rest..).unwrap_or("").to_string());
                     }
                 }
+                "kpi" => {
+                    if out.set_renderer(state, "kpi", kind_span) {
+                        out.read_kpi(state, &tag, rest, columns.as_ref());
+                    }
+                }
                 "table" => {
                     if out.set_renderer(state, "table", kind_span) && !body.is_empty() {
                         warn(
@@ -512,11 +583,11 @@ pub(super) fn analyze(state: &mut AnalysisState) {
                         );
                     }
                 }
-                "" => warn(state, block.tag_span, "@vis needs a kind: vegalite, markdown or table".into()),
+                "" => warn(state, block.tag_span, "@vis needs a kind: vegalite, markdown, kpi or table".into()),
                 _ => warn(
                     state,
                     kind_span,
-                    format!("unknown @vis kind \"{kind}\", expected vegalite, markdown or table"),
+                    format!("unknown @vis kind \"{kind}\", expected vegalite, markdown, kpi or table"),
                 ),
             }
         }
@@ -541,9 +612,10 @@ pub(super) fn analyze(state: &mut AnalysisState) {
             ast_node_id: statement.root,
             ast_statement_id: Some(statement_id as u32),
             renderer: Some(renderer.to_string()),
-            dashboard: out.board.map(|(board, _)| board).unwrap_or_default(),
+            dashboard: out.board.map(|(board, _)| board).unwrap_or(out.default_board),
             markdown: out.markdown.map(|row_template| MarkdownSpec { row_template }),
             vegalite: out.vegalite,
+            kpi: out.kpi,
         });
     }
 }

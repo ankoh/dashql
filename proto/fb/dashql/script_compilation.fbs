@@ -33,6 +33,7 @@ table CompiledVisualization {
     markdown_spec: visualization.MarkdownSpec;
     dashboard: visualization.DashboardSpec;
     table_spec: visualization.TableSpec;
+    kpi_spec: visualization.KpiSpec;
 }
 
 table ScriptCompilationResult {

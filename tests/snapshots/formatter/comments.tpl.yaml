@@ -80,6 +80,23 @@ formatter-snapshots:
         validation:
           setup: ""
 
+  - name: kpi_tag_args
+    input: |-
+      -- Revenue
+      /* @vis kpi   value=revenue    x=day
+         @board width=3 */
+      select day, revenue from t
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 40
+          - mode: pretty
+            width: 40
+        validation:
+          setup: |-
+            create table t(day date, revenue int);
+
   - name: tagged_comment_regions_are_merged
     input: |-
       -- @vis vegalite

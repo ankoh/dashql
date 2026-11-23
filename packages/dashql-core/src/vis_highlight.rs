@@ -37,13 +37,23 @@ impl Lines<'_> {
 
     /// The `key=value` args of a board placement
     fn args(&mut self, begin: usize, end: usize) {
+        self.args_of(begin, end, ScannerTokenType::LITERAL_INTEGER);
+    }
+
+    /// The `key=value` args of a tag whose values are names, e.g. the columns of `@vis kpi`
+    fn name_args(&mut self, begin: usize, end: usize) {
+        self.args_of(begin, end, ScannerTokenType::LITERAL_STRING);
+    }
+
+    /// The `key=value` args of a tag, the keys are identifiers, the values tokens of a type
+    fn args_of(&mut self, begin: usize, end: usize, value: ScannerTokenType) {
         // A span outside of the script has no args
         let Some(text) = self.script.get(begin..end) else { return };
         let mut arg_begin = begin;
         for arg in text.split(u8::is_ascii_whitespace) {
             if let Some(eq) = arg.iter().position(|&c| c == b'=') {
                 self.push(arg_begin, arg_begin + eq, ScannerTokenType::IDENTIFIER);
-                self.push(arg_begin + eq + 1, arg_begin + arg.len(), ScannerTokenType::LITERAL_INTEGER);
+                self.push(arg_begin + eq + 1, arg_begin + arg.len(), value);
             }
             arg_begin += arg.len() + 1;
         }
@@ -184,6 +194,7 @@ fn tag_tokens(parsed: &ParsedScript) -> (Vec<(TextSpan, ScannerTokenType)>, Vec<
             let end = line.end() as usize;
             match kind {
                 b"board" | b"card" | b"flow" if i == 0 => lines.args(begin, end),
+                b"kpi" if i == 0 => lines.name_args(begin, end),
                 b"markdown" => lines.placeholders(begin, end),
                 _ => {}
             }
@@ -280,6 +291,30 @@ mod tests {
                 ("**", T::COMMENT),
                 ("-- ", T::COMMENT),
                 ("@end", T::KEYWORD),
+            ]
+        );
+    }
+
+    #[test]
+    fn highlights_the_args_of_a_kpi_card() {
+        use ScannerTokenType as T;
+        // The keys are identifiers, the column names and the kind of change strings
+        assert_eq!(
+            spans("/* @vis kpi value=total delta=none */ select 1 as total"),
+            vec![
+                ("/* ", T::COMMENT),
+                ("@vis", T::KEYWORD),
+                (" ", T::COMMENT),
+                ("kpi", T::KEYWORD),
+                (" ", T::COMMENT),
+                ("value", T::IDENTIFIER),
+                ("=", T::COMMENT),
+                ("total", T::LITERAL_STRING),
+                (" ", T::COMMENT),
+                ("delta", T::IDENTIFIER),
+                ("=", T::COMMENT),
+                ("none", T::LITERAL_STRING),
+                (" */", T::COMMENT),
             ]
         );
     }

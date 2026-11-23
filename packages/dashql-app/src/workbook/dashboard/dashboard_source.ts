@@ -5,7 +5,7 @@ import type { DashboardPlacement } from './dashboard_layout.js';
 const LOG_CTX = 'dashboard';
 
 /// The renderers of a card
-export type DashboardRenderer = 'table' | 'vegalite' | 'markdown';
+export type DashboardRenderer = 'table' | 'vegalite' | 'markdown' | 'kpi';
 
 /// The statement that a card shows: the visualized statement, the statement with the `@board` tag, or the last one
 function cardStatementId(script: ScriptData): number | null {

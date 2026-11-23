@@ -27,6 +27,7 @@ import * as styles from './dashboard.module.css';
 
 const DragHandleIcon = SymbolIcon('drag_handle_16');
 const MarkdownIcon = SymbolIcon('mark_text_16');
+const KpiIcon = SymbolIcon('hash_16');
 const MoreIcon = SymbolIcon('kebab_horizontal');
 const RenameIcon = SymbolIcon('pencil_16');
 const TrashIcon = SymbolIcon('trash_16');
@@ -193,7 +194,7 @@ export const DashboardCard = React.memo(function DashboardCard(props: Props): Re
 
     // The renderers of a card in the order of its segments, the last one collapses the card to its script. A chart
     // starts as a bar chart, the board opens its chart builder.
-    const renderers: (DashboardRenderer | null)[] = ['table', 'vegalite', 'markdown', null];
+    const renderers: (DashboardRenderer | null)[] = ['table', 'vegalite', 'markdown', 'kpi', null];
     const currentRenderer = visualizeQuery?.renderer ?? null;
     const switchRenderer = (index: number) => {
         const renderer = renderers[index];
@@ -201,6 +202,8 @@ export const DashboardCard = React.memo(function DashboardCard(props: Props): Re
         if (renderer == null) props.onRemoveVisualization(props.script.scriptKey);
         else if (renderer === 'vegalite') props.onVisualize(props.script.scriptKey, 'vegalite', JSON.stringify(NEW_CHART_SPEC));
         else if (renderer === 'table') props.onVisualize(props.script.scriptKey, 'table', '');
+        // A KPI card shows the last column of the result, the tag takes the columns once they are known
+        else if (renderer === 'kpi') props.onVisualize(props.script.scriptKey, 'kpi', '');
         else if (template != null) props.onVisualize(props.script.scriptKey, 'markdown', template);
     };
 
@@ -356,6 +359,14 @@ export const DashboardCard = React.memo(function DashboardCard(props: Props): Re
                                 data-testid="dashboard-card-renderer-markdown"
                                 disabled={(!visualizable || template == null) && currentRenderer !== 'markdown'}
                                 selected={currentRenderer === 'markdown'}
+                            />
+                            <SegmentedControl.IconButton
+                                aria-label="KPI"
+                                description={visualizable ? 'Show the value of the last row over a chart of the rows' : notVisualizable}
+                                icon={<KpiIcon size={12} />}
+                                data-testid="dashboard-card-renderer-kpi"
+                                disabled={!visualizable && currentRenderer !== 'kpi'}
+                                selected={currentRenderer === 'kpi'}
                             />
                             <SegmentedControl.IconButton
                                 aria-label="Collapsed"

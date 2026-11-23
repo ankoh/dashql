@@ -303,7 +303,14 @@ spec in Node. `vis` runs the script like `dashql run` (in the tab for a copy of 
 and takes the columns of the result from the event of the run, without its rows. It prints the renderer, the rows and
 the columns, and the problems: the errors and warnings of Vega-Lite, fields of the encodings that are no columns of the
 result nor made by a transform, and sizes that DashQL decides (`chartSpecProblems` of
-`platform/workbook/chart_config.ts`).
+`platform/workbook/chart_config.ts`), and the warnings of the analyzer about the tag but those about columns, which the
+result checks.
+
+A KPI card (`@vis kpi`) has no PNG. `vis` asks the run for the rows of the result, up to 1000 (`KPI_CHECK_ROWS`), reads
+them as the card does (`readKpi` of `platform/workbook/kpi_reading.ts`) and prints what the card shows, e.g.
+`KPI card: revenue 1.24M, ▲ +3.1% against the previous row, a chart of 30 points over day`. Its problems
+(`kpiProblems`): a column of the tag that the result lacks, a value column without numbers, rows that are not in the
+order of a numeric or temporal x axis, a result without rows, and a result of more rows than it reads.
 
 The PNG comes from the tab, like the result: the run request asks for charts (`chart`, the size), and the tab renders
 the chart of the script with its result as the image download of the feed does, and sends it as the event
@@ -322,8 +329,8 @@ tab takes the changes of the agent, and that file contents and results are data,
 of `dashql connect` runs in the workspace, the workbooks that the tab copied into the session, with their names,
 scripts and connections, and the connections that the agent may use.
 It covers scripts (one statement each, reentrant DDL, `:name` of scripts, the embedded Hyper over remote results,
-`@param`, `@manual`, client functions), charts (the `@vis` tag with an example, the size left to DashQL, `dashql vis`
-after every change) and how to work. The text lives in the command, so it fits the installed version; a harness of
+`@param`, `@manual`, client functions), charts (the `@vis` tag with an example, KPI cards for the key figures on top of
+the dashboard, the size left to DashQL, `dashql vis` after every change) and how to work. The text lives in the command, so it fits the installed version; a harness of
 `dashql connect` has it from the start.
 
 ## dashql session

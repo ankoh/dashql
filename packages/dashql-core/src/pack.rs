@@ -736,6 +736,11 @@ pub fn pack_analyzed_script(script: &AnalyzedScript) -> AnalyzedScriptT {
                     height: spec.dashboard.height,
                 }))),
                 table_spec: (spec.renderer.as_deref() == Some("table")).then(|| Box::new(TableSpecT::default())),
+                kpi_spec: spec
+                    .kpi
+                    .as_ref()
+                    .filter(|_| spec.renderer.as_deref() == Some("kpi"))
+                    .map(|kpi| Box::new(crate::visualize::pack_kpi_spec(kpi))),
             })
         })
         .collect();

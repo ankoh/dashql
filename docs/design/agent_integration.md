@@ -76,7 +76,7 @@ The reasons:
 | Running scripts of a copy | Tab: its runtime on its connections | A run request terminal to tab (`POST /v1/runs`, the event `run` of the stream), the run events back |
 | The results of a run | Tab: the stored results of the scripts | The first rows in the events, the Parquet file of a stored result (`PUT /v1/results/…` into `.dashql/workbooks/<id>/results/`) |
 | Running workbook folders outside a session | Terminal: a runtime in the process of `dashql run`, Trino with basic auth and the embedded Hyper | Nothing |
-| The check of a chart | Terminal: the core reads the `@vis` tag, Vega-Lite compiles the spec in Node, the fields are compared with the columns of the result | The columns of the result, in the run events |
+| The check of a chart | Terminal: the core reads the `@vis` tag, Vega-Lite compiles the spec in Node, the fields are compared with the columns of the result; a KPI card is read from the rows of the result as the card reads them | The columns of the result in the run events, for a KPI card its rows |
 | The PNG of a chart | Tab: the image renderer of the feed, after the result | `chart` of the run request, the event `script_chart` back |
 | Who changes the workbook | Tab: the switch of the prompt, AI for the agent, SQL for the user | Nothing new: in SQL the tab holds the edits of the agent and fails its runs |
 
@@ -166,7 +166,9 @@ and copies its workbooks again.
    `.dashql/workbooks/<id>/results/`.
 
 `dashql vis` is the same run with `chart` in the request and no rows. It checks the chart while the run goes, and
-writes the PNG that the tab sends as `script_chart` before `run_finished`. The details are in
+writes the PNG that the tab sends as `script_chart` before `run_finished`. A KPI card (`@vis kpi`) asks for no PNG
+but for the rows of the result, up to 1000, and `vis` prints what the card shows: a few figures read better as text
+than as an image, and every agent reads text. The details are in
 [Runs in the tab](#runs-in-the-tab).
 
 ### The handoff

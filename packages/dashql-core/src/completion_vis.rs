@@ -3,6 +3,8 @@
 //! - `@` at the start of a comment line completes the tag names.
 //! - `@vis ` completes the kinds, `@board ` and `@flow ` their args, like the `@vis board ` and `@vis flow ` of
 //!   older scripts.
+//! - `@vis kpi ` completes its args, the values of `value=` and `x=` are the output columns of the query, those of
+//!   `delta=` its kinds of change.
 //! - In the JSON of `@vis vegalite`, a tolerant scanner finds the key path at the cursor and whether a
 //!   key or a value follows, also in JSON that is not complete yet. Keys come from a table per path,
 //!   values from the Vega-Lite enums and, for `field`, from the output columns of the query.
@@ -10,7 +12,7 @@
 //!
 //! Candidates replace the token at the cursor, JSON keys and values are inserted as JSON strings.
 
-use crate::analyzer::statement_output_columns;
+use crate::analyzer::{statement_output_columns, KpiDelta};
 use crate::completion::{Candidate, CandidateTags, Completion, Score};
 use crate::vis_text::{JsonScanner, JsonSlot, JsonTokenKind, PathItem, TagText};
 use dashql_buffers::completion::CandidateTag;
@@ -27,11 +29,13 @@ const BOARD_TAG: &[u8] = b"board";
 /// The tag of the position on the dataflow canvas
 const FLOW_TAG: &[u8] = b"flow";
 /// The kinds of `@vis` tags
-const VIS_KINDS: &[&str] = &["vegalite", "markdown", "table"];
+const VIS_KINDS: &[&str] = &["vegalite", "markdown", "kpi", "table"];
 /// The args of `@board`
 const BOARD_ARGS: &[&str] = &["row", "column", "width", "height"];
 /// The args of `@flow`
 const FLOW_ARGS: &[&str] = &["x", "y", "width", "height"];
+/// The args of `@vis kpi`
+const KPI_ARGS: &[&str] = &["value", "x", "delta"];
 
 /// The top-level properties of a Vega-Lite spec
 const SPEC_KEYS: &[&str] = &[
@@ -555,16 +559,39 @@ fn complete_vis_tag(completion: &Completion, parsed: &ParsedScript, offset: usiz
         (name, 0)
     };
     match kind {
-        kind @ (b"board" | b"card" | b"flow") => {
-            let args = if kind == b"flow" { FLOW_ARGS } else { BOARD_ARGS };
+        kind @ (b"board" | b"card" | b"flow" | b"kpi") => {
+            let args = match kind {
+                b"flow" => FLOW_ARGS,
+                b"kpi" => KPI_ARGS,
+                _ => BOARD_ARGS,
+            };
             let first_line_end = text.iter().position(|&c| c == b'\n').unwrap_or(text.len());
             if at > first_line_end {
                 return None;
             }
             let arg_begin = text.get(..at)?.iter().rposition(|c| c.is_ascii_whitespace()).map_or(0, |n| n + 1);
             let typed = text.get(arg_begin..at)?;
-            if typed.contains(&b'=') {
-                return None;
+            if let Some(eq) = typed.iter().position(|&c| c == b'=') {
+                // The values of the args of a KPI card are names, those of the placements numbers
+                if kind != b"kpi" {
+                    return None;
+                }
+                let value_begin = arg_begin + eq + 1;
+                let mut value_end = at;
+                while value_end < first_line_end && text.get(value_end).is_some_and(|c| !c.is_ascii_whitespace()) {
+                    value_end += 1;
+                }
+                let mut candidates = Candidates::new(span(value_begin, value_end), text.get(value_begin..at)?);
+                match typed.get(..eq)? {
+                    b"value" | b"x" => {
+                        for column in columns().unwrap_or_default() {
+                            candidates.add(&column, column.to_string());
+                        }
+                    }
+                    b"delta" => candidates.add_all(KpiDelta::NAMES, false),
+                    _ => return None,
+                }
+                return Some(candidates.finish(k));
             }
             let mut arg_end = at;
             while arg_end < first_line_end && text.get(arg_end).is_some_and(|&c| !c.is_ascii_whitespace() && c != b'=')

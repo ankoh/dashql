@@ -67,7 +67,7 @@ completion-snapshots:
       errors:
         - type: INVALID_VIS_TAG
           severity: WARNING
-          message: 'unknown @vis kind "ve", expected vegalite, markdown or table'
+          message: 'unknown @vis kind "ve", expected vegalite, markdown, kpi or table'
           text: "ve"
       expressions:
         - expression-idx: 0
@@ -1083,3 +1083,172 @@ completion-snapshots:
     completions:
       limit: 3
       no-target: 1
+
+  - name: vis_kpi_arg
+    catalog: {}
+    editor:
+      input: |
+        /* @vis kpi value=a d */
+        select 1 as a
+      catalog-id: 1
+      errors:
+        - type: INVALID_VIS_TAG
+          severity: WARNING
+          message: '@vis kpi takes key=value args, not "d"'
+          text: "d"
+      expressions:
+        - expression-idx: 0
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 0
+          text: "1"
+      visualizations:
+        - statement-id: 0
+          source: "select 1 as a"
+          renderer: kpi
+          dashboard:
+            width: 3
+            height: 3
+          kpi:
+            value: a
+            delta: previous
+    cursor:
+      search:
+        text: ' d '
+        index: 2
+    completions:
+      limit: 3
+      no-target: 1
+      strategy: DEFAULT
+      entries:
+        - value: delta=
+          candidate-tags: [PREFIX_MATCH]
+          location: "d"
+          location-qualified: "d"
+          objects: []
+
+  - name: vis_kpi_value_column
+    catalog:
+      script:
+        input: create table sales (region text, revenue int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: sales
+            text: "create tab..venue int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: region
+                text: "region text"
+              - catalog-id: "256.65536.4294967296.1"
+                name: revenue
+                text: "revenue int"
+        touched-relations:
+          - statement-id: 0
+            name: sales
+        errors: []
+    editor:
+      input: |
+        /* @vis kpi value=re */
+        select region, revenue from sales
+      catalog-id: 2
+      errors:
+        - type: INVALID_VIS_TAG
+          severity: WARNING
+          message: 'unknown column "re", the statement has the columns region, revenue'
+          text: "value=re"
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "sales"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          source: "sales"
+          statement-id: 0
+          text: "region"
+        - expression-idx: 1
+          type: colref/catalog
+          catalog: "256.65536.4294967296.1"
+          source: "sales"
+          statement-id: 0
+          text: "revenue"
+      visualizations:
+        - statement-id: 0
+          source: "select reg..from sales"
+          renderer: kpi
+          dashboard:
+            width: 3
+            height: 3
+          kpi:
+            value: re
+            delta: previous
+    cursor:
+      search:
+        text: '=re'
+        index: 3
+    completions:
+      limit: 3
+      no-target: 1
+      strategy: DEFAULT
+      entries:
+        - value: region
+          candidate-tags: [PREFIX_MATCH]
+          location: "re"
+          location-qualified: "re"
+          objects: []
+        - value: revenue
+          candidate-tags: [PREFIX_MATCH]
+          location: "re"
+          location-qualified: "re"
+          objects: []
+
+  - name: vis_kpi_delta
+    catalog: {}
+    editor:
+      input: |
+        /* @vis kpi delta=f */
+        select 1 as a
+      catalog-id: 1
+      errors:
+        - type: INVALID_VIS_TAG
+          severity: WARNING
+          message: 'unknown @vis kpi delta "f", expected previous, first, none'
+          text: "delta=f"
+      expressions:
+        - expression-idx: 0
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 0
+          text: "1"
+      visualizations:
+        - statement-id: 0
+          source: "select 1 as a"
+          renderer: kpi
+          dashboard:
+            width: 3
+            height: 3
+          kpi:
+            delta: previous
+    cursor:
+      search:
+        text: '=f'
+        index: 2
+    completions:
+      limit: 3
+      no-target: 1
+      strategy: DEFAULT
+      entries:
+        - value: first
+          candidate-tags: [PREFIX_MATCH]
+          location: "f"
+          location-qualified: "f"
+          objects: []

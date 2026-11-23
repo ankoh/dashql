@@ -397,7 +397,7 @@ table VisualizationSpec {
     ast_node_id: uint32;
     /// The id of the statement containing this visualization
     ast_statement_id: uint32;
-    /// The visualization renderer named by the `@vis` tag (`vegalite`, `markdown` or `table`)
+    /// The visualization renderer named by the `@vis` tag (`vegalite`, `markdown`, `kpi` or `table`)
     renderer: string;
     /// The pretty-printed Vega-Lite JSON specification with the query as `data`.
     /// Only populated when `renderer` is `vegalite`.
@@ -409,6 +409,8 @@ table VisualizationSpec {
     dashboard: visualization.DashboardSpec;
     /// The table renderer spec. Only populated when `renderer` is `table`.
     table_spec: visualization.TableSpec;
+    /// The KPI card. Only populated when `renderer` is `kpi`.
+    kpi_spec: visualization.KpiSpec;
 }
 
 /// The confidence of a schema-inference result

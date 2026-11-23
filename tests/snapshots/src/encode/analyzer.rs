@@ -635,6 +635,22 @@ fn encode_visualization(e: &Encoder, spec: &VisualizationSpec) -> Node {
     if let Some(markdown) = &spec.markdown {
         m.insert("markdown", Node::dquo(markdown.row_template.clone()));
     }
+    if let Some(kpi) = &spec.kpi {
+        let mut out = Map::new();
+        if let Some(value) = &kpi.value {
+            out.plain("value", value);
+        }
+        if let Some(x) = &kpi.x {
+            out.plain("x", x);
+        }
+        let delta = match kpi.delta {
+            KpiDelta::Previous => "previous",
+            KpiDelta::First => "first",
+            KpiDelta::None => "none",
+        };
+        out.plain("delta", delta);
+        m.insert("kpi", out.into_node());
+    }
     m.into_node()
 }
 

@@ -553,6 +553,52 @@ fn rewrite_vis_tags_escape_comment_delimiters() {
 }
 
 #[test]
+fn rewrite_vis_renderer_writes_a_kpi_card() {
+    // The args stay on the line of the tag, separated by single spaces
+    let mut script = parsed_script("/* @vis table\n   @board width=4 */\nselect 1 as day, 2 as revenue");
+    let kpi = VisRenderer::from_parts("kpi", " value=revenue   x=day ").unwrap();
+    let text = script.rewrite_vis_renderer(0, Some(&kpi), false).unwrap();
+    assert_eq!(text, "/**\n * @vis kpi value=revenue x=day\n * @board width=4\n */\nselect 1 as day, 2 as revenue");
+    let catalog = Catalog::new();
+    let mut written = Script::new(&catalog);
+    written.replace_text(&text);
+    written.analyze(&catalog, true).unwrap();
+    let analyzed = written.analyzed.as_ref().unwrap();
+    assert!(analyzed.errors.is_empty(), "{:?}", analyzed.errors);
+    let spec = &analyzed.visualization_specs[0];
+    assert_eq!(spec.kpi.as_ref().unwrap().value.as_deref(), Some("revenue"));
+    // The placement sizes the card, a size it leaves out is the one of a KPI card
+    assert_eq!((spec.dashboard.width, spec.dashboard.height), (4, 3));
+    // Without args the tag is one word
+    let mut script = parsed_script("select 1 as a");
+    let kpi = VisRenderer::from_parts("kpi", "").unwrap();
+    assert_eq!(script.rewrite_vis_renderer(0, Some(&kpi), false).unwrap(), "/** @vis kpi */\nselect 1 as a");
+}
+
+#[test]
+fn kpi_tag_warnings_point_at_the_args() {
+    let text = "/* @vis kpi value=total x=day delta=last width=3 */\nselect 1 as day, 2 as revenue";
+    let catalog = Catalog::new();
+    let mut script = Script::new(&catalog);
+    script.replace_text(text);
+    script.analyze(&catalog, true).unwrap();
+    let analyzed = script.analyzed.as_ref().unwrap();
+    let warnings: Vec<(usize, &str)> =
+        analyzed.errors.iter().map(|e| (e.text_span.unwrap().offset as usize, e.message.as_str())).collect();
+    assert_eq!(
+        warnings,
+        vec![
+            (text.find("width=3").unwrap(), "unknown @vis kpi arg \"width\", expected value, x or delta"),
+            (text.find("value=total").unwrap(), "unknown column \"total\", the statement has the columns day, revenue"),
+            (text.find("delta=last").unwrap(), "unknown @vis kpi delta \"last\", expected previous, first, none"),
+        ]
+    );
+    // An unknown column or delta is a warning, the card still shows
+    let kpi = analyzed.visualization_specs[0].kpi.as_ref().unwrap();
+    assert_eq!((kpi.value.as_deref(), kpi.x.as_deref()), (Some("total"), Some("day")));
+}
+
+#[test]
 fn vis_tag_warnings_point_at_the_json() {
     // The warnings point at the top-level `data` key and at the `field` value, not at the same text elsewhere
     let text = "-- @vis vegalite {\"description\": \"data\", \"title\": \"b\",\n--   \"data\": {\"name\": \"t\"},\n--   \"encoding\": {\"x\": {\"field\": \"b\"}}}\n-- @end\nselect 1 as a";
@@ -579,6 +625,7 @@ fn rewrite_vis_tags_check_the_statement() {
     assert!(VisRenderer::from_parts("vegalite", "[1]").is_err());
     assert!(VisRenderer::from_parts("markdown", " ").is_err());
     assert!(VisRenderer::from_parts("chart", "").is_err());
+    assert!(VisRenderer::from_parts("kpi", "").is_ok());
     // An unparsed script is parsed if requested
     let catalog = Catalog::new();
     let mut script = Script::new(&catalog);

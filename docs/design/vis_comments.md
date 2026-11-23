@@ -25,13 +25,14 @@ SELECT region, revenue FROM sales;
 
 The tags are comment tags (see `core_parser.md`): a line whose first text is `@vis`, `@board` or `@flow`
 starts a tag that runs to the next tag line or the end of the comment, like the block tags of Javadoc, so one
-comment can hold several tags. `@vis table`, `@board` and `@flow` with content on their line end at their line,
-the lines after them are ordinary text.
+comment can hold several tags. `@vis table`, `@vis kpi`, `@board` and `@flow` with content on their line end at
+their line, the lines after them are ordinary text.
 
 | Tag | Content |
 |---|---|
 | `@vis vegalite` | A Vega-Lite spec as JSON object, on the same line or the next. The statement is the data, `data` is ignored with a warning. |
 | `@vis markdown` | The row template as Markdown, from right after the kind to the end of the tag. Rendered once per result row, `{{field}}` placeholders take the values of the columns. |
+| `@vis kpi` | A KPI card as `key=value` args, all optional: the columns `value` and `x` and the change `delta` (`previous`, `first` or `none`). See KPI cards. |
 | `@vis table` | Nothing, the result table is the visualization. |
 | `@board` | The dashboard placement as `key=value` args: `row`, `column`, `width` and `height`, all integers. |
 | `@flow` | The placement of the script on the dataflow canvas as `key=value` args: the position `x` and `y`, the width of the box `width` and the height of its chart `height`, all integers. |
@@ -56,7 +57,7 @@ SELECT region, sum(revenue) AS revenue FROM sales GROUP BY region;
 SELECT metric, value, status FROM metrics;
 ```
 
-A statement has at most one renderer (`@vis vegalite`, `markdown` or `table`) and at most one `@board`.
+A statement has at most one renderer (`@vis vegalite`, `markdown`, `kpi` or `table`) and at most one `@board`.
 The first one wins, the others are warnings. Only queries (`SELECT`) are visualized. `@board` and `@flow` tags may
 annotate any statement and need no renderer; see Dashboard placement and Dataflow placement.
 
@@ -71,6 +72,46 @@ accepted:
 -- @board width=12
 SELECT * FROM orders;
 ```
+
+## KPI cards
+
+A KPI card shows one value large, the way dashboards show their key figures in a row on top: the value of the last
+row of the result, its change, and a chart of the value across the rows behind it.
+
+```sql
+/**
+ * Revenue
+ *
+ * @vis kpi value=revenue x=day
+ */
+SELECT day, sum(revenue) AS revenue FROM sales GROUP BY day ORDER BY day;
+```
+
+- `value` is the column of the value, the last column of the result without it. `x` is the column of the x axis of
+  the chart, without it the first column, unless that is the value. A column is a name of one word, a column whose
+  name has spaces gets an alias in the query.
+- The value is the one of the last row in the order of the result, so a query orders its rows. A number is written
+  compactly from ten thousand on (`1.24M`), any other value as the table shows it.
+- `delta` is the change next to the value, in percent: `previous` (the default) against the row before the last one,
+  `first` against the first row, `none` shows only the value. A base of zero or null shows no change.
+- The chart draws every row with a number as value. An x axis of numbers, dates or timestamps places the rows by their
+  value, any other x axis spaces them evenly in the order of the result.
+- A result of one row shows only the value, e.g. `SELECT sum(revenue) FROM sales`, a result without rows a dash.
+
+A KPI card is 3 columns wide and 3 rows high, four of them fill a row of the board. A `@board` with a width or a
+height overrides each. The cards sit with the other visualizations, `@board row=0` keeps them on top. The analyzer warns
+about an unknown arg, a column that is no output column of the query (unless a `*` hides the columns, like for
+Vega-Lite) and an unknown `delta`, the card shows anyway.
+
+The core reads the tag (`KpiSpec` of the analyzer, `KpiSpec` of `visualization.fbs` in the compiled
+visualization) and leaves a column it doesn't name null. `readKpi` of `@akohn/dashql/platform/workbook/kpi_reading`
+picks the columns of the result and reads the card from its rows: the core knows the output columns of a query only
+when no `*` hides them, the result always has them, and the reading goes through every value, so it is TypeScript (see
+Compilation and rendering). The card of `@akohn/dashql-react` (`components/visualization/kpi_view`) draws the reading,
+`dashql vis` prints it for an agent and checks it (`kpiProblems`, see `packages/dashql-cli/README.md`).
+
+The tag is named after the KPI card of dashboards. `metric` would read well too, but it is the name of a defined
+measure in semantic layers, which a card that shows a column of a query is not.
 
 ## Dashboard placement
 
@@ -97,6 +138,7 @@ The header of a collapsed card offers the renderers of a query as icons:
 - **Chart** opens the chart builder, which stages its `@vis vegalite` as a diff, like in the feed.
 - **Markdown** writes a template from the columns of the latest result, the first column as heading and the others
   in a line below, and opens the editor to adjust it.
+- **KPI** writes `@vis kpi` without args, the card shows the last column of the result.
 
 An edit button opens the script in an editor over the board. A script whose last statement is no query, e.g. one
 that only creates a table, is a collapsed card without renderers. A `@board` tag alone does not make a query a
@@ -129,8 +171,8 @@ SELECT * FROM trips;
 ## Rewriting tags
 
 `vis_rewrite.rs` sets, replaces or removes the tags of a statement, addressed by its statement id:
-`Script::rewrite_vis_renderer` the renderer (`VisRenderer`: a Vega-Lite object, a Markdown template or
-the table) and `Script::rewrite_vis_board` the board placement (`VisBoard`), which replaces the `@vis board`
+`Script::rewrite_vis_renderer` the renderer (`VisRenderer`: a Vega-Lite object, a Markdown template, the args of
+a KPI card or the table) and `Script::rewrite_vis_board` the board placement (`VisBoard`), which replaces the `@vis board`
 or `@vis card` of an older script by `@board`. They return the new text, the app writes it as an edit of the script (`rewriteVisRenderer`
 and `rewriteVisBoard` of the script session). The visualization of a script in the app carries the
 statement id, from the compiler for the terminal query and from the planner for any visualized query, so
@@ -189,7 +231,7 @@ are escaped as `/\u002a` and `*\/`, which keeps the value. A Markdown template o
 with warnings (`INVALID_VIS_TAG`, `INVALID_DASHBOARD_LAYOUT`) whose spans point into the comment:
 
 - an unknown kind, an unknown or non-integer `board` or `flow` arg, a `flow` without `x` or `y`, a second
-  `flow` of the script, args after `table`;
+  `flow` of the script, args after `table`, an unknown `kpi` arg, column or `delta`;
 - a missing body of `vegalite` or `markdown`, malformed JSON, a spec that is no JSON object;
 - a `field` that is no output column of the query. Names that the spec defines itself (`"as"`) are
   fine, a nested field (`date.month`) refers to its first part. The check is skipped if a `*` hides
@@ -215,14 +257,17 @@ the tags are plain comments.
   FlatBuffer AST (`visualize/markdown`). `{{field}}` placeholders become `FIELD` leaves, raw HTML is
   discarded, and unsafe or dynamic link destinations are not emitted as links. The app renders the AST
   once per result row and substitutes the formatted Arrow values as React text.
+- `kpi`: the columns and the delta of the tag (`visualize::pack_kpi_spec`). The app reads the value, the
+  change and the points of the chart from the result table and draws the chart as an SVG path.
 - `table`: the app renders the result table.
 
 ## Authoring
 
 Completion works inside comments (`completion_vis.rs`), although the rest of the completion skips them:
 
-- `@` at the start of a comment line completes the tag names, `@vis ` the kinds, `@board ` and `@flow ` the
-  args that are not used yet.
+- `@` at the start of a comment line completes the tag names, `@vis ` the kinds, `@board `, `@flow ` and
+  `@vis kpi ` the args that are not used yet. The values of `value=` and `x=` of a KPI card are the output
+  columns of the query, those of `delta=` its kinds of change.
 - In the JSON of `vegalite`, a tolerant scanner (`vis_text.rs`) finds the key path at the cursor and whether
   a key or a value follows, also in JSON that is still typed. Keys come from a table per path (spec, mark,
   encoding channels, field definition, scale, axis, legend; nested `layer` and `spec` specs are specs),
@@ -233,14 +278,14 @@ Completion works inside comments (`completion_vis.rs`), although the rest of the
 A rewrite of the chart of a script checks the spec before it touches the script: it must be a JSON object that Vega-Lite
 compiles without errors or warnings (with empty data), and the analyzer must not warn about the new tag,
 e.g. about a `field` that is no output column or about `data`. `Script::rewrite_vegalite` then replaces
-the renderer tag of the terminal query (`vegalite`, `markdown` or `table`) or adds one, and consolidates
+the renderer tag of the terminal query (`vegalite`, `markdown`, `kpi` or `table`) or adds one, and consolidates
 the annotation like the other rewrites (see Rewriting tags); the spec is printed compactly (see Formatting).
 
 The editor highlights comment tags like code (`vis_highlight.rs`), so the tags of an annotation read
 alike: every tag (`@vis`, `@board`, `@flow`, `@param` and an `@end` of older scripts) is a
 keyword, the JSON of `vegalite` is split into keys (identifiers) and strings, numbers and booleans (literals),
-the kind of a `@vis` tag is a keyword, the keys of the args of `@board` and `@flow` and `{{field}}` placeholders
-are identifiers. The comment markers of every tagged region step back. Other editors show the tags as plain
+the kind of a `@vis` tag is a keyword, the keys of the args of `@board`, `@flow` and `@vis kpi` and `{{field}}`
+placeholders are identifiers, the values of the args of a KPI card strings. The comment markers of every tagged region step back. Other editors show the tags as plain
 comments.
 
 Highlighting, completion and the spans of analyzer warnings read the JSON of `vegalite` tags with the same
@@ -260,7 +305,7 @@ comments are the description on top, printed as written, and an empty line separ
 tagged comments that follow each other with nothing but whitespace between them (block comments and tagged regions
 of line comments) are merged into one, and ordinary comments between them keep them apart.
 
-`@vis table`, `@board` and `@flow` tags are printed on one line, the `@vis board` and `@vis flow` of older scripts
+`@vis table`, `@vis kpi`, `@board` and `@flow` tags are printed on one line, the `@vis board` and `@vis flow` of older scripts
 as `@board` and `@flow`, the JSON of `vegalite` compactly with the key order kept (`compact_json.rs`),
 Markdown and the values of `@param` verbatim. A JSON value that fits in the rest of
 its line stays on one line, objects and arrays that don't fit put each entry on a line of its own with

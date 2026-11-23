@@ -374,7 +374,7 @@ pub fn affected_scripts(dataflow: &Dataflow, inputs: &[String]) -> Vec<u32> {
 }
 
 /// Can the views show a visualization? A Markdown visualization needs its document, a Vega-Lite one a spec that is
-/// JSON, a table nothing.
+/// JSON, a KPI card its spec, a table nothing.
 pub fn visualization_is_valid(visualization: &CompiledVisualizationT) -> bool {
     match visualization.renderer.as_deref() {
         Some("markdown") => visualization.markdown_spec.as_ref().is_some_and(|spec| spec.document.is_some()),
@@ -382,6 +382,7 @@ pub fn visualization_is_valid(visualization: &CompiledVisualizationT) -> bool {
             .vegalite_spec
             .as_deref()
             .is_some_and(|spec| !spec.is_empty() && serde_json::from_str::<Value>(spec).is_ok()),
+        Some("kpi") => visualization.kpi_spec.is_some(),
         Some("table") => true,
         _ => false,
     }

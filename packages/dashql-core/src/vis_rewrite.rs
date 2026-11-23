@@ -35,6 +35,8 @@ pub enum VisRenderer {
     VegaLite(Map<String, Value>),
     /// A Markdown row template
     Markdown(String),
+    /// A KPI card with its `key=value` args, separated by single spaces
+    Kpi(String),
     /// The result table
     Table,
 }
@@ -52,6 +54,8 @@ impl VisRenderer {
                 Err(Error::invalid_argument("a Markdown template must not be empty"))
             }
             "markdown" => Ok(VisRenderer::Markdown(body.to_string())),
+            // The args stay on the line of the tag
+            "kpi" => Ok(VisRenderer::Kpi(body.split_whitespace().collect::<Vec<_>>().join(" "))),
             "table" => Ok(VisRenderer::Table),
             _ => Err(Error::invalid_argument(format!("unknown @vis renderer \"{kind}\""))),
         }
@@ -70,6 +74,8 @@ impl VisRenderer {
             VisRenderer::Markdown(template) => {
                 std::iter::once("markdown".to_string()).chain(template.trim_end().lines().map(str::to_string)).collect()
             }
+            VisRenderer::Kpi(args) if args.is_empty() => vec!["kpi".to_string()],
+            VisRenderer::Kpi(args) => vec![format!("kpi {args}")],
             VisRenderer::Table => vec!["table".to_string()],
         };
         AnnotationTag::new(VIS_TAG, lines)
@@ -146,7 +152,7 @@ pub(crate) fn is_vis_family(tag: &AnnotationTag) -> bool {
 
 /// Is a tag the renderer of a visualization?
 fn is_renderer(tag: &AnnotationTag) -> bool {
-    is_vis(tag) && matches!(tag.kind(), "vegalite" | "markdown" | "table")
+    is_vis(tag) && matches!(tag.kind(), "vegalite" | "markdown" | "kpi" | "table")
 }
 
 /// Is a tag the dashboard placement of a visualization, `@board` or the `@vis board` of older scripts?

@@ -20,7 +20,7 @@ export type WorkbookMetadata = app_workbook.WorkbookMetadata;
 
 /// A query with `@vis` tags resolved against the workbook. Discriminated on the
 /// renderer named by the tag: `vegalite` carries a parsed Vega-Lite spec,
-/// `markdown` carries the compiled row template.
+/// `markdown` carries the compiled row template, `kpi` the columns of a KPI card.
 /// All carry the SQL to execute against the backend and the statement with the tags.
 export type ResolvedVisualizeQuery =
     | {
@@ -41,6 +41,16 @@ export type ResolvedVisualizeQuery =
           statementId: number;
           // The row template compiled by dashql-core.
           markdownSpec: core_buffers.visualization.MarkdownSpecT;
+          dashboardSpec?: DashboardSpec | null;
+      }
+    | {
+          renderer: 'kpi';
+          // The SQL to execute against the backend
+          sql: string;
+          // The statement whose @vis tags describe the visualization
+          statementId: number;
+          // The columns of the value and of the x axis and the change next to the value
+          kpiSpec: core_buffers.visualization.KpiSpecT;
           dashboardSpec?: DashboardSpec | null;
       }
     | {

@@ -161,6 +161,33 @@ fn vis_tag_markdown() {
 }
 
 #[test]
+fn vis_tag_kpi() {
+    use dashql_buffers::visualization::KpiDelta;
+    let text = "/* @vis kpi value=revenue x=day delta=first */\nselect 1 as day, 2 as revenue";
+    let result = compile_text(text);
+    assert!(result.errors.as_ref().unwrap().is_empty(), "{:?}", result.errors);
+    assert_eq!(result.kind, StatementKind::VISUALIZE);
+    let visualization = result.visualization.as_ref().unwrap();
+    assert_eq!(visualization.renderer.as_deref(), Some("kpi"));
+    let kpi = visualization.kpi_spec.as_ref().unwrap();
+    assert_eq!(kpi.value_column.as_deref(), Some("revenue"));
+    assert_eq!(kpi.x_column.as_deref(), Some("day"));
+    assert_eq!(kpi.delta, KpiDelta::FIRST);
+    // A KPI card is small unless its placement sizes it
+    let dashboard = visualization.dashboard.as_ref().unwrap();
+    assert_eq!((dashboard.width, dashboard.height), (3, 3));
+
+    // Without args, the card shows the last column against the previous row
+    let result = compile_text("/* @vis kpi\n   @board column=10 height=2 */\nselect 42 as total");
+    let visualization = result.visualization.as_ref().unwrap();
+    let kpi = visualization.kpi_spec.as_ref().unwrap();
+    assert_eq!((kpi.value_column.as_deref(), kpi.x_column.as_deref()), (None, None));
+    assert_eq!(kpi.delta, KpiDelta::PREVIOUS);
+    let dashboard = visualization.dashboard.as_ref().unwrap();
+    assert_eq!((dashboard.column, dashboard.width, dashboard.height), (Some(9), 3, 2));
+}
+
+#[test]
 fn invalid_vis_tags_run_the_query() {
     for text in
         ["/* @vis vegalite {\"mark\": */ select 1", "/* @board width=6 */ select 1", "/* @vis chart */ select 1"]

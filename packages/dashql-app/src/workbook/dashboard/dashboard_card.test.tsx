@@ -451,6 +451,9 @@ describe('DashboardCard', () => {
             expect(callbacks.onVisualize).toHaveBeenCalledWith(1, 'markdown', markdownTemplate(['region', 'revenue', 'year']));
             act(() => button('dashboard-card-renderer-chart').click());
             expect(callbacks.onVisualize).toHaveBeenCalledWith(1, 'vegalite', JSON.stringify(NEW_CHART_SPEC));
+            // A KPI card starts with the defaults of its tag
+            act(() => button('dashboard-card-renderer-kpi').click());
+            expect(callbacks.onVisualize).toHaveBeenCalledWith(1, 'kpi', '');
             act(() => button('dashboard-card-edit').click());
             expect(callbacks.onOpenEditor).toHaveBeenCalledWith(1);
         });
@@ -467,6 +470,7 @@ describe('DashboardCard', () => {
             expect(button('dashboard-card-renderer-table').disabled).toBe(true);
             expect(button('dashboard-card-renderer-chart').disabled).toBe(true);
             expect(button('dashboard-card-renderer-markdown').disabled).toBe(true);
+            expect(button('dashboard-card-renderer-kpi').disabled).toBe(true);
             expect(button('dashboard-card-edit').disabled).toBe(false);
         });
     });

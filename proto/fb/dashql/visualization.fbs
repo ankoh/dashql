@@ -10,3 +10,22 @@ table DashboardSpec {
 
 /// The table renderer has no renderer-specific options yet.
 table TableSpec {}
+
+/// The change that a KPI card shows next to its value
+enum KpiDelta: uint8 {
+    /// The value of the last row against the row before it
+    PREVIOUS,
+    /// The value of the last row against the first row
+    FIRST,
+    /// No change, only the value
+    NONE,
+}
+
+/// A KPI card: the value of the last row, large, over a chart of the value across the rows. The columns are the
+/// names of the `@vis kpi` tag, null for the default: the last column of the result is the value, the first one
+/// the x axis if the result has more than one.
+table KpiSpec {
+    value_column: string;
+    x_column: string;
+    delta: KpiDelta = PREVIOUS;
+}

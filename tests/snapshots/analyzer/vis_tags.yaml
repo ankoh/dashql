@@ -496,11 +496,11 @@ analyzer-snapshots:
       errors:
         - type: INVALID_VIS_TAG
           severity: WARNING
-          message: 'unknown @vis kind "chart", expected vegalite, markdown or table'
+          message: 'unknown @vis kind "chart", expected vegalite, markdown, kpi or table'
           text: "chart"
         - type: INVALID_VIS_TAG
           severity: WARNING
-          message: '@vis needs a kind: vegalite, markdown or table'
+          message: '@vis needs a kind: vegalite, markdown, kpi or table'
           text: "vis"
         - type: INVALID_VIS_TAG
           severity: WARNING
@@ -512,16 +512,16 @@ analyzer-snapshots:
           text: "markdown"
         - type: INVALID_VIS_TAG
           severity: WARNING
-          message: '@board width must be an integer'
-          text: "width=x"
-        - type: INVALID_VIS_TAG
-          severity: WARNING
           message: 'unknown @board arg "depth", expected row, column, width or height'
           text: "depth=2"
         - type: INVALID_VIS_TAG
           severity: WARNING
           message: '@board takes key=value args, not "row"'
           text: "row"
+        - type: INVALID_VIS_TAG
+          severity: WARNING
+          message: '@board width must be an integer'
+          text: "width=x"
         - type: INVALID_VIS_TAG
           severity: WARNING
           message: 'the statement already has a @board, this tag is ignored'
@@ -1486,3 +1486,230 @@ analyzer-snapshots:
         statement-id: 1
         width: 3
         height: 6
+
+  - name: vis_tag_kpi
+    catalog:
+      script:
+        input: |-
+          create table sales (region text, revenue int, date timestamp);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: sales
+            text: "create tab..timestamp)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: region
+                text: "region text"
+              - catalog-id: "256.65536.4294967296.1"
+                name: revenue
+                text: "revenue int"
+              - catalog-id: "256.65536.4294967296.2"
+                name: date
+                text: "date timestamp"
+        touched-relations:
+          - statement-id: 0
+            name: sales
+        errors: []
+    script:
+      input: |
+        /**
+         * Revenue
+         *
+         * @vis kpi value=total x=date delta=first
+         * @board row=0 height=2
+         */
+        select date, sum(revenue) as total from sales group by date order by date;
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "sales"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.2"
+          source: "sales"
+          statement-id: 0
+          text: "date"
+        - expression-idx: 1
+          type: colref/catalog
+          catalog: "256.65536.4294967296.1"
+          source: "sales"
+          statement-id: 0
+          text: "revenue"
+        - expression-idx: 2
+          type: colref/catalog
+          catalog: "256.65536.4294967296.2"
+          source: "sales"
+          statement-id: 0
+          text: "date"
+        - expression-idx: 3
+          type: colref/catalog
+          catalog: "256.65536.4294967296.2"
+          statement-id: 0
+          text: "date"
+        - expression-idx: 4
+          type: function
+          name: sum
+          statement-id: 0
+          text: "sum(revenue)"
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - type: table
+              name: sales
+              text: "sales"
+          columns:
+            - name: date
+              expression: 0
+            - name: total
+              expression: 4
+          text: "select dat..er by date"
+      visualizations:
+        - statement-id: 0
+          source: "select dat..er by date"
+          renderer: kpi
+          dashboard:
+            row: 0
+            width: 3
+            height: 2
+          kpi:
+            value: total
+            x: date
+            delta: first
+      board:
+        statement-id: 0
+        row: 0
+        width: 3
+        height: 2
+
+  - name: vis_tag_kpi_defaults_and_warnings
+    catalog:
+      script:
+        input: |-
+          create table sales (region text, revenue int, date timestamp);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: sales
+            text: "create tab..timestamp)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: region
+                text: "region text"
+              - catalog-id: "256.65536.4294967296.1"
+                name: revenue
+                text: "revenue int"
+              - catalog-id: "256.65536.4294967296.2"
+                name: date
+                text: "date timestamp"
+        touched-relations:
+          - statement-id: 0
+            name: sales
+        errors: []
+    script:
+      input: |
+        /* @vis kpi */
+        select sum(revenue) as total from sales;
+        /* @vis kpi value=revenue x=day delta=last */
+        select date, sum(revenue) as total from sales group by date;
+      catalog-id: 2
+      errors:
+        - type: INVALID_VIS_TAG
+          severity: WARNING
+          message: 'unknown column "revenue", the statement has the columns date, total'
+          text: "value=revenue"
+        - type: INVALID_VIS_TAG
+          severity: WARNING
+          message: 'unknown column "day", the statement has the columns date, total'
+          text: "x=day"
+        - type: INVALID_VIS_TAG
+          severity: WARNING
+          message: 'unknown @vis kpi delta "last", expected previous, first, none'
+          text: "delta=last"
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "sales"
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 1
+          text: "sales"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.1"
+          source: "sales"
+          statement-id: 0
+          text: "revenue"
+        - expression-idx: 1
+          type: colref/catalog
+          catalog: "256.65536.4294967296.2"
+          source: "sales"
+          statement-id: 1
+          text: "date"
+        - expression-idx: 2
+          type: colref/catalog
+          catalog: "256.65536.4294967296.1"
+          source: "sales"
+          statement-id: 1
+          text: "revenue"
+        - expression-idx: 3
+          type: colref/catalog
+          catalog: "256.65536.4294967296.2"
+          source: "sales"
+          statement-id: 1
+          text: "date"
+        - expression-idx: 4
+          type: function
+          name: sum
+          text: "sum(revenue)"
+        - expression-idx: 5
+          type: function
+          name: sum
+          statement-id: 1
+          text: "sum(revenue)"
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - type: table
+              name: sales
+              text: "sales"
+          columns:
+            - name: total
+              expression: 4
+          text: "select sum..from sales"
+        - scope-id: 1
+          sources:
+            - type: table
+              name: sales
+              text: "sales"
+          columns:
+            - name: date
+              expression: 1
+            - name: total
+              expression: 5
+          text: "select dat..up by date"
+      visualizations:
+        - statement-id: 0
+          source: "select sum..from sales"
+          renderer: kpi
+          dashboard:
+            width: 3
+            height: 3
+          kpi:
+            delta: previous
+        - statement-id: 1
+          source: "select dat..up by date"
+          renderer: kpi
+          dashboard:
+            width: 3
+            height: 3
+          kpi:
+            value: revenue
+            x: day
+            delta: previous

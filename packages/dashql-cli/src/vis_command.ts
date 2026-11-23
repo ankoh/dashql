@@ -13,6 +13,7 @@ import {
     compileProblems,
     type VegaLiteCompile,
 } from '@akohn/dashql/platform/workbook/chart_config';
+import { formatKpiChange, KPI_CHECK_ROWS, kpiBase, kpiProblems, readKpi, type KpiReading } from '@akohn/dashql/platform/workbook/kpi_reading';
 import { STORAGE_SCRIPTS_FOLDER, STORAGE_WORKBOOK_FILE } from '@akohn/dashql/platform/storage/storage_backend';
 import type { RunEvent } from '@akohn/dashql/platform/workbook/run_events';
 
@@ -25,8 +26,13 @@ export const VIS_USAGE = `Usage: dashql vis [-w <dir>] [--out <file.png>] [--wid
 
 Checks the chart of a script and renders it as PNG to look at. The chart is the @vis tag in the comment above the
 last query of the script, the result of the script is its data. vis runs the script like dashql run, a result that is
-cached is not run again. It prints the renderer, the columns and the rows of the result, and what is wrong with a
-Vega-Lite chart: errors and warnings of Vega-Lite, fields that are no columns of the result, sizes that DashQL decides.
+cached is not run again. It prints the renderer, the columns and the rows of the result, and what is wrong with the
+tag, e.g. an unknown arg, and with a Vega-Lite chart: errors and warnings of Vega-Lite, fields that are no columns of
+the result, sizes that DashQL decides.
+
+A KPI card (@vis kpi) gets no PNG, vis prints what it shows instead: the value, its change and the points of its
+chart. It reports columns that the result lacks, a value column without numbers, rows that are not in the order of
+the x axis, and a result without rows or with more than ${KPI_CHECK_ROWS}.
 
 The tab of DashQL renders the PNG with the result, as it runs the script: for a workbook that it copied into a
 session of dashql connect, workbooks/<workbook id> of its workspace. It has the theme of DashQL, ${CHART_IMAGE_WIDTH}x${CHART_IMAGE_HEIGHT} at scale ${CHART_IMAGE_SCALE} unless given otherwise.
@@ -102,10 +108,26 @@ function parseVisArgs(args: string[]): VisArgs | string {
 
 /// The chart of a script as the core compiles it: the renderer of the `@vis` tag of its last query and its spec
 interface ScriptChart {
-    renderer: 'vegalite' | 'markdown' | 'table' | null;
+    renderer: 'vegalite' | 'markdown' | 'kpi' | 'table' | null;
     spec: Record<string, unknown> | null;
-    /// The errors of compiling the script, e.g. a spec that is no JSON
+    /// The KPI card of `@vis kpi`
+    kpi: core.buffers.visualization.KpiSpecT | null;
+    /// The errors of compiling the script, e.g. a spec that is no JSON, and the warnings of the analyzer about the
+    /// `@vis` tags. Columns and fields are checked against the result instead.
     errors: string[];
+}
+
+/// The warnings of the analyzer about the `@vis` tags of a script, but those about columns: the result has them all
+function tagWarnings(script: core.DashQLScript): string[] {
+    const analyzed = script.getAnalyzed().read();
+    const warnings: string[] = [];
+    for (let i = 0; i < analyzed.errorsLength(); ++i) {
+        const error = analyzed.errors(i);
+        if (error == null || error.errorType() !== core.buffers.analyzer.AnalyzerErrorType.INVALID_VIS_TAG) continue;
+        const message = error.message() ?? '';
+        if (!/^unknown (column|field) "/.test(message)) warnings.push(message);
+    }
+    return warnings;
 }
 
 /// The formatting of the compiled query, only the chart matters here
@@ -130,21 +152,48 @@ export function scriptChart(dql: core.DashQL, text: string): ScriptChart {
         const errors = compiled.errors.map((error: core.buffers.execution.ScriptCompilationErrorT) => String(error.message ?? ''));
         const visualization = compiled.visualization;
         const renderer = visualization?.renderer;
-        if (renderer !== 'vegalite' && renderer !== 'markdown' && renderer !== 'table') return { renderer: null, spec: null, errors };
-        if (renderer !== 'vegalite') return { renderer, spec: null, errors };
+        if (renderer !== 'vegalite' && renderer !== 'markdown' && renderer !== 'kpi' && renderer !== 'table') return { renderer: null, spec: null, kpi: null, errors };
+        errors.push(...tagWarnings(script));
+        if (renderer === 'kpi') return { renderer, spec: null, kpi: visualization!.kpiSpec ?? null, errors };
+        if (renderer !== 'vegalite') return { renderer, spec: null, kpi: null, errors };
         try {
             const spec = JSON.parse(String(visualization!.vegaliteSpec ?? ''));
-            if (spec == null || typeof spec !== 'object' || Array.isArray(spec)) return { renderer, spec: null, errors: [...errors, 'the Vega-Lite spec is no JSON object'] };
+            if (spec == null || typeof spec !== 'object' || Array.isArray(spec)) return { renderer, spec: null, kpi: null, errors: [...errors, 'the Vega-Lite spec is no JSON object'] };
             // The core adds the schema and the query as data, the spec of the tag has neither
             const { $schema: _schema, data: _data, ...authored } = spec as Record<string, unknown>;
-            return { renderer, spec: authored, errors };
+            return { renderer, spec: authored, kpi: null, errors };
         } catch (error) {
-            return { renderer, spec: null, errors: [...errors, `the Vega-Lite spec is no valid JSON: ${error instanceof Error ? error.message : String(error)}`] };
+            return { renderer, spec: null, kpi: null, errors: [...errors, `the Vega-Lite spec is no valid JSON: ${error instanceof Error ? error.message : String(error)}`] };
         }
     } finally {
         script.destroy();
         catalog.destroy();
     }
+}
+
+/// What a KPI card shows, in a line
+export function describeKpi(reading: KpiReading, spec: core.buffers.visualization.KpiSpecT): string {
+    const parts = [`${reading.label} ${reading.value ?? '–'}`];
+    const base = kpiBase(spec);
+    if (reading.rows < 2) {
+        parts.push(reading.rows === 1 ? 'one row: no change and no chart' : 'no rows');
+        return parts.join(', ');
+    }
+    if (reading.change != null) {
+        const sign = reading.change > 0 ? '▲ ' : reading.change < 0 ? '▼ ' : '';
+        parts.push(`${sign}${formatKpiChange(reading.change)} against ${base}`);
+    } else if (base == null) {
+        parts.push('no change (delta=none)');
+    } else {
+        parts.push(`no change: ${base} has no number or zero`);
+    }
+    if (reading.points.length >= 2) {
+        const along = reading.xLabel != null && reading.ordered === true ? `over ${reading.xLabel}` : 'in the order of the rows';
+        parts.push(`a chart of ${reading.points.length} points ${along}`);
+    } else {
+        parts.push('no chart');
+    }
+    return parts.join(', ');
 }
 
 /// The file name of a script that the user named: `orders`, `orders.sql` or `scripts/orders.sql`
@@ -202,8 +251,10 @@ export async function runVis(args: string[], cli: CliProcess, env: RunEnvironmen
     let image: Extract<RunEvent, { type: 'script_chart' }> | null = null;
     const failures: string[] = [];
     let code: number;
-    // The columns of the result are enough here, the tab renders the chart with all of it
-    const run = { workbook: parsed.workbook, workspace, scripts: [fileName], rows: 0, refresh: parsed.refresh, verbose: false };
+    // The columns of the result are enough for a Vega-Lite chart, the tab renders it with all of the result. A KPI card
+    // is read here, from the rows of the result.
+    const rows = tag.kpi != null ? KPI_CHECK_ROWS : 0;
+    const run = { workbook: parsed.workbook, workspace, scripts: [fileName], rows, refresh: parsed.refresh, verbose: false };
     // The tab renders the PNG of a Vega-Lite chart after the result
     const chartSize = tag.spec == null ? null : { width: parsed.width, height: parsed.height, scale: parsed.scale };
     try {
@@ -238,10 +289,21 @@ export async function runVis(args: string[], cli: CliProcess, env: RunEnvironmen
     const columns = table?.schema.fields.map(field => field.name) ?? null;
     if (tag.spec != null) problems.push(...chartSpecProblems(tag.spec, columns));
 
-    const rows = result?.rows ?? null;
-    cli.stdout(`${fileName}: @vis ${tag.renderer}${rows == null ? ', no result' : `, ${rows} row${rows === 1 ? '' : 's'}`}${columns == null ? '' : `, columns ${columns.join(', ') || 'none'}`}\n`);
+    const resultRows = result?.rows ?? null;
+    cli.stdout(`${fileName}: @vis ${tag.renderer}${resultRows == null ? ', no result' : `, ${resultRows} row${resultRows === 1 ? '' : 's'}`}${columns == null ? '' : `, columns ${columns.join(', ') || 'none'}`}\n`);
     for (const failure of failures) cli.stdout(`  ${failure}\n`);
     if (result == null) problems.push('the script has no result, the chart is not rendered');
+
+    // A KPI card is checked with the rows of the result
+    if (tag.kpi != null && table != null && resultRows != null) {
+        if (resultRows > KPI_CHECK_ROWS || resultRows > table.numRows) {
+            problems.push(`the result has ${resultRows} rows, more than the ${KPI_CHECK_ROWS} that a KPI card is checked with: aggregate the query, e.g. by day or week`);
+        } else {
+            const reading = readKpi(table, tag.kpi);
+            if (reading.missing == null) cli.stdout(`  KPI card: ${describeKpi(reading, tag.kpi)}\n`);
+            problems.push(...kpiProblems(reading, columns ?? []));
+        }
+    }
 
     // The PNG of the tab
     const rendered = image as Extract<RunEvent, { type: 'script_chart' }> | null;

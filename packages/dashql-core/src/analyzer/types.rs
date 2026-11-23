@@ -660,6 +660,12 @@ impl Default for DashboardSpec {
     }
 }
 
+impl DashboardSpec {
+    /// The size of a KPI card without a size of its own: four of them fill a row of the board
+    pub const KPI_WIDTH: i32 = 3;
+    pub const KPI_HEIGHT: i32 = 3;
+}
+
 /// The dashboard placement of a script, the `@board` tag of its last statement. A statement without a renderer is a
 /// collapsed card.
 #[derive(Clone, Debug)]
@@ -701,6 +707,45 @@ pub struct MarkdownSpec {
     pub row_template: String,
 }
 
+/// The change that a KPI card shows next to its value, the `delta` of `@vis kpi`
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum KpiDelta {
+    /// The value of the last row against the row before it
+    #[default]
+    Previous,
+    /// The value of the last row against the first row
+    First,
+    /// Only the value
+    None,
+}
+
+impl KpiDelta {
+    /// The values of the `delta` arg
+    pub const NAMES: &'static [&'static str] = &["previous", "first", "none"];
+
+    /// The delta of a value of the `delta` arg
+    pub fn from_name(name: &str) -> Option<Self> {
+        match name {
+            "previous" => Some(Self::Previous),
+            "first" => Some(Self::First),
+            "none" => Some(Self::None),
+            _ => None,
+        }
+    }
+}
+
+/// A KPI card, the args of the `@vis kpi` tag. The value of the last row is the figure, the rows are the chart
+/// behind it.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct KpiSpec {
+    /// The column of the value, None for the last column of the result
+    pub value: Option<String>,
+    /// The column of the x axis of the chart, None for the first column of a result with more than one
+    pub x: Option<String>,
+    /// The change next to the value
+    pub delta: KpiDelta,
+}
+
 /// A visualization specification, built from the `@vis` tags of a query
 #[derive(Clone, Debug, Default)]
 pub struct VisualizationSpec {
@@ -708,7 +753,7 @@ pub struct VisualizationSpec {
     pub ast_node_id: u32,
     /// The AST statement id
     pub ast_statement_id: Option<u32>,
-    /// The renderer named by the `@vis` tag (`vegalite`, `markdown` or `table`)
+    /// The renderer named by the `@vis` tag (`vegalite`, `markdown`, `kpi` or `table`)
     pub renderer: Option<String>,
     /// The dashboard grid placement
     pub dashboard: DashboardSpec,
@@ -716,4 +761,6 @@ pub struct VisualizationSpec {
     pub markdown: Option<MarkdownSpec>,
     /// The Vega-Lite spec of a `@vis vegalite` tag, a JSON object without `data`
     pub vegalite: Option<serde_json::Map<String, serde_json::Value>>,
+    /// The KPI card, present if the renderer is `kpi`
+    pub kpi: Option<KpiSpec>,
 }

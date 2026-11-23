@@ -4,6 +4,7 @@ import type { ResolvedVisualizeQuery } from '@akohn/dashql/platform/workbook/scr
 import { VegaLiteView } from '../vegalite_view.js';
 import { VegaLitePreview } from './vegalite_preview.js';
 import { MarkdownView } from './markdown_view.js';
+import { KpiView } from './kpi_view.js';
 
 export interface VisualizationDispatchProps {
     /// The query, a chart shows its result and follows the cross filters of its computation
@@ -48,6 +49,8 @@ export function VisualizationDispatch(props: VisualizationDispatchProps): React.
             );
         case 'markdown':
             return <MarkdownView query={props.model?.query ?? null} resultTable={props.model?.result ?? null} spec={vq.markdownSpec} />;
+        case 'kpi':
+            return <KpiView query={props.model?.query ?? null} resultTable={props.model?.result ?? null} spec={vq.kpiSpec} />;
         case 'table':
             return <>{props.table()}</>;
     }

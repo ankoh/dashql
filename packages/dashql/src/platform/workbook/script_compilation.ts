@@ -22,6 +22,10 @@ export function resolveCompiledVisualization(
                 return null;
             }
         }
+        case 'kpi': {
+            const kpiSpec = visualization.kpiSpec;
+            return kpiSpec ? { renderer: 'kpi', sql, statementId, kpiSpec, dashboardSpec } : null;
+        }
         case 'table':
             return { renderer: 'table', sql, statementId, dashboardSpec };
         default:

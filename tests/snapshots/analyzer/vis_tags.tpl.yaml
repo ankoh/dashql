@@ -267,3 +267,32 @@ analyzer-snapshots:
         /* @vis table
            @board column=-2 width=3 */
         select 2 as b;
+
+  # A KPI card names the columns of its value and of its x axis, it is small unless its placement sizes it
+  - name: vis_tag_kpi
+    catalog:
+      script:
+        input: |-
+          create table sales (region text, revenue int, date timestamp);
+    script:
+      input: |
+        /**
+         * Revenue
+         *
+         * @vis kpi value=total x=date delta=first
+         * @board row=0 height=2
+         */
+        select date, sum(revenue) as total from sales group by date order by date;
+
+  # Without args the card takes the last column of the result, unknown columns and kinds of change are warnings
+  - name: vis_tag_kpi_defaults_and_warnings
+    catalog:
+      script:
+        input: |-
+          create table sales (region text, revenue int, date timestamp);
+    script:
+      input: |
+        /* @vis kpi */
+        select sum(revenue) as total from sales;
+        /* @vis kpi value=revenue x=day delta=last */
+        select date, sum(revenue) as total from sales group by date;

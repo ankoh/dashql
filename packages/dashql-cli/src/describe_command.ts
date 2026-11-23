@@ -100,7 +100,20 @@ Charts:
     select region, sum(amount) as revenue from :orders group by region;
 
   @vis vegalite takes a Vega-Lite spec as JSON object, @vis markdown a template that renders every row with
-  {{column}} placeholders, @vis table shows the table of the result.
+  {{column}} placeholders, @vis table shows the table of the result, @vis kpi a KPI card.
+- A KPI card shows one key figure large, like the figures in a row on top of a dashboard: one script per figure. Its
+  query returns the figure over time, ordered by time, one row per day, week or month. The card shows the value of
+  the last row, its change against the row before (delta=previous, first or none), and the rows as a chart behind it.
+  value= and x= name the columns, by default the last column is the value and the first one the x axis. A query of
+  one row shows just the value. Put the KPI cards of a request on top of the dashboard with @board row=0:
+
+    /**
+     * Revenue
+     *
+     * @vis kpi value=revenue x=day
+     * @board row=0
+     */
+    select day, sum(amount) as revenue from :orders group by day order by day;
 - The fields of a spec are columns of the result: name the columns in the query as the chart needs them.
 - Leave the size of a chart to DashQL: no width, height, autosize or padding, also not in the views of a layer, concat
   or facet, and no step widths. Leave out data as well. DashQL fits every chart to its card, and the cards of the feed,
@@ -108,14 +121,15 @@ Charts:
   fit their card.
 - After every change of a chart, run dashql vis on its script and look at the PNG if you can read images: overlapping
   labels, unreadable axes, empty marks. Check a narrow card too, --width 400 --height 400. Fix what it reports and what
-  reads badly.
+  reads badly. For a KPI card it prints what the card shows instead of a PNG.
 
 How to work:
 1. Learn the workbook: dashql-workbook.json, its scripts, and dashql catalog for the tables and the attachments.
 2. Write SQL into new scripts that build on the existing ones, run them with dashql run and fix the errors. Run the
    workbook folder, not a copy of it: the tab follows the folder. A workbook that the tab copied runs in the tab, on
    the connections that the user lets you use, and the user watches the run there.
-3. Chart a result that a chart explains better than a table, and check it with dashql vis.
+3. Chart a result that a chart explains better than a table, and check it with dashql vis. A request for an overview
+   or a dashboard gets KPI cards for its key figures first.
    The tab puts a new script where dashql-workbook.json lists it. Move a script with dashql move, e.g. next to the
    scripts of its topic.
 4. The user watches the scripts change and run. Do not recap your steps, the queries or the results: end with one

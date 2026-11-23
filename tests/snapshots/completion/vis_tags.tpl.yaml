@@ -320,3 +320,44 @@ completion-snapshots:
         index: 2
     completions:
       limit: 3
+  # The args of a KPI card
+  - name: vis_kpi_arg
+    catalog: {}
+    editor:
+      input: |
+        /* @vis kpi value=a d */
+        select 1 as a
+    cursor:
+      search:
+        text: ' d '
+        index: 2
+    completions:
+      limit: 3
+  # The value of a KPI card is a column of the query
+  - name: vis_kpi_value_column
+    catalog:
+      script:
+        input: create table sales (region text, revenue int);
+    editor:
+      input: |
+        /* @vis kpi value=re */
+        select region, revenue from sales
+    cursor:
+      search:
+        text: '=re'
+        index: 3
+    completions:
+      limit: 3
+  # The kinds of change of a KPI card
+  - name: vis_kpi_delta
+    catalog: {}
+    editor:
+      input: |
+        /* @vis kpi delta=f */
+        select 1 as a
+    cursor:
+      search:
+        text: '=f'
+        index: 2
+    completions:
+      limit: 3

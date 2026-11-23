@@ -357,7 +357,7 @@ impl Script {
         crate::annotation::write_annotation(&self.text.to_string(), &parsed, statement_id, annotation)
     }
 
-    /// Set or remove the renderer of a query, its `@vis vegalite`, `markdown` or `table` tag (see
+    /// Set or remove the renderer of a query, its `@vis vegalite`, `markdown`, `kpi` or `table` tag (see
     /// `vis_rewrite`). Returns the new text, the script is not changed.
     ///
     /// The spans of the parsed script are applied to the current text, which differs from the parsed
@@ -423,7 +423,7 @@ impl Script {
     }
 
     /// Visualize the terminal query with a Vega-Lite spec: replace its renderer tag (`@vis vegalite`,
-    /// `markdown` or `table`) by `@vis vegalite <spec>`, or add one. The annotation of the query is
+    /// `markdown`, `kpi` or `table`) by `@vis vegalite <spec>`, or add one. The annotation of the query is
     /// consolidated into one comment (see `vis_rewrite`).
     ///
     /// The spec must be a JSON object, it is written compactly with its key order kept (`compact_json`).

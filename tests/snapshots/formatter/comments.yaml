@@ -167,6 +167,43 @@ formatter-snapshots:
         validation:
           setup: |-
 
+  - name: kpi_tag_args
+    input: |-
+      -- Revenue
+      /* @vis kpi   value=revenue    x=day
+         @board width=3 */
+      select day, revenue from t
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select day, revenue from t;
+          - mode: compact
+            width: 40
+            expected: |-
+              /**
+               * Revenue
+               *
+               * @vis kpi value=revenue x=day
+               * @board width=3
+               */
+              select day, revenue from t;
+          - mode: pretty
+            width: 40
+            expected: |-
+              /**
+               * Revenue
+               *
+               * @vis kpi value=revenue x=day
+               * @board width=3
+               */
+              select day, revenue
+              from t;
+        validation:
+          setup: |-
+            create table t(day date, revenue int);
+
   - name: tagged_comment_regions_are_merged
     input: |-
       -- @vis vegalite

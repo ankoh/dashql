@@ -866,8 +866,8 @@ impl ScriptSession {
         self.inner.borrow_mut().rewrite_result_projection(&columns, &config, parse_if_outdated).map_err(js_error)
     }
 
-    /// Set the renderer tag of a query (`vegalite` with a JSON object, `markdown` with a template or
-    /// `table`), an empty kind removes it. Returns the new text.
+    /// Set the renderer tag of a query (`vegalite` with a JSON object, `markdown` with a template, `kpi` with its
+    /// args or `table`), an empty kind removes it. Returns the new text.
     #[wasm_bindgen(js_name = rewriteVisRenderer)]
     pub fn rewrite_vis_renderer(
         &self,

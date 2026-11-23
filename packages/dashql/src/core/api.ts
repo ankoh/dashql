@@ -891,11 +891,12 @@ export abstract class DashQLScriptSessionReader<O extends NativeScriptSession | 
         );
     }
 
-    /// Set the renderer of a query, its `@vis vegalite` (a JSON object), `markdown` (a row template) or `table` tag.
+    /// Set the renderer of a query, its `@vis vegalite` (a JSON object), `markdown` (a row template), `kpi` (its
+    /// args) or `table` tag.
     /// A null kind removes it. Returns the new text, the script is not changed.
     public rewriteVisRenderer(
         statementId: number,
-        kind: 'vegalite' | 'markdown' | 'table' | null,
+        kind: 'vegalite' | 'markdown' | 'kpi' | 'table' | null,
         body: string = '',
         parseIfOutdated: boolean = true,
     ): string {
@@ -1082,7 +1083,7 @@ export class DashQLScript {
         return this.ptr.assertNotNull().rewriteAnnotation(statementId, JSON.stringify(annotation), parseIfOutdated);
     }
     /// Visualize the terminal query with a Vega-Lite spec, a JSON object: replace its `@vis vegalite`,
-    /// `markdown` or `table` tag in the text, or insert a `@vis vegalite` comment. Returns the UTF-8 byte
+    /// `markdown`, `kpi` or `table` tag in the text, or insert a `@vis vegalite` comment. Returns the UTF-8 byte
     /// range of the written tag in the new text.
     public rewriteVegaLite(spec: string, parseIfOutdated: boolean = true): { offset: number; length: number } {
         const [offset, length] = this.ptr.assertNotNull().rewriteVegaLite(spec, parseIfOutdated);
