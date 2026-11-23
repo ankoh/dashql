@@ -2054,6 +2054,7 @@ planner-snapshots:
           analyzed-text-version: 1
           analyzed-catalog-revision: 1
           cacheable: false
+          terminal-statement-id: 0
       entities: []
       unresolved-references: []
       nodes: []
@@ -2062,9 +2063,6 @@ planner-snapshots:
         - script: malformed
           error: true
           message: 'scanner: unterminated quoted string'
-        - script: malformed
-          error: true
-          message: 'unsupported SQL: parser produced no statements'
 
   - name: StaleAnalysis
     scripts:

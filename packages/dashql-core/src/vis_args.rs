@@ -8,7 +8,7 @@
 //! the rewrites all read args with [`scan_args`], so they agree on where an arg begins and ends.
 
 use crate::utils::unquote_string_literal;
-use dashql_parser::scanner::{scan, Symbol, SymbolValue};
+use dashql_parser::scanner::{scan, ScannedScript, Symbol, SymbolValue};
 use dashql_parser::symbol_kind::*;
 use std::ops::Range;
 
@@ -56,10 +56,17 @@ fn range(symbol: &Symbol) -> Range<usize> {
     symbol.location.offset as usize..symbol.location.end() as usize
 }
 
+/// The symbols of scanned args. A quoted value without its closing quote runs to the end as a problem of the
+/// scanner, it is no value.
+fn arg_symbols(scanned: &ScannedScript) -> Vec<&Symbol> {
+    let rejected = |s: &Symbol| scanned.errors.iter().any(|e| e.location == s.location);
+    scanned.symbols.iter().filter(|s| s.kind != S_YYEOF && !rejected(s)).collect()
+}
+
 /// Scan the args of a text. `kind` names the tag in the problems, e.g. `board` or `vis kpi`.
 pub(crate) fn scan_args(text: &str, kind: &str) -> Args {
     let scanned = scan(text, 0, 0);
-    let symbols: Vec<&Symbol> = scanned.symbols.iter().filter(|s| s.kind != S_YYEOF).collect();
+    let symbols = arg_symbols(&scanned);
     let symbol_at = |i: usize| symbols.get(i).copied();
     let written = |range: Range<usize>| text.get(range).unwrap_or_default();
     let mut out = Args::default();
@@ -171,7 +178,7 @@ pub(crate) enum ArgCursor {
 /// Find the arg at a cursor of a text
 pub(crate) fn arg_at(text: &str, at: usize) -> ArgCursor {
     let scanned = scan(text, 0, 0);
-    let symbols: Vec<&Symbol> = scanned.symbols.iter().filter(|s| s.kind != S_YYEOF).collect();
+    let symbols = arg_symbols(&scanned);
     let symbol_at = |i: usize| symbols.get(i).copied();
     let is_equals = |i: usize| symbol_at(i).is_some_and(|s| s.kind == S_EQUALS);
     // The key of the `=` at an index

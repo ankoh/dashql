@@ -1220,7 +1220,7 @@ parser-snapshots:
         - message: unterminated dollar-quoted string
           text: "$$open"
       parser-errors:
-        - message: 'syntax error, unexpected EOF'
+        - message: 'syntax error, unexpected EOF, expecting RRB or COMMA'
           text: ""
       line-breaks: []
       comments: []

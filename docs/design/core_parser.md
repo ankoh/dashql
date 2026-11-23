@@ -308,6 +308,12 @@ The scanner uses exclusive states for multi-character tokens:
 | `<xq>` | Standard single-quoted strings |
 | `<xdq>` | Dollar-quoted strings (`$$...$$`), verbatim; tagged delimiters are read directly |
 
+A literal or quoted identifier without its closing quote is a scanner error that runs to the end of the text, like in
+PostgreSQL. Unlike PostgreSQL, the scanner still emits the literal or identifier up to the end, an identifier named by
+the text after its quote, so that the parser and the cursor see it: `from "my ta` completes tables, the cursor in
+`= 'na` completes nothing. Whoever needs valid SQL checks the scanner errors besides the parser errors. A block comment
+without its `*/` is an error too but no comment, the cursor treats it as one up to the end (`is_inside_comment`).
+
 ### Identifier resolution
 
 When the scanner matches an unquoted identifier, it:

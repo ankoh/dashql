@@ -257,7 +257,7 @@ pub fn read_sql_type(parsed: &ParsedScript, node: &Node) -> Option<SqlType> {
 pub fn parse_sql_type(text: &str) -> Option<SqlType> {
     let parsed = parse(Arc::new(scan(&format!("select null::{text}"), 0, 0)));
     let mut types = parsed.nodes.iter().filter(|n| n.node_type() == NodeType::OBJECT_SQL_TYPENAME);
-    match (parsed.errors.is_empty(), types.next(), types.next()) {
+    match (parsed.scanned.errors.is_empty() && parsed.errors.is_empty(), types.next(), types.next()) {
         (true, Some(node), None) => read_sql_type(&parsed, node),
         _ => None,
     }

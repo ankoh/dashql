@@ -528,3 +528,114 @@ completion-snapshots:
           location-qualified: "ord"
           objects: []
       text: "ord"
+
+  - name: edge_unterminated_string
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+        errors: []
+    editor:
+      input: 'select * from t where name = ''na'
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.2", source: "t", text: "name"}
+        - {id: 1, type: literal/string, is-const: true, text: "'na"}
+      constants:
+        - {expression: 1, text: "'na"}
+    cursor:
+      search:
+        text: '''na'
+        index: 3
+    completions:
+      limit: 5
+      strategy: DEFAULT
+      symbol: LITERAL_STRING
+      relative: END_OF_SYMBOL
+      entries: []
+      text: "'na"
+
+  - name: edge_unterminated_block_comment
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+        errors: []
+    editor:
+      input: |-
+        select * from t /* na
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+    cursor:
+      search:
+        text: '/* na'
+        index: 5
+    completions:
+      limit: 5
+      no-target: 1
+
+  - name: edge_unterminated_quoted_identifier
+    catalog:
+      script:
+        input: |-
+          create table "my table" ("weird col" int, "a.b" int, "Upper" int);
+        errors: []
+    editor:
+      input: |-
+        select * from "my
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/unresolved, text: "\"my"}
+    cursor:
+      search:
+        text: '"my'
+        index: 3
+    completions:
+      limit: 5
+      strategy: TABLE_REF
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - value: my table
+          name-tags: [TABLE_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+          location: "\"my"
+          location-qualified: "\"my"
+          objects:
+            - type: table
+              id: "256.65536.1:0"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+              qualified: '"my table"'
+              qualified-idx: 0
+              prefer-qualified: 0
+              detail: "3 columns"
+              columns: ["weird col integer","a.b integer","Upper integer"]
+        - value: '"my'
+          candidate-tags: [IDENTITY]
+          location: "\"my"
+          location-qualified: "\"my"
+          objects: []
+        - value: where
+          candidate-tags: [KEYWORD_A,EXPECTED_PARSER_SYMBOL]
+          location: "\"my"
+          location-qualified: "\"my"
+          objects: []
+        - value: group
+          keyword-continuation: by
+          candidate-tags: [KEYWORD_B,EXPECTED_PARSER_SYMBOL]
+          location: "\"my"
+          location-qualified: "\"my"
+          objects: []
+        - value: order
+          keyword-continuation: by
+          candidate-tags: [KEYWORD_B,EXPECTED_PARSER_SYMBOL]
+          location: "\"my"
+          location-qualified: "\"my"
+          objects: []
+      text: "\"my"

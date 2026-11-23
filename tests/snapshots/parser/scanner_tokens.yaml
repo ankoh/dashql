@@ -874,7 +874,28 @@ parser-snapshots:
     input: |-
       select b'01
     expected:
-      statements: []
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 4
+          description:
+            text: "select b'01"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select b'01"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "b'01"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "b'01"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: LITERAL_STRING
+                        text: "b'01"
       scanner-errors:
         - message: unterminated bit string literal
           text: "b'01"
@@ -888,7 +909,28 @@ parser-snapshots:
     input: |-
       select x'1F
     expected:
-      statements: []
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 4
+          description:
+            text: "select x'1F"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select x'1F"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "x'1F"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "x'1F"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: LITERAL_STRING
+                        text: "x'1F"
       scanner-errors:
         - message: unterminated hexadecimal bit string literal
           text: "x'1F"
@@ -902,7 +944,28 @@ parser-snapshots:
     input: |-
       select 'abc
     expected:
-      statements: []
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 4
+          description:
+            text: "select 'abc"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select 'abc"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "'abc"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "'abc"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: LITERAL_STRING
+                        text: "'abc"
       scanner-errors:
         - message: unterminated quoted string
           text: "'abc"
@@ -916,7 +979,35 @@ parser-snapshots:
     input: |-
       select "abc
     expected:
-      statements: []
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 6
+          description:
+            text: "select \"abc"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select \"abc"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "\"abc"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "\"abc"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "\"abc"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "\"abc"
+                            children:
+                              - type: NAME
+                                text: "\"abc"
       scanner-errors:
         - message: unterminated delimited identifier
           text: "\"abc"
@@ -930,7 +1021,35 @@ parser-snapshots:
     input: |-
       select `abc
     expected:
-      statements: []
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 6
+          description:
+            text: "select `abc"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select `abc"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "`abc"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "`abc"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "`abc"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "`abc"
+                            children:
+                              - type: NAME
+                                text: "`abc"
       scanner-errors:
         - message: unterminated backtick-quoted identifier
           text: "`abc"

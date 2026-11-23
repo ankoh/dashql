@@ -157,3 +157,50 @@ completion-snapshots:
         index: 3
     completions:
       limit: 5
+
+  # The cursor in a string literal without its closing quote, nothing is completed
+  - name: edge_unterminated_string
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: 'select * from t where name = ''na'
+    cursor:
+      search:
+        text: '''na'
+        index: 3
+    completions:
+      limit: 5
+
+  # The cursor in a block comment without its closing */, nothing is completed like in a closed one
+  - name: edge_unterminated_block_comment
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select * from t /* na
+    cursor:
+      search:
+        text: '/* na'
+        index: 5
+    completions:
+      limit: 5
+
+  # A quoted table name without its closing quote completes like a closed one
+  - name: edge_unterminated_quoted_identifier
+    catalog:
+      script:
+        input: |-
+          create table "my table" ("weird col" int, "a.b" int, "Upper" int);
+    editor:
+      input: |-
+        select * from "my
+    cursor:
+      search:
+        text: '"my'
+        index: 3
+    completions:
+      limit: 5

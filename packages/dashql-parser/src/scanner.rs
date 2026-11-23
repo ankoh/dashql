@@ -542,9 +542,22 @@ impl<'a> Lexer<'a> {
                     State::Xd => "unterminated delimited identifier",
                     State::Xbt => "unterminated backtick-quoted identifier",
                 };
-                out.errors.push(ScannerError { location: self.ext_begin.cover(eof), message: message.to_string() });
+                let location = self.ext_begin.cover(eof);
+                out.errors.push(ScannerError { location, message: message.to_string() });
+                // An unterminated literal or quoted identifier still runs to the end of the text, so that the parser
+                // and the cursor see it, e.g. to complete `from "my ta`. A comment remains no symbol.
+                let symbol = match self.state {
+                    State::Initial | State::Xc => None,
+                    State::Xb | State::Xh | State::Xq => Some(Symbol::new(self.literal_kind(), location)),
+                    State::Xdq => Some(Symbol::new(S_DCONST, location)),
+                    State::Xd => Some(self.unterminated_identifier(out, location, b'"')),
+                    State::Xbt => Some(self.unterminated_identifier(out, location, b'`')),
+                };
                 self.state = State::Initial;
-                continue;
+                match symbol {
+                    Some(symbol) => return symbol,
+                    None => continue,
+                }
             }
             let symbol = match self.state {
                 State::Initial => match self.next_match::<Initial>() {
@@ -656,12 +669,11 @@ impl<'a> Lexer<'a> {
                     self.pos += end + delimiter.len();
                     Some(Symbol::new(S_DCONST, Self::span(loc.offset as usize, self.pos - loc.offset as usize)))
                 } else {
-                    out.errors.push(ScannerError {
-                        location: Self::span(loc.offset as usize, self.text.len() - loc.offset as usize),
-                        message: "unterminated dollar-quoted string".to_string(),
-                    });
+                    let location = Self::span(loc.offset as usize, self.text.len() - loc.offset as usize);
+                    out.errors
+                        .push(ScannerError { location, message: "unterminated dollar-quoted string".to_string() });
                     self.pos = self.text.len();
-                    None
+                    Some(Symbol::new(S_DCONST, location))
                 }
             }
             Initial::Token(kind) => Some(Symbol::new(kind, loc)),
@@ -831,6 +843,17 @@ impl<'a> Lexer<'a> {
         let text = self.text.get(loc.offset as usize..loc.end() as usize).unwrap_or_default();
         // The text between the quotes
         let inner = text.get(1..text.len().saturating_sub(1)).unwrap_or_default();
+        self.quoted_identifier(out, inner, loc, quote)
+    }
+
+    /// An unterminated quoted identifier, its name is the text after the opening quote
+    fn unterminated_identifier(&mut self, out: &mut ScannedScript, loc: TextSpan, quote: u8) -> Symbol {
+        let inner = self.text.get(self.ext_begin.end() as usize..loc.end() as usize).unwrap_or_default();
+        self.quoted_identifier(out, inner, loc, quote)
+    }
+
+    /// An identifier with the text between its quotes, doubled quotes are one
+    fn quoted_identifier(&mut self, out: &mut ScannedScript, inner: &'a [u8], loc: TextSpan, quote: u8) -> Symbol {
         let name = if inner.contains(&quote) {
             let name = &mut self.buffer;
             name.clear();
@@ -1018,6 +1041,34 @@ mod tests {
         let out = scan("'unterminated", 0, 0);
         assert_eq!(out.errors[0].location, TextSpan::new(0, 13));
         assert_eq!(out.errors[0].message, "unterminated quoted string");
+    }
+
+    #[test]
+    fn scans_unterminated_literals_and_identifiers_to_the_end() {
+        assert_eq!(kinds("x = 'ab"), vec![S_IDENT, S_EQUALS, S_SCONST, S_YYEOF]);
+        assert_eq!(spans("x = 'ab"), vec![(0, 1), (2, 1), (4, 3), (7, 0)]);
+        assert_eq!(kinds("x = b'01"), vec![S_IDENT, S_EQUALS, S_BCONST, S_YYEOF]);
+        assert_eq!(kinds("x = $$ab"), vec![S_IDENT, S_EQUALS, S_DCONST, S_YYEOF]);
+        assert_eq!(kinds("x = $t$ab"), vec![S_IDENT, S_EQUALS, S_DCONST, S_YYEOF]);
+        // A comment remains no symbol
+        let out = scan("x /* ab", 0, 0);
+        assert_eq!(out.symbols.iter().map(|s| s.kind).collect::<Vec<_>>(), vec![S_IDENT, S_YYEOF]);
+        assert!(out.comments.is_empty());
+        assert_eq!(out.errors[0].message, "unterminated comment");
+        // An identifier is named by the text after its quote
+        for (text, name, message) in [
+            ("from \"my t", "my t", "unterminated delimited identifier"),
+            ("from \"a\"\"b", "a\"b", "unterminated delimited identifier"),
+            ("from `my t", "my t", "unterminated backtick-quoted identifier"),
+        ] {
+            let out = scan(text, 0, 0);
+            let symbol = out.symbols[1];
+            assert_eq!(symbol.kind, S_IDENT, "{text}");
+            assert_eq!(symbol.location, TextSpan::new(5, text.len() as u32 - 5), "{text}");
+            let SymbolValue::Name(id) = symbol.value else { panic!("{text}") };
+            assert_eq!(&*out.names.get(id).text, name, "{text}");
+            assert_eq!(out.errors[0].message, message, "{text}");
+        }
     }
 
     #[test]

@@ -399,6 +399,20 @@ fn function_call_is_atomic() {
 }
 
 #[test]
+fn whitespace_script_completes_like_empty() {
+    let catalog = Catalog::new();
+    for text in ["", "   ", "\n  \n", "\t"] {
+        for offset in 0..=text.len() {
+            complete_at(&catalog, text, offset, DEFAULT_LIMIT, |completion| {
+                for keyword in ["select", "set", "with"] {
+                    assert!(find_candidate(completion, keyword).is_some(), "{text:?} at {offset}: {keyword}");
+                }
+            });
+        }
+    }
+}
+
+#[test]
 fn passive_hint_suppress_after_from() {
     // Should produce no passive hint after FROM
     complete_at_end("select * from ", |completion| assert!(completion.top_candidates.is_empty()));

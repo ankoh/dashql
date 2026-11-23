@@ -186,7 +186,7 @@ impl SqlLiteral {
             return Err(format!("the literal is empty, {hint}"));
         }
         let parsed = Arc::new(parse(Arc::new(scan(&format!("{SELECT}{text}"), 0, 0))));
-        if !parsed.errors.is_empty() || parsed.statements.len() != 1 {
+        if !parsed.scanned.errors.is_empty() || !parsed.errors.is_empty() || parsed.statements.len() != 1 {
             return Err(invalid());
         }
         // The value of the one result target of the select, which is the whole text, `1 from t` is no literal
@@ -360,6 +360,7 @@ mod tests {
             "1; select 2",
             "1 from t",
             "-'a'",
+            "'a",
         ] {
             assert!(SqlLiteral::parse(text).is_err(), "{text}");
         }

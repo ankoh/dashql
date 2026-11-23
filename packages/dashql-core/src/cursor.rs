@@ -121,8 +121,19 @@ pub fn find_symbol(scanned: &ScannedScript, text_offset: usize) -> Option<Locati
 /// Is a text offset strictly inside a comment?
 ///
 /// The begin of a comment is never inside. A line comment ends at its newline, which is not part of
-/// its span, a block comment ends with its closing `*/`.
+/// its span, a block comment ends with its closing `*/`. A block comment without one runs to the end
+/// of the text, the scanner reports it as an error and records no comment.
 pub fn is_inside_comment(scanned: &ScannedScript, text_offset: usize) -> bool {
+    let text = scanned.text.as_bytes();
+    let unterminated = scanned.errors.iter().any(|error| {
+        let begin = error.location.offset as usize;
+        error.location.end() as usize == text.len()
+            && begin < text_offset
+            && text.get(begin..).is_some_and(|rest| rest.starts_with(b"/*"))
+    });
+    if unterminated {
+        return true;
+    }
     let text_offset = text_offset as u32;
     let i = scanned.comments.partition_point(|c| c.offset <= text_offset);
     let Some(comment) = i.checked_sub(1).and_then(|i| scanned.comments.get(i)) else {
@@ -133,7 +144,6 @@ pub fn is_inside_comment(scanned: &ScannedScript, text_offset: usize) -> bool {
     if text_offset <= begin {
         return false;
     }
-    let text = scanned.text.as_bytes();
     let is_line_comment =
         comment.length >= 2 && text.get(begin as usize) == Some(&b'-') && text.get(begin as usize + 1) == Some(&b'-');
     if is_line_comment {

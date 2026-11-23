@@ -93,7 +93,7 @@ fn types_parse_to_their_kinds() {
 
 #[test]
 fn texts_that_are_no_single_type_have_none() {
-    for text in ["", "int,", "int)::text", "int; select null::text", "("] {
+    for text in ["", "int,", "int)::text", "int; select null::text", "(", "\"int"] {
         assert_eq!(parse_sql_type(text), None, "text: {text:?}");
     }
 }
