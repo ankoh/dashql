@@ -29,7 +29,6 @@ typescript_bin.tsc_test(
         ":typecheck_inputs",
         "//:node_modules/@akohn/dashql",
         "//:node_modules/@primer/behaviors",
-        "//:node_modules/@react-hook/resize-observer",
         "//:node_modules/@types/react",
         "//:node_modules/@types/d3",
         "//:node_modules/@types/react-dom",

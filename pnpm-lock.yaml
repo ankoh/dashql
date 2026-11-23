@@ -226,9 +226,6 @@ importers:
       '@primer/behaviors':
         specifier: ^1.11.0
         version: 1.11.0
-      '@react-hook/resize-observer':
-        specifier: ^2.0.2
-        version: 2.0.2(react@19.3.1)
       '@sinonjs/fake-timers':
         specifier: ^15.4.0
         version: 15.4.0
@@ -1548,21 +1545,6 @@ packages:
 
   '@primer/behaviors@1.11.0':
     resolution: {integrity: sha512-kDHtaw9kfCjPVT61eM731ftckhGyWiPX+OKmUccLN9sMFt9E6FXmsPAbny7O0RBxeW1Xj/NHNdbMEjYEg2dBYg==}
-
-  '@react-hook/latest@1.0.3':
-    resolution: {integrity: sha512-dy6duzl+JnAZcDbNTfmaP3xHiKtbXYOaz3G51MGVljh548Y8MWzTr+PHLOfvpypEVW9zwvl+VyKjbWKEVbV1Rg==}
-    peerDependencies:
-      react: '>=16.8'
-
-  '@react-hook/passive-layout-effect@1.2.1':
-    resolution: {integrity: sha512-IwEphTD75liO8g+6taS+4oqz+nnroocNfWVHWz7j+N+ZO2vYrc6PV1q7GQhuahL0IOR7JccFTsFKQ/mb6iZWAg==}
-    peerDependencies:
-      react: '>=16.8'
-
-  '@react-hook/resize-observer@2.0.2':
-    resolution: {integrity: sha512-tzKKzxNpfE5TWmxuv+5Ae3IF58n0FQgQaWJmcbYkjXTRZATXxClnTprQ2uuYygYTpu1pqbBskpwMpj6jpT1djA==}
-    peerDependencies:
-      react: '>=18'
 
   '@rolldown/binding-android-arm-eabi@1.2.19':
     resolution: {integrity: sha512-e+Ebe0WT+9tbXmNKPIiC8YrWAHYwug3m6i4p3rZGGulfZri1jtI4HslT+OZnFf/OIHowWF71DTlHwXBP2SiA7A==}
@@ -6658,20 +6640,6 @@ snapshots:
       webcrypto-core: 1.9.2
 
   '@primer/behaviors@1.11.0': {}
-
-  '@react-hook/latest@1.0.3(react@19.3.1)':
-    dependencies:
-      react: 19.3.1
-
-  '@react-hook/passive-layout-effect@1.2.1(react@19.3.1)':
-    dependencies:
-      react: 19.3.1
-
-  '@react-hook/resize-observer@2.0.2(react@19.3.1)':
-    dependencies:
-      '@react-hook/latest': 1.0.3(react@19.3.1)
-      '@react-hook/passive-layout-effect': 1.2.1(react@19.3.1)
-      react: 19.3.1
 
   '@rolldown/binding-android-arm-eabi@1.2.19':
     optional: true

@@ -1,7 +1,5 @@
 import * as React from 'react';
-import useResizeObserverRaw from '@react-hook/resize-observer';
 import { transitionsEnd } from '../dom/calm_frames.js';
-const useResizeObserver = useResizeObserverRaw as unknown as (target: HTMLElement | null, callback: (entry: ResizeObserverEntry) => void) => void;
 
 export interface ObservedSize {
     width: number;
@@ -32,9 +30,17 @@ export const useObservedSize = (target: React.RefObject<HTMLElement | null>, ena
         const next = current?.getBoundingClientRect() ?? null;
         setSize(prev => keepSameSize(prev, next));
     });
-    useResizeObserver(enabled ? element : null, (entry: ResizeObserverEntry) => {
-        setSize(prev => keepSameSize(prev, entry.contentRect));
-    });
+    // An observer of its own: a shared one would keep the ResizeObserver that was global when it was created, e.g. the
+    // stub of a test that ran before
+    React.useLayoutEffect(() => {
+        if (!enabled || element === null || typeof ResizeObserver === 'undefined') return;
+        const observer = new ResizeObserver(entries => {
+            const entry = entries[entries.length - 1];
+            if (entry !== undefined) setSize(prev => keepSameSize(prev, entry.contentRect));
+        });
+        observer.observe(element);
+        return () => observer.disconnect();
+    }, [element, enabled]);
     return size;
 };
 
