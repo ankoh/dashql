@@ -49,7 +49,7 @@ export function scriptConnectionView(connection: ConnectionState, labelParts: Co
 /// Run a script of a workbook on a connection.
 /// The workbook uses the connections of its scripts, the workbook file and the connections of the runtime follow the
 /// script.
-export function usePickScriptConnection(_workbookId: string, modifyWorkbookScripts: ModifyWorkbookScripts): (fileName: string, connectionId: string) => void {
+export function usePickScriptConnection(modifyWorkbookScripts: ModifyWorkbookScripts): (fileName: string, connectionId: string) => void {
     const runtime = useOptionalRuntime();
     return React.useCallback((fileName: string, connectionId: string) => {
         if (runtime?.store.get('connection', connectionId) == null) return;

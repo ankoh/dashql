@@ -54,7 +54,7 @@ export const ScriptEntryHeader: React.FC<ScriptEntryHeaderProps> = React.memo((p
         () => connectionState == null ? null : scriptConnectionView(connectionState, labeler(connectionState)),
         [connectionState, labeler],
     );
-    const pickConnection = usePickScriptConnection(workbookId, modifyWorkbookScripts);
+    const pickConnection = usePickScriptConnection(modifyWorkbookScripts);
 
     const scriptDebugMode = config?.settings?.scriptDebugMode ?? false;
     const formattingDebugMode = config?.settings?.formattingDebugMode ?? false;

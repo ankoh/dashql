@@ -267,7 +267,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     // Callbacks read the latest values through a ref to stay stable for the memoized feed rows.
     const latest = React.useRef({ workbookScripts: props.workbookScripts, scripts, scriptConnections });
     latest.current = { workbookScripts: props.workbookScripts, scripts, scriptConnections };
-    const pickScriptConnection = dependencies.usePickScriptConnection(props.workbookScripts.workbookId, modifyWorkbookScripts);
+    const pickScriptConnection = dependencies.usePickScriptConnection(modifyWorkbookScripts);
 
     const pendingCreatedScriptKeyRef = React.useRef<number | null>(null);
     const editorViewsRef = React.useRef(new Map<number, EditorView>());
