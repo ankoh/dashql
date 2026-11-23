@@ -74,6 +74,43 @@ struct MarkdownField {
     token: String,
 }
 
+/// A `{{field}}` placeholder of a Markdown template
+pub(crate) struct MarkdownPlaceholder<'a> {
+    /// The byte range of the placeholder in the template, from its `{{` to its `}}`
+    pub range: std::ops::Range<usize>,
+    /// The field name between the braces, trimmed
+    pub name: &'a str,
+}
+
+/// The `{{field}}` placeholders of a Markdown template
+///
+/// A placeholder is `{{`, a name without braces and `}}`. Of more opening braces, the last two open the placeholder
+/// and the others stay text, so `{{{a}}}` is the field `a` in braces. A backslash escapes the first brace as in
+/// CommonMark, so `\{{a}}` is no placeholder and reads `{{a}}`. Braces that form no placeholder stay text.
+pub(crate) fn markdown_placeholders(template: &str) -> Vec<MarkdownPlaceholder<'_>> {
+    let mut placeholders = Vec::new();
+    let mut pos = 0;
+    while let Some(open) = template.get(pos..).and_then(|rest| rest.find("{{")).map(|at| pos + at) {
+        let (before, from_open) = template.split_at_checked(open).unwrap_or_default();
+        let after_open = from_open.trim_start_matches('{');
+        let name_begin = open + from_open.len() - after_open.len();
+        // An odd number of backslashes escapes the first brace, CommonMark removes the backslash
+        let escaped = (before.len() - before.trim_end_matches('\\').len()) % 2;
+        let Some((inner, _)) = after_open.split_once("}}") else {
+            break;
+        };
+        let name = inner.trim_matches([' ', '\n']);
+        if name_begin - open - escaped < 2 || name.is_empty() || name.contains(['{', '}']) {
+            pos = name_begin;
+            continue;
+        }
+        let end = name_begin + inner.len() + 2;
+        placeholders.push(MarkdownPlaceholder { range: name_begin - 2..end, name });
+        pos = end;
+    }
+    placeholders
+}
+
 /// Replace `{{field}}` placeholders with tokens that do not occur in the template
 fn tokenize_fields(row_template: &str) -> (String, Vec<MarkdownField>) {
     let mut prefix = String::from("DASHQLMARKDOWNFIELD");
@@ -83,30 +120,20 @@ fn tokenize_fields(row_template: &str) -> (String, Vec<MarkdownField>) {
 
     let mut markdown = String::with_capacity(row_template.len());
     let mut fields: Vec<MarkdownField> = Vec::new();
-    let mut rest = row_template;
-    while let Some((before, after_open)) = rest.split_once("{{") {
-        let Some((inner, after_close)) = after_open.split_once("}}") else {
-            break;
-        };
-        markdown.push_str(before);
-        let name = inner.trim_matches([' ', '\n']);
-        if name.is_empty() {
-            markdown.push_str("{{");
-            markdown.push_str(inner);
-            markdown.push_str("}}");
-        } else {
-            match fields.iter().find(|field| field.name == name) {
-                Some(field) => markdown.push_str(&field.token),
-                None => {
-                    let token = format!("{prefix}{}TOKEN", fields.len());
-                    markdown.push_str(&token);
-                    fields.push(MarkdownField { name: name.to_string(), token });
-                }
+    let mut text_begin = 0;
+    for placeholder in markdown_placeholders(row_template) {
+        markdown.push_str(row_template.get(text_begin..placeholder.range.start).unwrap_or_default());
+        match fields.iter().find(|field| field.name == placeholder.name) {
+            Some(field) => markdown.push_str(&field.token),
+            None => {
+                let token = format!("{prefix}{}TOKEN", fields.len());
+                markdown.push_str(&token);
+                fields.push(MarkdownField { name: placeholder.name.to_string(), token });
             }
         }
-        rest = after_close;
+        text_begin = placeholder.range.end;
     }
-    markdown.push_str(rest);
+    markdown.push_str(row_template.get(text_begin..).unwrap_or_default());
     (markdown, fields)
 }
 

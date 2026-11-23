@@ -394,3 +394,71 @@ visualize-snapshots:
                     value: "see "
                   - type: field
                     field: b
+
+  - name: vis_markdown_triple_braces
+    script:
+      input: |
+        /* @vis markdown
+           Set {{{a}}}, nested {{{{a}}}}, open {{x {{a}}, braced {{a}b}}
+        */
+        SELECT 1 AS a;
+    markdown:
+      template: 'Set {{{a}}}, nested {{{{a}}}}, open {{x {{a}}, braced {{a}b}}'
+      fields:
+        - a
+      document:
+        type: document
+        children:
+          - type: paragraph
+            children:
+              - type: text
+                value: 'Set {'
+              - type: field
+                field: a
+              - type: text
+                value: '}, nested {{'
+              - type: field
+                field: a
+              - type: text
+                value: "}}, open {{x "
+              - type: field
+                field: a
+              - type: text
+                value: ', braced {{a}b}}'
+
+  - name: vis_markdown_escaped_placeholder
+    script:
+      input: |
+        /* @vis markdown
+           Write \{{a}} for {{a}}, \\{{a}} after a backslash, \{{{a}}} in braces, `\{{a}}` in code
+        */
+        SELECT 1 AS a;
+    markdown:
+      template: 'Write \{{a}} for {{a}}, \\{{a}} after a backslash, \{{{a}}} in braces, `\{{a}}` in code'
+      fields:
+        - a
+      document:
+        type: document
+        children:
+          - type: paragraph
+            children:
+              - type: text
+                value: "Write {{a}} for "
+              - type: field
+                field: a
+              - type: text
+                value: ', \'
+              - type: field
+                field: a
+              - type: text
+                value: " after a backslash, {"
+              - type: field
+                field: a
+              - type: text
+                value: "} in braces, "
+              - type: inlineCode
+                children:
+                  - type: text
+                    value: '\{{a}}'
+              - type: text
+                value: " in code"

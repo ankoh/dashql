@@ -10,6 +10,7 @@
 mod markdown;
 mod vegalite_generator;
 
+pub(crate) use markdown::markdown_placeholders;
 pub use markdown::{compile_markdown_spec, compile_markdown_template, MarkdownDocument, MarkdownNode};
 pub use vegalite_generator::generate_vegalite_spec;
 

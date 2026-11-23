@@ -11,6 +11,7 @@
 
 use crate::vis_args::{scan_args, ArgValue};
 use crate::vis_text::{JsonScanner, JsonSlot, JsonTokenKind, TagText};
+use crate::visualize::markdown_placeholders;
 use dashql_buffers::parser::{CommentBlockType, ScannerTokenType};
 use dashql_parser::comment_blocks::{COMMENT_TAG_END, COMMENT_TAG_PREFIX};
 use dashql_parser::parser::ParsedScript;
@@ -56,21 +57,9 @@ impl Lines<'_> {
     /// The `{{field}}` placeholders of a Markdown template
     fn placeholders(&mut self, begin: usize, end: usize) {
         // A span outside of the script has no placeholders
-        let Some(text) = self.script.get(begin..end) else { return };
-        let mut i = 0;
-        while let Some(rest) = text.get(i..).filter(|rest| rest.len() >= 2) {
-            let Some(inner) = rest.strip_prefix(b"{{") else {
-                i += 1;
-                continue;
-            };
-            match inner.windows(2).position(|w| w == b"}}") {
-                Some(close) => {
-                    let close = i + 2 + close + 2;
-                    self.push(begin + i, begin + close, ScannerTokenType::IDENTIFIER);
-                    i = close;
-                }
-                None => break,
-            }
+        let Some(text) = self.script.get(begin..end).and_then(|text| std::str::from_utf8(text).ok()) else { return };
+        for placeholder in markdown_placeholders(text) {
+            self.push(begin + placeholder.range.start, begin + placeholder.range.end, ScannerTokenType::IDENTIFIER);
         }
     }
 }
@@ -285,6 +274,24 @@ mod tests {
                 ("**", T::COMMENT),
                 ("-- ", T::COMMENT),
                 ("@end", T::KEYWORD),
+            ]
+        );
+    }
+
+    #[test]
+    fn highlights_the_placeholders_of_a_markdown_template() {
+        use ScannerTokenType as T;
+        // Like the template compiles: the last two of more braces open a placeholder, an escaped one is text
+        assert_eq!(
+            spans("/* @vis markdown {{{a}}} \\{{b}} {{}} */ select 1"),
+            vec![
+                ("/* ", T::COMMENT),
+                ("@vis", T::KEYWORD),
+                (" ", T::COMMENT),
+                ("markdown", T::KEYWORD),
+                (" {", T::COMMENT),
+                ("{{a}}", T::IDENTIFIER),
+                ("} \\{{b}} {{}} */", T::COMMENT),
             ]
         );
     }

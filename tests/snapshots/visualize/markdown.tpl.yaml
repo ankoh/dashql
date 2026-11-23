@@ -110,3 +110,21 @@ visualize-snapshots:
            *{{a}}* [see {{b}}](https://example.com/b)
         */
         SELECT 1 AS a, 2 AS b;
+
+  # Of more opening braces, the last two open the placeholder: a field in literal braces; a name has no braces
+  - name: vis_markdown_triple_braces
+    script:
+      input: |
+        /* @vis markdown
+           Set {{{a}}}, nested {{{{a}}}}, open {{x {{a}}, braced {{a}b}}
+        */
+        SELECT 1 AS a;
+
+  # A backslash escapes a placeholder, which stays the literal text {{a}}; an escaped backslash does not
+  - name: vis_markdown_escaped_placeholder
+    script:
+      input: |
+        /* @vis markdown
+           Write \{{a}} for {{a}}, \\{{a}} after a backslash, \{{{a}}} in braces, `\{{a}}` in code
+        */
+        SELECT 1 AS a;

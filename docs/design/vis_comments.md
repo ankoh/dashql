@@ -282,6 +282,14 @@ the tags are plain comments.
   FlatBuffer AST (`visualize/markdown`). `{{field}}` placeholders become `FIELD` leaves, raw HTML is
   discarded, and unsafe or dynamic link destinations are not emitted as links. The app renders the AST
   once per result row and substitutes the formatted Arrow values as React text.
+
+  A placeholder is `{{`, a name without braces and `}}`, the name trimmed of spaces and line breaks. The
+  placeholders are found before CommonMark parses the template, so they work in any text, code included.
+  Braces that form no placeholder stay text: empty braces, single braces, an unclosed `{{`. Of more opening
+  braces, the last two open the placeholder, so `{{{a}}}` is the field `a` between literal braces (the values
+  are always text, there is no unescaped form like in Mustache). A backslash escapes the first brace as
+  CommonMark does: `\{{a}}` is the text `{{a}}`, `\\{{a}}` a backslash and the field. Code spans and code
+  blocks have no backslash escapes in CommonMark, there `\{{a}}` keeps its backslash.
 - `kpi`: the columns and the delta of the tag (`visualize::pack_kpi_spec`). The app reads the value, the
   change and the points of the chart from the result table and draws the chart as an SVG path.
 - `table`: the app renders the result table.
