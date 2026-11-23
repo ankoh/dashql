@@ -167,6 +167,8 @@ columns from CTE-backed and derived sources in `FROM` that the cursor sees are a
 a derived table sees neither itself nor the FROM items of its query, unless it is LATERAL. These candidates
 carry `IN_NAME_SCOPE` without requiring synthetic catalog object IDs.
 
+The name index of the script holds a CTE name too, tagged as a table by its references. A CTE is a table only in its scope, so the name of a CTE that is no table of the script loses that tag; elsewhere in the script it stays a plain name of the index without the base score of a table.
+
 Non-recursive CTE completion follows declaration order: a CTE suggests earlier siblings but not itself
 or later siblings. Recursive CTEs also suggest themselves. Script-local relations are visible only to
 later statements.

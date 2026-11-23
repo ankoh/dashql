@@ -203,3 +203,20 @@ completion-snapshots:
         index: 9
     completions:
       limit: 5
+
+  # A CTE that its statement references is no table of the next statement, its name stays in the index of the script without the table tag
+  - name: cte_reference_not_a_table_of_next_statement
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        with my_cte as (select 1 as x) select * from my_cte;
+        select x from my_
+    cursor:
+      search:
+        text: 'x from my_'
+        index: 10
+    completions:
+      limit: 5

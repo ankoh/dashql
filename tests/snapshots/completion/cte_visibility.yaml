@@ -739,3 +739,67 @@ completion-snapshots:
           location-qualified: "na"
           objects: []
       text: "na"
+
+  - name: cte_reference_not_a_table_of_next_statement
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+        errors: []
+    editor:
+      input: |-
+        with my_cte as (select 1 as x) select * from my_cte;
+        select x from my_
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/cte, statement-id: 0, text: "my_cte"}
+        - {type: name/unresolved, statement-id: 1, text: "my_"}
+      expressions:
+        - {id: 0, type: colref/unresolved, statement-id: 1, text: "x"}
+        - {id: 1, type: literal/integer, is-const: true, text: "1"}
+      constants:
+        - {expression: 1, text: "1"}
+      inferred-tables:
+        - name: my_
+          confidence: confident
+          columns:
+            - {name: x, confidence: confident}
+    cursor:
+      search:
+        text: 'x from my_'
+        index: 10
+    completions:
+      limit: 5
+      strategy: TABLE_REF
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - value: my_
+          candidate-tags: [IDENTITY]
+          location: "my_"
+          location-qualified: "my_"
+          objects: []
+        - value: my_cte
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "my_"
+          location-qualified: "my_"
+          objects: []
+        - value: where
+          candidate-tags: [KEYWORD_A,EXPECTED_PARSER_SYMBOL]
+          location: "my_"
+          location-qualified: "my_"
+          objects: []
+        - value: group
+          keyword-continuation: by
+          candidate-tags: [KEYWORD_B,EXPECTED_PARSER_SYMBOL]
+          location: "my_"
+          location-qualified: "my_"
+          objects: []
+        - value: order
+          keyword-continuation: by
+          candidate-tags: [KEYWORD_B,EXPECTED_PARSER_SYMBOL]
+          location: "my_"
+          location-qualified: "my_"
+          objects: []
+      text: "my_"

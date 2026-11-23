@@ -1082,17 +1082,27 @@ impl<'c, 'a> Completion<'c, 'a> {
                     }
                 }
             }
+            // A CTE is a table only in its scope, where `find_candidates_in_scope` adds it. Its references elsewhere in
+            // the script don't make it a table of the cursor.
+            let mut name_tags = name.tags.0;
+            if !through_catalog
+                && name_tags & NameTag::TABLE_NAME.0 != 0
+                && !name.objects.iter().any(|o| matches!(o, CatalogObjectRef::Table(_)))
+                && self.is_cte_name(&name.text)
+            {
+                name_tags &= !NameTag::TABLE_NAME.0;
+            }
             let candidate = match self.candidates_by_name.get(&name.text) {
                 Some(&c) => {
                     if let Some(candidate) = self.candidates.get_mut(c) {
-                        candidate.coarse_name_tags |= name.tags.0;
+                        candidate.coarse_name_tags |= name_tags;
                         candidate.candidate_tags |= tags;
                     }
                     c
                 }
                 None => {
                     let location = Self::symbol_location(&target.symbol);
-                    self.candidates.push(Candidate::new(name.text.clone(), name.tags.0, tags, location, location));
+                    self.candidates.push(Candidate::new(name.text.clone(), name_tags, tags, location, location));
                     let c = self.candidates.len() - 1;
                     self.candidates_by_name.insert(name.text.clone(), c);
                     c
@@ -1109,6 +1119,13 @@ impl<'c, 'a> Completion<'c, 'a> {
                 self.add_object(candidate, tags, object_id, candidate_object);
             }
         }
+    }
+
+    /// Does the script define a CTE with a name?
+    fn is_cte_name(&self, name: &str) -> bool {
+        self.analyzed().is_some_and(|analyzed| {
+            analyzed.name_scopes.iter().any(|scope| scope.cte_definition_nodes.contains_key(name))
+        })
     }
 
     /// Find candidates in the indexes of the script and the catalog
