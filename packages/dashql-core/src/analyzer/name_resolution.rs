@@ -914,14 +914,19 @@ impl NameResolutionPass {
             }
 
             // Resolve as a table of the own script, then through the catalog. A statement of the script reads the
-            // declaration of a name that the statements before it leave.
+            // declaration of a name that the statements before it leave, a statement before all declarations of the
+            // name reads the table of the catalog.
             let mut resolved = Vec::new();
             state.out.entry.resolve_table(&table_name, &mut resolved, MAX_TABLE_REF_AMBIGUITY);
             if let Some(statement) = statement {
                 let entry = &state.out.entry;
-                for loc in &mut resolved {
-                    loc.index = entry.table_declared_before(loc.index as usize, statement) as u32;
-                }
+                resolved.retain_mut(|loc| match entry.table_declared_before(loc.index as usize, statement) {
+                    Some(index) => {
+                        loc.index = index as u32;
+                        true
+                    }
+                    None => false,
+                });
             }
             if resolved.is_empty() {
                 state.catalog.resolve_table(&table_name, state.entry_id, &mut resolved, MAX_TABLE_REF_AMBIGUITY);

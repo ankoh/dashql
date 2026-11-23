@@ -25,8 +25,8 @@ analyzer-snapshots:
       input: |-
         select f.a from foo f;
         select g.b from foo g
-  # A table created later in the script resolves and produces no inference
-  - name: created_later_no_inference
+  # A table created later in the script is unknown to the statements before it, they infer its columns
+  - name: created_later_inferred
     script:
       input: |-
         select f.x from foo f;

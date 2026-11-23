@@ -337,6 +337,21 @@ analyzer-snapshots:
     script:
       input: create table t (z int); select z, a from t
 
+  # A statement before the declaration of a name reads the table of the catalog, or none
+  - name: script_table_declared_later
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: select a from t; create table t (z int); select z, a from t
+
+  - name: script_table_declared_later_unknown
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: select k from n; create table n as select a as k from t; select k from n
+
   - name: select_into_read_later
     catalog:
       script:

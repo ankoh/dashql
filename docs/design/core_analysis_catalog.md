@@ -331,7 +331,8 @@ The rules follow PostgreSQL and Hyper:
   that names a FROM item binds the ref to it, even if the item has no such column: the parent scopes
   aren't searched, the ref stays unresolved, and schema inference gives the column to that item.
 - **Script tables** resolve to the last declaration of the name before the referencing statement. An
-  `ALTER` declares a new version, see `catalog_updates.md`.
+  `ALTER` declares a new version, see `catalog_updates.md`. A statement before all declarations of the name, also the
+  declaring statement itself, reads the table of the catalog, or an unresolved one.
 - **Columns of `CREATE TABLE`** keep their declaration order, column aliases rename by position.
 - **Output columns** of a derived table keep their positions: unnamed outputs are named as PostgreSQL
   does, by the function name or `?column?`. Column aliases rename the leading columns, of a derived

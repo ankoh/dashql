@@ -1001,7 +1001,8 @@ planner-snapshots:
         - catalog-id: '256.65536.4294967296'
           type: TABLE
           name: later
-      unresolved-references: []
+      unresolved-references:
+        - name: later
       nodes:
         - id: 0
           script: forward
@@ -1011,7 +1012,7 @@ planner-snapshots:
           produces-output: true
           barrier: true
           accesses:
-            - entity: '256.65536.4294967296'
+            - unresolved-reference: 0
               mode: READ
         - id: 1
           script: forward
@@ -1035,7 +1036,7 @@ planner-snapshots:
         - node: 0
           script: forward
           error: false
-          message: relation resolves to a later producer in input order
+          message: 'unresolved relation: later'
 
   - name: ProducerThenConsumer
     scripts:

@@ -186,7 +186,7 @@ analyzer-snapshots:
             - {name: a, confidence: confident}
             - {name: b, confidence: confident}
 
-  - name: created_later_no_inference
+  - name: created_later_inferred
     script:
       input: |-
         select f.x from foo f;
@@ -202,16 +202,21 @@ analyzer-snapshots:
         - {statement-id: 1, name: foo}
       errors: []
       table-refs:
-        - {type: name/internal, catalog-id: "256.65536.1:0", statement-id: 0, text: "foo f"}
+        - {type: name/unresolved, statement-id: 0, text: "foo f"}
       expressions:
-        - {id: 0, type: colref/internal, catalog: "256.65536.1:0.0", source: "foo f", statement-id: 0, text: "f.x"}
+        - {id: 0, type: colref/unresolved, statement-id: 0, text: "f.x"}
       name-scopes:
         - scope-id: 0
           sources:
-            - {type: table, name: f, text: "foo f"}
+            - {type: unresolved, name: f, text: "foo f"}
           columns:
             - {name: x, expression: 0}
           text: "select f.x..from foo f"
+      inferred-tables:
+        - name: foo
+          confidence: confident
+          columns:
+            - {name: x, confidence: confident}
 
   - name: cte_not_inferred
     script:

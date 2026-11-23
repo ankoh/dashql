@@ -1572,6 +1572,95 @@ analyzer-snapshots:
             - {name: a, expression: 1}
           text: "select z, a from t"
 
+  - name: script_table_declared_later
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: select a from t; create table t (z int); select z, a from t
+      catalog-id: 2
+      tables:
+        - catalog-id: "256.65536.2:0"
+          name: t
+          text: "create tab.. t (z int)"
+          columns:
+            - {catalog-id: "256.65536.2:0.0", name: z, text: "z int"}
+      touched-relations:
+        - {statement-id: 1, name: t}
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", statement-id: 0, text: "t"}
+        - {type: name/internal, catalog-id: "256.65536.2:0", statement-id: 2, text: "t"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", statement-id: 0, text: "a"}
+        - {id: 1, type: colref/internal, catalog: "256.65536.2:0.0", source: "t", statement-id: 2, text: "z"}
+        - {id: 2, type: colref/unresolved, statement-id: 2, text: "a"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: t, text: "t"}
+          columns:
+            - {name: a, expression: 0}
+          text: "select a from t"
+        - scope-id: 2
+          sources:
+            - {type: table, name: t, text: "t"}
+          columns:
+            - {name: z, expression: 1}
+            - {name: a, expression: 2}
+          text: "select z, a from t"
+
+  - name: script_table_declared_later_unknown
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: select k from n; create table n as select a as k from t; select k from n
+      catalog-id: 2
+      tables:
+        - catalog-id: "256.65536.2:0"
+          name: n
+          text: "create tab..s k from t"
+          columns:
+            - {catalog-id: "256.65536.2:0.0", name: k}
+      touched-relations:
+        - {statement-id: 1, name: n}
+      errors: []
+      table-refs:
+        - {type: name/unresolved, statement-id: 0, text: "n"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", statement-id: 1, text: "t"}
+        - {type: name/internal, catalog-id: "256.65536.2:0", statement-id: 2, text: "n"}
+      expressions:
+        - {id: 0, type: colref/unresolved, statement-id: 0, text: "k"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", statement-id: 1, text: "a"}
+        - {id: 2, type: colref/internal, catalog: "256.65536.2:0.0", source: "n", statement-id: 2, text: "k"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: unresolved, name: n, text: "n"}
+          columns:
+            - {name: k, expression: 0}
+          text: "select k from n"
+        - scope-id: 1
+          sources:
+            - {type: table, name: t, text: "t"}
+          columns:
+            - {name: k, expression: 1}
+          text: "select a a..s k from t"
+        - scope-id: 2
+          sources:
+            - {type: table, name: n, text: "n"}
+          columns:
+            - {name: k, expression: 2}
+          text: "select k from n"
+      inferred-tables:
+        - name: n
+          confidence: confident
+          columns:
+            - {name: k, confidence: confident}
+
   - name: select_into_read_later
     catalog:
       script:
