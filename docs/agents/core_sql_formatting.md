@@ -25,7 +25,7 @@ second run equals the first. Inline mode drops the comments.
   which could start a tag. Comments with tags are printed as one canonical comment (see
   `docs/design/vis_comments.md`).
 - **After a statement.** Comments on the line of the end of a statement stay on its line after the semicolon, also
-  after a statement with syntax errors that is copied as written.
+  after a semicolon on a line of its own and after a statement with syntax errors that is copied as written.
 - **Text without symbols.** A block comment without its end after the semicolon of the last statement is copied as
   written with the text after it, like a statement with syntax errors.
 - **Inside a statement.** `comments.rs` attaches a comment to the document of a node (`attach_inner_comments`): a line

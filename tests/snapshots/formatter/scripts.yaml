@@ -360,3 +360,27 @@ formatter-snapshots:
               ;
 
               select 3;
+
+  - name: comment_after_separator_line
+    input: |-
+      select 2
+      ; -- two
+      select 3
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select 2;
+
+              select 3;
+          - mode: compact
+            expected: |-
+              select 2; -- two
+
+              select 3;
+          - mode: pretty
+            expected: |-
+              select 2; -- two
+
+              select 3;

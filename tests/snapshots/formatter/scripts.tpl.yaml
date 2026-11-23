@@ -128,3 +128,12 @@ formatter-snapshots:
       select 3
     dialects:
       hyper:
+
+  # A comment after a semicolon on a line of its own stays on the line of the semicolon
+  - name: comment_after_separator_line
+    input: |-
+      select 2
+      ; -- two
+      select 3
+    dialects:
+      hyper:

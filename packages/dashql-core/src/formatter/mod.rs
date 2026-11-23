@@ -3296,18 +3296,18 @@ impl<'a> Formatter<'a> {
             if comments::can_trail(input, &rest, root_span.end() as usize) {
                 output.push(b';');
                 comments::append_trailing_comments(&mut output, input, &rest);
-            } else if !before.is_empty() {
-                comments::append_comment_lines(&mut output, input, before);
+            } else {
+                if !before.is_empty() {
+                    comments::append_comment_lines(&mut output, input, before);
+                }
                 output.push(b';');
+                // The comments after the semicolon stay on its line, as in `select 1\n; -- c`
                 let separator_end = separator.map_or(root_span.end() as usize, |s| s + 1);
                 if comments::can_trail(input, after, separator_end) {
                     comments::append_trailing_comments(&mut output, input, after);
                 } else {
                     comments::append_comments(&mut output, input, after, max_width, None);
                 }
-            } else {
-                output.push(b';');
-                comments::append_comments(&mut output, input, after, max_width, None);
             }
             comment_begin = within_end;
         }
@@ -3394,6 +3394,14 @@ mod tests {
             "select 1; -- one\n\nselect 2;"
         );
         assert_eq!(format("select 1 /* a */;", FormattingMode::PRETTY, 120).0, "select 1; /* a */");
+    }
+
+    #[test]
+    fn keeps_comments_after_a_semicolon_on_its_line() {
+        // The semicolon on a line of its own takes the comment along
+        let [compact, pretty] = format_stable("select 2\n; -- c\nselect 3", 120);
+        assert_eq!(compact, "select 2; -- c\n\nselect 3;");
+        assert_eq!(pretty, compact);
     }
 
     /// Format a script in compact and pretty mode, formatting the output again must not change it
