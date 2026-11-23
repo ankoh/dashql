@@ -6,7 +6,7 @@ import * as dashql from '@akohn/dashql';
 
 import { ConnectorType, CONNECTOR_INFOS } from '@akohn/dashql/platform/connections/connector_info';
 import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_state';
-import type { QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
+import { QueryExecutionStatus, type QueryExecutionState } from '@akohn/dashql/platform/query/query_execution_state';
 import { WorkbookConnectionAttentionContext } from '../connections/workbook_connection_attention.js';
 import { WorkbookReadOnlyContext } from '../workbook_read_only.js';
 import type { ScriptConnectionView } from '../scripts/script_connection_picker.js';
@@ -315,6 +315,20 @@ describe('the card of a script', () => {
         expect(play.disabled).toBe(false);
         act(() => play.click());
         expect(model.run).toHaveBeenCalledOnce();
+    });
+
+    it('stops what runs for the script through the model, also while a run holds the workbook', () => {
+        const query = fakeQueryModel({ queryId: 3, status: QueryExecutionStatus.RUNNING });
+        const model = fakeScriptModel({ script: fakeScript(1, '01_alpha.sql', 'SELECT 1', { latestQueryId: 3 }), query, runActive: true });
+        const { props } = cardProps(model);
+        render({ ...props, connection: connection() });
+        const stop = container.querySelector<HTMLButtonElement>('[data-testid="script-execute"]')!;
+        expect(stop.getAttribute('aria-label')).toMatch(/^Stop /);
+        expect(stop.disabled).toBe(false);
+        act(() => stop.click());
+        expect(model.cancel).toHaveBeenCalledOnce();
+        expect(query.cancel).not.toHaveBeenCalled();
+        expect(model.run).not.toHaveBeenCalled();
     });
 
     it('greys the play button offline and requests attention once per pointer entry without opening settings', () => {

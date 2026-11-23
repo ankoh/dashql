@@ -1,25 +1,19 @@
 import * as React from 'react';
-import type * as dashql from '@akohn/dashql';
 import type { EditorView } from '@codemirror/view';
 
 import { useAppConfig } from '../../config/app_config.js';
-import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
-import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
+import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { useStorageReader } from '../../storage/storage_provider.js';
-import { displayPath } from '@akohn/dashql/platform/storage/workbook_locator';
-import { STORAGE_SCRIPTS_FOLDER } from '@akohn/dashql/platform/storage/storage_backend';
 import { useConnectionLabeler } from '../connections/connection_labels.js';
 import type { ModifyWorkbookScripts, ScriptData, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { deleteScript, useScriptSelection } from '../scripts/script_selection.js';
 import { useLiveScriptReader } from '../scripts/script_creation.js';
-import { useQuery, useScript, useScriptRun, useWorkbookExecution } from '@akohn/dashql-react/hooks';
+import { useScriptModel } from '@akohn/dashql-react/models/script_model';
 import { renameScript, type RenameDraftReferences } from '../scripts/script_rename.js';
-import { formattingDialectForConnector, getKeywordCase, isScriptFormattable, useScriptText } from '../scripts/script_format.js';
-import { formatScriptEditor } from '../editor/script_format_editor.js';
-import type { ScriptStorage } from '../scripts/script_action_menu.js';
+import { getKeywordCase } from '../scripts/script_format.js';
 import { scriptConnectionView, usePickScriptConnection } from '../scripts/script_connection_picker.js';
 import type { ScriptReferenceReport } from '@akohn/dashql/platform/workbook/script_reference_check';
-import { FeedEntryHeader } from './feed_entry_header.js';
+import { FeedEntryHeader, type FeedEntryHeaderDisplay } from './feed_entry_header.js';
 
 export interface ScriptEntryHeaderProps {
     workbookScripts: WorkbookScripts;
@@ -43,100 +37,60 @@ export interface ScriptEntryHeaderProps {
 }
 
 /// The header of a feed entry for a script of a workbook, outside of the feed: in the boxes of the dataflow and in
-/// the script editor dialog. The header runs, renames, formats and deletes the script itself.
+/// the script editor dialog. The model of the script runs, stops and rewrites it like in the feed, this header renames,
+/// deletes and moves the script to another connection.
 export const ScriptEntryHeader: React.FC<ScriptEntryHeaderProps> = React.memo((props: ScriptEntryHeaderProps) => {
     const { workbookScripts, modifyWorkbookScripts } = props;
     const workbookId = workbookScripts.workbookId;
-    const scriptData = useScript(props.scriptKey) ?? undefined;
-    const fileName = scriptData?.fileName ?? 'script.sql';
+    const model = useScriptModel(workbookId, props.scriptKey);
+    const fileName = model?.script.fileName ?? 'script.sql';
     const config = useAppConfig();
     const storageReader = useStorageReader();
-    const workbookExecution = useWorkbookExecution(workbookId);
-    const queryState = useQuery(scriptData?.latestQueryId ?? null);
 
     // The connection of the script, labeled like the feed labels it
     const labeler = useConnectionLabeler();
-    const connectionState = scriptData != null ? props.scriptConnections.get(scriptData.connectionId) ?? null : null;
+    const connectionState = model != null ? props.scriptConnections.get(model.script.connectionId) ?? null : null;
     const connection = React.useMemo(
         () => connectionState == null ? null : scriptConnectionView(connectionState, labeler(connectionState)),
         [connectionState, labeler],
     );
-    const online = connectionState?.connectionHealth === ConnectionHealth.ONLINE;
     const pickConnection = usePickScriptConnection(workbookId, modifyWorkbookScripts);
 
     const scriptDebugMode = config?.settings?.scriptDebugMode ?? false;
     const formattingDebugMode = config?.settings?.formattingDebugMode ?? false;
     const keywordCase = getKeywordCase(config?.settings);
-    const connectorType = connectionState?.connectorType as ConnectorType | undefined;
-    const formattingDialect = formattingDialectForConnector(connectorType);
-    const scriptText = useScriptText(scriptData ?? null);
-    const isFormattable = React.useMemo(
-        () => isScriptFormattable(scriptText, formattingDialect),
-        [scriptText, formattingDialect],
-    );
-    const editorView = props.editorView ?? null;
-    const format = React.useCallback((mode: dashql.buffers.formatting.FormattingMode) => {
-        formatScriptEditor(editorView, scriptData ?? null, mode, (text) => {
-            modifyWorkbookScripts({ kind: 'setScriptText', value: { scriptKey: props.scriptKey, text, withDiff: true } });
-        }, formattingDebugMode, keywordCase, formattingDialect);
-    }, [editorView, scriptData, props.scriptKey, modifyWorkbookScripts, formattingDebugMode, keywordCase, formattingDialect]);
+    const display = React.useMemo<FeedEntryHeaderDisplay>(() => ({
+        // There is no composer outside of the feed
+        focused: true, canTarget: false, scriptDebugMode, formattingDebugMode, keywordCase, references: props.scriptReferences,
+    }), [scriptDebugMode, formattingDebugMode, keywordCase, props.scriptReferences]);
 
-    const runScript = useScriptRun();
-    const execute = React.useCallback(() => {
-        if (scriptData == null || runScript == null || !online || workbookExecution.runActive) return;
-        void runScript(workbookId, scriptData.scriptKey);
-    }, [scriptData, runScript, online, workbookExecution.runActive, workbookId]);
     const readScript = useLiveScriptReader();
     const rename = React.useCallback((name: string) => {
         renameScript(workbookScripts, modifyWorkbookScripts, fileName, name, props.draftRenameRef?.current, key => readScript(key)?.fileName ?? null);
     }, [workbookScripts, modifyWorkbookScripts, fileName, props.draftRenameRef, readScript]);
     const selection = useScriptSelection();
     const { onDelete } = props;
+    const script = model?.script ?? null;
     const remove = React.useCallback(() => {
-        if (scriptData == null) return;
-        if (onDelete != null) onDelete(scriptData);
+        if (script == null) return;
+        if (onDelete != null) onDelete(script);
         else deleteScript(selection, workbookScripts, modifyWorkbookScripts, fileName);
-    }, [scriptData, onDelete, selection, workbookScripts, modifyWorkbookScripts, fileName]);
-    // A snippet replaces the text of the script, a script with text shows the replacement as a diff to accept or reject
-    const applySnippet = React.useCallback((text: string) => {
-        const priorText = scriptData?.scriptSession.getText() ?? '';
-        modifyWorkbookScripts({ kind: 'setScriptText', value: { scriptKey: props.scriptKey, text, withDiff: priorText.trim().length > 0 } });
-    }, [scriptData, props.scriptKey, modifyWorkbookScripts]);
-    const setVisSpec = React.useCallback((spec: string) => {
-        modifyWorkbookScripts({ kind: 'setScriptVisSpec', value: { scriptKey: props.scriptKey, spec } });
-    }, [props.scriptKey, modifyWorkbookScripts]);
-    const storage = React.useMemo<ScriptStorage>(() => ({
-        fileName,
-        resolvePath: () => `${displayPath(workbookId, storageReader.getWorkbookLocation(workbookId))}/${STORAGE_SCRIPTS_FOLDER}/${fileName}`,
-        onRename: rename,
-    }), [fileName, workbookId, storageReader, rename]);
+    }, [script, onDelete, selection, workbookScripts, modifyWorkbookScripts, fileName]);
 
+    if (model == null) return null;
     return (
         <FeedEntryHeader
-            workbookId={workbookId}
-            scriptData={scriptData}
-            scriptFileName={fileName}
+            model={model}
             connection={connection}
-            connectorType={connectorType ?? ConnectorType.HYPER}
-            queryState={queryState}
-            focused
-            canExecute={scriptData != null && online}
-            scriptDebugMode={scriptDebugMode}
-            isFormattable={isFormattable}
-            canFormat={editorView != null}
-            scriptReferences={props.scriptReferences}
-            // There is no composer outside of the feed
-            canTarget={false}
+            display={display}
+            editorView={props.editorView ?? null}
+            storageReader={storageReader}
             onTarget={NO_TARGET}
-            onExecute={execute}
             onPickConnection={connectionId => pickConnection(fileName, connectionId)}
             onRename={rename}
             onDelete={remove}
             onEdit={props.onEdit}
-            onFormat={format}
-            onApplySnippet={props.snippets === false ? undefined : applySnippet}
-            onSetVisSpec={setVisSpec}
-            storage={storage}
+            snippets={props.snippets}
             className={props.className}
         />
     );

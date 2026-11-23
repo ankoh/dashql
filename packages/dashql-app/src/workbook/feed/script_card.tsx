@@ -1,6 +1,5 @@
 import * as React from 'react';
 import * as styles from './workbook_feed.module.css';
-import * as dashql from '@akohn/dashql';
 
 import type { EditorView } from '@codemirror/view';
 import type { Icon } from '@akohn/dashql-react/components/symbol_icon';
@@ -10,22 +9,17 @@ import { ButtonGroup } from '@akohn/dashql-react/components/button_group';
 import { IndicatorStatus } from '@akohn/dashql-react/components/status_indicator';
 import { SymbolIcon } from '@akohn/dashql-react/components/symbol_icon';
 import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_state';
-import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { QueryExecutionStatus } from '@akohn/dashql/platform/query/query_execution_state';
 import { scriptDisplayName } from '@akohn/dashql/platform/workbook/script_types';
-import { STORAGE_SCRIPTS_FOLDER } from '@akohn/dashql/platform/storage/storage_backend';
-import type { ScriptReferenceReport } from '@akohn/dashql/platform/workbook/script_reference_check';
 import type { StorageReader } from '../../storage/storage_provider.js';
-import { displayPath } from '@akohn/dashql/platform/storage/workbook_locator';
 import type { ScriptModel } from '@akohn/dashql-react/models/script_model';
 import { deriveEntryStatus, EntryStatusKind } from '../entry_status_model.js';
 import { EntryStatusBar } from '../entry_status_bar.js';
 import { QueryResultRerunButton, StoredResultBean } from '../persistence/stored_result_controls.js';
-import { DEFAULT_FEED_ENTRY_HEADER_DEPENDENCIES, FeedEntryHeader, type FeedEntryHeaderDependencies } from './feed_entry_header.js';
+import {
+    DEFAULT_FEED_ENTRY_HEADER_DEPENDENCIES, FeedEntryHeader, type FeedEntryHeaderDependencies, type FeedEntryHeaderDisplay,
+} from './feed_entry_header.js';
 import { FeedEntryTabStrip, useFeedEntryTabs, type FeedEntryTab } from './feed_entry_footer.js';
-import { formattingDialectForConnector, isScriptFormattable, useScriptText } from '../scripts/script_format.js';
-import { formatScriptEditor } from '../editor/script_format_editor.js';
-import type { ScriptStorage } from '../scripts/script_action_menu.js';
 import type { ScriptConnectionView } from '../scripts/script_connection_picker.js';
 import { useWorkbookReadOnly } from '../workbook_read_only.js';
 
@@ -61,18 +55,9 @@ export interface ScriptCardPosition {
 }
 
 /// How the feed shows the card
-export interface ScriptCardDisplay {
-    /// Is the script selected?
-    focused: boolean;
+export interface ScriptCardDisplay extends FeedEntryHeaderDisplay {
     /// Is the feed shown? A hidden feed mounts no editors.
     active: boolean;
-    /// Can a question of the composer target the script?
-    canTarget: boolean;
-    scriptDebugMode: boolean;
-    formattingDebugMode: boolean;
-    keywordCase: dashql.buffers.formatting.KeywordCase;
-    /// The checked script references of the script
-    references: ScriptReferenceReport | null;
 }
 
 /// The result of the card, folded by the feed. A query without a result folds by itself, until the user unfolds it or
@@ -105,16 +90,9 @@ export interface ScriptResultTableSlot {
 }
 
 /// The parts of the card that need a real script session or editor, a test may replace them. None reads the runtime.
-export interface ScriptCardDependencies extends FeedEntryHeaderDependencies {
-    formatScriptEditor: typeof formatScriptEditor;
-    isScriptFormattable: typeof isScriptFormattable;
-}
+export type ScriptCardDependencies = FeedEntryHeaderDependencies;
 
-export const DEFAULT_SCRIPT_CARD_DEPENDENCIES: ScriptCardDependencies = {
-    ...DEFAULT_FEED_ENTRY_HEADER_DEPENDENCIES,
-    formatScriptEditor,
-    isScriptFormattable,
-};
+export const DEFAULT_SCRIPT_CARD_DEPENDENCIES: ScriptCardDependencies = DEFAULT_FEED_ENTRY_HEADER_DEPENDENCIES;
 
 export interface ScriptCardProps {
     model: ScriptModel;
@@ -144,7 +122,6 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
     const scriptKey = script.scriptKey;
     const fileName = script.fileName;
     const query = model.query?.query ?? null;
-    const connectorType = connection?.connectorInfo.connectorType ?? ConnectorType.HYPER;
     const online = connection?.connectionHealth === ConnectionHealth.ONLINE;
 
     // A staged rewrite waiting to be accepted or rejected. The editor shows the diff in place, these buttons are the
@@ -172,30 +149,14 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
     }, [model, entryStatus.kind]);
 
     const [editorView, setEditorView] = React.useState<EditorView | null>(null);
-    const formattingDialect = formattingDialectForConnector(connectorType);
-    // Formattability only depends on the text, cursor moves bump the state revision but not the text version
-    const scriptText = useScriptText(script);
-    const { isScriptFormattable, formatScriptEditor } = dependencies;
-    const isFormattable = React.useMemo(
-        () => isScriptFormattable(scriptText, formattingDialect),
-        [isScriptFormattable, scriptText, formattingDialect],
-    );
     const handleEditorView = React.useCallback((view: EditorView) => {
         setEditorView(view);
         feed.editorView(scriptKey, view);
     }, [feed, scriptKey]);
-    const handleFormat = React.useCallback((mode: dashql.buffers.formatting.FormattingMode) => {
-        formatScriptEditor(editorView, script, mode, text => void model.setText(text),
-            display.formattingDebugMode, display.keywordCase, formattingDialect);
-    }, [formatScriptEditor, editorView, script, model, display.formattingDebugMode, display.keywordCase, formattingDialect]);
+    const rename = React.useCallback((name: string) => feed.rename(fileName, name), [feed, fileName]);
 
     // Labels use the display name (the file name without ".sql"), the file name stays the identity of the commands
     const displayName = scriptDisplayName(fileName);
-    const storage = React.useMemo<ScriptStorage>(() => ({
-        fileName,
-        resolvePath: () => `${displayPath(model.workbookId, props.storageReader.getWorkbookLocation(model.workbookId))}/${STORAGE_SCRIPTS_FOLDER}/${fileName}`,
-        onRename: name => feed.rename(fileName, name),
-    }), [fileName, model.workbookId, props.storageReader, feed]);
 
     // The full result table opens in a card over the feed
     const [tableOpen, setTableOpen] = React.useState(false);
@@ -218,28 +179,15 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
         >
             <div className={styles.feed_entry_cell} data-result-card={hasFooterContent ? '' : undefined}>
                 <FeedEntryHeader
-                    workbookId={model.workbookId}
-                    scriptData={script}
-                    scriptFileName={fileName}
+                    model={model}
                     connection={connection}
-                    connectorType={connectorType}
-                    queryState={query}
-                    focused={display.focused}
-                    canExecute={online}
-                    scriptDebugMode={display.scriptDebugMode}
-                    isFormattable={isFormattable}
-                    canFormat={editorView != null}
-                    scriptReferences={display.references}
-                    canTarget={display.canTarget}
+                    display={display}
+                    editorView={editorView}
+                    storageReader={props.storageReader}
                     onTarget={() => feed.target(fileName)}
-                    onExecute={runScript}
                     onPickConnection={connectionId => feed.pickConnection(fileName, connectionId)}
-                    onRename={name => feed.rename(fileName, name)}
+                    onRename={rename}
                     onDelete={() => feed.delete(fileName)}
-                    onFormat={handleFormat}
-                    onApplySnippet={text => void model.setText(text)}
-                    onSetVisSpec={spec => void model.setVisSpec(spec)}
-                    storage={storage}
                     onAddAbove={() => feed.create(position.index)}
                     onAddBelow={() => feed.create(position.index + 1)}
                     onMoveUp={() => feed.moveUp(fileName)}
