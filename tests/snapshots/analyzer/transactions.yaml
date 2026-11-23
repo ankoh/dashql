@@ -4,18 +4,6 @@ analyzer-snapshots:
     catalog:
       script:
         input: create table items (id int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: items
-            text: "create tab..s (id int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: id
-                text: "id int"
-        touched-relations:
-          - statement-id: 0
-            name: items
         errors: []
     script:
       input: |

@@ -32,18 +32,6 @@ completion-snapshots:
     catalog:
       script:
         input: create table dbname.schemaname.foo(a int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: foo
-            text: "create tab..foo(a int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-        touched-relations:
-          - statement-id: 0
-            name: dbname.schemaname.foo
         errors: []
     editor:
       input: select * from db
@@ -88,18 +76,6 @@ completion-snapshots:
     catalog:
       script:
         input: create table dbname.schemaname.foo(a int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: foo
-            text: "create tab..foo(a int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-        touched-relations:
-          - statement-id: 0
-            name: dbname.schemaname.foo
         errors: []
     editor:
       input: select * from sch
@@ -144,18 +120,6 @@ completion-snapshots:
     catalog:
       script:
         input: create table foo(a int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: foo
-            text: "create tab..foo(a int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-        touched-relations:
-          - statement-id: 0
-            name: foo
         errors: []
     editor:
       input: select * from fo
@@ -205,18 +169,6 @@ completion-snapshots:
     catalog:
       script:
         input: create table foo(a int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: foo
-            text: "create tab..foo(a int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-        touched-relations:
-          - statement-id: 0
-            name: foo
         errors: []
     editor:
       input: select * from ( foo );
@@ -239,36 +191,6 @@ completion-snapshots:
           create table table1(attr1 integer);
           create table table2(attr2 integer);
           create table table3(attr3 integer);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: table1
-            text: "create tab..1 integer)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: attr1
-                text: "attr1 integer"
-          - catalog-id: "256.65536.4294967297"
-            name: table2
-            text: "create tab..2 integer)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: attr2
-                text: "attr2 integer"
-          - catalog-id: "256.65536.4294967298"
-            name: table3
-            text: "create tab..3 integer)"
-            columns:
-              - catalog-id: "256.65536.4294967298.0"
-                name: attr3
-                text: "attr3 integer"
-        touched-relations:
-          - statement-id: 0
-            name: table1
-          - statement-id: 1
-            name: table2
-          - statement-id: 2
-            name: table3
         errors: []
     editor:
       input: select attr2 from tab
@@ -347,7 +269,6 @@ completion-snapshots:
     catalog:
       script:
         input: create function mysum(x int) returns int;
-        catalog-id: 1
         errors: []
     editor:
       input: select mys
@@ -397,18 +318,6 @@ completion-snapshots:
     catalog:
       script:
         input: create table external_name1(external_name2 int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: external_name1
-            text: "create tab..name2 int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: external_name2
-                text: "external_name2 int"
-        touched-relations:
-          - statement-id: 0
-            name: external_name1
         errors: []
     editor:
       input: select external_name2 from external_name1 where external_
@@ -489,18 +398,6 @@ completion-snapshots:
     catalog:
       script:
         input: create table external_name1(external_name2 int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: external_name1
-            text: "create tab..name2 int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: external_name2
-                text: "external_name2 int"
-        touched-relations:
-          - statement-id: 0
-            name: external_name1
         errors: []
     editor:
       input: select external_name2 from external_name1 where external_

@@ -6,33 +6,6 @@ analyzer-snapshots:
         input: |-
           create table db1.schema1.A (a int, b int);
           create table db2.schema2.A (c int, d int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: a
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-          - catalog-id: "257.65537.4294967297"
-            name: a
-            text: "create tab..nt, d int)"
-            columns:
-              - catalog-id: "257.65537.4294967297.0"
-                name: c
-                text: "c int"
-              - catalog-id: "257.65537.4294967297.1"
-                name: d
-                text: "d int"
-        touched-relations:
-          - statement-id: 0
-            name: db1.schema1.a
-          - statement-id: 1
-            name: db2.schema2.a
         errors: []
     script:
       input: select * from db1.schema1.A x, db2.schema2.A y where x.a = c;
@@ -86,33 +59,6 @@ analyzer-snapshots:
         input: |-
           create table A (a int, b int);
           create table db2.schema2.A (c int, d int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: a
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-          - catalog-id: "257.65537.4294967297"
-            name: a
-            text: "create tab..nt, d int)"
-            columns:
-              - catalog-id: "257.65537.4294967297.0"
-                name: c
-                text: "c int"
-              - catalog-id: "257.65537.4294967297.1"
-                name: d
-                text: "d int"
-        touched-relations:
-          - statement-id: 0
-            name: a
-          - statement-id: 1
-            name: db2.schema2.a
         errors: []
     script:
       input: select * from db1.schema1.A x, db2.schema2.A where x.a = c;
@@ -163,21 +109,6 @@ analyzer-snapshots:
     catalog:
       script:
         input: create table A (a int, b int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: a
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-        touched-relations:
-          - statement-id: 0
-            name: a
         errors: []
     script:
       input: select * from db1.schema1.A, db2.schema2.B where a = c;
@@ -226,21 +157,6 @@ analyzer-snapshots:
     catalog:
       script:
         input: create table db1.schema1.A (a int, b int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: a
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-        touched-relations:
-          - statement-id: 0
-            name: db1.schema1.a
         errors: []
     script:
       input: select * from db1.schema1.A, db2.schema2.B where a = c;
@@ -291,21 +207,6 @@ analyzer-snapshots:
     catalog:
       script:
         input: create table db1.schema1.A (a int, b int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: a
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-        touched-relations:
-          - statement-id: 0
-            name: db1.schema1.a
         errors: []
     script:
       input: |-

@@ -606,27 +606,6 @@ completion-snapshots:
         input: |-
           create table hyperdb_queries(a int);
           create table li_some_table_no_keyword(li_some_column int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: hyperdb_queries
-            text: "create tab..ies(a int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-          - catalog-id: "256.65536.4294967297"
-            name: li_some_table_no_keyword
-            text: "create tab..olumn int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: li_some_column
-                text: "li_some_column int"
-        touched-relations:
-          - statement-id: 0
-            name: hyperdb_queries
-          - statement-id: 1
-            name: li_some_table_no_keyword
         errors: []
     editor:
       input: select * from hyperdb_queries li

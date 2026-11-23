@@ -1,7 +1,7 @@
 //! The completion snapshot encoder and the runner of completion snapshot cases.
 
 use super::{encode_location_text, plain, Map};
-use crate::encode::analyzer::encode_script;
+use crate::encode::analyzer::{encode_catalog_script, encode_script};
 use crate::ryml::Node;
 use dashql_buffers::analyzer::NameTag;
 use dashql_buffers::completion::CandidateTag;
@@ -200,14 +200,14 @@ pub fn complete_case(
         let entry_id = catalog.allocate_entry_id();
         let parsed = Arc::new(parse(Arc::new(scan(input, 0, entry_id))));
         let analyzed = dashql_core::analyzer::analyze(parsed, &catalog).map_err(|e| e.message)?;
-        catalog_yaml = Some(encode_script(&analyzed, false, None).to_yaml());
+        catalog_yaml = Some(encode_catalog_script(&analyzed).to_yaml());
         catalog.load_script(Arc::new(analyzed), CatalogLayer::CONNECTION).map_err(|e| e.message)?;
     }
     let entry_id = catalog.allocate_entry_id();
     let scanned = Arc::new(scan(editor_input, 0, entry_id));
     let parsed = Arc::new(parse(scanned.clone()));
     let analyzed = Arc::new(dashql_core::analyzer::analyze(parsed.clone(), &catalog).map_err(|e| e.message)?);
-    let editor_yaml = encode_script(&analyzed, true, None).to_yaml();
+    let editor_yaml = encode_script(&analyzed, None).to_yaml();
 
     let offset = match cursor_offset {
         CursorOffset::Search { text, index } => {

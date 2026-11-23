@@ -347,21 +347,6 @@ analyzer-snapshots:
       script:
         input: |-
           create table base (a int, b int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: base
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-        touched-relations:
-          - statement-id: 0
-            name: base
         errors: []
     script:
       input: |-
@@ -465,21 +450,6 @@ analyzer-snapshots:
       script:
         input: |-
           create table db.s.base (a int, b int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: base
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-        touched-relations:
-          - statement-id: 0
-            name: db.s.base
         errors: []
     script:
       input: |-

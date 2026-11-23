@@ -4,45 +4,6 @@ analyzer-snapshots:
     catalog:
       script:
         input: create table t (a int, b int); create table u (a int, c int); create table "Mixed" ("Col" int, low int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: t
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65536.4294967297"
-            name: u
-            text: "create tab..nt, c int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: c
-                text: "c int"
-          - catalog-id: "256.65536.4294967298"
-            name: Mixed
-            text: "create tab.., low int)"
-            columns:
-              - catalog-id: "256.65536.4294967298.0"
-                name: Col
-                text: "\"Col\" int"
-              - catalog-id: "256.65536.4294967298.1"
-                name: low
-                text: "low int"
-        touched-relations:
-          - statement-id: 0
-            name: t
-          - statement-id: 1
-            name: u
-          - statement-id: 2
-            name: Mixed
         errors: []
     script:
       input: select T.A, B from T
@@ -83,45 +44,6 @@ analyzer-snapshots:
     catalog:
       script:
         input: create table t (a int, b int); create table u (a int, c int); create table "Mixed" ("Col" int, low int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: t
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65536.4294967297"
-            name: u
-            text: "create tab..nt, c int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: c
-                text: "c int"
-          - catalog-id: "256.65536.4294967298"
-            name: Mixed
-            text: "create tab.., low int)"
-            columns:
-              - catalog-id: "256.65536.4294967298.0"
-                name: Col
-                text: "\"Col\" int"
-              - catalog-id: "256.65536.4294967298.1"
-                name: low
-                text: "low int"
-        touched-relations:
-          - statement-id: 0
-            name: t
-          - statement-id: 1
-            name: u
-          - statement-id: 2
-            name: Mixed
         errors: []
     script:
       input: select "Col", col, "LOW", low from "Mixed"
@@ -174,45 +96,6 @@ analyzer-snapshots:
     catalog:
       script:
         input: create table t (a int, b int); create table u (a int, c int); create table "Mixed" ("Col" int, low int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: t
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65536.4294967297"
-            name: u
-            text: "create tab..nt, c int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: c
-                text: "c int"
-          - catalog-id: "256.65536.4294967298"
-            name: Mixed
-            text: "create tab.., low int)"
-            columns:
-              - catalog-id: "256.65536.4294967298.0"
-                name: Col
-                text: "\"Col\" int"
-              - catalog-id: "256.65536.4294967298.1"
-                name: low
-                text: "low int"
-        touched-relations:
-          - statement-id: 0
-            name: t
-          - statement-id: 1
-            name: u
-          - statement-id: 2
-            name: Mixed
         errors: []
     script:
       input: select low from Mixed
@@ -248,45 +131,6 @@ analyzer-snapshots:
     catalog:
       script:
         input: create table t (a int, b int); create table u (a int, c int); create table "Mixed" ("Col" int, low int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: t
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65536.4294967297"
-            name: u
-            text: "create tab..nt, c int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: c
-                text: "c int"
-          - catalog-id: "256.65536.4294967298"
-            name: Mixed
-            text: "create tab.., low int)"
-            columns:
-              - catalog-id: "256.65536.4294967298.0"
-                name: Col
-                text: "\"Col\" int"
-              - catalog-id: "256.65536.4294967298.1"
-                name: low
-                text: "low int"
-        touched-relations:
-          - statement-id: 0
-            name: t
-          - statement-id: 1
-            name: u
-          - statement-id: 2
-            name: Mixed
         errors: []
     script:
       input: select q."K", q.k from (select a as "K" from t) q
@@ -343,45 +187,6 @@ analyzer-snapshots:
     catalog:
       script:
         input: create table t (a int, b int); create table u (a int, c int); create table "Mixed" ("Col" int, low int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: t
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65536.4294967297"
-            name: u
-            text: "create tab..nt, c int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: c
-                text: "c int"
-          - catalog-id: "256.65536.4294967298"
-            name: Mixed
-            text: "create tab.., low int)"
-            columns:
-              - catalog-id: "256.65536.4294967298.0"
-                name: Col
-                text: "\"Col\" int"
-              - catalog-id: "256.65536.4294967298.1"
-                name: low
-                text: "low int"
-        touched-relations:
-          - statement-id: 0
-            name: t
-          - statement-id: 1
-            name: u
-          - statement-id: 2
-            name: Mixed
         errors: []
     script:
       input: with "C" as (select 1 as x) select x from "C", c
@@ -436,51 +241,6 @@ analyzer-snapshots:
     catalog:
       script:
         input: create table t (a int, b int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: t
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65537.4294967297"
-            name: k
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65537.4294967297.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65537.4294967297.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65538.4294967298"
-            name: k
-            text: "create tab...k (c int)"
-            columns:
-              - catalog-id: "256.65538.4294967298.0"
-                name: c
-                text: "c int"
-          - catalog-id: "257.65539.4294967299"
-            name: n
-            text: "create tab...n (e int)"
-            columns:
-              - catalog-id: "257.65539.4294967299.0"
-                name: e
-                text: "e int"
-        touched-relations:
-          - statement-id: 0
-            name: t
-          - statement-id: 1
-            name: s1.k
-          - statement-id: 2
-            name: s2.k
-          - statement-id: 3
-            name: db1.s3.n
         errors: []
     script:
       input: select c from "S2".k, S1.K
@@ -523,57 +283,6 @@ analyzer-snapshots:
     catalog:
       script:
         input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: t
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65536.4294967297"
-            name: u
-            text: "create tab..nt, c int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: c
-                text: "c int"
-          - catalog-id: "256.65536.4294967298"
-            name: v
-            text: "create tab..nt, x int)"
-            columns:
-              - catalog-id: "256.65536.4294967298.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967298.1"
-                name: x
-                text: "x int"
-          - catalog-id: "256.65536.4294967299"
-            name: w
-            text: "create tab..nt, y int)"
-            columns:
-              - catalog-id: "256.65536.4294967299.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967299.1"
-                name: y
-                text: "y int"
-        touched-relations:
-          - statement-id: 0
-            name: t
-          - statement-id: 1
-            name: u
-          - statement-id: 2
-            name: v
-          - statement-id: 3
-            name: w
         errors: []
     script:
       input: with t as (select c as z from u) select z, a from t
@@ -633,57 +342,6 @@ analyzer-snapshots:
     catalog:
       script:
         input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: t
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65536.4294967297"
-            name: u
-            text: "create tab..nt, c int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: c
-                text: "c int"
-          - catalog-id: "256.65536.4294967298"
-            name: v
-            text: "create tab..nt, x int)"
-            columns:
-              - catalog-id: "256.65536.4294967298.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967298.1"
-                name: x
-                text: "x int"
-          - catalog-id: "256.65536.4294967299"
-            name: w
-            text: "create tab..nt, y int)"
-            columns:
-              - catalog-id: "256.65536.4294967299.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967299.1"
-                name: y
-                text: "y int"
-        touched-relations:
-          - statement-id: 0
-            name: t
-          - statement-id: 1
-            name: u
-          - statement-id: 2
-            name: v
-          - statement-id: 3
-            name: w
         errors: []
     script:
       input: with t as (select c as z from u) select * from u where a in (select z from t)
@@ -759,57 +417,6 @@ analyzer-snapshots:
     catalog:
       script:
         input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: t
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65536.4294967297"
-            name: u
-            text: "create tab..nt, c int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: c
-                text: "c int"
-          - catalog-id: "256.65536.4294967298"
-            name: v
-            text: "create tab..nt, x int)"
-            columns:
-              - catalog-id: "256.65536.4294967298.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967298.1"
-                name: x
-                text: "x int"
-          - catalog-id: "256.65536.4294967299"
-            name: w
-            text: "create tab..nt, y int)"
-            columns:
-              - catalog-id: "256.65536.4294967299.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967299.1"
-                name: y
-                text: "y int"
-        touched-relations:
-          - statement-id: 0
-            name: t
-          - statement-id: 1
-            name: u
-          - statement-id: 2
-            name: v
-          - statement-id: 3
-            name: w
         errors: []
     script:
       input: with c1 as (select z from c2), c2 as (select 1 as z) select z from c1
@@ -882,57 +489,6 @@ analyzer-snapshots:
     catalog:
       script:
         input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: t
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65536.4294967297"
-            name: u
-            text: "create tab..nt, c int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: c
-                text: "c int"
-          - catalog-id: "256.65536.4294967298"
-            name: v
-            text: "create tab..nt, x int)"
-            columns:
-              - catalog-id: "256.65536.4294967298.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967298.1"
-                name: x
-                text: "x int"
-          - catalog-id: "256.65536.4294967299"
-            name: w
-            text: "create tab..nt, y int)"
-            columns:
-              - catalog-id: "256.65536.4294967299.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967299.1"
-                name: y
-                text: "y int"
-        touched-relations:
-          - statement-id: 0
-            name: t
-          - statement-id: 1
-            name: u
-          - statement-id: 2
-            name: v
-          - statement-id: 3
-            name: w
         errors: []
     script:
       input: with r as (select 1 as n union all select n + 1 from r) select n from r
@@ -1017,57 +573,6 @@ analyzer-snapshots:
     catalog:
       script:
         input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: t
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65536.4294967297"
-            name: u
-            text: "create tab..nt, c int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: c
-                text: "c int"
-          - catalog-id: "256.65536.4294967298"
-            name: v
-            text: "create tab..nt, x int)"
-            columns:
-              - catalog-id: "256.65536.4294967298.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967298.1"
-                name: x
-                text: "x int"
-          - catalog-id: "256.65536.4294967299"
-            name: w
-            text: "create tab..nt, y int)"
-            columns:
-              - catalog-id: "256.65536.4294967299.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967299.1"
-                name: y
-                text: "y int"
-        touched-relations:
-          - statement-id: 0
-            name: t
-          - statement-id: 1
-            name: u
-          - statement-id: 2
-            name: v
-          - statement-id: 3
-            name: w
         errors: []
     script:
       input: with k as (select a from t) select s.c, s.a from (with k as (select c from u) select * from k) s
@@ -1160,57 +665,6 @@ analyzer-snapshots:
     catalog:
       script:
         input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: t
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65536.4294967297"
-            name: u
-            text: "create tab..nt, c int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: c
-                text: "c int"
-          - catalog-id: "256.65536.4294967298"
-            name: v
-            text: "create tab..nt, x int)"
-            columns:
-              - catalog-id: "256.65536.4294967298.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967298.1"
-                name: x
-                text: "x int"
-          - catalog-id: "256.65536.4294967299"
-            name: w
-            text: "create tab..nt, y int)"
-            columns:
-              - catalog-id: "256.65536.4294967299.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967299.1"
-                name: y
-                text: "y int"
-        touched-relations:
-          - statement-id: 0
-            name: t
-          - statement-id: 1
-            name: u
-          - statement-id: 2
-            name: v
-          - statement-id: 3
-            name: w
         errors: []
     script:
       input: with recursive r(n, m) as (select a, b from t union all select r.n, t.b from r join t on t.a = r.m) select n, m from r
@@ -1335,57 +789,6 @@ analyzer-snapshots:
     catalog:
       script:
         input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: t
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65536.4294967297"
-            name: u
-            text: "create tab..nt, c int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: c
-                text: "c int"
-          - catalog-id: "256.65536.4294967298"
-            name: v
-            text: "create tab..nt, x int)"
-            columns:
-              - catalog-id: "256.65536.4294967298.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967298.1"
-                name: x
-                text: "x int"
-          - catalog-id: "256.65536.4294967299"
-            name: w
-            text: "create tab..nt, y int)"
-            columns:
-              - catalog-id: "256.65536.4294967299.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967299.1"
-                name: y
-                text: "y int"
-        touched-relations:
-          - statement-id: 0
-            name: t
-          - statement-id: 1
-            name: u
-          - statement-id: 2
-            name: v
-          - statement-id: 3
-            name: w
         errors: []
     script:
       input: select x.a from t x union all select x.c from u
@@ -1442,57 +845,6 @@ analyzer-snapshots:
     catalog:
       script:
         input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: t
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65536.4294967297"
-            name: u
-            text: "create tab..nt, c int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: c
-                text: "c int"
-          - catalog-id: "256.65536.4294967298"
-            name: v
-            text: "create tab..nt, x int)"
-            columns:
-              - catalog-id: "256.65536.4294967298.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967298.1"
-                name: x
-                text: "x int"
-          - catalog-id: "256.65536.4294967299"
-            name: w
-            text: "create tab..nt, y int)"
-            columns:
-              - catalog-id: "256.65536.4294967299.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967299.1"
-                name: y
-                text: "y int"
-        touched-relations:
-          - statement-id: 0
-            name: t
-          - statement-id: 1
-            name: u
-          - statement-id: 2
-            name: v
-          - statement-id: 3
-            name: w
         errors: []
     script:
       input: select q.a from (select a from t intersect select c from u except select id from v) q
@@ -1595,57 +947,6 @@ analyzer-snapshots:
     catalog:
       script:
         input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: t
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65536.4294967297"
-            name: u
-            text: "create tab..nt, c int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: c
-                text: "c int"
-          - catalog-id: "256.65536.4294967298"
-            name: v
-            text: "create tab..nt, x int)"
-            columns:
-              - catalog-id: "256.65536.4294967298.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967298.1"
-                name: x
-                text: "x int"
-          - catalog-id: "256.65536.4294967299"
-            name: w
-            text: "create tab..nt, y int)"
-            columns:
-              - catalog-id: "256.65536.4294967299.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967299.1"
-                name: y
-                text: "y int"
-        touched-relations:
-          - statement-id: 0
-            name: t
-          - statement-id: 1
-            name: u
-          - statement-id: 2
-            name: v
-          - statement-id: 3
-            name: w
         errors: []
     script:
       input: select a from t union select c from u order by c
@@ -1708,57 +1009,6 @@ analyzer-snapshots:
     catalog:
       script:
         input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: t
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65536.4294967297"
-            name: u
-            text: "create tab..nt, c int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: c
-                text: "c int"
-          - catalog-id: "256.65536.4294967298"
-            name: v
-            text: "create tab..nt, x int)"
-            columns:
-              - catalog-id: "256.65536.4294967298.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967298.1"
-                name: x
-                text: "x int"
-          - catalog-id: "256.65536.4294967299"
-            name: w
-            text: "create tab..nt, y int)"
-            columns:
-              - catalog-id: "256.65536.4294967299.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967299.1"
-                name: y
-                text: "y int"
-        touched-relations:
-          - statement-id: 0
-            name: t
-          - statement-id: 1
-            name: u
-          - statement-id: 2
-            name: v
-          - statement-id: 3
-            name: w
         errors: []
     script:
       input: select x.a, y.b from t x join t y on x.a = y.b where x.b > y.a
@@ -1830,57 +1080,6 @@ analyzer-snapshots:
     catalog:
       script:
         input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: t
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65536.4294967297"
-            name: u
-            text: "create tab..nt, c int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: c
-                text: "c int"
-          - catalog-id: "256.65536.4294967298"
-            name: v
-            text: "create tab..nt, x int)"
-            columns:
-              - catalog-id: "256.65536.4294967298.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967298.1"
-                name: x
-                text: "x int"
-          - catalog-id: "256.65536.4294967299"
-            name: w
-            text: "create tab..nt, y int)"
-            columns:
-              - catalog-id: "256.65536.4294967299.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967299.1"
-                name: y
-                text: "y int"
-        touched-relations:
-          - statement-id: 0
-            name: t
-          - statement-id: 1
-            name: u
-          - statement-id: 2
-            name: v
-          - statement-id: 3
-            name: w
         errors: []
     script:
       input: select t.a, x.a, b from t join t x on t.a = x.b
@@ -1949,57 +1148,6 @@ analyzer-snapshots:
     catalog:
       script:
         input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: t
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65536.4294967297"
-            name: u
-            text: "create tab..nt, c int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: c
-                text: "c int"
-          - catalog-id: "256.65536.4294967298"
-            name: v
-            text: "create tab..nt, x int)"
-            columns:
-              - catalog-id: "256.65536.4294967298.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967298.1"
-                name: x
-                text: "x int"
-          - catalog-id: "256.65536.4294967299"
-            name: w
-            text: "create tab..nt, y int)"
-            columns:
-              - catalog-id: "256.65536.4294967299.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967299.1"
-                name: y
-                text: "y int"
-        touched-relations:
-          - statement-id: 0
-            name: t
-          - statement-id: 1
-            name: u
-          - statement-id: 2
-            name: v
-          - statement-id: 3
-            name: w
         errors: []
     script:
       input: select b, c from t join u on a = c
@@ -2060,57 +1208,6 @@ analyzer-snapshots:
     catalog:
       script:
         input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: t
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65536.4294967297"
-            name: u
-            text: "create tab..nt, c int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: c
-                text: "c int"
-          - catalog-id: "256.65536.4294967298"
-            name: v
-            text: "create tab..nt, x int)"
-            columns:
-              - catalog-id: "256.65536.4294967298.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967298.1"
-                name: x
-                text: "x int"
-          - catalog-id: "256.65536.4294967299"
-            name: w
-            text: "create tab..nt, y int)"
-            columns:
-              - catalog-id: "256.65536.4294967299.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967299.1"
-                name: y
-                text: "y int"
-        touched-relations:
-          - statement-id: 0
-            name: t
-          - statement-id: 1
-            name: u
-          - statement-id: 2
-            name: v
-          - statement-id: 3
-            name: w
         errors: []
     script:
       input: select p, q, r, s from (select * from t natural join v) z(p, q, r, s)
@@ -2197,57 +1294,6 @@ analyzer-snapshots:
     catalog:
       script:
         input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: t
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65536.4294967297"
-            name: u
-            text: "create tab..nt, c int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: c
-                text: "c int"
-          - catalog-id: "256.65536.4294967298"
-            name: v
-            text: "create tab..nt, x int)"
-            columns:
-              - catalog-id: "256.65536.4294967298.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967298.1"
-                name: x
-                text: "x int"
-          - catalog-id: "256.65536.4294967299"
-            name: w
-            text: "create tab..nt, y int)"
-            columns:
-              - catalog-id: "256.65536.4294967299.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967299.1"
-                name: y
-                text: "y int"
-        touched-relations:
-          - statement-id: 0
-            name: t
-          - statement-id: 1
-            name: u
-          - statement-id: 2
-            name: v
-          - statement-id: 3
-            name: w
         errors: []
     script:
       input: select p, q from (select * from t join t as t2 using (a, b)) z(p, q)
@@ -2312,57 +1358,6 @@ analyzer-snapshots:
     catalog:
       script:
         input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: t
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65536.4294967297"
-            name: u
-            text: "create tab..nt, c int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: c
-                text: "c int"
-          - catalog-id: "256.65536.4294967298"
-            name: v
-            text: "create tab..nt, x int)"
-            columns:
-              - catalog-id: "256.65536.4294967298.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967298.1"
-                name: x
-                text: "x int"
-          - catalog-id: "256.65536.4294967299"
-            name: w
-            text: "create tab..nt, y int)"
-            columns:
-              - catalog-id: "256.65536.4294967299.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967299.1"
-                name: y
-                text: "y int"
-        touched-relations:
-          - statement-id: 0
-            name: t
-          - statement-id: 1
-            name: u
-          - statement-id: 2
-            name: v
-          - statement-id: 3
-            name: w
         errors: []
     script:
       input: select a, b, c from t full outer join u using (a)
@@ -2418,57 +1413,6 @@ analyzer-snapshots:
     catalog:
       script:
         input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: t
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65536.4294967297"
-            name: u
-            text: "create tab..nt, c int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: c
-                text: "c int"
-          - catalog-id: "256.65536.4294967298"
-            name: v
-            text: "create tab..nt, x int)"
-            columns:
-              - catalog-id: "256.65536.4294967298.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967298.1"
-                name: x
-                text: "x int"
-          - catalog-id: "256.65536.4294967299"
-            name: w
-            text: "create tab..nt, y int)"
-            columns:
-              - catalog-id: "256.65536.4294967299.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967299.1"
-                name: y
-                text: "y int"
-        touched-relations:
-          - statement-id: 0
-            name: t
-          - statement-id: 1
-            name: u
-          - statement-id: 2
-            name: v
-          - statement-id: 3
-            name: w
         errors: []
     script:
       input: select t.a, s.c from t left join lateral (select c from u where u.a = t.a) s on true
@@ -2546,57 +1490,6 @@ analyzer-snapshots:
     catalog:
       script:
         input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: t
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65536.4294967297"
-            name: u
-            text: "create tab..nt, c int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: c
-                text: "c int"
-          - catalog-id: "256.65536.4294967298"
-            name: v
-            text: "create tab..nt, x int)"
-            columns:
-              - catalog-id: "256.65536.4294967298.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967298.1"
-                name: x
-                text: "x int"
-          - catalog-id: "256.65536.4294967299"
-            name: w
-            text: "create tab..nt, y int)"
-            columns:
-              - catalog-id: "256.65536.4294967299.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967299.1"
-                name: y
-                text: "y int"
-        touched-relations:
-          - statement-id: 0
-            name: t
-          - statement-id: 1
-            name: u
-          - statement-id: 2
-            name: v
-          - statement-id: 3
-            name: w
         errors: []
     script:
       input: select a + 1 as k from t where k > 1
@@ -2648,57 +1541,6 @@ analyzer-snapshots:
     catalog:
       script:
         input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: t
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65536.4294967297"
-            name: u
-            text: "create tab..nt, c int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: c
-                text: "c int"
-          - catalog-id: "256.65536.4294967298"
-            name: v
-            text: "create tab..nt, x int)"
-            columns:
-              - catalog-id: "256.65536.4294967298.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967298.1"
-                name: x
-                text: "x int"
-          - catalog-id: "256.65536.4294967299"
-            name: w
-            text: "create tab..nt, y int)"
-            columns:
-              - catalog-id: "256.65536.4294967299.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967299.1"
-                name: y
-                text: "y int"
-        touched-relations:
-          - statement-id: 0
-            name: t
-          - statement-id: 1
-            name: u
-          - statement-id: 2
-            name: v
-          - statement-id: 3
-            name: w
         errors: []
     script:
       input: select a, count(*) as n from t group by a having n > 1
@@ -2756,57 +1598,6 @@ analyzer-snapshots:
     catalog:
       script:
         input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: t
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65536.4294967297"
-            name: u
-            text: "create tab..nt, c int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: c
-                text: "c int"
-          - catalog-id: "256.65536.4294967298"
-            name: v
-            text: "create tab..nt, x int)"
-            columns:
-              - catalog-id: "256.65536.4294967298.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967298.1"
-                name: x
-                text: "x int"
-          - catalog-id: "256.65536.4294967299"
-            name: w
-            text: "create tab..nt, y int)"
-            columns:
-              - catalog-id: "256.65536.4294967299.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967299.1"
-                name: y
-                text: "y int"
-        touched-relations:
-          - statement-id: 0
-            name: t
-          - statement-id: 1
-            name: u
-          - statement-id: 2
-            name: v
-          - statement-id: 3
-            name: w
         errors: []
     script:
       input: select a + 1 as k, k * 2 from t
@@ -2860,57 +1651,6 @@ analyzer-snapshots:
     catalog:
       script:
         input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: t
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65536.4294967297"
-            name: u
-            text: "create tab..nt, c int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: c
-                text: "c int"
-          - catalog-id: "256.65536.4294967298"
-            name: v
-            text: "create tab..nt, x int)"
-            columns:
-              - catalog-id: "256.65536.4294967298.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967298.1"
-                name: x
-                text: "x int"
-          - catalog-id: "256.65536.4294967299"
-            name: w
-            text: "create tab..nt, y int)"
-            columns:
-              - catalog-id: "256.65536.4294967299.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967299.1"
-                name: y
-                text: "y int"
-        touched-relations:
-          - statement-id: 0
-            name: t
-          - statement-id: 1
-            name: u
-          - statement-id: 2
-            name: v
-          - statement-id: 3
-            name: w
         errors: []
     script:
       input: |-
@@ -3051,57 +1791,6 @@ analyzer-snapshots:
     catalog:
       script:
         input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: t
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65536.4294967297"
-            name: u
-            text: "create tab..nt, c int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: c
-                text: "c int"
-          - catalog-id: "256.65536.4294967298"
-            name: v
-            text: "create tab..nt, x int)"
-            columns:
-              - catalog-id: "256.65536.4294967298.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967298.1"
-                name: x
-                text: "x int"
-          - catalog-id: "256.65536.4294967299"
-            name: w
-            text: "create tab..nt, y int)"
-            columns:
-              - catalog-id: "256.65536.4294967299.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967299.1"
-                name: y
-                text: "y int"
-        touched-relations:
-          - statement-id: 0
-            name: t
-          - statement-id: 1
-            name: u
-          - statement-id: 2
-            name: v
-          - statement-id: 3
-            name: w
         errors: []
     script:
       input: select distinct on (a) a, sum(b) over w from t window w as (partition by a order by b) order by a, b
@@ -3176,57 +1865,6 @@ analyzer-snapshots:
     catalog:
       script:
         input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: t
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65536.4294967297"
-            name: u
-            text: "create tab..nt, c int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: c
-                text: "c int"
-          - catalog-id: "256.65536.4294967298"
-            name: v
-            text: "create tab..nt, x int)"
-            columns:
-              - catalog-id: "256.65536.4294967298.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967298.1"
-                name: x
-                text: "x int"
-          - catalog-id: "256.65536.4294967299"
-            name: w
-            text: "create tab..nt, y int)"
-            columns:
-              - catalog-id: "256.65536.4294967299.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967299.1"
-                name: y
-                text: "y int"
-        touched-relations:
-          - statement-id: 0
-            name: t
-          - statement-id: 1
-            name: u
-          - statement-id: 2
-            name: v
-          - statement-id: 3
-            name: w
         errors: []
     script:
       input: select a from t group by a having count(*) > (select count(*) from u where u.a = t.a)
@@ -3301,57 +1939,6 @@ analyzer-snapshots:
     catalog:
       script:
         input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: t
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65536.4294967297"
-            name: u
-            text: "create tab..nt, c int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: c
-                text: "c int"
-          - catalog-id: "256.65536.4294967298"
-            name: v
-            text: "create tab..nt, x int)"
-            columns:
-              - catalog-id: "256.65536.4294967298.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967298.1"
-                name: x
-                text: "x int"
-          - catalog-id: "256.65536.4294967299"
-            name: w
-            text: "create tab..nt, y int)"
-            columns:
-              - catalog-id: "256.65536.4294967299.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967299.1"
-                name: y
-                text: "y int"
-        touched-relations:
-          - statement-id: 0
-            name: t
-          - statement-id: 1
-            name: u
-          - statement-id: 2
-            name: v
-          - statement-id: 3
-            name: w
         errors: []
     script:
       input: select (select a from u where c = b) from t
@@ -3410,51 +1997,6 @@ analyzer-snapshots:
     catalog:
       script:
         input: create table t (a int, b int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: t
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65537.4294967297"
-            name: k
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65537.4294967297.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65537.4294967297.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65538.4294967298"
-            name: k
-            text: "create tab...k (c int)"
-            columns:
-              - catalog-id: "256.65538.4294967298.0"
-                name: c
-                text: "c int"
-          - catalog-id: "257.65539.4294967299"
-            name: n
-            text: "create tab...n (e int)"
-            columns:
-              - catalog-id: "257.65539.4294967299.0"
-                name: e
-                text: "e int"
-        touched-relations:
-          - statement-id: 0
-            name: t
-          - statement-id: 1
-            name: s1.k
-          - statement-id: 2
-            name: s2.k
-          - statement-id: 3
-            name: db1.s3.n
         errors: []
     script:
       input: select e from s3.n
@@ -3487,51 +2029,6 @@ analyzer-snapshots:
     catalog:
       script:
         input: create table t (a int, b int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: t
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65537.4294967297"
-            name: k
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65537.4294967297.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65537.4294967297.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65538.4294967298"
-            name: k
-            text: "create tab...k (c int)"
-            columns:
-              - catalog-id: "256.65538.4294967298.0"
-                name: c
-                text: "c int"
-          - catalog-id: "257.65539.4294967299"
-            name: n
-            text: "create tab...n (e int)"
-            columns:
-              - catalog-id: "257.65539.4294967299.0"
-                name: e
-                text: "e int"
-        touched-relations:
-          - statement-id: 0
-            name: t
-          - statement-id: 1
-            name: s1.k
-          - statement-id: 2
-            name: s2.k
-          - statement-id: 3
-            name: db1.s3.n
         errors: []
     script:
       input: select e from n
@@ -3564,51 +2061,6 @@ analyzer-snapshots:
     catalog:
       script:
         input: create table t (a int, b int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: t
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65537.4294967297"
-            name: k
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65537.4294967297.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65537.4294967297.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65538.4294967298"
-            name: k
-            text: "create tab...k (c int)"
-            columns:
-              - catalog-id: "256.65538.4294967298.0"
-                name: c
-                text: "c int"
-          - catalog-id: "257.65539.4294967299"
-            name: n
-            text: "create tab...n (e int)"
-            columns:
-              - catalog-id: "257.65539.4294967299.0"
-                name: e
-                text: "e int"
-        touched-relations:
-          - statement-id: 0
-            name: t
-          - statement-id: 1
-            name: s1.k
-          - statement-id: 2
-            name: s2.k
-          - statement-id: 3
-            name: db1.s3.n
         errors: []
     script:
       input: select a, c from k
@@ -3647,51 +2099,6 @@ analyzer-snapshots:
     catalog:
       script:
         input: create table t (a int, b int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: t
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65537.4294967297"
-            name: k
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65537.4294967297.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65537.4294967297.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65538.4294967298"
-            name: k
-            text: "create tab...k (c int)"
-            columns:
-              - catalog-id: "256.65538.4294967298.0"
-                name: c
-                text: "c int"
-          - catalog-id: "257.65539.4294967299"
-            name: n
-            text: "create tab...n (e int)"
-            columns:
-              - catalog-id: "257.65539.4294967299.0"
-                name: e
-                text: "e int"
-        touched-relations:
-          - statement-id: 0
-            name: t
-          - statement-id: 1
-            name: s1.k
-          - statement-id: 2
-            name: s2.k
-          - statement-id: 3
-            name: db1.s3.n
         errors: []
     script:
       input: select * from s9.k, db9.s1.k, db1.s1.k
@@ -3725,57 +2132,6 @@ analyzer-snapshots:
     catalog:
       script:
         input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: t
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65536.4294967297"
-            name: u
-            text: "create tab..nt, c int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: c
-                text: "c int"
-          - catalog-id: "256.65536.4294967298"
-            name: v
-            text: "create tab..nt, x int)"
-            columns:
-              - catalog-id: "256.65536.4294967298.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967298.1"
-                name: x
-                text: "x int"
-          - catalog-id: "256.65536.4294967299"
-            name: w
-            text: "create tab..nt, y int)"
-            columns:
-              - catalog-id: "256.65536.4294967299.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967299.1"
-                name: y
-                text: "y int"
-        touched-relations:
-          - statement-id: 0
-            name: t
-          - statement-id: 1
-            name: u
-          - statement-id: 2
-            name: v
-          - statement-id: 3
-            name: w
         errors: []
     script:
       input: create table t (z int); select z, a from t
@@ -3825,57 +2181,6 @@ analyzer-snapshots:
     catalog:
       script:
         input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: t
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65536.4294967297"
-            name: u
-            text: "create tab..nt, c int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: c
-                text: "c int"
-          - catalog-id: "256.65536.4294967298"
-            name: v
-            text: "create tab..nt, x int)"
-            columns:
-              - catalog-id: "256.65536.4294967298.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967298.1"
-                name: x
-                text: "x int"
-          - catalog-id: "256.65536.4294967299"
-            name: w
-            text: "create tab..nt, y int)"
-            columns:
-              - catalog-id: "256.65536.4294967299.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967299.1"
-                name: y
-                text: "y int"
-        touched-relations:
-          - statement-id: 0
-            name: t
-          - statement-id: 1
-            name: u
-          - statement-id: 2
-            name: v
-          - statement-id: 3
-            name: w
         errors: []
     script:
       input: select a, b + 1 as n into tt from t; select a, n from tt
@@ -3962,57 +2267,6 @@ analyzer-snapshots:
     catalog:
       script:
         input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: t
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65536.4294967297"
-            name: u
-            text: "create tab..nt, c int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: c
-                text: "c int"
-          - catalog-id: "256.65536.4294967298"
-            name: v
-            text: "create tab..nt, x int)"
-            columns:
-              - catalog-id: "256.65536.4294967298.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967298.1"
-                name: x
-                text: "x int"
-          - catalog-id: "256.65536.4294967299"
-            name: w
-            text: "create tab..nt, y int)"
-            columns:
-              - catalog-id: "256.65536.4294967299.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967299.1"
-                name: y
-                text: "y int"
-        touched-relations:
-          - statement-id: 0
-            name: t
-          - statement-id: 1
-            name: u
-          - statement-id: 2
-            name: v
-          - statement-id: 3
-            name: w
         errors: []
     script:
       input: create view vw (p, q) as select a, b from t; select p, q, a from vw
@@ -4098,57 +2352,6 @@ analyzer-snapshots:
     catalog:
       script:
         input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: t
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65536.4294967297"
-            name: u
-            text: "create tab..nt, c int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: c
-                text: "c int"
-          - catalog-id: "256.65536.4294967298"
-            name: v
-            text: "create tab..nt, x int)"
-            columns:
-              - catalog-id: "256.65536.4294967298.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967298.1"
-                name: x
-                text: "x int"
-          - catalog-id: "256.65536.4294967299"
-            name: w
-            text: "create tab..nt, y int)"
-            columns:
-              - catalog-id: "256.65536.4294967299.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967299.1"
-                name: y
-                text: "y int"
-        touched-relations:
-          - statement-id: 0
-            name: t
-          - statement-id: 1
-            name: u
-          - statement-id: 2
-            name: v
-          - statement-id: 3
-            name: w
         errors: []
     script:
       input: create table s9.m as select a from t; select a from s9.m; select a from m
@@ -4229,57 +2432,6 @@ analyzer-snapshots:
     catalog:
       script:
         input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: t
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65536.4294967297"
-            name: u
-            text: "create tab..nt, c int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: c
-                text: "c int"
-          - catalog-id: "256.65536.4294967298"
-            name: v
-            text: "create tab..nt, x int)"
-            columns:
-              - catalog-id: "256.65536.4294967298.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967298.1"
-                name: x
-                text: "x int"
-          - catalog-id: "256.65536.4294967299"
-            name: w
-            text: "create tab..nt, y int)"
-            columns:
-              - catalog-id: "256.65536.4294967299.0"
-                name: id
-                text: "id int"
-              - catalog-id: "256.65536.4294967299.1"
-                name: y
-                text: "y int"
-        touched-relations:
-          - statement-id: 0
-            name: t
-          - statement-id: 1
-            name: u
-          - statement-id: 2
-            name: v
-          - statement-id: 3
-            name: w
         errors: []
     script:
       input: drop table t; select a from t

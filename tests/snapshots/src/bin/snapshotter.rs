@@ -199,7 +199,7 @@ fn read_catalog(test: &mut Node) -> Catalog {
     }
     let Some(script_node) = test.get_mut("catalog").and_then(|c| c.get_mut("script")) else { return catalog };
     if let Some(analyzed) = analyze_script(&catalog, &script_input(script_node)) {
-        append(script_node, analyzer::encode_script(&analyzed, false, None));
+        append(script_node, analyzer::encode_catalog_script(&analyzed));
         if let Err(e) = catalog.load_script(Arc::new(analyzed), CatalogLayer::CONNECTION) {
             println!("  ERROR {}", e.message);
         }
@@ -220,7 +220,7 @@ fn generate_analyzer_snapshots(dir: &Path) {
             let catalog = read_catalog(test);
             let Some(script_node) = test.get_mut("script") else { continue };
             if let Some(analyzed) = analyze_script(&catalog, &script_input(script_node)) {
-                append(script_node, analyzer::encode_script(&analyzed, true, Some(&catalog)));
+                append(script_node, analyzer::encode_script(&analyzed, Some(&catalog)));
             }
         }
         write_first_entry(&out, &template);
@@ -285,7 +285,7 @@ fn generate_completion_snapshots(dir: &Path) {
             if !editor.is_map() {
                 *editor = Node::map();
             }
-            append(editor, analyzer::encode_script(&analyzed, true, None));
+            append(editor, analyzer::encode_script(&analyzed, None));
 
             let search = test.get("cursor").and_then(|c| c.get("search"));
             let search_text = search.map(|s| text(s, "text")).unwrap_or("");

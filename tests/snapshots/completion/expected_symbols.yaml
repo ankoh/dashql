@@ -138,18 +138,6 @@ completion-snapshots:
     catalog:
       script:
         input: create table foo(bar int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: foo
-            text: "create tab..o(bar int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: bar
-                text: "bar int"
-        touched-relations:
-          - statement-id: 0
-            name: foo
         errors: []
     editor:
       input: select bar as baz

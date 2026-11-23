@@ -6,27 +6,6 @@ completion-snapshots:
         input: |-
           create table "AmbiguousAttribute1"(attr1 int);
           create table "AmbiguousAttribute2"(attr1 int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: AmbiguousAttribute1
-            text: "create tab..attr1 int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: attr1
-                text: "attr1 int"
-          - catalog-id: "256.65536.4294967297"
-            name: AmbiguousAttribute2
-            text: "create tab..attr1 int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: attr1
-                text: "attr1 int"
-        touched-relations:
-          - statement-id: 0
-            name: AmbiguousAttribute1
-          - statement-id: 1
-            name: AmbiguousAttribute2
         errors: []
     editor:
       input: select * from "AmbiguousAttribute1", "AmbiguousAttribute2" where attr
@@ -94,27 +73,6 @@ completion-snapshots:
         input: |-
           create table "AmbiguousAttribute1"(attr1 int);
           create table "AmbiguousAttribute2"(attr1 int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: AmbiguousAttribute1
-            text: "create tab..attr1 int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: attr1
-                text: "attr1 int"
-          - catalog-id: "256.65536.4294967297"
-            name: AmbiguousAttribute2
-            text: "create tab..attr1 int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: attr1
-                text: "attr1 int"
-        touched-relations:
-          - statement-id: 0
-            name: AmbiguousAttribute1
-          - statement-id: 1
-            name: AmbiguousAttribute2
         errors: []
     editor:
       input: select * from "AmbiguousAttribute1" where attr
@@ -178,27 +136,6 @@ completion-snapshots:
         input: |-
           create table db0.schema0."AmbiguousCrossSchema"(attr1 int);
           create table db0.schema1."AmbiguousCrossSchema"(attr1 int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: AmbiguousCrossSchema
-            text: "create tab..attr1 int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: attr1
-                text: "attr1 int"
-          - catalog-id: "256.65537.4294967297"
-            name: AmbiguousCrossSchema
-            text: "create tab..attr1 int)"
-            columns:
-              - catalog-id: "256.65537.4294967297.0"
-                name: attr1
-                text: "attr1 int"
-        touched-relations:
-          - statement-id: 0
-            name: db0.schema0.AmbiguousCrossSchema
-          - statement-id: 1
-            name: db0.schema1.AmbiguousCrossSchema
         errors: []
     editor:
       input: select * from schema0."AmbiguousAttribute1", schema1."AmbiguousAttribute2" where attr
@@ -272,27 +209,6 @@ completion-snapshots:
         input: |-
           create table db0.schema0."AmbiguousAttribute1"(attr1 int);
           create table db1.schema0."AmbiguousAttribute2"(attr1 int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: AmbiguousAttribute1
-            text: "create tab..attr1 int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: attr1
-                text: "attr1 int"
-          - catalog-id: "257.65537.4294967297"
-            name: AmbiguousAttribute2
-            text: "create tab..attr1 int)"
-            columns:
-              - catalog-id: "257.65537.4294967297.0"
-                name: attr1
-                text: "attr1 int"
-        touched-relations:
-          - statement-id: 0
-            name: db0.schema0.AmbiguousAttribute1
-          - statement-id: 1
-            name: db1.schema0.AmbiguousAttribute2
         errors: []
     editor:
       input: select * from db0.schema0."AmbiguousAttribute1", db1.schema0."AmbiguousAttribute2" where attr
@@ -360,27 +276,6 @@ completion-snapshots:
         input: |-
           create table "AmbiguousAttribute1"(attr1 int);
           create table "AmbiguousAttribute2"(attr1 int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: AmbiguousAttribute1
-            text: "create tab..attr1 int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: attr1
-                text: "attr1 int"
-          - catalog-id: "256.65536.4294967297"
-            name: AmbiguousAttribute2
-            text: "create tab..attr1 int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: attr1
-                text: "attr1 int"
-        touched-relations:
-          - statement-id: 0
-            name: AmbiguousAttribute1
-          - statement-id: 1
-            name: AmbiguousAttribute2
         errors: []
     editor:
       input: select * from "AmbiguousAttribute1" a, "AmbiguousAttribute2" b where attr
@@ -448,27 +343,6 @@ completion-snapshots:
         input: |-
           create table "AmbiguousAttribute1"(attr1 int);
           create table "AmbiguousAttribute2"(attr1 int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: AmbiguousAttribute1
-            text: "create tab..attr1 int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: attr1
-                text: "attr1 int"
-          - catalog-id: "256.65536.4294967297"
-            name: AmbiguousAttribute2
-            text: "create tab..attr1 int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: attr1
-                text: "attr1 int"
-        touched-relations:
-          - statement-id: 0
-            name: AmbiguousAttribute1
-          - statement-id: 1
-            name: AmbiguousAttribute2
         errors: []
     editor:
       input: select * from "AmbiguousAttribute1" a, "AmbiguousAttribute2" where attr
@@ -534,18 +408,6 @@ completion-snapshots:
     catalog:
       script:
         input: create table foo.bar(attr int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: bar
-            text: "create tab..(attr int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: attr
-                text: "attr int"
-        touched-relations:
-          - statement-id: 0
-            name: foo.bar
         errors: []
     editor:
       input: select * from foo bar
@@ -587,7 +449,6 @@ completion-snapshots:
     catalog:
       script:
         input: create table foo.bar(limit int);
-        catalog-id: 1
         errors: []
     editor:
       input: select * from foo.bar limit

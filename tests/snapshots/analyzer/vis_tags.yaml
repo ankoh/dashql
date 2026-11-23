@@ -5,24 +5,6 @@ analyzer-snapshots:
       script:
         input: |-
           create table sales (region text, revenue int, date timestamp);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: sales
-            text: "create tab..timestamp)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: region
-                text: "region text"
-              - catalog-id: "256.65536.4294967296.1"
-                name: revenue
-                text: "revenue int"
-              - catalog-id: "256.65536.4294967296.2"
-                name: date
-                text: "date timestamp"
-        touched-relations:
-          - statement-id: 0
-            name: sales
         errors: []
     script:
       input: |
@@ -76,24 +58,6 @@ analyzer-snapshots:
       script:
         input: |-
           create table sales (region text, revenue int, date timestamp);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: sales
-            text: "create tab..timestamp)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: region
-                text: "region text"
-              - catalog-id: "256.65536.4294967296.1"
-                name: revenue
-                text: "revenue int"
-              - catalog-id: "256.65536.4294967296.2"
-                name: date
-                text: "date timestamp"
-        touched-relations:
-          - statement-id: 0
-            name: sales
         errors: []
     script:
       input: |
@@ -165,24 +129,6 @@ analyzer-snapshots:
       script:
         input: |-
           create table sales (region text, revenue int, date timestamp);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: sales
-            text: "create tab..timestamp)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: region
-                text: "region text"
-              - catalog-id: "256.65536.4294967296.1"
-                name: revenue
-                text: "revenue int"
-              - catalog-id: "256.65536.4294967296.2"
-                name: date
-                text: "date timestamp"
-        touched-relations:
-          - statement-id: 0
-            name: sales
         errors: []
     script:
       input: |
@@ -276,24 +222,6 @@ analyzer-snapshots:
       script:
         input: |-
           create table sales (region text, revenue int, date timestamp);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: sales
-            text: "create tab..timestamp)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: region
-                text: "region text"
-              - catalog-id: "256.65536.4294967296.1"
-                name: revenue
-                text: "revenue int"
-              - catalog-id: "256.65536.4294967296.2"
-                name: date
-                text: "date timestamp"
-        touched-relations:
-          - statement-id: 0
-            name: sales
         errors: []
     script:
       input: |
@@ -1492,24 +1420,6 @@ analyzer-snapshots:
       script:
         input: |-
           create table sales (region text, revenue int, date timestamp);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: sales
-            text: "create tab..timestamp)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: region
-                text: "region text"
-              - catalog-id: "256.65536.4294967296.1"
-                name: revenue
-                text: "revenue int"
-              - catalog-id: "256.65536.4294967296.2"
-                name: date
-                text: "date timestamp"
-        touched-relations:
-          - statement-id: 0
-            name: sales
         errors: []
     script:
       input: |
@@ -1591,24 +1501,6 @@ analyzer-snapshots:
       script:
         input: |-
           create table sales (region text, revenue int, date timestamp);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: sales
-            text: "create tab..timestamp)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: region
-                text: "region text"
-              - catalog-id: "256.65536.4294967296.1"
-                name: revenue
-                text: "revenue int"
-              - catalog-id: "256.65536.4294967296.2"
-                name: date
-                text: "date timestamp"
-        touched-relations:
-          - statement-id: 0
-            name: sales
         errors: []
     script:
       input: |
@@ -1719,24 +1611,6 @@ analyzer-snapshots:
       script:
         input: |-
           create table sales (region text, revenue int, date timestamp);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: sales
-            text: "create tab..timestamp)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: region
-                text: "region text"
-              - catalog-id: "256.65536.4294967296.1"
-                name: revenue
-                text: "revenue int"
-              - catalog-id: "256.65536.4294967296.2"
-                name: date
-                text: "date timestamp"
-        touched-relations:
-          - statement-id: 0
-            name: sales
         errors: []
     script:
       input: |

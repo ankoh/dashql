@@ -10,7 +10,6 @@ completion-snapshots:
           create aggregate mymax(x int) returns int;
           create aggregate myagg() returns any;
           create function myany() returns any;
-        catalog-id: 1
         errors: []
     editor:
       input: |-
@@ -116,30 +115,6 @@ completion-snapshots:
         input: |-
           create table mytable (mya int, myb int);
           create table myone (myc int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: mytable
-            text: "create tab.., myb int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: mya
-                text: "mya int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: myb
-                text: "myb int"
-          - catalog-id: "256.65536.4294967297"
-            name: myone
-            text: "create tab.. (myc int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: myc
-                text: "myc int"
-        touched-relations:
-          - statement-id: 0
-            name: mytable
-          - statement-id: 1
-            name: myone
         errors: []
     editor:
       input: |-

@@ -4,21 +4,6 @@ completion-snapshots:
     catalog:
       script:
         input: create table tbl(a int, b int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: tbl
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-        touched-relations:
-          - statement-id: 0
-            name: tbl
         errors: []
     editor:
       input: 'select a , b from tbl'
@@ -91,21 +76,6 @@ completion-snapshots:
     catalog:
       script:
         input: create table tbl(a int, b int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: tbl
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-        touched-relations:
-          - statement-id: 0
-            name: tbl
         errors: []
     editor:
       input: 'select x , b from tbl'
@@ -168,21 +138,6 @@ completion-snapshots:
     catalog:
       script:
         input: create table tbl(a int, b int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: tbl
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-        touched-relations:
-          - statement-id: 0
-            name: tbl
         errors: []
     editor:
       input: 'select * from tbl where a = 1 and b = 2'
@@ -239,27 +194,6 @@ completion-snapshots:
         input: |
           create table sales(id int);
           create table customers(id int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: sales
-            text: "create tab..es(id int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: id
-                text: "id int"
-          - catalog-id: "256.65536.4294967297"
-            name: customers
-            text: "create tab..rs(id int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: id
-                text: "id int"
-        touched-relations:
-          - statement-id: 0
-            name: sales
-          - statement-id: 1
-            name: customers
         errors: []
     editor:
       input: 'select * from sa , customers'
@@ -323,24 +257,6 @@ completion-snapshots:
     catalog:
       script:
         input: create table tbl(a int, b int, c int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: tbl
-            text: "create tab..nt, c int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-              - catalog-id: "256.65536.4294967296.2"
-                name: c
-                text: "c int"
-        touched-relations:
-          - statement-id: 0
-            name: tbl
         errors: []
     editor:
       input: 'select * from tbl order by a , b'
@@ -411,18 +327,6 @@ completion-snapshots:
     catalog:
       script:
         input: create table tbl(a int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: tbl
-            text: "create tab..tbl(a int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-        touched-relations:
-          - statement-id: 0
-            name: tbl
         errors: []
     editor:
       input: 'select * f from tbl'
@@ -489,18 +393,6 @@ completion-snapshots:
     catalog:
       script:
         input: create table tbl(a int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: tbl
-            text: "create tab..tbl(a int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-        touched-relations:
-          - statement-id: 0
-            name: tbl
         errors: []
     editor:
       input: 'select * from tbl where a be 1'
@@ -567,18 +459,6 @@ completion-snapshots:
     catalog:
       script:
         input: create table tbl(a int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: tbl
-            text: "create tab..tbl(a int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-        touched-relations:
-          - statement-id: 0
-            name: tbl
         errors: []
     editor:
       input: 'select * from tbl where a be 1 and'
@@ -645,18 +525,6 @@ completion-snapshots:
     catalog:
       script:
         input: create table tbl(a int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: tbl
-            text: "create tab..tbl(a int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-        touched-relations:
-          - statement-id: 0
-            name: tbl
         errors: []
     editor:
       input: 'select  garbage'
@@ -683,18 +551,6 @@ completion-snapshots:
     catalog:
       script:
         input: create table tbl(a int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: tbl
-            text: "create tab..tbl(a int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-        touched-relations:
-          - statement-id: 0
-            name: tbl
         errors: []
     editor:
       input: 'select a from tbl gro'
@@ -754,18 +610,6 @@ completion-snapshots:
     catalog:
       script:
         input: create table tbl(a int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: tbl
-            text: "create tab..tbl(a int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-        touched-relations:
-          - statement-id: 0
-            name: tbl
         errors: []
     editor:
       input: 'select a from tbl gro a'
@@ -815,21 +659,6 @@ completion-snapshots:
     catalog:
       script:
         input: create table tbl(a int, b int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: tbl
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-        touched-relations:
-          - statement-id: 0
-            name: tbl
         errors: []
     editor:
       input: 'select a from tbl gro where b = 1'

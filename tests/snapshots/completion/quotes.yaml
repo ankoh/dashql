@@ -4,18 +4,6 @@ completion-snapshots:
     catalog:
       script:
         input: create table region(r_regionkey int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: region
-            text: "create tab..onkey int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: r_regionkey
-                text: "r_regionkey int"
-        touched-relations:
-          - statement-id: 0
-            name: region
         errors: []
     editor:
       input: select * from region
@@ -85,18 +73,6 @@ completion-snapshots:
     catalog:
       script:
         input: create table "Region"(r_regionkey int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: Region
-            text: "create tab..onkey int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: r_regionkey
-                text: "r_regionkey int"
-        touched-relations:
-          - statement-id: 0
-            name: Region
         errors: []
     editor:
       input: select * from "Region"

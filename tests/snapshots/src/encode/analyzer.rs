@@ -113,23 +113,19 @@ pub fn format_double(value: f64) -> String {
     }
 }
 
-/// Encode an analyzed script
-pub fn encode_script(script: &AnalyzedScript, is_main: bool, scope_catalog: ScopeCatalog) -> Node {
+/// Encode the catalog script of a case, only its errors.
+/// Its declarations show in the cases that analyze the DDL as their main script, and the main script shows what
+/// resolves into them.
+pub fn encode_catalog_script(script: &AnalyzedScript) -> Node {
     let e = Encoder { script, text: &script.parsed.scanned.text };
-    let entry_id = script.catalog_entry_id();
     let mut out = Map::new();
-    out.int("catalog-id", entry_id as i64);
+    out.insert("errors", encode_errors(&e));
+    out.into_node()
+}
 
-    // Local declarations
-    if !script.entry.table_declarations.is_empty() {
-        out.insert("tables", encode_tables(&e, &script.entry.table_declarations));
-    }
-    if let Some(relations) = encode_touched_relations(script) {
-        out.insert("touched-relations", relations);
-    }
-
-    // Errors
-    let errors = script
+fn encode_errors(e: &Encoder) -> Node {
+    let errors = e
+        .script
         .errors
         .iter()
         .map(|error| {
@@ -148,7 +144,24 @@ pub fn encode_script(script: &AnalyzedScript, is_main: bool, scope_catalog: Scop
             m.into_node()
         })
         .collect();
-    out.insert("errors", Node::seq(errors));
+    Node::seq(errors)
+}
+
+/// Encode the main script of a case
+pub fn encode_script(script: &AnalyzedScript, scope_catalog: ScopeCatalog) -> Node {
+    let e = Encoder { script, text: &script.parsed.scanned.text };
+    let entry_id = script.catalog_entry_id();
+    let mut out = Map::new();
+    out.int("catalog-id", entry_id as i64);
+
+    // Local declarations
+    if !script.entry.table_declarations.is_empty() {
+        out.insert("tables", encode_tables(&e, &script.entry.table_declarations));
+    }
+    if let Some(relations) = encode_touched_relations(script) {
+        out.insert("touched-relations", relations);
+    }
+    out.insert("errors", encode_errors(&e));
 
     // The transactions, by the statements that begin and end them
     if !script.transactions.is_empty() {
@@ -205,7 +218,7 @@ pub fn encode_script(script: &AnalyzedScript, is_main: bool, scope_catalog: Scop
                         }
                         Some(resolved) => {
                             let table_id = resolved.catalog_table_id.unpack_table_id();
-                            let internal = is_main && table_id.origin == entry_id;
+                            let internal = table_id.origin == entry_id;
                             m.plain("type", if internal { "name/internal" } else { "name/catalog" });
                             m.quoted(
                                 "catalog-id",
@@ -294,7 +307,7 @@ pub fn encode_script(script: &AnalyzedScript, is_main: bool, scope_catalog: Scop
                                 Some(ids) => {
                                     let (db, schema) = ids.catalog_schema_id.unpack_schema_id();
                                     let (table_id, column) = ids.catalog_table_column_id.unpack_table_column_id();
-                                    let internal = is_main && table_id.origin == entry_id;
+                                    let internal = table_id.origin == entry_id;
                                     m.plain("type", if internal { "colref/internal" } else { "colref/catalog" });
                                     m.quoted("catalog", &format!("{db}.{schema}.{}.{column}", table_id.pack()));
                                 }
@@ -695,11 +708,11 @@ pub fn analyze_case(
     let mut catalog_yaml = None;
     if let Some(input) = catalog_input {
         let analyzed = analyze_text(&catalog, input)?;
-        catalog_yaml = Some(encode_script(&analyzed, false, None).to_yaml());
+        catalog_yaml = Some(encode_catalog_script(&analyzed).to_yaml());
         catalog.load_script(Arc::new(analyzed), CatalogLayer::CONNECTION).map_err(|e| e.message)?;
     }
     let analyzed = analyze_text(&catalog, main_input)?;
-    Ok((catalog_yaml, encode_script(&analyzed, true, Some(&catalog)).to_yaml()))
+    Ok((catalog_yaml, encode_script(&analyzed, Some(&catalog)).to_yaml()))
 }
 
 /// Compare the keys that the analyzer snapshot test compares.

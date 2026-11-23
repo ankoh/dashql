@@ -12,33 +12,6 @@ completion-snapshots:
               event text,
               event_timestamp timestamp
           );
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: some_queries
-            text: "create tab..imestamp\n)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: query_hash
-                text: "query_hash text"
-              - catalog-id: "256.65536.4294967296.1"
-                name: query
-                text: "query text"
-              - catalog-id: "256.65536.4294967296.2"
-                name: tenant
-                text: "tenant text"
-              - catalog-id: "256.65536.4294967296.3"
-                name: query_metrics
-                text: "query_metrics text"
-              - catalog-id: "256.65536.4294967296.4"
-                name: event
-                text: "event text"
-              - catalog-id: "256.65536.4294967296.5"
-                name: event_timestamp
-                text: "event_time.. timestamp"
-        touched-relations:
-          - statement-id: 0
-            name: iceberg.some_events.some_queries
         errors: []
     editor:
       input: select * from iceberg.some_events.some_queries where event

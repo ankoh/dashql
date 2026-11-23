@@ -6,27 +6,6 @@ analyzer-snapshots:
         input: |-
           create table A (a int);
           create table B (a int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: a
-            text: "create tab.. A (a int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-          - catalog-id: "256.65536.4294967297"
-            name: b
-            text: "create tab.. B (a int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: a
-                text: "a int"
-        touched-relations:
-          - statement-id: 0
-            name: a
-          - statement-id: 1
-            name: b
         errors: []
     script:
       input: select * from A, B where a = 2;
@@ -79,27 +58,6 @@ analyzer-snapshots:
         input: |-
           create table A (a int);
           create table B (a int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: a
-            text: "create tab.. A (a int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-          - catalog-id: "256.65536.4294967297"
-            name: b
-            text: "create tab.. B (a int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: a
-                text: "a int"
-        touched-relations:
-          - statement-id: 0
-            name: a
-          - statement-id: 1
-            name: b
         errors: []
     script:
       input: select * from A, (select * from B where a = 2);
@@ -162,27 +120,6 @@ analyzer-snapshots:
         input: |-
           create table A (a int);
           create table B (a int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: a
-            text: "create tab.. A (a int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-          - catalog-id: "256.65536.4294967297"
-            name: b
-            text: "create tab.. B (a int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: a
-                text: "a int"
-        touched-relations:
-          - statement-id: 0
-            name: a
-          - statement-id: 1
-            name: b
         errors: []
     script:
       input: select * from A, (select * from B where a = 2) c where a = 3;
@@ -258,18 +195,6 @@ analyzer-snapshots:
     catalog:
       script:
         input: create table A (a int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: a
-            text: "create tab.. A (a int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-        touched-relations:
-          - statement-id: 0
-            name: a
         errors: []
     script:
       input: select * from A, A;
@@ -304,27 +229,6 @@ analyzer-snapshots:
         input: |-
           create table A (a int);
           create table "A" (a int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: a
-            text: "create tab.. A (a int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-          - catalog-id: "256.65536.4294967297"
-            name: A
-            text: "create tab..A\" (a int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: a
-                text: "a int"
-        touched-relations:
-          - statement-id: 0
-            name: a
-          - statement-id: 1
-            name: A
         errors: []
     script:
       input: select * from "A", A;
@@ -359,18 +263,6 @@ analyzer-snapshots:
     catalog:
       script:
         input: create table "a" (a int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: a
-            text: "create tab..a\" (a int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-        touched-relations:
-          - statement-id: 0
-            name: a
         errors: []
     script:
       input: select * from "a", A;
@@ -403,18 +295,6 @@ analyzer-snapshots:
     catalog:
       script:
         input: create table foo(a int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: foo
-            text: "create tab..foo(a int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-        touched-relations:
-          - statement-id: 0
-            name: foo
         errors: []
     script:
       input: select * from foo where foo.a = 1;
@@ -455,18 +335,6 @@ analyzer-snapshots:
     catalog:
       script:
         input: create table foo(a int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: foo
-            text: "create tab..foo(a int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-        touched-relations:
-          - statement-id: 0
-            name: foo
         errors: []
     script:
       input: select * from foo a, foo where foo.a = 1;
@@ -516,18 +384,6 @@ analyzer-snapshots:
     catalog:
       script:
         input: create table foo(a int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: foo
-            text: "create tab..foo(a int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-        touched-relations:
-          - statement-id: 0
-            name: foo
         errors: []
     script:
       input: select * from foo x, foo, foo where foo.a = 1;
@@ -584,18 +440,6 @@ analyzer-snapshots:
     catalog:
       script:
         input: create table foo(a int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: foo
-            text: "create tab..foo(a int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-        touched-relations:
-          - statement-id: 0
-            name: foo
         errors: []
     script:
       input: select * from foo x where foo.a = 1;

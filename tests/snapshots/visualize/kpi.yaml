@@ -5,21 +5,6 @@ visualize-snapshots:
       script:
         input: |-
           create table sales (day date, revenue decimal);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: sales
-            text: "create tab..e decimal)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: day
-                text: "day date"
-              - catalog-id: "256.65536.4294967296.1"
-                name: revenue
-                text: "revenue decimal"
-        touched-relations:
-          - statement-id: 0
-            name: sales
         errors: []
     script:
       input: |

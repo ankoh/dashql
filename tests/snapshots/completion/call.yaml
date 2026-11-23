@@ -726,18 +726,6 @@ completion-snapshots:
       client_functions: tickets
       script:
         input: create table alerts (host text);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: alerts
-            text: "create tab..host text)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: host
-                text: "host text"
-        touched-relations:
-          - statement-id: 0
-            name: alerts
         errors: []
     editor:
       input: call tickets.ticket_create (affected => (select * from ale

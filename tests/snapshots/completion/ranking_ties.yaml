@@ -5,45 +5,6 @@ completion-snapshots:
       script:
         input: |-
           create table abc_y (v int); create table abc_x (v int); create table "ZETA_B" (v int); create table zeta_a (v int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: abc_y
-            text: "create tab.._y (v int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: v
-                text: "v int"
-          - catalog-id: "256.65536.4294967297"
-            name: abc_x
-            text: "create tab.._x (v int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: v
-                text: "v int"
-          - catalog-id: "256.65536.4294967298"
-            name: ZETA_B
-            text: "create tab..B\" (v int)"
-            columns:
-              - catalog-id: "256.65536.4294967298.0"
-                name: v
-                text: "v int"
-          - catalog-id: "256.65536.4294967299"
-            name: zeta_a
-            text: "create tab.._a (v int)"
-            columns:
-              - catalog-id: "256.65536.4294967299.0"
-                name: v
-                text: "v int"
-        touched-relations:
-          - statement-id: 0
-            name: abc_y
-          - statement-id: 1
-            name: abc_x
-          - statement-id: 2
-            name: ZETA_B
-          - statement-id: 3
-            name: zeta_a
         errors: []
     editor:
       input: |-
@@ -115,45 +76,6 @@ completion-snapshots:
       script:
         input: |-
           create table abc_y (v int); create table abc_x (v int); create table "ZETA_B" (v int); create table zeta_a (v int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: abc_y
-            text: "create tab.._y (v int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: v
-                text: "v int"
-          - catalog-id: "256.65536.4294967297"
-            name: abc_x
-            text: "create tab.._x (v int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: v
-                text: "v int"
-          - catalog-id: "256.65536.4294967298"
-            name: ZETA_B
-            text: "create tab..B\" (v int)"
-            columns:
-              - catalog-id: "256.65536.4294967298.0"
-                name: v
-                text: "v int"
-          - catalog-id: "256.65536.4294967299"
-            name: zeta_a
-            text: "create tab.._a (v int)"
-            columns:
-              - catalog-id: "256.65536.4294967299.0"
-                name: v
-                text: "v int"
-        touched-relations:
-          - statement-id: 0
-            name: abc_y
-          - statement-id: 1
-            name: abc_x
-          - statement-id: 2
-            name: ZETA_B
-          - statement-id: 3
-            name: zeta_a
         errors: []
     editor:
       input: |-
@@ -225,36 +147,6 @@ completion-snapshots:
       script:
         input: |-
           create table t (xname int, namex int, name int, names int); create table name (name int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: t
-            text: "create tab..names int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: xname
-                text: "xname int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: namex
-                text: "namex int"
-              - catalog-id: "256.65536.4294967296.2"
-                name: name
-                text: "name int"
-              - catalog-id: "256.65536.4294967296.3"
-                name: names
-                text: "names int"
-          - catalog-id: "256.65536.4294967297"
-            name: name
-            text: "create tab..(name int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: name
-                text: "name int"
-        touched-relations:
-          - statement-id: 0
-            name: t
-          - statement-id: 1
-            name: name
         errors: []
     editor:
       input: |-
@@ -360,36 +252,6 @@ completion-snapshots:
       script:
         input: |-
           create table t (xname int, namex int, name int, names int); create table name (name int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: t
-            text: "create tab..names int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: xname
-                text: "xname int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: namex
-                text: "namex int"
-              - catalog-id: "256.65536.4294967296.2"
-                name: name
-                text: "name int"
-              - catalog-id: "256.65536.4294967296.3"
-                name: names
-                text: "names int"
-          - catalog-id: "256.65536.4294967297"
-            name: name
-            text: "create tab..(name int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: name
-                text: "name int"
-        touched-relations:
-          - statement-id: 0
-            name: t
-          - statement-id: 1
-            name: name
         errors: []
     editor:
       input: |-
@@ -497,36 +359,6 @@ completion-snapshots:
       script:
         input: |-
           create table t (xname int, namex int, name int, names int); create table name (name int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: t
-            text: "create tab..names int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: xname
-                text: "xname int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: namex
-                text: "namex int"
-              - catalog-id: "256.65536.4294967296.2"
-                name: name
-                text: "name int"
-              - catalog-id: "256.65536.4294967296.3"
-                name: names
-                text: "names int"
-          - catalog-id: "256.65536.4294967297"
-            name: name
-            text: "create tab..(name int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: name
-                text: "name int"
-        touched-relations:
-          - statement-id: 0
-            name: t
-          - statement-id: 1
-            name: name
         errors: []
     editor:
       input: |-
@@ -602,24 +434,6 @@ completion-snapshots:
       script:
         input: |-
           create table "my table" ("weird col" int, "a.b" int, "Upper" int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: my table
-            text: "create tab..pper\" int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: weird col
-                text: "\"weird col\" int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: a.b
-                text: "\"a.b\" int"
-              - catalog-id: "256.65536.4294967296.2"
-                name: Upper
-                text: "\"Upper\" int"
-        touched-relations:
-          - statement-id: 0
-            name: my table
         errors: []
     editor:
       input: |-
@@ -686,24 +500,6 @@ completion-snapshots:
       script:
         input: |-
           create table "my table" ("weird col" int, "a.b" int, "Upper" int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: my table
-            text: "create tab..pper\" int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: weird col
-                text: "\"weird col\" int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: a.b
-                text: "\"a.b\" int"
-              - catalog-id: "256.65536.4294967296.2"
-                name: Upper
-                text: "\"Upper\" int"
-        touched-relations:
-          - statement-id: 0
-            name: my table
         errors: []
     editor:
       input: |-
@@ -767,24 +563,6 @@ completion-snapshots:
       script:
         input: |-
           create table "my table" ("weird col" int, "a.b" int, "Upper" int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: my table
-            text: "create tab..pper\" int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: weird col
-                text: "\"weird col\" int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: a.b
-                text: "\"a.b\" int"
-              - catalog-id: "256.65536.4294967296.2"
-                name: Upper
-                text: "\"Upper\" int"
-        touched-relations:
-          - statement-id: 0
-            name: my table
         errors: []
     editor:
       input: |-

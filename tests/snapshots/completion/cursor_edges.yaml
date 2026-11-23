@@ -5,36 +5,6 @@ completion-snapshots:
       script:
         input: |-
           create table t (a int, b int, name text); create table u (a int, c int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: t
-            text: "create tab..name text)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-              - catalog-id: "256.65536.4294967296.2"
-                name: name
-                text: "name text"
-          - catalog-id: "256.65536.4294967297"
-            name: u
-            text: "create tab..nt, c int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: c
-                text: "c int"
-        touched-relations:
-          - statement-id: 0
-            name: t
-          - statement-id: 1
-            name: u
         errors: []
     editor:
       input: |-
@@ -95,36 +65,6 @@ completion-snapshots:
       script:
         input: |-
           create table t (a int, b int, name text); create table u (a int, c int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: t
-            text: "create tab..name text)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-              - catalog-id: "256.65536.4294967296.2"
-                name: name
-                text: "name text"
-          - catalog-id: "256.65536.4294967297"
-            name: u
-            text: "create tab..nt, c int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: c
-                text: "c int"
-        touched-relations:
-          - statement-id: 0
-            name: t
-          - statement-id: 1
-            name: u
         errors: []
     editor:
       input: 'select a from t '
@@ -186,36 +126,6 @@ completion-snapshots:
       script:
         input: |-
           create table t (a int, b int, name text); create table u (a int, c int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: t
-            text: "create tab..name text)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-              - catalog-id: "256.65536.4294967296.2"
-                name: name
-                text: "name text"
-          - catalog-id: "256.65536.4294967297"
-            name: u
-            text: "create tab..nt, c int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: c
-                text: "c int"
-        touched-relations:
-          - statement-id: 0
-            name: t
-          - statement-id: 1
-            name: u
         errors: []
     editor:
       input: 'select a from t; '
@@ -276,36 +186,6 @@ completion-snapshots:
       script:
         input: |-
           create table t (a int, b int, name text); create table u (a int, c int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: t
-            text: "create tab..name text)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-              - catalog-id: "256.65536.4294967296.2"
-                name: name
-                text: "name text"
-          - catalog-id: "256.65536.4294967297"
-            name: u
-            text: "create tab..nt, c int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: c
-                text: "c int"
-        touched-relations:
-          - statement-id: 0
-            name: t
-          - statement-id: 1
-            name: u
         errors: []
     editor:
       input: |-
@@ -372,36 +252,6 @@ completion-snapshots:
       script:
         input: |-
           create table t (a int, b int, name text); create table u (a int, c int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: t
-            text: "create tab..name text)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-              - catalog-id: "256.65536.4294967296.2"
-                name: name
-                text: "name text"
-          - catalog-id: "256.65536.4294967297"
-            name: u
-            text: "create tab..nt, c int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: c
-                text: "c int"
-        touched-relations:
-          - statement-id: 0
-            name: t
-          - statement-id: 1
-            name: u
         errors: []
     editor:
       input: |-
@@ -470,36 +320,6 @@ completion-snapshots:
       script:
         input: |-
           create table t (a int, b int, name text); create table u (a int, c int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: t
-            text: "create tab..name text)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-              - catalog-id: "256.65536.4294967296.2"
-                name: name
-                text: "name text"
-          - catalog-id: "256.65536.4294967297"
-            name: u
-            text: "create tab..nt, c int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: c
-                text: "c int"
-        touched-relations:
-          - statement-id: 0
-            name: t
-          - statement-id: 1
-            name: u
         errors: []
     editor:
       input: |-
@@ -543,36 +363,6 @@ completion-snapshots:
       script:
         input: |-
           create table t (a int, b int, name text); create table u (a int, c int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: t
-            text: "create tab..name text)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-              - catalog-id: "256.65536.4294967296.2"
-                name: name
-                text: "name text"
-          - catalog-id: "256.65536.4294967297"
-            name: u
-            text: "create tab..nt, c int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: c
-                text: "c int"
-        touched-relations:
-          - statement-id: 0
-            name: t
-          - statement-id: 1
-            name: u
         errors: []
     editor:
       input: |-
@@ -628,36 +418,6 @@ completion-snapshots:
       script:
         input: |-
           create table t (a int, b int, name text); create table u (a int, c int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: t
-            text: "create tab..name text)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-              - catalog-id: "256.65536.4294967296.2"
-                name: name
-                text: "name text"
-          - catalog-id: "256.65536.4294967297"
-            name: u
-            text: "create tab..nt, c int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: c
-                text: "c int"
-        touched-relations:
-          - statement-id: 0
-            name: t
-          - statement-id: 1
-            name: u
         errors: []
     editor:
       input: |-
@@ -725,36 +485,6 @@ completion-snapshots:
       script:
         input: |-
           create table t (a int, b int, name text); create table u (a int, c int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: t
-            text: "create tab..name text)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-              - catalog-id: "256.65536.4294967296.2"
-                name: name
-                text: "name text"
-          - catalog-id: "256.65536.4294967297"
-            name: u
-            text: "create tab..nt, c int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: c
-                text: "c int"
-        touched-relations:
-          - statement-id: 0
-            name: t
-          - statement-id: 1
-            name: u
         errors: []
     editor:
       input: |-

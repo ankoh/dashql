@@ -4,18 +4,6 @@ completion-snapshots:
     catalog:
       script:
         input: create table dbname.schemaname.foo(a int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: foo
-            text: "create tab..foo(a int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-        touched-relations:
-          - statement-id: 0
-            name: dbname.schemaname.foo
         errors: []
     editor:
       input: select * from dbname.
@@ -51,18 +39,6 @@ completion-snapshots:
     catalog:
       script:
         input: create table dbname.schemaname.foo(a int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: foo
-            text: "create tab..foo(a int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-        touched-relations:
-          - statement-id: 0
-            name: dbname.schemaname.foo
         errors: []
     editor:
       input: select * from dbname.sch
@@ -88,18 +64,6 @@ completion-snapshots:
     catalog:
       script:
         input: create table dbname.schemaname.foo(a int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: foo
-            text: "create tab..foo(a int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-        touched-relations:
-          - statement-id: 0
-            name: dbname.schemaname.foo
         errors: []
     editor:
       input: select * from dbname.sch
@@ -135,18 +99,6 @@ completion-snapshots:
     catalog:
       script:
         input: create table dbname.schemaname.foo(a int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: foo
-            text: "create tab..foo(a int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-        touched-relations:
-          - statement-id: 0
-            name: dbname.schemaname.foo
         errors: []
     editor:
       input: select * from dbname."sch"
@@ -227,27 +179,6 @@ completion-snapshots:
     catalog:
       script:
         input: create table x.foo(a int); create table x.foo.bar(b int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: foo
-            text: "create tab..foo(a int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-          - catalog-id: "257.65537.4294967297"
-            name: bar
-            text: "create tab..bar(b int)"
-            columns:
-              - catalog-id: "257.65537.4294967297.0"
-                name: b
-                text: "b int"
-        touched-relations:
-          - statement-id: 0
-            name: x.foo
-          - statement-id: 1
-            name: x.foo.bar
         errors: []
     editor:
       input: select * from x.

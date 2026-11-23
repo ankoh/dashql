@@ -12,33 +12,6 @@ analyzer-snapshots:
         input: |-
           create table A (a int, b int);
           create table B (d int, e int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: a
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65536.4294967297"
-            name: b
-            text: "create tab..nt, e int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: d
-                text: "d int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: e
-                text: "e int"
-        touched-relations:
-          - statement-id: 0
-            name: a
-          - statement-id: 1
-            name: b
         errors: []
     script:
       input: select * from A, B where a = b;
@@ -92,33 +65,6 @@ analyzer-snapshots:
         input: |-
           create table A (a int, b int);
           create table B (d int, e int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: a
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65536.4294967297"
-            name: b
-            text: "create tab..nt, e int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: d
-                text: "d int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: e
-                text: "e int"
-        touched-relations:
-          - statement-id: 0
-            name: a
-          - statement-id: 1
-            name: b
         errors: []
     script:
       input: select * from A, B where a + d = e;
@@ -178,33 +124,6 @@ analyzer-snapshots:
         input: |-
           create table A (a int, b int);
           create table B (d int, e int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: a
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65536.4294967297"
-            name: b
-            text: "create tab..nt, e int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: d
-                text: "d int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: e
-                text: "e int"
-        touched-relations:
-          - statement-id: 0
-            name: a
-          - statement-id: 1
-            name: b
         errors: []
     script:
       input: select * from A, B where a = d and b = e;
@@ -270,33 +189,6 @@ analyzer-snapshots:
         input: |-
           create table A (a int, b int);
           create table B (d int, e int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: a
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65536.4294967297"
-            name: b
-            text: "create tab..nt, e int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: d
-                text: "d int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: e
-                text: "e int"
-        touched-relations:
-          - statement-id: 0
-            name: a
-          - statement-id: 1
-            name: b
         errors: []
     script:
       input: select * from A, B where (a = d and b = e) or (a = d and d = 42);
@@ -388,33 +280,6 @@ analyzer-snapshots:
         input: |-
           create table A (a int, b int);
           create table B (d int, e int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: a
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65536.4294967297"
-            name: b
-            text: "create tab..nt, e int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: d
-                text: "d int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: e
-                text: "e int"
-        touched-relations:
-          - statement-id: 0
-            name: a
-          - statement-id: 1
-            name: b
         errors: []
     script:
       input: select * from A, B where a = (d + 42);
@@ -476,33 +341,6 @@ analyzer-snapshots:
         input: |-
           create table A (a int, b int);
           create table B (d int, e int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: a
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65536.4294967297"
-            name: b
-            text: "create tab..nt, e int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: d
-                text: "d int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: e
-                text: "e int"
-        touched-relations:
-          - statement-id: 0
-            name: a
-          - statement-id: 1
-            name: b
         errors: []
     script:
       input: select * from A join B on (a = b);
@@ -556,33 +394,6 @@ analyzer-snapshots:
         input: |-
           create table A (a int, b int);
           create table B (d int, e int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: a
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65536.4294967297"
-            name: b
-            text: "create tab..nt, e int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: d
-                text: "d int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: e
-                text: "e int"
-        touched-relations:
-          - statement-id: 0
-            name: a
-          - statement-id: 1
-            name: b
         errors: []
     script:
       input: select * from A, C where a = c;
@@ -635,33 +446,6 @@ analyzer-snapshots:
         input: |-
           create table A (a int, b int);
           create table B (d int, e int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: a
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65536.4294967297"
-            name: b
-            text: "create tab..nt, e int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: d
-                text: "d int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: e
-                text: "e int"
-        touched-relations:
-          - statement-id: 0
-            name: a
-          - statement-id: 1
-            name: b
         errors: []
     script:
       input: select * from A, B where a = c;
@@ -711,7 +495,6 @@ analyzer-snapshots:
     catalog:
       script:
         input: ''
-        catalog-id: 1
         errors: []
     script:
       input: select * from A;
@@ -733,7 +516,6 @@ analyzer-snapshots:
     catalog:
       script:
         input: ''
-        catalog-id: 1
         errors: []
     script:
       input: select * from A, B where c = d;
@@ -784,33 +566,6 @@ analyzer-snapshots:
         input: |-
           create table A (a int, b int);
           create table B (d int, e int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: a
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65536.4294967297"
-            name: b
-            text: "create tab..nt, e int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: d
-                text: "d int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: e
-                text: "e int"
-        touched-relations:
-          - statement-id: 0
-            name: a
-          - statement-id: 1
-            name: b
         errors: []
     script:
       input: select * from A where not exists (select * from B where a = d);
@@ -869,33 +624,6 @@ analyzer-snapshots:
         input: |-
           create table A (a int, b int);
           create table B (d int, e int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: a
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65536.4294967297"
-            name: b
-            text: "create tab..nt, e int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: d
-                text: "d int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: e
-                text: "e int"
-        touched-relations:
-          - statement-id: 0
-            name: a
-          - statement-id: 1
-            name: b
         errors: []
     script:
       input: select * from A where not exists (select * from A, B where a = d);
@@ -965,33 +693,6 @@ analyzer-snapshots:
         input: |-
           create table orders (o_custkey int, o_totalprice decimal);
           create table customer (c_custkey int, c_name text);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: orders
-            text: "create tab..e decimal)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: o_custkey
-                text: "o_custkey int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: o_totalprice
-                text: "o_totalpri..ce decimal"
-          - catalog-id: "256.65536.4294967297"
-            name: customer
-            text: "create tab..name text)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: c_custkey
-                text: "c_custkey int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: c_name
-                text: "c_name text"
-        touched-relations:
-          - statement-id: 0
-            name: orders
-          - statement-id: 1
-            name: customer
         errors: []
     script:
       input: select c_name, (select sum(o_totalprice) from orders where o_custkey = c_custkey) as total from customer;
@@ -1066,45 +767,6 @@ analyzer-snapshots:
           create table A (a int, b int);
           create table B (d int, e int);
           create table C (f int, g int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: a
-            text: "create tab..nt, b int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: b
-                text: "b int"
-          - catalog-id: "256.65536.4294967297"
-            name: b
-            text: "create tab..nt, e int)"
-            columns:
-              - catalog-id: "256.65536.4294967297.0"
-                name: d
-                text: "d int"
-              - catalog-id: "256.65536.4294967297.1"
-                name: e
-                text: "e int"
-          - catalog-id: "256.65536.4294967298"
-            name: c
-            text: "create tab..nt, g int)"
-            columns:
-              - catalog-id: "256.65536.4294967298.0"
-                name: f
-                text: "f int"
-              - catalog-id: "256.65536.4294967298.1"
-                name: g
-                text: "g int"
-        touched-relations:
-          - statement-id: 0
-            name: a
-          - statement-id: 1
-            name: b
-          - statement-id: 2
-            name: c
         errors: []
     script:
       input: select * from A where exists (select * from B where a = d and exists (select * from C where f = d));
@@ -1190,24 +852,6 @@ analyzer-snapshots:
       script:
         input: |-
           create table sales (product text, amount int, region text);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: sales
-            text: "create tab..gion text)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: product
-                text: "product text"
-              - catalog-id: "256.65536.4294967296.1"
-                name: amount
-                text: "amount int"
-              - catalog-id: "256.65536.4294967296.2"
-                name: region
-                text: "region text"
-        touched-relations:
-          - statement-id: 0
-            name: sales
         errors: []
     script:
       input: select product, total from (select product, sum(amount) as total from sales group by product) as s where total > 100;
@@ -1302,24 +946,6 @@ analyzer-snapshots:
       script:
         input: |-
           create table sales (product text, amount int, region text);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: sales
-            text: "create tab..gion text)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: product
-                text: "product text"
-              - catalog-id: "256.65536.4294967296.1"
-                name: amount
-                text: "amount int"
-              - catalog-id: "256.65536.4294967296.2"
-                name: region
-                text: "region text"
-        touched-relations:
-          - statement-id: 0
-            name: sales
         errors: []
     script:
       input: with totals as (select product, sum(amount) as total from sales group by product) select product, total from totals;
@@ -1402,24 +1028,6 @@ analyzer-snapshots:
       script:
         input: |-
           create table sales (product text, amount int, region text);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: sales
-            text: "create tab..gion text)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: product
-                text: "product text"
-              - catalog-id: "256.65536.4294967296.1"
-                name: amount
-                text: "amount int"
-              - catalog-id: "256.65536.4294967296.2"
-                name: region
-                text: "region text"
-        touched-relations:
-          - statement-id: 0
-            name: sales
         errors: []
     script:
       input: with totals(item, revenue) as (select product, sum(amount) from sales group by product) select item, revenue from totals;
@@ -1502,24 +1110,6 @@ analyzer-snapshots:
       script:
         input: |-
           create table orders (customer_id int, amount int, status text);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: orders
-            text: "create tab..atus text)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: customer_id
-                text: "customer_id int"
-              - catalog-id: "256.65536.4294967296.1"
-                name: amount
-                text: "amount int"
-              - catalog-id: "256.65536.4294967296.2"
-                name: status
-                text: "status text"
-        touched-relations:
-          - statement-id: 0
-            name: orders
         errors: []
     script:
       input: |-

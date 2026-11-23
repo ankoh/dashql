@@ -4,18 +4,6 @@ completion-snapshots:
     catalog:
       script:
         input: create table dbname.schemaname.foo(a int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: foo
-            text: "create tab..foo(a int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: a
-                text: "a int"
-        touched-relations:
-          - statement-id: 0
-            name: dbname.schemaname.foo
         errors: []
     editor:
       input: select * from dbname.schemaname.foo limit 10

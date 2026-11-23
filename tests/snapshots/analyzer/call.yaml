@@ -179,21 +179,6 @@ analyzer-snapshots:
       client_functions: tickets
       script:
         input: create table alerts (host text, level int);
-        catalog-id: 1
-        tables:
-          - catalog-id: "256.65536.4294967296"
-            name: alerts
-            text: "create tab..level int)"
-            columns:
-              - catalog-id: "256.65536.4294967296.0"
-                name: host
-                text: "host text"
-              - catalog-id: "256.65536.4294967296.1"
-                name: level
-                text: "level int"
-        touched-relations:
-          - statement-id: 0
-            name: alerts
         errors: []
     script:
       input: call tickets.ticket_create (project => 'a', title => 'b', affected => ((select host from alerts where level > 1)));
