@@ -6,6 +6,8 @@ import { EditorView } from '@codemirror/view';
 import { CodeMirror, createReadonlyCodeMirrorExtensions } from './codemirror.js';
 import { DashQLUpdateEffect } from './dashql_processor.js';
 import { useDashQLCoreSetup } from '../../host/core_provider.js';
+import { useLogger } from '../../host/logger_provider.js';
+import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { formatSqlText } from '../scripts/script_format.js';
 
 /// Analyze a SQL text in a throwaway script session, the result highlights the text in a read-only view
@@ -38,15 +40,18 @@ export function useProjectedSqlText(
     format: dashql.buffers.formatting.FormattingConfigT | null = null,
 ): ProjectedSqlText {
     const coreSetup = useDashQLCoreSetup();
+    const logger = useLogger();
     const [core, setCore] = React.useState<dashql.DashQL | null>(null);
     React.useEffect(() => {
         if (coreSetup == null) return;
         let cancelled = false;
-        coreSetup(context).then(c => {
-            if (!cancelled) setCore(c);
-        });
+        // Without the core the text stays plain
+        coreSetup(context).then(
+            c => { if (!cancelled) setCore(c); },
+            (error: unknown) => logger.error('Setting up the core for highlighting a SQL text failed', { context, error: stringifyError(error) }, 'readonly_sql_view'),
+        );
         return () => { cancelled = true; };
-    }, [coreSetup, context]);
+    }, [coreSetup, context, logger]);
     return React.useMemo(() => {
         if (core == null) return { text, editorUpdate: null };
         const formatted = format == null ? text : formatSqlText(core, text, format) ?? text;

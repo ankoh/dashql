@@ -13,6 +13,8 @@ import { TreeEntry, TreeEntryName } from '@akohn/dashql-react/components/tree_en
 import { useEmbeddedDatabaseSetup } from '../../host/embedded_database_provider.js';
 import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { useDashQLCoreSetup } from '../../host/core_provider.js';
+import { useLogger } from '../../host/logger_provider.js';
+import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { ReadonlySqlView, useProjectedSqlText } from '../editor/readonly_sql_view.js';
 import { createScriptFormatConfig, formattingDialectForConnector, getKeywordCase } from '../scripts/script_format.js';
 import { measureScriptFormatWidth } from '../editor/script_format_editor.js';
@@ -138,15 +140,17 @@ function expandedSnippets(folder: SnippetFolder, isExpanded: (path: string) => b
 /// The bundled snippets once the core is set up, null until then
 function useBundledSnippets(): SnippetRegistry | null {
     const coreSetup = useDashQLCoreSetup();
+    const logger = useLogger();
     const [registry, setRegistry] = React.useState<SnippetRegistry | null>(null);
     React.useEffect(() => {
         if (coreSetup == null) return;
         let cancelled = false;
-        coreSetup('snippets').then(core => {
-            if (!cancelled) setRegistry(getBundledSnippets(core));
-        });
+        coreSetup('snippets').then(
+            core => { if (!cancelled) setRegistry(getBundledSnippets(core)); },
+            (error: unknown) => logger.error('Setting up the core for the bundled snippets failed', { error: stringifyError(error) }, 'snippets'),
+        );
         return () => { cancelled = true; };
-    }, [coreSetup]);
+    }, [coreSetup, logger]);
     return registry;
 }
 
