@@ -490,25 +490,17 @@ pub(super) fn append_comments(
     }
 }
 
-/// Does a comment hold a tag?
-fn has_tag(input: &[u8], comment: &TextSpan) -> bool {
-    if is_block_comment(input, comment) {
-        block_comment_has_tag(input, *comment)
-    } else {
-        read_comment_tag(input, comment).is_some()
-    }
-}
-
 /// Can comments follow a statement on its last line, as in `select 1; -- one`, where the parser reads them as part of
 /// the statement again? `statement_end` is the end of the statement in the input, comments before it are inside of the
-/// statement and move behind it. They cannot if a comment after the statement does not follow on its line, if a comment
-/// would follow a line comment, or if a comment holds a tag.
+/// statement and move behind it. They cannot if a comment after the statement does not follow on its line, or if a
+/// comment would follow a line comment. A tag stays there too: on a line of its own the next statement would read it
+/// as its annotation (see `ParsedScript::associate_descriptions`).
 pub(super) fn can_trail(input: &[u8], comments: &[TextSpan], statement_end: usize) -> bool {
     let mut previous_end = statement_end;
     let mut after_line_comment = false;
     for comment in comments {
         let offset = comment.offset as usize;
-        if after_line_comment || has_tag(input, comment) {
+        if after_line_comment {
             return false;
         }
         if offset >= previous_end && count_line_breaks(substr(input, previous_end, offset - previous_end)) > 0 {

@@ -25,7 +25,8 @@ second run equals the first. Inline mode drops the comments.
   which could start a tag. Comments with tags are printed as one canonical comment (see
   `docs/design/vis_comments.md`).
 - **After a statement.** Comments on the line of the end of a statement stay on its line after the semicolon, also
-  after a semicolon on a line of its own and after a statement with syntax errors that is copied as written.
+  after a semicolon on a line of its own and after a statement with syntax errors that is copied as written. A
+  comment with a tag stays there too: on a line of its own it would be the annotation of the next statement.
 - **Text without symbols.** A block comment without its end after the semicolon of the last statement is copied as
   written with the text after it, like a statement with syntax errors.
 - **Inside a statement.** `comments.rs` attaches a comment to the document of a node (`attach_inner_comments`): a line
@@ -46,8 +47,8 @@ second run equals the first. Inline mode drops the comments.
 - **One line comment per document end.** A second line comment at the end of the same document goes in front of the
   node after it, on a line of its own.
 - **Without a node.** Comments inside a statement after its last printed node, as in `select (a /* a */)`, follow the
-  statement on its line like the comments after it. If they cannot (two line comments, or a comment with a tag), they go
-  on lines of their own before the semicolon, where a second run finds them again.
+  statement on its line like the comments after it. If they cannot (two line comments), they go on lines of their own
+  before the semicolon, where a second run finds them again.
 - A comment inside a leaf that is printed as written, like `-/* a */1`, stays inside it.
 
 The round trip test (`formatted_comments_stay_in_place`) puts comments between all symbols of the parser corpus, as

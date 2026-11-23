@@ -384,3 +384,33 @@ formatter-snapshots:
               select 2; -- two
 
               select 3;
+
+  - name: comment_tag_after_statement
+    input: |-
+      select 1; -- @vis bar x=a
+      select 2 /* @vis table */;
+      select 3
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select 1;
+
+              select 2;
+
+              select 3;
+          - mode: compact
+            expected: |-
+              select 1; -- @vis bar x=a
+
+              select 2; /* @vis table */
+
+              select 3;
+          - mode: pretty
+            expected: |-
+              select 1; -- @vis bar x=a
+
+              select 2; /* @vis table */
+
+              select 3;

@@ -3404,6 +3404,26 @@ mod tests {
         assert_eq!(pretty, compact);
     }
 
+    #[test]
+    fn keeps_tags_after_a_statement_on_its_line() {
+        // On a line of its own the tag would become the annotation of the next statement, here it is none
+        for (input, expected) in [
+            ("select 1; -- @vis bar x=a\nselect 2", "select 1; -- @vis bar x=a\n\nselect 2;"),
+            ("select 1 /* @vis table */;\nselect 2", "select 1; /* @vis table */\n\nselect 2;"),
+        ] {
+            let [compact, pretty] = format_stable(input, 120);
+            assert_eq!(compact, expected);
+            assert_eq!(pretty, expected);
+            for text in [input, expected] {
+                let parsed = parse(Arc::new(scan(text, 0, 2)));
+                for statement in 0..2 {
+                    let annotation = crate::annotation::read_annotation(&parsed, statement).unwrap();
+                    assert!(annotation.tags.is_empty(), "{text:?} {statement}");
+                }
+            }
+        }
+    }
+
     /// Format a script in compact and pretty mode, formatting the output again must not change it
     fn format_stable(text: &str, max_width: u32) -> [String; 2] {
         [FormattingMode::COMPACT, FormattingMode::PRETTY].map(|mode| {

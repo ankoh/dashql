@@ -137,3 +137,12 @@ formatter-snapshots:
       select 3
     dialects:
       hyper:
+
+  # A tag after a statement stays on its line, on a line of its own the next statement would read it as its annotation
+  - name: comment_tag_after_statement
+    input: |-
+      select 1; -- @vis bar x=a
+      select 2 /* @vis table */;
+      select 3
+    dialects:
+      hyper:
