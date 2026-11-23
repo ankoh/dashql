@@ -322,6 +322,7 @@ impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
             return;
         };
         let connection = RestoreConnection::of_entry(&entry);
+        self.log(LogLevel::Info, "Restoring manifest connection", &[("connectionId", &entry.id)]);
         // Workbooks that reference a connection that fails register it again from their copies
         let created = connection_state(self.host, &connection, new_catalog())
             .and_then(|state| self.planner.restore_manifest_connection(&entry).map(|_| state));
@@ -343,12 +344,36 @@ impl<'a, H: RestoreHost, W: StorageHost> Run<'a, H, W> {
 
     /// Restore the catalog of a connection from its files, the connection refreshes a catalog that failed on connect
     async fn restore_catalog(&mut self, connection_id: &str, log_context: &[(&str, &str)]) {
+        let load_start = self.host.now();
         let files = load_catalog_files(self.host, connection_id).await;
+        let load_duration = format!("{:.2}", self.host.now() - load_start);
         let Some(state) = self.states.iter_mut().find(|state| state.connection_id() == connection_id) else {
             return;
         };
         let restored = match files {
-            Ok(files) => apply_catalog_files(state, &files),
+            Ok(files) => {
+                let size = |text: &Option<String>| text.as_ref().map_or(0, String::len).to_string();
+                let connector = format!("{:?}", state.connector_type());
+                let (relations, functions, changes, stored) =
+                    (size(&files.relations), size(&files.functions), size(&files.changes), size(&files.state));
+                let mut details = log_context.to_vec();
+                details.extend([
+                    ("connector", connector.as_str()),
+                    ("relationsBytes", relations.as_str()),
+                    ("functionsBytes", functions.as_str()),
+                    ("changesBytes", changes.as_str()),
+                    ("stateBytes", stored.as_str()),
+                    ("durationMs", load_duration.as_str()),
+                ]);
+                self.host.log(LogLevel::Info, "Loaded connection catalog files", &details);
+                let apply_start = self.host.now();
+                let restored = apply_catalog_files(state, &files);
+                let apply_duration = format!("{:.2}", self.host.now() - apply_start);
+                let mut details = log_context.to_vec();
+                details.push(("durationMs", apply_duration.as_str()));
+                self.host.log(LogLevel::Info, "Applied connection catalog files", &details);
+                restored
+            }
             Err(error) => {
                 CatalogRestore { succeeded: false, files: Vec::new(), error: Some(error.message().to_string()) }
             }
