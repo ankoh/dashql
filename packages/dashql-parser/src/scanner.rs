@@ -522,7 +522,7 @@ impl<'a> Lexer<'a> {
     fn lex(&mut self, out: &mut ScannedScript) -> Symbol {
         loop {
             if self.state == State::Initial {
-                while let Some(c) = utf8(self.text.get(self.pos..).unwrap_or_default()).chars().next() {
+                while let Some(c) = first_char(self.text.get(self.pos..).unwrap_or_default()) {
                     if !is_unicode_space(c) {
                         break;
                     }
@@ -964,6 +964,19 @@ fn obfuscated_literal(text: &[u8], location: TextSpan) -> Option<ObfuscatedLiter
 /// empty text.
 fn utf8(bytes: &[u8]) -> &str {
     std::str::from_utf8(bytes).unwrap_or_default()
+}
+
+/// The character that starts the bytes, none if they don't start with valid UTF-8. Decodes only that character: a
+/// scan that checked the whole rest of the text before every token would be quadratic in the text.
+fn first_char(bytes: &[u8]) -> Option<char> {
+    let length = match *bytes.first()? {
+        0x00..=0x7f => 1,
+        0xc0..=0xdf => 2,
+        0xe0..=0xef => 3,
+        0xf0..=0xf7 => 4,
+        _ => return None,
+    };
+    std::str::from_utf8(bytes.get(..length)?).ok()?.chars().next()
 }
 
 /// The non-ASCII whitespace accepted by Hyper, including zero-width separators and a BOM.
