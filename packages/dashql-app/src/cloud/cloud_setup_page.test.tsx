@@ -287,9 +287,8 @@ describe('cloud setup page', () => {
     });
 
     it('shows when the app asks for it', async () => {
-        const setupDone = Promise.resolve();
         function Gate() {
-            return useCloudSetupGate(setupDone, false, dependencies) ?? <div data-testid="workbench" />;
+            return useCloudSetupGate(true, false, dependencies) ?? <div data-testid="workbench" />;
         }
         await prepare([], null);
         await root.render(tree(<Gate />));
@@ -304,14 +303,13 @@ describe('cloud setup page', () => {
     });
 
     it('skips the page at the start of the app without a cloud link', async () => {
-        const setupDone = Promise.resolve();
         function Gate() {
-            return useCloudSetupGate(setupDone, false, dependencies) ?? <div data-testid="workbench" />;
+            return useCloudSetupGate(true, false, dependencies) ?? <div data-testid="workbench" />;
         }
         await prepare([hyperConnection('server', ConnectionHealth.NOT_STARTED)], 'server');
         await root.render(tree(<Gate />));
         await vi.waitFor(() => expect(button('workbench')).not.toBeNull());
-        await act(async () => await setupDone);
+        await act(async () => { await Promise.resolve(); });
         expect(page()).toBeNull();
         expect(logins).toEqual([]);
     });
@@ -325,9 +323,10 @@ describe('cloud setup page', () => {
 
     it('shows at the start of the app with a cloud link until the cloud needs nothing', async () => {
         let finishSetup!: () => void;
-        const setupDone = new Promise<void>(resolve => { finishSetup = resolve; });
         function Gate() {
-            return useCloudSetupGate(setupDone, true, dependencies) ?? <div data-testid="workbench" />;
+            const [restored, setRestored] = React.useState(false);
+            finishSetup = () => setRestored(true);
+            return useCloudSetupGate(restored, true, dependencies) ?? <div data-testid="workbench" />;
         }
         await prepare([hyperConnection('server', ConnectionHealth.NOT_STARTED)], 'server');
         await root.render(tree(<Gate />));

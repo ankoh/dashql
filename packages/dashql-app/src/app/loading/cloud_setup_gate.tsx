@@ -17,15 +17,9 @@ type CloudSetupReason = 'startup' | 'requested';
 
 /// Show the page of the cloud setup before the workbench: once at the start of the app when a link points to the cloud,
 /// and whenever the Clouds of the sidebar or the overview of a cloud ask for it. Any other start goes to the workbench.
-/// Returns the page, null when it doesn't show.
-export function useCloudSetupGate(setupDone: Promise<void>, cloudLink: boolean, dependencies?: CloudSetupPageDependencies): React.ReactElement | null {
-    const [ready, setReady] = React.useState(false);
-    React.useEffect(() => {
-        let live = true;
-        setupDone.then(() => { if (live) setReady(true); }, () => {});
-        return () => { live = false; };
-    }, [setupDone]);
-
+/// The start considers the cloud link once the app restored its state (`ready`). Returns the page, null when it doesn't
+/// show.
+export function useCloudSetupGate(ready: boolean, cloudLink: boolean, dependencies?: CloudSetupPageDependencies): React.ReactElement | null {
     const { setupRequest } = useClouds();
     const [reason, setReason] = React.useState<CloudSetupReason | null>(null);
     // The cloud that the page sets up, null to choose or add one

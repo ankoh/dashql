@@ -4,7 +4,6 @@ import type * as core from '@akohn/dashql';
 import * as baseStyles from '@akohn/dashql-react/components/banner_page.module.css';
 
 import { Button, ButtonVariant } from '@akohn/dashql-react/components/button';
-import { CONFIRM_FINISHED_SETUP, useRouteContext, useRouterNavigate } from './router.js';
 import { getStatusFromProgressCounter, IndicatorStatus } from '@akohn/dashql-react/components/status_indicator';
 import { useDashQLCoreSetup } from '../host/core_provider.js';
 import { useStorageMigrationStatus } from '../storage/storage_provider.js';
@@ -17,12 +16,13 @@ interface Props {
     embeddedDatabaseStatus: IndicatorStatus;
     /// Why the setup failed, null while it did not fail
     error?: string | null;
+    /// Confirm the finished setup, absent while the setup did not finish. The page asks for it when it pauses after
+    /// the setup.
+    onContinue?: () => void;
 }
 
 export const AppLoadingPage: React.FC<Props> = (props: Props) => {
-    const navigate = useRouterNavigate();
     const coreSetup = useDashQLCoreSetup();
-    const routeContext = useRouteContext();
     const migrationStatus = useStorageMigrationStatus();
 
     // Subscribe core setup.
@@ -45,15 +45,6 @@ export const AppLoadingPage: React.FC<Props> = (props: Props) => {
         return () => abort.abort();
     }, [coreSetup]);
 
-    // Show the continue button?
-    const showContinueButton = props.pauseAfterSetup && routeContext.setupDone;
-    const confirmFinishedSetup = React.useCallback(() => {
-        navigate({
-            type: CONFIRM_FINISHED_SETUP,
-            value: true
-        });
-    }, [navigate]);
-
     return (
         <AppSetupPage
             status={{
@@ -69,8 +60,8 @@ export const AppLoadingPage: React.FC<Props> = (props: Props) => {
                     <div className={baseStyles.card_actions_right}>
                         <Button
                             variant={ButtonVariant.Primary}
-                            disabled={!showContinueButton}
-                            onClick={confirmFinishedSetup}
+                            disabled={props.onContinue == null}
+                            onClick={props.onContinue}
                         >
                             Continue
                         </Button>

@@ -34,10 +34,11 @@ function confirmReuse(connection: ConnectionState, endpoint: string): boolean {
 
 /// Follow the Hyper links, of the page and of the native app.
 ///
-/// A link is handled once the app opened the workbook it starts with: the runtime reads its target and binds it to a
-/// connection (`bindHyperLink`), a link to another machine is confirmed, the connection takes the token of the link and
-/// new workbooks start on it. The app then opens a workbook on the connection, or the greeter on the connection.
-export function useHyperLinks(opened: Promise<void>): void {
+/// A link is handled once the app opened the workbook it starts with (`opened`), the listener keeps the latest link
+/// until then: the runtime reads its target and binds it to a connection (`bindHyperLink`), a link to another machine
+/// is confirmed, the connection takes the token of the link and new workbooks start on it. The app then opens a
+/// workbook on the connection, or the greeter on the connection.
+export function useHyperLinks(opened: boolean): void {
     const appEvents = usePlatformEventListener();
     const logger = useLogger();
     const saveConnection = useConnectionSaver();
@@ -86,10 +87,11 @@ export function useHyperLinks(opened: Promise<void>): void {
         if (greeter.workbookId !== route.workbookId) navigate({ type: OPEN_EPHEMERAL_WORKBOOK, value: greeter.workbookId });
     });
 
-    React.useEffect(() => appEvents.subscribeHyperLinks(event => {
-        logger.info('Received a Hyper link', { endpoint: event.endpoint }, LOG_CTX);
-        void opened
-            .then(() => follow(event))
-            .catch(error => logger.error('Failed to follow a Hyper link', { error: stringifyError(error) }, LOG_CTX));
-    }), [appEvents, logger, opened]);
+    React.useEffect(() => {
+        if (!opened) return;
+        return appEvents.subscribeHyperLinks(event => {
+            logger.info('Received a Hyper link', { endpoint: event.endpoint }, LOG_CTX);
+            follow(event).catch(error => logger.error('Failed to follow a Hyper link', { error: stringifyError(error) }, LOG_CTX));
+        });
+    }, [appEvents, logger, opened]);
 }

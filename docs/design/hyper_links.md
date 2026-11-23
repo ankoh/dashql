@@ -95,7 +95,7 @@ folder. Only the token is not stored. There can be several such connections, e.g
 
 - **Receiving**: the app event of a link arrives like every app event, from the address of the page, from the native
   app, or pasted (`PlatformEventListener.dispatchAppEvent`). The listener keeps the latest link until `useHyperLinks`
-  (`app/hyper_links.ts`) subscribes.
+  (`app/hyper_links.ts`) subscribes, once the app opened the workbook it starts with.
 - **Following**: once the app opened the workbook it starts with, `useHyperLinks` asks the runtime about the link
   (`Runtime.bindHyperLink` over `hyper/link.rs` of the core runtime): its target, an endpoint on this machine may speak
   http, any other one https, and the connection it binds to. Then it

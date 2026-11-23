@@ -7,7 +7,7 @@ import { ToggleSwitch } from '@akohn/dashql-react/components/toggle_switch';
 import { SegmentedControl } from '@akohn/dashql-react/components/segmented_control';
 
 import { AppConfig, AppSettings as AppSettingsValue, useAppConfig, useAppReconfigure } from '../config/app_config.js';
-import { CONFIRM_FINISHED_SETUP, useRouterNavigate } from '../app/router.js';
+import { useAppSetupConfirmation } from '../app/loading/app_setup.js';
 import { useLogger } from '../host/logger_provider.js';
 import { LogLevel } from '@akohn/dashql/platform/logger/log_buffer';
 import { useStorageReader } from '../storage/storage_provider.js';
@@ -50,7 +50,7 @@ function SettingsSection(props: { title: string; hideTitle?: boolean; children: 
 export function AppSettings(props: { onClose: () => void; }) {
     const config = useAppConfig();
     const reconfigure = useAppReconfigure();
-    const routerNavigate = useRouterNavigate();
+    const confirmFinishedSetup = useAppSetupConfirmation();
     const logger = useLogger();
     const storageReader = useStorageReader();
     const dropAllCloudDatabases = useDropAllCloudDatabases();
@@ -91,7 +91,7 @@ export function AppSettings(props: { onClose: () => void; }) {
         }
     }, [config, reconfigure, restartApp, storageReader, logger]);
     const revertSetupConfirmation = React.useCallback(() => {
-        // Enable pause after setup, then reload
+        // Pause after the setup, the app shows the setup page again until the user confirms it
         reconfigure((value: AppConfig | null) => (value == null ? null : {
             ...value,
             settings: {
@@ -99,11 +99,8 @@ export function AppSettings(props: { onClose: () => void; }) {
                 pauseAfterAppSetup: true,
             }
         }));
-        routerNavigate({
-            type: CONFIRM_FINISHED_SETUP,
-            value: false,
-        });
-    }, [reconfigure, routerNavigate]);
+        confirmFinishedSetup(false);
+    }, [reconfigure, confirmFinishedSetup]);
 
     const minLogLevel = config?.settings?.minLogLevel ?? LogLevel.Info;
     const keywordCase = config?.settings?.keywordCase === 'upper' ? 'upper' : 'lower';

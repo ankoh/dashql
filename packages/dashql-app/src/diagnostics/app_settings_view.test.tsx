@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { act } from '@akohn/dashql-react/testing/react_act';
-import { MemoryRouter, useLocation } from 'react-router-dom';
+import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AppSettings } from './app_settings_view.js';
@@ -15,14 +15,7 @@ import { StorageProvider } from '../storage/storage_provider.js';
 import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
 import { applyFlavorToDocument } from '../config/flavor_resolution.js';
 import { createTestRoot } from '@akohn/dashql-react/testing/react_root';
-import { type RouteContext } from '../app/router.js';
-
-const SETUP_DONE: RouteContext = {
-    setupDone: true,
-    confirmedFinishedSetup: true,
-    workbookId: null,
-    openingWorkbook: false,
-};
+import { AppSetupConfirmationProvider } from '../app/loading/app_setup.js';
 
 describe('AppSettings', () => {
     let root: ReturnType<typeof createTestRoot>;
@@ -32,13 +25,12 @@ describe('AppSettings', () => {
     let config: AppConfig | null;
     let flavor: AppFlavor;
     let logger: Logger;
-    let routeState: RouteContext | null;
+    let confirmFinishedSetup: ReturnType<typeof vi.fn<(confirmed: boolean) => void>>;
 
     function Capture() {
         config = useAppConfig();
         flavor = useAppFlavor();
         logger = useLogger();
-        routeState = useLocation().state as RouteContext | null;
         return null;
     }
 
@@ -47,13 +39,13 @@ describe('AppSettings', () => {
             <LoggerProvider>
                 <FlavorProvider requested={requested}>
                     <AppConfigProvider>
-                        <MemoryRouter initialEntries={[{ pathname: '/', state: SETUP_DONE }]}>
+                        <MemoryRouter initialEntries={['/']}>
                             <StorageProvider backend={backend}>
                                 <APP_RESTART_CTX.Provider value={restart}>
-                                    <>
+                                    <AppSetupConfirmationProvider value={confirmFinishedSetup}>
                                         <Capture />
                                         <AppSettings onClose={onClose} />
-                                    </>
+                                    </AppSetupConfirmationProvider>
                                 </APP_RESTART_CTX.Provider>
                             </StorageProvider>
                         </MemoryRouter>
@@ -82,7 +74,7 @@ describe('AppSettings', () => {
         restart = vi.fn<() => Promise<void>>(async () => {});
         onClose = vi.fn<() => void>();
         config = null;
-        routeState = null;
+        confirmFinishedSetup = vi.fn<(confirmed: boolean) => void>();
     });
 
     afterEach(() => {
@@ -195,11 +187,9 @@ describe('AppSettings', () => {
 
     it('reverts the setup confirmation', async () => {
         await render();
-        expect(routeState?.confirmedFinishedSetup).toBe(true);
         act(() => button('Restart').click());
         expect(config!.settings?.pauseAfterAppSetup).toBe(true);
-        await vi.waitFor(() => expect(routeState?.confirmedFinishedSetup).toBe(false));
-        expect(routeState?.setupDone).toBe(true);
+        expect(confirmFinishedSetup).toHaveBeenCalledExactlyOnceWith(false);
     });
 
     it('does not reset a backend without clearAllStorage', async () => {

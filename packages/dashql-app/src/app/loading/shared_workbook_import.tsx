@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { OPEN_IMPORTED_WORKBOOK, useRouteContext, useRouterNavigate } from '../router.js';
+import { OPEN_IMPORTED_WORKBOOK, useRouterNavigate } from '../router.js';
 import { useDashQLCoreSetup } from '../../host/core_provider.js';
 import { useLogger } from '../../host/logger_provider.js';
 import { createTrace } from '@akohn/dashql/platform/logger/trace_context';
@@ -39,18 +39,18 @@ interface LoadedSharedWorkbook {
 ///
 /// A deep link or an opened `.dashql` file carries the workbook itself, it is imported right away. A
 /// shared URL is loaded while the app sets up and then shown in a card until the user imports it.
-/// Imports wait for `setupDone` since they use the restored registries. The import of a workbook that
-/// the app was started with is stored in `initialImport`, the setup doesn't open another workbook
-/// when it opens one.
+/// Imports wait until the app `restored` its state since they use the restored registries. The import of a workbook
+/// that arrives before the app `opened` its startup workbook is stored in `initialImport`, the setup doesn't open
+/// another workbook when it opens one.
 ///
 /// Returns the card of a shared workbook, null if there is none.
 export function useSharedWorkbookImport(
-    setupDone: Promise<void>,
+    restored: boolean,
+    opened: boolean,
     initialImport: React.RefObject<Promise<boolean> | null>,
 ): React.ReactElement | null {
     const logger = useLogger();
     const navigate = useRouterNavigate();
-    const routeContext = useRouteContext();
     const setupCore = useDashQLCoreSetup();
     const appEvents = usePlatformEventListener();
     const workbookImport = useWorkbookImport();
@@ -61,6 +61,13 @@ export function useSharedWorkbookImport(
     const [importBusy, setImportBusy] = React.useState(false);
     const remoteAbortRef = React.useRef<AbortController | null>(null);
     React.useEffect(() => () => remoteAbortRef.current?.abort(), []);
+    // The restore that the imports wait for, an event may arrive before
+    const [restore] = React.useState(() => {
+        let resolve!: () => void;
+        const promise = new Promise<void>(r => { resolve = r; });
+        return { promise, resolve };
+    });
+    React.useEffect(() => { if (restored) restore.resolve(); }, [restored, restore]);
 
     // Returns true if the event opened a workbook
     const consumeSetupEvent = React.useEffectEvent(async (data: SetupEventVariant): Promise<boolean> => {
@@ -72,7 +79,7 @@ export function useSharedWorkbookImport(
         let remoteResult: Promise<HttpWorkbookLoadResult> | null = null;
         // Remote workbook I/O can proceed while the application initializes. Reading the import and detecting a
         // conflict wait for the setup because they use the initialized storage registry.
-        const setup = Promise.all([setupCore("app_setup"), setupDone]);
+        const setup = Promise.all([setupCore("app_setup"), restore.promise]);
         if (data.type === SETUP_WORKBOOK_URL) {
             remoteAbortRef.current?.abort();
             remoteAbort = new AbortController();
@@ -148,7 +155,7 @@ export function useSharedWorkbookImport(
             return false;
         });
         // Normal startup must not replace the route selected by an inline workbook import
-        if (data.type === SETUP_WORKBOOK && !routeContext.setupDone) {
+        if (data.type === SETUP_WORKBOOK && !opened) {
             initialImport.current = handling;
         }
         void handling;

@@ -4,13 +4,16 @@ import { canShowWorkbook, deleteSurplusEphemeralWorkbooks, selectStartupWorkbook
 import type { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 
 describe('canShowWorkbook', () => {
-    it.each([true, false])('shows an opened workbook without waiting for connection setup (opening %s)', openingWorkbook => {
-        expect(canShowWorkbook({
-            setupDone: true,
-            workbookId: 'offline-workbook',
-            openingWorkbook,
-            confirmedFinishedSetup: false,
-        }, false)).toBe(true);
+    it('shows the workbook once the app opened it', () => {
+        expect(canShowWorkbook({ phase: 'opened', confirmed: false, pauseAfterSetup: false }, 'offline-workbook')).toBe(true);
+        expect(canShowWorkbook({ phase: 'opening', confirmed: false, pauseAfterSetup: false }, 'offline-workbook')).toBe(false);
+        expect(canShowWorkbook({ phase: 'failed', confirmed: false, pauseAfterSetup: false }, 'offline-workbook')).toBe(false);
+        expect(canShowWorkbook({ phase: 'opened', confirmed: false, pauseAfterSetup: false }, null)).toBe(false);
+    });
+
+    it('waits for the confirmation of an app that pauses after its setup', () => {
+        expect(canShowWorkbook({ phase: 'opened', confirmed: false, pauseAfterSetup: true }, 'offline-workbook')).toBe(false);
+        expect(canShowWorkbook({ phase: 'opened', confirmed: true, pauseAfterSetup: true }, 'offline-workbook')).toBe(true);
     });
 });
 

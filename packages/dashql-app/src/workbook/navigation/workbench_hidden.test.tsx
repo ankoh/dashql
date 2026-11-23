@@ -32,7 +32,7 @@ describe('useWorkbenchHidden', () => {
             [current.hidden, current.setHidden] = useWorkbenchHidden('s0');
             return null;
         }
-        const state: RouteContext = { setupDone: true, confirmedFinishedSetup: true, workbookId: 's0', openingWorkbook: false, importedWorkbookId };
+        const state: RouteContext = { workbookId: 's0', openingWorkbook: false, importedWorkbookId };
         root = createTestRoot();
         await root.render(
             <LoggerProvider>

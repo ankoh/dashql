@@ -5,7 +5,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createTestRoot } from '@akohn/dashql-react/testing/react_root';
 import {
-    CONFIRM_FINISHED_SETUP,
     OPEN_IMPORTED_WORKBOOK,
     SELECT_IMPORTED_WORKBOOK,
     OPEN_LINK_WORKBOOK,
@@ -41,8 +40,6 @@ describe('useRouterNavigate', () => {
     });
 
     const LOADING_WORKBOOK: RouteContext = {
-        setupDone: false,
-        confirmedFinishedSetup: false,
         workbookId: 's0',
         openingWorkbook: true,
     };
@@ -75,8 +72,8 @@ describe('useRouterNavigate', () => {
         ['no workbook path', { type: WORKBOOK_PATH, value: null }, '/', { workbookId: null }],
         ['a selected workbook', { type: SELECT_WORKBOOK, value: 's1' }, '/workbooks/s1', { workbookId: 's1', openingWorkbook: false }],
         ['an opened workbook', { type: OPEN_WORKBOOK, value: 's1' }, '/workbooks/s1', { openingWorkbook: true }],
-        ['a link workbook', { type: OPEN_LINK_WORKBOOK, value: 's1' }, '/workbooks/s1', { setupDone: true, openingWorkbook: true, importedWorkbookId: null }],
-        ['an imported workbook', { type: OPEN_IMPORTED_WORKBOOK, value: 's1' }, '/workbooks/s1', { setupDone: true, openingWorkbook: true, importedWorkbookId: 's1' }],
+        ['a link workbook', { type: OPEN_LINK_WORKBOOK, value: 's1' }, '/workbooks/s1', { workbookId: 's1', openingWorkbook: true, importedWorkbookId: null }],
+        ['an imported workbook', { type: OPEN_IMPORTED_WORKBOOK, value: 's1' }, '/workbooks/s1', { workbookId: 's1', openingWorkbook: true, importedWorkbookId: 's1' }],
         ['a selected imported workbook', { type: SELECT_IMPORTED_WORKBOOK, value: 's1' }, '/workbooks/s1', { workbookId: 's1', openingWorkbook: false, importedWorkbookId: 's1' }],
     ])('navigates to %s', async (_name, target, pathname, context) => {
         const next = await navigateFrom(LOADING_WORKBOOK, target);
@@ -91,24 +88,16 @@ describe('useRouterNavigate', () => {
         ['another workbook opens', { type: WORKBOOK_PATH, value: 's1' }, null],
         ['a link workbook opens', { type: OPEN_LINK_WORKBOOK, value: 's0' }, null],
     ])('keeps an imported workbook only while it shows: %s', async (_name, target, importedWorkbookId) => {
-        const imported = { ...LOADING_WORKBOOK, setupDone: true, importedWorkbookId: 's0' };
+        const imported = { ...LOADING_WORKBOOK, importedWorkbookId: 's0' };
         expect((await navigateFrom(imported, target)).context?.importedWorkbookId).toBe(importedWorkbookId);
     });
 
     it('settles an imported workbook in place', async () => {
-        const imported = { ...LOADING_WORKBOOK, setupDone: true, openingWorkbook: false, importedWorkbookId: 's0' };
+        const imported = { ...LOADING_WORKBOOK, openingWorkbook: false, importedWorkbookId: 's0' };
         const next = await navigateFrom(imported, { type: SETTLE_IMPORTED_WORKBOOK, value: null }, '?view=dashboard');
         expect(next.pathname).toBe('/workbooks/s0');
         expect(next.search).toBe('?view=dashboard');
-        expect(next.context).toMatchObject({ workbookId: 's0', setupDone: true, importedWorkbookId: null });
-    });
-
-    it('confirms only finished setups', async () => {
-        const finished = { ...LOADING_WORKBOOK, setupDone: true };
-        expect((await navigateFrom(finished, { type: CONFIRM_FINISHED_SETUP, value: true })).context?.confirmedFinishedSetup).toBe(true);
-        root?.unmount();
-        root = null;
-        await expect(navigateFrom(LOADING_WORKBOOK, { type: CONFIRM_FINISHED_SETUP, value: true })).rejects.toThrow('non-finished setup');
+        expect(next.context).toEqual({ workbookId: 's0', openingWorkbook: false, importedWorkbookId: null });
     });
 
     it('reads a default context without route state', () => {
@@ -120,8 +109,6 @@ describe('useRouterNavigate', () => {
         root = createTestRoot();
         root.render(<MemoryRouter initialEntries={['/workbooks/s2']}><Probe /></MemoryRouter>);
         expect(current.context).toEqual({
-            setupDone: false,
-            confirmedFinishedSetup: false,
             workbookId: 's2',
             openingWorkbook: false,
             importedWorkbookId: null,

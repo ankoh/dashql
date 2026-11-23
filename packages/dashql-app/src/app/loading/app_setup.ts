@@ -39,12 +39,26 @@ async function loadFonts(): Promise<void> {
     ]);
 }
 
+/// The phase of the setup of the app: it sets up the core, the embedded database and the fonts and restores its state
+/// (`restoring`), opens the workbook that it starts with (`opening`) and is set up (`opened`), or it failed (`failed`)
+export type AppSetupPhase = 'restoring' | 'opening' | 'opened' | 'failed';
+
+/// Did the app restore its state? Imports and the cloud setup use the restored registries.
+export function isAppStateRestored(phase: AppSetupPhase): boolean {
+    return phase === 'opening' || phase === 'opened';
+}
+
+const SETUP_CONFIRMATION_CTX = React.createContext<(confirmed: boolean) => void>(() => { });
+
+/// Confirm the finished setup, or take the confirmation back: an app that pauses after its setup shows the setup page
+/// until the user confirms. The app loader provides it to the workbench.
+export const AppSetupConfirmationProvider = SETUP_CONFIRMATION_CTX.Provider;
+export const useAppSetupConfirmation = (): ((confirmed: boolean) => void) => React.useContext(SETUP_CONFIRMATION_CTX);
+
 /// The setup of the app
 export interface AppSetup {
-    /// Resolves once the app state is restored
-    done: Promise<void>;
-    /// Resolves once the app opened the workbook it starts with
-    opened: Promise<void>;
+    /// The phase of the setup
+    phase: AppSetupPhase;
     /// The progress of the restoration, null until it started
     progress: core.RestoreProgress | null;
     /// The status of the setup of the embedded database
@@ -73,17 +87,8 @@ export function useAppSetup(initialImport: React.RefObject<Promise<boolean> | nu
 
     const [embeddedDatabaseStatus, setEmbeddedDatabaseStatus] = React.useState<IndicatorStatus>(IndicatorStatus.None);
     const [progress, setProgress] = React.useState<core.RestoreProgress | null>(null);
+    const [phase, setPhase] = React.useState<AppSetupPhase>('restoring');
     const [error, setError] = React.useState<string | null>(null);
-    const [done, resolveDone] = React.useMemo(() => {
-        let resolve: () => void;
-        const promise = new Promise<void>(a => { resolve = a; });
-        return [promise, resolve!] as const;
-    }, []);
-    const [opened, resolveOpened] = React.useMemo(() => {
-        let resolve: () => void;
-        const promise = new Promise<void>(a => { resolve = a; });
-        return [promise, resolve!] as const;
-    }, []);
 
     // Run the setup once at the beginning. We guard against re-runs triggered by config identity
     // changes (e.g. AppSettingsSync hydrating persisted settings into AppConfig).
@@ -164,11 +169,8 @@ export function useAppSetup(initialImport: React.RefObject<Promise<boolean> | nu
                 totalDurationMs: totalDuration.toFixed(2)
             }, LOG_CTX);
 
-            // Mark the setup as done
-            traced.info("Marking setup as done", {}, LOG_CTX);
-            resolveDone();
-
-            traced.info("Finishing setup", {}, LOG_CTX);
+            traced.info("Opening the startup workbook", {}, LOG_CTX);
+            setPhase('opening');
 
             // Workbooks fall back to the embedded Hyper and the user can't attach one, the app always holds it.
             // The restored state lacks it when no workbook uses it, e.g. when every workbook runs on the Hyper of a link.
@@ -189,7 +191,7 @@ export function useAppSetup(initialImport: React.RefObject<Promise<boolean> | nu
                     ? { type: OPEN_LINK_WORKBOOK, value: workbookId }
                     : { type: OPEN_EPHEMERAL_WORKBOOK, value: greeter.workbookId });
             }
-            resolveOpened();
+            setPhase('opened');
             globalThis.__DASHQL_STARTUP__ = {
                 embeddedDatabase: 'hyperdb-wasm',
                 host: getAppHost(),
@@ -209,6 +211,7 @@ export function useAppSetup(initialImport: React.RefObject<Promise<boolean> | nu
                 error: stringifyError(error),
             }, LOG_CTX);
             setError(`${component}: ${stringifyError(error)}`);
+            setPhase('failed');
         });
     });
     React.useEffect(() => {
@@ -219,5 +222,5 @@ export function useAppSetup(initialImport: React.RefObject<Promise<boolean> | nu
         startSetup();
     }, [appSettingsReady, config]);
 
-    return { done, opened, progress, embeddedDatabaseStatus, error };
+    return { phase, progress, embeddedDatabaseStatus, error };
 }

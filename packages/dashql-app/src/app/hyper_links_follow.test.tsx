@@ -36,8 +36,10 @@ describe('following Hyper links', () => {
     let markOpened!: () => void;
     let confirm: ReturnType<typeof vi.fn>;
 
-    function Harness(props: { opened: Promise<void> }) {
-        useHyperLinks(props.opened);
+    function Harness() {
+        const [opened, setOpened] = React.useState(false);
+        markOpened = () => setOpened(true);
+        useHyperLinks(opened);
         listener = usePlatformEventListener();
         connections = useConnections();
         workbooks = useWorkbooks();
@@ -49,7 +51,6 @@ describe('following Hyper links', () => {
         sessionStorage.removeItem('dashql.hyper_links');
         confirm = vi.fn(() => false);
         vi.stubGlobal('confirm', confirm);
-        const opened = new Promise<void>(resolve => { markOpened = resolve; });
         root = createRoot(document.createElement('div'));
         await act(async () => root.render(
             <LoggerProvider>
@@ -58,7 +59,7 @@ describe('following Hyper links', () => {
                         <PlatformEventListenerProvider>
                             <DashQLCoreProvider>
                                 <TestRuntime>
-                                    <Harness opened={opened} />
+                                    <Harness />
                                 </TestRuntime>
                             </DashQLCoreProvider>
                         </PlatformEventListenerProvider>
@@ -90,7 +91,7 @@ describe('following Hyper links', () => {
         await act(async () => { await new Promise(resolve => setTimeout(resolve, 20)); });
         expect(linkConnections()).toEqual([]);
 
-        markOpened();
+        act(() => markOpened());
         await waitForRender(() => expect(workbooks.size).toBe(1));
         const [connection] = linkConnections();
         expect(connection.params).toMatchObject({ hyper: { endpoint: LOCAL_LINK.endpoint } });
@@ -113,7 +114,7 @@ describe('following Hyper links', () => {
     });
 
     it('ignores a link to another machine unless the user confirms it', async () => {
-        markOpened();
+        act(() => markOpened());
         await receive(REMOTE_LINK, () => expect(confirm).toHaveBeenCalledTimes(1));
         await act(async () => { await new Promise(resolve => setTimeout(resolve, 20)); });
         expect(confirm.mock.calls[0][0]).toContain(REMOTE_LINK.endpoint);

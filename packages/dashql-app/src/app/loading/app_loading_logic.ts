@@ -1,10 +1,12 @@
-import type { RouteContext } from '../router.js';
 import type { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
+import type { AppSetupPhase } from './app_setup.js';
 
-export function canShowWorkbook(route: RouteContext, pauseAfterSetup: boolean): boolean {
-    return route.setupDone
-        && route.workbookId != null
-        && (!pauseAfterSetup || route.confirmedFinishedSetup);
+/// Does the app show the workbook of the route? Once it is set up, and the user confirmed the setup if the app pauses
+/// after it.
+export function canShowWorkbook(setup: { phase: AppSetupPhase; confirmed: boolean; pauseAfterSetup: boolean }, workbookId: string | null): boolean {
+    return setup.phase === 'opened'
+        && workbookId != null
+        && (!setup.pauseAfterSetup || setup.confirmed);
 }
 
 /// The workbook that the app opens with: the restored workbook of the path, otherwise the app opens the greeter

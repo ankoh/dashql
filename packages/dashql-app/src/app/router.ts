@@ -1,13 +1,9 @@
 import * as React from 'react';
 import { useLocation, useNavigate } from "react-router-dom";
 import { VariantKind } from "@akohn/dashql/platform/utils/variant";
-import { LoggableException } from '@akohn/dashql/platform/logger/logger';
 
+/// The workbook of a route. The setup of the app is not part of it, the app loader holds it.
 export interface RouteContext {
-    /// Did the setup of the app finish?
-    setupDone: boolean;
-    /// Confirmed the finished setup?
-    confirmedFinishedSetup: boolean;
     /// The focused workbook id
     workbookId: string | null;
     /// Is the workbook being opened? The app loader selects it once the app is set up.
@@ -18,7 +14,6 @@ export interface RouteContext {
 }
 
 export const WORKBOOK_PATH = Symbol("NAVIGATE_WORKBOOK");
-export const CONFIRM_FINISHED_SETUP = Symbol("CONFIRM_FINISHED_SETUP");
 export const SELECT_WORKBOOK = Symbol("SELECT_WORKBOOK");
 export const OPEN_LINK_WORKBOOK = Symbol("OPEN_LINK_WORKBOOK");
 export const OPEN_IMPORTED_WORKBOOK = Symbol("OPEN_IMPORTED_WORKBOOK");
@@ -44,7 +39,6 @@ export function workbookIdFromPathname(pathname: string): string | null {
 
 export type RouteTarget =
     VariantKind<typeof WORKBOOK_PATH, string | null>
-    | VariantKind<typeof CONFIRM_FINISHED_SETUP, boolean>
     | VariantKind<typeof SELECT_WORKBOOK, string>
     | VariantKind<typeof OPEN_LINK_WORKBOOK, string>
     | VariantKind<typeof OPEN_IMPORTED_WORKBOOK, string>
@@ -68,15 +62,13 @@ export function useRouteContext() {
     return React.useMemo(() => {
         if (!route) {
             return {
-                setupDone: false,
-                confirmedFinishedSetup: false,
                 workbookId: workbookIdFromPathname(pathname),
                 openingWorkbook: false,
                 importedWorkbookId: null,
             };
         } else {
             return {
-                ...route,
+                workbookId: route.workbookId ?? null,
                 openingWorkbook: route.openingWorkbook ?? false,
                 importedWorkbookId: route.importedWorkbookId ?? null,
             };
@@ -93,30 +85,28 @@ export function useRouterNavigate() {
             case WORKBOOK_PATH:
                 navigate(route.value == null ? "/" : workbookPath(route.value), {
                     state: {
-                        ...context,
                         workbookId: route.value ?? null,
+                        openingWorkbook: context.openingWorkbook,
                         importedWorkbookId: keptImport(context, route.value),
-                    }
+                    } satisfies RouteContext
                 });
                 break;
             case SELECT_WORKBOOK:
                 navigate(workbookPath(route.value), {
                     state: {
-                        ...context,
                         workbookId: route.value,
                         openingWorkbook: false,
                         importedWorkbookId: keptImport(context, route.value),
-                    }
+                    } satisfies RouteContext
                 });
                 break;
             case OPEN_WORKBOOK:
                 navigate(workbookPath(route.value), {
                     state: {
-                        ...context,
                         workbookId: route.value,
                         openingWorkbook: true,
                         importedWorkbookId: keptImport(context, route.value),
-                    }
+                    } satisfies RouteContext
                 });
                 break;
             case OPEN_LINK_WORKBOOK:
@@ -125,12 +115,10 @@ export function useRouterNavigate() {
                 // without briefly showing the connection setup screen.
                 navigate(workbookPath(route.value), {
                     state: {
-                        setupDone: true,
-                        confirmedFinishedSetup: false,
                         workbookId: route.value,
                         openingWorkbook: true,
                         importedWorkbookId: null,
-                    }
+                    } satisfies RouteContext
                 });
                 break;
             case OPEN_IMPORTED_WORKBOOK:
@@ -138,12 +126,10 @@ export function useRouterNavigate() {
                 // remembers in the route where it came from, see `importedWorkbookId`.
                 navigate(workbookPath(route.value), {
                     state: {
-                        setupDone: true,
-                        confirmedFinishedSetup: false,
                         workbookId: route.value,
                         openingWorkbook: true,
                         importedWorkbookId: route.value,
-                    }
+                    } satisfies RouteContext
                 });
                 break;
             case SELECT_IMPORTED_WORKBOOK:
@@ -151,11 +137,10 @@ export function useRouterNavigate() {
                 // workbook that opens from its cloud
                 navigate(workbookPath(route.value), {
                     state: {
-                        ...context,
                         workbookId: route.value,
                         openingWorkbook: false,
                         importedWorkbookId: route.value,
-                    }
+                    } satisfies RouteContext
                 });
                 break;
             case SETTLE_IMPORTED_WORKBOOK:
@@ -164,9 +149,10 @@ export function useRouterNavigate() {
                 navigate({ pathname: location.pathname, search: location.search, hash: location.hash }, {
                     replace: true,
                     state: {
-                        ...context,
+                        workbookId: context.workbookId,
+                        openingWorkbook: context.openingWorkbook,
                         importedWorkbookId: null,
-                    }
+                    } satisfies RouteContext
                 });
                 break;
             case OPEN_EPHEMERAL_WORKBOOK:
@@ -176,12 +162,10 @@ export function useRouterNavigate() {
                 navigate("/", {
                     replace: location.pathname === "/",
                     state: {
-                        setupDone: true,
-                        confirmedFinishedSetup: context.confirmedFinishedSetup,
                         workbookId: route.value,
                         openingWorkbook: false,
                         importedWorkbookId: null,
-                    }
+                    } satisfies RouteContext
                 });
                 break;
             case PROMOTE_WORKBOOK:
@@ -189,23 +173,10 @@ export function useRouterNavigate() {
                 navigate(workbookPath(route.value), {
                     replace: true,
                     state: {
-                        ...context,
                         workbookId: route.value,
                         openingWorkbook: false,
                         importedWorkbookId: keptImport(context, route.value),
-                    }
-                });
-                break;
-            case CONFIRM_FINISHED_SETUP:
-                if (!context.setupDone) {
-                    throw new LoggableException("tried to confirm a non-finished setup");
-                }
-                navigate(location.pathname, {
-                    state: {
-                        ...context,
-                        setupDone: true,
-                        confirmedFinishedSetup: route.value,
-                    }
+                    } satisfies RouteContext
                 });
                 break;
         }
