@@ -87,7 +87,7 @@ describe('shell files command', () => {
 
     it('does not print mount cancellation', async () => {
         const command = createShellFilesCommand(
-            async () => 'Mount cancelled',
+            async () => null,
         );
 
         await expect(command[2](['mount'], {})).resolves.toBeUndefined();
@@ -196,6 +196,13 @@ describe('selectPlatformDirectory', () => {
         vi.stubGlobal('showDirectoryPicker', picker);
         await expect(selectPlatformDirectory('readwrite')).resolves.toBe(handle);
         expect(picker).toHaveBeenCalledWith({ mode: 'readwrite' });
+    });
+
+    it('chooses no folder when the user closes the picker', async () => {
+        vi.stubGlobal('showDirectoryPicker', vi.fn().mockRejectedValue(new DOMException('The user aborted a request.', 'AbortError')));
+        await expect(selectPlatformDirectory('read')).resolves.toBeNull();
+        vi.stubGlobal('showDirectoryPicker', vi.fn().mockRejectedValue(new DOMException('denied', 'SecurityError')));
+        await expect(selectPlatformDirectory('read')).rejects.toThrow('denied');
     });
 });
 

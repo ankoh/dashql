@@ -172,7 +172,7 @@ export class ShellFileRegistry {
 }
 
 export function createShellFilesCommand(
-    requestMountDialog?: (signal?: AbortSignal) => Promise<string>,
+    requestMountDialog?: (signal?: AbortSignal) => Promise<string | null>,
     requestFilesystemDialog?: (signal?: AbortSignal) => Promise<void>,
 ): DashQLShellCommand {
     return [
@@ -187,8 +187,7 @@ export function createShellFilesCommand(
             }
             if (args[0] === 'mount' || args[0] === 'mount-dir' || args[0] === 'mount-dir-rw') {
                 if (args.length > 1 || requestMountDialog == null) return FS_USAGE;
-                const path = await requestMountDialog(context.signal);
-                return path === 'Mount cancelled' ? undefined : path;
+                return await requestMountDialog(context.signal) ?? undefined;
             }
             return FS_USAGE;
         },
@@ -239,14 +238,20 @@ export async function selectPlatformFiles(signal?: AbortSignal): Promise<readonl
     });
 }
 
-export async function selectPlatformDirectory(mode: ExternalDirectoryMode): Promise<FileSystemDirectoryHandle> {
+/// The folder that the user chose, null if the user closed the picker
+export async function selectPlatformDirectory(mode: ExternalDirectoryMode): Promise<FileSystemDirectoryHandle | null> {
     const picker = (window as Window & typeof globalThis & {
         showDirectoryPicker?: (options: { mode: ExternalDirectoryMode }) => Promise<FileSystemDirectoryHandle>;
     }).showDirectoryPicker;
     if (picker == null) {
         throw new Error('folder mounting requires the File System Access API');
     }
-    return await picker({ mode });
+    try {
+        return await picker({ mode });
+    } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') return null;
+        throw error;
+    }
 }
 
 function throwIfAborted(signal?: AbortSignal): void {

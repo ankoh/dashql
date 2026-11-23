@@ -6,10 +6,12 @@ import { useFocusTrap } from '@akohn/dashql-react/dom/focus';
 import { Overlay, OverlaySize } from '@akohn/dashql-react/components/overlay';
 import { FileDirectoryIcon, FileIcon, XIcon } from '@akohn/dashql-react/components/symbol_icon';
 import { TextInput } from '@akohn/dashql-react/components/text_input';
+import { usePendingRequest } from '../../utils/use_pending_request.js';
 import * as styles from './filesystem_mount_dialog.module.css';
 
 export interface MountDialogController {
-    request(signal?: AbortSignal): Promise<string>;
+    /// Choose a file or a folder and mount it, resolves with its path, null if the dialog was closed
+    request(signal?: AbortSignal): Promise<string | null>;
 }
 
 export interface MountDialogHookResult {
@@ -18,7 +20,9 @@ export interface MountDialogHookResult {
 }
 
 export interface MountDialogActions {
+    /// The chosen file, null if the user chose none
     selectFiles(signal?: AbortSignal): Promise<MountSelection | null>;
+    /// The chosen folder, null if the user chose none
     selectDirectory(mode: 'read' | 'readwrite', signal?: AbortSignal): Promise<MountSelection | null>;
     mount(selection: MountSelection, path: string | undefined, signal?: AbortSignal): Promise<string>;
 }
@@ -34,72 +38,56 @@ export type MountSelection = {
     readonly mode: 'read' | 'readwrite';
 };
 
-interface PendingRequest {
-    resolve: (path: string) => void;
-    reject: (error: unknown) => void;
-    signal?: AbortSignal;
-    onAbort?: () => void;
-}
-
+/// The mount dialog. A selection or a mount that fails shows its error, the dialog stays open for another try.
 export function useMountDialog(actions: MountDialogActions): MountDialogHookResult {
-    const [open, setOpen] = React.useState(false);
-    const pendingRef = React.useRef<PendingRequest | null>(null);
-
-    const finish = React.useCallback((result?: { path?: string; error?: unknown }) => {
-        const pending = pendingRef.current;
-        pendingRef.current = null;
-        pending?.signal?.removeEventListener('abort', pending.onAbort!);
-        setOpen(false);
-        setSelection(null);
-        if (result?.error != null) pending?.reject(result.error);
-        else pending?.resolve(result?.path ?? 'Mount cancelled');
-    }, []);
-
-    const request = React.useCallback((signal?: AbortSignal) => {
-        if (pendingRef.current != null) return Promise.reject(new Error('A mount request is already pending.'));
-        if (signal?.aborted) return Promise.resolve('Mount cancelled');
-        setSelection(null);
-        setOpen(true);
-        return new Promise<string>((resolve, reject) => {
-            const pending: PendingRequest = { resolve, reject, signal };
-            pending.onAbort = () => finish();
-            pendingRef.current = pending;
-            signal?.addEventListener('abort', pending.onAbort, { once: true });
-        });
-    }, [finish]);
-
-    React.useEffect(() => () => finish(), [finish]);
-
+    const { pending, request, resolve, dismiss } = usePendingRequest<void, string | null>('mount', null);
     const [selection, setSelection] = React.useState<MountSelection | null>(null);
+    const [error, setError] = React.useState<string | null>(null);
+    const signal = pending?.signal;
+
     const select = React.useCallback(async (action: (signal?: AbortSignal) => Promise<MountSelection | null>) => {
-        const signal = pendingRef.current?.signal;
+        setError(null);
         try {
             const next = await action(signal);
             if (next != null) setSelection(next);
-        } catch (error) {
-            finish({ error });
+        } catch (cause) {
+            setError(errorMessage(cause));
         }
-    }, [finish]);
+    }, [signal]);
 
     const mount = React.useCallback(async (path: string) => {
         if (selection == null) return;
+        setError(null);
         try {
-            finish({ path: await actions.mount(selection, path || undefined, pendingRef.current?.signal) });
-        } catch (error) {
-            finish({ error });
+            resolve(await actions.mount(selection, path || undefined, signal));
+        } catch (cause) {
+            setError(errorMessage(cause));
         }
-    }, [actions, finish, selection]);
+    }, [actions, resolve, selection, signal]);
 
-    const controller = React.useMemo<MountDialogController>(() => ({ request }), [request]);
+    const controller = React.useMemo<MountDialogController>(() => ({
+        request: requestSignal => {
+            setSelection(null);
+            setError(null);
+            return request(undefined, requestSignal);
+        },
+    }), [request]);
     return {
         controller,
-        dialog: open ? <MountDialog actions={actions} selection={selection} onCancel={finish} onMount={mount} onSelect={select} /> : null,
+        dialog: pending == null ? null : (
+            <MountDialog actions={actions} selection={selection} error={error} onCancel={dismiss} onMount={mount} onSelect={select} />
+        ),
     };
+}
+
+function errorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
 }
 
 interface MountDialogProps {
     actions: MountDialogActions;
     selection: MountSelection | null;
+    error: string | null;
     onCancel: () => void;
     onMount: (path: string) => void;
     onSelect: (action: (signal?: AbortSignal) => Promise<MountSelection | null>) => void;
@@ -140,6 +128,7 @@ function MountDialog(props: MountDialogProps) {
                         <XIcon />
                     </IconButton>
                 </header>
+                {props.error != null && <p className={styles.error} role="alert">{props.error}</p>}
                 {props.selection == null ? <ActionList.List aria-label="Mount type" leading>
                     <ActionList.ListItem onClick={() => props.onSelect(props.actions.selectFiles)}>
                         <ActionList.Leading><FileIcon size={16} /></ActionList.Leading>

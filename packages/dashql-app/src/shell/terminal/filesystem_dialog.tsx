@@ -15,12 +15,14 @@ import {
     type ShellFileRegistry,
 } from './shell_files.js';
 import { useMountDialog } from './filesystem_mount_dialog.js';
+import { usePendingRequest } from '../../utils/use_pending_request.js';
 import * as styles from './filesystem_dialog.module.css';
 
 export interface FilesystemDialogActions {
     list(): Promise<readonly ShellFileListing[]>;
     unlink(path: string): Promise<void>;
-    mount(signal?: AbortSignal): Promise<string>;
+    /// Mount a file or a folder, resolves with its path, null if the user closed the mount dialog
+    mount(signal?: AbortSignal): Promise<string | null>;
 }
 
 export interface FilesystemDialogController {
@@ -32,54 +34,36 @@ export interface FilesystemDialogHookResult {
     dialog: React.ReactElement | null;
 }
 
-interface PendingRequest {
-    resolve: () => void;
-    signal?: AbortSignal;
-    onAbort?: () => void;
-}
-
+/// The filesystem dialog, it hides while its mount dialog is open. A mount returns to it, closing the mount dialog
+/// closes both.
 export function useFilesystemDialog(actions: FilesystemDialogActions): FilesystemDialogHookResult {
-    const [open, setOpen] = React.useState(false);
-    const pendingRef = React.useRef<PendingRequest | null>(null);
+    const { pending, request, dismiss } = usePendingRequest<void, void>('filesystem', undefined);
+    const [mounting, setMounting] = React.useState(false);
+    const [mountError, setMountError] = React.useState<string | null>(null);
+    const signal = pending?.signal;
 
-    const resolvePending = React.useCallback(() => {
-        const pending = pendingRef.current;
-        pendingRef.current = null;
-        pending?.signal?.removeEventListener('abort', pending.onAbort!);
-        pending?.resolve();
-    }, []);
-    const dismiss = React.useCallback(() => {
-        setOpen(false);
-        resolvePending();
-    }, [resolvePending]);
-
-    const request = React.useCallback((signal?: AbortSignal) => {
-        if (pendingRef.current != null) return Promise.reject(new Error('A filesystem request is already pending.'));
-        if (signal?.aborted) return Promise.resolve();
-        setOpen(true);
-        return new Promise<void>(resolve => {
-            const pending: PendingRequest = { resolve, signal };
-            pending.onAbort = dismiss;
-            pendingRef.current = pending;
-            signal?.addEventListener('abort', pending.onAbort, { once: true });
-        });
-    }, [dismiss]);
-
-    React.useEffect(() => () => dismiss(), [dismiss]);
     const mount = React.useCallback(async () => {
-        setOpen(false);
-        const path = await actions.mount();
-        if (path !== 'Mount cancelled') {
-            setOpen(true);
-        } else {
-            resolvePending();
+        setMounting(true);
+        setMountError(null);
+        try {
+            if (await actions.mount(signal) == null) dismiss();
+        } catch (cause) {
+            setMountError(errorMessage(cause));
+        } finally {
+            setMounting(false);
         }
-        return path;
-    }, [actions, resolvePending]);
-    const controller = React.useMemo<FilesystemDialogController>(() => ({ request }), [request]);
+    }, [actions, dismiss, signal]);
+    const controller = React.useMemo<FilesystemDialogController>(() => ({
+        request: requestSignal => {
+            setMountError(null);
+            return request(undefined, requestSignal);
+        },
+    }), [request]);
     return {
         controller,
-        dialog: open ? <FilesystemDialog actions={{ ...actions, mount }} onClose={dismiss} /> : null,
+        dialog: pending == null || mounting
+            ? null
+            : <FilesystemDialog actions={actions} mountError={mountError} onMount={() => { void mount(); }} onClose={dismiss} />,
     };
 }
 
@@ -101,7 +85,7 @@ export function useShellFiles(registryRef: React.RefObject<ShellFileRegistry | n
         },
         selectDirectory: async mode => {
             const handle = await selectPlatformDirectory(mode);
-            return { kind: 'directory', name: handle.name, handle, mode };
+            return handle == null ? null : { kind: 'directory', name: handle.name, handle, mode };
         },
         mount: async (selection, path, signal) => {
             const registry = registryRef.current;
@@ -129,7 +113,14 @@ export function useShellFiles(registryRef: React.RefObject<ShellFileRegistry | n
     };
 }
 
-function FilesystemDialog(props: { actions: FilesystemDialogActions; onClose: () => void }) {
+interface FilesystemDialogProps {
+    actions: FilesystemDialogActions;
+    mountError: string | null;
+    onMount: () => void;
+    onClose: () => void;
+}
+
+function FilesystemDialog(props: FilesystemDialogProps) {
     const headingId = React.useId();
     const dialogRef = React.useRef<HTMLElement>(null);
     const [entries, setEntries] = React.useState<readonly ShellFileListing[]>([]);
@@ -139,7 +130,7 @@ function FilesystemDialog(props: { actions: FilesystemDialogActions; onClose: ()
             setEntries(await props.actions.list());
             setError(null);
         } catch (cause) {
-            setError(cause instanceof Error ? cause.message : String(cause));
+            setError(errorMessage(cause));
         }
     }, [props.actions]);
     React.useEffect(() => { void reload(); }, [reload]);
@@ -149,12 +140,13 @@ function FilesystemDialog(props: { actions: FilesystemDialogActions; onClose: ()
         restoreFocusOnCleanUp: true,
     });
 
+    const shownError = error ?? props.mountError;
     const unlink = async (path: string) => {
         try {
             await props.actions.unlink(path);
             await reload();
         } catch (cause) {
-            setError(cause instanceof Error ? cause.message : String(cause));
+            setError(errorMessage(cause));
         }
     };
 
@@ -164,7 +156,7 @@ function FilesystemDialog(props: { actions: FilesystemDialogActions; onClose: ()
                 <header className={styles.header}>
                     <h2 id={headingId}>Filesystem</h2>
                     <div className={styles.header_actions}>
-                        <IconButton variant={ButtonVariant.Invisible} aria-label="Mount filesystem entry" onClick={() => { void props.actions.mount().catch(() => { }); }}>
+                        <IconButton variant={ButtonVariant.Invisible} aria-label="Mount filesystem entry" onClick={props.onMount}>
                             <PlusIcon />
                         </IconButton>
                         <IconButton variant={ButtonVariant.Invisible} aria-label="Close filesystem" onClick={props.onClose}>
@@ -172,7 +164,7 @@ function FilesystemDialog(props: { actions: FilesystemDialogActions; onClose: ()
                         </IconButton>
                     </div>
                 </header>
-                {error != null && <p className={styles.error} role="alert">{error}</p>}
+                {shownError != null && <p className={styles.error} role="alert">{shownError}</p>}
                 {entries.length === 0 ? <p className={styles.empty}>No mounted entries</p> : <div className={styles.entries}>
                     {entries.map(entry => <FilesystemEntry key={entry.path} entry={entry} onUnlink={unlink} />)}
                 </div>}
@@ -207,6 +199,10 @@ function FilesystemEntry(props: { entry: ShellFileListing; onUnlink: (path: stri
             </IconButton>
         </div>
     </div>;
+}
+
+function errorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
 }
 
 function displayMode(mode: ExternalDirectoryMode): string {
