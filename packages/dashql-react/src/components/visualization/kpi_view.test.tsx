@@ -64,6 +64,26 @@ describe('KpiView', () => {
         expect(text('kpi-value')).toBe('–');
     });
 
+    it('fits the chart to the card once the query succeeds and after a rerun', async () => {
+        container.style.width = '300px';
+        container.style.height = '150px';
+        const table = tableFromArrays({ day: new Int32Array([1, 2]), revenue: new Int32Array([100, 110]) });
+        const running = { queryId: 1, status: QueryExecutionStatus.RUNNING } as QueryExecutionState;
+        const chartWidth = () => container.querySelector('[data-testid="kpi-chart"]')?.getAttribute('width') ?? null;
+        // The card mounts while its query runs, the view of the result comes later
+        render(null, spec(), running);
+        render(table);
+        expect(chartWidth()).toBe('300');
+        container.style.width = '360px';
+        await vi.waitFor(() => expect(chartWidth()).toBe('360'));
+        // A rerun replaces the view of the result, the chart follows the size of the new one
+        render(null, spec(), { ...running, queryId: 2 } as QueryExecutionState);
+        render(table, spec(), { queryId: 2, status: QueryExecutionStatus.SUCCEEDED } as QueryExecutionState);
+        expect(chartWidth()).toBe('360');
+        container.style.width = '320px';
+        await vi.waitFor(() => expect(chartWidth()).toBe('320'));
+    });
+
     it('shows a placeholder for a missing column and a query that did not succeed', () => {
         render(tableFromArrays({ total: new Int32Array([1]) }), spec('revenue'));
         expect(text('card-placeholder')).toContain('Result has no column revenue');

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import useResizeObserverRaw from '@react-hook/resize-observer';
 import { transitionsEnd } from '../dom/calm_frames.js';
-const useResizeObserver = useResizeObserverRaw as unknown as (target: React.RefObject<HTMLElement | null> | null, callback: (entry: ResizeObserverEntry) => void) => void;
+const useResizeObserver = useResizeObserverRaw as unknown as (target: HTMLElement | null, callback: (entry: ResizeObserverEntry) => void) => void;
 
 export interface ObservedSize {
     width: number;
@@ -17,15 +17,22 @@ function keepSameSize(prev: ObservedSize | null, next: ObservedSize | null): Obs
     return next;
 }
 
+/// The size of the element of a ref. The size follows the element: one that mounts after the component, e.g. a view
+/// that renders it only for a result, and one that replaces it, the observer moves to the new element.
 export const useObservedSize = (target: React.RefObject<HTMLElement | null>, enabled: boolean = true): ObservedSize | null => {
     const [size, setSize] = React.useState<ObservedSize | null>(null);
-    // Measure again when the element changes. The effect reads the ref, it holds the element of a first mount already
-    const element = target.current;
+    const [element, setElement] = React.useState<HTMLElement | null>(null);
+    // A ref changes without a render, the effect looks at it after every commit of the component. A new element is
+    // measured right away and observed from then on, no element has no size.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the ref changes in a commit, the state changes only with the element and settles after one render
     React.useLayoutEffect(() => {
-        const next = target.current?.getBoundingClientRect() ?? null;
+        const current = target.current;
+        if (current === element) return;
+        setElement(current);
+        const next = current?.getBoundingClientRect() ?? null;
         setSize(prev => keepSameSize(prev, next));
-    }, [target, element]);
-    useResizeObserver(enabled ? target : null, (entry: ResizeObserverEntry) => {
+    });
+    useResizeObserver(enabled ? element : null, (entry: ResizeObserverEntry) => {
         setSize(prev => keepSameSize(prev, entry.contentRect));
     });
     return size;
