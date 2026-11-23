@@ -722,6 +722,13 @@ impl ScriptSession {
         out
     }
 
+    /// Does an opening bracket typed over `[from, to)` give a closing bracket of its statement a partner? The offsets
+    /// are in the offset unit, the opener is `(`, `[` or `{`.
+    #[wasm_bindgen(js_name = openerPairsUnmatchedCloser)]
+    pub fn opener_pairs_unmatched_closer(&self, from: u32, to: u32, opener: char) -> bool {
+        self.inner.borrow().opener_pairs_unmatched_closer(from.into(), to.into(), opener)
+    }
+
     /// Complete at the primary cursor, returns the packed `Completion`
     #[wasm_bindgen(js_name = completeAtCursor)]
     pub fn complete_at_cursor(&self, limit: usize, keyword_case: u8) -> Result<Vec<u8>, JsError> {
@@ -1004,6 +1011,12 @@ impl WorkbookScriptSession {
             out.extend([span.offset as u32, span.length as u32, script.map(|s| s as u32).unwrap_or(u32::MAX)]);
         }
         Ok(out)
+    }
+
+    /// See `ScriptSession.openerPairsUnmatchedCloser`
+    #[wasm_bindgen(js_name = openerPairsUnmatchedCloser)]
+    pub fn opener_pairs_unmatched_closer(&self, from: u32, to: u32, opener: char) -> Result<bool, JsError> {
+        Ok(self.session()?.opener_pairs_unmatched_closer(from.into(), to.into(), opener))
     }
 
     /// Complete at the primary cursor, returns the packed `Completion`

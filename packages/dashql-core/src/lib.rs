@@ -9,6 +9,7 @@
 pub mod analyzer;
 pub mod annotation;
 pub mod batch;
+pub mod brackets;
 pub mod catalog;
 pub mod compact_json;
 pub mod compiler;

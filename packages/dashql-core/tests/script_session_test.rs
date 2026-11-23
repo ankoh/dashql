@@ -1442,3 +1442,68 @@ fn the_cursor_relates_table_parameters_like_tables() {
     assert_eq!(tables, [table_ref(":patient_fox f")]);
     assert_eq!(columns, 1);
 }
+
+/// Does an opener typed at the `|` of a text, or over the range between two `|`, give a closer a partner?
+fn opener_pairs(text: &str, opener: char, analyze_first: bool) -> bool {
+    let catalog = new_catalog();
+    let mut s = session(&catalog, UTF16);
+    let marked: Vec<&str> = text.split('|').collect();
+    let plain = marked.concat();
+    if analyze_first {
+        analyze(&mut s, &plain);
+    } else {
+        let version = s.text_version();
+        assert_eq!(s.replace_text(version, &plain).status, EditorUpdateStatus::OK);
+    }
+    let from = marked[0].encode_utf16().count() as u64;
+    let to = if marked.len() > 2 { from + marked[1].encode_utf16().count() as u64 } else { from };
+    s.opener_pairs_unmatched_closer(from, to, opener)
+}
+
+#[test]
+fn an_opener_pairs_an_unmatched_closer_of_its_statement() {
+    for analyze_first in [false, true] {
+        for (text, opener, pairs) in [
+            ("|)", '(', true),
+            ("|]", '[', true),
+            ("|}", '{', true),
+            ("select | value)", '(', true),
+            ("select 'ä' | value)", '(', true),
+            // The closer has a partner already, or is of another kind
+            ("(()|)", '(', false),
+            ("|]", '(', false),
+            ("select |", '(', false),
+            // Brackets in strings and comments are no symbols
+            ("select | ')'", '(', false),
+            ("select | -- )", '(', false),
+            ("select | /* ) */", '(', false),
+            ("select | /* outer /* nested */ ) */", '(', false),
+            // Only the statement of the opener counts
+            ("select | from t; select )", '(', false),
+            ("select ); select | from t", '(', false),
+            // The replaced text is left out
+            ("select |(|1)", '(', true),
+            ("select |x| 1", '(', false),
+            // No opener
+            ("|)", ')', false),
+            ("|)", 'a', false),
+        ] {
+            assert_eq!(
+                opener_pairs(text, opener, analyze_first),
+                pairs,
+                "{text:?} {opener:?} analyzed first: {analyze_first}"
+            );
+        }
+    }
+}
+
+#[test]
+fn an_opener_off_the_code_point_boundaries_pairs_nothing() {
+    let catalog = new_catalog();
+    let mut s = session(&catalog, UTF16);
+    let version = s.text_version();
+    s.replace_text(version, "😀)");
+    assert!(!s.opener_pairs_unmatched_closer(1, 1, '('));
+    assert!(s.opener_pairs_unmatched_closer(2, 2, '('));
+    assert!(!s.opener_pairs_unmatched_closer(9, 9, '('));
+}

@@ -20,6 +20,7 @@
 
 use crate::analyzer::{AnalyzedScript, ExpressionInner, ParameterKind, TableReference};
 use crate::annotation::Annotation;
+use crate::brackets;
 use crate::catalog::{Catalog, CatalogEntryId, CatalogLayer, CatalogTableId, QualifiedTableName, PROTO_NULL_U32};
 use crate::compiler::compile;
 use crate::completion::is_symbol_kind_completable;
@@ -50,6 +51,7 @@ use dashql_buffers::parser::{AttributeKey, CommentBlockType, ScannerTokenType, S
 use dashql_buffers::status::StatusCode;
 use dashql_parser::attrs;
 use dashql_parser::parser::context::resolve_text_span;
+use dashql_parser::scanner::scan;
 use dashql_parser::span::TextSpan;
 use ropey::Rope;
 use std::sync::Arc;
@@ -1126,6 +1128,33 @@ impl ScriptSession {
         if context.kind != EditorCursorSemanticKind::NONE || context.parameter.is_some() {
             update.primary_cursor_context = Some(Box::new(context));
         }
+    }
+
+    /// Does an opening bracket, `(`, `[` or `{`, that replaces the range `[from, to)` of the offset unit give a closing
+    /// bracket of its statement a partner? See [`brackets::opener_pairs_unmatched_closer`]. False for another
+    /// character or offsets off the code point boundaries.
+    pub fn opener_pairs_unmatched_closer(&self, from: u64, to: u64, opener: char) -> bool {
+        let text = self.script.text();
+        let (Some(from), Some(to), Some(opener)) =
+            (self.resolve_offset(text, from), self.resolve_offset(text, to), brackets::opener_symbol(opener))
+        else {
+            return false;
+        };
+        // The scan of the latest analysis, otherwise one of the current text
+        let fresh;
+        let scanned = match self.script.scanned.as_ref().filter(|s| s.text_version == self.text_version()) {
+            Some(scanned) => scanned.as_ref(),
+            None => {
+                fresh = scan(&self.text(), self.text_version(), self.catalog_entry_id());
+                &fresh
+            }
+        };
+        brackets::opener_pairs_unmatched_closer(
+            &scanned.symbols,
+            from.text_bytes,
+            to.text_bytes.max(from.text_bytes),
+            opener,
+        )
     }
 
     /// Complete at the cursor. With UTF-16 offsets, the completion goes through the object API, so

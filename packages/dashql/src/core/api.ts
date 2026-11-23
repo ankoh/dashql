@@ -790,6 +790,12 @@ export abstract class DashQLScriptSessionReader<O extends NativeScriptSession | 
         return this.ptr.assertNotNull().catalogRevision();
     }
 
+    /// Does an opening bracket, `(`, `[` or `{`, typed over `[from, to)` give a closing bracket of its statement a
+    /// partner? Then an editor types the opener alone instead of a pair. Brackets in strings and comments don't count.
+    public openerPairsUnmatchedCloser(from: number, to: number, opener: string): boolean {
+        return this.ptr.assertNotNull().openerPairsUnmatchedCloser(from, to, opener);
+    }
+
     public completeAtCursor(limit: number, keywordCase = buffers.formatting.KeywordCase.LOWER): FlatBufferPtr<buffers.completion.Completion> {
         const bytes = this.ptr.assertNotNull().completeAtCursor(limit, keywordCase);
         return new FlatBufferPtr(COMPLETION_TYPE, this.ptr.api, bytes, () => new buffers.completion.Completion());

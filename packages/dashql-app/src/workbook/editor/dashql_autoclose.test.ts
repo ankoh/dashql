@@ -1,15 +1,39 @@
-import { describe, it, expect, afterEach } from 'vitest';
-import { EditorView } from '@codemirror/view';
-import { EditorState, EditorSelection } from '@codemirror/state';
-import { handleInput, onBackspace, DashQLAutoclosePlugin } from './dashql_autoclose.js';
+import * as dashql from '@akohn/dashql';
 
-function createView(doc: string, cursor?: number): EditorView {
+import { describe, it, expect, afterEach, beforeAll } from 'vitest';
+import { EditorView } from '@codemirror/view';
+import { EditorState, EditorSelection, SelectionRange } from '@codemirror/state';
+import { handleInput, onBackspace, DashQLAutoclosePlugin } from './dashql_autoclose.js';
+import { DashQLProcessorPlugin, DashQLUpdateEffect } from './dashql_processor.js';
+
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
+
+let dql: dashql.DashQL | null = null;
+beforeAll(async () => {
+    dql = await dashql.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED });
+});
+
+/// An editor of a script session, the core knows the brackets of its text
+function createView(doc: string, cursor?: number | SelectionRange): EditorView {
     const state = EditorState.create({
         doc,
-        selection: EditorSelection.cursor(cursor ?? doc.length),
-        extensions: [DashQLAutoclosePlugin],
+        selection: typeof cursor === 'object' ? EditorSelection.create([cursor]) : EditorSelection.cursor(cursor ?? doc.length),
+        extensions: [DashQLProcessorPlugin, DashQLAutoclosePlugin],
     });
-    return new EditorView({ state, parent: document.body });
+    const view = new EditorView({ state, parent: document.body });
+    const scriptSession = dql!.createScriptSession(dql!.createCatalog());
+    scriptSession.replaceText(0n, doc);
+    view.dispatch({
+        effects: DashQLUpdateEffect.of({
+            scriptKey: 1,
+            scriptSession,
+            editorUpdate: scriptSession.analyze(),
+            scriptCompletion: null,
+            scriptPendingDiff: null,
+            onUpdate: () => { },
+        }),
+    });
+    return view;
 }
 
 function docAndCursor(view: EditorView): { doc: string; cursor: number } {
@@ -20,6 +44,7 @@ let view: EditorView;
 
 afterEach(() => {
     view?.destroy();
+    dql!.resetUnsafe();
 });
 
 describe('autoclose brackets', () => {
@@ -106,6 +131,21 @@ describe('autoclose brackets', () => {
             expect(view.state.doc.sliceString(7, 9)).toBe('()');
         },
     );
+
+    it('inserts only ( over a selection when it balances an unmatched )', () => {
+        view = createView('select x 1)', EditorSelection.range(7, 8));
+        const handled = handleInput(view, 7, 8, '(');
+        expect(handled).toBe(true);
+        expect(docAndCursor(view)).toEqual({ doc: 'select ( 1)', cursor: 8 });
+    });
+
+    it('auto-closes without a script session', () => {
+        const state = EditorState.create({ doc: ')', selection: EditorSelection.cursor(0), extensions: [DashQLAutoclosePlugin] });
+        view = new EditorView({ state, parent: document.body });
+        const handled = handleInput(view, 0, 0, '(');
+        expect(handled).toBe(true);
+        expect(docAndCursor(view)).toEqual({ doc: '())', cursor: 1 });
+    });
 
     it('does not auto-close ( before a word char', () => {
         view = createView('abc', 1);
@@ -242,12 +282,7 @@ describe('backspace pair deletion', () => {
     });
 
     it('does not handle backspace with non-empty selection', () => {
-        const state = EditorState.create({
-            doc: '()',
-            selection: EditorSelection.range(0, 2),
-            extensions: [DashQLAutoclosePlugin],
-        });
-        view = new EditorView({ state, parent: document.body });
+        view = createView('()', EditorSelection.range(0, 2));
         const handled = onBackspace(view);
         expect(handled).toBe(false);
     });
