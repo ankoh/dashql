@@ -40,15 +40,6 @@ export class ScriptSelection {
         if (ref != null) this.select(workbook.workbookId, ref.scriptId);
     };
 
-    /// Select the next or the previous script of a workbook, the first or the last one stays selected
-    selectNeighbor = (workbook: WorkbookScripts, step: 1 | -1): void => {
-        const files = workbook.scriptOrder;
-        const current = this.selectedRef(workbook);
-        const index = current == null ? -1 : files.indexOf(current.fileName);
-        const neighbor = files[Math.min(Math.max(Math.max(index, 0) + step, 0), files.length - 1)];
-        if (neighbor != null) this.selectFile(workbook, neighbor);
-    };
-
     /// The selected script of a workbook
     selectedRef = (workbook: WorkbookScripts): ScriptRef | undefined =>
         selectedScriptRef(workbook, this.store.current.get(workbook.workbookId));

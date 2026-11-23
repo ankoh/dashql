@@ -50,18 +50,12 @@ describe('the script selection', () => {
         expect(selection.store.current.has('workbook')).toBe(false);
     });
 
-    it('steps through the scripts and stays at the ends', () => {
+    it('selects a script by its file name', () => {
         const selection = new ScriptSelection();
         const current = workbook(['a.sql', 'b.sql', 'c.sql']);
-        selection.selectNeighbor(current, 1);
-        expect(selection.selectedRef(current)?.fileName).toBe('b.sql');
-        selection.selectNeighbor(current, 1);
-        selection.selectNeighbor(current, 1);
-        expect(selection.selectedRef(current)?.fileName).toBe('c.sql');
-        selection.selectNeighbor(current, -1);
+        selection.selectFile(current, 'b.sql');
         expect(selection.selectedRef(current)?.fileName).toBe('b.sql');
         selection.selectFile(current, 'a.sql');
-        selection.selectNeighbor(current, -1);
         expect(selection.selectedRef(current)?.fileName).toBe('a.sql');
         // An unknown file changes nothing, selecting the same script keeps the state
         selection.selectFile(current, 'missing.sql');
