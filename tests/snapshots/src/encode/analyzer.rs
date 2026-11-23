@@ -611,32 +611,46 @@ fn encode_name_scope(e: &Encoder, catalog: &Catalog, scope: &NameScope) -> Optio
             .collect();
         m.insert("sources", Node::seq(sources));
     }
-    if !scope.output_columns.is_empty() {
-        let columns = scope
-            .output_columns
+    if !scope.joins.is_empty() {
+        let joins = scope
+            .joins
             .iter()
-            .map(|column| {
-                let mut c = Map::new();
-                let name = &column.column_name.text;
-                c.plain("name", if name.is_empty() { "?" } else { name });
-                match column.source {
-                    ScopeColumnSource::Expression(expr) => {
-                        c.int("expression", expr as i64);
-                    }
-                    ScopeColumnSource::TableColumn(loc) => {
-                        c.quoted("table-column", &column_catalog_id(e, catalog, loc));
-                    }
-                    ScopeColumnSource::Computed => {
-                        c.insert("computed", boolean(true));
-                    }
-                }
-                c.into_flow_node()
+            .map(|join| {
+                let mut j = Map::new();
+                j.plain("name", &join.name);
+                let columns = join.columns.iter().map(|c| encode_scope_column(e, catalog, &c.column)).collect();
+                j.insert("columns", Node::seq(columns));
+                e.location(&mut j, join.ast_node_id, "text");
+                j.into_node()
             })
             .collect();
+        m.insert("joins", Node::seq(joins));
+    }
+    if !scope.output_columns.is_empty() {
+        let columns = scope.output_columns.iter().map(|column| encode_scope_column(e, catalog, column)).collect();
         m.insert("columns", Node::seq(columns));
     }
     e.location(&mut m, scope.ast_node_id, "text");
     Some(m.into_node())
+}
+
+/// Encode a column of a scope or of a join
+fn encode_scope_column(e: &Encoder, catalog: &Catalog, column: &ScopeColumn) -> Node {
+    let mut c = Map::new();
+    let name = &column.column_name.text;
+    c.plain("name", if name.is_empty() { "?" } else { name });
+    match column.source {
+        ScopeColumnSource::Expression(expr) => {
+            c.int("expression", expr as i64);
+        }
+        ScopeColumnSource::TableColumn(loc) => {
+            c.quoted("table-column", &column_catalog_id(e, catalog, loc));
+        }
+        ScopeColumnSource::Computed => {
+            c.insert("computed", boolean(true));
+        }
+    }
+    c.into_flow_node()
 }
 
 fn encode_visualization(e: &Encoder, spec: &VisualizationSpec) -> Node {

@@ -351,7 +351,9 @@ The rules follow PostgreSQL and Hyper:
 - **An aliased join**, `(t join u using (a)) as j`, names the join: outside of it, the alias hides the names of the
   FROM items inside it, `j.b` and an unqualified `b` read the columns of the join as `*` lists them, and the column
   aliases rename them. A column ref inside the join, in its `ON`, sees the inner names. The FROM items stay the
-  sources of the scope, a column of the join resolves to the column of its FROM item.
+  sources of the scope, a column of the join resolves to the column of its FROM item. The scope publishes the join as
+  a `ScopeJoin` in `NameScope::joins` with the columns of the join and the FROM item of each, and
+  `NameScope::hiding_joins` names the joins that hide their FROM items from an AST node, for completion.
 - **A function in FROM** is a FROM item named by its alias or its function, `ReferencedTable::Subquery` of a scope of
   its own at the table ref. The scope holds the column refs of the arguments and sees the FROM items before it, with or
   without `LATERAL`, as in PostgreSQL. Its columns are computed: those of a column definition list, or one named by the

@@ -202,3 +202,219 @@ completion-snapshots:
               id: "257.65537"
               candidate-tags: [DOT_RESOLUTION_SCHEMA,THROUGH_CATALOG]
       text: "."
+
+  - name: dots_catalog_join_alias
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int);
+        errors: []
+    editor:
+      input: select j. from (t join u using (a)) as j
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+      expressions:
+        - {id: 0, type: colref/unresolved, text: "j."}
+    cursor:
+      search:
+        text: j.
+        index: 2
+    completions:
+      limit: 5
+      strategy: COLUMN_REF
+      dot: 1
+      symbol: OBJECT_EXT_TRAILING_DOT
+      relative: END_OF_SYMBOL
+      entries:
+        - value: a
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: ""
+          location-qualified: "j."
+          objects:
+            - type: column
+              id: "256.65536.1:0.0"
+              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: t.a
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · t"
+        - value: b
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: ""
+          location-qualified: "j."
+          objects:
+            - type: column
+              id: "256.65536.1:0.1"
+              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: t.b
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · t"
+        - value: c
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: ""
+          location-qualified: "j."
+          objects:
+            - type: column
+              id: "256.65536.1:1.1"
+              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: u.c
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · u"
+      text: "."
+
+  - name: dots_catalog_join_alias_column_aliases
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int);
+        errors: []
+    editor:
+      input: select j.x from (t join u using (a)) as j(x, y)
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "j.x"}
+    cursor:
+      search:
+        text: j.x
+        index: 2
+    completions:
+      limit: 5
+      strategy: COLUMN_REF
+      dot: 1
+      symbol: NAME
+      relative: BEGIN_OF_SYMBOL
+      entries:
+        - value: c
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: "x"
+          location-qualified: "j.x"
+          objects:
+            - type: column
+              id: "256.65536.1:1.1"
+              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: u.c
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · u"
+        - value: x
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: "x"
+          location-qualified: "j.x"
+          objects:
+            - type: column
+              id: "256.65536.1:0.0"
+              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: t.a
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · t"
+        - value: y
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: "x"
+          location-qualified: "j.x"
+          objects:
+            - type: column
+              id: "256.65536.1:0.1"
+              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: t.b
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · t"
+      text: "x"
+
+  - name: dots_catalog_join_alias_hides_inner_names
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int);
+        errors: []
+    editor:
+      input: select t. from (t join u using (a)) as j
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+      expressions:
+        - {id: 0, type: colref/unresolved, text: "t."}
+    cursor:
+      search:
+        text: t.
+        index: 2
+    completions:
+      limit: 5
+      strategy: COLUMN_REF
+      dot: 1
+      symbol: OBJECT_EXT_TRAILING_DOT
+      relative: END_OF_SYMBOL
+      entries: []
+      text: "."
+
+  - name: dots_catalog_join_alias_condition_sees_inner_names
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int);
+        errors: []
+    editor:
+      input: select 1 from (t join u on t. = u.a) as j
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+      expressions:
+        - {id: 0, type: colref/unresolved, text: "t."}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:1.0", source: "u", text: "u.a"}
+        - {id: 2, type: literal/integer, is-const: true, text: "1"}
+      constants:
+        - {expression: 2, text: "1"}
+    cursor:
+      search:
+        text: t. =
+        index: 2
+    completions:
+      limit: 5
+      strategy: COLUMN_REF
+      dot: 1
+      symbol: OBJECT_EXT_TRAILING_DOT
+      relative: END_OF_SYMBOL
+      entries:
+        - value: a
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: ""
+          location-qualified: "t."
+          objects:
+            - type: column
+              id: "256.65536.1:0.0"
+              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: t.a
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · t"
+        - value: b
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: ""
+          location-qualified: "t."
+          objects:
+            - type: column
+              id: "256.65536.1:0.1"
+              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: t.b
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · t"
+      text: "."

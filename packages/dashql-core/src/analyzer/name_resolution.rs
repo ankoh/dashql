@@ -58,7 +58,7 @@ struct NodeState {
     /// The joins with USING or NATURAL of the next scope
     using_joins: Vec<UsingJoin>,
     /// The parenthesized joins with an alias of the next scope
-    join_aliases: Vec<JoinAlias>,
+    join_aliases: Vec<ScopeJoin>,
 }
 
 /// Move the entries of a list to the end of another one. Takes over the buffer if the destination is
@@ -103,29 +103,6 @@ impl UsingJoin {
     fn uses(&self, column_name: &str) -> bool {
         self.using.as_ref().is_none_or(|using| using.iter().any(|c| &**c == column_name))
     }
-}
-
-/// A parenthesized join with an alias, `(t join u using (a)) as j`. The alias names the join, outside of the join it
-/// hides the names of the FROM items inside it, as in PostgreSQL.
-#[derive(Clone)]
-struct JoinAlias {
-    /// The AST node id of the table ref of the join
-    ast_node_id: u32,
-    /// The alias
-    name: Arc<str>,
-    /// The column aliases, they rename the leading columns of the join
-    column_aliases: Vec<Name>,
-}
-
-/// A column of a join: the FROM item that it comes from and its position among the columns of the FROM item
-#[derive(Clone)]
-struct JoinColumn {
-    /// The AST node id of the FROM item
-    source: u32,
-    /// The position among the columns of the FROM item
-    position: u32,
-    /// The column, with the name that the join gives it
-    column: ScopeColumn,
 }
 
 /// The result of looking up a column ref in the FROM items of a scope
@@ -211,8 +188,6 @@ pub(super) struct NameResolutionPass {
     pending_alters: Vec<(u32, u32)>,
     /// The joins with USING or NATURAL of the scopes
     using_joins: HashMap<ScopeId, Vec<UsingJoin>>,
-    /// The parenthesized joins with an alias of the scopes
-    join_aliases: HashMap<ScopeId, Vec<JoinAlias>>,
     /// The column refs whose lookup ended without a column
     finished_column_refs: HashMap<ExprId, FinishedColumnRef>,
     /// The names of the column refs with more than two names, `s.t.a` is the column a of the table s.t, or the
@@ -240,7 +215,6 @@ impl NameResolutionPass {
             pending_derived_tables: Vec::new(),
             pending_alters: Vec::new(),
             using_joins: HashMap::default(),
-            join_aliases: HashMap::default(),
             finished_column_refs: HashMap::default(),
             column_paths: HashMap::default(),
             assignment_targets: HashMap::default(),
@@ -280,10 +254,6 @@ impl NameResolutionPass {
         if !using_joins.is_empty() {
             self.using_joins.insert(scope_id, using_joins);
         }
-        let join_aliases = std::mem::take(&mut target.join_aliases);
-        if !join_aliases.is_empty() {
-            self.join_aliases.insert(scope_id, join_aliases);
-        }
         state.out.name_scopes.push(NameScope {
             name_scope_id: scope_id,
             ast_node_id: scope_root,
@@ -292,6 +262,7 @@ impl NameResolutionPass {
             table_references: std::mem::take(&mut target.table_references),
             // The table refs are added when they are resolved
             sources: std::mem::take(&mut target.derived_tables),
+            joins: std::mem::take(&mut target.join_aliases),
             ..Default::default()
         });
         // Start a new scope
@@ -1070,18 +1041,8 @@ impl NameResolutionPass {
     }
 
     /// Is a node within the subtree of another one?
-    fn is_within(state: &AnalysisState, mut node_id: u32, ancestor: u32) -> bool {
-        // Parents follow their children in the post-order AST
-        while node_id < ancestor {
-            let Some(node) = state.node(node_id) else { return false };
-            let parent = node.parent();
-            // Statement roots are their own parents
-            if parent == node_id || parent as usize >= state.ast.len() {
-                return false;
-            }
-            node_id = parent;
-        }
-        node_id == ancestor
+    fn is_within(state: &AnalysisState, node_id: u32, ancestor: u32) -> bool {
+        is_within(state.ast, node_id, ancestor)
     }
 
     /// Do the FROM items that have a column all lie within a join that uses it?
@@ -1179,21 +1140,13 @@ impl NameResolutionPass {
 
     /// The aliased joins of a scope that hide the FROM items inside them from an AST node: the outermost ones that
     /// don't contain the node
-    fn hiding_joins(&self, state: &AnalysisState, scope: ScopeId, node_id: u32) -> Vec<JoinAlias> {
-        let Some(aliases) = self.join_aliases.get(&scope) else { return Vec::new() };
-        let outside = |join: &JoinAlias| !Self::is_within(state, node_id, join.ast_node_id);
-        let nested = |join: &JoinAlias| {
-            aliases.iter().any(|other| {
-                other.ast_node_id != join.ast_node_id
-                    && outside(other)
-                    && Self::is_within(state, join.ast_node_id, other.ast_node_id)
-            })
-        };
-        aliases.iter().filter(|join| outside(join) && !nested(join)).cloned().collect()
+    fn hiding_joins(&self, state: &AnalysisState, scope: ScopeId, node_id: u32) -> Vec<ScopeJoin> {
+        let Some(s) = state.out.scope(scope) else { return Vec::new() };
+        s.hiding_joins(state.ast, node_id).into_iter().cloned().collect()
     }
 
     /// Is a FROM item inside one of some aliased joins?
-    fn is_hidden(state: &AnalysisState, source: &ScopeSource, joins: &[JoinAlias]) -> bool {
+    fn is_hidden(state: &AnalysisState, source: &ScopeSource, joins: &[ScopeJoin]) -> bool {
         joins.iter().any(|join| Self::is_within(state, source.ast_node_id, join.ast_node_id))
     }
 
@@ -1202,7 +1155,7 @@ impl NameResolutionPass {
         &self,
         state: &AnalysisState,
         scope: ScopeId,
-        join: &JoinAlias,
+        join: &ScopeJoin,
         column_name: &str,
     ) -> Vec<(u32, Option<Arc<str>>, ColumnResolution)> {
         let Some(s) = state.out.scope(scope) else { return Vec::new() };
@@ -1242,7 +1195,7 @@ impl NameResolutionPass {
         state: &mut AnalysisState,
         expr: ExprId,
         scope: ScopeId,
-        join: &JoinAlias,
+        join: &ScopeJoin,
         column_name: &str,
     ) -> Lookup {
         let candidates = self.join_alias_candidates(state, scope, join, column_name);
@@ -1264,7 +1217,7 @@ impl NameResolutionPass {
         expr: ExprId,
         target: ScopeId,
         visibility: SourceVisibility,
-        hiding: &[JoinAlias],
+        hiding: &[ScopeJoin],
     ) -> Option<Lookup> {
         let path = self.column_paths.get(&expr)?.clone();
         let scope = state.out.scope(target)?;
@@ -1321,7 +1274,7 @@ impl NameResolutionPass {
         let column_name = column_ref.column_name.column_name.text.clone();
         let alias = column_ref.column_name.table_alias.as_ref().map(|a| a.text.clone());
         // The aliased joins that the column ref is outside of stand for the FROM items inside them
-        let hiding: Vec<JoinAlias> = self
+        let hiding: Vec<ScopeJoin> = self
             .hiding_joins(state, target, expression.ast_node_id)
             .into_iter()
             .filter(|join| visibility.sees_node(join.ast_node_id))
@@ -1732,7 +1685,7 @@ impl NameResolutionPass {
     }
 
     /// The columns of an aliased join
-    fn join_alias_columns(&self, state: &AnalysisState, scope: &NameScope, join: &JoinAlias) -> Vec<JoinColumn> {
+    fn join_alias_columns(&self, state: &AnalysisState, scope: &NameScope, join: &ScopeJoin) -> Vec<ScopeJoinColumn> {
         let Some(item) = state.node(join.ast_node_id) else { return Vec::new() };
         self.from_item_columns(state, scope, item, &mut 0)
     }
@@ -1744,13 +1697,14 @@ impl NameResolutionPass {
         scope: &NameScope,
         item: &Node,
         covered: &mut usize,
-    ) -> Vec<JoinColumn> {
+    ) -> Vec<ScopeJoinColumn> {
         let item_id = state.node_id(item);
         if item.node_type() != NodeType::OBJECT_SQL_JOINED_TABLE {
             if let Some(source) = scope.sources.iter().find(|s| s.ast_node_id == item_id) {
                 *covered += 1;
                 let columns = Self::source_columns(state, source).into_iter().zip(0..);
-                return columns.map(|(column, position)| JoinColumn { source: item_id, position, column }).collect();
+                let columns = columns.map(|(column, position)| ScopeJoinColumn { source: item_id, position, column });
+                return columns.collect();
             }
             // A parenthesized join, its column aliases rename the leading columns
             let [table] = attrs!(state.children(item), [K::SQL_TABLEREF_TABLE]);
@@ -1758,8 +1712,7 @@ impl NameResolutionPass {
                 return Vec::new();
             };
             let mut columns = self.from_item_columns(state, scope, join, covered);
-            let aliases = self.join_aliases.get(&scope.name_scope_id).map(Vec::as_slice).unwrap_or_default();
-            if let Some(alias) = aliases.iter().find(|alias| alias.ast_node_id == item_id) {
+            if let Some(alias) = scope.joins.iter().find(|alias| alias.ast_node_id == item_id) {
                 for (column, name) in columns.iter_mut().zip(&alias.column_aliases) {
                     column.column.column_name = name.clone();
                 }
@@ -1771,7 +1724,7 @@ impl NameResolutionPass {
         let Some(inputs) = inputs.filter(|n| n.node_type() == NodeType::ARRAY) else { return Vec::new() };
         let mut sides = state.children(inputs).iter().map(|input| self.from_item_columns(state, scope, input, covered));
         let (Some(left), Some(right)) = (sides.next(), sides.next()) else { return Vec::new() };
-        let name = |c: &JoinColumn| c.column.column_name.text.clone();
+        let name = |c: &ScopeJoinColumn| c.column.column_name.text.clone();
         let join_columns: Vec<Arc<str>> = match joins.iter().find(|join| join.ast_node_id == item_id) {
             Some(UsingJoin { using: Some(using), .. }) => using.clone(),
             // NATURAL joins the columns that both inputs have, in the order of the left input
@@ -1926,6 +1879,20 @@ impl NameResolutionPass {
         // Pass 3: associate the remaining unresolved columns with unresolved tables, in scope order
         for scope in 0..state.out.name_scopes.len() {
             self.associate_unresolved_columns(state, scope as ScopeId);
+        }
+    }
+
+    /// Publish the columns of the aliased joins, after the FROM items inside them are resolved
+    fn publish_join_columns(&self, state: &mut AnalysisState) {
+        for scope in 0..state.out.name_scopes.len() {
+            let Some(s) = state.out.name_scopes.get(scope).filter(|s| !s.joins.is_empty()) else { continue };
+            let columns: Vec<Vec<ScopeJoinColumn>> =
+                s.joins.iter().map(|join| self.join_alias_columns(state, s, join)).collect();
+            if let Some(s) = state.out.name_scopes.get_mut(scope) {
+                for (join, columns) in s.joins.iter_mut().zip(columns) {
+                    join.columns = columns;
+                }
+            }
         }
     }
 
@@ -2137,10 +2104,11 @@ impl NameResolutionPass {
                 } else if table_node.is_some_and(|n| n.node_type() == NodeType::OBJECT_SQL_JOINED_TABLE) {
                     // A parenthesized join with an alias, the alias names the join
                     if let (Some((name, _)), column_aliases) = Self::read_alias(state, alias_node) {
-                        node_state.join_aliases.push(JoinAlias {
+                        node_state.join_aliases.push(ScopeJoin {
                             ast_node_id: node_id,
                             name: name.text,
                             column_aliases,
+                            columns: Vec::new(),
                         });
                     }
                 } else if let Some(function) =
@@ -2766,6 +2734,7 @@ impl NameResolutionPass {
 
         // Resolve all names, derive the columns of the tables of `CREATE TABLE AS` and of the views
         self.resolve_names(state);
+        self.publish_join_columns(state);
 
         // Assign statement ids, the objects are ordered by their AST nodes
         if let Some(first) = state.parsed.statements.first() {

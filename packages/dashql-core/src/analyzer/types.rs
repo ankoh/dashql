@@ -6,7 +6,7 @@ use crate::catalog::*;
 use crate::hash::HashMap;
 use dashql_buffers::algebra::{BinaryExpressionFunction, ComparisonFunction, LiteralType};
 use dashql_buffers::analyzer::{AnalyzerErrorSeverity, AnalyzerErrorType};
-use dashql_buffers::parser::{IntervalType as IntervalTypeEnum, KnownFunction, SymbolSpan};
+use dashql_buffers::parser::{IntervalType as IntervalTypeEnum, KnownFunction, Node, SymbolSpan};
 use dashql_parser::span::TextSpan;
 use std::sync::Arc;
 
@@ -517,6 +517,56 @@ impl SourceVisibility {
     }
 }
 
+/// A parenthesized join with an alias, `(t join u using (a)) as j`. The alias names the join, outside of the join it
+/// hides the names of the FROM items inside it, as in PostgreSQL.
+#[derive(Clone, Debug)]
+pub struct ScopeJoin {
+    /// The AST node id of the table ref of the join
+    pub ast_node_id: u32,
+    /// The alias
+    pub name: Arc<str>,
+    /// The column aliases, they rename the leading columns of the join
+    pub column_aliases: Vec<Name>,
+    /// The columns of the join as `*` lists them, a USING column once, renamed by the column aliases. Set when the
+    /// names of the script are resolved.
+    pub columns: Vec<ScopeJoinColumn>,
+}
+
+/// A column of a join: the FROM item that it comes from and its position among the columns of the FROM item
+#[derive(Clone, Debug)]
+pub struct ScopeJoinColumn {
+    /// The AST node id of the FROM item
+    pub source: u32,
+    /// The position among the columns of the FROM item
+    pub position: u32,
+    /// The column, with the name that the join gives it
+    pub column: ScopeColumn,
+}
+
+/// A clause of a scope whose column refs see only some FROM items of the scope
+#[derive(Clone, Copy, Debug)]
+pub struct ScopeClause {
+    /// The AST node id of the clause
+    pub ast_node_id: u32,
+    /// The FROM items that the column refs of the clause see, also from its subqueries
+    pub visibility: SourceVisibility,
+}
+
+/// Is an AST node within the subtree of another one?
+pub fn is_within(ast: &[Node], mut node_id: u32, ancestor: u32) -> bool {
+    // Parents follow their children in the post-order AST
+    while node_id < ancestor {
+        let Some(node) = ast.get(node_id as usize) else { return false };
+        let parent = node.parent();
+        // Statement roots are their own parents
+        if parent == node_id || parent as usize >= ast.len() {
+            return false;
+        }
+        node_id = parent;
+    }
+    node_id == ancestor
+}
+
 /// A naming scope
 #[derive(Clone, Debug, Default)]
 pub struct NameScope {
@@ -552,12 +602,46 @@ pub struct NameScope {
     pub parent_visibility: SourceVisibility,
     /// The FROM items in FROM order
     pub sources: Vec<ScopeSource>,
+    /// The parenthesized joins with an alias in FROM order, the FROM items inside them stay the sources
+    pub joins: Vec<ScopeJoin>,
+    /// The clauses whose column refs see only some FROM items, the WHEN NOT MATCHED clauses of MERGE
+    pub clauses: Vec<ScopeClause>,
 }
 
 impl NameScope {
     /// The FROM item with a name
     pub fn source(&self, name: &str) -> Option<&ScopeSource> {
         self.sources.iter().find(|s| s.name.as_deref() == Some(name))
+    }
+
+    /// Does a name name a FROM item or an aliased join of the scope?
+    pub fn names_relation(&self, name: &str) -> bool {
+        self.source(name).is_some() || self.joins.iter().any(|join| &*join.name == name)
+    }
+
+    /// The FROM items of the scope that an AST node in it sees, all of them outside of a restricting clause
+    pub fn visibility_at(&self, ast: &[Node], node_id: u32) -> SourceVisibility {
+        let clause = self.clauses.iter().find(|clause| is_within(ast, node_id, clause.ast_node_id));
+        clause.map_or(SourceVisibility::All, |clause| clause.visibility)
+    }
+
+    /// The aliased joins that hide the FROM items inside them from an AST node: the outermost ones that don't contain
+    /// the node
+    pub fn hiding_joins(&self, ast: &[Node], node_id: u32) -> Vec<&ScopeJoin> {
+        let outside = |join: &ScopeJoin| !is_within(ast, node_id, join.ast_node_id);
+        let nested = |join: &ScopeJoin| {
+            self.joins.iter().any(|other| {
+                other.ast_node_id != join.ast_node_id
+                    && outside(other)
+                    && is_within(ast, join.ast_node_id, other.ast_node_id)
+            })
+        };
+        self.joins.iter().filter(|join| outside(join) && !nested(join)).collect()
+    }
+
+    /// Is a FROM item inside one of some aliased joins?
+    pub fn is_hidden(ast: &[Node], source: &ScopeSource, joins: &[&ScopeJoin]) -> bool {
+        joins.iter().any(|join| is_within(ast, source.ast_node_id, join.ast_node_id))
     }
 }
 

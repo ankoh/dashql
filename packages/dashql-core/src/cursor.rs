@@ -391,7 +391,7 @@ impl<'a> ScriptCursor<'a> {
 
         let mut best_scope = None;
         for &scope in &self.name_scopes {
-            if analyzed.scope(scope).is_some_and(|s| s.source(qualifier_text).is_some()) {
+            if analyzed.scope(scope).is_some_and(|s| s.names_relation(qualifier_text)) {
                 best_scope = Some(scope);
                 break;
             }
@@ -401,7 +401,7 @@ impl<'a> ScriptCursor<'a> {
             let mut best_length = usize::MAX;
             let parsed = &analyzed.parsed;
             for scope in &analyzed.name_scopes {
-                if scope.source(qualifier_text).is_none() {
+                if !scope.names_relation(qualifier_text) {
                     continue;
                 }
                 // A scope without a node has no span to contain the cursor

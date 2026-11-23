@@ -9,7 +9,8 @@
 #![allow(non_upper_case_globals)]
 
 use crate::analyzer::{
-    AnalyzedScript, ColumnResolution, ReferencedTable, ScopeId, ScopeSource, SourceVisibility, TableRole,
+    AnalyzedScript, ColumnResolution, NameScope, ReferencedTable, ScopeColumnSource, ScopeId, ScopeJoin, ScopeSource,
+    SourceVisibility, TableRole,
 };
 use crate::catalog::*;
 use crate::cursor::{CursorContext, NameComponentType, ScriptCursor, SymbolLocation};
@@ -444,6 +445,14 @@ pub struct Completion<'c, 'a> {
 }
 
 /// A dot candidate
+/// What the qualifier of a column ref names at the cursor
+enum QualifiedRelation<'s> {
+    /// A FROM item
+    Source(&'s ScopeSource),
+    /// A parenthesized join with an alias, that the cursor is outside of
+    Join(&'s ScopeJoin),
+}
+
 struct DotCandidate {
     /// The name to complete
     name: Arc<str>,
@@ -1485,45 +1494,24 @@ impl<'c, 'a> Completion<'c, 'a> {
             let replace_at = SymbolSpan::new(cursor.text_offset as u32, 0);
             let qualified_at = SymbolSpan::new(alias_begin as u32, (cursor.text_offset - alias_begin) as u32);
             let tags = CandidateTag::DOT_RESOLUTION_COLUMN.0 | CandidateTag::IN_NAME_SCOPE.0;
-            for &scope_id in &cursor.name_scopes {
-                let Some(scope) = analyzed.scope(scope_id) else { continue };
-                let Some(source) = scope.source(alias_text) else { continue };
-                match &source.table {
-                    ReferencedTable::Table(loc) => {
-                        let names: Vec<Arc<str>> = self
-                            .table(*loc)
-                            .map(|t| {
-                                let names = t.table_columns.iter().map(|c| &c.column_name);
-                                let names = source.column_aliases.iter().chain(names.skip(source.column_aliases.len()));
-                                names.map(|n| n.text.clone()).collect()
-                            })
-                            .unwrap_or_default();
-                        for name in names {
-                            self.add_local_candidate(
-                                &name,
-                                NameTag::COLUMN_NAME.0,
-                                tags,
-                                &[],
-                                replace_at,
-                                qualified_at,
-                            );
-                        }
-                    }
-                    ReferencedTable::Cte(_) | ReferencedTable::Subquery(_) => {
-                        for name in Self::derived_columns(analyzed, source) {
-                            self.add_local_candidate(
-                                &name,
-                                NameTag::COLUMN_NAME.0,
-                                tags,
-                                &[],
-                                replace_at,
-                                qualified_at,
-                            );
-                        }
-                    }
-                    ReferencedTable::Unresolved(_) => {}
-                }
-                return;
+            let names: Vec<Arc<str>> = match Self::find_qualified_relation(analyzed, cursor, alias_text) {
+                Some(QualifiedRelation::Source(source)) => match &source.table {
+                    ReferencedTable::Table(loc) => self
+                        .table(*loc)
+                        .map(|t| {
+                            let names = t.table_columns.iter().map(|c| &c.column_name);
+                            let names = source.column_aliases.iter().chain(names.skip(source.column_aliases.len()));
+                            names.map(|n| n.text.clone()).collect()
+                        })
+                        .unwrap_or_default(),
+                    ReferencedTable::Cte(_) | ReferencedTable::Subquery(_) => Self::derived_columns(analyzed, source),
+                    ReferencedTable::Unresolved(_) => Vec::new(),
+                },
+                Some(QualifiedRelation::Join(join)) => Self::join_columns(join),
+                None => Vec::new(),
+            };
+            for name in names {
+                self.add_local_candidate(&name, NameTag::COLUMN_NAME.0, tags, &[], replace_at, qualified_at);
             }
             return;
         }
@@ -1640,52 +1628,55 @@ impl<'c, 'a> Completion<'c, 'a> {
                 if sealed == 1 {
                     // a._: a might be a table alias
                     let a = name_text(0);
-                    for (scope_id, visibility) in Self::visible_scopes(analyzed, &cursor.name_scopes) {
-                        let Some(scope) = analyzed.scope(scope_id) else { continue };
-                        if let Some(source) =
-                            scope.sources.iter().find(|s| visibility.sees(s) && s.name.as_deref() == Some(a))
-                        {
-                            match &source.table {
-                                ReferencedTable::Table(loc) => {
-                                    if let Some(decl) = self.table(*loc) {
-                                        let through_catalog = decl.table_id().origin != analyzed.catalog_entry_id();
-                                        for (i, column) in decl.table_columns.iter().enumerate() {
-                                            let mut tags = CandidateTag::DOT_RESOLUTION_COLUMN.0;
-                                            if through_catalog {
-                                                tags |= CandidateTag::THROUGH_CATALOG.0;
-                                            }
-                                            // Column aliases rename the leading columns
-                                            let name = source.column_aliases.get(i).unwrap_or(&column.column_name);
-                                            dot_candidates.push(DotCandidate {
-                                                name: name.text.clone(),
-                                                candidate_tags: tags,
-                                                name_tags: NameTag::COLUMN_NAME.0,
-                                                object_id: column.object_id,
-                                                object: CandidateObjectRef::Column(ColumnLoc {
-                                                    table: *loc,
-                                                    column: i as u32,
-                                                }),
-                                            });
-                                        }
+                    let local_tags = CandidateTag::DOT_RESOLUTION_COLUMN.0 | CandidateTag::IN_NAME_SCOPE.0;
+                    match Self::find_qualified_relation(analyzed, cursor, a) {
+                        Some(QualifiedRelation::Source(source)) => match &source.table {
+                            ReferencedTable::Table(loc) => {
+                                if let Some(decl) = self.table(*loc) {
+                                    for (i, column) in decl.table_columns.iter().enumerate() {
+                                        // Column aliases rename the leading columns
+                                        let name = source.column_aliases.get(i).unwrap_or(&column.column_name);
+                                        let loc = ColumnLoc { table: *loc, column: i as u32 };
+                                        dot_candidates.extend(self.column_dot_candidate(analyzed, &name.text, loc));
                                     }
                                 }
-                                ReferencedTable::Cte(_) | ReferencedTable::Subquery(_) => {
-                                    let tags = CandidateTag::DOT_RESOLUTION_COLUMN.0 | CandidateTag::IN_NAME_SCOPE.0;
-                                    for name in Self::derived_columns(analyzed, source) {
-                                        self.add_local_candidate(
-                                            &name,
-                                            NameTag::COLUMN_NAME.0,
-                                            tags,
-                                            last_text_prefix,
-                                            replace_text_at,
-                                            name_path_text_loc,
-                                        );
-                                    }
-                                }
-                                ReferencedTable::Unresolved(_) => {}
                             }
-                            break;
+                            ReferencedTable::Cte(_) | ReferencedTable::Subquery(_) => {
+                                for name in Self::derived_columns(analyzed, source) {
+                                    self.add_local_candidate(
+                                        &name,
+                                        NameTag::COLUMN_NAME.0,
+                                        local_tags,
+                                        last_text_prefix,
+                                        replace_text_at,
+                                        name_path_text_loc,
+                                    );
+                                }
+                            }
+                            ReferencedTable::Unresolved(_) => {}
+                        },
+                        // The columns of an aliased join, a USING column once
+                        Some(QualifiedRelation::Join(join)) => {
+                            for column in &join.columns {
+                                let name = &column.column.column_name.text;
+                                if name.is_empty() {
+                                    continue;
+                                }
+                                if let ScopeColumnSource::TableColumn(loc) = column.column.source {
+                                    dot_candidates.extend(self.column_dot_candidate(analyzed, name, loc));
+                                    continue;
+                                }
+                                self.add_local_candidate(
+                                    name,
+                                    NameTag::COLUMN_NAME.0,
+                                    local_tags,
+                                    last_text_prefix,
+                                    replace_text_at,
+                                    name_path_text_loc,
+                                );
+                            }
                         }
+                        None => {}
                     }
                 }
             }
@@ -1735,6 +1726,55 @@ impl<'c, 'a> Completion<'c, 'a> {
             };
             self.add_object(candidate, dot_candidate.candidate_tags, dot_candidate.object_id, dot_candidate.object);
         }
+    }
+
+    /// The FROM item or the aliased join that a qualifier names at the cursor, in the innermost scope that has one.
+    /// The FROM items inside an aliased join have no names outside of it.
+    fn find_qualified_relation<'s>(
+        analyzed: &'s AnalyzedScript,
+        cursor: &ScriptCursor,
+        name: &str,
+    ) -> Option<QualifiedRelation<'s>> {
+        let ast = analyzed.parsed.nodes.as_slice();
+        // Without a node, the cursor is outside of every join
+        let node_id = cursor.ast_node_id.unwrap_or(u32::MAX);
+        for (scope_id, visibility) in Self::visible_scopes(analyzed, &cursor.name_scopes) {
+            let Some(scope) = analyzed.scope(scope_id) else { continue };
+            let mut hiding = scope.hiding_joins(ast, node_id);
+            hiding.retain(|join| visibility.sees_node(join.ast_node_id));
+            if let Some(join) = hiding.iter().find(|join| &*join.name == name) {
+                return Some(QualifiedRelation::Join(join));
+            }
+            let visible = |s: &&ScopeSource| {
+                visibility.sees(s) && !NameScope::is_hidden(ast, s, &hiding) && s.name.as_deref() == Some(name)
+            };
+            if let Some(source) = scope.sources.iter().find(visible) {
+                return Some(QualifiedRelation::Source(source));
+            }
+        }
+        None
+    }
+
+    /// The column names of an aliased join
+    fn join_columns(join: &ScopeJoin) -> Vec<Arc<str>> {
+        join.columns.iter().map(|c| c.column.column_name.text.clone()).filter(|n| !n.is_empty()).collect()
+    }
+
+    /// A table column as the candidate of a dot, with a name that a column alias may give it
+    fn column_dot_candidate(&self, analyzed: &AnalyzedScript, name: &Arc<str>, loc: ColumnLoc) -> Option<DotCandidate> {
+        let decl = self.table(loc.table)?;
+        let column = decl.table_columns.get(loc.column as usize)?;
+        let mut tags = CandidateTag::DOT_RESOLUTION_COLUMN.0;
+        if decl.table_id().origin != analyzed.catalog_entry_id() {
+            tags |= CandidateTag::THROUGH_CATALOG.0;
+        }
+        Some(DotCandidate {
+            name: name.clone(),
+            candidate_tags: tags,
+            name_tags: NameTag::COLUMN_NAME.0,
+            object_id: column.object_id,
+            object: CandidateObjectRef::Column(loc),
+        })
     }
 
     /// Score all candidates and select the top k

@@ -194,7 +194,10 @@ Given a name path like `a.b._`, the resolution depends on the strategy:
 - 2 sealed names (`a.b._`): resolves `a.b` as a qualified table, yielding columns.
 
 The one-name alias case supports both catalog tables and CTE-backed relations, including script-local
-relations. CTE column lists such as `WITH t(a, b) AS (...)` override the source query's output names.
+relations. CTE column lists such as `WITH t(a, b) AS (...)` override the source query's output names. It reads what
+the analyzer publishes on the scopes: an aliased join, `(t join u using (a)) as j`, is a `ScopeJoin` with its columns,
+so `j._` yields the columns of the join with a `USING` column once, renamed by the column aliases of the join. Outside
+of the join, `NameScope::hiding_joins` hides the FROM items inside it, `t._` yields nothing, as in name resolution.
 
 The cursor text after the last dot acts as a prefix filter on the resolved candidates.
 

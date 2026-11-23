@@ -913,6 +913,13 @@ analyzer-snapshots:
           sources:
             - {type: table, name: t, text: "t"}
             - {type: table, name: u, text: "u"}
+          joins:
+            - name: j
+              columns:
+                - {name: a, table-column: "256.65536.1:0.0"}
+                - {name: b, table-column: "256.65536.1:0.1"}
+                - {name: c, table-column: "256.65536.1:1.1"}
+              text: "(t join u .. (a)) as j"
           columns:
             - {name: a, expression: 0}
             - {name: b, expression: 1}
@@ -944,6 +951,14 @@ analyzer-snapshots:
           sources:
             - {type: table, name: t, text: "t"}
             - {type: table, name: u, text: "u"}
+          joins:
+            - name: j
+              columns:
+                - {name: a, table-column: "256.65536.1:0.0"}
+                - {name: b, table-column: "256.65536.1:0.1"}
+                - {name: a, table-column: "256.65536.1:1.0"}
+                - {name: c, table-column: "256.65536.1:1.1"}
+              text: "(t join u .. u.a) as j"
           columns:
             - {name: a, expression: 0}
             - {name: c, expression: 1}
@@ -971,6 +986,13 @@ analyzer-snapshots:
           sources:
             - {type: table, name: t, text: "t"}
             - {type: table, name: u, text: "u"}
+          joins:
+            - name: j
+              columns:
+                - {name: x, table-column: "256.65536.1:0.0"}
+                - {name: y, table-column: "256.65536.1:0.1"}
+                - {name: z, table-column: "256.65536.1:1.1"}
+              text: "(t join u ..j(x, y, z)"
           columns:
             - {name: x, expression: 0}
             - {name: y, expression: 1}
@@ -1005,6 +1027,13 @@ analyzer-snapshots:
             - {type: table, name: t, text: "t"}
             - {type: table, name: u, text: "u"}
             - {type: table, name: v, text: "v"}
+          joins:
+            - name: j
+              columns:
+                - {name: p, table-column: "256.65536.1:0.0"}
+                - {name: b, table-column: "256.65536.1:0.1"}
+                - {name: c, table-column: "256.65536.1:1.1"}
+              text: "(t join u ..)) as j(p)"
           columns:
             - {name: p, table-column: "256.65536.1:0.0"}
             - {name: b, table-column: "256.65536.1:0.1"}
@@ -1219,6 +1248,13 @@ analyzer-snapshots:
             - {type: table, name: t, text: "t"}
             - {type: table, name: u, text: "u"}
             - {type: table, name: v, text: "v"}
+          joins:
+            - name: v
+              columns:
+                - {name: a, table-column: "256.65536.1:0.0"}
+                - {name: b, table-column: "256.65536.1:0.1"}
+                - {name: c, table-column: "256.65536.1:1.1"}
+              text: "(t join u .. (a)) as v"
           columns:
             - {name: x, expression: 0}
           text: "select x f..)) as v, v"
