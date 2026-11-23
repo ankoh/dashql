@@ -92,6 +92,23 @@ describe('JsonView array pagination', () => {
         act(() => lineA.dispatchEvent(new MouseEvent('mouseout', { bubbles: true })));
         expect(container.querySelectorAll(copyButtons).length).toBe(0);
     });
+
+    it('copies strings without quotes', () => {
+        const copied: string[] = [];
+        const beforeCopy = (text: string) => {
+            copied.push(text);
+            return text;
+        };
+        act(() => root.render(<JsonView value={{ s: 'a "b"', n: 1 }} beforeCopy={beforeCopy} />));
+
+        const [lineS, lineN] = Array.from(container.querySelectorAll('[data-testid="json-entry-line"]'));
+        for (const line of [lineS, lineN]) {
+            act(() => line.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })));
+            act(() => line.querySelector<HTMLButtonElement>('[data-testid="json-copy-value"]')!.click());
+            act(() => line.dispatchEvent(new MouseEvent('mouseout', { bubbles: true })));
+        }
+        expect(copied).toEqual(['a "b"', '1']);
+    });
 });
 
 describe('JsonView explorer variant', () => {
