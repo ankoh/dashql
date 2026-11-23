@@ -929,6 +929,182 @@ analyzer-snapshots:
             - {name: s, expression: 3}
           text: "select p, .., q, r, s)"
 
+  - name: function_in_from_lateral
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: select a, g, g.g from t, lateral generate_series(1, t.b) as g
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 1, type: colref/local, scope: 0, column: 0, source: "lateral ge.. t.b) as g", text: "g"}
+        - {id: 2, type: colref/local, scope: 0, column: 0, source: "lateral ge.. t.b) as g", text: "g.g"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "t.b"}
+        - {id: 4, type: function, name: generate_series, text: "generate_s..es(1, t.b)"}
+        - {id: 5, type: literal/integer, is-const: true, text: "1"}
+      constants:
+        - {expression: 5, text: "1"}
+      name-scopes:
+        - scope-id: 0
+          parent: 1
+          parent-sources: before
+          columns:
+            - {name: g, computed: true}
+          text: "lateral ge.. t.b) as g"
+        - scope-id: 1
+          sources:
+            - {type: table, name: t, text: "t"}
+            - {type: subquery, name: g, scope: 0, text: "lateral ge.. t.b) as g"}
+          columns:
+            - {name: a, expression: 0}
+            - {name: g, expression: 1}
+            - {name: g, expression: 2}
+          text: "select a, .. t.b) as g"
+
+  - name: function_in_from_column_alias
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: select x, g.x, g from generate_series(1, 3) as g(x)
+      catalog-id: 2
+      errors: []
+      expressions:
+        - {id: 0, type: colref/local, scope: 0, column: 0, source: "generate_s..3) as g(x)", text: "x"}
+        - {id: 1, type: colref/local, scope: 0, column: 0, source: "generate_s..3) as g(x)", text: "g.x"}
+        - {id: 2, type: colref/unresolved, text: "g"}
+        - {id: 3, type: function, name: generate_series, is-const: true, text: "generate_s..ries(1, 3)"}
+        - {id: 4, type: literal/integer, is-const: true, text: "1"}
+        - {id: 5, type: literal/integer, is-const: true, text: "3"}
+      constants:
+        - {expression: 4, text: "1"}
+        - {expression: 5, text: "3"}
+        - {expression: 3, text: "generate_s..ries(1, 3)"}
+      name-scopes:
+        - scope-id: 0
+          parent: 1
+          parent-sources: before
+          columns:
+            - {name: g, computed: true}
+          text: "generate_s..3) as g(x)"
+        - scope-id: 1
+          sources:
+            - {type: subquery, name: g, scope: 0, column-aliases: [x], text: "generate_s..3) as g(x)"}
+          columns:
+            - {name: x, expression: 0}
+            - {name: x, expression: 1}
+            - {name: g, expression: 2}
+          text: "select x, ..3) as g(x)"
+
+  - name: function_in_from_implicitly_lateral
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: select a, generate_series from t, generate_series(1, b), unnest(array[c]) n, u
+      catalog-id: 2
+      errors:
+        - {type: COLUMN_REF_AMBIGUOUS, message: 'column reference is ambiguous, candidates: t.a, u.a', text: "a"}
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+      expressions:
+        - {id: 0, type: colref/unresolved, text: "a"}
+        - {id: 1, type: colref/local, scope: 0, column: 0, source: "generate_s..ries(1, b)", text: "generate_series"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "b"}
+        - {id: 3, type: colref/unresolved, text: "c"}
+        - {id: 4, type: function, name: generate_series, text: "generate_s..ries(1, b)"}
+        - {id: 5, type: function, name: unnest, text: "unnest(array[c])"}
+        - {id: 6, type: literal/integer, is-const: true, text: "1"}
+      constants:
+        - {expression: 6, text: "1"}
+      name-scopes:
+        - scope-id: 0
+          parent: 2
+          parent-sources: before
+          columns:
+            - {name: generate_series, computed: true}
+          text: "generate_s..ries(1, b)"
+        - scope-id: 1
+          parent: 2
+          parent-sources: before
+          columns:
+            - {name: n, computed: true}
+          text: "unnest(array[c]) n"
+        - scope-id: 2
+          sources:
+            - {type: table, name: t, text: "t"}
+            - {type: subquery, name: generate_series, scope: 0, text: "generate_s..ries(1, b)"}
+            - {type: subquery, name: n, scope: 1, text: "unnest(array[c]) n"}
+            - {type: table, name: u, text: "u"}
+          columns:
+            - {name: a, expression: 0}
+            - {name: generate_series, expression: 1}
+          text: "select a, ..y[c]) n, u"
+
+  - name: function_in_from_definitions_and_ordinality
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: select k, v, n, f.ordinality, p.q from json_each_text('{}') with ordinality as f(k, v, n), rows from (f(1), g(2) as (q int)) as p
+      catalog-id: 2
+      errors: []
+      expressions:
+        - {id: 0, type: colref/local, scope: 0, column: 0, source: "json_each_..f(k, v, n)", text: "k"}
+        - {id: 1, type: colref/local, scope: 0, column: 1, source: "json_each_..f(k, v, n)", text: "v"}
+        - {id: 2, type: colref/local, scope: 0, column: 2, source: "json_each_..f(k, v, n)", text: "n"}
+        - {id: 3, type: colref/unresolved, text: "f.ordinality"}
+        - {id: 4, type: colref/local, scope: 1, column: 1, source: "rows from ..int)) as p", text: "p.q"}
+        - {id: 5, type: function, name: json_each_text, is-const: true, text: "json_each_..text('{}')"}
+        - {id: 6, type: function, name: f, is-const: true, text: "f(1)"}
+        - {id: 7, type: function, name: g, is-const: true, text: "g(2)"}
+        - {id: 8, type: literal/string, is-const: true, text: "'{}'"}
+        - {id: 9, type: literal/integer, is-const: true, text: "1"}
+        - {id: 10, type: literal/integer, is-const: true, text: "2"}
+      constants:
+        - {expression: 8, text: "'{}'"}
+        - {expression: 5, text: "json_each_..text('{}')"}
+        - {expression: 9, text: "1"}
+        - {expression: 6, text: "f(1)"}
+        - {expression: 10, text: "2"}
+        - {expression: 7, text: "g(2)"}
+      name-scopes:
+        - scope-id: 0
+          parent: 2
+          parent-sources: before
+          columns:
+            - {name: f, computed: true}
+            - {name: '?', computed: true}
+            - {name: ordinality, computed: true}
+          text: "json_each_..f(k, v, n)"
+        - scope-id: 1
+          parent: 2
+          parent-sources: before
+          columns:
+            - {name: f, computed: true}
+            - {name: q, computed: true}
+          text: "rows from ..int)) as p"
+        - scope-id: 2
+          sources:
+            - {type: subquery, name: f, scope: 0, column-aliases: [k,v,n], text: "json_each_..f(k, v, n)"}
+            - {type: subquery, name: p, scope: 1, text: "rows from ..int)) as p"}
+          columns:
+            - {name: k, expression: 0}
+            - {name: v, expression: 1}
+            - {name: n, expression: 2}
+            - {name: ordinality, expression: 3}
+            - {name: q, expression: 4}
+          text: "select k, ..int)) as p"
+
   - name: join_parenthesized_alias_duplicate
     catalog:
       script:

@@ -17,7 +17,7 @@ use crate::catalog::*;
 use crate::hash::{HashMap, HashSet};
 use crate::table_parameters::{TableParameterLookup, TABLE_PARAMETERS_ENTRY_ID};
 use dashql_buffers::analyzer::{AnalyzerErrorSeverity, AnalyzerErrorType, NameTag, SemanticNodeMarkerType};
-use dashql_buffers::parser::{AttributeKey as K, JoinType, Node, NodeType, StatementType, SymbolSpan};
+use dashql_buffers::parser::{AttributeKey as K, JoinType, KnownFunction, Node, NodeType, StatementType, SymbolSpan};
 use dashql_parser::attrs;
 use std::ops::Range;
 use std::sync::Arc;
@@ -2108,6 +2108,11 @@ impl NameResolutionPass {
                             column_aliases,
                         });
                     }
+                } else if let Some(function) =
+                    table_node.filter(|n| n.node_type() == NodeType::OBJECT_SQL_FUNCTION_TABLE)
+                {
+                    self.visit_function_table(state, node_id, node, function, alias_node, node_state);
+                    return;
                 }
                 // Table refs may be recursive
                 self.merge_child_states(node_state, node);
@@ -2544,6 +2549,125 @@ impl NameResolutionPass {
             None => {
                 self.finished_column_refs.insert(expr, FinishedColumnRef::Bound(None));
             }
+        }
+    }
+
+    /// A table function in FROM is a FROM item. Its arguments are a scope of their own that sees the FROM items before
+    /// it, a function in FROM is lateral as in PostgreSQL. The scope has the columns of the function: those of its
+    /// column definition list, or one named by the alias of a single function or by the function, then the ordinality.
+    fn visit_function_table(
+        &mut self,
+        state: &mut AnalysisState,
+        node_id: u32,
+        node: &Node,
+        function_table: &Node,
+        alias_node: Option<&Node>,
+        node_state: &mut NodeState,
+    ) {
+        self.merge_child_states(node_state, node);
+        let [function, ordinality, ordinality_name, rows_from] = attrs!(
+            state.children(function_table),
+            [
+                K::SQL_FUNCTION_TABLE_FUNCTION,
+                K::SQL_FUNCTION_TABLE_WITH_ORDINALITY,
+                K::SQL_FUNCTION_TABLE_ORDINALITY_NAME,
+                K::SQL_FUNCTION_TABLE_ROWS_FROM,
+            ]
+        );
+        // The functions with their column definition lists, a semantic view has no columns that the script knows
+        let mut functions: Vec<(Option<&Node>, Option<&Node>)> = Vec::new();
+        match (function, rows_from.filter(|n| n.node_type() == NodeType::ARRAY)) {
+            (_, Some(items)) => {
+                for item in state.children(items) {
+                    let [function, columns] =
+                        attrs!(state.children(item), [K::SQL_ROWSFROM_ITEM_FUNCTION, K::SQL_ROWSFROM_ITEM_COLUMNS]);
+                    functions.push((function, columns));
+                }
+            }
+            (Some(function), None) if function.node_type() == NodeType::OBJECT_SQL_FUNCTION_EXPRESSION => {
+                let alias = alias_node.filter(|a| a.node_type() == NodeType::OBJECT_SQL_ALIAS);
+                let [columns] = alias.map(|a| attrs!(state.children(a), [K::SQL_ALIAS_COLUMN_DEFS])).unwrap_or([None]);
+                functions.push((Some(function), columns));
+            }
+            _ => return,
+        }
+        let scope = self.create_scope(state, node_state, node_id);
+        let (alias, column_aliases) = Self::read_alias(state, alias_node);
+        let single = functions.len() == 1;
+        // The FROM item is named by its alias or by its first function
+        let first_function = functions.first().and_then(|(function, _)| *function);
+        let with_ordinality =
+            ordinality.is_some_and(|n| n.node_type() == NodeType::BOOL && n.children_begin_or_value() != 0);
+        let mut columns = Vec::new();
+        for (function, definitions) in functions {
+            match definitions.filter(|d| d.node_type() == NodeType::ARRAY) {
+                Some(definitions) => {
+                    for definition in state.children(definitions) {
+                        let [name] = attrs!(state.children(definition), [K::SQL_COLUMN_DEF_NAME]);
+                        columns.extend(name.filter(|n| n.node_type() == NodeType::NAME).map(|n| state.node_name(n)));
+                    }
+                }
+                None => {
+                    columns.push(match &alias {
+                        Some((alias, _)) if single => alias.clone(),
+                        _ => Self::function_column_name(state, function),
+                    });
+                    // A function of a composite type has more columns, the column aliases of a single function name
+                    // them
+                    if single {
+                        let aliased = column_aliases.len().saturating_sub(usize::from(with_ordinality));
+                        columns.extend((1..aliased).map(|_| state.empty_name()));
+                    }
+                }
+            }
+        }
+        if with_ordinality {
+            columns.push(match ordinality_name.filter(|n| n.node_type() == NodeType::NAME) {
+                Some(name) => state.node_name(name),
+                None => Name { entry: state.entry_id, id: state.out.empty_name, text: Arc::from("ordinality") },
+            });
+        }
+        let name = match &alias {
+            Some((alias, _)) => Some(alias.text.clone()),
+            None => Some(Self::function_column_name(state, first_function).text).filter(|n| &**n != "?column?"),
+        };
+        if let Some(s) = state.out.scope_mut(scope) {
+            s.parent_visibility = SourceVisibility::Before(node_id);
+            for column_name in columns {
+                if !column_name.text.is_empty() {
+                    s.output_columns_by_name.entry(column_name.text.clone()).or_insert(s.output_columns.len());
+                }
+                s.output_columns.push(ScopeColumn { column_name, source: ScopeColumnSource::Computed });
+            }
+        }
+        node_state.derived_tables.push(ScopeSource {
+            ast_node_id: node_id,
+            name,
+            column_aliases,
+            table: ReferencedTable::Subquery(scope),
+            table_name: None,
+        });
+    }
+
+    /// The name of the column of a function in FROM without a column definition list: the name of the function
+    fn function_column_name(state: &AnalysisState, function: Option<&Node>) -> Name {
+        let generated = |text: Arc<str>| Name { entry: state.entry_id, id: state.out.empty_name, text };
+        let [name] = function
+            .filter(|f| f.node_type() == NodeType::OBJECT_SQL_FUNCTION_EXPRESSION)
+            .map(|f| attrs!(state.children(f), [K::SQL_FUNCTION_NAME]))
+            .unwrap_or([None]);
+        match name {
+            Some(name) if name.node_type() == NodeType::ARRAY => match state.read_name_path(name).last() {
+                Some(&id) => state.name(id),
+                None => generated(Arc::from("?column?")),
+            },
+            Some(name) if name.node_type() == NodeType::ENUM_SQL_KNOWN_FUNCTION => {
+                let known = KnownFunction(name.children_begin_or_value() as u8);
+                generated(
+                    known.variant_name().map_or_else(|| Arc::from("?column?"), |n| Arc::from(n.to_ascii_lowercase())),
+                )
+            }
+            _ => generated(Arc::from("?column?")),
         }
     }
 
