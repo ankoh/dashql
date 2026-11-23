@@ -39,7 +39,6 @@ const storageReader = {
     get workbookFolders() { return state.backend; },
     getWorkbookLocation: () => ({ type: StorageBackendType.OPFS }),
     getWorkbookOrder: () => state.backend!.getWorkbookOrder(),
-    getWorkbookTree: () => state.backend!.getWorkbookTree(),
 };
 const storageWriter = { deleteWorkbook: vi.fn(), backend: {}, isWorkbookHeld: () => false };
 /// The runtime as the sidebar uses it, without connections
@@ -397,6 +396,22 @@ describe('WorkbookWorkbenchSidebar folders', () => {
         });
         await vi.waitFor(() => expect(state.registry.tree.folders.map(folder => folder.name)).toEqual(['clients', 'reports']));
         await vi.waitFor(() => expect(rows()).toContain('0:reports'));
+    });
+
+    it('follows the changes of the workbook tree that another sidebar writes', async () => {
+        render();
+        // The sidebar of the drawer creates a folder and moves a workbook into it
+        await act(async () => {
+            await state.backend!.createFolder(['New folder']);
+            await state.backend!.moveWorkbook(ROOT_WORKBOOK, ['New folder'], 0);
+        });
+        expect(rows()).toEqual(['0:clients', '1:acme', '2:Acme report', '1:Client', '0:New folder', '1:Root']);
+
+        // A new folder takes a name that the stored tree leaves free
+        await act(async () => {
+            (container.querySelector('[data-testid="create-folder"]') as HTMLButtonElement).click();
+        });
+        await vi.waitFor(() => expect(state.registry.tree.folders.map(folder => folder.name)).toEqual(['clients', 'New folder', 'New folder 2']));
     });
 
     it('moves the workbooks of a deleted folder to its parent', async () => {

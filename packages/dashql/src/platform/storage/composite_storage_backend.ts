@@ -18,6 +18,7 @@ import {
     applyWorkbookTreeChange,
     emptyWorkbookTree,
     flattenWorkbookTree,
+    folderAt,
 } from './workbook_tree.js';
 import { type FileStamp } from '../electron_fs.js';
 import { NativeStorageBackend } from './native_storage_backend.js';
@@ -45,6 +46,10 @@ export class CompositeStorageBackend implements WorkbookRegistryBackend {
     private readonly locations: Map<string, WorkbookLocation>;
     /// The workbook tree, loaded at init and kept in sync on writes
     private tree: WorkbookTreeFolder = emptyWorkbookTree();
+    /// The listeners of the workbook tree, e.g. the sidebars
+    private readonly treeListeners = new Set<() => void>();
+    /// The changes of the workbook tree that are being written
+    private pendingTreeChanges = 0;
     /// Cached per-workbook native backends, keyed by uuid
     private readonly nativeCache: Map<string, NativeStorageBackend>;
     /// The stamps of the native attachments that are mirrored into OPFS, keyed by workbook uuid
@@ -77,16 +82,40 @@ export class CompositeStorageBackend implements WorkbookRegistryBackend {
     ///
     /// Called at init (and after relocate, before reload re-runs init).
     async refreshLocations(): Promise<void> {
-        this.tree = await this.opfs.loadWorkbookTree();
+        const tree = await this.opfs.loadWorkbookTree();
         this.locations.clear();
-        for (const entry of flattenWorkbookTree(this.tree)) {
+        for (const entry of flattenWorkbookTree(tree)) {
             this.locations.set(entry.path, locationFromEntry(entry));
         }
+        this.setTree(tree);
     }
 
-    /// Reload the workbook tree after a change of its folders
-    private async refreshTree(): Promise<void> {
-        this.tree = await this.opfs.loadWorkbookTree();
+    /// Show a workbook tree, the listeners are told
+    private setTree(tree: WorkbookTreeFolder): void {
+        if (tree === this.tree) return;
+        this.tree = tree;
+        for (const listener of this.treeListeners) listener();
+    }
+
+    /// Listen to the changes of the workbook tree, returns the function that stops listening
+    subscribeWorkbookTree(listener: () => void): () => void {
+        this.treeListeners.add(listener);
+        return () => { this.treeListeners.delete(listener); };
+    }
+
+    /// Change the workbook tree: the tree that the change leads to shows right away if it is known, the write follows,
+    /// and once no other change is being written the tree is read as it is stored. A failed write shows the stored tree
+    /// again.
+    private async changeTree(write: () => Promise<void>, changed: WorkbookTreeFolder | null = null): Promise<void> {
+        if (changed != null) this.setTree(changed);
+        this.pendingTreeChanges += 1;
+        try {
+            await write();
+        } finally {
+            this.pendingTreeChanges -= 1;
+            // An earlier write would read the tree without the changes that are still being written
+            if (this.pendingTreeChanges === 0) this.setTree(await this.opfs.loadWorkbookTree());
+        }
     }
 
     /// The current known location for a workbook (defaulting to OPFS for unknown UUIDs).
@@ -149,27 +178,28 @@ export class CompositeStorageBackend implements WorkbookRegistryBackend {
     async upsertWorkbookEntry(entry: WorkbookEntry, folderPath: readonly string[] = []): Promise<void> {
         await this.opfs.upsertWorkbookEntry(entry, folderPath);
         this.locations.set(entry.path, locationFromEntry(entry));
-        this.tree = applyWorkbookTreeChange(this.core, this.tree, { kind: 'upsert', entry, folderPath });
+        this.setTree(applyWorkbookTreeChange(this.core, this.tree, { kind: 'upsert', entry, folderPath }));
     }
     async removeWorkbookEntry(workbookId: string): Promise<void> {
         await this.opfs.removeWorkbookEntry(workbookId);
         this.forgetWorkbook(workbookId);
     }
+    /// Move a workbook to a position in a folder, the move shows right away. A move into a folder that is gone fails with
+    /// its write.
     async moveWorkbook(workbookId: string, folderPath: string[], index: number): Promise<void> {
-        await this.opfs.moveWorkbook(workbookId, folderPath, index);
-        await this.refreshTree();
+        const moved = folderAt(this.tree, folderPath) == null
+            ? null
+            : applyWorkbookTreeChange(this.core, this.tree, { kind: 'move', workbookId, folderPath, index });
+        await this.changeTree(() => this.opfs.moveWorkbook(workbookId, folderPath, index), moved);
     }
     async createFolder(path: string[]): Promise<void> {
-        await this.opfs.createFolder(path);
-        await this.refreshTree();
+        await this.changeTree(() => this.opfs.createFolder(path));
     }
     async moveFolder(path: string[], parentPath: string[], name?: string): Promise<void> {
-        await this.opfs.moveFolder(path, parentPath, name);
-        await this.refreshTree();
+        await this.changeTree(() => this.opfs.moveFolder(path, parentPath, name));
     }
     async deleteFolder(path: string[]): Promise<void> {
-        await this.opfs.deleteFolder(path);
-        await this.refreshTree();
+        await this.changeTree(() => this.opfs.deleteFolder(path));
     }
 
     /// Drop the in-memory state of a workbook that is no longer registered
@@ -177,7 +207,7 @@ export class CompositeStorageBackend implements WorkbookRegistryBackend {
         this.locations.delete(workbookId);
         this.nativeCache.delete(workbookId);
         this.mirroredAttachments.delete(workbookId);
-        this.tree = applyWorkbookTreeChange(this.core, this.tree, { kind: 'remove', workbookId });
+        this.setTree(applyWorkbookTreeChange(this.core, this.tree, { kind: 'remove', workbookId }));
     }
 
     /// The workbook tree, the folders and workbooks of the sidebar
@@ -279,7 +309,7 @@ export class CompositeStorageBackend implements WorkbookRegistryBackend {
             // The OPFS backend registered the workbook, a new one at the end of the root. Mirror that in
             // memory so getWorkbookOrder() includes it immediately, before the next app initialization.
             this.locations.set(workbookId, loc);
-            this.tree = applyWorkbookTreeChange(this.core, this.tree, { kind: 'upsert', entry: { path: workbookId, storageType: StorageBackendType.OPFS } });
+            this.setTree(applyWorkbookTreeChange(this.core, this.tree, { kind: 'upsert', entry: { path: workbookId, storageType: StorageBackendType.OPFS } }));
         }
     }
 
@@ -349,7 +379,7 @@ export class CompositeStorageBackend implements WorkbookRegistryBackend {
         this.nativeCache.clear();
         this.mirroredAttachments.clear();
         this.locations.clear();
-        this.tree = emptyWorkbookTree();
+        this.setTree(emptyWorkbookTree());
         await this.opfs.clearAllStorage?.();
     }
 
@@ -445,7 +475,7 @@ export class CompositeStorageBackend implements WorkbookRegistryBackend {
             nativePath: dir,
         });
         this.locations.set(uuid, { type: StorageBackendType.Native, nativePath: dir });
-        this.tree = applyWorkbookTreeChange(this.core, this.tree, { kind: 'upsert', entry: { path: uuid, storageType: StorageBackendType.Native, nativePath: dir } });
+        this.setTree(applyWorkbookTreeChange(this.core, this.tree, { kind: 'upsert', entry: { path: uuid, storageType: StorageBackendType.Native, nativePath: dir } }));
         this.nativeCache.set(uuid, native);
 
         // 5. Now it's safe to drop the OPFS copy of the files (registry entry stays).

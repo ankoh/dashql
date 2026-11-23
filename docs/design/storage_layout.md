@@ -92,6 +92,11 @@ registered at the end of the root, except for a workbook created from the menu o
 Writers hold the Web Lock `dashql-workbook-tree`, which all tabs of the app share. The cleanup holds it together with
 the lock of the manifest.
 
+The composite backend holds the tree in memory, and the sidebars of a tab listen to it (`subscribeWorkbookTree`,
+`useWorkbookTree` of `storage/storage_provider.tsx`): a change that one sidebar writes, e.g. the one of the drawer, or a
+deleted workbook shows in the other one too. A moved workbook shows right away, the other changes once they are written,
+and once no change of the tree is being written the backend reads the tree again as it is stored.
+
 ### Workbooks
 
 A workbook folder holds `dashql-workbook.json` (schema `proto/json/dashql/app_workbook.json`: `formatVersion`,

@@ -23,9 +23,6 @@ export interface StorageReader {
     /// The user-facing workbook order (the order of the workbook tree), as workbook UUIDs. Empty for a
     /// bare backend without per-workbook routing.
     getWorkbookOrder(): string[];
-    /// The workbook tree, the folders and workbooks of the sidebar. Empty for a bare backend without
-    /// per-workbook routing.
-    getWorkbookTree(): WorkbookTreeFolder;
 }
 const StorageReaderContext = React.createContext<StorageReader | null>(null);
 /// The status of the migration of the storage at startup, skipped for a provided backend
@@ -120,9 +117,6 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({ backend: provi
                 // A bare backend has no workbook tree; the caller falls back to its own order.
                 return workbookFolders?.getWorkbookOrder() ?? [];
             },
-            getWorkbookTree(): WorkbookTreeFolder {
-                return workbookFolders?.getWorkbookTree() ?? emptyWorkbookTree();
-            },
         };
     }, [backend]);
 
@@ -143,6 +137,21 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({ backend: provi
 /// The status of the migration of the storage at startup
 export function useStorageMigrationStatus(): IndicatorStatus {
     return React.useContext(StorageMigrationStatusContext);
+}
+
+/// The tree of a backend without per-workbook routing
+const EMPTY_WORKBOOK_TREE = emptyWorkbookTree();
+/// Listen to nothing
+const NO_SUBSCRIPTION = () => () => {};
+
+/// The workbook tree of the storage, the folders and workbooks of the sidebar: a change of the tree renders again, also
+/// one of another component. Empty for a bare backend without per-workbook routing.
+export function useWorkbookTree(workbookFolders: CompositeStorageBackend | null): WorkbookTreeFolder {
+    const subscribe = React.useMemo(
+        () => workbookFolders == null ? NO_SUBSCRIPTION : (listener: () => void) => workbookFolders.subscribeWorkbookTree(listener),
+        [workbookFolders],
+    );
+    return React.useSyncExternalStore(subscribe, () => workbookFolders?.getWorkbookTree() ?? EMPTY_WORKBOOK_TREE);
 }
 
 export function useStorageReader(): StorageReader {

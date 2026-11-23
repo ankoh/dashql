@@ -96,7 +96,6 @@ const storageReader = {
     backend: {},
     getWorkbookLocation: () => ({ type: 'opfs' }),
     getWorkbookOrder: () => [],
-    getWorkbookTree: () => ({ name: '', path: [], folders: [], workbooks: [] }),
 };
 const storageWriter = {
     deleteWorkbook: state.deleteWorkbook,

@@ -68,7 +68,7 @@ import { VerticalSplit } from '@akohn/dashql-react/components/vertical_split';
 import { displayPath } from '@akohn/dashql/platform/storage/workbook_locator';
 import { StorageBackendType } from '@akohn/dashql/platform/storage/storage_backend';
 import { WorkbookStorageOverlay } from '../persistence/workbook_storage_overlay.js';
-import { useStorageReader } from '../../storage/storage_provider.js';
+import { useStorageReader, useWorkbookTree } from '../../storage/storage_provider.js';
 import { browserWorkbookFolder } from '../persistence/browser_workbook_folder.js';
 import { cloneWorkbook } from '@akohn/dashql/platform/storage/workbook_transfer';
 import { useWorkbookImport } from '../persistence/workbook_import_provider.js';
@@ -777,9 +777,8 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
     const connectionSettingsAnchorRef = React.useRef<HTMLButtonElement>(null);
     const folderButtonRef = React.useRef<HTMLButtonElement>(null);
     const folderInputRef = React.useRef<HTMLInputElement>(null);
-    // The folders and workbooks of the sidebar, a change shows right away and is reconciled with the storage after its write
-    const [workbookTree, setWorkbookTree] = React.useState(() => storageReader.getWorkbookTree());
-    const treeWriteRef = React.useRef(Promise.resolve());
+    // The folders and workbooks of the sidebar as the storage shows them, with the changes of every sidebar
+    const workbookTree = useWorkbookTree(storageReader.workbookFolders);
     // The collapsed folders, by folder path key
     const [collapsedFolders, setCollapsedFolders] = React.useState<ReadonlySet<string>>(() => new Set());
     // Is the folder of the local workbooks expanded? It is shown while there is a cloud next to it
@@ -904,31 +903,17 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
         useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
         useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
     );
-    /// Change the workbook tree: the change shows right away, the write follows the earlier ones, then the
-    /// sidebar shows the tree as it is stored. A write that fails, e.g. a taken folder name, is logged.
+    /// Change the workbook tree, the storage shows a move of a workbook right away and the other changes once they are
+    /// written. A write that fails, e.g. a taken folder name, is logged.
     const treeFolders = storageReader.workbookFolders;
-    const changeWorkbookTree = React.useCallback((
-        what: string,
-        write: (folders: NonNullable<typeof treeFolders>) => Promise<void>,
-        optimistic?: (tree: WorkbookTreeFolder) => WorkbookTreeFolder,
-    ) => {
-        const workbookFolders = treeFolders;
-        if (workbookFolders == null) return;
-        if (optimistic != null) setWorkbookTree(optimistic);
-        treeWriteRef.current = treeWriteRef.current
-            .catch(() => {})
-            .then(() => write(workbookFolders))
-            .catch(error => logger.warn(`failed to ${what}`, { error: String(error) }, 'workbook_workbench'))
-            .then(() => setWorkbookTree(workbookFolders.getWorkbookTree()));
+    const changeWorkbookTree = React.useCallback((what: string, write: (folders: NonNullable<typeof treeFolders>) => Promise<void>) => {
+        if (treeFolders == null) return;
+        write(treeFolders).catch(error => logger.warn(`failed to ${what}`, { error: String(error) }, 'workbook_workbench'));
     }, [logger, treeFolders]);
 
     const moveWorkbook = React.useCallback((workbookId: string, folderPath: string[], index: number) => {
-        changeWorkbookTree(
-            'move the workbook',
-            folders => folders.moveWorkbook(workbookId, folderPath, index),
-            tree => folderAt(tree, folderPath) == null ? tree : applyWorkbookTreeChange(runtime.core, tree, { kind: 'move', workbookId, folderPath, index }),
-        );
-    }, [changeWorkbookTree, runtime]);
+        changeWorkbookTree('move the workbook', folders => folders.moveWorkbook(workbookId, folderPath, index));
+    }, [changeWorkbookTree]);
 
     /// Where the dragged row would land
     const dropOf = React.useCallback((event: DragMoveEvent | DragEndEvent): WorkbookListDrop | null => {
