@@ -1268,7 +1268,7 @@ impl<'c, 'a> Completion<'c, 'a> {
         }
         // The columns of the CTE and derived table sources that the cursor sees, catalog columns come from the name
         // index. A derived table does not see itself.
-        for (scope_id, visibility) in Self::visible_scopes(analyzed, &cursor.name_scopes) {
+        for (scope_id, visibility) in Self::visible_scopes(analyzed, cursor) {
             let Some(scope) = analyzed.scope(scope_id) else { continue };
             for source in scope.sources.iter().filter(|source| visibility.sees(source)) {
                 for name in Self::derived_columns(analyzed, source) {
@@ -1279,10 +1279,16 @@ impl<'c, 'a> Completion<'c, 'a> {
     }
 
     /// The name scopes around the cursor with the FROM items that the column refs of the cursor can see in them.
-    /// The innermost scope comes first, a correlation barrier hides all scopes above it.
-    fn visible_scopes(analyzed: &AnalyzedScript, name_scopes: &[ScopeId]) -> Vec<(ScopeId, SourceVisibility)> {
+    /// The innermost scope comes first, a correlation barrier hides all scopes above it. In the innermost scope, a
+    /// clause can restrict them, a WHEN NOT MATCHED clause of MERGE sees no target.
+    fn visible_scopes(analyzed: &AnalyzedScript, cursor: &ScriptCursor) -> Vec<(ScopeId, SourceVisibility)> {
+        let name_scopes = &cursor.name_scopes;
         let mut visible = Vec::with_capacity(name_scopes.len());
-        let mut visibility = SourceVisibility::All;
+        let innermost = name_scopes.first().and_then(|&s| analyzed.scope(s));
+        let mut visibility = match (innermost, cursor.ast_node_id) {
+            (Some(scope), Some(node_id)) => scope.visibility_at(&analyzed.parsed.nodes, node_id),
+            _ => SourceVisibility::All,
+        };
         for &scope_id in name_scopes {
             visible.push((scope_id, visibility));
             let Some(scope) = analyzed.scope(scope_id) else { break };
@@ -1305,7 +1311,7 @@ impl<'c, 'a> Completion<'c, 'a> {
                 completion.tag_object(co, CandidateTag::IN_NAME_SCOPE.0);
             }
         };
-        for (scope_id, visibility) in Self::visible_scopes(analyzed, &cursor.name_scopes) {
+        for (scope_id, visibility) in Self::visible_scopes(analyzed, cursor) {
             let Some(scope) = analyzed.scope(scope_id) else { continue };
             // Columns of resolved table refs in scope
             for &table_ref_id in &scope.table_references {
@@ -1738,7 +1744,7 @@ impl<'c, 'a> Completion<'c, 'a> {
         let ast = analyzed.parsed.nodes.as_slice();
         // Without a node, the cursor is outside of every join
         let node_id = cursor.ast_node_id.unwrap_or(u32::MAX);
-        for (scope_id, visibility) in Self::visible_scopes(analyzed, &cursor.name_scopes) {
+        for (scope_id, visibility) in Self::visible_scopes(analyzed, cursor) {
             let Some(scope) = analyzed.scope(scope_id) else { continue };
             let mut hiding = scope.hiding_joins(ast, node_id);
             hiding.retain(|join| visibility.sees_node(join.ast_node_id));

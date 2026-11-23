@@ -2472,6 +2472,7 @@ impl NameResolutionPass {
 
         // A WHEN NOT MATCHED [BY TARGET] clause of MERGE sees the source only, a WHEN NOT MATCHED BY SOURCE clause the
         // target only, as in PostgreSQL
+        let mut restricted = Vec::new();
         for clause in clauses.map(|c| state.children(c)).unwrap_or_default() {
             let [kind] = attrs!(state.children(clause), [K::SQL_MERGE_WHEN_CLAUSE_KIND]);
             let visibility = match (target, kind.map(|k| MergeMatch(k.children_begin_or_value() as u8))) {
@@ -2480,6 +2481,7 @@ impl NameResolutionPass {
                 _ => continue,
             };
             let clause_id = state.node_id(clause);
+            restricted.push(ScopeClause { ast_node_id: clause_id, visibility });
             for &expr in &node_state.column_references {
                 if state.out.expression(expr).is_some_and(|e| Self::is_within(state, e.ast_node_id, clause_id)) {
                     self.expression_visibility.insert(expr, visibility);
@@ -2531,6 +2533,7 @@ impl NameResolutionPass {
         if let Some(s) = state.out.scope_mut(scope) {
             s.result_targets.extend(result_targets);
             s.ctes_recursive = recursive.is_some();
+            s.clauses = restricted;
         }
         Self::attach_ctes(state, scope, ctes);
         // CTE definitions cannot correlate to the target or the read relations

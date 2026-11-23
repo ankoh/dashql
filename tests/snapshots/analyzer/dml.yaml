@@ -693,6 +693,8 @@ analyzer-snapshots:
           sources:
             - {type: table, name: t, text: "t"}
             - {type: table, name: u, text: "u"}
+          clauses:
+            - {sources: except, text: "when not m..(u.a, u.c)"}
           text: "merge into..(u.a, u.c)"
 
   - name: merge_aliases_delete
@@ -768,6 +770,8 @@ analyzer-snapshots:
           sources:
             - {type: unresolved, name: m, text: "missing m"}
             - {type: table, name: u, text: "u"}
+          clauses:
+            - {sources: except, text: "when not m..(u.a, u.c)"}
           columns:
             - {name: k, expression: 4}
           text: "merge into..urning m.k"
@@ -822,6 +826,9 @@ analyzer-snapshots:
           sources:
             - {type: table, name: t, text: "t"}
             - {type: table, name: u, text: "u"}
+          clauses:
+            - {sources: except, text: "when not m..ues (a, c)"}
+            - {sources: only, text: "when not m..hen delete"}
           text: "merge into..hen delete"
 
   - name: merge_not_matched_clause_subqueries
@@ -876,6 +883,9 @@ analyzer-snapshots:
           sources:
             - {type: table, name: t, text: "t"}
             - {type: table, name: u, text: "u"}
+          clauses:
+            - {sources: except, text: "when not m..values (a)"}
+            - {sources: only, text: "when not m..hen delete"}
           text: "merge into..hen delete"
 
   - name: merge_not_matched_clause_inference
@@ -909,6 +919,9 @@ analyzer-snapshots:
           sources:
             - {type: unresolved, name: m, text: "missing m"}
             - {type: unresolved, name: o, text: "other o"}
+          clauses:
+            - {sources: except, text: "when not m..s (o.k, n)"}
+            - {sources: only, text: "when not m..hen delete"}
           text: "merge into..hen delete"
       inferred-tables:
         - name: missing

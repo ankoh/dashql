@@ -255,6 +255,70 @@ completion-snapshots:
     completions:
       limit: 5
 
+  # A WHEN NOT MATCHED clause of MERGE sees the source only: the columns of the target are not in scope
+  - name: clause_merge_not_matched_sees_source_only
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int, note text);
+    editor:
+      input: |-
+        merge into t using u on t.a = u.a when not matched and n then do nothing
+    cursor:
+      search:
+        text: 'and n'
+        index: 5
+    completions:
+      limit: 5
+
+  # A WHEN NOT MATCHED BY SOURCE clause of MERGE sees the target only
+  - name: clause_merge_not_matched_by_source_sees_target_only
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int, note text);
+    editor:
+      input: |-
+        merge into t using u on t.a = u.a when not matched by source and n then delete
+    cursor:
+      search:
+        text: 'and n'
+        index: 5
+    completions:
+      limit: 5
+
+  # The target has no name in a WHEN NOT MATCHED clause of MERGE, its alias completes no columns
+  - name: clause_merge_not_matched_target_alias
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int, note text);
+    editor:
+      input: |-
+        merge into t using u on t.a = u.a when not matched then insert (a) values (t.n)
+    cursor:
+      search:
+        text: 't.n)'
+        index: 2
+    completions:
+      limit: 5
+
+  # The source alias completes its columns in a WHEN NOT MATCHED clause of MERGE
+  - name: clause_merge_not_matched_source_alias
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int, note text);
+    editor:
+      input: |-
+        merge into t using u on t.a = u.a when not matched then insert (a) values (u.n)
+    cursor:
+      search:
+        text: 'u.n)'
+        index: 2
+    completions:
+      limit: 5
+
   # NULLS after the direction of an ORDER BY column, the scanner reads it as NULLS_LA only before FIRST or LAST
   - name: clause_order_by_nulls
     catalog:

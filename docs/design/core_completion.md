@@ -240,7 +240,7 @@ After initial candidate collection, two promotion passes tag candidates with add
 
 1. **promote_tables_and_peers_for_unresolved_columns** — If the current statement has unresolved column references, tables containing those columns get `RESOLVING_TABLE` (+5). Sibling columns of unresolved ones get `UNRESOLVED_PEER` (+1).
 
-2. **promote_identifiers_in_scope** — Walks the cursor's naming scopes (innermost first) and tags the columns of resolved catalog tables and of resolved column references with `IN_NAME_SCOPE` (+10). It does not run between symbols.
+2. **promote_identifiers_in_scope** — Walks the cursor's naming scopes (innermost first) and tags the columns of resolved catalog tables and of resolved column references with `IN_NAME_SCOPE` (+10). It does not run between symbols. The scopes see the FROM items that name resolution gives the column refs at the cursor: a clause of the innermost scope can restrict them (`NameScope::visibility_at`), a `WHEN NOT MATCHED` clause of MERGE sees the source only and a `WHEN NOT MATCHED BY SOURCE` clause the target only, for the alias of a `a._` too.
 
 ## Scoring and ranking
 

@@ -342,7 +342,8 @@ The rules follow PostgreSQL and Hyper:
   FROM items of UPDATE, the USING items of DELETE and the source of MERGE are read. The conditions, the values and
   RETURNING of UPDATE, DELETE and MERGE see the target and the read relations; the source of INSERT sees no target.
   A `WHEN NOT MATCHED [BY TARGET]` clause of MERGE sees the source only, a `WHEN NOT MATCHED BY SOURCE` clause the
-  target only, also from its subqueries (`SourceVisibility::Except` and `Only` of the target).
+  target only, also from its subqueries (`SourceVisibility::Except` and `Only` of the target). The scope publishes
+  these clauses in `NameScope::clauses`, `NameScope::visibility_at` names what a node in them sees, for completion.
   The columns that UPDATE and MERGE write, the SET targets and the INSERT columns of MERGE, are column refs that bind
   to the target only, also when a read relation has a column of the same name; the column of a target that the
   catalog doesn't know is inferred for it. The explicit columns of INSERT bind to its target after resolution.

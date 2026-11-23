@@ -556,20 +556,8 @@ fn encode_name_scope(e: &Encoder, catalog: &Catalog, scope: &NameScope) -> Optio
     if let Some(parent) = scope.parent_scope {
         m.int("parent", parent as i64);
     }
-    match scope.parent_visibility {
-        SourceVisibility::All => {}
-        SourceVisibility::Before(_) => {
-            m.plain("parent-sources", "before");
-        }
-        SourceVisibility::None => {
-            m.plain("parent-sources", "none");
-        }
-        SourceVisibility::Only(_) => {
-            m.plain("parent-sources", "only");
-        }
-        SourceVisibility::Except(_) => {
-            m.plain("parent-sources", "except");
-        }
+    if let Some(visibility) = visibility_name(scope.parent_visibility) {
+        m.plain("parent-sources", visibility);
     }
     if scope.column_correlation_barrier {
         m.insert("correlation-barrier", boolean(true));
@@ -626,12 +614,36 @@ fn encode_name_scope(e: &Encoder, catalog: &Catalog, scope: &NameScope) -> Optio
             .collect();
         m.insert("joins", Node::seq(joins));
     }
+    if !scope.clauses.is_empty() {
+        let clauses = scope
+            .clauses
+            .iter()
+            .map(|clause| {
+                let mut c = Map::new();
+                c.plain("sources", visibility_name(clause.visibility).unwrap_or("all"));
+                e.location(&mut c, clause.ast_node_id, "text");
+                c.into_flow_node()
+            })
+            .collect();
+        m.insert("clauses", Node::seq(clauses));
+    }
     if !scope.output_columns.is_empty() {
         let columns = scope.output_columns.iter().map(|column| encode_scope_column(e, catalog, column)).collect();
         m.insert("columns", Node::seq(columns));
     }
     e.location(&mut m, scope.ast_node_id, "text");
     Some(m.into_node())
+}
+
+/// The name of a restricted visibility of FROM items, None if all are visible
+fn visibility_name(visibility: SourceVisibility) -> Option<&'static str> {
+    match visibility {
+        SourceVisibility::All => None,
+        SourceVisibility::Before(_) => Some("before"),
+        SourceVisibility::None => Some("none"),
+        SourceVisibility::Only(_) => Some("only"),
+        SourceVisibility::Except(_) => Some("except"),
+    }
 }
 
 /// Encode a column of a scope or of a join
