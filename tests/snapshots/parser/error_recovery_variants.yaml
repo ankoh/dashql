@@ -1540,3 +1540,126 @@ parser-snapshots:
       comments: []
       comment-blocks: []
       comment-warnings: []
+
+  - name: recovery_separator_in_cte_options
+    input: |-
+      with a as (select 1) options (x;
+      select 2
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 5
+          ast-size: 4
+          description:
+            text: "select 2"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select 2"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "2"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "2"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: LITERAL_INTEGER
+                        text: "2"
+      scanner-errors: []
+      parser-errors:
+        - message: 'syntax error, unexpected SEMICOLON, expecting string literal'
+          text: ";"
+      line-breaks:
+        - text: [32,33]
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: recovery_separator_after_cte
+    input: |-
+      with a as (select 1);
+      select 2
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 5
+          ast-size: 4
+          description:
+            text: "select 2"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select 2"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "2"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "2"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: LITERAL_INTEGER
+                        text: "2"
+      scanner-errors: []
+      parser-errors:
+        - message: 'syntax error, unexpected SEMICOLON'
+          text: ";"
+      line-breaks:
+        - text: [21,22]
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: recovery_separator_in_parentheses
+    input: |-
+      select (1;
+      select * from t where a in (1;
+      select f(1;
+      insert into t values (1;
+      select 2
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 7
+          ast-size: 4
+          description:
+            text: "select 2"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select 2"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "2"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "2"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: LITERAL_INTEGER
+                        text: "2"
+      scanner-errors: []
+      parser-errors:
+        - message: 'syntax error, unexpected SEMICOLON'
+          text: ";"
+        - message: 'syntax error, unexpected SEMICOLON'
+          text: ";"
+        - message: 'syntax error, unexpected SEMICOLON'
+          text: ";"
+        - message: 'syntax error, unexpected SEMICOLON'
+          text: ";"
+      line-breaks:
+        - text: [10,11]
+        - text: [41,42]
+        - text: [53,54]
+        - text: [78,79]
+      comments: []
+      comment-blocks: []
+      comment-warnings: []

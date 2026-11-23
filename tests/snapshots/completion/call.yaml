@@ -420,6 +420,9 @@ completion-snapshots:
       errors: []
       expressions:
         - {id: 0, type: literal/string, is-const: true, text: "'a'"}
+        - {id: 1, type: literal/integer, is-const: true, text: "1"}
+      constants:
+        - {expression: 1, text: "1"}
     cursor:
       search:
         text: "'a',"

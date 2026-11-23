@@ -426,6 +426,9 @@ pub fn parse(ctx: &mut ParseContext) -> bool {
                     // Discard the lookahead that failed to be reused after an error
                     match lookahead {
                         Some(la) if la.kind == S_YYEOF => return false,
+                        // A statement separator that a recovery inside the statement can't use ends the statement:
+                        // the recovery drops it at the statement level and keeps the separator for the next one.
+                        Some(la) if la.kind == S_SEMICOLON && inside_statement(&stack.states) => unwind = true,
                         Some(_) => lookahead = None,
                         None => {}
                     }
@@ -463,6 +466,13 @@ pub fn parse(ctx: &mut ParseContext) -> bool {
             }
         };
     }
+}
+
+/// Is the stack above the error token of the lowest state that shifts one? Then unwinding to that state drops a
+/// part of a statement, otherwise the recovery is already at the statement level.
+fn inside_statement(states: &[StateId]) -> bool {
+    let bottom = states.iter().position(|&state| matches!(table_action(state, S_YYerror), Some(Action::Shift(_))));
+    bottom.is_some_and(|bottom| states.len() > bottom + 2)
 }
 
 /// Run the action of a rule

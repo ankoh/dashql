@@ -182,3 +182,22 @@ parser-snapshots:
       grant select on to x;
       create index on;
       select 6
+
+  # A broken statement that ends at a separator while recovering inside it, the next statement survives
+  - name: recovery_separator_in_cte_options
+    input: |-
+      with a as (select 1) options (x;
+      select 2
+
+  - name: recovery_separator_after_cte
+    input: |-
+      with a as (select 1);
+      select 2
+
+  - name: recovery_separator_in_parentheses
+    input: |-
+      select (1;
+      select * from t where a in (1;
+      select f(1;
+      insert into t values (1;
+      select 2

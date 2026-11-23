@@ -55,6 +55,14 @@ traps it; `packages/dashql-core/tests/nesting_test.rs` analyzes and formats ever
 of that stack. A left-deep chain (`a + b + c`, `x::int::int`) builds a deep tree without growing the stack and is not
 limited.
 
+### Error recovery
+
+The recovery is bison's: pop states to one that shifts the error token (`statement_list: error`, `opt_statement:
+error`, `sql_a_expr: error`, `sql_cte_options: error`), then drop tokens until one fits. A `;` is never dropped: a
+reduction that clears the lookahead (`ctx.clear_lookahead()`) keeps it, and a `;` that a recovery inside a statement
+can't use (`select (1;`, `with a as (select 1);`) ends the statement like the depth limit does, it unwinds to the
+lowest state that shifts the error token and drops the broken statement. The next statement always survives.
+
 ## Flat AST Design
 
 ### The Node struct
