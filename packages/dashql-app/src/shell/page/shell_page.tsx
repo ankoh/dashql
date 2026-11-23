@@ -19,9 +19,7 @@ import { useShellQueryHistory } from './shell_query_history.js';
 import { createShellLastCommand } from '../terminal/shell_result.js';
 import { ShellFileRegistry } from '../terminal/shell_files.js';
 import { useShellFiles } from '../terminal/filesystem_dialog.js';
-import { createFormatCommand } from './commands/format.js';
-import { createPlanCommand } from './commands/plan.js';
-import { createShareCommand } from './commands/share.js';
+import { createDialogCommand } from './commands/dialog_command.js';
 import { useSalesforceLoginDialog } from './salesforce_login_dialog.js';
 import { AppOAuthFlow } from '../../oauth/app_oauth_flow.js';
 import { useHttpClient } from '../../host/http/http_client_provider.js';
@@ -235,23 +233,17 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                     // The prompts are filled in once the command finished
                     queuePrompts: prompts => controller?.queuePrompts(prompts),
                 }),
-                createFormatCommand({
-                    requestDialog: signal => {
-                        if (shell == null) throw new Error('Shell is not ready');
-                        return formatDialog.request(shell.core, shell.catalog, signal);
-                    },
+                createDialogCommand('format', 'Open the SQL formatter', signal => {
+                    if (shell == null) throw new Error('Shell is not ready');
+                    return formatDialog.request(shell.core, shell.catalog, signal);
                 }),
-                createPlanCommand({
-                    requestDialog: signal => {
-                        if (shell == null) throw new Error('Shell is not ready');
-                        return planDialog.request(shell.core, signal);
-                    },
+                createDialogCommand('plan', 'Open the query plan viewer', signal => {
+                    if (shell == null) throw new Error('Shell is not ready');
+                    return planDialog.request(shell.core, signal);
                 }),
-                createShareCommand({
-                    requestDialog: signal => {
-                        if (shell == null) throw new Error('Shell is not ready');
-                        return shareDialog.request(shell.core, shell.catalog, signal);
-                    },
+                createDialogCommand('share', 'Share a SQL script as a URL', signal => {
+                    if (shell == null) throw new Error('Shell is not ready');
+                    return shareDialog.request(shell.core, shell.catalog, signal);
                 }),
                 loginCommand,
                 createShellLastCommand(reopenResultQuery),

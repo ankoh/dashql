@@ -1,26 +1,22 @@
 // @vitest-environment node
-import type { DashQLShellCommand } from '../../terminal/api.js';
-import { createFormatCommand } from './format.js';
-import { createPlanCommand } from './plan.js';
-import { createShareCommand } from './share.js';
+import { createDialogCommand } from './dialog_command.js';
 
-/// The commands that open a dialog and print nothing
-const DIALOG_COMMANDS: [string, (dependencies: { requestDialog(signal?: AbortSignal): Promise<void> }) => DashQLShellCommand][] = [
-    ['format', createFormatCommand],
-    ['plan', createPlanCommand],
-    ['share', createShareCommand],
-];
-
-for (const [name, createCommand] of DIALOG_COMMANDS) describe(`the dialog command .${name}`, () => {
+describe('a dialog command', () => {
     /// Run the command with the arguments and the context of a shell
     const runCommand = (requestDialog: () => Promise<void>, args: string[], signal?: AbortSignal) => {
-        const [, , run] = createCommand({ requestDialog });
+        const [, , run] = createDialogCommand('format', 'Open the SQL formatter', requestDialog);
         return run(args, { signal });
     };
 
+    it('has the name and the description of its dialog', () => {
+        const [name, description] = createDialogCommand('plan', 'Open the query plan viewer', async () => { });
+        expect(name).toBe('plan');
+        expect(description).toBe('Open the query plan viewer');
+    });
+
     it('rejects arguments before opening the dialog', async () => {
         const requestDialog = vi.fn();
-        await expect(runCommand(requestDialog, ['unexpected'])).rejects.toThrow(`usage: .${name}`);
+        await expect(runCommand(requestDialog, ['unexpected'])).rejects.toThrow('usage: .format');
         expect(requestDialog).not.toHaveBeenCalled();
     });
 
