@@ -3221,13 +3221,22 @@ sql_cmd_multiple_set_clause:
         )
     }
     | LRB sql_cmd_set_target_list RRB EQUALS ROW sql_cmd_ctext_row {
+        // An explicit row, `(a) = (1)` sets no single column in PostgreSQL
+        let row = ctx.object(
+            loc(&[@5, @6]),
+            NodeType::OBJECT_SQL_ROW_EXPRESSION,
+            &[
+                attr(Key::SQL_ROW_EXPRESSION_EXPLICIT, bool_node(@5, true)),
+                attr(Key::SQL_ROW_EXPRESSION_VALUES, ctx.array(@6, $6)),
+            ],
+        );
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_ASSIGNMENT,
             &[
                 attr(Key::SQL_ASSIGNMENT_MULTIPLE, bool_node(@$, true)),
                 attr(Key::SQL_ASSIGNMENT_COLUMNS, ctx.array(@2, $2)),
-                attr(Key::SQL_ASSIGNMENT_VALUE, ctx.array(@6, $6)),
+                attr(Key::SQL_ASSIGNMENT_VALUE, row),
             ],
         )
     }

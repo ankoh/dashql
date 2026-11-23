@@ -32,6 +32,10 @@ parser-snapshots:
       on conflict (a, b collate "C" desc) where a > 0
       do update set b = excluded.b + t.b, (c, d) = (excluded.c, 1) where t.b < excluded.b
       returning *
+  # DO UPDATE with an explicit row, `(c) = (1)` would set no single column in PostgreSQL
+  - name: insert_on_conflict_explicit_row
+    input: |
+      insert into t values (1, 2) on conflict (a) do update set (c) = row(excluded.c), (a, b) = row(default, 2)
   # ON CONFLICT with a constraint after a SELECT source and a WITH clause
   - name: insert_on_conflict_on_constraint
     input: |

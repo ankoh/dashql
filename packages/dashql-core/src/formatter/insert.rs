@@ -134,7 +134,12 @@ impl<'a> Formatter<'a> {
         if !is_true(multiple) {
             return f.concat(&[columns_reg, f.text(" = "), value_reg]);
         }
-        f.concat(&[f.parenthesized(columns_reg), f.text(" = "), f.parenthesized(value_reg)])
+        // An explicit row like `row(1)` prints its parentheses itself
+        let value_reg = match value.node_type() {
+            NodeType::OBJECT_SQL_ROW_EXPRESSION => value_reg,
+            _ => f.parenthesized(value_reg),
+        };
+        f.concat(&[f.parenthesized(columns_reg), f.text(" = "), value_reg])
     }
 
     /// `column [collate c] [opclass] [asc | desc] [nulls first | last]`, a column of a conflict target
@@ -161,12 +166,20 @@ impl<'a> Formatter<'a> {
         self.space_join(&parts, FormattingJoinPolicy::BreakAllOrNone, true)
     }
 
-    /// Is a DEFAULT expression the value of an assignment of DO UPDATE SET?
+    /// Is a DEFAULT expression the value of an assignment of DO UPDATE SET, also in the values of `(a, b) = (...)` or of
+    /// `(a, b) = row(...)`?
     pub(super) fn is_assignment_value(&self, node: &Node) -> bool {
         let parent = self.ast.get(node.parent() as usize);
+        let in_values = |values: &Node| {
+            values.node_type() == NodeType::ARRAY
+                && (values.attribute_key() == K::SQL_ASSIGNMENT_VALUE
+                    || (values.attribute_key() == K::SQL_ROW_EXPRESSION_VALUES
+                        && self.ast.get(values.parent() as usize).is_some_and(|row| {
+                            row.node_type() == NodeType::OBJECT_SQL_ROW_EXPRESSION
+                                && row.attribute_key() == K::SQL_ASSIGNMENT_VALUE
+                        })))
+        };
         node.attribute_key() == K::SQL_ASSIGNMENT_VALUE
-            || (node.attribute_key() == K::NONE
-                && parent
-                    .is_some_and(|p| p.node_type() == NodeType::ARRAY && p.attribute_key() == K::SQL_ASSIGNMENT_VALUE))
+            || (node.attribute_key() == K::NONE && parent.is_some_and(in_values))
     }
 }

@@ -106,6 +106,12 @@ formatter-snapshots:
     dialects:
       hyper: {}
 
+  # `(id) = (1)` sets no single column in PostgreSQL, an explicit row stays one
+  - name: coverage_insert_on_conflict_explicit_row
+    input: INSERT INTO insert_target(id,label) VALUES(1,'one') ON CONFLICT(id) DO UPDATE SET(id)=ROW(excluded.id),(id,label)=ROW(DEFAULT,'two')
+    dialects:
+      hyper: {}
+
   - name: coverage_insert_on_conflict_on_constraint
     input: WITH source AS(SELECT 1 AS id) INSERT INTO insert_target(id) SELECT id FROM source ON CONFLICT ON CONSTRAINT insert_target_pkey DO NOTHING
     dialects:

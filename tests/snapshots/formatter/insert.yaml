@@ -335,6 +335,28 @@ formatter-snapshots:
                   from insert_source
                 );
 
+  - name: coverage_insert_on_conflict_explicit_row
+    input: |-
+      INSERT INTO insert_target(id,label) VALUES(1,'one') ON CONFLICT(id) DO UPDATE SET(id)=ROW(excluded.id),(id,label)=ROW(DEFAULT,'two')
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              insert into insert_target(id, label) values (1, 'one') on conflict (id) do update set (id) = row(excluded.id), (id, label) = row(default, 'two');
+          - mode: compact
+            expected: |-
+              insert into insert_target(id, label)
+              values (1, 'one')
+              on conflict (id) do update set (id) = row(excluded.id), (id, label) = row(default, 'two');
+          - mode: pretty
+            expected: |-
+              insert into insert_target(id, label)
+              values
+                (1, 'one')
+              on conflict (id)
+              do update set (id) = row(excluded.id), (id, label) = row(default, 'two');
+
   - name: coverage_insert_on_conflict_on_constraint
     input: |-
       WITH source AS(SELECT 1 AS id) INSERT INTO insert_target(id) SELECT id FROM source ON CONFLICT ON CONSTRAINT insert_target_pkey DO NOTHING
