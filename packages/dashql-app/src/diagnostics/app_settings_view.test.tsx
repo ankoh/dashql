@@ -138,7 +138,7 @@ describe('AppSettings', () => {
         expect(logger.buffer.getMinLogLevel()).toBe(LogLevel.Error);
     });
 
-    it('switches the flavor and layers its settings', async () => {
+    it('switches the flavor', async () => {
         await render();
         const flavors = [...FLAVORS.values()];
         expect(segments('app-setting-flavor').map(b => b.textContent)).toEqual(flavors.map(f => f.displayName));
@@ -147,9 +147,6 @@ describe('AppSettings', () => {
         const other = flavors.findIndex(f => f.id !== DASHQL_FLAVOR.id);
         act(() => segments('app-setting-flavor')[other].click());
         expect(config!.settings?.flavor).toBe(flavors[other].id);
-        for (const [key, value] of Object.entries(flavors[other].settings ?? {})) {
-            expect(config!.settings?.[key as keyof NonNullable<AppConfig['settings']>]).toEqual(value);
-        }
     });
 
     it('disables the flavor when the url requests one', async () => {

@@ -22,7 +22,7 @@ packages/dashql-react/styles/flavors/<id>.css
 ```
 
 Every color value of the app lives in `packages/dashql-react/styles`: the palette, the theme and the flavors. The app only
-uses tokens. A flavor's identity (name, logos, settings) stays in the app (`src/config/flavors.ts`), which sets
+uses tokens. A flavor's identity (name, logos, features) stays in the app (`src/config/flavors.ts`), which sets
 `data-flavor` on the root and imports the stylesheets of the flavors.
 
 A flavor overrides theme tokens on `:root[data-flavor="<id>"]`, which wins over `:root` whatever the order of the

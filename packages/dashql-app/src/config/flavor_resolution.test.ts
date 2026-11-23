@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { applyFlavorToDocument, getRequestedFlavor, resolveFlavor, selectFlavor, withFlavorParameter } from './flavor_resolution.js';
-import { applyFlavorSettings, DASHQL_FLAVOR, DBCOM_FLAVOR } from './flavors.js';
+import { DASHQL_FLAVOR, DBCOM_FLAVOR } from './flavors.js';
 
 describe('App flavor resolution', () => {
     it('defaults to DashQL', () => {
@@ -125,16 +125,5 @@ describe('App flavor branding', () => {
         expect(doc.querySelector('meta[name="apple-mobile-web-app-title"]')?.getAttribute('content')).toBe('DashQL');
         const links = [...doc.head.querySelectorAll('link')].map(l => [l.rel, l.getAttribute('href')]);
         expect([...links].sort()).toEqual([...statics].sort());
-    });
-
-    it('layers flavor settings over the config settings', () => {
-        expect(applyFlavorSettings({ enableTableColumnPlots: true }, DASHQL_FLAVOR)).toEqual({ enableTableColumnPlots: true });
-        const flavor = { ...DBCOM_FLAVOR, settings: { enableTableColumnPlots: false, keywordCase: 'upper' as const } };
-        expect(applyFlavorSettings({ enableTableColumnPlots: true, pauseAfterAppSetup: false }, flavor)).toEqual({
-            enableTableColumnPlots: false,
-            pauseAfterAppSetup: false,
-            keywordCase: 'upper',
-        });
-        expect(applyFlavorSettings(undefined, flavor)).toEqual({ enableTableColumnPlots: false, keywordCase: 'upper' });
     });
 });

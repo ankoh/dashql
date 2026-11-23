@@ -4,8 +4,6 @@ import type { ConnectorConfigs } from '@akohn/dashql/platform/connections/connec
 import { useLogger } from '../host/logger_provider.js';
 import { Logger, stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { createTrace } from '@akohn/dashql/platform/logger/trace_context';
-import { AppFlavor, applyFlavorSettings } from './flavors.js';
-import { useAppFlavor } from './flavor_provider.js';
 import type { AppSettings } from './app_settings.js';
 
 const CONFIG_URL = new URL('../../static/config.json', import.meta.url);
@@ -22,7 +20,7 @@ export interface AppConfigResult {
     traceId: number;
 }
 
-export async function downloadAppConfig(logger: Logger, flavor: AppFlavor): Promise<AppConfigResult> {
+export async function downloadAppConfig(logger: Logger): Promise<AppConfigResult> {
     const trace = createTrace();
     const traced = logger.withTrace(trace);
     const resp = await fetch(CONFIG_URL as unknown as string);
@@ -30,7 +28,6 @@ export async function downloadAppConfig(logger: Logger, flavor: AppFlavor): Prom
         throw new Error(`Loading ${CONFIG_URL.pathname} failed with status ${resp.status}`);
     }
     const config = await resp.json() as AppConfig;
-    config.settings = applyFlavorSettings(config.settings, flavor);
     traced.info("Loaded app config", {}, "app_config");
     return { config, traceId: trace.traceId };
 };
@@ -46,14 +43,13 @@ type Props = {
 
 export const AppConfigProvider: React.FC<Props> = (props: Props) => {
     const logger = useLogger();
-    const flavor = useAppFlavor();
     const configPromise = React.useRef<Promise<AppConfigResult>>(null);
     const [config, setConfig] = React.useState<AppConfig | null>(null);
     const [error, setError] = React.useState<string | null>(null);
 
     React.useEffect(() => {
         if (!configPromise.current) {
-            configPromise.current = downloadAppConfig(logger, flavor);
+            configPromise.current = downloadAppConfig(logger);
             configPromise.current.then(result => {
                 setConfig(result.config);
             }).catch(e => {
@@ -61,7 +57,7 @@ export const AppConfigProvider: React.FC<Props> = (props: Props) => {
                 setError(`App config: ${stringifyError(e)}`);
             });
         }
-    }, [logger, flavor]);
+    }, [logger]);
 
     // The log level of the settings applies from the start, e.g. to the debug log of the setup of the embedded Hyper
     const minLogLevel = config?.settings?.minLogLevel ?? null;

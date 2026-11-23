@@ -116,11 +116,10 @@ export function AppSettings(props: { onClose: () => void; }) {
     const flavor = useAppFlavor();
     const flavorRequested = useRequestedAppFlavor() != null;
     const flavors = [...FLAVORS.values()];
-    // The settings of a flavor are layered over the current settings when switching to it
     const setFlavor = (next: AppFlavor) => {
         reconfigure(config => config == null ? null : {
             ...config,
-            settings: { ...config.settings, ...next.settings, flavor: next.id },
+            settings: { ...config.settings, flavor: next.id },
         });
     };
     const setMinLogLevel = React.useCallback((level: LogLevel) => {

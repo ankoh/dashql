@@ -1,4 +1,3 @@
-import type { AppSettings } from './app_config.js';
 import type { BrandLogo } from '@akohn/dashql-react/brand/brand';
 
 /// The logo of a flavor, the components of @akohn/dashql-react show it
@@ -49,8 +48,6 @@ export interface AppFlavor {
     /// The pages of the rail in groups with a separator between them.
     /// The pages that are not there yet are disabled buttons.
     railPages: AppFlavorRailPage[][];
-    /// Settings layered over the settings of config.json, persisted user settings still win
-    settings?: AppSettings;
 }
 
 /// The default flavor, the static html entry pages are branded for it
@@ -103,12 +100,4 @@ const FLAVOR_ALIASES: Map<string, AppFlavor> = new Map([['sidb', DBCOM_FLAVOR]])
 /// Find a flavor by its id or a former id
 export function findFlavor(id: string): AppFlavor | undefined {
     return FLAVORS.get(id) ?? FLAVOR_ALIASES.get(id);
-}
-
-/// Layer the settings of a flavor over the settings of the app config
-export function applyFlavorSettings(settings: AppSettings | undefined, flavor: AppFlavor): AppSettings | undefined {
-    if (flavor.settings == null) {
-        return settings;
-    }
-    return { ...(settings ?? {}), ...flavor.settings };
 }
