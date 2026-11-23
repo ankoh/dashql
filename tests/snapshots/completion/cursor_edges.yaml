@@ -1,0 +1,884 @@
+completion-snapshots:
+
+  - name: edge_start_of_script
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: t
+            text: "create tab..name text)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+              - catalog-id: "256.65536.4294967296.2"
+                name: name
+                text: "name text"
+          - catalog-id: "256.65536.4294967297"
+            name: u
+            text: "create tab..nt, c int)"
+            columns:
+              - catalog-id: "256.65536.4294967297.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967297.1"
+                name: c
+                text: "c int"
+        touched-relations:
+          - statement-id: 0
+            name: t
+          - statement-id: 1
+            name: u
+        errors: []
+    editor:
+      input: |-
+        select a from t
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "t"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          source: "t"
+          statement-id: 0
+          text: "a"
+    cursor:
+      search:
+        text: 'select'
+        index: 0
+    completions:
+      limit: 5
+      strategy: DEFAULT
+      symbol: OBJECT_SQL_SELECT
+      relative: BEGIN_OF_SYMBOL
+      entries:
+        - value: select
+          candidate-tags: [KEYWORD_A,EXPECTED_PARSER_SYMBOL,SUFFIX_DEPTH_MANY]
+          location: "select"
+          location-qualified: "select"
+          objects: []
+        - value: set
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,SUFFIX_DEPTH_MANY]
+          location: "select"
+          location-qualified: "select"
+          objects: []
+        - value: with
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,SUFFIX_DEPTH_ONE]
+          location: "select"
+          location-qualified: "select"
+          objects: []
+        - value: copy
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUFFIX_DEPTH_MANY]
+          location: "select"
+          location-qualified: "select"
+          objects: []
+        - value: revoke
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUFFIX_DEPTH_MANY]
+          location: "select"
+          location-qualified: "select"
+          objects: []
+      text: "select"
+
+  - name: edge_end_of_script_after_space
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: t
+            text: "create tab..name text)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+              - catalog-id: "256.65536.4294967296.2"
+                name: name
+                text: "name text"
+          - catalog-id: "256.65536.4294967297"
+            name: u
+            text: "create tab..nt, c int)"
+            columns:
+              - catalog-id: "256.65536.4294967297.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967297.1"
+                name: c
+                text: "c int"
+        touched-relations:
+          - statement-id: 0
+            name: t
+          - statement-id: 1
+            name: u
+        errors: []
+    editor:
+      input: 'select a from t '
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "t"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          source: "t"
+          statement-id: 0
+          text: "a"
+    cursor:
+      search:
+        text: 'from t '
+        index: 7
+    completions:
+      limit: 5
+      strategy: DEFAULT
+      symbol: OBJECT_SQL_SELECT
+      relative: AFTER_SYMBOL
+      entries:
+        - value: where
+          candidate-tags: [KEYWORD_A,EXPECTED_PARSER_SYMBOL]
+          location: ""
+          location-qualified: ""
+          objects: []
+        - value: group
+          keyword-continuation: by
+          candidate-tags: [KEYWORD_B,EXPECTED_PARSER_SYMBOL]
+          location: ""
+          location-qualified: ""
+          objects: []
+        - value: order
+          keyword-continuation: by
+          candidate-tags: [KEYWORD_B,EXPECTED_PARSER_SYMBOL]
+          location: ""
+          location-qualified: ""
+          objects: []
+        - value: as
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL]
+          location: ""
+          location-qualified: ""
+          objects: []
+        - value: by
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL]
+          location: ""
+          location-qualified: ""
+          objects: []
+      text: "t"
+
+  - name: edge_end_of_script_after_semicolon
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: t
+            text: "create tab..name text)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+              - catalog-id: "256.65536.4294967296.2"
+                name: name
+                text: "name text"
+          - catalog-id: "256.65536.4294967297"
+            name: u
+            text: "create tab..nt, c int)"
+            columns:
+              - catalog-id: "256.65536.4294967297.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967297.1"
+                name: c
+                text: "c int"
+        touched-relations:
+          - statement-id: 0
+            name: t
+          - statement-id: 1
+            name: u
+        errors: []
+    editor:
+      input: 'select a from t; '
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "t"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          source: "t"
+          statement-id: 0
+          text: "a"
+    cursor:
+      search:
+        text: '; '
+        index: 2
+    completions:
+      limit: 5
+      strategy: DEFAULT
+      symbol: OBJECT_SQL_SELECT
+      relative: AFTER_SYMBOL
+      entries:
+        - value: select
+          candidate-tags: [KEYWORD_A,EXPECTED_PARSER_SYMBOL]
+          location: ""
+          location-qualified: ""
+          objects: []
+        - value: set
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL]
+          location: ""
+          location-qualified: ""
+          objects: []
+        - value: with
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL]
+          location: ""
+          location-qualified: ""
+          objects: []
+        - value: abort
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL]
+          location: ""
+          location-qualified: ""
+          objects: []
+        - value: alter
+          keyword-continuation: table
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL]
+          location: ""
+          location-qualified: ""
+          objects: []
+      text: ";"
+
+  - name: edge_mid_identifier
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: t
+            text: "create tab..name text)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+              - catalog-id: "256.65536.4294967296.2"
+                name: name
+                text: "name text"
+          - catalog-id: "256.65536.4294967297"
+            name: u
+            text: "create tab..nt, c int)"
+            columns:
+              - catalog-id: "256.65536.4294967297.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967297.1"
+                name: c
+                text: "c int"
+        touched-relations:
+          - statement-id: 0
+            name: t
+          - statement-id: 1
+            name: u
+        errors: []
+    editor:
+      input: |-
+        select nxme from t
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "t"
+      expressions:
+        - expression-idx: 0
+          type: colref/unresolved
+          statement-id: 0
+          text: "nxme"
+    cursor:
+      search:
+        text: 'nxme'
+        index: 1
+    completions:
+      limit: 5
+      strategy: COLUMN_REF
+      symbol: NAME
+      relative: MID_OF_SYMBOL
+      entries:
+        - value: name
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: "nxme"
+          location-qualified: "nxme"
+          objects:
+            - type: column
+              id: "256.65536.4294967296.2"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: t.name
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "text · t"
+        - value: nxme
+          candidate-tags: [IDENTITY]
+          location: "nxme"
+          location-qualified: "nxme"
+          objects: []
+        - value: name
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
+          location: "nxme"
+          location-qualified: "nxme"
+          objects: []
+        - value: names
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
+          location: "nxme"
+          location-qualified: "nxme"
+          objects: []
+        - value: national
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
+          location: "nxme"
+          location-qualified: "nxme"
+          objects: []
+      text: "nxme"
+
+  - name: edge_mid_keyword
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: t
+            text: "create tab..name text)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+              - catalog-id: "256.65536.4294967296.2"
+                name: name
+                text: "name text"
+          - catalog-id: "256.65536.4294967297"
+            name: u
+            text: "create tab..nt, c int)"
+            columns:
+              - catalog-id: "256.65536.4294967297.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967297.1"
+                name: c
+                text: "c int"
+        touched-relations:
+          - statement-id: 0
+            name: t
+          - statement-id: 1
+            name: u
+        errors: []
+    editor:
+      input: |-
+        select * from t where a = 1
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "t"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          source: "t"
+          statement-id: 0
+          text: "a"
+        - expression-idx: 1
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 1
+          text: "1"
+    cursor:
+      search:
+        text: 'where'
+        index: 2
+    completions:
+      limit: 5
+      strategy: DEFAULT
+      symbol: OBJECT_SQL_SELECT
+      relative: MID_OF_SYMBOL
+      entries:
+        - value: where
+          candidate-tags: [IDENTITY]
+          location: "where"
+          location-qualified: "where"
+          objects: []
+        - value: where
+          candidate-tags: [KEYWORD_A,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
+          location: "where"
+          location-qualified: "where"
+          objects: []
+        - value: while
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_INCOMPATIBLE]
+          location: "where"
+          location-qualified: "where"
+          objects: []
+        - value: whitespace
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_INCOMPATIBLE]
+          location: "where"
+          location-qualified: "where"
+          objects: []
+        - value: limit
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,SUFFIX_DEPTH_MANY]
+          location: "where"
+          location-qualified: "where"
+          objects: []
+      text: "where"
+
+  - name: edge_after_string_literal
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: t
+            text: "create tab..name text)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+              - catalog-id: "256.65536.4294967296.2"
+                name: name
+                text: "name text"
+          - catalog-id: "256.65536.4294967297"
+            name: u
+            text: "create tab..nt, c int)"
+            columns:
+              - catalog-id: "256.65536.4294967297.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967297.1"
+                name: c
+                text: "c int"
+        touched-relations:
+          - statement-id: 0
+            name: t
+          - statement-id: 1
+            name: u
+        errors: []
+    editor:
+      input: |-
+        select * from t where name = 'x'
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "t"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.2"
+          source: "t"
+          statement-id: 0
+          text: "name"
+        - expression-idx: 1
+          type: literal/string
+          is-const: true
+          statement-id: 0
+          text: "'x'"
+      constants:
+        - expression: 1
+          text: "'x'"
+    cursor:
+      search:
+        text: '''x'''
+        index: 3
+    completions:
+      limit: 5
+      strategy: DEFAULT
+      symbol: LITERAL_STRING
+      relative: END_OF_SYMBOL
+      entries: []
+      text: "'x'"
+
+  - name: edge_after_line_comment
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: t
+            text: "create tab..name text)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+              - catalog-id: "256.65536.4294967296.2"
+                name: name
+                text: "name text"
+          - catalog-id: "256.65536.4294967297"
+            name: u
+            text: "create tab..nt, c int)"
+            columns:
+              - catalog-id: "256.65536.4294967297.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967297.1"
+                name: c
+                text: "c int"
+        touched-relations:
+          - statement-id: 0
+            name: t
+          - statement-id: 1
+            name: u
+        errors: []
+    editor:
+      input: |-
+        select * from t -- a comment
+        wh
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "t -- a comment\nwh"
+    cursor:
+      search:
+        text: 'wh'
+        index: 2
+    completions:
+      limit: 5
+      strategy: TABLE_REF_ALIAS
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - value: where
+          candidate-tags: [KEYWORD_A,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "wh"
+          location-qualified: "wh"
+          objects: []
+        - value: while
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "wh"
+          location-qualified: "wh"
+          objects: []
+        - value: whitespace
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "wh"
+          location-qualified: "wh"
+          objects: []
+        - value: wh
+          candidate-tags: [IDENTITY]
+          location: "wh"
+          location-qualified: "wh"
+          objects: []
+        - value: group
+          keyword-continuation: by
+          candidate-tags: [KEYWORD_B,EXPECTED_PARSER_SYMBOL]
+          location: "wh"
+          location-qualified: "wh"
+          objects: []
+      text: "wh"
+
+  - name: edge_broken_previous_statement
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: t
+            text: "create tab..name text)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+              - catalog-id: "256.65536.4294967296.2"
+                name: name
+                text: "name text"
+          - catalog-id: "256.65536.4294967297"
+            name: u
+            text: "create tab..nt, c int)"
+            columns:
+              - catalog-id: "256.65536.4294967297.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967297.1"
+                name: c
+                text: "c int"
+        touched-relations:
+          - statement-id: 0
+            name: t
+          - statement-id: 1
+            name: u
+        errors: []
+    editor:
+      input: |-
+        select from where;
+        select na from t
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "t"
+      expressions:
+        - expression-idx: 0
+          type: colref/unresolved
+          statement-id: 0
+          text: "na"
+    cursor:
+      search:
+        text: 'na from'
+        index: 2
+    completions:
+      limit: 5
+      strategy: COLUMN_REF
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - value: name
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: "na"
+          location-qualified: "na"
+          objects:
+            - type: column
+              id: "256.65536.4294967296.2"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: t.name
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "text · t"
+        - value: na
+          candidate-tags: [IDENTITY]
+          location: "na"
+          location-qualified: "na"
+          objects: []
+        - value: name
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
+          location: "na"
+          location-qualified: "na"
+          objects: []
+        - value: names
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
+          location: "na"
+          location-qualified: "na"
+          objects: []
+        - value: national
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
+          location: "na"
+          location-qualified: "na"
+          objects: []
+      text: "na"
+
+  - name: edge_broken_cursor_statement_between
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: t
+            text: "create tab..name text)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+              - catalog-id: "256.65536.4294967296.2"
+                name: name
+                text: "name text"
+          - catalog-id: "256.65536.4294967297"
+            name: u
+            text: "create tab..nt, c int)"
+            columns:
+              - catalog-id: "256.65536.4294967297.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967297.1"
+                name: c
+                text: "c int"
+        touched-relations:
+          - statement-id: 0
+            name: t
+          - statement-id: 1
+            name: u
+        errors: []
+    editor:
+      input: |-
+        select 1;
+        select * from t where a = and na;
+        select 2;
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 1
+          text: "t"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          source: "t"
+          statement-id: 1
+          text: "a"
+        - expression-idx: 1
+          type: literal/integer
+          is-const: true
+          text: "1"
+        - expression-idx: 2
+          type: literal/integer
+          is-const: true
+          statement-id: 2
+          text: "2"
+      constants:
+        - expression: 1
+          text: "1"
+        - expression: 2
+          text: "2"
+    cursor:
+      search:
+        text: 'and na'
+        index: 6
+    completions:
+      limit: 5
+      strategy: DEFAULT
+      symbol: ARRAY
+      relative: END_OF_SYMBOL
+      entries:
+        - value: na
+          candidate-tags: [IDENTITY]
+          location: "na"
+          location-qualified: "na"
+          objects: []
+        - value: name
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: "na"
+          location-qualified: "na"
+          objects:
+            - type: column
+              id: "256.65536.4294967296.2"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: t.name
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "text · t"
+        - value: name
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
+          location: "na"
+          location-qualified: "na"
+          objects: []
+        - value: names
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
+          location: "na"
+          location-qualified: "na"
+          objects: []
+        - value: national
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
+          location: "na"
+          location-qualified: "na"
+          objects: []
+      text: "na"
+
+  - name: edge_empty_catalog_table_ref
+    catalog: {}
+    editor:
+      input: |-
+        select * from ord
+      catalog-id: 1
+      errors: []
+      table-refs:
+        - type: name/unresolved
+          statement-id: 0
+          text: "ord"
+    cursor:
+      search:
+        text: 'ord'
+        index: 3
+    completions:
+      limit: 5
+      strategy: TABLE_REF
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - value: order
+          keyword-continuation: by
+          candidate-tags: [KEYWORD_B,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "ord"
+          location-qualified: "ord"
+          objects: []
+        - value: ordinality
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "ord"
+          location-qualified: "ord"
+          objects: []
+        - value: ord
+          candidate-tags: [IDENTITY]
+          location: "ord"
+          location-qualified: "ord"
+          objects: []
+        - value: password
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
+          location: "ord"
+          location-qualified: "ord"
+          objects: []
+        - value: where
+          candidate-tags: [KEYWORD_A,EXPECTED_PARSER_SYMBOL]
+          location: "ord"
+          location-qualified: "ord"
+          objects: []
+      text: "ord"

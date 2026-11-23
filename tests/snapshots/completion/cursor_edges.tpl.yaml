@@ -1,0 +1,159 @@
+completion-snapshots:
+  # The cursor at the very start of a script, before its first keyword
+  - name: edge_start_of_script
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select a from t
+    cursor:
+      search:
+        text: 'select'
+        index: 0
+    completions:
+      limit: 5
+
+  # The cursor at the end of a script, in the whitespace after a table
+  - name: edge_end_of_script_after_space
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: 'select a from t '
+    cursor:
+      search:
+        text: 'from t '
+        index: 7
+    completions:
+      limit: 5
+
+  # The cursor at the end of a script, after the semicolon
+  - name: edge_end_of_script_after_semicolon
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: 'select a from t; '
+    cursor:
+      search:
+        text: '; '
+        index: 2
+    completions:
+      limit: 5
+
+  # The cursor in the middle of an identifier, only the text before it filters
+  - name: edge_mid_identifier
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select nxme from t
+    cursor:
+      search:
+        text: 'nxme'
+        index: 1
+    completions:
+      limit: 5
+
+  # The cursor in the middle of a complete keyword mid-statement
+  - name: edge_mid_keyword
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select * from t where a = 1
+    cursor:
+      search:
+        text: 'where'
+        index: 2
+    completions:
+      limit: 5
+
+  # The cursor right after the closing quote of a string literal
+  - name: edge_after_string_literal
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select * from t where name = 'x'
+    cursor:
+      search:
+        text: '''x'''
+        index: 3
+    completions:
+      limit: 5
+
+  # The cursor on the line after a line comment
+  - name: edge_after_line_comment
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select * from t -- a comment
+        wh
+    cursor:
+      search:
+        text: 'wh'
+        index: 2
+    completions:
+      limit: 5
+
+  # A broken statement before the statement of the cursor
+  - name: edge_broken_previous_statement
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select from where;
+        select na from t
+    cursor:
+      search:
+        text: 'na from'
+        index: 2
+    completions:
+      limit: 5
+
+  # The cursor statement is broken and sits between two valid statements
+  - name: edge_broken_cursor_statement_between
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select 1;
+        select * from t where a = and na;
+        select 2;
+    cursor:
+      search:
+        text: 'and na'
+        index: 6
+    completions:
+      limit: 5
+
+  # A table reference without any catalog, keywords after a bare FROM outrank the identity
+  - name: edge_empty_catalog_table_ref
+    catalog: {}
+    editor:
+      input: |-
+        select * from ord
+    cursor:
+      search:
+        text: 'ord'
+        index: 3
+    completions:
+      limit: 5

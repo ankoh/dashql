@@ -1,0 +1,208 @@
+completion-snapshots:
+  # A column in ORDER BY
+  - name: clause_order_by_column
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select a from t order by na
+    cursor:
+      search:
+        text: 'by na'
+        index: 5
+    completions:
+      limit: 5
+
+  # A second column in ORDER BY after a comma
+  - name: clause_order_by_after_comma
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select a from t order by a, na
+    cursor:
+      search:
+        text: ', na'
+        index: 4
+    completions:
+      limit: 5
+
+  # A direction keyword after an ORDER BY column
+  - name: clause_order_by_desc
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select a from t order by a de
+    cursor:
+      search:
+        text: ' de'
+        index: 3
+    completions:
+      limit: 5
+
+  # A column in HAVING
+  - name: clause_having_column
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select name, count(*) from t group by name having na
+    cursor:
+      search:
+        text: 'having na'
+        index: 9
+    completions:
+      limit: 5
+
+  # A column in the PARTITION BY of a window
+  - name: clause_window_partition_by
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select sum(a) over (partition by na) from t
+    cursor:
+      search:
+        text: 'by na'
+        index: 5
+    completions:
+      limit: 5
+
+  # A column in the PARTITION BY of a named window
+  - name: clause_named_window_partition_by
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select sum(a) over w from t window w as (partition by na)
+    cursor:
+      search:
+        text: 'by na'
+        index: 5
+    completions:
+      limit: 5
+
+  # The name of a window definition is a definition position
+  - name: clause_window_name_definition
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select sum(a) over w from t window na as (partition by a)
+    cursor:
+      search:
+        text: 'window na'
+        index: 9
+    completions:
+      limit: 5
+
+  # A column in a WHERE after a JOIN sees the columns of both sides
+  - name: clause_where_after_join
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select * from t join u on t.a = u.a where c
+    cursor:
+      search:
+        text: 'where c'
+        index: 7
+    completions:
+      limit: 5
+
+  # The left side of a JOIN ON after a dot
+  - name: clause_join_on_left_dot
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select * from t join u on t. = u.c
+    cursor:
+      search:
+        text: 't.'
+        index: 2
+    completions:
+      limit: 5
+
+  # A column as the second argument of a function
+  - name: clause_function_second_argument
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select coalesce(a, na) from t
+    cursor:
+      search:
+        text: ', na'
+        index: 4
+    completions:
+      limit: 5
+
+  # A column after an arithmetic operator
+  - name: clause_after_plus
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select a + na from t
+    cursor:
+      search:
+        text: '+ na'
+        index: 4
+    completions:
+      limit: 5
+
+  # A type name in a CAST
+  - name: clause_cast_type
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select cast(a as var) from t
+    cursor:
+      search:
+        text: 'as var'
+        index: 6
+    completions:
+      limit: 5
+
+  # The target table of an INSERT does not put its columns in scope of the source query
+  - name: clause_insert_select_source
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        insert into u select c from t
+    cursor:
+      search:
+        text: 'select c'
+        index: 8
+    completions:
+      limit: 5

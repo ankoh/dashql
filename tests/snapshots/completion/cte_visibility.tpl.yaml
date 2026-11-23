@@ -1,0 +1,157 @@
+completion-snapshots:
+  # A CTE body sees an earlier sibling CTE
+  - name: cte_body_sees_earlier_sibling
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        with first_c as (select 1 as x), second_c as (select * from fi) select * from second_c
+    cursor:
+      search:
+        text: 'from fi'
+        index: 7
+    completions:
+      limit: 5
+
+  # A CTE body does not see a later sibling CTE
+  - name: cte_body_misses_later_sibling
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        with first_c as (select * from se), second_c as (select 1 as x) select * from first_c
+    cursor:
+      search:
+        text: 'from se'
+        index: 7
+    completions:
+      limit: 5
+
+  # A non-recursive CTE does not see itself
+  - name: cte_body_misses_itself
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        with self_c as (select * from se) select * from self_c
+    cursor:
+      search:
+        text: 'from se'
+        index: 7
+    completions:
+      limit: 5
+
+  # A recursive CTE sees itself
+  - name: cte_recursive_sees_itself
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        with recursive self_c as (select 1 as x union all select * from se) select * from self_c
+    cursor:
+      search:
+        text: 'from se'
+        index: 7
+    completions:
+      limit: 5
+
+  # A CTE of a subquery is visible inside the subquery
+  - name: cte_nested_in_subquery
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select * from (with inner_c as (select 1 as x) select * from inn) s
+    cursor:
+      search:
+        text: 'from inn'
+        index: 8
+    completions:
+      limit: 5
+
+  # A CTE is not visible in the next statement, only its name in the index of the script
+  - name: cte_not_visible_in_next_statement
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        with my_cte as (select 1 as x) select 1;
+        select * from my_
+    cursor:
+      search:
+        text: 'from my_'
+        index: 8
+    completions:
+      limit: 5
+
+  # The column list of a CTE overrides the names after a dot
+  - name: cte_dot_column_aliases
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        with c(k1, k2) as (select a, b from t) select * from c where c.
+    cursor:
+      search:
+        text: 'c.'
+        index: 2
+    completions:
+      limit: 5
+
+  # A subquery in WHERE sees the columns of the outer query unqualified
+  - name: scope_where_subquery_sees_outer
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select * from t where a in (select c from u where na)
+    cursor:
+      search:
+        text: 'where na'
+        index: 8
+    completions:
+      limit: 5
+
+  # A table of the script before its CREATE
+  - name: scope_local_table_before_definition
+    catalog: {}
+    editor:
+      input: |-
+        select * from loc;
+        create table local_t (x int);
+    cursor:
+      search:
+        text: 'from loc'
+        index: 8
+    completions:
+      limit: 5
+
+  # A table of the script after its CREATE, tied with a keyword
+  - name: scope_local_table_after_definition
+    catalog: {}
+    editor:
+      input: |-
+        create table local_t (x int);
+        select * from loc
+    cursor:
+      search:
+        text: 'from loc'
+        index: 8
+    completions:
+      limit: 5

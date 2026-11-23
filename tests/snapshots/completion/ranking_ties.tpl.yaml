@@ -1,0 +1,128 @@
+completion-snapshots:
+  # Two tables with the same score are ordered by name
+  - name: tie_tables_lexicographic
+    catalog:
+      script:
+        input: |-
+          create table abc_y (v int); create table abc_x (v int); create table "ZETA_B" (v int); create table zeta_a (v int);
+    editor:
+      input: |-
+        select * from abc
+    cursor:
+      search:
+        text: 'abc'
+        index: 3
+    completions:
+      limit: 5
+
+  # Equal scores order names case-insensitively
+  - name: tie_tables_case_insensitive
+    catalog:
+      script:
+        input: |-
+          create table abc_y (v int); create table abc_x (v int); create table "ZETA_B" (v int); create table zeta_a (v int);
+    editor:
+      input: |-
+        select * from zeta
+    cursor:
+      search:
+        text: 'zeta'
+        index: 4
+    completions:
+      limit: 5
+
+  # A prefix match ranks above a substring match, a name that is also a table scores with its table object
+  - name: rank_prefix_beats_substring
+    catalog:
+      script:
+        input: |-
+          create table t (xname int, namex int, name int, names int); create table name (name int);
+    editor:
+      input: |-
+        select nam from t
+    cursor:
+      search:
+        text: 'nam'
+        index: 3
+    completions:
+      limit: 5
+
+  # An exact match ranks above longer prefix matches
+  - name: rank_exact_beats_prefix
+    catalog:
+      script:
+        input: |-
+          create table t (xname int, namex int, name int, names int); create table name (name int);
+    editor:
+      input: |-
+        select name from t
+    cursor:
+      search:
+        text: 'name from'
+        index: 4
+    completions:
+      limit: 5
+
+  # A name of a table and a column in a table reference
+  - name: rank_table_and_column_share_name_table_ref
+    catalog:
+      script:
+        input: |-
+          create table t (xname int, namex int, name int, names int); create table name (name int);
+    editor:
+      input: |-
+        select * from nam
+    cursor:
+      search:
+        text: 'from nam'
+        index: 8
+    completions:
+      limit: 5
+
+  # A column with a space in its quoted name
+  - name: quoted_special_chars_column
+    catalog:
+      script:
+        input: |-
+          create table "my table" ("weird col" int, "a.b" int, "Upper" int);
+    editor:
+      input: |-
+        select "wei" from "my table"
+    cursor:
+      search:
+        text: '"wei'
+        index: 4
+    completions:
+      limit: 5
+
+  # A table with a space in its quoted name
+  - name: quoted_special_chars_table
+    catalog:
+      script:
+        input: |-
+          create table "my table" ("weird col" int, "a.b" int, "Upper" int);
+    editor:
+      input: |-
+        select * from "my t"
+    cursor:
+      search:
+        text: '"my t'
+        index: 5
+    completions:
+      limit: 5
+
+  # A column with a dot in its quoted name
+  - name: quoted_dot_in_name
+    catalog:
+      script:
+        input: |-
+          create table "my table" ("weird col" int, "a.b" int, "Upper" int);
+    editor:
+      input: |-
+        select "a." from "my table"
+    cursor:
+      search:
+        text: '"a.'
+        index: 3
+    completions:
+      limit: 5
