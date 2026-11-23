@@ -8,7 +8,6 @@ import { stringifyError } from '@akohn/dashql/platform/logger/logger';
 
 import { AppOAuthFlow } from '../oauth/app_oauth_flow.js';
 import { RuntimeContextProvider, useOwnedRuntime } from '@akohn/dashql-react/hooks';
-import { useSalesforceMock } from '../connections/salesforce/salesforce_connector.js';
 import { mockSalesforceHttp, mockSalesforceOAuthFlow } from '@akohn/dashql/platform/connections/salesforce/salesforce_api_client_mock';
 import { createChannelConnector, type ChannelClients } from '../connections/hyper/hyper_connection_setup.js';
 import { NativeHyperDatabaseClient } from '../connections/hyper/native_hyperdb_grpc_client.js';
@@ -23,6 +22,7 @@ import { useStorageReader } from '../storage/storage_provider.js';
 import { useAppHandOver } from './app_hand_over.js';
 import { FRAME_UPDATE_SCHEDULER } from '../utils/store_hooks.js';
 import { useDashQLCore } from './core_provider.js';
+import { useAppConfig } from '../config/app_config.js';
 
 const NO_HTTP: HttpClient = {
     fetch: () => Promise.reject(new Error('the app has no http client')),
@@ -61,8 +61,10 @@ function AppRuntime(props: { core: core.DashQL; catalogLoader?: boolean; queryCo
     // The platform owns what it passes to the runtime for the lifetime of the runtime. The parts that the providers
     // above set up later or change with the settings are read when the runtime asks: the mock of Salesforce that the
     // config may choose and the embedded database.
+    const salesforceMock = useAppConfig()?.connectors?.salesforce?.mock;
     const latest = {
-        salesforceMock: useSalesforceMock(),
+        // The requests of Salesforce are answered from the config, the OAuth flow returns at once
+        salesforceMock: salesforceMock?.enabled ? salesforceMock : null,
         setupEmbeddedDatabase: useEmbeddedDatabaseSetup(),
         queryCommands: props.queryCommands,
     };

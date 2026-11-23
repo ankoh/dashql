@@ -21,7 +21,6 @@ import { LoggerToast } from '../diagnostics/logger_toast.js';
 import { NavBarContainer } from './navbar.js';
 import { PlatformEventListenerProvider } from '../host/events/event_listener_provider.js';
 import { RouterReset } from './router_reset.js';
-import { SalesforceConnector } from '../connections/salesforce/salesforce_connector.js';
 import { StorageProvider } from '../storage/storage_provider.js';
 import { VersionCheck } from '../host/version/version_check.js';
 import { WorkbookCommands } from '../workbook/scripts/workbook_commands.js';
@@ -45,30 +44,28 @@ import '../connections/bundled_clfn_specs.js';
 const LOG_CTX = 'app';
 
 // The RuntimeProvider creates the runtime of DashQL once the core is there, over the storage, the http client, the
-// clients of the channels, the embedded database and the API of Salesforce of the providers above it, and provides
+// clients of the channels, the embedded database and the mock of Salesforce of the providers above it, and provides
 // the extracts of the Hyper logs that its channels feed. The loading page shows until then. The providers below it bind
 // parts of it to the app, e.g. the CloudStateProvider runs its statements through the query executor and the AppLoader
 // shows the cloud setup from it.
 const WorkbookProviders = (props: { children: React.ReactElement }) => (
-    <SalesforceConnector>
-        <RuntimeProvider loading={<AppLoadingPage pauseAfterSetup={false} progress={null} embeddedDatabaseStatus={IndicatorStatus.None} />}>
-            <NativeWorkbookSync />
-            <AgentSessionProvider>
-                <WorkbookImportProvider>
-                    <WorkbookViewModeProvider>
-                        <WorkbookCommands>
-                            <CloudStateProvider>
-                                <CloudPreviewCleanup />
-                                <AppLoader>
-                                    {props.children}
-                                </AppLoader>
-                            </CloudStateProvider>
-                        </WorkbookCommands>
-                    </WorkbookViewModeProvider>
-                </WorkbookImportProvider>
-            </AgentSessionProvider>
-        </RuntimeProvider>
-    </SalesforceConnector>
+    <RuntimeProvider loading={<AppLoadingPage pauseAfterSetup={false} progress={null} embeddedDatabaseStatus={IndicatorStatus.None} />}>
+        <NativeWorkbookSync />
+        <AgentSessionProvider>
+            <WorkbookImportProvider>
+                <WorkbookViewModeProvider>
+                    <WorkbookCommands>
+                        <CloudStateProvider>
+                            <CloudPreviewCleanup />
+                            <AppLoader>
+                                {props.children}
+                            </AppLoader>
+                        </CloudStateProvider>
+                    </WorkbookCommands>
+                </WorkbookViewModeProvider>
+            </WorkbookImportProvider>
+        </AgentSessionProvider>
+    </RuntimeProvider>
 );
 
 /// The embedded database with the startup options of the app settings.
