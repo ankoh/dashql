@@ -17,7 +17,7 @@ import { HyperConnectorSettings } from '../connections/hyper_connection_settings
 import { SalesforceConnectorSettings } from '../connections/salesforce_connection_settings.js';
 import { CloudCleanupLine } from './cloud_cleanup.js';
 import { CloudConnectionInstaller } from './cloud_connection_installer.js';
-import { connectionError, useCloudLogin, useLocalCloudAutoLogin } from './cloud_login.js';
+import { useCloudLogin, useLocalCloudAutoLogin } from './cloud_login.js';
 import { CloudConnectionRow } from './cloud_connection_row.js';
 import { useCloudState } from './cloud_state.js';
 import { useCloudRemoval } from './cloud_deletion.js';
@@ -108,7 +108,7 @@ export function CloudSetupPage(props: CloudSetupPageProps): React.ReactElement {
             break;
         case 'login': {
             const connecting = cloud!.connectionHealth === ConnectionHealth.CONNECTING;
-            const error = cloud!.connectionHealth === ConnectionHealth.FAILED ? connectionError(cloud!) : null;
+            const error = cloud!.connectionHealth === ConnectionHealth.FAILED ? cloud!.details.error?.message ?? null : null;
             content = (
                 <div className={styles.section} data-testid="cloud-setup-login">
                     <CloudConnectionRow connection={cloud!}>

@@ -70,7 +70,7 @@ function hyperConnection(connectionId: string, health: ConnectionHealth, local =
         localCloud: local,
         cloudCapable: true,
         connectorType: ConnectorType.HYPER,
-        details: { setupParams: params.hyper, channel: null, healthCheckError: setupError ? { message: setupError } : null, connector: { kind: 'hyper' } },
+        details: { setupParams: params.hyper, channel: null, error: setupError ? { message: setupError } : null, connector: { kind: 'hyper' } },
         params,
         active: true,
         connectionStatus: ConnectionStatus.NOT_STARTED,
@@ -164,7 +164,7 @@ describe('cloud setup page', () => {
             for (const c of connections) {
                 await addTestConnection(appRuntime!, {
                     connectionId: c.connectionId, params: c.params, name: c.name ?? undefined, active: true,
-                    health: c.connectionHealth, error: c.details.healthCheckError?.message,
+                    health: c.connectionHealth, error: c.details.error?.message,
                 });
             }
         });

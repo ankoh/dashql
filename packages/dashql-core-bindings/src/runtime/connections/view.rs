@@ -291,7 +291,7 @@ impl ConnectionSecrets {
 pub enum ConnectionConnectorDetails {
     Hyper,
     Trino { schema_resolution_error: Option<ConnectionError>, oauth_state: Option<ConnectionTrinoOAuthState> },
-    Salesforce { setup_error: Option<ConnectionError>, oauth_state: Option<ConnectionSalesforceOAuthState> },
+    Salesforce { oauth_state: Option<ConnectionSalesforceOAuthState> },
 }
 
 impl From<&ConnectionDetails> for ConnectionConnectorDetails {
@@ -308,7 +308,6 @@ impl From<&ConnectionDetails> for ConnectionConnectorDetails {
             },
             ConnectorDetails::SalesforceDataCloud(salesforce) | ConnectorDetails::Dbcom(salesforce) => {
                 Self::Salesforce {
-                    setup_error: error(&salesforce.setup_error),
                     oauth_state: salesforce.oauth_state.as_ref().map(|state| ConnectionSalesforceOAuthState {
                         pkce_generated: state.pkce_generated,
                         core_access_token: token_summary(&tokens.core_access_token),
@@ -328,8 +327,8 @@ pub struct ConnectionDetailsView {
     /// The params of the connector that the setup uses, without the field of the connector
     #[tsify(type = "Record<string, unknown> | null")]
     pub setup_params: Option<JsonObject>,
-    pub channel_error: Option<ConnectionError>,
-    pub health_check_error: Option<ConnectionError>,
+    /// The error of the last setup: the one of the login, of the channel or of the health check, in this order
+    pub error: Option<ConnectionError>,
     /// The handle of a channel of the host, once it is ready: the embedded Hyper or Hyper over gRPC. The channels that
     /// the runtime speaks itself have none.
     pub channel: Option<u32>,
@@ -340,8 +339,7 @@ impl From<&ConnectionDetails> for ConnectionDetailsView {
     fn from(details: &ConnectionDetails) -> Self {
         ConnectionDetailsView {
             setup_params: details.setup_params.clone(),
-            channel_error: error(&details.channel_error),
-            health_check_error: error(&details.health_check_error),
+            error: details.error().map(ConnectionError::from),
             channel: details.channel.as_ref().and_then(ConnectionChannel::host_handle),
             connector: details.into(),
         }

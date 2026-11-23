@@ -21,8 +21,6 @@ import { classNames } from '@akohn/dashql-react/dom/classnames';
 import { Logger } from '@akohn/dashql/platform/logger/logger';
 import { CONNECTOR_INFOS, ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 import { connectionParamsOf } from '@akohn/dashql/platform/connections/connection_params';
-import type { ConnectionDetailsView } from '@akohn/dashql';
-import type { DetailedError } from '@akohn/dashql/platform/utils/error';
 import { ConnectionInlineHeader } from './connection_inline_header.js';
 
 const LOG_CTX = "sf_connector";
@@ -103,10 +101,6 @@ export function getConnectionHealthIndicator(health: ConnectionHealth | null) {
         default:
             return IndicatorStatus.None;
     }
-}
-
-export function getConnectionError(details: ConnectionDetailsView | null): (DetailedError | null) {
-    return (details?.channelError ?? details?.healthCheckError ?? null) as DetailedError | null;
 }
 
 interface Props {

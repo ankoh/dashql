@@ -316,6 +316,15 @@ impl ConnectionDetails {
         self.connector_type().connector().catalog_name_defaults(self.setup_params.as_ref())
     }
 
+    /// The error of the last setup of the connection: the one of the login, of the channel or of the health check, in
+    /// this order
+    pub fn error(&self) -> Option<&DetailedError> {
+        self.salesforce()
+            .and_then(|salesforce| salesforce.setup_error.as_ref())
+            .or(self.channel_error.as_ref())
+            .or(self.health_check_error.as_ref())
+    }
+
     /// Clear the errors of the setup, false if there were none
     pub(crate) fn clear_errors(&mut self) -> bool {
         let mut cleared = self.channel_error.take().is_some() | self.health_check_error.take().is_some();

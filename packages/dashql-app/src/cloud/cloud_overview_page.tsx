@@ -47,7 +47,7 @@ import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_
 import { CloudConnectionInstaller } from './cloud_connection_installer.js';
 import { useCloudRemoval } from './cloud_deletion.js';
 import { CloudConnectionRow } from './cloud_connection_row.js';
-import { connectionError, useCloudLogin } from './cloud_login.js';
+import { useCloudLogin } from './cloud_login.js';
 import { CloudRowMenu } from './cloud_row_menu.js';
 import { useClouds, useCloudState, type CloudState } from './cloud_state.js';
 import { useCloudWorkbooks, type CloudWorkbooks } from './cloud_workbooks.js';
@@ -174,7 +174,7 @@ const CloudSummary: React.FC<{ cloud: CloudState }> = ({ cloud }) => {
     const login = useCloudLogin(cloud.connectionId);
     const health = cloud.connection.connectionHealth;
     if (!cloud.online) {
-        const error = health === ConnectionHealth.FAILED ? connectionError(cloud.connection) : null;
+        const error = health === ConnectionHealth.FAILED ? cloud.connection.details.error?.message ?? null : null;
         return (
             <div className={styles.card} data-testid="cloud-overview-login">
                 <CloudConnectionRow connection={cloud.connection}>

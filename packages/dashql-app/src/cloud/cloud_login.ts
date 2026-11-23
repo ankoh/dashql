@@ -39,13 +39,6 @@ export function useCloudLogin(connectionId: string | null): CloudLogin {
     return React.useMemo(() => ({ login, cancel: connectionSetup.cancel, available }), [available, connectionSetup.cancel, login]);
 }
 
-
-/// The error of the last login of a connection
-export function connectionError(connection: ConnectionState): string | null {
-    const setupError = connection.details.connector.kind === 'salesforce' ? connection.details.connector.setupError : null;
-    return setupError?.message ?? connection.details.healthCheckError?.message ?? null;
-}
-
 /// Log in to the local cloud without a click, it needs no credentials. Once per connection.
 export function useLocalCloudAutoLogin(cloud: ConnectionState | null, login: CloudLogin): void {
     const loggedIn = React.useRef<string | null>(null);

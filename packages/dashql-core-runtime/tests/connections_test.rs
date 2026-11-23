@@ -536,6 +536,24 @@ fn a_hyper_channel_setup_that_is_cancelled_keeps_the_error() {
 }
 
 #[test]
+fn the_error_of_a_connection_is_the_one_of_the_login_the_channel_or_the_health_check() {
+    let mut salesforce = connection(ConnectionParams::default_for(ConnectorType::SalesforceDataCloud));
+    assert_eq!(salesforce.details().error(), None);
+    apply(&mut salesforce, ConnectionAction::Salesforce(SalesforceAction::SetupStarted { params: JsonObject::new() }));
+    apply(&mut salesforce, ConnectionAction::Salesforce(SalesforceAction::SetupFailed(error("invalid_grant"))));
+    assert_eq!(salesforce.details().error(), Some(&error("invalid_grant")));
+
+    let mut channel = hyper();
+    apply(&mut channel, ConnectionAction::Hyper(HyperAction::ChannelSetupStarted { params: hyper_params("a").params }));
+    apply(&mut channel, ConnectionAction::Hyper(HyperAction::ChannelSetupFailed(error("refused"))));
+    assert_eq!(channel.details().error(), Some(&error("refused")));
+
+    let mut health_check = hyper();
+    apply(&mut health_check, ConnectionAction::HealthCheckFailed(error("unhealthy")));
+    assert_eq!(health_check.details().error(), Some(&error("unhealthy")));
+}
+
+#[test]
 fn discarding_the_draft_drops_the_errors_unless_the_connection_is_connecting() {
     let mut connection = hyper();
     apply(&mut connection, ConnectionAction::SetDraft(hyper_params("a")));

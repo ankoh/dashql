@@ -11,7 +11,7 @@ import { ConnectionHealth, ConnectionState } from '@akohn/dashql/platform/connec
 import { ConnectorInfo } from '@akohn/dashql/platform/connections/connector_info';
 import { IndicatorStatus, StatusIndicator } from '@akohn/dashql-react/components/status_indicator';
 import { SegmentedControl } from '@akohn/dashql-react/components/segmented_control';
-import { getConnectionError, getConnectionHealthIndicator, getConnectionStatusText } from './salesforce_connection_settings.js';
+import { getConnectionHealthIndicator, getConnectionStatusText } from './salesforce_connection_settings.js';
 import { useLogger } from '../host/logger_provider.js';
 import { CONNECTOR_ICON_STYLE, useConnectorIcon } from './connector_icon.js';
 
@@ -113,7 +113,7 @@ export function ConnectionInlineHeader(props: Props): React.ReactElement {
     }
 
     // Get the connection error (if any)
-    const connectionError = props.statusError ?? getConnectionError(props.connection?.details ?? null)?.message.toString();
+    const connectionError = props.statusError ?? props.connection?.details.error?.message;
 
     return (
         <div className={style.container}>
