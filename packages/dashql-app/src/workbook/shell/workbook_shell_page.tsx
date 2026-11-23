@@ -24,7 +24,8 @@ import { splitShellScript } from '../../shell/terminal/shell_script.js';
 import { useSnippetsDialog } from '../snippets/snippets_dialog.js';
 import { connectorInfoOf } from '@akohn/dashql/platform/connections/connection_state';
 import type * as core from '@akohn/dashql';
-import { useCatalog, useComputeDatabase, useConnection, useOptionalRuntime, useQuery } from '@akohn/dashql-react/hooks';
+import { useCatalog, useComputeDatabase, useConnection, useOptionalRuntime } from '@akohn/dashql-react/hooks';
+import { useShellQueryResult } from '../../shell/page/use_shell_query_result.js';
 
 const LOG_CTX = 'workbook_shell_page';
 
@@ -73,28 +74,12 @@ export const WorkbookShellPage: React.FC<Props> = ({ workbookId, workbookName, c
     }, [keywordCase]);
     const generationRef = React.useRef(0);
     const [status, setStatus] = React.useState('Instantiating Shell');
-    const [resultQueryId, setResultQueryId] = React.useState<number | null>(null);
-    const [resultOpen, setResultOpen] = React.useState(false);
-    const resultQuery = useQuery(resultQueryId);
-    const resultQueryRef = React.useRef(resultQuery);
-    resultQueryRef.current = resultQuery;
-    // The overlay opens unless the terminal shows the result
-    const showResult = React.useCallback((queryId: number, inTerminal: boolean) => {
-        setResultQueryId(queryId);
-        setResultOpen(!inTerminal);
-    }, []);
-    // Closing the overlay keeps the result so that it can open again, the computation of a result is released once
-    // another result replaces it
     const releaseResult = React.useCallback((queryId: number) => {
         runtime?.dispatch({ computation: queryId }, { kind: 'deleteComputation' });
     }, [runtime]);
-    React.useEffect(() => {
-        if (resultQueryId == null) return;
-        return () => releaseResult(resultQueryId);
-    }, [resultQueryId, releaseResult]);
+    const { resultQuery, showResultQuery, closeResultQuery, reopenResultQuery, dropResultQuery } = useShellQueryResult(releaseResult);
     const showResultError = (error: unknown, info: React.ErrorInfo) => {
-        // A result that failed to render doesn't open again
-        setResultQueryId(null);
+        dropResultQuery();
         // The terminal says what happened, an error would also raise a toast
         logger.warn('Failed to show a query result', { error: stringifyError(error), stack: info.componentStack ?? '' }, LOG_CTX);
         controllerRef.current?.writeStatus(`Failed to show the result: ${stringifyError(error)}`);
@@ -146,11 +131,7 @@ export const WorkbookShellPage: React.FC<Props> = ({ workbookId, workbookName, c
                 return await current.previewResult(queryId, limit);
             },
         );
-        const lastCommand = createShellLastCommand(() => {
-            if (resultQueryRef.current == null) return false;
-            setResultOpen(true);
-            return true;
-        });
+        const lastCommand = createShellLastCommand(reopenResultQuery);
         const examplesCommand = createExamplesCommand({
             requestSnippet: snippetsDialog.request,
             splitPrompts: text => {
@@ -188,7 +169,7 @@ export const WorkbookShellPage: React.FC<Props> = ({ workbookId, workbookName, c
                         greeter: workbookName ? [shellName, `Workbook: ${workbookName}`, 'Enter .help for usage hints.'] : [shellName, 'Enter .help for usage hints.'],
                         prompt,
                         onExit: () => setMode(WorkbookViewMode.Workbook),
-                        onQueryResult: showResult,
+                        onQueryResult: showResultQuery,
                         mayFocus: () => activeRef.current,
                     });
                 } catch (error) {
@@ -220,15 +201,15 @@ export const WorkbookShellPage: React.FC<Props> = ({ workbookId, workbookName, c
         return () => {
             cancelled = true;
         };
-    }, [shellConnectionId, workbookId, catalog, prompt, workbookName, shellName, setMode, snippetsDialog, mountsFiles, filesCommand, releaseResult, showResult, logger]);
+    }, [shellConnectionId, workbookId, catalog, prompt, workbookName, shellName, setMode, snippetsDialog, mountsFiles, filesCommand, releaseResult, showResultQuery, reopenResultQuery, logger]);
 
     React.useEffect(() => {
         if (active) controllerRef.current?.focus();
     }, [active]);
 
     React.useEffect(() => {
-        setResultQueryId(null);
-    }, [connection?.connectionId]);
+        dropResultQuery();
+    }, [connection?.connectionId, dropResultQuery]);
 
     React.useEffect(() => () => {
         ++generationRef.current;
@@ -248,8 +229,8 @@ export const WorkbookShellPage: React.FC<Props> = ({ workbookId, workbookName, c
                     <strong>[ RUN ]</strong> {status}
                 </div>
             )}
-            {resultOpen && resultQuery != null && (
-                <ResultOverlay query={resultQuery} onClose={() => setResultOpen(false)} onError={showResultError} />
+            {resultQuery != null && (
+                <ResultOverlay query={resultQuery} onClose={closeResultQuery} onError={showResultError} />
             )}
             {snippetsBrowserDialog}
             {fileDialogs}
