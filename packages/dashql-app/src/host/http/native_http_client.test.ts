@@ -30,6 +30,31 @@ describe('NativeHttpClient', () => {
         await vi.waitFor(() => expect(requests).toEqual(['POST /http/streams', 'GET /http/stream/7', 'DELETE /http/stream/7']));
     });
 
+    it('rejects with an abort when the request is aborted while the stream starts', async () => {
+        const abort = new AbortController();
+        const { requests } = installNativeProxy(request => {
+            if (request.method !== 'POST') return new Response(null);
+            abort.abort();
+            return new Response(null, { headers: { 'dashql-stream-id': '7' } });
+        });
+
+        await expect(client.fetch('https://trino.example/v1/statement', { signal: abort.signal })).rejects.toMatchObject({ name: 'AbortError' });
+        expect(requests).toEqual(['POST /http/streams', 'DELETE /http/stream/7']);
+    });
+
+    it('rejects the body with an abort when the request is aborted after the headers', async () => {
+        const abort = new AbortController();
+        setProxyResponses(
+            new Response(null, { headers: { 'dashql-stream-id': '7' } }),
+            new Response('partial', { headers: { 'dashql-response-started': 'true', 'dashql-batch-event': 'FlushAfterBytes' } }),
+            new Response(null),
+        );
+
+        const response = await client.fetch('https://trino.example/v1/statement', { signal: abort.signal });
+        abort.abort();
+        await expect(response.arrayBuffer()).rejects.toMatchObject({ name: 'AbortError' });
+    });
+
     it('surfaces proxy setup failures with their cause and details', async () => {
         setProxyResponses(new Response(JSON.stringify({
             message: 'header stores invalid endpoint',

@@ -108,7 +108,10 @@ export class NativeHttpServerStream implements HttpFetchResult {
         const batchEvent = response.headers.get(HEADER_NAME_BATCH_EVENT);
         this.logger.debug("Received fetch response", { "event": batchEvent }, "native_http_client");
         this.updateFetchState(batchEvent);
-        return { response, buffer: await response.arrayBuffer() };
+        const buffer = await response.arrayBuffer();
+        // An abort while the batch was read dropped the stream, the batches read so far are not the whole body
+        this.signal?.throwIfAborted();
+        return { response, buffer };
     }
 
     async initialize(): Promise<void> {
@@ -167,6 +170,8 @@ export class NativeHttpServerStream implements HttpFetchResult {
         if (this.streamId == null) {
             return new ArrayBuffer(0);
         }
+        // An abort after the headers dropped the stream, the first batch is not the whole body
+        this.signal?.throwIfAborted();
 
         const chunks = [];
         let totalChunkBytes = 0;
@@ -248,7 +253,10 @@ export class NativeHttpClient implements HttpClient {
 
             const stream = new NativeHttpServerStream(streamId, response.headers, response.status, response.statusText, this.logger, signal);
             // The request may have been aborted while the stream started
-            if (signal?.aborted) await stream.drop();
+            if (signal?.aborted) {
+                await stream.drop();
+                signal.throwIfAborted();
+            }
             await stream.initialize();
             return stream;
         } else {
