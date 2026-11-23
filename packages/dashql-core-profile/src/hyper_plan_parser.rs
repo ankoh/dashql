@@ -111,14 +111,16 @@ fn infer_scan_label(object: &Map<String, Value>) -> Option<String> {
     relation.map(String::from)
 }
 
-/// Read the source location of an operator from its `sqlpos` (`[[begin, end], ...]`)
+/// Read the source location of an operator from its `sqlpos` (`[[begin, end], ...]`), the first range of two offsets
 fn read_source_location(sql_pos: &[Value]) -> Option<SymbolSpan> {
-    let [begin, end] = sql_pos.first()?.as_array()?.as_slice() else {
-        return None;
-    };
-    let read = |v: &Value| v.as_u64().and_then(|n| u32::try_from(n).ok()).unwrap_or(0);
-    let (begin, end) = (read(begin), read(end));
-    Some(SymbolSpan::new(begin, end.max(begin) - begin))
+    let read = |v: &Value| v.as_u64().and_then(|n| u32::try_from(n).ok());
+    sql_pos.iter().find_map(|range| {
+        let [begin, end] = range.as_array()?.as_slice() else {
+            return None;
+        };
+        let (begin, end) = (read(begin)?, read(end)?);
+        Some(SymbolSpan::new(begin, end.max(begin) - begin))
+    })
 }
 
 /// Is the operator type one of the join operators that may reference a magic set?
@@ -358,8 +360,9 @@ impl QueryProfile {
                             }
                             // Contains a debug name? Hyper plans use both camelCase and kebab-case spellings.
                             ("debugName" | "debug-name", Value::Object(debug_name)) => {
+                                // A blank debug name is no label, the operator shows its type
                                 if let Some(label) = debug_name.get("value").and_then(Value::as_str) {
-                                    operator_label = Some(label.to_string());
+                                    operator_label = Some(label.trim().to_string()).filter(|label| !label.is_empty());
                                 }
                             }
                             // Contains a sqlpos?

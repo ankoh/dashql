@@ -707,6 +707,66 @@ profile-snapshots:
         port-count: 4
     pipelines: []
 
+  - name: debug_name_blank
+    input: |-
+      {"operator":"unionall","operatorId":1,"inputs":[{"operator":"tablescan","operatorId":2,"debugName":{"value":""}},{"operator":"tablescan","operatorId":3,"debugName":{"value":"  "}},{"operator":"scan","operatorId":4,"debugName":{"value":""},"attributes":[{"defines":{"id":"part.p_partkey"}}]},{"operator":"tablescan","operatorId":5,"debugName":{"value":" orders "}}]}
+    fragments: []
+    operators:
+      - id: 4
+        engine-id: 1
+        type: unionall
+        kind: union-all
+        position: [231.375000,32.000000]
+        children:
+          - id: 0
+            engine-id: 2
+            path: 'inputs[0]'
+            type: tablescan
+            kind: scan
+            parent: 4
+            position: [57.250000,96.000000]
+          - id: 1
+            engine-id: 3
+            path: 'inputs[1]'
+            type: tablescan
+            kind: scan
+            parent: 4
+            position: [191.750000,96.000000]
+          - id: 2
+            engine-id: 4
+            path: 'inputs[2]'
+            type: scan
+            kind: scan
+            label: part
+            parent: 4
+            position: [305.000000,96.000000]
+          - id: 3
+            engine-id: 5
+            path: 'inputs[3]'
+            type: tablescan
+            kind: scan
+            label: orders
+            parent: 4
+            position: [405.500000,96.000000]
+    operator-edges:
+      - child: 0
+        parent: 4
+        port-index: 0
+        port-count: 4
+      - child: 1
+        parent: 4
+        port-index: 1
+        port-count: 4
+      - child: 2
+        parent: 4
+        port-index: 2
+        port-count: 4
+      - child: 3
+        parent: 4
+        port-index: 3
+        port-count: 4
+    pipelines: []
+
   - name: scan_label_from_attributes
     input: |-
       {"operator":"unionall","operatorId":1,"inputs":[{"operator":"scan","operatorId":2,"attributes":[{"defines":{"id":"lineitem.l_orderkey"}},{"defines":{"id":"lineitem.l_partkey"}}]},{"operator":"scan","operatorId":3,"attributes":[{"defines":{"id":"orders.o_orderkey"}},{"defines":{"id":"customer.c_custkey"}}]},{"operator":"scan","operatorId":4,"attributes":[{"defines":{"id":"nodot"}},{"defines":{"id":".leading"}}]},{"operator":"tablescan","operatorId":5,"attributes":[{"defines":{"id":"part.p_partkey"}}]},{"operator":"scan","operatorId":6,"debugName":{"value":"explicit"},"attributes":[{"defines":{"id":"part.p_partkey"}}]}]}
@@ -817,6 +877,66 @@ profile-snapshots:
             type: tablescan
             kind: scan
             loc: 0..1
+            parent: 4
+            position: [460.750000,96.000000]
+    operator-edges:
+      - child: 0
+        parent: 4
+        port-index: 0
+        port-count: 4
+      - child: 1
+        parent: 4
+        port-index: 1
+        port-count: 4
+      - child: 2
+        parent: 4
+        port-index: 2
+        port-count: 4
+      - child: 3
+        parent: 4
+        port-index: 3
+        port-count: 4
+    pipelines: []
+
+  - name: sqlpos_not_numbers
+    input: |-
+      {"operator":"unionall","operatorId":1,"sqlpos":[["a",9]],"inputs":[{"operator":"tablescan","operatorId":2,"sqlpos":[["a",9],[3,5]]},{"operator":"tablescan","operatorId":3,"sqlpos":[[1,null]]},{"operator":"tablescan","operatorId":4,"sqlpos":[[-1,4],[7],[8,12]]},{"operator":"tablescan","operatorId":5,"sqlpos":[[0,4294967296]]}]}
+    fragments: []
+    operators:
+      - id: 4
+        engine-id: 1
+        type: unionall
+        kind: union-all
+        position: [259.000000,32.000000]
+        children:
+          - id: 0
+            engine-id: 2
+            path: 'inputs[0]'
+            type: tablescan
+            kind: scan
+            loc: 3..5
+            parent: 4
+            position: [57.250000,96.000000]
+          - id: 1
+            engine-id: 3
+            path: 'inputs[1]'
+            type: tablescan
+            kind: scan
+            parent: 4
+            position: [191.750000,96.000000]
+          - id: 2
+            engine-id: 4
+            path: 'inputs[2]'
+            type: tablescan
+            kind: scan
+            loc: 8..12
+            parent: 4
+            position: [326.250000,96.000000]
+          - id: 3
+            engine-id: 5
+            path: 'inputs[3]'
+            type: tablescan
+            kind: scan
             parent: 4
             position: [460.750000,96.000000]
     operator-edges:

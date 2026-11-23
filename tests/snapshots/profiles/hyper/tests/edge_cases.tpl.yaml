@@ -51,6 +51,10 @@ profile-snapshots:
   # Labels: debug names in both spellings, debug names without a string value, labels longer than the cap
   - name: debug_name_labels
     input: '{"operator":"unionall","operatorId":1,"inputs":[{"operator":"tablescan","operatorId":2,"debugName":{"classification":"nonsensitive","value":"orders"}},{"operator":"tablescan","operatorId":3,"debug-name":{"value":"a_very_long_relation_name_beyond_the_cap"}},{"operator":"tablescan","operatorId":4,"debugName":{"value":7}},{"operator":"tablescan","operatorId":5,"debugName":"plain"}]}'
+  # A blank debug name is no label: the operator shows its type, a scan the relation of its attributes. A debug name is
+  # trimmed
+  - name: debug_name_blank
+    input: '{"operator":"unionall","operatorId":1,"inputs":[{"operator":"tablescan","operatorId":2,"debugName":{"value":""}},{"operator":"tablescan","operatorId":3,"debugName":{"value":"  "}},{"operator":"scan","operatorId":4,"debugName":{"value":""},"attributes":[{"defines":{"id":"part.p_partkey"}}]},{"operator":"tablescan","operatorId":5,"debugName":{"value":" orders "}}]}'
   # A scan without a debug name takes the relation of the attributes it defines, if they agree on one
   - name: scan_label_from_attributes
     input: '{"operator":"unionall","operatorId":1,"inputs":[{"operator":"scan","operatorId":2,"attributes":[{"defines":{"id":"lineitem.l_orderkey"}},{"defines":{"id":"lineitem.l_partkey"}}]},{"operator":"scan","operatorId":3,"attributes":[{"defines":{"id":"orders.o_orderkey"}},{"defines":{"id":"customer.c_custkey"}}]},{"operator":"scan","operatorId":4,"attributes":[{"defines":{"id":"nodot"}},{"defines":{"id":".leading"}}]},{"operator":"tablescan","operatorId":5,"attributes":[{"defines":{"id":"part.p_partkey"}}]},{"operator":"scan","operatorId":6,"debugName":{"value":"explicit"},"attributes":[{"defines":{"id":"part.p_partkey"}}]}]}'
@@ -58,6 +62,10 @@ profile-snapshots:
   # Source locations: the first range wins, a reversed range has no length, a range without end is skipped
   - name: sqlpos_variants
     input: '{"operator":"unionall","operatorId":1,"sqlpos":[[10,20],[30,40]],"inputs":[{"operator":"tablescan","operatorId":2,"sqlpos":[[50,45]]},{"operator":"tablescan","operatorId":3,"sqlpos":[]},{"operator":"tablescan","operatorId":4,"sqlpos":[[7]]},{"operator":"tablescan","operatorId":5,"sqlpos":[[0,1]]}]}'
+  # Source locations: a range with an offset that is no number (a string, null, negative, beyond 32 bits) is skipped,
+  # the next range counts
+  - name: sqlpos_not_numbers
+    input: '{"operator":"unionall","operatorId":1,"sqlpos":[["a",9]],"inputs":[{"operator":"tablescan","operatorId":2,"sqlpos":[["a",9],[3,5]]},{"operator":"tablescan","operatorId":3,"sqlpos":[[1,null]]},{"operator":"tablescan","operatorId":4,"sqlpos":[[-1,4],[7],[8,12]]},{"operator":"tablescan","operatorId":5,"sqlpos":[[0,4294967296]]}]}'
 
   # Estimates: all spellings, nested in the statistics, zero, fractional, and no estimate at all. The first spelling
   # that exists wins even if it is no number (core_quirks.md)
