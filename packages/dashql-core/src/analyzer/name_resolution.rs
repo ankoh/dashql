@@ -1150,7 +1150,8 @@ impl NameResolutionPass {
         joins.iter().any(|join| Self::is_within(state, source.ast_node_id, join.ast_node_id))
     }
 
-    /// The columns of an aliased join with a name, as candidates of a column ref
+    /// The columns of an aliased join with a name, as candidates of a column ref. A candidate is named by its FROM item,
+    /// an ambiguous column ref lists the columns inside the join.
     fn join_alias_candidates(
         &self,
         state: &AnalysisState,
@@ -1167,7 +1168,7 @@ impl NameResolutionPass {
             let Some(source) = s.sources.iter().find(|s| s.ast_node_id == column.source) else { continue };
             let resolution = Self::source_column(state, source, column.position);
             if resolution.is_resolved() {
-                candidates.push((column.source, Some(join.name.clone()), resolution));
+                candidates.push((column.source, source.name.clone(), resolution));
             }
         }
         candidates

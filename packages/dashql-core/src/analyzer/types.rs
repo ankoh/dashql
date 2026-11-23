@@ -602,7 +602,8 @@ pub struct NameScope {
     pub parent_visibility: SourceVisibility,
     /// The FROM items in FROM order
     pub sources: Vec<ScopeSource>,
-    /// The parenthesized joins with an alias in FROM order, the FROM items inside them stay the sources
+    /// The parenthesized joins with an alias, an outer join before the joins inside it. The FROM items inside them stay
+    /// the sources.
     pub joins: Vec<ScopeJoin>,
     /// The clauses whose column refs see only some FROM items, the WHEN NOT MATCHED clauses of MERGE
     pub clauses: Vec<ScopeClause>,

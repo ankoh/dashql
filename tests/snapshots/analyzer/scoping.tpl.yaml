@@ -190,6 +190,14 @@ analyzer-snapshots:
     script:
       input: select j.a, j.c from (t join u on t.a = u.a) as j
 
+  # An ambiguous column of an aliased join names the columns inside the join, also of a nested one
+  - name: join_parenthesized_alias_ambiguous_candidates
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: select a from ((t join u on true) as k join v on true) as j
+
   - name: join_parenthesized_alias_column_aliases
     catalog:
       script:

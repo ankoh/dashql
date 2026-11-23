@@ -938,7 +938,7 @@ analyzer-snapshots:
       input: select j.a, j.c from (t join u on t.a = u.a) as j
       catalog-id: 2
       errors:
-        - {type: COLUMN_REF_AMBIGUOUS, message: 'column reference is ambiguous, candidates: j.a, j.a', text: "j.a"}
+        - {type: COLUMN_REF_AMBIGUOUS, message: 'column reference is ambiguous, candidates: t.a, u.a', text: "j.a"}
       table-refs:
         - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
         - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
@@ -964,6 +964,49 @@ analyzer-snapshots:
             - {name: a, expression: 0}
             - {name: c, expression: 1}
           text: "select j.a.. u.a) as j"
+
+  - name: join_parenthesized_alias_ambiguous_candidates
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: select a from ((t join u on true) as k join v on true) as j
+      catalog-id: 2
+      errors:
+        - {type: COLUMN_REF_AMBIGUOUS, message: 'column reference is ambiguous, candidates: t.a, u.a', text: "a"}
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+        - {type: name/catalog, catalog-id: "256.65536.1:2", text: "v"}
+      expressions:
+        - {id: 0, type: colref/unresolved, text: "a"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: t, text: "t"}
+            - {type: table, name: u, text: "u"}
+            - {type: table, name: v, text: "v"}
+          joins:
+            - name: j
+              columns:
+                - {name: a, table-column: "256.65536.1:0.0"}
+                - {name: b, table-column: "256.65536.1:0.1"}
+                - {name: a, table-column: "256.65536.1:1.0"}
+                - {name: c, table-column: "256.65536.1:1.1"}
+                - {name: id, table-column: "256.65536.1:2.0"}
+                - {name: x, table-column: "256.65536.1:2.1"}
+              text: "((t join u..true) as j"
+            - name: k
+              columns:
+                - {name: a, table-column: "256.65536.1:0.0"}
+                - {name: b, table-column: "256.65536.1:0.1"}
+                - {name: a, table-column: "256.65536.1:1.0"}
+                - {name: c, table-column: "256.65536.1:1.1"}
+              text: "(t join u ..true) as k"
+          columns:
+            - {name: a, expression: 0}
+          text: "select a f..true) as j"
 
   - name: join_parenthesized_alias_column_aliases
     catalog:
