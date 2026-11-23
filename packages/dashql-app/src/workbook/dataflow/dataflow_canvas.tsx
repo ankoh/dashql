@@ -57,8 +57,6 @@ const CHART_BORDER = 1;
 /// The resize handle in the bottom right corner of a box, and the step of a resize with the arrow keys
 const RESIZE_HANDLE = 16;
 export const RESIZE_KEY_STEP = 16;
-/// The canvas draws every box with its statements
-const NEVER_COLLAPSED = () => false;
 
 export interface DataflowCanvasDependencies {
     useQueryModel: typeof useQueryModel;
@@ -224,7 +222,6 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
             graph,
             script => hintOf(nodeKeyOfScript(script.scriptKey), placed.get(script.scriptKey), tagOf(script)),
             chartStatement,
-            () => false,
             input => hintOf(nodeKeyOfInput(input.name), placedInputs.get(input.name), null),
             sizeOf,
         );
@@ -294,7 +291,7 @@ function DataflowCanvasView(props: Props & { dependencies: DataflowCanvasDepende
         () => ({ laidOut: layout.laidOut, route: (boxes, edges) => layoutModule.routeDataflowEdges(boxes, edges) }),
         [layout, layoutModule],
     );
-    const scene = React.useMemo(() => buildDataflowScene(graph, shown, chartStatement, NEVER_COLLAPSED, config, routing), [graph, shown, chartStatement, config, routing]);
+    const scene = React.useMemo(() => buildDataflowScene(graph, shown, chartStatement, config, routing), [graph, shown, chartStatement, config, routing]);
     // The edges of the selection and of the hovered box, a drag hides the ones of the hovered box
     const dragging = drag != null;
     const highlighted = React.useMemo(() => {
@@ -768,24 +765,15 @@ interface BoxProps {
     onCreateDownstream: (box: DataflowSceneBox) => void;
 }
 
-/// The ports of a script box: one per side of a collapsed box, the ports of the statement rows otherwise
+/// The ports of a script box, on its statement rows
 function DataflowBoxPorts(props: { box: DataflowSceneBox; highlighted: DataflowSceneEdge[]; config: core.DataflowLayoutConfig }): React.ReactElement {
     const { box } = props;
     const config = props.config;
     const scriptKey = box.script.scriptKey;
-    const touches = (statementId: number | null, side: 'from' | 'to') => props.highlighted.some(edge => {
+    const touches = (statementId: number, side: 'from' | 'to') => props.highlighted.some(edge => {
         const port = edge[side];
-        return port.scriptKey === scriptKey && (statementId == null || port.statementId === statementId);
+        return port.scriptKey === scriptKey && port.statementId === statementId;
     });
-    if (box.collapsed) {
-        const y = box.y + config.headerHeight / 2;
-        return (
-            <g data-dataflow-ports={scriptKey}>
-                {box.input && <GraphPort x={box.x} y={y} side="left" highlighted={touches(null, 'to')} data-dataflow-port="input" />}
-                {box.output && <GraphPort x={box.x + box.width} y={y} side="right" highlighted={touches(null, 'from')} data-dataflow-port="output" />}
-            </g>
-        );
-    }
     return (
         <g data-dataflow-ports={scriptKey}>
             {box.rows.map(row => {
@@ -899,7 +887,7 @@ function DataflowBox(props: BoxProps): React.ReactElement {
                     />
                 </div>
             </foreignObject>
-            {!box.collapsed && box.rows.map(row => {
+            {box.rows.map(row => {
                 const id = row.statement.statementId;
                 const selected = props.selection?.statementId === id;
                 const badge = statementTypeLabel(row.statement.statementType);
@@ -947,7 +935,7 @@ function DataflowBox(props: BoxProps): React.ReactElement {
                     </div>
                 </foreignObject>
             )}
-            {!box.collapsed && box.chart == null && result != null && terminal >= 0 && (
+            {box.chart == null && result != null && terminal >= 0 && (
                 <text className={styles.summary} x={box.x + box.width - config.rowPadding - 10} y={box.rows[terminal].y + config.rowHeight / 2}>
                     {`${result.numRows} × ${result.numCols}`}
                 </text>
@@ -970,25 +958,23 @@ function DataflowBox(props: BoxProps): React.ReactElement {
                 <circle r={8} />
                 <path d="M -4 0 L 4 0 M 0 -4 L 0 4" />
             </g>
-            {!box.collapsed && (
-                <g
-                    className={styles.resize_handle}
-                    role="button"
-                    tabIndex={0}
-                    aria-label={box.chart != null
-                        ? `Resize ${name}. Current width ${box.width}, chart height ${box.chart.height}`
-                        : `Resize ${name}. Current width ${box.width}`}
-                    data-dataflow-resize={scriptKey}
-                    data-chart={box.chart != null || undefined}
-                    transform={`translate(${box.x + box.width - RESIZE_HANDLE}, ${box.y + box.height - RESIZE_HANDLE})`}
-                    onPointerDown={event => props.onResizeDown(event, box)}
-                    onClick={event => event.stopPropagation()}
-                    onKeyDown={event => props.onResizeKey(event, box)}
-                >
-                    <rect width={RESIZE_HANDLE} height={RESIZE_HANDLE} className={styles.resize_hit} />
-                    <path d="M 12 6 V 12 H 6 Z" />
-                </g>
-            )}
+            <g
+                className={styles.resize_handle}
+                role="button"
+                tabIndex={0}
+                aria-label={box.chart != null
+                    ? `Resize ${name}. Current width ${box.width}, chart height ${box.chart.height}`
+                    : `Resize ${name}. Current width ${box.width}`}
+                data-dataflow-resize={scriptKey}
+                data-chart={box.chart != null || undefined}
+                transform={`translate(${box.x + box.width - RESIZE_HANDLE}, ${box.y + box.height - RESIZE_HANDLE})`}
+                onPointerDown={event => props.onResizeDown(event, box)}
+                onClick={event => event.stopPropagation()}
+                onKeyDown={event => props.onResizeKey(event, box)}
+            >
+                <rect width={RESIZE_HANDLE} height={RESIZE_HANDLE} className={styles.resize_hit} />
+                <path d="M 12 6 V 12 H 6 Z" />
+            </g>
         </g>
     );
 }

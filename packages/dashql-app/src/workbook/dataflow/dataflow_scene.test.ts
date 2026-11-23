@@ -71,9 +71,9 @@ function inX(box: { x: number }): number {
 
 describe('dataflow scene', () => {
     it('passes the edges between boxes to the layout', () => {
-        const input = dataflowLayoutInput(GRAPH, s => (s.scriptKey === 2 ? { x: 1, y: 2 } : null), () => null, () => false);
+        const input = dataflowLayoutInput(GRAPH, s => (s.scriptKey === 2 ? { x: 1, y: 2 } : null), () => null);
         expect(input.boxes.map(b => [b.statements, b.hint ?? null])).toEqual([[2, null], [1, { x: 1, y: 2 }]]);
-        const dropped = dataflowLayoutInput(GRAPH, s => (s.scriptKey === 2 ? { x: 1, y: 2, dropped: true } : null), () => null, () => false);
+        const dropped = dataflowLayoutInput(GRAPH, s => (s.scriptKey === 2 ? { x: 1, y: 2, dropped: true } : null), () => null);
         expect(dropped.boxes[1]).toMatchObject({ hint: { x: 1, y: 2 }, dropped: true });
         expect(input.edges).toEqual([{ fromBox: 0, fromStatement: 1, toBox: 1, toStatement: 0 }]);
     });
@@ -86,7 +86,7 @@ describe('dataflow scene', () => {
             requests.push(edges);
             return edges.map(e => [e.from, [328, e.from[1]], [328, e.to[1]], e.to] as core.DataflowPoint[]);
         };
-        const scene = buildDataflowScene(GRAPH, POSITIONS, () => null, () => false, config, { laidOut, route });
+        const scene = buildDataflowScene(GRAPH, POSITIONS, () => null, config, { laidOut, route });
         // From the port of the source row along the route of the layout to the port of the target row, nothing routed
         const y = portY(0, 72);
         expect(requests).toEqual([]);
@@ -97,7 +97,7 @@ describe('dataflow scene', () => {
 
         // The target moved: the router routes the edge around the boxes, with rounded corners
         const moved = [POSITIONS[0], { ...POSITIONS[1], y: 64 }];
-        const rerouted = buildDataflowScene(GRAPH, moved, () => null, () => false, config, { laidOut, route });
+        const rerouted = buildDataflowScene(GRAPH, moved, () => null, config, { laidOut, route });
         const movedY = portY(64, 40);
         expect(requests).toEqual([[{ from: [280, y], to: [376, movedY] }]]);
         expect(rerouted.edges[1].path).toContain(`Q 328 ${y}`);
@@ -106,25 +106,25 @@ describe('dataflow scene', () => {
 
         // A box moved onto the route of the layout also routes the edge again
         const blocker: DataflowGraph = { ...GRAPH, scripts: [...GRAPH.scripts, script(3, 1)] };
-        const blocked = buildDataflowScene(blocker, [...POSITIONS, { x: 300, y: 70, width: 40, height: 40, rows: [0] }], () => null, () => false, config, { laidOut, route });
+        const blocked = buildDataflowScene(blocker, [...POSITIONS, { x: 300, y: 70, width: 40, height: 40, rows: [0] }], () => null, config, { laidOut, route });
         expect(requests[1]).toEqual([{ from: [280, y], to: [376, y] }]);
         expect(blocked.edges[1].path).toBe(`M ${outX(POSITIONS[0])} ${y} L ${inX(POSITIONS[1])} ${y}`);
 
         // A small step is one smooth bend
         const step = (_: unknown, edges: core.DataflowRouteEdge[]) => edges.map(e => [e.from, [328, e.from[1]], [328, e.to[1]], e.to] as core.DataflowPoint[]);
         const nudged = [POSITIONS[0], { ...POSITIONS[1], y: 40 }];
-        const smooth = buildDataflowScene(GRAPH, nudged, () => null, () => false, config, { laidOut: new Map(), route: step });
+        const smooth = buildDataflowScene(GRAPH, nudged, () => null, config, { laidOut: new Map(), route: step });
         expect(start(smooth.edges[1].path)).toEqual([outX(POSITIONS[0]), y]);
         expect(smooth.edges[1].path.endsWith(`${inX(POSITIONS[1])} ${portY(40, 40)}`)).toBe(true);
         expect(smooth.edges[1].path.match(/C/g)).toHaveLength(1);
         expect(smooth.edges[1].path).not.toContain('Q');
 
         // Without routing the edge keeps its own path
-        expect(buildDataflowScene(GRAPH, moved, () => null, () => false, config).edges[1].path).toContain('C');
+        expect(buildDataflowScene(GRAPH, moved, () => null, config).edges[1].path).toContain('C');
     });
 
     it('draws edges between statement rows, inside a box along its rows', () => {
-        const scene = buildDataflowScene(GRAPH, POSITIONS, () => null, () => false, config);
+        const scene = buildDataflowScene(GRAPH, POSITIONS, () => null, config);
         const [internal, between] = scene.edges;
         expect(internal.internal).toBe(true);
         // From the left border of the rows of the box
@@ -140,7 +140,7 @@ describe('dataflow scene', () => {
 
     it('routes an edge to a box on the left around the boxes, from the output port to the input port', () => {
         const backward = [POSITIONS[0], { x: 0, y: 200, width: 280, height: 80, rows: [40] }];
-        const edge = buildDataflowScene(GRAPH, [{ ...POSITIONS[0], x: 376 }, backward[1]], () => null, () => false, config).edges[1];
+        const edge = buildDataflowScene(GRAPH, [{ ...POSITIONS[0], x: 376 }, backward[1]], () => null, config).edges[1];
         const points = edge.path.match(/-?\d+(\.\d+)? -?\d+(\.\d+)?/g)!.map(p => p.split(' ').map(Number));
         // Out of the right of the source row, into the left of the target row
         expect(points[0]).toEqual([outX({ x: 376, width: 280 }), portY(0, 72)]);
@@ -151,7 +151,7 @@ describe('dataflow scene', () => {
 
     it('routes an edge between boxes stacked at the same x around them', () => {
         const stacked = [POSITIONS[0], { x: 0, y: 200, width: 280, height: 80, rows: [40] }];
-        const edge = buildDataflowScene(GRAPH, stacked, () => null, () => false, config).edges[1];
+        const edge = buildDataflowScene(GRAPH, stacked, () => null, config).edges[1];
         // A bend out of the source port, back through the gap between the boxes, a bend into the target port
         const gapY = (POSITIONS[0].height + stacked[1].y) / 2;
         expect(start(edge.path)).toEqual([outX(POSITIONS[0]), portY(0, 72)]);
@@ -160,16 +160,8 @@ describe('dataflow scene', () => {
         expect(edge.path.match(/C/g)).toHaveLength(2);
     });
 
-    it('merges the edges of collapsed boxes and leaves out the edges inside them', () => {
-        const scene = buildDataflowScene(GRAPH, POSITIONS, () => null, () => true, config);
-        expect(scene.edges.map(e => e.key)).toEqual(['b']);
-        expect(start(scene.edges[0].path)).toEqual([280, config.headerHeight / 2]);
-        expect(scene.boxes[0].output).toBe(true);
-        expect(scene.boxes[1].input).toBe(true);
-    });
-
     it('passes the size of a resized box to the layout', () => {
-        const input = dataflowLayoutInput(GRAPH, () => null, () => 0, () => false, () => null, s => (s.scriptKey === 1 ? { width: 400, chartHeight: 96 } : null));
+        const input = dataflowLayoutInput(GRAPH, () => null, () => 0, () => null, s => (s.scriptKey === 1 ? { width: 400, chartHeight: 96 } : null));
         expect(input.boxes.map(b => [b.width, b.chartHeight])).toEqual([[400, 96], [undefined, undefined]]);
     });
 
@@ -187,14 +179,14 @@ describe('dataflow scene', () => {
         expect(resizeDataflowBox(p, null, 320, 200, config)).toEqual({ ...p, width: 320 });
         // A chart below the last row reaches down to the padding of the box
         const tall = { ...POSITIONS[0], height: 72 + config.rowHeight + config.rowPadding + 104 + config.rowPadding };
-        const scene = buildDataflowScene(GRAPH, [tall, POSITIONS[1]], s => (s.scriptKey === 1 ? 1 : null), () => false, config);
+        const scene = buildDataflowScene(GRAPH, [tall, POSITIONS[1]], s => (s.scriptKey === 1 ? 1 : null), config);
         expect(scene.boxes[0].chart?.height).toBe(104);
     });
 
     it('places the chart below the visualized statement', () => {
         // The layout makes room for the chart of the default height below the row
         const withChart = [POSITIONS[0], { ...POSITIONS[1], height: 40 + config.rowHeight + config.rowPadding + config.chartHeight + config.rowPadding }];
-        const scene = buildDataflowScene(GRAPH, withChart, s => (s.scriptKey === 2 ? 0 : null), () => false, config);
+        const scene = buildDataflowScene(GRAPH, withChart, s => (s.scriptKey === 2 ? 0 : null), config);
         expect(scene.boxes[1].chart).toEqual({
             x: inX(POSITIONS[1]),
             y: POSITIONS[1].y + 40 + config.rowHeight + config.rowPadding,
@@ -205,7 +197,7 @@ describe('dataflow scene', () => {
     });
 
     it('selects the edges of a statement or of a box', () => {
-        const scene = buildDataflowScene(GRAPH, POSITIONS, () => null, () => false, config);
+        const scene = buildDataflowScene(GRAPH, POSITIONS, () => null, config);
         expect(selectedEdges(scene, { scriptKey: 1, statementId: 0 }).map(e => e.key)).toEqual(['a']);
         expect(selectedEdges(scene, { scriptKey: 1, statementId: null }).map(e => e.key)).toEqual(['a', 'b']);
         expect(selectedEdges(scene, null)).toEqual([]);
@@ -221,11 +213,11 @@ describe('dataflow scene', () => {
                 { key: 'i', from: { scriptKey: -1, statementId: 0 }, to: { scriptKey: 2, statementId: 0 }, kind: DataflowEdgeKind.Input, name: 'min', input: 'min' },
             ],
         };
-        const input = dataflowLayoutInput(graph, () => null, () => null, () => false, () => ({ x: 8, y: 16 }));
+        const input = dataflowLayoutInput(graph, () => null, () => null, () => ({ x: 8, y: 16 }));
         expect(input.boxes[2]).toEqual({ statements: 1, input: true, hint: { x: 8, y: 16 } });
         expect(input.edges).toContainEqual({ fromBox: 2, fromStatement: 0, toBox: 1, toStatement: 0 });
         const positions = [{ ...POSITIONS[0], x: 296 }, { ...POSITIONS[1], x: 672 }, { x: 0, y: 200, width: config.inputBoxWidth, height: 80, rows: [40] }];
-        const scene = buildDataflowScene(graph, positions, () => null, () => false, config);
+        const scene = buildDataflowScene(graph, positions, () => null, config);
         expect(scene.inputs.map(i => [i.input.name, i.rowY, i.output])).toEqual([['min', 240, true]]);
         const edge = scene.edges.find(e => e.key === 'i')!;
         expect(start(edge.path)).toEqual([outX(positions[2]), portY(200, 40)]);
@@ -251,7 +243,7 @@ describe('dataflow scene', () => {
         };
         const cell = (x: number, y: number) => ({ x, y, width: 280, height: 288, rows: [40] });
         const positions = [{ x: 0, y: 0, width: 280, height: 80, rows: [40] }, cell(376, 0), cell(688, 0), cell(1000, 0), cell(376, 320), cell(688, 320)];
-        const scene = buildDataflowScene(graph, positions, () => null, () => false, config);
+        const scene = buildDataflowScene(graph, positions, () => null, config);
         const [x1, y1, y2] = [outX(positions[0]), portY(0, 40), portY(320, 40)];
         // Into the first row straight, behind the boxes in front of a later column
         expect(scene.edges[0].path).toBe(`M ${x1} ${y1} L ${inX(positions[1])} ${y1}`);

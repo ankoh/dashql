@@ -36,11 +36,10 @@ export interface DataflowSceneRow {
 /// A script box
 export interface DataflowSceneBox extends Rect {
     script: DataflowScript;
-    collapsed: boolean;
     rows: DataflowSceneRow[];
     /// The chart below the visualized statement
     chart: Rect | null;
-    /// Does an edge start at the box? Collapsed boxes have one port per side.
+    /// Does an edge end or start at a statement of the box that has no row?
     input: boolean;
     output: boolean;
 }
@@ -106,7 +105,6 @@ export function dataflowLayoutInput(
     graph: DataflowGraph,
     hint: (script: DataflowScript) => DataflowHint | null,
     chartStatement: (script: DataflowScript) => number | null,
-    collapsed: (script: DataflowScript) => boolean,
     hintInput: (input: DataflowInput) => DataflowHint | null = () => null,
     size: (script: DataflowScript) => DataflowBoxSize | null = () => null,
 ): { boxes: core.DataflowLayoutBox[]; edges: core.DataflowLayoutEdge[] } {
@@ -114,12 +112,10 @@ export function dataflowLayoutInput(
     const index = new Map(graph.scripts.map((s, i) => [s.scriptKey, i]));
     const inputIndex = new Map(graph.inputs.map((input, i) => [input.name, graph.scripts.length + i]));
     const boxes: core.DataflowLayoutBox[] = graph.scripts.map(script => {
-        const isCollapsed = collapsed(script);
         const sized = size(script);
         return {
             statements: script.statements.length,
-            chartStatement: isCollapsed ? null : chartStatement(script),
-            collapsed: isCollapsed,
+            chartStatement: chartStatement(script),
             ...hintOf(hint(script)),
             ...(sized?.width != null ? { width: sized.width } : {}),
             ...(sized?.chartHeight != null ? { chartHeight: sized.chartHeight } : {}),
@@ -160,13 +156,13 @@ export function resizeDataflowBox(
 /// The vertical center of the port of a statement on the canvas
 function portY(box: DataflowSceneBox, statementId: number, config: core.DataflowLayoutConfig): number {
     const row = box.rows[statementId];
-    if (box.collapsed || row == null) return box.y + config.headerHeight / 2;
+    if (row == null) return box.y + config.headerHeight / 2;
     return row.y + config.rowHeight / 2;
 }
 
-/// The width of the frame that the ports of a box sit on: the statement rows, or the header of a collapsed box
-function portFrameWidth(box: EdgeEnd, config: core.DataflowLayoutConfig): number {
-    return box.collapsed ? box.width : box.width - 2 * config.rowPadding;
+/// The width of the frame that the ports of a box sit on: the statement rows
+function portFrameWidth(box: Rect, config: core.DataflowLayoutConfig): number {
+    return box.width - 2 * config.rowPadding;
 }
 
 /// An orthogonal path through points with rounded corners
@@ -186,10 +182,8 @@ function roundedPath(points: [number, number][], radius: number): string {
     return out.join(' ');
 }
 
-/// The part of a box that edges are routed around, an input is never collapsed
-interface EdgeEnd extends Rect {
-    collapsed?: boolean;
-}
+/// The part of a box that edges are routed around
+type EdgeEnd = Rect;
 
 /// The x of the output port of a box
 function outputX(from: EdgeEnd, config: core.DataflowLayoutConfig): number {
@@ -357,16 +351,14 @@ export function buildDataflowScene(
     graph: DataflowGraph,
     positions: DataflowBoxPosition[],
     chartStatement: (script: DataflowScript) => number | null,
-    collapsed: (script: DataflowScript) => boolean,
     config: core.DataflowLayoutConfig,
     /// Routes the edges between boxes, the edges keep their curves without it or where it has no route
     routing: DataflowRouting | null = null,
 ): DataflowScene {
     const boxes: DataflowSceneBox[] = graph.scripts.map((script, index) => {
         const p = positions[index];
-        const isCollapsed = collapsed(script);
         const rows = script.statements.map((statement, i) => ({ statement, y: p.y + (p.rows[i] ?? 0), input: false, output: false }));
-        const chartAt = isCollapsed ? null : chartStatement(script);
+        const chartAt = chartStatement(script);
         const chartRow = chartAt != null ? rows[chartAt] : undefined;
         const chart = chartAt == null || chartRow == null ? null : {
             x: p.x + config.rowPadding,
@@ -374,8 +366,7 @@ export function buildDataflowScene(
             width: p.width - 2 * config.rowPadding,
             height: dataflowChartHeight(p, chartAt, config),
         };
-        const height = isCollapsed ? config.headerHeight : p.height;
-        return { script, collapsed: isCollapsed, x: p.x, y: p.y, width: p.width, height, rows, chart, input: false, output: false };
+        return { script, x: p.x, y: p.y, width: p.width, height: p.height, rows, chart, input: false, output: false };
     });
     const boxOf = new Map(boxes.map(b => [b.script.scriptKey, b]));
     const inputs: DataflowSceneInput[] = graph.inputs.flatMap((input, i) => {
@@ -395,7 +386,7 @@ export function buildDataflowScene(
         }
         const from = boxOf.get(edge.from.scriptKey);
         if (from == null) return null;
-        return { key: `${from.script.scriptKey}.${from.collapsed ? -1 : edge.from.statementId}`, end: from, y: portY(from, edge.from.statementId, config) };
+        return { key: `${from.script.scriptKey}.${edge.from.statementId}`, end: from, y: portY(from, edge.from.statementId, config) };
     };
     const nearest = new Map<string, number>();
     const buses = new Map<string, number>();
@@ -415,9 +406,7 @@ export function buildDataflowScene(
     };
     const badged = new Set<string>();
 
-    // Edges into collapsed boxes are merged, their statements are hidden
     const edges: DataflowSceneEdge[] = [];
-    const merged = new Set<string>();
     // The edges between boxes that may be routed: the edge, the key of its route, its ends, and whether it is part of
     // a bus
     const routable: { edge: DataflowSceneEdge; key: string; from: EdgeEnd; fromY: number; to: EdgeEnd; toY: number; bus: boolean }[] = [];
@@ -427,18 +416,12 @@ export function buildDataflowScene(
         if (edge.input != null) {
             const source = inputOf.get(edge.input);
             if (source == null) continue;
-            const toStatement = to.collapsed ? -1 : edge.to.statementId;
-            if (to.collapsed) {
-                const key = `:${edge.input}>${to.script.scriptKey}.${toStatement}`;
-                if (merged.has(key)) continue;
-                merged.add(key);
-            }
             const fromY = source.rowY + config.rowHeight / 2;
             const toY = portY(to, edge.to.statementId, config);
             const { path } = routeEdge(source, fromY, to, toY, config);
             source.output = true;
             const toRow = to.rows[edge.to.statementId];
-            if (to.collapsed || toRow == null) to.input = true;
+            if (toRow == null) to.input = true;
             else toRow.input = true;
             const sceneEdge: DataflowSceneEdge = { key: edge.key, kind: edge.kind, from: edge.from, to: edge.to, input: edge.input, internal: false, path, badge: null };
             edges.push(sceneEdge);
@@ -449,17 +432,9 @@ export function buildDataflowScene(
         const from = boxOf.get(edge.from.scriptKey);
         if (from == null) continue;
         const internal = from === to;
-        if (internal && from.collapsed) continue;
-        const fromStatement = from.collapsed ? -1 : edge.from.statementId;
-        const toStatement = to.collapsed ? -1 : edge.to.statementId;
-        if (from.collapsed || to.collapsed) {
-            const key = `${from.script.scriptKey}.${fromStatement}>${to.script.scriptKey}.${toStatement}:${edge.kind}`;
-            if (merged.has(key)) continue;
-            merged.add(key);
-        }
         const fromY = portY(from, edge.from.statementId, config);
         const toY = portY(to, edge.to.statementId, config);
-        const sourceKey = `${from.script.scriptKey}.${fromStatement}`;
+        const sourceKey = `${from.script.scriptKey}.${edge.from.statementId}`;
         const trunk = internal || edge.kind !== DataflowEdgeKind.Table ? null : trunkOf(sourceKey, from, edge.name);
         let path: string;
         let middle: [number, number] = [0, 0];
@@ -468,13 +443,13 @@ export function buildDataflowScene(
         } else {
             ({ path, middle } = routeEdge(from, fromY, to, toY, config, trunk));
         }
-        // Collapsed boxes have one port per side, rows have their own
+        // The rows have their own ports
         const fromRow = from.rows[edge.from.statementId];
         const toRow = to.rows[edge.to.statementId];
-        if (from.collapsed || fromRow == null) from.output = true;
+        if (fromRow == null) from.output = true;
         else if (internal) fromRow.input = true;
         else fromRow.output = true;
-        if (to.collapsed || toRow == null) to.input = true;
+        if (toRow == null) to.input = true;
         else toRow.input = true;
         let badge: DataflowSceneEdge['badge'] = null;
         if (edge.kind === DataflowEdgeKind.Table && !internal && edge.name.length > 0) {

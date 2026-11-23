@@ -149,10 +149,6 @@ export class FeedRowHeightCache {
         this.updateEstimateCorrection();
         this.onChange(this.getRowOffset(anchor) - anchorOffset);
     };
-
-    observeRowElements() {
-        return () => {};
-    }
 }
 
 /// The space kept around a revealed script
