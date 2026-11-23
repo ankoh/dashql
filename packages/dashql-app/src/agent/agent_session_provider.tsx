@@ -268,8 +268,11 @@ export const AgentSessionProvider: React.FC<React.PropsWithChildren> = (props) =
         };
     }, [runtime, refreshDefaultConnections]);
     // The connections of the agent, per target. The session gets them once its server answers and after every change.
-    const [agentSelection, setAgentSelection] = React.useState(() => ({ target, choices: readTabChoices(target) }));
-    const choices = agentSelection.target === target ? agentSelection.choices : readTabChoices(target);
+    // The choices of a target that the user did not change in this tab come from the storage of the tab, read once per
+    // target: a new map each render would give new callbacks to every user of the connections
+    const storedChoices = React.useMemo(() => readTabChoices(target), [target]);
+    const [agentSelection, setAgentSelection] = React.useState<{ target: AgentSessionTarget; choices: AgentConnectionChoices } | null>(null);
+    const choices = agentSelection != null && agentSelection.target === target ? agentSelection.choices : storedChoices;
     const isConnectionAllowed = React.useCallback(
         (connectionId: string) => isAgentConnectionAllowed(connectionId, choices, defaultConnectionIds),
         [choices, defaultConnectionIds],
@@ -279,7 +282,7 @@ export const AgentSessionProvider: React.FC<React.PropsWithChildren> = (props) =
     const toggleConnection = React.useCallback((connectionId: string) => {
         if (target == null) return;
         setAgentSelection(prev => {
-            const next = new Map(prev.target === target ? prev.choices : readTabChoices(target));
+            const next = new Map(prev != null && prev.target === target ? prev.choices : readTabChoices(target));
             next.set(connectionId, !isAgentConnectionAllowed(connectionId, next, defaultConnectionIdsRef.current));
             writeTabChoices(target, next);
             return { target, choices: next };
