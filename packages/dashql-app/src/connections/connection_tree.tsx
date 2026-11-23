@@ -136,7 +136,10 @@ function readCatalogNode(
 
     const name = reader.readName(value.nameId());
     if (!isVisibleCatalogNode(level, name)) return null;
-    const key = `${parentKey}/${level}:${index}:${name}`;
+    // The name under the parent, not the position in the flat catalog: a CREATE or DROP elsewhere in the catalog moves
+    // the positions of the later entries, an expanded node stays expanded. A node that is dropped and created again
+    // keeps its expansion.
+    const key = `${parentKey}/${level}:${name}`;
     return {
         key,
         name,

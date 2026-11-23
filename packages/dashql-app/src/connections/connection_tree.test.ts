@@ -4,6 +4,7 @@ import type * as core from '@akohn/dashql';
 import { connectionLabelOf, connectionLabels } from './connection_label.js';
 import {
     connectionTreeRowHeight,
+    createCatalogTree,
     flattenCatalogRows,
     listedConnections,
     isConnectionInitiallyExpanded,
@@ -126,7 +127,7 @@ describe('connection catalog tree', () => {
             },
         } as unknown as Parameters<typeof flattenCatalogRows>[0];
         const database: CatalogNode = {
-            key: 'catalog/database:0:hyper', name: 'hyper', kind: 'database', index: 0, childBegin: 0, childCount: 1,
+            key: 'catalog/database:hyper', name: 'hyper', kind: 'database', index: 0, childBegin: 0, childCount: 1,
         };
 
         const databaseOnly = flattenCatalogRows(reader, [database], new Set());
@@ -138,5 +139,54 @@ describe('connection catalog tree', () => {
 
         const withTables = flattenCatalogRows(reader, [database], new Set([database.key, withSchema[1].key]));
         expect(withTables.map(row => row.name)).toEqual(['hyper', 'public', 'accounts', 'contacts']);
+    });
+
+    it('keeps a node expanded when a CREATE in another schema moves its position in the flat catalog', () => {
+        /// A flat catalog of one database with schemas of tables with a column `id` each, the tables of all schemas in
+        /// one array, as are their columns
+        const flatCatalog = (schemas: [string, string[]][]) => {
+            const names = ['', 'hyper', 'id'];
+            const nameId = (name: string) => names.includes(name) ? names.indexOf(name) : names.push(name) - 1;
+            const entry = (id: number, childBegin: number, childCount: number) => ({ nameId: () => id, childBegin: () => childBegin, childCount: () => childCount });
+            const schemaEntries: object[] = [];
+            const tableEntries: object[] = [];
+            const columnEntries: object[] = [];
+            for (const [schema, tables] of schemas) {
+                schemaEntries.push(entry(nameId(schema), tableEntries.length, tables.length));
+                for (const table of tables) {
+                    tableEntries.push(entry(nameId(table), columnEntries.length, 1));
+                    columnEntries.push(entry(nameId('id'), 0, 0));
+                }
+            }
+            const reader = {
+                readName: (id: number) => names[id],
+                catalogReader: {
+                    databasesLength: () => 1,
+                    schemasLength: () => schemaEntries.length,
+                    tablesLength: () => tableEntries.length,
+                    columnsLength: () => columnEntries.length,
+                    databases: () => entry(1, 0, schemaEntries.length),
+                    schemas: (index: number) => schemaEntries[index],
+                    tables: (index: number) => tableEntries[index],
+                    columns: (index: number) => columnEntries[index],
+                },
+            } as unknown as Parameters<typeof flattenCatalogRows>[0];
+            return { reader, roots: createCatalogTree(reader) };
+        };
+        const before = flatCatalog([['public', ['accounts']], ['sales', ['orders']]]);
+        const expanded = new Set<string>();
+        const expand = (name: string) => {
+            expanded.add(flattenCatalogRows(before.reader, before.roots, expanded).find(row => row.name === name)!.key);
+        };
+        expand('hyper');
+        expand('sales');
+        expand('orders');
+        expect(flattenCatalogRows(before.reader, before.roots, expanded).map(row => row.name))
+            .toEqual(['hyper', 'public', 'sales', 'orders', 'id']);
+
+        // A table created in public comes before the table of sales in the flat catalog
+        const after = flatCatalog([['public', ['accounts', 'contacts']], ['sales', ['orders']]]);
+        expect(flattenCatalogRows(after.reader, after.roots, expanded).map(row => row.name))
+            .toEqual(['hyper', 'public', 'sales', 'orders', 'id']);
     });
 });
