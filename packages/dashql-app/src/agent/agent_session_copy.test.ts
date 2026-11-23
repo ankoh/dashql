@@ -19,6 +19,8 @@ class Fixture {
     readonly writes: string[] = [];
     /// The catalogs of the connections that the agent may use
     readonly catalogs = new Map<string, CopyCatalog>();
+    /// The paths whose next write fails
+    readonly failingWrites = new Set<string>();
     private listeners = new Set<() => void>();
     private clock = 1;
     private nextKey = 1;
@@ -76,6 +78,7 @@ class Fixture {
             for (const file of files) this.copy.set(file.path, { text: String(file.content), mtimeMs: ++this.clock });
         },
         writeFile: async (_workbookId, path, text) => {
+            if (this.failingWrites.delete(path)) throw new Error(`cannot write ${path}`);
             this.writes.push(path);
             this.copy.set(path, { text, mtimeMs: ++this.clock });
         },
@@ -185,6 +188,26 @@ describe('the copies of the workbooks of a page in a session', () => {
         await tick();
         await copies.settled();
         expect(fixture.copy.get('scripts/a.sql')?.text).toBe('select 11');
+    });
+
+    it('writes a change of the user again when its write failed', async () => {
+        const fixture = new Fixture({ 'a.sql': 'select 1', 'b.sql': 'select 2' });
+        const copies = new AgentSessionCopies(fixture.host, logger);
+        await copies.copy('w1');
+        await copies.update(fixture.state());
+
+        fixture.failingWrites.add('scripts/a.sql');
+        fixture.edit('a.sql', 'select 11');
+        await tick();
+        await copies.settled();
+        expect(fixture.copy.get('scripts/a.sql')?.text).toBe('select 1');
+
+        // The next push writes it, a later change of the agent then doesn't replace the text of the user unseen
+        fixture.edit('b.sql', 'select 22');
+        await tick();
+        await copies.settled();
+        expect(fixture.copy.get('scripts/a.sql')?.text).toBe('select 11');
+        expect(fixture.copy.get('scripts/b.sql')?.text).toBe('select 22');
     });
 
     it('takes what the agent did while the page reloaded', async () => {

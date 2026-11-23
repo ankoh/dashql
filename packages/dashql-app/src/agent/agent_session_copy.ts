@@ -444,35 +444,36 @@ export class AgentSessionCopies {
         const names = copyNamesOf(scripts, copy);
         // A new order of the page goes into the workbook file of the copy, also one of the user. A copy that the page
         // adopted holds the order that the page wrote before the reload.
+        // The copy records a change once it is written, a change whose write failed is written again by the next push
         const order = [...names.keys()].join('\n');
         let listChanged = copy.order != null && copy.order !== order;
-        copy.order = order;
         for (const [fileName, script] of names) {
             if (copy.texts.get(fileName) === script.text) continue;
             listChanged ||= !copy.texts.has(fileName);
-            copy.texts.set(fileName, script.text);
             await this.host.writeFile(workbookId, `${STORAGE_SCRIPTS_FOLDER}/${fileName}`, script.text);
+            copy.texts.set(fileName, script.text);
         }
         for (const fileName of [...copy.texts.keys()]) {
             if (names.has(fileName)) continue;
             listChanged = true;
-            copy.texts.delete(fileName);
             await this.host.deleteFile(workbookId, `${STORAGE_SCRIPTS_FOLDER}/${fileName}`);
+            copy.texts.delete(fileName);
         }
         // The workbook file lists the scripts
         if (listChanged) {
             const workbookFile = await this.host.readWorkbookFile(workbookId);
             if (workbookFile != null) await this.host.writeFile(workbookId, STORAGE_WORKBOOK_FILE, workbookFile);
         }
+        copy.order = order;
         // The catalogs of the connections that the agent may use, `dashql catalog` reads them
         for (const [connectionId, catalog] of this.host.catalogs()) {
             if (copy.catalogs.get(connectionId) === catalog.stamp) continue;
-            copy.catalogs.set(connectionId, catalog.stamp);
             const path = catalogRelationsPath(connectionId);
             const text = catalog.text();
             // A copy that the page wrote before a reload holds the catalogs already
-            if (copy.adopted && copy.seen?.has(path) && await this.host.fetchText(workbookId, path).catch(() => null) === text) continue;
-            await this.host.writeFile(workbookId, path, text);
+            const held = copy.adopted && copy.seen?.has(path) && await this.host.fetchText(workbookId, path).catch(() => null) === text;
+            if (!held) await this.host.writeFile(workbookId, path, text);
+            copy.catalogs.set(connectionId, catalog.stamp);
         }
     }
 }
