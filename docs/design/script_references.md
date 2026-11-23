@@ -93,7 +93,8 @@ The feed marks the script as manual.
 A table parameter also reads the attachments of a workbook, which are Parquet files only: `sales.parquet` is `:sales`. Scripts and
 attachments share one namespace, a name that a script and an attachment share is ambiguous: every table parameter
 with the name is an error ("the table parameter :sales matches sales.sql and sales.parquet") and the check lists
-the names that collide (`table_parameter_collisions`, `ScriptReferenceCheck.collisions`).
+the names that collide (`table_parameter_collisions`, `ScriptReferenceCheck.collisions`). The card of an attachment
+flags one that a script shares (`collidingAttachments` of the derived view, `Workbook::attachments_named_like_scripts`).
 
 | bar.sql runs on | `:sales` in bar.sql |
 |---|---|
@@ -106,7 +107,7 @@ select region, sum(amount) from sales group by region
 ```
 
 The runtime lists the attachments of a workbook when it loads the workbook, after the feed adds or removes one
-(`attachFiles`, `refreshAttachments`), and when a native folder changed (`WorkbookScripts.attachments`). The stamp of an attachment is the
+(`attachFiles`, `detachFile`, `refreshAttachments`), and when a native folder changed (`WorkbookScripts.attachments`). The stamp of an attachment is the
 size and the modification time of its file. The runtime reads the columns of a new or changed Parquet attachment with the
 embedded Hyper (`mounts.attachmentColumns` of the platform over `AttachmentMounts.readColumns`, then `SetAttachmentColumns` of
 the workbook). Until then completion doesn't offer it and its

@@ -344,6 +344,11 @@ impl StorageHost for FakeHost {
         Ok(())
     }
 
+    async fn delete_data_file(&self, workbook_id: &str, file_name: &str) -> Result<(), HostError> {
+        self.store.borrow_mut().calls.push(format!("delete-data-file:{workbook_id}/{file_name}"));
+        Ok(())
+    }
+
     async fn update_connections(&self, mut update: ConnectionsUpdate) -> Result<(), HostError> {
         let current = self.store.borrow().connections.clone();
         if let Some(next) = update(current) {
@@ -1234,6 +1239,32 @@ fn writes_an_attachment_once_its_workbook_is_released() {
     assert_eq!(
         calls,
         [format!("data-file:{WORKBOOK}/sales.parquet=rows"), format!("data-file:{WORKBOOK}/sales.parquet=more rows")]
+    );
+}
+
+#[test]
+fn deletes_an_attachment_after_its_save_once_its_workbook_is_released() {
+    let h = Harness::new();
+    let save = WriteTask::SaveDataFile {
+        workbook_id: WORKBOOK.to_string(),
+        file_name: "sales.parquet".to_string(),
+        file: HostBytes::new(Rc::new("rows".to_string()), 4),
+    };
+    let delete =
+        WriteTask::DeleteDataFile { workbook_id: WORKBOOK.to_string(), file_name: "Sales.parquet".to_string() };
+    // The deletion has a key of its own and keeps its order with the saves of the file, whatever the case of its name
+    assert_eq!(delete.key(), keys::attachment_deletion_key(WORKBOOK, "Sales.parquet"));
+    assert_eq!(delete.files(), save.files());
+    h.writer.hold(Some(WORKBOOK), HoldReason::Import);
+    assert!(matches!(h.block_on(h.writer.write_durable(save)), WriteOutcome::Deferred));
+    assert!(matches!(h.block_on(h.writer.write_durable(delete)), WriteOutcome::Deferred));
+    h.writer.release(Some(WORKBOOK), HoldReason::Import);
+    h.flush();
+    let calls: Vec<String> =
+        h.store.borrow().calls.iter().filter(|call| call.contains("data-file:")).cloned().collect();
+    assert_eq!(
+        calls,
+        [format!("data-file:{WORKBOOK}/sales.parquet=rows"), format!("delete-data-file:{WORKBOOK}/Sales.parquet")]
     );
 }
 

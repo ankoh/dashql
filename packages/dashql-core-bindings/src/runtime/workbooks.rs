@@ -540,6 +540,39 @@ impl Workbooks {
         Ok(write)
     }
 
+    /// Detach an attachment of a workbook (`WorkbookAction::DetachAttachment`) and write the deletion of its file at
+    /// once. Returns whether the workbook had the attachment, with the write of the deletion (none in memory, the file
+    /// is released there at once). A refused detach, e.g. of a read-only workbook, changes nothing and writes nothing.
+    pub fn detach_attachment(&self, workbook_id: &str, file_name: &str) -> Result<Option<Option<WriteResult>>> {
+        let workbook = self
+            .get(workbook_id)
+            .ok_or_else(|| Error::invalid_argument(format!("no workbook registered with id {workbook_id}")))?;
+        let action = WorkbookAction::DetachAttachment { file_name: file_name.to_string() };
+        let outcome =
+            workbook.try_borrow_mut().map_err(|_| Error::invalid_argument("the workbook is busy"))?.apply(action);
+        let mut outcome = match outcome {
+            Ok(outcome) => outcome,
+            Err(error) => {
+                self.platform.mark(Slice::Scripts(workbook_id));
+                self.mark_published(workbook_id, &workbook);
+                return Err(error);
+            }
+        };
+        let deletion = outcome
+            .effects
+            .iter()
+            .position(|effect| matches!(effect, WorkbookEffect::DeleteDataFile { .. }))
+            .map(|index| outcome.effects.remove(index));
+        let write = match deletion {
+            Some(WorkbookEffect::DeleteDataFile { file_name }) => {
+                Some(self.persistence.delete_data_file(workbook_id, file_name))
+            }
+            _ => None,
+        };
+        self.settle(workbook_id, &workbook, outcome, Changed::Workbook);
+        Ok(write)
+    }
+
     /// The metadata of a workbook
     fn metadata(&self, workbook_id: &str) -> Value {
         self.entries

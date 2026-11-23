@@ -130,6 +130,9 @@ export class MemoryStorage implements RuntimeStorage {
         files.delete(from);
         files.set(to, bytes);
     };
+    deleteDataFile = async (workbookId: string, name: string) => {
+        this.dataFiles.get(workbookId)?.delete(name);
+    };
     upsertWorkbookEntry = async (entry: unknown) => {
         const path = (entry as { path: string }).path;
         if (!this.order.includes(path)) this.order.push(path);

@@ -194,6 +194,8 @@ pub(crate) struct DerivedParts {
     pub script_files: Vec<String>,
     /// The file names of the attachments in the order that the references name them
     pub attachments: Vec<String>,
+    /// The file names of the attachments whose table parameter has the name of a script
+    pub colliding_attachments: Vec<String>,
 }
 
 /// The derived view of a workbook that the host took, with the hash of its buffers. None forces the next changes to
@@ -328,9 +330,11 @@ pub(crate) fn derive(workbook: &Workbook) -> (Rc<DerivedParts>, u64) {
             .iter()
             .map(|attachment| attachment.file_name.clone())
             .collect(),
+        colliding_attachments: workbook.attachments_named_like_scripts(),
     };
     let mut hasher = DefaultHasher::new();
-    (&parts.hashes, &parts.script_keys, &parts.script_files, &parts.attachments).hash(&mut hasher);
+    (&parts.hashes, &parts.script_keys, &parts.script_files, &parts.attachments, &parts.colliding_attachments)
+        .hash(&mut hasher);
     (Rc::new(parts), hasher.finish())
 }
 

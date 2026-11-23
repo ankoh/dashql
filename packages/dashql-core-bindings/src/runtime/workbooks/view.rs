@@ -263,6 +263,9 @@ pub struct WorkbookDerivedView {
     pub script_files: Vec<String>,
     /// The file names of the attachments in the order that the references name them by index
     pub attachments: Vec<String>,
+    /// The file names of the attachments whose table parameter has the name of a script, also in another case: the
+    /// table parameter of the name is ambiguous
+    pub colliding_attachments: Vec<String>,
     #[tsify(type = "FlatBuffer<buffers_execution.ScriptReferenceCheck>")]
     pub references: FlatBufferBytes,
     #[tsify(type = "FlatBuffer<buffers_execution.SessionDataflow>")]

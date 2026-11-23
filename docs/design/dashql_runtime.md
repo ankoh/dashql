@@ -233,7 +233,7 @@ next `takeChanges`.
 Actions apply at once, views follow with the flush: a read right after a dispatch sees the last flush, a read after its
 `settled` sees the action. The commands of the facade that wait for the state of the module flush the store once they
 settled (`settled` of `runtime.ts`): `analyzeTable`, `saveConnection`, `retrySave`, `setupConnection`, `settleCatalog`,
-`restore`, `restoreWorkbook`, `deleteInvalidWorkbook`, `attachFiles`, `renameAttachment`, `refreshAttachments`,
+`restore`, `restoreWorkbook`, `deleteInvalidWorkbook`, `attachFiles`, `renameAttachment`, `detachFile`, `refreshAttachments`,
 `runWorkbook`, `runScript` and `commitImport`. `createConnection`, `createWorkbook` and `deleteWorkbook` flush right
 after their action. The others, e.g. `execute`, `cancel`, `authenticateSalesforce`, the exports and `readImport`, leave
 the views to the next flush.
@@ -329,7 +329,7 @@ is a typed method with its contract rather than a generated table, the app reads
 | `openSession`, `closeSession`, `settleCatalog` | The session of the shell on a connection, see [Catalogs and sessions](#catalogs-and-sessions) |
 | `createWorkbook`, `deleteWorkbook`, `applyEditorEvent`, `attachTableParameters` | Workbooks and editors |
 | `restore`, `restoreWorkbook`, `deleteInvalidWorkbook` | The restore |
-| `attachFiles`, `renameAttachment`, `refreshAttachments` | Attachments |
+| `attachFiles`, `renameAttachment`, `detachFile`, `refreshAttachments` | Attachments |
 | `runWorkbook`, `runScript`, `stopRun`, `cancelScript`, `setUpOpenedWorkbook` | Runs; `cancelScript` stops the run of the workbook while one is busy, else cancels the latest query of the script; the setups of the connections of an opened workbook |
 | `exportArchive`, `exportLink`, `exportTables`, `readImport`, `commitImport` | Imports and exports |
 | `allocateId`, `catalogRelationsFile`, `bindHyperLink`, `revealConnectionSecrets`, `exportConnection`, `exportedResults`, `withStoredResult`, `dropImport`, `checkWorkbookFolders`, `answerExternalChange` | Commands of the module that the app needs, passed on and refused once the runtime is destroyed |
@@ -382,7 +382,7 @@ when the store took the changes. Every effect tells the host. `HandleTable.apply
   option that doesn't deserialize, and on a state that a task holds (`the state is busy`). The facade catches
   `applyEditorEvent`, logs it and returns null.
 - **The commands** report failure in their result. `analyzeTable`, `restore`, `restoreWorkbook`, `attachFiles`,
-  `renameAttachment`, the imports and exports and the storage commands reject with the error of the task or with what
+  `renameAttachment`, `detachFile`, the imports and exports and the storage commands reject with the error of the task or with what
   the platform failed with. `setupConnection` and `authenticateSalesforce` resolve with their `SetupOutcome`, a
   failure is in the view of the connection and the log. `runWorkbook` and `runScript` resolve with `{ outcome, error }`.
   `executeQuery` resolves with a `QueryRunOutcome`: `rejected` carries a `QueryRunFailure` (`error`, `cancelled`,

@@ -132,6 +132,8 @@ export interface RuntimeStorage {
     saveDataFile(workbookId: string, name: string, file: Blob | Uint8Array): Promise<void>;
     /** Rename an attachment of a workbook, keeping its contents */
     renameDataFile(workbookId: string, from: string, to: string): Promise<void>;
+    /** Delete an attachment of a workbook, a missing file counts as deleted */
+    deleteDataFile(workbookId: string, name: string): Promise<void>;
     /** Add or replace an entry of the workbook tree, e.g. to route a workbook to the origin private file system */
     upsertWorkbookEntry(entry: unknown): Promise<void>;
     /** Delete the files of a workbook, its entry stays */

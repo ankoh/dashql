@@ -617,6 +617,14 @@ export class Runtime {
         return await this.settled(this.live().renameAttachment(workbookId, fileName, name));
     }
 
+    /// Detach an attachment of a workbook: the view of the workbook no longer lists it and the runtime deletes its file
+    /// through the storage writer, the scripts that read it keep their text. Resolves once the view is in the store,
+    /// rejects with what the storage failed with, or before anything changed if the runtime refuses, e.g. a read-only
+    /// workbook.
+    async detachFile(workbookId: string, fileName: string): Promise<void> {
+        await this.settled(this.live().detachFile(workbookId, fileName));
+    }
+
     /// List the attachments of a workbook again, e.g. after one was removed or renamed in the storage. Resolves once the
     /// view of the workbook is in the store.
     async refreshAttachments(workbookId: string): Promise<void> {

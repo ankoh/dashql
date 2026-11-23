@@ -250,6 +250,35 @@ impl Runtime {
         }))
     }
 
+    /// Detach an attachment of a workbook: the view of the workbook no longer lists it and its file is deleted through
+    /// the storage writer. The scripts that read it keep their text, their references find nothing then. A refused
+    /// detach, e.g. of a read-only workbook, rejects before anything changed. Resolves once the file is gone and the
+    /// view lists the attachments of the storage, or once the deletion waits for a hold of the workbook. Rejects with
+    /// what the storage failed with, the writer tries the deletion again.
+    #[wasm_bindgen(js_name = detachFile, unchecked_return_type = "Promise<void>")]
+    pub fn detach_file(&self, workbook_id: String, file_name: String) -> Result<Promise, JsError> {
+        let detached = self.workbooks.detach_attachment(&workbook_id, &file_name).map_err(crate::js_error)?;
+        let (platform, workbooks, runs) = (self.platform.clone(), self.workbooks.clone(), self.runs.clone());
+        Ok(future_to_promise(async move {
+            // In memory the file is released with the attachment, the next mount of the attachments goes without it
+            let Some(Some(write)) = detached else { return Ok(JsValue::UNDEFINED) };
+            match write.await {
+                WriteOutcome::Failed(WriteError::Host(error))
+                | WriteOutcome::Failed(WriteError::WorkbookUnavailable { cause: error, .. }) => {
+                    return Err(error_value(&error));
+                }
+                // The storage still lists the file until the hold ends, the view keeps it detached
+                WriteOutcome::Deferred => return Ok(JsValue::UNDEFINED),
+                _ => {}
+            }
+            // The mount of the attachments and the attachment list of the workbook file follow the storage
+            reconcile_attachments(&platform, &workbooks, &runs, &workbook_id, &[])
+                .await
+                .map_err(|error| error_value(&error))?;
+            Ok(JsValue::UNDEFINED)
+        }))
+    }
+
     /// List the attachments of a workbook again, e.g. after one was removed or renamed in the storage. Resolves once
     /// the view of the workbook lists them, rejects with what the storage failed with.
     #[wasm_bindgen(js_name = refreshAttachments, unchecked_return_type = "Promise<void>")]

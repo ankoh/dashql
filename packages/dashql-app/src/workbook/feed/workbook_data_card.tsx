@@ -18,7 +18,8 @@ export interface WorkbookDataCardProps {
     attachment: Pick<dashql.WorkbookAttachmentView, 'fileName' | 'name' | 'sizeBytes'>;
     conn: ConnectionState | null;
     storageReader: StorageReader;
-    onRemoved: () => void;
+    /// Detach the attachment, the runtime deletes its file (`detachFile`). Resolves once the workbook no longer lists it.
+    onRemove: () => Promise<void>;
     /// Insert the table parameter of the attachment, `:sales`, where the user last wrote
     onMention?: (name: string) => void;
     /// Rename the attachment, the name is the new name of its table parameter
@@ -60,8 +61,7 @@ export const WorkbookDataCard: React.FC<WorkbookDataCardProps> = (props) => {
         setBusy(true);
         setError(null);
         try {
-            await props.storageReader.backend.deleteDataFile(props.workbookId, fileName);
-            props.onRemoved();
+            await props.onRemove();
         } catch (e) {
             setError('Removing data file failed');
             logger.error('Removing data file failed', { error: stringifyError(e) }, 'workbook_data_card');

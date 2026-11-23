@@ -187,6 +187,36 @@ describe('the workbooks of the runtime', () => {
         expect(text()).toBe('select * from :"reader-2";');
     });
 
+    it('detaches an attachment with its file while the scripts keep their text, a refused detach changes nothing', async () => {
+        const storage = new WorkbookTestBackend();
+        const rt = runtime = await createTestRuntime({ storage });
+        await rt.addConnection({ connectionId: TEST_CONNECTION_ID, params: HYPER });
+        const { workbookId } = rt.addWorkbook(TEST_CONNECTION_ID, [['reader.sql', 'select * from :sales;']], { name: 'Attachments' });
+        await rt.attachFiles(workbookId, [{ name: 'sales.parquet', file: new Blob(['a']) }, { name: 'orders.parquet', file: new Blob(['b']) }]);
+        const fileNames = async () => (await storage.listDataFiles(workbookId)).map(file => file.name).sort();
+        const listed = () => rt.store.get('workbook', workbookId)!.attachments?.map(attachment => attachment.fileName);
+        const text = () => rt.scripts(workbookId)[rt.store.get('workbook', workbookId)!.scriptKeys[0]].scriptSession.getText();
+
+        await rt.detachFile(workbookId, 'sales.parquet');
+        expect(await fileNames()).toEqual(['orders.parquet']);
+        expect(listed()).toEqual(['orders.parquet']);
+        expect(text()).toBe('select * from :sales;');
+        await rt.storage.flush();
+        expect(storage.workbooks.get(workbookId)?.attachments.map(attachment => attachment.name)).toEqual(['orders.parquet']);
+
+        // An attachment with the name of a script in another case is ambiguous, the derived view names it
+        await storage.saveDataFile(workbookId, 'Reader.parquet', new Blob(['c']));
+        await rt.refreshAttachments(workbookId);
+        rt.flush();
+        expect(rt.store.get('workbookDerived', workbookId)?.collidingAttachments).toEqual(['Reader.parquet']);
+
+        // A preview of a published workbook refuses the detach before the file went
+        rt.dispatch({ workbook: workbookId }, { kind: 'setCloudLink', value: { link: { workbookId: 'c', versionId: 'v', preview: true } } });
+        await expect(rt.detachFile(workbookId, 'orders.parquet')).rejects.toThrow();
+        expect(await fileNames()).toEqual(['Reader.parquet', 'orders.parquet']);
+        expect(listed()).toContain('orders.parquet');
+    });
+
     it('outdates the scripts of the other workbooks on a catalog that a script changed', async () => {
         const rt = runtime = await createTestRuntime();
         await rt.addConnection({ connectionId: TEST_CONNECTION_ID, params: HYPER });

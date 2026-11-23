@@ -81,6 +81,8 @@ export interface WorkbookDerived {
     dataflow: core.buffers.execution.SessionDataflowT;
     /// The inputs of the workbook
     inputs: WorkbookInput[];
+    /// The file names of the attachments whose table parameter has the name of a script, the name is ambiguous
+    collidingAttachments: readonly string[];
 }
 
 /// The actions of a workbook

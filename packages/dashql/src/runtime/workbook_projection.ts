@@ -199,10 +199,12 @@ export class WorkbookDerivedProjection implements ViewProjection<'workbookDerive
             : share(prev?.inputs, readWorkbookInputs(
                 core.readFlatBuffer(view.inputs, bb => core.buffers.execution.SessionInputs.getRootAsSessionInputs(bb)).unpack(), view.scriptKeys,
             ));
-        if (prev != null && prev.scriptKeys === scriptKeys && prev.references === references && prev.dataflow === dataflow && prev.inputs === inputs) {
+        const collidingAttachments = share(prev?.collidingAttachments, view.collidingAttachments);
+        if (prev != null && prev.scriptKeys === scriptKeys && prev.references === references && prev.dataflow === dataflow && prev.inputs === inputs
+            && prev.collidingAttachments === collidingAttachments) {
             return prev;
         }
-        return { workbookId, scriptKeys, references, dataflow, inputs };
+        return { workbookId, scriptKeys, references, dataflow, inputs, collidingAttachments };
     }
 
     release(workbookId: string): void {

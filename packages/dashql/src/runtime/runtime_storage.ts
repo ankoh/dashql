@@ -71,6 +71,7 @@ export function createRuntimeStorage(backend: StorageBackend, attachments: Attac
         loadDataFile: async (workbookId, name) => backend.loadDataFile(workbookId, name),
         saveDataFile: async (workbookId, name, file) => backend.saveDataFile(workbookId, name, file),
         renameDataFile: async (workbookId, from, to) => backend.renameDataFile(workbookId, from, to),
+        deleteDataFile: async (workbookId, name) => backend.deleteDataFile(workbookId, name),
         upsertWorkbookEntry: async entry => registry().upsertWorkbookEntry(entry as WorkbookEntry),
         deleteWorkbookFiles: async workbookId => registry().deleteWorkbookFiles(workbookId),
         registerNativeWorkbook: async (dir, workbookId) => {

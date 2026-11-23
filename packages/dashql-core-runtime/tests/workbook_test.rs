@@ -831,6 +831,54 @@ fn a_read_only_workbook_refuses_the_rename_of_an_attachment_before_anything_chan
 }
 
 #[test]
+fn detaches_an_attachment_and_deletes_its_file_while_the_scripts_keep_their_text() {
+    let (mut workbook, _) = workbook(&[("foo.sql", "")]);
+    let foo = key(&workbook, "foo.sql");
+    let files = vec![data_file("sales.parquet"), data_file("orders.parquet")];
+    workbook.apply(WorkbookAction::SetWorkbookAttachments { files }).unwrap();
+    set_text(&mut workbook, foo, "select * from :sales", false);
+    settle(&mut workbook);
+    let outcome = workbook.apply(WorkbookAction::DetachAttachment { file_name: "sales.parquet".into() }).unwrap();
+    assert!(outcome.changed);
+    assert_eq!(outcome.effects, [WorkbookEffect::DeleteDataFile { file_name: "sales.parquet".into() }]);
+    let attachments: Vec<_> = workbook.attachments().unwrap().iter().map(|a| a.file_name.as_str()).collect();
+    assert_eq!(attachments, ["orders.parquet"]);
+    // The script keeps its text, it resolves its references again and finds no attachment
+    assert_eq!(text(&workbook, foo), "select * from :sales");
+    assert!(workbook.script(foo).unwrap().is_analysis_outdated());
+    // An attachment that the workbook doesn't list detaches nothing
+    let outcome = workbook.apply(WorkbookAction::DetachAttachment { file_name: "sales.parquet".into() }).unwrap();
+    assert!(!outcome.changed && outcome.effects.is_empty());
+}
+
+#[test]
+fn a_read_only_workbook_refuses_to_detach_an_attachment() {
+    let (mut workbook, _) = workbook(&[("foo.sql", "")]);
+    workbook.apply(WorkbookAction::SetWorkbookAttachments { files: vec![data_file("sales.parquet")] }).unwrap();
+    workbook.apply(WorkbookAction::SetOrigin { origin: Some(published(true)) }).unwrap();
+    assert!(workbook.apply(WorkbookAction::DetachAttachment { file_name: "sales.parquet".into() }).is_err());
+    assert_eq!(workbook.attachments().unwrap()[0].file_name, "sales.parquet");
+}
+
+#[test]
+fn names_the_attachments_that_have_the_name_of_a_script() {
+    let (mut workbook, _) = workbook(&[("Sales.sql", ""), ("orders.sql", "")]);
+    assert!(workbook.attachments_named_like_scripts().is_empty());
+    let files = vec![data_file("items.parquet"), data_file("SALES.parquet"), data_file("orders.parquet")];
+    workbook.apply(WorkbookAction::SetWorkbookAttachments { files }).unwrap();
+    // The names fold in ASCII case, the attachments keep their order
+    let expected: Vec<String> = workbook
+        .attachments()
+        .unwrap()
+        .iter()
+        .map(|attachment| attachment.file_name.clone())
+        .filter(|file_name| file_name != "items.parquet")
+        .collect();
+    assert_eq!(expected.len(), 2);
+    assert_eq!(workbook.attachments_named_like_scripts(), expected);
+}
+
+#[test]
 fn keeps_the_columns_of_an_attachment_until_its_file_changes() {
     let (mut workbook, _) = workbook(&[("foo.sql", "select * from :sales")]);
     let foo = key(&workbook, "foo.sql");

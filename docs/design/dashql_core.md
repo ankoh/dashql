@@ -142,7 +142,10 @@ that wants the composition would depend on that rather than copy it.
   (`sales.parquet` is `:sales`). `attachFiles` names a new one and writes it through the storage writer; the view of the
   workbook is the one list of its attachments. `renameAttachment` names a renamed one like a script, rewrites the
   references of the scripts and renames the file through the storage writer (`WriteTask::RenameDataFile`); a refused
-  rename, e.g. of a cloud preview, changes nothing. The runs read their columns once per file and stamp.
+  rename, e.g. of a cloud preview, changes nothing. `detachFile` drops one from the workbook and deletes its file
+  through the storage writer (`WriteTask::DeleteDataFile`), the scripts keep their text. The derived view of the workbook
+  names the attachments that have the name of a script (`collidingAttachments`, `Workbook::attachments_named_like_scripts`).
+  The runs read their columns once per file and stamp.
 - **Stored results.** The view of a script shows the file that holds its last result (`storedResult`: name, key, time
   of writing and whether the key is the key of the script as it is now, `runs/stored_results.rs`). A workbook is looked
   up again once its changes pause: a change of the workbook (a cursor move is none), of a connection of its scripts, a

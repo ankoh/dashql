@@ -39,10 +39,10 @@ use std::task::{Context, Poll};
 use serde_json::Value;
 
 use super::keys::{
-    attachment_file, attachment_key, attachment_rename_key, belongs_to_workbook, chain_key, connection_entry_key,
-    connection_file_key, connection_file_prefix, script_deletion_key, script_file, script_key, script_rename_key,
-    workbook_attachment_list_key, workbook_connection_copy_key, workbook_creation_key, workbook_file_key,
-    workbook_script_list_key,
+    attachment_deletion_key, attachment_file, attachment_key, attachment_rename_key, belongs_to_workbook, chain_key,
+    connection_entry_key, connection_file_key, connection_file_prefix, script_deletion_key, script_file, script_key,
+    script_rename_key, workbook_attachment_list_key, workbook_connection_copy_key, workbook_creation_key,
+    workbook_file_key, workbook_script_list_key,
 };
 use super::stamps::{Expect, FolderStamps};
 use super::workbook_file::{
@@ -152,6 +152,11 @@ pub enum WriteTask {
         from: String,
         to: String,
     },
+    /// Delete an attachment of a workbook
+    DeleteDataFile {
+        workbook_id: String,
+        file_name: String,
+    },
 }
 
 impl WriteTask {
@@ -178,6 +183,7 @@ impl WriteTask {
             WriteTask::RefreshWorkbookAttachments { workbook_id } => workbook_attachment_list_key(workbook_id),
             WriteTask::SaveDataFile { workbook_id, file_name, .. } => attachment_key(workbook_id, file_name),
             WriteTask::RenameDataFile { workbook_id, from, .. } => attachment_rename_key(workbook_id, from),
+            WriteTask::DeleteDataFile { workbook_id, file_name } => attachment_deletion_key(workbook_id, file_name),
         }
     }
 
@@ -202,7 +208,8 @@ impl WriteTask {
                     vec![from, to]
                 }
             }
-            WriteTask::SaveDataFile { workbook_id, file_name, .. } => vec![attachment_file(workbook_id, file_name)],
+            WriteTask::SaveDataFile { workbook_id, file_name, .. }
+            | WriteTask::DeleteDataFile { workbook_id, file_name } => vec![attachment_file(workbook_id, file_name)],
             WriteTask::RenameDataFile { workbook_id, from, to } => {
                 let (from, to) = (attachment_file(workbook_id, from), attachment_file(workbook_id, to));
                 if from == to {
@@ -1292,6 +1299,15 @@ async fn execute<H: StorageHost>(shared: &Rc<Shared<H>>, key: &str, task: &Write
                 &[("key", key), ("workbookId", workbook_id), ("from", from), ("to", to)],
             );
             host.rename_data_file(workbook_id, from, to).await.map_err(|error| workbook_error(workbook_id, error))?;
+        }
+        WriteTask::DeleteDataFile { workbook_id, file_name } => {
+            log(
+                shared,
+                LogLevel::Info,
+                "Deleting attachment",
+                &[("key", key), ("workbookId", workbook_id), ("file", file_name)],
+            );
+            host.delete_data_file(workbook_id, file_name).await.map_err(|error| workbook_error(workbook_id, error))?;
         }
     }
     Ok(())

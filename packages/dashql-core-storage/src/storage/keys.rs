@@ -83,6 +83,12 @@ pub fn attachment_rename_key(workbook_id: &str, from: &str) -> String {
     format!("{}:rename", attachment_key(workbook_id, from))
 }
 
+/// The key of the deletion of an attachment, apart from its file so that a deletion and a save of the same name keep
+/// both
+pub fn attachment_deletion_key(workbook_id: &str, file_name: &str) -> String {
+    format!("{}:delete", attachment_key(workbook_id, file_name))
+}
+
 /// The file of an attachment that the tasks of a workbook keep their order on: two names of the same file share it
 pub fn attachment_file(workbook_id: &str, file_name: &str) -> String {
     attachment_key(workbook_id, &crate::workbook_format::files::file_name_key(file_name))
@@ -143,6 +149,7 @@ mod tests {
         assert_eq!(script_deletion_key(id, "a.sql"), "w/scripts/a.sql:delete");
         assert_eq!(script_rename_key(id, "a.sql"), "w/scripts/a.sql:rename");
         assert_eq!(attachment_key(id, "a.parquet"), "w/attachments/a.parquet");
+        assert_eq!(attachment_deletion_key(id, "a.parquet"), "w/attachments/a.parquet:delete");
         assert_eq!(connection_entry_key("c"), "@manifest/connections/c");
         assert_eq!(connection_file_key("c", "f.sql"), "@connections/c/f.sql");
         assert!(is_reloaded_key(&script_key(id, "a.sql"), id) && !is_reloaded_key(&workbook_creation_key(id), id));

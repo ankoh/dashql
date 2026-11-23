@@ -109,6 +109,21 @@ impl MemoryFiles {
         }
     }
 
+    /// A file of a workbook was deleted, its handle is released
+    pub fn remove(&self, workbook_id: &str, file_name: &str) {
+        let removed = {
+            let mut workbooks = self.workbooks.borrow_mut();
+            let files = workbooks.iter_mut().find(|(id, _)| id == workbook_id).map(|(_, files)| files);
+            files.and_then(|files| {
+                let position = files.iter().position(|file| file.file_name == file_name)?;
+                Some(files.remove(position))
+            })
+        };
+        if let Some(file) = removed {
+            self.release(vec![file]);
+        }
+    }
+
     /// A workbook went or is replaced, its files are released
     pub fn forget(&self, workbook_id: &str) {
         let removed = {
@@ -223,14 +238,27 @@ impl Persistence {
         self.write_durable(task)
     }
 
+    /// Delete the file of an attachment at once and tell the outcome. In memory the file is released and there is no
+    /// write.
+    pub fn delete_data_file(&self, workbook_id: &str, file_name: String) -> Option<WriteResult> {
+        if let Some(memory) = self.memory() {
+            memory.remove(workbook_id, &file_name);
+            return None;
+        }
+        let task = WriteTask::DeleteDataFile { workbook_id: workbook_id.to_string(), file_name };
+        self.write_durable(task)
+    }
+
     /// Schedule the writes of the effects of an action of a workbook, in order. `cloud` is the whole link to a cloud
     /// that the metadata of the workbook keeps, the workbook file holds it while the workbook has an origin.
     pub fn workbook_effects(&self, workbook_id: &str, effects: Vec<WorkbookEffect>, cloud: Option<&Value>) {
         // Memory keeps the files of the attachments, the rest is the state of the workbook
         if let Some(memory) = self.memory() {
             for effect in effects {
-                if let WorkbookEffect::RenameDataFile { from, to } = effect {
-                    memory.rename(workbook_id, &from, &to);
+                match effect {
+                    WorkbookEffect::RenameDataFile { from, to } => memory.rename(workbook_id, &from, &to),
+                    WorkbookEffect::DeleteDataFile { file_name } => memory.remove(workbook_id, &file_name),
+                    _ => {}
                 }
             }
             return;
@@ -249,6 +277,10 @@ impl Persistence {
                 }
                 WorkbookEffect::RenameDataFile { from, to } => {
                     drop(self.rename_data_file(workbook_id, from, to));
+                    continue;
+                }
+                WorkbookEffect::DeleteDataFile { file_name } => {
+                    drop(self.delete_data_file(workbook_id, file_name));
                     continue;
                 }
                 WorkbookEffect::WriteScriptList(list) => WriteTask::WriteWorkbookScripts {

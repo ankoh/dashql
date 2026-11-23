@@ -21,7 +21,7 @@ use dashql_core::catalog::{Catalog, CatalogEntryId, CatalogLayer, CatalogVersion
 use dashql_core::error::{Error, Result};
 use dashql_core::script::Script;
 use dashql_core::script_session::ScriptSession;
-use dashql_core::table_parameters::{TableParameterAttachment, TableParameters};
+use dashql_core::table_parameters::{colliding_names, TableParameterAttachment, TableParameters};
 use dashql_core::utils::quote_identifier;
 use dashql_core::vis_rewrite::VisRenderer;
 
@@ -664,6 +664,8 @@ pub enum WorkbookEffect {
     RenameScript { from: String, to: String },
     /// Rename the file of an attachment, its contents are unchanged
     RenameDataFile { from: String, to: String },
+    /// Delete the file of an attachment
+    DeleteDataFile { file_name: String },
     /// Write the script list of the workbook file
     WriteScriptList(ScriptList),
     /// Write the properties of the workbook file: its name, the view it opens in, whether it is ephemeral and its origin
@@ -751,6 +753,9 @@ pub enum WorkbookAction {
     /// read the new name, the file is renamed (`WorkbookEffect::RenameDataFile`). A name that is no plain file name
     /// changes nothing.
     RenameAttachment { file_name: String, name: String },
+    /// Detach an attachment: the workbook no longer lists it and its file is deleted
+    /// (`WorkbookEffect::DeleteDataFile`). The scripts that read it keep their text, their references find nothing then.
+    DetachAttachment { file_name: String },
     /// Set where the workbook came from, none removes the origin. An origin that isn't read-only makes a read-only
     /// workbook a workbook of its own.
     SetOrigin { origin: Option<WorkbookOrigin> },
@@ -773,6 +778,7 @@ impl WorkbookAction {
             | WorkbookAction::RenameWorkbook { .. }
             | WorkbookAction::SetDefaultView { .. }
             | WorkbookAction::RenameAttachment { .. }
+            | WorkbookAction::DetachAttachment { .. }
             | WorkbookAction::SetWorkbookInput { .. }
             | WorkbookAction::SetScriptConnection { .. } => true,
             WorkbookAction::ApplyEditorEvent { event, .. } => {
@@ -1039,6 +1045,30 @@ impl Workbook {
     /// The attachments, none until storage listed the files of the workbook
     pub fn attachments(&self) -> Option<&[WorkbookAttachment]> {
         self.attachments.as_deref()
+    }
+
+    /// The file names of the attachments whose table parameter has the name of a script, also in another ASCII case: a
+    /// table parameter of the name is ambiguous then (`colliding_names`). In the order of the attachments.
+    pub fn attachments_named_like_scripts(&self) -> Vec<String> {
+        let attachments = self.attachments.as_deref().unwrap_or_default();
+        let scripts = self.scripts.len();
+        let names = self
+            .scripts
+            .iter()
+            .map(|script| script_display_name(&script.file_name))
+            .chain(attachments.iter().map(|attachment| attachment.name.as_str()));
+        let mut colliding: Vec<usize> = colliding_names(names)
+            .into_iter()
+            .filter(|group| group.iter().any(|&i| i < scripts))
+            .flatten()
+            .filter_map(|i| i.checked_sub(scripts))
+            .collect();
+        colliding.sort_unstable();
+        colliding
+            .into_iter()
+            .filter_map(|i| attachments.get(i))
+            .map(|attachment| attachment.file_name.clone())
+            .collect()
     }
 
     /// The names of the table parameters of the attachments, which no script may take
@@ -1606,6 +1636,16 @@ impl Workbook {
             }
             WorkbookAction::RenameAttachment { file_name, name } => {
                 self.rename_attachment(&file_name, &name, &mut outcome)?
+            }
+            WorkbookAction::DetachAttachment { file_name } => {
+                if let Some(attachments) = self.attachments.as_mut() {
+                    let before = attachments.len();
+                    attachments.retain(|attachment| attachment.file_name != file_name);
+                    if attachments.len() != before {
+                        outcome.changed = true;
+                        outcome.effects.push(WorkbookEffect::DeleteDataFile { file_name });
+                    }
+                }
             }
             WorkbookAction::RenameWorkbook { name } => {
                 let name = name.map(|name| name.trim().to_string()).filter(|name| !name.is_empty());

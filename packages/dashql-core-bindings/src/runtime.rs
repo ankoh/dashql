@@ -435,6 +435,7 @@ impl Runtime {
                                 script_keys: parts.script_keys.clone(),
                                 script_files: parts.script_files.clone(),
                                 attachments: parts.attachments.clone(),
+                                colliding_attachments: parts.colliding_attachments.clone(),
                                 references: FlatBufferBytes(references.clone()),
                                 dataflow: FlatBufferBytes(dataflow.clone()),
                                 inputs: FlatBufferBytes(inputs.clone()),

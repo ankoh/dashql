@@ -87,7 +87,7 @@ describe('V2 workbook feed rows', () => {
         const workbookId = '12345678-1234-1234-1234-123456789abc';
         const props: WorkbookDataCardProps = {
             workbookId, attachment: { fileName: 'sales 2.parquet', name: 'sales 2', sizeBytes: 42 },
-            conn: null, storageReader: { backend: new WorkbookTestBackend() } as unknown as WorkbookDataCardProps['storageReader'], onRemoved: vi.fn(),
+            conn: null, storageReader: { backend: new WorkbookTestBackend() } as unknown as WorkbookDataCardProps['storageReader'], onRemove: vi.fn(async () => {}),
         };
         for (const conn of [null,
             { connectorType: ConnectorType.HYPER, details: { setupParams: { protocol: 'V3_HTTP' }, channel: null, connector: { kind: 'hyper' } } },
@@ -115,7 +115,7 @@ describe('V2 workbook feed rows', () => {
         const wasm = { connectorType: ConnectorType.HYPER, readsAttachments: true, details: { setupParams: { protocol: 'WASM' }, channel: null, connector: { kind: 'hyper' } } } as unknown as WorkbookDataCardProps['conn'];
         act(() => root.render(<LoggerProvider>
             <WorkbookDataCard workbookId="workbook" attachment={{ fileName: 'sales.parquet', name: 'sales', sizeBytes: 3 }} conn={wasm}
-                storageReader={{ backend: new WorkbookTestBackend() } as unknown as WorkbookDataCardProps['storageReader']} onRemoved={vi.fn()} onMention={onMention} onRename={onRename} collides />
+                storageReader={{ backend: new WorkbookTestBackend() } as unknown as WorkbookDataCardProps['storageReader']} onRemove={vi.fn(async () => {})} onMention={onMention} onRename={onRename} collides />
         </LoggerProvider>));
         const tag = container.querySelector<HTMLButtonElement>('[data-testid="script-mention"]')!;
         expect(tag.textContent).toBe(':sales');
@@ -134,18 +134,18 @@ describe('V2 workbook feed rows', () => {
         expect(onRename).toHaveBeenCalledExactlyOnceWith('revenue');
     });
 
-    it('downloads data bytes and removes the file before requesting a list refresh for HyperDB WASM', async () => {
+    it('downloads data bytes and detaches the file for HyperDB WASM', async () => {
         const backend = new WorkbookTestBackend();
         const bytes = new Uint8Array([0, 255, 13]);
         await backend.saveDataFile('workbook', 'sales.parquet', bytes);
-        const onRemoved = vi.fn();
+        const onRemove = vi.fn(async () => {});
         const download = vi.fn<DownloadFile>().mockResolvedValue();
         try {
             act(() => root.render(<LoggerProvider>
                 <HostProvider value={{ setupCore: null, downloadFile: download }}>
                     <WorkbookDataCard workbookId="workbook" attachment={{ fileName: 'sales.parquet', name: 'sales', sizeBytes: 3 }}
                         conn={{ connectorType: ConnectorType.HYPER, readsAttachments: true, details: { setupParams: { protocol: 'WASM' }, channel: null, connector: { kind: 'hyper' } } } as unknown as WorkbookDataCardProps['conn']}
-                        storageReader={{ backend } as unknown as WorkbookDataCardProps['storageReader']} onRemoved={onRemoved} />
+                        storageReader={{ backend } as unknown as WorkbookDataCardProps['storageReader']} onRemove={onRemove} />
                 </HostProvider>
             </LoggerProvider>));
             const downloadButton = container.querySelector<HTMLButtonElement>('[data-testid="data-file-download"]');
@@ -155,8 +155,7 @@ describe('V2 workbook feed rows', () => {
             expect(download).toHaveBeenCalledExactlyOnceWith(bytes, 'sales.parquet');
             await vi.waitFor(() => expect(container.querySelector<HTMLButtonElement>('[data-testid="data-file-remove"]')!.disabled).toBe(false));
             await act(async () => { container.querySelector<HTMLButtonElement>('[data-testid="data-file-remove"]')!.click(); });
-            expect(await backend.listDataFiles('workbook')).toEqual([]);
-            expect(onRemoved).toHaveBeenCalledExactlyOnceWith();
+            expect(onRemove).toHaveBeenCalledExactlyOnceWith();
         } finally {
             download.mockRestore();
         }
@@ -262,7 +261,7 @@ describe('Workbook feed', () => {
     const storageReader = { backend: {} } as unknown as ReturnType<WorkbookFeedDependencies['useStorageReader']>;
     const attachmentCommands = {
         attachFiles: vi.fn(async (_workbookId: string, files: readonly { name: string }[]) => ({ attached: files.map(file => ({ name: file.name, fileName: file.name })), refused: [] as string[] })),
-        refreshAttachments: vi.fn(async () => {}),
+        detachFile: vi.fn(async () => {}),
     };
     const feedDependencies: WorkbookFeedDependencies = {
         useStorageReader: () => storageReader,

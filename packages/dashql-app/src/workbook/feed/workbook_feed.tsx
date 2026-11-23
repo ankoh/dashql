@@ -109,8 +109,8 @@ export interface WorkbookFeedRevealRequest {
 
 export interface WorkbookFeedDependencies {
     useStorageReader: typeof useStorageReader;
-    /// The commands of the runtime that attach files and list the attachments again
-    useAttachmentCommands: () => Pick<Runtime, 'attachFiles' | 'refreshAttachments'>;
+    /// The commands of the runtime that attach and detach files
+    useAttachmentCommands: () => Pick<Runtime, 'attachFiles' | 'detachFile'>;
     usePickScriptConnection: typeof usePickScriptConnection;
     useKeyEvents: typeof useKeyEvents;
     useWorkbookScriptMap: typeof useWorkbookScriptMap;
@@ -132,6 +132,7 @@ const DEFAULT_DEPENDENCIES: WorkbookFeedDependencies = {
 
 const LOG_CTX = 'workbook_feed';
 const NO_ATTACHMENTS: readonly dashql.WorkbookAttachmentView[] = [];
+const NO_FILE_NAMES: readonly string[] = [];
 const OVERSCAN_ROW_COUNT = 16;
 const FEED_ENTRY_CHROME_HEIGHT = 50;
 const FEED_EDITOR_LINE_HEIGHT = 18;
@@ -210,11 +211,10 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
     const [attachmentError, setAttachmentError] = React.useState<string | null>(null);
     // The view of the workbook lists its attachments, a changed attachment is listed again
     const attachments = props.workbookScripts.attachments ?? NO_ATTACHMENTS;
-    const refreshAttachments = React.useCallback(() => {
-        attachmentCommands.refreshAttachments(workbookId).catch(e => {
-            logger.error('Listing workbook attachments failed', { error: stringifyError(e) }, LOG_CTX);
-        });
-    }, [workbookId, attachmentCommands, logger]);
+    // The checked script references and the attachments whose table parameter has the name of a script, the runtime
+    // derives them again when an analysis changes
+    const derived = dependencies.useWorkbookDerived(workbookId);
+    const collidingAttachments = derived?.collidingAttachments ?? NO_FILE_NAMES;
     // A read-only workbook adds no scripts and no attachments
     const readOnly = useWorkbookReadOnly();
     const attachmentsEnabled = !readOnly && (props.conn?.readsAttachments ?? false);
@@ -388,7 +388,6 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
                 logger.error('Renaming workbook attachment failed', { workbookId, error: stringifyError(e) }, LOG_CTX);
             });
     }, [runtime, composerRenameScriptRef, logger, workbookId]);
-    const scriptNames = React.useMemo(() => props.workbookScripts.scriptOrder.map(scriptDisplayName), [props.workbookScripts.scriptOrder]);
 
     // The feed stays mounted (just hidden) while another view, e.g. a connection overview, is open, so its global
     // key handlers would otherwise keep firing behind the overlay. Gate them all on the active flag.
@@ -625,8 +624,7 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
         feedListRef.current?.scrollToRow({ index: entries.length - 1, align: 'end' });
     }, [entries.length, feedListRef]);
 
-    // The checked script references of every script, the runtime checks them again when an analysis changes
-    const scriptReferences = dependencies.useWorkbookDerived(workbookId)?.references;
+    const scriptReferences = derived?.references;
     scriptReferencesRef.current = scriptReferences;
     // The rows mount their editors once the list has a width. The list takes a width only after the size observer of
     // a container that was hidden reports, and a wrapped editor that measures at no width estimates the height of its
@@ -683,10 +681,11 @@ export const WorkbookFeed: React.FC<WorkbookFeedProps> = (props) => {
                             <div className={styles.feed_data_cards}>
                                 {attachments.map(attachment => (
                                     <WorkbookDataCard key={`${workbookId}/${attachment.fileName}`} workbookId={workbookId}
-                                        attachment={attachment} conn={props.conn} storageReader={storageReader} onRemoved={refreshAttachments}
+                                        attachment={attachment} conn={props.conn} storageReader={storageReader}
+                                        onRemove={() => attachmentCommands.detachFile(workbookId, attachment.fileName)}
                                         onMention={handleMentionAttachment}
                                         onRename={name => handleRenameAttachment(attachment.fileName, name)}
-                                        collides={scriptNames.some(name => name.toLowerCase() === attachment.name.toLowerCase())} />
+                                        collides={collidingAttachments.includes(attachment.fileName)} />
                                 ))}
                             </div>
                         </div>
