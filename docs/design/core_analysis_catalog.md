@@ -322,7 +322,8 @@ a `ColumnRefExpression`).
 
 The rules follow PostgreSQL and Hyper:
 
-- **CTEs** match unqualified table names only: `s.k` never names the CTE `k`.
+- **CTEs** match unqualified table names only: `s.k` never names the CTE `k`. A name that one WITH clause defines
+  twice is a `DUPLICATE_TABLE_ALIAS` (PostgreSQL's `duplicate_alias`), the first definition stays.
 - **FROM items without alias** are named by their table, but keyed by the qualified name:
   `from s1.k, s2.k` is legal, and `k.a` looks into both. The same table twice, or the same alias twice,
   is a `DUPLICATE_TABLE_ALIAS`.

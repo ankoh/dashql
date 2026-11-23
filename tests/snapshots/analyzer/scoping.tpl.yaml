@@ -58,6 +58,21 @@ analyzer-snapshots:
     script:
       input: with t as (select c as z from u) select * from u where a in (select z from t)
 
+  # A WITH clause that defines a name twice is an error, the first definition stays. A nested WITH may define it again.
+  - name: cte_duplicate_name
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: with c as (select a from t), c as (select c from u) select * from c
+
+  - name: cte_same_name_in_nested_with
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: with c as (select a from t) select * from (with c as (select c from u) select * from c) s, c
+
   # A non-recursive CTE sees only the CTEs before it, a nested WITH shadows an outer one
   - name: cte_forward_reference
     catalog:

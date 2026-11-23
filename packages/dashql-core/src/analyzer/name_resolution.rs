@@ -1505,6 +1505,19 @@ impl NameResolutionPass {
                 definition_node_id: cte.ast_node_id,
                 column_aliases,
             };
+            // A name that the WITH clause defines twice is an error as in PostgreSQL, the first definition stays. Both
+            // are an alias that is taken, SQLSTATE 42712.
+            if state.out.scope(scope).is_some_and(|s| s.cte_definitions.get_index(&cte.cte_name.text).is_some()) {
+                let message =
+                    format!("WITH query name {} specified more than once", quote_identifier(&cte.cte_name.text));
+                state.add_error(
+                    AnalyzerErrorType::DUPLICATE_TABLE_ALIAS,
+                    AnalyzerErrorSeverity::ERROR,
+                    cte.ast_node_id,
+                    message,
+                );
+                continue;
+            }
             let Some(s) = state.out.scope_mut(scope) else { continue };
             s.cte_definitions.insert(cte.cte_name.text.clone(), definition);
             s.cte_definition_nodes.entry(cte.cte_name.text.clone()).or_insert(cte.ast_node_id);

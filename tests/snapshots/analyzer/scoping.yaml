@@ -242,6 +242,98 @@ analyzer-snapshots:
             - {name: c, table-column: "256.65536.1:1.1"}
           text: "with t as .. z from t)"
 
+  - name: cte_duplicate_name
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: with c as (select a from t), c as (select c from u) select * from c
+      catalog-id: 2
+      errors:
+        - {type: DUPLICATE_TABLE_ALIAS, message: WITH query name c specified more than once, text: "c as (sele.. c from u)"}
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+        - {type: name/cte, text: "c"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:1.1", source: "u", text: "c"}
+      name-scopes:
+        - scope-id: 0
+          parent: 2
+          parent-sources: none
+          sources:
+            - {type: table, name: t, text: "t"}
+          columns:
+            - {name: a, expression: 0}
+          text: "select a from t"
+        - scope-id: 1
+          parent: 2
+          parent-sources: none
+          sources:
+            - {type: table, name: u, text: "u"}
+          columns:
+            - {name: c, expression: 1}
+          text: "select c from u"
+        - scope-id: 2
+          sources:
+            - {type: cte, name: c, scope: 0, text: "c"}
+          columns:
+            - {name: a, expression: 0}
+          text: "with c as ..t * from c"
+
+  - name: cte_same_name_in_nested_with
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: with c as (select a from t) select * from (with c as (select c from u) select * from c) s, c
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+        - {type: name/cte, text: "c"}
+        - {type: name/cte, text: "c"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:1.1", source: "u", text: "c"}
+      name-scopes:
+        - scope-id: 0
+          parent: 3
+          parent-sources: none
+          sources:
+            - {type: table, name: t, text: "t"}
+          columns:
+            - {name: a, expression: 0}
+          text: "select a from t"
+        - scope-id: 1
+          parent: 2
+          parent-sources: none
+          sources:
+            - {type: table, name: u, text: "u"}
+          columns:
+            - {name: c, expression: 1}
+          text: "select c from u"
+        - scope-id: 2
+          parent: 3
+          parent-sources: none
+          sources:
+            - {type: cte, name: c, scope: 1, text: "c"}
+          columns:
+            - {name: c, expression: 1}
+          text: "(with c as.. * from c)"
+        - scope-id: 3
+          sources:
+            - {type: subquery, name: s, scope: 2, text: "(with c as.. from c) s"}
+            - {type: cte, name: c, scope: 0, text: "c"}
+          columns:
+            - {name: c, expression: 1}
+            - {name: a, expression: 0}
+          text: "with c as ..om c) s, c"
+
   - name: cte_forward_reference
     catalog:
       script:
