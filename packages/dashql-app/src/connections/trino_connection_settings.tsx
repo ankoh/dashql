@@ -96,124 +96,41 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
             },
         },
     }));
+    // A field of basic auth or of OAuth switches to that auth and keeps its other fields
+    const updateBasicAuth = (patch: Partial<auth.BasicAuthParams>) => setPageState(s => ({
+        ...s,
+        newParams: {
+            ...s.newParams,
+            auth: {
+                authType: "AUTH_BASIC",
+                basic: { username: "", secret: "", ...s.newParams.auth?.basic, ...patch },
+            },
+        },
+    }));
+    const updateOAuth = (patch: (oauth: auth.OAuthParams) => Partial<auth.OAuthParams>) => setPageState(s => {
+        const oauth: auth.OAuthParams = { authorizationUrl: "", tokenUrl: "", clientId: "", callbackUrl: "", scopes: [], ...s.newParams.auth?.oauth };
+        return {
+            ...s,
+            newParams: {
+                ...s.newParams,
+                auth: { authType: "AUTH_OAUTH", oauth: { ...oauth, ...patch(oauth) } },
+            },
+        };
+    });
     const basicAuthUsername = pageState.newParams?.auth?.basic?.username;
-    const setBasicAuthUsername: Dispatch<string> = (v: string) => setPageState(s => ({
-        ...s,
-        newParams: {
-            ...s.newParams,
-            auth: {
-                authType: "AUTH_BASIC",
-                basic: {
-                    username: v,
-                    secret: s.newParams.auth?.basic?.secret ?? "",
-                },
-            },
-        }
-    }));
+    const setBasicAuthUsername: Dispatch<string> = (v: string) => updateBasicAuth({ username: v });
     const basicAuthSecret = pageState.newParams?.auth?.basic?.secret;
-    const setBasicAuthSecret: Dispatch<string> = (v: string) => setPageState(s => ({
-        ...s,
-        newParams: {
-            ...s.newParams,
-            auth: {
-                authType: "AUTH_BASIC",
-                basic: {
-                    username: s.newParams?.auth?.basic?.username ?? "",
-                    secret: v,
-                },
-            },
-        }
-    }));
+    const setBasicAuthSecret: Dispatch<string> = (v: string) => updateBasicAuth({ secret: v });
     const oauthAuthEndpoint = pageState.newParams.auth?.oauth?.authorizationUrl;
-    const setOAuthAuthEndpoint: Dispatch<string> = (v: string) => setPageState(s => ({
-        ...s,
-        newParams: {
-            ...s.newParams,
-            auth: {
-                authType: "AUTH_OAUTH",
-                oauth: {
-                    authorizationUrl: v,
-                    tokenUrl: s.newParams?.auth?.oauth?.tokenUrl ?? "",
-                    clientId: s.newParams?.auth?.oauth?.clientId ?? "",
-                    callbackUrl: s.newParams?.auth?.oauth?.callbackUrl ?? "",
-                    scopes: s.newParams?.auth?.oauth?.scopes ?? [],
-                },
-            },
-        }
-    }));
-
+    const setOAuthAuthEndpoint: Dispatch<string> = (v: string) => updateOAuth(() => ({ authorizationUrl: v }));
     const oauthTokenEndpoint = pageState.newParams.auth?.oauth?.tokenUrl;
-    const setOAuthTokenEndpoint: Dispatch<string> = (v: string) => setPageState(s => ({
-        ...s,
-        newParams: {
-            ...s.newParams,
-            auth: {
-                authType: "AUTH_OAUTH",
-                oauth: {
-                    authorizationUrl: s.newParams?.auth?.oauth?.authorizationUrl ?? "",
-                    tokenUrl: v,
-                    clientId: s.newParams?.auth?.oauth?.clientId ?? "",
-                    callbackUrl: s.newParams?.auth?.oauth?.callbackUrl ?? "",
-                    scopes: s.newParams?.auth?.oauth?.scopes ?? [],
-                },
-            },
-        }
-    }));
-
+    const setOAuthTokenEndpoint: Dispatch<string> = (v: string) => updateOAuth(() => ({ tokenUrl: v }));
     const oauthClientId = pageState.newParams.auth?.oauth?.clientId;
-    const setOAuthClientId: Dispatch<string> = (v: string) => setPageState(s => ({
-        ...s,
-        newParams: {
-            ...s.newParams,
-            auth: {
-                authType: "AUTH_OAUTH",
-                oauth: {
-                    authorizationUrl: s.newParams?.auth?.oauth?.authorizationUrl ?? "",
-                    tokenUrl: s.newParams?.auth?.oauth?.tokenUrl ?? "",
-                    clientId: v,
-                    callbackUrl: s.newParams?.auth?.oauth?.callbackUrl ?? "",
-                    scopes: s.newParams?.auth?.oauth?.scopes ?? [],
-                },
-            },
-        }
-    }));
-
+    const setOAuthClientId: Dispatch<string> = (v: string) => updateOAuth(() => ({ clientId: v }));
     const oauthRedirectUrl = pageState.newParams.auth?.oauth?.callbackUrl;
-    const setOAuthRedirectUrl: Dispatch<string> = (v: string) => setPageState(s => ({
-        ...s,
-        newParams: {
-            ...s.newParams,
-            auth: {
-                authType: "AUTH_OAUTH",
-                oauth: {
-                    authorizationUrl: s.newParams?.auth?.oauth?.authorizationUrl ?? "",
-                    tokenUrl: s.newParams?.auth?.oauth?.tokenUrl ?? "",
-                    clientId: s.newParams?.auth?.oauth?.clientId ?? "",
-                    callbackUrl: v,
-                    scopes: s.newParams?.auth?.oauth?.scopes ?? [],
-                },
-            },
-        }
-    }));
-
+    const setOAuthRedirectUrl: Dispatch<string> = (v: string) => updateOAuth(() => ({ callbackUrl: v }));
     const oauthScopes = pageState.newParams.auth?.oauth?.scopes ?? [];
-    const modifyOAuthScopes: Dispatch<UpdateValueList> = (action: UpdateValueList) => setPageState(s => ({
-        ...s,
-        newParams: {
-            ...s.newParams,
-            auth: {
-                authType: "AUTH_OAUTH",
-                oauth: {
-                    authorizationUrl: s.newParams?.auth?.oauth?.authorizationUrl ?? "",
-                    tokenUrl: s.newParams?.auth?.oauth?.tokenUrl ?? "",
-                    clientId: s.newParams?.auth?.oauth?.clientId ?? "",
-                    callbackUrl: s.newParams?.auth?.oauth?.callbackUrl ?? "",
-                    scopes: action(s.newParams?.auth?.oauth?.scopes ?? []),
-                },
-            },
-        }
-    }));
-
+    const modifyOAuthScopes: Dispatch<UpdateValueList> = (action: UpdateValueList) => updateOAuth(oauth => ({ scopes: action(oauth.scopes ?? []) }));
 
     const defaultCatalog = pageState.newParams.defaultCatalog ?? "";
     const setDefaultCatalog: Dispatch<string> = (v: string) => setPageState(s => ({
