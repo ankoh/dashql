@@ -1,0 +1,82 @@
+analyzer-snapshots:
+
+  # INSERT binds its explicit target columns against the target table
+  - name: insert_target_columns_resolved
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: insert into t (b, a) select a, c from u
+
+  - name: insert_target_column_unknown
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: insert into t (a, z) values (1, 2)
+
+  - name: insert_target_columns_unresolved_table
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: insert into missing (p, q) select a, b from t
+
+  # The source of an INSERT does not see the columns of its target
+  - name: insert_source_does_not_see_target
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: insert into t select b from u
+
+  - name: insert_default_values_returning
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: insert into t default values returning a, b
+
+  - name: insert_with_cte_source
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: with c as (select a, c from u) insert into t (a, b) select a, c from c
+
+  # An INSERT into a table of the script reads the declaration before it
+  - name: insert_into_script_table
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: create table z (k int, l text); insert into z (l, k) select c::text, a from u
+
+  # DELETE with USING, correlated subqueries, RETURNING and a CTE
+  - name: delete_using
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: delete from t using u where t.a = u.a and c > 0
+
+  - name: delete_correlated_exists
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: delete from t where exists (select 1 from u where u.a = t.a)
+
+  - name: delete_alias_returning
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: delete from t as x where x.b > 1 returning x.a, b
+
+  - name: delete_with_cte
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: with old as (select a from u where c < 0) delete from t where a in (select a from old)

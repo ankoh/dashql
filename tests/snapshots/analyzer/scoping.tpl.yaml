@@ -1,0 +1,286 @@
+analyzer-snapshots:
+
+  # Unquoted names fold to lower case, quoted names keep their case
+  - name: case_unquoted_names_fold
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table "Mixed" ("Col" int, low int);
+    script:
+      input: select T.A, B from T
+
+  - name: case_quoted_names_keep_case
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table "Mixed" ("Col" int, low int);
+    script:
+      input: select "Col", col, "LOW", low from "Mixed"
+
+  - name: case_unquoted_does_not_match_quoted_table
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table "Mixed" ("Col" int, low int);
+    script:
+      input: select low from Mixed
+
+  - name: case_quoted_output_alias
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table "Mixed" ("Col" int, low int);
+    script:
+      input: select q."K", q.k from (select a as "K" from t) q
+
+  - name: case_quoted_cte_name
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table "Mixed" ("Col" int, low int);
+    script:
+      input: with "C" as (select 1 as x) select x from "C", c
+
+  - name: case_quoted_schema_name
+    catalog:
+      script:
+        input: create table t (a int, b int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+    script:
+      input: select c from "S2".k, S1.K
+
+  # A CTE shadows a catalog table of the same name
+  - name: cte_shadows_catalog_table
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: with t as (select c as z from u) select z, a from t
+
+  - name: cte_shadows_catalog_table_in_subquery
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: with t as (select c as z from u) select * from u where a in (select z from t)
+
+  # A non-recursive CTE sees only the CTEs before it, a nested WITH shadows an outer one
+  - name: cte_forward_reference
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: with c1 as (select z from c2), c2 as (select 1 as z) select z from c1
+
+  - name: cte_self_reference_without_recursive
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: with r as (select 1 as n union all select n + 1 from r) select n from r
+
+  - name: cte_nested_shadows_outer
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: with k as (select a from t) select s.c, s.a from (with k as (select c from u) select * from k) s
+
+  - name: cte_recursive_with_catalog_join
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: with recursive r(n, m) as (select a, b from t union all select r.n, t.b from r join t on t.a = r.m) select n, m from r
+
+  # Set operations: every branch has its own FROM items, the output names come from the first branch
+  - name: set_op_branches_do_not_share_tables
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: select x.a from t x union all select x.c from u
+
+  - name: set_op_intersect_except
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: select q.a from (select a from t intersect select c from u except select id from v) q
+
+  - name: set_op_order_by_right_name
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: select a from t union select c from u order by c
+
+  # Self-joins need aliases to tell their sides apart
+  - name: self_join_aliases
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: select x.a, y.b from t x join t y on x.a = y.b where x.b > y.a
+
+  - name: self_join_one_alias_ambiguous_column
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: select t.a, x.a, b from t join t x on t.a = x.b
+
+  # Joins: an ambiguous ON, a NATURAL join without common columns, USING with two columns, FULL and LATERAL joins
+  - name: join_on_unqualified_ambiguous
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: select b, c from t join u on a = c
+
+  - name: join_natural_no_common_columns
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: select p, q, r, s from (select * from t natural join v) z(p, q, r, s)
+
+  - name: join_using_two_columns
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: select p, q from (select * from t join t as t2 using (a, b)) z(p, q)
+
+  - name: join_full_outer_using
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: select a, b, c from t full outer join u using (a)
+
+  - name: join_lateral_on_true
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: select t.a, s.c from t left join lateral (select c from u where u.a = t.a) s on true
+
+  # Output aliases are visible in ORDER BY only, not in WHERE, HAVING or the select list
+  - name: output_alias_in_where
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: select a + 1 as k from t where k > 1
+
+  - name: output_alias_in_having
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: select a, count(*) as n from t group by a having n > 1
+
+  - name: output_alias_in_select_list
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: select a + 1 as k, k * 2 from t
+
+  # Unresolved names in every clause
+  - name: unresolved_in_every_clause
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: |-
+        select f(n1), case when n2 then n3 else a end, sum(b) over (partition by n4 order by n5)
+        from t join u on t.a = u.n6
+        where n7 > 0
+        group by n8
+        having max(n9) > 0
+        order by n10
+        limit 1
+
+  # A window clause and DISTINCT ON read the FROM items
+  - name: named_window_and_distinct_on
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: select distinct on (a) a, sum(b) over w from t window w as (partition by a order by b) order by a, b
+
+  # Correlation: a correlated subquery in HAVING, a column of the inner scope wins over the outer one
+  - name: correlated_in_having
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: select a from t group by a having count(*) > (select count(*) from u where u.a = t.a)
+
+  - name: correlated_inner_column_wins
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: select (select a from u where c = b) from t
+
+  # Schemas and databases: a schema qualification reads any database, unknown qualifiers stay unresolved
+  - name: schema_qualified_any_database
+    catalog:
+      script:
+        input: create table t (a int, b int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+    script:
+      input: select e from s3.n
+
+  - name: unqualified_name_of_other_database
+    catalog:
+      script:
+        input: create table t (a int, b int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+    script:
+      input: select e from n
+
+  - name: unqualified_name_in_two_schemas
+    catalog:
+      script:
+        input: create table t (a int, b int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+    script:
+      input: select a, c from k
+
+  - name: unknown_schema_and_database
+    catalog:
+      script:
+        input: create table t (a int, b int); create table s1.k (a int, b int); create table s2.k (c int); create table db1.s3.n (e int);
+    script:
+      input: select * from s9.k, db9.s1.k, db1.s1.k
+
+  # Declarations of the script: shadowing the catalog, SELECT INTO, views with column lists, DROP
+  - name: script_table_shadows_catalog
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: create table t (z int); select z, a from t
+
+  - name: select_into_read_later
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: select a, b + 1 as n into tt from t; select a, n from tt
+
+  - name: view_column_list_read_later
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: create view vw (p, q) as select a, b from t; select p, q, a from vw
+
+  - name: create_table_as_schema_qualified_read_later
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: create table s9.m as select a from t; select a from s9.m; select a from m
+
+  - name: drop_catalog_table_then_read
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: drop table t; select a from t

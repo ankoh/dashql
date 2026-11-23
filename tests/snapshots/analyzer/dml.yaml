@@ -1,0 +1,1259 @@
+analyzer-snapshots:
+
+  - name: insert_target_columns_resolved
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: t
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65536.4294967297"
+            name: u
+            text: "create tab..nt, c int)"
+            columns:
+              - catalog-id: "256.65536.4294967297.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967297.1"
+                name: c
+                text: "c int"
+          - catalog-id: "256.65536.4294967298"
+            name: v
+            text: "create tab..nt, x int)"
+            columns:
+              - catalog-id: "256.65536.4294967298.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967298.1"
+                name: x
+                text: "x int"
+          - catalog-id: "256.65536.4294967299"
+            name: w
+            text: "create tab..nt, y int)"
+            columns:
+              - catalog-id: "256.65536.4294967299.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967299.1"
+                name: y
+                text: "y int"
+        touched-relations:
+          - statement-id: 0
+            name: t
+          - statement-id: 1
+            name: u
+          - statement-id: 2
+            name: v
+          - statement-id: 3
+            name: w
+        errors: []
+    script:
+      input: insert into t (b, a) select a, c from u
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967297"
+          statement-id: 0
+          text: "u"
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          role: write
+          text: "t"
+      inserts:
+        - statement-id: 0
+          target-ref: 1
+          source: "select a, c from u"
+          columns:
+            - name: b
+              resolved: true
+            - name: a
+              resolved: true
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967297.0"
+          source: "u"
+          statement-id: 0
+          text: "a"
+        - expression-idx: 1
+          type: colref/catalog
+          catalog: "256.65536.4294967297.1"
+          source: "u"
+          statement-id: 0
+          text: "c"
+      name-scopes:
+        - scope-id: 0
+          parent: 1
+          correlation-barrier: true
+          sources:
+            - type: table
+              name: u
+              text: "u"
+          columns:
+            - name: a
+              expression: 0
+            - name: c
+              expression: 1
+          text: "select a, c from u"
+        - scope-id: 1
+          sources:
+            - type: table
+              name: t
+              text: "t"
+          text: "insert int.., c from u"
+
+  - name: insert_target_column_unknown
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: t
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65536.4294967297"
+            name: u
+            text: "create tab..nt, c int)"
+            columns:
+              - catalog-id: "256.65536.4294967297.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967297.1"
+                name: c
+                text: "c int"
+          - catalog-id: "256.65536.4294967298"
+            name: v
+            text: "create tab..nt, x int)"
+            columns:
+              - catalog-id: "256.65536.4294967298.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967298.1"
+                name: x
+                text: "x int"
+          - catalog-id: "256.65536.4294967299"
+            name: w
+            text: "create tab..nt, y int)"
+            columns:
+              - catalog-id: "256.65536.4294967299.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967299.1"
+                name: y
+                text: "y int"
+        touched-relations:
+          - statement-id: 0
+            name: t
+          - statement-id: 1
+            name: u
+          - statement-id: 2
+            name: v
+          - statement-id: 3
+            name: w
+        errors: []
+    script:
+      input: insert into t (a, z) values (1, 2)
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          role: write
+          text: "t"
+      inserts:
+        - statement-id: 0
+          target-ref: 0
+          source: "values (1, 2)"
+          columns:
+            - name: a
+              resolved: true
+            - name: z
+              resolved: false
+      expressions:
+        - expression-idx: 0
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+        - expression-idx: 1
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "2"
+      constants:
+        - expression: 0
+          text: "1"
+        - expression: 1
+          text: "2"
+      name-scopes:
+        - scope-id: 0
+          parent: 1
+          correlation-barrier: true
+          columns:
+            - name: '?'
+              expression: 0
+            - name: '?'
+              expression: 1
+          text: "values (1, 2)"
+        - scope-id: 1
+          sources:
+            - type: table
+              name: t
+              text: "t"
+          text: "insert int..ues (1, 2)"
+
+  - name: insert_target_columns_unresolved_table
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: t
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65536.4294967297"
+            name: u
+            text: "create tab..nt, c int)"
+            columns:
+              - catalog-id: "256.65536.4294967297.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967297.1"
+                name: c
+                text: "c int"
+          - catalog-id: "256.65536.4294967298"
+            name: v
+            text: "create tab..nt, x int)"
+            columns:
+              - catalog-id: "256.65536.4294967298.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967298.1"
+                name: x
+                text: "x int"
+          - catalog-id: "256.65536.4294967299"
+            name: w
+            text: "create tab..nt, y int)"
+            columns:
+              - catalog-id: "256.65536.4294967299.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967299.1"
+                name: y
+                text: "y int"
+        touched-relations:
+          - statement-id: 0
+            name: t
+          - statement-id: 1
+            name: u
+          - statement-id: 2
+            name: v
+          - statement-id: 3
+            name: w
+        errors: []
+    script:
+      input: insert into missing (p, q) select a, b from t
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "t"
+        - type: name/unresolved
+          statement-id: 0
+          role: write
+          text: "missing"
+      inserts:
+        - statement-id: 0
+          target-ref: 1
+          source: "select a, b from t"
+          columns:
+            - name: p
+              resolved: false
+            - name: q
+              resolved: false
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          source: "t"
+          statement-id: 0
+          text: "a"
+        - expression-idx: 1
+          type: colref/catalog
+          catalog: "256.65536.4294967296.1"
+          source: "t"
+          statement-id: 0
+          text: "b"
+      name-scopes:
+        - scope-id: 0
+          parent: 1
+          correlation-barrier: true
+          sources:
+            - type: table
+              name: t
+              text: "t"
+          columns:
+            - name: a
+              expression: 0
+            - name: b
+              expression: 1
+          text: "select a, b from t"
+        - scope-id: 1
+          sources:
+            - type: unresolved
+              name: missing
+              text: "missing"
+          text: "insert int.., b from t"
+
+  - name: insert_source_does_not_see_target
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: t
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65536.4294967297"
+            name: u
+            text: "create tab..nt, c int)"
+            columns:
+              - catalog-id: "256.65536.4294967297.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967297.1"
+                name: c
+                text: "c int"
+          - catalog-id: "256.65536.4294967298"
+            name: v
+            text: "create tab..nt, x int)"
+            columns:
+              - catalog-id: "256.65536.4294967298.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967298.1"
+                name: x
+                text: "x int"
+          - catalog-id: "256.65536.4294967299"
+            name: w
+            text: "create tab..nt, y int)"
+            columns:
+              - catalog-id: "256.65536.4294967299.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967299.1"
+                name: y
+                text: "y int"
+        touched-relations:
+          - statement-id: 0
+            name: t
+          - statement-id: 1
+            name: u
+          - statement-id: 2
+            name: v
+          - statement-id: 3
+            name: w
+        errors: []
+    script:
+      input: insert into t select b from u
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967297"
+          statement-id: 0
+          text: "u"
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          role: write
+          text: "t"
+      inserts:
+        - statement-id: 0
+          target-ref: 1
+          source: "select b from u"
+      expressions:
+        - expression-idx: 0
+          type: colref/unresolved
+          statement-id: 0
+          text: "b"
+      name-scopes:
+        - scope-id: 0
+          parent: 1
+          correlation-barrier: true
+          sources:
+            - type: table
+              name: u
+              text: "u"
+          columns:
+            - name: b
+              expression: 0
+          text: "select b from u"
+        - scope-id: 1
+          sources:
+            - type: table
+              name: t
+              text: "t"
+          text: "insert int..t b from u"
+
+  - name: insert_default_values_returning
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: t
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65536.4294967297"
+            name: u
+            text: "create tab..nt, c int)"
+            columns:
+              - catalog-id: "256.65536.4294967297.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967297.1"
+                name: c
+                text: "c int"
+          - catalog-id: "256.65536.4294967298"
+            name: v
+            text: "create tab..nt, x int)"
+            columns:
+              - catalog-id: "256.65536.4294967298.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967298.1"
+                name: x
+                text: "x int"
+          - catalog-id: "256.65536.4294967299"
+            name: w
+            text: "create tab..nt, y int)"
+            columns:
+              - catalog-id: "256.65536.4294967299.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967299.1"
+                name: y
+                text: "y int"
+        touched-relations:
+          - statement-id: 0
+            name: t
+          - statement-id: 1
+            name: u
+          - statement-id: 2
+            name: v
+          - statement-id: 3
+            name: w
+        errors: []
+    script:
+      input: insert into t default values returning a, b
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          role: write
+          text: "t"
+      inserts:
+        - statement-id: 0
+          target-ref: 0
+          default-values: true
+          returning: true
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          source: "t"
+          statement-id: 0
+          text: "a"
+        - expression-idx: 1
+          type: colref/catalog
+          catalog: "256.65536.4294967296.1"
+          source: "t"
+          statement-id: 0
+          text: "b"
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - type: table
+              name: t
+              text: "t"
+          columns:
+            - name: a
+              expression: 0
+            - name: b
+              expression: 1
+          text: "insert int..rning a, b"
+
+  - name: insert_with_cte_source
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: t
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65536.4294967297"
+            name: u
+            text: "create tab..nt, c int)"
+            columns:
+              - catalog-id: "256.65536.4294967297.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967297.1"
+                name: c
+                text: "c int"
+          - catalog-id: "256.65536.4294967298"
+            name: v
+            text: "create tab..nt, x int)"
+            columns:
+              - catalog-id: "256.65536.4294967298.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967298.1"
+                name: x
+                text: "x int"
+          - catalog-id: "256.65536.4294967299"
+            name: w
+            text: "create tab..nt, y int)"
+            columns:
+              - catalog-id: "256.65536.4294967299.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967299.1"
+                name: y
+                text: "y int"
+        touched-relations:
+          - statement-id: 0
+            name: t
+          - statement-id: 1
+            name: u
+          - statement-id: 2
+            name: v
+          - statement-id: 3
+            name: w
+        errors: []
+    script:
+      input: with c as (select a, c from u) insert into t (a, b) select a, c from c
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967297"
+          statement-id: 0
+          text: "u"
+        - type: name/cte
+          statement-id: 0
+          text: "c"
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          role: write
+          text: "t"
+      inserts:
+        - statement-id: 0
+          target-ref: 2
+          source: "select a, c from c"
+          columns:
+            - name: a
+              resolved: true
+            - name: b
+              resolved: true
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967297.0"
+          source: "u"
+          statement-id: 0
+          text: "a"
+        - expression-idx: 1
+          type: colref/catalog
+          catalog: "256.65536.4294967297.1"
+          source: "u"
+          statement-id: 0
+          text: "c"
+        - expression-idx: 2
+          type: colref/catalog
+          catalog: "256.65536.4294967297.0"
+          source: "c"
+          statement-id: 0
+          text: "a"
+        - expression-idx: 3
+          type: colref/catalog
+          catalog: "256.65536.4294967297.1"
+          source: "c"
+          statement-id: 0
+          text: "c"
+      name-scopes:
+        - scope-id: 0
+          parent: 2
+          parent-sources: none
+          correlation-barrier: true
+          sources:
+            - type: table
+              name: u
+              text: "u"
+          columns:
+            - name: a
+              expression: 0
+            - name: c
+              expression: 1
+          text: "select a, c from u"
+        - scope-id: 1
+          parent: 2
+          correlation-barrier: true
+          sources:
+            - type: cte
+              name: c
+              scope: 0
+              text: "c"
+          columns:
+            - name: a
+              expression: 2
+            - name: c
+              expression: 3
+          text: "select a, c from c"
+        - scope-id: 2
+          sources:
+            - type: table
+              name: t
+              text: "t"
+          text: "with c as .., c from c"
+
+  - name: insert_into_script_table
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: t
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65536.4294967297"
+            name: u
+            text: "create tab..nt, c int)"
+            columns:
+              - catalog-id: "256.65536.4294967297.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967297.1"
+                name: c
+                text: "c int"
+          - catalog-id: "256.65536.4294967298"
+            name: v
+            text: "create tab..nt, x int)"
+            columns:
+              - catalog-id: "256.65536.4294967298.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967298.1"
+                name: x
+                text: "x int"
+          - catalog-id: "256.65536.4294967299"
+            name: w
+            text: "create tab..nt, y int)"
+            columns:
+              - catalog-id: "256.65536.4294967299.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967299.1"
+                name: y
+                text: "y int"
+        touched-relations:
+          - statement-id: 0
+            name: t
+          - statement-id: 1
+            name: u
+          - statement-id: 2
+            name: v
+          - statement-id: 3
+            name: w
+        errors: []
+    script:
+      input: create table z (k int, l text); insert into z (l, k) select c::text, a from u
+      catalog-id: 2
+      tables:
+        - catalog-id: "256.65536.8589934592"
+          name: z
+          text: "create tab..t, l text)"
+          columns:
+            - catalog-id: "256.65536.8589934592.0"
+              name: k
+              text: "k int"
+            - catalog-id: "256.65536.8589934592.1"
+              name: l
+              text: "l text"
+      touched-relations:
+        - statement-id: 0
+          name: z
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967297"
+          statement-id: 1
+          text: "u"
+        - type: name/internal
+          catalog-id: "256.65536.8589934592"
+          statement-id: 1
+          role: write
+          text: "z"
+      inserts:
+        - statement-id: 1
+          target-ref: 1
+          source: "select c::.., a from u"
+          columns:
+            - name: l
+              resolved: true
+            - name: k
+              resolved: true
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967297.1"
+          source: "u"
+          statement-id: 1
+          text: "c"
+        - expression-idx: 1
+          type: colref/catalog
+          catalog: "256.65536.4294967297.0"
+          source: "u"
+          statement-id: 1
+          text: "a"
+      name-scopes:
+        - scope-id: 1
+          parent: 2
+          correlation-barrier: true
+          sources:
+            - type: table
+              name: u
+              text: "u"
+          columns:
+            - name: '?'
+              computed: true
+            - name: a
+              expression: 1
+          text: "select c::.., a from u"
+        - scope-id: 2
+          sources:
+            - type: table
+              name: z
+              text: "z"
+          text: "insert int.., a from u"
+
+  - name: delete_using
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: t
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65536.4294967297"
+            name: u
+            text: "create tab..nt, c int)"
+            columns:
+              - catalog-id: "256.65536.4294967297.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967297.1"
+                name: c
+                text: "c int"
+          - catalog-id: "256.65536.4294967298"
+            name: v
+            text: "create tab..nt, x int)"
+            columns:
+              - catalog-id: "256.65536.4294967298.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967298.1"
+                name: x
+                text: "x int"
+          - catalog-id: "256.65536.4294967299"
+            name: w
+            text: "create tab..nt, y int)"
+            columns:
+              - catalog-id: "256.65536.4294967299.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967299.1"
+                name: y
+                text: "y int"
+        touched-relations:
+          - statement-id: 0
+            name: t
+          - statement-id: 1
+            name: u
+          - statement-id: 2
+            name: v
+          - statement-id: 3
+            name: w
+        errors: []
+    script:
+      input: delete from t using u where t.a = u.a and c > 0
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967297"
+          statement-id: 0
+          text: "u"
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          role: write
+          text: "t"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          source: "t"
+          statement-id: 0
+          text: "t.a"
+        - expression-idx: 1
+          type: colref/catalog
+          catalog: "256.65536.4294967297.0"
+          source: "u"
+          statement-id: 0
+          text: "u.a"
+        - expression-idx: 2
+          type: colref/catalog
+          catalog: "256.65536.4294967297.1"
+          source: "u"
+          statement-id: 0
+          text: "c"
+        - expression-idx: 3
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "0"
+      constants:
+        - expression: 3
+          text: "0"
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - type: table
+              name: u
+              text: "u"
+            - type: table
+              name: t
+              text: "t"
+          text: "delete fro.. and c > 0"
+
+  - name: delete_correlated_exists
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: t
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65536.4294967297"
+            name: u
+            text: "create tab..nt, c int)"
+            columns:
+              - catalog-id: "256.65536.4294967297.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967297.1"
+                name: c
+                text: "c int"
+          - catalog-id: "256.65536.4294967298"
+            name: v
+            text: "create tab..nt, x int)"
+            columns:
+              - catalog-id: "256.65536.4294967298.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967298.1"
+                name: x
+                text: "x int"
+          - catalog-id: "256.65536.4294967299"
+            name: w
+            text: "create tab..nt, y int)"
+            columns:
+              - catalog-id: "256.65536.4294967299.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967299.1"
+                name: y
+                text: "y int"
+        touched-relations:
+          - statement-id: 0
+            name: t
+          - statement-id: 1
+            name: u
+          - statement-id: 2
+            name: v
+          - statement-id: 3
+            name: w
+        errors: []
+    script:
+      input: delete from t where exists (select 1 from u where u.a = t.a)
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967297"
+          statement-id: 0
+          text: "u"
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          role: write
+          text: "t"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967297.0"
+          source: "u"
+          statement-id: 0
+          text: "u.a"
+        - expression-idx: 1
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          source: "t"
+          statement-id: 0
+          text: "t.a"
+        - expression-idx: 2
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 2
+          text: "1"
+      name-scopes:
+        - scope-id: 0
+          parent: 1
+          sources:
+            - type: table
+              name: u
+              text: "u"
+          columns:
+            - name: '?'
+              expression: 2
+          text: "(select 1 ..u.a = t.a)"
+        - scope-id: 1
+          sources:
+            - type: table
+              name: t
+              text: "t"
+          text: "delete fro..u.a = t.a)"
+
+  - name: delete_alias_returning
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: t
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65536.4294967297"
+            name: u
+            text: "create tab..nt, c int)"
+            columns:
+              - catalog-id: "256.65536.4294967297.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967297.1"
+                name: c
+                text: "c int"
+          - catalog-id: "256.65536.4294967298"
+            name: v
+            text: "create tab..nt, x int)"
+            columns:
+              - catalog-id: "256.65536.4294967298.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967298.1"
+                name: x
+                text: "x int"
+          - catalog-id: "256.65536.4294967299"
+            name: w
+            text: "create tab..nt, y int)"
+            columns:
+              - catalog-id: "256.65536.4294967299.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967299.1"
+                name: y
+                text: "y int"
+        touched-relations:
+          - statement-id: 0
+            name: t
+          - statement-id: 1
+            name: u
+          - statement-id: 2
+            name: v
+          - statement-id: 3
+            name: w
+        errors: []
+    script:
+      input: delete from t as x where x.b > 1 returning x.a, b
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          role: write
+          text: "t as x"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.1"
+          source: "t as x"
+          statement-id: 0
+          text: "x.b"
+        - expression-idx: 1
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          source: "t as x"
+          statement-id: 0
+          text: "x.a"
+        - expression-idx: 2
+          type: colref/catalog
+          catalog: "256.65536.4294967296.1"
+          source: "t as x"
+          statement-id: 0
+          text: "b"
+        - expression-idx: 3
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "1"
+      constants:
+        - expression: 3
+          text: "1"
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - type: table
+              name: x
+              text: "t as x"
+          columns:
+            - name: a
+              expression: 1
+            - name: b
+              expression: 2
+          text: "delete fro..ing x.a, b"
+
+  - name: delete_with_cte
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: t
+            text: "create tab..nt, b int)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+          - catalog-id: "256.65536.4294967297"
+            name: u
+            text: "create tab..nt, c int)"
+            columns:
+              - catalog-id: "256.65536.4294967297.0"
+                name: a
+                text: "a int"
+              - catalog-id: "256.65536.4294967297.1"
+                name: c
+                text: "c int"
+          - catalog-id: "256.65536.4294967298"
+            name: v
+            text: "create tab..nt, x int)"
+            columns:
+              - catalog-id: "256.65536.4294967298.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967298.1"
+                name: x
+                text: "x int"
+          - catalog-id: "256.65536.4294967299"
+            name: w
+            text: "create tab..nt, y int)"
+            columns:
+              - catalog-id: "256.65536.4294967299.0"
+                name: id
+                text: "id int"
+              - catalog-id: "256.65536.4294967299.1"
+                name: y
+                text: "y int"
+        touched-relations:
+          - statement-id: 0
+            name: t
+          - statement-id: 1
+            name: u
+          - statement-id: 2
+            name: v
+          - statement-id: 3
+            name: w
+        errors: []
+    script:
+      input: with old as (select a from u where c < 0) delete from t where a in (select a from old)
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967297"
+          statement-id: 0
+          text: "u"
+        - type: name/cte
+          statement-id: 0
+          text: "old"
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          role: write
+          text: "t"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967297.0"
+          source: "u"
+          statement-id: 0
+          text: "a"
+        - expression-idx: 1
+          type: colref/catalog
+          catalog: "256.65536.4294967297.1"
+          source: "u"
+          statement-id: 0
+          text: "c"
+        - expression-idx: 2
+          type: colref/catalog
+          catalog: "256.65536.4294967297.0"
+          source: "old"
+          statement-id: 0
+          text: "a"
+        - expression-idx: 3
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          source: "t"
+          statement-id: 0
+          text: "a"
+        - expression-idx: 4
+          type: literal/integer
+          is-const: true
+          statement-id: 0
+          text: "0"
+      constants:
+        - expression: 4
+          text: "0"
+      name-scopes:
+        - scope-id: 0
+          parent: 2
+          parent-sources: none
+          correlation-barrier: true
+          sources:
+            - type: table
+              name: u
+              text: "u"
+          columns:
+            - name: a
+              expression: 0
+          text: "select a f..here c < 0"
+        - scope-id: 1
+          parent: 2
+          sources:
+            - type: cte
+              name: old
+              scope: 0
+              text: "old"
+          columns:
+            - name: a
+              expression: 2
+          text: "(select a from old)"
+        - scope-id: 2
+          sources:
+            - type: table
+              name: t
+              text: "t"
+          text: "with old a.. from old)"
