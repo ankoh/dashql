@@ -344,80 +344,41 @@ interface VersionCheckIndicatorProps {
     size?: number;
 }
 
-export function VersionCheckIndicator(props: VersionCheckIndicatorProps) {
-    const size = `${props.size ?? 16}px`;
-    switch (props.status) {
+/// The badge symbol of a status, null without a badge
+function versionCheckBadge(status: VersionCheckStatusCode): string | null {
+    switch (status) {
         case VersionCheckStatusCode.Unknown:
         case VersionCheckStatusCode.Disabled:
         case VersionCheckStatusCode.UpToDate:
-            return (
-                <div className={styles.version_check_container}>
-                    <div className={styles.version_check_icon}>
-                        <svg width={size} height={size}>
-                            <use xlinkHref={`${symbols}#package`} />
-                        </svg>
-                    </div>
-                </div>
-            );
+            return null;
         case VersionCheckStatusCode.UpdateAvailable:
-            return (
-                <div className={styles.version_check_container_with_indicator}>
-                    <div className={styles.version_check_icon}>
-                        <svg width={size} height={size}>
-                            <use xlinkHref={`${symbols}#package_cut_24`} />
-                        </svg>
-                    </div>
-                    <div className={styles.version_check_indicator}>
-                        <svg width="10px" height="10px">
-                            <use xlinkHref={`${symbols}#alert_fill_12`} />
-                        </svg>
-                    </div>
-                </div>
-            );
+            return 'alert_fill_12';
         case VersionCheckStatusCode.UpdateInstalling:
-            return (
-                <div className={styles.version_check_container_with_indicator}>
-                    <div className={styles.version_check_icon}>
-                        <svg width={size} height={size}>
-                            <use xlinkHref={`${symbols}#package_cut_24`} />
-                        </svg>
-                    </div>
-                    <div className={styles.version_check_indicator}>
-                        <svg width="10px" height="10px">
-                            <use xlinkHref={`${symbols}#refresh`} />
-                        </svg>
-                    </div>
-                </div>
-            );
+            return 'refresh';
         case VersionCheckStatusCode.RestartPending:
-            return (
-                <div className={styles.version_check_container_with_indicator}>
-                    <div className={styles.version_check_icon}>
-                        <svg width={size} height={size}>
-                            <use xlinkHref={`${symbols}#package_cut_24`} />
-                        </svg>
-                    </div>
-                    <div className={styles.version_check_indicator}>
-                        <svg width="10px" height="10px">
-                            <use xlinkHref={`${symbols}#rocket_circle_16`} />
-                        </svg>
-                    </div>
-                </div>
-            );
+            return 'rocket_circle_16';
         case VersionCheckStatusCode.UpdateFailed:
-            return (
-                <div className={styles.version_check_container_with_indicator}>
-                    <div className={styles.version_check_icon}>
-                        <svg width={size} height={size}>
-                            <use xlinkHref={`${symbols}#package_cut_24`} />
-                        </svg>
-                    </div>
-                    <div className={styles.version_check_indicator}>
-                        <svg width="10px" height="10px">
-                            <use xlinkHref={`${symbols}#x_circle_16`} />
-                        </svg>
-                    </div>
-                </div>
-            );
+            return 'x_circle_16';
     }
+}
+
+export function VersionCheckIndicator(props: VersionCheckIndicatorProps) {
+    const size = `${props.size ?? 16}px`;
+    const badge = versionCheckBadge(props.status);
+    return (
+        <div className={badge == null ? styles.version_check_container : styles.version_check_container_with_indicator}>
+            <div className={styles.version_check_icon}>
+                <svg width={size} height={size}>
+                    <use xlinkHref={`${symbols}#${badge == null ? 'package' : 'package_cut_24'}`} />
+                </svg>
+            </div>
+            {badge != null && (
+                <div className={styles.version_check_indicator}>
+                    <svg width="10px" height="10px">
+                        <use xlinkHref={`${symbols}#${badge}`} />
+                    </svg>
+                </div>
+            )}
+        </div>
+    );
 }
