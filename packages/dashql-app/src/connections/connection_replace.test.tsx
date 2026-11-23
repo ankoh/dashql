@@ -7,7 +7,8 @@ import type * as core from '@akohn/dashql';
 import { connectionReplaceBlocker, connectionReplaceCandidates } from './connection_replace.js';
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { CONNECTOR_TYPES, ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
-import { ConnectionRowMenu, type ConnectionRefreshDependencies } from './connection_tree.js';
+import { ConnectionRowMenu } from './connection_tree.js';
+import { testConnectionTreeActions } from './connection_tree_test_actions.js';
 import type { ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
@@ -105,7 +106,6 @@ describe('connectionReplaceBlocker', () => {
 describe('connection replace ui', () => {
     let container: HTMLDivElement;
     let root: Root;
-    const dependencies: ConnectionRefreshDependencies = { useRefreshCatalog: () => vi.fn() };
     const source = database('source', trino('http://source'));
     const candidates = {
         sameConnector: [database('trino-b', trino('http://b'))],
@@ -124,15 +124,17 @@ describe('connection replace ui', () => {
     });
 
     const open = (blocker: string | null, onReplace: (targetId: string) => void) => {
+        const actions = testConnectionTreeActions({
+            replace: (_connectionId, targetId) => onReplace(targetId),
+            replaceBlocker: () => blocker,
+            replaceCandidates: () => candidates,
+        });
         act(() => root.render(
             <ConnectionRowMenu
                 database={source}
                 label="Trino source"
-                onOpenSettings={vi.fn()}
-                onReplace={onReplace}
-                replaceBlocker={() => blocker}
-                replaceCandidates={() => candidates}
-                dependencies={dependencies}
+                actions={actions}
+                onRename={vi.fn()}
             />,
         ));
         act(() => (container.querySelector('[data-testid="connection-row-menu"]') as HTMLButtonElement).click());

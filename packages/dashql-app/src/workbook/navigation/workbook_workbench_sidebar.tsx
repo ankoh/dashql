@@ -107,7 +107,7 @@ import { useAppFlavor } from '../../config/flavor_provider.js';
 import { WorkbookURLShareOverlay } from '../persistence/workbook_url_share_overlay.js';
 import { WorkbookFileSaveOverlay } from '../persistence/workbook_file_save_overlay.js';
 import * as styles from './workbook_workbench_sidebar.module.css';
-import { ConnectionTree, isConnectionInitiallyExpanded, listedConnections, type ConnectionUsage } from '../../connections/connection_tree.js';
+import { ConnectionTree, isConnectionInitiallyExpanded, listedConnections, type ConnectionTreeActions, type ConnectionUsage } from '../../connections/connection_tree.js';
 import * as actionMenuStyles from '../../app/action_menu.module.css';
 import { useDashQLCoreSetup } from '../../host/core_provider.js';
 import { useLogger } from '../../host/logger_provider.js';
@@ -1200,10 +1200,26 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
         onOpenScript?.(item.workbookId, fileName);
         closeAfterSelection?.();
     }, [navigate, closeAfterSelection, onOpenOverview, onOpenScript]);
-    const openOverview = React.useMemo(() => onOpenOverview == null ? undefined : (connectionId: string) => {
-        onOpenOverview(connectionId);
-        closeAfterSelection?.();
-    }, [onOpenOverview, closeAfterSelection]);
+    const connectionActions = React.useMemo<ConnectionTreeActions>(() => ({
+        describeUsage,
+        openSettings: (connectionId, anchor) => {
+            connectionSettingsAnchorRef.current = anchor;
+            setConnectionOverlayDatabaseId(connectionId);
+        },
+        openOverview: connectionId => {
+            onOpenOverview?.(connectionId);
+            closeAfterSelection?.();
+        },
+        rename: renameConnection,
+        refreshCatalog: connectionId => runtime.refreshCatalog(connectionId, true),
+        delete: deleteConnection,
+        mergeCandidateCount,
+        merge: mergeDuplicates,
+        replaceBlocker,
+        replaceCandidates,
+        replace: replaceWith,
+        setCloud: setCloudConnection,
+    }), [closeAfterSelection, deleteConnection, describeUsage, mergeCandidateCount, mergeDuplicates, onOpenOverview, renameConnection, replaceBlocker, replaceCandidates, replaceWith, runtime, setCloudConnection]);
     const workbookListRef = React.useRef<HTMLUListElement>(null);
     const getWorkbookScrollElement = React.useCallback(() => workbookListRef.current, []);
 
@@ -1406,26 +1422,13 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
                         <div className={styles.database_body} data-electron-drag-region="false">
                             {connectionRows.length > 0 && <ConnectionTree
                                 databases={connectionRows}
-                                describeUsage={describeUsage}
-                                onRename={renameConnection}
-                                onDelete={deleteConnection}
-                                mergeCandidateCount={mergeCandidateCount}
-                                onMerge={mergeDuplicates}
-                                replaceBlocker={replaceBlocker}
-                                replaceCandidates={replaceCandidates}
-                                onReplace={replaceWith}
+                                actions={connectionActions}
                                 initiallyExpanded={initiallyExpanded}
                                 workbookConnectionIds={workbookConnectionIds}
                                 labelOf={labelOf}
                                 attention={connectionAttention?.active === true}
-                                onOpenOverview={openOverview}
                                 openOverviewId={props.openOverviewId ?? null}
                                 cloudConnectionIds={cloudConnectionIds}
-                                onSetCloud={setCloudConnection}
-                                onOpenSettings={(connectionId, anchor) => {
-                                    connectionSettingsAnchorRef.current = anchor;
-                                    setConnectionOverlayDatabaseId(connectionId);
-                                }}
                             />}
                         </div>
                     </section>

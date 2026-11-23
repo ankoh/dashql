@@ -6,19 +6,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
 
-const refreshCatalog = vi.fn();
+import { ConnectionRefreshButton, ConnectionRowMenu, type ConnectionTreeActions } from './connection_tree.js';
+import { testConnectionTreeActions } from './connection_tree_test_actions.js';
 
 vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
-
-import {
-    ConnectionRefreshButton,
-    ConnectionRowMenu,
-    type ConnectionRefreshDependencies,
-} from './connection_tree.js';
-
-const dependencies: ConnectionRefreshDependencies = {
-    useRefreshCatalog: () => refreshCatalog,
-};
 
 function database(connectorType: ConnectorType = ConnectorType.HYPER): ConnectionState {
     const trino = connectorType === ConnectorType.TRINO;
@@ -43,12 +34,13 @@ function database(connectorType: ConnectorType = ConnectorType.HYPER): Connectio
 describe('ConnectionRowMenu', () => {
     let container: HTMLDivElement;
     let root: Root;
+    let actions: ConnectionTreeActions;
 
     beforeEach(() => {
         container = document.createElement('div');
         document.body.appendChild(container);
         root = createRoot(container);
-        refreshCatalog.mockReset();
+        actions = testConnectionTreeActions();
     });
 
     afterEach(() => {
@@ -56,20 +48,18 @@ describe('ConnectionRowMenu', () => {
         container.remove();
     });
 
-    function renderMenu(onOpenSettings = vi.fn(), onRename?: () => void, connection = database()) {
+    function renderMenu(onRename = vi.fn(), connection = database()) {
         act(() => root.render(
             <ConnectionRowMenu
                 database={connection}
                 label="Hyper / WASM"
-                onOpenSettings={onOpenSettings}
+                actions={actions}
                 onRename={onRename}
-                dependencies={dependencies}
             />,
         ));
         act(() => {
             (container.querySelector('[data-testid="connection-row-menu"]') as HTMLButtonElement).click();
         });
-        return onOpenSettings;
     }
 
     function clickAction(action: string): void {
@@ -79,24 +69,18 @@ describe('ConnectionRowMenu', () => {
     }
 
     it('opens connection settings from the intermediary menu', () => {
-        const onOpenSettings = renderMenu();
+        renderMenu();
         clickAction('settings');
 
-        expect(onOpenSettings).toHaveBeenCalledWith(expect.any(HTMLButtonElement));
+        expect(actions.openSettings).toHaveBeenCalledWith('database-1', expect.any(HTMLButtonElement));
     });
 
     it('renames the connection from the intermediary menu', () => {
         const onRename = vi.fn();
-        renderMenu(vi.fn(), onRename);
+        renderMenu(onRename);
         clickAction('rename');
 
         expect(onRename).toHaveBeenCalledOnce();
-    });
-
-    it('offers no rename without a handler', () => {
-        renderMenu();
-
-        expect(document.querySelector('[data-testid="connection-menu-item"][data-action="rename"]')).toBeNull();
     });
 
     it('offers no link to the embedded Hyper', () => {
@@ -106,7 +90,7 @@ describe('ConnectionRowMenu', () => {
     });
 
     it('opens the link of a connection from the intermediary menu', () => {
-        renderMenu(vi.fn(), undefined, database(ConnectorType.TRINO));
+        renderMenu(vi.fn(), database(ConnectorType.TRINO));
         clickAction('share-url');
 
         expect(document.querySelector('[data-testid="connection-share-overlay"]')).not.toBeNull();
@@ -116,17 +100,24 @@ describe('ConnectionRowMenu', () => {
         renderMenu();
         clickAction('refresh');
 
-        expect(refreshCatalog).toHaveBeenCalledWith('database-1', true);
+        expect(actions.refreshCatalog).toHaveBeenCalledWith('database-1');
+    });
+
+    it('offers no delete of the embedded Hyper', () => {
+        renderMenu();
+
+        expect(document.querySelector('[data-testid="connection-menu-item"][data-action="delete"]')).toBeNull();
     });
 
     it('also exposes the inline catalog refresh action', () => {
+        const onRefresh = vi.fn();
         act(() => root.render(
-            <ConnectionRefreshButton database={database()} label="Hyper / WASM" dependencies={dependencies} />,
+            <ConnectionRefreshButton database={database()} label="Hyper / WASM" onRefresh={onRefresh} />,
         ));
         act(() => {
             (container.querySelector('[data-testid="connection-refresh"]') as HTMLButtonElement).click();
         });
 
-        expect(refreshCatalog).toHaveBeenCalledWith('database-1', true);
+        expect(onRefresh).toHaveBeenCalledOnce();
     });
 });

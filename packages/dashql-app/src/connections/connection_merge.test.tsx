@@ -8,7 +8,8 @@ import { connectionMergeCandidates } from './connection_merge.js';
 import { createDefaultConnectionParamsForConnector } from '@akohn/dashql/platform/connections/connection_params';
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { CONNECTOR_INFOS, CONNECTOR_TYPES, ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
-import { ConnectionRowMenu, type ConnectionRefreshDependencies } from './connection_tree.js';
+import { ConnectionRowMenu } from './connection_tree.js';
+import { testConnectionTreeActions } from './connection_tree_test_actions.js';
 import type { ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
@@ -106,17 +107,14 @@ describe('connection merge ui', () => {
     });
 
     it('offers merging in the row menu only when there are duplicates', () => {
-        const dependencies: ConnectionRefreshDependencies = { useRefreshCatalog: () => vi.fn() };
-        const onMerge = vi.fn();
+        const merge = vi.fn();
         const render = (mergeCandidateCount: number) => {
             act(() => root.render(
                 <ConnectionRowMenu
                     database={database('target', grpc('http://hyper'))}
                     label="Hyper gRPC"
-                    onOpenSettings={vi.fn()}
-                    onMerge={onMerge}
-                    mergeCandidateCount={mergeCandidateCount}
-                    dependencies={dependencies}
+                    actions={testConnectionTreeActions({ merge, mergeCandidateCount: () => mergeCandidateCount })}
+                    onRename={vi.fn()}
                 />,
             ));
             act(() => (container.querySelector('[data-testid="connection-row-menu"]') as HTMLButtonElement).click());
@@ -127,6 +125,6 @@ describe('connection merge ui', () => {
         root = createRoot(container);
         const item = render(2)!;
         act(() => item.click());
-        expect(onMerge).toHaveBeenCalledTimes(1);
+        expect(merge).toHaveBeenCalledExactlyOnceWith('target');
     });
 });

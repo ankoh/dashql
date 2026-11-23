@@ -340,34 +340,50 @@ const ConnectionRenameInput: React.FC<ConnectionRenameInputProps> = ({ database,
     );
 };
 
+/// The commands of the parent on the connections of the tree, with what the parent knows about a connection
+export interface ConnectionTreeActions {
+    /// How workbooks use a connection
+    describeUsage: (connectionId: string) => ConnectionUsage;
+    /// Open the settings of a connection
+    openSettings: (connectionId: string, anchor: HTMLButtonElement) => void;
+    /// Open the overview of a connection
+    openOverview: (connectionId: string) => void;
+    /// Rename a connection, a blank name restores the default label
+    rename: (connectionId: string, name: string) => void;
+    /// Refresh the whole catalog of a connection
+    refreshCatalog: (connectionId: string) => void;
+    /// Delete a connection that no workbook uses
+    delete: (connectionId: string) => void;
+    /// The number of connections that can be merged into a connection
+    mergeCandidateCount: (connectionId: string) => number;
+    /// Merge other connections into a connection
+    merge: (connectionId: string) => void;
+    /// What keeps a connection from being replaced, null if it can be replaced
+    replaceBlocker: (connectionId: string) => string | null;
+    /// The connections that can replace a connection
+    replaceCandidates: (connectionId: string) => ConnectionReplaceCandidates;
+    /// Replace a connection with another one in every workbook
+    replace: (connectionId: string, targetId: string) => void;
+    /// Make a connection a cloud or stop using it as one
+    setCloud: (connectionId: string, isCloud: boolean) => void;
+}
+
+/// What the rows show of the tree, the rows are virtualized
 interface ConnectionTreeRowProps {
     rows: ConnectionTreeRow[];
     expanded: ReadonlySet<string>;
     onToggle: (key: string) => void;
-    onOpenSettings: (connectionId: string, anchor: HTMLButtonElement) => void;
-    describeUsage?: (connectionId: string) => ConnectionUsage;
-    onDelete?: (connectionId: string) => void;
-    mergeCandidateCount?: (connectionId: string) => number;
-    onMerge?: (connectionId: string) => void;
-    replaceBlocker?: (connectionId: string) => string | null;
-    replaceCandidates?: (connectionId: string) => ConnectionReplaceCandidates;
-    onReplace?: (connectionId: string, targetId: string) => void;
+    actions: ConnectionTreeActions;
     labelOf: (database: ConnectionState) => ConnectionLabelParts;
     attention: boolean;
-    /// Open the overview of a connection
-    onOpenOverview?: (connectionId: string) => void;
     /// The connection whose overview is open
     openOverviewId: string | null;
-    /// Rename a connection, connections can't be renamed without it
-    onRename?: (connectionId: string, name: string) => void;
     /// The connection that is being renamed
     renamingId: string | null;
     /// Start or stop renaming a connection
     setRenamingId: (connectionId: string | null) => void;
     /// The cloud connections
     cloudConnectionIds: readonly string[];
-    /// Make a connection a cloud or stop using it as one
-    onSetCloud?: (connectionId: string, isCloud: boolean) => void;
 }
 
 /// How workbooks use a connection
@@ -418,11 +434,11 @@ const ConnectionTreeRow = (props: RowComponentProps<ConnectionTreeRowProps>) => 
         const expanded = props.expanded.has(row.key);
         const labelParts = props.labelOf(row.database);
         const label = labelParts.text;
-        const usage = props.describeUsage?.(row.database.connectionId) ?? null;
+        const { actions } = props;
         const connectionId = row.database.connectionId;
+        const usage = actions.describeUsage(connectionId);
         const isCloud = props.cloudConnectionIds.includes(connectionId);
-        const onRename = props.onRename;
-        const startRename = onRename == null ? undefined : () => props.setRenamingId(connectionId);
+        const startRename = () => props.setRenamingId(connectionId);
         return (
             <div
                 style={props.style}
@@ -443,14 +459,14 @@ const ConnectionTreeRow = (props: RowComponentProps<ConnectionTreeRowProps>) => 
                     expanded={expanded}
                     onToggle={() => props.onToggle(row.key)}
                     onDoubleClick={startRename}
-                    editor={onRename != null && props.renamingId === connectionId
+                    editor={props.renamingId === connectionId
                         ? (
                             <ConnectionRenameInput
                                 database={row.database}
                                 placeholder={labelParts.connector}
                                 onCommit={name => {
                                     props.setRenamingId(null);
-                                    onRename(connectionId, name);
+                                    actions.rename(connectionId, name);
                                 }}
                                 onCancel={() => props.setRenamingId(null)}
                             />
@@ -472,31 +488,19 @@ const ConnectionTreeRow = (props: RowComponentProps<ConnectionTreeRowProps>) => 
                     <ConnectionStatusButton
                         database={row.database}
                         label={label}
-                        usedHere={usage?.usedHere ?? false}
+                        usedHere={usage.usedHere}
                         attention={props.attention}
-                        onOpenSettings={anchor => props.onOpenSettings(row.database.connectionId, anchor)}
+                        onOpenSettings={anchor => actions.openSettings(connectionId, anchor)}
                     />
                     <ConnectionRowMenu
                         database={row.database}
                         label={label}
+                        actions={actions}
                         contextMenu={contextMenu}
-                        onOpenSettings={anchor => props.onOpenSettings(row.database.connectionId, anchor)}
                         onRename={startRename}
-                        // Workbooks fall back to the embedded Hyper, it is never deleted
-                        onDelete={props.onDelete == null || usage == null || row.database.embedded ? undefined : () => props.onDelete!(row.database.connectionId)}
-                        onMerge={props.onMerge == null ? undefined : () => props.onMerge!(row.database.connectionId)}
-                        mergeCandidateCount={props.mergeCandidateCount?.(row.database.connectionId)}
-                        onReplace={props.onReplace == null || props.replaceCandidates == null
-                            ? undefined
-                            : targetId => props.onReplace!(connectionId, targetId)}
-                        replaceBlocker={props.replaceBlocker == null ? undefined : () => props.replaceBlocker!(connectionId)}
-                        replaceCandidates={props.replaceCandidates == null ? undefined : () => props.replaceCandidates!(connectionId)}
                         labelOf={props.labelOf}
-                        workbookCount={usage?.blockingWorkbookCount}
+                        workbookCount={usage.blockingWorkbookCount}
                         isCloud={isCloud}
-                        onSetCloud={props.onSetCloud == null || (!isCloud && !row.database.cloudCapable)
-                            ? undefined
-                            : cloud => props.onSetCloud!(connectionId, cloud)}
                     />
                 </ConnectionTreeEntry>
             </div>
@@ -514,7 +518,7 @@ const ConnectionTreeRow = (props: RowComponentProps<ConnectionTreeRowProps>) => 
                     icon={<CpuIcon size={14} />}
                     depth={1}
                     selected={props.openOverviewId === row.database.connectionId}
-                    onSelect={() => props.onOpenOverview?.(row.database.connectionId)}
+                    onSelect={() => props.actions.openOverview(row.database.connectionId)}
                 />
             </div>
         );
@@ -533,7 +537,7 @@ const ConnectionTreeRow = (props: RowComponentProps<ConnectionTreeRowProps>) => 
                     expanded={props.expanded.has(row.key)}
                     onToggle={() => props.onToggle(row.key)}
                 >
-                    <ConnectionRefreshButton database={row.database} label={label} />
+                    <ConnectionRefreshButton database={row.database} label={label} onRefresh={() => props.actions.refreshCatalog(row.database.connectionId)} />
                 </ConnectionTreeEntry>
             </div>
         );
@@ -560,24 +564,10 @@ const ConnectionTreeRow = (props: RowComponentProps<ConnectionTreeRowProps>) => 
 
 interface ConnectionTreeProps {
     databases: ConnectionState[];
+    /// The commands on the connections
+    actions: ConnectionTreeActions;
     /// The catalogs of the connections, the ones of the runtime by default
     catalogOf?: (connectionId: string) => core.DashQLCatalog | null;
-    /// Open the settings of a connection
-    onOpenSettings: (connectionId: string, anchor: HTMLButtonElement) => void;
-    /// Describe how workbooks use a connection
-    describeUsage?: (connectionId: string) => ConnectionUsage;
-    /// Delete a connection that no workbook uses
-    onDelete?: (connectionId: string) => void;
-    /// The number of connections that can be merged into a connection
-    mergeCandidateCount?: (connectionId: string) => number;
-    /// Merge other connections into a connection
-    onMerge?: (connectionId: string) => void;
-    /// What keeps a connection from being replaced, null if it can be replaced
-    replaceBlocker?: (connectionId: string) => string | null;
-    /// The connections that can replace a connection
-    replaceCandidates?: (connectionId: string) => ConnectionReplaceCandidates;
-    /// Replace a connection with another one in every workbook
-    onReplace?: (connectionId: string, targetId: string) => void;
     /// Is a connection expanded initially?
     initiallyExpanded?: (database: ConnectionState, databaseCount: number) => boolean;
     /// The connections of the current workbook, they are grouped apart from the other connections and the unused ones
@@ -586,16 +576,10 @@ interface ConnectionTreeProps {
     labelOf?: (database: ConnectionState) => ConnectionLabelParts;
     /// Does the current workbook ask for its connections to execute?
     attention?: boolean;
-    /// Open the overview of a connection, connections offer no overview without it
-    onOpenOverview?: (connectionId: string) => void;
     /// The connection whose overview is open
     openOverviewId?: string | null;
-    /// Rename a connection, a blank name restores the default label. Connections can't be renamed without it
-    onRename?: (connectionId: string, name: string) => void;
     /// The cloud connections, they are listed first in their group
     cloudConnectionIds?: readonly string[];
-    /// Make a connection a cloud or stop using it as one. Connections can't become clouds without it
-    onSetCloud?: (connectionId: string, isCloud: boolean) => void;
 }
 
 const connectionKey = (connectionId: string) => `connection:${connectionId}`;
@@ -628,23 +612,13 @@ function useShallowStableArray<T>(values: T[]): T[] {
 
 export const ConnectionTree: React.FC<ConnectionTreeProps> = ({
     databases,
-    onOpenSettings,
-    describeUsage,
-    onDelete,
-    mergeCandidateCount,
-    onMerge,
-    replaceBlocker,
-    replaceCandidates,
-    onReplace,
+    actions,
     initiallyExpanded = isConnectionInitiallyExpanded,
     workbookConnectionIds,
     labelOf = defaultConnectionLabelOf,
     attention = false,
-    onOpenOverview,
     openOverviewId = null,
-    onRename,
     cloudConnectionIds = NO_CLOUDS,
-    onSetCloud,
     catalogOf,
 }) => {
     const runtime = useOptionalRuntime();
@@ -706,7 +680,7 @@ export const ConnectionTree: React.FC<ConnectionTreeProps> = ({
         const pushConnection = (database: ConnectionState, i: number) => {
             next.push({ type: 'connection', key: connectionKey(database.connectionId), database });
             if (!expanded.has(connectionKey(database.connectionId))) return;
-            if (onOpenOverview != null && database.supportsOverview) {
+            if (database.supportsOverview) {
                 next.push({ type: 'connection-overview', key: overviewKey(database.connectionId), database });
             }
             next.push({ type: 'connection-catalog', key: catalogKey(database.connectionId), database });
@@ -724,7 +698,7 @@ export const ConnectionTree: React.FC<ConnectionTreeProps> = ({
         }
         const groupOf = (database: ConnectionState): ConnectionGroupKind => {
             if (workbookConnectionIds.has(database.connectionId)) return 'workbook';
-            return describeUsage?.(database.connectionId).workbookCount === 0 ? 'unused' : 'other';
+            return actions.describeUsage(database.connectionId).workbookCount === 0 ? 'unused' : 'other';
         };
         const groups = databases.map(groupOf);
         for (const group of CONNECTION_GROUP_ORDER) {
@@ -735,7 +709,7 @@ export const ConnectionTree: React.FC<ConnectionTreeProps> = ({
             }
         }
         return next;
-    }, [databases, catalogRows, cloudConnectionIds, describeUsage, expanded, onOpenOverview, workbookConnectionIds]);
+    }, [actions, databases, catalogRows, cloudConnectionIds, expanded, workbookConnectionIds]);
     // The rows are virtualized, the tree remembers the renamed connection while its row scrolls out of view
     const [renamingId, setRenamingId] = React.useState<string | null>(null);
     const containerRef = React.useRef<HTMLDivElement>(null);
@@ -754,24 +728,14 @@ export const ConnectionTree: React.FC<ConnectionTreeProps> = ({
         rows,
         expanded,
         onToggle: toggle,
-        onOpenSettings,
-        describeUsage,
-        onDelete,
-        mergeCandidateCount,
-        onMerge,
-        replaceBlocker,
-        replaceCandidates,
-        onReplace,
+        actions,
         labelOf,
         attention,
-        onOpenOverview,
         openOverviewId,
-        onRename,
         renamingId,
         setRenamingId,
         cloudConnectionIds,
-        onSetCloud,
-    }), [attention, cloudConnectionIds, describeUsage, expanded, labelOf, mergeCandidateCount, onDelete, onMerge, onOpenOverview, onOpenSettings, onRename, onReplace, onSetCloud, openOverviewId, renamingId, replaceBlocker, replaceCandidates, rows, toggle]);
+    }), [actions, attention, cloudConnectionIds, expanded, labelOf, openOverviewId, renamingId, rows, toggle]);
     return (
         <div ref={containerRef} className={styles.database_list} aria-label="Connections and catalogs">
             <List
@@ -813,21 +777,10 @@ export function isConnectionInitiallyExpanded(database: ConnectionState, databas
 interface ConnectionRowMenuProps {
     database: ConnectionState;
     label: string;
-    onOpenSettings: (anchor: HTMLButtonElement) => void;
-    /// Rename the connection
-    onRename?: () => void;
-    /// Delete the connection, only possible if no workbook keeps it
-    onDelete?: () => void;
-    /// Merge other connections into the connection
-    onMerge?: () => void;
-    /// The number of connections that can be merged into the connection
-    mergeCandidateCount?: number;
-    /// Replace the connection with another one in every workbook
-    onReplace?: (targetId: string) => void;
-    /// What keeps the connection from being replaced, null if it can be replaced. Read while the menu is open
-    replaceBlocker?: () => string | null;
-    /// The connections that can replace the connection, read when the picker opens
-    replaceCandidates?: () => ConnectionReplaceCandidates;
+    /// The commands on the connections
+    actions: ConnectionTreeActions;
+    /// Edit the name of the connection in its row
+    onRename: () => void;
     /// Label a connection of the replace picker
     labelOf?: (database: ConnectionState) => ConnectionLabelParts;
     /// The number of workbooks that keep the connection from being deleted
@@ -836,31 +789,9 @@ interface ConnectionRowMenuProps {
     contextMenu?: RowContextMenu;
     /// Is the connection the cloud connection?
     isCloud?: boolean;
-    /// Use the connection as cloud connection or stop using it, only for connections that can be one
-    onSetCloud?: (cloud: boolean) => void;
-    dependencies?: ConnectionRefreshDependencies;
 }
 
-export interface ConnectionRefreshDependencies {
-    /// Request a refresh of the catalog of a connection, `force` to refresh its whole catalog
-    useRefreshCatalog: () => (connectionId: string, force: boolean) => void;
-}
-
-/// Request a refresh of the catalog of a connection from the catalog loader of the runtime. The runtime is resolved
-/// when the function is called.
-function useRefreshCatalog(): (connectionId: string, force: boolean) => void {
-    const runtime = useOptionalRuntime();
-    return React.useCallback((connectionId: string, force: boolean) => {
-        if (runtime == null) throw new Error('the catalog loader needs a RuntimeProvider');
-        runtime.refreshCatalog(connectionId, force);
-    }, [runtime]);
-}
-
-const DEFAULT_CONNECTION_REFRESH_DEPENDENCIES: ConnectionRefreshDependencies = {
-    useRefreshCatalog,
-};
-
-export const ConnectionRowMenu: React.FC<ConnectionRowMenuProps> = ({ database, label, onOpenSettings, onRename, onDelete, onMerge, mergeCandidateCount = 0, onReplace, replaceBlocker: readReplaceBlocker, replaceCandidates, labelOf = defaultConnectionLabelOf, workbookCount = 0, contextMenu, isCloud = false, onSetCloud, dependencies = DEFAULT_CONNECTION_REFRESH_DEPENDENCIES }) => {
+export const ConnectionRowMenu: React.FC<ConnectionRowMenuProps> = ({ database, label, actions, onRename, labelOf = defaultConnectionLabelOf, workbookCount = 0, contextMenu, isCloud = false }) => {
     const [open, setOpen] = React.useState(false);
     useRowContextMenuOpener(contextMenu, () => setOpen(true));
     // The menu turns into the picker of the connection that replaces this one
@@ -869,12 +800,18 @@ export const ConnectionRowMenu: React.FC<ConnectionRowMenuProps> = ({ database, 
         setOpen(false);
         setReplacing(null);
     }, []);
-    const replaceBlocker = open && onReplace != null ? readReplaceBlocker?.() ?? null : null;
+    const connectionId = database.connectionId;
+    // Read while the menu is open
+    const replaceBlocker = open ? actions.replaceBlocker(connectionId) : null;
+    const mergeCandidateCount = open ? actions.mergeCandidateCount(connectionId) : 0;
     const [shareOpen, setShareOpen] = React.useState(false);
     // The embedded Hyper is local to the app, a link to it would open an empty workbook on the embedded Hyper of the recipient
     const canShare = !database.embedded;
+    // Workbooks fall back to the embedded Hyper, it is never deleted
+    const canDelete = !database.embedded;
+    // Only a connection that can be a cloud becomes one
+    const canSetCloud = isCloud || database.cloudCapable;
     const triggerRef = React.useRef<HTMLButtonElement>(null);
-    const refreshCatalog = dependencies.useRefreshCatalog();
     const isRefreshing = database.catalogUpdates.refreshRunning;
     const canRefresh = database.canRefresh;
 
@@ -908,7 +845,7 @@ export const ConnectionRowMenu: React.FC<ConnectionRowMenuProps> = ({ database, 
                 </IconButton>
             )}
         >
-            {replacing != null && onReplace != null ? (
+            {replacing != null ? (
                 <ConnectionReplacePicker
                     source={database}
                     candidates={replacing}
@@ -916,25 +853,22 @@ export const ConnectionRowMenu: React.FC<ConnectionRowMenuProps> = ({ database, 
                     onCancel={() => setReplacing(null)}
                     onConfirm={targetId => {
                         close();
-                        onReplace(targetId);
+                        actions.replace(connectionId, targetId);
                     }}
                 />
             ) : <div className={actionMenuStyles.menu} role="dialog" aria-label={`Actions for ${label}`}>
                 <ActionList.List aria-label={`Actions for ${label}`}>
-                    {/* The list takes elements only, the fragment wraps the optional item */}
-                    <>{onRename && (
-                        <ActionList.ListItem data-testid="connection-menu-item" data-action="rename" onClick={() => {
-                            setOpen(false);
-                            onRename();
-                        }}>
-                            <ActionList.Leading><PencilIcon size={16} /></ActionList.Leading>
-                            <ActionList.ItemText>Rename</ActionList.ItemText>
-                        </ActionList.ListItem>
-                    )}</>
+                    <ActionList.ListItem data-testid="connection-menu-item" data-action="rename" onClick={() => {
+                        setOpen(false);
+                        onRename();
+                    }}>
+                        <ActionList.Leading><PencilIcon size={16} /></ActionList.Leading>
+                        <ActionList.ItemText>Rename</ActionList.ItemText>
+                    </ActionList.ListItem>
                     <ActionList.ListItem data-testid="connection-menu-item" data-action="settings" onClick={() => {
                         const anchor = triggerRef.current;
                         setOpen(false);
-                        if (anchor != null) onOpenSettings(anchor);
+                        if (anchor != null) actions.openSettings(connectionId, anchor);
                     }}>
                         <ActionList.Leading><SettingsIcon size={16} /></ActionList.Leading>
                         <ActionList.ItemText>Settings</ActionList.ItemText>
@@ -946,7 +880,7 @@ export const ConnectionRowMenu: React.FC<ConnectionRowMenuProps> = ({ database, 
                         aria-busy={isRefreshing}
                         onClick={() => {
                             setOpen(false);
-                            refreshCatalog(database.connectionId, true);
+                            actions.refreshCatalog(connectionId);
                         }}
                     >
                         <ActionList.Leading>
@@ -957,10 +891,10 @@ export const ConnectionRowMenu: React.FC<ConnectionRowMenuProps> = ({ database, 
                         <ActionList.ItemText>Refresh</ActionList.ItemText>
                     </ActionList.ListItem>
                     {/* The list takes elements only, the fragment wraps the optional item */}
-                    <>{onSetCloud && (
+                    <>{canSetCloud && (
                         <ActionList.ListItem data-testid="connection-menu-item" data-action="cloud" onClick={() => {
                             setOpen(false);
-                            onSetCloud(!isCloud);
+                            actions.setCloud(connectionId, !isCloud);
                         }}>
                             <ActionList.Leading>
                                 <svg width="16" height="16" aria-hidden="true">
@@ -984,10 +918,10 @@ export const ConnectionRowMenu: React.FC<ConnectionRowMenuProps> = ({ database, 
                         </ActionList.ListItem>
                     )}</>
                     {/* The list takes elements only, the fragments wrap the optional items */}
-                    <>{onMerge && mergeCandidateCount > 0 && (
+                    <>{mergeCandidateCount > 0 && (
                         <ActionList.ListItem data-testid="connection-menu-item" data-action="merge" onClick={() => {
                             setOpen(false);
-                            onMerge();
+                            actions.merge(connectionId);
                         }}>
                             <ActionList.Leading><MergeIcon size={16} /></ActionList.Leading>
                             <ActionList.ItemText>
@@ -996,28 +930,26 @@ export const ConnectionRowMenu: React.FC<ConnectionRowMenuProps> = ({ database, 
                             </ActionList.ItemText>
                         </ActionList.ListItem>
                     )}</>
-                    <>{onReplace && replaceCandidates && (
-                        <ActionList.ListItem
-                            data-testid="connection-menu-item"
-                            data-action="replace"
-                            disabled={replaceBlocker != null}
-                            title={replaceBlocker ?? undefined}
-                            onClick={(event) => {
-                                // The menu stays open, it shows the picker
-                                event.stopPropagation();
-                                setReplacing(replaceCandidates());
-                            }}
-                        >
-                            <ActionList.Leading><ReplaceIcon size={16} /></ActionList.Leading>
-                            <ActionList.ItemText>
-                                <ActionList.ItemTextTitle>Replace with</ActionList.ItemTextTitle>
-                                {replaceBlocker != null
-                                    ? <ActionList.ItemTextDescription>{replaceBlocker}</ActionList.ItemTextDescription>
-                                    : <></>}
-                            </ActionList.ItemText>
-                        </ActionList.ListItem>
-                    )}</>
-                    <>{onDelete && (
+                    <ActionList.ListItem
+                        data-testid="connection-menu-item"
+                        data-action="replace"
+                        disabled={replaceBlocker != null}
+                        title={replaceBlocker ?? undefined}
+                        onClick={(event) => {
+                            // The menu stays open, it shows the picker
+                            event.stopPropagation();
+                            setReplacing(actions.replaceCandidates(connectionId));
+                        }}
+                    >
+                        <ActionList.Leading><ReplaceIcon size={16} /></ActionList.Leading>
+                        <ActionList.ItemText>
+                            <ActionList.ItemTextTitle>Replace with</ActionList.ItemTextTitle>
+                            {replaceBlocker != null
+                                ? <ActionList.ItemTextDescription>{replaceBlocker}</ActionList.ItemTextDescription>
+                                : <></>}
+                        </ActionList.ItemText>
+                    </ActionList.ListItem>
+                    <>{canDelete && (
                         <ActionList.ListItem
                             className={actionMenuStyles.delete_action}
                             data-testid="connection-menu-item"
@@ -1026,7 +958,7 @@ export const ConnectionRowMenu: React.FC<ConnectionRowMenuProps> = ({ database, 
                             title={workbookCount > 0 ? `Used by ${workbookCount} ${workbookCount === 1 ? 'workbook' : 'workbooks'}` : undefined}
                             onClick={() => {
                                 setOpen(false);
-                                onDelete();
+                                actions.delete(connectionId);
                             }}
                         >
                             <ActionList.Leading><TrashIcon size={16} /></ActionList.Leading>
@@ -1047,11 +979,11 @@ export const ConnectionRowMenu: React.FC<ConnectionRowMenuProps> = ({ database, 
 interface ConnectionRefreshButtonProps {
     database: ConnectionState;
     label: string;
-    dependencies?: ConnectionRefreshDependencies;
+    /// Refresh the whole catalog of the connection
+    onRefresh: () => void;
 }
 
-export const ConnectionRefreshButton: React.FC<ConnectionRefreshButtonProps> = ({ database, label, dependencies = DEFAULT_CONNECTION_REFRESH_DEPENDENCIES }) => {
-    const refreshCatalog = dependencies.useRefreshCatalog();
+export const ConnectionRefreshButton: React.FC<ConnectionRefreshButtonProps> = ({ database, label, onRefresh }) => {
     const isRefreshing = database.catalogUpdates.refreshRunning;
     const canRefresh = database.canRefresh;
 
@@ -1065,7 +997,7 @@ export const ConnectionRefreshButton: React.FC<ConnectionRefreshButtonProps> = (
             title={database.catalogUpdates.outOfDate ? 'The catalog may be out of date. Refresh it.' : undefined}
             aria-busy={isRefreshing}
             disabled={!canRefresh}
-            onClick={() => refreshCatalog(database.connectionId, true)}
+            onClick={onRefresh}
         >
             {isRefreshing
                 ? <StatusIndicator status={IndicatorStatus.Running} width="14px" height="14px" />

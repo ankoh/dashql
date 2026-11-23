@@ -5,7 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
 import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
-import { ConnectionTree } from './connection_tree.js';
+import { ConnectionTree, type ConnectionTreeActions } from './connection_tree.js';
+import { testConnectionTreeActions } from './connection_tree_test_actions.js';
 
 vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
 
@@ -43,6 +44,7 @@ function connection(connectionId: string, connector: ConnectorType.HYPER | Conne
 describe('ConnectionTree sections', () => {
     let container: HTMLDivElement;
     let root: Root;
+    let actions: ConnectionTreeActions;
     const hyper = connection('hyper-1', ConnectorType.HYPER);
     const trino = connection('trino-1', ConnectorType.TRINO);
 
@@ -50,6 +52,7 @@ describe('ConnectionTree sections', () => {
         container = document.createElement('div');
         document.body.appendChild(container);
         root = createRoot(container);
+        actions = testConnectionTreeActions();
     });
 
     afterEach(() => {
@@ -62,7 +65,7 @@ describe('ConnectionTree sections', () => {
             <ConnectionTree
                 databases={[hyper, trino]}
                 catalogOf={() => catalog as never}
-                onOpenSettings={vi.fn()}
+                actions={actions}
                 initiallyExpanded={() => true}
                 {...props}
             />,
@@ -74,8 +77,7 @@ describe('ConnectionTree sections', () => {
     }
 
     it('offers an overview for Hyper connections only and refreshes the catalog from the catalog row', () => {
-        const onOpenOverview = vi.fn();
-        render({ onOpenOverview });
+        render();
 
         expect(query('hyper-1', 'connection-overview')).not.toBeNull();
         expect(query('trino-1', 'connection-overview')).toBeNull();
@@ -85,17 +87,16 @@ describe('ConnectionTree sections', () => {
         // The refresh button moved from the connection row to the catalog row
         const refresh = query('hyper-1', 'connection-refresh')!;
         expect(refresh.closest('[data-connection-id]')!.querySelector('[data-testid="connection-catalog-toggle"]')).not.toBeNull();
+        act(() => refresh.click());
+        expect(actions.refreshCatalog).toHaveBeenCalledWith('hyper-1');
 
         act(() => query('hyper-1', 'connection-overview')!.click());
-        expect(onOpenOverview).toHaveBeenCalledWith('hyper-1');
+        expect(actions.openOverview).toHaveBeenCalledWith('hyper-1');
     });
 
-    it('marks the open overview and hides overviews without a handler', () => {
-        render({ onOpenOverview: vi.fn(), openOverviewId: 'hyper-1' });
+    it('marks the open overview', () => {
+        render({ openOverviewId: 'hyper-1' });
         expect(query('hyper-1', 'connection-overview')!.getAttribute('aria-current')).toBe('page');
-
-        render();
-        expect(query('hyper-1', 'connection-overview')).toBeNull();
     });
 
     it('collapses the catalog tree below the catalog row', () => {
@@ -125,8 +126,7 @@ describe('ConnectionTree sections', () => {
         }
 
         it('renames a connection after double-clicking its name', () => {
-            const onRename = vi.fn();
-            render({ onRename });
+            render();
             doubleClickName('hyper-1');
 
             const input = nameInput()!;
@@ -135,39 +135,30 @@ describe('ConnectionTree sections', () => {
             input.value = 'Production';
             pressKey(input, 'Enter');
 
-            expect(onRename).toHaveBeenCalledWith('hyper-1', 'Production');
+            expect(actions.rename).toHaveBeenCalledWith('hyper-1', 'Production');
             expect(nameInput()).toBeNull();
         });
 
         it('abandons the rename with Escape', () => {
-            const onRename = vi.fn();
-            render({ onRename });
+            render();
             doubleClickName('trino-1');
 
             const input = nameInput()!;
             input.value = 'Production';
             pressKey(input, 'Escape');
 
-            expect(onRename).not.toHaveBeenCalled();
+            expect(actions.rename).not.toHaveBeenCalled();
             expect(nameInput()).toBeNull();
         });
 
         it('renames a connection from the row menu', () => {
-            const onRename = vi.fn();
-            render({ onRename });
+            render();
             act(() => query('hyper-1', 'connection-row-menu')!.click());
             act(() => document.querySelector<HTMLElement>('[data-testid="connection-menu-item"][data-action="rename"]')!.click());
 
             // Closing the menu must not take the focus from the input
             expect(nameInput()).not.toBeNull();
             expect(document.activeElement).toBe(nameInput());
-        });
-
-        it('offers no rename without a handler', () => {
-            render();
-            doubleClickName('hyper-1');
-
-            expect(nameInput()).toBeNull();
         });
     });
 
@@ -185,12 +176,11 @@ describe('ConnectionTree sections', () => {
         });
 
         it('uses a connection that can be one as cloud connection from the row menu', () => {
-            const onSetCloud = vi.fn();
-            render({ databases: [hyper, trino, cloud], onSetCloud });
+            render({ databases: [hyper, trino, cloud] });
             act(() => query('hyper-cloud', 'connection-row-menu')!.click());
             expect(menuItem()!.textContent).toBe('Use as Cloud');
             act(() => menuItem()!.click());
-            expect(onSetCloud).toHaveBeenCalledWith('hyper-cloud', true);
+            expect(actions.setCloud).toHaveBeenCalledWith('hyper-cloud', true);
 
             // Trino doesn't write, it can't be the cloud connection
             act(() => query('trino-1', 'connection-row-menu')!.click());
@@ -198,12 +188,11 @@ describe('ConnectionTree sections', () => {
         });
 
         it('stops using the cloud connection from the row menu', () => {
-            const onSetCloud = vi.fn();
-            render({ databases: [hyper, trino, cloud], cloudConnectionIds: ['hyper-cloud'], onSetCloud });
+            render({ databases: [hyper, trino, cloud], cloudConnectionIds: ['hyper-cloud'] });
             act(() => query('hyper-cloud', 'connection-row-menu')!.click());
             expect(menuItem()!.textContent).toBe('Stop Using as Cloud');
             act(() => menuItem()!.click());
-            expect(onSetCloud).toHaveBeenCalledWith('hyper-cloud', false);
+            expect(actions.setCloud).toHaveBeenCalledWith('hyper-cloud', false);
         });
     });
 });
