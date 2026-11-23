@@ -15,6 +15,8 @@ interface Props {
     /// The progress of the restore, null until it started
     progress: core.RestoreProgress | null;
     embeddedDatabaseStatus: IndicatorStatus;
+    /// Why the setup failed, null while it did not fail
+    error?: string | null;
 }
 
 export const AppLoadingPage: React.FC<Props> = (props: Props) => {
@@ -61,6 +63,7 @@ export const AppLoadingPage: React.FC<Props> = (props: Props) => {
                 discoverWorkbooks: getStatusFromProgressCounter(props.progress?.restoreConnections),
                 loadWorkbookScripts: getStatusFromProgressCounter(props.progress?.restoreWorkbookScripts),
             }}
+            error={props.error}
             actions={props.pauseAfterSetup && (
                 <div className={baseStyles.card_actions}>
                     <div className={baseStyles.card_actions_right}>

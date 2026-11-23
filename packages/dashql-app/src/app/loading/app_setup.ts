@@ -49,6 +49,8 @@ export interface AppSetup {
     progress: core.RestoreProgress | null;
     /// The status of the setup of the embedded database
     embeddedDatabaseStatus: IndicatorStatus;
+    /// Why the setup failed, null while it did not fail
+    error: string | null;
 }
 
 /// Set up the app once its settings are ready.
@@ -71,6 +73,7 @@ export function useAppSetup(initialImport: React.RefObject<Promise<boolean> | nu
 
     const [embeddedDatabaseStatus, setEmbeddedDatabaseStatus] = React.useState<IndicatorStatus>(IndicatorStatus.None);
     const [progress, setProgress] = React.useState<core.RestoreProgress | null>(null);
+    const [error, setError] = React.useState<string | null>(null);
     const [done, resolveDone] = React.useMemo(() => {
         let resolve: () => void;
         const promise = new Promise<void>(a => { resolve = a; });
@@ -200,9 +203,12 @@ export function useAppSetup(initialImport: React.RefObject<Promise<boolean> | nu
                 host: getAppHost(),
                 status: 'failed',
             };
+            const component = failedComponent ?? "Unknown";
             logger.error("Application initialization failed", {
-                component: failedComponent ?? "Unknown",
+                component,
+                error: stringifyError(error),
             }, LOG_CTX);
+            setError(`${component}: ${stringifyError(error)}`);
         });
     });
     React.useEffect(() => {
@@ -213,5 +219,5 @@ export function useAppSetup(initialImport: React.RefObject<Promise<boolean> | nu
         startSetup();
     }, [appSettingsReady, config]);
 
-    return { done, opened, progress, embeddedDatabaseStatus };
+    return { done, opened, progress, embeddedDatabaseStatus, error };
 }

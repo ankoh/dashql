@@ -65,6 +65,7 @@ export const AppLoader: React.FC<React.PropsWithChildren> = (props: React.PropsW
             pauseAfterSetup={pauseAfterSetup}
             progress={setup.progress}
             embeddedDatabaseStatus={setup.embeddedDatabaseStatus}
+            error={setup.error}
         />;
     }
 };
