@@ -80,6 +80,23 @@ describe('the reading of a KPI card', () => {
         expect(readKpi(tableFromArrays({ total: new Int32Array([5]) }), spec()).axis).toBeNull();
     });
 
+    it('reads a result of half a million rows, more numbers than a call takes as arguments', () => {
+        const rows = 500_000;
+        const start = Date.parse('2026-01-01T00:00:00Z');
+        const table = tableFromArrays({
+            at: Array.from({ length: rows }, (_, i) => new Date(start + i * 60_000)),
+            value: Float64Array.from({ length: rows }, (_, i) => 1 + (i % 1000)),
+        });
+        const line = readKpi(table, spec());
+        expect(line.value).toBe('1,000');
+        expect(line.points).toHaveLength(rows);
+        expect(line.axis).toEqual({ xFirst: 'Jan 1', xLast: 'Dec 14', xBase: 'Dec 14', yMin: '1', yMax: '1K' });
+        // Bars rise from zero
+        const bars = readKpi(table, new buffers.visualization.KpiSpecT(null, null, Delta.PREVIOUS, buffers.visualization.KpiChart.BAR));
+        expect(bars.axis).toMatchObject({ yMin: null, yMax: '1K' });
+        expect(bars.zero).toBe(0);
+    });
+
     it('formats numbers compactly from ten thousand on and changes with their sign', () => {
         expect(formatKpiNumber(9999.5)).toBe('9,999.5');
         expect(formatKpiNumber(0.032_18)).toBe('0.0322');

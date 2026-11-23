@@ -95,12 +95,23 @@ export function formatKpiNumber(value: number): string {
     return PLAIN_FORMAT.format(value);
 }
 
+/// The smallest and the largest of numbers, starting from a range. A loop: a spread into Math.min and Math.max throws
+/// for a result of a few hundred thousand rows.
+function extent(values: readonly number[], [min, max]: [number, number] = [Infinity, -Infinity]): [number, number] {
+    for (const value of values) {
+        if (value < min) min = value;
+        if (value > max) max = value;
+    }
+    return [min, max];
+}
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /// The format of the dates of a temporal x axis, as short as the span of the axis allows: times within two days, the
 /// month of dates that are all the first of a month, days within a year, months beyond
 function dateFormat(dates: number[]): Intl.DateTimeFormat {
-    const span = dates.length > 0 ? Math.max(...dates) - Math.min(...dates) : 0;
+    const [first, last] = extent(dates);
+    const span = dates.length > 0 ? last - first : 0;
     const options: Intl.DateTimeFormatOptions = { timeZone: 'UTC' };
     if (span <= 2 * DAY_MS) {
         Object.assign(options, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
@@ -205,9 +216,7 @@ export function readKpi(table: arrow.Table, spec: KpiSpec): KpiReading {
     const charted = numbers.flatMap((y, row) => y == null ? [] : [row]);
     // The bars rise from zero, so zero is in the range of y
     const ys = charted.map(row => numbers[row]!);
-    const range: [number, number] = chart === 'bar'
-        ? [Math.min(0, ...ys), Math.max(0, ...ys)]
-        : [Math.min(...ys), Math.max(...ys)];
+    const range = chart === 'bar' ? extent(ys, [0, 0]) : extent(ys);
     if (chart != null && charted.length >= 2) {
         const temporal = xField != null && (arrow.DataType.isTimestamp(xField.type) || arrow.DataType.isDate(xField.type));
         const dates = temporal ? xs.filter((x): x is number => x != null) : [];
