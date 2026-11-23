@@ -30,7 +30,9 @@ export const DashQLCoreProvider: React.FC<Props> = (props: Props) => {
     const logger = useLogger();
     const outer = useHost();
     const instantiation = React.useRef<Promise<dashql.DashQL> | null>(null);
-    const lifecycle = React.useRef<{ disposed: boolean; core: dashql.DashQL | null }>({ disposed: false, core: null });
+    // A new instance owns no native objects and shares the memory of the module, an instance that finishes after the
+    // provider was disposed is dropped without a cleanup
+    const lifecycle = React.useRef<{ disposed: boolean }>({ disposed: false });
     const [progress, setProgress] = React.useState<InstantiationProgress | null>(null);
     // The core once it is instantiated
     const [core, setCore] = React.useState<dashql.DashQL | null>(null);
@@ -93,7 +95,6 @@ export const DashQLCoreProvider: React.FC<Props> = (props: Props) => {
                 const response = await fetchWithProgress(DASHQL_WASM_URL, traced);
                 const wasmBinary = new Uint8Array(await response.arrayBuffer());
                 const instance = await dashql.DashQL.create({ wasmBinary });
-                owner.core = instance;
                 if (owner.disposed) throw new DOMException('Core provider was disposed', 'AbortError');
 
                 const initEnd = performance.now();
@@ -126,7 +127,7 @@ export const DashQLCoreProvider: React.FC<Props> = (props: Props) => {
     }, [logger, setProgress, setCore]);
 
     React.useEffect(() => {
-        if (lifecycle.current.disposed) lifecycle.current = { disposed: false, core: null };
+        if (lifecycle.current.disposed) lifecycle.current = { disposed: false };
         const owner = lifecycle.current;
         return () => {
             owner.disposed = true;
