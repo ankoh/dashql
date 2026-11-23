@@ -455,6 +455,41 @@ pub(super) fn append_comments(
     }
 }
 
+/// Append the comments that follow a statement on its last line, as in `select 1; -- one`, on the line of the
+/// statement, where the parser reads them as part of the statement again. `statement_end` is the end of the statement
+/// in the input. Returns false without appending if a comment does not follow on that line or holds a tag, the caller
+/// then appends the comments like others.
+pub(super) fn append_trailing_comments(
+    output: &mut Vec<u8>,
+    input: &[u8],
+    comments: &[TextSpan],
+    statement_end: usize,
+) -> bool {
+    let mut previous_end = statement_end;
+    let mut after_line_comment = false;
+    for comment in comments {
+        let offset = comment.offset as usize;
+        let tagged = if is_block_comment(input, comment) {
+            block_comment_has_tag(input, *comment)
+        } else {
+            read_comment_tag(input, comment).is_some()
+        };
+        if after_line_comment || offset < previous_end || tagged {
+            return false;
+        }
+        if count_line_breaks(substr(input, previous_end, offset - previous_end)) > 0 {
+            return false;
+        }
+        after_line_comment = !is_block_comment(input, comment);
+        previous_end = comment.end() as usize;
+    }
+    for comment in comments {
+        output.push(b' ');
+        output.extend_from_slice(trim_whitespace(comment_text(input, comment)));
+    }
+    true
+}
+
 /// Keep a blank line between the end of comments and the text that follows them at `next`
 fn keep_blank_line(output: &mut Vec<u8>, input: &[u8], text_end: usize, next: Option<usize>) {
     if let Some(next) = next.filter(|&next| next >= text_end) {

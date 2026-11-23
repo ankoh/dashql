@@ -10,10 +10,10 @@ the formatter.
 1. **Parser-corpus round trip** (`//packages/dashql-core:formatter_roundtrip_test`,
    `packages/dashql-core/tests/formatter_roundtrip.rs`). Formats every error-free script of `tests/snapshots/parser`
    in all three modes. Each run must be fully formatted (`Formatter::is_fully_formatted`), its output must scan
-   and parse without errors to a tree with the same node types and attribute keys, and scripts without comments
-   must format to the same text a second time. The tree check catches a clause that the formatter drops without
-   a placeholder; `RESPELLED` lists the scripts whose output spells a construct with another tree of the same
-   meaning (array types). The test reports the unformattable node types of every failure. `UNFORMATTABLE` lists
+   and parse without errors to a tree with the same node types and attribute keys, and it must format to the same
+   text a second time. The tree check catches a clause that the formatter drops without a placeholder; `RESPELLED`
+   lists the scripts whose output spells a construct with another tree of the same meaning (array types), and
+   `RESPACED` the scripts whose comments are placed differently in a second run. The test reports the unformattable node types of every failure. `UNFORMATTABLE` lists
    the scripts the formatter rejects on purpose: `DEFAULT` outside of `INSERT` values, the statements that it
    writes as placeholders (UPDATE, MERGE, COPY, cursors, ...), and the clauses that it does not write yet.
 

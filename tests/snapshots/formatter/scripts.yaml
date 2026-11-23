@@ -148,12 +148,10 @@ formatter-snapshots:
               select 1;
           - mode: compact
             expected: |-
-              select 1;
-              -- the answer
+              select 1; -- the answer
           - mode: pretty
             expected: |-
-              select 1;
-              -- the answer
+              select 1; -- the answer
         validation:
           setup: |-
 

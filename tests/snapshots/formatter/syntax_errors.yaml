@@ -137,8 +137,7 @@ formatter-snapshots:
           - mode: compact
             expected: |-
               -- first
-              select 1;
-              -- one
+              select 1; -- one
 
               -- broken one
               select from from /* inner */ where;
@@ -151,8 +150,7 @@ formatter-snapshots:
           - mode: pretty
             expected: |-
               -- first
-              select 1;
-              -- one
+              select 1; -- one
 
               -- broken one
               select from from /* inner */ where;

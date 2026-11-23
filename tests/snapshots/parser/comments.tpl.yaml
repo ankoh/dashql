@@ -322,3 +322,9 @@ parser-snapshots:
   # Tag names are case-sensitive, end at whitespace, and @vis markdown runs to the next tag
   - name: tag_names_and_markdown
     input: "-- @VIS table\n-- @vis-x\n-- @vis\tmarkdown\n-- # Title\n-- Text\n-- @board width=4\nselect 1\n"
+  # Comments after a statement on its line belong to it
+  - name: trailing_comments_after_statements
+    input: |
+      select 1; -- one
+      select 2 /* two */; /* three */
+      select 3;

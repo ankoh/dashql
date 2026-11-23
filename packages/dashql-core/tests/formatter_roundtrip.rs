@@ -1,8 +1,8 @@
 //! Formats the scripts of the parser snapshots and checks the output against the parser.
 //!
 //! Every script of the parser snapshots that parses without errors must be fully formattable, and its
-//! formatted output must parse without errors again, to a tree with the same nodes. Without comments the output
-//! must also be stable when it is formatted a second time.
+//! formatted output must parse without errors again, to a tree with the same nodes. The output must also be stable
+//! when it is formatted a second time.
 
 use dashql_buffers::formatting::{FormattingConfigT, FormattingDialect, FormattingMode};
 use dashql_core::formatter::Formatter;
@@ -35,6 +35,12 @@ const RESPELLED: &[&str] = &[
     "select cast(a as text array)",
     "create table t (ps array(row(x int)), qs row(x int)[])",
     "select cast(json_parse(payload) as array(json)) as entries from event_stream",
+];
+
+/// Scripts whose formatted output formats differently a second time
+const RESPACED: &[&str] = &[
+    // The blank line between runs of line comments is dropped, the second run then continues the first
+    "-- first block\n\n-- second block\nselect 1",
 ];
 
 /// Does the script parse without scanner and parser errors?
@@ -93,7 +99,7 @@ fn formatted_parser_snapshots_parse_again() {
                 failures.push(format!("{}: output changes the tree: {formatted:?} of {input:?}", case.trial_name()));
                 continue;
             }
-            if parsed.scanned.comments.is_empty() {
+            if !RESPACED.contains(&input.trim()) {
                 let again = Formatter::new(&reparsed).format(&config);
                 if again != formatted {
                     failures.push(format!("{}: unstable output {formatted:?} then {again:?}", case.trial_name()));

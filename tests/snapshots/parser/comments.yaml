@@ -2392,3 +2392,100 @@ parser-snapshots:
           lines:
             - "width=4"
       comment-warnings: []
+
+  - name: trailing_comments_after_statements
+    input: |-
+      select 1; -- one
+      select 2 /* two */; /* three */
+      select 3;
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 4
+          description:
+            text: "select 1; -- one"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select 1"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "1"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "1"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: LITERAL_INTEGER
+                        text: "1"
+        - type: SELECT
+          ast-begin: 4
+          ast-size: 4
+          description:
+            text: "select 2 /..* three */"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select 2"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "2"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "2"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: LITERAL_INTEGER
+                        text: "2"
+        - type: SELECT
+          ast-begin: 8
+          ast-size: 4
+          description:
+            text: "select 3;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select 3"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "3"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "3"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: LITERAL_INTEGER
+                        text: "3"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [16,17]
+        - text: [48,49]
+      comments:
+        - text: "-- one"
+        - text: "/* two */"
+        - text: "/* three */"
+      comment-blocks:
+        - type: COMMENT
+          text: "-- one"
+          comments: [0,1]
+          lines:
+            - "one"
+        - type: COMMENT
+          text: "/* two */"
+          comments: [1,1]
+          lines:
+            - "two"
+        - type: COMMENT
+          text: "/* three */"
+          comments: [2,1]
+          lines:
+            - "three"
+      comment-warnings: []

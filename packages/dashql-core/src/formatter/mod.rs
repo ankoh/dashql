@@ -3183,8 +3183,13 @@ impl<'a> Formatter<'a> {
             output.extend_from_slice(self.fmt.render(self.statement_reg(statement), &options).as_bytes());
             output.push(b';');
 
+            // Comments after the statement on its line stay there, on a line of their own the next statement would
+            // read them as its leading comments
             let within_end = comments_before(before_end, description.source_span.end() as usize);
-            comments::append_comments(&mut output, input, comment_range(before_end, within_end), max_width, None);
+            let within = comment_range(before_end, within_end);
+            if !comments::append_trailing_comments(&mut output, input, within, root_span.end() as usize) {
+                comments::append_comments(&mut output, input, within, max_width, None);
+            }
             comment_begin = within_end;
         }
         comments::append_comments(&mut output, input, comment_range(comment_begin, comments.len()), max_width, None);
@@ -3249,7 +3254,23 @@ mod tests {
     #[test]
     fn keeps_comments() {
         let (out, _) = format("-- head\nselect 1; -- tail\nselect 2", FormattingMode::COMPACT, 120);
-        assert_eq!(out, "-- head\nselect 1;\n-- tail\n\nselect 2;");
+        assert_eq!(out, "-- head\nselect 1; -- tail\n\nselect 2;");
+    }
+
+    #[test]
+    fn keeps_trailing_comments_on_the_line_of_the_statement() {
+        // A comment on a line of its own after a statement would be read as leading comment of the next statement
+        for input in ["select 1; -- one\nselect 2;", "select 1; /* a */ /* b */ -- c\nselect 2", "select 1 /* a */;"] {
+            let (out, _) = format(input, FormattingMode::PRETTY, 120);
+            assert_eq!(format(&out, FormattingMode::PRETTY, 120).0, out, "{input:?}");
+        }
+        assert_eq!(
+            format("select 1; -- one\nselect 2;", FormattingMode::PRETTY, 120).0,
+            "select 1; -- one\n\nselect 2;"
+        );
+        assert_eq!(format("select 1 /* a */;", FormattingMode::PRETTY, 120).0, "select 1; /* a */");
+        // A comment inside a statement still follows it on a line of its own
+        assert_eq!(format("select 1 /* a */ + 2;", FormattingMode::PRETTY, 120).0, "select 1 + 2;\n/* a */");
     }
 
     #[test]
