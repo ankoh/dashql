@@ -202,19 +202,18 @@ export class DashQLShellError extends Error {
 }
 
 export class DashQLShell {
-    protected readonly textDecoder = new TextDecoder();
-    protected readonly textEncoder = new TextEncoder();
-    protected shell: Shell | null;
-    protected readonly lifecycleAbort = new AbortController();
-    protected activeExecution: AbortController | null = null;
-    protected readonly commands: Map<string, DashQLShellCommand>;
-    protected readonly settings: DashQLShellSettings;
+    private readonly textEncoder = new TextEncoder();
+    private shell: Shell | null;
+    private readonly lifecycleAbort = new AbortController();
+    private activeExecution: AbortController | null = null;
+    private readonly commands: Map<string, DashQLShellCommand>;
+    private readonly settings: DashQLShellSettings;
 
-    protected constructor(
+    private constructor(
         public readonly core: DashQL,
         public readonly catalog: DashQLCatalog,
-        protected readonly ownsCatalog: boolean,
-        protected readonly environment: DashQLShellEnvironment,
+        private readonly ownsCatalog: boolean,
+        private readonly environment: DashQLShellEnvironment,
         terminalColumns: number,
         autoQualifyNonDefaultDatabaseTables: boolean,
         commands: Map<string, DashQLShellCommand>,
@@ -270,24 +269,12 @@ export class DashQLShell {
         return this.readPrompt(this.alive().setPrompt(text));
     }
 
-    insertPrompt(text: string): DashQLShellPrompt {
-        return this.readPrompt(this.alive().insertPrompt(text));
-    }
-
     movePromptLeft(): DashQLShellPrompt {
         return this.readPrompt(this.alive().movePromptLeft());
     }
 
     movePromptRight(): DashQLShellPrompt {
         return this.readPrompt(this.alive().movePromptRight());
-    }
-
-    deletePromptBackward(): DashQLShellPrompt {
-        return this.readPrompt(this.alive().deletePromptBackward());
-    }
-
-    deletePromptForward(): DashQLShellPrompt {
-        return this.readPrompt(this.alive().deletePromptForward());
     }
 
     completePrompt(limit = 20): DashQLShellCompletionCandidate[] {
@@ -310,15 +297,6 @@ export class DashQLShell {
                 candidate.free();
             }
         });
-    }
-
-    applyCompletion(candidate: DashQLShellCompletionCandidate): DashQLShellPrompt {
-        return this.readPrompt(this.alive().applyCompletion(
-            candidate.displayText,
-            candidate.completionText,
-            candidate.targetOffset,
-            candidate.targetLength,
-        ));
     }
 
     consumePromptInput(key: DashQLShellPromptInput, text = ''): DashQLShellPrompt {
@@ -388,26 +366,17 @@ export class DashQLShell {
         onProgress?: (message: string) => void,
         onResult?: DashQLShellResultCallback,
     ): Promise<string> {
-        this.assertAlive();
         return await this.executeOperation(() => this.readOperation(this.alive().submitPrompt()), signal, onProgress, onResult);
     }
 
-    async executeQuery(
-        query: string,
-        signal?: AbortSignal,
-        onProgress?: (message: string) => void,
-        onResult?: DashQLShellResultCallback,
-    ): Promise<string> {
-        return await this.executeOperation(() => this.readOperation(this.alive().startQuery(query)), signal, onProgress, onResult);
-    }
-
-    protected async executeOperation(
+    private async executeOperation(
         start: () => DashQLShellOperation,
         signal?: AbortSignal,
         onProgress?: (message: string) => void,
         onResult?: DashQLShellResultCallback,
     ): Promise<string> {
-        this.assertAlive();
+        // A destroyed shell runs nothing
+        this.alive();
         if (this.activeExecution != null) {
             throw new DashQLShellError(DashQLShellStatus.BUSY, 'the shell already has an active operation');
         }
@@ -461,7 +430,7 @@ export class DashQLShell {
         }
     }
 
-    protected readPrompt(result: ShellPromptResult): DashQLShellPrompt {
+    private readPrompt(result: ShellPromptResult): DashQLShellPrompt {
         try {
             const status = result.status as DashQLShellStatus;
             const message = result.message;
@@ -480,7 +449,7 @@ export class DashQLShell {
         }
     }
 
-    protected readTerminal(result: ShellTerminalResult): DashQLShellTerminalOutput {
+    private readTerminal(result: ShellTerminalResult): DashQLShellTerminalOutput {
         try {
             const status = result.status as DashQLShellStatus;
             const output = result.data;
@@ -494,7 +463,7 @@ export class DashQLShell {
         }
     }
 
-    protected readOperation(operation: ShellOperation): DashQLShellOperation {
+    private readOperation(operation: ShellOperation): DashQLShellOperation {
         try {
             const status = operation.status as DashQLShellStatus;
             const effectId = operation.effectId;
@@ -511,7 +480,7 @@ export class DashQLShell {
         }
     }
 
-    protected async runEffect(
+    private async runEffect(
         effect: DashQLShellEffect,
         signal?: AbortSignal,
         onProgress?: (message: string) => void,
@@ -594,7 +563,7 @@ export class DashQLShell {
     /// The data of a query effect: a status line, or with the output `table` the first rows of the result and a
     /// status line. A result whose rows can't be read shows in the overlay, its status line says why. The result of a
     /// cancelled statement is not passed on.
-    protected async encodeQueryResult(
+    private async encodeQueryResult(
         result: { queryId: number; rowCount: number } | null,
         signal?: AbortSignal,
         onResult?: DashQLShellResultCallback,
@@ -618,7 +587,7 @@ export class DashQLShell {
         return this.encodeQueryStatus(status);
     }
 
-    protected encodeQueryStatus(status: string): Uint8Array {
+    private encodeQueryStatus(status: string): Uint8Array {
         const text = this.textEncoder.encode(withTrailingNewline(status));
         const encoded = new Uint8Array(text.byteLength + 1);
         encoded[0] = DashQLShellQueryResultTag.STATUS;
@@ -626,7 +595,7 @@ export class DashQLShell {
         return encoded;
     }
 
-    protected encodeQueryPreview(status: string, rows: Uint8Array): Uint8Array {
+    private encodeQueryPreview(status: string, rows: Uint8Array): Uint8Array {
         const text = this.textEncoder.encode(status);
         const encoded = new Uint8Array(5 + text.byteLength + rows.byteLength);
         encoded[0] = DashQLShellQueryResultTag.PREVIEW;
@@ -636,7 +605,7 @@ export class DashQLShell {
         return encoded;
     }
 
-    protected async executeCommand(
+    private async executeCommand(
         input: string,
         signal?: AbortSignal,
         onProgress?: (message: string) => void,
@@ -650,7 +619,7 @@ export class DashQLShell {
         };
     }
 
-    protected completeEffect(
+    private completeEffect(
         effectId: bigint,
         status: DashQLShellEffectCompletionStatus,
         data: Uint8Array,
@@ -658,18 +627,18 @@ export class DashQLShell {
         return this.readOperation(this.alive().completeEffect(effectId, status, data));
     }
 
-    protected cancelEffect(effectId: bigint): DashQLShellOperation {
+    private cancelEffect(effectId: bigint): DashQLShellOperation {
         return this.readOperation(this.alive().cancelEffect(effectId));
     }
 
-    protected requireComplete(operation: DashQLShellOperation): string {
+    private requireComplete(operation: DashQLShellOperation): string {
         if (operation.status !== DashQLShellStatus.OK) {
             throw new DashQLShellError(operation.status, operation.text);
         }
         return operation.text;
     }
 
-    protected requireEffect(operation: DashQLShellOperation): DashQLShellEffect {
+    private requireEffect(operation: DashQLShellOperation): DashQLShellEffect {
         if (operation.status !== DashQLShellStatus.PENDING) {
             throw new DashQLShellError(operation.status, operation.text);
         }
@@ -688,15 +657,11 @@ export class DashQLShell {
         }
     }
 
-    protected alive(): Shell {
+    private alive(): Shell {
         if (this.shell == null) {
             throw new DashQLShellError(DashQLShellStatus.INVALID_ARGUMENT, 'DashQL shell has been destroyed');
         }
         return this.shell;
-    }
-
-    protected assertAlive(): void {
-        this.alive();
     }
 }
 
@@ -767,8 +732,4 @@ function formatElapsed(elapsedMs: number): string {
     const hours = Math.floor(totalMinutes / 60);
     const suffix = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(milliseconds).padStart(3, '0')}`;
     return hours === 0 ? suffix : `${String(hours).padStart(2, '0')}:${suffix}`;
-}
-
-export async function createDashQLShell(options: DashQLShellOptions): Promise<DashQLShell> {
-    return await DashQLShell.create(options);
 }

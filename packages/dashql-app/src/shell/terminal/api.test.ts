@@ -1,6 +1,6 @@
 import * as arrow from 'apache-arrow';
 
-import { DashQLShell, DashQLShellError, DashQLShellPromptAction, DashQLShellPromptInput, DashQLShellStatus, SHELL_PREVIEW_ROW_LIMIT, type DashQLShellCommand, type DashQLShellEnvironment } from './api.js';
+import { DashQLShell, DashQLShellError, DashQLShellPromptAction, DashQLShellPromptInput, DashQLShellStatus, SHELL_PREVIEW_ROW_LIMIT, type DashQLShellCommand, type DashQLShellEnvironment, type DashQLShellResultCallback } from './api.js';
 import * as dashql from '@akohn/dashql';
 import { vectorFromArray } from '@akohn/dashql/platform/testing/arrow_fixtures';
 import { createEmbeddedDatabaseShellEnvironment } from '../page/embedded_database_shell_environment.js';
@@ -10,6 +10,12 @@ import { HyperDB, HyperDBConnection } from '@akohn/dashql/platform/hyperdb/hyper
 import { VT100, VT100Command, vt100Sequence } from './vt100.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
+
+/// Run a query as the prompt of a shell
+function runQuery(shell: DashQLShell, query: string, signal?: AbortSignal, onResult?: DashQLShellResultCallback): Promise<string> {
+    shell.setPrompt(query);
+    return shell.submitPrompt(signal, undefined, onResult);
+}
 
 /// Load a script into the catalog of a shell
 function loadCatalogScript(shell: DashQLShell, text: string): void {
@@ -133,7 +139,7 @@ describe('DashQL shell Wasm', () => {
             };
         };
 
-        await expect(shell.executeQuery('SELECT * FROM large_file')).resolves.toBe(
+        await expect(runQuery(shell, 'SELECT * FROM large_file')).resolves.toBe(
             'Uncaught RangeError: Maximum call stack size exceeded\r\n',
         );
     });
@@ -214,7 +220,7 @@ describe('DashQL shell Wasm', () => {
         executeQuery = async query => {
             expect(query).toBe('CREATE TABLE foo(a INT)');
         };
-        await expect(shell.executeQuery('CREATE TABLE foo(a INT)')).resolves.toBe('No results\r\n');
+        await expect(runQuery(shell, 'CREATE TABLE foo(a INT)')).resolves.toBe('No results\r\n');
     });
 
     it('redraws a wrapped prompt from its current physical row', () => {
@@ -745,8 +751,9 @@ describe('DashQL shell Wasm', () => {
             const environment = createEmbeddedDatabaseShellEnvironment((_connectionId, args) => [++queryId, session.query(args.query)], 'shell');
             executeQuery = (query, signal, onResult) => environment.executeQuery(query, signal, undefined, onResult);
 
-            await expect(shell.executeQuery('CREATE TABLE foo(a INT)')).resolves.toBe('No results\r\n');
-            await expect(shell.executeQuery(
+            await expect(runQuery(shell, 'CREATE TABLE foo(a INT)')).resolves.toBe('No results\r\n');
+            await expect(runQuery(
+                shell,
                 "SELECT * FROM (VALUES (1, 'alpha'), (20, '界'), (300, NULL)) AS t(value, name)",
             )).resolves.toBe('Query completed (3 rows)\r\n');
         } finally {
@@ -758,7 +765,7 @@ describe('DashQL shell Wasm', () => {
     it('cancels a suspended shell effect', async () => {
         const abort = new AbortController();
         executeQuery = () => new Promise<void>(() => {});
-        const query = shell.executeQuery('SELECT 42', abort.signal);
+        const query = runQuery(shell, 'SELECT 42', abort.signal);
         abort.abort();
         await expect(query).resolves.toBe('Cancelled');
     });
@@ -768,7 +775,7 @@ describe('DashQL shell Wasm', () => {
         executeQuery = () => new Promise<void>(resolve => {
             pending.resolve = resolve;
         });
-        const query = shell.executeQuery('SELECT 42');
+        const query = runQuery(shell, 'SELECT 42');
         let rejection: unknown;
         query.catch(error => { rejection = error; });
         await Promise.resolve();
@@ -850,7 +857,7 @@ describe('DashQL shell output', () => {
         const preview = vi.fn(async () => previewRows);
         const shell = await createShell(environmentWithResult(2, preview));
         const onResult = vi.fn();
-        await expect(shell.executeQuery('SELECT 1', undefined, undefined, onResult)).resolves.toBe('Query completed (2 rows)\r\n');
+        await expect(runQuery(shell, 'SELECT 1', undefined, onResult)).resolves.toBe('Query completed (2 rows)\r\n');
         expect(onResult).toHaveBeenCalledWith(7, 2, false);
         expect(preview).not.toHaveBeenCalled();
         shell.destroy();
@@ -862,7 +869,7 @@ describe('DashQL shell output', () => {
         shell.setPrompt('.output table');
         await expect(shell.submitPrompt()).resolves.toBe(`Query output: table (the first ${SHELL_PREVIEW_ROW_LIMIT} rows in the terminal)\r\n`);
         const onResult = vi.fn();
-        const output = await shell.executeQuery('SELECT 1', undefined, undefined, onResult);
+        const output = await runQuery(shell, 'SELECT 1', undefined, onResult);
         expect(preview).toHaveBeenCalledWith(7, SHELL_PREVIEW_ROW_LIMIT);
         expect(onResult).toHaveBeenCalledWith(7, 2, true);
         expect(output).toBe(
@@ -876,7 +883,7 @@ describe('DashQL shell output', () => {
         );
         shell.setPrompt('.output overlay');
         await expect(shell.submitPrompt()).resolves.toBe('Query output: overlay\r\n');
-        await expect(shell.executeQuery('SELECT 1')).resolves.toBe('Query completed (2 rows)\r\n');
+        await expect(runQuery(shell, 'SELECT 1')).resolves.toBe('Query completed (2 rows)\r\n');
         expect(preview).toHaveBeenCalledTimes(1);
         shell.destroy();
     });
@@ -886,7 +893,7 @@ describe('DashQL shell output', () => {
         const shell = await createShell(environmentWithResult(250, async () => previewRows), [last]);
         shell.setPrompt('.output table');
         await shell.submitPrompt();
-        const output = await shell.executeQuery('SELECT 1');
+        const output = await runQuery(shell, 'SELECT 1');
         expect(output.endsWith(VT100.NEW_LINE + `Query completed (250 rows, the first ${SHELL_PREVIEW_ROW_LIMIT} shown, .last shows all)`)).toBe(true);
         shell.destroy();
     });
@@ -896,7 +903,7 @@ describe('DashQL shell output', () => {
         shell.setPrompt('.output table');
         await shell.submitPrompt();
         const onResult = vi.fn();
-        await expect(shell.executeQuery('SELECT 1', undefined, undefined, onResult))
+        await expect(runQuery(shell, 'SELECT 1', undefined, onResult))
             .resolves.toBe('Query completed (2 rows), no table in the terminal: no data frame\r\n');
         expect(onResult).toHaveBeenCalledWith(7, 2, false);
         shell.destroy();
@@ -911,8 +918,7 @@ describe('DashQL shell output', () => {
         await shell.submitPrompt();
         const abort = new AbortController();
         const onResult = vi.fn();
-        shell.setPrompt('SELECT 1;');
-        const run = shell.submitPrompt(abort.signal, undefined, onResult);
+        const run = runQuery(shell, 'SELECT 1', abort.signal, onResult);
         await vi.waitFor(() => expect(preview).toHaveBeenCalled());
         abort.abort();
         await expect(run).resolves.toBe('Cancelled');
@@ -934,15 +940,13 @@ describe('DashQL shell output', () => {
             releaseResult: release,
         });
         const onResult = vi.fn();
-        shell.setPrompt('SELECT 1;');
-        await expect(shell.submitPrompt(abort.signal, undefined, onResult)).resolves.toBe('Cancelled');
+        await expect(runQuery(shell, 'SELECT 1', abort.signal, onResult)).resolves.toBe('Cancelled');
         await vi.waitFor(() => expect(release).toHaveBeenCalledWith(7));
         expect(onResult).not.toHaveBeenCalled();
 
         // A result that the shell passes on stays
         const passedOn = await createShell(environmentWithResult(2, undefined, release));
-        passedOn.setPrompt('SELECT 1;');
-        await passedOn.submitPrompt(undefined, undefined, onResult);
+        await runQuery(passedOn, 'SELECT 1', undefined, onResult);
         expect(onResult).toHaveBeenCalledWith(7, 2, false);
         expect(release).toHaveBeenCalledTimes(1);
         passedOn.destroy();

@@ -6,7 +6,7 @@ import { useEmbeddedDatabaseSetup } from '../../host/embedded_database_provider.
 import { LoggableException, stringifyError } from '@akohn/dashql/platform/logger/logger';
 import { useLogger } from '../../host/logger_provider.js';
 import { useDashQLCoreSetup, useDashQLCoreSetupProgress } from '../../host/core_provider.js';
-import { createDashQLShell, type DashQLShell, type DashQLShellCommand } from '../terminal/api.js';
+import { DashQLShell, type DashQLShellCommand } from '../terminal/api.js';
 import type { BrowserShellController } from '../terminal/browser_shell.js';
 import { useRuntime } from '@akohn/dashql-react/hooks';
 import { ShellQueryResultOverlay } from '../../workbook/shell/shell_query_result_overlay.js';
@@ -249,7 +249,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                 createShellLastCommand(reopenResultQuery),
                 filesCommand,
             ];
-            const nextShell = await createDashQLShell({
+            const nextShell = await DashQLShell.create({
                 core,
                 catalog: nextSession.catalog,
                 // The executor analyzes the results as computations on the database of the shell, the connection lists
