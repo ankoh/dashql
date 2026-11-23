@@ -64,6 +64,11 @@ pub enum FormattingOpCode {
     Indent,
     Parenthesis,
     Brackets,
+    /// A comment at the end of the line: it is written before the next line break, and the text after it starts a new
+    /// line
+    LineSuffix,
+    /// A line break unless the line holds nothing but indentation
+    LineStart,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -194,6 +199,21 @@ impl<'a> FormattingProgram<'a> {
         self.push(FormattingOperation { code: FormattingOpCode::Break, ..Default::default() })
     }
 
+    /// A text at the end of the line, see `FormattingOpCode::LineSuffix`
+    pub fn line_suffix(&self, text: &'a str) -> FmtReg {
+        self.push(FormattingOperation {
+            code: FormattingOpCode::LineSuffix,
+            text,
+            verbatim: true,
+            ..Default::default()
+        })
+    }
+
+    /// A line break unless the line is empty
+    pub fn line_start(&self) -> FmtReg {
+        self.push(FormattingOperation { code: FormattingOpCode::LineStart, ..Default::default() })
+    }
+
     /// Concatenate documents, skipping empty ones
     pub fn concat(&self, parts: &[FmtReg]) -> FmtReg {
         let parts: Vec<FmtReg> = parts.iter().copied().filter(|&p| p != 0).collect();
@@ -289,16 +309,154 @@ impl<'a> FormattingProgram<'a> {
         })
     }
 
+    /// How often a document is referenced from `root` and the documents that it reaches, indexed by register.
+    /// The separators of a join count once.
+    pub fn reference_counts(&self, root: FmtReg) -> Vec<u32> {
+        let program = self.program.borrow();
+        let mut counts = vec![0u32; program.len()];
+        let mut pending = vec![root];
+        while let Some(reg) = pending.pop() {
+            let Some(count) = counts.get_mut(reg as usize) else { continue };
+            *count += 1;
+            if *count > 1 {
+                continue;
+            }
+            // A register outside of the program is the empty document
+            let Some(doc) = program.get(reg as usize) else { continue };
+            pending.extend(doc.children.iter().copied());
+            pending.extend([doc.inline_separator, doc.break_separator].into_iter().filter(|&s| s != 0));
+        }
+        counts
+    }
+
+    /// Does the document `outer` start with the document `inner`, with nothing rendered before it?
+    pub fn starts_with(&self, outer: FmtReg, inner: FmtReg) -> bool {
+        self.is_at_edge(outer, inner, |children| children.first())
+    }
+
+    /// Does the document `outer` end with the document `inner`, with nothing rendered after it?
+    pub fn ends_with(&self, outer: FmtReg, inner: FmtReg) -> bool {
+        self.is_at_edge(outer, inner, |children| children.last())
+    }
+
+    /// Is `inner` reached from `outer` through the edge children of concatenations, joins and indentations?
+    fn is_at_edge(&self, outer: FmtReg, inner: FmtReg, edge: impl Fn(&[FmtReg]) -> Option<&FmtReg>) -> bool {
+        let program = self.program.borrow();
+        let mut reg = outer;
+        loop {
+            if reg == inner {
+                return true;
+            }
+            let Some(doc) = program.get(reg as usize) else { return false };
+            match doc.code {
+                FormattingOpCode::Concat | FormattingOpCode::Join | FormattingOpCode::Indent => {
+                    match edge(&doc.children) {
+                        Some(&child) => reg = child,
+                        None => return false,
+                    }
+                }
+                _ => return false,
+            }
+        }
+    }
+
+    /// The first (or last) word that a document prints after (or before) the parentheses at its edge, see
+    /// `edge_word`, and the number of those parentheses
+    pub fn edge_word(&self, reg: FmtReg, at_start: bool) -> Option<(&'a str, usize)> {
+        let program = self.program.borrow();
+        let mut parentheses = 0;
+        let mut pending = vec![reg];
+        while let Some(reg) = pending.pop() {
+            // A register outside of the program is the empty document
+            let Some(doc) = program.get(reg as usize).filter(|_| reg != 0) else { continue };
+            match doc.code {
+                FormattingOpCode::Text => {
+                    let (text, stripped) = strip_parentheses(doc.text, at_start);
+                    parentheses += stripped;
+                    if !text.is_empty() {
+                        return Some((edge_word(text, at_start), parentheses));
+                    }
+                }
+                FormattingOpCode::Parenthesis
+                | FormattingOpCode::Brackets
+                | FormattingOpCode::Concat
+                | FormattingOpCode::Join
+                | FormattingOpCode::Indent => {
+                    if matches!(doc.code, FormattingOpCode::Parenthesis | FormattingOpCode::Brackets) {
+                        parentheses += 1;
+                    }
+                    if at_start {
+                        pending.extend(doc.children.iter().rev());
+                    } else {
+                        pending.extend(doc.children.iter());
+                    }
+                }
+                _ => {}
+            }
+        }
+        None
+    }
+
+    /// The parentheses around the document `inner`: a parenthesis (or brackets) whose content starts (or ends) with
+    /// it, or a text of opening (or closing) parentheses right before (or after) a document that starts (or ends)
+    /// with it. Returns that document and its number of parentheses.
+    pub fn enclosing_parenthesis(&self, inner: FmtReg, at_start: bool) -> Option<(FmtReg, usize)> {
+        let program = self.program.borrow();
+        let reaches =
+            |outer: FmtReg| if at_start { self.starts_with(outer, inner) } else { self.ends_with(outer, inner) };
+        program.iter().enumerate().find_map(|(reg, doc)| match doc.code {
+            FormattingOpCode::Parenthesis | FormattingOpCode::Brackets => {
+                let child = if at_start { doc.children.first() } else { doc.children.last() };
+                child.is_some_and(|&child| reaches(child)).then_some((reg as FmtReg, 1))
+            }
+            FormattingOpCode::Concat => {
+                let position = doc.children.iter().position(|&child| reaches(child))?;
+                let next = if at_start { position.checked_sub(1)? } else { position + 1 };
+                let &next = doc.children.get(next)?;
+                let text = program.get(next as usize).filter(|d| d.code == FormattingOpCode::Text)?.text;
+                let (rest, count) = strip_parentheses(text, at_start);
+                (rest.is_empty() && count > 0).then_some((next, count))
+            }
+            _ => None,
+        })
+    }
+
+    /// Put documents around a document, every reference to `reg` then renders them too
+    pub fn wrap(&self, reg: FmtReg, prefix: &[FmtReg], suffix: &[FmtReg]) {
+        if reg == 0 || (prefix.is_empty() && suffix.is_empty()) {
+            return;
+        }
+        let mut program = self.program.borrow_mut();
+        let Some(doc) = program.get_mut(reg as usize) else { return };
+        let moved = std::mem::take(doc);
+        program.push(moved);
+        let moved_reg = (program.len() - 1) as FmtReg;
+        let children = prefix.iter().chain(std::iter::once(&moved_reg)).chain(suffix).copied().collect();
+        if let Some(doc) = program.get_mut(reg as usize) {
+            *doc = FormattingOperation { code: FormattingOpCode::Concat, children, ..Default::default() };
+        }
+    }
+
     fn push(&self, doc: FormattingOperation<'a>) -> FmtReg {
         let mut program = self.program.borrow_mut();
         program.push(doc);
         (program.len() - 1) as FmtReg
     }
 
-    /// Render a document
+    /// Render a document, a line suffix that no line break followed ends it
     pub fn render(&self, root: FmtReg, options: &FormattingRenderOptions) -> String {
+        let (mut output, suffix) = self.render_with_suffix(root, options);
+        if let Some(suffix) = suffix {
+            output.push(' ');
+            output.push_str(&suffix);
+        }
+        output
+    }
+
+    /// Render a document, and return the line suffix that no line break followed separately
+    pub fn render_with_suffix(&self, root: FmtReg, options: &FormattingRenderOptions) -> (String, Option<String>) {
         if root == 0 {
-            return String::new();
+            return (String::new(), None);
         }
         let program = self.program.borrow();
         render(&program, root, options)
@@ -391,6 +549,38 @@ fn push_rendered_join(
     }
 }
 
+/// A text without the parentheses (or brackets) and spaces at its start (or end), and the number of those parentheses
+pub fn strip_parentheses(text: &str, at_start: bool) -> (&str, usize) {
+    let parentheses: &[char] = if at_start { &['(', '['] } else { &[')', ']'] };
+    let mut text = text;
+    let mut count = 0;
+    loop {
+        let trimmed = if at_start { text.trim_start() } else { text.trim_end() };
+        let stripped = if at_start { trimmed.strip_prefix(parentheses) } else { trimmed.strip_suffix(parentheses) };
+        match stripped {
+            Some(rest) => {
+                count += 1;
+                text = rest;
+            }
+            None => return (trimmed, count),
+        }
+    }
+}
+
+/// The first (or last) word of a text: a run of letters, digits and underscores, or else its first (or last) character
+pub fn edge_word(text: &str, at_start: bool) -> &str {
+    let is_word = |c: char| c.is_alphanumeric() || c == '_';
+    if at_start {
+        let word_end = text.char_indices().take_while(|&(_, c)| is_word(c)).last().map(|(i, c)| i + c.len_utf8());
+        let end = word_end.or_else(|| text.chars().next().map(char::len_utf8)).unwrap_or_default();
+        text.get(..end).unwrap_or_default()
+    } else {
+        let word_begin = text.char_indices().rev().take_while(|&(_, c)| is_word(c)).last().map(|(i, _)| i);
+        let begin = word_begin.or_else(|| text.char_indices().next_back().map(|(i, _)| i)).unwrap_or_default();
+        text.get(begin..).unwrap_or_default()
+    }
+}
+
 /// The width of a text in characters, `'äöü'` is 5 wide
 fn text_width(text: &str) -> usize {
     text.chars().count()
@@ -404,7 +594,8 @@ fn leading_inline_width(reg: FmtReg, program: &[FormattingOperation]) -> (usize,
     match doc.code {
         FormattingOpCode::Empty => (0, false),
         FormattingOpCode::Text => (text_width(doc.text), false),
-        FormattingOpCode::Break => (0, true),
+        FormattingOpCode::Break | FormattingOpCode::LineStart => (0, true),
+        FormattingOpCode::LineSuffix => (0, false),
         FormattingOpCode::Concat => {
             let mut width = 0;
             for &child in doc.children.iter() {
@@ -468,7 +659,8 @@ fn dry_run_inline(
         match doc.code {
             FormattingOpCode::Empty => {}
             FormattingOpCode::Text => remaining -= text_width(doc.text) as isize,
-            FormattingOpCode::Break => return false,
+            // A line suffix needs a line break after it
+            FormattingOpCode::Break | FormattingOpCode::LineStart | FormattingOpCode::LineSuffix => return false,
             FormattingOpCode::Concat => push_inline_children(&mut stack, &doc.children, command.indentation),
             FormattingOpCode::Join => {
                 if doc.join_policy == FormattingJoinPolicy::ForceBreak && doc.children.len() > 1 {
@@ -540,15 +732,27 @@ fn parenthesis_fits_inline(
     dry_run_inline(remaining - 2, stack, program, options)
 }
 
-fn append_line_break(output: &mut String, current_line_width: &mut usize, indentation: usize, debug_mode: bool) {
+/// The state of a rendered line
+struct Line {
+    /// The width of the line in characters
+    width: usize,
+    /// The comment that ends the line, written before the next line break
+    suffix: Option<String>,
+}
+
+fn append_line_break(output: &mut String, line: &mut Line, indentation: usize, debug_mode: bool) {
     if debug_mode {
         output.push_str(" /*");
-        output.push_str(&current_line_width.to_string());
+        output.push_str(&line.width.to_string());
         output.push_str("*/");
+    }
+    if let Some(suffix) = line.suffix.take() {
+        output.push(' ');
+        output.push_str(&suffix);
     }
     output.push('\n');
     output.extend(std::iter::repeat(' ').take(indentation));
-    *current_line_width = indentation;
+    line.width = indentation;
 }
 
 /// Append generated text, upper-casing the words that are keywords
@@ -569,23 +773,30 @@ fn append_generated_text(output: &mut String, text: &str) {
     }
 }
 
-fn render(program: &[FormattingOperation], root: FmtReg, options: &FormattingRenderOptions) -> String {
+fn render(
+    program: &[FormattingOperation],
+    root: FmtReg,
+    options: &FormattingRenderOptions,
+) -> (String, Option<String>) {
     let mut output = String::new();
-    let mut current_line_width = 0usize;
+    let mut line = Line { width: 0, suffix: None };
     let force_inline = options.mode == FormattingMode::INLINE;
 
     let mut stack = vec![RenderCommand::format(root, 0)];
     while let Some(command) = stack.pop() {
         match command.kind {
             RendererOpCode::Close(close) => {
+                if line.suffix.is_some() {
+                    append_line_break(&mut output, &mut line, command.indentation, options.debug_mode);
+                }
                 output.push(close);
-                current_line_width += 1;
+                line.width += 1;
                 continue;
             }
             RendererOpCode::CloseAfterBreak(close) => {
-                append_line_break(&mut output, &mut current_line_width, command.indentation, options.debug_mode);
+                append_line_break(&mut output, &mut line, command.indentation, options.debug_mode);
                 output.push(close);
-                current_line_width += 1;
+                line.width += 1;
                 continue;
             }
             RendererOpCode::JoinNextBreakOnOverflow => {
@@ -603,14 +814,17 @@ fn render(program: &[FormattingOperation], root: FmtReg, options: &FormattingRen
                 } else {
                     0
                 };
-                if can_inline_join_step(
-                    remaining_inline_width(options.max_width, current_line_width) - trailing as isize,
-                    doc,
-                    command.next_index,
-                    command.indentation,
-                    program,
-                    options,
-                ) {
+                // A line suffix ends the line before the next item
+                if line.suffix.is_none()
+                    && can_inline_join_step(
+                        remaining_inline_width(options.max_width, line.width) - trailing as isize,
+                        doc,
+                        command.next_index,
+                        command.indentation,
+                        program,
+                        options,
+                    )
+                {
                     stack.push(next);
                     stack.push(RenderCommand::format(child, command.indentation));
                     if doc.inline_separator != 0 {
@@ -619,7 +833,8 @@ fn render(program: &[FormattingOperation], root: FmtReg, options: &FormattingRen
                 } else {
                     let next_is_parenthesis =
                         program.get(child as usize).is_some_and(|c| c.code == FormattingOpCode::Parenthesis);
-                    let use_inline_separator = next_is_parenthesis && doc.inline_separator != 0;
+                    let use_inline_separator =
+                        line.suffix.is_none() && next_is_parenthesis && doc.inline_separator != 0;
                     stack.push(next);
                     stack.push(RenderCommand::format(child, command.indentation));
                     if doc.break_separator != 0 {
@@ -637,22 +852,51 @@ fn render(program: &[FormattingOperation], root: FmtReg, options: &FormattingRen
         match doc.code {
             FormattingOpCode::Empty => {}
             FormattingOpCode::Text => {
-                if options.keyword_case == KeywordCase::UPPER && !doc.verbatim {
-                    append_generated_text(&mut output, doc.text);
-                } else {
-                    output.push_str(doc.text);
+                let mut text = doc.text;
+                // Text after a line suffix goes on the next line, a separator stays in front of the suffix
+                if line.suffix.is_some() {
+                    text = text.trim_start_matches(' ');
+                    if let Some(separator) = text.chars().next().filter(|c| matches!(c, ',' | ';')) {
+                        let rest = text.get(1..).unwrap_or_default();
+                        output.push(separator);
+                        line.width += 1;
+                        text = rest.trim_start_matches(' ');
+                    }
+                    if text.is_empty() {
+                        continue;
+                    }
+                    append_line_break(&mut output, &mut line, command.indentation, options.debug_mode);
                 }
-                current_line_width += text_width(doc.text);
+                if options.keyword_case == KeywordCase::UPPER && !doc.verbatim {
+                    append_generated_text(&mut output, text);
+                } else {
+                    output.push_str(text);
+                }
+                line.width += text_width(text);
             }
             FormattingOpCode::Break => {
-                append_line_break(&mut output, &mut current_line_width, command.indentation, options.debug_mode);
+                append_line_break(&mut output, &mut line, command.indentation, options.debug_mode);
+            }
+            FormattingOpCode::LineSuffix => {
+                // A second suffix ends the line of the first one
+                if line.suffix.is_some() {
+                    append_line_break(&mut output, &mut line, command.indentation, options.debug_mode);
+                }
+                line.suffix = Some(doc.text.to_string());
+            }
+            FormattingOpCode::LineStart => {
+                let line_text = output.rsplit('\n').next().unwrap_or_default();
+                if !line_text.trim().is_empty() {
+                    output.truncate(output.trim_end_matches(' ').len());
+                    append_line_break(&mut output, &mut line, command.indentation, options.debug_mode);
+                }
             }
             FormattingOpCode::Concat => push_docs(&mut stack, &doc.children, command.indentation),
             FormattingOpCode::Join => {
                 if force_inline
                     || (doc.join_policy != FormattingJoinPolicy::ForceBreak
                         && join_fits_inline(
-                            remaining_inline_width(options.max_width, current_line_width)
+                            remaining_inline_width(options.max_width, line.width)
                                 - trailing_inline_width(&stack, program) as isize,
                             doc,
                             command.indentation,
@@ -693,7 +937,7 @@ fn render(program: &[FormattingOperation], root: FmtReg, options: &FormattingRen
                 let (open, close) = if doc.code == FormattingOpCode::Brackets { ('[', ']') } else { ('(', ')') };
                 let render_flat = force_inline
                     || parenthesis_fits_inline(
-                        remaining_inline_width(options.max_width, current_line_width)
+                        remaining_inline_width(options.max_width, line.width)
                             - trailing_inline_width(&stack, program) as isize,
                         doc,
                         command.indentation,
@@ -701,13 +945,13 @@ fn render(program: &[FormattingOperation], root: FmtReg, options: &FormattingRen
                         options,
                     );
                 output.push(open);
-                current_line_width += 1;
+                line.width += 1;
                 let close = if render_flat {
                     RendererOpCode::Close(close)
                 } else {
                     append_line_break(
                         &mut output,
-                        &mut current_line_width,
+                        &mut line,
                         command.indentation + options.indentation_width,
                         options.debug_mode,
                     );
@@ -733,7 +977,7 @@ fn render(program: &[FormattingOperation], root: FmtReg, options: &FormattingRen
             }
         }
     }
-    output
+    (output, line.suffix)
 }
 
 #[cfg(test)]

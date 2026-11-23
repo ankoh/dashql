@@ -24,9 +24,6 @@ const UNFORMATTABLE: &[&str] = &[
     "PREPARE p(integer) AS UPDATE t SET x=$1 RETURNING x;",
     "CREATE DATABASE db;",
     "DECLARE c SCROLL CURSOR FOR SELECT x FROM t;",
-    // Clauses that the formatter does not write yet: SQL/JSON, external streams
-    "SELECT JSON_VALUE(doc FORMAT JSON, '$.x' RETURNING integer DEFAULT 0 ON EMPTY ERROR ON ERROR) FROM t;",
-    "SELECT * FROM EXTERNAL STREAM events (WITH (CARDINALITY 100));",
 ];
 
 /// Scripts whose formatted output spells a construct differently, with another tree of the same meaning
@@ -35,12 +32,6 @@ const RESPELLED: &[&str] = &[
     "select cast(a as text array)",
     "create table t (ps array(row(x int)), qs row(x int)[])",
     "select cast(json_parse(payload) as array(json)) as entries from event_stream",
-];
-
-/// Scripts whose formatted output formats differently a second time
-const RESPACED: &[&str] = &[
-    // The blank line between runs of line comments is dropped, the second run then continues the first
-    "-- first block\n\n-- second block\nselect 1",
 ];
 
 /// Does the script parse without scanner and parser errors?
@@ -99,10 +90,82 @@ fn formatted_parser_snapshots_parse_again() {
                 failures.push(format!("{}: output changes the tree: {formatted:?} of {input:?}", case.trial_name()));
                 continue;
             }
-            if !RESPACED.contains(&input.trim()) {
+            let again = Formatter::new(&reparsed).format(&config);
+            if again != formatted {
+                failures.push(format!("{}: unstable output {formatted:?} then {again:?}", case.trial_name()));
+            }
+        }
+    }
+    assert!(checked > 0, "no formatter runs");
+    assert!(failures.is_empty(), "{} failures:\n{}", failures.len(), failures.join("\n"));
+}
+
+/// The ways of putting comments between the symbols of a script
+#[derive(Clone, Copy, Debug)]
+enum Injection {
+    /// A block comment before every symbol
+    BlockBefore,
+    /// A line comment on a line of its own before every symbol
+    LineBefore,
+    /// A line comment after every symbol, on its line
+    LineAfter,
+}
+
+/// A script with a numbered comment between its symbols, the comment `n` holds the marker `k<n>k`
+fn inject_comments(input: &str, injection: Injection) -> String {
+    let scanned = scan(input, 0, 2);
+    let mut out = String::new();
+    let mut copied = 0;
+    for (n, symbol) in scanned.symbols.iter().filter(|s| s.location.length > 0).enumerate() {
+        let (begin, end) = (symbol.location.offset as usize, symbol.location.end() as usize);
+        let (Some(before), Some(text)) = (input.get(copied..begin), input.get(begin..end)) else { break };
+        out.push_str(before);
+        match injection {
+            Injection::BlockBefore => out.push_str(&format!("/* k{n}k */ {text}")),
+            Injection::LineBefore => out.push_str(&format!("\n-- k{n}k\n{text}")),
+            Injection::LineAfter => out.push_str(&format!("{text} -- k{n}k\n")),
+        }
+        copied = end;
+    }
+    out.push_str(input.get(copied..).unwrap_or_default());
+    out
+}
+
+#[test]
+fn formatted_comments_stay_in_place() {
+    let mut failures = Vec::new();
+    let mut checked = 0;
+    for case in load_category("parser").unwrap() {
+        let Some(input) = case.input() else { continue };
+        let parsed = parse(Arc::new(scan(&input, 0, 2)));
+        if !is_valid(&parsed) || UNFORMATTABLE.contains(&input.trim()) || RESPELLED.contains(&input.trim()) {
+            continue;
+        }
+        for injection in [Injection::BlockBefore, Injection::LineBefore, Injection::LineAfter] {
+            let commented = inject_comments(&input, injection);
+            let parsed_commented = parse(Arc::new(scan(&commented, 0, 2)));
+            // The comments must not change the script
+            if !is_valid(&parsed_commented) || shape(&parsed_commented) != shape(&parsed) {
+                continue;
+            }
+            let markers = (0..).take_while(|n| commented.contains(&format!("k{n}k"))).count();
+            for mode in [FormattingMode::COMPACT, FormattingMode::PRETTY] {
+                checked += 1;
+                let config = config(mode);
+                let formatted = Formatter::new(&parsed_commented).format(&config);
+                let name = format!("{} {injection:?} {mode:?}", case.trial_name());
+                if let Some(n) = (0..markers).find(|n| formatted.matches(&format!("k{n}k")).count() != 1) {
+                    failures.push(format!("{name}: comment k{n}k is not printed once in {formatted:?}"));
+                    continue;
+                }
+                let reparsed = parse(Arc::new(scan(&formatted, 0, 2)));
+                if !is_valid(&reparsed) || shape(&reparsed) != shape(&parsed) {
+                    failures.push(format!("{name}: output changes the script: {formatted:?}"));
+                    continue;
+                }
                 let again = Formatter::new(&reparsed).format(&config);
                 if again != formatted {
-                    failures.push(format!("{}: unstable output {formatted:?} then {again:?}", case.trial_name()));
+                    failures.push(format!("{name}: unstable output {formatted:?} then {again:?}"));
                 }
             }
         }

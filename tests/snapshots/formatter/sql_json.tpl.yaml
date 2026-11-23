@@ -1,0 +1,74 @@
+formatter-snapshots:
+
+  # SQL/JSON constructors, Hyper runs them without the unique key clauses
+
+  - name: coverage_json_parse
+    input: select json('[1]'), json_scalar(1)
+    dialects:
+      hyper:
+        validation:
+          setup: select 1;
+
+  - name: coverage_json_object
+    input: >-
+      select json_object('a': 1, 'b': null::integer absent on null), json_object('c': true), json_object()
+    dialects:
+      hyper:
+        validation:
+          setup: select 1;
+
+  - name: coverage_json_array
+    input: select json_array(1, null::integer null on null), json_array('[1]' format json), json_array()
+    dialects:
+      hyper:
+        validation:
+          setup: select 1;
+
+  - name: coverage_json_unique_keys
+    input: >-
+      select json('{"a":1}' with unique keys), json('[1]' without unique keys),
+      json_object('a': 1 null on null with unique keys)
+    dialects:
+      hyper:
+
+  # SQL/JSON queries, Hyper does not implement them
+
+  - name: coverage_json_query
+    input: >-
+      select json_query('[1,2]', '$' with array wrapper), json_query('[1]', '$' with conditional wrapper omit quotes
+      empty array on empty error on error), json_query('{"a":[1]}', '$.a' without wrapper keep quotes)
+    dialects:
+      hyper:
+
+  - name: coverage_json_value
+    input: >-
+      select json_value('{"a":1}', '$.a' returning integer default 0 on empty error on error),
+      json_value('{"a":1}', '$.a' passing 1 as x returning integer null on empty), json_value('{"a":"x"}', '$.a')
+    dialects:
+      hyper:
+
+  - name: coverage_json_exists
+    input: select json_exists('{"a":1}', '$.a' false on error), json_exists('{"a":1}', '$.b')
+    dialects:
+      hyper:
+
+  - name: json_query_narrow
+    input: >-
+      select json_query(document, '$.items' passing 1 as first_item returning text with conditional wrapper
+      omit quotes empty array on empty error on error) from documents
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 60
+          - mode: pretty
+            width: 60
+
+  # External streams
+
+  - name: coverage_external_stream
+    input: >-
+      select * from external stream events (with (cardinality 100)), external stream s.other with cardinality 5 as o,
+      external stream third
+    dialects:
+      hyper:

@@ -276,17 +276,13 @@ formatter-snapshots:
           - mode: compact
             expected: |-
               -- deleted rows
-              delete from delete_target where id = 1 returning id;
-              /* target */
-              -- output
+              delete from delete_target where /* target */ id = 1 returning id; -- output
           - mode: pretty
             expected: |-
               -- deleted rows
               delete from delete_target
-              where id = 1
-              returning id;
-              /* target */
-              -- output
+              where /* target */ id = 1
+              returning id; -- output
         validation:
           setup: |-
             create table delete_target(id int);

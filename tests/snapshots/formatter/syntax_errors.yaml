@@ -140,9 +140,8 @@ formatter-snapshots:
               select 1; -- one
 
               -- broken one
-              select from from /* inner */ where;
+              select from from /* inner */ where; -- broken
 
-              -- broken
               /* second */
               select 2;
 
@@ -153,9 +152,8 @@ formatter-snapshots:
               select 1; -- one
 
               -- broken one
-              select from from /* inner */ where;
+              select from from /* inner */ where; -- broken
 
-              -- broken
               /* second */
               select 2;
 

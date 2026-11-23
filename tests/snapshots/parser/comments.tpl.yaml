@@ -328,3 +328,15 @@ parser-snapshots:
       select 1; -- one
       select 2 /* two */; /* three */
       select 3;
+  # Comments inside a statement, before nodes and at the ends of lines
+  - name: comments_inside_statements
+    input: |
+      select /* targets */ a, -- the first column
+        b + /* plus */ c
+      from t
+      -- only the positive ones
+      where a > 0 -- strictly
+        and b < 1;
+      select (a -- a
+        -- b
+      );

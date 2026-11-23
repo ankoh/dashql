@@ -31,8 +31,8 @@ formatter-snapshots:
         validation:
           setup: ""
 
-  # Comments between keywords and inside an expression follow the statement, a line comment cannot end up in front of
-  # code on its line
+  # Comments between keywords and inside an expression go in front of the node after them, a line comment at the end
+  # of a line stays there
   - name: comment_between_keywords
     input: |-
       select /* targets */ a, -- the first column
@@ -88,18 +88,43 @@ formatter-snapshots:
         validation:
           setup: create table orders(id int, amount int, customer_id int);
 
-  # The pretty output of comment_between_keywords formats to itself, the comments stay after the last statement
+  # The output of comment_between_keywords formats to itself, the comments stay with their nodes
   - name: comment_between_keywords_idempotent
     input: |-
-      select a, b + c
-      from t
-      where a = 1;
-      /* targets */
-      -- the first column
-      /* plus */
-      /* source */
-      /* compared */
+      select /* targets */ a, -- the first column
+        b + /* plus */ c
+      from /* source */ t
+      where a = /* compared */ 1;
     dialects:
       hyper:
         validation:
           setup: create table t(a int, b int, c int);
+
+  # Line comments at the ends of lines stay there, the joins around them break; a line comment on a line of its own
+  # stays on a line of its own before its node
+  - name: comment_inside_line_comments
+    input: |-
+      select a, -- the a
+        b, c -- the c
+      from t
+      -- only the positive ones
+      where a > 0 -- strictly
+        and coalesce(b, -- the b
+          c) < 1;
+      select 2
+    dialects:
+      hyper:
+        validation:
+          setup: create table t(a int, b int, c int);
+
+  # Comments after the last node of a statement follow it, or go on lines of their own before the semicolon
+  - name: comment_inside_after_last_node
+    input: |-
+      select (a /* a */) -- b
+      from t;
+      select (1 -- one
+        -- two
+      );
+      select 3
+    dialects:
+      hyper:

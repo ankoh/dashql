@@ -117,22 +117,16 @@ formatter-snapshots:
               select a, b + c from t where a = 1;
           - mode: compact
             expected: |-
-              select a, b + c from t where a = 1;
-              /* targets */
-              -- the first column
-              /* plus */
-              /* source */
-              /* compared */
+              select /* targets */ a, -- the first column
+                b + /* plus */ c
+              from /* source */ t
+              where a = /* compared */ 1;
           - mode: pretty
             expected: |-
-              select a, b + c
-              from t
-              where a = 1;
-              /* targets */
-              -- the first column
-              /* plus */
-              /* source */
-              /* compared */
+              select /* targets */ a, -- the first column
+                b + /* plus */ c
+              from /* source */ t
+              where a = /* compared */ 1;
         validation:
           setup: |-
             create table t(a int, b int, c int);
@@ -195,20 +189,21 @@ formatter-snapshots:
               with base as (select a from t where a > 0) select * from base;
           - mode: compact
             expected: |-
-              with base as (select a from t where a > 0) select * from base;
-              -- only the positive amounts
-              /* strictly */
+              with base as (
+                -- only the positive amounts
+                select a from t where a > 0
+              )
+              select /* strictly */ * from base;
           - mode: pretty
             expected: |-
               with base as (
+                -- only the positive amounts
                 select a
                 from t
                 where a > 0
               )
-              select *
+              select /* strictly */ *
               from base;
-              -- only the positive amounts
-              /* strictly */
         validation:
           setup: |-
             create table t(a int);
@@ -248,14 +243,10 @@ formatter-snapshots:
 
   - name: comment_between_keywords_idempotent
     input: |-
-      select a, b + c
-      from t
-      where a = 1;
-      /* targets */
-      -- the first column
-      /* plus */
-      /* source */
-      /* compared */
+      select /* targets */ a, -- the first column
+        b + /* plus */ c
+      from /* source */ t
+      where a = /* compared */ 1;
     dialects:
       hyper:
         formatted:
@@ -264,22 +255,108 @@ formatter-snapshots:
               select a, b + c from t where a = 1;
           - mode: compact
             expected: |-
-              select a, b + c from t where a = 1;
-              /* targets */
-              -- the first column
-              /* plus */
-              /* source */
-              /* compared */
+              select /* targets */ a, -- the first column
+                b + /* plus */ c
+              from /* source */ t
+              where a = /* compared */ 1;
           - mode: pretty
             expected: |-
-              select a, b + c
-              from t
-              where a = 1;
-              /* targets */
-              -- the first column
-              /* plus */
-              /* source */
-              /* compared */
+              select /* targets */ a, -- the first column
+                b + /* plus */ c
+              from /* source */ t
+              where a = /* compared */ 1;
         validation:
           setup: |-
             create table t(a int, b int, c int);
+
+  - name: comment_inside_line_comments
+    input: |-
+      select a, -- the a
+        b, c -- the c
+      from t
+      -- only the positive ones
+      where a > 0 -- strictly
+        and coalesce(b, -- the b
+          c) < 1;
+      select 2
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a, b, c from t where a > 0 and coalesce(b, c) < 1;
+
+              select 2;
+          - mode: compact
+            expected: |-
+              select a, -- the a
+                b, c -- the c
+              from t
+              where
+              -- only the positive ones
+              a > 0 -- strictly
+                and coalesce(
+                    b, -- the b
+                      c
+                  ) < 1;
+
+              select 2;
+          - mode: pretty
+            expected: |-
+              select a, -- the a
+                b,
+                c -- the c
+              from t
+              where
+              -- only the positive ones
+              a > 0 -- strictly
+                and coalesce(
+                    b, -- the b
+                      c
+                  ) < 1;
+
+              select 2;
+        validation:
+          setup: |-
+            create table t(a int, b int, c int);
+
+  - name: comment_inside_after_last_node
+    input: |-
+      select (a /* a */) -- b
+      from t;
+      select (1 -- one
+        -- two
+      );
+      select 3
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a from t;
+
+              select 1;
+
+              select 3;
+          - mode: compact
+            expected: |-
+              select a -- b
+              from /* a */ t;
+
+              select 1
+              -- one
+              -- two
+              ;
+
+              select 3;
+          - mode: pretty
+            expected: |-
+              select a -- b
+              from /* a */ t;
+
+              select 1
+              -- one
+              -- two
+              ;
+
+              select 3;

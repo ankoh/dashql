@@ -13,6 +13,7 @@ mod create;
 mod delete;
 mod explain;
 mod insert;
+mod json;
 mod pgq;
 pub mod program;
 mod select;
@@ -202,6 +203,21 @@ fn get_known_function_text(function: KnownFunction) -> &'static str {
 /// The value of an enum node
 fn value_u8(node: &Node) -> u8 {
     node.children_begin_or_value() as u8
+}
+
+/// Is a node printed as written (`format_leaf`)?
+fn is_leaf(node_type: NodeType) -> bool {
+    matches!(
+        node_type,
+        NodeType::LITERAL_NULL
+            | NodeType::LITERAL_INTEGER
+            | NodeType::LITERAL_FLOAT
+            | NodeType::LITERAL_STRING
+            | NodeType::LITERAL_INTERVAL
+            | NodeType::BOOL
+            | NodeType::OPERATOR
+            | NodeType::NAME
+    )
 }
 
 /// Is the node a true BOOL?
@@ -666,7 +682,10 @@ impl<'a> Formatter<'a> {
             | K::SQL_ROWSFROM_ITEM_COLUMNS
             | K::SQL_TABLE_CONSTRAINT_DEFINITION
             | K::SQL_COLUMN_CONSTRAINT_DEFINITION
-            | K::SQL_CREATE_TABLE_OPTIONS => self.format_comma_list(node, true),
+            | K::SQL_CREATE_TABLE_OPTIONS
+            | K::SQL_JSON_MEMBERS
+            | K::SQL_JSON_VALUES
+            | K::SQL_JSON_PASSING => self.format_comma_list(node, true),
             K::SQL_PROPERTY_GRAPH_VERTEX_TABLES
             | K::SQL_PROPERTY_GRAPH_EDGE_TABLES
             | K::SQL_GRAPH_ELEMENT_TABLE_KEY
@@ -750,7 +769,8 @@ impl<'a> Formatter<'a> {
             | K::SQL_SCHEMA_NAME
             | K::SQL_CALL_NAME
             | K::EXT_VARARG_FIELD_KEY
-            | K::SQL_GRAPH_TABLE_GRAPH => self.format_qualified_name(node),
+            | K::SQL_GRAPH_TABLE_GRAPH
+            | K::SQL_EXTERNAL_STREAM_NAME => self.format_qualified_name(node),
             K::SQL_SELECT_DISTINCT
             | K::SQL_SELECT_WITH_CTES
             | K::SQL_COMBINE_INPUT
@@ -2865,6 +2885,20 @@ impl<'a> Formatter<'a> {
             NodeType::OBJECT_SQL_TRANSACTION_MODE => self.format_transaction_mode(node),
             NodeType::ENUM_SQL_TRANSACTION_COMMAND | NodeType::ENUM_SQL_TRANSACTION_ISOLATION_LEVEL => f.empty(),
             NodeType::OBJECT_SQL_TABLEREF => self.format_table_ref(node),
+            NodeType::OBJECT_SQL_EXTERNAL_STREAM => self.format_external_stream(node),
+            NodeType::OBJECT_SQL_JSON_PARSE => self.format_json_parse(node),
+            NodeType::OBJECT_SQL_JSON_SCALAR => self.format_json_scalar(node),
+            NodeType::OBJECT_SQL_JSON_OBJECT => self.format_json_object(node),
+            NodeType::OBJECT_SQL_JSON_MEMBER => self.format_json_member(node),
+            NodeType::OBJECT_SQL_JSON_ARRAY => self.format_json_array(node),
+            NodeType::OBJECT_SQL_JSON_QUERY => self.format_json_query(node),
+            NodeType::OBJECT_SQL_JSON_VALUE => self.format_json_value(node),
+            NodeType::OBJECT_SQL_JSON_EXISTS => self.format_json_exists(node),
+            NodeType::OBJECT_SQL_JSON_INPUT => self.format_json_input(node),
+            NodeType::OBJECT_SQL_JSON_ARGUMENT => self.format_json_argument(node),
+            NodeType::OBJECT_SQL_JSON_BEHAVIORS => self.format_json_behaviors(node),
+            NodeType::OBJECT_SQL_JSON_BEHAVIOR => self.format_json_behavior(node),
+            NodeType::ENUM_SQL_JSON_BEHAVIOR | NodeType::ENUM_SQL_JSON_WRAPPER => f.empty(),
             NodeType::OBJECT_SQL_JOINED_TABLE => self.format_joined_table(node),
             NodeType::ENUM_SQL_JOIN_TYPE => f.empty(),
             NodeType::OBJECT_SQL_INTO => self.format_into(node),
@@ -2968,14 +3002,7 @@ impl<'a> Formatter<'a> {
             NodeType::ENUM_SQL_EXPRESSION_OPERATOR => self.format_expression_operator_type(node),
             NodeType::OBJECT_SQL_NARY_EXPRESSION => self.format_expression(node),
             NodeType::OBJECT_EXT_VARARG_ARRAY => self.format_vararg_array(node),
-            NodeType::LITERAL_NULL
-            | NodeType::LITERAL_INTEGER
-            | NodeType::LITERAL_FLOAT
-            | NodeType::LITERAL_STRING
-            | NodeType::LITERAL_INTERVAL
-            | NodeType::BOOL
-            | NodeType::OPERATOR
-            | NodeType::NAME => self.format_leaf(node),
+            node_type if is_leaf(node_type) => self.format_leaf(node),
             _ => self.format_unimplemented(node),
         }
     }
@@ -3084,6 +3111,19 @@ impl<'a> Formatter<'a> {
         parts
     }
 
+    /// The offset of the semicolon that ends a statement, between the end of its root and the end of its text
+    fn separator_after(&self, root_end: u32, source_end: u32) -> Option<usize> {
+        let symbols = &self.scanned.symbols;
+        let first = symbols.partition_point(|s| s.location.offset < root_end);
+        symbols
+            .get(first..)
+            .unwrap_or_default()
+            .iter()
+            .take_while(|s| s.location.offset < source_end)
+            .find(|s| s.kind == dashql_parser::symbol_kind::S_SEMICOLON)
+            .map(|s| s.location.offset as usize)
+    }
+
     fn write_output(&self) -> Vec<u8> {
         let options = self.render_options();
         let statements = &self.parsed.statements;
@@ -3136,6 +3176,8 @@ impl<'a> Formatter<'a> {
             }
         };
         let mut comment_begin = 0;
+        // The node spans, only needed for the comments inside of statements
+        let mut node_spans: Option<comments::NodeSpans> = None;
         for (i, part) in parts.iter().enumerate() {
             if i > 0 {
                 ensure_line_break(&mut output);
@@ -3156,6 +3198,16 @@ impl<'a> Formatter<'a> {
                     ensure_line_break(&mut output);
                     output.extend_from_slice(damaged_text(span));
                     comment_begin = comments_before(before_end, span.end() as usize);
+                    // Comments after the copied text on its line stay there, like those of a parsed statement
+                    let rest = comments.get(comment_begin..).unwrap_or_default();
+                    let on_line = comment_range(
+                        comment_begin,
+                        comment_begin + comments::count_comments_on_line(input, rest, span.end() as usize),
+                    );
+                    if comments::can_trail(input, on_line, span.end() as usize) {
+                        comments::append_trailing_comments(&mut output, input, on_line);
+                        comment_begin += on_line.len();
+                    }
                     continue;
                 }
             };
@@ -3193,16 +3245,52 @@ impl<'a> Formatter<'a> {
                 );
             }
 
-            ensure_line_break(&mut output);
-            output.extend_from_slice(self.fmt.render(self.statement_reg(statement), &options).as_bytes());
-            output.push(b';');
-
-            // Comments after the statement on its line stay there, on a line of their own the next statement would
-            // read them as its leading comments
+            // Comments inside the statement go with its nodes
             let within_end = comments_before(before_end, description.source_span.end() as usize);
             let within = comment_range(before_end, within_end);
-            if !comments::append_trailing_comments(&mut output, input, within, root_span.end() as usize) {
-                comments::append_comments(&mut output, input, within, max_width, None);
+            let root_id = statements.get(statement).map_or(usize::MAX, |s| s.root as usize);
+            let mut rest = if within.iter().any(|c| c.offset < root_span.end()) {
+                let spans = node_spans.get_or_insert_with(|| self.node_spans());
+                self.attach_inner_comments(root_id, root_span, within, spans)
+            } else {
+                within.to_vec()
+            };
+
+            ensure_line_break(&mut output);
+            let (text, suffix) = self.fmt.render_with_suffix(self.statement_reg(statement), &options);
+            output.extend_from_slice(text.as_bytes());
+            // A comment at the end of the last line of the statement follows it like the comments after its last node
+            if let Some(suffix) = suffix {
+                let text_of = |c: &TextSpan| input.get(c.offset as usize..c.end() as usize).unwrap_or_default();
+                let trimmed = |c: &&TextSpan| text_of(c).trim_ascii_end() == suffix.as_bytes();
+                if let Some(&comment) = within.iter().find(|c| trimmed(c) && !rest.contains(*c)) {
+                    rest.push(comment);
+                    rest.sort_by_key(|c| c.offset);
+                }
+            }
+
+            // The other comments follow the statement on its line, on a line of their own the next statement would
+            // read them as its leading comments. Those that cannot, go on lines of their own before the semicolon if
+            // one of them is there.
+            let separator = self.separator_after(root_span.end(), description.source_span.end());
+            let (before, after) = rest.split_at(
+                rest.iter().take_while(|c| (c.offset as usize) < separator.unwrap_or(root_span.end() as usize)).count(),
+            );
+            if comments::can_trail(input, &rest, root_span.end() as usize) {
+                output.push(b';');
+                comments::append_trailing_comments(&mut output, input, &rest);
+            } else if !before.is_empty() {
+                comments::append_comment_lines(&mut output, input, before);
+                output.push(b';');
+                let separator_end = separator.map_or(root_span.end() as usize, |s| s + 1);
+                if comments::can_trail(input, after, separator_end) {
+                    comments::append_trailing_comments(&mut output, input, after);
+                } else {
+                    comments::append_comments(&mut output, input, after, max_width, None);
+                }
+            } else {
+                output.push(b';');
+                comments::append_comments(&mut output, input, after, max_width, None);
             }
             comment_begin = within_end;
         }
@@ -3283,8 +3371,34 @@ mod tests {
             "select 1; -- one\n\nselect 2;"
         );
         assert_eq!(format("select 1 /* a */;", FormattingMode::PRETTY, 120).0, "select 1; /* a */");
-        // A comment inside a statement still follows it on a line of its own
-        assert_eq!(format("select 1 /* a */ + 2;", FormattingMode::PRETTY, 120).0, "select 1 + 2;\n/* a */");
+    }
+
+    /// Format a script in compact and pretty mode, formatting the output again must not change it
+    fn format_stable(text: &str, max_width: u32) -> [String; 2] {
+        [FormattingMode::COMPACT, FormattingMode::PRETTY].map(|mode| {
+            let (out, _) = format(text, mode, max_width);
+            assert_eq!(format(&out, mode, max_width).0, out, "{text:?} in {mode:?}");
+            out
+        })
+    }
+
+    #[test]
+    fn keeps_comments_inside_statements_before_their_nodes() {
+        let [compact, pretty] = format_stable("select 1 /* a */ + 2;", 120);
+        assert_eq!(compact, "select 1 + /* a */ 2;");
+        assert_eq!(pretty, "select 1 + /* a */ 2;");
+        let [compact, pretty] = format_stable("select a, -- the b\n  b from t /* c */ where x", 120);
+        assert_eq!(compact, "select a, -- the b\n  b\nfrom t\nwhere /* c */ x;");
+        assert_eq!(pretty, compact);
+    }
+
+    #[test]
+    fn keeps_comments_after_the_last_node_of_a_statement() {
+        // Comments after the last node follow the statement on its line, or go before the semicolon
+        let [compact, _] = format_stable("select (a /* a */) -- b\n;\nselect 2", 120);
+        assert_eq!(compact, "select a; /* a */ -- b\n\nselect 2;");
+        let [compact, _] = format_stable("select (a -- a\n -- b\n);\nselect 2", 120);
+        assert_eq!(compact, "select a\n-- a\n-- b\n;\n\nselect 2;");
     }
 
     #[test]

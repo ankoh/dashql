@@ -2489,3 +2489,227 @@ parser-snapshots:
           lines:
             - "three"
       comment-warnings: []
+
+  - name: comments_inside_statements
+    input: |-
+      select /* targets */ a, -- the first column
+        b + /* plus */ c
+      from t
+      -- only the positive ones
+      where a > 0 -- strictly
+        and b < 1;
+      select (a -- a
+        -- b
+      );
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 37
+          description:
+            text: "select /* ..and b < 1;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select /* .. and b < 1"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "a, -- the .. plus */ c"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "a"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "a"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "a"
+                            children:
+                              - type: NAME
+                                text: "a"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "b + /* plus */ c"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "b + /* plus */ c"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: PLUS
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "b + /* plus */ c"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "b"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "b"
+                                    children:
+                                      - type: NAME
+                                        text: "b"
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "c"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "c"
+                                    children:
+                                      - type: NAME
+                                        text: "c"
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from t"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "t"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "t"
+                        children:
+                          - type: NAME
+                            text: "t"
+              - key: SQL_SELECT_WHERE
+                type: OBJECT_SQL_NARY_EXPRESSION
+                text: "a > 0 -- s.. and b < 1"
+                children:
+                  - key: SQL_EXPRESSION_OPERATOR
+                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                    value: AND
+                  - key: SQL_EXPRESSION_ARGS
+                    type: ARRAY
+                    text: "a > 0 -- s.. and b < 1"
+                    children:
+                      - type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "a > 0"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: GREATER_THAN
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "a > 0"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "a"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "a"
+                                    children:
+                                      - type: NAME
+                                        text: "a"
+                              - type: LITERAL_INTEGER
+                                text: "0"
+                      - type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "b < 1"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: LESS_THAN
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "b < 1"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "b"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "b"
+                                    children:
+                                      - type: NAME
+                                        text: "b"
+                              - type: LITERAL_INTEGER
+                                text: "1"
+        - type: SELECT
+          ast-begin: 37
+          ast-size: 6
+          description:
+            text: "select (a ..\n  -- b\n);"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select (a ..a\n  -- b\n)"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "(a -- a\n  -- b\n)"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "(a -- a\n  -- b\n)"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "a"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "a"
+                            children:
+                              - type: NAME
+                                text: "a"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [43,44]
+        - text: [62,63]
+        - text: [69,70]
+        - text: [95,96]
+        - text: [119,120]
+        - text: [132,133]
+        - text: [147,148]
+        - text: [154,155]
+      comments:
+        - text: "/* targets */"
+        - text: "-- the first column"
+        - text: "/* plus */"
+        - text: "-- only th..itive ones"
+        - text: "-- strictly"
+        - text: "-- a"
+        - text: "-- b"
+      comment-blocks:
+        - type: COMMENT
+          text: "/* targets */"
+          comments: [0,1]
+          lines:
+            - "targets"
+        - type: COMMENT
+          text: "-- the first column"
+          comments: [1,1]
+          lines:
+            - "the first column"
+        - type: COMMENT
+          text: "/* plus */"
+          comments: [2,1]
+          lines:
+            - "plus"
+        - type: COMMENT
+          text: "-- only th..itive ones"
+          comments: [3,1]
+          lines:
+            - "only the positive ones"
+        - type: COMMENT
+          text: "-- strictly"
+          comments: [4,1]
+          lines:
+            - "strictly"
+        - type: COMMENT
+          text: "-- a"
+          comments: [5,1]
+          lines:
+            - "a"
+        - type: COMMENT
+          text: "-- b"
+          comments: [6,1]
+          lines:
+            - "b"
+      comment-warnings: []

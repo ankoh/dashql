@@ -3,10 +3,13 @@
 //! Comments work on bytes: wrapping splits long words at byte offsets, which can split UTF-8
 //! sequences (see docs/design/core_quirks.md).
 
+use super::{is_leaf, program, FmtReg, Formatter};
 use crate::annotation::{Annotation, AnnotationTag, ANNOTATION_GUTTER};
 use dashql_parser::comment_blocks::{
     group_comment_bytes, is_comment_tag, CommentBlockType, COMMENT_TAG_END, COMMENT_TAG_PREFIX,
 };
+use dashql_parser::parser::context::resolve_text_span;
+use dashql_parser::scanner::Symbol;
 use dashql_parser::span::TextSpan;
 
 /// `std::isspace` in the C locale
@@ -291,6 +294,15 @@ fn print_tagged_comment(input: &[u8], comments: &[TextSpan], max_width: usize) -
 }
 
 /// Is a comment a block comment?
+/// Is a symbol an opening (or closing) parenthesis or bracket?
+fn is_parenthesis(symbol: &str, at_start: bool) -> bool {
+    if at_start {
+        matches!(symbol, "(" | "[")
+    } else {
+        matches!(symbol, ")" | "]")
+    }
+}
+
 fn is_block_comment(input: &[u8], comment: &TextSpan) -> bool {
     comment_text(input, comment).starts_with(b"/*")
 }
@@ -388,8 +400,8 @@ fn append_verbatim(output: &mut Vec<u8>, input: &[u8], comments: &[TextSpan]) {
 /// follow each other with nothing but whitespace between them are merged into one canonical tagged
 /// comment, so an annotation reads as one block. Comments with tags that cannot be printed canonically
 /// are kept as written, since their content is structured (e.g. JSON) and rewrapping it would break it.
-/// A blank line that follows tagged comments or ends the comments is kept, `following` is the offset of the text after
-/// the comments.
+/// A blank line after a unit of comments is kept, so runs of line comments that are separated by a blank line stay
+/// separate paragraphs. `following` is the offset of the text after the comments.
 pub(super) fn append_comments(
     output: &mut Vec<u8>,
     input: &[u8],
@@ -409,8 +421,18 @@ pub(super) fn append_comments(
             } else {
                 append_wrapped_line_comments(output, input, slice, max_width);
             }
-            if let Some(last) = comments.last().filter(|_| unit.comments.end == comments.len()) {
-                keep_blank_line(output, input, last.end() as usize, following);
+            // A blank line between units or after the last one is kept, the units are separate paragraphs
+            if let Some(last) = slice.last() {
+                let next = comments.get(unit.comments.end).map(|c| c.offset as usize).or(following);
+                let kept = keep_blank_line(output, input, last.end() as usize, next);
+                // Runs of line comments that follow each other would be one run in a second run, a blank line keeps
+                // them apart
+                let is_line_run = |unit: &Unit| {
+                    !unit.tagged && unit_comments(unit).first().is_some_and(|c| !is_block_comment(input, c))
+                };
+                if !kept && is_line_run(unit) && units.get(u + 1).is_some_and(is_line_run) {
+                    output.extend_from_slice(b"\n\n");
+                }
             }
             u += 1;
             continue;
@@ -455,48 +477,83 @@ pub(super) fn append_comments(
     }
 }
 
-/// Append the comments that follow a statement on its last line, as in `select 1; -- one`, on the line of the
-/// statement, where the parser reads them as part of the statement again. `statement_end` is the end of the statement
-/// in the input. Returns false without appending if a comment does not follow on that line or holds a tag, the caller
-/// then appends the comments like others.
-pub(super) fn append_trailing_comments(
-    output: &mut Vec<u8>,
-    input: &[u8],
-    comments: &[TextSpan],
-    statement_end: usize,
-) -> bool {
+/// Does a comment hold a tag?
+fn has_tag(input: &[u8], comment: &TextSpan) -> bool {
+    if is_block_comment(input, comment) {
+        block_comment_has_tag(input, *comment)
+    } else {
+        read_comment_tag(input, comment).is_some()
+    }
+}
+
+/// Can comments follow a statement on its last line, as in `select 1; -- one`, where the parser reads them as part of
+/// the statement again? `statement_end` is the end of the statement in the input, comments before it are inside of the
+/// statement and move behind it. They cannot if a comment after the statement does not follow on its line, if a comment
+/// would follow a line comment, or if a comment holds a tag.
+pub(super) fn can_trail(input: &[u8], comments: &[TextSpan], statement_end: usize) -> bool {
     let mut previous_end = statement_end;
     let mut after_line_comment = false;
     for comment in comments {
         let offset = comment.offset as usize;
-        let tagged = if is_block_comment(input, comment) {
-            block_comment_has_tag(input, *comment)
-        } else {
-            read_comment_tag(input, comment).is_some()
-        };
-        if after_line_comment || offset < previous_end || tagged {
+        if after_line_comment || has_tag(input, comment) {
             return false;
         }
-        if count_line_breaks(substr(input, previous_end, offset - previous_end)) > 0 {
+        if offset >= previous_end && count_line_breaks(substr(input, previous_end, offset - previous_end)) > 0 {
             return false;
         }
         after_line_comment = !is_block_comment(input, comment);
-        previous_end = comment.end() as usize;
-    }
-    for comment in comments {
-        output.push(b' ');
-        output.extend_from_slice(trim_whitespace(comment_text(input, comment)));
+        previous_end = previous_end.max(comment.end() as usize);
     }
     true
 }
 
-/// Keep a blank line between the end of comments and the text that follows them at `next`
-fn keep_blank_line(output: &mut Vec<u8>, input: &[u8], text_end: usize, next: Option<usize>) {
-    if let Some(next) = next.filter(|&next| next >= text_end) {
-        if count_line_breaks(substr(input, text_end, next - text_end)) > 1 {
-            output.extend_from_slice(b"\n\n");
-        }
+/// Append comments on the line of a statement, see `can_trail`
+pub(super) fn append_trailing_comments(output: &mut Vec<u8>, input: &[u8], comments: &[TextSpan]) {
+    for comment in comments {
+        output.push(b' ');
+        output.extend_from_slice(trim_whitespace(comment_text(input, comment)));
     }
+}
+
+/// The number of comments that follow a text end on its line, with nothing but whitespace between them, up to the
+/// first line comment
+pub(super) fn count_comments_on_line(input: &[u8], comments: &[TextSpan], text_end: usize) -> usize {
+    let mut previous_end = text_end;
+    let mut count = 0;
+    for comment in comments {
+        let offset = comment.offset as usize;
+        let gap = substr(input, previous_end, offset.saturating_sub(previous_end));
+        if offset < previous_end || !is_whitespace(gap) || count_line_breaks(gap) > 0 {
+            break;
+        }
+        count += 1;
+        if !is_block_comment(input, comment) {
+            break;
+        }
+        previous_end = comment.end() as usize;
+    }
+    count
+}
+
+/// Append comments inside of a statement that follow its last node, each on a line of its own, before the semicolon
+/// that the caller appends. They stay there when the output is formatted again.
+pub(super) fn append_comment_lines(output: &mut Vec<u8>, input: &[u8], comments: &[TextSpan]) {
+    for comment in comments {
+        output.push(b'\n');
+        output.extend_from_slice(trim_whitespace(comment_text(input, comment)));
+    }
+    output.push(b'\n');
+}
+
+/// Keep a blank line between the end of comments and the text that follows them at `next`, returns whether there is one
+fn keep_blank_line(output: &mut Vec<u8>, input: &[u8], text_end: usize, next: Option<usize>) -> bool {
+    let blank = next
+        .filter(|&next| next >= text_end)
+        .is_some_and(|next| count_line_breaks(substr(input, text_end, next - text_end)) > 1);
+    if blank {
+        output.extend_from_slice(b"\n\n");
+    }
+    blank
 }
 
 /// Append the comments in front of a statement. With a tag among them they are its annotation: one canonical
@@ -526,6 +583,309 @@ pub(super) fn append_description(
     // A printed annotation has comments
     if let Some(last) = comments.last() {
         keep_blank_line(output, input, last.end() as usize, following);
+    }
+}
+
+/// The text spans of the nodes with text and their ids, sorted by their offsets, and the nodes with the symbols of
+/// their first and last words (see `node_spans`), sorted by the first and by the last of them
+pub(super) struct NodeSpans {
+    by_offset: Vec<(TextSpan, usize)>,
+    by_first_word: Vec<NodeWords>,
+    by_last_word: Vec<NodeWords>,
+}
+
+/// A node with the symbols of its first and last words, after and before the parentheses at its edges
+#[derive(Clone, Copy)]
+struct NodeWords {
+    span: TextSpan,
+    id: usize,
+    first: TextSpan,
+    last: TextSpan,
+}
+
+/// The place of a comment inside of a statement
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum CommentPlace {
+    /// In front of a document
+    Before(FmtReg),
+    /// At the end of the line of a document
+    After(FmtReg),
+}
+
+impl CommentPlace {
+    fn reg(self) -> FmtReg {
+        match self {
+            CommentPlace::Before(reg) | CommentPlace::After(reg) => reg,
+        }
+    }
+}
+
+impl<'a> Formatter<'a> {
+    /// The text spans of the nodes with text and their ids
+    pub(super) fn node_spans(&self) -> NodeSpans {
+        let mut by_offset: Vec<(TextSpan, usize)> = self
+            .ast
+            .iter()
+            .enumerate()
+            .map(|(id, node)| (resolve_text_span(&self.scanned.text, &self.scanned.symbols, *node.symbol_span()), id))
+            .filter(|(span, _)| span.length > 0)
+            .collect();
+        by_offset.sort_by_key(|(span, _)| span.offset);
+        let words: Vec<NodeWords> = by_offset
+            .iter()
+            .filter_map(|&(span, id)| {
+                let (first, last) = (self.word_symbol(span, true)?, self.word_symbol(span, false)?);
+                Some(NodeWords { span, id, first, last })
+            })
+            .collect();
+        let mut by_first_word = words.clone();
+        by_first_word.sort_by_key(|w| w.first.offset);
+        let mut by_last_word = words;
+        by_last_word.sort_by_key(|w| w.last.end());
+        NodeSpans { by_offset, by_first_word, by_last_word }
+    }
+
+    /// Place the comments inside of a statement, so that a second run places them the same way
+    /// (see docs/agents/core_sql_formatting.md). A line comment on the line of the end of a node stays at the end of
+    /// the line of that node. The other comments go in front of the node after them, a line comment on
+    /// a line of its own. A comment goes with the outermost document that starts (or ends) with that node, the
+    /// document that a second run finds. Returns the comments without such a node, in their order.
+    pub(super) fn attach_inner_comments(
+        &self,
+        root_id: usize,
+        root_span: TextSpan,
+        comments: &[TextSpan],
+        spans: &NodeSpans,
+    ) -> Vec<TextSpan> {
+        let statement_reg = self.node_states.get(root_id).map_or(0, |state| state.reg);
+        let counts = self.fmt.reference_counts(statement_reg);
+        let input = self.scanned.text.as_bytes();
+        let mut places: Vec<(CommentPlace, TextSpan)> = Vec::new();
+        let mut rest = Vec::new();
+        for &comment in comments {
+            // A leaf is printed as written, with the comments inside of it
+            if self.is_inside_printed_leaf(comment, spans, &counts) {
+                continue;
+            }
+            let mut place = None;
+            if comment.end() <= root_span.end() {
+                // A document ends with one line comment, a second one would go on a line of its own and a second
+                // run would read it as a comment in front of the node after it
+                if !is_block_comment(input, &comment) {
+                    place = self
+                        .node_before(root_id, root_span, comment, spans, &counts)
+                        .filter(|&reg| !self.fmt.ends_with(statement_reg, reg))
+                        .map(CommentPlace::After)
+                        .filter(|place| !places.iter().any(|(other, _)| other == place));
+                }
+                if place.is_none() {
+                    place = self
+                        .node_after(root_id, root_span, comment, spans, &counts)
+                        .filter(|&reg| !self.fmt.starts_with(statement_reg, reg))
+                        .map(CommentPlace::Before);
+                }
+            }
+            match place {
+                Some(place) => places.push((place, comment)),
+                None => rest.push(comment),
+            }
+        }
+        let text: &'a str = &self.scanned.text;
+        let mut done: Vec<FmtReg> = Vec::new();
+        for &(place, _) in &places {
+            let reg = place.reg();
+            if done.contains(&reg) {
+                continue;
+            }
+            done.push(reg);
+            let (mut prefix, mut suffix) = (Vec::new(), Vec::new());
+            for &(other, comment) in places.iter().filter(|(other, _)| other.reg() == reg) {
+                let comment_text =
+                    text.get(comment.offset as usize..comment.end() as usize).unwrap_or_default().trim_end();
+                match other {
+                    CommentPlace::After(_) => suffix.push(self.fmt.line_suffix(comment_text)),
+                    // A line comment on a line of its own
+                    CommentPlace::Before(_) if !is_block_comment(input, &comment) => {
+                        prefix.extend([self.fmt.line_start(), self.fmt.verbatim(comment_text), self.fmt.break_()])
+                    }
+                    CommentPlace::Before(_) => prefix.extend([self.fmt.verbatim(comment_text), self.fmt.text(" ")]),
+                }
+            }
+            self.fmt.wrap(reg, &prefix, &suffix);
+        }
+        rest
+    }
+
+    /// Is a comment inside of the text of a printed leaf, like `-/* a */1`?
+    fn is_inside_printed_leaf(&self, comment: TextSpan, spans: &NodeSpans, counts: &[u32]) -> bool {
+        let before = spans.by_offset.partition_point(|(span, _)| span.offset < comment.offset);
+        spans.by_offset.get(..before).unwrap_or_default().iter().any(|&(span, id)| {
+            span.end() > comment.offset
+                && self.ast.get(id).is_some_and(|node| is_leaf(node.node_type()))
+                && self.node_states.get(id).is_some_and(|state| counts.get(state.reg as usize).is_some_and(|&c| c > 0))
+        })
+    }
+
+    /// The document of a node if it is printed once and starts (or ends) with the word of the node's text: a node
+    /// whose text starts with a keyword that its parent prints, like the `from` of a from clause, takes no comment
+    /// there, a second run would find the comment after the keyword
+    fn printed_edge_reg(&self, id: usize, word: TextSpan, counts: &[u32], at_start: bool) -> Option<FmtReg> {
+        let reg = self.printed_reg(id, counts)?;
+        let source = self.scanned.text.get(word.offset as usize..word.end() as usize)?;
+        let source_word = program::edge_word(source, at_start);
+        let (printed_word, _) = self.fmt.edge_word(reg, at_start)?;
+        printed_word.eq_ignore_ascii_case(source_word).then_some(reg)
+    }
+
+    /// The text of a symbol
+    fn symbol_text(&self, symbol: &Symbol) -> Option<&'a str> {
+        let text: &'a str = &self.scanned.text;
+        text.get(symbol.location.offset as usize..symbol.location.end() as usize)
+    }
+
+    /// The symbol of the first (or last) word of a text, after (or before) the parentheses at its edge
+    fn word_symbol(&self, span: TextSpan, at_start: bool) -> Option<TextSpan> {
+        let symbols = &self.scanned.symbols;
+        let begin = symbols.partition_point(|s| s.location.offset < span.offset);
+        let end = symbols.partition_point(|s| s.location.end() <= span.end()).max(begin);
+        let inside = symbols.get(begin..end).unwrap_or_default();
+        let is_word =
+            |s: &&Symbol| s.location.length > 0 && self.symbol_text(s).is_some_and(|t| !is_parenthesis(t, at_start));
+        let symbol = if at_start { inside.iter().find(is_word) } else { inside.iter().rev().find(is_word) }?;
+        Some(symbol.location)
+    }
+
+    /// The symbols between two offsets
+    fn symbols_between(&self, from: u32, to: u32) -> impl Iterator<Item = &Symbol> {
+        let symbols = &self.scanned.symbols;
+        let begin = symbols.partition_point(|s| s.location.offset < from);
+        symbols.get(begin..).unwrap_or_default().iter().take_while(move |s| s.location.offset < to)
+    }
+
+    /// The number of opening (or closing) parentheses and brackets between two offsets
+    fn count_parentheses(&self, from: u32, to: u32, at_start: bool) -> usize {
+        self.symbols_between(from, to)
+            .filter(|s| self.symbol_text(s).is_some_and(|t| is_parenthesis(t, at_start)))
+            .count()
+    }
+
+    /// The document that a comment goes with when the text has `parentheses` between the comment and the edge word
+    /// of `reg`: the parentheses that the document prints itself count, the comment goes outside of as many of the
+    /// parentheses around it as remain. A second run finds the printed parentheses in the text.
+    fn outside_of_parentheses(&self, reg: FmtReg, parentheses: usize, counts: &[u32], at_start: bool) -> FmtReg {
+        let mut climbed = self.fmt.edge_word(reg, at_start).map_or(0, |(_, printed)| printed);
+        let mut reg = reg;
+        while climbed < parentheses {
+            let enclosing = self.fmt.enclosing_parenthesis(reg, at_start);
+            match enclosing.filter(|&(p, n)| counts.get(p as usize) == Some(&1) && climbed + n <= parentheses) {
+                Some((enclosing, n)) => {
+                    reg = enclosing;
+                    climbed += n;
+                }
+                None => break,
+            }
+        }
+        reg
+    }
+
+    /// The document of a node if it is printed once
+    fn printed_reg(&self, id: usize, counts: &[u32]) -> Option<FmtReg> {
+        let reg = self.node_states.get(id).map_or(0, |state| state.reg);
+        (reg != 0 && counts.get(reg as usize) == Some(&1)).then_some(reg)
+    }
+
+    /// The outermost printed document of the ancestors of a node that starts or ends with its document
+    fn outermost_at_edge(&self, root_id: usize, mut node: usize, counts: &[u32], at_start: bool) -> Option<FmtReg> {
+        let mut reg = self.printed_reg(node, counts)?;
+        // The parents follow their children in the AST, ancestors without a printed document are skipped
+        while let Some(parent) = self.ast.get(node).map(|n| n.parent() as usize).filter(|&p| p > node && p != root_id) {
+            node = parent;
+            let Some(parent_reg) = self.printed_reg(parent, counts) else { continue };
+            let at_edge =
+                if at_start { self.fmt.starts_with(parent_reg, reg) } else { self.fmt.ends_with(parent_reg, reg) };
+            if !at_edge {
+                break;
+            }
+            reg = parent_reg;
+        }
+        Some(reg)
+    }
+
+    /// The document that a comment goes in front of: the outermost document that starts with the innermost printed
+    /// node after the comment
+    fn node_after(
+        &self,
+        root_id: usize,
+        root_span: TextSpan,
+        comment: TextSpan,
+        spans: &NodeSpans,
+        counts: &[u32],
+    ) -> Option<FmtReg> {
+        let first = spans.by_first_word.partition_point(|w| w.first.offset < comment.end());
+        let candidates = spans
+            .by_first_word
+            .get(first..)
+            .unwrap_or_default()
+            .iter()
+            .take_while(|w| w.first.offset < root_span.end())
+            .filter(|w| {
+                w.id != root_id
+                    && w.span.offset >= root_span.offset
+                    && w.span.end() <= root_span.end()
+                    && self.printed_edge_reg(w.id, w.first, counts, true).is_some()
+            });
+        let word = candidates.clone().next()?.first;
+        let innermost =
+            candidates.take_while(|w| w.first.offset == word.offset).min_by_key(|w| (w.span.length, w.id))?;
+        let reg = self.outermost_at_edge(root_id, innermost.id, counts, true)?;
+        let parentheses = self.count_parentheses(comment.end(), word.offset, true);
+        Some(self.outside_of_parentheses(reg, parentheses, counts, true))
+    }
+
+    /// The document that a comment goes at the end of the line of: the outermost document that ends with the
+    /// innermost printed node before the comment, if that node ends on the line of the comment
+    fn node_before(
+        &self,
+        root_id: usize,
+        root_span: TextSpan,
+        comment: TextSpan,
+        spans: &NodeSpans,
+        counts: &[u32],
+    ) -> Option<FmtReg> {
+        let end = spans.by_last_word.partition_point(|w| w.last.end() <= comment.offset);
+        let candidates = spans
+            .by_last_word
+            .get(..end)
+            .unwrap_or_default()
+            .iter()
+            .rev()
+            .take_while(|w| w.last.end() > root_span.offset)
+            .filter(|w| {
+                w.id != root_id
+                    && w.span.offset >= root_span.offset
+                    && w.span.end() <= root_span.end()
+                    && self.printed_edge_reg(w.id, w.last, counts, false).is_some()
+            });
+        let word = candidates.clone().next()?.last;
+        // Between the word and the comment only parentheses and commas, the last of them on the line of the comment.
+        // An opening parenthesis is printed before the comment, like `f( -- c`.
+        let mut line_end = word.end();
+        for symbol in self.symbols_between(word.end(), comment.offset) {
+            let text = self.symbol_text(symbol).unwrap_or_default();
+            if !is_parenthesis(text, false) && !is_parenthesis(text, true) && text != "," {
+                return None;
+            }
+            line_end = symbol.location.end();
+        }
+        let gap =
+            substr(self.scanned.text.as_bytes(), line_end as usize, comment.offset.saturating_sub(line_end) as usize);
+        if count_line_breaks(gap) > 0 {
+            return None;
+        }
+        let innermost = candidates.take_while(|w| w.last.end() == word.end()).min_by_key(|w| (w.span.length, w.id))?;
+        let reg = self.outermost_at_edge(root_id, innermost.id, counts, false)?;
+        let parentheses = self.count_parentheses(word.end(), comment.offset, false);
+        Some(self.outside_of_parentheses(reg, parentheses, counts, false))
     }
 }
 
@@ -563,8 +923,11 @@ mod tests {
 
     #[test]
     fn keeps_blank_lines_and_block_comments() {
+        // The blank line keeps the paragraphs apart, without it a second run would join them to `-- a b`
         let input = "-- a\n\n-- b\n/* c */";
-        assert_eq!(format(input, &["-- a", "-- b", "/* c */"], 120), "-- a\n-- b\n/* c */");
+        assert_eq!(format(input, &["-- a", "-- b", "/* c */"], 120), "-- a\n\n-- b\n/* c */");
+        let input = "/* a */\n\n/* b */\n\n\n-- c";
+        assert_eq!(format(input, &["/* a */", "/* b */", "-- c"], 120), "/* a */\n\n/* b */\n\n-- c");
         let input = "-- a\n--\n-- b";
         assert_eq!(format(input, &["-- a", "--", "-- b"], 120), "-- a\n--\n-- b");
     }

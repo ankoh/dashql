@@ -1674,3 +1674,490 @@ parser-snapshots:
       comments: []
       comment-blocks: []
       comment-warnings: []
+
+  - name: json_constructors
+    input: |-
+      SELECT JSON('{"a":1}' WITH UNIQUE KEYS), JSON(doc WITHOUT UNIQUE), JSON_SCALAR(1), JSON_OBJECT('a': 1, 'b': x FORMAT JSON ABSENT ON NULL WITH UNIQUE KEYS), JSON_OBJECT(), JSON_ARRAY(1, NULL NULL ON NULL), JSON_ARRAY();
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 47
+          description:
+            text: "SELECT JSO..N_ARRAY();"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "SELECT JSO..ON_ARRAY()"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "JSON('{\"a\"..ON_ARRAY()"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "JSON('{\"a\"..IQUE KEYS)"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_JSON_PARSE
+                        text: "JSON('{\"a\"..IQUE KEYS)"
+                        children:
+                          - key: SQL_JSON_VALUE
+                            type: OBJECT_SQL_JSON_INPUT
+                            text: "'{\"a\":1}'"
+                            children:
+                              - key: SQL_JSON_VALUE
+                                type: LITERAL_STRING
+                                text: "'{\"a\":1}'"
+                          - key: SQL_JSON_UNIQUE_KEYS
+                            type: BOOL
+                            value: 1
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "JSON(doc W..UT UNIQUE)"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_JSON_PARSE
+                        text: "JSON(doc W..UT UNIQUE)"
+                        children:
+                          - key: SQL_JSON_VALUE
+                            type: OBJECT_SQL_JSON_INPUT
+                            text: "doc"
+                            children:
+                              - key: SQL_JSON_VALUE
+                                type: OBJECT_SQL_COLUMN_REF
+                                text: "doc"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "doc"
+                                    children:
+                                      - type: NAME
+                                        text: "doc"
+                          - key: SQL_JSON_UNIQUE_KEYS
+                            type: BOOL
+                            value: 0
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "JSON_SCALAR(1)"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_JSON_SCALAR
+                        text: "JSON_SCALAR(1)"
+                        children:
+                          - key: SQL_JSON_VALUE
+                            type: LITERAL_INTEGER
+                            text: "1"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "JSON_OBJEC..IQUE KEYS)"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_JSON_OBJECT
+                        text: "JSON_OBJEC..IQUE KEYS)"
+                        children:
+                          - key: SQL_JSON_MEMBERS
+                            type: ARRAY
+                            text: "'a': 1, 'b..ORMAT JSON"
+                            children:
+                              - type: OBJECT_SQL_JSON_MEMBER
+                                text: "'a': 1"
+                                children:
+                                  - key: SQL_JSON_MEMBER_KEY
+                                    type: LITERAL_STRING
+                                    text: "'a'"
+                                  - key: SQL_JSON_MEMBER_VALUE
+                                    type: OBJECT_SQL_JSON_INPUT
+                                    text: "1"
+                                    children:
+                                      - key: SQL_JSON_VALUE
+                                        type: LITERAL_INTEGER
+                                        text: "1"
+                              - type: OBJECT_SQL_JSON_MEMBER
+                                text: "'b': x FORMAT JSON"
+                                children:
+                                  - key: SQL_JSON_MEMBER_KEY
+                                    type: LITERAL_STRING
+                                    text: "'b'"
+                                  - key: SQL_JSON_MEMBER_VALUE
+                                    type: OBJECT_SQL_JSON_INPUT
+                                    text: "x FORMAT JSON"
+                                    children:
+                                      - key: SQL_JSON_VALUE
+                                        type: OBJECT_SQL_COLUMN_REF
+                                        text: "x"
+                                        children:
+                                          - key: SQL_COLUMN_REF_PATH
+                                            type: ARRAY
+                                            text: "x"
+                                            children:
+                                              - type: NAME
+                                                text: "x"
+                                      - key: SQL_JSON_FORMAT
+                                        type: BOOL
+                                        value: 1
+                          - key: SQL_JSON_ABSENT_ON_NULL
+                            type: BOOL
+                            value: 1
+                          - key: SQL_JSON_UNIQUE_KEYS
+                            type: BOOL
+                            value: 1
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "JSON_OBJECT()"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_JSON_OBJECT
+                        text: "JSON_OBJECT()"
+                        children:
+                          - key: SQL_JSON_MEMBERS
+                            type: ARRAY
+                            text: "JSON_OBJECT()"
+                            children: []
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "JSON_ARRAY..L ON NULL)"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_JSON_ARRAY
+                        text: "JSON_ARRAY..L ON NULL)"
+                        children:
+                          - key: SQL_JSON_VALUES
+                            type: ARRAY
+                            text: "1, NULL"
+                            children:
+                              - type: OBJECT_SQL_JSON_INPUT
+                                text: "1"
+                                children:
+                                  - key: SQL_JSON_VALUE
+                                    type: LITERAL_INTEGER
+                                    text: "1"
+                              - type: OBJECT_SQL_JSON_INPUT
+                                text: "NULL"
+                                children:
+                                  - key: SQL_JSON_VALUE
+                                    type: LITERAL_NULL
+                                    text: "NULL"
+                          - key: SQL_JSON_ABSENT_ON_NULL
+                            type: BOOL
+                            value: 0
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "JSON_ARRAY()"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_JSON_ARRAY
+                        text: "JSON_ARRAY()"
+                        children:
+                          - key: SQL_JSON_VALUES
+                            type: ARRAY
+                            text: "JSON_ARRAY()"
+                            children: []
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: json_queries
+    input: |-
+      SELECT JSON_QUERY(doc, '$.a' PASSING 1 AS x, y AS z RETURNING text WITH CONDITIONAL ARRAY WRAPPER OMIT QUOTES EMPTY ARRAY ON EMPTY ERROR ON ERROR), JSON_QUERY(doc, '$' WITH WRAPPER KEEP QUOTES), JSON_VALUE(doc, '$.b' NULL ON ERROR), JSON_EXISTS(doc, '$.c' PASSING 2 AS n UNKNOWN ON ERROR) FROM t;
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 64
+          description:
+            text: "SELECT JSO..R) FROM t;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "SELECT JSO..OR) FROM t"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "JSON_QUERY.. ON ERROR)"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "JSON_QUERY.. ON ERROR)"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_JSON_QUERY
+                        text: "JSON_QUERY.. ON ERROR)"
+                        children:
+                          - key: SQL_JSON_VALUE
+                            type: OBJECT_SQL_JSON_INPUT
+                            text: "doc"
+                            children:
+                              - key: SQL_JSON_VALUE
+                                type: OBJECT_SQL_COLUMN_REF
+                                text: "doc"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "doc"
+                                    children:
+                                      - type: NAME
+                                        text: "doc"
+                          - key: SQL_JSON_PATH
+                            type: LITERAL_STRING
+                            text: "'$.a'"
+                          - key: SQL_JSON_PASSING
+                            type: ARRAY
+                            text: "PASSING 1 .. x, y AS z"
+                            children:
+                              - type: OBJECT_SQL_JSON_ARGUMENT
+                                text: "1 AS x"
+                                children:
+                                  - key: SQL_JSON_ARGUMENT_NAME
+                                    type: NAME
+                                    text: "x"
+                                  - key: SQL_JSON_ARGUMENT_VALUE
+                                    type: LITERAL_INTEGER
+                                    text: "1"
+                              - type: OBJECT_SQL_JSON_ARGUMENT
+                                text: "y AS z"
+                                children:
+                                  - key: SQL_JSON_ARGUMENT_NAME
+                                    type: NAME
+                                    text: "z"
+                                  - key: SQL_JSON_ARGUMENT_VALUE
+                                    type: OBJECT_SQL_COLUMN_REF
+                                    text: "y"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "y"
+                                        children:
+                                          - type: NAME
+                                            text: "y"
+                          - key: SQL_JSON_RETURNING
+                            type: OBJECT_SQL_TYPENAME
+                            text: "text"
+                            children:
+                              - key: SQL_TYPENAME_TYPE
+                                type: OBJECT_SQL_GENERIC_TYPE
+                                text: "text"
+                                children:
+                                  - key: SQL_GENERIC_TYPE_NAME
+                                    type: NAME
+                                    text: "text"
+                          - key: SQL_JSON_WRAPPER
+                            type: ENUM_SQL_JSON_WRAPPER
+                            value: CONDITIONAL
+                          - key: SQL_JSON_QUOTES
+                            type: BOOL
+                            value: 0
+                          - key: SQL_JSON_BEHAVIORS
+                            type: OBJECT_SQL_JSON_BEHAVIORS
+                            text: "EMPTY ARRA..R ON ERROR"
+                            children:
+                              - key: SQL_JSON_ON_EMPTY
+                                type: OBJECT_SQL_JSON_BEHAVIOR
+                                text: "EMPTY ARRAY"
+                                children:
+                                  - key: SQL_JSON_BEHAVIOR_KIND
+                                    type: ENUM_SQL_JSON_BEHAVIOR
+                                    value: EMPTY_ARRAY
+                              - key: SQL_JSON_ON_ERROR
+                                type: OBJECT_SQL_JSON_BEHAVIOR
+                                text: "ERROR"
+                                children:
+                                  - key: SQL_JSON_BEHAVIOR_KIND
+                                    type: ENUM_SQL_JSON_BEHAVIOR
+                                    value: ERROR
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "JSON_QUERY..EP QUOTES)"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_JSON_QUERY
+                        text: "JSON_QUERY..EP QUOTES)"
+                        children:
+                          - key: SQL_JSON_VALUE
+                            type: OBJECT_SQL_JSON_INPUT
+                            text: "doc"
+                            children:
+                              - key: SQL_JSON_VALUE
+                                type: OBJECT_SQL_COLUMN_REF
+                                text: "doc"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "doc"
+                                    children:
+                                      - type: NAME
+                                        text: "doc"
+                          - key: SQL_JSON_PATH
+                            type: LITERAL_STRING
+                            text: "'$'"
+                          - key: SQL_JSON_WRAPPER
+                            type: ENUM_SQL_JSON_WRAPPER
+                            value: UNCONDITIONAL
+                          - key: SQL_JSON_QUOTES
+                            type: BOOL
+                            value: 1
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "JSON_VALUE.. ON ERROR)"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_JSON_VALUE
+                        text: "JSON_VALUE.. ON ERROR)"
+                        children:
+                          - key: SQL_JSON_VALUE
+                            type: OBJECT_SQL_JSON_INPUT
+                            text: "doc"
+                            children:
+                              - key: SQL_JSON_VALUE
+                                type: OBJECT_SQL_COLUMN_REF
+                                text: "doc"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "doc"
+                                    children:
+                                      - type: NAME
+                                        text: "doc"
+                          - key: SQL_JSON_PATH
+                            type: LITERAL_STRING
+                            text: "'$.b'"
+                          - key: SQL_JSON_BEHAVIORS
+                            type: OBJECT_SQL_JSON_BEHAVIORS
+                            text: "NULL ON ERROR"
+                            children:
+                              - key: SQL_JSON_ON_ERROR
+                                type: OBJECT_SQL_JSON_BEHAVIOR
+                                text: "NULL"
+                                children:
+                                  - key: SQL_JSON_BEHAVIOR_KIND
+                                    type: ENUM_SQL_JSON_BEHAVIOR
+                                    value: NULL_
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "JSON_EXIST.. ON ERROR)"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_JSON_EXISTS
+                        text: "JSON_EXIST.. ON ERROR)"
+                        children:
+                          - key: SQL_JSON_VALUE
+                            type: OBJECT_SQL_JSON_INPUT
+                            text: "doc"
+                            children:
+                              - key: SQL_JSON_VALUE
+                                type: OBJECT_SQL_COLUMN_REF
+                                text: "doc"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "doc"
+                                    children:
+                                      - type: NAME
+                                        text: "doc"
+                          - key: SQL_JSON_PATH
+                            type: LITERAL_STRING
+                            text: "'$.c'"
+                          - key: SQL_JSON_PASSING
+                            type: ARRAY
+                            text: "PASSING 2 AS n"
+                            children:
+                              - type: OBJECT_SQL_JSON_ARGUMENT
+                                text: "2 AS n"
+                                children:
+                                  - key: SQL_JSON_ARGUMENT_NAME
+                                    type: NAME
+                                    text: "n"
+                                  - key: SQL_JSON_ARGUMENT_VALUE
+                                    type: LITERAL_INTEGER
+                                    text: "2"
+                          - key: SQL_JSON_ON_ERROR
+                            type: OBJECT_SQL_JSON_BEHAVIOR
+                            text: "UNKNOWN"
+                            children:
+                              - key: SQL_JSON_BEHAVIOR_KIND
+                                type: ENUM_SQL_JSON_BEHAVIOR
+                                value: UNKNOWN
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "FROM t"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "t"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "t"
+                        children:
+                          - type: NAME
+                            text: "t"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: external_stream_variants
+    input: |-
+      SELECT * FROM EXTERNAL STREAM s.events WITH CARDINALITY 10 AS e, EXTERNAL STREAM other;
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 16
+          description:
+            text: "SELECT * F..EAM other;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "SELECT * F..REAM other"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "*"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "*"
+                    children:
+                      - key: SQL_RESULT_TARGET_STAR
+                        type: BOOL
+                        value: 1
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "FROM EXTER..REAM other"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "EXTERNAL S..TY 10 AS e"
+                    children:
+                      - key: SQL_TABLEREF_TABLE
+                        type: OBJECT_SQL_EXTERNAL_STREAM
+                        text: "EXTERNAL S..TY 10 AS e"
+                        children:
+                          - key: SQL_EXTERNAL_STREAM_NAME
+                            type: ARRAY
+                            text: "s.events"
+                            children:
+                              - type: NAME
+                                text: "s"
+                              - type: NAME
+                                text: "events"
+                          - key: SQL_EXTERNAL_STREAM_CARDINALITY
+                            type: LITERAL_INTEGER
+                            text: "10"
+                      - key: SQL_TABLEREF_ALIAS
+                        type: NAME
+                        text: "e"
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "EXTERNAL S..REAM other"
+                    children:
+                      - key: SQL_TABLEREF_TABLE
+                        type: OBJECT_SQL_EXTERNAL_STREAM
+                        text: "EXTERNAL S..REAM other"
+                        children:
+                          - key: SQL_EXTERNAL_STREAM_NAME
+                            type: ARRAY
+                            text: "other"
+                            children:
+                              - type: NAME
+                                text: "other"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []

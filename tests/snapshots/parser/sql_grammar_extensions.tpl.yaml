@@ -52,3 +52,19 @@ parser-snapshots:
     input: SELECT * FROM t ORDER BY x FETCH FIRST ROW WITH TIES;
   - name: select_aggregation_threshold
     input: SELECT WITH AGGREGATION_THRESHOLD x FROM t;
+  # SQL/JSON constructors with their null and unique key clauses
+  - name: json_constructors
+    input: >-
+      SELECT JSON('{"a":1}' WITH UNIQUE KEYS), JSON(doc WITHOUT UNIQUE), JSON_SCALAR(1),
+      JSON_OBJECT('a': 1, 'b': x FORMAT JSON ABSENT ON NULL WITH UNIQUE KEYS), JSON_OBJECT(),
+      JSON_ARRAY(1, NULL NULL ON NULL), JSON_ARRAY();
+  # SQL/JSON queries with passing, returning, wrapper, quote and behavior clauses
+  - name: json_queries
+    input: >-
+      SELECT JSON_QUERY(doc, '$.a' PASSING 1 AS x, y AS z RETURNING text WITH CONDITIONAL ARRAY WRAPPER
+      OMIT QUOTES EMPTY ARRAY ON EMPTY ERROR ON ERROR), JSON_QUERY(doc, '$' WITH WRAPPER KEEP QUOTES),
+      JSON_VALUE(doc, '$.b' NULL ON ERROR), JSON_EXISTS(doc, '$.c' PASSING 2 AS n UNKNOWN ON ERROR) FROM t;
+  # External streams with the other spelling of the cardinality, an alias, and without a hint
+  - name: external_stream_variants
+    input: >-
+      SELECT * FROM EXTERNAL STREAM s.events WITH CARDINALITY 10 AS e, EXTERNAL STREAM other;
