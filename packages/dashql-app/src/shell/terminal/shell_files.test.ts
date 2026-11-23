@@ -54,7 +54,7 @@ describe('shell files command', () => {
 
         expect(await registry.mountFile(file)).toBe('/mnt/external/data.csv');
         expect(stream).not.toHaveBeenCalled();
-        expect(await registry.list()).toEqual(['/mnt/external/data.csv']);
+        expect(registry.listFiles()).toEqual([{ path: '/mnt/external/data.csv', size: 3 }]);
     });
 
     it('rejects retired and unknown subcommands', async () => {
@@ -104,7 +104,7 @@ describe('shell file registry directories', () => {
         const registry = new ShellFileRegistry(undefined, external);
         expect(await registry.mountDirectory(handle('data'), undefined, 'read')).toBe('/mnt/external/data');
         await registry.mountFile(sourceFile('a.csv'));
-        expect(await registry.listFiles()).toEqual([
+        expect(registry.listFiles()).toEqual([
             { path: '/mnt/external/a.csv', size: 3 },
             { path: '/mnt/external/data', directoryMode: 'read' },
         ]);
@@ -134,7 +134,7 @@ describe('shell file registry directories', () => {
         vi.spyOn(external, 'registerExternalDirectory').mockRejectedValue(new Error('denied'));
         const registry = new ShellFileRegistry(undefined, external);
         await expect(registry.mountDirectory(handle('data'), undefined, 'read')).rejects.toThrow('denied');
-        expect(await registry.list()).toEqual([]);
+        expect(registry.listFiles()).toEqual([]);
     });
 });
 
@@ -270,7 +270,7 @@ describe('shell file registry logging', () => {
         const registry = new ShellFileRegistry(logger, external);
         await expect(registry.mountFile(sourceFile('data.csv'), undefined, { signal: abort.signal })).rejects.toThrow('cancelled');
         expect(external.files.size).toBe(0);
-        expect(await registry.list()).toEqual([]);
+        expect(registry.listFiles()).toEqual([]);
         expect(logger.records[logger.records.length - 1]!.keyValues.target_path).toBe('/mnt/external/data.csv');
     });
 

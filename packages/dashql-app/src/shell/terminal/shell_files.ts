@@ -5,12 +5,6 @@ import type { DashQLShellCommand } from './api.js';
 const LOG_CTX = 'standalone_shell_files';
 const FS_USAGE = 'usage: .fs';
 
-interface ShellFileEntry {
-    readonly path: string;
-    size(): Promise<number | undefined>;
-    drop(): Promise<void>;
-}
-
 export interface ShellFileListing {
     readonly path: string;
     readonly size?: number;
@@ -23,9 +17,9 @@ interface FileOperationOptions {
 }
 
 export class ShellFileRegistry {
-    private readonly files = new Map<string, ShellFileEntry>();
+    /// The sizes of the mounted files by their paths
+    private readonly files = new Map<string, number>();
     private readonly directories = new Map<string, ExternalDirectoryMode>();
-    private readonly mountedPaths = new Set<string>();
     private disposed = false;
 
     constructor(
@@ -37,14 +31,11 @@ export class ShellFileRegistry {
         >,
     ) {}
 
-    async list(): Promise<readonly string[]> {
-        return (await this.listFiles()).map(file => file.path);
-    }
-
-    async listFiles(): Promise<readonly ShellFileListing[]> {
+    /// The mounted files and directories ordered by their paths
+    listFiles(): readonly ShellFileListing[] {
         const files: ShellFileListing[] = [];
-        for (const path of this.mountedPaths) {
-            files.push({ path, size: await this.files.get(path)?.size() });
+        for (const [path, size] of this.files) {
+            files.push({ path, size });
         }
         for (const [path, directoryMode] of this.directories) {
             files.push({ path, directoryMode });
@@ -68,13 +59,7 @@ export class ShellFileRegistry {
                 await this.database.removeExternalFile(mountedPath);
                 throw options.signal?.reason ?? new DOMException('The operation was aborted', 'AbortError');
             }
-            const entry: ShellFileEntry = {
-                path: mountedPath,
-                size: async () => file.size,
-                drop: () => this.database!.removeExternalFile(mountedPath!),
-            };
-            this.files.set(mountedPath, entry);
-            this.mountedPaths.add(mountedPath);
+            this.files.set(mountedPath, file.size);
             this.logger?.info('Mounted shell file', logDetails(file.name, mountedPath, file.size, 'complete', startedAt), LOG_CTX);
             return mountedPath;
         } catch (error) {
@@ -126,11 +111,9 @@ export class ShellFileRegistry {
             this.directories.delete(path);
             return true;
         }
-        const entry = this.files.get(path);
-        if (entry != null) {
-            await entry.drop();
+        if (this.files.has(path)) {
+            await this.database!.removeExternalFile(path);
             this.files.delete(path);
-            this.mountedPaths.delete(path);
             return true;
         }
         return false;
@@ -139,13 +122,10 @@ export class ShellFileRegistry {
     async dispose(): Promise<void> {
         if (this.disposed) return;
         this.disposed = true;
-        for (const path of Array.from(this.mountedPaths)) {
-            const entry = this.files.get(path);
-            if (entry == null) continue;
+        for (const path of Array.from(this.files.keys())) {
             try {
-                await entry.drop();
+                await this.database!.removeExternalFile(path);
                 this.files.delete(path);
-                this.mountedPaths.delete(path);
             } catch (error) {
                 this.logger?.warn('Failed to unmount shell file during disposal', {
                     path,
