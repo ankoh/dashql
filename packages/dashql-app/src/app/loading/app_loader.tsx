@@ -3,7 +3,7 @@ import * as React from 'react';
 import { useRouteContext, useSelectOpeningWorkbook } from '../router.js';
 import { AppLoadingPage } from '../app_loading_page.js';
 import { canShowWorkbook } from './app_loading_logic.js';
-import { useAppConfig, useAppReconfigure } from '../../config/app_config.js';
+import { useAppConfig, useAppConfigError, useAppReconfigure } from '../../config/app_config.js';
 import { useAppSettingsReady } from '../../config/app_settings_sync.js';
 import { useOptionalRuntime, useWorkbook } from '@akohn/dashql-react/hooks';
 import { useHyperLinkTabState } from '../../connections/hyper/hyper_link_tab.js';
@@ -15,6 +15,7 @@ import { useHyperLinks } from '../hyper_links.js';
 
 export const AppLoader: React.FC<React.PropsWithChildren> = (props: React.PropsWithChildren) => {
     const config = useAppConfig();
+    const configError = useAppConfigError();
     const appSettingsReady = useAppSettingsReady();
     const reconfigure = useAppReconfigure();
     const showNarrowScreenWarning = useNarrowScreenWarning(appSettingsReady, config?.settings?.narrowScreenLayout ?? false);
@@ -65,7 +66,7 @@ export const AppLoader: React.FC<React.PropsWithChildren> = (props: React.PropsW
             pauseAfterSetup={pauseAfterSetup}
             progress={setup.progress}
             embeddedDatabaseStatus={setup.embeddedDatabaseStatus}
-            error={setup.error}
+            error={configError ?? setup.error}
         />;
     }
 };
