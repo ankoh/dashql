@@ -1558,7 +1558,35 @@ parser-snapshots:
     input: |-
       select (1, )
     expected:
-      statements: []
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 6
+          description:
+            text: "select (1, )"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select (1, )"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "(1, )"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "(1, )"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_ROW_EXPRESSION
+                        text: "(1, )"
+                        children:
+                          - key: SQL_ROW_EXPRESSION_VALUES
+                            type: ARRAY
+                            text: "1, )"
+                            children:
+                              - type: LITERAL_INTEGER
+                                text: "1"
       scanner-errors: []
       parser-errors:
         - message: 'syntax error, unexpected RRB'

@@ -386,9 +386,9 @@ pub fn parse(ctx: &mut ParseContext) -> bool {
                 error_range_begin = location;
                 match reduce(ctx, rule, &stack, location) {
                     Ok(value) => {
-                        // Keep statement separators available to the recovery productions.
+                        // Keep statement separators and closing brackets available to the recovery productions.
                         if std::mem::take(&mut ctx.state.borrow_mut().clear_lookahead)
-                            && lookahead.is_none_or(|la| la.kind != S_SEMICOLON)
+                            && lookahead.is_none_or(|la| !keeps_after_recovery(la.kind))
                         {
                             lookahead = None;
                         }
@@ -397,9 +397,9 @@ pub fn parse(ctx: &mut ParseContext) -> bool {
                         Label::NewState
                     }
                     Err(ReduceError::YyError) => {
-                        // Keep statement separators available to the recovery productions.
+                        // Keep statement separators and closing brackets available to the recovery productions.
                         if std::mem::take(&mut ctx.state.borrow_mut().clear_lookahead)
-                            && lookahead.is_none_or(|la| la.kind != S_SEMICOLON)
+                            && lookahead.is_none_or(|la| !keeps_after_recovery(la.kind))
                         {
                             lookahead = None;
                         }
@@ -466,6 +466,12 @@ pub fn parse(ctx: &mut ParseContext) -> bool {
             }
         };
     }
+}
+
+/// Is a lookahead kept by a recovery production that clears the lookahead? A statement separator ends the broken
+/// statement, a closing bracket closes the bracket of an expression that the recovery replaced, `(u.)`.
+fn keeps_after_recovery(kind: SymbolKind) -> bool {
+    matches!(kind, S_SEMICOLON | S_RRB | S_RSB)
 }
 
 /// Is the stack above the error token of the lowest state that shifts one? Then unwinding to that state drops a

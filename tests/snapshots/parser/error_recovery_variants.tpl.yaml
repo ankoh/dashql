@@ -208,3 +208,10 @@ parser-snapshots:
       insert into t values (1) on conflict (a) do;
       insert into t values (1) on conflict do update set;
       select 2
+
+  # An error at a closing bracket, the recovery of the expression keeps the bracket and the statement survives
+  - name: recovery_closing_bracket
+    input: |-
+      merge into t using u on t.a = u.a when not matched then insert values (u.);
+      insert into t values (u.);
+      select array[1, u.]

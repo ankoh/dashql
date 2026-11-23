@@ -77,13 +77,671 @@ parser-snapshots:
       limit
       	100
     expected:
-      statements: []
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 206
+          description:
+            text: "select\n   ..limit\n	100"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select\n   ..limit\n	100"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "s_acctbal,.. s_comment"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "s_acctbal"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "s_acctbal"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "s_acctbal"
+                            children:
+                              - type: NAME
+                                text: "s_acctbal"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "s_name"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "s_name"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "s_name"
+                            children:
+                              - type: NAME
+                                text: "s_name"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "n_name"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "n_name"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "n_name"
+                            children:
+                              - type: NAME
+                                text: "n_name"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "p_partkey"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "p_partkey"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "p_partkey"
+                            children:
+                              - type: NAME
+                                text: "p_partkey"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "p_mfgr"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "p_mfgr"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "p_mfgr"
+                            children:
+                              - type: NAME
+                                text: "p_mfgr"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "s_address"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "s_address"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "s_address"
+                            children:
+                              - type: NAME
+                                text: "s_address"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "s_phone"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "s_phone"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "s_phone"
+                            children:
+                              - type: NAME
+                                text: "s_phone"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "s_comment"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "s_comment"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "s_comment"
+                            children:
+                              - type: NAME
+                                text: "s_comment"
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from\n    p..  \"Region\""
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "part"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "part"
+                        children:
+                          - type: NAME
+                            text: "part"
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "supplier"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "supplier"
+                        children:
+                          - type: NAME
+                            text: "supplier"
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "partsupp"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "partsupp"
+                        children:
+                          - type: NAME
+                            text: "partsupp"
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "nation"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "nation"
+                        children:
+                          - type: NAME
+                            text: "nation"
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "\"Region\""
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "\"Region\""
+                        children:
+                          - type: NAME
+                            text: "\"Region\""
+              - key: SQL_SELECT_WHERE
+                type: OBJECT_SQL_NARY_EXPRESSION
+                text: "p_partkey .. and\n    )"
+                children:
+                  - key: SQL_EXPRESSION_OPERATOR
+                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                    value: AND
+                  - key: SQL_EXPRESSION_ARGS
+                    type: ARRAY
+                    text: "p_partkey .. and\n    )"
+                    children:
+                      - type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "p_partkey ..ps_partkey"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: EQUAL
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "p_partkey ..ps_partkey"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "p_partkey"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "p_partkey"
+                                    children:
+                                      - type: NAME
+                                        text: "p_partkey"
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "ps_partkey"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "ps_partkey"
+                                    children:
+                                      - type: NAME
+                                        text: "ps_partkey"
+                      - type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "s_suppkey ..ps_suppkey"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: EQUAL
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "s_suppkey ..ps_suppkey"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "s_suppkey"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "s_suppkey"
+                                    children:
+                                      - type: NAME
+                                        text: "s_suppkey"
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "ps_suppkey"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "ps_suppkey"
+                                    children:
+                                      - type: NAME
+                                        text: "ps_suppkey"
+                      - type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "p_size = 15"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: EQUAL
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "p_size = 15"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "p_size"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "p_size"
+                                    children:
+                                      - type: NAME
+                                        text: "p_size"
+                              - type: LITERAL_INTEGER
+                                text: "15"
+                      - type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "p_type lik..e '%BRASS'"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: LIKE
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "p_type lik..e '%BRASS'"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "p_type"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "p_type"
+                                    children:
+                                      - type: NAME
+                                        text: "p_type"
+                              - type: LITERAL_STRING
+                                text: "'%BRASS'"
+                      - type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "s_nationke.._nationkey"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: EQUAL
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "s_nationke.._nationkey"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "s_nationkey"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "s_nationkey"
+                                    children:
+                                      - type: NAME
+                                        text: "s_nationkey"
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "n_nationkey"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "n_nationkey"
+                                    children:
+                                      - type: NAME
+                                        text: "n_nationkey"
+                      - type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "n_regionke.._regionkey"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: EQUAL
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "n_regionke.._regionkey"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "n_regionkey"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "n_regionkey"
+                                    children:
+                                      - type: NAME
+                                        text: "n_regionkey"
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "r_regionkey"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "r_regionkey"
+                                    children:
+                                      - type: NAME
+                                        text: "r_regionkey"
+                      - type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "\"r_Name\" = 'EUROPE'"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: EQUAL
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "\"r_Name\" = 'EUROPE'"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "\"r_Name\""
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "\"r_Name\""
+                                    children:
+                                      - type: NAME
+                                        text: "\"r_Name\""
+                              - type: LITERAL_STRING
+                                text: "'EUROPE'"
+                      - type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "ps_supplyc.. and\n    )"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: EQUAL
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "ps_supplyc.. and\n    )"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "ps_supplycost"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "ps_supplycost"
+                                    children:
+                                      - type: NAME
+                                        text: "ps_supplycost"
+                              - type: OBJECT_SQL_SELECT_EXPRESSION
+                                text: "(\n        .. and\n    )"
+                                children:
+                                  - key: SQL_SELECT_EXPRESSION_STATEMENT
+                                    type: OBJECT_SQL_SELECT
+                                    text: "(\n        .. and\n    )"
+                                    children:
+                                      - key: SQL_SELECT_TARGETS
+                                        type: ARRAY
+                                        text: "min(ps_supplycost)"
+                                        children:
+                                          - type: OBJECT_SQL_RESULT_TARGET
+                                            text: "min(ps_supplycost)"
+                                            children:
+                                              - key: SQL_RESULT_TARGET_VALUE
+                                                type: OBJECT_SQL_FUNCTION_EXPRESSION
+                                                text: "min(ps_supplycost)"
+                                                children:
+                                                  - key: SQL_FUNCTION_NAME
+                                                    type: ARRAY
+                                                    text: "min"
+                                                    children:
+                                                      - type: NAME
+                                                        text: "min"
+                                                  - key: SQL_FUNCTION_ARGUMENTS
+                                                    type: ARRAY
+                                                    text: "ps_supplycost"
+                                                    children:
+                                                      - type: OBJECT_SQL_FUNCTION_ARG
+                                                        text: "ps_supplycost"
+                                                        children:
+                                                          - key: SQL_FUNCTION_ARG_VALUE
+                                                            type: OBJECT_SQL_COLUMN_REF
+                                                            text: "ps_supplycost"
+                                                            children:
+                                                              - key: SQL_COLUMN_REF_PATH
+                                                                type: ARRAY
+                                                                text: "ps_supplycost"
+                                                                children:
+                                                                  - type: NAME
+                                                                    text: "ps_supplycost"
+                                      - key: SQL_SELECT_FROM
+                                        type: ARRAY
+                                        text: "from\n     ..  \"Region\""
+                                        children:
+                                          - type: OBJECT_SQL_TABLEREF
+                                            text: "partsupp"
+                                            children:
+                                              - key: SQL_TABLEREF_NAME
+                                                type: ARRAY
+                                                text: "partsupp"
+                                                children:
+                                                  - type: NAME
+                                                    text: "partsupp"
+                                          - type: OBJECT_SQL_TABLEREF
+                                            text: "supplier"
+                                            children:
+                                              - key: SQL_TABLEREF_NAME
+                                                type: ARRAY
+                                                text: "supplier"
+                                                children:
+                                                  - type: NAME
+                                                    text: "supplier"
+                                          - type: OBJECT_SQL_TABLEREF
+                                            text: "nation"
+                                            children:
+                                              - key: SQL_TABLEREF_NAME
+                                                type: ARRAY
+                                                text: "nation"
+                                                children:
+                                                  - type: NAME
+                                                    text: "nation"
+                                          - type: OBJECT_SQL_TABLEREF
+                                            text: "\"Region\""
+                                            children:
+                                              - key: SQL_TABLEREF_NAME
+                                                type: ARRAY
+                                                text: "\"Region\""
+                                                children:
+                                                  - type: NAME
+                                                    text: "\"Region\""
+                                      - key: SQL_SELECT_WHERE
+                                        type: OBJECT_SQL_NARY_EXPRESSION
+                                        text: "p_partkey .. and\n    )"
+                                        children:
+                                          - key: SQL_EXPRESSION_OPERATOR
+                                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                                            value: AND
+                                          - key: SQL_EXPRESSION_ARGS
+                                            type: ARRAY
+                                            text: "p_partkey .. and\n    )"
+                                            children:
+                                              - type: OBJECT_SQL_NARY_EXPRESSION
+                                                text: "p_partkey ..ps_partkey"
+                                                children:
+                                                  - key: SQL_EXPRESSION_OPERATOR
+                                                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                                                    value: EQUAL
+                                                  - key: SQL_EXPRESSION_ARGS
+                                                    type: ARRAY
+                                                    text: "p_partkey ..ps_partkey"
+                                                    children:
+                                                      - type: OBJECT_SQL_COLUMN_REF
+                                                        text: "p_partkey"
+                                                        children:
+                                                          - key: SQL_COLUMN_REF_PATH
+                                                            type: ARRAY
+                                                            text: "p_partkey"
+                                                            children:
+                                                              - type: NAME
+                                                                text: "p_partkey"
+                                                      - type: OBJECT_SQL_COLUMN_REF
+                                                        text: "ps_partkey"
+                                                        children:
+                                                          - key: SQL_COLUMN_REF_PATH
+                                                            type: ARRAY
+                                                            text: "ps_partkey"
+                                                            children:
+                                                              - type: NAME
+                                                                text: "ps_partkey"
+                                              - type: OBJECT_SQL_NARY_EXPRESSION
+                                                text: "s_suppkey ..ps_suppkey"
+                                                children:
+                                                  - key: SQL_EXPRESSION_OPERATOR
+                                                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                                                    value: EQUAL
+                                                  - key: SQL_EXPRESSION_ARGS
+                                                    type: ARRAY
+                                                    text: "s_suppkey ..ps_suppkey"
+                                                    children:
+                                                      - type: OBJECT_SQL_COLUMN_REF
+                                                        text: "s_suppkey"
+                                                        children:
+                                                          - key: SQL_COLUMN_REF_PATH
+                                                            type: ARRAY
+                                                            text: "s_suppkey"
+                                                            children:
+                                                              - type: NAME
+                                                                text: "s_suppkey"
+                                                      - type: OBJECT_SQL_COLUMN_REF
+                                                        text: "ps_suppkey"
+                                                        children:
+                                                          - key: SQL_COLUMN_REF_PATH
+                                                            type: ARRAY
+                                                            text: "ps_suppkey"
+                                                            children:
+                                                              - type: NAME
+                                                                text: "ps_suppkey"
+                                              - type: OBJECT_SQL_NARY_EXPRESSION
+                                                text: "s_nationke.._nationkey"
+                                                children:
+                                                  - key: SQL_EXPRESSION_OPERATOR
+                                                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                                                    value: EQUAL
+                                                  - key: SQL_EXPRESSION_ARGS
+                                                    type: ARRAY
+                                                    text: "s_nationke.._nationkey"
+                                                    children:
+                                                      - type: OBJECT_SQL_COLUMN_REF
+                                                        text: "s_nationkey"
+                                                        children:
+                                                          - key: SQL_COLUMN_REF_PATH
+                                                            type: ARRAY
+                                                            text: "s_nationkey"
+                                                            children:
+                                                              - type: NAME
+                                                                text: "s_nationkey"
+                                                      - type: OBJECT_SQL_COLUMN_REF
+                                                        text: "n_nationkey"
+                                                        children:
+                                                          - key: SQL_COLUMN_REF_PATH
+                                                            type: ARRAY
+                                                            text: "n_nationkey"
+                                                            children:
+                                                              - type: NAME
+                                                                text: "n_nationkey"
+                                              - type: OBJECT_SQL_NARY_EXPRESSION
+                                                text: "n_regionke.._regionkey"
+                                                children:
+                                                  - key: SQL_EXPRESSION_OPERATOR
+                                                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                                                    value: EQUAL
+                                                  - key: SQL_EXPRESSION_ARGS
+                                                    type: ARRAY
+                                                    text: "n_regionke.._regionkey"
+                                                    children:
+                                                      - type: OBJECT_SQL_COLUMN_REF
+                                                        text: "n_regionkey"
+                                                        children:
+                                                          - key: SQL_COLUMN_REF_PATH
+                                                            type: ARRAY
+                                                            text: "n_regionkey"
+                                                            children:
+                                                              - type: NAME
+                                                                text: "n_regionkey"
+                                                      - type: OBJECT_SQL_COLUMN_REF
+                                                        text: "r_regionkey"
+                                                        children:
+                                                          - key: SQL_COLUMN_REF_PATH
+                                                            type: ARRAY
+                                                            text: "r_regionkey"
+                                                            children:
+                                                              - type: NAME
+                                                                text: "r_regionkey"
+                                              - type: OBJECT_SQL_NARY_EXPRESSION
+                                                text: "\"r_Name\" = 'EUROPE'"
+                                                children:
+                                                  - key: SQL_EXPRESSION_OPERATOR
+                                                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                                                    value: EQUAL
+                                                  - key: SQL_EXPRESSION_ARGS
+                                                    type: ARRAY
+                                                    text: "\"r_Name\" = 'EUROPE'"
+                                                    children:
+                                                      - type: OBJECT_SQL_COLUMN_REF
+                                                        text: "\"r_Name\""
+                                                        children:
+                                                          - key: SQL_COLUMN_REF_PATH
+                                                            type: ARRAY
+                                                            text: "\"r_Name\""
+                                                            children:
+                                                              - type: NAME
+                                                                text: "\"r_Name\""
+                                                      - type: LITERAL_STRING
+                                                        text: "'EUROPE'"
+              - key: SQL_SELECT_LIMIT
+                type: LITERAL_INTEGER
+                text: "100"
+              - key: SQL_SELECT_ORDER
+                type: ARRAY
+                text: "order by\n .. p_partkey"
+                children:
+                  - type: OBJECT_SQL_ORDER
+                    text: "s_acctbal desc"
+                    children:
+                      - key: SQL_ORDER_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "s_acctbal"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "s_acctbal"
+                            children:
+                              - type: NAME
+                                text: "s_acctbal"
+                      - key: SQL_ORDER_DIRECTION
+                        type: ENUM_SQL_ORDER_DIRECTION
+                        value: DESCENDING
+                  - type: OBJECT_SQL_ORDER
+                    text: "n_name"
+                    children:
+                      - key: SQL_ORDER_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "n_name"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "n_name"
+                            children:
+                              - type: NAME
+                                text: "n_name"
+                  - type: OBJECT_SQL_ORDER
+                    text: "s_name"
+                    children:
+                      - key: SQL_ORDER_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "s_name"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "s_name"
+                            children:
+                              - type: NAME
+                                text: "s_name"
+                  - type: OBJECT_SQL_ORDER
+                    text: "p_partkey"
+                    children:
+                      - key: SQL_ORDER_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "p_partkey"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "p_partkey"
+                            children:
+                              - type: NAME
+                                text: "p_partkey"
       scanner-errors: []
       parser-errors:
         - message: 'syntax error, unexpected RRB'
           text: ")"
-        - message: 'syntax error, unexpected EOF'
-          text: ""
       line-breaks:
         - text: [6,7]
         - text: [21,22]

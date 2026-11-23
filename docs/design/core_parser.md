@@ -57,11 +57,12 @@ limited.
 
 ### Error recovery
 
-The recovery is bison's: pop states to one that shifts the error token (`statement_list: error`, `opt_statement:
-error`, `sql_a_expr: error`, `sql_cte_options: error`), then drop tokens until one fits. A `;` is never dropped: a
-reduction that clears the lookahead (`ctx.clear_lookahead()`) keeps it, and a `;` that a recovery inside a statement
-can't use (`select (1;`, `with a as (select 1);`) ends the statement like the depth limit does, it unwinds to the
-lowest state that shifts the error token and drops the broken statement. The next statement always survives.
+The recovery is bison's: pop states to one that shifts the error token (`statement_list: error`, `opt_statement: error`,
+`sql_a_expr: error`, `sql_cte_options: error`), then drop tokens until one fits. A reduction that clears the lookahead
+(`ctx.clear_lookahead()`) drops the token that failed, but keeps a `;`, `)` or `]`: the bracket closes the expression
+that the recovery replaced, `values (u.)` keeps its statement. A `;` is never dropped, a `;` that a recovery inside a
+statement can't use (`select (1;`, `with a as (select 1);`) ends the statement like the depth limit does, it unwinds to
+the lowest state that shifts the error token and drops the broken statement. The next statement always survives.
 
 ## Flat AST Design
 

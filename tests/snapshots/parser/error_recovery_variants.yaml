@@ -1704,3 +1704,155 @@ parser-snapshots:
       comments: []
       comment-blocks: []
       comment-warnings: []
+
+  - name: recovery_closing_bracket
+    input: |-
+      merge into t using u on t.a = u.a when not matched then insert values (u.);
+      insert into t values (u.);
+      select array[1, u.]
+    expected:
+      statements:
+        - type: MERGE
+          ast-begin: 0
+          ast-size: 23
+          description:
+            text: "merge into..lues (u.);"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_MERGE
+            text: "merge into..alues (u.)"
+            children:
+              - key: SQL_MERGE_TARGET
+                type: OBJECT_SQL_TABLEREF
+                text: "t"
+                children:
+                  - key: SQL_TABLEREF_NAME
+                    type: ARRAY
+                    text: "t"
+                    children:
+                      - type: NAME
+                        text: "t"
+              - key: SQL_MERGE_SOURCE
+                type: OBJECT_SQL_TABLEREF
+                text: "u"
+                children:
+                  - key: SQL_TABLEREF_NAME
+                    type: ARRAY
+                    text: "u"
+                    children:
+                      - type: NAME
+                        text: "u"
+              - key: SQL_MERGE_CONDITION
+                type: OBJECT_SQL_NARY_EXPRESSION
+                text: "t.a = u.a"
+                children:
+                  - key: SQL_EXPRESSION_OPERATOR
+                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                    value: EQUAL
+                  - key: SQL_EXPRESSION_ARGS
+                    type: ARRAY
+                    text: "t.a = u.a"
+                    children:
+                      - type: OBJECT_SQL_COLUMN_REF
+                        text: "t.a"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "t.a"
+                            children:
+                              - type: NAME
+                                text: "t"
+                              - type: NAME
+                                text: "a"
+                      - type: OBJECT_SQL_COLUMN_REF
+                        text: "u.a"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "u.a"
+                            children:
+                              - type: NAME
+                                text: "u"
+                              - type: NAME
+                                text: "a"
+              - key: SQL_MERGE_CLAUSES
+                type: ARRAY
+                text: "when not m..alues (u.)"
+                children:
+                  - type: OBJECT_SQL_MERGE_WHEN_CLAUSE
+                    text: "when not m..alues (u.)"
+                    children:
+                      - key: SQL_MERGE_WHEN_CLAUSE_KIND
+                        type: ENUM_SQL_MERGE_MATCH
+                        value: NOT_MATCHED_BY_TARGET
+                      - key: SQL_MERGE_WHEN_CLAUSE_ACTION
+                        type: OBJECT_SQL_MERGE_ACTION
+                        text: "insert values (u.)"
+                        children:
+                          - key: SQL_MERGE_ACTION_KIND
+                            type: ENUM_SQL_MERGE_ACTION
+                            value: INSERT
+        - type: INSERT
+          ast-begin: 23
+          ast-size: 4
+          description:
+            text: "insert int..lues (u.);"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_INSERT
+            text: "insert int..alues (u.)"
+            children:
+              - key: SQL_INSERT_TARGET
+                type: OBJECT_SQL_TABLEREF
+                text: "t"
+                children:
+                  - key: SQL_TABLEREF_NAME
+                    type: ARRAY
+                    text: "t"
+                    children:
+                      - type: NAME
+                        text: "t"
+        - type: SELECT
+          ast-begin: 27
+          ast-size: 6
+          description:
+            text: "select array[1, u.]"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select array[1, u.]"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "array[1, u.]"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "array[1, u.]"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_ARRAY_EXPRESSION
+                        text: "array[1, u.]"
+                        children:
+                          - key: SQL_ARRAY_EXPRESSION_VALUES
+                            type: ARRAY
+                            text: "1, u.]"
+                            children:
+                              - type: LITERAL_INTEGER
+                                text: "1"
+      scanner-errors: []
+      parser-errors:
+        - message: 'syntax error, unexpected RRB'
+          text: ")"
+        - message: 'syntax error, unexpected RRB'
+          text: ")"
+        - message: 'syntax error, unexpected RSB'
+          text: "]"
+      line-breaks:
+        - text: [75,76]
+        - text: [102,103]
+      comments: []
+      comment-blocks: []
+      comment-warnings: []

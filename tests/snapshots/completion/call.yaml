@@ -418,10 +418,13 @@ completion-snapshots:
       input: call tickets.ticket_list (project => 'a', ); select 1;
       catalog-id: 1
       errors: []
+      client-function-calls:
+        - {statement: 0, namespace: tickets, function: ticket_list, description: "{\"namespace\":\"tickets\",\"function\":\"ticket_list\",\"effect\":\"read\",\"explain\":false,\"options\":{\"project\":\"a\"}}"}
       expressions:
-        - {id: 0, type: literal/string, is-const: true, text: "'a'"}
-        - {id: 1, type: literal/integer, is-const: true, text: "1"}
+        - {id: 0, type: literal/string, is-const: true, statement-id: 0, text: "'a'"}
+        - {id: 1, type: literal/integer, is-const: true, statement-id: 1, text: "1"}
       constants:
+        - {expression: 0, text: "'a'"}
         - {expression: 1, text: "1"}
     cursor:
       search:
@@ -431,6 +434,8 @@ completion-snapshots:
       limit: 10
       strategy: DEFAULT
       client-function-name: 1
+      symbol: ARRAY
+      relative: END_OF_SYMBOL
       entries:
         - value: page_size
           name-tags: [OPTION_NAME]

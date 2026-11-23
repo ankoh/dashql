@@ -491,8 +491,23 @@ analyzer-snapshots:
       input: select f(a => ), g(1, ) from t
       catalog-id: 2
       errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
       expressions:
-        - {id: 0, type: literal/integer, is-const: true, text: "1"}
+        - {id: 0, type: function, name: f, text: "f(a => )"}
+        - {id: 1, type: function, name: g, is-const: true, text: "g(1, )"}
+        - {id: 2, type: literal/integer, is-const: true, text: "1"}
+      constants:
+        - {expression: 2, text: "1"}
+        - {expression: 1, text: "g(1, )"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: t, text: "t"}
+          columns:
+            - {name: '?', expression: 0}
+            - {name: '?', expression: 1}
+          text: "select f(a.., ) from t"
 
   - name: malformed_comment_tag
     script:

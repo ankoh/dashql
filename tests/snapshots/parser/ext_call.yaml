@@ -1154,7 +1154,26 @@ parser-snapshots:
     input: |-
       CALL t.f (a => b);
     expected:
-      statements: []
+      statements:
+        - type: CALL
+          ast-begin: 0
+          ast-size: 4
+          description:
+            text: "CALL t.f (a => b);"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_CALL
+            text: "CALL t.f (a => b)"
+            children:
+              - key: SQL_CALL_NAME
+                type: ARRAY
+                text: "t.f"
+                children:
+                  - type: NAME
+                    text: "t"
+                  - type: NAME
+                    text: "f"
       scanner-errors: []
       parser-errors:
         - message: 'syntax error, unexpected RRB, expecting DOT or DOT_TRAILING or LRB or LSB'
