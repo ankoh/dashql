@@ -33,3 +33,38 @@ dataflow-snapshots:
         connection: trino
         input: |
           select * from :sales;
+
+  # A script and an attachment of one name are ambiguous, the reference reads neither
+  - name: AttachmentNameCollision
+    connections:
+      - name: local
+        kind: LOCAL
+    attachments:
+      - file: sales.parquet
+        stamp: 1
+    scripts:
+      - name: sales
+        connection: local
+        input: |
+          select 1 as amount;
+      - name: report
+        connection: local
+        input: |
+          select * from :sales;
+
+  # Attachments and inputs feed one statement, both are boxes left of it
+  - name: AttachmentAndInput
+    connections:
+      - name: local
+        kind: LOCAL
+    attachments:
+      - file: sales.parquet
+        stamp: 1
+      - file: regions.parquet
+        stamp: 1
+    scripts:
+      - name: report
+        connection: local
+        input: |
+          /* @param :min = 10 */
+          select * from :sales s, :regions r where s.region = r.region and s.amount > :min::int;

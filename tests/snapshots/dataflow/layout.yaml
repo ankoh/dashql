@@ -855,3 +855,898 @@ dataflow-snapshots:
           kind: inline
           name: b
           route: [[704,56],[776,56],[776,104],[848,104]]
+
+  - name: LayoutDiamond
+    scripts:
+      - name: base
+        input: |
+          create table base (id int);
+      - name: left
+        input: |
+          select id from base where id > 0;
+      - name: right
+        input: |
+          select id from base where id < 10;
+      - name: joined
+        input: |
+          select * from :left l, :right r where l.id = r.id;
+    expected:
+      scripts:
+        - name: base
+          statements:
+            - type: CREATE_TABLE
+              target: base
+              text: "create tab..e (id int)"
+          box: [0,0,280,80]
+        - name: left
+          statements:
+            - type: SELECT
+              text: "select id ..ere id > 0"
+          box: [424,0,280,80]
+        - name: right
+          statements:
+            - type: SELECT
+              text: "select id ..re id < 10"
+          box: [424,128,280,80]
+        - name: joined
+          statements:
+            - type: SELECT
+              text: "select * f...id = r.id"
+          box: [848,0,280,80]
+      edges:
+        - from: base.0
+          to: left.0
+          kind: table
+          name: base
+          route: [[280,56],[424,56]]
+        - from: base.0
+          to: right.0
+          kind: table
+          name: base
+          route: [[280,56],[352,56],[352,184],[424,184]]
+        - from: left.0
+          to: joined.0
+          kind: inline
+          name: left
+          route: [[704,56],[848,56]]
+        - from: right.0
+          to: joined.0
+          kind: inline
+          name: right
+          route: [[704,184],[776,184],[776,56],[848,56]]
+
+  - name: LayoutLongChain
+    scripts:
+      - name: s1
+        input: |
+          select 1 as x;
+      - name: s2
+        input: |
+          select x from :s1;
+      - name: s3
+        input: |
+          select x from :s2;
+      - name: s4
+        input: |
+          select x from :s3;
+      - name: s5
+        input: |
+          select x from :s4;
+      - name: s6
+        input: |
+          select x from :s5;
+      - name: s7
+        input: |
+          select x from :s6;
+      - name: s8
+        input: |
+          select x from :s7;
+    expected:
+      scripts:
+        - name: s1
+          statements:
+            - type: SELECT
+              text: "select 1 as x"
+          box: [0,0,280,80]
+        - name: s2
+          statements:
+            - type: SELECT
+              text: "select x from :s1"
+          box: [424,0,280,80]
+        - name: s3
+          statements:
+            - type: SELECT
+              text: "select x from :s2"
+          box: [848,0,280,80]
+        - name: s4
+          statements:
+            - type: SELECT
+              text: "select x from :s3"
+          box: [1272,0,280,80]
+        - name: s5
+          statements:
+            - type: SELECT
+              text: "select x from :s4"
+          box: [1696,0,280,80]
+        - name: s6
+          statements:
+            - type: SELECT
+              text: "select x from :s5"
+          box: [2120,0,280,80]
+        - name: s7
+          statements:
+            - type: SELECT
+              text: "select x from :s6"
+          box: [2544,0,280,80]
+        - name: s8
+          statements:
+            - type: SELECT
+              text: "select x from :s7"
+          box: [2968,0,280,80]
+      edges:
+        - from: s1.0
+          to: s2.0
+          kind: inline
+          name: s1
+          route: [[280,56],[424,56]]
+        - from: s2.0
+          to: s3.0
+          kind: inline
+          name: s2
+          route: [[704,56],[848,56]]
+        - from: s3.0
+          to: s4.0
+          kind: inline
+          name: s3
+          route: [[1128,56],[1272,56]]
+        - from: s4.0
+          to: s5.0
+          kind: inline
+          name: s4
+          route: [[1552,56],[1696,56]]
+        - from: s5.0
+          to: s6.0
+          kind: inline
+          name: s5
+          route: [[1976,56],[2120,56]]
+        - from: s6.0
+          to: s7.0
+          kind: inline
+          name: s6
+          route: [[2400,56],[2544,56]]
+        - from: s7.0
+          to: s8.0
+          kind: inline
+          name: s7
+          route: [[2824,56],[2968,56]]
+
+  - name: LayoutManyNodes
+    scripts:
+      - name: orders
+        input: |
+          create table orders (id int, customer int, amount int);
+      - name: customers
+        input: |
+          create table customers (id int, region text);
+      - name: products
+        input: |
+          create table products (id int, name text);
+      - name: big_orders
+        input: |
+          select * from orders where amount > 100;
+      - name: eu_customers
+        input: |
+          select * from customers where region = 'EU';
+      - name: eu_orders
+        input: |
+          select o.* from :big_orders o, :eu_customers c where o.customer = c.id;
+      - name: product_names
+        input: |
+          select name from products;
+      - name: report
+        input: |
+          select count(*) from :eu_orders, :product_names;
+      - name: totals
+        input: |
+          select sum(amount) from :big_orders;
+      - name: summary
+        input: |
+          select * from :report, :totals;
+    expected:
+      scripts:
+        - name: orders
+          statements:
+            - type: CREATE_TABLE
+              target: orders
+              text: "create tab..mount int)"
+          box: [0,256,280,80]
+        - name: customers
+          statements:
+            - type: CREATE_TABLE
+              target: customers
+              text: "create tab..gion text)"
+          box: [0,128,280,80]
+        - name: products
+          statements:
+            - type: CREATE_TABLE
+              target: products
+              text: "create tab..name text)"
+          box: [424,0,280,80]
+        - name: big_orders
+          statements:
+            - type: SELECT
+              text: "select * f..ount > 100"
+          box: [424,256,280,80]
+        - name: eu_customers
+          statements:
+            - type: SELECT
+              text: "select * f..ion = 'EU'"
+          box: [424,128,280,80]
+        - name: eu_orders
+          statements:
+            - type: SELECT
+              text: "select o.*..mer = c.id"
+          box: [848,128,280,80]
+        - name: product_names
+          statements:
+            - type: SELECT
+              text: "select nam..m products"
+          box: [848,0,280,80]
+        - name: report
+          statements:
+            - type: SELECT
+              text: "select cou..duct_names"
+          box: [1272,128,280,80]
+        - name: totals
+          statements:
+            - type: SELECT
+              text: "select sum..big_orders"
+          box: [1272,256,280,80]
+        - name: summary
+          statements:
+            - type: SELECT
+              text: "select * f..t, :totals"
+          box: [1696,128,280,80]
+      edges:
+        - from: orders.0
+          to: big_orders.0
+          kind: table
+          name: orders
+          route: [[280,312],[424,312]]
+        - from: customers.0
+          to: eu_customers.0
+          kind: table
+          name: customers
+          route: [[280,184],[424,184]]
+        - from: products.0
+          to: product_names.0
+          kind: table
+          name: products
+          route: [[704,56],[848,56]]
+        - from: big_orders.0
+          to: eu_orders.0
+          kind: inline
+          name: big_orders
+          route: [[704,312],[776,312],[776,184],[848,184]]
+        - from: big_orders.0
+          to: totals.0
+          kind: inline
+          name: big_orders
+          route: [[704,312],[1272,312]]
+        - from: eu_customers.0
+          to: eu_orders.0
+          kind: inline
+          name: eu_customers
+          route: [[704,184],[848,184]]
+        - from: eu_orders.0
+          to: report.0
+          kind: inline
+          name: eu_orders
+          route: [[1128,184],[1272,184]]
+        - from: product_names.0
+          to: report.0
+          kind: inline
+          name: product_names
+          route: [[1128,56],[1200,56],[1200,184],[1272,184]]
+        - from: report.0
+          to: summary.0
+          kind: inline
+          name: report
+          route: [[1552,184],[1696,184]]
+        - from: totals.0
+          to: summary.0
+          kind: inline
+          name: totals
+          route: [[1552,312],[1624,312],[1624,184],[1696,184]]
+
+  - name: LayoutManyNodesReordered
+    scripts:
+      - name: orders
+        input: |
+          create table orders (id int, customer int, amount int);
+      - name: customers
+        input: |
+          create table customers (id int, region text);
+      - name: products
+        input: |
+          create table products (id int, name text);
+      - name: summary
+        input: |
+          select * from :report, :totals;
+      - name: totals
+        input: |
+          select sum(amount) from :big_orders;
+      - name: report
+        input: |
+          select count(*) from :eu_orders, :product_names;
+      - name: product_names
+        input: |
+          select name from products;
+      - name: eu_orders
+        input: |
+          select o.* from :big_orders o, :eu_customers c where o.customer = c.id;
+      - name: eu_customers
+        input: |
+          select * from customers where region = 'EU';
+      - name: big_orders
+        input: |
+          select * from orders where amount > 100;
+    expected:
+      scripts:
+        - name: orders
+          statements:
+            - type: CREATE_TABLE
+              target: orders
+              text: "create tab..mount int)"
+          box: [0,0,280,80]
+        - name: customers
+          statements:
+            - type: CREATE_TABLE
+              target: customers
+              text: "create tab..gion text)"
+          box: [0,128,280,80]
+        - name: products
+          statements:
+            - type: CREATE_TABLE
+              target: products
+              text: "create tab..name text)"
+          box: [424,256,280,80]
+        - name: summary
+          statements:
+            - type: SELECT
+              text: "select * f..t, :totals"
+          box: [1696,0,280,80]
+        - name: totals
+          statements:
+            - type: SELECT
+              text: "select sum..big_orders"
+          box: [1272,0,280,80]
+        - name: report
+          statements:
+            - type: SELECT
+              text: "select cou..duct_names"
+          box: [1272,128,280,80]
+        - name: product_names
+          statements:
+            - type: SELECT
+              text: "select nam..m products"
+          box: [848,256,280,80]
+        - name: eu_orders
+          statements:
+            - type: SELECT
+              text: "select o.*..mer = c.id"
+          box: [848,128,280,80]
+        - name: eu_customers
+          statements:
+            - type: SELECT
+              text: "select * f..ion = 'EU'"
+          box: [424,128,280,80]
+        - name: big_orders
+          statements:
+            - type: SELECT
+              text: "select * f..ount > 100"
+          box: [424,0,280,80]
+      edges:
+        - from: orders.0
+          to: big_orders.0
+          kind: table
+          name: orders
+          route: [[280,56],[424,56]]
+        - from: customers.0
+          to: eu_customers.0
+          kind: table
+          name: customers
+          route: [[280,184],[424,184]]
+        - from: products.0
+          to: product_names.0
+          kind: table
+          name: products
+          route: [[704,312],[848,312]]
+        - from: totals.0
+          to: summary.0
+          kind: inline
+          name: totals
+          route: [[1552,56],[1696,56]]
+        - from: report.0
+          to: summary.0
+          kind: inline
+          name: report
+          route: [[1552,184],[1624,184],[1624,56],[1696,56]]
+        - from: product_names.0
+          to: report.0
+          kind: inline
+          name: product_names
+          route: [[1128,312],[1200,312],[1200,184],[1272,184]]
+        - from: eu_orders.0
+          to: report.0
+          kind: inline
+          name: eu_orders
+          route: [[1128,184],[1272,184]]
+        - from: eu_customers.0
+          to: eu_orders.0
+          kind: inline
+          name: eu_customers
+          route: [[704,184],[848,184]]
+        - from: big_orders.0
+          to: totals.0
+          kind: inline
+          name: big_orders
+          route: [[704,56],[1272,56]]
+        - from: big_orders.0
+          to: eu_orders.0
+          kind: inline
+          name: big_orders
+          route: [[704,56],[776,56],[776,184],[848,184]]
+
+  - name: LayoutDisconnectedParts
+    scripts:
+      - name: a1
+        input: |
+          select 1 as x;
+      - name: a2
+        input: |
+          select x from :a1;
+      - name: a3
+        input: |
+          select x from :a2;
+      - name: b1
+        input: |
+          select 2 as y;
+      - name: b2
+        input: |
+          select y from :b1;
+      - name: c1
+        input: |
+          create table c (z int);
+      - name: c2
+        input: |
+          select z from c;
+      - name: c3
+        input: |
+          select count(*) from c;
+      - name: c4
+        input: |
+          select max(z) from c;
+    expected:
+      scripts:
+        - name: a1
+          statements:
+            - type: SELECT
+              text: "select 1 as x"
+          box: [0,176,280,80]
+        - name: a2
+          statements:
+            - type: SELECT
+              text: "select x from :a1"
+          box: [424,176,280,80]
+        - name: a3
+          statements:
+            - type: SELECT
+              text: "select x from :a2"
+          box: [848,176,280,80]
+        - name: b1
+          statements:
+            - type: SELECT
+              text: "select 2 as y"
+          box: [0,0,280,80]
+        - name: b2
+          statements:
+            - type: SELECT
+              text: "select y from :b1"
+          box: [424,0,280,80]
+        - name: c1
+          statements:
+            - type: CREATE_TABLE
+              target: c
+              text: "create tab.. c (z int)"
+          box: [0,480,280,80]
+        - name: c2
+          statements:
+            - type: SELECT
+              text: "select z from c"
+          box: [424,352,280,80]
+        - name: c3
+          statements:
+            - type: SELECT
+              text: "select cou..(*) from c"
+          box: [424,480,280,80]
+        - name: c4
+          statements:
+            - type: SELECT
+              text: "select max..(z) from c"
+          box: [424,608,280,80]
+      edges:
+        - from: a1.0
+          to: a2.0
+          kind: inline
+          name: a1
+          route: [[280,232],[424,232]]
+        - from: a2.0
+          to: a3.0
+          kind: inline
+          name: a2
+          route: [[704,232],[848,232]]
+        - from: b1.0
+          to: b2.0
+          kind: inline
+          name: b1
+          route: [[280,56],[424,56]]
+        - from: c1.0
+          to: c2.0
+          kind: table
+          name: c
+          route: [[280,536],[352,536],[352,408],[424,408]]
+        - from: c1.0
+          to: c3.0
+          kind: table
+          name: c
+          route: [[280,536],[424,536]]
+        - from: c1.0
+          to: c4.0
+          kind: table
+          name: c
+          route: [[280,536],[352,536],[352,664],[424,664]]
+
+  - name: LayoutSelfReference
+    scripts:
+      - name: a
+        input: |
+          select * from :a;
+      - name: b
+        input: |
+          select 1;
+    expected:
+      scripts:
+        - name: a
+          statements:
+            - type: SELECT
+              text: "select * from :a"
+          box: [0,0,280,80]
+        - name: b
+          statements:
+            - type: SELECT
+              text: "select 1"
+          box: [328,0,280,80]
+      edges:
+        - from: a.0
+          to: a.0
+          kind: invalid
+          name: a
+
+  - name: LayoutPortsOfSeveralRows
+    scripts:
+      - name: schema
+        input: |
+          create table a (x int);
+          create table b (x int);
+          create table c (x int);
+      - name: from_c
+        input: |
+          select x from c;
+      - name: from_a
+        input: |
+          select x from a;
+      - name: from_b
+        input: |
+          select x from b;
+    expected:
+      scripts:
+        - name: schema
+          statements:
+            - type: CREATE_TABLE
+              target: a
+              text: "create tab.. a (x int)"
+            - type: CREATE_TABLE
+              target: b
+              text: "create tab.. b (x int)"
+            - type: CREATE_TABLE
+              target: c
+              text: "create tab.. c (x int)"
+          box: [0,96,280,144]
+        - name: from_c
+          statements:
+            - type: SELECT
+              text: "select x from c"
+          box: [424,256,280,80]
+        - name: from_a
+          statements:
+            - type: SELECT
+              text: "select x from a"
+          box: [424,0,280,80]
+        - name: from_b
+          statements:
+            - type: SELECT
+              text: "select x from b"
+          box: [424,128,280,80]
+      edges:
+        - from: schema.0
+          to: from_a.0
+          kind: table
+          name: a
+          route: [[280,152],[352,152],[352,56],[424,56]]
+        - from: schema.1
+          to: from_b.0
+          kind: table
+          name: b
+          route: [[280,184],[424,184]]
+        - from: schema.2
+          to: from_c.0
+          kind: table
+          name: c
+          route: [[280,216],[352,216],[352,312],[424,312]]
+
+  - name: LayoutCollapsedInChain
+    collapsed: [middle]
+    scripts:
+      - name: schema
+        input: |
+          create table t (x int);
+      - name: middle
+        input: |
+          insert into t values (1);
+          insert into t values (2);
+          create table u as select x from t;
+      - name: report
+        input: |
+          select x from u;
+    expected:
+      scripts:
+        - name: schema
+          statements:
+            - type: CREATE_TABLE
+              target: t
+              text: "create tab.. t (x int)"
+          box: [0,0,280,80]
+        - name: middle
+          statements:
+            - type: INSERT
+              target: t
+              text: "insert int..values (1)"
+            - type: INSERT
+              target: t
+              text: "insert int..values (2)"
+            - type: CREATE_TABLE_AS
+              target: u
+              text: "create tab..t x from t"
+          box: [424,40,280,32]
+        - name: report
+          statements:
+            - type: SELECT
+              text: "select x from u"
+          box: [848,0,280,80]
+      edges:
+        - from: schema.0
+          to: middle.0
+          kind: table
+          name: t
+          route: [[280,56],[424,56]]
+        - from: middle.0
+          to: middle.1
+          kind: table
+          name: t
+        - from: middle.1
+          to: middle.2
+          kind: table
+          name: t
+        - from: middle.2
+          to: report.0
+          kind: table
+          name: u
+          route: [[704,56],[848,56]]
+
+  - name: LayoutCycleWithPositions
+    scripts:
+      - name: a
+        input: |
+          /** @flow x=0 y=0 */
+          select * from :b;
+      - name: b
+        input: |
+          /** @flow x=480 y=0 */
+          select * from :a;
+    expected:
+      scripts:
+        - name: a
+          statements:
+            - type: SELECT
+              text: "select * from :b"
+          box: [0,0,280,80]
+        - name: b
+          statements:
+            - type: SELECT
+              text: "select * from :a"
+          box: [424,0,280,80]
+      edges:
+        - from: a.0
+          to: b.0
+          kind: invalid
+          name: a
+          route: [[280,56],[424,56]]
+        - from: b.0
+          to: a.0
+          kind: inline
+          name: b
+          route: [[704,56],[728,56],[728,-24],[-24,-24],[-24,56],[0,56]]
+
+  - name: LayoutOverlappingPositions
+    scripts:
+      - name: orders
+        input: |
+          /** @flow x=0 y=0 */
+          create table orders (id int);
+      - name: by_id
+        input: |
+          /** @flow x=480 y=0 */
+          select id from orders;
+      - name: count
+        input: |
+          /** @flow x=480 y=0 */
+          select count(*) from orders;
+    expected:
+      scripts:
+        - name: orders
+          statements:
+            - type: CREATE_TABLE
+              target: orders
+              text: "create tab..s (id int)"
+          box: [0,0,280,80]
+        - name: by_id
+          statements:
+            - type: SELECT
+              text: "select id ..rom orders"
+          box: [424,0,280,80]
+        - name: count
+          statements:
+            - type: SELECT
+              text: "select cou..rom orders"
+          box: [424,128,280,80]
+      edges:
+        - from: orders.0
+          to: by_id.0
+          kind: table
+          name: orders
+          route: [[280,56],[424,56]]
+        - from: orders.0
+          to: count.0
+          kind: table
+          name: orders
+          route: [[280,56],[352,56],[352,184],[424,184]]
+
+  - name: LayoutPartWithoutPositions
+    scripts:
+      - name: a
+        input: |
+          /** @flow x=200 y=100 */
+          create table a (x int);
+      - name: from_a
+        input: |
+          /** @flow x=680 y=100 */
+          select x from a;
+      - name: b
+        input: |
+          create table b (x int);
+      - name: from_b
+        input: |
+          select x from b;
+    expected:
+      scripts:
+        - name: a
+          statements:
+            - type: CREATE_TABLE
+              target: a
+              text: "create tab.. a (x int)"
+          box: [200,100,280,80]
+        - name: from_a
+          statements:
+            - type: SELECT
+              text: "select x from a"
+          box: [624,100,280,80]
+        - name: b
+          statements:
+            - type: CREATE_TABLE
+              target: b
+              text: "create tab.. b (x int)"
+          box: [200,276,280,80]
+        - name: from_b
+          statements:
+            - type: SELECT
+              text: "select x from b"
+          box: [624,276,280,80]
+      edges:
+        - from: a.0
+          to: from_a.0
+          kind: table
+          name: a
+          route: [[480,156],[624,156]]
+        - from: b.0
+          to: from_b.0
+          kind: table
+          name: b
+          route: [[480,332],[624,332]]
+
+  - name: LayoutInputsAcrossLayers
+    scripts:
+      - name: base
+        input: |
+          /* @param :min = 1 */
+          select x from generate_series(1, 10) s(x) where x > :min::int;
+      - name: derived
+        input: |
+          /* @param :min = 1 */
+          select x from :base where x > :min::int;
+      - name: other
+        input: |
+          /* @param :max = 5 */
+          select x from :derived where x < :max::int;
+    expected:
+      scripts:
+        - name: base
+          statements:
+            - type: SELECT
+              text: "select x f.. :min::int"
+          box: [344,0,280,80]
+        - name: derived
+          statements:
+            - type: SELECT
+              text: "select x f.. :min::int"
+          box: [768,48,280,80]
+        - name: other
+          statements:
+            - type: SELECT
+              text: "select x f.. :max::int"
+          box: [1192,48,280,80]
+      inputs:
+        - name: min
+          type: "integer"
+          value: "1"
+          box: [0,48,200,80]
+        - name: max
+          type: "integer"
+          value: "5"
+          box: [848,176,200,80]
+      edges:
+        - from: ":min"
+          to: base.0
+          kind: input
+          name: min
+          route: [[200,104],[272,104],[272,56],[344,56]]
+        - from: base.0
+          to: derived.0
+          kind: inline
+          name: base
+          route: [[624,56],[696,56],[696,104],[768,104]]
+        - from: ":min"
+          to: derived.0
+          kind: input
+          name: min
+          route: [[200,104],[768,104]]
+        - from: derived.0
+          to: other.0
+          kind: inline
+          name: derived
+          route: [[1048,104],[1192,104]]
+        - from: ":max"
+          to: other.0
+          kind: input
+          name: max
+          route: [[1048,232],[1120,232],[1120,104],[1192,104]]

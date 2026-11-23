@@ -314,3 +314,421 @@ dataflow-snapshots:
           kind: inline
           name: filtered
           route: [[704,56],[776,56],[776,104],[848,104]]
+
+  - name: ReferenceDiamond
+    scripts:
+      - name: base
+        input: |
+          select 1 as x;
+      - name: left
+        input: |
+          select x from :base where x > 0;
+      - name: right
+        input: |
+          select x from :base where x < 10;
+      - name: joined
+        input: |
+          select * from :left l, :right r where l.x = r.x;
+    expected:
+      scripts:
+        - name: base
+          statements:
+            - type: SELECT
+              text: "select 1 as x"
+          box: [0,0,280,80]
+        - name: left
+          statements:
+            - type: SELECT
+              text: "select x f..here x > 0"
+          box: [424,0,280,80]
+        - name: right
+          statements:
+            - type: SELECT
+              text: "select x f..ere x < 10"
+          box: [424,128,280,80]
+        - name: joined
+          statements:
+            - type: SELECT
+              text: "select * f.. l.x = r.x"
+          box: [848,0,280,80]
+      edges:
+        - from: base.0
+          to: left.0
+          kind: inline
+          name: base
+          route: [[280,56],[424,56]]
+        - from: base.0
+          to: right.0
+          kind: inline
+          name: base
+          route: [[280,56],[352,56],[352,184],[424,184]]
+        - from: left.0
+          to: joined.0
+          kind: inline
+          name: left
+          route: [[704,56],[848,56]]
+        - from: right.0
+          to: joined.0
+          kind: inline
+          name: right
+          route: [[704,184],[776,184],[776,56],[848,56]]
+
+  - name: ReferenceToUnknownScript
+    scripts:
+      - name: a
+        input: |
+          select 1 as x;
+      - name: b
+        input: |
+          select * from :missing;
+          select * from :a;
+    expected:
+      scripts:
+        - name: a
+          statements:
+            - type: SELECT
+              text: "select 1 as x"
+          box: [0,32,280,80]
+        - name: b
+          statements:
+            - type: SELECT
+              text: "select * f..m :missing"
+            - type: SELECT
+              text: "select * from :a"
+          box: [424,0,280,112]
+      edges:
+        - from: a.0
+          to: b.1
+          kind: inline
+          name: a
+          route: [[280,88],[424,88]]
+
+  - name: SelfReference
+    scripts:
+      - name: a
+        input: |
+          select * from :a;
+    expected:
+      scripts:
+        - name: a
+          statements:
+            - type: SELECT
+              text: "select * from :a"
+          box: [0,0,280,80]
+      edges:
+        - from: a.0
+          to: a.0
+          kind: invalid
+          name: a
+
+  - name: ReferenceCycleOfThree
+    scripts:
+      - name: a
+        input: |
+          select * from :c;
+      - name: b
+        input: |
+          select * from :a;
+      - name: c
+        input: |
+          select * from :b;
+      - name: outside
+        input: |
+          select * from :a;
+    expected:
+      scripts:
+        - name: a
+          statements:
+            - type: SELECT
+              text: "select * from :c"
+          box: [24,128,280,80]
+        - name: b
+          statements:
+            - type: SELECT
+              text: "select * from :a"
+          box: [448,0,280,80]
+        - name: c
+          statements:
+            - type: SELECT
+              text: "select * from :b"
+          box: [872,128,280,80]
+        - name: outside
+          statements:
+            - type: SELECT
+              text: "select * from :a"
+          box: [448,128,280,80]
+      edges:
+        - from: a.0
+          to: b.0
+          kind: invalid
+          name: a
+          route: [[304,184],[376,184],[376,56],[448,56]]
+        - from: a.0
+          to: outside.0
+          kind: inline
+          name: a
+          route: [[304,184],[448,184]]
+        - from: b.0
+          to: c.0
+          kind: inline
+          name: b
+          route: [[728,56],[800,56],[800,184],[872,184]]
+        - from: c.0
+          to: a.0
+          kind: inline
+          name: c
+          route: [[1152,184],[1176,184],[1176,232],[0,232],[0,184],[24,184]]
+
+  - name: SameReferenceTwice
+    scripts:
+      - name: a
+        input: |
+          select 1 as x;
+      - name: b
+        input: |
+          select * from :a l, :a r where l.x = r.x;
+    expected:
+      scripts:
+        - name: a
+          statements:
+            - type: SELECT
+              text: "select 1 as x"
+          box: [0,0,280,80]
+        - name: b
+          statements:
+            - type: SELECT
+              text: "select * f.. l.x = r.x"
+          box: [424,0,280,80]
+      edges:
+        - from: a.0
+          to: b.0
+          kind: inline
+          name: a
+          route: [[280,56],[424,56]]
+
+  - name: ReferenceIgnoresCase
+    scripts:
+      - name: orders
+        input: |
+          select 1 as id;
+      - name: report
+        input: |
+          select id from :ORDERS;
+    expected:
+      scripts:
+        - name: orders
+          statements:
+            - type: SELECT
+              text: "select 1 as id"
+          box: [0,0,280,80]
+        - name: report
+          statements:
+            - type: SELECT
+              text: "select id ..om :ORDERS"
+          box: [424,0,280,80]
+      edges:
+        - from: orders.0
+          to: report.0
+          kind: inline
+          name: orders
+          route: [[280,56],[424,56]]
+
+  - name: ReferenceToEmptyScript
+    scripts:
+      - name: empty
+        input: |
+          /* nothing yet */
+      - name: report
+        input: |
+          select * from :empty;
+    expected:
+      scripts:
+        - name: empty
+          statements: []
+          box: [0,0,280,32]
+        - name: report
+          statements:
+            - type: SELECT
+              text: "select * f..rom :empty"
+          box: [328,0,280,80]
+      edges: []
+
+  - name: InlineReferenceChain
+    scripts:
+      - name: a
+        input: |
+          select 1 as x;
+      - name: b
+        input: |
+          select x + 1 as x from :a;
+      - name: c
+        input: |
+          select x + 1 as x from :b;
+      - name: d
+        input: |
+          select x + 1 as x from :c;
+    expected:
+      scripts:
+        - name: a
+          statements:
+            - type: SELECT
+              text: "select 1 as x"
+          box: [0,0,280,80]
+        - name: b
+          statements:
+            - type: SELECT
+              text: "select x +.. x from :a"
+          box: [424,0,280,80]
+        - name: c
+          statements:
+            - type: SELECT
+              text: "select x +.. x from :b"
+          box: [848,0,280,80]
+        - name: d
+          statements:
+            - type: SELECT
+              text: "select x +.. x from :c"
+          box: [1272,0,280,80]
+      edges:
+        - from: a.0
+          to: b.0
+          kind: inline
+          name: a
+          route: [[280,56],[424,56]]
+        - from: b.0
+          to: c.0
+          kind: inline
+          name: b
+          route: [[704,56],[848,56]]
+        - from: c.0
+          to: d.0
+          kind: inline
+          name: c
+          route: [[1128,56],[1272,56]]
+
+  - name: InlineAndScanOfOneScript
+    connections:
+      - name: trino
+        kind: REMOTE
+        catalog: |
+          create table orders (id int, amount int);
+      - name: local
+        kind: LOCAL
+    scripts:
+      - name: big
+        connection: trino
+        input: |
+          select id, amount from orders where amount > 10;
+      - name: remote_count
+        connection: trino
+        input: |
+          select count(*) from :big;
+      - name: local_sum
+        connection: local
+        input: |
+          select sum(amount) from :big;
+    expected:
+      scripts:
+        - name: big
+          statements:
+            - type: SELECT
+              text: "select id,..mount > 10"
+          box: [0,0,280,80]
+        - name: remote_count
+          statements:
+            - type: SELECT
+              text: "select cou.. from :big"
+          box: [424,0,280,80]
+        - name: local_sum
+          statements:
+            - type: SELECT
+              text: "select sum.. from :big"
+          box: [424,128,280,80]
+      edges:
+        - from: big.0
+          to: remote_count.0
+          kind: inline
+          name: big
+          route: [[280,56],[424,56]]
+        - from: big.0
+          to: local_sum.0
+          kind: scan
+          name: big
+          route: [[280,56],[352,56],[352,184],[424,184]]
+
+  - name: CreateTableFromReference
+    scripts:
+      - name: a
+        input: |
+          select 1 as x;
+      - name: b
+        input: |
+          create table t as select x from :a;
+      - name: c
+        input: |
+          select x from t;
+    expected:
+      scripts:
+        - name: a
+          statements:
+            - type: SELECT
+              text: "select 1 as x"
+          box: [0,0,280,80]
+        - name: b
+          statements:
+            - type: CREATE_TABLE_AS
+              target: t
+              text: "create tab.. x from :a"
+          box: [424,0,280,80]
+        - name: c
+          statements:
+            - type: SELECT
+              text: "select x from t"
+          box: [848,0,280,80]
+      edges:
+        - from: a.0
+          to: b.0
+          kind: inline
+          name: a
+          route: [[280,56],[424,56]]
+        - from: b.0
+          to: c.0
+          kind: table
+          name: t
+          route: [[704,56],[848,56]]
+
+  - name: ManualReferenceAcrossConnections
+    connections:
+      - name: trino
+        kind: REMOTE
+      - name: local
+        kind: LOCAL
+    scripts:
+      - name: all_orders
+        connection: trino
+        input: |
+          /* @manual */
+          select 1 as id;
+      - name: west
+        connection: local
+        input: |
+          select * from :all_orders;
+    expected:
+      scripts:
+        - name: all_orders
+          statements:
+            - type: SELECT
+              text: "select 1 as id"
+          manual: true
+          box: [0,0,280,80]
+        - name: west
+          statements:
+            - type: SELECT
+              text: "select * f..all_orders"
+          box: [424,0,280,80]
+      edges:
+        - from: all_orders.0
+          to: west.0
+          kind: invalid
+          name: all_orders
+          route: [[280,56],[424,56]]

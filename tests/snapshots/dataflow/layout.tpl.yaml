@@ -277,3 +277,253 @@ dataflow-snapshots:
       - name: c
         input: |
           select * from a, :b;
+
+  # A diamond: the two middle boxes share a layer, the join is right of both
+  - name: LayoutDiamond
+    scripts:
+      - name: base
+        input: |
+          create table base (id int);
+      - name: left
+        input: |
+          select id from base where id > 0;
+      - name: right
+        input: |
+          select id from base where id < 10;
+      - name: joined
+        input: |
+          select * from :left l, :right r where l.id = r.id;
+
+  # A long chain: one layer per box, every box level with the row it reads
+  - name: LayoutLongChain
+    scripts:
+      - name: s1
+        input: |
+          select 1 as x;
+      - name: s2
+        input: |
+          select x from :s1;
+      - name: s3
+        input: |
+          select x from :s2;
+      - name: s4
+        input: |
+          select x from :s3;
+      - name: s5
+        input: |
+          select x from :s4;
+      - name: s6
+        input: |
+          select x from :s5;
+      - name: s7
+        input: |
+          select x from :s6;
+      - name: s8
+        input: |
+          select x from :s7;
+
+  # Many boxes in three layers with crossing references
+  - name: LayoutManyNodes
+    scripts:
+      - name: orders
+        input: |
+          create table orders (id int, customer int, amount int);
+      - name: customers
+        input: |
+          create table customers (id int, region text);
+      - name: products
+        input: |
+          create table products (id int, name text);
+      - name: big_orders
+        input: |
+          select * from orders where amount > 100;
+      - name: eu_customers
+        input: |
+          select * from customers where region = 'EU';
+      - name: eu_orders
+        input: |
+          select o.* from :big_orders o, :eu_customers c where o.customer = c.id;
+      - name: product_names
+        input: |
+          select name from products;
+      - name: report
+        input: |
+          select count(*) from :eu_orders, :product_names;
+      - name: totals
+        input: |
+          select sum(amount) from :big_orders;
+      - name: summary
+        input: |
+          select * from :report, :totals;
+
+  # The references of LayoutManyNodes in reverse session order, after the tables they read: the same columns, the
+  # order within a column follows the session order
+  - name: LayoutManyNodesReordered
+    scripts:
+      - name: orders
+        input: |
+          create table orders (id int, customer int, amount int);
+      - name: customers
+        input: |
+          create table customers (id int, region text);
+      - name: products
+        input: |
+          create table products (id int, name text);
+      - name: summary
+        input: |
+          select * from :report, :totals;
+      - name: totals
+        input: |
+          select sum(amount) from :big_orders;
+      - name: report
+        input: |
+          select count(*) from :eu_orders, :product_names;
+      - name: product_names
+        input: |
+          select name from products;
+      - name: eu_orders
+        input: |
+          select o.* from :big_orders o, :eu_customers c where o.customer = c.id;
+      - name: eu_customers
+        input: |
+          select * from customers where region = 'EU';
+      - name: big_orders
+        input: |
+          select * from orders where amount > 100;
+
+  # Disconnected parts of different shapes, a chain, a pair and a fan-out, stack
+  - name: LayoutDisconnectedParts
+    scripts:
+      - name: a1
+        input: |
+          select 1 as x;
+      - name: a2
+        input: |
+          select x from :a1;
+      - name: a3
+        input: |
+          select x from :a2;
+      - name: b1
+        input: |
+          select 2 as y;
+      - name: b2
+        input: |
+          select y from :b1;
+      - name: c1
+        input: |
+          create table c (z int);
+      - name: c2
+        input: |
+          select z from c;
+      - name: c3
+        input: |
+          select count(*) from c;
+      - name: c4
+        input: |
+          select max(z) from c;
+
+  # A box that reads itself has no edge between boxes, it lays out like a box without edges
+  - name: LayoutSelfReference
+    scripts:
+      - name: a
+        input: |
+          select * from :a;
+      - name: b
+        input: |
+          select 1;
+
+  # A box with edges out of several rows: one port per row, the consumers line up with their rows
+  - name: LayoutPortsOfSeveralRows
+    scripts:
+      - name: schema
+        input: |
+          create table a (x int);
+          create table b (x int);
+          create table c (x int);
+      - name: from_c
+        input: |
+          select x from c;
+      - name: from_a
+        input: |
+          select x from a;
+      - name: from_b
+        input: |
+          select x from b;
+
+  # A collapsed box in the middle of a chain: edges into and out of it attach to its header
+  - name: LayoutCollapsedInChain
+    collapsed: [middle]
+    scripts:
+      - name: schema
+        input: |
+          create table t (x int);
+      - name: middle
+        input: |
+          insert into t values (1);
+          insert into t values (2);
+          create table u as select x from t;
+      - name: report
+        input: |
+          select x from u;
+
+  # A cycle whose boxes have positions keeps them, the edges are routed between them
+  - name: LayoutCycleWithPositions
+    scripts:
+      - name: a
+        input: |
+          /** @flow x=0 y=0 */
+          select * from :b;
+      - name: b
+        input: |
+          /** @flow x=480 y=0 */
+          select * from :a;
+
+  # Two boxes with the same position: the second goes below the first in their column
+  - name: LayoutOverlappingPositions
+    scripts:
+      - name: orders
+        input: |
+          /** @flow x=0 y=0 */
+          create table orders (id int);
+      - name: by_id
+        input: |
+          /** @flow x=480 y=0 */
+          select id from orders;
+      - name: count
+        input: |
+          /** @flow x=480 y=0 */
+          select count(*) from orders;
+
+  # Only the boxes of one part have positions, the other part goes below them
+  - name: LayoutPartWithoutPositions
+    scripts:
+      - name: a
+        input: |
+          /** @flow x=200 y=100 */
+          create table a (x int);
+      - name: from_a
+        input: |
+          /** @flow x=680 y=100 */
+          select x from a;
+      - name: b
+        input: |
+          create table b (x int);
+      - name: from_b
+        input: |
+          select x from b;
+
+  # Inputs go left of the boxes they feed, an input read by boxes of two layers goes before the first
+  - name: LayoutInputsAcrossLayers
+    scripts:
+      - name: base
+        input: |
+          /* @param :min = 1 */
+          select x from generate_series(1, 10) s(x) where x > :min::int;
+      - name: derived
+        input: |
+          /* @param :min = 1 */
+          select x from :base where x > :min::int;
+      - name: other
+        input: |
+          /* @param :max = 5 */
+          select x from :derived where x < :max::int;

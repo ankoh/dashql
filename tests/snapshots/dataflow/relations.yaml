@@ -319,3 +319,614 @@ dataflow-snapshots:
           kind: table
           name: t
           route: [[280,88],[424,88]]
+
+  - name: DeleteWrites
+    scripts:
+      - name: schema
+        input: |
+          create table t (a int);
+          insert into t values (1), (2);
+      - name: prune
+        input: |
+          delete from t where a > 2;
+      - name: read
+        input: |
+          select count(*) from t;
+    expected:
+      scripts:
+        - name: schema
+          statements:
+            - type: CREATE_TABLE
+              target: t
+              text: "create tab.. t (a int)"
+            - type: INSERT
+              target: t
+              text: "insert int..s (1), (2)"
+          box: [0,0,280,112]
+        - name: prune
+          statements:
+            - type: DELETE
+              target: t
+              text: "delete fro..here a > 2"
+          box: [424,32,280,80]
+        - name: read
+          statements:
+            - type: SELECT
+              text: "select cou..(*) from t"
+          box: [848,32,280,80]
+      edges:
+        - from: schema.0
+          to: schema.1
+          kind: table
+          name: t
+        - from: schema.1
+          to: prune.0
+          kind: table
+          name: t
+          route: [[280,88],[424,88]]
+        - from: prune.0
+          to: read.0
+          kind: table
+          name: t
+          route: [[704,88],[848,88]]
+
+  - name: WriteAfterRead
+    scripts:
+      - name: schema
+        input: |
+          create table t (a int);
+      - name: read
+        input: |
+          select a from t;
+      - name: write
+        input: |
+          insert into t values (1);
+      - name: read_again
+        input: |
+          select a from t;
+    expected:
+      scripts:
+        - name: schema
+          statements:
+            - type: CREATE_TABLE
+              target: t
+              text: "create tab.. t (a int)"
+          box: [0,0,280,80]
+        - name: read
+          statements:
+            - type: SELECT
+              text: "select a from t"
+          box: [424,0,280,80]
+        - name: write
+          statements:
+            - type: INSERT
+              target: t
+              text: "insert int..values (1)"
+          box: [424,128,280,80]
+        - name: read_again
+          statements:
+            - type: SELECT
+              text: "select a from t"
+          box: [848,128,280,80]
+      edges:
+        - from: schema.0
+          to: read.0
+          kind: table
+          name: t
+          route: [[280,56],[424,56]]
+        - from: schema.0
+          to: write.0
+          kind: table
+          name: t
+          route: [[280,56],[352,56],[352,184],[424,184]]
+        - from: write.0
+          to: read_again.0
+          kind: table
+          name: t
+          route: [[704,184],[848,184]]
+
+  - name: InsertFromAnotherTable
+    scripts:
+      - name: schema
+        input: |
+          create table src (a int);
+          create table dst (a int);
+      - name: copy
+        input: |
+          insert into dst select a from src;
+      - name: read
+        input: |
+          select * from dst;
+    expected:
+      scripts:
+        - name: schema
+          statements:
+            - type: CREATE_TABLE
+              target: src
+              text: "create tab..rc (a int)"
+            - type: CREATE_TABLE
+              target: dst
+              text: "create tab..st (a int)"
+          box: [0,0,280,112]
+        - name: copy
+          statements:
+            - type: INSERT
+              target: dst
+              text: "insert int..a from src"
+          box: [424,32,280,80]
+        - name: read
+          statements:
+            - type: SELECT
+              text: "select * from dst"
+          box: [848,32,280,80]
+      edges:
+        - from: schema.0
+          to: copy.0
+          kind: table
+          name: src
+          route: [[280,56],[352,56],[352,88],[424,88]]
+        - from: schema.1
+          to: copy.0
+          kind: table
+          name: dst
+          route: [[280,88],[424,88]]
+        - from: copy.0
+          to: read.0
+          kind: table
+          name: dst
+          route: [[704,88],[848,88]]
+
+  - name: TableDiamond
+    scripts:
+      - name: base
+        input: |
+          create table base (id int, amount int);
+      - name: small
+        input: |
+          create table small as select * from base where amount < 10;
+      - name: large
+        input: |
+          create table large as select * from base where amount >= 10;
+      - name: report
+        input: |
+          select count(*) from small s, large l where s.id = l.id;
+    expected:
+      scripts:
+        - name: base
+          statements:
+            - type: CREATE_TABLE
+              target: base
+              text: "create tab..mount int)"
+          box: [0,0,280,80]
+        - name: small
+          statements:
+            - type: CREATE_TABLE_AS
+              target: small
+              text: "create tab..mount < 10"
+          box: [424,0,280,80]
+        - name: large
+          statements:
+            - type: CREATE_TABLE_AS
+              target: large
+              text: "create tab..ount >= 10"
+          box: [424,128,280,80]
+        - name: report
+          statements:
+            - type: SELECT
+              text: "select cou...id = l.id"
+          box: [848,0,280,80]
+      edges:
+        - from: base.0
+          to: small.0
+          kind: table
+          name: base
+          route: [[280,56],[424,56]]
+        - from: base.0
+          to: large.0
+          kind: table
+          name: base
+          route: [[280,56],[352,56],[352,184],[424,184]]
+        - from: small.0
+          to: report.0
+          kind: table
+          name: small
+          route: [[704,56],[848,56]]
+        - from: large.0
+          to: report.0
+          kind: table
+          name: large
+          route: [[704,184],[776,184],[776,56],[848,56]]
+
+  - name: NoRelations
+    scripts:
+      - name: schema
+        input: |
+          create table t (a int);
+      - name: constant
+        input: |
+          select 1 + 1;
+          select now();
+    expected:
+      scripts:
+        - name: schema
+          statements:
+            - type: CREATE_TABLE
+              target: t
+              text: "create tab.. t (a int)"
+          box: [0,0,280,80]
+        - name: constant
+          statements:
+            - type: SELECT
+              text: "select 1 + 1"
+            - type: SELECT
+              text: "select now()"
+          box: [328,0,280,112]
+      edges: []
+
+  - name: DropCatalogTable
+    catalog: |
+      create table orders (id int);
+    scripts:
+      - name: read
+        input: |
+          select * from orders;
+      - name: drop
+        input: |
+          drop table orders;
+    expected:
+      scripts:
+        - name: read
+          statements:
+            - type: SELECT
+              text: "select * f..rom orders"
+          box: [0,0,280,80]
+        - name: drop
+          statements:
+            - type: DROP_TABLE
+              target: orders
+              text: "drop table orders"
+          box: [328,0,280,80]
+      edges: []
+
+  - name: CreateUseDrop
+    scripts:
+      - name: work
+        input: |
+          create temp table tmp (a int);
+          insert into tmp values (1);
+          select a from tmp;
+          drop table tmp;
+      - name: later
+        input: |
+          select a from tmp;
+    expected:
+      scripts:
+        - name: work
+          statements:
+            - type: CREATE_TABLE
+              target: tmp
+              text: "create tem..mp (a int)"
+            - type: INSERT
+              target: tmp
+              text: "insert int..values (1)"
+            - type: SELECT
+              text: "select a from tmp"
+            - type: DROP_TABLE
+              target: tmp
+              text: "drop table tmp"
+          box: [0,0,280,176]
+        - name: later
+          statements:
+            - type: SELECT
+              text: "select a from tmp"
+          box: [328,0,280,80]
+      edges:
+        - from: work.0
+          to: work.1
+          kind: table
+          name: tmp
+        - from: work.1
+          to: work.2
+          kind: table
+          name: tmp
+
+  - name: ViewOfATable
+    scripts:
+      - name: schema
+        input: |
+          create table t (a int);
+      - name: view
+        input: |
+          create view v as select a from t;
+      - name: read
+        input: |
+          select * from v;
+    expected:
+      scripts:
+        - name: schema
+          statements:
+            - type: CREATE_TABLE
+              target: t
+              text: "create tab.. t (a int)"
+          box: [0,0,280,80]
+        - name: view
+          statements:
+            - type: CREATE_VIEW
+              target: v
+              text: "create vie..t a from t"
+          box: [424,0,280,80]
+        - name: read
+          statements:
+            - type: SELECT
+              text: "select * from v"
+          box: [848,0,280,80]
+      edges:
+        - from: schema.0
+          to: view.0
+          kind: table
+          name: t
+          route: [[280,56],[424,56]]
+        - from: view.0
+          to: read.0
+          kind: table
+          name: v
+          route: [[704,56],[848,56]]
+
+  - name: SelectInto
+    scripts:
+      - name: schema
+        input: |
+          create table t (a int);
+      - name: copy
+        input: |
+          select a into t2 from t;
+      - name: read
+        input: |
+          select a from t2;
+    expected:
+      scripts:
+        - name: schema
+          statements:
+            - type: CREATE_TABLE
+              target: t
+              text: "create tab.. t (a int)"
+          box: [0,0,280,80]
+        - name: copy
+          statements:
+            - type: SELECT_INTO
+              target: t2
+              text: "select a i.. t2 from t"
+          box: [424,0,280,80]
+        - name: read
+          statements:
+            - type: SELECT
+              text: "select a from t2"
+          box: [848,0,280,80]
+      edges:
+        - from: schema.0
+          to: copy.0
+          kind: table
+          name: t
+          route: [[280,56],[424,56]]
+        - from: copy.0
+          to: read.0
+          kind: table
+          name: t2
+          route: [[704,56],[848,56]]
+
+  - name: UnresolvedRelation
+    scripts:
+      - name: write
+        input: |
+          insert into nowhere values (1);
+      - name: read
+        input: |
+          select * from nowhere;
+    expected:
+      scripts:
+        - name: write
+          statements:
+            - type: INSERT
+              target: nowhere
+              text: "insert int..values (1)"
+          box: [0,0,280,80]
+        - name: read
+          statements:
+            - type: SELECT
+              text: "select * f..om nowhere"
+          box: [424,0,280,80]
+      edges:
+        - from: write.0
+          to: read.0
+          kind: table
+          name: nowhere
+          route: [[280,56],[424,56]]
+
+  - name: ManyWritersOneTable
+    scripts:
+      - name: schema
+        input: |
+          create table log (msg text);
+      - name: first
+        input: |
+          insert into log values ('a');
+      - name: second
+        input: |
+          insert into log values ('b');
+      - name: between
+        input: |
+          select count(*) from log;
+      - name: third
+        input: |
+          insert into log values ('c');
+      - name: last
+        input: |
+          select * from log;
+    expected:
+      scripts:
+        - name: schema
+          statements:
+            - type: CREATE_TABLE
+              target: log
+              text: "create tab..(msg text)"
+          box: [0,0,280,80]
+        - name: first
+          statements:
+            - type: INSERT
+              target: log
+              text: "insert int..lues ('a')"
+          box: [424,0,280,80]
+        - name: second
+          statements:
+            - type: INSERT
+              target: log
+              text: "insert int..lues ('b')"
+          box: [848,0,280,80]
+        - name: between
+          statements:
+            - type: SELECT
+              text: "select cou..) from log"
+          box: [1272,0,280,80]
+        - name: third
+          statements:
+            - type: INSERT
+              target: log
+              text: "insert int..lues ('c')"
+          box: [1272,128,280,80]
+        - name: last
+          statements:
+            - type: SELECT
+              text: "select * from log"
+          box: [1696,128,280,80]
+      edges:
+        - from: schema.0
+          to: first.0
+          kind: table
+          name: log
+          route: [[280,56],[424,56]]
+        - from: first.0
+          to: second.0
+          kind: table
+          name: log
+          route: [[704,56],[848,56]]
+        - from: second.0
+          to: between.0
+          kind: table
+          name: log
+          route: [[1128,56],[1272,56]]
+        - from: second.0
+          to: third.0
+          kind: table
+          name: log
+          route: [[1128,56],[1200,56],[1200,184],[1272,184]]
+        - from: third.0
+          to: last.0
+          kind: table
+          name: log
+          route: [[1552,184],[1696,184]]
+
+  - name: Transaction
+    scripts:
+      - name: schema
+        input: |
+          create table t (a int);
+      - name: load
+        input: |
+          begin;
+          insert into t values (1);
+          insert into t values (2);
+          commit;
+      - name: read
+        input: |
+          select count(*) from t;
+    expected:
+      scripts:
+        - name: schema
+          statements:
+            - type: CREATE_TABLE
+              target: t
+              text: "create tab.. t (a int)"
+          box: [0,32,280,80]
+        - name: load
+          statements:
+            - type: TRANSACTION
+              text: "begin"
+            - type: INSERT
+              target: t
+              text: "insert int..values (1)"
+            - type: INSERT
+              target: t
+              text: "insert int..values (2)"
+            - type: TRANSACTION
+              text: "commit"
+          box: [424,0,280,176]
+        - name: read
+          statements:
+            - type: SELECT
+              text: "select cou..(*) from t"
+          box: [848,64,280,80]
+      edges:
+        - from: schema.0
+          to: load.1
+          kind: table
+          name: t
+          route: [[280,88],[424,88]]
+        - from: load.1
+          to: load.2
+          kind: table
+          name: t
+        - from: load.2
+          to: read.0
+          kind: table
+          name: t
+          route: [[704,120],[848,120]]
+
+  - name: DeleteReturning
+    scripts:
+      - name: schema
+        input: |
+          create table t (a int);
+          insert into t values (1);
+      - name: pop
+        input: |
+          delete from t where a = 1 returning a;
+      - name: read
+        input: |
+          select * from t;
+    expected:
+      scripts:
+        - name: schema
+          statements:
+            - type: CREATE_TABLE
+              target: t
+              text: "create tab.. t (a int)"
+            - type: INSERT
+              target: t
+              text: "insert int..values (1)"
+          box: [0,0,280,112]
+        - name: pop
+          statements:
+            - type: DELETE
+              target: t
+              text: "delete fro..eturning a"
+          box: [424,32,280,80]
+        - name: read
+          statements:
+            - type: SELECT
+              text: "select * from t"
+          box: [848,32,280,80]
+      edges:
+        - from: schema.0
+          to: schema.1
+          kind: table
+          name: t
+        - from: schema.1
+          to: pop.0
+          kind: table
+          name: t
+          route: [[280,88],[424,88]]
+        - from: pop.0
+          to: read.0
+          kind: table
+          name: t
+          route: [[704,88],[848,88]]

@@ -56,3 +56,109 @@ dataflow-snapshots:
       - name: c
         input: |
           select count(*) from orders where amount > cast(:min as bigint) and id < :min::int;
+
+  # A @param tag of a name that no statement uses is no input
+  - name: UnusedParamTag
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: a
+        input: |
+          /**
+           * @param :min = 10
+           * @param :unused = 'x'
+           */
+          select id from orders where amount > :min::int;
+
+  # An input used twice by one statement and by two statements of one script: one edge per statement
+  - name: InputUsedTwice
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: a
+        input: |
+          /* @param :n = 5 */
+          select id from orders where amount > :n and id < :n;
+          select count(*) from orders where amount > :n;
+
+  # The type of an input without a cast follows its literal
+  - name: InputLiteralTypes
+    scripts:
+      - name: a
+        input: |
+          /**
+           * @param :i = 10
+           * @param :neg = -2.5
+           * @param :s = 'EU'
+           * @param :b = true
+           * @param :d = date '2024-01-01'
+           * @param :span = interval '3' day
+           * @param :nothing = null
+           */
+          select :i, :neg, :s, :b, :d, :span, :nothing;
+
+  # A scalar parameter is an input also when a script of its name exists, it is no reference
+  - name: InputNamedLikeAScript
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: min
+        input: |
+          select 10 as min;
+      - name: a
+        input: |
+          /* @param :min = 5 */
+          select id from orders where amount > :min::int;
+
+  # A quoted input name
+  - name: QuotedInputName
+    catalog: |
+      create table orders (id int, region text);
+    scripts:
+      - name: a
+        input: |
+          /* @param :"the region" = 'EU' */
+          select id from orders where region = :"the region";
+
+  # Inputs feed commands too: a create table as and an insert
+  - name: InputInCommands
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: load
+        input: |
+          /* @param :min = 10 */
+          create table big as select * from orders where amount > :min::int;
+          insert into big select * from orders where amount = :min::int;
+      - name: report
+        input: |
+          select count(*) from big;
+
+  # An input used only by a script whose analysis is behind its text is no input until it is analyzed again
+  - name: InputOfStaleScript
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: a
+        input: |
+          /* @param :min = 10 */
+          select id from orders where amount > :min::int;
+        stale-prepend: "select 1;\n"
+      - name: b
+        input: |
+          /* @param :max = 20 */
+          select id from orders where amount < :max::int;
+
+  # Inputs follow the scripts in the order of their first use, not in the order of their tags
+  - name: InputOrderOfFirstUse
+    scripts:
+      - name: a
+        input: |
+          /**
+           * @param :first = 1
+           * @param :second = 2
+           */
+          select :second::int;
+      - name: b
+        input: |
+          select :first::int, :second::int;

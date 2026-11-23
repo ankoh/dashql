@@ -116,3 +116,187 @@ dataflow-snapshots:
       - name: read
         input: |
           select count(*) from t;
+
+  # A delete writes the table, the read after it reads from the delete
+  - name: DeleteWrites
+    scripts:
+      - name: schema
+        input: |
+          create table t (a int);
+          insert into t values (1), (2);
+      - name: prune
+        input: |
+          delete from t where a > 2;
+      - name: read
+        input: |
+          select count(*) from t;
+
+  # A write after a read orders the read before it but is no dataflow, the read has no outgoing edge
+  - name: WriteAfterRead
+    scripts:
+      - name: schema
+        input: |
+          create table t (a int);
+      - name: read
+        input: |
+          select a from t;
+      - name: write
+        input: |
+          insert into t values (1);
+      - name: read_again
+        input: |
+          select a from t;
+
+  # An insert that reads one table and writes another continues two flows
+  - name: InsertFromAnotherTable
+    scripts:
+      - name: schema
+        input: |
+          create table src (a int);
+          create table dst (a int);
+      - name: copy
+        input: |
+          insert into dst select a from src;
+      - name: read
+        input: |
+          select * from dst;
+
+  # Tables created in one script and joined by another: a diamond of table edges
+  - name: TableDiamond
+    scripts:
+      - name: base
+        input: |
+          create table base (id int, amount int);
+      - name: small
+        input: |
+          create table small as select * from base where amount < 10;
+      - name: large
+        input: |
+          create table large as select * from base where amount >= 10;
+      - name: report
+        input: |
+          select count(*) from small s, large l where s.id = l.id;
+
+  # A script without relations reads and writes nothing, it has no edges
+  - name: NoRelations
+    scripts:
+      - name: schema
+        input: |
+          create table t (a int);
+      - name: constant
+        input: |
+          select 1 + 1;
+          select now();
+
+  # A drop of a catalog table has no writer in the session, it has no edges
+  - name: DropCatalogTable
+    catalog: |
+      create table orders (id int);
+    scripts:
+      - name: read
+        input: |
+          select * from orders;
+      - name: drop
+        input: |
+          drop table orders;
+
+  # A table created and dropped in one script, the statements between them read it
+  - name: CreateUseDrop
+    scripts:
+      - name: work
+        input: |
+          create temp table tmp (a int);
+          insert into tmp values (1);
+          select a from tmp;
+          drop table tmp;
+      - name: later
+        input: |
+          select a from tmp;
+
+  # A view reads the relations of its query when it is created, a read of the view reads from its create
+  - name: ViewOfATable
+    scripts:
+      - name: schema
+        input: |
+          create table t (a int);
+      - name: view
+        input: |
+          create view v as select a from t;
+      - name: read
+        input: |
+          select * from v;
+
+  # SELECT INTO creates the table it writes
+  - name: SelectInto
+    scripts:
+      - name: schema
+        input: |
+          create table t (a int);
+      - name: copy
+        input: |
+          select a into t2 from t;
+      - name: read
+        input: |
+          select a from t2;
+
+  # A relation that resolves nowhere is a relation of its own name, its writes and reads still flow
+  - name: UnresolvedRelation
+    scripts:
+      - name: write
+        input: |
+          insert into nowhere values (1);
+      - name: read
+        input: |
+          select * from nowhere;
+
+  # Writes into a table from several scripts form a chain, every reader reads from the writer before it
+  - name: ManyWritersOneTable
+    scripts:
+      - name: schema
+        input: |
+          create table log (msg text);
+      - name: first
+        input: |
+          insert into log values ('a');
+      - name: second
+        input: |
+          insert into log values ('b');
+      - name: between
+        input: |
+          select count(*) from log;
+      - name: third
+        input: |
+          insert into log values ('c');
+      - name: last
+        input: |
+          select * from log;
+
+  # The statements of a transaction keep their table edges
+  - name: Transaction
+    scripts:
+      - name: schema
+        input: |
+          create table t (a int);
+      - name: load
+        input: |
+          begin;
+          insert into t values (1);
+          insert into t values (2);
+          commit;
+      - name: read
+        input: |
+          select count(*) from t;
+
+  # A delete with RETURNING writes the table and produces output, the read after it reads from the delete
+  - name: DeleteReturning
+    scripts:
+      - name: schema
+        input: |
+          create table t (a int);
+          insert into t values (1);
+      - name: pop
+        input: |
+          delete from t where a = 1 returning a;
+      - name: read
+        input: |
+          select * from t;

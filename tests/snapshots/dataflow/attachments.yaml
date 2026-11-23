@@ -86,3 +86,88 @@ dataflow-snapshots:
           file: sales.parquet
           box: [328,0,200,80]
       edges: []
+
+  - name: AttachmentNameCollision
+    connections:
+      - name: local
+        kind: LOCAL
+    attachments:
+      - file: sales.parquet
+        stamp: 1
+    scripts:
+      - name: sales
+        connection: local
+        input: |
+          select 1 as amount;
+      - name: report
+        connection: local
+        input: |
+          select * from :sales;
+    expected:
+      scripts:
+        - name: sales
+          statements:
+            - type: SELECT
+              text: "select 1 as amount"
+          box: [0,0,280,80]
+        - name: report
+          statements:
+            - type: SELECT
+              text: "select * f..rom :sales"
+          box: [328,0,280,80]
+      attachments:
+        - name: sales
+          file: sales.parquet
+          box: [656,0,200,80]
+      edges: []
+
+  - name: AttachmentAndInput
+    connections:
+      - name: local
+        kind: LOCAL
+    attachments:
+      - file: sales.parquet
+        stamp: 1
+      - file: regions.parquet
+        stamp: 1
+    scripts:
+      - name: report
+        connection: local
+        input: |
+          /* @param :min = 10 */
+          select * from :sales s, :regions r where s.region = r.region and s.amount > :min::int;
+    expected:
+      scripts:
+        - name: report
+          statements:
+            - type: SELECT
+              text: "select * f.. :min::int"
+          box: [344,128,280,80]
+      inputs:
+        - name: min
+          type: "integer"
+          value: "10"
+          box: [0,0,200,80]
+      attachments:
+        - name: sales
+          file: sales.parquet
+          box: [0,128,200,80]
+        - name: regions
+          file: regions.parquet
+          box: [0,256,200,80]
+      edges:
+        - from: ":min"
+          to: report.0
+          kind: input
+          name: min
+          route: [[200,56],[272,56],[272,184],[344,184]]
+        - from: sales.parquet
+          to: report.0
+          kind: attachment
+          name: sales
+          route: [[200,184],[344,184]]
+        - from: regions.parquet
+          to: report.0
+          kind: attachment
+          name: regions
+          route: [[200,312],[272,312],[272,184],[344,184]]

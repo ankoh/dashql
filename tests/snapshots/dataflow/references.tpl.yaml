@@ -116,3 +116,153 @@ dataflow-snapshots:
       - name: report
         input: |
           select * from t, :filtered f where t.a = f.a;
+
+  # Two scripts read one script and a fourth reads both: the diamond has one edge per reference
+  - name: ReferenceDiamond
+    scripts:
+      - name: base
+        input: |
+          select 1 as x;
+      - name: left
+        input: |
+          select x from :base where x > 0;
+      - name: right
+        input: |
+          select x from :base where x < 10;
+      - name: joined
+        input: |
+          select * from :left l, :right r where l.x = r.x;
+
+  # A table parameter that finds no script and no attachment has no edge, the editor reports the error
+  - name: ReferenceToUnknownScript
+    scripts:
+      - name: a
+        input: |
+          select 1 as x;
+      - name: b
+        input: |
+          select * from :missing;
+          select * from :a;
+
+  # A script that reads itself is a cycle of one, the invalid reference is an edge of the statement to itself
+  - name: SelfReference
+    scripts:
+      - name: a
+        input: |
+          select * from :a;
+
+  # A cycle of three scripts: the reference that closes the cycle is invalid, a reference into the cycle is not
+  - name: ReferenceCycleOfThree
+    scripts:
+      - name: a
+        input: |
+          select * from :c;
+      - name: b
+        input: |
+          select * from :a;
+      - name: c
+        input: |
+          select * from :b;
+      - name: outside
+        input: |
+          select * from :a;
+
+  # One script read twice by one statement is one edge
+  - name: SameReferenceTwice
+    scripts:
+      - name: a
+        input: |
+          select 1 as x;
+      - name: b
+        input: |
+          select * from :a l, :a r where l.x = r.x;
+
+  # A table parameter finds a script that differs only in ASCII case
+  - name: ReferenceIgnoresCase
+    scripts:
+      - name: orders
+        input: |
+          select 1 as id;
+      - name: report
+        input: |
+          select id from :ORDERS;
+
+  # A script without statements has no terminal query, a reference to it has no edge
+  - name: ReferenceToEmptyScript
+    scripts:
+      - name: empty
+        input: |
+          /* nothing yet */
+      - name: report
+        input: |
+          select * from :empty;
+
+  # A chain of inline references: every consumer reads the script it names, not the scripts behind it
+  - name: InlineReferenceChain
+    scripts:
+      - name: a
+        input: |
+          select 1 as x;
+      - name: b
+        input: |
+          select x + 1 as x from :a;
+      - name: c
+        input: |
+          select x + 1 as x from :b;
+      - name: d
+        input: |
+          select x + 1 as x from :c;
+
+  # A REMOTE script is inlined by a script of its connection and scanned by a script of the LOCAL connection
+  - name: InlineAndScanOfOneScript
+    connections:
+      - name: trino
+        kind: REMOTE
+        catalog: |
+          create table orders (id int, amount int);
+      - name: local
+        kind: LOCAL
+    scripts:
+      - name: big
+        connection: trino
+        input: |
+          select id, amount from orders where amount > 10;
+      - name: remote_count
+        connection: trino
+        input: |
+          select count(*) from :big;
+      - name: local_sum
+        connection: local
+        input: |
+          select sum(amount) from :big;
+
+  # A table created from a reference continues the flow of the referenced script as a table edge
+  - name: CreateTableFromReference
+    scripts:
+      - name: a
+        input: |
+          select 1 as x;
+      - name: b
+        input: |
+          create table t as select x from :a;
+      - name: c
+        input: |
+          select x from t;
+
+  # A @manual script cannot be scanned from another connection, the reference is invalid but still an edge
+  - name: ManualReferenceAcrossConnections
+    connections:
+      - name: trino
+        kind: REMOTE
+      - name: local
+        kind: LOCAL
+    scripts:
+      - name: all_orders
+        connection: trino
+        input: |
+          /* @manual */
+          select 1 as id;
+      - name: west
+        connection: local
+        input: |
+          select * from :all_orders;

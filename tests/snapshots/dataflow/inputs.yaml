@@ -189,3 +189,365 @@ dataflow-snapshots:
           kind: input
           name: min
           route: [[200,184],[272,184],[272,312],[344,312]]
+
+  - name: UnusedParamTag
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: a
+        input: |
+          /**
+           * @param :min = 10
+           * @param :unused = 'x'
+           */
+          select id from orders where amount > :min::int;
+    expected:
+      scripts:
+        - name: a
+          statements:
+            - type: SELECT
+              text: "select id .. :min::int"
+          box: [344,0,280,80]
+      inputs:
+        - name: min
+          type: "integer"
+          value: "10"
+          box: [0,0,200,80]
+      edges:
+        - from: ":min"
+          to: a.0
+          kind: input
+          name: min
+          route: [[200,56],[344,56]]
+
+  - name: InputUsedTwice
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: a
+        input: |
+          /* @param :n = 5 */
+          select id from orders where amount > :n and id < :n;
+          select count(*) from orders where amount > :n;
+    expected:
+      scripts:
+        - name: a
+          statements:
+            - type: SELECT
+              text: "select id ..nd id < :n"
+            - type: SELECT
+              text: "select cou..mount > :n"
+          box: [344,0,280,112]
+      inputs:
+        - name: n
+          type: "bigint"
+          cast: false
+          value: "5"
+          box: [0,32,200,80]
+      edges:
+        - from: ":n"
+          to: a.0
+          kind: input
+          name: n
+          route: [[200,88],[272,88],[272,56],[344,56]]
+        - from: ":n"
+          to: a.1
+          kind: input
+          name: n
+          route: [[200,88],[344,88]]
+
+  - name: InputLiteralTypes
+    scripts:
+      - name: a
+        input: |
+          /**
+           * @param :i = 10
+           * @param :neg = -2.5
+           * @param :s = 'EU'
+           * @param :b = true
+           * @param :d = date '2024-01-01'
+           * @param :span = interval '3' day
+           * @param :nothing = null
+           */
+          select :i, :neg, :s, :b, :d, :span, :nothing;
+    expected:
+      scripts:
+        - name: a
+          statements:
+            - type: SELECT
+              text: "select :i,.., :nothing"
+          box: [344,384,280,80]
+      inputs:
+        - name: i
+          type: "bigint"
+          cast: false
+          value: "10"
+          box: [0,0,200,80]
+        - name: neg
+          type: "numeric"
+          cast: false
+          value: "-2.5"
+          box: [0,128,200,80]
+        - name: s
+          type: "text"
+          cast: false
+          value: "'EU'"
+          box: [0,256,200,80]
+        - name: b
+          type: "boolean"
+          cast: false
+          value: "true"
+          box: [0,384,200,80]
+        - name: d
+          type: "date"
+          cast: false
+          value: "date '2024-01-01'"
+          box: [0,512,200,80]
+        - name: span
+          type: "interval"
+          cast: false
+          value: "interval '3' day"
+          box: [0,640,200,80]
+        - name: nothing
+          type: "text"
+          cast: false
+          value: "null"
+          box: [0,768,200,80]
+      edges:
+        - from: ":i"
+          to: a.0
+          kind: input
+          name: i
+          route: [[200,56],[272,56],[272,440],[344,440]]
+        - from: ":neg"
+          to: a.0
+          kind: input
+          name: neg
+          route: [[200,184],[272,184],[272,440],[344,440]]
+        - from: ":s"
+          to: a.0
+          kind: input
+          name: s
+          route: [[200,312],[272,312],[272,440],[344,440]]
+        - from: ":b"
+          to: a.0
+          kind: input
+          name: b
+          route: [[200,440],[344,440]]
+        - from: ":d"
+          to: a.0
+          kind: input
+          name: d
+          route: [[200,568],[272,568],[272,440],[344,440]]
+        - from: ":span"
+          to: a.0
+          kind: input
+          name: span
+          route: [[200,696],[272,696],[272,440],[344,440]]
+        - from: ":nothing"
+          to: a.0
+          kind: input
+          name: nothing
+          route: [[200,824],[272,824],[272,440],[344,440]]
+
+  - name: InputNamedLikeAScript
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: min
+        input: |
+          select 10 as min;
+      - name: a
+        input: |
+          /* @param :min = 5 */
+          select id from orders where amount > :min::int;
+    expected:
+      scripts:
+        - name: min
+          statements:
+            - type: SELECT
+              text: "select 10 as min"
+          box: [0,176,280,80]
+        - name: a
+          statements:
+            - type: SELECT
+              text: "select id .. :min::int"
+          box: [344,0,280,80]
+      inputs:
+        - name: min
+          type: "integer"
+          value: "5"
+          box: [0,0,200,80]
+      edges:
+        - from: ":min"
+          to: a.0
+          kind: input
+          name: min
+          route: [[200,56],[344,56]]
+
+  - name: QuotedInputName
+    catalog: |
+      create table orders (id int, region text);
+    scripts:
+      - name: a
+        input: |
+          /* @param :"the region" = 'EU' */
+          select id from orders where region = :"the region";
+    expected:
+      scripts:
+        - name: a
+          statements:
+            - type: SELECT
+              text: "select id ..he region\""
+          box: [344,0,280,80]
+      inputs:
+        - name: the region
+          type: "text"
+          cast: false
+          value: "'EU'"
+          box: [0,0,200,80]
+      edges:
+        - from: ":the region"
+          to: a.0
+          kind: input
+          name: the region
+          route: [[200,56],[344,56]]
+
+  - name: InputInCommands
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: load
+        input: |
+          /* @param :min = 10 */
+          create table big as select * from orders where amount > :min::int;
+          insert into big select * from orders where amount = :min::int;
+      - name: report
+        input: |
+          select count(*) from big;
+    expected:
+      scripts:
+        - name: load
+          statements:
+            - type: CREATE_TABLE_AS
+              target: big
+              text: "create tab.. :min::int"
+            - type: INSERT
+              target: big
+              text: "insert int.. :min::int"
+          box: [344,0,280,112]
+        - name: report
+          statements:
+            - type: SELECT
+              text: "select cou..) from big"
+          box: [768,32,280,80]
+      inputs:
+        - name: min
+          type: "integer"
+          value: "10"
+          box: [0,32,200,80]
+      edges:
+        - from: ":min"
+          to: load.0
+          kind: input
+          name: min
+          route: [[200,88],[272,88],[272,56],[344,56]]
+        - from: load.0
+          to: load.1
+          kind: table
+          name: big
+        - from: ":min"
+          to: load.1
+          kind: input
+          name: min
+          route: [[200,88],[344,88]]
+        - from: load.1
+          to: report.0
+          kind: table
+          name: big
+          route: [[624,88],[768,88]]
+
+  - name: InputOfStaleScript
+    catalog: |
+      create table orders (id int, amount int);
+    scripts:
+      - name: a
+        input: |
+          /* @param :min = 10 */
+          select id from orders where amount > :min::int;
+        stale-prepend: "select 1;\n"
+      - name: b
+        input: |
+          /* @param :max = 20 */
+          select id from orders where amount < :max::int;
+    expected:
+      scripts:
+        - name: a
+          analyzed: false
+          box: [0,176,280,32]
+        - name: b
+          statements:
+            - type: SELECT
+              text: "select id .. :max::int"
+          box: [344,0,280,80]
+      inputs:
+        - name: max
+          type: "integer"
+          value: "20"
+          box: [0,0,200,80]
+      edges:
+        - from: ":max"
+          to: b.0
+          kind: input
+          name: max
+          route: [[200,56],[344,56]]
+
+  - name: InputOrderOfFirstUse
+    scripts:
+      - name: a
+        input: |
+          /**
+           * @param :first = 1
+           * @param :second = 2
+           */
+          select :second::int;
+      - name: b
+        input: |
+          select :first::int, :second::int;
+    expected:
+      scripts:
+        - name: a
+          statements:
+            - type: SELECT
+              text: "select :second::int"
+          box: [344,0,280,80]
+        - name: b
+          statements:
+            - type: SELECT
+              text: "select :fi..econd::int"
+          box: [344,128,280,80]
+      inputs:
+        - name: second
+          type: "integer"
+          value: "2"
+          box: [0,0,200,80]
+        - name: first
+          type: "integer"
+          value: "1"
+          box: [0,128,200,80]
+      edges:
+        - from: ":second"
+          to: a.0
+          kind: input
+          name: second
+          route: [[200,56],[344,56]]
+        - from: ":second"
+          to: b.0
+          kind: input
+          name: second
+          route: [[200,56],[272,56],[272,184],[344,184]]
+        - from: ":first"
+          to: b.0
+          kind: input
+          name: first
+          route: [[200,184],[344,184]]
