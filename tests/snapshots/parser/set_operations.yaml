@@ -1,0 +1,627 @@
+parser-snapshots:
+
+  - name: except_intersect_modifiers
+    input: |-
+      select 1 except all select 2;
+      select 1 intersect all select 2;
+      select 1 except distinct select 2;
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 12
+          description:
+            text: "select 1 e.. select 2;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select 1 e..l select 2"
+            children:
+              - key: SQL_COMBINE_OPERATION
+                type: ENUM_SQL_COMBINE_OPERATION
+                value: EXCEPT
+              - key: SQL_COMBINE_MODIFIER
+                type: ENUM_SQL_COMBINE_MODIFIER
+                value: ALL
+              - key: SQL_COMBINE_INPUT
+                type: ARRAY
+                text: "select 1 e..l select 2"
+                children:
+                  - type: OBJECT_SQL_SELECT
+                    text: "select 1"
+                    children:
+                      - key: SQL_SELECT_TARGETS
+                        type: ARRAY
+                        text: "1"
+                        children:
+                          - type: OBJECT_SQL_RESULT_TARGET
+                            text: "1"
+                            children:
+                              - key: SQL_RESULT_TARGET_VALUE
+                                type: LITERAL_INTEGER
+                                text: "1"
+                  - type: OBJECT_SQL_SELECT
+                    text: "select 2"
+                    children:
+                      - key: SQL_SELECT_TARGETS
+                        type: ARRAY
+                        text: "2"
+                        children:
+                          - type: OBJECT_SQL_RESULT_TARGET
+                            text: "2"
+                            children:
+                              - key: SQL_RESULT_TARGET_VALUE
+                                type: LITERAL_INTEGER
+                                text: "2"
+        - type: SELECT
+          ast-begin: 12
+          ast-size: 12
+          description:
+            text: "select 1 i.. select 2;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select 1 i..l select 2"
+            children:
+              - key: SQL_COMBINE_OPERATION
+                type: ENUM_SQL_COMBINE_OPERATION
+                value: INTERSECT
+              - key: SQL_COMBINE_MODIFIER
+                type: ENUM_SQL_COMBINE_MODIFIER
+                value: ALL
+              - key: SQL_COMBINE_INPUT
+                type: ARRAY
+                text: "select 1 i..l select 2"
+                children:
+                  - type: OBJECT_SQL_SELECT
+                    text: "select 1"
+                    children:
+                      - key: SQL_SELECT_TARGETS
+                        type: ARRAY
+                        text: "1"
+                        children:
+                          - type: OBJECT_SQL_RESULT_TARGET
+                            text: "1"
+                            children:
+                              - key: SQL_RESULT_TARGET_VALUE
+                                type: LITERAL_INTEGER
+                                text: "1"
+                  - type: OBJECT_SQL_SELECT
+                    text: "select 2"
+                    children:
+                      - key: SQL_SELECT_TARGETS
+                        type: ARRAY
+                        text: "2"
+                        children:
+                          - type: OBJECT_SQL_RESULT_TARGET
+                            text: "2"
+                            children:
+                              - key: SQL_RESULT_TARGET_VALUE
+                                type: LITERAL_INTEGER
+                                text: "2"
+        - type: SELECT
+          ast-begin: 24
+          ast-size: 12
+          description:
+            text: "select 1 e.. select 2;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select 1 e..t select 2"
+            children:
+              - key: SQL_COMBINE_OPERATION
+                type: ENUM_SQL_COMBINE_OPERATION
+                value: EXCEPT
+              - key: SQL_COMBINE_MODIFIER
+                type: ENUM_SQL_COMBINE_MODIFIER
+                value: DISTINCT
+              - key: SQL_COMBINE_INPUT
+                type: ARRAY
+                text: "select 1 e..t select 2"
+                children:
+                  - type: OBJECT_SQL_SELECT
+                    text: "select 1"
+                    children:
+                      - key: SQL_SELECT_TARGETS
+                        type: ARRAY
+                        text: "1"
+                        children:
+                          - type: OBJECT_SQL_RESULT_TARGET
+                            text: "1"
+                            children:
+                              - key: SQL_RESULT_TARGET_VALUE
+                                type: LITERAL_INTEGER
+                                text: "1"
+                  - type: OBJECT_SQL_SELECT
+                    text: "select 2"
+                    children:
+                      - key: SQL_SELECT_TARGETS
+                        type: ARRAY
+                        text: "2"
+                        children:
+                          - type: OBJECT_SQL_RESULT_TARGET
+                            text: "2"
+                            children:
+                              - key: SQL_RESULT_TARGET_VALUE
+                                type: LITERAL_INTEGER
+                                text: "2"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [29,30]
+        - text: [62,63]
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: set_operation_precedence
+    input: |-
+      select 1 union select 2 intersect select 3 except select 4
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 25
+          description:
+            text: "select 1 u..t select 4"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select 1 u..t select 4"
+            children:
+              - key: SQL_COMBINE_OPERATION
+                type: ENUM_SQL_COMBINE_OPERATION
+                value: EXCEPT
+              - key: SQL_COMBINE_INPUT
+                type: ARRAY
+                text: "select 1 u..t select 4"
+                children:
+                  - type: OBJECT_SQL_SELECT
+                    text: "select 1 u..t select 3"
+                    children:
+                      - key: SQL_COMBINE_OPERATION
+                        type: ENUM_SQL_COMBINE_OPERATION
+                        value: UNION
+                      - key: SQL_COMBINE_INPUT
+                        type: ARRAY
+                        text: "select 1 u..t select 3"
+                        children:
+                          - type: OBJECT_SQL_SELECT
+                            text: "select 1"
+                            children:
+                              - key: SQL_SELECT_TARGETS
+                                type: ARRAY
+                                text: "1"
+                                children:
+                                  - type: OBJECT_SQL_RESULT_TARGET
+                                    text: "1"
+                                    children:
+                                      - key: SQL_RESULT_TARGET_VALUE
+                                        type: LITERAL_INTEGER
+                                        text: "1"
+                          - type: OBJECT_SQL_SELECT
+                            text: "select 2 i..t select 3"
+                            children:
+                              - key: SQL_COMBINE_OPERATION
+                                type: ENUM_SQL_COMBINE_OPERATION
+                                value: INTERSECT
+                              - key: SQL_COMBINE_INPUT
+                                type: ARRAY
+                                text: "select 2 i..t select 3"
+                                children:
+                                  - type: OBJECT_SQL_SELECT
+                                    text: "select 2"
+                                    children:
+                                      - key: SQL_SELECT_TARGETS
+                                        type: ARRAY
+                                        text: "2"
+                                        children:
+                                          - type: OBJECT_SQL_RESULT_TARGET
+                                            text: "2"
+                                            children:
+                                              - key: SQL_RESULT_TARGET_VALUE
+                                                type: LITERAL_INTEGER
+                                                text: "2"
+                                  - type: OBJECT_SQL_SELECT
+                                    text: "select 3"
+                                    children:
+                                      - key: SQL_SELECT_TARGETS
+                                        type: ARRAY
+                                        text: "3"
+                                        children:
+                                          - type: OBJECT_SQL_RESULT_TARGET
+                                            text: "3"
+                                            children:
+                                              - key: SQL_RESULT_TARGET_VALUE
+                                                type: LITERAL_INTEGER
+                                                text: "3"
+                  - type: OBJECT_SQL_SELECT
+                    text: "select 4"
+                    children:
+                      - key: SQL_SELECT_TARGETS
+                        type: ARRAY
+                        text: "4"
+                        children:
+                          - type: OBJECT_SQL_RESULT_TARGET
+                            text: "4"
+                            children:
+                              - key: SQL_RESULT_TARGET_VALUE
+                                type: LITERAL_INTEGER
+                                text: "4"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: set_operation_parenthesized_order_limit
+    input: |-
+      (select a from t) union all (select a from u) order by a desc limit 10 offset 5
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 32
+          description:
+            text: "(select a ..0 offset 5"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "(select a ..0 offset 5"
+            children:
+              - key: SQL_COMBINE_OPERATION
+                type: ENUM_SQL_COMBINE_OPERATION
+                value: UNION
+              - key: SQL_COMBINE_MODIFIER
+                type: ENUM_SQL_COMBINE_MODIFIER
+                value: ALL
+              - key: SQL_COMBINE_INPUT
+                type: ARRAY
+                text: "(select a .. a from u)"
+                children:
+                  - type: OBJECT_SQL_SELECT
+                    text: "(select a from t)"
+                    children:
+                      - key: SQL_SELECT_TARGETS
+                        type: ARRAY
+                        text: "a"
+                        children:
+                          - type: OBJECT_SQL_RESULT_TARGET
+                            text: "a"
+                            children:
+                              - key: SQL_RESULT_TARGET_VALUE
+                                type: OBJECT_SQL_COLUMN_REF
+                                text: "a"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "a"
+                                    children:
+                                      - type: NAME
+                                        text: "a"
+                      - key: SQL_SELECT_FROM
+                        type: ARRAY
+                        text: "from t"
+                        children:
+                          - type: OBJECT_SQL_TABLEREF
+                            text: "t"
+                            children:
+                              - key: SQL_TABLEREF_NAME
+                                type: ARRAY
+                                text: "t"
+                                children:
+                                  - type: NAME
+                                    text: "t"
+                  - type: OBJECT_SQL_SELECT
+                    text: "(select a from u)"
+                    children:
+                      - key: SQL_SELECT_TARGETS
+                        type: ARRAY
+                        text: "a"
+                        children:
+                          - type: OBJECT_SQL_RESULT_TARGET
+                            text: "a"
+                            children:
+                              - key: SQL_RESULT_TARGET_VALUE
+                                type: OBJECT_SQL_COLUMN_REF
+                                text: "a"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "a"
+                                    children:
+                                      - type: NAME
+                                        text: "a"
+                      - key: SQL_SELECT_FROM
+                        type: ARRAY
+                        text: "from u"
+                        children:
+                          - type: OBJECT_SQL_TABLEREF
+                            text: "u"
+                            children:
+                              - key: SQL_TABLEREF_NAME
+                                type: ARRAY
+                                text: "u"
+                                children:
+                                  - type: NAME
+                                    text: "u"
+              - key: SQL_SELECT_LIMIT
+                type: LITERAL_INTEGER
+                text: "10"
+              - key: SQL_SELECT_OFFSET
+                type: LITERAL_INTEGER
+                text: "5"
+              - key: SQL_SELECT_ORDER
+                type: ARRAY
+                text: "order by a desc"
+                children:
+                  - type: OBJECT_SQL_ORDER
+                    text: "a desc"
+                    children:
+                      - key: SQL_ORDER_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "a"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "a"
+                            children:
+                              - type: NAME
+                                text: "a"
+                      - key: SQL_ORDER_DIRECTION
+                        type: ENUM_SQL_ORDER_DIRECTION
+                        value: DESCENDING
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: set_operation_values_table
+    input: |-
+      values (1), (2) union table t
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 13
+          description:
+            text: "values (1)..on table t"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "values (1)..on table t"
+            children:
+              - key: SQL_COMBINE_OPERATION
+                type: ENUM_SQL_COMBINE_OPERATION
+                value: UNION
+              - key: SQL_COMBINE_INPUT
+                type: ARRAY
+                text: "values (1)..on table t"
+                children:
+                  - type: OBJECT_SQL_SELECT
+                    text: "values (1), (2)"
+                    children:
+                      - key: SQL_SELECT_VALUES
+                        type: ARRAY
+                        text: "values (1), (2)"
+                        children:
+                          - type: ARRAY
+                            text: "1"
+                            children:
+                              - type: LITERAL_INTEGER
+                                text: "1"
+                          - type: ARRAY
+                            text: "2"
+                            children:
+                              - type: LITERAL_INTEGER
+                                text: "2"
+                  - type: OBJECT_SQL_SELECT
+                    text: "table t"
+                    children:
+                      - key: SQL_SELECT_TABLE
+                        type: OBJECT_SQL_TABLEREF
+                        text: "table t"
+                        children:
+                          - key: SQL_TABLEREF_NAME
+                            type: ARRAY
+                            text: "t"
+                            children:
+                              - type: NAME
+                                text: "t"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: set_operation_with_cte_and_parens
+    input: |-
+      with x as (select 1 as a) select a from x union select 2 order by 1;
+      ((select 1));
+      ((select 1) except (select 2));
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 28
+          description:
+            text: "with x as ..rder by 1;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "with x as ..order by 1"
+            children:
+              - key: SQL_SELECT_WITH_CTES
+                type: ARRAY
+                text: "x as (sele..ct 1 as a)"
+                children:
+                  - type: OBJECT_SQL_CTE
+                    text: "x as (sele..ct 1 as a)"
+                    children:
+                      - key: SQL_CTE_NAME
+                        type: NAME
+                        text: "x"
+                      - key: SQL_CTE_STATEMENT
+                        type: OBJECT_SQL_SELECT
+                        text: "select 1 as a"
+                        children:
+                          - key: SQL_SELECT_TARGETS
+                            type: ARRAY
+                            text: "1 as a"
+                            children:
+                              - type: OBJECT_SQL_RESULT_TARGET
+                                text: "1 as a"
+                                children:
+                                  - key: SQL_RESULT_TARGET_VALUE
+                                    type: LITERAL_INTEGER
+                                    text: "1"
+                                  - key: SQL_RESULT_TARGET_NAME
+                                    type: NAME
+                                    text: "a"
+              - key: SQL_COMBINE_OPERATION
+                type: ENUM_SQL_COMBINE_OPERATION
+                value: UNION
+              - key: SQL_COMBINE_INPUT
+                type: ARRAY
+                text: "select a f..n select 2"
+                children:
+                  - type: OBJECT_SQL_SELECT
+                    text: "select a from x"
+                    children:
+                      - key: SQL_SELECT_TARGETS
+                        type: ARRAY
+                        text: "a"
+                        children:
+                          - type: OBJECT_SQL_RESULT_TARGET
+                            text: "a"
+                            children:
+                              - key: SQL_RESULT_TARGET_VALUE
+                                type: OBJECT_SQL_COLUMN_REF
+                                text: "a"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "a"
+                                    children:
+                                      - type: NAME
+                                        text: "a"
+                      - key: SQL_SELECT_FROM
+                        type: ARRAY
+                        text: "from x"
+                        children:
+                          - type: OBJECT_SQL_TABLEREF
+                            text: "x"
+                            children:
+                              - key: SQL_TABLEREF_NAME
+                                type: ARRAY
+                                text: "x"
+                                children:
+                                  - type: NAME
+                                    text: "x"
+                  - type: OBJECT_SQL_SELECT
+                    text: "select 2"
+                    children:
+                      - key: SQL_SELECT_TARGETS
+                        type: ARRAY
+                        text: "2"
+                        children:
+                          - type: OBJECT_SQL_RESULT_TARGET
+                            text: "2"
+                            children:
+                              - key: SQL_RESULT_TARGET_VALUE
+                                type: LITERAL_INTEGER
+                                text: "2"
+              - key: SQL_SELECT_ORDER
+                type: ARRAY
+                text: "order by 1"
+                children:
+                  - type: OBJECT_SQL_ORDER
+                    text: "1"
+                    children:
+                      - key: SQL_ORDER_VALUE
+                        type: LITERAL_INTEGER
+                        text: "1"
+        - type: SELECT
+          ast-begin: 28
+          ast-size: 4
+          description:
+            text: "((select 1));"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "((select 1))"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "1"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "1"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: LITERAL_INTEGER
+                        text: "1"
+        - type: SELECT
+          ast-begin: 32
+          ast-size: 11
+          description:
+            text: "((select 1..elect 2));"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "((select 1..select 2))"
+            children:
+              - key: SQL_COMBINE_OPERATION
+                type: ENUM_SQL_COMBINE_OPERATION
+                value: EXCEPT
+              - key: SQL_COMBINE_INPUT
+                type: ARRAY
+                text: "(select 1)..(select 2)"
+                children:
+                  - type: OBJECT_SQL_SELECT
+                    text: "(select 1)"
+                    children:
+                      - key: SQL_SELECT_TARGETS
+                        type: ARRAY
+                        text: "1"
+                        children:
+                          - type: OBJECT_SQL_RESULT_TARGET
+                            text: "1"
+                            children:
+                              - key: SQL_RESULT_TARGET_VALUE
+                                type: LITERAL_INTEGER
+                                text: "1"
+                  - type: OBJECT_SQL_SELECT
+                    text: "(select 2)"
+                    children:
+                      - key: SQL_SELECT_TARGETS
+                        type: ARRAY
+                        text: "2"
+                        children:
+                          - type: OBJECT_SQL_RESULT_TARGET
+                            text: "2"
+                            children:
+                              - key: SQL_RESULT_TARGET_VALUE
+                                type: LITERAL_INTEGER
+                                text: "2"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [68,69]
+        - text: [82,83]
+      comments: []
+      comment-blocks: []
+      comment-warnings: []

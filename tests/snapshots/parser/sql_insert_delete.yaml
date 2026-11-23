@@ -1,0 +1,590 @@
+parser-snapshots:
+
+  - name: insert_default_values
+    input: |-
+      insert into t default values
+    expected:
+      statements:
+        - type: INSERT
+          ast-begin: 0
+          ast-size: 5
+          description:
+            text: "insert int..ult values"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_INSERT
+            text: "insert int..ult values"
+            children:
+              - key: SQL_INSERT_DEFAULT_VALUES
+                type: BOOL
+                value: 1
+              - key: SQL_INSERT_TARGET
+                type: OBJECT_SQL_TABLEREF
+                text: "t"
+                children:
+                  - key: SQL_TABLEREF_NAME
+                    type: ARRAY
+                    text: "t"
+                    children:
+                      - type: NAME
+                        text: "t"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: insert_values_returning
+    input: |-
+      insert into s.t (a, b) values (1, 2), (3, 4) returning a, a * 2 as c
+    expected:
+      statements:
+        - type: INSERT
+          ast-begin: 0
+          ast-size: 30
+          description:
+            text: "insert int..a * 2 as c"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_INSERT
+            text: "insert int..a * 2 as c"
+            children:
+              - key: SQL_INSERT_COLUMNS
+                type: ARRAY
+                text: "(a, b)"
+                children:
+                  - type: NAME
+                    text: "a"
+                  - type: NAME
+                    text: "b"
+              - key: SQL_INSERT_SOURCE
+                type: OBJECT_SQL_SELECT
+                text: "values (1,..2), (3, 4)"
+                children:
+                  - key: SQL_SELECT_VALUES
+                    type: ARRAY
+                    text: "values (1,..2), (3, 4)"
+                    children:
+                      - type: ARRAY
+                        text: "1, 2"
+                        children:
+                          - type: LITERAL_INTEGER
+                            text: "1"
+                          - type: LITERAL_INTEGER
+                            text: "2"
+                      - type: ARRAY
+                        text: "3, 4"
+                        children:
+                          - type: LITERAL_INTEGER
+                            text: "3"
+                          - type: LITERAL_INTEGER
+                            text: "4"
+              - key: SQL_INSERT_TARGET
+                type: OBJECT_SQL_TABLEREF
+                text: "s.t"
+                children:
+                  - key: SQL_TABLEREF_NAME
+                    type: ARRAY
+                    text: "s.t"
+                    children:
+                      - type: NAME
+                        text: "s"
+                      - type: NAME
+                        text: "t"
+              - key: SQL_INSERT_RETURNING
+                type: ARRAY
+                text: "a, a * 2 as c"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "a"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_COLUMN_REF
+                        text: "a"
+                        children:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "a"
+                            children:
+                              - type: NAME
+                                text: "a"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "a * 2 as c"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "a * 2"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: MULTIPLY
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "a * 2"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "a"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "a"
+                                    children:
+                                      - type: NAME
+                                        text: "a"
+                              - type: LITERAL_INTEGER
+                                text: "2"
+                      - key: SQL_RESULT_TARGET_NAME
+                        type: NAME
+                        text: "c"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: insert_with_cte
+    input: |-
+      with src as (select 1 as a) insert into t (a) select a from src
+    expected:
+      statements:
+        - type: INSERT
+          ast-begin: 0
+          ast-size: 24
+          description:
+            text: "with src a..a from src"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_INSERT
+            text: "with src a..a from src"
+            children:
+              - key: SQL_SELECT_WITH_CTES
+                type: ARRAY
+                text: "src as (se..ct 1 as a)"
+                children:
+                  - type: OBJECT_SQL_CTE
+                    text: "src as (se..ct 1 as a)"
+                    children:
+                      - key: SQL_CTE_NAME
+                        type: NAME
+                        text: "src"
+                      - key: SQL_CTE_STATEMENT
+                        type: OBJECT_SQL_SELECT
+                        text: "select 1 as a"
+                        children:
+                          - key: SQL_SELECT_TARGETS
+                            type: ARRAY
+                            text: "1 as a"
+                            children:
+                              - type: OBJECT_SQL_RESULT_TARGET
+                                text: "1 as a"
+                                children:
+                                  - key: SQL_RESULT_TARGET_VALUE
+                                    type: LITERAL_INTEGER
+                                    text: "1"
+                                  - key: SQL_RESULT_TARGET_NAME
+                                    type: NAME
+                                    text: "a"
+              - key: SQL_INSERT_COLUMNS
+                type: ARRAY
+                text: "(a)"
+                children:
+                  - type: NAME
+                    text: "a"
+              - key: SQL_INSERT_SOURCE
+                type: OBJECT_SQL_SELECT
+                text: "select a from src"
+                children:
+                  - key: SQL_SELECT_TARGETS
+                    type: ARRAY
+                    text: "a"
+                    children:
+                      - type: OBJECT_SQL_RESULT_TARGET
+                        text: "a"
+                        children:
+                          - key: SQL_RESULT_TARGET_VALUE
+                            type: OBJECT_SQL_COLUMN_REF
+                            text: "a"
+                            children:
+                              - key: SQL_COLUMN_REF_PATH
+                                type: ARRAY
+                                text: "a"
+                                children:
+                                  - type: NAME
+                                    text: "a"
+                  - key: SQL_SELECT_FROM
+                    type: ARRAY
+                    text: "from src"
+                    children:
+                      - type: OBJECT_SQL_TABLEREF
+                        text: "src"
+                        children:
+                          - key: SQL_TABLEREF_NAME
+                            type: ARRAY
+                            text: "src"
+                            children:
+                              - type: NAME
+                                text: "src"
+              - key: SQL_INSERT_TARGET
+                type: OBJECT_SQL_TABLEREF
+                text: "t"
+                children:
+                  - key: SQL_TABLEREF_NAME
+                    type: ARRAY
+                    text: "t"
+                    children:
+                      - type: NAME
+                        text: "t"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: delete_using_returning
+    input: |-
+      delete from only t as x using u, v w where x.a = u.a and u.b = w.b returning *
+    expected:
+      statements:
+        - type: DELETE
+          ast-begin: 0
+          ast-size: 42
+          description:
+            text: "delete fro..eturning *"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_DELETE
+            text: "delete fro..eturning *"
+            children:
+              - key: SQL_DELETE_TARGET
+                type: OBJECT_SQL_TABLEREF
+                text: "only t as x"
+                children:
+                  - key: SQL_TABLEREF_NAME
+                    type: ARRAY
+                    text: "t"
+                    children:
+                      - type: NAME
+                        text: "t"
+                  - key: SQL_TABLEREF_ONLY
+                    type: BOOL
+                    value: 1
+                  - key: SQL_TABLEREF_ALIAS
+                    type: NAME
+                    text: "x"
+              - key: SQL_DELETE_USING
+                type: ARRAY
+                text: "u, v w"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "u"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "u"
+                        children:
+                          - type: NAME
+                            text: "u"
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "v w"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "v"
+                        children:
+                          - type: NAME
+                            text: "v"
+                      - key: SQL_TABLEREF_ALIAS
+                        type: NAME
+                        text: "w"
+              - key: SQL_DELETE_WHERE
+                type: OBJECT_SQL_NARY_EXPRESSION
+                text: "x.a = u.a .. u.b = w.b"
+                children:
+                  - key: SQL_EXPRESSION_OPERATOR
+                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                    value: AND
+                  - key: SQL_EXPRESSION_ARGS
+                    type: ARRAY
+                    text: "x.a = u.a .. u.b = w.b"
+                    children:
+                      - type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "x.a = u.a"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: EQUAL
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "x.a = u.a"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "x.a"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "x.a"
+                                    children:
+                                      - type: NAME
+                                        text: "x"
+                                      - type: NAME
+                                        text: "a"
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "u.a"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "u.a"
+                                    children:
+                                      - type: NAME
+                                        text: "u"
+                                      - type: NAME
+                                        text: "a"
+                      - type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "u.b = w.b"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: EQUAL
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "u.b = w.b"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "u.b"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "u.b"
+                                    children:
+                                      - type: NAME
+                                        text: "u"
+                                      - type: NAME
+                                        text: "b"
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "w.b"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "w.b"
+                                    children:
+                                      - type: NAME
+                                        text: "w"
+                                      - type: NAME
+                                        text: "b"
+              - key: SQL_DELETE_RETURNING
+                type: ARRAY
+                text: "*"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "*"
+                    children:
+                      - key: SQL_RESULT_TARGET_STAR
+                        type: BOOL
+                        value: 1
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: cte_data_modifying
+    input: |-
+      with d as (delete from t where a < 0 returning a),
+           i as (insert into u select a from d returning a)
+      select count(*) from i
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 51
+          description:
+            text: "with d as ..(*) from i"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "with d as ..(*) from i"
+            children:
+              - key: SQL_SELECT_WITH_CTES
+                type: ARRAY
+                text: "d as (dele..turning a)"
+                children:
+                  - type: OBJECT_SQL_CTE
+                    text: "d as (dele..turning a)"
+                    children:
+                      - key: SQL_CTE_NAME
+                        type: NAME
+                        text: "d"
+                      - key: SQL_CTE_STATEMENT
+                        type: OBJECT_SQL_DELETE
+                        text: "delete fro..eturning a"
+                        children:
+                          - key: SQL_DELETE_TARGET
+                            type: OBJECT_SQL_TABLEREF
+                            text: "t"
+                            children:
+                              - key: SQL_TABLEREF_NAME
+                                type: ARRAY
+                                text: "t"
+                                children:
+                                  - type: NAME
+                                    text: "t"
+                          - key: SQL_DELETE_WHERE
+                            type: OBJECT_SQL_NARY_EXPRESSION
+                            text: "a < 0"
+                            children:
+                              - key: SQL_EXPRESSION_OPERATOR
+                                type: ENUM_SQL_EXPRESSION_OPERATOR
+                                value: LESS_THAN
+                              - key: SQL_EXPRESSION_ARGS
+                                type: ARRAY
+                                text: "a < 0"
+                                children:
+                                  - type: OBJECT_SQL_COLUMN_REF
+                                    text: "a"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "a"
+                                        children:
+                                          - type: NAME
+                                            text: "a"
+                                  - type: LITERAL_INTEGER
+                                    text: "0"
+                          - key: SQL_DELETE_RETURNING
+                            type: ARRAY
+                            text: "a"
+                            children:
+                              - type: OBJECT_SQL_RESULT_TARGET
+                                text: "a"
+                                children:
+                                  - key: SQL_RESULT_TARGET_VALUE
+                                    type: OBJECT_SQL_COLUMN_REF
+                                    text: "a"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "a"
+                                        children:
+                                          - type: NAME
+                                            text: "a"
+                  - type: OBJECT_SQL_CTE
+                    text: "i as (inse..turning a)"
+                    children:
+                      - key: SQL_CTE_NAME
+                        type: NAME
+                        text: "i"
+                      - key: SQL_CTE_STATEMENT
+                        type: OBJECT_SQL_INSERT
+                        text: "insert int..eturning a"
+                        children:
+                          - key: SQL_INSERT_SOURCE
+                            type: OBJECT_SQL_SELECT
+                            text: "select a from d"
+                            children:
+                              - key: SQL_SELECT_TARGETS
+                                type: ARRAY
+                                text: "a"
+                                children:
+                                  - type: OBJECT_SQL_RESULT_TARGET
+                                    text: "a"
+                                    children:
+                                      - key: SQL_RESULT_TARGET_VALUE
+                                        type: OBJECT_SQL_COLUMN_REF
+                                        text: "a"
+                                        children:
+                                          - key: SQL_COLUMN_REF_PATH
+                                            type: ARRAY
+                                            text: "a"
+                                            children:
+                                              - type: NAME
+                                                text: "a"
+                              - key: SQL_SELECT_FROM
+                                type: ARRAY
+                                text: "from d"
+                                children:
+                                  - type: OBJECT_SQL_TABLEREF
+                                    text: "d"
+                                    children:
+                                      - key: SQL_TABLEREF_NAME
+                                        type: ARRAY
+                                        text: "d"
+                                        children:
+                                          - type: NAME
+                                            text: "d"
+                          - key: SQL_INSERT_TARGET
+                            type: OBJECT_SQL_TABLEREF
+                            text: "u"
+                            children:
+                              - key: SQL_TABLEREF_NAME
+                                type: ARRAY
+                                text: "u"
+                                children:
+                                  - type: NAME
+                                    text: "u"
+                          - key: SQL_INSERT_RETURNING
+                            type: ARRAY
+                            text: "a"
+                            children:
+                              - type: OBJECT_SQL_RESULT_TARGET
+                                text: "a"
+                                children:
+                                  - key: SQL_RESULT_TARGET_VALUE
+                                    type: OBJECT_SQL_COLUMN_REF
+                                    text: "a"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "a"
+                                        children:
+                                          - type: NAME
+                                            text: "a"
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "count(*)"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "count(*)"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_FUNCTION_EXPRESSION
+                        text: "count(*)"
+                        children:
+                          - key: SQL_FUNCTION_NAME
+                            type: ARRAY
+                            text: "count"
+                            children:
+                              - type: NAME
+                                text: "count"
+                          - key: SQL_FUNCTION_ARGUMENTS_STAR
+                            type: BOOL
+                            value: 1
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from i"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "i"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "i"
+                        children:
+                          - type: NAME
+                            text: "i"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [50,51]
+        - text: [104,105]
+      comments: []
+      comment-blocks: []
+      comment-warnings: []

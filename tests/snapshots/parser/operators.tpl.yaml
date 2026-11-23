@@ -1,0 +1,29 @@
+parser-snapshots:
+  # Arithmetic precedence and chains of unary operators
+  - name: arithmetic_precedence_and_unary
+    input: |
+      select 1 + 2 * 3 - 4 / 5 % 6 ^ 7, - - 1, + 2, -(-3), not not true, -a::int
+  # Generic operators as infix operators
+  - name: generic_infix_operators
+    input: |
+      select a || b, a @> b, a <-> b, a & b | c, a !~ b, a#b
+  # Quantified comparisons with generic and qualified operators
+  - name: quantified_generic_operators
+    input: |
+      select a @> any (select b from t), a operator(pg_catalog.=) all (array[1, 2]), a <> some (select 1), a ~~ any (array['x'])
+  # IS predicates and the NULL tests
+  - name: is_predicates
+    input: |
+      select a is true, a is not false, a is unknown, a is not unknown, a isnull, a notnull, a is not null from t
+  # ILIKE and SIMILAR TO, with and without NOT
+  - name: pattern_matching_operators
+    input: |
+      select a ilike 'z', a not ilike 'y%', a similar to '(a|b)%', a not similar to 'c' from t
+  # Chains of AT TIME ZONE and COLLATE
+  - name: at_time_zone_and_collate_chains
+    input: |
+      select ts at time zone 'UTC' at time zone 'Europe/Berlin', name collate "C" collate "de_DE" from t
+  # Deeply nested parentheses, negations and CASE expressions
+  - name: nested_expressions
+    input: |
+      select ((((((((((1 + 2)))))))))), -(-(-(-1))), case when case when a then b end then case c when 1 then case when d then 2 end end end from t

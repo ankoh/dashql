@@ -2101,3 +2101,294 @@ parser-snapshots:
           lines:
             - "Revenue per segment."
       comment-warnings: []
+
+  - name: tag_param_default_ends_at_line
+    input: |-
+      -- @param :region = 'EU'
+      -- Revenue of a region.
+      select 1
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 4
+          description:
+            text: "select 1"
+            description-begin: 0
+            description-count: 2
+            description-blocks: [0,2]
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select 1"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "1"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "1"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: LITERAL_INTEGER
+                        text: "1"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [24,25]
+        - text: [48,49]
+      comments:
+        - text: "-- @param ..ion = 'EU'"
+        - text: "-- Revenue.. a region."
+      comment-blocks:
+        - type: DASHQL_TAG
+          text: "-- @param ..ion = 'EU'"
+          tag: "param"
+          comments: [0,1]
+          lines:
+            - ":region = 'EU'"
+        - type: COMMENT
+          text: "-- Revenue.. a region."
+          comments: [1,1]
+          lines:
+            - "Revenue of a region."
+      comment-warnings: []
+
+  - name: tag_vis_kpi_args
+    input: |-
+      /**
+       * @vis kpi value=revenue unit=EUR
+       * Revenue of the year.
+       */
+      select 1
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 4
+          description:
+            text: "select 1"
+            description-begin: 0
+            description-count: 1
+            description-blocks: [0,2]
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select 1"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "1"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "1"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: LITERAL_INTEGER
+                        text: "1"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [3,4]
+        - text: [38,39]
+        - text: [62,63]
+        - text: [66,67]
+      comments:
+        - text: "/**\n * @vi.. year.\n */"
+      comment-blocks:
+        - type: DASHQL_TAG
+          text: "/**\n * @vi..e unit=EUR"
+          tag: "vis"
+          comments: [0,1]
+          lines:
+            - "kpi value=revenue unit=EUR"
+        - type: COMMENT
+          text: "\n * Revenu.. year.\n */"
+          comments: [0,1]
+          lines:
+            - "Revenue of the year."
+      comment-warnings: []
+
+  - name: tag_flow_and_manual
+    input: |-
+      -- @flow from=orders
+      -- @manual
+      -- Writes to the warehouse,
+      -- run it by hand.
+      select 1
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 4
+          description:
+            text: "select 1"
+            description-begin: 0
+            description-count: 4
+            description-blocks: [0,2]
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select 1"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "1"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "1"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: LITERAL_INTEGER
+                        text: "1"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [20,21]
+        - text: [31,32]
+        - text: [59,60]
+        - text: [78,79]
+      comments:
+        - text: "-- @flow f..rom=orders"
+        - text: "-- @manual"
+        - text: "-- Writes ..warehouse,"
+        - text: "-- run it by hand."
+      comment-blocks:
+        - type: DASHQL_TAG
+          text: "-- @flow f..rom=orders"
+          tag: "flow"
+          comments: [0,1]
+          lines:
+            - "from=orders"
+        - type: DASHQL_TAG
+          text: "-- @manual..t by hand."
+          tag: "manual"
+          comments: [1,3]
+          lines:
+            - "Writes to the warehouse,"
+            - "run it by hand."
+      comment-warnings: []
+
+  - name: tag_board_without_args
+    input: |-
+      -- @board
+      -- width=6
+      -- @vis table
+      select 1
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 4
+          description:
+            text: "select 1"
+            description-begin: 0
+            description-count: 3
+            description-blocks: [0,2]
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select 1"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "1"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "1"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: LITERAL_INTEGER
+                        text: "1"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [9,10]
+        - text: [20,21]
+        - text: [34,35]
+      comments:
+        - text: "-- @board"
+        - text: "-- width=6"
+        - text: "-- @vis table"
+      comment-blocks:
+        - type: DASHQL_TAG
+          text: "-- @board\n..-- width=6"
+          tag: "board"
+          comments: [0,2]
+          lines:
+            - "width=6"
+        - type: DASHQL_TAG
+          text: "-- @vis table"
+          tag: "vis"
+          comments: [2,1]
+          lines:
+            - "table"
+      comment-warnings: []
+
+  - name: tag_names_and_markdown
+    input: |-
+      -- @VIS table
+      -- @vis-x
+      -- @vis	markdown
+      -- # Title
+      -- Text
+      -- @board width=4
+      select 1
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 4
+          description:
+            text: "select 1"
+            description-begin: 0
+            description-count: 6
+            description-blocks: [0,3]
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select 1"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "1"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "1"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: LITERAL_INTEGER
+                        text: "1"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [13,14]
+        - text: [23,24]
+        - text: [40,41]
+        - text: [51,52]
+        - text: [59,60]
+        - text: [77,78]
+      comments:
+        - text: "-- @VIS table"
+        - text: "-- @vis-x"
+        - text: "-- @vis	markdown"
+        - text: "-- # Title"
+        - text: "-- Text"
+        - text: "-- @board width=4"
+      comment-blocks:
+        - type: COMMENT
+          text: "-- @VIS ta..\n-- @vis-x"
+          comments: [0,2]
+          lines:
+            - "@VIS table"
+            - "@vis-x"
+        - type: DASHQL_TAG
+          text: "-- @vis	ma..le\n-- Text"
+          tag: "vis"
+          comments: [2,3]
+          lines:
+            - "markdown"
+            - "# Title"
+            - "Text"
+        - type: DASHQL_TAG
+          text: "-- @board width=4"
+          tag: "board"
+          comments: [5,1]
+          lines:
+            - "width=4"
+      comment-warnings: []

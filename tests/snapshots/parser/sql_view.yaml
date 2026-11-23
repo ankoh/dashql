@@ -87,3 +87,66 @@ parser-snapshots:
       comments: []
       comment-blocks: []
       comment-warnings: []
+
+  - name: create_or_replace_view_columns
+    input: |-
+      create or replace temp view v (a, b) as select 1, 2
+    expected:
+      statements:
+        - type: CREATE_VIEW
+          ast-begin: 0
+          ast-size: 14
+          description:
+            text: "create or ..elect 1, 2"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_VIEW
+            text: "create or ..elect 1, 2"
+            children:
+              - key: SQL_VIEW_OR_REPLACE
+                type: BOOL
+                value: 1
+              - key: SQL_VIEW_TEMP
+                type: ENUM_SQL_TEMP_TYPE
+                value: LOCAL
+              - key: SQL_VIEW_NAME
+                type: ARRAY
+                text: "v"
+                children:
+                  - type: NAME
+                    text: "v"
+              - key: SQL_VIEW_COLUMNS
+                type: ARRAY
+                text: "(a, b)"
+                children:
+                  - type: NAME
+                    text: "a"
+                  - type: NAME
+                    text: "b"
+              - key: SQL_VIEW_STATEMENT
+                type: OBJECT_SQL_SELECT
+                text: "select 1, 2"
+                children:
+                  - key: SQL_SELECT_TARGETS
+                    type: ARRAY
+                    text: "1, 2"
+                    children:
+                      - type: OBJECT_SQL_RESULT_TARGET
+                        text: "1"
+                        children:
+                          - key: SQL_RESULT_TARGET_VALUE
+                            type: LITERAL_INTEGER
+                            text: "1"
+                      - type: OBJECT_SQL_RESULT_TARGET
+                        text: "2"
+                        children:
+                          - key: SQL_RESULT_TARGET_VALUE
+                            type: LITERAL_INTEGER
+                            text: "2"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []

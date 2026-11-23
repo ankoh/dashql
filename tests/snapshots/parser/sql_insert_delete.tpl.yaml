@@ -1,0 +1,23 @@
+parser-snapshots:
+  # INSERT with DEFAULT VALUES
+  - name: insert_default_values
+    input: |
+      insert into t default values
+  # INSERT with a column list, VALUES and RETURNING
+  - name: insert_values_returning
+    input: |
+      insert into s.t (a, b) values (1, 2), (3, 4) returning a, a * 2 as c
+  # INSERT after a WITH clause
+  - name: insert_with_cte
+    input: |
+      with src as (select 1 as a) insert into t (a) select a from src
+  # DELETE with an alias, USING and RETURNING
+  - name: delete_using_returning
+    input: |
+      delete from only t as x using u, v w where x.a = u.a and u.b = w.b returning *
+  # Data-modifying statements as CTEs
+  - name: cte_data_modifying
+    input: |
+      with d as (delete from t where a < 0 returning a),
+           i as (insert into u select a from d returning a)
+      select count(*) from i

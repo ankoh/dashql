@@ -1,0 +1,25 @@
+parser-snapshots:
+  # EXCEPT and INTERSECT with ALL and DISTINCT
+  - name: except_intersect_modifiers
+    input: |
+      select 1 except all select 2;
+      select 1 intersect all select 2;
+      select 1 except distinct select 2;
+  # INTERSECT binds tighter than UNION and EXCEPT, which are left-associative
+  - name: set_operation_precedence
+    input: |
+      select 1 union select 2 intersect select 3 except select 4
+  # ORDER BY, LIMIT and OFFSET after parenthesized branches apply to the whole set operation
+  - name: set_operation_parenthesized_order_limit
+    input: |
+      (select a from t) union all (select a from u) order by a desc limit 10 offset 5
+  # VALUES and TABLE as branches of a set operation
+  - name: set_operation_values_table
+    input: |
+      values (1), (2) union table t
+  # A WITH clause before a set operation, and doubly parenthesized selects
+  - name: set_operation_with_cte_and_parens
+    input: |
+      with x as (select 1 as a) select a from x union select 2 order by 1;
+      ((select 1));
+      ((select 1) except (select 2));

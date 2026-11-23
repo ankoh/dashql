@@ -7,3 +7,7 @@ parser-snapshots:
   - name: create_view_qualified_target
     input: |
       create view analytics.results as select 1
+  # Parse CREATE OR REPLACE of a temporary view with a column list
+  - name: create_or_replace_view_columns
+    input: |
+      create or replace temp view v (a, b) as select 1, 2

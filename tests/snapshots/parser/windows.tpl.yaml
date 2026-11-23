@@ -1,0 +1,9 @@
+parser-snapshots:
+  # A window that refines a named window
+  - name: window_refines_named_window
+    input: |
+      select sum(a) over (w order by b rows 2 preceding), avg(a) over w from t window w as (partition by c)
+  # RANGE frames with interval offsets
+  - name: window_range_interval_offsets
+    input: |
+      select count(*) over (order by ts range between interval '1' day preceding and interval '2 hours' following) from t

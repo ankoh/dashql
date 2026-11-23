@@ -59,3 +59,18 @@ parser-snapshots:
   - name: create_table_constraints_using_index
     input: |
       create table foo (a integer, b integer, primary key using index foo_pkey, unique using index foo_b_key)
+  # Parse the GLOBAL, LOCAL and UNLOGGED table kinds
+  - name: create_table_temp_kinds
+    input: |
+      create global temporary table g (a int);
+      create local temp table l (a int);
+      create unlogged table u (a int);
+  # Parse column constraints NULL, CHECK, UNIQUE and a negative default
+  - name: create_table_column_constraints
+    input: |
+      create table t (a int null unique check (a > 0), b int default -1 not null)
+  # Parse CREATE TABLE IF NOT EXISTS ... AS with a column list and WITH NO DATA
+  - name: create_table_as_columns_no_data
+    input: |
+      create table if not exists t (a, b) as select 1, 2 with no data;
+      create temp table u as select 1 with data;

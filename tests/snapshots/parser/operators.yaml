@@ -1,0 +1,1322 @@
+parser-snapshots:
+
+  - name: arithmetic_precedence_and_unary
+    input: |-
+      select 1 + 2 * 3 - 4 / 5 % 6 ^ 7, - - 1, + 2, -(-3), not not true, -a::int
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 64
+          description:
+            text: "select 1 +..e, -a::int"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select 1 +..e, -a::int"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "1 + 2 * 3 ..e, -a::int"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "1 + 2 * 3 .. 5 % 6 ^ 7"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "1 + 2 * 3 .. 5 % 6 ^ 7"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: MINUS
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "1 + 2 * 3 .. 5 % 6 ^ 7"
+                            children:
+                              - type: OBJECT_SQL_NARY_EXPRESSION
+                                text: "1 + 2 * 3"
+                                children:
+                                  - key: SQL_EXPRESSION_OPERATOR
+                                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                                    value: PLUS
+                                  - key: SQL_EXPRESSION_ARGS
+                                    type: ARRAY
+                                    text: "1 + 2 * 3"
+                                    children:
+                                      - type: LITERAL_INTEGER
+                                        text: "1"
+                                      - type: OBJECT_SQL_NARY_EXPRESSION
+                                        text: "2 * 3"
+                                        children:
+                                          - key: SQL_EXPRESSION_OPERATOR
+                                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                                            value: MULTIPLY
+                                          - key: SQL_EXPRESSION_ARGS
+                                            type: ARRAY
+                                            text: "2 * 3"
+                                            children:
+                                              - type: LITERAL_INTEGER
+                                                text: "2"
+                                              - type: LITERAL_INTEGER
+                                                text: "3"
+                              - type: OBJECT_SQL_NARY_EXPRESSION
+                                text: "4 / 5 % 6 ^ 7"
+                                children:
+                                  - key: SQL_EXPRESSION_OPERATOR
+                                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                                    value: MODULUS
+                                  - key: SQL_EXPRESSION_ARGS
+                                    type: ARRAY
+                                    text: "4 / 5 % 6 ^ 7"
+                                    children:
+                                      - type: OBJECT_SQL_NARY_EXPRESSION
+                                        text: "4 / 5"
+                                        children:
+                                          - key: SQL_EXPRESSION_OPERATOR
+                                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                                            value: DIVIDE
+                                          - key: SQL_EXPRESSION_ARGS
+                                            type: ARRAY
+                                            text: "4 / 5"
+                                            children:
+                                              - type: LITERAL_INTEGER
+                                                text: "4"
+                                              - type: LITERAL_INTEGER
+                                                text: "5"
+                                      - type: OBJECT_SQL_NARY_EXPRESSION
+                                        text: "6 ^ 7"
+                                        children:
+                                          - key: SQL_EXPRESSION_OPERATOR
+                                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                                            value: XOR
+                                          - key: SQL_EXPRESSION_ARGS
+                                            type: ARRAY
+                                            text: "6 ^ 7"
+                                            children:
+                                              - type: LITERAL_INTEGER
+                                                text: "6"
+                                              - type: LITERAL_INTEGER
+                                                text: "7"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "- - 1"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "- - 1"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: NEGATE
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "- - 1"
+                            children:
+                              - type: OBJECT_SQL_NARY_EXPRESSION
+                                text: "- 1"
+                                children:
+                                  - key: SQL_EXPRESSION_OPERATOR
+                                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                                    value: NEGATE
+                                  - key: SQL_EXPRESSION_ARGS
+                                    type: ARRAY
+                                    text: "- 1"
+                                    children:
+                                      - type: LITERAL_INTEGER
+                                        text: "1"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "+ 2"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: LITERAL_INTEGER
+                        text: "2"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "-(-3)"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "-(-3)"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: NEGATE
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "-(-3)"
+                            children:
+                              - type: OBJECT_SQL_NARY_EXPRESSION
+                                text: "-3"
+                                children:
+                                  - key: SQL_EXPRESSION_OPERATOR
+                                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                                    value: NEGATE
+                                  - key: SQL_EXPRESSION_ARGS
+                                    type: ARRAY
+                                    text: "-3"
+                                    children:
+                                      - type: LITERAL_INTEGER
+                                        text: "3"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "not not true"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "not not true"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: NOT
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "not not true"
+                            children:
+                              - type: OBJECT_SQL_NARY_EXPRESSION
+                                text: "not true"
+                                children:
+                                  - key: SQL_EXPRESSION_OPERATOR
+                                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                                    value: NOT
+                                  - key: SQL_EXPRESSION_ARGS
+                                    type: ARRAY
+                                    text: "not true"
+                                    children:
+                                      - type: BOOL
+                                        value: 1
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "-a::int"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "-a::int"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: NEGATE
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "-a::int"
+                            children:
+                              - type: OBJECT_SQL_TYPECAST_EXPRESSION
+                                text: "a::int"
+                                children:
+                                  - key: SQL_TYPECAST_VALUE
+                                    type: OBJECT_SQL_COLUMN_REF
+                                    text: "a"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "a"
+                                        children:
+                                          - type: NAME
+                                            text: "a"
+                                  - key: SQL_TYPECAST_TYPE
+                                    type: OBJECT_SQL_TYPENAME
+                                    text: "int"
+                                    children:
+                                      - key: SQL_TYPENAME_TYPE
+                                        type: ENUM_SQL_NUMERIC_TYPE
+                                        value: INT4
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: generic_infix_operators
+    input: |-
+      select a || b, a @> b, a <-> b, a & b | c, a !~ b, a#b
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 68
+          description:
+            text: "select a |.. !~ b, a#b"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select a |.. !~ b, a#b"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "a || b, a .. !~ b, a#b"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "a || b"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "a || b"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: OPERATOR
+                            text: "||"
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "a || b"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "a"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "a"
+                                    children:
+                                      - type: NAME
+                                        text: "a"
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "b"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "b"
+                                    children:
+                                      - type: NAME
+                                        text: "b"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "a @> b"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "a @> b"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: OPERATOR
+                            text: "@>"
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "a @> b"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "a"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "a"
+                                    children:
+                                      - type: NAME
+                                        text: "a"
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "b"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "b"
+                                    children:
+                                      - type: NAME
+                                        text: "b"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "a <-> b"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "a <-> b"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: OPERATOR
+                            text: "<->"
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "a <-> b"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "a"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "a"
+                                    children:
+                                      - type: NAME
+                                        text: "a"
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "b"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "b"
+                                    children:
+                                      - type: NAME
+                                        text: "b"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "a & b | c"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "a & b | c"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: OPERATOR
+                            text: "|"
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "a & b | c"
+                            children:
+                              - type: OBJECT_SQL_NARY_EXPRESSION
+                                text: "a & b"
+                                children:
+                                  - key: SQL_EXPRESSION_OPERATOR
+                                    type: OPERATOR
+                                    text: "&"
+                                  - key: SQL_EXPRESSION_ARGS
+                                    type: ARRAY
+                                    text: "a & b"
+                                    children:
+                                      - type: OBJECT_SQL_COLUMN_REF
+                                        text: "a"
+                                        children:
+                                          - key: SQL_COLUMN_REF_PATH
+                                            type: ARRAY
+                                            text: "a"
+                                            children:
+                                              - type: NAME
+                                                text: "a"
+                                      - type: OBJECT_SQL_COLUMN_REF
+                                        text: "b"
+                                        children:
+                                          - key: SQL_COLUMN_REF_PATH
+                                            type: ARRAY
+                                            text: "b"
+                                            children:
+                                              - type: NAME
+                                                text: "b"
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "c"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "c"
+                                    children:
+                                      - type: NAME
+                                        text: "c"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "a !~ b"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "a !~ b"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: OPERATOR
+                            text: "!~"
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "a !~ b"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "a"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "a"
+                                    children:
+                                      - type: NAME
+                                        text: "a"
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "b"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "b"
+                                    children:
+                                      - type: NAME
+                                        text: "b"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "a#b"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "a#b"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: OPERATOR
+                            text: "#"
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "a#b"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "a"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "a"
+                                    children:
+                                      - type: NAME
+                                        text: "a"
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "b"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "b"
+                                    children:
+                                      - type: NAME
+                                        text: "b"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: quantified_generic_operators
+    input: |-
+      select a @> any (select b from t), a operator(pg_catalog.=) all (array[1, 2]), a <> some (select 1), a ~~ any (array['x'])
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 55
+          description:
+            text: "select a @..rray['x'])"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select a @..rray['x'])"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "a @> any (..rray['x'])"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "a @> any (.. b from t)"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_SUBQUERY_EXPRESSION
+                        text: "a @> any (.. b from t)"
+                        children:
+                          - key: SQL_SUBQUERY_ARG0
+                            type: OBJECT_SQL_COLUMN_REF
+                            text: "a"
+                            children:
+                              - key: SQL_COLUMN_REF_PATH
+                                type: ARRAY
+                                text: "a"
+                                children:
+                                  - type: NAME
+                                    text: "a"
+                          - key: SQL_SUBQUERY_ARG1
+                            type: OBJECT_SQL_SELECT_EXPRESSION
+                            text: "a @> any (.. b from t)"
+                            children:
+                              - key: SQL_SELECT_EXPRESSION_STATEMENT
+                                type: OBJECT_SQL_SELECT
+                                text: "(select b from t)"
+                                children:
+                                  - key: SQL_SELECT_TARGETS
+                                    type: ARRAY
+                                    text: "b"
+                                    children:
+                                      - type: OBJECT_SQL_RESULT_TARGET
+                                        text: "b"
+                                        children:
+                                          - key: SQL_RESULT_TARGET_VALUE
+                                            type: OBJECT_SQL_COLUMN_REF
+                                            text: "b"
+                                            children:
+                                              - key: SQL_COLUMN_REF_PATH
+                                                type: ARRAY
+                                                text: "b"
+                                                children:
+                                                  - type: NAME
+                                                    text: "b"
+                                  - key: SQL_SELECT_FROM
+                                    type: ARRAY
+                                    text: "from t"
+                                    children:
+                                      - type: OBJECT_SQL_TABLEREF
+                                        text: "t"
+                                        children:
+                                          - key: SQL_TABLEREF_NAME
+                                            type: ARRAY
+                                            text: "t"
+                                            children:
+                                              - type: NAME
+                                                text: "t"
+                          - key: SQL_SUBQUERY_OPERATOR
+                            type: OPERATOR
+                            text: "@>"
+                          - key: SQL_SUBQUERY_QUANTIFIER
+                            type: ENUM_SQL_SUBQUERY_QUANTIFIER
+                            value: ANY
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "a operator..ray[1, 2])"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_SUBQUERY_EXPRESSION
+                        text: "a operator..ray[1, 2])"
+                        children:
+                          - key: SQL_SUBQUERY_ARG0
+                            type: OBJECT_SQL_COLUMN_REF
+                            text: "a"
+                            children:
+                              - key: SQL_COLUMN_REF_PATH
+                                type: ARRAY
+                                text: "a"
+                                children:
+                                  - type: NAME
+                                    text: "a"
+                          - key: SQL_SUBQUERY_ARG1
+                            type: OBJECT_SQL_ARRAY_EXPRESSION
+                            text: "array[1, 2]"
+                            children:
+                              - key: SQL_ARRAY_EXPRESSION_VALUES
+                                type: ARRAY
+                                text: "1, 2"
+                                children:
+                                  - type: LITERAL_INTEGER
+                                    text: "1"
+                                  - type: LITERAL_INTEGER
+                                    text: "2"
+                          - key: SQL_SUBQUERY_OPERATOR
+                            type: ARRAY
+                            text: "operator(p..catalog.=)"
+                            children:
+                              - type: NAME
+                                text: "pg_catalog"
+                              - type: ENUM_SQL_EXPRESSION_OPERATOR
+                                value: EQUAL
+                          - key: SQL_SUBQUERY_QUANTIFIER
+                            type: ENUM_SQL_SUBQUERY_QUANTIFIER
+                            value: ALL
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "a <> some ..(select 1)"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_SUBQUERY_EXPRESSION
+                        text: "a <> some ..(select 1)"
+                        children:
+                          - key: SQL_SUBQUERY_ARG0
+                            type: OBJECT_SQL_COLUMN_REF
+                            text: "a"
+                            children:
+                              - key: SQL_COLUMN_REF_PATH
+                                type: ARRAY
+                                text: "a"
+                                children:
+                                  - type: NAME
+                                    text: "a"
+                          - key: SQL_SUBQUERY_ARG1
+                            type: OBJECT_SQL_SELECT_EXPRESSION
+                            text: "a <> some ..(select 1)"
+                            children:
+                              - key: SQL_SELECT_EXPRESSION_STATEMENT
+                                type: OBJECT_SQL_SELECT
+                                text: "(select 1)"
+                                children:
+                                  - key: SQL_SELECT_TARGETS
+                                    type: ARRAY
+                                    text: "1"
+                                    children:
+                                      - type: OBJECT_SQL_RESULT_TARGET
+                                        text: "1"
+                                        children:
+                                          - key: SQL_RESULT_TARGET_VALUE
+                                            type: LITERAL_INTEGER
+                                            text: "1"
+                          - key: SQL_SUBQUERY_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: NOT_EQUAL
+                          - key: SQL_SUBQUERY_QUANTIFIER
+                            type: ENUM_SQL_SUBQUERY_QUANTIFIER
+                            value: SOME
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "a ~~ any (..rray['x'])"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_SUBQUERY_EXPRESSION
+                        text: "a ~~ any (..rray['x'])"
+                        children:
+                          - key: SQL_SUBQUERY_ARG0
+                            type: OBJECT_SQL_COLUMN_REF
+                            text: "a"
+                            children:
+                              - key: SQL_COLUMN_REF_PATH
+                                type: ARRAY
+                                text: "a"
+                                children:
+                                  - type: NAME
+                                    text: "a"
+                          - key: SQL_SUBQUERY_ARG1
+                            type: OBJECT_SQL_ARRAY_EXPRESSION
+                            text: "array['x']"
+                            children:
+                              - key: SQL_ARRAY_EXPRESSION_VALUES
+                                type: ARRAY
+                                text: "'x'"
+                                children:
+                                  - type: LITERAL_STRING
+                                    text: "'x'"
+                          - key: SQL_SUBQUERY_OPERATOR
+                            type: OPERATOR
+                            text: "~~"
+                          - key: SQL_SUBQUERY_QUANTIFIER
+                            type: ENUM_SQL_SUBQUERY_QUANTIFIER
+                            value: ANY
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: is_predicates
+    input: |-
+      select a is true, a is not false, a is unknown, a is not unknown, a isnull, a notnull, a is not null from t
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 55
+          description:
+            text: "select a i..ull from t"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select a i..ull from t"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "a is true,..s not null"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "a is true"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "a is true"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: IS_TRUE
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "a is true"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "a"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "a"
+                                    children:
+                                      - type: NAME
+                                        text: "a"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "a is not false"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "a is not false"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: IS_NOT_FALSE
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "a is not false"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "a"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "a"
+                                    children:
+                                      - type: NAME
+                                        text: "a"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "a is unknown"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "a is unknown"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: IS_UNKNOWN
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "a is unknown"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "a"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "a"
+                                    children:
+                                      - type: NAME
+                                        text: "a"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "a is not unknown"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "a is not unknown"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: IS_NOT_UNKNOWN
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "a is not unknown"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "a"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "a"
+                                    children:
+                                      - type: NAME
+                                        text: "a"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "a isnull"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "a isnull"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: IS_NULL
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "a isnull"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "a"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "a"
+                                    children:
+                                      - type: NAME
+                                        text: "a"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "a notnull"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "a notnull"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: NOT_NULL
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "a notnull"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "a"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "a"
+                                    children:
+                                      - type: NAME
+                                        text: "a"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "a is not null"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "a is not null"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: NOT_NULL
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "a is not null"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "a"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "a"
+                                    children:
+                                      - type: NAME
+                                        text: "a"
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from t"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "t"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "t"
+                        children:
+                          - type: NAME
+                            text: "t"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: pattern_matching_operators
+    input: |-
+      select a ilike 'z', a not ilike 'y%', a similar to '(a|b)%', a not similar to 'c' from t
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 38
+          description:
+            text: "select a i..'c' from t"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select a i..'c' from t"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "a ilike 'z..lar to 'c'"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "a ilike 'z'"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "a ilike 'z'"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: ILIKE
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "a ilike 'z'"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "a"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "a"
+                                    children:
+                                      - type: NAME
+                                        text: "a"
+                              - type: LITERAL_STRING
+                                text: "'z'"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "a not ilike 'y%'"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "a not ilike 'y%'"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: NOT_ILIKE
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "a not ilike 'y%'"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "a"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "a"
+                                    children:
+                                      - type: NAME
+                                        text: "a"
+                              - type: LITERAL_STRING
+                                text: "'y%'"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "a similar ..o '(a|b)%'"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "a similar ..o '(a|b)%'"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: SIMILAR_TO
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "a similar ..o '(a|b)%'"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "a"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "a"
+                                    children:
+                                      - type: NAME
+                                        text: "a"
+                              - type: LITERAL_STRING
+                                text: "'(a|b)%'"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "a not simi..lar to 'c'"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "a not simi..lar to 'c'"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: NOT_SIMILAR_TO
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "a not simi..lar to 'c'"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "a"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "a"
+                                    children:
+                                      - type: NAME
+                                        text: "a"
+                              - type: LITERAL_STRING
+                                text: "'c'"
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from t"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "t"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "t"
+                        children:
+                          - type: NAME
+                            text: "t"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: at_time_zone_and_collate_chains
+    input: |-
+      select ts at time zone 'UTC' at time zone 'Europe/Berlin', name collate "C" collate "de_DE" from t
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 32
+          description:
+            text: "select ts ..DE\" from t"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select ts ..DE\" from t"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "ts at time..te \"de_DE\""
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "ts at time..pe/Berlin'"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "ts at time..pe/Berlin'"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: AT_TIMEZONE
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "ts at time..pe/Berlin'"
+                            children:
+                              - type: OBJECT_SQL_NARY_EXPRESSION
+                                text: "ts at time..zone 'UTC'"
+                                children:
+                                  - key: SQL_EXPRESSION_OPERATOR
+                                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                                    value: AT_TIMEZONE
+                                  - key: SQL_EXPRESSION_ARGS
+                                    type: ARRAY
+                                    text: "ts at time..zone 'UTC'"
+                                    children:
+                                      - type: OBJECT_SQL_COLUMN_REF
+                                        text: "ts"
+                                        children:
+                                          - key: SQL_COLUMN_REF_PATH
+                                            type: ARRAY
+                                            text: "ts"
+                                            children:
+                                              - type: NAME
+                                                text: "ts"
+                                      - type: LITERAL_STRING
+                                        text: "'UTC'"
+                              - type: LITERAL_STRING
+                                text: "'Europe/Berlin'"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "name colla..te \"de_DE\""
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "name colla..te \"de_DE\""
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: COLLATE
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "name colla..te \"de_DE\""
+                            children:
+                              - type: OBJECT_SQL_NARY_EXPRESSION
+                                text: "name collate \"C\""
+                                children:
+                                  - key: SQL_EXPRESSION_OPERATOR
+                                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                                    value: COLLATE
+                                  - key: SQL_EXPRESSION_ARGS
+                                    type: ARRAY
+                                    text: "name collate \"C\""
+                                    children:
+                                      - type: OBJECT_SQL_COLUMN_REF
+                                        text: "name"
+                                        children:
+                                          - key: SQL_COLUMN_REF_PATH
+                                            type: ARRAY
+                                            text: "name"
+                                            children:
+                                              - type: NAME
+                                                text: "name"
+                                      - type: ARRAY
+                                        text: "\"C\""
+                                        children:
+                                          - type: NAME
+                                            text: "\"C\""
+                              - type: ARRAY
+                                text: "\"de_DE\""
+                                children:
+                                  - type: NAME
+                                    text: "\"de_DE\""
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from t"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "t"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "t"
+                        children:
+                          - type: NAME
+                            text: "t"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: nested_expressions
+    input: |-
+      select ((((((((((1 + 2)))))))))), -(-(-(-1))), case when case when a then b end then case c when 1 then case when d then 2 end end end from t
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 53
+          description:
+            text: "select (((..end from t"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select (((..end from t"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "((((((((((..nd end end"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "((((((((((..))))))))))"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "1 + 2"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: PLUS
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "1 + 2"
+                            children:
+                              - type: LITERAL_INTEGER
+                                text: "1"
+                              - type: LITERAL_INTEGER
+                                text: "2"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "-(-(-(-1)))"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "-(-(-(-1)))"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: NEGATE
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "-(-(-(-1)))"
+                            children:
+                              - type: OBJECT_SQL_NARY_EXPRESSION
+                                text: "-(-(-1))"
+                                children:
+                                  - key: SQL_EXPRESSION_OPERATOR
+                                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                                    value: NEGATE
+                                  - key: SQL_EXPRESSION_ARGS
+                                    type: ARRAY
+                                    text: "-(-(-1))"
+                                    children:
+                                      - type: OBJECT_SQL_NARY_EXPRESSION
+                                        text: "-(-1)"
+                                        children:
+                                          - key: SQL_EXPRESSION_OPERATOR
+                                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                                            value: NEGATE
+                                          - key: SQL_EXPRESSION_ARGS
+                                            type: ARRAY
+                                            text: "-(-1)"
+                                            children:
+                                              - type: OBJECT_SQL_NARY_EXPRESSION
+                                                text: "-1"
+                                                children:
+                                                  - key: SQL_EXPRESSION_OPERATOR
+                                                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                                                    value: NEGATE
+                                                  - key: SQL_EXPRESSION_ARGS
+                                                    type: ARRAY
+                                                    text: "-1"
+                                                    children:
+                                                      - type: LITERAL_INTEGER
+                                                        text: "1"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "case when ..nd end end"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_CASE
+                        text: "case when ..nd end end"
+                        children:
+                          - key: SQL_CASE_CLAUSES
+                            type: ARRAY
+                            text: "when case .. 2 end end"
+                            children:
+                              - type: OBJECT_SQL_CASE_CLAUSE
+                                text: "when case .. 2 end end"
+                                children:
+                                  - key: SQL_CASE_CLAUSE_WHEN
+                                    type: OBJECT_SQL_CASE
+                                    text: "case when ..then b end"
+                                    children:
+                                      - key: SQL_CASE_CLAUSES
+                                        type: ARRAY
+                                        text: "when a then b"
+                                        children:
+                                          - type: OBJECT_SQL_CASE_CLAUSE
+                                            text: "when a then b"
+                                            children:
+                                              - key: SQL_CASE_CLAUSE_WHEN
+                                                type: OBJECT_SQL_COLUMN_REF
+                                                text: "a"
+                                                children:
+                                                  - key: SQL_COLUMN_REF_PATH
+                                                    type: ARRAY
+                                                    text: "a"
+                                                    children:
+                                                      - type: NAME
+                                                        text: "a"
+                                              - key: SQL_CASE_CLAUSE_THEN
+                                                type: OBJECT_SQL_COLUMN_REF
+                                                text: "b"
+                                                children:
+                                                  - key: SQL_COLUMN_REF_PATH
+                                                    type: ARRAY
+                                                    text: "b"
+                                                    children:
+                                                      - type: NAME
+                                                        text: "b"
+                                  - key: SQL_CASE_CLAUSE_THEN
+                                    type: OBJECT_SQL_CASE
+                                    text: "case c whe.. 2 end end"
+                                    children:
+                                      - key: SQL_CASE_ARGUMENT
+                                        type: OBJECT_SQL_COLUMN_REF
+                                        text: "c"
+                                        children:
+                                          - key: SQL_COLUMN_REF_PATH
+                                            type: ARRAY
+                                            text: "c"
+                                            children:
+                                              - type: NAME
+                                                text: "c"
+                                      - key: SQL_CASE_CLAUSES
+                                        type: ARRAY
+                                        text: "when 1 the..then 2 end"
+                                        children:
+                                          - type: OBJECT_SQL_CASE_CLAUSE
+                                            text: "when 1 the..then 2 end"
+                                            children:
+                                              - key: SQL_CASE_CLAUSE_WHEN
+                                                type: LITERAL_INTEGER
+                                                text: "1"
+                                              - key: SQL_CASE_CLAUSE_THEN
+                                                type: OBJECT_SQL_CASE
+                                                text: "case when ..then 2 end"
+                                                children:
+                                                  - key: SQL_CASE_CLAUSES
+                                                    type: ARRAY
+                                                    text: "when d then 2"
+                                                    children:
+                                                      - type: OBJECT_SQL_CASE_CLAUSE
+                                                        text: "when d then 2"
+                                                        children:
+                                                          - key: SQL_CASE_CLAUSE_WHEN
+                                                            type: OBJECT_SQL_COLUMN_REF
+                                                            text: "d"
+                                                            children:
+                                                              - key: SQL_COLUMN_REF_PATH
+                                                                type: ARRAY
+                                                                text: "d"
+                                                                children:
+                                                                  - type: NAME
+                                                                    text: "d"
+                                                          - key: SQL_CASE_CLAUSE_THEN
+                                                            type: LITERAL_INTEGER
+                                                            text: "2"
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from t"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "t"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "t"
+                        children:
+                          - type: NAME
+                            text: "t"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []

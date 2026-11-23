@@ -1,0 +1,297 @@
+parser-snapshots:
+
+  - name: window_refines_named_window
+    input: |-
+      select sum(a) over (w order by b rows 2 preceding), avg(a) over w from t window w as (partition by c)
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 46
+          description:
+            text: "select sum..tion by c)"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select sum..tion by c)"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "sum(a) ove..(a) over w"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "sum(a) ove..preceding)"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_FUNCTION_EXPRESSION
+                        text: "sum(a) ove..preceding)"
+                        children:
+                          - key: SQL_FUNCTION_NAME
+                            type: ARRAY
+                            text: "sum"
+                            children:
+                              - type: NAME
+                                text: "sum"
+                          - key: SQL_FUNCTION_ARGUMENTS
+                            type: ARRAY
+                            text: "a"
+                            children:
+                              - type: OBJECT_SQL_FUNCTION_ARG
+                                text: "a"
+                                children:
+                                  - key: SQL_FUNCTION_ARG_VALUE
+                                    type: OBJECT_SQL_COLUMN_REF
+                                    text: "a"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "a"
+                                        children:
+                                          - type: NAME
+                                            text: "a"
+                          - key: SQL_FUNCTION_OVER
+                            type: OBJECT_SQL_WINDOW_FRAME
+                            text: "(w order b..preceding)"
+                            children:
+                              - key: SQL_WINDOW_FRAME_NAME
+                                type: NAME
+                                text: "w"
+                              - key: SQL_WINDOW_FRAME_MODE
+                                type: ENUM_SQL_WINDOW_RANGE_MODE
+                                value: ROWS
+                              - key: SQL_WINDOW_FRAME_BOUNDS
+                                type: ARRAY
+                                text: "2 preceding"
+                                children:
+                                  - type: OBJECT_SQL_WINDOW_BOUND
+                                    text: "2 preceding"
+                                    children:
+                                      - key: SQL_WINDOW_BOUND_MODE
+                                        type: ENUM_SQL_WINDOW_BOUND_MODE
+                                        value: VALUE
+                                      - key: SQL_WINDOW_BOUND_DIRECTION
+                                        type: ENUM_SQL_WINDOW_BOUND_DIRECTION
+                                        value: PRECEDING
+                                      - key: SQL_WINDOW_BOUND_VALUE
+                                        type: LITERAL_INTEGER
+                                        text: "2"
+                              - key: SQL_WINDOW_FRAME_ORDER
+                                type: ARRAY
+                                text: "order by b"
+                                children:
+                                  - type: OBJECT_SQL_ORDER
+                                    text: "b"
+                                    children:
+                                      - key: SQL_ORDER_VALUE
+                                        type: OBJECT_SQL_COLUMN_REF
+                                        text: "b"
+                                        children:
+                                          - key: SQL_COLUMN_REF_PATH
+                                            type: ARRAY
+                                            text: "b"
+                                            children:
+                                              - type: NAME
+                                                text: "b"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "avg(a) over w"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_FUNCTION_EXPRESSION
+                        text: "avg(a) over w"
+                        children:
+                          - key: SQL_FUNCTION_NAME
+                            type: ARRAY
+                            text: "avg"
+                            children:
+                              - type: NAME
+                                text: "avg"
+                          - key: SQL_FUNCTION_ARGUMENTS
+                            type: ARRAY
+                            text: "a"
+                            children:
+                              - type: OBJECT_SQL_FUNCTION_ARG
+                                text: "a"
+                                children:
+                                  - key: SQL_FUNCTION_ARG_VALUE
+                                    type: OBJECT_SQL_COLUMN_REF
+                                    text: "a"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "a"
+                                        children:
+                                          - type: NAME
+                                            text: "a"
+                          - key: SQL_FUNCTION_OVER
+                            type: NAME
+                            text: "w"
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from t"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "t"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "t"
+                        children:
+                          - type: NAME
+                            text: "t"
+              - key: SQL_SELECT_WINDOWS
+                type: ARRAY
+                text: "window w a..tion by c)"
+                children:
+                  - type: OBJECT_SQL_WINDOW_DEF
+                    text: "w as (part..tion by c)"
+                    children:
+                      - key: SQL_WINDOW_DEF_NAME
+                        type: NAME
+                        text: "w"
+                      - key: SQL_WINDOW_DEF_FRAME
+                        type: OBJECT_SQL_WINDOW_FRAME
+                        text: "(partition by c)"
+                        children:
+                          - key: SQL_WINDOW_FRAME_PARTITION
+                            type: ARRAY
+                            text: "c"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "c"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "c"
+                                    children:
+                                      - type: NAME
+                                        text: "c"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: window_range_interval_offsets
+    input: |-
+      select count(*) over (order by ts range between interval '1' day preceding and interval '2 hours' following) from t
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 31
+          description:
+            text: "select cou..ng) from t"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select cou..ng) from t"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "count(*) o..following)"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "count(*) o..following)"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_FUNCTION_EXPRESSION
+                        text: "count(*) o..following)"
+                        children:
+                          - key: SQL_FUNCTION_NAME
+                            type: ARRAY
+                            text: "count"
+                            children:
+                              - type: NAME
+                                text: "count"
+                          - key: SQL_FUNCTION_ARGUMENTS_STAR
+                            type: BOOL
+                            value: 1
+                          - key: SQL_FUNCTION_OVER
+                            type: OBJECT_SQL_WINDOW_FRAME
+                            text: "(order by ..following)"
+                            children:
+                              - key: SQL_WINDOW_FRAME_MODE
+                                type: ENUM_SQL_WINDOW_RANGE_MODE
+                                value: RANGE
+                              - key: SQL_WINDOW_FRAME_BOUNDS
+                                type: ARRAY
+                                text: "between in.. following"
+                                children:
+                                  - type: OBJECT_SQL_WINDOW_BOUND
+                                    text: "interval '.. preceding"
+                                    children:
+                                      - key: SQL_WINDOW_BOUND_MODE
+                                        type: ENUM_SQL_WINDOW_BOUND_MODE
+                                        value: VALUE
+                                      - key: SQL_WINDOW_BOUND_DIRECTION
+                                        type: ENUM_SQL_WINDOW_BOUND_DIRECTION
+                                        value: PRECEDING
+                                      - key: SQL_WINDOW_BOUND_VALUE
+                                        type: OBJECT_SQL_CONST_INTERVAL_CAST
+                                        text: "interval '1' day"
+                                        children:
+                                          - key: SQL_CONST_CAST_VALUE
+                                            type: LITERAL_STRING
+                                            text: "'1'"
+                                          - key: SQL_CONST_CAST_INTERVAL
+                                            type: OBJECT_SQL_INTERVAL_TYPE
+                                            text: "day"
+                                            children:
+                                              - key: SQL_INTERVAL_TYPE
+                                                type: ENUM_SQL_INTERVAL_TYPE
+                                                value: DAY
+                                  - type: OBJECT_SQL_WINDOW_BOUND
+                                    text: "interval '.. following"
+                                    children:
+                                      - key: SQL_WINDOW_BOUND_MODE
+                                        type: ENUM_SQL_WINDOW_BOUND_MODE
+                                        value: VALUE
+                                      - key: SQL_WINDOW_BOUND_DIRECTION
+                                        type: ENUM_SQL_WINDOW_BOUND_DIRECTION
+                                        value: FOLLOWING
+                                      - key: SQL_WINDOW_BOUND_VALUE
+                                        type: OBJECT_SQL_CONST_INTERVAL_CAST
+                                        text: "interval '2 hours'"
+                                        children:
+                                          - key: SQL_CONST_CAST_VALUE
+                                            type: LITERAL_STRING
+                                            text: "'2 hours'"
+                              - key: SQL_WINDOW_FRAME_ORDER
+                                type: ARRAY
+                                text: "order by ts"
+                                children:
+                                  - type: OBJECT_SQL_ORDER
+                                    text: "ts"
+                                    children:
+                                      - key: SQL_ORDER_VALUE
+                                        type: OBJECT_SQL_COLUMN_REF
+                                        text: "ts"
+                                        children:
+                                          - key: SQL_COLUMN_REF_PATH
+                                            type: ARRAY
+                                            text: "ts"
+                                            children:
+                                              - type: NAME
+                                                text: "ts"
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from t"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "t"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "t"
+                        children:
+                          - type: NAME
+                            text: "t"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []

@@ -1,0 +1,32 @@
+parser-snapshots:
+  # Decimal forms, exponents, and integers past i64 that become floats
+  - name: numeric_literal_forms
+    input: |
+      select .5, 5., 1.5e10, 1E-3, 2e+2, 9223372036854775807, 9223372036854775808, 0.0
+  # An exponent without digits puts the marker back, a number before two dots too
+  - name: numeric_literal_fails
+    input: |
+      select 1e;
+      select 1..2;
+  # Strings separated by a line break continue each other, on one line they are an error
+  - name: string_continuation
+    input: |
+      select 'foo'
+        'bar';
+      select 'a' 'b';
+  # E'' and N'' prefixes take generic paths, U&"" is a quoted identifier
+  - name: string_prefixes
+    input: |
+      select E'a\tb', N'national', U&"d\0061t"
+  # Dollar-quoted strings with tags, nested delimiters and empty bodies
+  - name: dollar_quoted_strings
+    input: |
+      select $$it's$$, $fn$ a $$ b $fn$, $_x1$$_x1$, $ä$ü$ä$
+  # Every kind of obfuscated literal, the markers are case-sensitive
+  - name: obfuscated_literals
+    input: |
+      select /*String(00A1)*/, /*Float(0B2C)*/, /*HexString(0003)*/, /*BitString(FFFF)*/, /*string(0001)*/ 1
+  # Interval literals with field ranges and an integer value
+  - name: interval_literal_forms
+    input: |
+      select interval '1' day to second, interval '1-2' year to month, interval 5 minute

@@ -290,3 +290,35 @@ parser-snapshots:
       -- Revenue per segment.
       -- @end
       select 1
+  # A @param with a default ends at its line, the next lines are the description
+  - name: tag_param_default_ends_at_line
+    input: |
+      -- @param :region = 'EU'
+      -- Revenue of a region.
+      select 1
+  # A @vis kpi with args ends at its line
+  - name: tag_vis_kpi_args
+    input: |
+      /**
+       * @vis kpi value=revenue unit=EUR
+       * Revenue of the year.
+       */
+      select 1
+  # @flow ends at its line, the free text of @manual runs to the end of the comment
+  - name: tag_flow_and_manual
+    input: |
+      -- @flow from=orders
+      -- @manual
+      -- Writes to the warehouse,
+      -- run it by hand.
+      select 1
+  # A @board without args runs to the next tag
+  - name: tag_board_without_args
+    input: |
+      -- @board
+      -- width=6
+      -- @vis table
+      select 1
+  # Tag names are case-sensitive, end at whitespace, and @vis markdown runs to the next tag
+  - name: tag_names_and_markdown
+    input: "-- @VIS table\n-- @vis-x\n-- @vis\tmarkdown\n-- # Title\n-- Text\n-- @board width=4\nselect 1\n"

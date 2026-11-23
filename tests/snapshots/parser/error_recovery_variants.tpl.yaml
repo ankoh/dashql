@@ -155,3 +155,30 @@ parser-snapshots:
   - name: recovery_eof_in_each_position
     input: |-
       select a, b from t where a = 1 and b in (1, 2) group by a having count(*) > 1 order by a limit
+
+  # An error inside an array constructor
+  - name: recovery_array_constructor
+    input: |-
+      select array[1, , 2];
+      select 3
+
+  # An error inside a nested derived table
+  - name: recovery_nested_derived_table
+    input: |-
+      select * from (select * from (select a + from t) x) y;
+      select 4
+
+  # An error in the body of a view and of CREATE TABLE AS
+  - name: recovery_view_and_ctas_body
+    input: |-
+      create view v as select from where;
+      create table t as select 1 +;
+      select 5
+
+  # Broken utility commands
+  - name: recovery_commands
+    input: |-
+      truncate;
+      grant select on to x;
+      create index on;
+      select 6

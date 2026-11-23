@@ -1184,3 +1184,338 @@ parser-snapshots:
       comments: []
       comment-blocks: []
       comment-warnings: []
+
+  - name: recovery_array_constructor
+    input: |-
+      select array[1, , 2];
+      select 3
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 6
+          description:
+            text: "select arr..y[1, , 2];"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select arr..ay[1, , 2]"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "array[1, , 2]"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "array[1, , 2]"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_ARRAY_EXPRESSION
+                        text: "array[1, , 2]"
+                        children:
+                          - key: SQL_ARRAY_EXPRESSION_VALUES
+                            type: ARRAY
+                            text: "1, , 2"
+                            children:
+                              - type: LITERAL_INTEGER
+                                text: "1"
+        - type: SELECT
+          ast-begin: 6
+          ast-size: 4
+          description:
+            text: "select 3"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select 3"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "3"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "3"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: LITERAL_INTEGER
+                        text: "3"
+      scanner-errors: []
+      parser-errors:
+        - message: 'syntax error, unexpected COMMA'
+          text: ","
+      line-breaks:
+        - text: [21,22]
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: recovery_nested_derived_table
+    input: |-
+      select * from (select * from (select a + from t) x) y;
+      select 4
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 24
+          description:
+            text: "select * f..m t) x) y;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select * f..om t) x) y"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "*"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "*"
+                    children:
+                      - key: SQL_RESULT_TARGET_STAR
+                        type: BOOL
+                        value: 1
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from (sele..om t) x) y"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "(select * ..om t) x) y"
+                    children:
+                      - key: SQL_TABLEREF_ALIAS
+                        type: NAME
+                        text: "y"
+                      - key: SQL_TABLEREF_TABLE
+                        type: OBJECT_SQL_SELECT
+                        text: "(select * ..from t) x)"
+                        children:
+                          - key: SQL_SELECT_TARGETS
+                            type: ARRAY
+                            text: "*"
+                            children:
+                              - type: OBJECT_SQL_RESULT_TARGET
+                                text: "*"
+                                children:
+                                  - key: SQL_RESULT_TARGET_STAR
+                                    type: BOOL
+                                    value: 1
+                          - key: SQL_SELECT_FROM
+                            type: ARRAY
+                            text: "from (sele.. from t) x"
+                            children:
+                              - type: OBJECT_SQL_TABLEREF
+                                text: "(select a .. from t) x"
+                                children:
+                                  - key: SQL_TABLEREF_ALIAS
+                                    type: NAME
+                                    text: "x"
+                                  - key: SQL_TABLEREF_TABLE
+                                    type: OBJECT_SQL_SELECT
+                                    text: "(select a + from t)"
+                                    children:
+                                      - key: SQL_SELECT_TARGETS
+                                        type: ARRAY
+                                        text: "a + from t"
+                                        children:
+                                          - type: OBJECT_SQL_RESULT_TARGET
+                                            text: "a + from t"
+                                            children:
+                                              - key: SQL_RESULT_TARGET_VALUE
+                                                type: OBJECT_SQL_NARY_EXPRESSION
+                                                text: "a + from"
+                                                children:
+                                                  - key: SQL_EXPRESSION_OPERATOR
+                                                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                                                    value: PLUS
+                                                  - key: SQL_EXPRESSION_ARGS
+                                                    type: ARRAY
+                                                    text: "a + from"
+                                                    children:
+                                                      - type: OBJECT_SQL_COLUMN_REF
+                                                        text: "a"
+                                                        children:
+                                                          - key: SQL_COLUMN_REF_PATH
+                                                            type: ARRAY
+                                                            text: "a"
+                                                            children:
+                                                              - type: NAME
+                                                                text: "a"
+                                              - key: SQL_RESULT_TARGET_NAME
+                                                type: NAME
+                                                text: "t"
+        - type: SELECT
+          ast-begin: 24
+          ast-size: 4
+          description:
+            text: "select 4"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select 4"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "4"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "4"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: LITERAL_INTEGER
+                        text: "4"
+      scanner-errors: []
+      parser-errors:
+        - message: 'syntax error, unexpected FROM'
+          text: "from"
+      line-breaks:
+        - text: [54,55]
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: recovery_view_and_ctas_body
+    input: |-
+      create view v as select from where;
+      create table t as select 1 +;
+      select 5
+    expected:
+      statements:
+        - type: CREATE_VIEW
+          ast-begin: 0
+          ast-size: 3
+          description:
+            text: "create vie..rom where;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_VIEW
+            text: "create vie..from where"
+            children:
+              - key: SQL_VIEW_NAME
+                type: ARRAY
+                text: "v"
+                children:
+                  - type: NAME
+                    text: "v"
+        - type: CREATE_TABLE_AS
+          ast-begin: 3
+          ast-size: 10
+          description:
+            text: "create tab..elect 1 +;"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_CREATE_AS
+            text: "create tab..elect 1 +;"
+            children:
+              - key: SQL_CREATE_AS_NAME
+                type: ARRAY
+                text: "t"
+                children:
+                  - type: NAME
+                    text: "t"
+              - key: SQL_CREATE_AS_STATEMENT
+                type: OBJECT_SQL_SELECT
+                text: "select 1 +;"
+                children:
+                  - key: SQL_SELECT_TARGETS
+                    type: ARRAY
+                    text: "1 +;"
+                    children:
+                      - type: OBJECT_SQL_RESULT_TARGET
+                        text: "1 +;"
+                        children:
+                          - key: SQL_RESULT_TARGET_VALUE
+                            type: OBJECT_SQL_NARY_EXPRESSION
+                            text: "1 +;"
+                            children:
+                              - key: SQL_EXPRESSION_OPERATOR
+                                type: ENUM_SQL_EXPRESSION_OPERATOR
+                                value: PLUS
+                              - key: SQL_EXPRESSION_ARGS
+                                type: ARRAY
+                                text: "1 +;"
+                                children:
+                                  - type: LITERAL_INTEGER
+                                    text: "1"
+        - type: SELECT
+          ast-begin: 13
+          ast-size: 4
+          description:
+            text: "select 5"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select 5"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "5"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "5"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: LITERAL_INTEGER
+                        text: "5"
+      scanner-errors: []
+      parser-errors:
+        - message: expected a table reference after FROM
+          text: "from"
+        - message: 'syntax error, unexpected SEMICOLON'
+          text: ";"
+      line-breaks:
+        - text: [35,36]
+        - text: [65,66]
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: recovery_commands
+    input: |-
+      truncate;
+      grant select on to x;
+      create index on;
+      select 6
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 2
+          ast-size: 4
+          description:
+            text: "select 6"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select 6"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "6"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "6"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: LITERAL_INTEGER
+                        text: "6"
+      scanner-errors: []
+      parser-errors:
+        - message: 'syntax error, unexpected SEMICOLON'
+          text: ";"
+        - message: 'syntax error, unexpected TO'
+          text: "to"
+        - message: 'syntax error, unexpected SEMICOLON'
+          text: ";"
+      line-breaks:
+        - text: [9,10]
+        - text: [31,32]
+        - text: [48,49]
+      comments: []
+      comment-blocks: []
+      comment-warnings: []

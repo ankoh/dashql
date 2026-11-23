@@ -1,0 +1,24 @@
+parser-snapshots:
+  # An empty script
+  - name: empty_script
+    input: ""
+  # A script of tabs and form feeds only
+  - name: whitespace_only_script
+    input: "\t\f\t"
+  # A script of comments only
+  - name: comments_only_script
+    input: |
+      /* a */
+      -- b
+  # Semicolons and comments between statements
+  - name: empty_statements_and_comments
+    input: |
+      ;/* x */;select 1;; -- y
+      ;select 2
+  # Unicode spaces separate tokens, also inside an identifier and before the script
+  - name: unicode_whitespace
+    input: "﻿select 1,　2 from t​x"
+  # Unquoted Unicode identifiers, case folding is ASCII only
+  - name: unicode_identifiers
+    input: |
+      select abc, def, größe, Größe, "Größe", 名前, _x1$, xyz_column from tabelle_ü as alias_name
