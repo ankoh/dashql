@@ -1,106 +1,99 @@
 import * as React from 'react';
 import { act } from '@akohn/dashql-react/testing/react_act';
-import { createRoot, type Root } from 'react-dom/client';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { createTestRoot } from '@akohn/dashql-react/testing/react_root';
+import { useRuntime } from '@akohn/dashql-react/hooks';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import * as core from '@akohn/dashql';
 
-import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_state';
-import { ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
-import { WorkbookShellsPage, type WorkbookShellsPageDependencies } from './workbook_shells_page.js';
+import type { Runtime } from '@akohn/dashql/runtime/runtime';
+import type { ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
+import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
+import { LoggerProvider } from '../../host/logger_provider.js';
+import { StorageProvider } from '../../storage/storage_provider.js';
+import { TestRuntime } from '../../tests/test_runtime.js';
+import { addTestConnection } from '../../tests/test_connections.js';
+import { WorkbookShellsPage } from './workbook_shells_page.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
 
-function fakeConnection(connectionId: string) {
-    return {
-        connectionId,
-        connectionHealth: ConnectionHealth.ONLINE,
-        connectorType: ConnectorType.HYPER,
-        details: { setupParams: { protocol: 'V3_HTTP' }, channel: null, connector: { kind: 'hyper' } },
-        label: { name: 'Hyper', connector: 'Hyper', detail: 'Http', text: 'Hyper Http' },
-    };
-}
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
+beforeAll(async () => { await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
 
-/// The list of the connections that numbers them
-function listOf(connectionIds: string[]) {
-    return {
-        connections: connectionIds.map((connectionId, i) => ({
-            connectionId,
-            ordinal: i + 1,
-            label: { name: `Hyper #${i + 1}`, connector: 'Hyper', detail: 'Http', text: `Hyper #${i + 1} Http` },
-        })),
-    };
-}
-
-const state = {
-    connections: new Map<string, unknown>(),
-    list: listOf([]),
-    shellMounts: [] as string[],
-};
-
-const dependencies = {
-    useConnections: () => state.connections,
-    useConnectionList: () => state.list,
-    ConnectionMenu: ({ onPick }: { onPick: (connectionId: string) => void }) => (
-        <div data-testid="connection-menu">
-            {[...state.connections.keys()].map(connectionId => (
-                <button key={connectionId} type="button" data-testid={`pick-${connectionId}`} onClick={() => onPick(connectionId)} />
-            ))}
-        </div>
-    ),
-    WorkbookShellPage: ({ connectionId, active }: { connectionId: string; active: boolean }) => {
-        const mounted = React.useEffectEvent(() => { state.shellMounts.push(connectionId); });
-        React.useEffect(() => mounted(), []);
-        return <div data-testid="shell" data-connection-id={connectionId} data-active={active} />;
-    },
-} as unknown as WorkbookShellsPageDependencies;
+const WORKBOOK_ID = '00000000-0000-4000-8000-000000000201';
+const hyperServer = (endpoint: string) => ({ hyper: { protocol: 'V3_HTTP', endpoint } }) as ConnectionParams;
 
 describe('WorkbookShellsPage', () => {
-    let container: HTMLDivElement;
-    let root: Root;
+    let root: ReturnType<typeof createTestRoot>;
+    let runtime: Runtime;
     let connectionId: string | null;
+    let shellMounts: string[];
     const onPickConnection = vi.fn((next: string) => { connectionId = next; });
 
-    const render = () => act(() => root.render(
-        <WorkbookShellsPage
-            workbookId="workbook"
-            workbookName="Workbook"
-            connectionId={connectionId}
-            onPickConnection={onPickConnection}
-            dependencies={dependencies}
-        />,
-    ));
-    const shells = () => [...container.querySelectorAll('[data-testid="shell"]')].map(shell => ({
+    function Capture() {
+        runtime = useRuntime();
+        return null;
+    }
+
+    /// The shell of a connection, without a session
+    function Shell(props: { connectionId: string; active: boolean }) {
+        const mounted = React.useEffectEvent(() => { shellMounts.push(props.connectionId); });
+        React.useEffect(() => mounted(), []);
+        return <div data-testid="shell" data-connection-id={props.connectionId} data-active={props.active} />;
+    }
+
+    const render = (page: boolean = true) => root.render(
+        <LoggerProvider>
+            <StorageProvider backend={new WorkbookTestBackend()}>
+                <TestRuntime>
+                    <Capture />
+                    {page ? (
+                        <WorkbookShellsPage
+                            workbookId={WORKBOOK_ID}
+                            workbookName="Workbook"
+                            connectionId={connectionId}
+                            onPickConnection={onPickConnection}
+                            shell={props => <Shell connectionId={props.connectionId} active={props.active} />}
+                        />
+                    ) : <></>}
+                </TestRuntime>
+            </StorageProvider>
+        </LoggerProvider>,
+    );
+    const shells = () => [...root.container.querySelectorAll('[data-testid="shell"]')].map(shell => ({
         connectionId: shell.getAttribute('data-connection-id'),
         active: shell.getAttribute('data-active') === 'true',
     }));
+    const trigger = () => root.container.querySelector('[data-testid="shell-connection-picker"]') as HTMLButtonElement;
     const pick = (next: string) => {
-        act(() => (container.querySelector('[data-testid="shell-connection-picker"]') as HTMLButtonElement).click());
-        act(() => (document.querySelector(`[data-testid="pick-${next}"]`) as HTMLButtonElement).click());
+        act(() => trigger().click());
+        act(() => (document.querySelector(`[data-connection="${next}"]`) as HTMLButtonElement).click());
         render();
     };
 
-    beforeEach(() => {
-        state.connections = new Map([
-            ['main', fakeConnection('main')],
-            ['attached', fakeConnection('attached')],
-        ]);
-        state.list = listOf(['main', 'attached']);
-        state.shellMounts = [];
+    beforeEach(async () => {
+        shellMounts = [];
         connectionId = 'main';
         onPickConnection.mockClear();
-        container = document.createElement('div');
-        document.body.appendChild(container);
-        root = createRoot(container);
+        root = createTestRoot();
+        render(false);
+        // The workbook runs a script on each connection, the list numbers the connections of a connector
+        await act(async () => {
+            await addTestConnection(runtime, { connectionId: 'main', params: hyperServer('http://main') });
+            await addTestConnection(runtime, { connectionId: 'attached', params: hyperServer('http://attached') });
+            runtime.createWorkbook('main', 'Workbook', false, undefined, WORKBOOK_ID);
+            runtime.dispatch({ workbook: WORKBOOK_ID }, { kind: 'createScript', value: { text: 'select 1', base: '1', connectionId: 'main' } });
+            runtime.dispatch({ workbook: WORKBOOK_ID }, { kind: 'createScript', value: { text: 'select 2', base: '2', connectionId: 'attached' } });
+            runtime.flush();
+        });
     });
     afterEach(() => {
-        act(() => root.unmount());
-        container.remove();
+        root.unmount();
     });
 
     it('names the connection of the visible shell', () => {
         render();
-        const trigger = container.querySelector('[data-testid="shell-connection-picker"]');
-        expect(trigger?.textContent).toContain('Hyper #1');
+        expect(trigger().textContent).toContain('#1');
         expect(shells()).toEqual([{ connectionId: 'main', active: true }]);
     });
 
@@ -112,20 +105,26 @@ describe('WorkbookShellsPage', () => {
             { connectionId: 'main', active: false },
             { connectionId: 'attached', active: true },
         ]);
-        expect(container.querySelector('[data-testid="shell-connection-picker"]')?.textContent).toContain('Hyper #2');
+        expect(trigger().textContent).toContain('#2');
 
         pick('main');
         expect(shells()).toEqual([
             { connectionId: 'main', active: true },
             { connectionId: 'attached', active: false },
         ]);
-        expect(state.shellMounts).toEqual(['main', 'attached']);
+        expect(shellMounts).toEqual(['main', 'attached']);
     });
 
     it('closes the shell of a deleted connection', () => {
         render();
         pick('attached');
-        state.connections = new Map([['main', state.connections.get('main')]]);
+        // The workbook lets go of the connection, then it is deleted
+        act(() => {
+            runtime.dispatch({ workbook: WORKBOOK_ID }, { kind: 'deleteScript', value: { fileName: '2.sql' } });
+            runtime.dispatch({ connection: 'attached' }, { kind: 'deleteConnection' });
+            runtime.flush();
+        });
+        expect(runtime.connection('attached') ?? null).toBeNull();
         connectionId = 'main';
         render();
         expect(shells()).toEqual([{ connectionId: 'main', active: true }]);

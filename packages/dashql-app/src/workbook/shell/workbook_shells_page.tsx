@@ -10,19 +10,9 @@ import { ConnectionMenu, HealthDot } from '../scripts/script_connection_picker.j
 import { WorkbookShellPage } from './workbook_shell_page.js';
 import { connectorInfoOf } from '@akohn/dashql/platform/connections/connection_state';
 
-export interface WorkbookShellsPageDependencies {
-    useConnections: typeof useConnections;
-    useConnectionList: typeof useConnectionList;
-    ConnectionMenu: typeof ConnectionMenu;
-    WorkbookShellPage: typeof WorkbookShellPage;
-}
+type ShellProps = React.ComponentProps<typeof WorkbookShellPage>;
 
-const DEFAULT_DEPENDENCIES: WorkbookShellsPageDependencies = {
-    useConnections,
-    useConnectionList,
-    ConnectionMenu,
-    WorkbookShellPage,
-};
+const renderShell = (props: ShellProps) => <WorkbookShellPage {...props} />;
 
 interface Props {
     workbookId: string;
@@ -31,17 +21,18 @@ interface Props {
     connectionId: string | null;
     /// Show the shell of another connection
     onPickConnection: (connectionId: string) => void;
-    dependencies?: WorkbookShellsPageDependencies;
+    /// The shell of a connection, the shell page by default. A test shows a stand-in, the shell needs a session of Hyper.
+    shell?: (props: ShellProps) => React.ReactNode;
 }
 
 /// The shells of a workbook, one per connection.
 /// The header names the connection of the visible shell and switches to the shells of other connections.
 /// A shell lives until the page closes, the shells of other connections are hidden and keep their scrollback.
 export const WorkbookShellsPage: React.FC<Props> = (props: Props) => {
-    const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;
-    const connections = dependencies.useConnections();
+    const { shell = renderShell } = props;
+    const connections = useConnections();
     // The list of the connections numbers the connections of a connector and labels them so
-    const list = dependencies.useConnectionList();
+    const list = useConnectionList();
     const listed = React.useMemo(() => new Map((list?.connections ?? []).map(entry => [entry.connectionId, entry])), [list]);
     const [open, setOpen] = React.useState(false);
     const triggerRef = React.useRef<HTMLButtonElement>(null);
@@ -93,7 +84,7 @@ export const WorkbookShellsPage: React.FC<Props> = (props: Props) => {
                         </button>
                     )}
                 >
-                    <dependencies.ConnectionMenu
+                    <ConnectionMenu
                         workbookId={props.workbookId}
                         label="the shell"
                         connectionId={props.connectionId}
@@ -112,14 +103,14 @@ export const WorkbookShellsPage: React.FC<Props> = (props: Props) => {
                         data-testid="workbook-shell-layer"
                         data-connection-id={connectionId}
                     >
-                        <dependencies.WorkbookShellPage
-                            workbookId={props.workbookId}
-                            workbookName={props.workbookName}
-                            connectionId={connectionId}
-                            ordinal={listed.get(connectionId)?.ordinal ?? null}
-                            label={listed.get(connectionId)?.label ?? null}
-                            active={connectionId === props.connectionId}
-                        />
+                        {shell({
+                            workbookId: props.workbookId,
+                            workbookName: props.workbookName,
+                            connectionId,
+                            ordinal: listed.get(connectionId)?.ordinal ?? null,
+                            label: listed.get(connectionId)?.label ?? null,
+                            active: connectionId === props.connectionId,
+                        })}
                     </div>
                 ))}
             </div>

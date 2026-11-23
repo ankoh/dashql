@@ -15,44 +15,27 @@ const WorkbookShellsPage = React.lazy(() => import('./shell/workbook_shells_page
 
 const LOG_CTX = 'workbook_page';
 
-export interface WorkbookPageDependencies {
-    useWorkbook: typeof useWorkbook;
-    useDispatch: typeof useDispatch;
-    useConnections: typeof useConnections;
-    useLogger: typeof useLogger;
-    useRouteContext: typeof useRouteContext;
-    useRouterNavigate: typeof useRouterNavigate;
-    useLocation: typeof useLocation;
-    useWorkbookViewMode: typeof useWorkbookViewMode;
-    WorkbookFeedPage: typeof WorkbookFeedPage;
-    WorkbookShellsPage: typeof WorkbookShellsPage;
-}
+type FeedProps = React.ComponentProps<typeof WorkbookFeedPage>;
+type ShellsProps = React.ComponentProps<typeof WorkbookShellsPage>;
 
-const DEFAULT_DEPENDENCIES: WorkbookPageDependencies = {
-    useWorkbook,
-    useDispatch,
-    useConnections,
-    useLogger,
-    useRouteContext,
-    useRouterNavigate,
-    useLocation,
-    useWorkbookViewMode,
-    WorkbookFeedPage,
-    WorkbookShellsPage,
-};
+const renderFeed = (props: FeedProps) => <WorkbookFeedPage {...props} />;
+const renderShells = (props: ShellsProps) => <WorkbookShellsPage {...props} />;
 
 interface Props {
-    dependencies?: WorkbookPageDependencies;
+    /// The feed, dashboard and dataflow of the workbook, the feed page by default. A test shows a stand-in, the feed
+    /// page needs the whole app.
+    feed?: (props: FeedProps) => React.ReactNode;
+    /// The shells of the workbook, the shells page by default, loaded once a shell opens
+    shells?: (props: ShellsProps) => React.ReactNode;
 }
 
-export const WorkbookPage: React.FC<Props> = (props: Props) => {
-    const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;
-    const route = dependencies.useRouteContext();
-    const logger = dependencies.useLogger();
-    const workbookScripts = dependencies.useWorkbook(route.workbookId ?? null);
-    const modifyWorkbookScripts = dependencies.useDispatch(route.workbookId == null ? null : { workbook: route.workbookId });
+export const WorkbookPage: React.FC<Props> = ({ feed = renderFeed, shells = renderShells }: Props) => {
+    const route = useRouteContext();
+    const logger = useLogger();
+    const workbookScripts = useWorkbook(route.workbookId ?? null);
+    const modifyWorkbookScripts = useDispatch(route.workbookId == null ? null : { workbook: route.workbookId });
     // The connections that the scripts of the workbook run on, and the one the next script runs on
-    const connections = dependencies.useConnections();
+    const connections = useConnections();
     const nextConnectionId = workbookScripts?.nextScriptConnectionId ?? null;
     const conn = nextConnectionId == null ? null : connections.get(nextConnectionId) ?? null;
     const scriptConnections = new Map<string, ConnectionState>();
@@ -60,7 +43,7 @@ export const WorkbookPage: React.FC<Props> = (props: Props) => {
         const connection = connections.get(connectionId);
         if (connection != null) scriptConnections.set(connectionId, connection);
     }
-    const { mode: workbookMode, setMode: setWorkbookMode } = dependencies.useWorkbookViewMode();
+    const { mode: workbookMode, setMode: setWorkbookMode } = useWorkbookViewMode();
     const workbookPageVisible = workbookMode !== WorkbookViewMode.Shell;
     // The connection of the visible shell, the connection of the next script until another one is picked.
     // Kept while the shell is closed, the shell reopens on the picked connection of the workbook.
@@ -75,8 +58,8 @@ export const WorkbookPage: React.FC<Props> = (props: Props) => {
     }, [route.workbookId, logger]);
 
     // The greeter stays at the root until a script promotes its workbook
-    const navigate = dependencies.useRouterNavigate();
-    const location = dependencies.useLocation();
+    const navigate = useRouterNavigate();
+    const location = useLocation();
     const pathname = location.pathname;
     // A workbook opens in its default view, e.g. the dashboard of a shared workbook: once whenever the page shows
     // another workbook. A URL that names a view keeps it, an open shell stays open. A workbook that is still opening
@@ -104,13 +87,13 @@ export const WorkbookPage: React.FC<Props> = (props: Props) => {
     return (
         <div className={styles.page}>
             <div className={workbookPageVisible ? styles.view : styles.view_hidden}>
-                <dependencies.WorkbookFeedPage
-                    workbookScripts={workbookScripts}
-                    modifyWorkbookScripts={modifyWorkbookScripts}
-                    connection={conn ?? null}
-                    scriptConnections={scriptConnections}
-                    active={workbookMode === WorkbookViewMode.Workbook}
-                />
+                {feed({
+                    workbookScripts,
+                    modifyWorkbookScripts,
+                    connection: conn ?? null,
+                    scriptConnections,
+                    active: workbookMode === WorkbookViewMode.Workbook,
+                })}
             </div>
             {workbookMode === WorkbookViewMode.Shell && (
                 <div className={styles.view}>
@@ -119,13 +102,14 @@ export const WorkbookPage: React.FC<Props> = (props: Props) => {
                             <strong>[ RUN ]</strong> Loading shell
                         </div>
                     )}>
-                        <dependencies.WorkbookShellsPage
-                            key={workbookScripts.workbookId}
-                            workbookId={workbookScripts.workbookId}
-                            workbookName={workbookScripts.name}
-                            connectionId={shellConnection?.connectionId ?? null}
-                            onPickConnection={connectionId => setShellPick({ workbookId: workbookScripts.workbookId, connectionId })}
-                        />
+                        <React.Fragment key={workbookScripts.workbookId}>
+                            {shells({
+                                workbookId: workbookScripts.workbookId,
+                                workbookName: workbookScripts.name,
+                                connectionId: shellConnection?.connectionId ?? null,
+                                onPickConnection: connectionId => setShellPick({ workbookId: workbookScripts.workbookId, connectionId }),
+                            })}
+                        </React.Fragment>
                     </React.Suspense>
                 </div>
             )}

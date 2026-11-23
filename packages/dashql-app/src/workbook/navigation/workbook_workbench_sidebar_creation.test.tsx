@@ -1,239 +1,68 @@
-import * as React from 'react';
-import { act } from '@akohn/dashql-react/testing/react_act';
-import { createRoot, type Root } from 'react-dom/client';
+import { act, waitForRender } from '@akohn/dashql-react/testing/react_act';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as core from '@akohn/dashql';
 
-import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
+import { ConnectionHealth } from '@akohn/dashql/platform/connections/connection_state';
+import type { ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
 import { CONNECTOR_INFOS, ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
-import { SELECT_WORKBOOK } from '../../app/router.js';
-import { WorkbookWorkbenchSidebar, type WorkbookWorkbenchSidebarDependencies } from './workbook_workbench_sidebar.js';
-import type { WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
-import type { Runtime } from '@akohn/dashql/runtime/runtime';
-import { RuntimeContextProvider } from '@akohn/dashql-react/hooks';
+import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
+import { workbookPath } from '../../app/router.js';
+import { addTestConnection } from '../../tests/test_connections.js';
+import { SidebarTestApp } from './workbook_sidebar_test_app.js';
 
 vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
 
-const state = {
-    navigate: vi.fn(),
-    dispatchDatabase: vi.fn(),
-    createWorkbook: vi.fn(),
-    openGreeter: vi.fn(),
-    ensureEphemeralWorkbook: vi.fn(),
-    modifyWorkbookScripts: vi.fn(),
-    refreshCatalog: vi.fn(),
-    newConnectionFromParams: vi.fn(),
-    deleteWorkbook: vi.fn(),
-    allocateConnection: vi.fn(),
-    resolveNewWorkbookConnection: vi.fn(),
-    detachConnection: vi.fn<() => Promise<void>>(),
-    deleteConnection: vi.fn<() => Promise<void>>(),
-    local: null as ConnectionState | null,
-    overlayProps: null as { connectionId: string | null; isOpen: boolean; onClose: () => void } | null,
-    shareProps: null as { isOpen: boolean; workbookId?: string } | null,
-    fileSaveProps: null as { isOpen: boolean; workbookScripts?: { workbookId: string }; fileName?: string } | null,
-    connections: new Map<string, ConnectionState>(),
-    attachedDatabasesByWorkbook: new Map<string, { mainDatabaseId: string; attachedDatabaseIds: string[] }>(),
-    workbookScriptsMap: new Map<string, unknown>(),
-    workbookAttachedDatabases: null as { main: ConnectionState; attached: ConnectionState[] } | null,
-};
-
-/// The connections that the workbooks of the fake scripts registry use
-const references = {
-    connectionsOf: (workbookId: string) => {
-        const mapping = state.attachedDatabasesByWorkbook.get(workbookId);
-        return mapping == null || !state.workbookScriptsMap.has(workbookId) ? [] : [mapping.mainDatabaseId, ...mapping.attachedDatabaseIds];
-    },
-    workbooksOf: (connectionId: string) => [...state.attachedDatabasesByWorkbook.keys()]
-        .filter(workbookId => references.connectionsOf(workbookId).includes(connectionId)),
-    subscribe: () => () => { },
-};
-
-/// The connection ids of the fake registry by connector type
-function connectionsByType(): string[][] {
-    const byType: string[][] = [[], [], []];
-    for (const database of state.connections.values()) (byType[database.connectorType ?? 0] ??= []).push(database.connectionId);
-    return byType;
-}
-
-/// The views of the fake connections, with the workbooks that use them
-function connectionViews(): Map<string, ConnectionState> {
-    return new Map([...state.connections].map(([connectionId, connection]) =>
-        [connectionId, { ...connection, workbooks: references.workbooksOf(connectionId) } as ConnectionState]));
-}
-
-/// The list of the fake connections: connections that workbooks use are listed, as are active ones, and the listed
-/// connections of a connector are numbered and labeled so when there are several
-function connectionList() {
-    const entries = [...state.connections.values()].map(connection => ({
-        connectionId: connection.connectionId,
-        connectorType: connection.connectorType,
-        active: connection.active ?? false,
-        listed: references.workbooksOf(connection.connectionId).length > 0 || (connection.active ?? false),
-        ordinal: null as number | null,
-        label: { name: 'Connection', connector: '', detail: '', text: 'Connection' },
-    }));
-    for (const ids of connectionsByType()) {
-        const listed = entries.filter(entry => ids.includes(entry.connectionId) && entry.listed);
-        if (listed.length > 1) listed.forEach((entry, index) => { entry.ordinal = index + 1; });
-    }
-    for (const entry of entries) {
-        const connector = CONNECTOR_INFOS[entry.connectorType as ConnectorType].names.displayLong;
-        const name = entry.ordinal == null ? connector : `${connector} #${entry.ordinal}`;
-        entry.label = { name, connector, detail: '', text: name };
-    }
-    return { connections: entries, connectionsByType: connectionsByType() };
-}
-
-/// The views of the fake workbooks, with the connections they use
-function workbookViews(): Map<string, unknown> {
-    return new Map([...state.workbookScriptsMap].map(([workbookId, workbook]) =>
-        [workbookId, { ...(workbook as object), connectionIds: references.connectionsOf(workbookId) }]));
-}
-
-/// Stable like the storage contexts
-const storageReader = {
-    backend: {},
-    getWorkbookLocation: () => ({ type: 'opfs' }),
-    getWorkbookOrder: () => [],
-};
-const storageWriter = {
-    deleteWorkbook: state.deleteWorkbook,
-    backend: {},
-    isWorkbookHeld: () => false,
-};
-
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
-/// The core that changes the workbook tree of the sidebar
-let dql: core.DashQL;
-beforeAll(async () => { dql = await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
+beforeAll(async () => { await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
 
-/// The runtime as the sidebar uses it: the storage writer, the actions of the connections and the creation of one
-const runtime = {
-    storage: storageWriter,
-    dispatch: (target: { connection?: string }, action: unknown) => state.dispatchDatabase(target.connection, action),
-    createConnection: (...args: unknown[]) => state.allocateConnection(...args),
-    store: { get: () => null },
-    // The params of a new connection come from the core
-    core: {
-        defaultConnectionParams: () => ({ trino: { endpoint: '' } }),
-        connectionParamsShareEqual: () => false,
-        changeWorkbookTree: (...args: unknown[]) => (dql.changeWorkbookTree as (...args: unknown[]) => unknown)(...args),
-        folderNameError: (name: string, siblings: string[]) => dql.folderNameError(name, siblings),
-        freeFolderName: (siblings: string[]) => dql.freeFolderName(siblings),
-    },
-};
-
-const dependencies = {
-    useRouterNavigate: () => state.navigate,
-    useRuntime: () => runtime,
-    useDispatch: () => state.modifyWorkbookScripts,
-    useConnections: connectionViews,
-    useConnectionList: connectionList,
-    useConnectionViews: () => state.workbookAttachedDatabases == null ? null
-        : [state.workbookAttachedDatabases.main, ...state.workbookAttachedDatabases.attached],
-    ConnectionSettingsOverlay: (props: typeof state.overlayProps) => {
-        state.overlayProps = props;
-        return null;
-    },
-    useDeleteWorkbook: () => vi.fn(),
-    useWorkbooks: workbookViews,
-    useWorkbookCreation: () => state.createWorkbook,
-    useOpenGreeter: () => state.openGreeter,
-    useEnsureEphemeralWorkbook: () => state.ensureEphemeralWorkbook,
-    useMergeConnections: () => async () => {},
-    useReplaceConnection: () => async () => ({ removed: false }),
-    useDetachConnection: () => state.detachConnection,
-    useDeleteConnection: () => state.deleteConnection,
-    useStorageReader: () => storageReader,
-    WorkbookStorageOverlay: () => null,
-    WorkbookURLShareOverlay: (props: typeof state.shareProps) => {
-        state.shareProps = props;
-        return props?.isOpen ? <div data-testid="share-url-overlay" /> : null;
-    },
-    WorkbookFileSaveOverlay: (props: typeof state.fileSaveProps) => {
-        state.fileSaveProps = props;
-        return props?.isOpen ? <div data-testid="file-save-overlay" /> : null;
-    },
-    useWorkbookImport: () => ({}),
-    useInvalidWorkbooks: () => ({ invalidWorkbooks: new Map(), deleteInvalidWorkbook: vi.fn() }),
-    useDashQLCoreSetup: () => vi.fn(),
-    usePlatformType: () => 0,
-    useLogger: () => ({ warn: vi.fn(), error: vi.fn() }),
-    useNewWorkbookConnection: () => state.resolveNewWorkbookConnection,
-    newConnectionFromParams: (...args: unknown[]) => state.newConnectionFromParams(...args),
-    useClouds: () => ({ clouds: [], openSetup: vi.fn(), setupRequest: null }),
-    CloudsFolder: () => null,
-} as unknown as WorkbookWorkbenchSidebarDependencies;
-
-/// The scripts run on the catalogs of the connections, a runtime of the module that has one for every connection
-const CATALOGS = { catalog: () => EMPTY_CATALOG.catalog } as unknown as Runtime;
-function WithCatalogs(props: { children: React.ReactNode }) {
-    return <RuntimeContextProvider value={CATALOGS}>{props.children}</RuntimeContextProvider>;
-}
-
-/// The catalog of a connection without relations
-const EMPTY_CATALOG = {
-    catalog: {
-        flatten: () => ({
-            read: () => ({ catalogReader: { databasesLength: () => 0 } }),
-        }),
-    },
-    catalogUpdates: { currentFullRefresh: null, tasksRunning: [], refreshRunning: false, outOfDate: false },
-};
+/// The workbook that the page shows
+const CURRENT_WORKBOOK = '00000000-0000-4000-8000-000000000101';
+/// Another workbook
+const OTHER_WORKBOOK = '00000000-0000-4000-8000-000000000102';
+/// The embedded Hyper, the connection of the current workbook
+const LOCAL = 'local-database';
+const EMBEDDED = { hyper: { protocol: 'WASM', endpoint: '' } } as ConnectionParams;
+const hyperServer = (endpoint: string) => ({ hyper: { protocol: 'V3_HTTP', endpoint } }) as ConnectionParams;
+const trino = (endpoint: string) => ({ trino: { endpoint } }) as ConnectionParams;
 
 describe('WorkbookWorkbenchSidebar workbook creation', () => {
-    let container: HTMLDivElement;
-    let root: Root;
+    let app: SidebarTestApp;
+    const container = () => app.root.container;
 
-    beforeEach(() => {
-        container = document.createElement('div');
+    function render(props: Parameters<SidebarTestApp['render']>[1] = {}): void {
+        app.render(CURRENT_WORKBOOK, props);
+    }
+
+    /// Add a connection to the runtime
+    async function addConnection(connectionId: string, params: ConnectionParams, options: { active?: boolean; health?: ConnectionHealth } = {}): Promise<void> {
+        await act(async () => { await addTestConnection(app.runtime, { connectionId, params, ...options }); });
+    }
+
+    /// Create a workbook on a connection, with a script on each of the other connections
+    function addWorkbook(workbookId: string, name: string, connectionId: string, scriptConnectionIds: string[] = []): void {
+        act(() => {
+            app.runtime.createWorkbook(connectionId, name, false, undefined, workbookId);
+            scriptConnectionIds.forEach((scriptConnectionId, i) => {
+                app.runtime.dispatch({ workbook: workbookId }, { kind: 'createScript', value: { text: 'select 1', base: `${i + 1}`, connectionId: scriptConnectionId } });
+            });
+            app.runtime.flush();
+        });
+    }
+
+    /// The workbooks of the runtime
+    const workbooks = () => app.runtime.store.all('workbook');
+
+    beforeEach(async () => {
+        app = new SidebarTestApp(new WorkbookTestBackend());
         // The sections split the height of the sidebar, the virtualized connection rows need room
-        container.style.height = '800px';
-        document.body.appendChild(container);
-        root = createRoot(container);
-        state.navigate.mockReset();
-        state.modifyWorkbookScripts.mockReset();
-        state.dispatchDatabase.mockReset();
-        state.createWorkbook.mockReset().mockReturnValue({ workbookId: '00000000-0000-4000-8000-000000000001' });
-        state.openGreeter.mockReset();
-        state.ensureEphemeralWorkbook.mockReset();
-        state.refreshCatalog.mockReset();
-        state.newConnectionFromParams.mockReset().mockReturnValue({ type: 'remote' });
-        state.deleteWorkbook.mockReset();
-        state.overlayProps = null;
-        state.shareProps = null;
-        state.fileSaveProps = null;
-        state.connections.clear();
-        state.attachedDatabasesByWorkbook.clear();
-        state.workbookScriptsMap.clear();
-        state.workbookAttachedDatabases = null;
-        state.local = { connectionId: 'local-database' } as unknown as ConnectionState;
-        state.local = {
-            connectionId: 'local-database',
-            connectorType: ConnectorType.HYPER,
-            label: { name: 'Hyper', connector: 'Hyper', detail: 'Wasm', text: 'Hyper Wasm' },
-            embedded: true,
-            details: { setupParams: { protocol: 'WASM' }, channel: null, connector: { kind: 'hyper' } },
-            params: { hyper: { protocol: 'WASM' } },
-            queriesActiveOrdered: [],
-            ...EMPTY_CATALOG,
-        } as unknown as ConnectionState;
-        state.allocateConnection.mockReset().mockReturnValue(state.local);
-        state.resolveNewWorkbookConnection.mockReset().mockReturnValue(state.local);
-        state.detachConnection.mockReset().mockResolvedValue();
-        state.deleteConnection.mockReset().mockResolvedValue();
-        vi.spyOn(crypto, 'randomUUID').mockReturnValue('00000000-0000-4000-8000-000000000001');
-        act(() => root.render(<WithCatalogs><WorkbookWorkbenchSidebar workbookScripts={{
-            workbookId: 'current-workbook',
-            instance: {},
-        } as unknown as WorkbookScripts} dependencies={dependencies} /></WithCatalogs>));
+        container().style.height = '800px';
+        app.render(null);
+        await addConnection(LOCAL, EMBEDDED);
     });
 
     afterEach(() => {
         vi.restoreAllMocks();
-        act(() => root.unmount());
-        container.remove();
+        app.unmount();
     });
 
     function byTestId(testId: string): HTMLElement | null {
@@ -247,400 +76,235 @@ describe('WorkbookWorkbenchSidebar workbook creation', () => {
     }
 
     function connectionRows(): Element[] {
-        return Array.from(container.querySelectorAll('[data-testid="connection-toggle"]'));
+        return Array.from(container().querySelectorAll('[data-testid="connection-toggle"]'));
     }
 
     function groups(): (string | null)[] {
-        return Array.from(container.querySelectorAll('[data-testid="connection-group"]')).map(group => group.getAttribute('data-group'));
+        return Array.from(container().querySelectorAll('[data-testid="connection-group"]')).map(group => group.getAttribute('data-group'));
     }
 
-    it('lists the local workbooks and the connections of the workbook', () => {
-        const main = {
-            ...state.local!,
-            connectorType: ConnectorType.HYPER,
-            catalog: {
-                flatten: () => ({
-                    read: () => ({ catalogReader: { databasesLength: () => 0 } }),
-                }),
-            },
-            catalogUpdates: { currentFullRefresh: null, tasksRunning: [], refreshRunning: false, outOfDate: false },
-        } as unknown as ConnectionState;
-        const attached = { ...main, connectionId: 'attached-database' };
-        state.connections.set(main.connectionId, main);
-        state.connections.set(attached.connectionId, attached);
-        state.attachedDatabasesByWorkbook.set('current-workbook', {
-            mainDatabaseId: main.connectionId,
-            attachedDatabaseIds: [attached.connectionId],
-        });
-        state.workbookScriptsMap.set('current-workbook', {
-            workbookId: 'current-workbook',
-            name: 'Current workbook',
-            workbookMetadata: {},
-            scriptConnections: [],
-        });
-        state.workbookAttachedDatabases = { main, attached: [attached] };
+    /// The connector of the open connection settings
+    function settingsConnector(): string | null | undefined {
+        return byTestId('connector-name')?.textContent;
+    }
 
-        act(() => root.render(<WithCatalogs><WorkbookWorkbenchSidebar workbookScripts={{
-            workbookId: 'current-workbook',
-            instance: {},
-        } as unknown as WorkbookScripts} dependencies={dependencies} /></WithCatalogs>));
+    function menuItem(connectionId: string, action: string): HTMLButtonElement | null {
+        act(() => {
+            container().querySelector<HTMLButtonElement>(`[data-connection-id="${connectionId}"] [data-testid="connection-row-menu"]`)!.click();
+        });
+        return document.querySelector(`[data-testid="connection-menu-item"][data-action="${action}"]`);
+    }
+
+    it('lists the local workbooks and the connections of the workbook', async () => {
+        await addConnection('attached-database', hyperServer('http://attached'));
+        addWorkbook(CURRENT_WORKBOOK, 'Current workbook', LOCAL, ['attached-database']);
+        render();
 
         expect(byTestId('local-workbook-count')?.textContent).toBe('1');
         expect(connectionRows()).toHaveLength(2);
     });
 
-    it('opens the settings of an online database without leaving the workbook', () => {
-        const main = {
-            ...state.local!,
-            connectionHealth: ConnectionHealth.ONLINE,
-            connectorType: ConnectorType.HYPER,
-            catalog: { flatten: () => ({
-                read: () => ({ catalogReader: { databasesLength: () => 0 } }),
-            }) },
-            catalogUpdates: { currentFullRefresh: null, tasksRunning: [], refreshRunning: false, outOfDate: false },
-        } as unknown as ConnectionState;
-        state.workbookAttachedDatabases = { main, attached: [] };
-        act(() => root.render(<WithCatalogs><WorkbookWorkbenchSidebar workbookScripts={{
-            workbookId: 'current-workbook', instance: {},
-        } as unknown as WorkbookScripts} dependencies={dependencies} /></WithCatalogs>));
-        click('connection-row-menu');
-        act(() => {
-            (document.querySelector('[data-testid="connection-menu-item"][data-action="settings"]') as HTMLButtonElement).click();
-        });
-        expect(state.overlayProps).toMatchObject({ connectionId: main.connectionId, isOpen: true });
-        expect(state.navigate).not.toHaveBeenCalled();
+    it('keeps the settings of an online connection open', async () => {
+        await addConnection('hyper-server', hyperServer('http://server'), { health: ConnectionHealth.ONLINE });
+        addWorkbook(CURRENT_WORKBOOK, 'Current workbook', 'hyper-server', ['hyper-server']);
+        render();
+        const location = app.location.key;
+        act(() => menuItem('hyper-server', 'settings')!.click());
+        expect(settingsConnector()).toBe(CONNECTOR_INFOS[ConnectorType.HYPER].names.displayLong);
+        // The sidebar asks for no completion, the settings of a connection that is online already stay open
+        await act(async () => { await new Promise(resolve => setTimeout(resolve, 10)); });
+        expect(settingsConnector()).toBe(CONNECTOR_INFOS[ConnectorType.HYPER].names.displayLong);
+        expect(app.location.key).toBe(location);
     });
 
-    it('opens the greeter instead of creating a workbook', () => {
+    it('opens the greeter instead of creating a workbook', async () => {
+        addWorkbook(CURRENT_WORKBOOK, 'Current workbook', LOCAL);
+        render();
+        const connectionCount = app.runtime.store.all('connection').size;
         click('create-workbook');
-        expect(state.openGreeter).toHaveBeenCalledTimes(1);
-        expect(state.createWorkbook).not.toHaveBeenCalled();
-        expect(state.allocateConnection).not.toHaveBeenCalled();
-        expect(state.newConnectionFromParams).not.toHaveBeenCalled();
-        expect(state.overlayProps?.isOpen).toBe(false);
+        // The greeter shows the ephemeral workbook at the root
+        const ephemeral = [...workbooks().values()].filter(workbook => workbook.ephemeral);
+        expect(ephemeral).toHaveLength(1);
+        await waitForRender(() => expect((app.location.state as { workbookId?: string } | null)?.workbookId).toBe(ephemeral[0].workbookId));
+        expect(app.location.pathname).toBe('/');
+        expect([...workbooks().values()].filter(workbook => !workbook.ephemeral)).toHaveLength(1);
+        expect(app.runtime.store.all('connection').size).toBe(connectionCount);
+        expect(settingsConnector()).toBeUndefined();
     });
 
-    it('creates a connection that the next script of the current workbook runs on', () => {
-        const trino = { ...state.local!, connectionId: 'trino-database', connectorType: ConnectorType.TRINO, embedded: false,
-            details: { setupParams: {}, channel: null, connector: { kind: 'trino' } }, params: { trino: {} } } as unknown as ConnectionState;
-        state.allocateConnection.mockReturnValue(trino);
-        act(() => (container.querySelector('[aria-label="Create connection"]') as HTMLButtonElement).click());
+    it('creates a connection that the next script of the current workbook runs on', async () => {
+        addWorkbook(CURRENT_WORKBOOK, 'Current workbook', LOCAL);
+        render();
+        act(() => (container().querySelector('[aria-label="Create connection"]') as HTMLButtonElement).click());
         act(() => {
             Array.from(document.querySelectorAll<HTMLButtonElement>('[aria-label="Connection connector"] button'))
                 .find(item => item.textContent === CONNECTOR_INFOS[ConnectorType.TRINO].names.displayShort)!
                 .click();
         });
+        const created = [...app.runtime.store.all('connection').values()].find(connection => connection.connectorType === ConnectorType.TRINO)!;
         // The Rust connection of the state is created active, a spread over the state would be lost with its next action
-        expect(state.newConnectionFromParams).toHaveBeenCalledWith(expect.anything(), { active: true });
-        expect(state.allocateConnection).toHaveBeenCalledWith(state.newConnectionFromParams.mock.results[0].value);
-        expect(state.modifyWorkbookScripts).toHaveBeenCalledWith({
-            kind: 'setPendingConnection',
-            value: { connectionId: trino.connectionId },
-        });
-        expect(state.overlayProps).toMatchObject({ connectionId: trino.connectionId, isOpen: true });
+        expect(created.active).toBe(true);
+        await waitForRender(() => expect(workbooks().get(CURRENT_WORKBOOK)!.pendingConnectionId).toBe(created.connectionId));
+        expect(settingsConnector()).toBe(CONNECTOR_INFOS[ConnectorType.TRINO].names.displayLong);
     });
 
-    it.each([ConnectionHealth.NOT_STARTED, ConnectionHealth.CONNECTING, ConnectionHealth.FAILED, ConnectionHealth.CANCELLED])('selects a disconnected workbook immediately (%s)', async connectionHealth => {
-        const database = {
-            connectionId: 'salesforce-database',
-            connectionHealth,
-            connectorType: ConnectorType.SALESFORCE_DATA_CLOUD,
-            details: { setupParams: {}, channel: null, connector: { kind: 'salesforce' } },
-            ...EMPTY_CATALOG,
-        } as unknown as ConnectionState;
-        state.connections.set(database.connectionId, database);
-        state.attachedDatabasesByWorkbook.set('salesforce-workbook', {
-            mainDatabaseId: database.connectionId,
-            attachedDatabaseIds: [],
-        });
-        state.workbookScriptsMap.set('salesforce-workbook', {
-            workbookId: 'salesforce-workbook',
-            name: 'Salesforce workbook',
-            workbookMetadata: {},
-            scriptConnections: [],
-        });
-        act(() => root.render(<WithCatalogs><WorkbookWorkbenchSidebar workbookScripts={{
-            workbookId: 'current-workbook',
-            instance: {},
-        } as unknown as WorkbookScripts} dependencies={dependencies} /></WithCatalogs>));
+    it.each([ConnectionHealth.NOT_STARTED, ConnectionHealth.CONNECTING, ConnectionHealth.FAILED])('selects a disconnected workbook immediately (%s)', async connectionHealth => {
+        await addConnection('trino-database', trino('http://trino'), { health: connectionHealth });
+        addWorkbook(CURRENT_WORKBOOK, 'Current workbook', LOCAL);
+        addWorkbook(OTHER_WORKBOOK, 'Trino workbook', 'trino-database');
+        render();
 
         act(() => {
-            Array.from(container.querySelectorAll('button'))
-                .find(button => button.textContent?.includes('Salesforce workbook'))!
+            Array.from(container().querySelectorAll('button'))
+                .find(button => button.textContent?.includes('Trino workbook'))!
                 .click();
         });
 
-        expect(state.overlayProps?.isOpen).toBe(false);
-        expect(state.navigate).toHaveBeenCalledWith({
-            type: SELECT_WORKBOOK,
-            value: 'salesforce-workbook',
-        });
+        expect(settingsConnector()).toBeUndefined();
+        await waitForRender(() => expect(app.location.pathname).toBe(workbookPath(OTHER_WORKBOOK)));
     });
 
     it('offers URL sharing from the workbook row menu', () => {
-        const workbookId = 'current-workbook';
-        state.connections.set('local-database', state.local!);
-        state.attachedDatabasesByWorkbook.set(workbookId, {
-            mainDatabaseId: 'local-database',
-            attachedDatabaseIds: [],
-        });
-        state.workbookScriptsMap.set(workbookId, {
-            workbookId,
-            name: 'Current workbook',
-            workbookMetadata: { originalFileName: 'current' },
-            scriptConnections: [],
-        });
-        act(() => root.render(<WithCatalogs><WorkbookWorkbenchSidebar workbookScripts={{
-            workbookId,
-            instance: {},
-        } as unknown as WorkbookScripts} dependencies={dependencies} /></WithCatalogs>));
+        addWorkbook(CURRENT_WORKBOOK, 'Current workbook', LOCAL);
+        render();
 
         click('workbook-row-menu');
         const share = document.querySelector('[data-testid="workbook-menu-item"][data-action="share-url"]') as HTMLButtonElement;
         expect(share).not.toBeNull();
 
         act(() => share.click());
-        expect(state.shareProps).toMatchObject({ isOpen: true, workbookId });
-        expect(document.querySelector('[data-testid="share-url-overlay"]')).not.toBeNull();
+        expect(document.querySelector('input[aria-label="Workbook share URL"]')).not.toBeNull();
     });
 
-    it('renames a workbook in place from the workbook row menu', () => {
-        const workbookId = 'current-workbook';
-        state.connections.set('local-database', state.local!);
-        state.attachedDatabasesByWorkbook.set(workbookId, {
-            mainDatabaseId: 'local-database',
-            attachedDatabaseIds: [],
-        });
-        state.workbookScriptsMap.set(workbookId, {
-            workbookId,
-            name: 'Untitled',
-            workbookMetadata: { originalFileName: 'current' },
-            scriptConnections: [],
-        });
-        act(() => root.render(<WithCatalogs><WorkbookWorkbenchSidebar workbookScripts={{
-            workbookId,
-            instance: {},
-        } as unknown as WorkbookScripts} dependencies={dependencies} /></WithCatalogs>));
+    it('renames a workbook in place from the workbook row menu', async () => {
+        addWorkbook(CURRENT_WORKBOOK, 'Untitled', LOCAL);
+        render();
 
         click('workbook-row-menu');
         act(() => (document.querySelector('[data-testid="workbook-menu-item"][data-action="rename"]') as HTMLButtonElement).click());
-        const input = container.querySelector('input[aria-label="Workbook name"]') as HTMLInputElement;
+        const input = container().querySelector('input[aria-label="Workbook name"]') as HTMLInputElement;
         expect(input).not.toBeNull();
         expect(document.activeElement).toBe(input);
         expect(input.value).toBe('Untitled');
 
         // Escape abandons the edit
         act(() => input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
-        expect(container.querySelector('input[aria-label="Workbook name"]')).toBeNull();
-        expect(state.modifyWorkbookScripts).not.toHaveBeenCalled();
+        expect(container().querySelector('input[aria-label="Workbook name"]')).toBeNull();
+        expect(workbooks().get(CURRENT_WORKBOOK)!.name).toBe('Untitled');
 
         click('workbook-row-menu');
         act(() => (document.querySelector('[data-testid="workbook-menu-item"][data-action="rename"]') as HTMLButtonElement).click());
-        const second = container.querySelector('input[aria-label="Workbook name"]') as HTMLInputElement;
+        const second = container().querySelector('input[aria-label="Workbook name"]') as HTMLInputElement;
         act(() => {
             Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(second, 'Revenue');
             second.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
         });
-        expect(state.modifyWorkbookScripts).toHaveBeenCalledOnce();
-        expect(state.modifyWorkbookScripts.mock.calls[0][0]).toMatchObject({ kind: 'renameWorkbook', value: { name: 'Revenue' } });
-        expect(container.querySelector('input[aria-label="Workbook name"]')).toBeNull();
+        await waitForRender(() => expect(workbooks().get(CURRENT_WORKBOOK)!.name).toBe('Revenue'));
+        expect(container().querySelector('input[aria-label="Workbook name"]')).toBeNull();
     });
 
     it('does not rename a workbook when double-clicking its name', () => {
-        const workbookId = 'current-workbook';
-        state.connections.set('local-database', state.local!);
-        state.attachedDatabasesByWorkbook.set(workbookId, {
-            mainDatabaseId: 'local-database',
-            attachedDatabaseIds: [],
-        });
-        state.workbookScriptsMap.set(workbookId, {
-            workbookId,
-            name: 'Untitled',
-            workbookMetadata: { originalFileName: 'current' },
-            scriptConnections: [],
-        });
-        act(() => root.render(<WithCatalogs><WorkbookWorkbenchSidebar workbookScripts={{
-            workbookId,
-            instance: {},
-        } as unknown as WorkbookScripts} dependencies={dependencies} /></WithCatalogs>));
+        addWorkbook(CURRENT_WORKBOOK, 'Untitled', LOCAL);
+        render();
 
-        const name = container.querySelector('[aria-label="Workbooks"] button[aria-current]') as HTMLButtonElement;
+        const name = container().querySelector('[aria-label="Workbooks"] button[aria-current]') as HTMLButtonElement;
         act(() => name.dispatchEvent(new MouseEvent('dblclick', { bubbles: true })));
         // Renaming is in the row menu, like the rename of a folder
-        expect(container.querySelector('input[aria-label="Workbook name"]')).toBeNull();
+        expect(container().querySelector('input[aria-label="Workbook name"]')).toBeNull();
     });
 
     it('does not select the workbook while a connection overview is open', () => {
-        const workbookId = 'current-workbook';
-        state.connections.set('local-database', state.local!);
-        state.attachedDatabasesByWorkbook.set(workbookId, {
-            mainDatabaseId: 'local-database',
-            attachedDatabaseIds: [],
-        });
-        state.workbookScriptsMap.set(workbookId, {
-            workbookId,
-            name: 'Current workbook',
-            workbookMetadata: { originalFileName: 'current' },
-            scriptConnections: [],
-        });
-        const render = (openOverviewId: string | null) => act(() => root.render(<WithCatalogs><WorkbookWorkbenchSidebar workbookScripts={{
-            workbookId,
-            instance: {},
-        } as unknown as WorkbookScripts} openOverviewId={openOverviewId} onOpenOverview={() => {}} dependencies={dependencies} /></WithCatalogs>));
+        addWorkbook(CURRENT_WORKBOOK, 'Current workbook', LOCAL);
         const selected = () => document.querySelectorAll('ul[aria-label="Workbooks"] [aria-current="page"]').length;
 
-        render(null);
+        render({ openOverviewId: null, onOpenOverview: () => {} });
         expect(selected()).toBe(1);
-        render('local-database');
+        render({ openOverviewId: LOCAL, onOpenOverview: () => {} });
         expect(selected()).toBe(0);
     });
 
     it('opens export settings before saving from the workbook row menu', () => {
-        const workbookId = 'current-workbook';
-        state.connections.set('local-database', state.local!);
-        state.attachedDatabasesByWorkbook.set(workbookId, {
-            mainDatabaseId: 'local-database',
-            attachedDatabaseIds: [],
-        });
-        state.workbookScriptsMap.set(workbookId, {
-            workbookId,
-            name: 'Current workbook',
-            workbookMetadata: { originalFileName: 'current' },
-            scriptConnections: [],
-        });
-        act(() => root.render(<WithCatalogs><WorkbookWorkbenchSidebar workbookScripts={{
-            workbookId,
-            instance: {},
-        } as unknown as WorkbookScripts} dependencies={dependencies} /></WithCatalogs>));
+        addWorkbook(CURRENT_WORKBOOK, 'Current workbook', LOCAL);
+        render();
 
         click('workbook-row-menu');
         const exportItem = document.querySelector('[data-testid="workbook-menu-item"][data-action="export"]') as HTMLButtonElement;
         expect(exportItem).not.toBeNull();
 
         act(() => exportItem.click());
-        expect(state.fileSaveProps).toMatchObject({
-            isOpen: true,
-            workbookScripts: { workbookId },
-            fileName: 'Current workbook',
-        });
-        expect(document.querySelector('[data-testid="file-save-overlay"]')).not.toBeNull();
+        expect(document.querySelector('button[aria-label="Save File"]')).not.toBeNull();
     });
 
-    it('lists the connections of other workbooks', () => {
-        const other = { ...state.local!, connectionId: 'trino-database', connectorType: ConnectorType.TRINO, embedded: false,
-            details: { setupParams: {}, channel: null, connector: { kind: 'trino' } } } as unknown as ConnectionState;
-        state.connections.set(state.local!.connectionId, state.local!);
-        state.connections.set(other.connectionId, other);
-        state.attachedDatabasesByWorkbook.set('current-workbook', { mainDatabaseId: state.local!.connectionId, attachedDatabaseIds: [] });
-        state.attachedDatabasesByWorkbook.set('trino-session', { mainDatabaseId: other.connectionId, attachedDatabaseIds: [] });
-        state.attachedDatabasesByWorkbook.set('shell', { mainDatabaseId: 'shell', attachedDatabaseIds: [] });
-        state.connections.set('shell', { ...other, connectionId: 'shell' } as ConnectionState);
-        for (const workbookId of ['current-workbook', 'trino-session']) {
-            state.workbookScriptsMap.set(workbookId, { workbookId, name: workbookId, workbookMetadata: {}, scriptConnections: [] });
-        }
-        state.workbookAttachedDatabases = { main: state.local!, attached: [] };
-        act(() => root.render(<WithCatalogs><WorkbookWorkbenchSidebar workbookScripts={{
-            workbookId: 'current-workbook', instance: {},
-        } as unknown as WorkbookScripts} dependencies={dependencies} /></WithCatalogs>));
+    it('lists the connections of other workbooks', async () => {
+        await addConnection('trino-database', trino('http://trino'));
+        await addConnection('shell', trino('http://shell'));
+        addWorkbook(CURRENT_WORKBOOK, 'Current workbook', LOCAL);
+        addWorkbook(OTHER_WORKBOOK, 'Trino workbook', 'trino-database');
+        render();
 
-        // The shell connection is not referenced by a workbook of the registry
+        // The shell connection is not used by a workbook
         expect(connectionRows()).toHaveLength(2);
     });
 
-    it('groups the connections of the workbook and numbers connections of the same connector', () => {
-        const trino = { ...state.local!, connectionId: 'trino-database', connectorType: ConnectorType.TRINO, embedded: false,
-            details: { setupParams: {}, channel: null, connector: { kind: 'trino' } } } as unknown as ConnectionState;
-        const secondHyper = { ...state.local!, connectionId: 'second-hyper' } as unknown as ConnectionState;
-        for (const database of [state.local!, trino, secondHyper]) state.connections.set(database.connectionId, database);
-        state.attachedDatabasesByWorkbook.set('current-workbook', { mainDatabaseId: state.local!.connectionId, attachedDatabaseIds: [] });
-        state.attachedDatabasesByWorkbook.set('trino-session', { mainDatabaseId: trino.connectionId, attachedDatabaseIds: [secondHyper.connectionId] });
-        for (const workbookId of ['current-workbook', 'trino-session']) {
-            state.workbookScriptsMap.set(workbookId, { workbookId, name: workbookId, workbookMetadata: {}, scriptConnections: [] });
-        }
-        state.workbookAttachedDatabases = { main: state.local!, attached: [] };
-        act(() => root.render(<WithCatalogs><WorkbookWorkbenchSidebar workbookScripts={{
-            workbookId: 'current-workbook', instance: {},
-        } as unknown as WorkbookScripts} dependencies={dependencies} /></WithCatalogs>));
+    it('groups the connections of the workbook and numbers connections of the same connector', async () => {
+        await addConnection('trino-database', trino('http://trino'));
+        await addConnection('second-hyper', hyperServer('http://second'));
+        addWorkbook(CURRENT_WORKBOOK, 'Current workbook', LOCAL);
+        addWorkbook(OTHER_WORKBOOK, 'Trino workbook', 'trino-database', ['second-hyper']);
+        render();
 
         expect(groups()).toEqual(['workbook', 'other']);
-        const rowLabel = (connectionId: string) => container
+        const rowLabel = (connectionId: string) => container()
             .querySelector(`[data-connection-id="${connectionId}"] [data-testid="connection-toggle"]`)?.textContent;
-        expect(rowLabel(state.local!.connectionId)).toContain('Hyper #1');
-        expect(rowLabel(secondHyper.connectionId)).toContain('Hyper #2');
+        expect(rowLabel(LOCAL)).toContain('#1');
+        expect(rowLabel('second-hyper')).toContain('#2');
+        expect(rowLabel('trino-database')).not.toContain('#');
     });
 
-    it('groups the active connections that no workbook uses apart', () => {
-        const trino = { ...state.local!, connectionId: 'trino-database', connectorType: ConnectorType.TRINO, embedded: false,
-            details: { setupParams: {}, channel: null, connector: { kind: 'trino' } } } as unknown as ConnectionState;
-        const unused = { ...state.local!, connectionId: 'unused-hyper', active: true } as unknown as ConnectionState;
-        for (const database of [state.local!, unused, trino]) state.connections.set(database.connectionId, database);
-        state.attachedDatabasesByWorkbook.set('current-workbook', { mainDatabaseId: state.local!.connectionId, attachedDatabaseIds: [] });
-        state.attachedDatabasesByWorkbook.set('trino-session', { mainDatabaseId: trino.connectionId, attachedDatabaseIds: [] });
-        for (const workbookId of ['current-workbook', 'trino-session']) {
-            state.workbookScriptsMap.set(workbookId, { workbookId, name: workbookId, workbookMetadata: {}, scriptConnections: [] });
-        }
-        state.workbookAttachedDatabases = { main: state.local!, attached: [] };
-        act(() => root.render(<WithCatalogs><WorkbookWorkbenchSidebar workbookScripts={{
-            workbookId: 'current-workbook', instance: {},
-        } as unknown as WorkbookScripts} dependencies={dependencies} /></WithCatalogs>));
+    it('groups the active connections that no workbook uses apart', async () => {
+        await addConnection('trino-database', trino('http://trino'));
+        await addConnection('unused-hyper', hyperServer('http://unused'), { active: true });
+        addWorkbook(CURRENT_WORKBOOK, 'Current workbook', LOCAL);
+        addWorkbook(OTHER_WORKBOOK, 'Trino workbook', 'trino-database');
+        render();
 
         // The unused connection is listed after the connections of other workbooks
         expect(groups()).toEqual(['workbook', 'other', 'unused']);
-        expect(container.textContent).not.toContain('unused');
+        expect(container().textContent).not.toContain('unused-hyper');
     });
-    /// A Hyper server that the current workbook attached through the composer, the scripts named here run on it
-    function attachServer(scriptConnections: Record<string, string> = {}): ConnectionState {
-        const server = {
-            ...state.local!,
-            connectionId: 'hyper-server',
-            embedded: false,
-            details: { setupParams: { protocol: 'V3_HTTP' }, channel: null, connector: { kind: 'hyper' } },
-            params: { hyper: { protocol: 'V3_HTTP' } },
-        } as unknown as ConnectionState;
-        for (const database of [state.local!, server]) state.connections.set(database.connectionId, database);
-        const usesLocal = Object.values(scriptConnections).includes(state.local!.connectionId);
-        state.attachedDatabasesByWorkbook.set('current-workbook', {
-            mainDatabaseId: server.connectionId,
-            attachedDatabaseIds: usesLocal ? [state.local!.connectionId] : [],
-        });
-        state.workbookScriptsMap.set('current-workbook', {
-            workbookId: 'current-workbook', name: 'Current', workbookMetadata: {}, scriptConnections: Object.values(scriptConnections),
-        });
-        state.workbookAttachedDatabases = { main: server, attached: usesLocal ? [state.local!] : [] };
-        act(() => root.render(<WithCatalogs><WorkbookWorkbenchSidebar workbookScripts={{
-            workbookId: 'current-workbook', instance: {},
-        } as unknown as WorkbookScripts} dependencies={dependencies} /></WithCatalogs>));
-        return server;
-    }
 
-    function menuItem(connectionId: string, action: string): HTMLButtonElement | null {
+    /// A Hyper server that the current workbook creates new scripts on, the scripts named here run on it
+    async function attachServer(scriptsOnServer: boolean): Promise<void> {
+        await addConnection('hyper-server', hyperServer('http://server'));
+        addWorkbook(CURRENT_WORKBOOK, 'Current workbook', LOCAL, scriptsOnServer ? ['hyper-server'] : [LOCAL]);
         act(() => {
-            container.querySelector<HTMLButtonElement>(`[data-connection-id="${connectionId}"] [data-testid="connection-row-menu"]`)!.click();
+            app.runtime.dispatch({ workbook: CURRENT_WORKBOOK }, { kind: 'setPendingConnection', value: { connectionId: 'hyper-server' } });
+            app.runtime.flush();
         });
-        return document.querySelector(`[data-testid="connection-menu-item"][data-action="${action}"]`);
+        render();
     }
 
     it('deletes a connection that workbooks only create new scripts on', async () => {
-        const server = attachServer();
+        await attachServer(false);
         vi.spyOn(window, 'confirm').mockReturnValue(true);
-        const remove = menuItem(server.connectionId, 'delete')!;
+        const remove = menuItem('hyper-server', 'delete')!;
         expect(remove.disabled).toBe(false);
         await act(async () => remove.click());
-        expect(state.detachConnection).toHaveBeenCalledWith(server.connectionId);
-        expect(state.deleteConnection).toHaveBeenCalledWith(server.connectionId);
-        expect(state.detachConnection.mock.invocationCallOrder[0]).toBeLessThan(state.deleteConnection.mock.invocationCallOrder[0]);
+        // The workbook lets go of the connection before it is deleted
+        await vi.waitFor(() => expect(app.runtime.connection('hyper-server') ?? null).toBeNull());
+        expect(workbooks().get(CURRENT_WORKBOOK)!.pendingConnectionId).not.toBe('hyper-server');
     });
 
-    it('offers no delete of the embedded Hyper that workbooks fall back to', () => {
-        attachServer({ '1_alpha.sql': 'local-database' });
-        expect(menuItem(state.local!.connectionId, 'delete')).toBeNull();
+    it('offers no delete of the embedded Hyper that workbooks fall back to', async () => {
+        await attachServer(false);
+        expect(menuItem(LOCAL, 'delete')).toBeNull();
     });
 
-    it('refuses to delete a connection that scripts use', () => {
-        const server = attachServer({ '1_alpha.sql': 'hyper-server' });
+    it('refuses to delete a connection that scripts use', async () => {
+        await attachServer(true);
         const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
-        act(() => menuItem(server.connectionId, 'delete')!.click());
+        act(() => menuItem('hyper-server', 'delete')!.click());
         expect(confirm).not.toHaveBeenCalled();
-        expect(state.deleteConnection).not.toHaveBeenCalled();
+        expect(app.runtime.connection('hyper-server') ?? null).not.toBeNull();
     });
 });

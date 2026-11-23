@@ -1,209 +1,234 @@
 import * as React from 'react';
 import { act, waitForRender } from '@akohn/dashql-react/testing/react_act';
-import { createRoot, type Root } from 'react-dom/client';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { WorkbookViewMode, WorkbookViewModeProvider, useWorkbookViewMode } from './workbook_view_mode.js';
-import { WorkbookPage, type WorkbookPageDependencies } from './workbook_page.js';
-import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
-import { OPEN_IMPORTED_WORKBOOK, OPEN_LINK_WORKBOOK, PROMOTE_WORKBOOK, useRouteContext, useRouterNavigate, useSelectOpeningWorkbook, workbookPath } from '../app/router.js';
+import { createTestRoot } from '@akohn/dashql-react/testing/react_root';
+import { useRuntime } from '@akohn/dashql-react/hooks';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { MemoryRouter, Route, Routes, useLocation, type InitialEntry, type Location } from 'react-router-dom';
+import * as core from '@akohn/dashql';
+
+import type { Runtime } from '@akohn/dashql/runtime/runtime';
+import type { ConnectionParams } from '@akohn/dashql/platform/connections/connection_params';
+import { WorkbookTestBackend } from '@akohn/dashql/platform/testing/workbook_test_backend';
+import { LoggerProvider } from '../host/logger_provider.js';
+import { StorageProvider } from '../storage/storage_provider.js';
+import { TestRuntime } from '../tests/test_runtime.js';
+import { addTestConnection } from '../tests/test_connections.js';
+import { WorkbookViewMode, WorkbookViewModeProvider, useWorkbookViewMode, type WorkbookViewModeContextValue } from './workbook_view_mode.js';
+import { WorkbookPage } from './workbook_page.js';
+import { OPEN_IMPORTED_WORKBOOK, OPEN_LINK_WORKBOOK, SELECT_WORKBOOK, useRouterNavigate, useSelectOpeningWorkbook, workbookPath } from '../app/router.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
-const state = {
-    mode: 0,
-    workbookId: 'workbook',
-    feedMounts: 0,
-    feedUnmounts: 0,
-    ephemeral: false,
-    pathname: '/workbooks/workbook',
-    search: '',
-    defaultView: 'feed',
-    navigate: vi.fn(),
-    setMode: vi.fn(),
-};
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
+beforeAll(async () => { await core.DashQL.create({ wasmBinary: await DASHQL_PRECOMPILED }); });
 
-const DEFAULT_CONNECTION = { connectionId: 'database' };
-const OTHER_CONNECTION = { connectionId: 'other' };
-const CONNECTIONS = new Map([['database', DEFAULT_CONNECTION], ['other', OTHER_CONNECTION]]);
+const WORKBOOK = '00000000-0000-4000-8000-000000000301';
+const NEXT = '00000000-0000-4000-8000-000000000302';
+const hyperServer = (endpoint: string) => ({ hyper: { protocol: 'V3_HTTP', endpoint } }) as ConnectionParams;
 
-const dependencies = {
-    useWorkbookViewMode: () => ({ mode: state.mode, setMode: state.setMode }),
-    useWorkbook: () => ({
-        workbookMetadata: { ephemeral: state.ephemeral ? true : undefined }, ephemeral: state.ephemeral,
-        workbookId: state.workbookId, name: 'Workbook', defaultView: state.defaultView, pendingConnectionId: 'database', nextScriptConnectionId: 'database', connectionIds: ['database'], scriptConnections: [],
-        scriptKeys: [], scriptRefs: {}, scriptOrder: [],
-    }),
-    useDispatch: () => vi.fn(),
-    useConnections: () => CONNECTIONS,
-    useLogger: () => ({ warn: vi.fn() }),
-    useRouteContext: () => ({ workbookId: state.workbookId }),
-    useRouterNavigate: () => state.navigate,
-    useLocation: () => ({ pathname: state.pathname, search: state.search }),
-    WorkbookFeedPage: ({ active }: { active: boolean }) => {
-        React.useEffect(() => {
-            state.feedMounts += 1;
-            return () => { state.feedUnmounts += 1; };
-        }, []);
-        return <div data-testid="feed" data-active={active} />;
-    },
-    WorkbookShellsPage: ({ connectionId, onPickConnection }: { connectionId: string | null; onPickConnection: (connectionId: string) => void }) => (
-        <div data-testid="shell" data-connection-id={connectionId ?? ''}>
-            <button type="button" data-testid="pick-other" onClick={() => onPickConnection('other')} />
-        </div>
-    ),
-} as unknown as WorkbookPageDependencies;
+/// The root with the greeter of a workbook, as the app shows it
+const greeter = (workbookId: string): InitialEntry => ({
+    pathname: '/',
+    state: { setupDone: true, confirmedFinishedSetup: true, workbookId, openingWorkbook: false, importedWorkbookId: null },
+});
 
 describe('WorkbookPage view transitions', () => {
-    let container: HTMLDivElement;
-    let root: Root;
+    let root: ReturnType<typeof createTestRoot>;
+    let runtime: Runtime;
+    let location: Location;
+    let viewMode: WorkbookViewModeContextValue;
+    let navigate: ReturnType<typeof useRouterNavigate>;
+    let feedMounts: number;
+    let feedUnmounts: number;
+
+    function Capture() {
+        runtime = useRuntime();
+        location = useLocation();
+        viewMode = useWorkbookViewMode();
+        navigate = useRouterNavigate();
+        return null;
+    }
+
+    /// The feed of the workbook, counts its mounts
+    function Feed(props: { active: boolean }) {
+        React.useEffect(() => {
+            feedMounts += 1;
+            return () => { feedUnmounts += 1; };
+        }, []);
+        return <div data-testid="feed" data-active={props.active} />;
+    }
+
+    /// The shells of the workbook, without a session
+    function Shells(props: { connectionId: string | null; onPickConnection: (connectionId: string) => void }) {
+        return (
+            <div data-testid="shell" data-connection-id={props.connectionId ?? ''}>
+                <button type="button" data-testid="pick-other" onClick={() => props.onPickConnection('other')} />
+            </div>
+        );
+    }
+
+    const page = (
+        <WorkbookPage
+            feed={props => <Feed active={props.active} />}
+            shells={props => <Shells connectionId={props.connectionId} onPickConnection={props.onPickConnection} />}
+        />
+    );
+
+    /// Show the app at a location with the routes of the page, the page alone by default
+    function render(initial: InitialEntry, children: React.ReactNode = page) {
+        root.render(
+            <LoggerProvider>
+                <MemoryRouter initialEntries={[initial]}>
+                    <StorageProvider backend={new WorkbookTestBackend()}>
+                        <TestRuntime>
+                            <WorkbookViewModeProvider>
+                                <Capture />
+                                {children}
+                            </WorkbookViewModeProvider>
+                        </TestRuntime>
+                    </StorageProvider>
+                </MemoryRouter>
+            </LoggerProvider>,
+        );
+    }
+
+    /// Create the connections and a workbook on the first one, with a default view
+    async function seed(workbooks: { workbookId: string; ephemeral?: boolean; defaultView?: core.WorkbookDefaultView }[]) {
+        await act(async () => {
+            await addTestConnection(runtime, { connectionId: 'database', params: hyperServer('http://database') });
+            await addTestConnection(runtime, { connectionId: 'other', params: hyperServer('http://other') });
+            for (const workbook of workbooks) {
+                runtime.createWorkbook('database', 'Workbook', workbook.ephemeral ?? false, undefined, workbook.workbookId);
+                if (workbook.defaultView != null) {
+                    runtime.dispatch({ workbook: workbook.workbookId }, { kind: 'setDefaultView', value: { view: workbook.defaultView } });
+                }
+            }
+            runtime.flush();
+        });
+    }
+
+    /// Promote an ephemeral workbook with its first script
+    function promote(workbookId: string) {
+        act(() => {
+            runtime.dispatch({ workbook: workbookId }, { kind: 'createScript', value: { text: 'select 1', base: '1' } });
+            runtime.flush();
+        });
+    }
+
+    const feed = () => root.container.querySelector('[data-testid="feed"]');
+    const shellConnection = () => root.container.querySelector('[data-testid="shell"]')?.getAttribute('data-connection-id');
+    const setMode = (mode: WorkbookViewMode) => act(() => viewMode.setMode(mode));
 
     beforeEach(() => {
-        state.mode = 0;
-        state.workbookId = 'workbook';
-        state.feedMounts = 0;
-        state.feedUnmounts = 0;
-        state.ephemeral = false;
-        state.pathname = '/workbooks/workbook';
-        state.search = '';
-        state.defaultView = 'feed';
-        state.navigate.mockReset();
-        state.setMode.mockReset();
-        container = document.createElement('div');
-        document.body.appendChild(container);
-        root = createRoot(container);
+        feedMounts = 0;
+        feedUnmounts = 0;
+        root = createTestRoot();
     });
     afterEach(() => {
-        act(() => root.unmount());
-        container.remove();
+        root.unmount();
     });
 
     it('moves to the path of the workbook once it is promoted', async () => {
-        state.ephemeral = true;
-        state.pathname = '/';
-        await act(async () => root.render(<WorkbookPage dependencies={dependencies} />));
-        expect(state.navigate).not.toHaveBeenCalled();
+        render(greeter(WORKBOOK));
+        await seed([{ workbookId: WORKBOOK, ephemeral: true }]);
+        expect(feed()).not.toBeNull();
+        expect(location.pathname).toBe('/');
 
-        state.ephemeral = false;
-        await act(async () => root.render(<WorkbookPage dependencies={dependencies} />));
-        expect(state.navigate).toHaveBeenCalledWith({ type: PROMOTE_WORKBOOK, value: 'workbook' });
-
-        state.navigate.mockClear();
-        state.pathname = workbookPath('workbook');
-        await act(async () => root.render(<WorkbookPage dependencies={dependencies} />));
-        expect(state.navigate).not.toHaveBeenCalled();
+        promote(WORKBOOK);
+        await waitForRender(() => expect(location.pathname).toBe(workbookPath(WORKBOOK)));
     });
 
     it('keeps the feed mounted when the root moves to the path of the workbook', async () => {
-        const routed = { ...dependencies, useLocation, useRouterNavigate: () => state.navigate } as WorkbookPageDependencies;
-        let navigate!: ReturnType<typeof useNavigate>;
-        const Capture = () => {
-            navigate = useNavigate();
-            return null;
-        };
-        const Page = () => <WorkbookPage dependencies={routed} />;
-        await act(async () => root.render(
-            <MemoryRouter initialEntries={['/']}>
-                <Capture />
-                <Routes>
-                    <Route index Component={Page} />
-                    <Route path="/workbook" Component={Page} />
-                    <Route path="/workbooks/:workbookId" Component={Page} />
-                </Routes>
-            </MemoryRouter>,
+        render(greeter(WORKBOOK), (
+            <Routes>
+                <Route index element={page} />
+                <Route path="/workbook" element={page} />
+                <Route path="/workbooks/:workbookId" element={page} />
+            </Routes>
         ));
-        expect(state.feedMounts).toBe(1);
-        await act(async () => navigate(workbookPath('workbook'), { replace: true }));
-        expect(state.feedMounts).toBe(1);
-        expect(state.feedUnmounts).toBe(0);
+        await seed([{ workbookId: WORKBOOK, ephemeral: true }]);
+        expect(feedMounts).toBe(1);
+        promote(WORKBOOK);
+        await waitForRender(() => expect(location.pathname).toBe(workbookPath(WORKBOOK)));
+        expect(feedMounts).toBe(1);
+        expect(feedUnmounts).toBe(0);
     });
 
     it('keeps the feed mounted through a shell round trip', async () => {
-        await act(async () => root.render(<WorkbookPage dependencies={dependencies} />));
-        expect(state.feedMounts).toBe(1);
-        expect(container.querySelector('[data-testid="feed"]')?.getAttribute('data-active')).toBe('true');
+        render(workbookPath(WORKBOOK));
+        await seed([{ workbookId: WORKBOOK }]);
+        expect(feedMounts).toBe(1);
+        expect(feed()?.getAttribute('data-active')).toBe('true');
 
-        state.mode = WorkbookViewMode.Shell;
-        await act(async () => root.render(<WorkbookPage dependencies={dependencies} />));
-        expect(state.feedUnmounts).toBe(0);
-        expect(container.querySelector('[data-testid="feed"]')?.getAttribute('data-active')).toBe('false');
-        expect(container.querySelector('[data-testid="shell"]')).not.toBeNull();
+        setMode(WorkbookViewMode.Shell);
+        expect(feedUnmounts).toBe(0);
+        expect(feed()?.getAttribute('data-active')).toBe('false');
+        expect(shellConnection()).not.toBeUndefined();
 
-        state.mode = WorkbookViewMode.Workbook;
-        await act(async () => root.render(<WorkbookPage dependencies={dependencies} />));
-        expect(state.feedMounts).toBe(1);
-        expect(state.feedUnmounts).toBe(0);
-        expect(container.querySelector('[data-testid="feed"]')?.getAttribute('data-active')).toBe('true');
+        setMode(WorkbookViewMode.Workbook);
+        expect(feedMounts).toBe(1);
+        expect(feedUnmounts).toBe(0);
+        expect(feed()?.getAttribute('data-active')).toBe('true');
     });
 
     it('keeps the feed page mounted for the Dashboard view', async () => {
-        await act(async () => root.render(<WorkbookPage dependencies={dependencies} />));
-        state.mode = WorkbookViewMode.Dashboard;
-        await act(async () => root.render(<WorkbookPage dependencies={dependencies} />));
+        render(workbookPath(WORKBOOK));
+        await seed([{ workbookId: WORKBOOK }]);
+        setMode(WorkbookViewMode.Dashboard);
+        await waitForRender(() => expect(location.search).toBe('?view=dashboard'));
 
-        expect(container.querySelector('[data-testid="feed"]')?.getAttribute('data-active')).toBe('false');
-        expect(state.feedMounts).toBe(1);
-        expect(state.feedUnmounts).toBe(0);
+        expect(feed()?.getAttribute('data-active')).toBe('false');
+        expect(feedMounts).toBe(1);
+        expect(feedUnmounts).toBe(0);
     });
 
     it('reopens the shell on the picked connection until the workbook changes', async () => {
-        const shellConnection = () => container.querySelector('[data-testid="shell"]')?.getAttribute('data-connection-id');
-        state.mode = WorkbookViewMode.Shell;
-        await act(async () => root.render(<WorkbookPage dependencies={dependencies} />));
+        render(workbookPath(WORKBOOK));
+        await seed([{ workbookId: WORKBOOK }, { workbookId: NEXT }]);
+        setMode(WorkbookViewMode.Shell);
         expect(shellConnection()).toBe('database');
 
-        await act(async () => (container.querySelector('[data-testid="pick-other"]') as HTMLButtonElement).click());
+        act(() => (root.container.querySelector('[data-testid="pick-other"]') as HTMLButtonElement).click());
         expect(shellConnection()).toBe('other');
 
-        state.mode = WorkbookViewMode.Workbook;
-        await act(async () => root.render(<WorkbookPage dependencies={dependencies} />));
-        expect(container.querySelector('[data-testid="shell"]')).toBeNull();
-        state.mode = WorkbookViewMode.Shell;
-        await act(async () => root.render(<WorkbookPage dependencies={dependencies} />));
+        setMode(WorkbookViewMode.Workbook);
+        expect(shellConnection()).toBeUndefined();
+        setMode(WorkbookViewMode.Shell);
         expect(shellConnection()).toBe('other');
 
-        state.workbookId = 'next';
-        await act(async () => root.render(<WorkbookPage dependencies={dependencies} />));
+        act(() => navigate({ type: SELECT_WORKBOOK, value: NEXT }));
+        await waitForRender(() => expect(location.pathname).toBe(workbookPath(NEXT)));
         expect(shellConnection()).toBe('database');
     });
 
     it('opens a workbook in its default view once', async () => {
-        state.defaultView = 'dashboard';
-        await act(async () => root.render(<WorkbookPage dependencies={dependencies} />));
-        expect(state.setMode).toHaveBeenCalledExactlyOnceWith(WorkbookViewMode.Dashboard);
+        render(workbookPath(WORKBOOK));
+        await seed([{ workbookId: WORKBOOK, defaultView: 'dashboard' }, { workbookId: NEXT, defaultView: 'dataflow' }]);
+        await waitForRender(() => expect(viewMode.mode).toBe(WorkbookViewMode.Dashboard));
         // The user picks another view, the workbook stays in it
-        await act(async () => root.render(<WorkbookPage dependencies={dependencies} />));
-        expect(state.setMode).toHaveBeenCalledOnce();
+        setMode(WorkbookViewMode.Workbook);
+        await waitForRender(() => expect(location.search).toBe(''));
+        expect(viewMode.mode).toBe(WorkbookViewMode.Workbook);
         // Another workbook opens in its own default view
-        state.workbookId = 'next';
-        state.defaultView = 'dataflow';
-        await act(async () => root.render(<WorkbookPage dependencies={dependencies} />));
-        expect(state.setMode).toHaveBeenLastCalledWith(WorkbookViewMode.Dataflow);
+        act(() => navigate({ type: SELECT_WORKBOOK, value: NEXT }));
+        await waitForRender(() => expect(viewMode.mode).toBe(WorkbookViewMode.Dataflow));
     });
 
     it('opens the default view of a workbook that the app loader selects', async () => {
-        state.defaultView = 'dashboard';
-        const routed = { ...dependencies, useLocation, useRouteContext, useRouterNavigate, useWorkbookViewMode } as WorkbookPageDependencies;
-        let navigate!: ReturnType<typeof useRouterNavigate>;
-        let location!: ReturnType<typeof useLocation>;
         // The app loader around the routes selects the workbook that opens
         const Loader = (props: React.PropsWithChildren) => {
-            navigate = useRouterNavigate();
-            location = useLocation();
             useSelectOpeningWorkbook();
             return props.children;
         };
-        await act(async () => root.render(
-            <MemoryRouter initialEntries={['/']}>
-                <WorkbookViewModeProvider>
-                    <Loader>
-                        <Routes>
-                            <Route index element={<div />} />
-                            <Route path="/workbooks/:workbookId" element={<WorkbookPage dependencies={routed} />} />
-                        </Routes>
-                    </Loader>
-                </WorkbookViewModeProvider>
-            </MemoryRouter>,
+        render('/', (
+            <Loader>
+                <Routes>
+                    <Route index element={<div />} />
+                    <Route path="/workbooks/:workbookId" element={page} />
+                </Routes>
+            </Loader>
         ));
+        await seed([{ workbookId: WORKBOOK, defaultView: 'dashboard' }, { workbookId: NEXT, defaultView: 'dataflow' }]);
         // The router renders a navigation in a transition, the act of the tests doesn't wait for it
         const shown = () => ({
             pathname: location.pathname,
@@ -211,24 +236,21 @@ describe('WorkbookPage view transitions', () => {
             opening: (location.state as { openingWorkbook?: boolean } | null)?.openingWorkbook,
         });
         // A dropped file or a shared link
-        await act(async () => navigate({ type: OPEN_IMPORTED_WORKBOOK, value: 'workbook' }));
-        await waitForRender(() => expect(shown()).toEqual({ pathname: workbookPath('workbook'), search: '?view=dashboard', opening: false }));
+        await act(async () => navigate({ type: OPEN_IMPORTED_WORKBOOK, value: WORKBOOK }));
+        await waitForRender(() => expect(shown()).toEqual({ pathname: workbookPath(WORKBOOK), search: '?view=dashboard', opening: false }));
 
         // A workbook that the app restores at its start
-        state.workbookId = 'next';
-        state.defaultView = 'dataflow';
-        await act(async () => navigate({ type: OPEN_LINK_WORKBOOK, value: 'next' }));
-        await waitForRender(() => expect(shown()).toEqual({ pathname: workbookPath('next'), search: '?view=dataflow', opening: false }));
+        await act(async () => navigate({ type: OPEN_LINK_WORKBOOK, value: NEXT }));
+        await waitForRender(() => expect(shown()).toEqual({ pathname: workbookPath(NEXT), search: '?view=dataflow', opening: false }));
     });
 
     it('keeps the view that the URL names and an open shell', async () => {
-        state.defaultView = 'dashboard';
-        state.search = '?view=dataflow';
-        await act(async () => root.render(<WorkbookPage dependencies={dependencies} />));
-        state.search = '';
-        state.mode = WorkbookViewMode.Shell;
-        state.workbookId = 'next';
-        await act(async () => root.render(<WorkbookPage dependencies={dependencies} />));
-        expect(state.setMode).not.toHaveBeenCalled();
+        render(`${workbookPath(WORKBOOK)}?view=dataflow`);
+        await seed([{ workbookId: WORKBOOK, defaultView: 'dashboard' }, { workbookId: NEXT, defaultView: 'dashboard' }]);
+        expect(viewMode.mode).toBe(WorkbookViewMode.Dataflow);
+        setMode(WorkbookViewMode.Shell);
+        act(() => navigate({ type: SELECT_WORKBOOK, value: NEXT }));
+        await waitForRender(() => expect(location.pathname).toBe(workbookPath(NEXT)));
+        expect(viewMode.mode).toBe(WorkbookViewMode.Shell);
     });
 });
