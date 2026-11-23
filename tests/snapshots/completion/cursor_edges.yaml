@@ -98,7 +98,7 @@ completion-snapshots:
           location: ""
           location-qualified: ""
           objects: []
-        - value: by
+        - value: limit
           candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL]
           location: ""
           location-qualified: ""

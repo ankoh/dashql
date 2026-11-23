@@ -957,3 +957,145 @@ completion-snapshots:
           location-qualified: "na"
           objects: []
       text: "na"
+
+  - name: clause_order_by_nulls
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+        errors: []
+    editor:
+      input: |-
+        select a from t order by a desc nu
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+    cursor:
+      search:
+        text: 'desc nu'
+        index: 7
+    completions:
+      limit: 5
+      strategy: DEFAULT
+      symbol: OBJECT_SQL_SELECT
+      relative: END_OF_SYMBOL
+      entries:
+        - value: nulls
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "nu"
+          location-qualified: "nu"
+          objects: []
+        - value: limit
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL]
+          location: "nu"
+          location-qualified: "nu"
+          objects: []
+        - value: offset
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL]
+          location: "nu"
+          location-qualified: "nu"
+          objects: []
+        - value: fetch
+          keyword-continuation: first
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL]
+          location: "nu"
+          location-qualified: "nu"
+          objects: []
+        - value: for
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL]
+          location: "nu"
+          location-qualified: "nu"
+          objects: []
+      text: "nu"
+
+  - name: clause_order_by_nulls_without_direction
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+        errors: []
+    editor:
+      input: |-
+        select a from t order by a nu
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+    cursor:
+      search:
+        text: 'a nu'
+        index: 4
+    completions:
+      limit: 5
+      strategy: DEFAULT
+      symbol: OBJECT_SQL_SELECT
+      relative: END_OF_SYMBOL
+      entries:
+        - value: nulls
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "nu"
+          location-qualified: "nu"
+          objects: []
+        - value: isnull
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
+          location: "nu"
+          location-qualified: "nu"
+          objects: []
+        - value: notnull
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
+          location: "nu"
+          location-qualified: "nu"
+          objects: []
+        - value: and
+          candidate-tags: [KEYWORD_B,EXPECTED_PARSER_SYMBOL]
+          location: "nu"
+          location-qualified: "nu"
+          objects: []
+        - value: asc
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL]
+          location: "nu"
+          location-qualified: "nu"
+          objects: []
+      text: "nu"
+
+  - name: clause_order_by_nulls_first
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+        errors: []
+    editor:
+      input: |-
+        select a from t order by a nulls fi
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+    cursor:
+      search:
+        text: 'nulls fi'
+        index: 8
+    completions:
+      limit: 5
+      strategy: DEFAULT
+      symbol: OBJECT_SQL_SELECT
+      relative: END_OF_SYMBOL
+      entries:
+        - value: first
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "fi"
+          location-qualified: "fi"
+          objects: []
+        - value: last
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL]
+          location: "fi"
+          location-qualified: "fi"
+          objects: []
+      text: "fi"

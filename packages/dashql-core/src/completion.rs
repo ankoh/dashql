@@ -145,7 +145,7 @@ fn name_tag_scores(strategy: CompletionStrategy) -> [(NameTag, Score); 7] {
 
 /// The prevalence of a keyword
 fn keyword_prevalence(keyword: SymbolKind) -> CandidateTag {
-    match keyword {
+    match Keyword::of_lookahead_token(keyword).unwrap_or(keyword) {
         S_SELECT | S_FROM | S_WHERE => CandidateTag::KEYWORD_A,
         S_AND | S_GROUP_P | S_ORDER => CandidateTag::KEYWORD_B,
         // Not END, it also begins a statement and would come before SET and WITH there
@@ -974,33 +974,44 @@ impl<'c, 'a> Completion<'c, 'a> {
         let has_client_functions = !self.catalog().client_function_specs().is_empty();
         let offers = |keyword: SymbolKind| keyword != S_CALL_P || has_client_functions;
 
+        // The expected keywords with their names. A lookahead token like NULLS_LA stands for its keyword, once and
+        // only if the keyword itself is not expected.
+        let mut keywords: Vec<(SymbolKind, &'static str)> = Vec::new();
+        for (i, &expected) in symbols.iter().enumerate() {
+            let name = match Keyword::of_lookahead_token(expected) {
+                Some(keyword) => {
+                    let earlier = symbols.get(..i).unwrap_or_default();
+                    if symbols.contains(&keyword)
+                        || earlier.iter().any(|&e| Keyword::of_lookahead_token(e) == Some(keyword))
+                    {
+                        continue;
+                    }
+                    Keyword::name_of(keyword)
+                }
+                None => Keyword::name_of(expected),
+            };
+            let Some(name) = name.filter(|n| !n.is_empty()).filter(|_| offers(expected)) else { continue };
+            // A passive hint is a keyword, not a name that happens to be spelled like one (`where a = by`)
+            if self.between_symbols && probe::takes_keyword_only_as_name(prefix, expected) {
+                continue;
+            }
+            keywords.push((expected, name));
+        }
+
         // Probe the keywords against the tokens after the cursor
         let mut probes = Vec::new();
-        let mut probe_input_idx = Vec::new();
-        if self.has_post_cursor_token {
-            let mut kinds = Vec::new();
-            for (i, &s) in symbols.iter().enumerate() {
-                if offers(s) && Keyword::name_of(s).is_some_and(|n| !n.is_empty()) {
-                    kinds.push(s);
-                    probe_input_idx.push(i);
-                }
-            }
-            if !kinds.is_empty() {
-                probes = probe::probe_suffix_batch(self.symbols(), feed_id, prefix, &kinds, replace_target);
-            }
+        if self.has_post_cursor_token && !keywords.is_empty() {
+            let kinds: Vec<SymbolKind> = keywords.iter().map(|&(kind, _)| kind).collect();
+            probes = probe::probe_suffix_batch(self.symbols(), feed_id, prefix, &kinds, replace_target);
         }
-        let mut probes = probe_input_idx.into_iter().zip(probes).peekable();
 
-        for (i, &expected) in symbols.iter().enumerate() {
-            let Some(name) = Keyword::name_of(expected).filter(|n| !n.is_empty()).filter(|_| offers(expected)) else {
-                continue;
-            };
+        for (i, &(expected, name)) in keywords.iter().enumerate() {
             let mut tags = keyword_tags(expected, name);
             // A leading FROM is no proactive suggestion outside of a SELECT
             if expected == S_FROM && !inside_select && !has(tags, CandidateTag::SUBSTRING_MATCH) {
                 continue;
             }
-            if let Some((_, probe)) = probes.next_if(|&(idx, _)| idx == i) {
+            if let Some(probe) = probes.get(i) {
                 if !probe.k1_compatible {
                     tags |= CandidateTag::SUFFIX_INCOMPATIBLE.0;
                 } else if probe.reached_eof || probe.depth_consumed >= 2 {

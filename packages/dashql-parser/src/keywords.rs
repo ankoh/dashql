@@ -73,6 +73,37 @@ impl Keyword {
     pub fn name_of(symbol: SymbolKind) -> Option<&'static str> {
         keyword_names().get(symbol as usize).copied().flatten()
     }
+
+    /// The keyword of a lookahead token. The scanner replaces a keyword with its lookahead token if the next token
+    /// selects another rule, e.g. NULLS before FIRST or LAST becomes NULLS_LA.
+    pub fn of_lookahead_token(symbol: SymbolKind) -> Option<SymbolKind> {
+        use symbol_kind::*;
+        match symbol {
+            S_NOT_LA => Some(S_NOT),
+            S_NULLS_LA => Some(S_NULLS_P),
+            S_WITH_LA | S_WITH_OPTIONS_LA => Some(S_WITH),
+            S_WITHOUT_LA => Some(S_WITHOUT),
+            S_ARRAY_LA => Some(S_ARRAY),
+            S_SEMI_JOIN_LA => Some(S_SEMI),
+            S_ANTI_JOIN_LA => Some(S_ANTI),
+            _ => None,
+        }
+    }
+
+    /// The lookahead tokens of a keyword, see [`Keyword::of_lookahead_token`]
+    pub fn lookahead_tokens(symbol: SymbolKind) -> &'static [SymbolKind] {
+        use symbol_kind::*;
+        match symbol {
+            S_NOT => &[S_NOT_LA],
+            S_NULLS_P => &[S_NULLS_LA],
+            S_WITH => &[S_WITH_LA, S_WITH_OPTIONS_LA],
+            S_WITHOUT => &[S_WITHOUT_LA],
+            S_ARRAY => &[S_ARRAY_LA],
+            S_SEMI => &[S_SEMI_JOIN_LA],
+            S_ANTI => &[S_ANTI_JOIN_LA],
+            _ => &[],
+        }
+    }
 }
 
 /// FNV-1a, the hash of the keyword lookup table (see //grammar/rust:gen_keywords.py)

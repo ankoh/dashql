@@ -254,3 +254,51 @@ completion-snapshots:
         index: 6
     completions:
       limit: 5
+
+  # NULLS after the direction of an ORDER BY column, the scanner reads it as NULLS_LA only before FIRST or LAST
+  - name: clause_order_by_nulls
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select a from t order by a desc nu
+    cursor:
+      search:
+        text: 'desc nu'
+        index: 7
+    completions:
+      limit: 5
+
+  # NULLS right after an ORDER BY column
+  - name: clause_order_by_nulls_without_direction
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select a from t order by a nu
+    cursor:
+      search:
+        text: 'a nu'
+        index: 4
+    completions:
+      limit: 5
+
+  # FIRST and LAST after NULLS
+  - name: clause_order_by_nulls_first
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select a from t order by a nulls fi
+    cursor:
+      search:
+        text: 'nulls fi'
+        index: 8
+    completions:
+      limit: 5

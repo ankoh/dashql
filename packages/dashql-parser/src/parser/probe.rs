@@ -8,9 +8,10 @@
 //!   snapshot to test whether candidate symbols fit the rest of the script.
 
 use super::driver::{
-    default_rule, is_default_state, lac_check, rule_length, rule_lhs, state_below, table_action, Action, StateId,
+    default_rule, feed, is_default_state, lac_check, rule_length, rule_lhs, state_below, table_action, Action, StateId,
     NO_STATE,
 };
+use crate::keywords::Keyword;
 use crate::scanner::Symbol;
 use crate::symbol_kind::*;
 use crate::tables::*;
@@ -126,6 +127,7 @@ fn drive<P: Policy>(policy: &mut P, states: &mut Vec<StateId>, tokens: &mut Toke
                             if stop {
                                 return;
                             }
+                            next = resolve_lookahead_token(states, next, &mut scratch);
                             lookahead = Some(next);
                             next
                         }
@@ -222,6 +224,16 @@ fn drive<P: Policy>(policy: &mut P, states: &mut Vec<StateId>, tokens: &mut Toke
     }
 }
 
+/// The lookahead token of a keyword that only it fits. The scanner picks a lookahead token by the token after the
+/// keyword, which is not typed yet at the cursor: `order by a nulls ` reads NULLS, which fits as NULLS_LA only.
+fn resolve_lookahead_token(states: &[StateId], kind: SymbolKind, scratch: &mut Vec<StateId>) -> SymbolKind {
+    let tokens = Keyword::lookahead_tokens(kind);
+    if tokens.is_empty() || lac_check(states, kind, scratch) {
+        return kind;
+    }
+    tokens.iter().copied().find(|&token| lac_check(states, token, scratch)).unwrap_or(kind)
+}
+
 /// All tokens that the parser would eventually shift
 pub fn collect_expected_symbols(states: &[StateId]) -> Vec<SymbolKind> {
     let mut scratch = Vec::new();
@@ -265,6 +277,40 @@ pub fn parse_until_with_snapshot(symbols: &[Symbol], target: u32) -> ExpectedAtC
         out.expected = collect_expected_symbols(&out.prefix.state_stack);
     }
     out
+}
+
+/// Does the parser take a keyword at the cursor only as a name, like BY in `where a = by`? It does if the state
+/// after the keyword shifts nothing and only reduces the keyword to a name. A keyword that also continues a rule of
+/// its own, like SET in `update t set` (an alias or the SET clause), is no name only.
+#[allow(non_upper_case_globals)]
+pub fn takes_keyword_only_as_name(prefix: &PrefixSnapshot, keyword: SymbolKind) -> bool {
+    let mut states = prefix.state_stack.clone();
+    if !prefix.reached_target || states.is_empty() || !feed(&mut states, keyword) {
+        return false;
+    }
+    let Some(&state) = states.last() else { return false };
+    let is_name_rule = |rule: usize| {
+        matches!(
+            rule_lhs(rule),
+            S_sql_column_name_keywords
+                | S_sql_reserved_keywords
+                | S_sql_type_func_keywords
+                | S_sql_unreserved_keywords
+                | S_sql_bare_label_keywords
+        )
+    };
+    let default = default_rule(state);
+    if default != 0 && !is_name_rule(default) {
+        return false;
+    }
+    if is_default_state(state) {
+        return default != 0;
+    }
+    (0..YYNTOKENS as SymbolKind).all(|token| match table_action(state, token) {
+        Some(Action::Shift(_)) => false,
+        Some(Action::Reduce(rule)) => is_name_rule(rule),
+        Some(Action::Error) | None => true,
+    })
 }
 
 /// Replace the cursor token with a symbol, then inject COMPLETE_HERE to collect the expected

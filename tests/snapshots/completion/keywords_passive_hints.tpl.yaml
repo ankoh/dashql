@@ -130,3 +130,63 @@ completion-snapshots:
         index: 6
     completions:
       limit: 3
+
+  # After a comparison only keywords that begin an expression, no unreserved keyword that would be a column name like BY or SET
+  - name: passive_after_equals
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: 'select * from t where a = '
+    cursor:
+      search:
+        text: '= '
+        index: 2
+    completions:
+      limit: 5
+
+  # After an arithmetic operator only keywords that begin an expression
+  - name: passive_after_plus
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: 'select a + '
+    cursor:
+      search:
+        text: '+ '
+        index: 2
+    completions:
+      limit: 5
+
+  # SET after the table of an UPDATE stays a hint, although it could also be an alias
+  - name: passive_after_update_table
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: 'update t '
+    cursor:
+      search:
+        text: 't '
+        index: 2
+    completions:
+      limit: 5
+
+  # After an ORDER BY column the directions and NULLS
+  - name: passive_after_order_by_column
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: 'select a from t order by a '
+    cursor:
+      search:
+        text: 'by a '
+        index: 5
+    completions:
+      limit: 5

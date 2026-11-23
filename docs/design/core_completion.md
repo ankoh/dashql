@@ -175,6 +175,8 @@ Keywords enter the candidate set via `add_expected_keywords_as_candidates()`.
 They are extracted from the parser state and get a +20 keyword-substring bonus (in `compute_candidate_score`) when both `EXPECTED_PARSER_SYMBOL` and `SUBSTRING_MATCH` are set, plus prevalence modifiers for common keywords.
 Outside of a SELECT, `FROM` is only offered when it matches the typed text, never as a proactive suggestion.
 
+The scanner replaces some keywords with lookahead tokens by the token after them, e.g. `NULLS` before `FIRST` or `LAST` becomes `NULLS_LA` (`core_parser.md`). An expected lookahead token is offered as its keyword (`Keyword::of_lookahead_token`), once, and not if the keyword itself is expected too. At the cursor the next token is often not typed yet: when the probes read a keyword that does not fit but one of its lookahead tokens does, they take the lookahead token, so `order by a nulls ` expects `first` and `last`.
+
 ## Dot-completion resolution
 
 Given a name path like `a.b._`, the resolution depends on the strategy:
@@ -216,7 +218,9 @@ Certain tokens suppress passive hints entirely because the user is about to type
 | `BY` | User will type a column reference |
 
 When the previous token is in this list, no passive hint is shown.
-This is the sole mechanism for controlling passive hint visibility — keyword prevalence scoring naturally ensures that high-value keywords (FROM, WHERE, etc.) outrank noise when hints are not suppressed.
+
+A passive hint is also never a keyword that the grammar expects only as a name: where an identifier fits, every unreserved keyword fits as well, `where a = by` reads a column `by`. `probe::takes_keyword_only_as_name` feeds the keyword to the prefix snapshot and checks the state after it: if it shifts nothing and only reduces the keyword to a name (the keyword list rules of the grammar), the keyword is no hint. So `where a = ` hints `case` and `cast` but not `by`, `like` or `set`, while `update t ` keeps `set`, which there both starts the SET clause and could be an alias.
+Otherwise keyword prevalence scoring ensures that high-value keywords (FROM, WHERE, etc.) outrank noise.
 
 ### Visual behavior
 
