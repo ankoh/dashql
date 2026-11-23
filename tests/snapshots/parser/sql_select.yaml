@@ -6310,7 +6310,7 @@ parser-snapshots:
                                                             text: "parsed"
                                                           - key: SQL_TABLEREF_TABLE
                                                             type: OBJECT_SQL_SELECT
-                                                            text: "LATERAL"
+                                                            text: "(\n  SELECT..oad_json\n)"
                                                             children:
                                                               - key: SQL_SELECT_TARGETS
                                                                 type: ARRAY

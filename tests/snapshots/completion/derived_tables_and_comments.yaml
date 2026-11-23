@@ -31,7 +31,14 @@ completion-snapshots:
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE,EXACT_MATCH]
           location: "na"
           location-qualified: "na"
-          objects: []
+          objects:
+            - type: column
+              id: "256.65536.1:1.0"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE,EXACT_MATCH]
+              qualified: u.na
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · u"
         - value: na
           candidate-tags: [IDENTITY]
           location: "na"
@@ -174,7 +181,14 @@ completion-snapshots:
           candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE,EXACT_MATCH]
           location: "na"
           location-qualified: "na"
-          objects: []
+          objects:
+            - type: column
+              id: "256.65536.1:1.0"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE,EXACT_MATCH]
+              qualified: u.na
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · u"
         - value: na
           candidate-tags: [IDENTITY]
           location: "na"

@@ -843,7 +843,7 @@ analyzer-snapshots:
           parent-sources: before
           columns:
             - {name: k, expression: 1}
-          text: "lateral"
+          text: "(select t.a as k)"
         - scope-id: 1
           sources:
             - {type: table, name: t, text: "t"}
@@ -871,7 +871,7 @@ analyzer-snapshots:
           parent-sources: before
           columns:
             - {name: k, expression: 0}
-          text: "lateral"
+          text: "(select t.a as k)"
         - scope-id: 1
           sources:
             - {type: subquery, name: s, scope: 0, text: "lateral (s...a as k) s"}

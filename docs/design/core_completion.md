@@ -60,7 +60,8 @@ It encodes:
 - **text_offset** — the byte position of the cursor in the script text.
 - **scanner_location** — resolved to the current and previous scanner symbols, including the cursor's relative position within a symbol (begin, mid, end, before, after).
 - **context** — a `CursorContext`, determined by the AST node the cursor sits inside: `None`, `TableRef { table_reference_id, at_alias }`, `ColumnRef { expression_id }`, or `AliasDot` (an `alias.` that the parser recovered without a column ref node).
-- **statement_id / ast_node_id / ast_path_to_root** — structural position in the AST.
+- **statement_id / ast_node_id / ast_path_to_root** — structural position in the AST. The cursor descends into the child that begins last among those that contain the offset or end at it, since children may overlap: the inputs of a join span its condition, the kind of a MERGE WHEN clause spans the clause.
+- A column ref is an `OBJECT_SQL_COLUMN_REF` node, or any node that the analyzer registered a column ref expression on, like the `NAME` of a column that UPDATE or MERGE writes.
 - **name_scopes** — the stack of naming scopes reachable from the cursor, innermost first.
 
 ### Target symbol selection
@@ -162,7 +163,8 @@ These candidates receive a base score from the strategy-specific scoring table.
 CTEs and script-local relations are not catalog objects, so completion also enumerates them directly
 from the cursor's name scopes. In table-reference contexts, visible CTEs and preceding top-level
 CTE relations are added as local table candidates. In column-reference contexts, output
-columns from CTE-backed sources in `FROM` are added as local column candidates. These candidates
+columns from CTE-backed and derived sources in `FROM` that the cursor sees are added as local column candidates:
+a derived table sees neither itself nor the FROM items of its query, unless it is LATERAL. These candidates
 carry `IN_NAME_SCOPE` without requiring synthetic catalog object IDs.
 
 Non-recursive CTE completion follows declaration order: a CTE suggests earlier siblings but not itself

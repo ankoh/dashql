@@ -697,7 +697,7 @@ sql_table_ref:
         )
     }
   | LATERAL_P sql_select_with_parens sql_table_ordinality sql_table_ref_options sql_opt_alias_clause {
-        let t = ctx.object(@1, NodeType::OBJECT_SQL_SELECT, $2);
+        let t = ctx.object(@2, NodeType::OBJECT_SQL_SELECT, $2);
         ctx.object(
             @$,
             NodeType::OBJECT_SQL_TABLEREF,
@@ -715,7 +715,7 @@ sql_table_ref:
       ctx.object(@$, NodeType::OBJECT_SQL_TABLEREF, &[attr(Key::SQL_TABLEREF_TABLE, t)])
   }
   | LRB sql_joined_table RRB sql_alias_clause {
-      let t = ctx.object(@1, NodeType::OBJECT_SQL_JOINED_TABLE, $2);
+      let t = ctx.object(loc(&[@1, @3]), NodeType::OBJECT_SQL_JOINED_TABLE, $2);
       ctx.object(
           @$,
           NodeType::OBJECT_SQL_TABLEREF,

@@ -709,7 +709,7 @@ completion-snapshots:
     completions:
       limit: 5
       strategy: DEFAULT
-      symbol: ARRAY
+      symbol: ENUM_SQL_EXPRESSION_OPERATOR
       relative: END_OF_SYMBOL
       entries: []
       text: "+"
@@ -1263,21 +1263,35 @@ completion-snapshots:
       limit: 5
       strategy: COLUMN_REF
       dot: 1
-      symbol: ARRAY
+      symbol: OBJECT_EXT_TRAILING_DOT
       relative: END_OF_SYMBOL
       entries:
         - value: a
           name-tags: [COLUMN_NAME]
-          candidate-tags: [DOT_RESOLUTION_COLUMN,IN_NAME_SCOPE]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
           location: ""
           location-qualified: "u."
-          objects: []
+          objects:
+            - type: column
+              id: "256.65536.1:1.0"
+              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: u.a
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · u"
         - value: c
           name-tags: [COLUMN_NAME]
-          candidate-tags: [DOT_RESOLUTION_COLUMN,IN_NAME_SCOPE]
+          candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
           location: ""
           location-qualified: "u."
-          objects: []
+          objects:
+            - type: column
+              id: "256.65536.1:1.1"
+              candidate-tags: [DOT_RESOLUTION_COLUMN,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: u.c
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · u"
       text: "."
 
   - name: cov_join_using

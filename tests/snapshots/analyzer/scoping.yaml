@@ -880,7 +880,7 @@ analyzer-snapshots:
             - {type: table, name: u, text: "u"}
           columns:
             - {name: c, expression: 2}
-          text: "lateral"
+          text: "(select c ..u.a = t.a)"
         - scope-id: 1
           sources:
             - {type: table, name: t, text: "t"}

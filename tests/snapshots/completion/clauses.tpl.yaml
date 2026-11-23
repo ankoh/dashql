@@ -302,3 +302,67 @@ completion-snapshots:
         index: 8
     completions:
       limit: 5
+
+  # An unqualified column in a JOIN ON condition, the inputs of the join span the condition
+  - name: clause_join_on_column
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select * from t join u on na
+    cursor:
+      search:
+        text: 'on na'
+        index: 5
+    completions:
+      limit: 5
+
+  # An unqualified column in a JOIN ON condition before a WHERE
+  - name: clause_join_on_column_mid_statement
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select * from t join u on na where b = 1
+    cursor:
+      search:
+        text: 'on na'
+        index: 5
+    completions:
+      limit: 5
+
+  # A column in the condition of a parenthesized join
+  - name: clause_parenthesized_join_on_column
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select * from (t join u on na) j
+    cursor:
+      search:
+        text: 'on na'
+        index: 5
+    completions:
+      limit: 5
+
+  # The column that an UPDATE sets
+  - name: clause_update_set_target
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        update t set na = 1
+    cursor:
+      search:
+        text: 'set na'
+        index: 6
+    completions:
+      limit: 5

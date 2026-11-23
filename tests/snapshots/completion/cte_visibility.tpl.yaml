@@ -155,3 +155,51 @@ completion-snapshots:
         index: 8
     completions:
       limit: 5
+
+  # A LATERAL derived table sees its own FROM items
+  - name: scope_lateral_subquery_sees_its_source
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select * from t, lateral (select c from u) s
+    cursor:
+      search:
+        text: 'select c'
+        index: 8
+    completions:
+      limit: 5
+
+  # A LATERAL derived table sees the FROM items before it
+  - name: scope_lateral_subquery_sees_outer
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select * from t, lateral (select na from u) s
+    cursor:
+      search:
+        text: 'select na'
+        index: 9
+    completions:
+      limit: 5
+
+  # A derived table without LATERAL sees no FROM items of its query, nor its own output
+  - name: scope_derived_table_misses_outer
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        select * from t, (select na from u) s
+    cursor:
+      search:
+        text: 'select na'
+        index: 9
+    completions:
+      limit: 5

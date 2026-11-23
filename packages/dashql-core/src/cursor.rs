@@ -177,24 +177,25 @@ pub fn find_node_at_offset(parsed: &ParsedScript, text_offset: usize) -> Option<
         if node.children_count() == 0 {
             break;
         }
-        // Prefer a child that contains the offset over a child that ends at it.
-        // AST nodes have holes, e.g. a select clause has no node for the FROM keyword.
-        let mut child_exact = None;
-        let mut child_end = None;
+        // Prefer the child that begins last among those that contain the offset or end at it, children may overlap:
+        // the inputs of a join span its condition, the kind of a MERGE WHEN clause spans the clause. On a tie prefer
+        // a child that contains the offset, AST nodes have holes, e.g. a select clause has no node for the FROM keyword.
+        // An empty child comes last.
+        let mut best: Option<(u32, (bool, u64, bool))> = None;
         for (child, ci) in parsed.children(node).iter().zip(node.children_begin_or_value()..) {
             let ts = resolve(*child.symbol_span());
             let begin = ts.offset as u64;
             let end = begin + ts.length as u64;
-            if begin <= text_offset {
-                if end > text_offset {
-                    child_exact = Some(ci);
-                } else if end == text_offset {
-                    child_end = Some(ci);
-                }
+            if begin > text_offset || end < text_offset {
+                continue;
+            }
+            let rank = (end > begin, begin, end > text_offset);
+            if best.is_none_or(|(_, best_rank)| rank >= best_rank) {
+                best = Some((ci, rank));
             }
         }
-        match child_exact.or(child_end) {
-            Some(child) => iter = child,
+        match best {
+            Some((child, _)) => iter = child,
             None => break,
         }
     }
@@ -326,15 +327,18 @@ impl<'a> ScriptCursor<'a> {
         let Some(scope) = analyzed.scope(innermost) else { return };
         for &node_id in &self.ast_path_to_root {
             let mut matched = false;
+            // A column ref is an OBJECT_SQL_COLUMN_REF, or a NAME of a column that UPDATE or MERGE writes
+            let column_ref = scope
+                .expressions
+                .iter()
+                .filter_map(|&expr| analyzed.expression(expr))
+                .find(|expression| expression.ast_node_id == node_id && expression.column_ref().is_some());
+            if let Some(expression) = column_ref {
+                self.context = CursorContext::ColumnRef { expression_id: expression.expression_id };
+                break;
+            }
             match parsed.nodes.get(node_id as usize).map(|n| n.node_type()) {
-                Some(NodeType::OBJECT_SQL_COLUMN_REF) => {
-                    matched = true;
-                    for expression in scope.expressions.iter().filter_map(|&expr| analyzed.expression(expr)) {
-                        if expression.ast_node_id == node_id && expression.column_ref().is_some() {
-                            self.context = CursorContext::ColumnRef { expression_id: expression.expression_id };
-                        }
-                    }
-                }
+                Some(NodeType::OBJECT_SQL_COLUMN_REF) => matched = true,
                 Some(NodeType::OBJECT_SQL_TABLEREF) => {
                     matched = true;
                     for table_ref in scope.table_references.iter().filter_map(|&id| analyzed.table_ref(id)) {

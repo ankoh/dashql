@@ -1240,10 +1240,11 @@ impl<'c, 'a> Completion<'c, 'a> {
         if self.strategy != CompletionStrategy::COLUMN_REF {
             return;
         }
-        // The columns of CTE and derived table sources, catalog columns come from the name index
-        for &scope_id in &cursor.name_scopes {
+        // The columns of the CTE and derived table sources that the cursor sees, catalog columns come from the name
+        // index. A derived table does not see itself.
+        for (scope_id, visibility) in Self::visible_scopes(analyzed, &cursor.name_scopes) {
             let Some(scope) = analyzed.scope(scope_id) else { continue };
-            for source in &scope.sources {
+            for source in scope.sources.iter().filter(|source| visibility.sees(source)) {
                 for name in Self::derived_columns(analyzed, source) {
                     self.add_local_candidate(&name, NameTag::COLUMN_NAME.0, tags, prefix, location, location);
                 }
