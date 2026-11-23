@@ -138,3 +138,39 @@ formatter-snapshots:
                 ref_id integer,
                 constraint t_fk foreign key (ref_id) references ref_t (id) match full on update cascade on delete set null
               );
+
+  - name: coverage_create_table_like
+    input: |-
+      create table t (like u including defaults excluding constraints including all, a int, like v)
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              create table t (like u including defaults excluding constraints including all, a integer, like v);
+          - mode: compact
+            width: 60
+            expected: |-
+              create table t (
+                like u including defaults excluding constraints
+                  including all, a integer, like v
+              );
+          - mode: pretty
+            expected: |-
+              create table t (like u including defaults excluding constraints including all, a integer, like v);
+
+  - name: coverage_create_table_empty
+    input: |-
+      create table t ()
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              create table t ();
+          - mode: compact
+            expected: |-
+              create table t ();
+          - mode: pretty
+            expected: |-
+              create table t ();

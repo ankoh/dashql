@@ -74,3 +74,19 @@ parser-snapshots:
     input: |
       create table if not exists t (a, b) as select 1, 2 with no data;
       create temp table u as select 1 with data;
+  # Parse column REFERENCES with MATCH and key actions
+  - name: create_table_column_references
+    input: |
+      create table t (a integer references u, b integer references u (x) match full on update cascade on delete set null, c integer references u match simple on delete restrict)
+  # Parse a table FOREIGN KEY with constraint attributes, MATCH and key actions
+  - name: create_table_foreign_key_attributes_match_actions
+    input: |
+      create table t (a integer, foreign key (a) references u (x) deferrable initially deferred match full on delete cascade on update no action)
+  # Parse LIKE table elements with options
+  - name: create_table_like
+    input: |
+      create table t (like u including defaults excluding constraints including all, a integer, like v)
+  # Parse CREATE TABLE without elements
+  - name: create_table_empty
+    input: |
+      create table t ()

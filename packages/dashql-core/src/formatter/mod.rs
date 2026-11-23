@@ -660,7 +660,8 @@ impl<'a> Formatter<'a> {
             | K::SQL_CONST_CAST_FUNC_ARGS_LIST
             | K::SQL_ROWSFROM_ITEM_COLUMNS
             | K::SQL_TABLE_CONSTRAINT_DEFINITION
-            | K::SQL_COLUMN_CONSTRAINT_DEFINITION => self.format_comma_list(node, true),
+            | K::SQL_COLUMN_CONSTRAINT_DEFINITION
+            | K::SQL_CREATE_TABLE_OPTIONS => self.format_comma_list(node, true),
             K::SQL_PROPERTY_GRAPH_VERTEX_TABLES
             | K::SQL_PROPERTY_GRAPH_EDGE_TABLES
             | K::SQL_GRAPH_ELEMENT_TABLE_KEY
@@ -672,9 +673,12 @@ impl<'a> Formatter<'a> {
             K::SQL_SUBQUERY_OPERATOR | K::SQL_DEFINITION_ARG_VALUE | K::SQL_EXPRESSION_OPERATOR => {
                 self.format_operator_path(node)
             }
-            K::SQL_TABLE_CONSTRAINT_ATTRIBUTES | K::SQL_COLUMN_DEF_CONSTRAINTS | K::SQL_CREATE_FUNCTION_OPTIONS => {
-                self.format_space_list(node)
-            }
+            K::SQL_TABLE_CONSTRAINT_ATTRIBUTES
+            | K::SQL_TABLE_CONSTRAINT_KEY_ACTIONS
+            | K::SQL_COLUMN_CONSTRAINT_KEY_ACTIONS
+            | K::SQL_TABLE_LIKE_OPTIONS
+            | K::SQL_COLUMN_DEF_CONSTRAINTS
+            | K::SQL_CREATE_FUNCTION_OPTIONS => self.format_space_list(node),
             // Lists that their parent puts in parentheses
             K::EXT_EXPLAIN_OPTIONS
             | K::SQL_CALL_ARGS
@@ -723,6 +727,8 @@ impl<'a> Formatter<'a> {
             | K::SQL_TABLEREF_NAME
             | K::SQL_PARAMETER_NAME
             | K::SQL_TABLE_CONSTRAINT_REFERENCES_NAME
+            | K::SQL_COLUMN_CONSTRAINT_REFERENCES_NAME
+            | K::SQL_TABLE_LIKE_TABLE
             | K::SQL_COLUMN_REF_PATH
             | K::SQL_COLUMN_DEF_COLLATE
             | K::SQL_CREATE_AS_NAME
@@ -744,6 +750,7 @@ impl<'a> Formatter<'a> {
             | K::SQL_JOIN_INPUT
             | K::SQL_TABLE_CONSTRAINT_COLUMNS
             | K::SQL_TABLE_CONSTRAINT_REFERENCES_COLUMNS
+            | K::SQL_COLUMN_CONSTRAINT_REFERENCES_COLUMNS
             | K::SQL_JOIN_USING
             | K::SQL_FUNCTION_TRIM_INPUT
             | K::SQL_ALIAS_COLUMN_NAMES
@@ -1620,7 +1627,7 @@ impl<'a> Formatter<'a> {
         let [
             constraint_type, constraint_name, constraint_argument, constraint_index, constraint_columns,
             constraint_references_name, constraint_references_columns, constraint_attributes, constraint_definition,
-            constraint_key_actions, constraint_key_match,
+            constraint_key_actions, constraint_key_match, constraint_assumed,
         ] = attrs!(self.children(node), [
                 K::SQL_TABLE_CONSTRAINT_TYPE,
                 K::SQL_TABLE_CONSTRAINT_NAME,
@@ -1633,6 +1640,7 @@ impl<'a> Formatter<'a> {
                 K::SQL_TABLE_CONSTRAINT_DEFINITION,
                 K::SQL_TABLE_CONSTRAINT_KEY_ACTIONS,
                 K::SQL_TABLE_CONSTRAINT_KEY_MATCH,
+                K::SQL_TABLE_CONSTRAINT_ASSUMED,
             ],
         );
         let Some(constraint_type) = constraint_type.filter(|t| t.node_type() == NodeType::ENUM_SQL_TABLE_CONSTRAINT)
@@ -1651,6 +1659,9 @@ impl<'a> Formatter<'a> {
             parts.push(f.text(" "));
         }
 
+        if is_true(constraint_assumed) {
+            parts.push(f.text("assumed "));
+        }
         let ctype = TableConstraint(value_u8(constraint_type));
         parts.push(self.reg_or_placeholder(constraint_type));
         match ctype {
@@ -1682,30 +1693,14 @@ impl<'a> Formatter<'a> {
             _ => {}
         }
 
-        if let Some(constraint_key_match) = constraint_key_match {
-            parts.push(f.text(" "));
-            parts.push(self.reg_or_placeholder(constraint_key_match));
-        }
-        if let Some(constraint_key_actions) = constraint_key_actions {
-            let actions = self.format_space_list(constraint_key_actions);
-            if actions != 0 {
-                parts.push(f.text(" "));
-                parts.push(actions);
-            }
-        }
-        if let Some(constraint_attributes) = constraint_attributes {
-            let attributes = self.format_space_list(constraint_attributes);
-            if attributes != 0 {
-                parts.push(f.text(" "));
-                parts.push(attributes);
-            }
-        }
+        // In the order of the grammar: `with (...)` of a key, the attributes, then the match and actions of a foreign key
         if let Some(constraint_definition) = constraint_definition {
-            let definition = self.reg_or_placeholder(constraint_definition);
-            if definition != 0 {
-                parts.push(f.text(" with "));
-                parts.push(f.parenthesized(definition));
-            }
+            parts.push(f.text(" with "));
+            parts.push(f.parenthesized(self.reg_or_placeholder(constraint_definition)));
+        }
+        for clause in [constraint_attributes, constraint_key_match, constraint_key_actions].into_iter().flatten() {
+            parts.push(f.text(" "));
+            parts.push(self.reg_or_placeholder(clause));
         }
         f.concat(&parts)
     }
@@ -1722,6 +1717,7 @@ impl<'a> Formatter<'a> {
             ColumnConstraint::CHECK => "check",
             ColumnConstraint::DEFAULT => "default",
             ColumnConstraint::COLLATE => "collate",
+            ColumnConstraint::REFERENCES => "references",
             _ => return self.format_unimplemented(node),
         };
         self.fmt.text(text)
@@ -1732,7 +1728,8 @@ impl<'a> Formatter<'a> {
         #[rustfmt::skip]
         let [
             constraint_type, constraint_name, constraint_value, constraint_no_inherit, constraint_definition,
-            constraint_collate,
+            constraint_collate, constraint_assumed, constraint_references_name, constraint_references_columns,
+            constraint_key_match, constraint_key_actions,
         ] = attrs!(self.children(node), [
                 K::SQL_COLUMN_CONSTRAINT_TYPE,
                 K::SQL_COLUMN_CONSTRAINT_NAME,
@@ -1740,6 +1737,11 @@ impl<'a> Formatter<'a> {
                 K::SQL_COLUMN_CONSTRAINT_NO_INHERIT,
                 K::SQL_COLUMN_CONSTRAINT_DEFINITION,
                 K::SQL_COLUMN_CONSTRAINT_COLLATE,
+                K::SQL_COLUMN_CONSTRAINT_ASSUMED,
+                K::SQL_COLUMN_CONSTRAINT_REFERENCES_NAME,
+                K::SQL_COLUMN_CONSTRAINT_REFERENCES_COLUMNS,
+                K::SQL_COLUMN_CONSTRAINT_KEY_MATCH,
+                K::SQL_COLUMN_CONSTRAINT_KEY_ACTIONS,
             ],
         );
         let Some(constraint_type) = constraint_type.filter(|t| t.node_type() == NodeType::ENUM_SQL_COLUMN_CONSTRAINT)
@@ -1758,6 +1760,9 @@ impl<'a> Formatter<'a> {
             parts.push(f.text(" "));
         }
 
+        if is_true(constraint_assumed) {
+            parts.push(f.text("assumed "));
+        }
         let ctype = ColumnConstraint(value_u8(constraint_type));
         parts.push(self.reg_or_placeholder(constraint_type));
         match ctype {
@@ -1775,6 +1780,18 @@ impl<'a> Formatter<'a> {
             ColumnConstraint::COLLATE => {
                 parts.push(f.text(" "));
                 parts.push(or_placeholder(constraint_collate));
+            }
+            ColumnConstraint::REFERENCES => {
+                parts.push(f.text(" "));
+                parts.push(or_placeholder(constraint_references_name));
+                if let Some(columns) = constraint_references_columns {
+                    parts.push(f.text(" "));
+                    parts.push(f.parenthesized(self.reg_or_placeholder(columns)));
+                }
+                for clause in [constraint_key_match, constraint_key_actions].into_iter().flatten() {
+                    parts.push(f.text(" "));
+                    parts.push(self.reg_or_placeholder(clause));
+                }
             }
             _ => {}
         }
@@ -2851,6 +2868,9 @@ impl<'a> Formatter<'a> {
             NodeType::ENUM_SQL_ORDER_NULL_RULE => self.format_order_null_rule(node),
             NodeType::ENUM_SQL_TEMP_TYPE => self.format_temp_type(node),
             NodeType::ENUM_SQL_ON_COMMIT_OPTION => self.format_on_commit_option(node),
+            NodeType::OBJECT_SQL_TABLE_LIKE => self.format_table_like(node),
+            NodeType::OBJECT_SQL_TABLE_LIKE_OPTION => self.format_table_like_option(node),
+            NodeType::ENUM_SQL_TABLE_LIKE_OPTION => self.format_table_like_option_kind(node),
             NodeType::OBJECT_SQL_TYPENAME => self.format_type_name(node),
             NodeType::OBJECT_SQL_INTERVAL_TYPE => self.format_interval_type(node),
             NodeType::ENUM_SQL_INTERVAL_TYPE => self.format_interval_type_enum(node),

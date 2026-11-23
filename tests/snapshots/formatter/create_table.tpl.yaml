@@ -45,3 +45,18 @@ formatter-snapshots:
     input: create table t (ref_id int, constraint t_fk foreign key (ref_id) references ref_t (id) match full on update cascade on delete set null)
     dialects:
       hyper:
+
+  # Table elements that copy the columns of another table
+  - name: coverage_create_table_like
+    input: create table t (like u including defaults excluding constraints including all, a int, like v)
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 60
+
+  # Create table without elements
+  - name: coverage_create_table_empty
+    input: create table t ()
+    dialects:
+      hyper:

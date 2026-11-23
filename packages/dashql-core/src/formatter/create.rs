@@ -2,7 +2,8 @@
 
 use super::{FmtReg, Formatter, FormattingJoinPolicy, K};
 use dashql_buffers::parser::{
-    FunctionOption, FunctionParameterMode, Node, NodeType, OnCommitOption, SessionParameter, TempType, ZoneValueType,
+    FunctionOption, FunctionParameterMode, Node, NodeType, OnCommitOption, SessionParameter, TableLikeOption, TempType,
+    ZoneValueType,
 };
 use dashql_parser::attrs;
 
@@ -34,17 +35,18 @@ impl<'a> Formatter<'a> {
         if !self.state(node).is_statement_root {
             return self.format_unimplemented(node);
         }
-        let [name, elements, if_not_exists, temp, on_commit] = attrs!(
+        let [name, elements, if_not_exists, temp, options, on_commit] = attrs!(
             self.children(node),
             [
                 K::SQL_CREATE_TABLE_NAME,
                 K::SQL_CREATE_TABLE_ELEMENTS,
                 K::SQL_CREATE_TABLE_IF_NOT_EXISTS,
                 K::SQL_CREATE_TABLE_TEMP,
+                K::SQL_CREATE_TABLE_OPTIONS,
                 K::SQL_CREATE_TABLE_ON_COMMIT,
             ],
         );
-        let (Some(name), Some(elements)) = (name, elements) else { return self.format_unimplemented(node) };
+        let Some(name) = name else { return self.format_unimplemented(node) };
 
         let mut header_parts = vec![f.text("create ")];
         if let Some(temp) = temp {
@@ -58,8 +60,9 @@ impl<'a> Formatter<'a> {
         header_parts.push(self.reg(name));
         let header = f.concat(&header_parts);
 
-        let mut table_elements = f.empty();
-        if elements.children_count() > 0 {
+        // `create table t ()` has no elements
+        let mut element_block = f.text("()");
+        if let Some(elements) = elements {
             let mut parts = Vec::with_capacity(elements.children_count() as usize);
             for element in self.children(elements) {
                 let reg = self.reg(element);
@@ -69,15 +72,51 @@ impl<'a> Formatter<'a> {
                 parts.push(reg);
             }
             let (inline_separator, break_separator) = self.comma_separators();
-            table_elements = f.join(&parts, inline_separator, break_separator, None, false);
+            element_block = f.parenthesized(f.join(&parts, inline_separator, break_separator, None, false));
         }
-
-        let element_block = if elements.children_count() > 0 { f.parenthesized(table_elements) } else { f.text("()") };
         let mut statement = f.concat(&[header, f.text(" "), element_block]);
+        if let Some(options) = options {
+            statement = f.concat(&[statement, f.text(" with "), f.parenthesized(self.reg_or_placeholder(options))]);
+        }
         if let Some(on_commit) = on_commit {
             statement = f.concat(&[statement, f.text(" "), self.reg(on_commit)]);
         }
         statement
+    }
+
+    /// `like t including defaults`, a table element that copies the columns of another table
+    pub(super) fn format_table_like(&self, node: &'a Node) -> FmtReg {
+        let f = &self.fmt;
+        let [table, options] = attrs!(self.children(node), [K::SQL_TABLE_LIKE_TABLE, K::SQL_TABLE_LIKE_OPTIONS]);
+        let Some(table) = table else { return self.format_unimplemented(node) };
+        let mut parts = vec![f.text("like "), self.reg_or_placeholder(table)];
+        if let Some(options) = options {
+            parts.push(f.text(" "));
+            parts.push(self.reg_or_placeholder(options));
+        }
+        f.concat(&parts)
+    }
+
+    pub(super) fn format_table_like_option(&self, node: &'a Node) -> FmtReg {
+        let f = &self.fmt;
+        let [kind, include] =
+            attrs!(self.children(node), [K::SQL_TABLE_LIKE_OPTION_KIND, K::SQL_TABLE_LIKE_OPTION_INCLUDE]);
+        let Some(kind) = kind else { return self.format_unimplemented(node) };
+        let keyword = if super::is_true(include) { "including " } else { "excluding " };
+        f.concat(&[f.text(keyword), self.reg_or_placeholder(kind)])
+    }
+
+    pub(super) fn format_table_like_option_kind(&self, node: &'a Node) -> FmtReg {
+        let f = &self.fmt;
+        match TableLikeOption(super::value_u8(node)) {
+            TableLikeOption::DEFAULTS => f.text("defaults"),
+            TableLikeOption::CONSTRAINTS => f.text("constraints"),
+            TableLikeOption::INDEXES => f.text("indexes"),
+            TableLikeOption::STORAGE => f.text("storage"),
+            TableLikeOption::COMMENTS => f.text("comments"),
+            TableLikeOption::ALL => f.text("all"),
+            _ => self.format_unimplemented(node),
+        }
     }
 
     pub(super) fn format_create_as(&self, node: &'a Node) -> FmtReg {

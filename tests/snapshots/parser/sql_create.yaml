@@ -1231,3 +1231,397 @@ parser-snapshots:
       comments: []
       comment-blocks: []
       comment-warnings: []
+
+  - name: create_table_column_references
+    input: |-
+      create table t (a integer references u, b integer references u (x) match full on update cascade on delete set null, c integer references u match simple on delete restrict)
+    expected:
+      statements:
+        - type: CREATE_TABLE
+          ast-begin: 0
+          ast-size: 46
+          description:
+            text: "create tab.. restrict)"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_CREATE
+            text: "create tab.. restrict)"
+            children:
+              - key: SQL_CREATE_TABLE_NAME
+                type: ARRAY
+                text: "t"
+                children:
+                  - type: NAME
+                    text: "t"
+              - key: SQL_CREATE_TABLE_ELEMENTS
+                type: ARRAY
+                text: "(a integer.. restrict)"
+                children:
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "a integer ..ferences u"
+                    children:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "a"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "integer"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: "references u"
+                        children:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "references u"
+                            children:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: REFERENCES
+                              - key: SQL_COLUMN_CONSTRAINT_REFERENCES_NAME
+                                type: ARRAY
+                                text: "u"
+                                children:
+                                  - type: NAME
+                                    text: "u"
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "b integer ..e set null"
+                    children:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "b"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "integer"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: "references..e set null"
+                        children:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "references..e set null"
+                            children:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: REFERENCES
+                              - key: SQL_COLUMN_CONSTRAINT_REFERENCES_NAME
+                                type: ARRAY
+                                text: "u"
+                                children:
+                                  - type: NAME
+                                    text: "u"
+                              - key: SQL_COLUMN_CONSTRAINT_REFERENCES_COLUMNS
+                                type: ARRAY
+                                text: "(x)"
+                                children:
+                                  - type: NAME
+                                    text: "x"
+                              - key: SQL_COLUMN_CONSTRAINT_KEY_MATCH
+                                type: ENUM_SQL_KEY_MATCH
+                                value: FULL
+                              - key: SQL_COLUMN_CONSTRAINT_KEY_ACTIONS
+                                type: ARRAY
+                                text: "on update ..e set null"
+                                children:
+                                  - type: OBJECT_SQL_KEY_ACTION
+                                    text: "on update cascade"
+                                    children:
+                                      - key: SQL_KEY_ACTION_TRIGGER
+                                        type: ENUM_SQL_KEY_ACTION_TRIGGER
+                                        value: UPDATE
+                                      - key: SQL_KEY_ACTION_COMMAND
+                                        type: ENUM_SQL_KEY_ACTION_COMMAND
+                                        value: CASCADE
+                                  - type: OBJECT_SQL_KEY_ACTION
+                                    text: "on delete set null"
+                                    children:
+                                      - key: SQL_KEY_ACTION_TRIGGER
+                                        type: ENUM_SQL_KEY_ACTION_TRIGGER
+                                        value: DELETE
+                                      - key: SQL_KEY_ACTION_COMMAND
+                                        type: ENUM_SQL_KEY_ACTION_COMMAND
+                                        value: SET_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "c integer ..e restrict"
+                    children:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "c"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "integer"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: "references..e restrict"
+                        children:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "references..e restrict"
+                            children:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: REFERENCES
+                              - key: SQL_COLUMN_CONSTRAINT_REFERENCES_NAME
+                                type: ARRAY
+                                text: "u"
+                                children:
+                                  - type: NAME
+                                    text: "u"
+                              - key: SQL_COLUMN_CONSTRAINT_KEY_MATCH
+                                type: ENUM_SQL_KEY_MATCH
+                                value: SIMPLE
+                              - key: SQL_COLUMN_CONSTRAINT_KEY_ACTIONS
+                                type: ARRAY
+                                text: "on delete restrict"
+                                children:
+                                  - type: OBJECT_SQL_KEY_ACTION
+                                    text: "on delete restrict"
+                                    children:
+                                      - key: SQL_KEY_ACTION_TRIGGER
+                                        type: ENUM_SQL_KEY_ACTION_TRIGGER
+                                        value: DELETE
+                                      - key: SQL_KEY_ACTION_COMMAND
+                                        type: ENUM_SQL_KEY_ACTION_COMMAND
+                                        value: RESTRICT
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: create_table_foreign_key_attributes_match_actions
+    input: |-
+      create table t (a integer, foreign key (a) references u (x) deferrable initially deferred match full on delete cascade on update no action)
+    expected:
+      statements:
+        - type: CREATE_TABLE
+          ast-begin: 0
+          ast-size: 27
+          description:
+            text: "create tab..no action)"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_CREATE
+            text: "create tab..no action)"
+            children:
+              - key: SQL_CREATE_TABLE_NAME
+                type: ARRAY
+                text: "t"
+                children:
+                  - type: NAME
+                    text: "t"
+              - key: SQL_CREATE_TABLE_ELEMENTS
+                type: ARRAY
+                text: "(a integer..no action)"
+                children:
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "a integer"
+                    children:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "a"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "integer"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                  - type: OBJECT_SQL_TABLE_CONSTRAINT
+                    text: "foreign ke.. no action"
+                    children:
+                      - key: SQL_TABLE_CONSTRAINT_TYPE
+                        type: ENUM_SQL_TABLE_CONSTRAINT
+                        value: FOREIGN_KEY
+                      - key: SQL_TABLE_CONSTRAINT_COLUMNS
+                        type: ARRAY
+                        text: "(a)"
+                        children:
+                          - type: NAME
+                            text: "a"
+                      - key: SQL_TABLE_CONSTRAINT_REFERENCES_NAME
+                        type: ARRAY
+                        text: "u"
+                        children:
+                          - type: NAME
+                            text: "u"
+                      - key: SQL_TABLE_CONSTRAINT_REFERENCES_COLUMNS
+                        type: ARRAY
+                        text: "(x)"
+                        children:
+                          - type: NAME
+                            text: "x"
+                      - key: SQL_TABLE_CONSTRAINT_ATTRIBUTES
+                        type: ARRAY
+                        text: "deferrable..y deferred"
+                        children:
+                          - type: ENUM_SQL_CONSTRAINT_ATTRIBUTE
+                            value: DEFERRABLE
+                          - type: ENUM_SQL_CONSTRAINT_ATTRIBUTE
+                            value: INITIALLY_DEFERRED
+                      - key: SQL_TABLE_CONSTRAINT_KEY_ACTIONS
+                        type: ARRAY
+                        text: "on delete .. no action"
+                        children:
+                          - type: OBJECT_SQL_KEY_ACTION
+                            text: "on delete cascade"
+                            children:
+                              - key: SQL_KEY_ACTION_TRIGGER
+                                type: ENUM_SQL_KEY_ACTION_TRIGGER
+                                value: DELETE
+                              - key: SQL_KEY_ACTION_COMMAND
+                                type: ENUM_SQL_KEY_ACTION_COMMAND
+                                value: CASCADE
+                          - type: OBJECT_SQL_KEY_ACTION
+                            text: "on update no action"
+                            children:
+                              - key: SQL_KEY_ACTION_TRIGGER
+                                type: ENUM_SQL_KEY_ACTION_TRIGGER
+                                value: UPDATE
+                              - key: SQL_KEY_ACTION_COMMAND
+                                type: ENUM_SQL_KEY_ACTION_COMMAND
+                                value: NO_ACTION
+                      - key: SQL_TABLE_CONSTRAINT_KEY_MATCH
+                        type: ENUM_SQL_KEY_MATCH
+                        value: FULL
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: create_table_like
+    input: |-
+      create table t (like u including defaults excluding constraints including all, a integer, like v)
+    expected:
+      statements:
+        - type: CREATE_TABLE
+          ast-begin: 0
+          ast-size: 24
+          description:
+            text: "create tab..r, like v)"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_CREATE
+            text: "create tab..r, like v)"
+            children:
+              - key: SQL_CREATE_TABLE_NAME
+                type: ARRAY
+                text: "t"
+                children:
+                  - type: NAME
+                    text: "t"
+              - key: SQL_CREATE_TABLE_ELEMENTS
+                type: ARRAY
+                text: "(like u in..r, like v)"
+                children:
+                  - type: OBJECT_SQL_TABLE_LIKE
+                    text: "like u inc..luding all"
+                    children:
+                      - key: SQL_TABLE_LIKE_TABLE
+                        type: ARRAY
+                        text: "u"
+                        children:
+                          - type: NAME
+                            text: "u"
+                      - key: SQL_TABLE_LIKE_OPTIONS
+                        type: ARRAY
+                        text: "including ..luding all"
+                        children:
+                          - type: OBJECT_SQL_TABLE_LIKE_OPTION
+                            text: "including defaults"
+                            children:
+                              - key: SQL_TABLE_LIKE_OPTION_KIND
+                                type: ENUM_SQL_TABLE_LIKE_OPTION
+                                value: DEFAULTS
+                              - key: SQL_TABLE_LIKE_OPTION_INCLUDE
+                                type: BOOL
+                                value: 1
+                          - type: OBJECT_SQL_TABLE_LIKE_OPTION
+                            text: "excluding ..onstraints"
+                            children:
+                              - key: SQL_TABLE_LIKE_OPTION_KIND
+                                type: ENUM_SQL_TABLE_LIKE_OPTION
+                                value: CONSTRAINTS
+                              - key: SQL_TABLE_LIKE_OPTION_INCLUDE
+                                type: BOOL
+                                value: 0
+                          - type: OBJECT_SQL_TABLE_LIKE_OPTION
+                            text: "including all"
+                            children:
+                              - key: SQL_TABLE_LIKE_OPTION_KIND
+                                type: ENUM_SQL_TABLE_LIKE_OPTION
+                                value: ALL
+                              - key: SQL_TABLE_LIKE_OPTION_INCLUDE
+                                type: BOOL
+                                value: 1
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "a integer"
+                    children:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "a"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "integer"
+                        children:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                  - type: OBJECT_SQL_TABLE_LIKE
+                    text: "like v"
+                    children:
+                      - key: SQL_TABLE_LIKE_TABLE
+                        type: ARRAY
+                        text: "v"
+                        children:
+                          - type: NAME
+                            text: "v"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: create_table_empty
+    input: |-
+      create table t ()
+    expected:
+      statements:
+        - type: CREATE_TABLE
+          ast-begin: 0
+          ast-size: 3
+          description:
+            text: "create table t ()"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_CREATE
+            text: "create table t ()"
+            children:
+              - key: SQL_CREATE_TABLE_NAME
+                type: ARRAY
+                text: "t"
+                children:
+                  - type: NAME
+                    text: "t"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []

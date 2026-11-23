@@ -77,3 +77,30 @@ formatter-snapshots:
     input: create table u (a int, check (a > 0) not valid, check (a < 10) no inherit)
     dialects:
       hyper:
+
+  # Column references with match and key actions
+  - name: coverage_column_constraint_references
+    input: create table t (a int references u, b int references u (x) match full on update cascade on delete set null, c int constraint c_fk references u match simple on delete restrict not null)
+    dialects:
+      hyper:
+
+  # Assumed column references, Hyper has no index for plain ones
+  - name: coverage_column_constraint_references_validated
+    input: create table if not exists t (a int assumed references u, b int assumed references u (x))
+    dialects:
+      hyper:
+        validation:
+          setup: |-
+            create table u(x int assumed primary key);
+
+  # A foreign key with attributes, match and key actions, in the order of the grammar
+  - name: coverage_table_constraint_foreign_key_attributes
+    input: create table t (a int, foreign key (a) references u (x) deferrable initially deferred match full on delete cascade on update no action)
+    dialects:
+      hyper:
+
+  # Assumed constraints and table options
+  - name: coverage_assumed_constraints_table_options
+    input: create table t (x integer assumed primary key, y integer assumed references u (x), assumed unique (x, y)) with (countnulls=1)
+    dialects:
+      hyper:
