@@ -3,13 +3,14 @@ import { DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors, type 
 
 import { useLogger } from '../../host/logger_provider.js';
 import { ConnectionHealth, type ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
-import { useOptionalRuntime, useScriptRun, useWorkbookExecution, useWorkbookScriptMap } from '@akohn/dashql-react/hooks';
+import { useWorkbookScriptMap } from '@akohn/dashql-react/hooks';
+import { useScriptModel } from '@akohn/dashql-react/models/script_model';
 import type { ModifyWorkbookScripts, ScriptData, ScriptDataMap, WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { deleteScript, useScriptSelection } from '../scripts/script_selection.js';
 import { useLiveScriptReader } from '../scripts/script_creation.js';
 import { renameScript, type RenameDraftReferences } from '../scripts/script_rename.js';
 import type { DashboardSpec } from '@akohn/dashql/platform/workbook/script_types';
-import { DashboardCard, type DashboardCardDependencies } from './dashboard_card.js';
+import { DashboardCard, type DashboardCardDependencies, type DashboardCardProps } from './dashboard_card.js';
 import { DashboardChartOverlay, DashboardEditorOverlay, DashboardTableOverlay, type DashboardOverlayState } from './dashboard_overlays.js';
 import {
     DASHBOARD_COLLAPSED_WIDTH,
@@ -55,8 +56,8 @@ function sharePlacements(next: DashboardPlacement[], previous: DashboardPlacemen
 
 /// The functions and components that tests replace
 export interface DashboardDependencies {
-    /// Runs a script of the workbook with the scripts it references
-    useScriptRun: typeof useScriptRun;
+    /// The model of a script: a card runs, stops, accepts and rejects through it
+    useScriptModel: typeof useScriptModel;
     DashboardEditorOverlay: typeof DashboardEditorOverlay;
     DashboardTableOverlay: typeof DashboardTableOverlay;
     DashboardChartOverlay: typeof DashboardChartOverlay;
@@ -67,7 +68,7 @@ export interface DashboardDependencies {
 }
 
 const DEFAULT_DEPENDENCIES: DashboardDependencies = {
-    useScriptRun,
+    useScriptModel,
     DashboardEditorOverlay,
     DashboardTableOverlay,
     DashboardChartOverlay,
@@ -133,6 +134,16 @@ function readLayout(workbookScripts: WorkbookScripts, scripts: ScriptDataMap): D
             height: collapsed ? 1 : spec?.height,
         };
     }));
+}
+
+/// The card of a script with the model of the script, the cards of a section are a list
+function DashboardScriptCard({ workbookId, scriptKey, useScriptModel, ...card }: Omit<DashboardCardProps, 'model'> & {
+    workbookId: string;
+    scriptKey: number;
+    useScriptModel: DashboardDependencies['useScriptModel'];
+}): React.ReactElement | null {
+    const model = useScriptModel(workbookId, scriptKey);
+    return model == null ? null : <DashboardCard model={model} {...card} />;
 }
 
 export function Dashboard(props: Props): React.ReactElement {
@@ -255,36 +266,11 @@ export function Dashboard(props: Props): React.ReactElement {
     const handleOpenEditor = React.useCallback((scriptKey: number) => setOverlay({ scriptKey, kind: 'editor' }), []);
     const handleOpenTable = React.useCallback((scriptKey: number) => setOverlay({ scriptKey, kind: 'table' }), []);
     const closeOverlay = React.useCallback(() => setOverlay(null), []);
-    // Run a card like a script in the feed. A run may read cached results, a refresh runs the script and the scripts it
-    // references without them.
-    const runtime = useOptionalRuntime();
-    const workbookExecution = useWorkbookExecution(props.workbookScripts.workbookId);
     const workbookId = props.workbookScripts.workbookId;
     const workbookScriptsRef = React.useRef(props.workbookScripts);
     workbookScriptsRef.current = props.workbookScripts;
     const isOnline = (script: ScriptData) =>
         props.scriptConnections?.get(script.connectionId)?.connectionHealth === ConnectionHealth.ONLINE;
-    const runScript = dependencies.useScriptRun();
-    const handleRun = React.useCallback((scriptKey: number, refresh: boolean) => {
-        const script = scriptsRef.current[scriptKey];
-        if (script == null || runScript == null) return;
-        void runScript(workbookId, scriptKey, { refresh });
-    }, [runScript, workbookId]);
-    // Stop the run of the workbook, or the query of the card
-    const workbookBusy = workbookExecution.busy;
-    const stopWorkbook = workbookExecution.stop;
-    const handleStop = React.useCallback((scriptKey: number) => {
-        const script = scriptsRef.current[scriptKey];
-        if (workbookBusy) stopWorkbook();
-        else if (script?.latestQueryId != null) void runtime?.cancel(script.latestQueryId);
-    }, [workbookBusy, stopWorkbook, runtime]);
-    // Accept or reject a staged rewrite of a card, like in the feed
-    const handleAcceptDiff = React.useCallback((scriptKey: number) => {
-        modifyWorkbookScripts({ kind: 'acceptPendingDiff', value: { scriptKey } });
-    }, [modifyWorkbookScripts]);
-    const handleRejectDiff = React.useCallback((scriptKey: number) => {
-        modifyWorkbookScripts({ kind: 'rejectPendingDiff', value: { scriptKey } });
-    }, [modifyWorkbookScripts]);
     // Rename and delete a card from its menu, like a script in the feed
     const draftRenameRef = props.draftRenameRef;
     const readScript = dependencies.useLiveScriptReader();
@@ -300,12 +286,9 @@ export function Dashboard(props: Props): React.ReactElement {
         const script = scriptsRef.current[scriptKey];
         if (script != null) deleteScript(selection, workbookScripts, modifyWorkbookScripts, script.fileName);
     }, [modifyWorkbookScripts, selection]);
-    // The chart builder stages every edit of its spec as a diff of the script, like in the feed
-    const handleSetVisSpec = React.useCallback((spec: string) => {
-        if (overlay == null) return;
-        modifyWorkbookScripts({ kind: 'setScriptVisSpec', value: { scriptKey: overlay.scriptKey, spec } });
-    }, [overlay, modifyWorkbookScripts]);
-    const overlayScript = overlay == null ? null : scriptMap[overlay.scriptKey] ?? null;
+    // The overlay shows the script of a card, its editor accepts and rejects a staged rewrite and its chart builder
+    // stages the edits of the spec, like in the feed
+    const overlayModel = dependencies.useScriptModel(workbookId, overlay?.scriptKey ?? null);
 
     // A requested card shows once the layout placed it, clear of the prompt over the bottom of the board, which the
     // bottom padding of the scrolled cards keeps free
@@ -352,10 +335,11 @@ export function Dashboard(props: Props): React.ReactElement {
                         const shifted = (preferred?.row != null && preferred.row !== placement.row)
                             || (preferred?.column != null && preferred.column !== placement.column);
                         return (
-                            <DashboardCard
+                            <DashboardScriptCard
                                 key={script.scriptKey}
-                                workbookId={props.workbookScripts.workbookId}
-                                script={script}
+                                workbookId={workbookId}
+                                scriptKey={script.scriptKey}
+                                useScriptModel={dependencies.useScriptModel}
                                 placement={placement}
                                 columnStep={columnStep}
                                 rowStep={rowStep}
@@ -367,11 +351,7 @@ export function Dashboard(props: Props): React.ReactElement {
                                 onRemoveVisualization={handleRemoveVisualization}
                                 onOpenEditor={handleOpenEditor}
                                 onOpenTable={handleOpenTable}
-                                onAcceptDiff={handleAcceptDiff}
-                                onRejectDiff={handleRejectDiff}
-                                runnable={!workbookExecution.runActive && isOnline(script)}
-                                onRun={handleRun}
-                                onStop={handleStop}
+                                online={isOnline(script)}
                                 onRename={handleRename}
                                 onDelete={handleDelete}
                                 dependencies={dependencies.card}
@@ -414,25 +394,14 @@ export function Dashboard(props: Props): React.ReactElement {
                     refreshKey={`${props.workbookScripts.workbookId}:${scripts.length}:${dashboardSectionRows(layout, 'scripts')}:${dashboardSectionRows(layout, 'visualizations')}`}
                 />
             </div>
-            {overlayScript != null && overlay?.kind === 'editor' && (
-                <dependencies.DashboardEditorOverlay
-                    workbookId={props.workbookScripts.workbookId}
-                    script={overlayScript}
-                    onAcceptDiff={handleAcceptDiff}
-                    onRejectDiff={handleRejectDiff}
-                    onClose={closeOverlay}
-                />
+            {overlayModel != null && overlay?.kind === 'editor' && (
+                <dependencies.DashboardEditorOverlay model={overlayModel} onClose={closeOverlay} />
             )}
-            {overlayScript != null && overlay?.kind === 'table' && (
-                <dependencies.DashboardTableOverlay workbookId={props.workbookScripts.workbookId} script={overlayScript} onClose={closeOverlay} />
+            {overlayModel != null && overlay?.kind === 'table' && (
+                <dependencies.DashboardTableOverlay model={overlayModel} onClose={closeOverlay} />
             )}
-            {overlayScript != null && overlay?.kind === 'chart' && (
-                <dependencies.DashboardChartOverlay
-                    workbookId={props.workbookScripts.workbookId}
-                    script={overlayScript}
-                    onChange={handleSetVisSpec}
-                    onClose={closeOverlay}
-                />
+            {overlayModel != null && overlay?.kind === 'chart' && (
+                <dependencies.DashboardChartOverlay model={overlayModel} onClose={closeOverlay} />
             )}
         </section>
     );

@@ -4,8 +4,7 @@ import { CSS } from '@dnd-kit/utilities';
 
 import { QueryResultPanel } from '../../results/query_result_header.js';
 import { VisualizationDispatch } from '../../results/visualization_dispatch.js';
-import { useQueryModel } from '@akohn/dashql-react/models/query_model';
-import type { ScriptData } from '@akohn/dashql/platform/workbook/workbook_scripts';
+import type { ScriptModel } from '@akohn/dashql-react/models/script_model';
 import { scriptDisplayName, type ResolvedVisualizeQuery } from '@akohn/dashql/platform/workbook/script_types';
 import { ScriptEditor } from '../scripts/script_editor.js';
 import { QueryExecutionStatus, queryIsDone } from '@akohn/dashql/platform/query/query_execution_state';
@@ -33,22 +32,20 @@ const RenameIcon = SymbolIcon('pencil_16');
 const TrashIcon = SymbolIcon('trash_16');
 
 export interface DashboardCardDependencies {
-    useQueryModel: typeof useQueryModel;
     QueryResultPanel: typeof QueryResultPanel;
     VisualizationDispatch: typeof VisualizationDispatch;
     ScriptEditor: typeof ScriptEditor;
 }
 
 const DEFAULT_DEPENDENCIES: DashboardCardDependencies = {
-    useQueryModel,
     QueryResultPanel,
     VisualizationDispatch,
     ScriptEditor,
 };
 
-interface Props {
-    workbookId: string;
-    script: ScriptData;
+export interface DashboardCardProps {
+    /// The script of the card with its latest query, it runs, stops, accepts and rejects the staged rewrite
+    model: ScriptModel;
     placement: DashboardPlacement;
     columnStep: number;
     rowStep: number;
@@ -64,15 +61,8 @@ interface Props {
     onOpenEditor: (scriptId: number) => void;
     /// Open the full result table of a table card
     onOpenTable: (scriptId: number) => void;
-    /// Accept or reject the staged rewrite of the script
-    onAcceptDiff: (scriptId: number) => void;
-    onRejectDiff: (scriptId: number) => void;
-    /// Can the script run? Its connection is online and no other run holds the workbook.
-    runnable: boolean;
-    /// Run the script, a refresh runs it and the scripts it references without cached results
-    onRun: (scriptId: number, refresh: boolean) => void;
-    /// Stop the running query of the script
-    onStop: (scriptId: number) => void;
+    /// Is the connection of the script online? The card runs only then, and while no run holds the workbook.
+    online: boolean;
     /// Rename the script, the name is the new display name. The menu of the card offers it.
     onRename?: (scriptId: number, name: string) => void;
     /// Delete the script, the menu of the card offers it
@@ -82,17 +72,18 @@ interface Props {
 
 /// Memoized, a resize of one card only renders the cards whose placement changed.
 /// A script without a visualization is a collapsed card: a header of one row with the renderers and an editor.
-export const DashboardCard = React.memo(function DashboardCard(props: Props): React.ReactElement {
+export const DashboardCard = React.memo(function DashboardCard(props: DashboardCardProps): React.ReactElement {
     const dependencies = props.dependencies ?? DEFAULT_DEPENDENCIES;
-    const model = dependencies.useQueryModel(props.script.latestQueryId);
+    const script = props.model.script;
+    const model = props.model.query;
     const query = model?.query ?? null;
-    const visualizeQuery: ResolvedVisualizeQuery | null = props.script.annotations.visualizeQuery;
+    const visualizeQuery: ResolvedVisualizeQuery | null = script.annotations.visualizeQuery;
     const collapsed = visualizeQuery == null;
     // A staged rewrite, e.g. of the renderer, shows on the card and waits to be accepted or rejected like in the feed
-    const staged = props.script.pendingDiff != null;
-    const displayName = scriptDisplayName(props.script.fileName);
+    const staged = script.pendingDiff != null;
+    const displayName = scriptDisplayName(script.fileName);
     const resizeStart = React.useRef<{ x: number; y: number; width: number; height: number; pointerId: number } | null>(null);
-    const draggable = useDraggable({ id: props.script.scriptKey });
+    const draggable = useDraggable({ id: script.scriptKey });
     // Is the name being edited in the title of the card? Rename in the menu of the card starts it
     const [renaming, setRenaming] = React.useState(false);
     const renameInputRef = React.useRef<HTMLInputElement>(null);
@@ -106,7 +97,7 @@ export const DashboardCard = React.memo(function DashboardCard(props: Props): Re
         return () => cancelAnimationFrame(frame);
     }, [renaming]);
     const onRename = props.onRename;
-    const scriptKey = props.script.scriptKey;
+    const scriptKey = script.scriptKey;
     const commitRename = React.useCallback((name: string) => {
         setRenaming(false);
         if (name.trim() !== '' && name.trim() !== displayName) onRename?.(scriptKey, name.trim());
@@ -175,21 +166,22 @@ export const DashboardCard = React.memo(function DashboardCard(props: Props): Re
         : [];
     const template = markdownTemplate(resultColumns);
     // A visualized card shows a query, the tag can be on a statement before the last one
-    const visualizable = visualizeQuery != null || props.script.annotations.lastStatementIsQuery === true;
+    const visualizable = visualizeQuery != null || script.annotations.lastStatementIsQuery === true;
     const notVisualizable = 'Only a query is visualized';
     // One button runs the card: a card without a result runs and may read cached results, a card with a result
     // refreshes without them, a running card stops
     const running = query != null && !queryIsDone(query.status);
     const hasResult = query?.status === QueryExecutionStatus.SUCCEEDED;
+    const runnable = props.online && !props.model.runActive;
     const runAction = running
-        ? { label: `Stop ${displayName}`, description: 'Stop the query', icon: <SquareFillIcon size={10} />, onClick: () => props.onStop(props.script.scriptKey) }
+        ? { label: `Stop ${displayName}`, description: 'Stop the query', icon: <SquareFillIcon size={10} />, onClick: () => void props.model.cancel() }
         : hasResult
-            ? { label: `Refresh ${displayName}`, description: 'Refresh, skips cached results', icon: <SyncIcon size={12} />, onClick: () => props.onRun(props.script.scriptKey, true) }
-            : { label: `Run ${displayName}`, description: 'Run, may use cached results', icon: <PaperAirplaneIcon size={12} />, onClick: () => props.onRun(props.script.scriptKey, false) };
+            ? { label: `Refresh ${displayName}`, description: 'Refresh, skips cached results', icon: <SyncIcon size={12} />, onClick: () => void props.model.run({ refresh: true }) }
+            : { label: `Run ${displayName}`, description: 'Run, may use cached results', icon: <PaperAirplaneIcon size={12} />, onClick: () => void props.model.run({ refresh: false }) };
     const markdownDescription = template == null ? 'Run the script first' : 'Render every row as Markdown';
     // A table shows the header of the result over the rows that fit, a chart only the chart
     const body = collapsed ? null : visualizeQuery.renderer === 'table'
-        ? <dependencies.QueryResultPanel model={model} onShowTable={() => props.onOpenTable(props.script.scriptKey)} />
+        ? <dependencies.QueryResultPanel model={model} onShowTable={() => props.onOpenTable(script.scriptKey)} />
         : <dependencies.VisualizationDispatch model={model} visualizeQuery={visualizeQuery} hideLegend={props.placement.width < 5} />;
 
     // The renderers of a card in the order of its segments, the last one collapses the card to its script. A chart
@@ -201,19 +193,19 @@ export const DashboardCard = React.memo(function DashboardCard(props: Props): Re
     const switchRenderer = (index: number) => {
         const renderer = renderers[index];
         if (renderer === currentRenderer) return;
-        if (renderer == null) props.onRemoveVisualization(props.script.scriptKey);
-        else if (renderer === 'vegalite') props.onVisualize(props.script.scriptKey, 'vegalite', JSON.stringify(NEW_CHART_SPEC));
-        else if (renderer === 'table') props.onVisualize(props.script.scriptKey, 'table', '');
+        if (renderer == null) props.onRemoveVisualization(script.scriptKey);
+        else if (renderer === 'vegalite') props.onVisualize(script.scriptKey, 'vegalite', JSON.stringify(NEW_CHART_SPEC));
+        else if (renderer === 'table') props.onVisualize(script.scriptKey, 'table', '');
         // A KPI card shows the last column of the result, the tag takes the columns once they are known
-        else if (renderer === 'kpi') props.onVisualize(props.script.scriptKey, 'kpi', '');
-        else if (template != null) props.onVisualize(props.script.scriptKey, 'markdown', template);
+        else if (renderer === 'kpi') props.onVisualize(script.scriptKey, 'kpi', '');
+        else if (template != null) props.onVisualize(script.scriptKey, 'markdown', template);
     };
 
     return (
         <article
             ref={draggable.setNodeRef}
             className={`${styles.card} ${collapsed ? styles.card_collapsed : ''} ${kpi ? styles.card_kpi : ''}`}
-            data-dashboard-card={props.script.scriptKey}
+            data-dashboard-card={script.scriptKey}
             data-staged={staged || undefined}
             style={{
                 gridColumn: `${props.placement.column + 1} / span ${props.placement.width}`,
@@ -258,7 +250,7 @@ export const DashboardCard = React.memo(function DashboardCard(props: Props): Re
                                 aria-label={`Edit ${displayName}`}
                                 description="Show the change in the script"
                                 data-testid="dashboard-card-edit"
-                                onClick={() => props.onOpenEditor(props.script.scriptKey)}
+                                onClick={() => props.onOpenEditor(script.scriptKey)}
                             >
                                 <PencilIcon size={12} />
                             </IconButton>
@@ -270,7 +262,7 @@ export const DashboardCard = React.memo(function DashboardCard(props: Props): Re
                                 aria-label="Accept change"
                                 description="Keep the change of the script"
                                 data-testid="dashboard-card-accept"
-                                onClick={() => props.onAcceptDiff(props.script.scriptKey)}
+                                onClick={() => void props.model.acceptDiff()}
                             >
                                 <CheckIcon size={12} />
                             </IconButton>
@@ -280,7 +272,7 @@ export const DashboardCard = React.memo(function DashboardCard(props: Props): Re
                                 aria-label="Reject change"
                                 description="Restore the script"
                                 data-testid="dashboard-card-reject"
-                                onClick={() => props.onRejectDiff(props.script.scriptKey)}
+                                onClick={() => void props.model.rejectDiff()}
                             >
                                 <XIcon size={12} />
                             </IconButton>
@@ -298,7 +290,7 @@ export const DashboardCard = React.memo(function DashboardCard(props: Props): Re
                                 description={runAction.description}
                                 data-testid="dashboard-card-run"
                                 data-run-action={running ? 'stop' : hasResult ? 'refresh' : 'run'}
-                                disabled={!running && !props.runnable}
+                                disabled={!running && !runnable}
                                 onClick={runAction.onClick}
                             >
                                 {runAction.icon}
@@ -310,7 +302,7 @@ export const DashboardCard = React.memo(function DashboardCard(props: Props): Re
                                     aria-label="Chart builder"
                                     description="Build the chart"
                                     data-testid="dashboard-card-chart-builder"
-                                    onClick={() => props.onOpenChart(props.script.scriptKey)}
+                                    onClick={() => props.onOpenChart(script.scriptKey)}
                                 >
                                     <ToolsIcon size={12} />
                                 </IconButton>
@@ -321,7 +313,7 @@ export const DashboardCard = React.memo(function DashboardCard(props: Props): Re
                                 aria-label={`Edit ${displayName}`}
                                 description="Edit the script"
                                 data-testid="dashboard-card-edit"
-                                onClick={() => props.onOpenEditor(props.script.scriptKey)}
+                                onClick={() => props.onOpenEditor(script.scriptKey)}
                             >
                                 <PencilIcon size={12} />
                             </IconButton>
@@ -329,7 +321,7 @@ export const DashboardCard = React.memo(function DashboardCard(props: Props): Re
                                 <DashboardCardMenu
                                     scriptName={displayName}
                                     onRename={props.onRename != null ? () => setRenaming(true) : undefined}
-                                    onDelete={props.onDelete != null ? () => props.onDelete!(props.script.scriptKey) : undefined}
+                                    onDelete={props.onDelete != null ? () => props.onDelete!(script.scriptKey) : undefined}
                                 />
                             )}
                         </ButtonGroup>

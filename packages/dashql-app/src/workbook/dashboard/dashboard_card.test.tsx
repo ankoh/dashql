@@ -6,12 +6,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { QueryExecutionStatus } from '@akohn/dashql/platform/query/query_execution_state';
 import type { ScriptData } from '@akohn/dashql/platform/workbook/workbook_scripts';
-import { DashboardCard, type DashboardCardDependencies } from './dashboard_card.js';
+import { DashboardCard, type DashboardCardDependencies, type DashboardCardProps } from './dashboard_card.js';
 import { markdownTemplate } from './dashboard_source.js';
 import { NEW_CHART_SPEC } from '../chart_builder/chart_spec_paths.js';
 import { queryModelOf, resultTableOf, WithResultTables } from '../../tests/result_tables.js';
 import { RenderScheduleContext } from '@akohn/dashql-react/components/deferred';
 import { IMMEDIATE_SCHEDULE, type RenderSchedule } from '@akohn/dashql-react/dom/calm_frames';
+import { fakeScriptModel } from '@akohn/dashql-react/testing/fake_models';
+import type { QueryModel } from '@akohn/dashql-react/models/query_model';
+import type { ScriptModel } from '@akohn/dashql-react/models/script_model';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -19,7 +22,6 @@ vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 const SEVEN = queryModelOf({ queryId: 7 } as never);
 
 const dependencies = {
-    useQueryModel: () => SEVEN,
     QueryResultPanel: (props: { onShowTable?: () => void }) => <div data-testid="output" onClick={props.onShowTable}>output</div>,
     VisualizationDispatch: () => <div data-testid="visualization">visualization</div>,
     ScriptEditor: () => <div data-testid="content">content</div>,
@@ -34,6 +36,32 @@ const script = {
     },
 } as ScriptData;
 
+/// A card of a script with a model, the latest query and the props that a test gives
+function card(options: { script?: ScriptData; query?: QueryModel | null; model?: Partial<ScriptModel> } & Partial<Omit<DashboardCardProps, 'model'>> = {}): React.ReactElement {
+    const { script: cardScript = script, query = SEVEN, model, ...props } = options;
+    return (
+        <DndContext>
+            <WithResultTables><DashboardCard
+                model={fakeScriptModel({ script: cardScript, query, ...model })}
+                placement={{ id: 1, section: 'visualizations', row: 0, column: 0, width: 6, height: 3 }}
+                columnStep={100}
+                rowStep={108}
+                onResize={vi.fn()}
+                onResizeCancel={vi.fn()}
+                shifted={false}
+                onVisualize={vi.fn()}
+                onOpenChart={vi.fn()}
+                onRemoveVisualization={vi.fn()}
+                onOpenEditor={vi.fn()}
+                onOpenTable={vi.fn()}
+                online
+                dependencies={dependencies}
+                {...props}
+            /></WithResultTables>
+        </DndContext>
+    );
+}
+
 describe('DashboardCard', () => {
     let container: HTMLDivElement;
     let root: Root;
@@ -42,31 +70,7 @@ describe('DashboardCard', () => {
         container = document.createElement('div');
         document.body.appendChild(container);
         root = createRoot(container);
-        act(() => root.render(
-            <DndContext>
-                <WithResultTables><DashboardCard
-                    workbookId="workbook"
-                    script={script}
-                    placement={{ id: 1, section: 'visualizations', row: 0, column: 0, width: 6, height: 3 }}
-                    columnStep={100}
-                    rowStep={108}
-                    onResize={vi.fn()}
-                    onResizeCancel={vi.fn()}
-                    shifted={false}
-                    onVisualize={vi.fn()}
-                    onOpenChart={vi.fn()}
-                    onRemoveVisualization={vi.fn()}
-                    onOpenEditor={vi.fn()}
-                    onOpenTable={vi.fn()}
-                    onAcceptDiff={vi.fn()}
-                    onRejectDiff={vi.fn()}
-                    runnable
-                    onRun={vi.fn()}
-                    onStop={vi.fn()}
-                    dependencies={dependencies}
-                /></WithResultTables>
-            </DndContext>,
-        ));
+        act(() => root.render(card()));
     });
 
     afterEach(() => {
@@ -82,29 +86,7 @@ describe('DashboardCard', () => {
         const model = queryModelOf({ queryId: 7, status: QueryExecutionStatus.SUCCEEDED, resultTable: resultTableOf(result as never) } as never);
         act(() => root.render(
             <RenderScheduleContext.Provider value={schedule}>
-                <DndContext>
-                    <WithResultTables><DashboardCard
-                        workbookId="workbook"
-                        script={script}
-                        placement={{ id: 1, section: 'visualizations', row: 0, column: 0, width: 6, height: 3 }}
-                        columnStep={100}
-                        rowStep={108}
-                        onResize={vi.fn()}
-                        onResizeCancel={vi.fn()}
-                        shifted={false}
-                        onVisualize={vi.fn()}
-                        onOpenChart={vi.fn()}
-                        onRemoveVisualization={vi.fn()}
-                        onOpenEditor={vi.fn()}
-                        onOpenTable={vi.fn()}
-                        onAcceptDiff={vi.fn()}
-                        onRejectDiff={vi.fn()}
-                        runnable
-                        onRun={vi.fn()}
-                        onStop={vi.fn()}
-                        dependencies={{ ...dependencies, useQueryModel: () => model } as unknown as DashboardCardDependencies}
-                    /></WithResultTables>
-                </DndContext>
+                {card({ query: model })}
             </RenderScheduleContext.Provider>,
         ));
         expect(container.querySelector('[data-testid="skeleton"]')).not.toBeNull();
@@ -119,29 +101,7 @@ describe('DashboardCard', () => {
         const onOpenEditor = vi.fn();
         const onRemoveVisualization = vi.fn();
         act(() => root.render(
-            <DndContext>
-                <WithResultTables><DashboardCard
-                    workbookId="workbook"
-                    script={script}
-                    placement={{ id: 1, section: 'visualizations', row: 0, column: 0, width: 2, height: 1 }}
-                    columnStep={100}
-                    rowStep={108}
-                    onResize={vi.fn()}
-                    onResizeCancel={vi.fn()}
-                    shifted={false}
-                    onVisualize={vi.fn()}
-                    onOpenChart={vi.fn()}
-                    onRemoveVisualization={onRemoveVisualization}
-                    onOpenEditor={onOpenEditor}
-                    onOpenTable={vi.fn()}
-                    onAcceptDiff={vi.fn()}
-                    onRejectDiff={vi.fn()}
-                    runnable
-                    onRun={vi.fn()}
-                    onStop={vi.fn()}
-                    dependencies={dependencies}
-                /></WithResultTables>
-            </DndContext>,
+            card({ placement: { id: 1, section: 'visualizations', row: 0, column: 0, width: 2, height: 1 }, onRemoveVisualization, onOpenEditor }),
         ));
 
         // The card keeps its visualization, the editor opens in an overlay of the board
@@ -158,31 +118,7 @@ describe('DashboardCard', () => {
         const onRename = vi.fn();
         const onDelete = vi.fn();
         act(() => root.render(
-            <DndContext>
-                <WithResultTables><DashboardCard
-                    workbookId="workbook"
-                    script={script}
-                    placement={{ id: 1, section: 'visualizations', row: 0, column: 0, width: 6, height: 3 }}
-                    columnStep={100}
-                    rowStep={108}
-                    onResize={vi.fn()}
-                    onResizeCancel={vi.fn()}
-                    shifted={false}
-                    onVisualize={vi.fn()}
-                    onOpenChart={vi.fn()}
-                    onRemoveVisualization={vi.fn()}
-                    onOpenEditor={vi.fn()}
-                    onOpenTable={vi.fn()}
-                    onAcceptDiff={vi.fn()}
-                    onRejectDiff={vi.fn()}
-                    runnable
-                    onRun={vi.fn()}
-                    onStop={vi.fn()}
-                    onRename={onRename}
-                    onDelete={onDelete}
-                    dependencies={dependencies}
-                /></WithResultTables>
-            </DndContext>,
+            card({ onRename, onDelete }),
         ));
         const group = container.querySelector('[role="group"][aria-label="Actions of 1_sales"]')!;
         expect([...group.querySelectorAll('button')].map(b => b.getAttribute('data-testid')))
@@ -213,30 +149,8 @@ describe('DashboardCard', () => {
             ...script,
             annotations: { visualizeQuery: { renderer: 'table', sql: 'select 1', statementId: 0 } },
         } as ScriptData;
-        const render = (card: ScriptData, queryState: unknown) => act(() => root.render(
-            <DndContext>
-                <WithResultTables><DashboardCard
-                    workbookId="workbook"
-                    script={card}
-                    placement={{ id: 1, section: 'visualizations', row: 0, column: 0, width: 6, height: 3 }}
-                    columnStep={100}
-                    rowStep={108}
-                    onResize={vi.fn()}
-                    onResizeCancel={vi.fn()}
-                    shifted={false}
-                    onVisualize={onVisualize}
-                    onOpenChart={onOpenChart}
-                    onRemoveVisualization={vi.fn()}
-                    onOpenEditor={vi.fn()}
-                    onOpenTable={vi.fn()}
-                    onAcceptDiff={vi.fn()}
-                    onRejectDiff={vi.fn()}
-                    runnable
-                    onRun={vi.fn()}
-                    onStop={vi.fn()}
-                    dependencies={{ ...dependencies, useQueryModel: () => queryModelOf(queryState as never) } as unknown as DashboardCardDependencies}
-                /></WithResultTables>
-            </DndContext>,
+        const render = (shown: ScriptData, queryState: unknown) => act(() => root.render(
+            card({ script: shown, query: queryModelOf(queryState as never), onVisualize, onOpenChart }),
         ));
         const button = (id: string) => container.querySelector<HTMLButtonElement>(`[data-testid="${id}"]`);
 
@@ -266,34 +180,12 @@ describe('DashboardCard', () => {
     });
 
     it('accepts or rejects a staged change instead of changing the card', () => {
-        const onAcceptDiff = vi.fn();
-        const onRejectDiff = vi.fn();
+        const acceptDiff = vi.fn(async () => { });
+        const rejectDiff = vi.fn(async () => { });
         const onOpenEditor = vi.fn();
         const staged = { ...script, pendingDiff: { priorText: 'select 1', diffBuffer: null } } as unknown as ScriptData;
         act(() => root.render(
-            <DndContext>
-                <WithResultTables><DashboardCard
-                    workbookId="workbook"
-                    script={staged}
-                    placement={{ id: 1, section: 'visualizations', row: 0, column: 0, width: 6, height: 3 }}
-                    columnStep={100}
-                    rowStep={108}
-                    onResize={vi.fn()}
-                    onResizeCancel={vi.fn()}
-                    shifted={false}
-                    onVisualize={vi.fn()}
-                    onOpenChart={vi.fn()}
-                    onRemoveVisualization={vi.fn()}
-                    onOpenEditor={onOpenEditor}
-                    onOpenTable={vi.fn()}
-                    onAcceptDiff={onAcceptDiff}
-                    onRejectDiff={onRejectDiff}
-                    runnable
-                    onRun={vi.fn()}
-                    onStop={vi.fn()}
-                    dependencies={dependencies}
-                /></WithResultTables>
-            </DndContext>,
+            card({ script: staged, model: { acceptDiff, rejectDiff }, onOpenEditor }),
         ));
         const button = (id: string) => container.querySelector<HTMLButtonElement>(`[data-testid="${id}"]`);
 
@@ -302,63 +194,44 @@ describe('DashboardCard', () => {
         expect(button('dashboard-card-renderer-table')).toBeNull();
         expect(button('dashboard-card-renderer-collapsed')).toBeNull();
         act(() => button('dashboard-card-accept')!.click());
-        expect(onAcceptDiff).toHaveBeenCalledWith(1);
+        expect(acceptDiff).toHaveBeenCalledOnce();
         act(() => button('dashboard-card-reject')!.click());
-        expect(onRejectDiff).toHaveBeenCalledWith(1);
+        expect(rejectDiff).toHaveBeenCalledOnce();
         act(() => button('dashboard-card-edit')!.click());
         expect(onOpenEditor).toHaveBeenCalledWith(1);
     });
 
     it('runs a card without a result, refreshes one with a result and stops a running one', () => {
-        const onRun = vi.fn();
-        const onStop = vi.fn();
-        const render = (queryState: unknown, runnable: boolean) => act(() => root.render(
-            <DndContext>
-                <WithResultTables><DashboardCard
-                    workbookId="workbook"
-                    script={script}
-                    placement={{ id: 1, section: 'visualizations', row: 0, column: 0, width: 6, height: 3 }}
-                    columnStep={100}
-                    rowStep={108}
-                    onResize={vi.fn()}
-                    onResizeCancel={vi.fn()}
-                    shifted={false}
-                    onVisualize={vi.fn()}
-                    onOpenChart={vi.fn()}
-                    onRemoveVisualization={vi.fn()}
-                    onOpenEditor={vi.fn()}
-                    onOpenTable={vi.fn()}
-                    onAcceptDiff={vi.fn()}
-                    onRejectDiff={vi.fn()}
-                    runnable={runnable}
-                    onRun={onRun}
-                    onStop={onStop}
-                    dependencies={{ ...dependencies, useQueryModel: () => queryModelOf(queryState as never) } as unknown as DashboardCardDependencies}
-                /></WithResultTables>
-            </DndContext>,
+        const run = vi.fn(async () => { });
+        const cancel = vi.fn(async () => { });
+        const render = (queryState: unknown, online: boolean, runActive = false) => act(() => root.render(
+            card({ query: queryModelOf(queryState as never), online, model: { run, cancel, runActive } }),
         ));
-        const run = () => container.querySelector<HTMLButtonElement>('[data-testid="dashboard-card-run"]')!;
+        const button = () => container.querySelector<HTMLButtonElement>('[data-testid="dashboard-card-run"]')!;
 
         // Without a result the card runs and may read cached results
         render(null, true);
-        expect(run().dataset.runAction).toBe('run');
-        act(() => run().click());
-        expect(onRun).toHaveBeenLastCalledWith(1, false);
+        expect(button().dataset.runAction).toBe('run');
+        act(() => button().click());
+        expect(run).toHaveBeenLastCalledWith({ refresh: false });
 
         // With a result it refreshes without them
         render({ queryId: 7, status: QueryExecutionStatus.SUCCEEDED }, true);
-        expect(run().dataset.runAction).toBe('refresh');
-        act(() => run().click());
-        expect(onRun).toHaveBeenLastCalledWith(1, true);
+        expect(button().dataset.runAction).toBe('refresh');
+        act(() => button().click());
+        expect(run).toHaveBeenLastCalledWith({ refresh: true });
+        // Neither offline nor while a run holds the workbook
         render({ queryId: 7, status: QueryExecutionStatus.SUCCEEDED }, false);
-        expect(run().disabled).toBe(true);
+        expect(button().disabled).toBe(true);
+        render({ queryId: 7, status: QueryExecutionStatus.SUCCEEDED }, true, true);
+        expect(button().disabled).toBe(true);
 
         // A running card stops, also while the workbook holds the run
-        render({ queryId: 7, status: QueryExecutionStatus.RUNNING }, false);
-        expect(run().dataset.runAction).toBe('stop');
-        expect(run().disabled).toBe(false);
-        act(() => run().click());
-        expect(onStop).toHaveBeenCalledWith(1);
+        render({ queryId: 7, status: QueryExecutionStatus.RUNNING }, false, true);
+        expect(button().dataset.runAction).toBe('stop');
+        expect(button().disabled).toBe(false);
+        act(() => button().click());
+        expect(cancel).toHaveBeenCalledOnce();
     });
 
     it('uses the query result view for table content and opens the full table from it', () => {
@@ -368,29 +241,7 @@ describe('DashboardCard', () => {
             annotations: { visualizeQuery: { renderer: 'table', sql: 'select 1', statementId: 0 } },
         } as ScriptData;
         act(() => root.render(
-            <DndContext>
-                <WithResultTables><DashboardCard
-                    workbookId="workbook"
-                    script={tableScript}
-                    placement={{ id: 1, section: 'visualizations', row: 0, column: 0, width: 6, height: 3 }}
-                    columnStep={100}
-                    rowStep={108}
-                    onResize={vi.fn()}
-                    onResizeCancel={vi.fn()}
-                    shifted={false}
-                    onVisualize={vi.fn()}
-                    onOpenChart={vi.fn()}
-                    onRemoveVisualization={vi.fn()}
-                    onOpenEditor={vi.fn()}
-                    onOpenTable={onOpenTable}
-                    onAcceptDiff={vi.fn()}
-                    onRejectDiff={vi.fn()}
-                    runnable
-                    onRun={vi.fn()}
-                    onStop={vi.fn()}
-                    dependencies={dependencies}
-                /></WithResultTables>
-            </DndContext>,
+            card({ script: tableScript, onOpenTable }),
         ));
 
         expect(container.querySelector('[data-testid="output"]')).not.toBeNull();
@@ -404,26 +255,11 @@ describe('DashboardCard', () => {
             ...script,
             annotations: { visualizeQuery: null, lastStatementIsQuery: true },
         } as unknown as ScriptData;
-        const callbacks = { onVisualize: vi.fn(), onOpenChart: vi.fn(), onRemoveVisualization: vi.fn(), onAcceptDiff: vi.fn(), onRejectDiff: vi.fn(), onRun: vi.fn(), onStop: vi.fn(), onOpenEditor: vi.fn(), onOpenTable: vi.fn() };
+        const callbacks = { onVisualize: vi.fn(), onOpenChart: vi.fn(), onRemoveVisualization: vi.fn(), onOpenEditor: vi.fn(), onOpenTable: vi.fn() };
 
-        function renderCollapsed(card: ScriptData, queryState: unknown) {
-            const collapsedDependencies = { ...dependencies, useQueryModel: () => queryModelOf(queryState as never) } as unknown as DashboardCardDependencies;
+        function renderCollapsed(shown: ScriptData, queryState: unknown) {
             act(() => root.render(
-                <DndContext>
-                    <WithResultTables><DashboardCard
-                        workbookId="workbook"
-                        script={card}
-                        placement={{ id: 1, section: 'scripts', row: 0, column: 0, width: 6, height: 1 }}
-                        columnStep={100}
-                        rowStep={108}
-                        onResize={vi.fn()}
-                        onResizeCancel={vi.fn()}
-                        shifted={false}
-                        runnable={false}
-                        {...callbacks}
-                        dependencies={collapsedDependencies}
-                    /></WithResultTables>
-                </DndContext>,
+                card({ script: shown, query: queryModelOf(queryState as never), placement: { id: 1, section: 'scripts', row: 0, column: 0, width: 6, height: 1 }, online: false, ...callbacks }),
             ));
         }
         const button = (id: string) => container.querySelector<HTMLButtonElement>(`[data-testid="${id}"]`)!;

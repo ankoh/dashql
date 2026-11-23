@@ -19,6 +19,8 @@ import { markdownTemplate } from './dashboard_source.js';
 import { queryModelOf, resultTableOf, WithResultTables } from '../../tests/result_tables.js';
 import { RenderScheduleContext } from '@akohn/dashql-react/components/deferred';
 import { IMMEDIATE_SCHEDULE } from '@akohn/dashql-react/dom/calm_frames';
+import { fakeScriptModel } from '@akohn/dashql-react/testing/fake_models';
+import type { ScriptModel } from '@akohn/dashql-react/models/script_model';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -26,8 +28,33 @@ const state = {
     queries: new Map<number, unknown>(),
 };
 
+/// The operations of the models of the scripts, by script key
+const operations = {
+    run: vi.fn(),
+    cancel: vi.fn(),
+    acceptDiff: vi.fn(),
+    rejectDiff: vi.fn(),
+    setVisSpec: vi.fn(),
+};
+
+/// The scripts that the board shows, the models read them
+let shownScripts: ScriptDataMap = {};
+
+/// The model of a script of the board with its latest query, its operations record the key of the script
+function useFakeScriptModel(_workbookId: string, scriptKey: number | null | undefined): ScriptModel | null {
+    const script = scriptKey == null ? undefined : shownScripts[scriptKey];
+    return React.useMemo(() => script == null ? null : fakeScriptModel({
+        script,
+        query: script.latestQueryId == null ? null : queryModelOf(state.queries.get(script.latestQueryId) as never),
+        run: async options => operations.run(script.scriptKey, options),
+        cancel: async () => operations.cancel(script.scriptKey),
+        acceptDiff: async () => operations.acceptDiff(script.scriptKey),
+        rejectDiff: async () => operations.rejectDiff(script.scriptKey),
+        setVisSpec: async spec => operations.setVisSpec(script.scriptKey, spec),
+    }), [script]);
+}
+
 const cardDependencies = {
-    useQueryModel: (queryId: number | null) => queryId == null ? null : queryModelOf(state.queries.get(queryId) as never),
     QueryResultPanel: (props: { onShowTable?: () => void }) => <button data-testid="card-table" onClick={props.onShowTable}>table</button>,
     VisualizationDispatch: () => <div data-testid="card-visualization" />,
     ScriptEditor: () => <div data-testid="card-editor" />,
@@ -85,7 +112,6 @@ describe('Dashboard', () => {
     let root: Root;
     let modify: ReturnType<typeof vi.fn>;
     let executor: TestQueryExecutorFunctions;
-    let runScript: ReturnType<typeof vi.fn>;
     let dependencies: DashboardDependencies;
     /// The file name that the runtime gives a renamed script
     let renamedFileName: string | null;
@@ -104,25 +130,25 @@ describe('Dashboard', () => {
         modify = vi.fn();
         renamedFileName = null;
         executor = { execute: vi.fn(), cancel: vi.fn(), watchProfile: vi.fn() } as unknown as TestQueryExecutorFunctions;
-        runScript = vi.fn(async () => {});
+        for (const operation of Object.values(operations)) operation.mockReset();
         dependencies = {
-            useScriptRun: () => runScript as never,
+            useScriptModel: useFakeScriptModel,
             useLiveScriptReader: () => (key: number) => key === 2 && renamedFileName != null ? { fileName: renamedFileName } as ScriptData : null,
-            DashboardEditorOverlay: (props: { script: ScriptData; onAcceptDiff: (key: number) => void; onRejectDiff: (key: number) => void; onClose: () => void }) => (
-                <div data-testid="editor-overlay" data-script={props.script.fileName}>
-                    <button data-testid="editor-accept" onClick={() => props.onAcceptDiff(props.script.scriptKey)} />
-                    <button data-testid="editor-reject" onClick={() => props.onRejectDiff(props.script.scriptKey)} />
+            DashboardEditorOverlay: (props: { model: ScriptModel; onClose: () => void }) => (
+                <div data-testid="editor-overlay" data-script={props.model.script.fileName}>
+                    <button data-testid="editor-accept" onClick={() => void props.model.acceptDiff()} />
+                    <button data-testid="editor-reject" onClick={() => void props.model.rejectDiff()} />
                     <button data-testid="overlay-close" onClick={props.onClose} />
                 </div>
             ),
-            DashboardTableOverlay: (props: { script: ScriptData; onClose: () => void }) => (
-                <div data-testid="table-overlay" data-script={props.script.fileName}>
+            DashboardTableOverlay: (props: { model: ScriptModel; onClose: () => void }) => (
+                <div data-testid="table-overlay" data-script={props.model.script.fileName}>
                     <button data-testid="overlay-close" onClick={props.onClose} />
                 </div>
             ),
-            DashboardChartOverlay: (props: { script: ScriptData; onChange: (spec: string) => void; onClose: () => void }) => (
-                <div data-testid="chart-overlay" data-script={props.script.fileName}>
-                    <button data-testid="chart-change" onClick={() => props.onChange('{"mark":"line"}')} />
+            DashboardChartOverlay: (props: { model: ScriptModel; onClose: () => void }) => (
+                <div data-testid="chart-overlay" data-script={props.model.script.fileName}>
+                    <button data-testid="chart-change" onClick={() => void props.model.setVisSpec('{"mark":"line"}')} />
                     <button data-testid="overlay-close" onClick={props.onClose} />
                 </div>
             ),
@@ -139,6 +165,7 @@ describe('Dashboard', () => {
     const online = new Map([['db', { connectionHealth: ConnectionHealth.ONLINE } as ConnectionState]]);
 
     function render(workbookScripts: WorkbookScripts & { scripts: ScriptDataMap }, extra: { scriptConnections?: ReadonlyMap<string, ConnectionState>; draftRenameRef?: React.RefObject<RenameDraftReferences | null>; revealRequest?: DashboardRevealRequest } = {}) {
+        shownScripts = workbookScripts.scripts;
         act(() => root.render(
             <LoggerProvider>
                 <StorageProvider backend={backend}>
@@ -241,12 +268,12 @@ describe('Dashboard', () => {
         // A card without a result runs and may use the cache, a card with a result refreshes
         act(() => cardButton(1, 'dashboard-card-run').click());
         act(() => cardButton(2, 'dashboard-card-run').click());
-        expect(runScript.mock.calls.map(call => [call[1], call[2]])).toEqual([[1, { refresh: false }], [2, { refresh: true }]]);
+        expect(operations.run.mock.calls).toEqual([[1, { refresh: false }], [2, { refresh: true }]]);
 
-        // A running card cancels its query
+        // A running card cancels what runs for its script
         expect(cardButton(3, 'dashboard-card-run').getAttribute('data-run-action')).toBe('stop');
         act(() => cardButton(3, 'dashboard-card-run').click());
-        expect(executor.cancel).toHaveBeenCalledWith(30);
+        expect(operations.cancel).toHaveBeenCalledWith(3);
 
         // An offline connection runs nothing
         render(workbook(SETUP, SALES, TREND), { scriptConnections: new Map() });
@@ -287,7 +314,7 @@ describe('Dashboard', () => {
         ]);
         expect(testId('chart-overlay')!.getAttribute('data-script')).toBe('1_setup.sql');
         act(() => testId('chart-change')!.click());
-        expect(actions()[1]).toEqual({ kind: 'setScriptVisSpec', value: { scriptKey: 1, spec: '{"mark":"line"}' } });
+        expect(operations.setVisSpec).toHaveBeenCalledWith(1, '{"mark":"line"}');
         act(() => testId('overlay-close')!.click());
         expect(testId('chart-overlay')).toBeNull();
 
@@ -300,7 +327,8 @@ describe('Dashboard', () => {
         expect(testId('editor-overlay')!.getAttribute('data-script')).toBe('2_sales.sql');
         act(() => testId('editor-accept')!.click());
         act(() => testId('editor-reject')!.click());
-        expect(actions().slice(1)).toEqual([{ kind: 'acceptPendingDiff', value: { scriptKey: 2 } }, { kind: 'rejectPendingDiff', value: { scriptKey: 2 } }]);
+        expect(operations.acceptDiff).toHaveBeenCalledWith(2);
+        expect(operations.rejectDiff).toHaveBeenCalledWith(2);
         act(() => testId('overlay-close')!.click());
         expect(testId('editor-overlay')).toBeNull();
 
@@ -342,7 +370,9 @@ describe('Dashboard', () => {
         render(workbook(staged));
         act(() => cardButton(2, 'dashboard-card-accept').click());
         act(() => cardButton(2, 'dashboard-card-reject').click());
-        expect(actions()).toEqual([{ kind: 'acceptPendingDiff', value: { scriptKey: 2 } }, { kind: 'rejectPendingDiff', value: { scriptKey: 2 } }]);
+        expect(operations.acceptDiff).toHaveBeenCalledWith(2);
+        expect(operations.rejectDiff).toHaveBeenCalledWith(2);
+        expect(modify).not.toHaveBeenCalled();
     });
 
     it('resizes a card with the keyboard and writes the placements that changed', () => {

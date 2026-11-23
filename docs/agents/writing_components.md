@@ -126,7 +126,7 @@ expect(model.run).toHaveBeenCalledOnce();
 
 ## What is not done yet
 
-The feed card and the views of a result are written this way. Parts of the feed still read the runtime below the card:
+The feed card, the cards and the overlays of the dashboard and the views of a result are written this way. Parts of the feed still read the runtime below the card:
 the header (`FeedEntryHeader`, shared with the dataflow and the editor dialog) and the chart builder. The injectable
 `ScriptCardDependencies` replace only the parts that need a real script session or editor in a test (formatting,
 diagnostics, statistics, the chart builder), none of them reads the runtime. Models for connections and workbooks
