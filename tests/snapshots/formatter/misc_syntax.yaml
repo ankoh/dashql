@@ -376,3 +376,22 @@ formatter-snapshots:
             expected: |-
               select *
               from t tablesample bernoulli(10 percent), t tablesample reservoir(10 rows), t tablesample reservoir(10 rows);
+
+  - name: coverage_line_width_counts_characters
+    input: |-
+      select 'ääääääääää', 'öööööööööö'
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select 'ääääääääää', 'öööööööööö';
+          - mode: compact
+            width: 40
+            expected: |-
+              select 'ääääääääää', 'öööööööööö';
+          - mode: pretty
+            width: 40
+            expected: |-
+              select 'ääääääääää', 'öööööööööö';
+        validation:

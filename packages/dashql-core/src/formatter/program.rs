@@ -103,7 +103,7 @@ pub struct FormattingOperation<'a> {
 /// The options for rendering a formatting program
 #[derive(Clone, Copy, Debug)]
 pub struct FormattingRenderOptions {
-    /// The maximum line width in bytes
+    /// The maximum line width in characters
     pub max_width: usize,
     /// The number of spaces per indentation level
     pub indentation_width: usize,
@@ -391,6 +391,11 @@ fn push_rendered_join(
     }
 }
 
+/// The width of a text in characters, `'äöü'` is 5 wide
+fn text_width(text: &str) -> usize {
+    text.chars().count()
+}
+
 /// The width of the text that a document starts with, up to its first possible line break.
 /// Returns the width and whether a line break could follow.
 fn leading_inline_width(reg: FmtReg, program: &[FormattingOperation]) -> (usize, bool) {
@@ -398,7 +403,7 @@ fn leading_inline_width(reg: FmtReg, program: &[FormattingOperation]) -> (usize,
     let Some(doc) = program.get(reg as usize) else { return (0, false) };
     match doc.code {
         FormattingOpCode::Empty => (0, false),
-        FormattingOpCode::Text => (doc.text.len(), false),
+        FormattingOpCode::Text => (text_width(doc.text), false),
         FormattingOpCode::Break => (0, true),
         FormattingOpCode::Concat => {
             let mut width = 0;
@@ -462,7 +467,7 @@ fn dry_run_inline(
         let Some(doc) = program.get(command.doc as usize) else { continue };
         match doc.code {
             FormattingOpCode::Empty => {}
-            FormattingOpCode::Text => remaining -= doc.text.len() as isize,
+            FormattingOpCode::Text => remaining -= text_width(doc.text) as isize,
             FormattingOpCode::Break => return false,
             FormattingOpCode::Concat => push_inline_children(&mut stack, &doc.children, command.indentation),
             FormattingOpCode::Join => {
@@ -637,7 +642,7 @@ fn render(program: &[FormattingOperation], root: FmtReg, options: &FormattingRen
                 } else {
                     output.push_str(doc.text);
                 }
-                current_line_width += doc.text.len();
+                current_line_width += text_width(doc.text);
             }
             FormattingOpCode::Break => {
                 append_line_break(&mut output, &mut current_line_width, command.indentation, options.debug_mode);
@@ -771,6 +776,16 @@ mod tests {
         assert_eq!(f.render(root, &options(FormattingMode::COMPACT, 20)), "x aaaa, bbbb, cccc");
         assert_eq!(f.render(root, &options(FormattingMode::COMPACT, 19)), "x aaaa,\n  bbbb,\n  cccc");
         assert_eq!(f.render(root, &options(FormattingMode::INLINE, 1)), "x aaaa, bbbb, cccc");
+    }
+
+    #[test]
+    fn widths_count_characters() {
+        let f = FormattingProgram::new();
+        // 18 characters in 24 bytes fit a width of 20
+        let list = comma_list(&f, &["äääá", "öööó", "üüüú"], Some(FormattingJoinPolicy::BreakAllOrNone));
+        let root = f.concat(&[f.text("x "), list]);
+        assert_eq!(f.render(root, &options(FormattingMode::COMPACT, 20)), "x äääá, öööó, üüüú");
+        assert_eq!(f.render(root, &options(FormattingMode::COMPACT, 19)), "x äääá,\n  öööó,\n  üüüú");
     }
 
     #[test]

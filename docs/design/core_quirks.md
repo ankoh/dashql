@@ -78,7 +78,8 @@ entry when you find another one. The headings name where the behavior lives.
 - **Three whitespace sets in comments.** Trimming uses C `isspace` (including `\v`), word splitting
   uses `" \t\r\n\f"`, and the words of `@vis` tags are split at `" \t\r\f\v"` (`split_word`).
 - **Keyword upper-casing** (`append_generated_text`) only touches exact lower-case keywords in
-  generated text, so source `TRUE` or `Select` stay as written. Line widths count bytes.
+  generated text, so source `TRUE` or `Select` stay as written. Line widths count characters, not display
+  columns, and the wrapping of comments counts bytes.
 - **`format_node_at` does not mark statement roots**, so a CREATE TABLE formatted that way renders
   `'<OBJECT_SQL_CREATE>'`.
 - **An empty property graph** formats as `Text("")`, a non-empty document.
