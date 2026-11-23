@@ -77,6 +77,36 @@
     color: var(--color_fg_muted);
 }
 
+/* A KPI card fills the whole card, value and chart. Its header shows over it while the card is hovered or has the
+   focus, and always on a screen without hover or while the card stages a change. */
+.card_kpi {
+    grid-template-rows: minmax(0, 1fr);
+}
+
+.card_kpi .card_header {
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    z-index: 1;
+    height: 40px;
+    background: color-mix(in srgb, var(--color_bg_card) 92%, transparent);
+    opacity: 0;
+    transition: opacity 120ms ease-out;
+}
+
+.card_kpi:hover .card_header,
+.card_kpi:focus-within .card_header,
+.card_kpi[data-staged] .card_header {
+    opacity: 1;
+}
+
+@media (hover: none) {
+    .card_kpi .card_header {
+        opacity: 1;
+    }
+}
+
 /* The actions of a card, small and muted until hovered */
 .card_actions {
     flex: 0 0 auto;

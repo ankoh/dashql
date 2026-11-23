@@ -222,9 +222,10 @@ impl StatementTags {
         self.board = Some((normalize_board(state, self.default_board.clone(), row, column, width, height), kind));
     }
 
-    /// Read the args of `@vis kpi`: the columns `value` and `x`, each a name of an output column, and the `delta`
+    /// Read the args of `@vis kpi`: the columns `value` and `x`, each a name of an output column, the `delta` and the
+    /// `chart`
     fn read_kpi(&mut self, state: &mut AnalysisState, tag: &TagText, args: usize, columns: Option<&HashSet<String>>) {
-        let [value, x, delta] = read_arg_values(state, tag, args, "vis kpi", ["value", "x", "delta"]);
+        let [value, x, delta, chart] = read_arg_values(state, tag, args, "vis kpi", ["value", "x", "delta", "chart"]);
         let column = |state: &mut AnalysisState, arg: Option<(ArgValue, TextSpan)>, key: &str| {
             let (value, span) = arg?;
             match value {
@@ -270,7 +271,19 @@ impl StatementTags {
                 KpiDelta::default()
             }
         };
-        self.kpi = Some(KpiSpec { value, x, delta });
+        let chart = match chart {
+            None | Some((ArgValue::Invalid, _)) => KpiChart::default(),
+            Some((ArgValue::Name(name), span)) => KpiChart::from_name(&name).unwrap_or_else(|| {
+                let message = format!("unknown @vis kpi chart \"{name}\", expected {}", KpiChart::NAMES.join(", "));
+                warn(state, span, message);
+                KpiChart::default()
+            }),
+            Some((_, span)) => {
+                warn(state, span, format!("@vis kpi chart takes {}", KpiChart::NAMES.join(", ")));
+                KpiChart::default()
+            }
+        };
+        self.kpi = Some(KpiSpec { value, x, delta, chart });
     }
 }
 

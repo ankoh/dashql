@@ -1,5 +1,5 @@
-/* The card is a container, the value grows with its width. A host without a height of its own gets room for the
-   value and the chart. */
+/* The card is a container, the value grows with its width and its height. The chart fills the lower part of the card
+   across its full width, behind the text; a host without a height of its own gets room for both. */
 .root {
     position: relative;
     width: 100%;
@@ -7,80 +7,142 @@
     min-height: 96px;
     box-sizing: border-box;
     overflow: hidden;
-    container-type: inline-size;
+    container-type: size;
     user-select: text;
 }
 
-/* The chart fills the lower part of the card behind the value */
+/* The chart is drawn in pixels in the coordinates of the card */
 .chart {
     position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    width: 100%;
-    height: 60%;
+    inset: 0;
+    overflow: visible;
     pointer-events: none;
 }
 
-.area {
-    fill: color-mix(in srgb, var(--chart_color_1) 16%, transparent);
-    stroke: none;
-}
-
+/* A faint line, its area fades out towards the bottom of the card */
 .line {
     fill: none;
-    stroke: var(--chart_color_1);
+    stroke: color-mix(in srgb, var(--chart_color_1) 50%, transparent);
     stroke-width: 1.5px;
     stroke-linejoin: round;
-    vector-effect: non-scaling-stroke;
+    stroke-linecap: round;
 }
 
+.area_top {
+    stop-color: var(--chart_color_1);
+    stop-opacity: 0.14;
+}
+
+.area_bottom {
+    stop-color: var(--chart_color_1);
+    stop-opacity: 0;
+}
+
+/* The bars are square like the bars of the charts, the last one, the value of the card, a little stronger */
+.bar {
+    fill: color-mix(in srgb, var(--chart_color_1) 13%, transparent);
+}
+
+.bar_last {
+    fill: color-mix(in srgb, var(--chart_color_1) 45%, transparent);
+}
+
+/* The lines of the smallest and the largest value, like the grid lines of the charts */
+.rule {
+    stroke: var(--color_border_muted);
+    stroke-width: 1px;
+    shape-rendering: crispEdges;
+}
+
+/* The labels of the axes sit inside the chart, in the color and the size of the axis labels of the charts. A halo of
+   the card keeps them readable over the line. */
+.axis text {
+    fill: var(--color_neutral_fg);
+    font-family: var(--font_family);
+    font-size: 10px;
+    font-variant-numeric: tabular-nums;
+    paint-order: stroke;
+    stroke: var(--color_bg_card);
+    stroke-width: 3px;
+    stroke-linejoin: round;
+}
+
+/* The text of the card over the chart */
 .content {
     position: relative;
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    align-items: flex-start;
     padding: 10px 14px;
 }
 
 .label {
+    max-width: 100%;
     overflow: hidden;
     color: var(--color_fg_muted);
     font-size: 12px;
+    font-weight: 500;
+    line-height: 16px;
     white-space: nowrap;
     text-overflow: ellipsis;
-}
-
-.figures {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    column-gap: 10px;
 }
 
 .value {
+    max-width: 100%;
+    margin-top: 2px;
     overflow: hidden;
     color: var(--color_fg);
-    font-size: clamp(20px, 13cqw, 44px);
+    font-size: clamp(22px, min(12cqw, 30cqh), 64px);
     font-weight: 600;
     font-variant-numeric: tabular-nums;
-    line-height: 1.15;
+    letter-spacing: -0.01em;
+    line-height: 1.1;
     white-space: nowrap;
     text-overflow: ellipsis;
 }
 
-.change {
-    color: var(--color_fg_muted);
-    font-size: 13px;
-    font-weight: 500;
-    font-variant-numeric: tabular-nums;
+.change_row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 4px;
     white-space: nowrap;
+}
+
+/* The change is a pill tinted by its direction */
+.change {
+    padding: 1px 6px;
+    border-radius: 999px;
+    color: var(--color_fg_muted);
+    background: var(--color_neutral_muted);
+    font-size: 11px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    line-height: 16px;
 }
 
 .change[data-direction="up"] {
     color: var(--color_success_fg);
+    background: color-mix(in srgb, var(--color_success_fg) 12%, var(--color_bg_card));
 }
 
 .change[data-direction="down"] {
     color: var(--color_danger_fg);
+    background: color-mix(in srgb, var(--color_danger_fg) 12%, var(--color_bg_card));
 }
+
+/* What the change compares with may sit over the top of the chart, a halo of the card keeps it readable like the
+   labels of the axes */
+.versus {
+    color: var(--color_fg_subtle);
+    font-size: 11px;
+    text-shadow: 0 0 3px var(--color_bg_card), 0 0 3px var(--color_bg_card);
+}
+
+/* A narrow card leaves out what the change compares with */
+@container (max-width: 200px) {
+    .versus {
+        display: none;
+    }
+}
+

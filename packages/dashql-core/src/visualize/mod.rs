@@ -3,7 +3,7 @@
 //! - `vegalite_generator`: the Vega-Lite JSON of an analyzed visualization
 //! - `markdown`: the Markdown row template compiled into a document tree, parsed with
 //!   pulldown-cmark
-//! - `pack_kpi_spec`: the columns and the delta of a KPI card
+//! - `pack_kpi_spec`: the columns, the delta and the chart of a KPI card
 //!
 //! The functions are pure, callers cache the results.
 
@@ -13,8 +13,8 @@ mod vegalite_generator;
 pub use markdown::{compile_markdown_spec, compile_markdown_template, MarkdownDocument, MarkdownNode};
 pub use vegalite_generator::generate_vegalite_spec;
 
-use crate::analyzer::{AnalyzedScript, KpiDelta, KpiSpec, VisualizationSpec};
-use dashql_buffers::visualization::{KpiDelta as PackedKpiDelta, KpiSpecT};
+use crate::analyzer::{AnalyzedScript, KpiChart, KpiDelta, KpiSpec, VisualizationSpec};
+use dashql_buffers::visualization::{KpiChart as PackedKpiChart, KpiDelta as PackedKpiDelta, KpiSpecT};
 use dashql_parser::parser::context::resolve_text_span;
 
 /// The text of a node (`input.substr(span.offset(), span.length())`)
@@ -37,6 +37,11 @@ pub fn pack_kpi_spec(spec: &KpiSpec) -> KpiSpecT {
         KpiDelta::Previous => PackedKpiDelta::PREVIOUS,
         KpiDelta::First => PackedKpiDelta::FIRST,
         KpiDelta::None => PackedKpiDelta::NONE,
+    };
+    out.chart = match spec.chart {
+        KpiChart::Line => PackedKpiChart::LINE,
+        KpiChart::Bar => PackedKpiChart::BAR,
+        KpiChart::None => PackedKpiChart::NONE,
     };
     out
 }

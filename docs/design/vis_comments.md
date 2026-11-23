@@ -32,7 +32,7 @@ their line, the lines after them are ordinary text.
 |---|---|
 | `@vis vegalite` | A Vega-Lite spec as JSON object, on the same line or the next. The statement is the data, `data` is ignored with a warning. |
 | `@vis markdown` | The row template as Markdown, from right after the kind to the end of the tag. Rendered once per result row, `{{field}}` placeholders take the values of the columns. |
-| `@vis kpi` | A KPI card as `key=value` args, all optional: the columns `value` and `x` and the change `delta` (`previous`, `first` or `none`). See KPI cards. |
+| `@vis kpi` | A KPI card as `key=value` args, all optional: the columns `value` and `x`, the change `delta` (`previous`, `first` or `none`) and the `chart` behind the value (`line`, `bar` or `none`). See KPI cards. |
 | `@vis table` | Nothing, the result table is the visualization. |
 | `@board` | The dashboard placement as `key=value` args: `row`, `column`, `width` and `height`, all integers. |
 | `@flow` | The placement of the script on the dataflow canvas as `key=value` args: the position `x` and `y`, the width of the box `width` and the height of its chart `height`, all integers. |
@@ -111,7 +111,17 @@ SELECT day, sum(revenue) AS revenue FROM sales GROUP BY day ORDER BY day;
   `first` against the first row, `none` shows only the value. A base of zero or null shows no change.
 - The chart draws every row with a number as value. An x axis of numbers, dates or timestamps places the rows by their
   value, any other x axis spaces them evenly in the order of the result.
+- `chart` is the chart behind the value: `line` (the default), a line with its area, `bar`, a bar per row from zero
+  in the order of the rows with the last bar stronger, or `none`.
 - A result of one row shows only the value, e.g. `SELECT sum(revenue) FROM sales`, a result without rows a dash.
+
+The chart is ambient, like the background charts of Grafana's stat panel and Kibana's metric: it spans the full width
+of the lower part of the card, from 45% of its height to the bottom, behind the text, and its line and bars are faint.
+The value stays clear of it, the change at most overlaps its top. The labels of its axes sit inside it: the first and
+the last x in the bottom corners, the smallest and the largest value at the right end of their rules. Dates are as
+short as the span of the axis allows (`Sep 1`, `Jan`, `10:00`). The rules and labels take the grid and label colors
+and sizes of the Vega-Lite config of the app (`chart_config.ts`), and the bars its square corners and 1px gaps, so KPI
+cards and charts read as one family. The header of a KPI card shows over it while the card is hovered or focused.
 
 A KPI card is 3 columns wide and 3 rows high, four of them fill a row of the board. A `@board` with a width or a
 height overrides each. The cards sit with the other visualizations, `@board row=0` keeps them on top. The analyzer warns

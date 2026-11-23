@@ -1055,9 +1055,9 @@ analyzer-snapshots:
         errors: []
     script:
       input: |
-        /* @vis kpi value = "Total Revenue" x=DATE */
+        /* @vis kpi value = "Total Revenue" x=DATE chart=bar */
         select date, sum(revenue) as "Total Revenue" from sales group by date order by date;
-        /* @vis kpi value='total' x=date delta */
+        /* @vis kpi value='total' x=date delta chart=pie */
         select date, sum(revenue) as total from sales group by date;
         /* @vis kpi value="Total
            @board row = 1 width=-2 */
@@ -1066,6 +1066,7 @@ analyzer-snapshots:
       errors:
         - {type: INVALID_VIS_TAG, severity: WARNING, message: '@vis kpi takes key=value args, not "delta"', text: "delta"}
         - {type: INVALID_VIS_TAG, severity: WARNING, message: '@vis kpi value takes a column name, a name with spaces in double quotes', text: "value='total'"}
+        - {type: INVALID_VIS_TAG, severity: WARNING, message: 'unknown @vis kpi chart "pie", expected line, bar, none', text: "chart=pie"}
         - {type: INVALID_VIS_TAG, severity: WARNING, message: '@vis kpi has an unterminated delimited identifier', text: "\"Total"}
         - {type: INVALID_DASHBOARD_LAYOUT, severity: WARNING, message: dashboard width was clamped to the range 1..12, text: "width=-2"}
       table-refs:
@@ -1116,6 +1117,7 @@ analyzer-snapshots:
             value: Total Revenue
             x: date
             delta: previous
+            chart: bar
         - statement-id: 1
           source: "select dat..up by date"
           renderer: kpi

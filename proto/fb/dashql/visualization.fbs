@@ -21,6 +21,16 @@ enum KpiDelta: uint8 {
     NONE,
 }
 
+/// The chart of a KPI card behind its value
+enum KpiChart: uint8 {
+    /// A line with its area
+    LINE,
+    /// A bar per row, from zero
+    BAR,
+    /// No chart, only the value
+    NONE,
+}
+
 /// A KPI card: the value of the last row, large, over a chart of the value across the rows. The columns are the
 /// names of the `@vis kpi` tag, null for the default: the last column of the result is the value, the first one
 /// the x axis if the result has more than one.
@@ -28,4 +38,5 @@ table KpiSpec {
     value_column: string;
     x_column: string;
     delta: KpiDelta = PREVIOUS;
+    chart: KpiChart = LINE;
 }

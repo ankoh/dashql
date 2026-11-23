@@ -187,11 +187,15 @@ export function describeKpi(reading: KpiReading, spec: core.buffers.visualizatio
     } else {
         parts.push(`no change: ${base} has no number or zero`);
     }
-    if (reading.points.length >= 2) {
+    if (reading.chart == null) {
+        parts.push('no chart (chart=none)');
+    } else if (reading.points.length < 2) {
+        parts.push('no chart');
+    } else if (reading.chart === 'bar') {
+        parts.push(`${reading.points.length} bars in the order of the rows`);
+    } else {
         const along = reading.xLabel != null && reading.ordered === true ? `over ${reading.xLabel}` : 'in the order of the rows';
         parts.push(`a chart of ${reading.points.length} points ${along}`);
-    } else {
-        parts.push('no chart');
     }
     return parts.join(', ');
 }

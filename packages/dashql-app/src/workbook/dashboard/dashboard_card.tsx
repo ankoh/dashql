@@ -196,6 +196,8 @@ export const DashboardCard = React.memo(function DashboardCard(props: Props): Re
     // starts as a bar chart, the board opens its chart builder.
     const renderers: (DashboardRenderer | null)[] = ['table', 'vegalite', 'markdown', 'kpi', null];
     const currentRenderer = visualizeQuery?.renderer ?? null;
+    // A KPI card fills the whole card, its header shows over it while the card is hovered or focused
+    const kpi = !collapsed && currentRenderer === 'kpi';
     const switchRenderer = (index: number) => {
         const renderer = renderers[index];
         if (renderer === currentRenderer) return;
@@ -210,8 +212,9 @@ export const DashboardCard = React.memo(function DashboardCard(props: Props): Re
     return (
         <article
             ref={draggable.setNodeRef}
-            className={`${styles.card} ${collapsed ? styles.card_collapsed : ''}`}
+            className={`${styles.card} ${collapsed ? styles.card_collapsed : ''} ${kpi ? styles.card_kpi : ''}`}
             data-dashboard-card={props.script.scriptKey}
+            data-staged={staged || undefined}
             style={{
                 gridColumn: `${props.placement.column + 1} / span ${props.placement.width}`,
                 gridRow: `${props.placement.row + 1} / span ${props.placement.height}`,

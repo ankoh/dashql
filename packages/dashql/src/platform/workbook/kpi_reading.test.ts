@@ -62,8 +62,27 @@ describe('the reading of a KPI card', () => {
         expect(empty.points).toEqual([]);
     });
 
+    it('labels the axes of the chart, dates as short as their span allows', () => {
+        const day = (date: string) => Date.parse(`${date}T00:00:00Z`);
+        const daily = tableFromArrays({
+            day: [new Date(day('2026-09-01')), new Date(day('2026-09-02')), new Date(day('2026-10-30'))],
+            revenue: new Float64Array([38_700, 50_840, 49_300]),
+        });
+        expect(readKpi(daily, spec()).axis).toEqual({ xFirst: 'Sep 1', xLast: 'Oct 30', xBase: 'Sep 2', yMin: '38.7K', yMax: '50.8K' });
+        const monthly = tableFromArrays({
+            month: [new Date(day('2026-01-01')), new Date(day('2026-11-01'))],
+            conversion: new Float64Array([0.0239, 0.0322]),
+        });
+        expect(readKpi(monthly, spec(null, null, Delta.FIRST)).axis).toEqual({ xFirst: 'Jan', xLast: 'Nov', xBase: 'Jan', yMin: '0.0239', yMax: '0.0322' });
+        // Numbers label a numeric x axis, a single row has no chart and no axis
+        expect(readKpi(tableFromArrays({ n: new Int32Array([1, 2]), v: new Int32Array([5, 7]) }), spec(null, null, Delta.NONE)).axis)
+            .toEqual({ xFirst: '1', xLast: '2', xBase: null, yMin: '5', yMax: '7' });
+        expect(readKpi(tableFromArrays({ total: new Int32Array([5]) }), spec()).axis).toBeNull();
+    });
+
     it('formats numbers compactly from ten thousand on and changes with their sign', () => {
         expect(formatKpiNumber(9999.5)).toBe('9,999.5');
+        expect(formatKpiNumber(0.032_18)).toBe('0.0322');
         expect(formatKpiNumber(12_345)).toBe('12.35K');
         expect(formatKpiChange(0.031)).toBe('+3.1%');
         expect(formatKpiChange(-0.5)).toBe('-50%');

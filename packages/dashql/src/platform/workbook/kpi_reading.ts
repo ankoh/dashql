@@ -8,6 +8,7 @@ import { Int128 } from '../utils/int128.js';
 
 type KpiSpec = buffers.visualization.KpiSpecT;
 const KpiDelta = buffers.visualization.KpiDelta;
+const KpiChart = buffers.visualization.KpiChart;
 
 /// The rows of a result that dashql vis reads for a KPI card, a result with more is no KPI
 export const KPI_CHECK_ROWS = 1000;
@@ -20,8 +21,13 @@ export interface KpiReading {
     value: string | null;
     /// The change of the value against its base, a fraction (0.1 is +10%), null without a base
     change: number | null;
-    /// The points of the chart in the unit square, x to the right and y up, empty for fewer than two numbers
+    /// The chart: a line through its points or a bar per point, null without one
+    chart: 'line' | 'bar' | null;
+    /// The points of the chart in the unit square, x to the right and y up, empty for fewer than two numbers. A bar
+    /// rises from zero, the y of zero is `zero`; the bars are spaced evenly.
     points: [number, number][];
+    /// The y of zero in the unit square, the base of the bars
+    zero: number;
     /// The message of a column that the result doesn't have
     missing: string | null;
     /// The rows of the result
@@ -32,6 +38,21 @@ export interface KpiReading {
     xLabel: string | null;
     /// Do the rows ascend along the x axis? Null if the x axis is not numeric or temporal
     ordered: boolean | null;
+    /// The labels of the axes of the chart, null without a chart
+    axis: KpiAxis | null;
+}
+
+/// The labels of the axes of the chart of a KPI card, inset into the chart
+export interface KpiAxis {
+    /// The x of the first and the last point, null without an x axis
+    xFirst: string | null;
+    xLast: string | null;
+    /// The x of the row that the change compares with, null without an x axis or a change
+    xBase: string | null;
+    /// The smallest and the largest value of the chart, at the bottom and the top of the line. Bars that rise from zero
+    /// leave out the zero at their base.
+    yMin: string | null;
+    yMax: string;
 }
 
 /// The number of an Arrow value of a numeric column, or also of a temporal one as epoch milliseconds, null for other
@@ -63,11 +84,41 @@ function readString(value: string | Uint8Array | null): string | null {
 
 const COMPACT_FORMAT = new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 });
 const PLAIN_FORMAT = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 });
+const SMALL_FORMAT = new Intl.NumberFormat('en-US', { maximumSignificantDigits: 3 });
 const CHANGE_FORMAT = new Intl.NumberFormat('en-US', { style: 'percent', maximumFractionDigits: 1, signDisplay: 'exceptZero' });
 
-/// A number as the large value of a card: compact from ten thousand on
+/// A number as the large value of a card: compact from ten thousand on, a fraction with three significant digits
 export function formatKpiNumber(value: number): string {
-    return Math.abs(value) >= 10_000 ? COMPACT_FORMAT.format(value) : PLAIN_FORMAT.format(value);
+    const magnitude = Math.abs(value);
+    if (magnitude >= 10_000) return COMPACT_FORMAT.format(value);
+    if (magnitude > 0 && magnitude < 1) return SMALL_FORMAT.format(value);
+    return PLAIN_FORMAT.format(value);
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/// The format of the dates of a temporal x axis, as short as the span of the axis allows: times within two days, the
+/// month of dates that are all the first of a month, days within a year, months beyond
+function dateFormat(dates: number[]): Intl.DateTimeFormat {
+    const span = dates.length > 0 ? Math.max(...dates) - Math.min(...dates) : 0;
+    const options: Intl.DateTimeFormatOptions = { timeZone: 'UTC' };
+    if (span <= 2 * DAY_MS) {
+        Object.assign(options, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+    } else if (dates.every(date => new Date(date).getUTCDate() === 1)) {
+        Object.assign(options, span > 366 * DAY_MS ? { month: 'short', year: 'numeric' } : { month: 'short' });
+    } else if (span <= 366 * DAY_MS) {
+        Object.assign(options, { month: 'short', day: 'numeric' });
+    } else {
+        Object.assign(options, { month: 'short', year: 'numeric' });
+    }
+    return new Intl.DateTimeFormat('en-US', options);
+}
+
+const TICK_FORMAT = new Intl.NumberFormat('en-US', { notation: 'compact', maximumSignificantDigits: 3 });
+
+/// A number as a label of an axis: compact with three significant digits
+export function formatKpiTick(value: number): string {
+    return TICK_FORMAT.format(value);
 }
 
 /// A change as a signed percentage
@@ -96,7 +147,7 @@ export function readKpi(table: arrow.Table, spec: KpiSpec): KpiReading {
     const valueName = readString(spec.valueColumn);
     const xName = readString(spec.xColumn);
     const valueIndex = valueName != null ? indexOf(valueName) : fields.length - 1;
-    const empty = { label: valueName ?? '', value: null, change: null, points: [], rows, numeric: false, xLabel: xName, ordered: null };
+    const empty = { label: valueName ?? '', value: null, change: null, chart: null, points: [], zero: 0, rows, numeric: false, xLabel: xName, ordered: null, axis: null };
     if (valueIndex < 0) {
         return { ...empty, missing: fields.length === 0 ? 'Result has no columns' : `Result has no column ${valueName}` };
     }
@@ -144,30 +195,62 @@ export function readKpi(table: arrow.Table, spec: KpiSpec): KpiReading {
         const y = numbers[row];
         if (y != null) raw.push([xs[row], y]);
     }
-    const spaced = ordered !== true || raw.some(([x]) => x == null);
+    const chart = spec.chart === KpiChart.NONE ? null : spec.chart === KpiChart.BAR ? 'bar' : 'line';
+    // Bars are spaced evenly in the order of the rows
+    const spaced = chart === 'bar' || ordered !== true || raw.some(([x]) => x == null);
     const placed = raw.map(([x, y], i): [number, number] => [spaced ? i : x!, y]);
+
+    // The labels of the axes: the x of the first and the last point and of the base of the change, the range of y
+    let axis: KpiAxis | null = null;
+    const charted = numbers.flatMap((y, row) => y == null ? [] : [row]);
+    // The bars rise from zero, so zero is in the range of y
+    const ys = charted.map(row => numbers[row]!);
+    const range: [number, number] = chart === 'bar'
+        ? [Math.min(0, ...ys), Math.max(0, ...ys)]
+        : [Math.min(...ys), Math.max(...ys)];
+    if (chart != null && charted.length >= 2) {
+        const temporal = xField != null && (arrow.DataType.isTimestamp(xField.type) || arrow.DataType.isDate(xField.type));
+        const dates = temporal ? xs.filter((x): x is number => x != null) : [];
+        const format = temporal ? dateFormat(dates) : null;
+        const xLabel = (row: number): string | null => {
+            if (xField == null || xVector == null || row < 0 || row >= rows) return null;
+            const x = xs[row];
+            if (format != null) return x == null ? null : format.format(x);
+            if (x != null) return formatKpiNumber(x);
+            const value = xVector.get(row);
+            return value == null ? null : makeArrowValueFormatter(xField).format(value);
+        };
+        axis = {
+            xFirst: xLabel(charted[0]),
+            xLast: xLabel(charted[charted.length - 1]),
+            xBase: change != null ? xLabel(baseRow) : null,
+            yMin: chart === 'bar' && range[0] === 0 ? null : formatKpiTick(range[0]),
+            yMax: formatKpiTick(range[1]),
+        };
+    }
     return {
         label: valueField.name,
         value,
         change,
-        points: normalize(placed),
+        chart,
+        points: chart == null ? [] : normalize(placed, range),
+        zero: range[1] > range[0] ? (0 - range[0]) / (range[1] - range[0]) : 0,
         missing: null,
         rows,
         numeric: isNumeric(valueField.type),
         xLabel: xField?.name ?? null,
         ordered,
+        axis,
     };
 }
 
-/// Fit points into the unit square, a flat line sits in the middle
-function normalize(points: [number, number][]): [number, number][] {
+/// Fit points into the unit square, y over its range, a flat line sits in the middle
+function normalize(points: [number, number][], [minY, maxY]: [number, number]): [number, number][] {
     if (points.length < 2) return [];
-    let [minX, maxX, minY, maxY] = [Infinity, -Infinity, Infinity, -Infinity];
-    for (const [x, y] of points) {
+    let [minX, maxX] = [Infinity, -Infinity];
+    for (const [x] of points) {
         minX = Math.min(minX, x);
         maxX = Math.max(maxX, x);
-        minY = Math.min(minY, y);
-        maxY = Math.max(maxY, y);
     }
     const width = maxX - minX;
     const height = maxY - minY;

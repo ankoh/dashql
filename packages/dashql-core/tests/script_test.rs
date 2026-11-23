@@ -588,7 +588,7 @@ fn kpi_tag_warnings_point_at_the_args() {
     assert_eq!(
         warnings,
         vec![
-            (text.find("width=3").unwrap(), "unknown @vis kpi arg \"width\", expected value, x or delta"),
+            (text.find("width=3").unwrap(), "unknown @vis kpi arg \"width\", expected value, x, delta or chart"),
             (text.find("value=total").unwrap(), "unknown column \"total\", the statement has the columns day, revenue"),
             (text.find("delta=last").unwrap(), "unknown @vis kpi delta \"last\", expected previous, first, none"),
         ]

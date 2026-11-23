@@ -672,6 +672,15 @@ fn encode_visualization(e: &Encoder, spec: &VisualizationSpec) -> Node {
             KpiDelta::None => "none",
         };
         out.plain("delta", delta);
+        // The chart is a line unless the tag names another one
+        let chart = match kpi.chart {
+            KpiChart::Line => None,
+            KpiChart::Bar => Some("bar"),
+            KpiChart::None => Some("none"),
+        };
+        if let Some(chart) = chart {
+            out.plain("chart", chart);
+        }
         m.insert("kpi", out.into_node());
     }
     m.into_node()

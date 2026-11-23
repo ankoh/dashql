@@ -306,9 +306,9 @@ analyzer-snapshots:
           create table sales (region text, revenue int, date timestamp);
     script:
       input: |
-        /* @vis kpi value = "Total Revenue" x=DATE */
+        /* @vis kpi value = "Total Revenue" x=DATE chart=bar */
         select date, sum(revenue) as "Total Revenue" from sales group by date order by date;
-        /* @vis kpi value='total' x=date delta */
+        /* @vis kpi value='total' x=date delta chart=pie */
         select date, sum(revenue) as total from sales group by date;
         /* @vis kpi value="Total
            @board row = 1 width=-2 */

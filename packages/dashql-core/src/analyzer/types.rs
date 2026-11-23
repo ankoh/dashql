@@ -734,6 +734,33 @@ impl KpiDelta {
     }
 }
 
+/// The chart of a KPI card behind its value, the `chart` of `@vis kpi`
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum KpiChart {
+    /// A line with its area
+    #[default]
+    Line,
+    /// A bar per row, from zero
+    Bar,
+    /// Only the value
+    None,
+}
+
+impl KpiChart {
+    /// The values of the `chart` arg
+    pub const NAMES: &'static [&'static str] = &["line", "bar", "none"];
+
+    /// The chart of a value of the `chart` arg
+    pub fn from_name(name: &str) -> Option<Self> {
+        match name {
+            "line" => Some(Self::Line),
+            "bar" => Some(Self::Bar),
+            "none" => Some(Self::None),
+            _ => None,
+        }
+    }
+}
+
 /// A KPI card, the args of the `@vis kpi` tag. The value of the last row is the figure, the rows are the chart
 /// behind it.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -744,6 +771,8 @@ pub struct KpiSpec {
     pub x: Option<String>,
     /// The change next to the value
     pub delta: KpiDelta,
+    /// The chart behind the value
+    pub chart: KpiChart,
 }
 
 /// A visualization specification, built from the `@vis` tags of a query

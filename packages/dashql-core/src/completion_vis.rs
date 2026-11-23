@@ -4,7 +4,8 @@
 //! - `@vis ` completes the kinds, `@board ` and `@flow ` their args, like the `@vis board ` and `@vis flow ` of
 //!   older scripts.
 //! - `@vis kpi ` completes its args, the values of `value=` and `x=` are the output columns of the query, quoted if
-//!   they need it, those of `delta=` its kinds of change. The args are read like `vis_args` reads them.
+//!   they need it, those of `delta=` its kinds of change and those of `chart=` its charts. The args are read like
+//!   `vis_args` reads them.
 //! - In the JSON of `@vis vegalite`, a tolerant scanner finds the key path at the cursor and whether a
 //!   key or a value follows, also in JSON that is not complete yet. Keys come from a table per path,
 //!   values from the Vega-Lite enums and, for `field`, from the output columns of the query.
@@ -12,7 +13,7 @@
 //!
 //! Candidates replace the token at the cursor, JSON keys and values are inserted as JSON strings.
 
-use crate::analyzer::{statement_output_columns, KpiDelta};
+use crate::analyzer::{statement_output_columns, KpiChart, KpiDelta};
 use crate::completion::{Candidate, CandidateTags, Completion, Score};
 use crate::utils::quote_identifier;
 use crate::vis_args::{arg_at, scan_args, ArgCursor};
@@ -37,7 +38,7 @@ const BOARD_ARGS: &[&str] = &["row", "column", "width", "height"];
 /// The args of `@flow`
 const FLOW_ARGS: &[&str] = &["x", "y", "width", "height"];
 /// The args of `@vis kpi`
-const KPI_ARGS: &[&str] = &["value", "x", "delta"];
+const KPI_ARGS: &[&str] = &["value", "x", "delta", "chart"];
 
 /// The top-level properties of a Vega-Lite spec
 const SPEC_KEYS: &[&str] = &[
@@ -588,6 +589,7 @@ fn complete_vis_tag(completion: &Completion, parsed: &ParsedScript, offset: usiz
                             }
                         }
                         "delta" => candidates.add_all(KpiDelta::NAMES, false),
+                        "chart" => candidates.add_all(KpiChart::NAMES, false),
                         _ => return None,
                     }
                     Some(candidates.finish(k))
