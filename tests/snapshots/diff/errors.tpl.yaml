@@ -1,0 +1,50 @@
+diff-snapshots:
+  # The same broken statement on both sides next to a kept statement
+  - name: broken_statement_both_sides
+    source: |
+      select a from t;
+      select (;
+
+    target: |
+      select a from t;
+      select (;
+
+  # A broken statement in the middle is fixed
+  - name: broken_statement_fixed
+    source: |
+      select a from t;
+      select b, c from u where;
+      select d from w;
+
+    target: |
+      select a from t;
+      select b, c from u where x = 1;
+      select d from w;
+
+  # Only broken statements on both sides
+  - name: only_broken_statements
+    source: |
+      select (;
+
+    target: |
+      select );
+
+  # A statement cut off at the end of the script, without a semicolon
+  - name: truncated_last_statement
+    source: |
+      select a from t;
+      select b from u;
+
+    target: |
+      select a from t;
+      select b from
+
+  # Empty statements between semicolons don't count as statements
+  - name: empty_statements
+    source: |
+      select a from t;
+
+    target: |
+      ;;
+      select a from t;
+      ;

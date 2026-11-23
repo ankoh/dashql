@@ -1,0 +1,139 @@
+diff-snapshots:
+  # A statement in the middle of a long script changes slightly: one UPDATE, all others KEEP
+  - name: long_script_single_update
+    source: |
+      select c0, d0, e0, f0 from t0 where k = 0;
+      select c1, d1, e1, f1 from t1 where k = 1;
+      select c2, d2, e2, f2 from t2 where k = 2;
+      select c3, d3, e3, f3 from t3 where k = 3;
+      select c4, d4, e4, f4 from t4 where k = 4;
+      select c5, d5, e5, f5 from t5 where k = 5;
+      select c6, d6, e6, f6 from t6 where k = 6;
+      select c7, d7, e7, f7 from t7 where k = 7;
+      select c8, d8, e8, f8 from t8 where k = 8;
+      select c9, d9, e9, f9 from t9 where k = 9;
+      select c10, d10, e10, f10 from t10 where k = 10;
+      select c11, d11, e11, f11 from t11 where k = 11;
+      select c12, d12, e12, f12 from t12 where k = 12;
+      select c13, d13, e13, f13 from t13 where k = 13;
+      select c14, d14, e14, f14 from t14 where k = 14;
+      select c15, d15, e15, f15 from t15 where k = 15;
+      select c16, d16, e16, f16 from t16 where k = 16;
+      select c17, d17, e17, f17 from t17 where k = 17;
+      select c18, d18, e18, f18 from t18 where k = 18;
+      select c19, d19, e19, f19 from t19 where k = 19;
+
+    target: |
+      select c0, d0, e0, f0 from t0 where k = 0;
+      select c1, d1, e1, f1 from t1 where k = 1;
+      select c2, d2, e2, f2 from t2 where k = 2;
+      select c3, d3, e3, f3 from t3 where k = 3;
+      select c4, d4, e4, f4 from t4 where k = 4;
+      select c5, d5, e5, f5 from t5 where k = 5;
+      select c6, d6, e6, f6 from t6 where k = 6;
+      select c7, d7, e7, f7 from t7 where k = 7;
+      select c8, d8, e8, f8 from t8 where k = 8;
+      select c9, d9, e9, f9 from t9 where k = 9;
+      select c10, d10, e10, f10 from t10 where k = 110;
+      select c11, d11, e11, f11 from t11 where k = 11;
+      select c12, d12, e12, f12 from t12 where k = 12;
+      select c13, d13, e13, f13 from t13 where k = 13;
+      select c14, d14, e14, f14 from t14 where k = 14;
+      select c15, d15, e15, f15 from t15 where k = 15;
+      select c16, d16, e16, f16 from t16 where k = 16;
+      select c17, d17, e17, f17 from t17 where k = 17;
+      select c18, d18, e18, f18 from t18 where k = 18;
+      select c19, d19, e19, f19 from t19 where k = 19;
+
+  # A statement inserted in the middle of a long script
+  - name: long_script_single_insert
+    source: |
+      select c0, d0, e0, f0 from t0 where k = 0;
+      select c1, d1, e1, f1 from t1 where k = 1;
+      select c2, d2, e2, f2 from t2 where k = 2;
+      select c3, d3, e3, f3 from t3 where k = 3;
+      select c4, d4, e4, f4 from t4 where k = 4;
+      select c5, d5, e5, f5 from t5 where k = 5;
+      select c6, d6, e6, f6 from t6 where k = 6;
+      select c7, d7, e7, f7 from t7 where k = 7;
+      select c8, d8, e8, f8 from t8 where k = 8;
+      select c9, d9, e9, f9 from t9 where k = 9;
+      select c10, d10, e10, f10 from t10 where k = 10;
+      select c11, d11, e11, f11 from t11 where k = 11;
+      select c12, d12, e12, f12 from t12 where k = 12;
+      select c13, d13, e13, f13 from t13 where k = 13;
+      select c14, d14, e14, f14 from t14 where k = 14;
+      select c15, d15, e15, f15 from t15 where k = 15;
+      select c16, d16, e16, f16 from t16 where k = 16;
+      select c17, d17, e17, f17 from t17 where k = 17;
+      select c18, d18, e18, f18 from t18 where k = 18;
+      select c19, d19, e19, f19 from t19 where k = 19;
+
+    target: |
+      select c0, d0, e0, f0 from t0 where k = 0;
+      select c1, d1, e1, f1 from t1 where k = 1;
+      select c2, d2, e2, f2 from t2 where k = 2;
+      select c3, d3, e3, f3 from t3 where k = 3;
+      select c4, d4, e4, f4 from t4 where k = 4;
+      select c5, d5, e5, f5 from t5 where k = 5;
+      select c6, d6, e6, f6 from t6 where k = 6;
+      select c7, d7, e7, f7 from t7 where k = 7;
+      select c8, d8, e8, f8 from t8 where k = 8;
+      select c9, d9, e9, f9 from t9 where k = 9;
+      select 'new';
+      select c10, d10, e10, f10 from t10 where k = 10;
+      select c11, d11, e11, f11 from t11 where k = 11;
+      select c12, d12, e12, f12 from t12 where k = 12;
+      select c13, d13, e13, f13 from t13 where k = 13;
+      select c14, d14, e14, f14 from t14 where k = 14;
+      select c15, d15, e15, f15 from t15 where k = 15;
+      select c16, d16, e16, f16 from t16 where k = 16;
+      select c17, d17, e17, f17 from t17 where k = 17;
+      select c18, d18, e18, f18 from t18 where k = 18;
+      select c19, d19, e19, f19 from t19 where k = 19;
+
+  # The first statement of a long script moves to the end: one MOVE
+  - name: long_script_first_to_end
+    source: |
+      select c0, d0, e0, f0 from t0 where k = 0;
+      select c1, d1, e1, f1 from t1 where k = 1;
+      select c2, d2, e2, f2 from t2 where k = 2;
+      select c3, d3, e3, f3 from t3 where k = 3;
+      select c4, d4, e4, f4 from t4 where k = 4;
+      select c5, d5, e5, f5 from t5 where k = 5;
+      select c6, d6, e6, f6 from t6 where k = 6;
+      select c7, d7, e7, f7 from t7 where k = 7;
+      select c8, d8, e8, f8 from t8 where k = 8;
+      select c9, d9, e9, f9 from t9 where k = 9;
+      select c10, d10, e10, f10 from t10 where k = 10;
+      select c11, d11, e11, f11 from t11 where k = 11;
+      select c12, d12, e12, f12 from t12 where k = 12;
+      select c13, d13, e13, f13 from t13 where k = 13;
+      select c14, d14, e14, f14 from t14 where k = 14;
+      select c15, d15, e15, f15 from t15 where k = 15;
+      select c16, d16, e16, f16 from t16 where k = 16;
+      select c17, d17, e17, f17 from t17 where k = 17;
+      select c18, d18, e18, f18 from t18 where k = 18;
+      select c19, d19, e19, f19 from t19 where k = 19;
+
+    target: |
+      select c1, d1, e1, f1 from t1 where k = 1;
+      select c2, d2, e2, f2 from t2 where k = 2;
+      select c3, d3, e3, f3 from t3 where k = 3;
+      select c4, d4, e4, f4 from t4 where k = 4;
+      select c5, d5, e5, f5 from t5 where k = 5;
+      select c6, d6, e6, f6 from t6 where k = 6;
+      select c7, d7, e7, f7 from t7 where k = 7;
+      select c8, d8, e8, f8 from t8 where k = 8;
+      select c9, d9, e9, f9 from t9 where k = 9;
+      select c10, d10, e10, f10 from t10 where k = 10;
+      select c11, d11, e11, f11 from t11 where k = 11;
+      select c12, d12, e12, f12 from t12 where k = 12;
+      select c13, d13, e13, f13 from t13 where k = 13;
+      select c14, d14, e14, f14 from t14 where k = 14;
+      select c15, d15, e15, f15 from t15 where k = 15;
+      select c16, d16, e16, f16 from t16 where k = 16;
+      select c17, d17, e17, f17 from t17 where k = 17;
+      select c18, d18, e18, f18 from t18 where k = 18;
+      select c19, d19, e19, f19 from t19 where k = 19;
+      select c0, d0, e0, f0 from t0 where k = 0;

@@ -1,0 +1,83 @@
+diff-snapshots:
+
+  - name: broken_statement_both_sides
+    source: |-
+      select a from t;
+      select (;
+    target: |-
+      select a from t;
+      select (;
+    expected:
+      ops:
+        - code: KEEP
+          source-statement: 0
+          target-statement: 0
+          target-span: "select a from t"
+
+  - name: broken_statement_fixed
+    source: |-
+      select a from t;
+      select b, c from u where;
+      select d from w;
+    target: |-
+      select a from t;
+      select b, c from u where x = 1;
+      select d from w;
+    expected:
+      ops:
+        - code: KEEP
+          source-statement: 0
+          target-statement: 0
+          target-span: "select a from t"
+        - code: DELETE
+          source-statement: 1
+          source-span: "select b, ..om u where"
+        - code: INSERT
+          target-statement: 1
+          target-span: "select b, ..here x = 1"
+        - code: KEEP
+          source-statement: 2
+          target-statement: 2
+          target-span: "select d from w"
+
+  - name: only_broken_statements
+    source: |-
+      select (;
+    target: |-
+      select );
+    expected:
+      ops: []
+
+  - name: truncated_last_statement
+    source: |-
+      select a from t;
+      select b from u;
+    target: |-
+      select a from t;
+      select b from
+    expected:
+      ops:
+        - code: KEEP
+          source-statement: 0
+          target-statement: 0
+          target-span: "select a from t"
+        - code: DELETE
+          source-statement: 1
+          source-span: "select b from u"
+        - code: INSERT
+          target-statement: 1
+          target-span: "select b from"
+
+  - name: empty_statements
+    source: |-
+      select a from t;
+    target: |-
+      ;;
+      select a from t;
+      ;
+    expected:
+      ops:
+        - code: KEEP
+          source-statement: 0
+          target-statement: 0
+          target-span: "select a from t"

@@ -1,0 +1,52 @@
+diff-snapshots:
+  # A copy of a statement inserted right after it: the copies are ambiguous, the unique neighbor stays a KEEP
+  - name: duplicate_inserted_after_original
+    source: |
+      select a from t;
+      select b from u;
+
+    target: |
+      select a from t;
+      select a from t;
+      select b from u;
+
+  # A statement copied to the end of the script, past a unique statement
+  - name: duplicate_inserted_at_end
+    source: |
+      select a from t;
+      select b from u;
+
+    target: |
+      select a from t;
+      select b from u;
+      select a from t;
+
+  # Two copies with a unique statement between them, one copy is dropped
+  - name: duplicate_removed_across_unique
+    source: |
+      select a from t;
+      select b from u;
+      select a from t;
+
+    target: |
+      select b from u;
+      select a from t;
+
+  # Two copies where one of them is changed: the unchanged copies match, the changed one is an UPDATE candidate
+  - name: one_of_two_copies_changed
+    source: |
+      select a, b, c, d, e, f from t where x = 1;
+      select a, b, c, d, e, f from t where x = 1;
+
+    target: |
+      select a, b, c, d, e, f from t where x = 1;
+      select a, b, c, d, e, f from t where x = 2;
+
+  # Two different source statements are equally close to one target: the first one gets the UPDATE
+  - name: update_two_sources_tie
+    source: |
+      select a, b, c, d, e, f from t where x = 1;
+      select a, b, c, d, e, f from t where x = 2;
+
+    target: |
+      select a, b, c, d, e, f from t where x = 3;

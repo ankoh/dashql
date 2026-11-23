@@ -1,0 +1,106 @@
+diff-snapshots:
+
+  - name: update_column_removed
+    source: |-
+      select a, b, c, d, e, f from t;
+    target: |-
+      select a, b, c, d, e from t;
+    expected:
+      ops:
+        - code: UPDATE
+          source-statement: 0
+          target-statement: 0
+          target-changes: []
+
+  - name: update_operator_changed
+    source: |-
+      select a, b, c, d, e, f from t where x > 1;
+    target: |-
+      select a, b, c, d, e, f from t where x >= 1;
+    expected:
+      ops:
+        - code: UPDATE
+          source-statement: 0
+          target-statement: 0
+          target-changes:
+            - text: ">="
+
+  - name: update_string_whitespace
+    source: |-
+      select a, b, c, d, e, f from t where x = 'a b';
+    target: |-
+      select a, b, c, d, e, f from t where x = 'a  b';
+    expected:
+      ops:
+        - code: UPDATE
+          source-statement: 0
+          target-statement: 0
+          target-changes:
+            - text: "'a  b'"
+
+  - name: update_unicode_literal
+    source: |-
+      select a, b, c, d, e, f from t where city = 'München';
+    target: |-
+      select a, b, c, d, e, f from t where city = 'Zürich';
+    expected:
+      ops:
+        - code: UPDATE
+          source-statement: 0
+          target-statement: 0
+          target-changes:
+            - text: "'Zürich'"
+
+  - name: update_join_added
+    source: |-
+      select a, b, c, d, e, f, g, h from t where x = 1;
+    target: |-
+      select a, b, c, d, e, f, g, h from t join u on t.id = u.id where x = 1;
+    expected:
+      ops:
+        - code: DELETE
+          source-statement: 0
+          source-span: "select a, ..here x = 1"
+        - code: INSERT
+          target-statement: 0
+          target-span: "select a, ..here x = 1"
+
+  - name: update_in_subquery
+    source: |-
+      select a, b, c, d from t where x in (select y from u where z = 1);
+    target: |-
+      select a, b, c, d from t where x in (select y from u where z = 2);
+    expected:
+      ops:
+        - code: UPDATE
+          source-statement: 0
+          target-statement: 0
+          target-changes:
+            - text: "2"
+
+  - name: select_to_create_table_as
+    source: |-
+      select a, b, c, d, e, f from t;
+    target: |-
+      create table s as select a, b, c, d, e, f from t;
+    expected:
+      ops:
+        - code: DELETE
+          source-statement: 0
+          source-span: "select a, .., f from t"
+        - code: INSERT
+          target-statement: 0
+          target-span: "create tab.., f from t"
+
+  - name: update_distinct_added
+    source: |-
+      select a, b, c, d, e, f from t where x = 1;
+    target: |-
+      select distinct a, b, c, d, e, f from t where x = 1;
+    expected:
+      ops:
+        - code: UPDATE
+          source-statement: 0
+          target-statement: 0
+          target-changes:
+            - text: "distinct"

@@ -1,0 +1,64 @@
+diff-snapshots:
+  # A column removed from a wide select: target changes only show additions, so the UPDATE has none
+  - name: update_column_removed
+    source: |
+      select a, b, c, d, e, f from t;
+
+    target: |
+      select a, b, c, d, e from t;
+
+  # A changed comparison operator
+  - name: update_operator_changed
+    source: |
+      select a, b, c, d, e, f from t where x > 1;
+
+    target: |
+      select a, b, c, d, e, f from t where x >= 1;
+
+  # Whitespace inside a string literal is part of the value
+  - name: update_string_whitespace
+    source: |
+      select a, b, c, d, e, f from t where x = 'a b';
+
+    target: |
+      select a, b, c, d, e, f from t where x = 'a  b';
+
+  # A non-ASCII string literal changes: the change span covers whole characters
+  - name: update_unicode_literal
+    source: |
+      select a, b, c, d, e, f from t where city = 'München';
+
+    target: |
+      select a, b, c, d, e, f from t where city = 'Zürich';
+
+  # A join added to the from clause
+  - name: update_join_added
+    source: |
+      select a, b, c, d, e, f, g, h from t where x = 1;
+
+    target: |
+      select a, b, c, d, e, f, g, h from t join u on t.id = u.id where x = 1;
+
+  # A change deep inside a subquery
+  - name: update_in_subquery
+    source: |
+      select a, b, c, d from t where x in (select y from u where z = 1);
+
+    target: |
+      select a, b, c, d from t where x in (select y from u where z = 2);
+
+  # A select wrapped into create table as: different statement kinds, never an UPDATE
+  - name: select_to_create_table_as
+    source: |
+      select a, b, c, d, e, f from t;
+
+    target: |
+      create table s as select a, b, c, d, e, f from t;
+
+  # A distinct flag added to a select
+  - name: update_distinct_added
+    source: |
+      select a, b, c, d, e, f from t where x = 1;
+
+    target: |
+      select distinct a, b, c, d, e, f from t where x = 1;

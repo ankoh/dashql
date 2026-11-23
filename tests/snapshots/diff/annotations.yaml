@@ -1,0 +1,169 @@
+diff-snapshots:
+
+  - name: keyword_and_name_case
+    source: |-
+      select a, b from t where x = 1;
+    target: |-
+      SELECT A, B FROM T WHERE X = 1;
+    expected:
+      ops:
+        - code: KEEP
+          source-statement: 0
+          target-statement: 0
+          target-span: "SELECT A, ..HERE X = 1"
+
+  - name: quoted_name_case
+    source: |-
+      select a, b, c, d, e, f from t;
+    target: |-
+      select a, b, c, d, e, "F" from t;
+    expected:
+      ops:
+        - code: UPDATE
+          source-statement: 0
+          target-statement: 0
+          target-changes:
+            - text: "\"F\""
+
+  - name: comment_inside_statement_changed
+    source: |-
+      select a /* first */ from t;
+    target: |-
+      select a /* second */ from t;
+    expected:
+      ops:
+        - code: KEEP
+          source-statement: 0
+          target-statement: 0
+          target-span: "select a /.. */ from t"
+
+  - name: line_comment_between_statements
+    source: |-
+      select a from t;
+      -- first
+      select b from u;
+    target: |-
+      select a from t;
+      -- second, longer
+      select b from u;
+    expected:
+      ops:
+        - code: KEEP
+          source-statement: 0
+          target-statement: 0
+          target-span: "select a from t"
+        - code: KEEP
+          source-statement: 1
+          target-statement: 1
+          target-span: "select b from u"
+
+  - name: trailing_semicolon_removed
+    source: |-
+      select a from t;
+    target: |-
+      select a from t
+    expected:
+      ops:
+        - code: KEEP
+          source-statement: 0
+          target-statement: 0
+          target-span: "select a from t"
+
+  - name: vis_tag_spec_changed
+    source: |-
+      /**
+       * @vis vegalite {"mark": "bar"}
+       */
+      select region, revenue from sales;
+    target: |-
+      /**
+       * @vis vegalite {"mark": "line"}
+       */
+      select region, revenue from sales;
+    expected:
+      ops:
+        - code: KEEP
+          source-statement: 0
+          target-statement: 0
+          target-span: "select reg..from sales"
+
+  - name: vis_tag_removed
+    source: |-
+      /**
+       * Revenue per region.
+       * @vis kpi value=revenue
+       * @board width=6 height=3
+       */
+      select region, revenue from sales;
+    target: |-
+      select region, revenue from sales;
+    expected:
+      ops:
+        - code: KEEP
+          source-statement: 0
+          target-statement: 0
+          target-span: "select reg..from sales"
+
+  - name: board_tag_moved_between_statements
+    source: |-
+      /* @board width=6 height=3 */
+      select a from t;
+      select b from u;
+    target: |-
+      select a from t;
+      /* @board width=6 height=3 */
+      select b from u;
+    expected:
+      ops:
+        - code: KEEP
+          source-statement: 0
+          target-statement: 0
+          target-span: "select a from t"
+        - code: KEEP
+          source-statement: 1
+          target-statement: 1
+          target-span: "select b from u"
+
+  - name: param_tag_value_changed
+    source: |-
+      /**
+       * @param :min = 10
+       */
+      select a, b, c from orders where amount > :min;
+    target: |-
+      /**
+       * @param :min = 20
+       */
+      select a, b, c from orders where amount > :min;
+    expected:
+      ops:
+        - code: KEEP
+          source-statement: 0
+          target-statement: 0
+          target-span: "select a, ..unt > :min"
+
+  - name: param_reference_renamed
+    source: |-
+      select a, b, c, d, e, f from orders where amount > :min;
+    target: |-
+      select a, b, c, d, e, f from orders where amount > :max;
+    expected:
+      ops:
+        - code: UPDATE
+          source-statement: 0
+          target-statement: 0
+          target-changes:
+            - text: "max"
+
+  - name: literal_replaced_by_param
+    source: |-
+      select a, b, c, d, e, f from orders where amount > 10;
+    target: |-
+      select a, b, c, d, e, f from orders where amount > :min;
+    expected:
+      ops:
+        - code: UPDATE
+          source-statement: 0
+          target-statement: 0
+          target-changes:
+            - text: ":min"

@@ -1,0 +1,120 @@
+diff-snapshots:
+  # A new statement before all others: the old statements are kept, the new one is inserted
+  - name: insert_at_start
+    source: |
+      select a from t;
+      select b from u;
+
+    target: |
+      select x from v;
+      select a from t;
+      select b from u;
+
+  # A new statement between two kept statements
+  - name: insert_in_middle
+    source: |
+      select a from t;
+      select b from u;
+      select c from w;
+
+    target: |
+      select a from t;
+      select x from v;
+      select b from u;
+      select c from w;
+
+  # Several new statements in one place are inserted in target order
+  - name: insert_block_in_middle
+    source: |
+      select a from t;
+      select b from u;
+
+    target: |
+      select a from t;
+      select x from v;
+      select y from v;
+      select z from v;
+      select b from u;
+
+  # Dropping the first statement
+  - name: delete_first
+    source: |
+      select a from t;
+      select b from u;
+      select c from w;
+
+    target: |
+      select b from u;
+      select c from w;
+
+  # Dropping a statement between two kept statements
+  - name: delete_middle
+    source: |
+      select a from t;
+      select b from u;
+      select c from w;
+
+    target: |
+      select a from t;
+      select c from w;
+
+  # A statement replaced by a completely different one in the same place: DELETE + INSERT
+  - name: replace_middle_completely
+    source: |
+      select a from t;
+      select b, c, d, e from u where x = 1;
+      select c from w;
+
+    target: |
+      select a from t;
+      create table z (id int);
+      select c from w;
+
+  # A statement changed slightly in the same place: UPDATE between two kept statements
+  - name: update_middle_slightly
+    source: |
+      select a from t;
+      select b, c, d, e, f from u where x = 1;
+      select c from w;
+
+    target: |
+      select a from t;
+      select b, c, d, e, f from u where x = 2;
+      select c from w;
+
+  # The first statement moves to the end: the longest common subsequence keeps the others
+  - name: rotate_first_to_end
+    source: |
+      select a from t;
+      select b from u;
+      select c from w;
+
+    target: |
+      select b from u;
+      select c from w;
+      select a from t;
+
+  # Reversing three statements keeps one and moves the other two
+  - name: reverse_three
+    source: |
+      select a from t;
+      select b from u;
+      select c from w;
+
+    target: |
+      select c from w;
+      select b from u;
+      select a from t;
+
+  # A statement moves and a new statement is inserted where it was
+  - name: move_and_insert
+    source: |
+      select a from t;
+      select b from u;
+      select c from w;
+
+    target: |
+      select b from u;
+      select x from v;
+      select c from w;
+      select a from t;

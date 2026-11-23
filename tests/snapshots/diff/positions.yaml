@@ -1,0 +1,252 @@
+diff-snapshots:
+
+  - name: insert_at_start
+    source: |-
+      select a from t;
+      select b from u;
+    target: |-
+      select x from v;
+      select a from t;
+      select b from u;
+    expected:
+      ops:
+        - code: INSERT
+          target-statement: 0
+          target-span: "select x from v"
+        - code: KEEP
+          source-statement: 0
+          target-statement: 1
+          target-span: "select a from t"
+        - code: KEEP
+          source-statement: 1
+          target-statement: 2
+          target-span: "select b from u"
+
+  - name: insert_in_middle
+    source: |-
+      select a from t;
+      select b from u;
+      select c from w;
+    target: |-
+      select a from t;
+      select x from v;
+      select b from u;
+      select c from w;
+    expected:
+      ops:
+        - code: KEEP
+          source-statement: 0
+          target-statement: 0
+          target-span: "select a from t"
+        - code: INSERT
+          target-statement: 1
+          target-span: "select x from v"
+        - code: KEEP
+          source-statement: 1
+          target-statement: 2
+          target-span: "select b from u"
+        - code: KEEP
+          source-statement: 2
+          target-statement: 3
+          target-span: "select c from w"
+
+  - name: insert_block_in_middle
+    source: |-
+      select a from t;
+      select b from u;
+    target: |-
+      select a from t;
+      select x from v;
+      select y from v;
+      select z from v;
+      select b from u;
+    expected:
+      ops:
+        - code: KEEP
+          source-statement: 0
+          target-statement: 0
+          target-span: "select a from t"
+        - code: INSERT
+          target-statement: 1
+          target-span: "select x from v"
+        - code: INSERT
+          target-statement: 2
+          target-span: "select y from v"
+        - code: INSERT
+          target-statement: 3
+          target-span: "select z from v"
+        - code: KEEP
+          source-statement: 1
+          target-statement: 4
+          target-span: "select b from u"
+
+  - name: delete_first
+    source: |-
+      select a from t;
+      select b from u;
+      select c from w;
+    target: |-
+      select b from u;
+      select c from w;
+    expected:
+      ops:
+        - code: DELETE
+          source-statement: 0
+          source-span: "select a from t"
+        - code: KEEP
+          source-statement: 1
+          target-statement: 0
+          target-span: "select b from u"
+        - code: KEEP
+          source-statement: 2
+          target-statement: 1
+          target-span: "select c from w"
+
+  - name: delete_middle
+    source: |-
+      select a from t;
+      select b from u;
+      select c from w;
+    target: |-
+      select a from t;
+      select c from w;
+    expected:
+      ops:
+        - code: KEEP
+          source-statement: 0
+          target-statement: 0
+          target-span: "select a from t"
+        - code: DELETE
+          source-statement: 1
+          source-span: "select b from u"
+        - code: KEEP
+          source-statement: 2
+          target-statement: 1
+          target-span: "select c from w"
+
+  - name: replace_middle_completely
+    source: |-
+      select a from t;
+      select b, c, d, e from u where x = 1;
+      select c from w;
+    target: |-
+      select a from t;
+      create table z (id int);
+      select c from w;
+    expected:
+      ops:
+        - code: KEEP
+          source-statement: 0
+          target-statement: 0
+          target-span: "select a from t"
+        - code: DELETE
+          source-statement: 1
+          source-span: "select b, ..here x = 1"
+        - code: INSERT
+          target-statement: 1
+          target-span: "create tab..z (id int)"
+        - code: KEEP
+          source-statement: 2
+          target-statement: 2
+          target-span: "select c from w"
+
+  - name: update_middle_slightly
+    source: |-
+      select a from t;
+      select b, c, d, e, f from u where x = 1;
+      select c from w;
+    target: |-
+      select a from t;
+      select b, c, d, e, f from u where x = 2;
+      select c from w;
+    expected:
+      ops:
+        - code: KEEP
+          source-statement: 0
+          target-statement: 0
+          target-span: "select a from t"
+        - code: UPDATE
+          source-statement: 1
+          target-statement: 1
+          target-changes:
+            - text: "2"
+        - code: KEEP
+          source-statement: 2
+          target-statement: 2
+          target-span: "select c from w"
+
+  - name: rotate_first_to_end
+    source: |-
+      select a from t;
+      select b from u;
+      select c from w;
+    target: |-
+      select b from u;
+      select c from w;
+      select a from t;
+    expected:
+      ops:
+        - code: MOVE
+          source-statement: 0
+          target-statement: 2
+          target-span: "select a from t"
+        - code: KEEP
+          source-statement: 1
+          target-statement: 0
+          target-span: "select b from u"
+        - code: KEEP
+          source-statement: 2
+          target-statement: 1
+          target-span: "select c from w"
+
+  - name: reverse_three
+    source: |-
+      select a from t;
+      select b from u;
+      select c from w;
+    target: |-
+      select c from w;
+      select b from u;
+      select a from t;
+    expected:
+      ops:
+        - code: MOVE
+          source-statement: 0
+          target-statement: 2
+          target-span: "select a from t"
+        - code: MOVE
+          source-statement: 1
+          target-statement: 1
+          target-span: "select b from u"
+        - code: KEEP
+          source-statement: 2
+          target-statement: 0
+          target-span: "select c from w"
+
+  - name: move_and_insert
+    source: |-
+      select a from t;
+      select b from u;
+      select c from w;
+    target: |-
+      select b from u;
+      select x from v;
+      select c from w;
+      select a from t;
+    expected:
+      ops:
+        - code: MOVE
+          source-statement: 0
+          target-statement: 3
+          target-span: "select a from t"
+        - code: KEEP
+          source-statement: 1
+          target-statement: 0
+          target-span: "select b from u"
+        - code: INSERT
+          target-statement: 1
+          target-span: "select x from v"
+        - code: KEEP
+          source-statement: 2
+          target-statement: 2
+          target-span: "select c from w"

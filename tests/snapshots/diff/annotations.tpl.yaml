@@ -1,0 +1,113 @@
+diff-snapshots:
+  # Keywords and unquoted names in another case parse to the same tree: KEEP
+  - name: keyword_and_name_case
+    source: |
+      select a, b from t where x = 1;
+
+    target: |
+      SELECT A, B FROM T WHERE X = 1;
+
+  # A quoted name keeps its case, so it differs from the unquoted name
+  - name: quoted_name_case
+    source: |
+      select a, b, c, d, e, f from t;
+
+    target: |
+      select a, b, c, d, e, "F" from t;
+
+  # A block comment inside a statement changes the text but not the tree: KEEP
+  - name: comment_inside_statement_changed
+    source: |
+      select a /* first */ from t;
+
+    target: |
+      select a /* second */ from t;
+
+  # A line comment between two statements changes
+  - name: line_comment_between_statements
+    source: |
+      select a from t;
+      -- first
+      select b from u;
+
+    target: |
+      select a from t;
+      -- second, longer
+      select b from u;
+
+  # A missing trailing semicolon does not change the statement
+  - name: trailing_semicolon_removed
+    source: |
+      select a from t;
+
+    target: |
+      select a from t
+
+  # The spec of a @vis tag changes: the statement itself is unchanged
+  - name: vis_tag_spec_changed
+    source: |
+      /**
+       * @vis vegalite {"mark": "bar"}
+       */
+      select region, revenue from sales;
+
+    target: |
+      /**
+       * @vis vegalite {"mark": "line"}
+       */
+      select region, revenue from sales;
+
+  # A @vis tag and its comment are removed
+  - name: vis_tag_removed
+    source: |
+      /**
+       * Revenue per region.
+       * @vis kpi value=revenue
+       * @board width=6 height=3
+       */
+      select region, revenue from sales;
+
+    target: |
+      select region, revenue from sales;
+
+  # A tag moves from one statement to the other
+  - name: board_tag_moved_between_statements
+    source: |
+      /* @board width=6 height=3 */
+      select a from t;
+      select b from u;
+
+    target: |
+      select a from t;
+      /* @board width=6 height=3 */
+      select b from u;
+
+  # The value of a @param tag changes: the statement is unchanged
+  - name: param_tag_value_changed
+    source: |
+      /**
+       * @param :min = 10
+       */
+      select a, b, c from orders where amount > :min;
+
+    target: |
+      /**
+       * @param :min = 20
+       */
+      select a, b, c from orders where amount > :min;
+
+  # The parameter that a statement uses is renamed: UPDATE of the parameter
+  - name: param_reference_renamed
+    source: |
+      select a, b, c, d, e, f from orders where amount > :min;
+
+    target: |
+      select a, b, c, d, e, f from orders where amount > :max;
+
+  # A literal replaced by a parameter changes the node type of the operand
+  - name: literal_replaced_by_param
+    source: |
+      select a, b, c, d, e, f from orders where amount > 10;
+
+    target: |
+      select a, b, c, d, e, f from orders where amount > :min;
