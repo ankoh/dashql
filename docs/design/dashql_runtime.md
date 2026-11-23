@@ -232,11 +232,11 @@ next `takeChanges`.
 
 Actions apply at once, views follow with the flush: a read right after a dispatch sees the last flush, a read after its
 `settled` sees the action. The commands of the facade that wait for the state of the module flush the store once they
-settled (`settled` of `runtime.ts`): `analyzeTable`, `saveConnection`, `retrySave`, `setupConnection`, `settleCatalog`,
-`restore`, `restoreWorkbook`, `deleteInvalidWorkbook`, `removeWorkbook`, `attachFiles`, `renameAttachment`, `detachFile`,
-`refreshAttachments`, `runWorkbook`, `runScript` and `commitImport`. `createConnection`, `createWorkbook` and
-`deleteWorkbook` flush right after their action. The others, e.g. `execute`, `cancel`, `authenticateSalesforce`, the
-exports and `readImport`, leave the views to the next flush.
+settled (`settled` of `runtime.ts`): `analyzeTable`, `saveConnection`, `retrySave`, `replaceConnections`,
+`setupConnection`, `settleCatalog`, `restore`, `restoreWorkbook`, `deleteInvalidWorkbook`, `removeWorkbook`,
+`attachFiles`, `renameAttachment`, `detachFile`, `refreshAttachments`, `runWorkbook`, `runScript` and `commitImport`.
+`createConnection`, `createWorkbook` and `deleteWorkbook` flush right after their action. The others, e.g. `execute`,
+`cancel`, `authenticateSalesforce`, the exports and `readImport`, leave the views to the next flush.
 
 ### The store and its projections
 
@@ -324,7 +324,7 @@ is a typed method with its contract rather than a generated table, the app reads
 | `analyzeTable` | Analyze a result as a computation |
 | `previewResult` | The first rows of an analyzed result as Arrow IPC, read from its data frame, e.g. for the table of the shell |
 | `execute`, `cancel`, `watchProfile` | Run a query on a connection, cancel it, show its profile; `queryCommands` of the options stand in for them |
-| `createConnection`, `connection`, `catalog`, `channel`, `saveConnection`, `retrySave` | Connections and their saves |
+| `createConnection`, `connection`, `catalog`, `channel`, `saveConnection`, `retrySave`, `replaceConnections` | Connections and their saves; `replaceConnections` moves the workbooks of connections to another one, writes their files and names the replaced connections that are dead (`ConnectionReplacement` of the registry), the app deletes those |
 | `setupConnection`, `cancelSetup`, `authenticateSalesforce`, `refreshCatalog` | Setups, the login of the shell and refreshes of catalogs |
 | `openSession`, `closeSession`, `settleCatalog` | The session of the shell on a connection, see [Catalogs and sessions](#catalogs-and-sessions) |
 | `createWorkbook`, `deleteWorkbook`, `removeWorkbook`, `applyEditorEvent`, `attachTableParameters` | Workbooks and editors; `deleteWorkbook` drops a workbook with its run and the computations of the results of its queries, `removeWorkbook` deletes its files first and keeps it when that fails |

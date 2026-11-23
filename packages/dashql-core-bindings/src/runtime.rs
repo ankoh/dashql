@@ -45,7 +45,7 @@ use dashql_core_runtime::compute::service::{AnalysisHandles, ComputeService};
 use dashql_core_runtime::compute::tasks::analyze_table::AnalyzeTableOptions as RuntimeAnalyzeOptions;
 use dashql_core_runtime::compute::types::{OrderByConstraint, TableId};
 use dashql_core_runtime::compute::ComputationOutcome;
-use dashql_core_runtime::connections::registry::{ConnectionRegistry, RegistryOutcome};
+use dashql_core_runtime::connections::registry::{ConnectionRegistry, RegistryOutcome, ReplacedConnection};
 use dashql_core_runtime::connections::sharing::{self, sanitize_connection_params_for_sharing};
 use dashql_core_runtime::connections::{ConnectionAction, ConnectionParams};
 use dashql_core_runtime::host::LogLevel;
@@ -1119,6 +1119,98 @@ impl Runtime {
                 Some(outcome) => Ok(to_js(&outcome).map_err(JsValue::from)?.into()),
                 None => Ok(JsValue::NULL),
             }
+        })
+    }
+
+    /// Replace connections with a target connection in every workbook, e.g. to merge connections that describe the same
+    /// database (`ConnectionReplacement` of the registry): the scripts and the pending connections of the workbooks
+    /// move to the target, then the workbook files are written. Resolves with the replaced connections that are dead,
+    /// no workbook uses them and every workbook file was written: the host removes them with what it holds of them. The
+    /// others stay, a later replacement continues with them. Rejects without the target.
+    #[wasm_bindgen(js_name = replaceConnections, unchecked_return_type = "Promise<string[]>")]
+    pub fn replace_connections(&self, source_ids: Vec<String>, target_id: String) -> Promise {
+        let replacement = match self.connections.registry.try_borrow() {
+            Ok(registry) => registry.replacement(&source_ids, &target_id).map_err(error_text),
+            Err(_) => Err("the connections are in use".to_string()),
+        };
+        let replacement = match replacement {
+            Ok(replacement) => replacement,
+            Err(error) => return Promise::reject(&JsError::new(&error).into()),
+        };
+        for (source, workbooks) in &replacement.sources {
+            for workbook_id in workbooks {
+                let action =
+                    actions::WorkbookAction::ReplaceConnection { from: source.clone(), into: target_id.clone() };
+                let outcome = self.dispatch_workbook(workbook_id.clone(), action);
+                if let Some(error) = outcome.error.as_deref().filter(|_| !outcome.ok) {
+                    let details =
+                        [("workbookId", workbook_id.as_str()), ("connectionId", source.as_str()), ("error", error)];
+                    self.platform.log_on(
+                        LogLevel::Warn,
+                        "moving a workbook to another connection failed",
+                        &details,
+                        "connection_replace",
+                    );
+                }
+            }
+        }
+        let to_write = self
+            .connections
+            .registry
+            .try_borrow()
+            .map(|registry| replacement.workbooks_to_write(&registry))
+            .unwrap_or_default();
+        let flushes: Vec<_> = to_write
+            .into_iter()
+            .map(|workbook_id| {
+                let flush = self.workbooks.persistence.flush_workbook(&workbook_id);
+                (workbook_id, flush)
+            })
+            .collect();
+        let connections = self.connections.clone();
+        future_to_promise(async move {
+            let mut unwritten = Vec::new();
+            for (workbook_id, flush) in flushes {
+                if !flush.await {
+                    unwritten.push(workbook_id);
+                }
+            }
+            let settled = match connections.registry.try_borrow() {
+                Ok(registry) => replacement.settle(&registry, &unwritten),
+                Err(_) => return Err(JsError::new("the connections are in use").into()),
+            };
+            let dead = Array::new();
+            for (connection_id, fate) in settled {
+                match fate {
+                    ReplacedConnection::Dead => {
+                        let details =
+                            [("connectionId", connection_id.as_str()), ("target", replacement.target.as_str())];
+                        connections.platform.log_on(
+                            LogLevel::Info,
+                            "replaced connection",
+                            &details,
+                            "connection_replace",
+                        );
+                        dead.push(&JsValue::from_str(&connection_id));
+                    }
+                    ReplacedConnection::Kept { remaining, unwritten } => {
+                        let (remaining, unwritten) = (remaining.join(","), unwritten.join(","));
+                        let details = [
+                            ("connectionId", connection_id.as_str()),
+                            ("target", replacement.target.as_str()),
+                            ("unwritten", unwritten.as_str()),
+                            ("remaining", remaining.as_str()),
+                        ];
+                        connections.platform.log_on(
+                            LogLevel::Warn,
+                            "kept the replaced connection",
+                            &details,
+                            "connection_replace",
+                        );
+                    }
+                }
+            }
+            Ok(dead.into())
         })
     }
 

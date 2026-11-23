@@ -430,6 +430,15 @@ export class Runtime {
     async retrySave(connectionId: string, workbookIds: string[]): Promise<core.ConnectionSaveOutcome | null> {
         return await this.settled(this.live().retrySave(connectionId, workbookIds));
     }
+
+    /// Replace connections with a target connection in every workbook: the workbooks move to the target and their files
+    /// are written. Resolves with the replaced connections that are dead, no workbook uses them and every workbook file
+    /// was written; the caller deletes them. The others stay, a later replacement continues with them. Rejects without
+    /// the target.
+    async replaceConnections(sourceIds: readonly string[], targetId: string): Promise<string[]> {
+        return await this.settled(this.live().replaceConnections([...sourceIds], targetId));
+    }
+
     // The setups
 
     /// Set up a connection with its connector: the channel of its params or of the params of the options, then the

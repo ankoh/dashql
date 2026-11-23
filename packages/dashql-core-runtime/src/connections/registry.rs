@@ -86,6 +86,66 @@ pub struct ListedConnection {
     pub label_detail: &'static str,
 }
 
+/// A replacement of connections with a target connection in every workbook, e.g. a merge of connections that describe
+/// the same database (`ConnectionRegistry::replacement`). It runs in steps that can be repeated, an interrupted
+/// replacement continues with the next one:
+///  1. The host moves the scripts and the pending connections of the workbooks of each replaced connection to the
+///     target (the workbook action `ReplaceConnection`).
+///  2. The host writes the workbook files right away (`workbooks_to_write`), they name the target then. A write that
+///     fails stays pending and is written again by the next replacement.
+///  3. A replaced connection is removed once it is dead (`settle`): no workbook uses it and every workbook file was
+///     written. A connection that stays is kept in the runtime and in the manifest, a workbook that still names it
+///     after a restart moves with the next replacement.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ConnectionReplacement {
+    /// The connection that the workbooks use instead
+    pub target: String,
+    /// The replaced connections, each with the workbooks that used it when the replacement started
+    pub sources: Vec<(String, Vec<String>)>,
+}
+
+/// What became of a connection that a replacement replaced
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ReplacedConnection {
+    /// No workbook uses the connection and every workbook file was written, the host removes it
+    Dead,
+    /// The connection stays: workbooks still use it or workbook files were not written
+    Kept { remaining: Vec<String>, unwritten: Vec<String> },
+}
+
+impl ConnectionReplacement {
+    /// The workbooks whose files the replacement writes once the scripts moved: the moved workbooks, those that still
+    /// use a replaced connection, and those of the target. The workbooks of the target include the ones that moved in an
+    /// earlier replacement whose files were not written then.
+    pub fn workbooks_to_write(&self, registry: &ConnectionRegistry) -> Vec<String> {
+        let mut workbooks: Vec<String> = Vec::new();
+        let moved = self.sources.iter().flat_map(|(source, moved)| moved.iter().chain(registry.workbooks_of(source)));
+        for workbook_id in moved.chain(registry.workbooks_of(&self.target)) {
+            if !workbooks.contains(workbook_id) {
+                workbooks.push(workbook_id.clone());
+            }
+        }
+        workbooks
+    }
+
+    /// What became of each replaced connection once the workbook files were written, `unwritten` names the workbooks
+    /// whose files were not written. A connection is dead when no workbook uses it and every workbook file was written.
+    pub fn settle(&self, registry: &ConnectionRegistry, unwritten: &[String]) -> Vec<(String, ReplacedConnection)> {
+        self.sources
+            .iter()
+            .map(|(source, _)| {
+                let remaining = registry.workbooks_of(source).to_vec();
+                let fate = if remaining.is_empty() && unwritten.is_empty() {
+                    ReplacedConnection::Dead
+                } else {
+                    ReplacedConnection::Kept { remaining, unwritten: unwritten.to_vec() }
+                };
+                (source.clone(), fate)
+            })
+            .collect()
+    }
+}
+
 /// The connections of a runtime. A runtime holds few connections, they are a list: a map would grow the module by its
 /// own code.
 pub struct ConnectionRegistry {
@@ -291,6 +351,22 @@ impl ConnectionRegistry {
         queries
     }
 
+    /// Replace connections with a target connection in every workbook. The replaced connections are the sources that
+    /// are registered and are not the target, each with the workbooks that use it. Fails without the target.
+    pub fn replacement(&self, sources: &[String], target: &str) -> Result<ConnectionReplacement> {
+        if self.get(target).is_none() {
+            return Err(Error::invalid_argument(format!("no connection registered with id {target}")));
+        }
+        let mut replaced: Vec<(String, Vec<String>)> = Vec::new();
+        for source in sources {
+            if source == target || self.get(source).is_none() || replaced.iter().any(|(id, _)| id == source) {
+                continue;
+            }
+            replaced.push((source.clone(), self.workbooks_of(source).to_vec()));
+        }
+        Ok(ConnectionReplacement { target: target.to_string(), sources: replaced })
+    }
+
     /// Apply an action to a query of the history of a connection. The id of a new query comes from `next_query_id`.
     pub fn apply_query(&mut self, connection_id: &str, action: QueryExecutionAction) -> Result<RegistryOutcome> {
         let history = self
@@ -396,6 +472,17 @@ mod tests {
         query_id
     }
 
+    fn references(entries: &[(&str, &[&str])]) -> Vec<(String, Vec<String>)> {
+        entries
+            .iter()
+            .map(|(id, workbooks)| (id.to_string(), workbooks.iter().map(|w| w.to_string()).collect()))
+            .collect()
+    }
+
+    fn ids(ids: &[&str]) -> Vec<String> {
+        ids.iter().map(|id| id.to_string()).collect()
+    }
+
     #[test]
     fn finds_the_queries_of_a_workbook_on_every_connection_the_active_ones_first() {
         let mut registry = ConnectionRegistry::new();
@@ -413,6 +500,66 @@ mod tests {
         let held = held.borrow_mut();
         assert_eq!(registry.workbook_queries("w"), [active, finished]);
         drop(held);
+    }
+
+    #[test]
+    fn a_replacement_replaces_the_registered_connections_other_than_the_target() {
+        let mut registry = ConnectionRegistry::new();
+        for id in ["a", "b", "t"] {
+            registry.insert(trino(id)).unwrap();
+        }
+        registry.set_references(references(&[("a", &["w1", "w2"]), ("t", &["w3"])]));
+        assert!(registry.replacement(&ids(&["a"]), "missing").is_err());
+        let replacement = registry.replacement(&ids(&["a", "t", "missing", "b", "a"]), "t").unwrap();
+        assert_eq!(replacement.target, "t");
+        assert_eq!(replacement.sources, [("a".to_string(), ids(&["w1", "w2"])), ("b".to_string(), Vec::new())]);
+    }
+
+    #[test]
+    fn a_replaced_connection_is_dead_once_no_workbook_uses_it_and_every_file_was_written() {
+        let mut registry = ConnectionRegistry::new();
+        for id in ["a", "b", "t"] {
+            registry.insert(trino(id)).unwrap();
+        }
+        registry.set_references(references(&[("a", &["w1"]), ("b", &["w2"]), ("t", &["w3"])]));
+        let replacement = registry.replacement(&ids(&["a", "b"]), "t").unwrap();
+        // The scripts of w1 moved, the ones of w2 not yet
+        registry.set_references(references(&[("b", &["w2"]), ("t", &["w1", "w3"])]));
+        assert_eq!(replacement.workbooks_to_write(&registry), ids(&["w1", "w2", "w3"]));
+        assert_eq!(
+            replacement.settle(&registry, &[]),
+            [
+                ("a".to_string(), ReplacedConnection::Dead),
+                ("b".to_string(), ReplacedConnection::Kept { remaining: ids(&["w2"]), unwritten: Vec::new() }),
+            ]
+        );
+        // A file that was not written keeps every replaced connection, the next replacement writes it again
+        registry.set_references(references(&[("t", &["w1", "w2", "w3"])]));
+        assert_eq!(
+            replacement.settle(&registry, &ids(&["w3"])),
+            [
+                ("a".to_string(), ReplacedConnection::Kept { remaining: Vec::new(), unwritten: ids(&["w3"]) }),
+                ("b".to_string(), ReplacedConnection::Kept { remaining: Vec::new(), unwritten: ids(&["w3"]) }),
+            ]
+        );
+        assert_eq!(
+            replacement.settle(&registry, &[]).iter().filter(|(_, fate)| *fate == ReplacedConnection::Dead).count(),
+            2
+        );
+    }
+
+    #[test]
+    fn an_interrupted_replacement_continues_with_the_workbooks_of_the_target() {
+        let mut registry = ConnectionRegistry::new();
+        for id in ["a", "t"] {
+            registry.insert(trino(id)).unwrap();
+        }
+        // An earlier replacement moved w1 to the target, its file was not written: the connection stayed
+        registry.set_references(references(&[("t", &["w1"])]));
+        let replacement = registry.replacement(&ids(&["a"]), "t").unwrap();
+        assert_eq!(replacement.sources, [("a".to_string(), Vec::new())]);
+        assert_eq!(replacement.workbooks_to_write(&registry), ids(&["w1"]));
+        assert_eq!(replacement.settle(&registry, &[]), [("a".to_string(), ReplacedConnection::Dead)]);
     }
 
     #[test]
