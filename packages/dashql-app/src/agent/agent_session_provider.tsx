@@ -43,97 +43,58 @@ const TAB_AGENT_CONNECTIONS_KEY = 'dashql.agent_session_connections';
 /// The time between the attempts to reach a session that the page lost or waits for
 const RECONNECT_DELAY_MS = 2000;
 
-function tabStorage(): Storage | null {
+/// The value of a key in the storage of the tab, null without storage or with a broken entry
+function readTabJson(key: string): unknown {
     try {
-        return globalThis.sessionStorage ?? null;
+        return JSON.parse(globalThis.sessionStorage?.getItem(key) ?? 'null');
     } catch {
         return null;
+    }
+}
+
+/// Keep a value under a key in the storage of the tab, without storage a reload forgets it
+function writeTabJson(key: string, value: unknown): void {
+    try {
+        globalThis.sessionStorage?.setItem(key, JSON.stringify(value));
+    } catch {
+        // Without storage, a reload forgets the value
     }
 }
 
 /// The session that the tab followed before a reload
 function readTabTarget(): AgentSessionTarget | null {
-    try {
-        const stored = JSON.parse(tabStorage()?.getItem(TAB_STORAGE_KEY) ?? 'null');
-        return parseAgentSessionTarget(stored?.endpoint, stored?.token);
-    } catch {
-        return null;
-    }
+    const stored = readTabJson(TAB_STORAGE_KEY) as { endpoint?: unknown; token?: unknown } | null;
+    return parseAgentSessionTarget(stored?.endpoint, stored?.token);
 }
 
-function writeTabTarget(target: AgentSessionTarget): void {
-    try {
-        tabStorage()?.setItem(TAB_STORAGE_KEY, JSON.stringify(target));
-    } catch {
-        // Without storage, a reload forgets the session
-    }
-}
-
-/// The id of the session that a server sends
-function sessionIdOf(state: FollowedAgentSession['state']): string {
-    return state.id;
+/// Is a stored value the one of a target?
+function storedFor(stored: { endpoint?: unknown; token?: unknown } | null, target: AgentSessionTarget): boolean {
+    return stored?.endpoint === target.endpoint && stored?.token === target.token;
 }
 
 /// The workbooks that the tab copied into a session on a target before a reload. A new session on the target gets
 /// them again.
 function readTabCopies(target: AgentSessionTarget, session: string): Set<string> {
-    try {
-        const stored = JSON.parse(tabStorage()?.getItem(TAB_COPIES_KEY) ?? 'null');
-        if (stored?.endpoint !== target.endpoint || stored?.token !== target.token || (stored?.session ?? '') !== session || !Array.isArray(stored.workbooks)) return new Set();
-        return new Set(stored.workbooks.filter((id: unknown) => typeof id === 'string'));
-    } catch {
-        return new Set();
-    }
-}
-
-function writeTabCopies(target: AgentSessionTarget, session: string, workbooks: Set<string>): void {
-    try {
-        tabStorage()?.setItem(TAB_COPIES_KEY, JSON.stringify({ ...target, session, workbooks: [...workbooks] }));
-    } catch {
-        // Without storage, a reload copies again
-    }
+    const stored = readTabJson(TAB_COPIES_KEY) as { endpoint?: unknown; token?: unknown; session?: unknown; workbooks?: unknown } | null;
+    if (!storedFor(stored, target) || (stored?.session ?? '') !== session || !Array.isArray(stored?.workbooks)) return new Set();
+    return new Set(stored.workbooks.filter((id: unknown): id is string => typeof id === 'string'));
 }
 
 /// The connections that the user ticked or unticked for the agent of the session of a target before a reload
 function readTabChoices(target: AgentSessionTarget | null): AgentConnectionChoices {
     if (target == null) return new Map();
-    try {
-        const stored = JSON.parse(tabStorage()?.getItem(TAB_AGENT_CONNECTIONS_KEY) ?? 'null');
-        if (stored?.endpoint !== target.endpoint || stored?.token !== target.token || typeof stored.choices !== 'object' || stored.choices == null) return new Map();
-        return new Map(Object.entries(stored.choices).filter((entry): entry is [string, boolean] => typeof entry[1] === 'boolean'));
-    } catch {
-        return new Map();
-    }
-}
-
-function writeTabChoices(target: AgentSessionTarget, choices: AgentConnectionChoices): void {
-    try {
-        tabStorage()?.setItem(TAB_AGENT_CONNECTIONS_KEY, JSON.stringify({ ...target, choices: Object.fromEntries(choices) }));
-    } catch {
-        // Without storage, a reload forgets what the user ticked
-    }
+    const stored = readTabJson(TAB_AGENT_CONNECTIONS_KEY) as { endpoint?: unknown; token?: unknown; choices?: unknown } | null;
+    if (!storedFor(stored, target) || typeof stored?.choices !== 'object' || stored.choices == null) return new Map();
+    return new Map(Object.entries(stored.choices).filter((entry): entry is [string, boolean] => typeof entry[1] === 'boolean'));
 }
 
 /// The mode of the prompt and the harness of the line, as the tab left them before a reload
 function readTabConnect(): { mode: ComposerMode; harness: ConnectHarness } {
-    let stored: { mode?: unknown; harness?: unknown } | null = null;
-    try {
-        stored = JSON.parse(tabStorage()?.getItem(TAB_CONNECT_KEY) ?? 'null');
-    } catch {
-        // A broken entry is forgotten
-    }
+    const stored = readTabJson(TAB_CONNECT_KEY) as { mode?: unknown; harness?: unknown } | null;
     return {
         mode: stored?.mode === ComposerMode.Ai ? ComposerMode.Ai : ComposerMode.Sql,
         harness: stored?.harness === 'codex' ? 'codex' : 'claude',
     };
-}
-
-function writeTabConnect(value: { mode: ComposerMode; harness: ConnectHarness }): void {
-    try {
-        tabStorage()?.setItem(TAB_CONNECT_KEY, JSON.stringify(value));
-    } catch {
-        // Without storage, a reload forgets the mode
-    }
 }
 
 /// How the prompt connects an agent in the terminal: the mode of the prompt, and in AI the line that launches a harness
@@ -182,14 +143,14 @@ export const AgentSessionProvider: React.FC<React.PropsWithChildren> = (props) =
     const userHasControlRef = React.useRef(userHasControl);
     userHasControlRef.current = userHasControl;
     const follow = React.useCallback((next: AgentSessionTarget) => {
-        writeTabTarget(next);
+        writeTabJson(TAB_STORAGE_KEY, next);
         setTarget(next);
     }, []);
     const updateConnect = React.useCallback((change: Partial<{ mode: ComposerMode; harness: ConnectHarness }>) => {
         setConnect(prev => {
             const next = { ...prev, ...change };
             if (next.mode === prev.mode && next.harness === prev.harness) return prev;
-            writeTabConnect(next);
+            writeTabJson(TAB_CONNECT_KEY, next);
             return next;
         });
     }, []);
@@ -217,7 +178,7 @@ export const AgentSessionProvider: React.FC<React.PropsWithChildren> = (props) =
     const copyShown = React.useCallback(() => {
         const followed = store.current;
         if (runtime == null || target == null || followed == null || !followed.connected || followed.state.ended) return;
-        const session = sessionIdOf(followed.state);
+        const session = followed.state.id;
         const { workbooks, copies } = copiesOf(target, session);
         if (copies == null) return;
         for (const workbookId of shown.current.keys()) {
@@ -229,7 +190,7 @@ export const AgentSessionProvider: React.FC<React.PropsWithChildren> = (props) =
                 continue;
             }
             workbooks.add(workbookId);
-            writeTabCopies(target, session, workbooks);
+            writeTabJson(TAB_COPIES_KEY, { ...target, session, workbooks: [...workbooks] });
             copies.copy(workbookId).catch(error => {
                 logger.warn('Cannot copy the workbook into the session', { workbook: workbookId, error: stringifyError(error) }, LOG_CTX);
             });
@@ -284,7 +245,7 @@ export const AgentSessionProvider: React.FC<React.PropsWithChildren> = (props) =
         setAgentSelection(prev => {
             const next = new Map(prev != null && prev.target === target ? prev.choices : readTabChoices(target));
             next.set(connectionId, !isAgentConnectionAllowed(connectionId, next, defaultConnectionIdsRef.current));
-            writeTabChoices(target, next);
+            writeTabJson(TAB_AGENT_CONNECTIONS_KEY, { ...target, choices: Object.fromEntries(next) });
             return { target, choices: next };
         });
     }, [target]);
@@ -352,7 +313,7 @@ export const AgentSessionProvider: React.FC<React.PropsWithChildren> = (props) =
             renderChart: (workbookId, script, table, size) => renderScriptChart(runtime, workbookId, script, table, size),
         }, logger);
         const onState = (state: FollowedAgentSession['state']) => {
-            const session = sessionIdOf(state);
+            const session = state.id;
             copies = copiesOf(target, session).copies;
             setOutdated(null);
             store.update({ state, connected: true });
