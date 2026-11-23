@@ -1,0 +1,337 @@
+{
+  "name": "handwritten_plan_shapes",
+  "note": "Hand-written, not recorded by //tests/trino:trino_recorder: an input for the edge cases of the Trino adapters",
+  "sql": "/* hand-written */ SELECT ...",
+  "explain": {
+    "0": {
+      "id": "10",
+      "name": "Output",
+      "descriptor": {},
+      "outputs": [],
+      "details": [],
+      "estimates": [
+        {
+          "outputRowCount": "NaN"
+        }
+      ],
+      "children": [
+        {
+          "id": "11",
+          "name": "FullJoin",
+          "descriptor": {},
+          "outputs": [],
+          "details": [],
+          "estimates": [
+            {
+              "outputRowCount": 0.0
+            }
+          ],
+          "children": [
+            {
+              "id": "12",
+              "name": "RemoteSource",
+              "descriptor": {
+                "sourceFragmentIds": "[1]"
+              },
+              "outputs": [],
+              "details": [],
+              "estimates": [],
+              "children": []
+            },
+            {
+              "id": "13",
+              "name": "RemoteMerge",
+              "descriptor": {
+                "sourceFragmentIds": "[2, 9]"
+              },
+              "outputs": [],
+              "details": [],
+              "estimates": [],
+              "children": []
+            }
+          ]
+        }
+      ]
+    },
+    "1": {
+      "id": "20",
+      "name": "Intersect",
+      "descriptor": {
+        "isDistinct": "true"
+      },
+      "outputs": [],
+      "details": [],
+      "estimates": [],
+      "children": [
+        {
+          "id": "21",
+          "name": "LocalExchange",
+          "descriptor": {
+            "partitioning": "SINGLE"
+          },
+          "outputs": [],
+          "details": [],
+          "estimates": [],
+          "children": [
+            {
+              "id": "22",
+              "name": "Values",
+              "descriptor": {},
+              "outputs": [],
+              "details": [],
+              "estimates": [
+                {
+                  "outputRowCount": 3.0
+                }
+              ],
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "23",
+          "name": "LocalExchange",
+          "descriptor": {
+            "partitioning": "BROADCAST"
+          },
+          "outputs": [],
+          "details": [],
+          "estimates": [],
+          "children": [
+            {
+              "id": "24",
+              "name": "ScanFilterProject",
+              "descriptor": {
+                "table": "tpch:sf1:orders"
+              },
+              "outputs": [],
+              "details": [],
+              "estimates": [
+                {
+                  "outputRowCount": 1500000.0
+                },
+                {
+                  "outputRowCount": 1.0
+                }
+              ],
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "25",
+          "name": "Intersect",
+          "descriptor": {
+            "isDistinct": false
+          },
+          "outputs": [],
+          "details": [],
+          "estimates": [],
+          "children": [
+            {
+              "id": "26",
+              "name": "Values",
+              "descriptor": {},
+              "outputs": [],
+              "details": [],
+              "estimates": [],
+              "children": []
+            },
+            {
+              "id": "27",
+              "name": "Values",
+              "descriptor": {},
+              "outputs": [],
+              "details": [],
+              "estimates": [],
+              "children": []
+            }
+          ]
+        }
+      ]
+    },
+    "2": {
+      "id": "30",
+      "name": "Except",
+      "descriptor": {},
+      "outputs": [],
+      "details": [],
+      "estimates": [],
+      "children": [
+        {
+          "id": "31",
+          "name": "LocalExchange",
+          "descriptor": {
+            "partitioning": "UNKNOWN"
+          },
+          "outputs": [],
+          "details": [],
+          "estimates": [],
+          "children": [
+            {
+              "id": "32",
+              "name": "TableScan",
+              "descriptor": {
+                "table": "lineitem"
+              },
+              "outputs": [],
+              "details": [],
+              "estimates": [],
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "33",
+          "name": "LocalExchange",
+          "descriptor": {
+            "partitioning": "ROUND_ROBIN"
+          },
+          "outputs": [],
+          "details": [],
+          "estimates": [],
+          "children": [
+            {
+              "id": "34",
+              "name": "RemoteSource",
+              "descriptor": {
+                "sourceFragmentIds": "[1]"
+              },
+              "outputs": [],
+              "details": [],
+              "estimates": [],
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "35",
+          "name": "Except",
+          "descriptor": {},
+          "outputs": [],
+          "details": [],
+          "estimates": [],
+          "children": [
+            {
+              "id": "36",
+              "name": "Values",
+              "descriptor": {},
+              "outputs": [],
+              "details": [],
+              "estimates": [],
+              "children": []
+            },
+            {
+              "id": "37",
+              "name": "Values",
+              "descriptor": {},
+              "outputs": [],
+              "details": [],
+              "estimates": [],
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "38",
+          "name": "Except",
+          "descriptor": {
+            "isDistinct": ""
+          },
+          "outputs": [],
+          "details": [],
+          "estimates": [],
+          "children": [
+            {
+              "id": "39",
+              "name": "Values",
+              "descriptor": {},
+              "outputs": [],
+              "details": [],
+              "estimates": [],
+              "children": []
+            },
+            {
+              "id": "40",
+              "name": "Values",
+              "descriptor": {},
+              "outputs": [],
+              "details": [],
+              "estimates": [],
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "41",
+          "name": "LocalExchange",
+          "descriptor": {},
+          "outputs": [],
+          "details": [],
+          "estimates": [],
+          "children": [
+            {
+              "id": "42",
+              "name": "Values",
+              "descriptor": {},
+              "outputs": [],
+              "details": [],
+              "estimates": [],
+              "children": []
+            }
+          ]
+        },
+        {
+          "id": "43",
+          "name": "LocalExchange",
+          "descriptor": {
+            "partitioning": "COORDINATOR_ONLY"
+          },
+          "outputs": [],
+          "details": [],
+          "estimates": [],
+          "children": [
+            {
+              "id": "44",
+              "name": "Values",
+              "descriptor": {},
+              "outputs": [],
+              "details": [],
+              "estimates": [],
+              "children": []
+            }
+          ]
+        }
+      ]
+    },
+    "3": {
+      "id": "50",
+      "name": "SomeFutureNode",
+      "descriptor": {},
+      "outputs": [],
+      "details": [],
+      "estimates": [],
+      "children": [
+        {
+          "id": "51",
+          "descriptor": {},
+          "outputs": [],
+          "details": [],
+          "estimates": [],
+          "children": []
+        },
+        {
+          "name": "Limit",
+          "descriptor": {},
+          "outputs": [],
+          "details": [],
+          "estimates": [],
+          "children": []
+        },
+        "not a node"
+      ]
+    }
+  },
+  "statementResponses": [],
+  "queryInfos": []
+}

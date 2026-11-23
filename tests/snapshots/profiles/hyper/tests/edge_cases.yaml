@@ -1,0 +1,2020 @@
+profile-snapshots:
+
+  - name: empty_object
+    input: |-
+      {}
+    fragments: []
+    operators: []
+    operator-edges: []
+    pipelines: []
+
+  - name: empty_array
+    input: |-
+      []
+    fragments: []
+    operators: []
+    operator-edges: []
+    pipelines: []
+
+  - name: scalar_document
+    input: |-
+      42
+    fragments: []
+    operators: []
+    operator-edges: []
+    pipelines: []
+
+  - name: operator_member_not_a_string
+    input: |-
+      {"operator":42,"input":{"operator":"tablescan","operatorId":7}}
+    fragments: []
+    operators:
+      - id: 0
+        engine-id: 7
+        path: input
+        type: tablescan
+        kind: scan
+        position: [57.250000,32.000000]
+    operator-edges: []
+    pipelines: []
+
+  - name: single_operator
+    input: |-
+      {"operator":"tablescan","operatorId":1}
+    fragments: []
+    operators:
+      - id: 0
+        engine-id: 1
+        type: tablescan
+        kind: scan
+        position: [57.250000,32.000000]
+    operator-edges: []
+    pipelines: []
+
+  - name: single_execution_target
+    input: |-
+      {"operator":"executiontarget","operatorId":1}
+    fragments:
+      - id: 0
+        root: 0
+        hidden: true
+        operators: [0]
+    operators:
+      - id: 0
+        engine-id: 1
+        type: executiontarget
+        position: [82.750000,32.000000]
+    operator-edges: []
+    pipelines: []
+
+  - name: single_federate
+    input: |-
+      {"operator":"federate","operatorId":1}
+    fragments:
+      - id: 0
+        root: 0
+        operators: [0]
+    operators:
+      - id: 0
+        engine-id: 1
+        type: federate
+        position: [53.000000,32.000000]
+    operator-edges: []
+    pipelines: []
+
+  - name: root_operators_in_array
+    input: |-
+      [{"operator":"tablescan","operatorId":1},{"operator":"map","operatorId":2,"input":{"operator":"tablescan","operatorId":3}},{"operator":"select","operatorId":4}]
+    fragments: []
+    operators:
+      - id: 1
+        engine-id: 4
+        path: '[2]'
+        type: select
+        kind: filter
+        position: [44.500000,32.000000]
+      - id: 2
+        engine-id: 2
+        path: '[1]'
+        type: map
+        kind: project
+        position: [166.250000,32.000000]
+        children:
+          - id: 0
+            engine-id: 3
+            path: input
+            type: tablescan
+            kind: scan
+            parent: 2
+            position: [166.250000,96.000000]
+      - id: 3
+        engine-id: 1
+        path: '[0]'
+        type: tablescan
+        kind: scan
+        position: [300.750000,32.000000]
+    operator-edges:
+      - child: 0
+        parent: 2
+        port-index: 0
+        port-count: 1
+    pipelines: []
+
+  - name: two_execution_targets
+    input: |-
+      [{"operator":"executiontarget","operatorId":1,"input":{"operator":"tablescan","operatorId":2}},{"operator":"executiontarget","operatorId":3,"input":{"operator":"tablescan","operatorId":4}}]
+    fragments:
+      - id: 0
+        root: 3
+        hidden: true
+        operators: [3,0]
+      - id: 1
+        root: 2
+        hidden: true
+        operators: [2,1]
+    operators:
+      - id: 2
+        engine-id: 3
+        path: '[1]'
+        type: executiontarget
+        position: [82.750000,32.000000]
+        children:
+          - id: 1
+            engine-id: 4
+            path: input
+            type: tablescan
+            kind: scan
+            parent: 2
+            position: [82.750000,96.000000]
+      - id: 3
+        engine-id: 1
+        path: '[0]'
+        type: executiontarget
+        position: [268.250000,32.000000]
+        children:
+          - id: 0
+            engine-id: 2
+            path: input
+            type: tablescan
+            kind: scan
+            parent: 3
+            position: [268.250000,96.000000]
+    operator-edges:
+      - child: 1
+        parent: 2
+        port-index: 0
+        port-count: 1
+      - child: 0
+        parent: 3
+        port-index: 0
+        port-count: 1
+    pipelines: []
+
+  - name: nested_execution_target
+    input: |-
+      {"operator":"map","operatorId":1,"input":{"operator":"executiontarget","operatorId":2,"input":{"operator":"tablescan","operatorId":3}}}
+    fragments: []
+    operators:
+      - id: 2
+        engine-id: 1
+        type: map
+        kind: project
+        position: [82.750000,32.000000]
+        children:
+          - id: 1
+            engine-id: 2
+            path: input
+            type: executiontarget
+            parent: 2
+            position: [82.750000,96.000000]
+            children:
+              - id: 0
+                engine-id: 3
+                path: input
+                type: tablescan
+                kind: scan
+                parent: 1
+                position: [82.750000,160.000000]
+    operator-edges:
+      - child: 0
+        parent: 1
+        port-index: 0
+        port-count: 1
+      - child: 1
+        parent: 2
+        port-index: 0
+        port-count: 1
+    pipelines: []
+
+  - name: sibling_federates
+    input: |-
+      {"operator":"executiontarget","operatorId":1,"input":{"operator":"join","operatorId":2,"left":{"operator":"federate","operatorId":3,"inputs":[{"operator":"tablescan","operatorId":4}]},"right":{"operator":"federate","operatorId":5,"inputs":[{"operator":"tablescan","operatorId":6}]}}}
+    fragments:
+      - id: 0
+        root: 5
+        hidden: true
+        operators: [5,4]
+      - id: 1
+        parent: 0
+        root: 2
+        operators: [2,0]
+      - id: 2
+        parent: 0
+        root: 3
+        operators: [3,1]
+    operators:
+      - id: 5
+        engine-id: 1
+        type: executiontarget
+        position: [124.500000,32.000000]
+        children:
+          - id: 4
+            engine-id: 2
+            path: input
+            type: join
+            kind: join
+            parent: 5
+            position: [124.500000,96.000000]
+            children:
+              - id: 2
+                engine-id: 3
+                path: left
+                type: federate
+                parent: 4
+                position: [57.250000,160.000000]
+                children:
+                  - id: 0
+                    engine-id: 4
+                    path: 'inputs[0]'
+                    type: tablescan
+                    kind: scan
+                    parent: 2
+                    position: [57.250000,224.000000]
+              - id: 3
+                engine-id: 5
+                path: right
+                type: federate
+                parent: 4
+                position: [191.750000,160.000000]
+                children:
+                  - id: 1
+                    engine-id: 6
+                    path: 'inputs[0]'
+                    type: tablescan
+                    kind: scan
+                    parent: 3
+                    position: [191.750000,224.000000]
+    operator-edges:
+      - child: 0
+        parent: 2
+        port-index: 0
+        port-count: 1
+      - child: 1
+        parent: 3
+        port-index: 0
+        port-count: 1
+      - child: 2
+        parent: 4
+        port-index: 0
+        port-count: 2
+      - child: 3
+        parent: 4
+        port-index: 1
+        port-count: 2
+      - child: 4
+        parent: 5
+        port-index: 0
+        port-count: 1
+    pipelines: []
+
+  - name: unknown_operator_types
+    input: |-
+      {"operator":"executiontarget","operatorId":1,"input":{"operator":"fancynewoperator","operatorId":2,"input":{"operator":"earlyprobe","operatorId":3,"builder":4,"input":{"operator":"leftsinglejoin","operatorId":4,"left":{"operator":"tablescan","operatorId":5},"right":{"operator":"","operatorId":6}}}}}
+    fragments:
+      - id: 0
+        root: 5
+        hidden: true
+        operators: [5,4,3,2,0,1]
+    operators:
+      - id: 5
+        engine-id: 1
+        type: executiontarget
+        position: [105.375000,32.000000]
+        children:
+          - id: 4
+            engine-id: 2
+            path: input
+            type: fancynewoperator
+            parent: 5
+            position: [105.375000,96.000000]
+            children:
+              - id: 3
+                engine-id: 3
+                path: input
+                type: earlyprobe
+                parent: 4
+                position: [105.375000,160.000000]
+                children:
+                  - id: 2
+                    engine-id: 4
+                    path: input
+                    type: leftsinglejoin
+                    parent: 3
+                    position: [105.375000,224.000000]
+                    children:
+                      - id: 0
+                        engine-id: 5
+                        path: left
+                        type: tablescan
+                        kind: scan
+                        parent: 2
+                        position: [57.250000,288.000000]
+                      - id: 1
+                        engine-id: 6
+                        path: right
+                        type: ''
+                        parent: 2
+                        position: [153.500000,288.000000]
+    operator-edges:
+      - child: 0
+        parent: 2
+        port-index: 0
+        port-count: 2
+      - child: 1
+        parent: 2
+        port-index: 1
+        port-count: 2
+      - child: 2
+        parent: 3
+        port-index: 0
+        port-count: 1
+      - child: 3
+        parent: 4
+        port-index: 0
+        port-count: 1
+      - child: 4
+        parent: 5
+        port-index: 0
+        port-count: 1
+    pipelines: []
+
+  - name: operator_kind_spellings
+    input: |-
+      {"operator":"Union","operatorId":1,"inputs":[{"operator":"Left-Outer-Join","operatorId":2,"left":{"operator":"PARQUET-SCAN","operatorId":3},"right":{"operator":"parquetscan","operatorId":4}},{"operator":"intersect","operatorId":5,"inputs":[{"operator":"virtualtable","operatorId":6},{"operator":"tableconstruction","operatorId":7}]},{"operator":"except","operatorId":8,"inputs":[{"operator":"tablefunction","operatorId":9},{"operator":"explicit-scan","operatorId":10,"input":9}]}]}
+    fragments: []
+    operators:
+      - id: 9
+        engine-id: 1
+        type: Union
+        kind: union
+        position: [490.187500,32.000000]
+        children:
+          - id: 6
+            engine-id: 2
+            path: 'inputs[0]'
+            type: Left-Outer-Join
+            kind: left-outer-join
+            parent: 9
+            position: [147.875000,96.000000]
+            children:
+              - id: 0
+                engine-id: 3
+                path: left
+                type: PARQUET-SCAN
+                kind: scan
+                parent: 6
+                position: [70.000000,160.000000]
+              - id: 1
+                engine-id: 4
+                path: right
+                type: parquetscan
+                kind: scan
+                parent: 6
+                position: [225.750000,160.000000]
+          - id: 7
+            engine-id: 5
+            path: 'inputs[1]'
+            type: intersect
+            kind: intersect
+            parent: 9
+            position: [472.125000,96.000000]
+            children:
+              - id: 2
+                engine-id: 6
+                path: 'inputs[0]'
+                type: virtualtable
+                kind: virtual-table
+                parent: 7
+                position: [381.500000,160.000000]
+              - id: 3
+                engine-id: 7
+                path: 'inputs[1]'
+                type: tableconstruction
+                kind: table-construction
+                parent: 7
+                position: [562.750000,160.000000]
+          - id: 8
+            engine-id: 8
+            path: 'inputs[2]'
+            type: except
+            kind: except
+            parent: 9
+            position: [832.500000,96.000000]
+            children:
+              - id: 4
+                engine-id: 9
+                path: 'inputs[0]'
+                type: tablefunction
+                kind: table-function
+                parent: 8
+                position: [748.250000,160.000000]
+              - id: 5
+                engine-id: 10
+                path: 'inputs[1]'
+                type: explicit-scan
+                kind: explicit-scan
+                parent: 8
+                position: [916.750000,160.000000]
+    operator-edges:
+      - child: 0
+        parent: 6
+        port-index: 0
+        port-count: 2
+      - child: 1
+        parent: 6
+        port-index: 1
+        port-count: 2
+      - child: 2
+        parent: 7
+        port-index: 0
+        port-count: 2
+      - child: 3
+        parent: 7
+        port-index: 1
+        port-count: 2
+      - child: 4
+        parent: 8
+        port-index: 0
+        port-count: 2
+      - child: 5
+        parent: 8
+        port-index: 1
+        port-count: 2
+      - child: 6
+        parent: 9
+        port-index: 0
+        port-count: 3
+      - child: 7
+        parent: 9
+        port-index: 1
+        port-count: 3
+      - child: 8
+        parent: 9
+        port-index: 2
+        port-count: 3
+    pipelines: []
+
+  - name: join_kinds
+    input: |-
+      {"operator":"fullouterjoin","operatorId":1,"left":{"operator":"rightmarkjoin","operatorId":2,"left":{"operator":"scan","operatorId":3},"right":{"operator":"scan","operatorId":4}},"right":{"operator":"rightsemijoin","operatorId":5,"left":{"operator":"scan","operatorId":6},"right":{"operator":"scan","operatorId":7}}}
+    fragments: []
+    operators:
+      - id: 6
+        engine-id: 1
+        type: fullouterjoin
+        kind: full-outer-join
+        position: [174.000000,32.000000]
+        children:
+          - id: 4
+            engine-id: 2
+            path: left
+            type: rightmarkjoin
+            kind: right-mark-join
+            parent: 6
+            position: [82.000000,96.000000]
+            children:
+              - id: 0
+                engine-id: 3
+                path: left
+                type: scan
+                kind: scan
+                parent: 4
+                position: [36.000000,160.000000]
+              - id: 1
+                engine-id: 4
+                path: right
+                type: scan
+                kind: scan
+                parent: 4
+                position: [128.000000,160.000000]
+          - id: 5
+            engine-id: 5
+            path: right
+            type: rightsemijoin
+            kind: right-semi-join
+            parent: 6
+            position: [266.000000,96.000000]
+            children:
+              - id: 2
+                engine-id: 6
+                path: left
+                type: scan
+                kind: scan
+                parent: 5
+                position: [220.000000,160.000000]
+              - id: 3
+                engine-id: 7
+                path: right
+                type: scan
+                kind: scan
+                parent: 5
+                position: [312.000000,160.000000]
+    operator-edges:
+      - child: 0
+        parent: 4
+        port-index: 0
+        port-count: 2
+      - child: 1
+        parent: 4
+        port-index: 1
+        port-count: 2
+      - child: 2
+        parent: 5
+        port-index: 0
+        port-count: 2
+      - child: 3
+        parent: 5
+        port-index: 1
+        port-count: 2
+      - child: 4
+        parent: 6
+        port-index: 0
+        port-count: 2
+      - child: 5
+        parent: 6
+        port-index: 1
+        port-count: 2
+    pipelines: []
+
+  - name: operator_below_wrapper_objects
+    input: |-
+      {"operator":"join","operatorId":1,"left":{"wrapper":{"items":[{"note":"no operator"},{"operator":"tablescan","operatorId":2}]}},"right":[[{"operator":"tablescan","operatorId":3}]]}
+    fragments: []
+    operators:
+      - id: 2
+        engine-id: 1
+        type: join
+        kind: join
+        position: [124.500000,32.000000]
+        children:
+          - id: 0
+            engine-id: 2
+            path: 'left.wrapper.items[1]'
+            type: tablescan
+            kind: scan
+            parent: 2
+            position: [57.250000,96.000000]
+          - id: 1
+            engine-id: 3
+            path: 'right[0][0]'
+            type: tablescan
+            kind: scan
+            parent: 2
+            position: [191.750000,96.000000]
+    operator-edges:
+      - child: 0
+        parent: 2
+        port-index: 0
+        port-count: 2
+      - child: 1
+        parent: 2
+        port-index: 1
+        port-count: 2
+    pipelines: []
+
+  - name: operator_id_spellings
+    input: |-
+      {"operator":"unionall","operator-id":1,"inputs":[{"operator":"tablescan","operatorId":"2"},{"operator":"tablescan","operatorId":-3},{"operator":"tablescan","operatorId":4.5},{"operator":"tablescan","operatorId":5}]}
+    fragments: []
+    operators:
+      - id: 4
+        engine-id: 1
+        type: unionall
+        kind: union-all
+        position: [259.000000,32.000000]
+        children:
+          - id: 0
+            path: 'inputs[0]'
+            type: tablescan
+            kind: scan
+            parent: 4
+            position: [57.250000,96.000000]
+          - id: 1
+            path: 'inputs[1]'
+            type: tablescan
+            kind: scan
+            parent: 4
+            position: [191.750000,96.000000]
+          - id: 2
+            path: 'inputs[2]'
+            type: tablescan
+            kind: scan
+            parent: 4
+            position: [326.250000,96.000000]
+          - id: 3
+            engine-id: 5
+            path: 'inputs[3]'
+            type: tablescan
+            kind: scan
+            parent: 4
+            position: [460.750000,96.000000]
+    operator-edges:
+      - child: 0
+        parent: 4
+        port-index: 0
+        port-count: 4
+      - child: 1
+        parent: 4
+        port-index: 1
+        port-count: 4
+      - child: 2
+        parent: 4
+        port-index: 2
+        port-count: 4
+      - child: 3
+        parent: 4
+        port-index: 3
+        port-count: 4
+    pipelines: []
+
+  - name: debug_name_labels
+    input: |-
+      {"operator":"unionall","operatorId":1,"inputs":[{"operator":"tablescan","operatorId":2,"debugName":{"classification":"nonsensitive","value":"orders"}},{"operator":"tablescan","operatorId":3,"debug-name":{"value":"a_very_long_relation_name_beyond_the_cap"}},{"operator":"tablescan","operatorId":4,"debugName":{"value":7}},{"operator":"tablescan","operatorId":5,"debugName":"plain"}]}
+    fragments: []
+    operators:
+      - id: 4
+        engine-id: 1
+        type: unionall
+        kind: union-all
+        position: [286.625000,32.000000]
+        children:
+          - id: 0
+            engine-id: 2
+            path: 'inputs[0]'
+            type: tablescan
+            kind: scan
+            label: orders
+            parent: 4
+            position: [44.500000,96.000000]
+          - id: 1
+            engine-id: 3
+            path: 'inputs[1]'
+            type: tablescan
+            kind: scan
+            label: a_very_long_relation_name_beyond_the_cap
+            parent: 4
+            position: [213.000000,96.000000]
+          - id: 2
+            engine-id: 4
+            path: 'inputs[2]'
+            type: tablescan
+            kind: scan
+            parent: 4
+            position: [394.250000,96.000000]
+          - id: 3
+            engine-id: 5
+            path: 'inputs[3]'
+            type: tablescan
+            kind: scan
+            parent: 4
+            position: [528.750000,96.000000]
+    operator-edges:
+      - child: 0
+        parent: 4
+        port-index: 0
+        port-count: 4
+      - child: 1
+        parent: 4
+        port-index: 1
+        port-count: 4
+      - child: 2
+        parent: 4
+        port-index: 2
+        port-count: 4
+      - child: 3
+        parent: 4
+        port-index: 3
+        port-count: 4
+    pipelines: []
+
+  - name: scan_label_from_attributes
+    input: |-
+      {"operator":"unionall","operatorId":1,"inputs":[{"operator":"scan","operatorId":2,"attributes":[{"defines":{"id":"lineitem.l_orderkey"}},{"defines":{"id":"lineitem.l_partkey"}}]},{"operator":"scan","operatorId":3,"attributes":[{"defines":{"id":"orders.o_orderkey"}},{"defines":{"id":"customer.c_custkey"}}]},{"operator":"scan","operatorId":4,"attributes":[{"defines":{"id":"nodot"}},{"defines":{"id":".leading"}}]},{"operator":"tablescan","operatorId":5,"attributes":[{"defines":{"id":"part.p_partkey"}}]},{"operator":"scan","operatorId":6,"debugName":{"value":"explicit"},"attributes":[{"defines":{"id":"part.p_partkey"}}]}]}
+    fragments: []
+    operators:
+      - id: 5
+        engine-id: 1
+        type: unionall
+        kind: union-all
+        position: [275.250000,32.000000]
+        children:
+          - id: 0
+            engine-id: 2
+            path: 'inputs[0]'
+            type: scan
+            kind: scan
+            label: lineitem
+            parent: 5
+            position: [53.000000,96.000000]
+          - id: 1
+            engine-id: 3
+            path: 'inputs[1]'
+            type: scan
+            kind: scan
+            parent: 5
+            position: [162.000000,96.000000]
+          - id: 2
+            engine-id: 4
+            path: 'inputs[2]'
+            type: scan
+            kind: scan
+            parent: 5
+            position: [254.000000,96.000000]
+          - id: 3
+            engine-id: 5
+            path: 'inputs[3]'
+            type: tablescan
+            kind: scan
+            parent: 5
+            position: [367.250000,96.000000]
+          - id: 4
+            engine-id: 6
+            path: 'inputs[4]'
+            type: scan
+            kind: scan
+            label: explicit
+            parent: 5
+            position: [497.500000,96.000000]
+    operator-edges:
+      - child: 0
+        parent: 5
+        port-index: 0
+        port-count: 5
+      - child: 1
+        parent: 5
+        port-index: 1
+        port-count: 5
+      - child: 2
+        parent: 5
+        port-index: 2
+        port-count: 5
+      - child: 3
+        parent: 5
+        port-index: 3
+        port-count: 5
+      - child: 4
+        parent: 5
+        port-index: 4
+        port-count: 5
+    pipelines: []
+
+  - name: sqlpos_variants
+    input: |-
+      {"operator":"unionall","operatorId":1,"sqlpos":[[10,20],[30,40]],"inputs":[{"operator":"tablescan","operatorId":2,"sqlpos":[[50,45]]},{"operator":"tablescan","operatorId":3,"sqlpos":[]},{"operator":"tablescan","operatorId":4,"sqlpos":[[7]]},{"operator":"tablescan","operatorId":5,"sqlpos":[[0,1]]}]}
+    fragments: []
+    operators:
+      - id: 4
+        engine-id: 1
+        type: unionall
+        kind: union-all
+        loc: 10..20
+        position: [259.000000,32.000000]
+        children:
+          - id: 0
+            engine-id: 2
+            path: 'inputs[0]'
+            type: tablescan
+            kind: scan
+            parent: 4
+            position: [57.250000,96.000000]
+          - id: 1
+            engine-id: 3
+            path: 'inputs[1]'
+            type: tablescan
+            kind: scan
+            parent: 4
+            position: [191.750000,96.000000]
+          - id: 2
+            engine-id: 4
+            path: 'inputs[2]'
+            type: tablescan
+            kind: scan
+            parent: 4
+            position: [326.250000,96.000000]
+          - id: 3
+            engine-id: 5
+            path: 'inputs[3]'
+            type: tablescan
+            kind: scan
+            loc: 0..1
+            parent: 4
+            position: [460.750000,96.000000]
+    operator-edges:
+      - child: 0
+        parent: 4
+        port-index: 0
+        port-count: 4
+      - child: 1
+        parent: 4
+        port-index: 1
+        port-count: 4
+      - child: 2
+        parent: 4
+        port-index: 2
+        port-count: 4
+      - child: 3
+        parent: 4
+        port-index: 3
+        port-count: 4
+    pipelines: []
+
+  - name: estimate_spellings
+    input: |-
+      {"operator":"unionall","operatorId":1,"cardinality":0,"inputs":[{"operator":"tablescan","operatorId":2,"estimated-rows":12.5},{"operator":"tablescan","operatorId":3,"estimatedRows":3},{"operator":"tablescan","operatorId":4,"statistics":{"estimated-rows":4.8375}},{"operator":"tablescan","operatorId":5,"cardinality":"many"},{"operator":"tablescan","operatorId":6},{"operator":"tablescan","operatorId":7,"estimated-rows":"x","cardinality":5}]}
+    fragments: []
+    operators:
+      - id: 6
+        engine-id: 1
+        type: unionall
+        kind: union-all
+        estimated-rows: 0
+        position: [393.500000,32.000000]
+        children:
+          - id: 0
+            engine-id: 2
+            path: 'inputs[0]'
+            type: tablescan
+            kind: scan
+            parent: 6
+            estimated-rows: 12.5
+            position: [57.250000,96.000000]
+          - id: 1
+            engine-id: 3
+            path: 'inputs[1]'
+            type: tablescan
+            kind: scan
+            parent: 6
+            estimated-rows: 3
+            position: [191.750000,96.000000]
+          - id: 2
+            engine-id: 4
+            path: 'inputs[2]'
+            type: tablescan
+            kind: scan
+            parent: 6
+            estimated-rows: 4.8375
+            position: [326.250000,96.000000]
+          - id: 3
+            engine-id: 5
+            path: 'inputs[3]'
+            type: tablescan
+            kind: scan
+            parent: 6
+            position: [460.750000,96.000000]
+          - id: 4
+            engine-id: 6
+            path: 'inputs[4]'
+            type: tablescan
+            kind: scan
+            parent: 6
+            position: [595.250000,96.000000]
+          - id: 5
+            engine-id: 7
+            path: 'inputs[5]'
+            type: tablescan
+            kind: scan
+            parent: 6
+            position: [729.750000,96.000000]
+    operator-edges:
+      - child: 0
+        parent: 6
+        port-index: 0
+        port-count: 6
+      - child: 1
+        parent: 6
+        port-index: 1
+        port-count: 6
+      - child: 2
+        parent: 6
+        port-index: 2
+        port-count: 6
+      - child: 3
+        parent: 6
+        port-index: 3
+        port-count: 6
+      - child: 4
+        parent: 6
+        port-index: 4
+        port-count: 6
+      - child: 5
+        parent: 6
+        port-index: 5
+        port-count: 6
+    pipelines: []
+
+  - name: wide_union
+    input: |-
+      {"operator":"executiontarget","operatorId":1,"input":{"operator":"unionall","operatorId":2,"inputs":[{"operator":"tablescan","operatorId":3},{"operator":"tablescan","operatorId":4},{"operator":"tablescan","operatorId":5},{"operator":"tablescan","operatorId":6},{"operator":"tablescan","operatorId":7},{"operator":"tablescan","operatorId":8},{"operator":"tablescan","operatorId":9},{"operator":"tablescan","operatorId":10},{"operator":"tablescan","operatorId":11},{"operator":"tablescan","operatorId":12}]}}
+    fragments:
+      - id: 0
+        root: 11
+        hidden: true
+        operators: [11,10,0,1,2,3,4,5,6,7,8,9]
+    operators:
+      - id: 11
+        engine-id: 1
+        type: executiontarget
+        position: [662.500000,32.000000]
+        children:
+          - id: 10
+            engine-id: 2
+            path: input
+            type: unionall
+            kind: union-all
+            parent: 11
+            position: [662.500000,96.000000]
+            children:
+              - id: 0
+                engine-id: 3
+                path: 'inputs[0]'
+                type: tablescan
+                kind: scan
+                parent: 10
+                position: [57.250000,160.000000]
+              - id: 1
+                engine-id: 4
+                path: 'inputs[1]'
+                type: tablescan
+                kind: scan
+                parent: 10
+                position: [191.750000,160.000000]
+              - id: 2
+                engine-id: 5
+                path: 'inputs[2]'
+                type: tablescan
+                kind: scan
+                parent: 10
+                position: [326.250000,160.000000]
+              - id: 3
+                engine-id: 6
+                path: 'inputs[3]'
+                type: tablescan
+                kind: scan
+                parent: 10
+                position: [460.750000,160.000000]
+              - id: 4
+                engine-id: 7
+                path: 'inputs[4]'
+                type: tablescan
+                kind: scan
+                parent: 10
+                position: [595.250000,160.000000]
+              - id: 5
+                engine-id: 8
+                path: 'inputs[5]'
+                type: tablescan
+                kind: scan
+                parent: 10
+                position: [729.750000,160.000000]
+              - id: 6
+                engine-id: 9
+                path: 'inputs[6]'
+                type: tablescan
+                kind: scan
+                parent: 10
+                position: [864.250000,160.000000]
+              - id: 7
+                engine-id: 10
+                path: 'inputs[7]'
+                type: tablescan
+                kind: scan
+                parent: 10
+                position: [998.750000,160.000000]
+              - id: 8
+                engine-id: 11
+                path: 'inputs[8]'
+                type: tablescan
+                kind: scan
+                parent: 10
+                position: [1133.250000,160.000000]
+              - id: 9
+                engine-id: 12
+                path: 'inputs[9]'
+                type: tablescan
+                kind: scan
+                parent: 10
+                position: [1267.750000,160.000000]
+    operator-edges:
+      - child: 0
+        parent: 10
+        port-index: 0
+        port-count: 10
+      - child: 1
+        parent: 10
+        port-index: 1
+        port-count: 10
+      - child: 2
+        parent: 10
+        port-index: 2
+        port-count: 10
+      - child: 3
+        parent: 10
+        port-index: 3
+        port-count: 10
+      - child: 4
+        parent: 10
+        port-index: 4
+        port-count: 10
+      - child: 5
+        parent: 10
+        port-index: 5
+        port-count: 10
+      - child: 6
+        parent: 10
+        port-index: 6
+        port-count: 10
+      - child: 7
+        parent: 10
+        port-index: 7
+        port-count: 10
+      - child: 8
+        parent: 10
+        port-index: 8
+        port-count: 10
+      - child: 9
+        parent: 10
+        port-index: 9
+        port-count: 10
+      - child: 10
+        parent: 11
+        port-index: 0
+        port-count: 1
+    pipelines: []
+
+  - name: deep_chain
+    input: |-
+      {"operator":"executiontarget","operatorId":1,"input":{"operator":"sort","operatorId":2,"input":{"operator":"map","operatorId":3,"input":{"operator":"select","operatorId":4,"input":{"operator":"groupby","operatorId":5,"input":{"operator":"map","operatorId":6,"input":{"operator":"select","operatorId":7,"input":{"operator":"window","operatorId":8,"input":{"operator":"map","operatorId":9,"input":{"operator":"select","operatorId":10,"input":{"operator":"map","operatorId":11,"input":{"operator":"select","operatorId":12,"input":{"operator":"tablescan","operatorId":13}}}}}}}}}}}}}
+    fragments:
+      - id: 0
+        root: 12
+        hidden: true
+        operators: [12,11,10,9,8,7,6,5,4,3,2,1,0]
+    operators:
+      - id: 12
+        engine-id: 1
+        type: executiontarget
+        position: [82.750000,32.000000]
+        children:
+          - id: 11
+            engine-id: 2
+            path: input
+            type: sort
+            kind: sort
+            parent: 12
+            position: [82.750000,96.000000]
+            children:
+              - id: 10
+                engine-id: 3
+                path: input
+                type: map
+                kind: project
+                parent: 11
+                position: [82.750000,160.000000]
+                children:
+                  - id: 9
+                    engine-id: 4
+                    path: input
+                    type: select
+                    kind: filter
+                    parent: 10
+                    position: [82.750000,224.000000]
+                    children:
+                      - id: 8
+                        engine-id: 5
+                        path: input
+                        type: groupby
+                        kind: aggregate
+                        parent: 9
+                        position: [82.750000,288.000000]
+                        children:
+                          - id: 7
+                            engine-id: 6
+                            path: input
+                            type: map
+                            kind: project
+                            parent: 8
+                            position: [82.750000,352.000000]
+                            children:
+                              - id: 6
+                                engine-id: 7
+                                path: input
+                                type: select
+                                kind: filter
+                                parent: 7
+                                position: [82.750000,416.000000]
+                                children:
+                                  - id: 5
+                                    engine-id: 8
+                                    path: input
+                                    type: window
+                                    kind: window
+                                    parent: 6
+                                    position: [82.750000,480.000000]
+                                    children:
+                                      - id: 4
+                                        engine-id: 9
+                                        path: input
+                                        type: map
+                                        kind: project
+                                        parent: 5
+                                        position: [82.750000,544.000000]
+                                        children:
+                                          - id: 3
+                                            engine-id: 10
+                                            path: input
+                                            type: select
+                                            kind: filter
+                                            parent: 4
+                                            position: [82.750000,608.000000]
+                                            children:
+                                              - id: 2
+                                                engine-id: 11
+                                                path: input
+                                                type: map
+                                                kind: project
+                                                parent: 3
+                                                position: [82.750000,672.000000]
+                                                children:
+                                                  - id: 1
+                                                    engine-id: 12
+                                                    path: input
+                                                    type: select
+                                                    kind: filter
+                                                    parent: 2
+                                                    position: [82.750000,736.000000]
+                                                    children:
+                                                      - id: 0
+                                                        engine-id: 13
+                                                        path: input
+                                                        type: tablescan
+                                                        kind: scan
+                                                        parent: 1
+                                                        position: [82.750000,800.000000]
+    operator-edges:
+      - child: 0
+        parent: 1
+        port-index: 0
+        port-count: 1
+      - child: 1
+        parent: 2
+        port-index: 0
+        port-count: 1
+      - child: 2
+        parent: 3
+        port-index: 0
+        port-count: 1
+      - child: 3
+        parent: 4
+        port-index: 0
+        port-count: 1
+      - child: 4
+        parent: 5
+        port-index: 0
+        port-count: 1
+      - child: 5
+        parent: 6
+        port-index: 0
+        port-count: 1
+      - child: 6
+        parent: 7
+        port-index: 0
+        port-count: 1
+      - child: 7
+        parent: 8
+        port-index: 0
+        port-count: 1
+      - child: 8
+        parent: 9
+        port-index: 0
+        port-count: 1
+      - child: 9
+        parent: 10
+        port-index: 0
+        port-count: 1
+      - child: 10
+        parent: 11
+        port-index: 0
+        port-count: 1
+      - child: 11
+        parent: 12
+        port-index: 0
+        port-count: 1
+    pipelines: []
+
+  - name: unbalanced_subtrees
+    input: |-
+      {"operator":"unionall","operatorId":1,"inputs":[{"operator":"join","operatorId":2,"left":{"operator":"join","operatorId":3,"left":{"operator":"tablescan","operatorId":4},"right":{"operator":"join","operatorId":5,"left":{"operator":"tablescan","operatorId":6},"right":{"operator":"tablescan","operatorId":7}}},"right":{"operator":"tablescan","operatorId":8}},{"operator":"tablescan","operatorId":9},{"operator":"join","operatorId":10,"left":{"operator":"tablescan","operatorId":11},"right":{"operator":"join","operatorId":12,"left":{"operator":"join","operatorId":13,"left":{"operator":"tablescan","operatorId":14},"right":{"operator":"tablescan","operatorId":15}},"right":{"operator":"tablescan","operatorId":16}}}]}
+    fragments: []
+    operators:
+      - id: 15
+        engine-id: 1
+        type: unionall
+        kind: union-all
+        position: [305.000000,32.000000]
+        children:
+          - id: 12
+            engine-id: 2
+            path: 'inputs[0]'
+            type: join
+            kind: join
+            parent: 15
+            position: [170.500000,96.000000]
+            children:
+              - id: 4
+                engine-id: 3
+                path: left
+                type: join
+                kind: join
+                parent: 12
+                position: [113.875000,160.000000]
+                children:
+                  - id: 2
+                    engine-id: 4
+                    path: left
+                    type: tablescan
+                    kind: scan
+                    parent: 4
+                    position: [57.250000,224.000000]
+                  - id: 3
+                    engine-id: 5
+                    path: right
+                    type: join
+                    kind: join
+                    parent: 4
+                    position: [170.500000,224.000000]
+                    children:
+                      - id: 0
+                        engine-id: 6
+                        path: left
+                        type: tablescan
+                        kind: scan
+                        parent: 3
+                        position: [103.250000,288.000000]
+                      - id: 1
+                        engine-id: 7
+                        path: right
+                        type: tablescan
+                        kind: scan
+                        parent: 3
+                        position: [237.750000,288.000000]
+              - id: 5
+                engine-id: 8
+                path: right
+                type: tablescan
+                kind: scan
+                parent: 12
+                position: [227.125000,160.000000]
+          - id: 13
+            engine-id: 9
+            path: 'inputs[1]'
+            type: tablescan
+            kind: scan
+            parent: 15
+            position: [305.000000,96.000000]
+          - id: 14
+            engine-id: 10
+            path: 'inputs[2]'
+            type: join
+            kind: join
+            parent: 15
+            position: [439.500000,96.000000]
+            children:
+              - id: 10
+                engine-id: 11
+                path: left
+                type: tablescan
+                kind: scan
+                parent: 14
+                position: [382.875000,160.000000]
+              - id: 11
+                engine-id: 12
+                path: right
+                type: join
+                kind: join
+                parent: 14
+                position: [496.125000,160.000000]
+                children:
+                  - id: 8
+                    engine-id: 13
+                    path: left
+                    type: join
+                    kind: join
+                    parent: 11
+                    position: [439.500000,224.000000]
+                    children:
+                      - id: 6
+                        engine-id: 14
+                        path: left
+                        type: tablescan
+                        kind: scan
+                        parent: 8
+                        position: [372.250000,288.000000]
+                      - id: 7
+                        engine-id: 15
+                        path: right
+                        type: tablescan
+                        kind: scan
+                        parent: 8
+                        position: [506.750000,288.000000]
+                  - id: 9
+                    engine-id: 16
+                    path: right
+                    type: tablescan
+                    kind: scan
+                    parent: 11
+                    position: [552.750000,224.000000]
+    operator-edges:
+      - child: 0
+        parent: 3
+        port-index: 0
+        port-count: 2
+      - child: 1
+        parent: 3
+        port-index: 1
+        port-count: 2
+      - child: 2
+        parent: 4
+        port-index: 0
+        port-count: 2
+      - child: 3
+        parent: 4
+        port-index: 1
+        port-count: 2
+      - child: 6
+        parent: 8
+        port-index: 0
+        port-count: 2
+      - child: 7
+        parent: 8
+        port-index: 1
+        port-count: 2
+      - child: 8
+        parent: 11
+        port-index: 0
+        port-count: 2
+      - child: 9
+        parent: 11
+        port-index: 1
+        port-count: 2
+      - child: 4
+        parent: 12
+        port-index: 0
+        port-count: 2
+      - child: 5
+        parent: 12
+        port-index: 1
+        port-count: 2
+      - child: 10
+        parent: 14
+        port-index: 0
+        port-count: 2
+      - child: 11
+        parent: 14
+        port-index: 1
+        port-count: 2
+      - child: 12
+        parent: 15
+        port-index: 0
+        port-count: 3
+      - child: 13
+        parent: 15
+        port-index: 1
+        port-count: 3
+      - child: 14
+        parent: 15
+        port-index: 2
+        port-count: 3
+    pipelines: []
+
+  - name: pipeline_edge_cases
+    input: |-
+      {"operator":"executiontarget","operatorId":1,"input":{"operator":"join","operatorId":2,"left":{"operator":"tablescan","operatorId":3},"right":{"operator":"tablescan","operatorId":4}},"pipelines":[{"pipelineId":1,"operators":[3,99,2]},{"pipelineId":2,"operators":[4,2,4,1]},{"operators":[1]},{"pipelineId":3,"operators":[]},{"pipelineId":4},"not a pipeline"]}
+    fragments:
+      - id: 0
+        root: 3
+        hidden: true
+        operators: [3,2,0,1]
+    operators:
+      - id: 3
+        engine-id: 1
+        type: executiontarget
+        position: [124.500000,32.000000]
+        children:
+          - id: 2
+            engine-id: 2
+            path: input
+            type: join
+            kind: join
+            parent: 3
+            position: [124.500000,96.000000]
+            children:
+              - id: 0
+                engine-id: 3
+                path: left
+                type: tablescan
+                kind: scan
+                parent: 2
+                position: [57.250000,160.000000]
+              - id: 1
+                engine-id: 4
+                path: right
+                type: tablescan
+                kind: scan
+                parent: 2
+                position: [191.750000,160.000000]
+    operator-edges:
+      - child: 0
+        parent: 2
+        port-index: 0
+        port-count: 2
+        slot: 0
+      - child: 1
+        parent: 2
+        port-index: 1
+        port-count: 2
+        slot: 2
+      - child: 2
+        parent: 3
+        port-index: 0
+        port-count: 1
+        slot: 3
+    pipelines:
+      - id: 0
+        engine-id: 1
+        fragment: 0
+        slots:
+          - slot: 0
+            operator: 0
+            role: source
+          - slot: 1
+            operator: 2
+            role: sink
+      - id: 1
+        engine-id: 2
+        fragment: 0
+        slots:
+          - slot: 2
+            operator: 1
+            role: source
+          - slot: 3
+            operator: 2
+            role: through
+          - slot: 4
+            operator: 3
+            role: sink
+      - id: 2
+        fragment: 0
+        slots:
+          - slot: 5
+            operator: 3
+            role: source
+      - id: 3
+        engine-id: 3
+        slots: []
+      - id: 4
+        engine-id: 4
+        slots: []
+
+  - name: pipelines_without_fragments
+    input: |-
+      {"operator":"map","operatorId":1,"input":{"operator":"tablescan","operatorId":2},"pipelines":[{"pipelineId":7,"operators":[1,2]}]}
+    fragments: []
+    operators:
+      - id: 1
+        engine-id: 1
+        type: map
+        kind: project
+        position: [57.250000,32.000000]
+        children:
+          - id: 0
+            engine-id: 2
+            path: input
+            type: tablescan
+            kind: scan
+            parent: 1
+            position: [57.250000,96.000000]
+    operator-edges:
+      - child: 0
+        parent: 1
+        port-index: 0
+        port-count: 1
+        slot: 1
+    pipelines:
+      - id: 0
+        engine-id: 7
+        slots:
+          - slot: 0
+            operator: 1
+            role: sink
+          - slot: 1
+            operator: 0
+            role: source
+
+  - name: pipelines_not_an_array
+    input: |-
+      {"operator":"executiontarget","operatorId":1,"input":{"operator":"tablescan","operatorId":2},"pipelines":{"pipelineId":1,"operators":[2,1]}}
+    fragments:
+      - id: 0
+        root: 1
+        hidden: true
+        operators: [1,0]
+    operators:
+      - id: 1
+        engine-id: 1
+        type: executiontarget
+        position: [82.750000,32.000000]
+        children:
+          - id: 0
+            engine-id: 2
+            path: input
+            type: tablescan
+            kind: scan
+            parent: 1
+            position: [82.750000,96.000000]
+    operator-edges:
+      - child: 0
+        parent: 1
+        port-index: 0
+        port-count: 1
+    pipelines: []
+
+  - name: duplicate_operator_ids
+    input: |-
+      {"operator":"executiontarget","operatorId":1,"input":{"operator":"join","operatorId":2,"left":{"operator":"tablescan","operatorId":3},"right":{"operator":"tablescan","operatorId":3}},"pipelines":[{"pipelineId":1,"operators":[3,2,1]}]}
+    fragments:
+      - id: 0
+        root: 3
+        hidden: true
+        operators: [3,2,0,1]
+    operators:
+      - id: 3
+        engine-id: 1
+        type: executiontarget
+        position: [124.500000,32.000000]
+        children:
+          - id: 2
+            engine-id: 2
+            path: input
+            type: join
+            kind: join
+            parent: 3
+            position: [124.500000,96.000000]
+            children:
+              - id: 0
+                engine-id: 3
+                path: left
+                type: tablescan
+                kind: scan
+                parent: 2
+                position: [57.250000,160.000000]
+              - id: 1
+                engine-id: 3
+                path: right
+                type: tablescan
+                kind: scan
+                parent: 2
+                position: [191.750000,160.000000]
+    operator-edges:
+      - child: 0
+        parent: 2
+        port-index: 0
+        port-count: 2
+        slot: 0
+      - child: 1
+        parent: 2
+        port-index: 1
+        port-count: 2
+      - child: 2
+        parent: 3
+        port-index: 0
+        port-count: 1
+        slot: 1
+    pipelines:
+      - id: 0
+        engine-id: 1
+        fragment: 0
+        slots:
+          - slot: 0
+            operator: 0
+            role: source
+          - slot: 1
+            operator: 2
+            role: through
+          - slot: 2
+            operator: 3
+            role: sink
+
+  - name: analyzed_single_operator
+    input: |-
+      {"operator":"tablescan","operatorId":1,"statistics":{"processed-rows":100,"output-rows":40,"memory-bytes":2048}}
+    fragments: []
+    operators:
+      - id: 0
+        engine-id: 1
+        type: tablescan
+        kind: scan
+        position: [57.250000,32.000000]
+    operator-edges: []
+    pipelines: []
+    events:
+      - time: 0
+        entity: operator
+        index: 0
+        tuples-in: 100
+        tuples-out: 40
+        memory-bytes: 2048
+
+  - name: analyzed_zero_counters
+    input: |-
+      {"operator":"executiontarget","operatorId":1,"statistics":{"output-rows":0},"input":{"operator":"select","operatorId":2,"statistics":{"processed-rows":0,"output-rows":0,"memory-bytes":0},"input":{"operator":"tablescan","operatorId":3,"statistics":{"processed-rows":0,"output-rows":0}}}}
+    fragments:
+      - id: 0
+        root: 2
+        hidden: true
+        operators: [2,1,0]
+    operators:
+      - id: 2
+        engine-id: 1
+        type: executiontarget
+        position: [82.750000,32.000000]
+        children:
+          - id: 1
+            engine-id: 2
+            path: input
+            type: select
+            kind: filter
+            parent: 2
+            position: [82.750000,96.000000]
+            children:
+              - id: 0
+                engine-id: 3
+                path: input
+                type: tablescan
+                kind: scan
+                parent: 1
+                position: [82.750000,160.000000]
+    operator-edges:
+      - child: 0
+        parent: 1
+        port-index: 0
+        port-count: 1
+      - child: 1
+        parent: 2
+        port-index: 0
+        port-count: 1
+    pipelines: []
+    events:
+      - time: 0
+        entity: query
+        tuples-out: 0
+        memory-bytes: 0
+      - time: 0
+        entity: fragment
+        index: 0
+        tuples-out: 0
+        memory-bytes: 0
+      - time: 0
+        entity: operator
+        index: 0
+        tuples-in: 0
+        tuples-out: 0
+      - time: 0
+        entity: operator
+        index: 1
+        tuples-in: 0
+        tuples-out: 0
+        memory-bytes: 0
+      - time: 0
+        entity: operator
+        index: 2
+        tuples-out: 0
+
+  - name: analyzed_partial_counters
+    input: |-
+      {"operator":"executiontarget","operatorId":1,"input":{"operator":"join","operatorId":2,"statistics":{"processedRows":30,"outputRows":12,"memoryBytes":512},"left":{"operator":"tablescan","operatorId":3,"output-rows":10},"right":{"operator":"tablescan","operatorId":4}}}
+    fragments:
+      - id: 0
+        root: 3
+        hidden: true
+        operators: [3,2,0,1]
+    operators:
+      - id: 3
+        engine-id: 1
+        type: executiontarget
+        position: [124.500000,32.000000]
+        children:
+          - id: 2
+            engine-id: 2
+            path: input
+            type: join
+            kind: join
+            parent: 3
+            position: [124.500000,96.000000]
+            children:
+              - id: 0
+                engine-id: 3
+                path: left
+                type: tablescan
+                kind: scan
+                parent: 2
+                position: [57.250000,160.000000]
+              - id: 1
+                engine-id: 4
+                path: right
+                type: tablescan
+                kind: scan
+                parent: 2
+                position: [191.750000,160.000000]
+    operator-edges:
+      - child: 0
+        parent: 2
+        port-index: 0
+        port-count: 2
+      - child: 1
+        parent: 2
+        port-index: 1
+        port-count: 2
+      - child: 2
+        parent: 3
+        port-index: 0
+        port-count: 1
+    pipelines: []
+    events:
+      - time: 0
+        entity: query
+        memory-bytes: 512
+      - time: 0
+        entity: fragment
+        index: 0
+        memory-bytes: 512
+      - time: 0
+        entity: operator
+        index: 0
+        tuples-out: 10
+      - time: 0
+        entity: operator
+        index: 2
+        tuples-in: 30
+        tuples-out: 12
+        memory-bytes: 512
+
+  - name: analyzed_statistics_object_wins
+    input: |-
+      {"operator":"tablescan","operatorId":1,"output-rows":99,"statistics":{"processed-rows":5}}
+    fragments: []
+    operators:
+      - id: 0
+        engine-id: 1
+        type: tablescan
+        kind: scan
+        position: [57.250000,32.000000]
+    operator-edges: []
+    pipelines: []
+    events:
+      - time: 0
+        entity: operator
+        index: 0
+        tuples-in: 5
+
+  - name: analyzed_invalid_counters
+    input: |-
+      {"operator":"executiontarget","operatorId":1,"statistics":{"output-rows":-1},"input":{"operator":"tablescan","operatorId":2,"statistics":{"processed-rows":2.5,"output-rows":"3","memory-bytes":null}}}
+    fragments:
+      - id: 0
+        root: 1
+        hidden: true
+        operators: [1,0]
+    operators:
+      - id: 1
+        engine-id: 1
+        type: executiontarget
+        position: [82.750000,32.000000]
+        children:
+          - id: 0
+            engine-id: 2
+            path: input
+            type: tablescan
+            kind: scan
+            parent: 1
+            position: [82.750000,96.000000]
+    operator-edges:
+      - child: 0
+        parent: 1
+        port-index: 0
+        port-count: 1
+    pipelines: []
+
+  - name: analyzed_with_federate
+    input: |-
+      {"operator":"executiontarget","operatorId":1,"statistics":{"output-rows":5},"input":{"operator":"groupby","operatorId":2,"statistics":{"processed-rows":50,"output-rows":5,"memory-bytes":1024},"input":{"operator":"federate","operatorId":3,"statistics":{"output-rows":50},"inputs":[{"operator":"tablescan","operatorId":4,"statistics":{"processed-rows":200,"output-rows":50,"memory-bytes":64}}]}}}
+    fragments:
+      - id: 0
+        root: 3
+        hidden: true
+        operators: [3,2]
+      - id: 1
+        parent: 0
+        root: 1
+        operators: [1,0]
+    operators:
+      - id: 3
+        engine-id: 1
+        type: executiontarget
+        position: [82.750000,32.000000]
+        children:
+          - id: 2
+            engine-id: 2
+            path: input
+            type: groupby
+            kind: aggregate
+            parent: 3
+            position: [82.750000,96.000000]
+            children:
+              - id: 1
+                engine-id: 3
+                path: input
+                type: federate
+                parent: 2
+                position: [82.750000,160.000000]
+                children:
+                  - id: 0
+                    engine-id: 4
+                    path: 'inputs[0]'
+                    type: tablescan
+                    kind: scan
+                    parent: 1
+                    position: [82.750000,224.000000]
+    operator-edges:
+      - child: 0
+        parent: 1
+        port-index: 0
+        port-count: 1
+      - child: 1
+        parent: 2
+        port-index: 0
+        port-count: 1
+      - child: 2
+        parent: 3
+        port-index: 0
+        port-count: 1
+    pipelines: []
+    events:
+      - time: 0
+        entity: query
+        tuples-out: 5
+        memory-bytes: 1088
+      - time: 0
+        entity: fragment
+        index: 0
+        tuples-out: 5
+        memory-bytes: 1024
+      - time: 0
+        entity: fragment
+        index: 1
+        tuples-out: 50
+        memory-bytes: 64
+      - time: 0
+        entity: operator
+        index: 0
+        tuples-in: 200
+        tuples-out: 50
+        memory-bytes: 64
+      - time: 0
+        entity: operator
+        index: 1
+        tuples-out: 50
+      - time: 0
+        entity: operator
+        index: 2
+        tuples-in: 50
+        tuples-out: 5
+        memory-bytes: 1024
+      - time: 0
+        entity: operator
+        index: 3
+        tuples-out: 5
+
+  - name: analyzed_with_pipelines
+    input: |-
+      {"operator":"executiontarget","operatorId":1,"statistics":{"output-rows":8},"input":{"operator":"join","operatorId":2,"statistics":{"processed-rows":120,"output-rows":8,"memory-bytes":4096},"left":{"operator":"tablescan","operatorId":3,"statistics":{"output-rows":100}},"right":{"operator":"tablescan","operatorId":4,"statistics":{"output-rows":20}}},"pipelines":[{"pipelineId":1,"operators":[3,2]},{"pipelineId":2,"operators":[4,2,1]}]}
+    fragments:
+      - id: 0
+        root: 3
+        hidden: true
+        operators: [3,2,0,1]
+    operators:
+      - id: 3
+        engine-id: 1
+        type: executiontarget
+        position: [124.500000,32.000000]
+        children:
+          - id: 2
+            engine-id: 2
+            path: input
+            type: join
+            kind: join
+            parent: 3
+            position: [124.500000,96.000000]
+            children:
+              - id: 0
+                engine-id: 3
+                path: left
+                type: tablescan
+                kind: scan
+                parent: 2
+                position: [57.250000,160.000000]
+              - id: 1
+                engine-id: 4
+                path: right
+                type: tablescan
+                kind: scan
+                parent: 2
+                position: [191.750000,160.000000]
+    operator-edges:
+      - child: 0
+        parent: 2
+        port-index: 0
+        port-count: 2
+        slot: 0
+      - child: 1
+        parent: 2
+        port-index: 1
+        port-count: 2
+        slot: 2
+      - child: 2
+        parent: 3
+        port-index: 0
+        port-count: 1
+        slot: 3
+    pipelines:
+      - id: 0
+        engine-id: 1
+        fragment: 0
+        slots:
+          - slot: 0
+            operator: 0
+            role: source
+          - slot: 1
+            operator: 2
+            role: sink
+      - id: 1
+        engine-id: 2
+        fragment: 0
+        slots:
+          - slot: 2
+            operator: 1
+            role: source
+          - slot: 3
+            operator: 2
+            role: through
+          - slot: 4
+            operator: 3
+            role: sink
+    events:
+      - time: 0
+        entity: query
+        tuples-out: 8
+        memory-bytes: 4096
+      - time: 0
+        entity: fragment
+        index: 0
+        tuples-out: 8
+        memory-bytes: 4096
+      - time: 0
+        entity: operator
+        index: 0
+        tuples-out: 100
+      - time: 0
+        entity: operator
+        index: 1
+        tuples-out: 20
+      - time: 0
+        entity: operator
+        index: 2
+        tuples-in: 120
+        tuples-out: 8
+        memory-bytes: 4096
+      - time: 0
+        entity: operator
+        index: 3
+        tuples-out: 8

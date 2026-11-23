@@ -1,0 +1,238 @@
+progress-snapshots:
+  # Status rollups. The join plan of join_in_two_pipelines: operators 0 build scan, 1 probe scan, 2 join,
+  # 3 execution target; slots 0 build scan, 1 join (sink), 2 probe scan, 3 join (through), 4 execution target (sink).
+  # A failed slot fails its pipeline, its operator, the fragment and the query; the join is still running.
+  - name: failed_slot_fails_the_query
+    plan: |-
+      {"operator":"executiontarget","operatorId":1,
+       "input":{"operator":"join","operatorId":2,
+         "left":{"operator":"tablescan","operatorId":3},
+         "right":{"operator":"tablescan","operatorId":4}},
+       "pipelines":[{"pipelineId":1,"operators":[3,2]},{"pipelineId":2,"operators":[4,2,1]}]}
+    events: |-
+      [
+        {"type":"updateSlot","time":1,"slot":0,"status":"succeeded"},
+        {"type":"updateSlot","time":1,"slot":1,"status":"succeeded"},
+        {"type":"updateSlot","time":2,"slot":2,"status":"failed"},
+        {"type":"updateSlot","time":2,"slot":3,"status":"running"},
+        {"type":"updateSlot","time":2,"slot":4,"status":"pending"}
+      ]
+  # A reported status wins over the rollup, also over failed children
+  - name: reported_status_wins_over_failed_children
+    plan: |-
+      {"operator":"executiontarget","operatorId":1,"input":{"operator":"tablescan","operatorId":2}}
+    events: |-
+      [
+        {"type":"updateOperator","time":1,"operator":0,"status":"failed"},
+        {"type":"updateOperator","time":1,"operator":1,"status":"running"},
+        {"type":"updateQuery","time":2,"status":"succeeded"},
+        {"type":"updateFragment","time":3,"fragment":0,"status":"skipped"}
+      ]
+  # Skipped children: all skipped is skipped, skipped and succeeded is succeeded, one pending child more is running
+  - name: skipped_children
+    plan: |-
+      {"operator":"executiontarget","input":{"operator":"unionall","inputs":[{"operator":"tablescan"},{"operator":"tablescan"},{"operator":"tablescan"}]}}
+    events: |-
+      [
+        {"type":"updateOperator","time":1,"operator":0,"status":"skipped"},
+        {"type":"updateOperator","time":1,"operator":1,"status":"skipped"},
+        {"type":"updateOperator","time":1,"operator":2,"status":"skipped"},
+        {"type":"updateOperator","time":2,"operator":3,"status":"succeeded"},
+        {"type":"updateOperator","time":3,"operator":4,"status":"pending"}
+      ]
+  # Only pending children: pending, until one of them runs
+  - name: pending_children
+    plan: |-
+      {"operator":"executiontarget","input":{"operator":"unionall","inputs":[{"operator":"tablescan"},{"operator":"tablescan"}]}}
+    events: |-
+      [
+        {"type":"updateOperator","time":1,"operator":0,"status":"pending"},
+        {"type":"updateOperator","time":1,"operator":1,"status":"pending"},
+        {"type":"updateOperator","time":2,"operator":1,"status":"running"}
+      ]
+  # The children without a status do not count: one succeeded child of many unknown ones is succeeded
+  - name: unknown_children_do_not_count
+    plan: |-
+      {"operator":"executiontarget","input":{"operator":"unionall","inputs":[{"operator":"tablescan"},{"operator":"tablescan"}]}}
+    events: |-
+      [
+        {"type":"updateOperator","time":1,"operator":0,"status":"succeeded","stats":{"tuplesOut":4}}
+      ]
+
+  # Statistics rollups
+  # Every statistics field on one operator, a second operator with a part of them: times, memory and work are summed,
+  # the earliest start wins, the fragment finishes when all operators finished, at the latest finish
+  - name: all_statistics_fields
+    plan: |-
+      {"operator":"executiontarget","input":{"operator":"tablescan"}}
+    events: |-
+      [
+        {"type":"updateOperator","time":1,"operator":0,"status":"succeeded","stats":{
+          "startedAt":10,"finishedAt":20,"tuplesIn":100,"tuplesOut":50,"bytesIn":4000,"bytesOut":2000,
+          "cpuTimeUs":300,"wallTimeUs":400,"blockedTimeUs":50,"memoryBytes":1024,"spilledBytes":512,
+          "workDone":3,"workTotal":4}},
+        {"type":"updateOperator","time":1,"operator":1,"status":"running","stats":{
+          "startedAt":15,"tuplesIn":50,"tuplesOut":50,"cpuTimeUs":5,"memoryBytes":64,"workDone":1,"workTotal":1}},
+        {"type":"updateOperator","time":2,"operator":1,"status":"succeeded","stats":{"finishedAt":25}}
+      ]
+  # Zero is a reported value: it is shown and rolled up, unlike a missing field
+  - name: zero_statistics
+    plan: |-
+      {"operator":"executiontarget","input":{"operator":"tablescan"}}
+    events: |-
+      [
+        {"type":"updateOperator","time":1,"operator":0,"stats":{"tuplesIn":0,"tuplesOut":0,"cpuTimeUs":0,"memoryBytes":0}},
+        {"type":"updateOperator","time":1,"operator":1,"stats":{"tuplesOut":0}}
+      ]
+  # A pipeline finishes when all of its slots finished: the latest finish of the slots, the earliest start
+  - name: pipeline_finishes_with_its_last_slot
+    plan: |-
+      {"operator":"executiontarget","operatorId":1,"input":{"operator":"map","operatorId":2,"input":{"operator":"tablescan","operatorId":3}},
+       "pipelines":[{"pipelineId":1,"operators":[3,2,1]}]}
+    events: |-
+      [
+        {"type":"updateSlot","time":1,"slot":0,"status":"succeeded","stats":{"startedAt":7,"finishedAt":9,"tuplesIn":10,"tuplesOut":10}},
+        {"type":"updateSlot","time":1,"slot":1,"status":"running","stats":{"startedAt":5,"tuplesIn":10,"tuplesOut":10}},
+        {"type":"updateSlot","time":2,"slot":1,"status":"succeeded","stats":{"finishedAt":8}},
+        {"type":"updateSlot","time":3,"slot":2,"status":"succeeded","stats":{"startedAt":6,"finishedAt":12,"tuplesIn":10,"tuplesOut":10}}
+      ]
+  # Reported statistics of a fragment and of the query win field by field, the rest is rolled up
+  - name: reported_statistics_win_field_by_field
+    plan: |-
+      {"operator":"executiontarget","input":{"operator":"tablescan"}}
+    events: |-
+      [
+        {"type":"updateOperator","time":1,"operator":0,"stats":{"tuplesOut":10,"cpuTimeUs":100,"memoryBytes":8}},
+        {"type":"updateOperator","time":1,"operator":1,"stats":{"tuplesOut":10,"cpuTimeUs":1}},
+        {"type":"updateFragment","time":2,"fragment":0,"stats":{"cpuTimeUs":500}},
+        {"type":"updateQuery","time":3,"stats":{"tuplesOut":11,"workTotal":2}}
+      ]
+  # Counters near the maximum saturate when they are summed
+  - name: saturating_counters
+    plan: |-
+      {"operator":"executiontarget","input":{"operator":"tablescan"}}
+    events: |-
+      [
+        {"type":"updateOperator","time":1,"operator":0,"stats":{"cpuTimeUs":18446744073709551615}},
+        {"type":"updateOperator","time":1,"operator":1,"stats":{"cpuTimeUs":2}}
+      ]
+  # A plan without fragments: the operators have no fragment and nothing rolls up to the query
+  - name: plan_without_fragments
+    plan: |-
+      {"operator":"map","input":{"operator":"tablescan"}}
+    events: |-
+      [
+        {"type":"updateOperator","time":1,"operator":0,"status":"succeeded","stats":{"tuplesOut":3}},
+        {"type":"updateOperator","time":1,"operator":1,"status":"running","stats":{"tuplesOut":2}}
+      ]
+  # The query output is the output of the top-level fragments only: two execution targets, a federate below one
+  - name: query_output_from_top_level_fragments
+    plan: |-
+      [{"operator":"executiontarget","input":{"operator":"federate","inputs":[{"operator":"tablescan"}]}},
+       {"operator":"executiontarget","input":{"operator":"tablescan"}}]
+    events: |-
+      [
+        {"type":"updateOperator","time":1,"operator":0,"stats":{"tuplesOut":100}},
+        {"type":"updateOperator","time":1,"operator":1,"stats":{"tuplesOut":10}},
+        {"type":"updateOperator","time":1,"operator":2,"stats":{"tuplesOut":7}},
+        {"type":"updateOperator","time":1,"operator":3,"stats":{"tuplesOut":2}},
+        {"type":"updateOperator","time":1,"operator":4,"stats":{"tuplesOut":3}}
+      ]
+
+  # Event order
+  # No events, no updates
+  - name: no_events
+    plan: |-
+      {"operator":"executiontarget","input":{"operator":"tablescan"}}
+    events: |-
+      []
+  # A later report replaces an earlier one, also when the status goes back or a counter shrinks
+  - name: non_monotonic_reports
+    plan: |-
+      {"operator":"executiontarget","input":{"operator":"tablescan"}}
+    events: |-
+      [
+        {"type":"updateOperator","time":1,"operator":0,"status":"succeeded","stats":{"tuplesOut":10,"finishedAt":5}},
+        {"type":"updateOperator","time":2,"operator":0,"status":"running","stats":{"tuplesOut":4}},
+        {"type":"updateOperator","time":3,"operator":0,"status":"unknown"}
+      ]
+  # Batches are consecutive events with the same time, an update carries the time of its batch, even if it is older
+  - name: out_of_order_times
+    plan: |-
+      {"operator":"executiontarget","input":{"operator":"tablescan"}}
+    events: |-
+      [
+        {"type":"updateOperator","time":5,"operator":0,"status":"running","stats":{"tuplesOut":1}},
+        {"type":"updateOperator","time":3,"operator":0,"stats":{"tuplesOut":2}},
+        {"type":"updateOperator","time":5,"operator":0,"stats":{"tuplesOut":2}},
+        {"type":"updateOperator","time":5,"operator":1,"status":"running"}
+      ]
+  # Two reports of the same entity in one batch: the last one wins and only the final state is an update
+  - name: same_batch_overwrites
+    plan: |-
+      {"operator":"executiontarget","input":{"operator":"tablescan"}}
+    events: |-
+      [
+        {"type":"updateOperator","time":1,"operator":0,"status":"running","stats":{"tuplesOut":1}},
+        {"type":"updateOperator","time":1,"operator":0,"status":"succeeded","stats":{"tuplesOut":9}}
+      ]
+  # Events that reference unknown entities are ignored
+  - name: unknown_entities_are_ignored
+    plan: |-
+      {"operator":"executiontarget","input":{"operator":"tablescan"}}
+    events: |-
+      [
+        {"type":"updateOperator","time":1,"operator":9,"status":"failed"},
+        {"type":"updateSlot","time":1,"slot":0,"status":"failed"},
+        {"type":"updatePipeline","time":1,"pipeline":0,"status":"failed"},
+        {"type":"updateFragment","time":1,"fragment":1,"status":"failed"},
+        {"type":"registerFragment","time":2,"engineId":"x","parentFragment":5},
+        {"type":"registerPipeline","time":2,"engineId":"y","fragment":3,"slots":[{"operator":0,"role":"source"}]},
+        {"type":"registerPipeline","time":2,"engineId":"z","slots":[{"operator":7,"role":"source"}]},
+        {"type":"updateSlot","time":2,"slot":0,"status":"failed"},
+        {"type":"updateOperator","time":3,"operator":0,"status":"running"}
+      ]
+
+  # Structure registered at runtime
+  # A pipeline without fragment rolls up to its operators only, an operator listed twice gets one slot with its first
+  # role (so the pipeline "twice" has the slots 2 and 3, and slot 4 does not exist)
+  - name: register_pipeline_edge_cases
+    plan: |-
+      {"operator":"executiontarget","input":{"operator":"map","input":{"operator":"tablescan"}}}
+    events: |-
+      [
+        {"type":"registerPipeline","time":1,"engineId":"loose",
+         "slots":[{"operator":0,"role":"source"},{"operator":1,"role":"sink"}]},
+        {"type":"registerPipeline","time":1,"engineId":"twice","fragment":0,
+         "slots":[{"operator":1,"role":"source"},{"operator":1,"role":"through"},{"operator":2,"role":"sink"}]},
+        {"type":"updateSlot","time":1,"slot":0,"status":"succeeded","stats":{"tuplesIn":5,"tuplesOut":5}},
+        {"type":"updateSlot","time":1,"slot":1,"status":"succeeded","stats":{"tuplesIn":5,"tuplesOut":0}},
+        {"type":"updateSlot","time":2,"slot":2,"status":"running","stats":{"tuplesIn":5,"tuplesOut":5}},
+        {"type":"updateSlot","time":2,"slot":3,"status":"running","stats":{"tuplesIn":5,"tuplesOut":1}},
+        {"type":"updateSlot","time":2,"slot":4,"status":"failed"}
+      ]
+  # Fragments registered at runtime nest; the query counts the work of all, the output of the top-level ones only
+  - name: register_fragment_hierarchy
+    plan: |-
+      {}
+    events: |-
+      [
+        {"type":"registerFragment","time":1,"engineId":"0"},
+        {"type":"registerFragment","time":1,"engineId":"1","parentFragment":0},
+        {"type":"registerFragment","time":1,"engineId":"2","parentFragment":1},
+        {"type":"registerFragment","time":1,"engineId":"3"},
+        {"type":"updateFragment","time":2,"fragment":0,"status":"running","stats":{"tuplesOut":1,"workDone":0,"workTotal":1}},
+        {"type":"updateFragment","time":2,"fragment":1,"status":"succeeded","stats":{"tuplesOut":10,"workDone":2,"workTotal":2}},
+        {"type":"updateFragment","time":2,"fragment":2,"status":"failed","stats":{"tuplesOut":100,"workDone":1,"workTotal":4}},
+        {"type":"updateFragment","time":2,"fragment":3,"status":"pending","stats":{"tuplesOut":5}}
+      ]
+  # Query statistics without any fragment (a Trino query while it is queued)
+  - name: query_without_structure
+    plan: |-
+      {}
+    events: |-
+      [
+        {"type":"updateQuery","time":1,"status":"pending"},
+        {"type":"updateQuery","time":2,"status":"running","stats":{"workDone":0,"workTotal":0,"cpuTimeUs":0}},
+        {"type":"updateQuery","time":3,"status":"failed","stats":{"workDone":2,"workTotal":5}}
+      ]

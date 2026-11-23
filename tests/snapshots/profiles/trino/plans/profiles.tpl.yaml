@@ -24,3 +24,23 @@ trino-profile-snapshots:
   - name: failed_cast
     recording: failed_cast
     source: query-info
+  # Hand-written recordings (handwritten_*.json) for the edge cases of the plan parser and the QueryInfo adapter.
+  # The kinds of exchanges and set operations, a source fragment that does not exist, a fragment read twice,
+  # a second root fragment, nodes without id or name, and estimates that are no numbers
+  - name: handwritten_plan_shapes
+    recording: handwritten_plan_shapes
+    source: explain
+  # Two root fragments packed side by side when the plan grows left-to-right
+  - name: handwritten_plan_shapes_left_to_right
+    recording: handwritten_plan_shapes
+    source: explain
+    layout: left-to-right
+  # Operator summaries: several Trino operators per plan node (out of operator order), plan nodes that the plan does
+  # not have, a pipeline of one operator, durations and data sizes of every unit
+  - name: handwritten_operator_summaries_explain
+    recording: handwritten_operator_summaries
+    source: explain
+  # The same from the stage plans of the final QueryInfo, with a stage without plan and a stage without id
+  - name: handwritten_operator_summaries_query_info
+    recording: handwritten_operator_summaries
+    source: query-info

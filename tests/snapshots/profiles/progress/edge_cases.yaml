@@ -1,0 +1,939 @@
+progress-snapshots:
+
+  - name: failed_slot_fails_the_query
+    plan: |-
+      {"operator":"executiontarget","operatorId":1,
+       "input":{"operator":"join","operatorId":2,
+         "left":{"operator":"tablescan","operatorId":3},
+         "right":{"operator":"tablescan","operatorId":4}},
+       "pipelines":[{"pipelineId":1,"operators":[3,2]},{"pipelineId":2,"operators":[4,2,1]}]}
+    events: |-
+      [
+        {"type":"updateSlot","time":1,"slot":0,"status":"succeeded"},
+        {"type":"updateSlot","time":1,"slot":1,"status":"succeeded"},
+        {"type":"updateSlot","time":2,"slot":2,"status":"failed"},
+        {"type":"updateSlot","time":2,"slot":3,"status":"running"},
+        {"type":"updateSlot","time":2,"slot":4,"status":"pending"}
+      ]
+    updates:
+      - time: 1
+        entity: query
+        status: succeeded
+      - time: 1
+        entity: fragment
+        index: 0
+        status: succeeded
+      - time: 1
+        entity: pipeline
+        index: 0
+        status: succeeded
+      - time: 1
+        entity: slot
+        index: 0
+        status: succeeded
+      - time: 1
+        entity: slot
+        index: 1
+        status: succeeded
+      - time: 1
+        entity: operator
+        index: 0
+        status: succeeded
+      - time: 1
+        entity: operator
+        index: 2
+        status: succeeded
+      - time: 2
+        entity: query
+        status: failed
+      - time: 2
+        entity: fragment
+        index: 0
+        status: failed
+      - time: 2
+        entity: pipeline
+        index: 1
+        status: failed
+      - time: 2
+        entity: slot
+        index: 2
+        status: failed
+      - time: 2
+        entity: slot
+        index: 3
+        status: running
+      - time: 2
+        entity: slot
+        index: 4
+        status: pending
+      - time: 2
+        entity: operator
+        index: 1
+        status: failed
+      - time: 2
+        entity: operator
+        index: 2
+        status: running
+      - time: 2
+        entity: operator
+        index: 3
+        status: pending
+
+  - name: reported_status_wins_over_failed_children
+    plan: |-
+      {"operator":"executiontarget","operatorId":1,"input":{"operator":"tablescan","operatorId":2}}
+    events: |-
+      [
+        {"type":"updateOperator","time":1,"operator":0,"status":"failed"},
+        {"type":"updateOperator","time":1,"operator":1,"status":"running"},
+        {"type":"updateQuery","time":2,"status":"succeeded"},
+        {"type":"updateFragment","time":3,"fragment":0,"status":"skipped"}
+      ]
+    updates:
+      - time: 1
+        entity: query
+        status: failed
+      - time: 1
+        entity: fragment
+        index: 0
+        status: failed
+      - time: 1
+        entity: operator
+        index: 0
+        status: failed
+      - time: 1
+        entity: operator
+        index: 1
+        status: running
+      - time: 2
+        entity: query
+        status: succeeded
+      - time: 3
+        entity: fragment
+        index: 0
+        status: skipped
+
+  - name: skipped_children
+    plan: |-
+      {"operator":"executiontarget","input":{"operator":"unionall","inputs":[{"operator":"tablescan"},{"operator":"tablescan"},{"operator":"tablescan"}]}}
+    events: |-
+      [
+        {"type":"updateOperator","time":1,"operator":0,"status":"skipped"},
+        {"type":"updateOperator","time":1,"operator":1,"status":"skipped"},
+        {"type":"updateOperator","time":1,"operator":2,"status":"skipped"},
+        {"type":"updateOperator","time":2,"operator":3,"status":"succeeded"},
+        {"type":"updateOperator","time":3,"operator":4,"status":"pending"}
+      ]
+    updates:
+      - time: 1
+        entity: query
+        status: skipped
+      - time: 1
+        entity: fragment
+        index: 0
+        status: skipped
+      - time: 1
+        entity: operator
+        index: 0
+        status: skipped
+      - time: 1
+        entity: operator
+        index: 1
+        status: skipped
+      - time: 1
+        entity: operator
+        index: 2
+        status: skipped
+      - time: 2
+        entity: query
+        status: succeeded
+      - time: 2
+        entity: fragment
+        index: 0
+        status: succeeded
+      - time: 2
+        entity: operator
+        index: 3
+        status: succeeded
+      - time: 3
+        entity: query
+        status: running
+      - time: 3
+        entity: fragment
+        index: 0
+        status: running
+      - time: 3
+        entity: operator
+        index: 4
+        status: pending
+
+  - name: pending_children
+    plan: |-
+      {"operator":"executiontarget","input":{"operator":"unionall","inputs":[{"operator":"tablescan"},{"operator":"tablescan"}]}}
+    events: |-
+      [
+        {"type":"updateOperator","time":1,"operator":0,"status":"pending"},
+        {"type":"updateOperator","time":1,"operator":1,"status":"pending"},
+        {"type":"updateOperator","time":2,"operator":1,"status":"running"}
+      ]
+    updates:
+      - time: 1
+        entity: query
+        status: pending
+      - time: 1
+        entity: fragment
+        index: 0
+        status: pending
+      - time: 1
+        entity: operator
+        index: 0
+        status: pending
+      - time: 1
+        entity: operator
+        index: 1
+        status: pending
+      - time: 2
+        entity: query
+        status: running
+      - time: 2
+        entity: fragment
+        index: 0
+        status: running
+      - time: 2
+        entity: operator
+        index: 1
+        status: running
+
+  - name: unknown_children_do_not_count
+    plan: |-
+      {"operator":"executiontarget","input":{"operator":"unionall","inputs":[{"operator":"tablescan"},{"operator":"tablescan"}]}}
+    events: |-
+      [
+        {"type":"updateOperator","time":1,"operator":0,"status":"succeeded","stats":{"tuplesOut":4}}
+      ]
+    updates:
+      - time: 1
+        entity: query
+        status: succeeded
+      - time: 1
+        entity: fragment
+        index: 0
+        status: succeeded
+      - time: 1
+        entity: operator
+        index: 0
+        status: succeeded
+        tuples-out: 4
+
+  - name: all_statistics_fields
+    plan: |-
+      {"operator":"executiontarget","input":{"operator":"tablescan"}}
+    events: |-
+      [
+        {"type":"updateOperator","time":1,"operator":0,"status":"succeeded","stats":{
+          "startedAt":10,"finishedAt":20,"tuplesIn":100,"tuplesOut":50,"bytesIn":4000,"bytesOut":2000,
+          "cpuTimeUs":300,"wallTimeUs":400,"blockedTimeUs":50,"memoryBytes":1024,"spilledBytes":512,
+          "workDone":3,"workTotal":4}},
+        {"type":"updateOperator","time":1,"operator":1,"status":"running","stats":{
+          "startedAt":15,"tuplesIn":50,"tuplesOut":50,"cpuTimeUs":5,"memoryBytes":64,"workDone":1,"workTotal":1}},
+        {"type":"updateOperator","time":2,"operator":1,"status":"succeeded","stats":{"finishedAt":25}}
+      ]
+    updates:
+      - time: 1
+        entity: query
+        status: running
+        started-at: 10
+        tuples-out: 50
+        cpu-time-us: 305
+        wall-time-us: 400
+        blocked-time-us: 50
+        memory-bytes: 1088
+        spilled-bytes: 512
+        work-done: 4
+        work-total: 5
+      - time: 1
+        entity: fragment
+        index: 0
+        status: running
+        started-at: 10
+        tuples-out: 50
+        cpu-time-us: 305
+        wall-time-us: 400
+        blocked-time-us: 50
+        memory-bytes: 1088
+        spilled-bytes: 512
+        work-done: 4
+        work-total: 5
+      - time: 1
+        entity: operator
+        index: 0
+        status: succeeded
+        started-at: 10
+        finished-at: 20
+        tuples-in: 100
+        tuples-out: 50
+        bytes-in: 4000
+        bytes-out: 2000
+        cpu-time-us: 300
+        wall-time-us: 400
+        blocked-time-us: 50
+        memory-bytes: 1024
+        spilled-bytes: 512
+        work-done: 3
+        work-total: 4
+      - time: 1
+        entity: operator
+        index: 1
+        status: running
+        started-at: 15
+        tuples-in: 50
+        tuples-out: 50
+        cpu-time-us: 5
+        memory-bytes: 64
+        work-done: 1
+        work-total: 1
+      - time: 2
+        entity: query
+        status: succeeded
+        started-at: 10
+        finished-at: 25
+        tuples-out: 50
+        cpu-time-us: 305
+        wall-time-us: 400
+        blocked-time-us: 50
+        memory-bytes: 1088
+        spilled-bytes: 512
+        work-done: 4
+        work-total: 5
+      - time: 2
+        entity: fragment
+        index: 0
+        status: succeeded
+        started-at: 10
+        finished-at: 25
+        tuples-out: 50
+        cpu-time-us: 305
+        wall-time-us: 400
+        blocked-time-us: 50
+        memory-bytes: 1088
+        spilled-bytes: 512
+        work-done: 4
+        work-total: 5
+      - time: 2
+        entity: operator
+        index: 1
+        status: succeeded
+        started-at: 15
+        finished-at: 25
+        tuples-in: 50
+        tuples-out: 50
+        cpu-time-us: 5
+        memory-bytes: 64
+        work-done: 1
+        work-total: 1
+
+  - name: zero_statistics
+    plan: |-
+      {"operator":"executiontarget","input":{"operator":"tablescan"}}
+    events: |-
+      [
+        {"type":"updateOperator","time":1,"operator":0,"stats":{"tuplesIn":0,"tuplesOut":0,"cpuTimeUs":0,"memoryBytes":0}},
+        {"type":"updateOperator","time":1,"operator":1,"stats":{"tuplesOut":0}}
+      ]
+    updates:
+      - time: 1
+        entity: query
+        tuples-out: 0
+        cpu-time-us: 0
+        memory-bytes: 0
+      - time: 1
+        entity: fragment
+        index: 0
+        tuples-out: 0
+        cpu-time-us: 0
+        memory-bytes: 0
+      - time: 1
+        entity: operator
+        index: 0
+        tuples-in: 0
+        tuples-out: 0
+        cpu-time-us: 0
+        memory-bytes: 0
+      - time: 1
+        entity: operator
+        index: 1
+        tuples-out: 0
+
+  - name: pipeline_finishes_with_its_last_slot
+    plan: |-
+      {"operator":"executiontarget","operatorId":1,"input":{"operator":"map","operatorId":2,"input":{"operator":"tablescan","operatorId":3}},
+       "pipelines":[{"pipelineId":1,"operators":[3,2,1]}]}
+    events: |-
+      [
+        {"type":"updateSlot","time":1,"slot":0,"status":"succeeded","stats":{"startedAt":7,"finishedAt":9,"tuplesIn":10,"tuplesOut":10}},
+        {"type":"updateSlot","time":1,"slot":1,"status":"running","stats":{"startedAt":5,"tuplesIn":10,"tuplesOut":10}},
+        {"type":"updateSlot","time":2,"slot":1,"status":"succeeded","stats":{"finishedAt":8}},
+        {"type":"updateSlot","time":3,"slot":2,"status":"succeeded","stats":{"startedAt":6,"finishedAt":12,"tuplesIn":10,"tuplesOut":10}}
+      ]
+    updates:
+      - time: 1
+        entity: query
+        status: running
+        started-at: 5
+      - time: 1
+        entity: fragment
+        index: 0
+        status: running
+        started-at: 5
+      - time: 1
+        entity: pipeline
+        index: 0
+        status: running
+        started-at: 5
+        tuples-in: 10
+      - time: 1
+        entity: slot
+        index: 0
+        status: succeeded
+        started-at: 7
+        finished-at: 9
+        tuples-in: 10
+        tuples-out: 10
+      - time: 1
+        entity: slot
+        index: 1
+        status: running
+        started-at: 5
+        tuples-in: 10
+        tuples-out: 10
+      - time: 1
+        entity: operator
+        index: 0
+        status: succeeded
+        started-at: 7
+        finished-at: 9
+        tuples-in: 10
+        tuples-out: 10
+      - time: 1
+        entity: operator
+        index: 1
+        status: running
+        started-at: 5
+        tuples-in: 10
+        tuples-out: 10
+      - time: 2
+        entity: query
+        status: succeeded
+        started-at: 5
+      - time: 2
+        entity: fragment
+        index: 0
+        status: succeeded
+        started-at: 5
+      - time: 2
+        entity: pipeline
+        index: 0
+        status: succeeded
+        started-at: 5
+        tuples-in: 10
+      - time: 2
+        entity: slot
+        index: 1
+        status: succeeded
+        started-at: 5
+        finished-at: 8
+        tuples-in: 10
+        tuples-out: 10
+      - time: 2
+        entity: operator
+        index: 1
+        status: succeeded
+        started-at: 5
+        finished-at: 8
+        tuples-in: 10
+        tuples-out: 10
+      - time: 3
+        entity: query
+        status: succeeded
+        started-at: 5
+        finished-at: 12
+        tuples-out: 10
+      - time: 3
+        entity: fragment
+        index: 0
+        status: succeeded
+        started-at: 5
+        finished-at: 12
+        tuples-out: 10
+      - time: 3
+        entity: pipeline
+        index: 0
+        status: succeeded
+        started-at: 5
+        finished-at: 12
+        tuples-in: 10
+        tuples-out: 10
+      - time: 3
+        entity: slot
+        index: 2
+        status: succeeded
+        started-at: 6
+        finished-at: 12
+        tuples-in: 10
+        tuples-out: 10
+      - time: 3
+        entity: operator
+        index: 2
+        status: succeeded
+        started-at: 6
+        finished-at: 12
+        tuples-in: 10
+        tuples-out: 10
+
+  - name: reported_statistics_win_field_by_field
+    plan: |-
+      {"operator":"executiontarget","input":{"operator":"tablescan"}}
+    events: |-
+      [
+        {"type":"updateOperator","time":1,"operator":0,"stats":{"tuplesOut":10,"cpuTimeUs":100,"memoryBytes":8}},
+        {"type":"updateOperator","time":1,"operator":1,"stats":{"tuplesOut":10,"cpuTimeUs":1}},
+        {"type":"updateFragment","time":2,"fragment":0,"stats":{"cpuTimeUs":500}},
+        {"type":"updateQuery","time":3,"stats":{"tuplesOut":11,"workTotal":2}}
+      ]
+    updates:
+      - time: 1
+        entity: query
+        tuples-out: 10
+        cpu-time-us: 101
+        memory-bytes: 8
+      - time: 1
+        entity: fragment
+        index: 0
+        tuples-out: 10
+        cpu-time-us: 101
+        memory-bytes: 8
+      - time: 1
+        entity: operator
+        index: 0
+        tuples-out: 10
+        cpu-time-us: 100
+        memory-bytes: 8
+      - time: 1
+        entity: operator
+        index: 1
+        tuples-out: 10
+        cpu-time-us: 1
+      - time: 2
+        entity: query
+        tuples-out: 10
+        cpu-time-us: 500
+        memory-bytes: 8
+      - time: 2
+        entity: fragment
+        index: 0
+        tuples-out: 10
+        cpu-time-us: 500
+        memory-bytes: 8
+      - time: 3
+        entity: query
+        tuples-out: 11
+        cpu-time-us: 500
+        memory-bytes: 8
+        work-total: 2
+
+  - name: saturating_counters
+    plan: |-
+      {"operator":"executiontarget","input":{"operator":"tablescan"}}
+    events: |-
+      [
+        {"type":"updateOperator","time":1,"operator":0,"stats":{"cpuTimeUs":18446744073709551615}},
+        {"type":"updateOperator","time":1,"operator":1,"stats":{"cpuTimeUs":2}}
+      ]
+    updates:
+      - time: 1
+        entity: query
+        cpu-time-us: 18446744073709551615
+      - time: 1
+        entity: fragment
+        index: 0
+        cpu-time-us: 18446744073709551615
+      - time: 1
+        entity: operator
+        index: 0
+        cpu-time-us: 18446744073709551615
+      - time: 1
+        entity: operator
+        index: 1
+        cpu-time-us: 2
+
+  - name: plan_without_fragments
+    plan: |-
+      {"operator":"map","input":{"operator":"tablescan"}}
+    events: |-
+      [
+        {"type":"updateOperator","time":1,"operator":0,"status":"succeeded","stats":{"tuplesOut":3}},
+        {"type":"updateOperator","time":1,"operator":1,"status":"running","stats":{"tuplesOut":2}}
+      ]
+    updates:
+      - time: 1
+        entity: operator
+        index: 0
+        status: succeeded
+        tuples-out: 3
+      - time: 1
+        entity: operator
+        index: 1
+        status: running
+        tuples-out: 2
+
+  - name: query_output_from_top_level_fragments
+    plan: |-
+      [{"operator":"executiontarget","input":{"operator":"federate","inputs":[{"operator":"tablescan"}]}},
+       {"operator":"executiontarget","input":{"operator":"tablescan"}}]
+    events: |-
+      [
+        {"type":"updateOperator","time":1,"operator":0,"stats":{"tuplesOut":100}},
+        {"type":"updateOperator","time":1,"operator":1,"stats":{"tuplesOut":10}},
+        {"type":"updateOperator","time":1,"operator":2,"stats":{"tuplesOut":7}},
+        {"type":"updateOperator","time":1,"operator":3,"stats":{"tuplesOut":2}},
+        {"type":"updateOperator","time":1,"operator":4,"stats":{"tuplesOut":3}}
+      ]
+    updates:
+      - time: 1
+        entity: query
+        tuples-out: 5
+      - time: 1
+        entity: fragment
+        index: 0
+        tuples-out: 3
+      - time: 1
+        entity: fragment
+        index: 1
+        tuples-out: 2
+      - time: 1
+        entity: fragment
+        index: 2
+        tuples-out: 10
+      - time: 1
+        entity: operator
+        index: 0
+        tuples-out: 100
+      - time: 1
+        entity: operator
+        index: 1
+        tuples-out: 10
+      - time: 1
+        entity: operator
+        index: 2
+        tuples-out: 7
+      - time: 1
+        entity: operator
+        index: 3
+        tuples-out: 2
+      - time: 1
+        entity: operator
+        index: 4
+        tuples-out: 3
+
+  - name: no_events
+    plan: |-
+      {"operator":"executiontarget","input":{"operator":"tablescan"}}
+    events: |-
+      []
+    updates: []
+
+  - name: non_monotonic_reports
+    plan: |-
+      {"operator":"executiontarget","input":{"operator":"tablescan"}}
+    events: |-
+      [
+        {"type":"updateOperator","time":1,"operator":0,"status":"succeeded","stats":{"tuplesOut":10,"finishedAt":5}},
+        {"type":"updateOperator","time":2,"operator":0,"status":"running","stats":{"tuplesOut":4}},
+        {"type":"updateOperator","time":3,"operator":0,"status":"unknown"}
+      ]
+    updates:
+      - time: 1
+        entity: query
+        status: succeeded
+      - time: 1
+        entity: fragment
+        index: 0
+        status: succeeded
+      - time: 1
+        entity: operator
+        index: 0
+        status: succeeded
+        finished-at: 5
+        tuples-out: 10
+      - time: 2
+        entity: query
+        status: running
+      - time: 2
+        entity: fragment
+        index: 0
+        status: running
+      - time: 2
+        entity: operator
+        index: 0
+        status: running
+        finished-at: 5
+        tuples-out: 4
+      - time: 3
+        entity: query
+      - time: 3
+        entity: fragment
+        index: 0
+      - time: 3
+        entity: operator
+        index: 0
+        finished-at: 5
+        tuples-out: 4
+
+  - name: out_of_order_times
+    plan: |-
+      {"operator":"executiontarget","input":{"operator":"tablescan"}}
+    events: |-
+      [
+        {"type":"updateOperator","time":5,"operator":0,"status":"running","stats":{"tuplesOut":1}},
+        {"type":"updateOperator","time":3,"operator":0,"stats":{"tuplesOut":2}},
+        {"type":"updateOperator","time":5,"operator":0,"stats":{"tuplesOut":2}},
+        {"type":"updateOperator","time":5,"operator":1,"status":"running"}
+      ]
+    updates:
+      - time: 5
+        entity: query
+        status: running
+      - time: 5
+        entity: fragment
+        index: 0
+        status: running
+      - time: 5
+        entity: operator
+        index: 0
+        status: running
+        tuples-out: 1
+      - time: 3
+        entity: operator
+        index: 0
+        status: running
+        tuples-out: 2
+      - time: 5
+        entity: operator
+        index: 1
+        status: running
+
+  - name: same_batch_overwrites
+    plan: |-
+      {"operator":"executiontarget","input":{"operator":"tablescan"}}
+    events: |-
+      [
+        {"type":"updateOperator","time":1,"operator":0,"status":"running","stats":{"tuplesOut":1}},
+        {"type":"updateOperator","time":1,"operator":0,"status":"succeeded","stats":{"tuplesOut":9}}
+      ]
+    updates:
+      - time: 1
+        entity: query
+        status: succeeded
+      - time: 1
+        entity: fragment
+        index: 0
+        status: succeeded
+      - time: 1
+        entity: operator
+        index: 0
+        status: succeeded
+        tuples-out: 9
+
+  - name: unknown_entities_are_ignored
+    plan: |-
+      {"operator":"executiontarget","input":{"operator":"tablescan"}}
+    events: |-
+      [
+        {"type":"updateOperator","time":1,"operator":9,"status":"failed"},
+        {"type":"updateSlot","time":1,"slot":0,"status":"failed"},
+        {"type":"updatePipeline","time":1,"pipeline":0,"status":"failed"},
+        {"type":"updateFragment","time":1,"fragment":1,"status":"failed"},
+        {"type":"registerFragment","time":2,"engineId":"x","parentFragment":5},
+        {"type":"registerPipeline","time":2,"engineId":"y","fragment":3,"slots":[{"operator":0,"role":"source"}]},
+        {"type":"registerPipeline","time":2,"engineId":"z","slots":[{"operator":7,"role":"source"}]},
+        {"type":"updateSlot","time":2,"slot":0,"status":"failed"},
+        {"type":"updateOperator","time":3,"operator":0,"status":"running"}
+      ]
+    updates:
+      - time: 3
+        entity: query
+        status: running
+      - time: 3
+        entity: fragment
+        index: 0
+        status: running
+      - time: 3
+        entity: operator
+        index: 0
+        status: running
+
+  - name: register_pipeline_edge_cases
+    plan: |-
+      {"operator":"executiontarget","input":{"operator":"map","input":{"operator":"tablescan"}}}
+    events: |-
+      [
+        {"type":"registerPipeline","time":1,"engineId":"loose",
+         "slots":[{"operator":0,"role":"source"},{"operator":1,"role":"sink"}]},
+        {"type":"registerPipeline","time":1,"engineId":"twice","fragment":0,
+         "slots":[{"operator":1,"role":"source"},{"operator":1,"role":"through"},{"operator":2,"role":"sink"}]},
+        {"type":"updateSlot","time":1,"slot":0,"status":"succeeded","stats":{"tuplesIn":5,"tuplesOut":5}},
+        {"type":"updateSlot","time":1,"slot":1,"status":"succeeded","stats":{"tuplesIn":5,"tuplesOut":0}},
+        {"type":"updateSlot","time":2,"slot":2,"status":"running","stats":{"tuplesIn":5,"tuplesOut":5}},
+        {"type":"updateSlot","time":2,"slot":3,"status":"running","stats":{"tuplesIn":5,"tuplesOut":1}},
+        {"type":"updateSlot","time":2,"slot":4,"status":"failed"}
+      ]
+    updates:
+      - time: 1
+        entity: query
+        status: succeeded
+      - time: 1
+        entity: fragment
+        index: 0
+        status: succeeded
+      - time: 1
+        entity: pipeline
+        index: 0
+        status: succeeded
+        tuples-in: 5
+        tuples-out: 0
+      - time: 1
+        entity: slot
+        index: 0
+        status: succeeded
+        tuples-in: 5
+        tuples-out: 5
+      - time: 1
+        entity: slot
+        index: 1
+        status: succeeded
+        tuples-in: 5
+        tuples-out: 0
+      - time: 1
+        entity: operator
+        index: 0
+        status: succeeded
+        tuples-in: 5
+        tuples-out: 5
+      - time: 1
+        entity: operator
+        index: 1
+        status: succeeded
+        tuples-in: 5
+      - time: 2
+        entity: query
+        status: running
+        tuples-out: 1
+      - time: 2
+        entity: fragment
+        index: 0
+        status: running
+        tuples-out: 1
+      - time: 2
+        entity: pipeline
+        index: 1
+        status: running
+        tuples-in: 5
+        tuples-out: 1
+      - time: 2
+        entity: slot
+        index: 2
+        status: running
+        tuples-in: 5
+        tuples-out: 5
+      - time: 2
+        entity: slot
+        index: 3
+        status: running
+        tuples-in: 5
+        tuples-out: 1
+      - time: 2
+        entity: operator
+        index: 1
+        status: running
+        tuples-in: 10
+        tuples-out: 5
+      - time: 2
+        entity: operator
+        index: 2
+        status: running
+        tuples-in: 5
+        tuples-out: 1
+
+  - name: register_fragment_hierarchy
+    plan: |-
+      {}
+    events: |-
+      [
+        {"type":"registerFragment","time":1,"engineId":"0"},
+        {"type":"registerFragment","time":1,"engineId":"1","parentFragment":0},
+        {"type":"registerFragment","time":1,"engineId":"2","parentFragment":1},
+        {"type":"registerFragment","time":1,"engineId":"3"},
+        {"type":"updateFragment","time":2,"fragment":0,"status":"running","stats":{"tuplesOut":1,"workDone":0,"workTotal":1}},
+        {"type":"updateFragment","time":2,"fragment":1,"status":"succeeded","stats":{"tuplesOut":10,"workDone":2,"workTotal":2}},
+        {"type":"updateFragment","time":2,"fragment":2,"status":"failed","stats":{"tuplesOut":100,"workDone":1,"workTotal":4}},
+        {"type":"updateFragment","time":2,"fragment":3,"status":"pending","stats":{"tuplesOut":5}}
+      ]
+    updates:
+      - time: 2
+        entity: query
+        status: failed
+        tuples-out: 6
+        work-done: 3
+        work-total: 7
+      - time: 2
+        entity: fragment
+        index: 0
+        status: running
+        tuples-out: 1
+        work-done: 0
+        work-total: 1
+      - time: 2
+        entity: fragment
+        index: 1
+        status: succeeded
+        tuples-out: 10
+        work-done: 2
+        work-total: 2
+      - time: 2
+        entity: fragment
+        index: 2
+        status: failed
+        tuples-out: 100
+        work-done: 1
+        work-total: 4
+      - time: 2
+        entity: fragment
+        index: 3
+        status: pending
+        tuples-out: 5
+
+  - name: query_without_structure
+    plan: |-
+      {}
+    events: |-
+      [
+        {"type":"updateQuery","time":1,"status":"pending"},
+        {"type":"updateQuery","time":2,"status":"running","stats":{"workDone":0,"workTotal":0,"cpuTimeUs":0}},
+        {"type":"updateQuery","time":3,"status":"failed","stats":{"workDone":2,"workTotal":5}}
+      ]
+    updates:
+      - time: 1
+        entity: query
+        status: pending
+      - time: 2
+        entity: query
+        status: running
+        cpu-time-us: 0
+        work-done: 0
+        work-total: 0
+      - time: 3
+        entity: query
+        status: failed
+        cpu-time-us: 0
+        work-done: 2
+        work-total: 5

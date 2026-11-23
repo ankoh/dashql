@@ -1,0 +1,135 @@
+{
+  "name": "handwritten_irregular_polls",
+  "note": "Hand-written, not recorded by //tests/trino:trino_recorder: an input for the edge cases of the Trino adapters",
+  "sql": "/* hand-written */ SELECT ...",
+  "explain": null,
+  "statementResponses": [
+    {
+      "elapsedMs": 10,
+      "body": {
+        "id": "q",
+        "nextUri": "http://localhost/v1/statement/q/1"
+      }
+    },
+    {
+      "elapsedMs": 20,
+      "body": {
+        "id": "q",
+        "stats": {}
+      }
+    },
+    {
+      "elapsedMs": 30,
+      "body": {
+        "id": "q",
+        "stats": {
+          "state": "RUNNING",
+          "processedRows": 100,
+          "cpuTimeMillis": 7,
+          "rootStage": {
+            "stageId": "0",
+            "state": "RUNNING",
+            "subStages": [
+              {
+                "stageId": "1",
+                "state": "RUNNING",
+                "processedRows": 100,
+                "processedBytes": 800,
+                "cpuTimeMillis": 7,
+                "wallTimeMillis": 9,
+                "totalSplits": 10,
+                "completedSplits": 5,
+                "subStages": []
+              },
+              {
+                "state": "RUNNING",
+                "subStages": [
+                  {
+                    "stageId": "9",
+                    "state": "RUNNING",
+                    "subStages": []
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "elapsedMs": 40,
+      "body": {
+        "id": "q",
+        "stats": {
+          "state": "RUNNING",
+          "processedRows": "120",
+          "cpuTimeMillis": -1,
+          "rootStage": {
+            "stageId": "0",
+            "state": "RUNNING",
+            "subStages": [
+              {
+                "stageId": "1",
+                "state": "RUNNING",
+                "processedRows": 90,
+                "totalSplits": 10,
+                "completedSplits": 3,
+                "subStages": []
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "elapsedMs": 35,
+      "body": {
+        "id": "q",
+        "stats": {
+          "state": "FINISHING",
+          "rootStage": {
+            "stageId": "0",
+            "state": "FINISHING",
+            "subStages": [
+              {
+                "stageId": "2",
+                "state": "RUNNING",
+                "subStages": [
+                  {
+                    "stageId": "1",
+                    "state": "PENDING",
+                    "subStages": []
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "body": {
+        "id": "q",
+        "stats": {
+          "state": "FINISHED",
+          "processedRows": 120,
+          "rootStage": {
+            "stageId": "0",
+            "state": "FINISHED",
+            "subStages": [
+              {
+                "stageId": "1",
+                "state": "FINISHED",
+                "processedRows": 120,
+                "totalSplits": 10,
+                "completedSplits": 10,
+                "subStages": []
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "queryInfos": []
+}

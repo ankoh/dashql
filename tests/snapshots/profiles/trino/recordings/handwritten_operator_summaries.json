@@ -1,0 +1,371 @@
+{
+  "name": "handwritten_operator_summaries",
+  "note": "Hand-written, not recorded by //tests/trino:trino_recorder: an input for the edge cases of the Trino adapters",
+  "sql": "/* hand-written */ SELECT ...",
+  "explain": {
+    "0": {
+      "id": "5",
+      "name": "Output",
+      "descriptor": {},
+      "outputs": [],
+      "details": [],
+      "estimates": [
+        {
+          "outputRowCount": 5.0
+        }
+      ],
+      "children": [
+        {
+          "id": "6",
+          "name": "RemoteSource",
+          "descriptor": {
+            "sourceFragmentIds": "[1]"
+          },
+          "outputs": [],
+          "details": [],
+          "estimates": [],
+          "children": []
+        }
+      ]
+    },
+    "1": {
+      "id": "3",
+      "name": "Aggregate",
+      "descriptor": {
+        "type": "PARTIAL"
+      },
+      "outputs": [],
+      "details": [],
+      "estimates": [
+        {
+          "outputRowCount": 5.0
+        }
+      ],
+      "children": [
+        {
+          "id": "2",
+          "name": "ScanFilterProject",
+          "descriptor": {
+            "table": "tpch:tiny:nation"
+          },
+          "outputs": [],
+          "details": [],
+          "estimates": [
+            {
+              "outputRowCount": 25.0
+            }
+          ],
+          "children": []
+        }
+      ]
+    }
+  },
+  "statementResponses": [
+    {
+      "elapsedMs": 5,
+      "body": {
+        "id": "q",
+        "stats": {
+          "state": "RUNNING",
+          "rootStage": {
+            "stageId": "0",
+            "state": "RUNNING",
+            "subStages": [
+              {
+                "stageId": "1",
+                "state": "RUNNING",
+                "subStages": []
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "elapsedMs": 10,
+      "body": {
+        "id": "q",
+        "stats": {
+          "state": "RUNNING",
+          "rootStage": {
+            "stageId": "0",
+            "state": "RUNNING",
+            "subStages": [
+              {
+                "stageId": "1",
+                "state": "PENDING",
+                "subStages": []
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "elapsedMs": 25,
+      "body": {
+        "id": "q",
+        "stats": {
+          "state": "FINISHED",
+          "rootStage": {
+            "stageId": "0",
+            "state": "FINISHED",
+            "subStages": [
+              {
+                "stageId": "1",
+                "state": "FINISHED",
+                "subStages": []
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "queryInfos": [
+    {
+      "elapsedMs": 10,
+      "body": {
+        "queryId": "q",
+        "state": "RUNNING",
+        "stages": {
+          "outputStageId": "q.0",
+          "stages": [
+            {
+              "stageId": "q.0",
+              "state": "RUNNING",
+              "plan": {
+                "id": "0",
+                "jsonRepresentation": "{\n  \"id\": \"5\",\n  \"name\": \"Output\",\n  \"descriptor\": {},\n  \"outputs\": [],\n  \"details\": [],\n  \"estimates\": [\n    {\n      \"outputRowCount\": 5.0\n    }\n  ],\n  \"children\": [\n    {\n      \"id\": \"6\",\n      \"name\": \"RemoteSource\",\n      \"descriptor\": {\n        \"sourceFragmentIds\": \"[1]\"\n      },\n      \"outputs\": [],\n      \"details\": [],\n      \"estimates\": [],\n      \"children\": []\n    }\n  ]\n}"
+              },
+              "stageStats": {
+                "operatorSummaries": []
+              }
+            },
+            {
+              "stageId": "q.1",
+              "state": "PENDING",
+              "plan": {
+                "id": "1",
+                "jsonRepresentation": "{\n  \"id\": \"3\",\n  \"name\": \"Aggregate\",\n  \"descriptor\": {\n    \"type\": \"PARTIAL\"\n  },\n  \"outputs\": [],\n  \"details\": [],\n  \"estimates\": [\n    {\n      \"outputRowCount\": 5.0\n    }\n  ],\n  \"children\": [\n    {\n      \"id\": \"2\",\n      \"name\": \"ScanFilterProject\",\n      \"descriptor\": {\n        \"table\": \"tpch:tiny:nation\"\n      },\n      \"outputs\": [],\n      \"details\": [],\n      \"estimates\": [\n        {\n          \"outputRowCount\": 25.0\n        }\n      ],\n      \"children\": []\n    }\n  ]\n}"
+              },
+              "stageStats": {
+                "operatorSummaries": [
+                  {
+                    "pipelineId": 0,
+                    "operatorId": 1,
+                    "planNodeId": "2",
+                    "operatorType": "FilterProjectOperator",
+                    "inputPositions": 25,
+                    "outputPositions": 5,
+                    "inputDataSize": "1.5kB",
+                    "outputDataSize": "300B",
+                    "addInputCpu": "1.5ms",
+                    "getOutputCpu": "500us",
+                    "finishCpu": "0.00ns",
+                    "addInputWall": "2ms",
+                    "getOutputWall": "1s",
+                    "finishWall": "1500ns",
+                    "blockedWall": "3.25us",
+                    "peakUserMemoryReservation": "2kB",
+                    "spilledDataSize": "0B"
+                  },
+                  {
+                    "pipelineId": 0,
+                    "operatorId": 0,
+                    "planNodeId": "2",
+                    "operatorType": "TableScanOperator",
+                    "inputPositions": 25,
+                    "outputPositions": 25,
+                    "inputDataSize": "2kB",
+                    "outputDataSize": "2kB",
+                    "getOutputCpu": "1m",
+                    "peakUserMemoryReservation": "1KB"
+                  },
+                  {
+                    "pipelineId": 0,
+                    "operatorId": 2,
+                    "planNodeId": "3",
+                    "operatorType": "HashAggregationOperator",
+                    "inputPositions": 5,
+                    "outputPositions": 5,
+                    "addInputCpu": "12",
+                    "peakUserMemoryReservation": "1MB",
+                    "spilledDataSize": "1.25GB"
+                  },
+                  {
+                    "pipelineId": 0,
+                    "operatorId": 3,
+                    "planNodeId": "99",
+                    "operatorType": "TaskOutputOperator",
+                    "inputPositions": 5,
+                    "outputPositions": 5
+                  },
+                  {
+                    "pipelineId": 1,
+                    "operatorId": 0,
+                    "planNodeId": "3",
+                    "operatorType": "LocalExchangeSourceOperator",
+                    "inputPositions": 0,
+                    "outputPositions": 0
+                  },
+                  {
+                    "pipelineId": 2,
+                    "operatorId": 0,
+                    "planNodeId": "777",
+                    "operatorType": "Unknown"
+                  },
+                  {
+                    "operatorId": 9,
+                    "planNodeId": "2",
+                    "inputPositions": 1000
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "elapsedMs": 20,
+      "body": {
+        "queryId": "q",
+        "state": "FINISHED",
+        "stages": {
+          "outputStageId": "q.0",
+          "stages": [
+            {
+              "stageId": "q.0",
+              "state": "FINISHED",
+              "plan": {
+                "id": "0",
+                "jsonRepresentation": "{\n  \"id\": \"5\",\n  \"name\": \"Output\",\n  \"descriptor\": {},\n  \"outputs\": [],\n  \"details\": [],\n  \"estimates\": [\n    {\n      \"outputRowCount\": 5.0\n    }\n  ],\n  \"children\": [\n    {\n      \"id\": \"6\",\n      \"name\": \"RemoteSource\",\n      \"descriptor\": {\n        \"sourceFragmentIds\": \"[1]\"\n      },\n      \"outputs\": [],\n      \"details\": [],\n      \"estimates\": [],\n      \"children\": []\n    }\n  ]\n}"
+              },
+              "stageStats": {
+                "operatorSummaries": [
+                  {
+                    "pipelineId": 0,
+                    "operatorId": 0,
+                    "planNodeId": "6",
+                    "operatorType": "ExchangeOperator",
+                    "inputPositions": 5,
+                    "outputPositions": 5,
+                    "getOutputCpu": "10us"
+                  },
+                  {
+                    "pipelineId": 0,
+                    "operatorId": 1,
+                    "planNodeId": "5",
+                    "operatorType": "TaskOutputOperator",
+                    "inputPositions": 5,
+                    "outputPositions": 5,
+                    "getOutputCpu": "5us"
+                  }
+                ]
+              }
+            },
+            {
+              "stageId": "q.1",
+              "state": "FINISHED",
+              "plan": {
+                "id": "1",
+                "jsonRepresentation": "{\n  \"id\": \"3\",\n  \"name\": \"Aggregate\",\n  \"descriptor\": {\n    \"type\": \"PARTIAL\"\n  },\n  \"outputs\": [],\n  \"details\": [],\n  \"estimates\": [\n    {\n      \"outputRowCount\": 5.0\n    }\n  ],\n  \"children\": [\n    {\n      \"id\": \"2\",\n      \"name\": \"ScanFilterProject\",\n      \"descriptor\": {\n        \"table\": \"tpch:tiny:nation\"\n      },\n      \"outputs\": [],\n      \"details\": [],\n      \"estimates\": [\n        {\n          \"outputRowCount\": 25.0\n        }\n      ],\n      \"children\": []\n    }\n  ]\n}"
+              },
+              "stageStats": {
+                "operatorSummaries": [
+                  {
+                    "pipelineId": 0,
+                    "operatorId": 1,
+                    "planNodeId": "2",
+                    "operatorType": "FilterProjectOperator",
+                    "inputPositions": 25,
+                    "outputPositions": 5,
+                    "inputDataSize": "1.5kB",
+                    "outputDataSize": "300B",
+                    "addInputCpu": "1.5ms",
+                    "getOutputCpu": "500us",
+                    "finishCpu": "0.00ns",
+                    "addInputWall": "2ms",
+                    "getOutputWall": "1s",
+                    "finishWall": "1500ns",
+                    "blockedWall": "3.25us",
+                    "peakUserMemoryReservation": "2kB",
+                    "spilledDataSize": "0B"
+                  },
+                  {
+                    "pipelineId": 0,
+                    "operatorId": 0,
+                    "planNodeId": "2",
+                    "operatorType": "TableScanOperator",
+                    "inputPositions": 25,
+                    "outputPositions": 25,
+                    "inputDataSize": "2kB",
+                    "outputDataSize": "2kB",
+                    "getOutputCpu": "1m",
+                    "peakUserMemoryReservation": "1KB"
+                  },
+                  {
+                    "pipelineId": 0,
+                    "operatorId": 2,
+                    "planNodeId": "3",
+                    "operatorType": "HashAggregationOperator",
+                    "inputPositions": 5,
+                    "outputPositions": 5,
+                    "addInputCpu": "12",
+                    "peakUserMemoryReservation": "1MB",
+                    "spilledDataSize": "1.25GB"
+                  },
+                  {
+                    "pipelineId": 0,
+                    "operatorId": 3,
+                    "planNodeId": "99",
+                    "operatorType": "TaskOutputOperator",
+                    "inputPositions": 5,
+                    "outputPositions": 5
+                  },
+                  {
+                    "pipelineId": 1,
+                    "operatorId": 0,
+                    "planNodeId": "3",
+                    "operatorType": "LocalExchangeSourceOperator",
+                    "inputPositions": 0,
+                    "outputPositions": 0
+                  },
+                  {
+                    "pipelineId": 2,
+                    "operatorId": 0,
+                    "planNodeId": "777",
+                    "operatorType": "Unknown"
+                  },
+                  {
+                    "operatorId": 9,
+                    "planNodeId": "2",
+                    "inputPositions": 1000
+                  }
+                ]
+              }
+            },
+            {
+              "stageId": "q.7",
+              "state": "FINISHED",
+              "stageStats": {
+                "operatorSummaries": [
+                  {
+                    "pipelineId": 0,
+                    "operatorId": 0,
+                    "planNodeId": "2",
+                    "inputPositions": 1
+                  }
+                ]
+              }
+            },
+            {
+              "state": "FINISHED"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -658,3 +658,187 @@ trino-progress-snapshots:
         wall-time-us: 2000
         work-done: 2
         work-total: 16
+
+  - name: handwritten_stage_states
+    recording: handwritten_stage_states
+    fragments:
+      - id: 0
+        engine-id: 0
+        operators: []
+      - id: 1
+        engine-id: 1
+        parent: 0
+        operators: []
+      - id: 2
+        engine-id: 2
+        parent: 0
+        operators: []
+      - id: 3
+        engine-id: 3
+        parent: 1
+        operators: []
+    updates:
+      - time: 1
+        entity: query
+        status: pending
+      - time: 3
+        entity: fragment
+        index: 0
+        status: pending
+      - time: 3
+        entity: fragment
+        index: 1
+        status: pending
+      - time: 3
+        entity: fragment
+        index: 2
+        status: pending
+      - time: 4
+        entity: query
+        status: running
+        work-done: 1
+        work-total: 6
+      - time: 4
+        entity: fragment
+        index: 0
+        status: running
+      - time: 4
+        entity: fragment
+        index: 1
+        status: running
+        work-done: 0
+        work-total: 2
+      - time: 4
+        entity: fragment
+        index: 3
+        status: running
+        work-done: 1
+        work-total: 4
+      - time: 5
+        entity: query
+        status: running
+        work-done: 3
+        work-total: 6
+      - time: 5
+        entity: fragment
+        index: 1
+        status: running
+        work-done: 1
+        work-total: 2
+      - time: 5
+        entity: fragment
+        index: 2
+        status: failed
+      - time: 5
+        entity: fragment
+        index: 3
+        status: failed
+        work-done: 2
+        work-total: 4
+      - time: 6
+        entity: query
+        status: failed
+        work-done: 3
+        work-total: 6
+      - time: 6
+        entity: fragment
+        index: 0
+        status: skipped
+      - time: 6
+        entity: fragment
+        index: 1
+        status: skipped
+        work-done: 1
+        work-total: 2
+
+  - name: handwritten_irregular_polls
+    recording: handwritten_irregular_polls
+    fragments:
+      - id: 0
+        engine-id: 0
+        operators: []
+      - id: 1
+        engine-id: 1
+        parent: 0
+        operators: []
+      - id: 2
+        engine-id: 2
+        parent: 0
+        operators: []
+    updates:
+      - time: 30
+        entity: query
+        status: running
+        tuples-in: 100
+        cpu-time-us: 7000
+        wall-time-us: 9000
+        work-done: 5
+        work-total: 10
+      - time: 30
+        entity: fragment
+        index: 0
+        status: running
+      - time: 30
+        entity: fragment
+        index: 1
+        status: running
+        tuples-in: 100
+        bytes-in: 800
+        cpu-time-us: 7000
+        wall-time-us: 9000
+        work-done: 5
+        work-total: 10
+      - time: 40
+        entity: query
+        status: running
+        tuples-in: 100
+        cpu-time-us: 7000
+        wall-time-us: 9000
+        work-done: 3
+        work-total: 10
+      - time: 40
+        entity: fragment
+        index: 1
+        status: running
+        tuples-in: 90
+        bytes-in: 800
+        cpu-time-us: 7000
+        wall-time-us: 9000
+        work-done: 3
+        work-total: 10
+      - time: 35
+        entity: fragment
+        index: 1
+        status: succeeded
+        tuples-in: 90
+        bytes-in: 800
+        cpu-time-us: 7000
+        wall-time-us: 9000
+        work-done: 3
+        work-total: 10
+      - time: 35
+        entity: fragment
+        index: 2
+        status: running
+      - time: 0
+        entity: query
+        status: succeeded
+        tuples-in: 120
+        cpu-time-us: 7000
+        wall-time-us: 9000
+        work-done: 10
+        work-total: 10
+      - time: 0
+        entity: fragment
+        index: 0
+        status: succeeded
+      - time: 0
+        entity: fragment
+        index: 1
+        status: succeeded
+        tuples-in: 120
+        bytes-in: 800
+        cpu-time-us: 7000
+        wall-time-us: 9000
+        work-done: 10
+        work-total: 10

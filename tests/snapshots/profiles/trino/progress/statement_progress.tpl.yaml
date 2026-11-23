@@ -10,3 +10,11 @@ trino-progress-snapshots:
     recording: cancelled_sf10
   - name: failed_cast
     recording: failed_cast
+  # Hand-written recordings (handwritten_*.json) for the edge cases of the statement adapter.
+  # Queued and planning polls, then stages that fail, abort, get cancelled or report a state the adapter does not know
+  - name: handwritten_stage_states
+    recording: handwritten_stage_states
+  # Polls without stats or with empty stats, counters that shrink or are no unsigned integers, a poll that arrives
+  # with an older time, a stage that moves below another one, a stage without id, a poll without time
+  - name: handwritten_irregular_polls
+    recording: handwritten_irregular_polls

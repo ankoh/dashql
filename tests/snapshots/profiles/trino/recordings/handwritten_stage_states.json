@@ -1,0 +1,167 @@
+{
+  "name": "handwritten_stage_states",
+  "note": "Hand-written, not recorded by //tests/trino:trino_recorder: an input for the edge cases of the Trino adapters",
+  "sql": "/* hand-written */ SELECT ...",
+  "explain": null,
+  "statementResponses": [
+    {
+      "elapsedMs": 1,
+      "body": {
+        "id": "q",
+        "stats": {
+          "state": "QUEUED",
+          "queued": true
+        }
+      }
+    },
+    {
+      "elapsedMs": 2,
+      "body": {
+        "id": "q",
+        "stats": {
+          "state": "WAITING_FOR_RESOURCES"
+        }
+      }
+    },
+    {
+      "elapsedMs": 3,
+      "body": {
+        "id": "q",
+        "stats": {
+          "state": "PLANNING",
+          "rootStage": {
+            "stageId": "0",
+            "state": "PLANNED",
+            "subStages": [
+              {
+                "stageId": "1",
+                "state": "SCHEDULING",
+                "subStages": []
+              },
+              {
+                "stageId": "2",
+                "state": "PLANNED",
+                "subStages": []
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "elapsedMs": 4,
+      "body": {
+        "id": "q",
+        "stats": {
+          "state": "RUNNING",
+          "totalSplits": 6,
+          "completedSplits": 1,
+          "rootStage": {
+            "stageId": "0",
+            "state": "SCHEDULED",
+            "subStages": [
+              {
+                "stageId": "1",
+                "state": "RUNNING",
+                "totalSplits": 2,
+                "completedSplits": 0,
+                "subStages": [
+                  {
+                    "stageId": "3",
+                    "state": "RUNNING",
+                    "totalSplits": 4,
+                    "completedSplits": 1,
+                    "subStages": []
+                  }
+                ]
+              },
+              {
+                "stageId": "2",
+                "state": "SOMETHING_NEW",
+                "subStages": []
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "elapsedMs": 5,
+      "body": {
+        "id": "q",
+        "stats": {
+          "state": "RUNNING",
+          "totalSplits": 6,
+          "completedSplits": 3,
+          "rootStage": {
+            "stageId": "0",
+            "state": "RUNNING",
+            "subStages": [
+              {
+                "stageId": "1",
+                "state": "RUNNING",
+                "totalSplits": 2,
+                "completedSplits": 1,
+                "subStages": [
+                  {
+                    "stageId": "3",
+                    "state": "FAILED",
+                    "totalSplits": 4,
+                    "completedSplits": 2,
+                    "subStages": []
+                  }
+                ]
+              },
+              {
+                "stageId": "2",
+                "state": "ABORTED",
+                "subStages": []
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "elapsedMs": 6,
+      "body": {
+        "id": "q",
+        "stats": {
+          "state": "FAILED",
+          "totalSplits": 6,
+          "completedSplits": 3,
+          "rootStage": {
+            "stageId": "0",
+            "state": "CANCELED",
+            "subStages": [
+              {
+                "stageId": "1",
+                "state": "CANCELED",
+                "totalSplits": 2,
+                "completedSplits": 1,
+                "subStages": [
+                  {
+                    "stageId": "3",
+                    "state": "FAILED",
+                    "totalSplits": 4,
+                    "completedSplits": 2,
+                    "subStages": []
+                  }
+                ]
+              },
+              {
+                "stageId": "2",
+                "state": "ABORTED",
+                "subStages": []
+              }
+            ]
+          }
+        },
+        "error": {
+          "message": "hand-written failure"
+        }
+      }
+    }
+  ],
+  "queryInfos": []
+}
