@@ -186,3 +186,35 @@ analyzer-snapshots:
         merge into missing m using u on m.k = u.a
         when not matched then insert (k, l) values (u.a, u.c)
         returning m.k
+
+  # WHEN NOT MATCHED [BY TARGET] sees the source only, WHEN NOT MATCHED BY SOURCE the target only, WHEN MATCHED both
+  - name: merge_not_matched_clause_visibility
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: |-
+        merge into t using u on t.a = u.a
+        when matched and a > 0 then update set b = c
+        when not matched and c > 0 then insert (a, b) values (a, c)
+        when not matched by source and b > 0 and c > 0 then delete
+
+  - name: merge_not_matched_clause_subqueries
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: |-
+        merge into t using u on t.a = u.a
+        when not matched and exists (select 1 from v where v.id = a) then insert (a) values (a)
+        when not matched by source and exists (select 1 from w where w.id = a) then delete
+
+  - name: merge_not_matched_clause_inference
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: |-
+        merge into missing m using other o on m.k = o.k
+        when not matched then insert (k, l) values (o.k, n)
+        when not matched by source and z > 0 then delete

@@ -564,6 +564,12 @@ fn encode_name_scope(e: &Encoder, catalog: &Catalog, scope: &NameScope) -> Optio
         SourceVisibility::None => {
             m.plain("parent-sources", "none");
         }
+        SourceVisibility::Only(_) => {
+            m.plain("parent-sources", "only");
+        }
+        SourceVisibility::Except(_) => {
+            m.plain("parent-sources", "except");
+        }
     }
     if scope.column_correlation_barrier {
         m.insert("correlation-barrier", boolean(true));

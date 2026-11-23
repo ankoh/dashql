@@ -17,7 +17,9 @@ use crate::catalog::*;
 use crate::hash::{HashMap, HashSet};
 use crate::table_parameters::{TableParameterLookup, TABLE_PARAMETERS_ENTRY_ID};
 use dashql_buffers::analyzer::{AnalyzerErrorSeverity, AnalyzerErrorType, NameTag, SemanticNodeMarkerType};
-use dashql_buffers::parser::{AttributeKey as K, JoinType, KnownFunction, Node, NodeType, StatementType, SymbolSpan};
+use dashql_buffers::parser::{
+    AttributeKey as K, JoinType, KnownFunction, MergeMatch, Node, NodeType, StatementType, SymbolSpan,
+};
 use dashql_parser::attrs;
 use std::ops::Range;
 use std::sync::Arc;
@@ -219,6 +221,8 @@ pub(super) struct NameResolutionPass {
     /// The columns that UPDATE and MERGE write, the SET targets and the INSERT columns of MERGE, with the AST node of
     /// the target table that they bind to
     assignment_targets: HashMap<ExprId, u32>,
+    /// The column refs that see only some FROM items of their scope, those of the WHEN NOT MATCHED clauses of MERGE
+    expression_visibility: HashMap<ExprId, SourceVisibility>,
 }
 
 impl NameResolutionPass {
@@ -240,6 +244,7 @@ impl NameResolutionPass {
             finished_column_refs: HashMap::default(),
             column_paths: HashMap::default(),
             assignment_targets: HashMap::default(),
+            expression_visibility: HashMap::default(),
         }
     }
 
@@ -1434,6 +1439,11 @@ impl NameResolutionPass {
         }
     }
 
+    /// The FROM items of its own scope that a column ref sees
+    fn visibility(&self, expr: ExprId) -> SourceVisibility {
+        self.expression_visibility.get(&expr).copied().unwrap_or_default()
+    }
+
     /// Resolve column refs against the FROM items and the output columns of the own scope
     fn resolve_column_refs_locally(&mut self, state: &mut AnalysisState, scope: ScopeId) {
         let Some(exprs) = state.out.scope(scope).map(|s| s.expressions.clone()) else { return };
@@ -1447,15 +1457,15 @@ impl NameResolutionPass {
             }
             match Self::output_names(state, expr) {
                 OutputNames::Invisible => {
-                    self.try_resolve_column_in_scope(state, expr, scope, SourceVisibility::All);
+                    self.try_resolve_column_in_scope(state, expr, scope, self.visibility(expr));
                 }
                 OutputNames::Preferred => {
                     if !Self::try_resolve_column_from_outputs(state, expr, scope) {
-                        self.try_resolve_column_in_scope(state, expr, scope, SourceVisibility::All);
+                        self.try_resolve_column_in_scope(state, expr, scope, self.visibility(expr));
                     }
                 }
                 OutputNames::Fallback => {
-                    if self.try_resolve_column_in_scope(state, expr, scope, SourceVisibility::All) == Lookup::Missing {
+                    if self.try_resolve_column_in_scope(state, expr, scope, self.visibility(expr)) == Lookup::Missing {
                         Self::try_resolve_column_from_outputs(state, expr, scope);
                     }
                 }
@@ -1569,7 +1579,7 @@ impl NameResolutionPass {
             };
             column_ref.column_name.table_alias = None;
             column_ref.column_name.column_name = qualifier.clone();
-            let resolved = self.try_resolve_column_in_scope(state, expr, scope, SourceVisibility::All)
+            let resolved = self.try_resolve_column_in_scope(state, expr, scope, self.visibility(expr))
                 == Lookup::Resolved
                 || self.resolve_from_parent_chain(state, expr, scope);
             if resolved {
@@ -1584,13 +1594,14 @@ impl NameResolutionPass {
     fn associate_unresolved_columns(&self, state: &mut AnalysisState, scope: ScopeId) {
         let Some(s) = state.out.scope(scope) else { return };
         // The unresolved relations of this scope in FROM order
-        let local_unresolved: Vec<InferenceCandidate> = s
+        let local_unresolved: Vec<(u32, InferenceCandidate)> = s
             .sources
             .iter()
             .filter_map(|source| match &source.table {
-                ReferencedTable::Unresolved(rel) => {
-                    Some(InferenceCandidate { table_name: rel.table_name.clone(), table_ref: rel.table_ref })
-                }
+                ReferencedTable::Unresolved(rel) => Some((
+                    source.ast_node_id,
+                    InferenceCandidate { table_name: rel.table_name.clone(), table_ref: rel.table_ref },
+                )),
                 _ => None,
             })
             .collect();
@@ -1635,20 +1646,26 @@ impl NameResolutionPass {
                         }],
                     }
                 }
-                // Unqualified, the candidates are the unresolved tables in scope
+                // Unqualified, the candidates are the unresolved tables in scope that the column ref sees
                 None => {
-                    if local_unresolved.is_empty() {
+                    let visibility = self.visibility(expr);
+                    let candidates: Vec<InferenceCandidate> = local_unresolved
+                        .iter()
+                        .filter(|(node_id, _)| visibility.sees_node(*node_id))
+                        .map(|(_, candidate)| candidate.clone())
+                        .collect();
+                    if candidates.is_empty() {
                         continue;
                     }
                     InferenceConstraint {
-                        kind: if local_unresolved.len() == 1 {
+                        kind: if candidates.len() == 1 {
                             InferenceConstraintKind::Forced
                         } else {
                             InferenceConstraintKind::Disjunctive
                         },
                         expression_id: expression.expression_id,
                         column_name,
-                        candidates: local_unresolved.clone(),
+                        candidates,
                     }
                 }
             };
@@ -1958,7 +1975,7 @@ impl NameResolutionPass {
                 let ambiguous = matches!(self.finished_column_refs.get(&expr), Some(FinishedColumnRef::Ambiguous));
                 let written = self.assignment_targets.contains_key(&expr);
                 if Self::is_unresolved_column_ref(state, expr) && !ambiguous && !written {
-                    self.try_resolve_column_in_scope(state, expr, scope, SourceVisibility::All);
+                    self.try_resolve_column_in_scope(state, expr, scope, self.visibility(expr));
                 }
             }
             self.resolve_column_refs_from_parents(state, scope);
@@ -2484,6 +2501,30 @@ impl NameResolutionPass {
             }
         }
         self.merge_child_states(node_state, node);
+
+        // A WHEN NOT MATCHED [BY TARGET] clause of MERGE sees the source only, a WHEN NOT MATCHED BY SOURCE clause the
+        // target only, as in PostgreSQL
+        for clause in clauses.map(|c| state.children(c)).unwrap_or_default() {
+            let [kind] = attrs!(state.children(clause), [K::SQL_MERGE_WHEN_CLAUSE_KIND]);
+            let visibility = match (target, kind.map(|k| MergeMatch(k.children_begin_or_value() as u8))) {
+                (Some(target), Some(MergeMatch::NOT_MATCHED_BY_TARGET)) => SourceVisibility::Except(target),
+                (Some(target), Some(MergeMatch::NOT_MATCHED_BY_SOURCE)) => SourceVisibility::Only(target),
+                _ => continue,
+            };
+            let clause_id = state.node_id(clause);
+            for &expr in &node_state.column_references {
+                if state.out.expression(expr).is_some_and(|e| Self::is_within(state, e.ast_node_id, clause_id)) {
+                    self.expression_visibility.insert(expr, visibility);
+                }
+            }
+            for &child in &node_state.child_scopes {
+                if state.out.scope(child).is_some_and(|s| Self::is_within(state, s.ast_node_id, clause_id)) {
+                    if let Some(s) = state.out.scope_mut(child) {
+                        s.parent_visibility = visibility;
+                    }
+                }
+            }
+        }
 
         // The written columns: the SET targets of UPDATE, the SET targets and the INSERT columns of the MERGE actions
         let mut written: Vec<&Node> = Vec::new();

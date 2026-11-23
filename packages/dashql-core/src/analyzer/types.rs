@@ -494,6 +494,10 @@ pub enum SourceVisibility {
     Before(u32),
     /// Derived tables and CTEs see no FROM items of their parent, but those of the scopes above it
     None,
+    /// The FROM item of a table ref node only, a WHEN NOT MATCHED BY SOURCE clause of MERGE sees the target only
+    Only(u32),
+    /// The FROM items except the one of a table ref node, a WHEN NOT MATCHED clause of MERGE sees no target
+    Except(u32),
 }
 
 impl SourceVisibility {
@@ -507,6 +511,8 @@ impl SourceVisibility {
             SourceVisibility::All => true,
             SourceVisibility::Before(node_id) => ast_node_id < node_id,
             SourceVisibility::None => false,
+            SourceVisibility::Only(node_id) => ast_node_id == node_id,
+            SourceVisibility::Except(node_id) => ast_node_id != node_id,
         }
     }
 }
