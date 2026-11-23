@@ -840,11 +840,44 @@ impl<'a> Formatter<'a> {
                     && self.printed_edge_reg(w.id, w.first, counts, true).is_some()
             });
         let word = candidates.clone().next()?.first;
+        // In front of the name after a dot, the comment would follow the dot, as in `t./* c */ from`, and the scanner
+        // reads no qualified name there before a reserved keyword or an operator. It goes in front of the qualified
+        // name instead, where a second run finds it.
+        if let Some(qualified) = self.qualified_name_at(word, root_id, root_span, spans) {
+            let start = TextSpan::new(qualified.offset, 0);
+            return self.node_after(root_id, root_span, start, spans, counts);
+        }
         let innermost =
             candidates.take_while(|w| w.first.offset == word.offset).min_by_key(|w| (w.span.length, w.id))?;
         let reg = self.outermost_at_edge(root_id, innermost.id, counts, true)?;
         let parentheses = self.count_parentheses(comment.end(), word.offset, true);
         Some(self.outside_of_parentheses(reg, parentheses, counts, true))
+    }
+
+    /// The span of the innermost node of a statement around the dot in front of a word, if a dot is in front of it
+    fn qualified_name_at(
+        &self,
+        word: TextSpan,
+        root_id: usize,
+        root_span: TextSpan,
+        spans: &NodeSpans,
+    ) -> Option<TextSpan> {
+        use dashql_parser::symbol_kind::{S_DOT, S_DOT_STAR_LA, S_DOT_TRAILING};
+        let symbols = &self.scanned.symbols;
+        let before = symbols.partition_point(|s| s.location.offset < word.offset).checked_sub(1)?;
+        let dot = symbols.get(before).filter(|s| matches!(s.kind, S_DOT | S_DOT_TRAILING | S_DOT_STAR_LA))?.location;
+        spans
+            .by_offset
+            .iter()
+            .take_while(|(span, _)| span.offset < dot.offset)
+            .filter(|&&(span, id)| {
+                id != root_id
+                    && span.offset >= root_span.offset
+                    && span.end() <= root_span.end()
+                    && span.end() >= dot.end()
+            })
+            .map(|&(span, _)| span)
+            .min_by_key(|span| span.length)
     }
 
     /// The document that a comment goes at the end of the line of: the outermost document that ends with the

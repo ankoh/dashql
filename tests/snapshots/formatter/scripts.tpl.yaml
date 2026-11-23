@@ -146,3 +146,13 @@ formatter-snapshots:
       select 3
     dialects:
       hyper:
+
+  # A comment goes in front of a qualified name, after the dot the scanner would read no name before a reserved keyword
+  - name: comment_inside_qualified_name
+    input: |-
+      select t /* c */ .from, a.b
+        -- d
+        .c from t;
+      call d360/* e */ .select (limit => 1)
+    dialects:
+      hyper:

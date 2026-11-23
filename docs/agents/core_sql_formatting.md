@@ -40,6 +40,8 @@ second run equals the first. Inline mode drops the comments.
   edges, and takes a comment only if its document prints the same word there. A clause whose text starts with a
   keyword that its parent prints, like the `from` of a from clause, so takes no comment in front of that keyword: the
   comment goes in front of the next node, where a second run finds it.
+- **Qualified names.** A comment in front of the name after a dot, as in `t /* c */ .from`, goes in front of the
+  qualified name: after the dot the scanner reads no qualified name before a reserved keyword or an operator.
 - **Parentheses.** The opening (or closing) parentheses between a comment and the word of its node are counted. Those
   that the document prints itself count, the comment goes outside of as many of the parentheses around the document
   as remain, whether they are parenthesis documents or texts like `]`. Parentheses that the formatter drops are

@@ -3424,6 +3424,27 @@ mod tests {
         }
     }
 
+    #[test]
+    fn keeps_comments_out_of_qualified_names() {
+        // After the dot the scanner would read no qualified name before a reserved keyword or an operator
+        for (input, expected) in [
+            ("select t /* c */ .from from t", "select /* c */ t.from\nfrom t;"),
+            ("select t\n-- c\n.from from t", "select\n-- c\nt.from\nfrom t;"),
+            ("select a.b /* c */ .c, t./* d */ x from t", "select /* c */ a.b.c, /* d */ t.x\nfrom t;"),
+            ("CALL d360/* c */ .select (limit => 1)", "call /* c */ d360.select (limit => 1);"),
+        ] {
+            let [_, pretty] = format_stable(input, 120);
+            assert_eq!(pretty, expected);
+        }
+        let [_, pretty] = format_stable("select a operator(pg_catalog /* c */ .=) b", 120);
+        assert!(!pretty.contains("./*"), "{pretty}");
+        for input in ["select t /* c */ .from from t", "select a operator(pg_catalog /* c */ .=) b"] {
+            let (out, _) = format(input, FormattingMode::PRETTY, 120);
+            let parsed = parse(Arc::new(scan(&out, 0, 2)));
+            assert!(parsed.errors.is_empty() && parsed.scanned.errors.is_empty(), "{out:?}");
+        }
+    }
+
     /// Format a script in compact and pretty mode, formatting the output again must not change it
     fn format_stable(text: &str, max_width: u32) -> [String; 2] {
         [FormattingMode::COMPACT, FormattingMode::PRETTY].map(|mode| {

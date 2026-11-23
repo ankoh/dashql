@@ -414,3 +414,34 @@ formatter-snapshots:
               select 2; /* @vis table */
 
               select 3;
+
+  - name: comment_inside_qualified_name
+    input: |-
+      select t /* c */ .from, a.b
+        -- d
+        .c from t;
+      call d360/* e */ .select (limit => 1)
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select t.from, a.b.c from t;
+
+              call d360.select (limit => 1);
+          - mode: compact
+            expected: |-
+              select /* c */ t.from,
+                -- d
+                a.b.c
+              from t;
+
+              call /* e */ d360.select (limit => 1);
+          - mode: pretty
+            expected: |-
+              select /* c */ t.from,
+                -- d
+                a.b.c
+              from t;
+
+              call /* e */ d360.select (limit => 1);
