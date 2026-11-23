@@ -1,21 +1,13 @@
 import { ChannelArgs, ChannelError, RawProxyError } from '@akohn/dashql/platform/channel_common';
 import { Logger } from "@akohn/dashql/platform/logger/logger";
-import { HEADER_NAME_BATCH_BYTES, HEADER_NAME_BATCH_TIMEOUT, HEADER_NAME_CHANNEL_ID, HEADER_NAME_ENDPOINT, HEADER_NAME_PATH, HEADER_NAME_READ_TIMEOUT, HEADER_NAME_STREAM_ID, HEADER_NAME_TLS, HEADER_NAME_TLS_CACERTS, HEADER_NAME_TLS_CLIENT_CERT, HEADER_NAME_TLS_CLIENT_KEY } from './native_proxy_headers.js';
+import { HEADER_NAME_BATCH_BYTES, HEADER_NAME_BATCH_EVENT, HEADER_NAME_BATCH_MESSAGES, HEADER_NAME_BATCH_TIMEOUT, HEADER_NAME_CHANNEL_ID, HEADER_NAME_ERROR, HEADER_NAME_GRPC_STATUS, HEADER_NAME_ENDPOINT, HEADER_NAME_PATH, HEADER_NAME_READ_TIMEOUT, HEADER_NAME_STREAM_ID, HEADER_NAME_TLS, HEADER_NAME_TLS_CACERTS, HEADER_NAME_TLS_CLIENT_CERT, HEADER_NAME_TLS_CLIENT_KEY, NativeStreamBatchEvent } from './native_proxy_headers.js';
 import { NATIVE_PROXY_ENDPOINT, nativeProxyFetch } from './electron_native_fetch.js';
 
 const LOG_CTX = 'native_grpc_client';
 
-export enum NativeGrpcServerStreamBatchEvent {
-    StreamFailed = "StreamFailed",
-    StreamFinished = "StreamFinished",
-    FlushAfterClose = "FlushAfterClose",
-    FlushAfterTimeout = "FlushAfterTimeout",
-    FlushAfterBytes = "FlushAfterBytes",
-}
-
 export interface NativeGrpcServerStreamBatch {
     /// The batch event
-    event: NativeGrpcServerStreamBatchEvent;
+    event: NativeStreamBatchEvent;
     /// The messages
     messages: Uint8Array[];
     /// The trailers (if any)
@@ -38,9 +30,9 @@ function requireIntegerHeader(headers: Headers, key: string): number {
     return Number.parseInt(raw);
 }
 async function throwIfError(response: Response): Promise<void> {
-    if (response.headers.get("dashql-error") ?? false) {
+    if (response.headers.get(HEADER_NAME_ERROR) ?? false) {
         const proxyError = await response.json() as RawProxyError;
-        const statusCode = requireIntegerHeader(response.headers, "dashql-grpc-status");
+        const statusCode = requireIntegerHeader(response.headers, HEADER_NAME_GRPC_STATUS);
         throw new ChannelError(proxyError, statusCode, response.headers, LOG_CTX);
     } else if (response.status != 200) {
         const proxyError: RawProxyError = {
@@ -90,8 +82,8 @@ export class NativeGrpcServerStream implements AsyncIterator<NativeGrpcServerStr
         const response = await nativeProxyFetch(request);
         await throwIfError(response);
 
-        const streamBatchEvent = requireStringHeader(response.headers, "dashql-batch-event");
-        const streamBatchMessages = requireIntegerHeader(response.headers, "dashql-batch-messages");
+        const streamBatchEvent = requireStringHeader(response.headers, HEADER_NAME_BATCH_EVENT);
+        const streamBatchMessages = requireIntegerHeader(response.headers, HEADER_NAME_BATCH_MESSAGES);
         const bodyBuffer = await response.arrayBuffer();
         const bodyBufferView = new DataView(bodyBuffer);
 
@@ -127,7 +119,7 @@ export class NativeGrpcServerStream implements AsyncIterator<NativeGrpcServerStr
 
         // Return the batch event and all messages
         return {
-            event: streamBatchEvent as NativeGrpcServerStreamBatchEvent,
+            event: streamBatchEvent as NativeStreamBatchEvent,
             messages: messages,
             metadata
         };
@@ -140,16 +132,16 @@ export class NativeGrpcServerStream implements AsyncIterator<NativeGrpcServerStr
         }
         const batch = await this.read();
         switch (batch.event) {
-            case NativeGrpcServerStreamBatchEvent.FlushAfterBytes:
-            case NativeGrpcServerStreamBatchEvent.FlushAfterTimeout:
+            case NativeStreamBatchEvent.FlushAfterBytes:
+            case NativeStreamBatchEvent.FlushAfterTimeout:
                 return { value: batch, done: false };
 
-            case NativeGrpcServerStreamBatchEvent.StreamFinished:
-            case NativeGrpcServerStreamBatchEvent.FlushAfterClose:
+            case NativeStreamBatchEvent.StreamFinished:
+            case NativeStreamBatchEvent.FlushAfterClose:
                 this.reachedEndOfStream = true;
                 return { value: batch, done: false };
 
-            case NativeGrpcServerStreamBatchEvent.StreamFailed:
+            case NativeStreamBatchEvent.StreamFailed:
                 this.reachedEndOfStream = true;
                 throw new ChannelError({ message: "stream failed" }, 400, new Headers(batch.metadata));
         }

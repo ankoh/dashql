@@ -1,16 +1,8 @@
 import { getProxyErrorData, RawProxyError } from '@akohn/dashql/platform/channel_common';
 import { HttpClient, HttpFetchResult } from '@akohn/dashql/platform/http_client';
 import { Logger, LoggableException } from '@akohn/dashql/platform/logger/logger';
-import { HEADER_NAME_BATCH_BYTES, HEADER_NAME_BATCH_EVENT, HEADER_NAME_BATCH_TIMEOUT, HEADER_NAME_ENDPOINT, HEADER_NAME_ERROR, HEADER_NAME_METHOD, HEADER_NAME_PATH, HEADER_NAME_READ_TIMEOUT, HEADER_NAME_RESPONSE_STARTED, HEADER_NAME_SEARCH_PARAMS, HEADER_NAME_STREAM_ID } from '../native_proxy_headers.js';
+import { HEADER_NAME_BATCH_BYTES, HEADER_NAME_BATCH_EVENT, HEADER_NAME_BATCH_TIMEOUT, HEADER_NAME_ENDPOINT, HEADER_NAME_ERROR, HEADER_NAME_METHOD, HEADER_NAME_PATH, HEADER_NAME_READ_TIMEOUT, HEADER_NAME_RESPONSE_STARTED, HEADER_NAME_SEARCH_PARAMS, HEADER_NAME_STREAM_ID, NativeStreamBatchEvent } from '../native_proxy_headers.js';
 import { NATIVE_PROXY_ENDPOINT, nativeProxyFetch } from '../electron_native_fetch.js';
-
-export enum NativeHttpServerStreamBatchEvent {
-    StreamFailed = "StreamFailed",
-    StreamFinished = "StreamFinished",
-    FlushAfterClose = "FlushAfterClose",
-    FlushAfterTimeout = "FlushAfterTimeout",
-    FlushAfterBytes = "FlushAfterBytes",
-}
 
 export class NativeHttpError extends LoggableException {
     /// The data
@@ -74,13 +66,13 @@ export class NativeHttpServerStream implements HttpFetchResult {
 
     private updateFetchState(batchEvent: string | null): void {
         switch (batchEvent) {
-            case NativeHttpServerStreamBatchEvent.StreamFailed:
-            case NativeHttpServerStreamBatchEvent.StreamFinished:
-            case NativeHttpServerStreamBatchEvent.FlushAfterClose:
+            case NativeStreamBatchEvent.StreamFailed:
+            case NativeStreamBatchEvent.StreamFinished:
+            case NativeStreamBatchEvent.FlushAfterClose:
                 this.fetchNext = false;
                 break;
-            case NativeHttpServerStreamBatchEvent.FlushAfterTimeout:
-            case NativeHttpServerStreamBatchEvent.FlushAfterBytes:
+            case NativeStreamBatchEvent.FlushAfterTimeout:
+            case NativeStreamBatchEvent.FlushAfterBytes:
                 this.fetchNext = true;
                 break;
         }

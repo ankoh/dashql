@@ -3,14 +3,15 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { ChannelError } from '@akohn/dashql/platform/channel_common';
 import { TestLogger } from '@akohn/dashql/platform/testing/test_logger';
 import { installNativeGrpcProxy, nativeStreamBatch, TEST_CHANNEL_ID, TEST_STREAM_ID } from '../tests/mocks/native_proxy.js';
-import { NativeGrpcClient, NativeGrpcServerStreamBatchEvent, NativeGrpcServerStreamMessageIterator } from './native_grpc_client.js';
+import { NativeGrpcClient, NativeGrpcServerStreamMessageIterator } from './native_grpc_client.js';
+import { NativeStreamBatchEvent } from './native_proxy_headers.js';
 
 const METADATA = { authorization: 'Bearer token' };
 /// The paths of the channel and the stream that the native proxy of the tests opens
 const CHANNEL = `/grpc/channel/${TEST_CHANNEL_ID}`;
 const STREAM = `${CHANNEL}/stream/${TEST_STREAM_ID}`;
 
-const batch = (event: NativeGrpcServerStreamBatchEvent, messages: string[], count?: number) =>
+const batch = (event: NativeStreamBatchEvent, messages: string[], count?: number) =>
     nativeStreamBatch(event, messages, { count, headers: { 'x-trailer': event } });
 
 async function readAll(iterator: AsyncIterator<Uint8Array>): Promise<string[]> {
@@ -38,15 +39,15 @@ describe('NativeGrpcClient', () => {
 
     it('reads the messages of a server stream across batches', async () => {
         const { requests, seen } = installNativeGrpcProxy([
-            batch(NativeGrpcServerStreamBatchEvent.FlushAfterBytes, ['a', 'bc']),
-            batch(NativeGrpcServerStreamBatchEvent.StreamFinished, ['def']),
+            batch(NativeStreamBatchEvent.FlushAfterBytes, ['a', 'bc']),
+            batch(NativeStreamBatchEvent.StreamFinished, ['def']),
         ]);
         const channel = await new NativeGrpcClient(new TestLogger()).connect({ endpoint: 'https://hyper' }, METADATA);
         const stream = await channel.startServerStream({ path: '/salesforce.hyperdb.grpc.v1.HyperService/ExecuteQuery', body: new Uint8Array([1]) });
         const messages = new NativeGrpcServerStreamMessageIterator(stream, new TestLogger());
 
         expect(await readAll(messages)).toEqual(['a', 'bc', 'def']);
-        expect(messages.metadata.get('x-trailer')).toBe(NativeGrpcServerStreamBatchEvent.StreamFinished);
+        expect(messages.metadata.get('x-trailer')).toBe(NativeStreamBatchEvent.StreamFinished);
         expect(seen[1].headers.get('dashql-path')).toBe('/salesforce.hyperdb.grpc.v1.HyperService/ExecuteQuery');
         expect(requests).toEqual(['POST /grpc/channels', `POST ${CHANNEL}/streams`, `GET ${STREAM}`, `GET ${STREAM}`]);
 
@@ -57,7 +58,7 @@ describe('NativeGrpcClient', () => {
     });
 
     it('drops a stream with a corrupt batch', async () => {
-        const { requests } = installNativeGrpcProxy([batch(NativeGrpcServerStreamBatchEvent.FlushAfterBytes, ['a'], 2)]);
+        const { requests } = installNativeGrpcProxy([batch(NativeStreamBatchEvent.FlushAfterBytes, ['a'], 2)]);
         const channel = await new NativeGrpcClient(new TestLogger()).connect({ endpoint: 'https://hyper' }, METADATA);
         const stream = await channel.startServerStream({ path: '/p', body: new Uint8Array() });
         await expect(stream.read()).rejects.toThrow('batch message count mismatch');
@@ -66,7 +67,7 @@ describe('NativeGrpcClient', () => {
 
     it('fails on failed streams and on proxy errors', async () => {
         installNativeGrpcProxy([
-            batch(NativeGrpcServerStreamBatchEvent.StreamFailed, []),
+            batch(NativeStreamBatchEvent.StreamFailed, []),
             new Response(JSON.stringify({ message: 'unavailable' }), { status: 400, headers: { 'dashql-error': 'true', 'dashql-grpc-status': '14' } }),
         ]);
         const channel = await new NativeGrpcClient(new TestLogger()).connect({ endpoint: 'https://hyper' }, METADATA);

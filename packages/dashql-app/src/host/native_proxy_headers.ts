@@ -2,10 +2,12 @@ export const HEADER_NAME_CHANNEL_ID = 'dashql-channel-id';
 export const HEADER_NAME_STREAM_ID = 'dashql-stream-id';
 export const HEADER_NAME_BATCH_BYTES = 'dashql-batch-bytes';
 export const HEADER_NAME_BATCH_EVENT = 'dashql-batch-event';
+export const HEADER_NAME_BATCH_MESSAGES = 'dashql-batch-messages';
 export const HEADER_NAME_RESPONSE_STARTED = 'dashql-response-started';
 export const HEADER_NAME_READ_TIMEOUT = 'dashql-read-timeout';
 export const HEADER_NAME_BATCH_TIMEOUT = 'dashql-batch-timeout';
 export const HEADER_NAME_ERROR = 'dashql-error';
+export const HEADER_NAME_GRPC_STATUS = 'dashql-grpc-status';
 
 export const HEADER_NAME_METHOD = 'dashql-method';
 export const HEADER_NAME_ENDPOINT = 'dashql-endpoint';
@@ -15,3 +17,12 @@ export const HEADER_NAME_TLS = 'dashql-tls';
 export const HEADER_NAME_TLS_CLIENT_KEY = 'dashql-tls-client-key';
 export const HEADER_NAME_TLS_CLIENT_CERT = 'dashql-tls-client-cert';
 export const HEADER_NAME_TLS_CACERTS = 'dashql-tls-cacerts';
+
+/// Why the native proxy ended a batch of a stream, in the header HEADER_NAME_BATCH_EVENT
+export enum NativeStreamBatchEvent {
+    StreamFailed = "StreamFailed",
+    StreamFinished = "StreamFinished",
+    FlushAfterClose = "FlushAfterClose",
+    FlushAfterTimeout = "FlushAfterTimeout",
+    FlushAfterBytes = "FlushAfterBytes",
+}
