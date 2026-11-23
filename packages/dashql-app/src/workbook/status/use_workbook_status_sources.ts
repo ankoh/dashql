@@ -72,6 +72,22 @@ export function workbookConnectionStatuses(connections: ReadonlyMap<string, Conn
     }));
 }
 
+/// The latest queries of the scripts of a workbook, see `scriptQueries`. The component renders again when one of these
+/// queries changes, e.g. with a step of a running query, which the views of the connections leave out.
+function useScriptQueries(workbookScripts: Pick<WorkbookScripts, 'scriptOrder' | 'scriptRefs'>, scripts: ScriptDataMap, connections: ReadonlyMap<string, ConnectionState>): ScriptQuery[] {
+    const store = useOptionalRuntime()?.store ?? null;
+    const queryIds = Object.values(scripts).flatMap(script => script.latestQueryId == null ? [] : [script.latestQueryId]).sort((a, b) => a - b).join(',');
+    const subscribe = React.useCallback((listener: () => void) => {
+        const unsubscribes = store == null || queryIds.length === 0 ? [] : queryIds.split(',').map(id => store.subscribe('query', Number(id), listener));
+        return () => unsubscribes.forEach(unsubscribe => unsubscribe());
+    }, [store, queryIds]);
+    const readQuery = (queryId: number) => (store?.get('query', queryId) ?? null) as QueryExecutionState | null;
+    // The JSON of the queries keeps the snapshot while they are unchanged
+    const snapshot = () => JSON.stringify(scriptQueries(workbookScripts, scripts, connections, readQuery));
+    const json = React.useSyncExternalStore(subscribe, snapshot, snapshot);
+    return React.useMemo(() => JSON.parse(json) as ScriptQuery[], [json]);
+}
+
 /// Keeps the identity of a value of plain JSON while its JSON is unchanged
 function useStable<T>(value: T): T {
     const json = JSON.stringify(value);
@@ -237,9 +253,7 @@ export function useWorkbookStatusSources(args: {
     publish: CloudPublishStatus | null;
 }): void {
     const workbookId = args.workbookScripts.workbookId;
-    const runtime = useOptionalRuntime();
-    const readQuery = React.useCallback((queryId: number) => (runtime?.store.get('query', queryId) ?? null) as QueryExecutionState | null, [runtime]);
-    const queries = useStable(scriptQueries(args.workbookScripts, args.scripts, args.connections, readQuery));
+    const queries = useScriptQueries(args.workbookScripts, args.scripts, args.connections);
     const connections = useStable(workbookConnectionStatuses(args.connections, args.label));
     const execution = args.execution;
     const executing = execution?.busy === true;
