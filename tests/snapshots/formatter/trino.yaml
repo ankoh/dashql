@@ -172,3 +172,33 @@ formatter-snapshots:
             expected: |-
               select cast(payload as integer[3])
               from events;
+
+  - name: coverage_trino_zoned_time_literals_with_precision
+    input: |-
+      select timestamptz(3) '2024-01-01 10:00:00.123 UTC', timetz(3) '10:00:00.123 UTC', timestamp(3) with time zone '2024-01-01 10:00 UTC'
+    dialects:
+      trino:
+        formatted:
+          - mode: inline
+            expected: |-
+              select timestamp '2024-01-01 10:00:00.123 UTC', time '10:00:00.123 UTC', timestamp '2024-01-01 10:00 UTC';
+          - mode: compact
+            expected: |-
+              select timestamp '2024-01-01 10:00:00.123 UTC', time '10:00:00.123 UTC', timestamp '2024-01-01 10:00 UTC';
+          - mode: pretty
+            expected: |-
+              select timestamp '2024-01-01 10:00:00.123 UTC', time '10:00:00.123 UTC', timestamp '2024-01-01 10:00 UTC';
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select timestamptz(3) '2024-01-01 10:00:00.123 UTC', timetz(3) '10:00:00.123 UTC', timestamp(3) with time zone '2024-01-01 10:00 UTC';
+          - mode: compact
+            expected: |-
+              select timestamptz(3) '2024-01-01 10:00:00.123 UTC', timetz(3) '10:00:00.123 UTC',
+                timestamp(3) with time zone '2024-01-01 10:00 UTC';
+          - mode: pretty
+            expected: |-
+              select timestamptz(3) '2024-01-01 10:00:00.123 UTC',
+                timetz(3) '10:00:00.123 UTC',
+                timestamp(3) with time zone '2024-01-01 10:00 UTC';

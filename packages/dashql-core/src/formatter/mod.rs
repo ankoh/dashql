@@ -1172,13 +1172,17 @@ impl<'a> Formatter<'a> {
             ],
         );
         let (Some(name), Some(value)) = (name, value) else { return self.format_unimplemented(node) };
-        let mut name_reg = self.reg(name);
-        // Trino reads the time zone of a timestamp or time literal from its text, `timestamptz '...'` is `timestamp '...'`
-        if self.config.dialect == FormattingDialect::TRINO && args.is_none() {
-            match self.text_at(name.symbol_span()).to_ascii_lowercase().as_str() {
-                "timestamptz" => name_reg = f.text("timestamp"),
-                "timetz" => name_reg = f.text("time"),
-                _ => {}
+        let name_reg = self.reg(name);
+        // Trino reads the time zone of a timestamp or time literal from its text, `timestamptz '...'` is `timestamp '...'`.
+        // Its literals take no precision either, it is that of the text, like for `timestamp(3) with time zone '...'`.
+        if self.config.dialect == FormattingDialect::TRINO {
+            let keyword = match self.text_at(name.symbol_span()).to_ascii_lowercase().as_str() {
+                "timestamptz" => Some("timestamp"),
+                "timetz" => Some("time"),
+                _ => None,
+            };
+            if let Some(keyword) = keyword {
+                return f.concat(&[f.text(keyword), f.text(" "), self.reg_or_placeholder(value)]);
             }
         }
         let value_reg = self.reg(value);
