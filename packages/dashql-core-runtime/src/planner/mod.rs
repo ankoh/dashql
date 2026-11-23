@@ -130,11 +130,11 @@ pub enum PlanScope<'a> {
     Session,
     /// The target scripts and what they need
     Targets(&'a [u32]),
-    /// Every statement of every script whose analysis is current with its text, for the dataflow of a session and the
-    /// read of the stored results of a workbook, which execute nothing. Like a plan of targets, but problems are
-    /// diagnostics that don't stop the plan: a script without a current analysis is left out, as are script references
-    /// with errors or to scripts that were left out. An analysis of an earlier catalog revision is planned as it is. A
-    /// plan that left something out is not valid.
+    /// Every statement of every script whose analysis is current with its text and whose result the host doesn't
+    /// provide, for the dataflow of a session and the run of a workbook that is shown. Like a plan of targets, but
+    /// problems are diagnostics that don't stop the plan: a script without a current analysis is left out, as are script
+    /// references with errors or to scripts that were left out. An analysis of an earlier catalog revision is planned as
+    /// it is. A plan that left something out is not valid.
     Tolerant,
 }
 
@@ -424,7 +424,9 @@ fn seeds(request: &SessionPlanRequest) -> Vec<u32> {
             })
             .collect(),
         PlanScope::Targets(targets) => targets.to_vec(),
-        PlanScope::Tolerant => (0..request.scripts.len() as u32).collect(),
+        PlanScope::Tolerant => {
+            (0..request.scripts.len() as u32).filter(|i| !request.materialized.contains(i)).collect()
+        }
     }
 }
 

@@ -51,9 +51,10 @@ plan), inputs without a value, visualizations that fail to compile and a referen
 errors.
 
 A tolerant plan (`PlanScope::Tolerant`) is the plan of the [dataflow](dataflow.md) of a session, which is never run,
-and of the read of the stored results of a workbook that opened, which executes no statement and only reads the files
-of the results (`tolerant` of `RunPlanRequest`, see `workbook_results.md`).
-It plans every script like a plan of targets that targets all of them, but errors leave something out instead of
+and of the run of a workbook that is shown, which runs only on the embedded Hyper (`tolerant` of `RunPlanRequest`, see
+`workbook_results.md`).
+It plans every script whose result the host doesn't provide like a plan of targets that targets all of them, also the
+scripts that run only on request (the run holds them back), but errors leave something out instead of
 stopping the plan: a script without a current analysis is not planned, an analysis of an earlier catalog revision
 is taken as it is, and script references with errors or to scripts that were not planned are not spliced. The
 diagnostics keep their error flag, and a plan that left something out is not valid. An invalid request, e.g. two

@@ -183,21 +183,34 @@ the run of the query owns the table that it read, then the query ends as cancell
 ## Opening a Workbook
 
 Loading a workbook doesn't read its results. Showing it does: the feed page tells the runtime that it shows a
-workbook (`showWorkbook(workbookId)`), and the first time a workbook is shown, the runtime reads the stored
-result of every script that has no result yet, one after the other once the compute database is set up. The read is a
-run of the workbook that runs nothing (`stored` of the run options, `read_stored` of `workbook_run/engine.rs`): it
-plans the workbook and reads, in feed order, the stored file of every script with a result node whatever its key,
-pinned until the read ended. It derives no keys. Its plan is tolerant (`PlanScope::Tolerant`, `planner.md`), so a
-script that can't be planned, e.g. one without a current analysis, is left out and leaves the others alone. A script
-whose plan has an error, e.g. an unknown reference, shows its stored result too. Each read is a query of the connection
-of the script that only reads the file: the card shows the result like the result of a run, marked as stored. A script
-whose key differs from the key in the name of its file is marked as outdated; running it computes a new result. A
-script whose visualization doesn't decode reads nothing.
+workbook (`showWorkbook(workbookId)`), and the first time a workbook is shown, the runtime runs it on the embedded
+Hyper. The run is an Execute All that runs only on the connections of the embedded Hyper that are online and calls no
+client function (`local` of the run options, `open` of `runs/stored_results.rs`): the scripts of every other
+connection, e.g. Trino, never run, so the dashboard of a workbook renders from the results of its last run without a
+query on the remote backends. An imported workbook shows its imported results the same way.
 
-The read is a run of the workbook for the app as well: it holds the workbook (`held` of the run slice is `open`) and
-reports its state like Execute All (`state` of the run slice), counting the scripts that it looks at. The bar shows its
-progress and its Stop, and the status logs its end like the end of every run of the workbook. The read is no reuse by
-a run and skips no script. A workbook that a run holds when it is shown reads its results once the run ended.
+- A script of the embedded Hyper reuses its stored result whose key fits and runs otherwise, also one that
+  post-processes the result of a remote script (`:foo`, `script_references.md`). Its new result replaces the stored
+  one, the run vacuums like Execute All. A script that isn't cacheable, e.g. one with a `CREATE TABLE` before its
+  query, runs.
+- A script of another connection uses its stored result whatever its key, like a script of a connection that can't run
+  in Execute All (Reuse), and the scripts after it scan its file.
+- A script that calls a client function doesn't run, nor does a script that runs only on request (`@manual`) or one
+  whose visualization doesn't decode. The scripts that follow them in the plan don't run either.
+- A script that doesn't run and shows no result yet reads its stored result whatever its key, also one that isn't
+  cacheable or that follows a script that doesn't run. A script without a stored result shows nothing.
+
+The plan is tolerant (`PlanScope::Tolerant`, `planner.md`), so a script that can't be planned, e.g. one without a
+current analysis, is left out and leaves the others alone. Each read is a query of the connection of the script that
+only reads the file: the card shows the result like the result of a run, marked as stored. A script whose key differs
+from the key in the name of its file is marked as outdated; running it computes a new result.
+
+The run holds the workbook (`held` of the run slice is `open`) and the connections of the embedded Hyper that it runs
+on, and reports its state like Execute All (`state` of the run slice). The scripts that it doesn't run count as
+completed, they are no skips that need a connection: the status names none and the connections don't pulse. The bar
+shows its progress and its Stop, and the status logs its end like the end of every run of the workbook. A workbook
+waits while a run holds it, or while its embedded Hyper is connecting, runs a query or is held by a run of another
+workbook, and starts once that run ended or the connection changed.
 
 A script whose result was read stays as it is when the workbook is shown again. The view of a script carries its stored
 result (`storedResult`: the name of the file, its key, when it was written, whether the key is the key of the script

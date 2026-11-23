@@ -1,6 +1,7 @@
 //! The stored results of the scripts of the workbooks (docs/design/workbook_results.md): the script view names the file
 //! of the last result of a script, `storedResult` with its key, when it was written and whether the key is the key of
-//! the script as it is now; and a workbook that is shown for the first time reads the stored results of its scripts.
+//! the script as it is now; and a workbook that is shown for the first time runs on the embedded Hyper, the scripts of
+//! the other connections show their stored results.
 //!
 //! A workbook is looked up again when it changed (not a move of the cursor), when a connection of its scripts changed,
 //! when a query of it recorded its result and when a run of it ended. The lookups wait until the changes pause like the
@@ -13,6 +14,7 @@ use std::cell::{Cell, RefCell};
 use std::collections::BTreeSet;
 use std::rc::Rc;
 
+use dashql_core_runtime::connections::label::is_hyper_wasm_connection;
 use dashql_core_runtime::host::{Host, LogLevel};
 use dashql_core_runtime::workbook::{ScriptStoredResult, WorkbookAction, WorkbookScript};
 use dashql_core_runtime::workbook_run::{start_run, PlanRun, RunOptions};
@@ -178,43 +180,77 @@ impl Runs {
         })
     }
 
-    /// A view shows a workbook. The first time a workbook is shown, the runtime reads the stored results of its scripts
-    /// that show no result yet; a workbook that a run holds reads them once the run ended.
+    /// A view shows a workbook. The first time a workbook is shown, it runs on the embedded Hyper and the scripts of
+    /// the other connections show their stored results (`open`). A workbook waits while a run holds it or its embedded
+    /// Hyper is busy, e.g. connecting, and starts once the run ended or the connection changed.
     pub(crate) fn show_workbook(self: &Rc<Self>, workbook_id: &str) {
         if self.destroyed.get() || !self.platform.has_results() || self.stored.opened.borrow().contains(workbook_id) {
             return;
         }
-        if self.read(workbook_id, |entry| entry.is_some_and(|entry| entry.held.is_some())) {
-            self.stored.waiting.borrow_mut().insert(workbook_id.to_string());
+        if let Some(reason) = self.open_blocker(workbook_id) {
+            if self.stored.waiting.borrow_mut().insert(workbook_id.to_string()) {
+                self.log(
+                    LogLevel::Info,
+                    "A shown workbook waits to show its results",
+                    &[("workbookId", workbook_id), ("reason", &reason)],
+                );
+            }
             return;
         }
+        self.stored.waiting.borrow_mut().remove(workbook_id);
         self.open(workbook_id);
     }
 
-    /// A run of a workbook ended, a workbook that was shown meanwhile reads its stored results
-    pub(crate) fn open_waiting(self: &Rc<Self>, workbook_id: &str) {
-        if self.stored.waiting.borrow_mut().remove(workbook_id) {
-            self.show_workbook(workbook_id);
+    /// Start the shown workbooks that wait, once the runs and connections that they waited for are free
+    pub(crate) fn open_waiting(self: &Rc<Self>) {
+        let waiting: Vec<String> = self.stored.waiting.borrow().iter().cloned().collect();
+        for workbook_id in waiting {
+            self.show_workbook(&workbook_id);
         }
     }
 
-    /// Read the stored results of a workbook: a run that runs nothing and reads the file of every script that shows no
-    /// result yet, whatever its key
+    /// The connections of the embedded Hyper among the connections of a workbook, whatever their health
+    fn embedded(&self, connections: &[String]) -> Vec<String> {
+        let registry = self.connections.registry.borrow();
+        connections
+            .iter()
+            .filter(|id| {
+                registry.get(id).is_some_and(|connection| {
+                    connection.state.try_borrow().is_ok_and(|state| is_hyper_wasm_connection(&state))
+                })
+            })
+            .cloned()
+            .collect()
+    }
+
+    /// Why a shown workbook can't run now, none if it can: a run holds it or its embedded Hyper
+    fn open_blocker(&self, workbook_id: &str) -> Option<String> {
+        let scope = self.scope(workbook_id)?;
+        self.blocker(workbook_id, &self.embedded(&scope.connections), false)
+    }
+
+    /// Show a workbook: an Execute All that runs only on the embedded Hyper and calls no client function. The scripts
+    /// of the other connections show their stored results whatever their keys (docs/design/workbook_results.md).
     fn open(self: &Rc<Self>, workbook_id: &str) {
         let Some(scope) = self.scope(workbook_id) else { return };
         self.stored.opened.borrow_mut().insert(workbook_id.to_string());
         if scope.empty {
             return;
         }
-        self.log(LogLevel::Info, "Reading the stored results of a workbook", &[("workbookId", workbook_id)]);
-        let host = self.host(&scope, workbook_id, Some(Vec::new()), None);
+        let embedded = self.online(&scope.connections, true);
+        self.log(
+            LogLevel::Info,
+            "Showing a workbook, running it on the embedded Hyper",
+            &[("workbookId", workbook_id), ("online", &embedded.join(", "))],
+        );
+        let host = self.host(&scope, workbook_id, Some(embedded.clone()), None);
         let number = host.number;
         let options = RunOptions {
             run: PlanRun::Workbook,
             targets: None,
             inputs: None,
             refresh: false,
-            stored: true,
+            local: true,
             reports_state: true,
             analyze: true,
         };
@@ -224,8 +260,8 @@ impl Runs {
                 kind: WorkbookRunKind::Open,
                 number,
                 handle: Rc::new(handle),
-                connections: Vec::new(),
-                online: Vec::new(),
+                connections: embedded.clone(),
+                online: embedded,
             });
         });
         let runs = self.clone();
@@ -235,11 +271,13 @@ impl Runs {
             if let Some(failure) = &result.failure {
                 runs.log(
                     LogLevel::Info,
-                    "Reading the stored results of a workbook failed",
+                    "Showing a workbook failed",
                     &[("workbookId", &workbook_id), ("error", &failure.message)],
                 );
             }
             runs.release(&workbook_id, number);
+            // The scripts that ran replaced their stored results
+            runs.vacuum(&workbook_id).await;
         }));
     }
 

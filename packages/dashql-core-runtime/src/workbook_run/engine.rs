@@ -152,6 +152,8 @@ struct Settling<'a> {
     follows: &'a [BTreeSet<u32>],
     /// May the scripts reuse their stored results?
     reuse: bool,
+    /// The scripts that a run of a shown workbook holds back, they keep their stored files
+    held: &'a BTreeSet<u32>,
     settled: &'a RefCell<Settled>,
 }
 
@@ -451,8 +453,8 @@ impl<H: RunHost> Run<H> {
         if analyzed {
             self.host.workbook_changed(Vec::new(), true);
         }
-        // A read of the stored results plans what it can, a script that can't be planned leaves the others alone
-        let tolerant = self.options.stored;
+        // A run of a shown workbook plans what it can, a script that can't be planned leaves the others alone
+        let tolerant = self.options.local;
         let request =
             RunPlanRequest { targets, materialized: provided, mount_prefix, materialization_files: files, tolerant };
         let graph = self.workbook.try_borrow().map_err(|_| busy())?.plan_run(&request);
@@ -462,10 +464,11 @@ impl<H: RunHost> Run<H> {
         Ok(graph)
     }
 
-    /// The visualizations of the outputs of a plan, they must decode, also those of outputs that the run discards
+    /// The visualizations of the outputs of a plan, they must decode, also those of outputs that the run discards. A run
+    /// of a shown workbook holds back the scripts whose visualizations don't decode instead.
     fn visualizations(&self, graph: &ExecutionGraphT) -> Result<Vec<Option<ScriptVisualization>>, RunFailure> {
         let (visualizations, invalid) = Self::decoded_visualizations(graph);
-        if !invalid.is_empty() {
+        if !invalid.is_empty() && !self.options.local {
             return Err(RunFailure::error("Invalid captured visualization metadata"));
         }
         Ok(visualizations)
@@ -539,14 +542,20 @@ impl<H: RunHost> Run<H> {
         self: &Rc<Self>,
         graph: &ExecutionGraphT,
         visualizations: &[Option<ScriptVisualization>],
+        held: &BTreeSet<u32>,
     ) -> Result<(Vec<Option<ResultKey>>, Settled), RunFailure> {
         let count = self.files.len();
         let statements = planned_statements(graph, &self.files, &self.options.run);
         let follows = script_follows(graph, count);
-        // A script of a connection that can't run doesn't run, the scripts that follow it reuse their stored results:
-        // the script can't change what they read during the run
+        // A script of a connection that can't run doesn't run, nor does a script that is held back, the scripts that
+        // follow it reuse their stored results: the script can't change what they read during the run
         let settled = RefCell::new(Settled {
-            runs: self.connections.iter().map(|connection| self.host.can_run(connection)).collect(),
+            runs: self
+                .connections
+                .iter()
+                .enumerate()
+                .map(|(script, connection)| self.host.can_run(connection) && !held.contains(&(script as u32)))
+                .collect(),
             ..Settled::default()
         });
         let plan = Settling {
@@ -555,6 +564,7 @@ impl<H: RunHost> Run<H> {
             visualizations,
             follows: &follows,
             reuse: !self.options.refresh && self.host.has_results(),
+            held,
             settled: &settled,
         };
         let keys = result_keys(graph, self.key_of(), |script, key| self.settle_result(&plan, script, key)).await;
@@ -570,8 +580,8 @@ impl<H: RunHost> Run<H> {
         if plan.settled.borrow().failure.is_some() {
             return None;
         }
-        let Some(result_node) = nodes(plan.graph).iter().position(|node| node.script == script && node.script_result)
-        else {
+        let result_node = nodes(plan.graph).iter().position(|node| node.script == script && node.script_result);
+        let Some(result_node) = result_node.filter(|_| !plan.held.contains(&script)) else {
             return self.keep_stored(script).await;
         };
         let blocked = plan.follows.get(script as usize).is_some_and(|earlier| {
@@ -749,7 +759,7 @@ impl<H: RunHost> Run<H> {
                 offline.push(connection);
             }
         }
-        if !offline.is_empty() && !self.options.stored {
+        if !offline.is_empty() {
             let details = vec![
                 detail("workbookId", self.workbook_id.clone()),
                 detail("connections", offline.join(", ")),
@@ -772,8 +782,8 @@ impl<H: RunHost> Run<H> {
         if prepared != Ok(false) {
             host.workbook_changed(Vec::new(), true);
         }
-        // A read of the stored results leaves a script that doesn't analyze out of its plan
-        if !self.options.stored {
+        // A run of a shown workbook leaves a script that doesn't analyze out of its plan
+        if !self.options.local {
             prepared.map_err(RunFailure::error)?;
         }
         self.cooperate().await?;
@@ -794,9 +804,24 @@ impl<H: RunHost> Run<H> {
         let mount_prefix = host.mount_prefix().unwrap_or_else(|| unique_mount_prefix(host.now()));
         // The plan of the targets checks the workbook and gives the result keys
         let mut graph = self.plan(targets.as_deref(), &[], &[], &mount_prefix)?;
-        if self.options.stored {
-            return self.read_stored(&graph).await;
+        // A run of a shown workbook calls no client function and holds back the scripts that run only on request and
+        // those whose visualizations don't decode: its tolerant plan has them all
+        let mut held_back: BTreeMap<u32, &'static str> = BTreeMap::new();
+        if self.options.local {
+            let (_, invalid) = Self::decoded_visualizations(&graph);
+            held_back.extend(invalid.into_iter().map(|script| (script, "its visualization doesn't decode")));
+            let dataflow =
+                self.workbook.try_borrow().map_err(|_| RunFailure::error("The workbook is busy"))?.dataflow();
+            for (script, flow) in dataflow.scripts.iter().enumerate() {
+                if flow.manual {
+                    held_back.insert(script as u32, "runs only on request");
+                }
+            }
+            for node in nodes(&graph).iter().filter(|node| node.client_function_call.is_some()) {
+                held_back.insert(node.script, "calls a client function");
+            }
         }
+        let held: BTreeSet<u32> = held_back.keys().copied().collect();
         if let (PlanRun::Script(target), Some(targets)) = (&self.options.run, targets.as_deref()) {
             if targets.iter().all(|t| !nodes(&graph).iter().any(|node| node.script == *t)) {
                 return Err(RunFailure::plan(format!("{target} holds no statement")));
@@ -806,7 +831,7 @@ impl<H: RunHost> Run<H> {
         self.validate(&graph, true)?;
         self.check_cancelled()?;
         // The keys of the scripts, the stored results that they reuse and the names of the files that they write
-        let (keys, settled) = self.settle_results(&graph, &visualizations).await?;
+        let (keys, settled) = self.settle_results(&graph, &visualizations, &held).await?;
         let Settled { cached: cached_files, names, .. } = settled;
 
         // Scripts without statements are done right away, so are the scripts that reused their results
@@ -872,7 +897,7 @@ impl<H: RunHost> Run<H> {
             .flatten()
             .map(|connection| connection.connection_id.clone().unwrap_or_default())
             .collect();
-        let mut skip = skipped_nodes(&graph, &connection_ids, |connection| host.can_run(connection));
+        let mut skip = skipped_nodes(&graph, &connection_ids, &held, |connection| host.can_run(connection));
         // The scripts that run, with the scripts that they follow
         let mut follows: BTreeMap<u32, BTreeSet<u32>> = BTreeMap::new();
         for (index, node) in nodes(&graph).iter().enumerate() {
@@ -920,7 +945,7 @@ impl<H: RunHost> Run<H> {
             }
             self.check_cancelled()?;
             if !failed_setups.is_empty() {
-                skip = skipped_nodes(&graph, &connection_ids, |connection| {
+                skip = skipped_nodes(&graph, &connection_ids, &held, |connection| {
                     host.can_run(connection) && !failed_setups.contains(connection)
                 });
             }
@@ -937,13 +962,22 @@ impl<H: RunHost> Run<H> {
             let skipped_files: Vec<String> = skipped.iter().map(|index| self.file(*index)).collect();
             let skipped_count = skipped.len();
             let emitted_files = skipped_files.clone();
+            let local = self.options.local;
+            // The scripts that a run of a shown workbook leaves out are done, they need no connection
             self.emit(|state| {
-                state.skipped_scripts = skipped_count;
-                state.skipped_files = emitted_files;
+                if local {
+                    state.completed_scripts += skipped_count;
+                } else {
+                    state.skipped_scripts = skipped_count;
+                    state.skipped_files = emitted_files;
+                }
             });
             // Why a script didn't use a stored result, with the key it looked for
             let reason = |index: u32| {
                 let connection = self.connection_of(index);
+                if let Some(reason) = held_back.get(&index) {
+                    return reason.to_string();
+                }
                 if failed_setups.contains(connection) {
                     return "its connection could not be set up".to_string();
                 }
@@ -958,43 +992,48 @@ impl<H: RunHost> Run<H> {
             };
             let described: Vec<String> =
                 skipped.iter().map(|index| format!("{} ({})", self.file(*index), reason(*index))).collect();
+            let message = if local {
+                "Showing the stored results of the scripts that don't run"
+            } else {
+                "Skipping the scripts that need a connection"
+            };
             self.log(
                 LogLevel::Info,
-                "Skipping the scripts that need a connection",
+                message,
                 vec![detail("workbookId", self.workbook_id.clone()), detail("scripts", described.join(", "))],
             );
             for index in &skipped {
                 self.host.script_event(&self.file(*index), &ScriptEvent::Skipped { reason: reason(*index) });
+            }
+            // A script that a run of a shown workbook leaves out shows its stored result
+            if local {
+                self.read_stored(&graph, &skipped).await?;
             }
         }
         let context = self.plan_context(graph, connection_ids, keys, names, materialized, skip)?;
         self.run_graph(Rc::new(context)).await
     }
 
-    /// Read the stored result of every script that shows no result yet, whatever its key, and run nothing: the workbook
-    /// opened. The plan is tolerant, a script that can't be planned, e.g. one that names an unknown script, leaves the
-    /// others alone. A script reads the file of its result node, one whose visualization doesn't decode reads nothing.
-    async fn read_stored(self: &Rc<Self>, graph: &ExecutionGraphT) -> Result<Vec<Option<QueryId>>, RunFailure> {
-        let count = self.files.len();
-        let mut outputs = vec![None; count];
+    /// Read the stored results of scripts that don't run and show no result yet, whatever their keys, in feed order: a
+    /// run of a shown workbook shows what it doesn't run. A script reads the file of its result node, one whose
+    /// visualization doesn't decode reads nothing. Like a reused result, a read is no output of the run.
+    async fn read_stored(self: &Rc<Self>, graph: &ExecutionGraphT, scripts: &[u32]) -> Result<(), RunFailure> {
         if !self.host.has_results() {
-            return Ok(outputs);
+            return Ok(());
         }
         let (visualizations, invalid) = Self::decoded_visualizations(graph);
         // The result node of every script that reads its file, in feed order
         let mut reads: BTreeMap<u32, usize> = BTreeMap::new();
         for (index, node) in nodes(graph).iter().enumerate() {
-            if node.script_result && !invalid.contains(&node.script) && !self.shows_result(node.script) {
+            if node.script_result
+                && scripts.contains(&node.script)
+                && !invalid.contains(&node.script)
+                && !self.shows_result(node.script)
+            {
                 reads.entry(node.script).or_insert(index);
             }
         }
-        let total = reads.len();
-        self.emit(|state| {
-            state.phase = RunPhase::Running;
-            state.total_scripts = total;
-        });
         self.validate(graph, true)?;
-        self.check_cancelled()?;
         let statements = planned_statements(graph, &self.files, &self.options.run);
         for (script, node) in reads {
             // The file stays pinned until the run released its files
@@ -1003,17 +1042,11 @@ impl<H: RunHost> Run<H> {
                 self.kept.borrow_mut().push(retained.id);
             }
             self.check_cancelled()?;
-            if let Some(retained) = retained {
-                let served =
-                    self.serve_cached(graph, script, node, &retained.file, &statements, &visualizations).await?;
-                if let Some(output) = outputs.get_mut(script as usize) {
-                    *output = served;
-                }
-                self.cooperate().await?;
-            }
-            self.emit(|state| state.completed_scripts += 1);
+            let Some(retained) = retained else { continue };
+            self.serve_cached(graph, script, node, &retained.file, &statements, &visualizations).await?;
+            self.cooperate().await?;
         }
-        Ok(outputs)
+        Ok(())
     }
 
     /// Does a script show a result already, e.g. of a run before the workbook opened?

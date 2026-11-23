@@ -323,15 +323,16 @@ impl Runs {
     }
 
     /// The connections of a workbook that are online, those of the embedded Hyper only for a preview of a published
-    /// workbook
-    fn online(&self, connections: &[String], preview: bool) -> Vec<String> {
+    /// workbook and for a workbook that is shown
+    fn online(&self, connections: &[String], embedded_only: bool) -> Vec<String> {
         let registry = self.connections.registry.borrow();
         connections
             .iter()
             .filter(|id| {
                 registry.get(id).is_some_and(|connection| {
                     connection.state.try_borrow().is_ok_and(|state| {
-                        state.health() == ConnectionHealth::Online && (!preview || is_hyper_wasm_connection(&state))
+                        state.health() == ConnectionHealth::Online
+                            && (!embedded_only || is_hyper_wasm_connection(&state))
                     })
                 })
             })
@@ -451,7 +452,7 @@ impl Runs {
             targets: options.targets,
             inputs,
             refresh: options.refresh.unwrap_or(false),
-            stored: false,
+            local: false,
             reports_state: true,
             analyze: options.analyze.unwrap_or(true),
         };
@@ -548,7 +549,7 @@ impl Runs {
             targets: Some(vec![index]),
             inputs: None,
             refresh: options.refresh.unwrap_or(false),
-            stored: false,
+            local: false,
             reports_state: false,
             analyze: true,
         };
@@ -633,9 +634,9 @@ impl Runs {
     fn release(self: &Rc<Self>, workbook_id: &str, number: u64) {
         self.update_held(workbook_id, number, |entry| entry.held = None);
         self.start_pending();
-        // The run wrote the results of its scripts, a workbook that was shown meanwhile reads its results
+        // The run wrote the results of its scripts, a workbook that was shown meanwhile shows its results
         self.check_stored_results(&[workbook_id.to_string()]);
-        self.open_waiting(workbook_id);
+        self.open_waiting();
     }
 
     /// Drop a change of inputs that still waits after a while
@@ -701,7 +702,7 @@ impl Runs {
     }
 
     /// Follow the registry after it changed: stop the runs of workbooks that are gone and of connections that dropped,
-    /// start the changes of inputs that wait, read the columns of new attachments
+    /// start the changes of inputs and the shown workbooks that wait, read the columns of new attachments
     pub fn follow(self: &Rc<Self>) {
         // What to stop and why, logged once the borrows ended
         let mut stops: Vec<(Rc<RunHandle<RuntimeRunHost>>, &'static str, Vec<(&'static str, String)>)> = Vec::new();
@@ -755,6 +756,7 @@ impl Runs {
             self.platform.changed(Slice::Runs, true);
         }
         self.start_pending();
+        self.open_waiting();
         self.describe_attachments();
     }
 

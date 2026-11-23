@@ -54,8 +54,8 @@ scan of a provided script reads its file, an inline reference to it still splice
 
 A plan decides per script how much it includes (`Include`), starting from the scripts it includes in full (`seeds`,
 `ExecutionGraphScript.target`): the targets of a plan of targets (`PlanScope::Targets`), the scripts without provided
-results of a plan of the session, every script of a tolerant plan (`PlanScope::Tolerant`, the plan of the dataflow,
-see `planner.md`).
+results of a plan of the session, every script without provided results of a tolerant plan (`PlanScope::Tolerant`,
+the plan of the dataflow, see `planner.md`).
 
 | Include | Statements |
 |---|---|

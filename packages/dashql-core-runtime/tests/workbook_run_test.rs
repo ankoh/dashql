@@ -374,7 +374,7 @@ fn workbook_run() -> RunOptions {
         targets: None,
         inputs: None,
         refresh: false,
-        stored: false,
+        local: false,
         reports_state: true,
         analyze: true,
     }
@@ -623,7 +623,7 @@ fn runs_a_script_whose_stored_result_has_another_key() {
 }
 
 #[test]
-fn an_opened_workbook_reads_the_stored_results_of_every_key_and_runs_nothing() {
+fn a_shown_workbook_reads_the_stored_results_of_every_key_of_the_connections_that_can_not_run() {
     let main = connection("main", false);
     let workbook = workbook(&[
         ("foo.sql", "select 1 as a", &main),
@@ -638,26 +638,117 @@ fn an_opened_workbook_reads_the_stored_results_of_every_key_and_runs_nothing() {
         state.stored.insert("foo.sql".into(), "outdated".into());
         state.stored.insert("bar.sql".into(), "main:anything".into());
         state.stored.insert("broken.sql".into(), "main:anything".into());
-        // Reading needs no connection
+        // Only the embedded Hyper runs
         state.offline.insert("main".into());
     }
-    let options = RunOptions { stored: true, ..workbook_run() };
-    let result = s.run(&workbook, options);
+    let result = s.run(&workbook, RunOptions { local: true, ..workbook_run() });
     assert!(result.failure.is_none(), "{:?}", result.failure);
     let statements = &s.state.borrow().statements;
     assert_eq!(statements.len(), 3);
     assert!(statements.iter().all(|s| matches!(s.request.result, StatementResult::Read { .. })));
-    assert_eq!(result.outputs.iter().map(Option::is_some).collect::<Vec<_>>(), vec![true, true, false, true]);
-    // A read is neither a reuse by a run nor a skip
-    for file in ["foo.sql", "bar.sql", "baz.sql", "broken.sql"] {
-        assert_eq!(s.events(file), Vec::<String>::new(), "{file}");
-    }
-    // The read reports its progress over the scripts that it reads, the planned ones that show no result yet
-    let states = s.state.borrow().states.clone();
-    assert!(states.iter().any(|state| state.phase == RunPhase::Running && state.completed_scripts < 4));
+    // The scripts whose stored keys are reusable reuse them, the others show them all the same
+    assert_eq!(s.events("foo.sql"), vec!["cached"]);
+    assert_eq!(s.events("bar.sql"), vec!["cached"]);
+    let shown: Vec<bool> = ["foo.sql", "bar.sql", "baz.sql", "broken.sql"]
+        .iter()
+        .map(|file| {
+            statements
+                .iter()
+                .any(|s| matches!(&s.request.result, StatementResult::Read { script, .. } if script == file))
+        })
+        .collect();
+    assert_eq!(shown, vec![true, true, false, true]);
+    // The scripts that don't run are done, they need no connection
     let last = s.last_state();
     assert_eq!((last.phase, last.completed_scripts, last.total_scripts), (RunPhase::Succeeded, 4, 4));
     assert_eq!((last.skipped_scripts, last.total_statements), (0, 0));
+}
+
+/// A connection with the client functions of a made-up service
+fn connection_with_client_functions(id: &str, local: bool) -> Rc<ScriptConnection> {
+    let mut catalog = new_catalog();
+    let spec = r#"{
+        "format": 1,
+        "namespace": "t",
+        "hosts": { "api": { "base_path": "/v1" } },
+        "errors": { "message": ["/message"] },
+        "functions": [{ "name": "list", "method": "GET", "host": "api", "path": "/items" }]
+    }"#;
+    catalog.register_client_functions(spec).unwrap();
+    let profile = ScriptConnectionProfile {
+        dialect: FormattingDialect::HYPER,
+        local,
+        params: None,
+        default_database: String::new(),
+        default_schema: String::new(),
+    };
+    Rc::new(ScriptConnection::new(id, Rc::new(RefCell::new(catalog)), profile))
+}
+
+#[test]
+fn a_shown_workbook_runs_on_the_embedded_hyper_and_calls_no_client_function() {
+    let (local, remote) = (connection_with_client_functions("local", true), connection("remote", false));
+    let workbook = workbook(&[
+        ("remote.sql", "select 1 as a", &remote),
+        ("post.sql", "select count(*) from :remote", &local),
+        ("call.sql", "call t.list()", &local),
+        ("after.sql", "select * from :call", &local),
+    ]);
+    let s = setup(true, Some("/mnt/cache"), 1);
+    {
+        let mut state = s.state.borrow_mut();
+        state.offline.insert("remote".into());
+        // An imported result of the remote script, and the last result of the call
+        state.stored.insert("remote.sql".into(), "imported".into());
+        state.names.insert("remote.sql".into(), "remote.sql.imported.1.parquet".into());
+        state.stored.insert("call.sql".into(), "earlier".into());
+    }
+    let result = s.run(&workbook, RunOptions { local: true, ..workbook_run() });
+    assert!(result.failure.is_none(), "{:?}", result.failure);
+    // The remote script shows its imported result, the embedded Hyper post-processes it and stores its result
+    assert_eq!(s.events("remote.sql"), vec!["cached"]);
+    assert!(s.texts().iter().any(|text| text.contains("/mnt/cache/remote.sql.imported.1.parquet")), "{:?}", s.texts());
+    assert!(stores(&s).iter().any(|(script, _, _)| script == "post.sql"), "{:?}", stores(&s));
+    // The call doesn't run but shows its stored result, the script after it is left out
+    assert_eq!(s.events("call.sql"), vec!["skipped"]);
+    assert_eq!(s.events("after.sql"), vec!["skipped"]);
+    let statements = &s.state.borrow().statements;
+    assert!(statements.iter().all(|s| s.request.client_function_call.is_none()));
+    let calls: Vec<&Statement> = statements.iter().filter(|s| s.request.text.contains("call")).collect();
+    assert_eq!(calls.len(), 1);
+    assert!(matches!(calls[0].request.result, StatementResult::Read { .. }));
+    let last = s.last_state();
+    assert_eq!((last.phase, last.completed_scripts, last.total_scripts), (RunPhase::Succeeded, 4, 4));
+    assert_eq!(last.skipped_scripts, 0);
+}
+
+#[test]
+fn a_shown_workbook_runs_no_script_that_runs_only_on_request() {
+    let local = connection("local", true);
+    let workbook = workbook(&[("manual.sql", "/* @manual */\nselect 1", &local), ("auto.sql", "select 2", &local)]);
+    let s = setup(true, Some("/mnt/cache"), 1);
+    s.state.borrow_mut().stored.insert("manual.sql".into(), "earlier".into());
+    let result = s.run(&workbook, RunOptions { local: true, ..workbook_run() });
+    assert!(result.failure.is_none(), "{:?}", result.failure);
+    // The manual script shows its stored result, the other one runs
+    assert_eq!(s.events("manual.sql"), vec!["skipped"]);
+    let statements = &s.state.borrow().statements;
+    let reads: Vec<bool> =
+        statements.iter().map(|s| matches!(s.request.result, StatementResult::Read { .. })).collect();
+    assert_eq!(reads, vec![true, false], "{:?}", s.texts());
+    assert!(statements[1].request.text.contains("select 2"));
+}
+
+#[test]
+fn execute_all_calls_the_client_functions_that_a_shown_workbook_leaves_out() {
+    let local = connection_with_client_functions("local", true);
+    let workbook = workbook(&[("call.sql", "call t.list()", &local)]);
+    let s = setup(true, Some("/mnt/cache"), 1);
+    let result = s.run(&workbook, workbook_run());
+    assert!(result.failure.is_none(), "{:?}", result.failure);
+    let statements = &s.state.borrow().statements;
+    assert_eq!(statements.len(), 1);
+    assert!(statements[0].request.client_function_call.is_some());
 }
 
 #[test]
@@ -770,7 +861,7 @@ fn runs_a_script_with_the_queries_it_inlines() {
         targets: Some(vec![2]),
         inputs: None,
         refresh: true,
-        stored: false,
+        local: false,
         reports_state: false,
         analyze: true,
     };

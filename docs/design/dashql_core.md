@@ -146,9 +146,9 @@ that wants the composition would depend on that rather than copy it.
 - **Stored results.** The view of a script shows the file that holds its last result (`storedResult`: name, key, time
   of writing and whether the key is the key of the script as it is now, `runs/stored_results.rs`). A workbook is looked
   up again once its changes pause: a change of the workbook (a cursor move is none), of a connection of its scripts, a
-  result that a query recorded, the end of a run. A lookup plans the keys and lists the folder once. The runtime reads
-  the stored results of a workbook that is shown (`showWorkbook`), and the logic of the files, the names, the reads, the
-  writes and the renames of scripts is `results.rs` of the bindings. See
+  result that a query recorded, the end of a run. A lookup plans the keys and lists the folder once. A workbook that is
+  shown (`showWorkbook`) runs on the embedded Hyper and shows the stored results of the other scripts, and the logic
+  of the files, the names, the reads, the writes and the renames of scripts is `results.rs` of the bindings. See
   [workbook_results.md](workbook_results.md).
 
 ### Connections, setups and channels

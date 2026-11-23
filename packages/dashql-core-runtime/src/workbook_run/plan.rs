@@ -300,11 +300,13 @@ pub fn script_follows(graph: &ExecutionGraphT, scripts: usize) -> Vec<BTreeSet<u
     follows
 }
 
-/// The nodes of a plan that don't run: the nodes of the connections that can't run and the nodes that follow them. A
-/// script runs completely or not at all, so a skipped node skips the other nodes of its script too.
+/// The nodes of a plan that don't run: the nodes of the connections that can't run, the nodes of the scripts that are
+/// held back and the nodes that follow them. A script runs completely or not at all, so a skipped node skips the other
+/// nodes of its script too.
 pub fn skipped_nodes(
     graph: &ExecutionGraphT,
     connection_ids: &[String],
+    held: &BTreeSet<u32>,
     can_run: impl Fn(&str) -> bool,
 ) -> BTreeSet<u32> {
     let nodes = nodes(graph);
@@ -321,7 +323,9 @@ pub fn skipped_nodes(
     let mut pending: Vec<u32> = nodes
         .iter()
         .enumerate()
-        .filter(|(_, node)| !connection_ids.get(node.connection as usize).is_some_and(|id| can_run(id)))
+        .filter(|(_, node)| {
+            held.contains(&node.script) || !connection_ids.get(node.connection as usize).is_some_and(|id| can_run(id))
+        })
         .map(|(index, _)| index as u32)
         .collect();
     let mut skip = BTreeSet::new();

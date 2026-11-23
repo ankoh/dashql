@@ -49,7 +49,8 @@ pub struct RunScriptOptions {
 pub enum WorkbookRunKind {
     Workbook,
     Script,
-    /// The workbook opened and reads the stored results of its scripts
+    /// The workbook was shown the first time: it runs on the embedded Hyper, the other scripts show their stored
+    /// results
     Open,
 }
 
@@ -129,8 +130,8 @@ pub struct WorkbookRunView {
     pub workbook_id: String,
     /// The run that holds the workbook, null while none does. The workbook starts no other run then.
     pub held: Option<WorkbookRunKind>,
-    /// The state of the last run of the whole workbook, also of the read of the stored results when the workbook is
-    /// first shown, it stays once the run ended
+    /// The state of the last run of the whole workbook, also of the run when the workbook is first shown, it stays once
+    /// the run ended
     pub state: Option<WorkbookRunState>,
     /// The inputs whose change waits for the workbook
     pub pending_inputs: Vec<String>,

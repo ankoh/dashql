@@ -305,9 +305,11 @@ pub struct RunOptions {
     pub inputs: Option<Vec<String>>,
     /// Reuse no stored results: the scripts run and their results replace the stored ones
     pub refresh: bool,
-    /// Read the stored result of every script that shows no result yet, whatever its key, and run nothing: a workbook
-    /// that opens shows the results of its scripts (docs/design/workbook_results.md)
-    pub stored: bool,
+    /// Show the workbook: run only on the connections that the host can run, the embedded Hyper, and call no client
+    /// function. The plan is tolerant, a script that can't be planned leaves the others alone. A script that doesn't
+    /// run reads its stored result whatever its key if it shows no result yet, and is no skip that needs a connection.
+    /// A workbook that is shown for the first time runs so (docs/design/workbook_results.md).
+    pub local: bool,
     /// Report the state of the run to the host
     pub reports_state: bool,
     /// Analyze the results of the outputs on the compute database, the command line tool only prints them
