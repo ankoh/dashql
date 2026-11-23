@@ -63,6 +63,23 @@ formatter-snapshots:
             expected: |-
               select interval '1.5' second(3);
 
+  - name: coverage_type_interval_precision_literal
+    input: |-
+      select interval(3) '1.5', interval (2) '1 day'
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select interval(3) '1.5', interval(2) '1 day';
+          - mode: compact
+            expected: |-
+              select interval(3) '1.5', interval(2) '1 day';
+          - mode: pretty
+            expected: |-
+              select interval(3) '1.5', interval(2) '1 day';
+        validation:
+
   - name: type_numeric_casts
     input: |-
       select cast(a as smallint), cast(a as bigint), cast(a as real), cast(a as double precision), cast(a as boolean) from t

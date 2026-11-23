@@ -127,3 +127,24 @@ formatter-snapshots:
     input: select a is of (int, text), a is not of (int) from t
     dialects:
       hyper:
+
+  # Pattern matching with an escape character
+  - name: coverage_op_pattern_matching_escape
+    input: select a like 'x!%' escape '!', a not like 'x!%' escape '!', a ilike 'x!%' escape '!', a not ilike 'x!%' escape '!', a similar to 'x!%' escape '!', a not similar to 'x!%' escape '!' from t
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 60
+        validation:
+          setup: |-
+            create table t(a text);
+
+  # Prefix generic operators, a space keeps an operator of the argument apart
+  - name: coverage_op_prefix_generic
+    input: select ~a, |/ b, @ c, ~ -a, ~(a + 1) from t
+    dialects:
+      hyper:
+        validation:
+          setup: |-
+            create table t(a int, b double precision, c int);

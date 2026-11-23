@@ -887,3 +887,24 @@ parser-snapshots:
   - name: select_table_statement_param
     input: |
       table :source
+  # Parse an interval literal with a precision
+  - name: select_interval_precision_literal
+    input: |
+      select interval(3) '1.5', interval '1.5' second(3)
+  # Parse LIKE, ILIKE and SIMILAR TO with an escape character
+  - name: select_like_escape
+    input: |
+      select a like 'x!%' escape '!', a not like 'x!%' escape '!', a ilike 'x!%' escape '!',
+             a not ilike 'x!%' escape '!', a similar to 'x!%' escape '!', a not similar to 'x!%' escape '!'
+  # Parse prefix generic operators
+  - name: select_prefix_operators
+    input: |
+      select ~a, |/ b, @ c, ~ -d from t
+  # Parse window frames with exclusions
+  - name: select_window_frame_exclude
+    input: |
+      select sum(a) over (order by b rows between 1 preceding and 1 following exclude current row),
+             sum(a) over (order by b range between unbounded preceding and current row exclude group),
+             sum(a) over (order by b groups 1 preceding exclude ties),
+             sum(a) over (order by b rows unbounded preceding exclude no others)
+      from t

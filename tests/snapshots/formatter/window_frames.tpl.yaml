@@ -117,3 +117,17 @@ formatter-snapshots:
         validation:
           setup: |-
             create table t(a int, b int);
+
+  # Frames with exclusions
+  - name: coverage_window_frame_exclude
+    input: |-
+      select sum(a) over (order by c rows between 1 preceding and 1 following exclude current row),
+             sum(a) over (order by c range between unbounded preceding and current row exclude group),
+             sum(a) over (order by c rows 1 preceding exclude ties),
+             sum(a) over (order by c rows unbounded preceding exclude no others)
+      from t
+    dialects:
+      hyper:
+        validation:
+          setup: |-
+            create table t(a int, b int, c int);

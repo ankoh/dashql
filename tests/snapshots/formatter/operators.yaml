@@ -317,3 +317,54 @@ formatter-snapshots:
             expected: |-
               select a is of (integer, text), a is not of (integer)
               from t;
+
+  - name: coverage_op_pattern_matching_escape
+    input: |-
+      select a like 'x!%' escape '!', a not like 'x!%' escape '!', a ilike 'x!%' escape '!', a not ilike 'x!%' escape '!', a similar to 'x!%' escape '!', a not similar to 'x!%' escape '!' from t
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a like 'x!%' escape '!', a not like 'x!%' escape '!', a ilike 'x!%' escape '!', a not ilike 'x!%' escape '!', a similar to 'x!%' escape '!', a not similar to 'x!%' escape '!' from t;
+          - mode: compact
+            width: 60
+            expected: |-
+              select a like 'x!%' escape '!',
+                a not like 'x!%' escape '!', a ilike 'x!%' escape '!',
+                a not ilike 'x!%' escape '!',
+                a similar to 'x!%' escape '!',
+                a not similar to 'x!%' escape '!'
+              from t;
+          - mode: pretty
+            expected: |-
+              select a like 'x!%' escape '!',
+                a not like 'x!%' escape '!',
+                a ilike 'x!%' escape '!',
+                a not ilike 'x!%' escape '!',
+                a similar to 'x!%' escape '!',
+                a not similar to 'x!%' escape '!'
+              from t;
+        validation:
+          setup: |-
+            create table t(a text);
+
+  - name: coverage_op_prefix_generic
+    input: |-
+      select ~a, |/ b, @ c, ~ -a, ~(a + 1) from t
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select ~ a, |/ b, @ c, ~ (-a), ~ (a + 1) from t;
+          - mode: compact
+            expected: |-
+              select ~ a, |/ b, @ c, ~ (-a), ~ (a + 1) from t;
+          - mode: pretty
+            expected: |-
+              select ~ a, |/ b, @ c, ~ (-a), ~ (a + 1)
+              from t;
+        validation:
+          setup: |-
+            create table t(a int, b double precision, c int);

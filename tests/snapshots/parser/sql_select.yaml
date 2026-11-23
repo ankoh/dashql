@@ -15388,3 +15388,748 @@ parser-snapshots:
       comments: []
       comment-blocks: []
       comment-warnings: []
+
+  - name: select_interval_precision_literal
+    input: |-
+      select interval(3) '1.5', interval '1.5' second(3)
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 12
+          description:
+            text: "select int.. second(3)"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select int.. second(3)"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "interval(3.. second(3)"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "interval(3) '1.5'"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_CONST_INTERVAL_CAST
+                        text: "interval(3) '1.5'"
+                        children:
+                          - key: SQL_CONST_CAST_VALUE
+                            type: LITERAL_STRING
+                            text: "'1.5'"
+                          - key: SQL_CONST_CAST_INTERVAL
+                            type: LITERAL_INTEGER
+                            text: "3"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "interval '.. second(3)"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_CONST_INTERVAL_CAST
+                        text: "interval '.. second(3)"
+                        children:
+                          - key: SQL_CONST_CAST_VALUE
+                            type: LITERAL_STRING
+                            text: "'1.5'"
+                          - key: SQL_CONST_CAST_INTERVAL
+                            type: OBJECT_SQL_INTERVAL_TYPE
+                            text: "second(3)"
+                            children:
+                              - key: SQL_INTERVAL_TYPE
+                                type: ENUM_SQL_INTERVAL_TYPE
+                                value: SECOND
+                              - key: SQL_INTERVAL_PRECISION
+                                type: LITERAL_INTEGER
+                                text: "3"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: select_like_escape
+    input: |-
+      select a like 'x!%' escape '!', a not like 'x!%' escape '!', a ilike 'x!%' escape '!',
+             a not ilike 'x!%' escape '!', a similar to 'x!%' escape '!', a not similar to 'x!%' escape '!'
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 56
+          description:
+            text: "select a l..escape '!'"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select a l..escape '!'"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "a like 'x!..escape '!'"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "a like 'x!..escape '!'"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "a like 'x!..escape '!'"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: LIKE
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "a like 'x!..escape '!'"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "a"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "a"
+                                    children:
+                                      - type: NAME
+                                        text: "a"
+                              - type: LITERAL_STRING
+                                text: "'x!%'"
+                              - type: LITERAL_STRING
+                                text: "'!'"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "a not like..escape '!'"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "a not like..escape '!'"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: NOT_LIKE
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "a not like..escape '!'"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "a"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "a"
+                                    children:
+                                      - type: NAME
+                                        text: "a"
+                              - type: LITERAL_STRING
+                                text: "'x!%'"
+                              - type: LITERAL_STRING
+                                text: "'!'"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "a ilike 'x..escape '!'"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "a ilike 'x..escape '!'"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: ILIKE
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "a ilike 'x..escape '!'"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "a"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "a"
+                                    children:
+                                      - type: NAME
+                                        text: "a"
+                              - type: LITERAL_STRING
+                                text: "'x!%'"
+                              - type: LITERAL_STRING
+                                text: "'!'"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "a not ilik..escape '!'"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "a not ilik..escape '!'"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: NOT_ILIKE
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "a not ilik..escape '!'"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "a"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "a"
+                                    children:
+                                      - type: NAME
+                                        text: "a"
+                              - type: LITERAL_STRING
+                                text: "'x!%'"
+                              - type: LITERAL_STRING
+                                text: "'!'"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "a similar ..escape '!'"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "a similar ..escape '!'"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: SIMILAR_TO
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "a similar ..escape '!'"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "a"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "a"
+                                    children:
+                                      - type: NAME
+                                        text: "a"
+                              - type: LITERAL_STRING
+                                text: "'x!%'"
+                              - type: LITERAL_STRING
+                                text: "'!'"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "a not simi..escape '!'"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "a not simi..escape '!'"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: NOT_SIMILAR_TO
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "a not simi..escape '!'"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "a"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "a"
+                                    children:
+                                      - type: NAME
+                                        text: "a"
+                              - type: LITERAL_STRING
+                                text: "'x!%'"
+                              - type: LITERAL_STRING
+                                text: "'!'"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [86,87]
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: select_prefix_operators
+    input: |-
+      select ~a, |/ b, @ c, ~ -d from t
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 37
+          description:
+            text: "select ~a,.. -d from t"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select ~a,.. -d from t"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "~a, |/ b, @ c, ~ -d"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "~a"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "~a"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: OPERATOR
+                            text: "~"
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "~a"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "a"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "a"
+                                    children:
+                                      - type: NAME
+                                        text: "a"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "|/ b"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "|/ b"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: OPERATOR
+                            text: "|/"
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "|/ b"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "b"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "b"
+                                    children:
+                                      - type: NAME
+                                        text: "b"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "@ c"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "@ c"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: OPERATOR
+                            text: "@"
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "@ c"
+                            children:
+                              - type: OBJECT_SQL_COLUMN_REF
+                                text: "c"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "c"
+                                    children:
+                                      - type: NAME
+                                        text: "c"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "~ -d"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "~ -d"
+                        children:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: OPERATOR
+                            text: "~"
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "~ -d"
+                            children:
+                              - type: OBJECT_SQL_NARY_EXPRESSION
+                                text: "-d"
+                                children:
+                                  - key: SQL_EXPRESSION_OPERATOR
+                                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                                    value: NEGATE
+                                  - key: SQL_EXPRESSION_ARGS
+                                    type: ARRAY
+                                    text: "-d"
+                                    children:
+                                      - type: OBJECT_SQL_COLUMN_REF
+                                        text: "d"
+                                        children:
+                                          - key: SQL_COLUMN_REF_PATH
+                                            type: ARRAY
+                                            text: "d"
+                                            children:
+                                              - type: NAME
+                                                text: "d"
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from t"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "t"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "t"
+                        children:
+                          - type: NAME
+                            text: "t"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+      comment-blocks: []
+      comment-warnings: []
+
+  - name: select_window_frame_exclude
+    input: |-
+      select sum(a) over (order by b rows between 1 preceding and 1 following exclude current row),
+             sum(a) over (order by b range between unbounded preceding and current row exclude group),
+             sum(a) over (order by b groups 1 preceding exclude ties),
+             sum(a) over (order by b rows unbounded preceding exclude no others)
+      from t
+    expected:
+      statements:
+        - type: SELECT
+          ast-begin: 0
+          ast-size: 98
+          description:
+            text: "select sum..rs)\nfrom t"
+            description-begin: 0
+            description-count: 0
+          ast:
+            type: OBJECT_SQL_SELECT
+            text: "select sum..rs)\nfrom t"
+            children:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "sum(a) ove..no others)"
+                children:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "sum(a) ove..rrent row)"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_FUNCTION_EXPRESSION
+                        text: "sum(a) ove..rrent row)"
+                        children:
+                          - key: SQL_FUNCTION_NAME
+                            type: ARRAY
+                            text: "sum"
+                            children:
+                              - type: NAME
+                                text: "sum"
+                          - key: SQL_FUNCTION_ARGUMENTS
+                            type: ARRAY
+                            text: "a"
+                            children:
+                              - type: OBJECT_SQL_FUNCTION_ARG
+                                text: "a"
+                                children:
+                                  - key: SQL_FUNCTION_ARG_VALUE
+                                    type: OBJECT_SQL_COLUMN_REF
+                                    text: "a"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "a"
+                                        children:
+                                          - type: NAME
+                                            text: "a"
+                          - key: SQL_FUNCTION_OVER
+                            type: OBJECT_SQL_WINDOW_FRAME
+                            text: "(order by ..rrent row)"
+                            children:
+                              - key: SQL_WINDOW_FRAME_MODE
+                                type: ENUM_SQL_WINDOW_RANGE_MODE
+                                value: ROWS
+                              - key: SQL_WINDOW_FRAME_BOUNDS
+                                type: ARRAY
+                                text: "between 1 .. following"
+                                children:
+                                  - type: OBJECT_SQL_WINDOW_BOUND
+                                    text: "1 preceding"
+                                    children:
+                                      - key: SQL_WINDOW_BOUND_MODE
+                                        type: ENUM_SQL_WINDOW_BOUND_MODE
+                                        value: VALUE
+                                      - key: SQL_WINDOW_BOUND_DIRECTION
+                                        type: ENUM_SQL_WINDOW_BOUND_DIRECTION
+                                        value: PRECEDING
+                                      - key: SQL_WINDOW_BOUND_VALUE
+                                        type: LITERAL_INTEGER
+                                        text: "1"
+                                  - type: OBJECT_SQL_WINDOW_BOUND
+                                    text: "1 following"
+                                    children:
+                                      - key: SQL_WINDOW_BOUND_MODE
+                                        type: ENUM_SQL_WINDOW_BOUND_MODE
+                                        value: VALUE
+                                      - key: SQL_WINDOW_BOUND_DIRECTION
+                                        type: ENUM_SQL_WINDOW_BOUND_DIRECTION
+                                        value: FOLLOWING
+                                      - key: SQL_WINDOW_BOUND_VALUE
+                                        type: LITERAL_INTEGER
+                                        text: "1"
+                              - key: SQL_WINDOW_FRAME_EXCLUDE
+                                type: ENUM_SQL_WINDOW_EXCLUSION_MODE
+                                value: CURRENT_ROW
+                              - key: SQL_WINDOW_FRAME_ORDER
+                                type: ARRAY
+                                text: "order by b"
+                                children:
+                                  - type: OBJECT_SQL_ORDER
+                                    text: "b"
+                                    children:
+                                      - key: SQL_ORDER_VALUE
+                                        type: OBJECT_SQL_COLUMN_REF
+                                        text: "b"
+                                        children:
+                                          - key: SQL_COLUMN_REF_PATH
+                                            type: ARRAY
+                                            text: "b"
+                                            children:
+                                              - type: NAME
+                                                text: "b"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "sum(a) ove..ude group)"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_FUNCTION_EXPRESSION
+                        text: "sum(a) ove..ude group)"
+                        children:
+                          - key: SQL_FUNCTION_NAME
+                            type: ARRAY
+                            text: "sum"
+                            children:
+                              - type: NAME
+                                text: "sum"
+                          - key: SQL_FUNCTION_ARGUMENTS
+                            type: ARRAY
+                            text: "a"
+                            children:
+                              - type: OBJECT_SQL_FUNCTION_ARG
+                                text: "a"
+                                children:
+                                  - key: SQL_FUNCTION_ARG_VALUE
+                                    type: OBJECT_SQL_COLUMN_REF
+                                    text: "a"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "a"
+                                        children:
+                                          - type: NAME
+                                            text: "a"
+                          - key: SQL_FUNCTION_OVER
+                            type: OBJECT_SQL_WINDOW_FRAME
+                            text: "(order by ..ude group)"
+                            children:
+                              - key: SQL_WINDOW_FRAME_MODE
+                                type: ENUM_SQL_WINDOW_RANGE_MODE
+                                value: RANGE
+                              - key: SQL_WINDOW_FRAME_BOUNDS
+                                type: ARRAY
+                                text: "between un..urrent row"
+                                children:
+                                  - type: OBJECT_SQL_WINDOW_BOUND
+                                    text: "unbounded preceding"
+                                    children:
+                                      - key: SQL_WINDOW_BOUND_MODE
+                                        type: ENUM_SQL_WINDOW_BOUND_MODE
+                                        value: UNBOUNDED
+                                      - key: SQL_WINDOW_BOUND_DIRECTION
+                                        type: ENUM_SQL_WINDOW_BOUND_DIRECTION
+                                        value: PRECEDING
+                                  - type: OBJECT_SQL_WINDOW_BOUND
+                                    text: "current row"
+                                    children:
+                                      - key: SQL_WINDOW_BOUND_MODE
+                                        type: ENUM_SQL_WINDOW_BOUND_MODE
+                                        value: CURRENT_ROW
+                              - key: SQL_WINDOW_FRAME_EXCLUDE
+                                type: ENUM_SQL_WINDOW_EXCLUSION_MODE
+                                value: GROUP
+                              - key: SQL_WINDOW_FRAME_ORDER
+                                type: ARRAY
+                                text: "order by b"
+                                children:
+                                  - type: OBJECT_SQL_ORDER
+                                    text: "b"
+                                    children:
+                                      - key: SQL_ORDER_VALUE
+                                        type: OBJECT_SQL_COLUMN_REF
+                                        text: "b"
+                                        children:
+                                          - key: SQL_COLUMN_REF_PATH
+                                            type: ARRAY
+                                            text: "b"
+                                            children:
+                                              - type: NAME
+                                                text: "b"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "sum(a) ove..lude ties)"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_FUNCTION_EXPRESSION
+                        text: "sum(a) ove..lude ties)"
+                        children:
+                          - key: SQL_FUNCTION_NAME
+                            type: ARRAY
+                            text: "sum"
+                            children:
+                              - type: NAME
+                                text: "sum"
+                          - key: SQL_FUNCTION_ARGUMENTS
+                            type: ARRAY
+                            text: "a"
+                            children:
+                              - type: OBJECT_SQL_FUNCTION_ARG
+                                text: "a"
+                                children:
+                                  - key: SQL_FUNCTION_ARG_VALUE
+                                    type: OBJECT_SQL_COLUMN_REF
+                                    text: "a"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "a"
+                                        children:
+                                          - type: NAME
+                                            text: "a"
+                          - key: SQL_FUNCTION_OVER
+                            type: OBJECT_SQL_WINDOW_FRAME
+                            text: "(order by ..lude ties)"
+                            children:
+                              - key: SQL_WINDOW_FRAME_MODE
+                                type: ENUM_SQL_WINDOW_RANGE_MODE
+                                value: GROUPS
+                              - key: SQL_WINDOW_FRAME_BOUNDS
+                                type: ARRAY
+                                text: "1 preceding"
+                                children:
+                                  - type: OBJECT_SQL_WINDOW_BOUND
+                                    text: "1 preceding"
+                                    children:
+                                      - key: SQL_WINDOW_BOUND_MODE
+                                        type: ENUM_SQL_WINDOW_BOUND_MODE
+                                        value: VALUE
+                                      - key: SQL_WINDOW_BOUND_DIRECTION
+                                        type: ENUM_SQL_WINDOW_BOUND_DIRECTION
+                                        value: PRECEDING
+                                      - key: SQL_WINDOW_BOUND_VALUE
+                                        type: LITERAL_INTEGER
+                                        text: "1"
+                              - key: SQL_WINDOW_FRAME_EXCLUDE
+                                type: ENUM_SQL_WINDOW_EXCLUSION_MODE
+                                value: TIES
+                              - key: SQL_WINDOW_FRAME_ORDER
+                                type: ARRAY
+                                text: "order by b"
+                                children:
+                                  - type: OBJECT_SQL_ORDER
+                                    text: "b"
+                                    children:
+                                      - key: SQL_ORDER_VALUE
+                                        type: OBJECT_SQL_COLUMN_REF
+                                        text: "b"
+                                        children:
+                                          - key: SQL_COLUMN_REF_PATH
+                                            type: ARRAY
+                                            text: "b"
+                                            children:
+                                              - type: NAME
+                                                text: "b"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "sum(a) ove..no others)"
+                    children:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: OBJECT_SQL_FUNCTION_EXPRESSION
+                        text: "sum(a) ove..no others)"
+                        children:
+                          - key: SQL_FUNCTION_NAME
+                            type: ARRAY
+                            text: "sum"
+                            children:
+                              - type: NAME
+                                text: "sum"
+                          - key: SQL_FUNCTION_ARGUMENTS
+                            type: ARRAY
+                            text: "a"
+                            children:
+                              - type: OBJECT_SQL_FUNCTION_ARG
+                                text: "a"
+                                children:
+                                  - key: SQL_FUNCTION_ARG_VALUE
+                                    type: OBJECT_SQL_COLUMN_REF
+                                    text: "a"
+                                    children:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "a"
+                                        children:
+                                          - type: NAME
+                                            text: "a"
+                          - key: SQL_FUNCTION_OVER
+                            type: OBJECT_SQL_WINDOW_FRAME
+                            text: "(order by ..no others)"
+                            children:
+                              - key: SQL_WINDOW_FRAME_MODE
+                                type: ENUM_SQL_WINDOW_RANGE_MODE
+                                value: ROWS
+                              - key: SQL_WINDOW_FRAME_BOUNDS
+                                type: ARRAY
+                                text: "unbounded preceding"
+                                children:
+                                  - type: OBJECT_SQL_WINDOW_BOUND
+                                    text: "unbounded preceding"
+                                    children:
+                                      - key: SQL_WINDOW_BOUND_MODE
+                                        type: ENUM_SQL_WINDOW_BOUND_MODE
+                                        value: UNBOUNDED
+                                      - key: SQL_WINDOW_BOUND_DIRECTION
+                                        type: ENUM_SQL_WINDOW_BOUND_DIRECTION
+                                        value: PRECEDING
+                              - key: SQL_WINDOW_FRAME_EXCLUDE
+                                type: ENUM_SQL_WINDOW_EXCLUSION_MODE
+                                value: NO_OTHERS
+                              - key: SQL_WINDOW_FRAME_ORDER
+                                type: ARRAY
+                                text: "order by b"
+                                children:
+                                  - type: OBJECT_SQL_ORDER
+                                    text: "b"
+                                    children:
+                                      - key: SQL_ORDER_VALUE
+                                        type: OBJECT_SQL_COLUMN_REF
+                                        text: "b"
+                                        children:
+                                          - key: SQL_COLUMN_REF_PATH
+                                            type: ARRAY
+                                            text: "b"
+                                            children:
+                                              - type: NAME
+                                                text: "b"
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from t"
+                children:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "t"
+                    children:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "t"
+                        children:
+                          - type: NAME
+                            text: "t"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [93,94]
+        - text: [190,191]
+        - text: [255,256]
+        - text: [330,331]
+      comments: []
+      comment-blocks: []
+      comment-warnings: []

@@ -19,6 +19,13 @@ formatter-snapshots:
     dialects:
       hyper:
 
+  # Interval literal with a precision before the string
+  - name: coverage_type_interval_precision_literal
+    input: select interval(3) '1.5', interval (2) '1 day'
+    dialects:
+      hyper:
+        validation:
+
 
   # Integer and floating point types
   - name: type_numeric_casts

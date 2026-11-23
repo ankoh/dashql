@@ -26,7 +26,7 @@ use dashql_buffers::parser::{
     GroupByItemType, IntervalType, JoinType, KeyActionCommand, KeyActionTrigger, KeyMatch, KnownFunction, Node,
     NodeType, NumericType, OrderDirection, OrderNullRule, RowLockingBlockBehavior, RowLockingStrength, SampleCountUnit,
     SubqueryQuantifier, SymbolSpan, TableConstraint, TempType, TrimDirection, WindowBoundDirection, WindowBoundMode,
-    WindowRangeMode,
+    WindowExclusionMode, WindowRangeMode,
 };
 use dashql_parser::attrs;
 use dashql_parser::parser::context::resolve_text_span;
@@ -1121,6 +1121,11 @@ impl<'a> Formatter<'a> {
         let f = &self.fmt;
         let [value, interval] = attrs!(self.children(node), [K::SQL_CONST_CAST_VALUE, K::SQL_CONST_CAST_INTERVAL]);
         let Some(value) = value else { return self.format_unimplemented(node) };
+        // `interval(3) '1.5'` carries the precision as expression, the fields after the string are an interval type
+        if let Some(precision) = interval.filter(|i| i.node_type() != NodeType::OBJECT_SQL_INTERVAL_TYPE) {
+            let precision_reg = self.reg_or_placeholder(precision);
+            return f.concat(&[f.text("interval"), f.parenthesized(precision_reg), f.text(" "), self.reg(value)]);
+        }
         let mut parts = vec![f.text("interval "), self.reg(value)];
         if let Some(interval) = interval {
             parts.push(f.text(" "));
@@ -2195,7 +2200,7 @@ impl<'a> Formatter<'a> {
                 K::SQL_WINDOW_FRAME_NAME,
             ],
         );
-        if exclude.is_some() || mode.is_none() != bounds.is_none() {
+        if mode.is_none() != bounds.is_none() || (exclude.is_some() && mode.is_none()) {
             return self.format_unimplemented(node);
         }
 
@@ -2228,6 +2233,9 @@ impl<'a> Formatter<'a> {
                 return self.format_unimplemented(node);
             }
             clauses.push(f.concat(&[mode_reg, f.text(" "), bounds_reg]));
+        }
+        if let Some(exclude) = exclude {
+            clauses.push(self.reg_or_placeholder(exclude));
         }
         if clauses.is_empty() {
             return f.empty();
@@ -2267,6 +2275,16 @@ impl<'a> Formatter<'a> {
         match WindowBoundDirection(value_u8(node)) {
             WindowBoundDirection::PRECEDING => self.fmt.text("preceding"),
             WindowBoundDirection::FOLLOWING => self.fmt.text("following"),
+            _ => self.format_unimplemented(node),
+        }
+    }
+
+    fn format_window_exclusion_mode(&self, node: &'a Node) -> FmtReg {
+        match WindowExclusionMode(value_u8(node)) {
+            WindowExclusionMode::CURRENT_ROW => self.fmt.text("exclude current row"),
+            WindowExclusionMode::GROUP => self.fmt.text("exclude group"),
+            WindowExclusionMode::TIES => self.fmt.text("exclude ties"),
+            WindowExclusionMode::NO_OTHERS => self.fmt.text("exclude no others"),
             _ => self.format_unimplemented(node),
         }
     }
@@ -2689,12 +2707,17 @@ impl<'a> Formatter<'a> {
         }
 
         let args = self.array_regs(args_node);
-        if !known_operator && args.len() != 2 {
+        if !known_operator && !matches!(args.len(), 1 | 2) {
             return self.format_unimplemented(node);
         }
+        let [postfix] = attrs!(self.children(node), [K::SQL_EXPRESSION_POSTFIX]);
 
         use ExpressionOperator as O;
         let mut reg = match *args.as_slice() {
+            // A generic operator, `~ a`, `|/ b`, or the postfix `a !`. The space keeps an operator of the argument,
+            // as in `~ -a`, from merging with it.
+            [arg] if !known_operator && is_true(postfix) => f.concat(&[arg, f.text(" "), op_reg]),
+            [arg] if !known_operator => f.concat(&[op_reg, f.text(" "), arg]),
             [arg] if known_operator => match op {
                 O::NEGATE => f.concat(&[op_reg, arg]),
                 O::NOT => f.concat(&[op_reg, f.text(" "), arg]),
@@ -2708,6 +2731,15 @@ impl<'a> Formatter<'a> {
                 | O::IS_NOT_UNKNOWN => f.concat(&[arg, f.text(" "), op_reg]),
                 _ => f.concat(&[op_reg, f.text(" "), arg]),
             },
+            [value, pattern, escape]
+                if known_operator
+                    && matches!(
+                        op,
+                        O::LIKE | O::NOT_LIKE | O::ILIKE | O::NOT_ILIKE | O::SIMILAR_TO | O::NOT_SIMILAR_TO
+                    ) =>
+            {
+                f.concat(&[value, f.text(" "), op_reg, f.text(" "), pattern, f.text(" escape "), escape])
+            }
             [value, low, high]
                 if known_operator
                     && matches!(
@@ -2892,6 +2924,7 @@ impl<'a> Formatter<'a> {
             NodeType::ENUM_SQL_WINDOW_BOUND_MODE => self.format_window_bound_mode(node),
             NodeType::ENUM_SQL_WINDOW_BOUND_DIRECTION => self.format_window_bound_direction(node),
             NodeType::ENUM_SQL_WINDOW_RANGE_MODE => self.format_window_range_mode(node),
+            NodeType::ENUM_SQL_WINDOW_EXCLUSION_MODE => self.format_window_exclusion_mode(node),
             NodeType::OBJECT_SQL_FUNCTION_ARG => self.format_function_arg(node),
             NodeType::OBJECT_SQL_CONST_TYPE_CAST => self.format_const_type_cast(node),
             NodeType::OBJECT_SQL_CONST_INTERVAL_CAST => self.format_const_interval_cast(node),
