@@ -1,11 +1,11 @@
 import * as React from 'react';
-import { act } from '@akohn/dashql-react/testing/react_act';
+import { act, waitForRender } from '@akohn/dashql-react/testing/react_act';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { WorkbookViewMode } from './workbook_view_mode.js';
+import { WorkbookViewMode, WorkbookViewModeProvider, useWorkbookViewMode } from './workbook_view_mode.js';
 import { WorkbookPage, type WorkbookPageDependencies } from './workbook_page.js';
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
-import { PROMOTE_WORKBOOK, workbookPath } from '../app/router.js';
+import { OPEN_IMPORTED_WORKBOOK, OPEN_LINK_WORKBOOK, PROMOTE_WORKBOOK, useRouteContext, useRouterNavigate, useSelectOpeningWorkbook, workbookPath } from '../app/router.js';
 
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 
@@ -178,6 +178,47 @@ describe('WorkbookPage view transitions', () => {
         state.defaultView = 'dataflow';
         await act(async () => root.render(<WorkbookPage dependencies={dependencies} />));
         expect(state.setMode).toHaveBeenLastCalledWith(WorkbookViewMode.Dataflow);
+    });
+
+    it('opens the default view of a workbook that the app loader selects', async () => {
+        state.defaultView = 'dashboard';
+        const routed = { ...dependencies, useLocation, useRouteContext, useRouterNavigate, useWorkbookViewMode } as WorkbookPageDependencies;
+        let navigate!: ReturnType<typeof useRouterNavigate>;
+        let location!: ReturnType<typeof useLocation>;
+        // The app loader around the routes selects the workbook that opens
+        const Loader = (props: React.PropsWithChildren) => {
+            navigate = useRouterNavigate();
+            location = useLocation();
+            useSelectOpeningWorkbook();
+            return props.children;
+        };
+        await act(async () => root.render(
+            <MemoryRouter initialEntries={['/']}>
+                <WorkbookViewModeProvider>
+                    <Loader>
+                        <Routes>
+                            <Route index element={<div />} />
+                            <Route path="/workbooks/:workbookId" element={<WorkbookPage dependencies={routed} />} />
+                        </Routes>
+                    </Loader>
+                </WorkbookViewModeProvider>
+            </MemoryRouter>,
+        ));
+        // The router renders a navigation in a transition, the act of the tests doesn't wait for it
+        const shown = () => ({
+            pathname: location.pathname,
+            search: location.search,
+            opening: (location.state as { openingWorkbook?: boolean } | null)?.openingWorkbook,
+        });
+        // A dropped file or a shared link
+        await act(async () => navigate({ type: OPEN_IMPORTED_WORKBOOK, value: 'workbook' }));
+        await waitForRender(() => expect(shown()).toEqual({ pathname: workbookPath('workbook'), search: '?view=dashboard', opening: false }));
+
+        // A workbook that the app restores at its start
+        state.workbookId = 'next';
+        state.defaultView = 'dataflow';
+        await act(async () => navigate({ type: OPEN_LINK_WORKBOOK, value: 'next' }));
+        await waitForRender(() => expect(shown()).toEqual({ pathname: workbookPath('next'), search: '?view=dataflow', opening: false }));
     });
 
     it('keeps the view that the URL names and an open shell', async () => {

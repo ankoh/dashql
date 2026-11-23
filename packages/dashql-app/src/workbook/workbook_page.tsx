@@ -79,8 +79,9 @@ export const WorkbookPage: React.FC<Props> = (props: Props) => {
     const location = dependencies.useLocation();
     const pathname = location.pathname;
     // A workbook opens in its default view, e.g. the dashboard of a shared workbook: once whenever the page shows
-    // another workbook. A URL that names a view keeps it, an open shell stays open.
-    const shownWorkbookId = workbookScripts?.workbookId ?? null;
+    // another workbook. A URL that names a view keeps it, an open shell stays open. A workbook that is still opening
+    // waits until the app loader selects it, the selection moves to the path of the workbook and would drop the view.
+    const shownWorkbookId = route.openingWorkbook ? null : workbookScripts?.workbookId ?? null;
     const defaultMode = viewModeOfDefaultView(workbookScripts?.defaultView);
     const openedWorkbookId = React.useRef<string | null>(null);
     const openDefaultView = React.useEffectEvent(() => {

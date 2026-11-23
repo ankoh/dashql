@@ -211,3 +211,15 @@ export function useRouterNavigate() {
         }
     }, [navigate, context, location]);
 }
+
+/// Select the workbook that is opening, once the app shows it, see `openingWorkbook` of the route context. The app
+/// loader does it.
+export function useSelectOpeningWorkbook(): void {
+    const navigate = useRouterNavigate();
+    const context = useRouteContext();
+    React.useEffect(() => {
+        if (context.openingWorkbook && context.workbookId != null) {
+            navigate({ type: SELECT_WORKBOOK, value: context.workbookId });
+        }
+    }, [navigate, context.workbookId, context.openingWorkbook]);
+}

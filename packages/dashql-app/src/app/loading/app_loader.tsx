@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { SELECT_WORKBOOK, useRouteContext, useRouterNavigate } from '../router.js';
+import { useRouteContext, useSelectOpeningWorkbook } from '../router.js';
 import { AppLoadingPage } from '../app_loading_page.js';
 import { canShowWorkbook } from './app_loading_logic.js';
 import { useAppConfig, useAppReconfigure } from '../../config/app_config.js';
@@ -18,7 +18,6 @@ export const AppLoader: React.FC<React.PropsWithChildren> = (props: React.PropsW
     const appSettingsReady = useAppSettingsReady();
     const reconfigure = useAppReconfigure();
     const showNarrowScreenWarning = useNarrowScreenWarning(appSettingsReady, config?.settings?.narrowScreenLayout ?? false);
-    const navigate = useRouterNavigate();
     const routeContext = useRouteContext();
     const runtime = useOptionalRuntime();
     // The runtime sets up the connections of the opened workbook that need nothing of the user: the embedded Hyper, and
@@ -43,11 +42,7 @@ export const AppLoader: React.FC<React.PropsWithChildren> = (props: React.PropsW
     const cloudSetupPage = useCloudSetupGate(setup.done, cloudLink);
     useHyperLinks(setup.opened);
 
-    React.useEffect(() => {
-        if (routeContext.openingWorkbook && routeContext.workbookId != null) {
-            navigate({ type: SELECT_WORKBOOK, value: routeContext.workbookId });
-        }
-    }, [navigate, routeContext.workbookId, routeContext.openingWorkbook]);
+    useSelectOpeningWorkbook();
 
     if (showNarrowScreenWarning) {
         return <NarrowScreenWarning onEnable={() => reconfigure(value => value == null ? null : {
