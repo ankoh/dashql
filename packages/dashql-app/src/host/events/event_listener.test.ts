@@ -166,5 +166,16 @@ describe('PlatformEventListener OAuth redirects', () => {
         listener.dispatchAppEvent(redirect('code'));
         await expect(next).resolves.toMatchObject({ code: 'code' });
     });
+
+    it('rejects a wait on an aborted signal without registering it', async () => {
+        const listener = new TestPlatformEventListener(new TestLogger());
+        const abort = new AbortController();
+        abort.abort();
+        await expect(listener.waitForOAuthRedirect(abort.signal)).rejects.toMatchObject({ name: 'AbortError' });
+
+        const next = listener.waitForOAuthRedirect(new AbortController().signal);
+        listener.dispatchAppEvent(redirect('code'));
+        await expect(next).resolves.toMatchObject({ code: 'code' });
+    });
 });
 

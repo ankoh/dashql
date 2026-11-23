@@ -209,8 +209,10 @@ export abstract class PlatformEventListener {
         signal: AbortSignal,
         accepts: (data: app_event.OAuthRedirectData) => boolean = () => true,
     ): Promise<app_event.OAuthRedirectData> {
-        // Already set?
-        if (this.oAuthSubscriber != null) {
+        if (signal.aborted) {
+            // An aborted signal fires no abort event, the subscriber would stay registered
+            return Promise.reject(signal.reason);
+        } else if (this.oAuthSubscriber != null) {
             // Just throw, we don't support multiple outstanding listeners
             return Promise.reject(new Error("duplicate oauth listener"));
         } else {

@@ -56,6 +56,8 @@ export class AppOAuthFlow implements OAuthFlow {
                 popup.focus();
                 onEvent('WINDOW_OPENED');
             }
+            // A cancel while the browser opened aborts the signal, the wait below would never hear of it
+            signal.throwIfAborted();
             return await this.appEvents.waitForOAuthRedirect(signal, accepts as never) as OAuthRedirectData;
         } finally {
             if (popup) {
