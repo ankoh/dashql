@@ -8,7 +8,7 @@
 //! [`scan`] then applies a lookahead filter, which turns `NOT`, `NULLS`, `WITH` and `.` into their
 //! `*_LA` variants depending on the following tokens.
 
-use crate::keywords::Keyword;
+use crate::keywords::{Keyword, KeywordCategory};
 use crate::names::{NameId, NameRegistry};
 use crate::span::TextSpan;
 use crate::{symbol_kind::*, SymbolKind};
@@ -176,13 +176,23 @@ fn next_symbol(lexer: &mut Lexer, out: &mut ScannedScript, lookahead: &mut VecDe
         (S_SEMI, S_JOIN) => Symbol::new(S_SEMI_JOIN_LA, current.location),
         (S_ANTI, S_JOIN) => Symbol::new(S_ANTI_JOIN_LA, current.location),
         (S_DOT, S_STAR) => Symbol::new(S_DOT_STAR_LA, current.location),
-        (S_DOT, _)
-            if current.location.end() < next.location.offset
-                && !matches!(next.value, SymbolValue::Name(_) | SymbolValue::Text(_)) =>
-        {
+        // A name or a keyword continues the name after whitespace, a reserved keyword like FROM in `select t. from t`
+        // only in theory
+        (S_DOT, _) if current.location.end() < next.location.offset && !continues_name(&next) => {
             Symbol::new(S_DOT_TRAILING, current.location)
         }
         _ => current,
+    }
+}
+
+/// Can a symbol after a dot and whitespace be the next name of a qualified name?
+fn continues_name(symbol: &Symbol) -> bool {
+    match symbol.value {
+        SymbolValue::Name(_) => true,
+        SymbolValue::Text(name) => {
+            Keyword::find(name.as_bytes()).is_some_and(|keyword| keyword.category != KeywordCategory::SqlReserved)
+        }
+        SymbolValue::None => false,
     }
 }
 
@@ -1000,6 +1010,10 @@ mod tests {
     fn scans_trailing_dots() {
         assert_eq!(kinds("a. b"), vec![S_IDENT, S_DOT, S_IDENT, S_YYEOF]);
         assert_eq!(spans("a. b")[1], (1, 1));
+        assert_eq!(kinds("a. name"), vec![S_IDENT, S_DOT, S_NAME_P, S_YYEOF]);
+        assert_eq!(kinds("a.from"), vec![S_IDENT, S_DOT, S_FROM, S_YYEOF]);
+        assert_eq!(kinds("a. from"), vec![S_IDENT, S_DOT_TRAILING, S_FROM, S_YYEOF]);
+        assert_eq!(kinds("a. ,"), vec![S_IDENT, S_DOT_TRAILING, S_COMMA, S_YYEOF]);
         let out = scan("a.\n", 0, 0);
         assert_eq!(out.line_breaks, vec![TextSpan::new(2, 1)]);
     }
