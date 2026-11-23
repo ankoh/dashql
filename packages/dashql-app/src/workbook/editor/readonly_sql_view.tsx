@@ -96,17 +96,16 @@ export function ReadonlySqlView(props: ReadonlySqlViewProps) {
         if (view == null) return;
         view.dispatch({
             changes: { from: 0, to: view.state.doc.length, insert: props.text },
-            effects: props.editorUpdate == null ? [] : [
-                DashQLUpdateEffect.of({
-                    scriptKey: 0,
-                    scriptSession: null,
-                    editorUpdate: props.editorUpdate,
-                    scriptBuffers: null,
-                    scriptCompletion: null,
-                    scriptPendingDiff: null,
-                    onUpdate: () => { },
-                }),
-            ],
+            // Without an analysis the effect clears the highlighting of the previous text
+            effects: DashQLUpdateEffect.of({
+                scriptKey: 0,
+                scriptSession: null,
+                editorUpdate: props.editorUpdate,
+                scriptBuffers: null,
+                scriptCompletion: null,
+                scriptPendingDiff: null,
+                onUpdate: () => { },
+            }),
         });
     }, [view, props.text, props.editorUpdate]);
 
