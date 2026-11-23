@@ -1,4 +1,4 @@
-import { EditorState, Prec } from '@codemirror/state';
+import { EditorState, Prec, StateEffectType } from '@codemirror/state';
 import { EditorView, keymap, KeyBinding, ViewPlugin, ViewUpdate } from '@codemirror/view';
 import { insertTab } from '@codemirror/commands';
 
@@ -196,89 +196,39 @@ function onEsc(view: EditorView) {
     return true;
 }
 
-function onArrowUp(view: EditorView) {
-    const processor = view.state.field(DashQLProcessorPlugin);
-    if (processor == null) { return false; }
-    if (processor.scriptCompletion?.status != DashQLCompletionStatus.AVAILABLE) {
-        return false;
-    }
-    if (processor.scriptCompletion?.passiveHint) { return false; }
-    const c = processor.scriptCompletion.buffer.read();
-    const candidateCount = c.candidatesLength();
-    if (candidateCount > 1) {
-        view.dispatch({
-            effects: DashQLCompletionPreviousCandidateEffect.of(null),
-        });
+/// Step through the candidates of an available completion, or through the catalog objects of its candidate. Leaves the
+/// key to CodeMirror if there is nothing to step to.
+function stepCompletion(effect: StateEffectType<null>, variants: boolean) {
+    return (view: EditorView) => {
+        const completion = view.state.field(DashQLProcessorPlugin).scriptCompletion;
+        if (completion?.status != DashQLCompletionStatus.AVAILABLE) {
+            return false;
+        }
+        const buffer = completion.buffer.read();
+        let count: number;
+        if (variants) {
+            count = buffer.candidates(completion.candidateId)?.catalogObjectsLength() ?? 0;
+        } else if (completion.passiveHint) {
+            // A passive hint has no list to step through
+            return false;
+        } else {
+            count = buffer.candidatesLength();
+        }
+        if (count <= 1) {
+            return false;
+        }
+        view.dispatch({ effects: effect.of(null) });
         return true;
-    } else {
-        return false;
-    }
-}
-
-function onArrowDown(view: EditorView) {
-    const processor = view.state.field(DashQLProcessorPlugin);
-    if (processor == null) { return false; }
-    if (processor.scriptCompletion?.status != DashQLCompletionStatus.AVAILABLE) {
-        return false;
-    }
-    if (processor.scriptCompletion?.passiveHint) { return false; }
-    const c = processor.scriptCompletion.buffer.read();
-    const candidateCount = c.candidatesLength();
-    if (candidateCount > 1) {
-        view.dispatch({
-            effects: DashQLCompletionNextCandidateEffect.of(null),
-        });
-        return true;
-    } else {
-        return false;
-    }
-}
-
-function onArrowRight(view: EditorView) {
-    const processor = view.state.field(DashQLProcessorPlugin);
-    if (processor == null) { return false; }
-    if (processor.scriptCompletion?.status != DashQLCompletionStatus.AVAILABLE) {
-        return false;
-    }
-    const completion = processor.scriptCompletion.buffer.read();
-    const candidate = completion.candidates(processor.scriptCompletion.candidateId);
-    const objectCount = candidate?.catalogObjectsLength() ?? 0;
-    if (objectCount > 1) {
-        view.dispatch({
-            effects: DashQLCompletionNextCandidateVariantEffect.of(null),
-        });
-        return true;
-    } else {
-        return false;
-    }
-}
-
-function onArrowLeft(view: EditorView) {
-    const processor = view.state.field(DashQLProcessorPlugin);
-    if (processor == null) { return false; }
-    if (processor.scriptCompletion?.status != DashQLCompletionStatus.AVAILABLE) {
-        return false;
-    }
-    const completion = processor.scriptCompletion.buffer.read();
-    const candidate = completion.candidates(processor.scriptCompletion.candidateId);
-    const objectCount = candidate?.catalogObjectsLength() ?? 0;
-    if (objectCount > 1) {
-        view.dispatch({
-            effects: DashQLCompletionPreviousCandidateVariantEffect.of(null),
-        });
-        return true;
-    } else {
-        return false;
-    }
+    };
 }
 
 const KEYBINDINGS: KeyBinding[] = [
     { key: "Tab", run: onTab },
     { key: "Escape", run: onEsc },
-    { key: "ArrowLeft", run: onArrowLeft },
-    { key: "ArrowRight", run: onArrowRight },
-    { key: "ArrowDown", run: onArrowDown },
-    { key: "ArrowUp", run: onArrowUp },
+    { key: "ArrowLeft", run: stepCompletion(DashQLCompletionPreviousCandidateVariantEffect, true) },
+    { key: "ArrowRight", run: stepCompletion(DashQLCompletionNextCandidateVariantEffect, true) },
+    { key: "ArrowDown", run: stepCompletion(DashQLCompletionNextCandidateEffect, false) },
+    { key: "ArrowUp", run: stepCompletion(DashQLCompletionPreviousCandidateEffect, false) },
 ];
 const KEYMAP = Prec.highest(keymap.of(KEYBINDINGS));
 

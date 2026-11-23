@@ -5,7 +5,7 @@ import { EditorState, Facet, SelectionRange, StateField, StateEffect, StateEffec
 
 import { deriveFocusFromCompletionCandidates, deriveFocusFromEditorUpdate, SemanticUserFocus } from './semantic_focus.js';
 import { computePatches, UpdatePatchStartingFrom } from './completion/dashql_completion_patches.js';
-import { DashQLCompletionStatus, type DashQLProcessorUpdateOut } from './completion/dashql_completion_state.js';
+import { DashQLCompletionStatus, type DashQLCompletionState, type DashQLProcessorUpdateOut } from './completion/dashql_completion_state.js';
 import type { DashQLScriptKey } from '@akohn/dashql/platform/workbook/script_editor_state';
 
 export const DASHQL_COMPLETION_LIMIT = 10;
@@ -452,6 +452,35 @@ function userEventCanStartCompletion(transaction: Transaction, prevState: DashQL
 }
 
 
+/// The effects that step through the candidates or the catalog objects of a candidate
+const STEP_EFFECTS: [StateEffectType<null>, 1 | -1, UpdatePatchStartingFrom][] = [
+    [DashQLCompletionNextCandidateEffect, 1, UpdatePatchStartingFrom.Candidate],
+    [DashQLCompletionPreviousCandidateEffect, -1, UpdatePatchStartingFrom.Candidate],
+    [DashQLCompletionNextCandidateVariantEffect, 1, UpdatePatchStartingFrom.CatalogObject],
+    [DashQLCompletionPreviousCandidateVariantEffect, -1, UpdatePatchStartingFrom.CatalogObject],
+];
+
+/// Step to the next or the previous candidate, or to the next or the previous catalog object of the candidate, wrapping
+/// around at the ends. A candidate starts at its first catalog object.
+function stepCompletion(
+    completion: DashQLCompletionState,
+    step: 1 | -1,
+    target: UpdatePatchStartingFrom,
+    transaction: Transaction,
+): DashQLCompletionState {
+    const buffer = completion.buffer.read();
+    const count = target === UpdatePatchStartingFrom.Candidate
+        ? buffer.candidatesLength()
+        : buffer.candidates(completion.candidateId)?.catalogObjectsLength() ?? 0;
+    if (count <= 1) {
+        return completion;
+    }
+    const next = target === UpdatePatchStartingFrom.Candidate
+        ? { ...completion, candidateId: (completion.candidateId + step + count) % count, catalogObjectId: 0 }
+        : { ...completion, catalogObjectId: (completion.catalogObjectId + step + count) % count };
+    return computePatches(next, transaction.newDoc, transaction.newSelection.main.anchor, target);
+}
+
 // Helper to update a completion based on a transaction
 function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcessorState, transaction: Transaction): DashQLProcessorState {
     // We need a script and script cursor to complete.
@@ -503,63 +532,14 @@ function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcesso
             resetCompletion();
             break;
 
-        } else if (effect.is(DashQLCompletionNextCandidateEffect) && state.scriptCompletion) {
-            state = copyLazily(state, prevState);
-            state.scriptCompletion = { ...state.scriptCompletion! };
-            const c = state.scriptCompletion?.buffer.read();
-            const candidateCount = c?.candidatesLength() ?? 0;
-            if (candidateCount > 1 && state.scriptCompletion?.candidateId !== undefined) {
-                state.scriptCompletion.candidateId += 1;
-                state.scriptCompletion.catalogObjectId = 0;
-                if (state.scriptCompletion.candidateId == candidateCount) {
-                    state.scriptCompletion.candidateId = 0;
-                }
-                state.scriptCompletion = computePatches(state.scriptCompletion, transaction.newDoc, transaction.newSelection.main.anchor, UpdatePatchStartingFrom.Candidate)
-            }
-            break;
-
-        } else if (effect.is(DashQLCompletionPreviousCandidateEffect) && state.scriptCompletion) {
-            state = copyLazily(state, prevState);
-            state.scriptCompletion = { ...state.scriptCompletion! };
-            const c = state.scriptCompletion?.buffer.read();
-            const candidateCount = c?.candidatesLength() ?? 0;
-            if (candidateCount > 1 && state.scriptCompletion?.candidateId !== undefined) {
-                state.scriptCompletion.candidateId -= 1;
-                state.scriptCompletion.catalogObjectId = 0;
-                if (state.scriptCompletion.candidateId < 0) {
-                    state.scriptCompletion.candidateId = candidateCount - 1;
-                }
-                state.scriptCompletion = computePatches(state.scriptCompletion, transaction.newDoc, transaction.newSelection.main.anchor, UpdatePatchStartingFrom.Candidate)
-            }
-            break;
-
-        } else if (effect.is(DashQLCompletionNextCandidateVariantEffect) && state.scriptCompletion) {
-            state = copyLazily(state, prevState);
-            state.scriptCompletion = { ...state.scriptCompletion! };
-            const completion = state.scriptCompletion?.buffer.read();
-            const candidate = completion.candidates(state.scriptCompletion.candidateId);
-            const objectCount = candidate?.catalogObjectsLength() ?? 0;
-            if (objectCount > 1 && state.scriptCompletion.catalogObjectId !== undefined) {
-                state.scriptCompletion.catalogObjectId += 1;
-                if (state.scriptCompletion.catalogObjectId == objectCount) {
-                    state.scriptCompletion.catalogObjectId = 0;
-                }
-                state.scriptCompletion = computePatches(state.scriptCompletion, transaction.newDoc, transaction.newSelection.main.anchor, UpdatePatchStartingFrom.CatalogObject)
-            }
-            break;
-
-        } else if (effect.is(DashQLCompletionPreviousCandidateVariantEffect) && state.scriptCompletion) {
-            state = copyLazily(state, prevState);
-            state.scriptCompletion = { ...state.scriptCompletion! };
-            const completion = state.scriptCompletion?.buffer.read();
-            const candidate = completion.candidates(state.scriptCompletion.candidateId);
-            const objectCount = candidate?.catalogObjectsLength() ?? 0;
-            if (objectCount > 1 && state.scriptCompletion.catalogObjectId !== undefined) {
-                state.scriptCompletion.catalogObjectId -= 1;
-                if (state.scriptCompletion.catalogObjectId < 0) {
-                    state.scriptCompletion.catalogObjectId = objectCount - 1;
-                }
-                state.scriptCompletion = computePatches(state.scriptCompletion, transaction.newDoc, transaction.newSelection.main.anchor, UpdatePatchStartingFrom.CatalogObject)
+        }
+        const stepEffect = STEP_EFFECTS.find(([type]) => effect.is(type));
+        if (stepEffect != null) {
+            const [, step, target] = stepEffect;
+            const stepped = stepCompletion(state.scriptCompletion, step, target, transaction);
+            if (stepped !== state.scriptCompletion) {
+                state = copyLazily(state, prevState);
+                state.scriptCompletion = stepped;
             }
             break;
 
