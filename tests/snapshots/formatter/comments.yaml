@@ -252,3 +252,28 @@ formatter-snapshots:
               select 1;
         validation:
           setup: |-
+
+  - name: wrapped_comment_keeps_at_words
+    input: |-
+      -- see @param and @vis for details
+      select 1
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select 1;
+          - mode: compact
+            width: 12
+            expected: |-
+              -- see @param
+              -- and @vis
+              -- for
+              -- details
+              select 1;
+          - mode: pretty
+            expected: |-
+              -- see @param and @vis for details
+              select 1;
+        validation:
+          setup: |-

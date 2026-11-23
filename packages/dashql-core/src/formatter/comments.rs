@@ -88,6 +88,12 @@ fn append_wrapped_comment_paragraph(output: &mut Vec<u8>, words: &[&[u8]], max_w
     let content_width = if max_width > prefix_width { max_width - prefix_width } else { 1 };
     let mut line: Vec<u8> = Vec::new();
     for word in words {
+        // A line that starts with `@` may start a tag, a word with it stays on the line before even if it overflows
+        if word.first() == Some(&b'@') && !line.is_empty() {
+            line.push(b' ');
+            line.extend_from_slice(word);
+            continue;
+        }
         let mut rest: &[u8] = word;
         while !rest.is_empty() {
             let remaining = rest.len();
@@ -109,7 +115,14 @@ fn append_wrapped_comment_paragraph(output: &mut Vec<u8>, words: &[&[u8]], max_w
                 if !line.is_empty() {
                     line.push(b' ');
                 }
-                // `available` is below the length of the rest
+                // `available` is below the length of the rest, the rest of a split word does not start with `@`
+                let mut available = available;
+                while available > 1 && rest.get(available) == Some(&b'@') {
+                    available -= 1;
+                }
+                while rest.get(available) == Some(&b'@') {
+                    available += 1;
+                }
                 let (head, tail) = rest.split_at_checked(available).unwrap_or((rest, &[]));
                 line.extend_from_slice(head);
                 rest = tail;
@@ -919,6 +932,15 @@ mod tests {
         assert_eq!(format(input, &["-- aaa bbb", "-- ccc"], 9), "-- aaa\n-- bbb\n-- ccc");
         // Words longer than the line are split
         assert_eq!(format("--abcdefgh", &["--abcdefgh"], 6), "-- abc\n-- def\n-- gh");
+    }
+
+    #[test]
+    fn starts_no_line_with_an_at_sign() {
+        // `-- @param` on a line of its own would be a tag, the word stays on the line before
+        assert_eq!(format("-- see @param", &["-- see @param"], 12), "-- see @param");
+        assert_eq!(format("-- a b @vis c", &["-- a b @vis c"], 8), "-- a b @vis\n-- c");
+        // The rest of a split word does not start with it either
+        assert_eq!(format("--abc@vis", &["--abc@vis"], 6), "-- ab\n-- c@v\n-- is");
     }
 
     #[test]

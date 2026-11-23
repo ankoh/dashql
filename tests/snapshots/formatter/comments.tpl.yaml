@@ -119,3 +119,16 @@ formatter-snapshots:
             width: 40
         validation:
           setup: ""
+
+  # No line of a wrapped comment starts with `@`, it could start a tag
+  - name: wrapped_comment_keeps_at_words
+    input: |-
+      -- see @param and @vis for details
+      select 1
+    dialects:
+      hyper:
+        formatted:
+          - mode: compact
+            width: 12
+        validation:
+          setup: ""

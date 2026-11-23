@@ -21,8 +21,9 @@ second run equals the first. Inline mode drops the comments.
 
 - **Between statements.** The comments before a statement are its description, printed on lines of their own before
   it. Runs of line comments are rewrapped to the width, and a blank line between two comments, or after them, is kept:
-  it separates paragraphs, which a second run would otherwise join. Comments with tags are printed as one canonical
-  comment (see `docs/design/vis_comments.md`).
+  it separates paragraphs, which a second run would otherwise join. No rewrapped line starts with a word with `@`,
+  which could start a tag. Comments with tags are printed as one canonical comment (see
+  `docs/design/vis_comments.md`).
 - **After a statement.** Comments on the line of the end of a statement stay on its line after the semicolon, also
   after a statement with syntax errors that is copied as written.
 - **Inside a statement.** `comments.rs` attaches a comment to the document of a node (`attach_inner_comments`): a line
