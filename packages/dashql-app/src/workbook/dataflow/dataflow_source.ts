@@ -12,6 +12,7 @@ function placementOf(flow: FlowPosition | null | undefined): core.DataflowPlacem
 
 /// Write a placement into the `@flow` tag of a script, the tag is removed if the placement is empty. Returns whether
 /// the script has the placement, a script that does not parse or has no statement can't be placed.
+/// A placement is not staged, but it joins a diff that the script already stages, rejecting the diff moves the box back.
 function writeFlow(script: ScriptData, placement: core.DataflowPlacement, modifyWorkbookScripts: ModifyWorkbookScripts): boolean {
     const round = (value: number | null | undefined) => (value == null ? null : Math.round(value));
     const next = {
@@ -33,7 +34,10 @@ function writeFlow(script: ScriptData, placement: core.DataflowPlacement, modify
         console.warn('cannot write the placement of the script', e);
         return false;
     }
-    modifyWorkbookScripts({ kind: 'setScriptText', value: { scriptKey: script.scriptKey, text } });
+    modifyWorkbookScripts({
+        kind: 'setScriptText',
+        value: { scriptKey: script.scriptKey, text, withDiff: script.pendingDiff != null },
+    });
     return true;
 }
 
