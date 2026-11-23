@@ -26,6 +26,8 @@ second run equals the first. Inline mode drops the comments.
   `docs/design/vis_comments.md`).
 - **After a statement.** Comments on the line of the end of a statement stay on its line after the semicolon, also
   after a statement with syntax errors that is copied as written.
+- **Text without symbols.** A block comment without its end after the semicolon of the last statement is copied as
+  written with the text after it, like a statement with syntax errors.
 - **Inside a statement.** `comments.rs` attaches a comment to the document of a node (`attach_inner_comments`): a line
   comment on the line where a node ends stays at the end of the line of that node, as a line suffix that the renderer
   writes before the next line break (`select a, -- the a`). Any other comment goes in front of the node after it, a

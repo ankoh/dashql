@@ -3072,9 +3072,22 @@ impl<'a> Formatter<'a> {
                 *flag = true;
             }
         }
+        // An error after the semicolon of the last statement, like a block comment without its end, lies in no chunk:
+        // the text from there is copied as written. A last statement without a semicolon runs to the end of the text.
+        let tail_begin = match chunks.last() {
+            None => Some(0),
+            Some(&(_, end)) => {
+                end.checked_sub(1).and_then(|last| symbols.get(last)).filter(|s| s.kind == S_SEMICOLON).map(|_| end)
+            }
+        };
+        let mut tail: Option<u32> = None;
         for error in &self.scanned.errors {
             let offset = error.location.offset;
             let symbol = symbols.partition_point(|s| s.location.end() <= offset);
+            if tail_begin.is_some_and(|begin| symbol >= begin) {
+                tail = Some(tail.map_or(offset, |tail| tail.min(offset)));
+                continue;
+            }
             if let Some(flag) = chunk_of_symbol(symbol).or(chunks.len().checked_sub(1)).and_then(|c| damaged.get_mut(c))
             {
                 *flag = true;
@@ -3107,6 +3120,10 @@ impl<'a> Formatter<'a> {
             } else if !only_separator {
                 parts.push(OutputPart::Damaged(TextSpan::new(begin_offset, end_offset - begin_offset)));
             }
+        }
+        if let Some(begin_offset) = tail {
+            let end_offset = (self.scanned.text.trim_end().len() as u32).max(begin_offset);
+            parts.push(OutputPart::Damaged(TextSpan::new(begin_offset, end_offset - begin_offset)));
         }
         parts
     }
@@ -3351,6 +3368,12 @@ mod tests {
         assert_eq!(out, "-- a\nselect from /* b */ from;\n\n-- c\nselect 2;");
         // A script that is nothing but an error is copied
         assert_eq!(format("select from where", FormattingMode::PRETTY, 120).0, "select from where");
+        // A block comment without its end after the last statement is copied with the text after it
+        let (out, _) = format("select  1; -- a\n/* abc\nselect 2;", FormattingMode::PRETTY, 120);
+        assert_eq!(out, "select 1; -- a\n\n/* abc\nselect 2;");
+        assert_eq!(format(&out, FormattingMode::PRETTY, 120).0, out);
+        assert_eq!(format("  /* abc", FormattingMode::PRETTY, 120).0, "/* abc");
+        assert_eq!(format("select  1 /* abc", FormattingMode::INLINE, 120).0, "select  1 /* abc");
     }
 
     #[test]

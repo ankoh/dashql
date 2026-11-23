@@ -186,3 +186,30 @@ formatter-snapshots:
               select from;
 
               select 2;
+
+  - name: syntax_error_unterminated_comment
+    input: |-
+      select  1; -- one
+      /* unterminated
+      select  2;
+    dialects:
+      hyper:
+        formatted:
+          - mode: inline
+            expected: |-
+              select 1;
+
+              /* unterminated
+              select  2;
+          - mode: compact
+            expected: |-
+              select 1; -- one
+
+              /* unterminated
+              select  2;
+          - mode: pretty
+            expected: |-
+              select 1; -- one
+
+              /* unterminated
+              select  2;

@@ -53,3 +53,12 @@ formatter-snapshots:
     input: select 1;;select from;;select 2
     dialects:
       hyper:
+
+  # A block comment without its end swallows the rest of the script
+  - name: syntax_error_unterminated_comment
+    input: |-
+      select  1; -- one
+      /* unterminated
+      select  2;
+    dialects:
+      hyper:
