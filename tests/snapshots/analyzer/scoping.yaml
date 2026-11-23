@@ -798,6 +798,163 @@ analyzer-snapshots:
             - {name: c, expression: 1}
           text: "select t.a.. s on true"
 
+  - name: join_parenthesized_alias
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: select j.a, j.b, j.c, a, t.b from (t join u using (a)) as j
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "j.a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "j.b"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:1.1", source: "u", text: "j.c"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+        - {id: 4, type: colref/unresolved, text: "t.b"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: t, text: "t"}
+            - {type: table, name: u, text: "u"}
+          columns:
+            - {name: a, expression: 0}
+            - {name: b, expression: 1}
+            - {name: c, expression: 2}
+            - {name: a, expression: 3}
+            - {name: b, expression: 4}
+          text: "select j.a.. (a)) as j"
+
+  - name: join_parenthesized_alias_on_sees_inner_names
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: select j.a, j.c from (t join u on t.a = u.a) as j
+      catalog-id: 2
+      errors:
+        - {type: COLUMN_REF_AMBIGUOUS, message: 'column reference is ambiguous, candidates: j.a, j.a', text: "j.a"}
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+      expressions:
+        - {id: 0, type: colref/unresolved, text: "j.a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:1.1", source: "u", text: "j.c"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "t.a"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:1.0", source: "u", text: "u.a"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: t, text: "t"}
+            - {type: table, name: u, text: "u"}
+          columns:
+            - {name: a, expression: 0}
+            - {name: c, expression: 1}
+          text: "select j.a.. u.a) as j"
+
+  - name: join_parenthesized_alias_column_aliases
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: select x, j.y, z, b from (t join u using (a)) as j(x, y, z)
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "x"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "j.y"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:1.1", source: "u", text: "z"}
+        - {id: 3, type: colref/unresolved, text: "b"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: t, text: "t"}
+            - {type: table, name: u, text: "u"}
+          columns:
+            - {name: x, expression: 0}
+            - {name: y, expression: 1}
+            - {name: z, expression: 2}
+            - {name: b, expression: 3}
+          text: "select x, ..j(x, y, z)"
+
+  - name: join_parenthesized_alias_star
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: select p, q, r, s from (select j.*, v.id from (t join u using (a)) as j(p), v) z(p, q, r, s)
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+        - {type: name/catalog, catalog-id: "256.65536.1:2", text: "v"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "(select j..., q, r, s)", text: "p"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.1", source: "(select j..., q, r, s)", text: "q"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:1.1", source: "(select j..., q, r, s)", text: "r"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:2.0", source: "(select j..., q, r, s)", text: "s"}
+        - {id: 4, type: colref/catalog, catalog: "256.65536.1:2.0", source: "v", text: "v.id"}
+      name-scopes:
+        - scope-id: 0
+          parent: 1
+          parent-sources: none
+          sources:
+            - {type: table, name: t, text: "t"}
+            - {type: table, name: u, text: "u"}
+            - {type: table, name: v, text: "v"}
+          columns:
+            - {name: p, table-column: "256.65536.1:0.0"}
+            - {name: b, table-column: "256.65536.1:0.1"}
+            - {name: c, table-column: "256.65536.1:1.1"}
+            - {name: id, expression: 4}
+          text: "(select j...s j(p), v)"
+        - scope-id: 1
+          sources:
+            - {type: subquery, name: z, scope: 0, column-aliases: [p,q,r,s], text: "(select j..., q, r, s)"}
+          columns:
+            - {name: p, expression: 0}
+            - {name: q, expression: 1}
+            - {name: r, expression: 2}
+            - {name: s, expression: 3}
+          text: "select p, .., q, r, s)"
+
+  - name: join_parenthesized_alias_duplicate
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: select x from (t join u using (a)) as v, v
+      catalog-id: 2
+      errors:
+        - {type: DUPLICATE_TABLE_ALIAS, message: duplicate table alias v, text: "(t join u .. (a)) as v"}
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+        - {type: name/catalog, catalog-id: "256.65536.1:2", text: "v"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:2.1", source: "v", text: "x"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: table, name: t, text: "t"}
+            - {type: table, name: u, text: "u"}
+            - {type: table, name: v, text: "v"}
+          columns:
+            - {name: x, expression: 0}
+          text: "select x f..)) as v, v"
+
   - name: output_alias_in_where
     catalog:
       script:

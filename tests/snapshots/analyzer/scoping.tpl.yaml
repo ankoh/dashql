@@ -160,6 +160,42 @@ analyzer-snapshots:
     script:
       input: select t.a, s.c from t left join lateral (select c from u where u.a = t.a) s on true
 
+  # An aliased join names the join, outside of it the alias hides the names of the FROM items inside it
+  - name: join_parenthesized_alias
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: select j.a, j.b, j.c, a, t.b from (t join u using (a)) as j
+
+  - name: join_parenthesized_alias_on_sees_inner_names
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: select j.a, j.c from (t join u on t.a = u.a) as j
+
+  - name: join_parenthesized_alias_column_aliases
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: select x, j.y, z, b from (t join u using (a)) as j(x, y, z)
+
+  - name: join_parenthesized_alias_star
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: select p, q, r, s from (select j.*, v.id from (t join u using (a)) as j(p), v) z(p, q, r, s)
+
+  - name: join_parenthesized_alias_duplicate
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: select x from (t join u using (a)) as v, v
+
   # Output aliases are visible in ORDER BY only, not in WHERE, HAVING or the select list
   - name: output_alias_in_where
     catalog:

@@ -344,6 +344,10 @@ The rules follow PostgreSQL and Hyper:
   catalog doesn't know is inferred for it. The explicit columns of INSERT bind to its target after resolution.
 - **`*` over a join** lists the `USING` and `NATURAL` columns once, first, then the other columns of
   the left and the right side.
+- **An aliased join**, `(t join u using (a)) as j`, names the join: outside of it, the alias hides the names of the
+  FROM items inside it, `j.b` and an unqualified `b` read the columns of the join as `*` lists them, and the column
+  aliases rename them. A column ref inside the join, in its `ON`, sees the inner names. The FROM items stay the
+  sources of the scope, a column of the join resolves to the column of its FROM item.
 
 ### The snapshot of an analysis
 
