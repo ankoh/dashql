@@ -69,12 +69,14 @@ const WORKBOOK_VIEWS: [WorkbookViewMode, string, typeof FeedViewIcon][] = [
     [WorkbookViewMode.Dashboard, 'Dashboard', DashboardViewIcon],
     [WorkbookViewMode.Dataflow, 'Dataflow', DataflowViewIcon],
 ];
-/// The elements that move with the arrow keys themselves: text, editors, composite widgets and dialogs. Elsewhere the
-/// arrow keys switch the views of the workbook.
+/// The elements that move with the arrow keys themselves: text, editors, composite widgets, dialogs and the handle of a
+/// card that the keyboard drags (dnd-kit presses the handle of the dragged item, its keyboard sensor listens on the
+/// document after the page). Elsewhere the arrow keys switch the views of the workbook.
 const ARROW_KEY_TARGETS = [
     'input', 'textarea', 'select', '[contenteditable]:not([contenteditable="false"])',
     '[role="grid"]', '[role="treegrid"]', '[role="listbox"]', '[role="menu"]', '[role="menubar"]', '[role="radiogroup"]',
     '[role="slider"]', '[role="tablist"]', '[role="tree"]', '[role="dialog"]',
+    '[aria-roledescription][aria-pressed="true"]',
 ].join(', ');
 
 function usesArrowKeys(target: EventTarget | null): boolean {

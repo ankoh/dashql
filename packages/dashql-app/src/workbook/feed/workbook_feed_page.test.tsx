@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { act } from '@akohn/dashql-react/testing/react_act';
+import { DndContext, KeyboardSensor, useDraggable, useSensor, useSensors } from '@dnd-kit/core';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { WorkbookFeedPage, type WorkbookFeedPageDependencies } from './workbook_feed_page.js';
@@ -749,6 +750,50 @@ describe('WorkbookFeedPage', () => {
         state.setMode.mockClear();
         press('ArrowLeft');
         expect(state.setMode).not.toHaveBeenCalled();
+    });
+
+    it('keeps the arrow keys for a card that the keyboard drags', async () => {
+        state.mode = WorkbookViewMode.Dashboard;
+        const onDragEnd = vi.fn();
+        // A card of the dashboard with its drag handle, dragged by the keyboard sensor of dnd-kit
+        const Card = () => {
+            const draggable = useDraggable({ id: 1 });
+            return (
+                <div ref={draggable.setNodeRef}>
+                    <button type="button" data-testid="drag-handle" {...draggable.listeners} {...draggable.attributes} />
+                </div>
+            );
+        };
+        const Dashboard = () => {
+            const sensors = useSensors(useSensor(KeyboardSensor));
+            return <DndContext sensors={sensors} onDragEnd={onDragEnd}><Card /></DndContext>;
+        };
+        act(() => root.render(
+            <WorkbookFeedPage
+                workbookScripts={scripts()}
+                modifyWorkbookScripts={vi.fn()}
+                connection={null}
+                active={false}
+                dependencies={{ ...dependencies, Dashboard: Dashboard as unknown as WorkbookFeedPageDependencies['Dashboard'] }}
+            />,
+        ));
+        const handle = container.querySelector<HTMLButtonElement>('[data-testid="drag-handle"]')!;
+        const press = (key: string, code: string) => act(() => {
+            handle.dispatchEvent(new KeyboardEvent('keydown', { key, code, bubbles: true, cancelable: true }));
+        });
+        act(() => handle.focus());
+        press(' ', 'Space');
+        // The sensor listens to the keys of the drag after a timeout
+        await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });
+        expect(handle.getAttribute('aria-pressed')).toBe('true');
+        press('ArrowRight', 'ArrowRight');
+        expect(state.setMode).not.toHaveBeenCalled();
+        press(' ', 'Space');
+        await vi.waitFor(() => expect(onDragEnd).toHaveBeenCalledOnce());
+
+        // Once the card is dropped, the arrow keys switch the views again
+        press('ArrowRight', 'ArrowRight');
+        expect(state.setMode).toHaveBeenLastCalledWith(WorkbookViewMode.Dataflow);
     });
 
     it('offers the Dataflow view after the Dashboard', () => {
