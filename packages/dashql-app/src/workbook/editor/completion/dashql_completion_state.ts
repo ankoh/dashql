@@ -5,14 +5,6 @@ import { VariantKind } from '@akohn/dashql/platform/utils/variant';
 
 /// The state of a completion in the editor. The editor owns it, the workbook scripts never see it.
 
-/// A collection of FlatBuffers for a script
-export interface DashQLScriptBuffers {
-    /// The parsed script
-    parsed: dashql.FlatBufferPtr<dashql.buffers.parser.ParsedScript> | null;
-    /// The analyzed script
-    analyzed: dashql.FlatBufferPtr<dashql.buffers.analyzer.AnalyzedScript> | null;
-}
-
 /// A completion status
 export enum DashQLCompletionStatus {
     AVAILABLE,
@@ -45,8 +37,6 @@ export interface DashQLCompletionState {
 /// A state that is pushed from the processor to the outside. The workbook scripts take the part of a
 /// `ScriptSessionUpdate`, the rest stays in the editor.
 export interface DashQLProcessorUpdateOut extends ScriptSessionUpdate {
-    /// The previous processed script buffers (if any)
-    scriptBuffers: DashQLScriptBuffers | null;
     /// The completion candidate state (if any)
     scriptCompletion: DashQLCompletionState | null;
 }

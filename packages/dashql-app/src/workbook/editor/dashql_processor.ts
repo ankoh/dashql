@@ -5,7 +5,7 @@ import { EditorState, Facet, SelectionRange, StateField, StateEffect, StateEffec
 
 import { deriveFocusFromCompletionCandidates, deriveFocusFromEditorUpdate, SemanticUserFocus } from './semantic_focus.js';
 import { computePatches, UpdatePatchStartingFrom } from './completion/dashql_completion_patches.js';
-import { DashQLCompletionStatus, type DashQLProcessorUpdateOut, type DashQLScriptBuffers } from './completion/dashql_completion_state.js';
+import { DashQLCompletionStatus, type DashQLProcessorUpdateOut } from './completion/dashql_completion_state.js';
 import type { DashQLScriptKey } from '@akohn/dashql/platform/workbook/script_editor_state';
 
 export const DASHQL_COMPLETION_LIMIT = 10;
@@ -51,7 +51,6 @@ export type DashQLProcessorUpdateIn = DashQLProcessorUpdateOut & {
     onParameterClick?: (click: DashQLParameterClick, view: EditorView) => void;
 
     /// This callback is called when the editor updates the script, the cursor, completions.
-    /// The callee is responsible for keeping FlatBufferPtrs alive and clean them up once they get overwritten.
     onUpdate: (out: DashQLProcessorUpdateOut) => void;
 }
 /// The state of a DashQL processor
@@ -65,22 +64,6 @@ function deriveFocus(state: DashQLProcessorState): SemanticUserFocus | null {
     return state.scriptCompletion != null
         ? deriveFocusFromCompletionCandidates(state.scriptKey, state.scriptCompletion)
         : deriveFocusFromEditorUpdate(state.scriptKey, state.editorUpdate);
-}
-
-export function analyzeScript(
-    script: dashql.DashQLScript,
-    reportError: (error: unknown) => void = console.error,
-): DashQLScriptBuffers {
-    try {
-        script.analyze();
-        return {
-            parsed: script.getParsed(),
-            analyzed: script.getAnalyzed(),
-        };
-    } catch (e: unknown) {
-        reportError(e);
-    }
-    return { parsed: null, analyzed: null };
 }
 
 function editorUpdateMessage(update: dashql.buffers.editor.EditorUpdateT): string {
@@ -143,8 +126,6 @@ export const DashQLUpdateEffect: StateEffectType<DashQLProcessorUpdateIn> = Stat
 export const DashQLCompletionStartEffect: StateEffectType<null> = StateEffect.define<null>();
 /// Effect to stop a completion without applying
 export const DashQLCompletionAbortEffect: StateEffectType<null> = StateEffect.define<null>();
-/// Effect to preview a different candidate
-export const DashQLCompletionPreviewCandidateEffect: StateEffectType<number> = StateEffect.define<number>();
 /// Effect to select a completion candidate
 export const DashQLCompletionSelectCandidateEffect: StateEffectType<null> = StateEffect.define<null>();
 /// Effect to select a catalog object
@@ -187,7 +168,6 @@ export const DashQLProcessorPlugin: StateField<DashQLProcessorState> = StateFiel
             scriptKey: 0,
             scriptSession: null,
             editorUpdate: null,
-            scriptBuffers: null,
             scriptCompletion: null,
             scriptPendingDiff: null,
 
@@ -271,7 +251,6 @@ export const DashQLProcessorPlugin: StateField<DashQLProcessorState> = StateFiel
                         state.scriptSession?.completeAtCursor(DASHQL_COMPLETION_LIMIT, state.keywordCase) ?? null,
                         transaction.newDoc, Number(state.editorUpdate?.primaryCursorState?.textOffset ?? 0),
                     );
-                    // Persist the new buffer so the workbook can release the superseded one.
                     state.onUpdate(state);
                     return state;
                 }
@@ -353,7 +332,6 @@ export const DashQLProcessorPlugin: StateField<DashQLProcessorState> = StateFiel
             state.derivedFocus = state.scriptCompletion == null
                 ? deriveFocusFromEditorUpdate(state.scriptKey, update)
                 : state.derivedFocus;
-            if (transaction.docChanged) state.scriptBuffers = null;
         }
 
         // Check additional completion effects
@@ -585,16 +563,6 @@ function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcesso
             }
             break;
 
-        } else if (effect.is(DashQLCompletionPreviewCandidateEffect)) {
-            // Effect to switch the previews completion candidate
-            if (state.scriptCompletion.status == DashQLCompletionStatus.AVAILABLE && !transaction.docChanged) {
-                // XXX This is not correct, we need to update the ids
-                state = tryStartCompletion(state, prevState, state.scriptCompletion.buffer, transaction.newDoc, cursorOffset);
-            } else {
-                resetCompletion();
-                break;
-            }
-
         } else if (effect.is(DashQLCompletionSelectCandidateEffect)) {
             // Clear completion if the candidate index is invalid
             if (state.scriptCompletion.candidateId >= completionBuffer.candidatesLength()) {
@@ -700,8 +668,6 @@ function updateDiff(state: DashQLProcessorState, prevState: DashQLProcessorState
             // Clearing the pending diff drops the overlay. Accept keeps the current (new) text;
             // reject relies on the dispatcher having restored the prior text via `changes` in the
             // same transaction (already mirrored to the rope by the docChanged branch in `update`).
-            // The FlatBufferPtr is owned by the workbook's ScriptData and freed there once the
-            // cleared state round-trips back through the reported editor update.
             if (state.scriptPendingDiff != null) {
                 state = copyLazily(state, prevState);
                 state.scriptPendingDiff = null;

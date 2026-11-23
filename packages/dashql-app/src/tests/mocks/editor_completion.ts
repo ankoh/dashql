@@ -18,7 +18,6 @@ export function editorProcessorState(dql: dashql.DashQL, text: string, catalog: 
         scriptKey: 1,
         scriptSession,
         editorUpdate: scriptSession.setCursor(1n, BigInt(text.length)),
-        scriptBuffers: null,
         scriptCompletion: null,
         scriptPendingDiff: null,
         onUpdate: () => { },

@@ -33,7 +33,6 @@ function project(text: string): DashQLProcessorUpdateIn {
         scriptKey: 0,
         scriptSession: null,
         editorUpdate,
-        scriptBuffers: null,
         scriptCompletion: null,
         scriptPendingDiff: null,
         onUpdate: () => { },

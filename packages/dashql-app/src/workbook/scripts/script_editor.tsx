@@ -269,7 +269,6 @@ function updateEditor(view: EditorView, runtime: Runtime | null, scriptData: Scr
             scriptKey: scriptData.scriptKey,
             scriptSession: scriptData.scriptSession,
             editorUpdate: scriptData.editorUpdate,
-            scriptBuffers: null,
             // The editor keeps its own completion, see DashQLProcessorPlugin
             scriptCompletion: null,
             scriptPendingDiff: scriptData.pendingDiff,

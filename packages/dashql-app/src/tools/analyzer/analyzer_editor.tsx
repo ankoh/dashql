@@ -49,7 +49,6 @@ export function AnalyzerEditor({ session, onAnalysis, onView }: AnalyzerEditorPr
                 scriptKey: session.getCatalogEntryId(),
                 scriptSession: session,
                 editorUpdate: last,
-                scriptBuffers: null,
                 scriptCompletion: null,
                 scriptPendingDiff: null,
                 onUpdate,

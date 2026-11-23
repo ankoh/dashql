@@ -47,7 +47,6 @@ function createDiffEditor(pending: boolean) {
             scriptKey: scriptSession.getCatalogEntryId(),
             scriptSession,
             editorUpdate,
-            scriptBuffers: null,
             scriptCompletion: null,
             scriptPendingDiff: pending ? { priorText: PRIOR_TEXT, diffBuffer } : null,
             onUpdate: update => updates.push(update),

@@ -37,7 +37,6 @@ function mountEditor(onParameterClick: (click: DashQLParameterClick, view: Edito
             scriptKey: scriptSession.getCatalogEntryId(),
             scriptSession,
             editorUpdate,
-            scriptBuffers: null,
             scriptCompletion: null,
             scriptPendingDiff: null,
             textVersion: scriptSession.getTextVersion(),

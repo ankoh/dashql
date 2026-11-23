@@ -198,7 +198,6 @@ export const PromptEditor: React.FC<PromptEditorProps> = (props) => {
                 scriptKey: scriptSession.getCatalogEntryId(),
                 scriptSession,
                 editorUpdate: scriptSession.analyze(),
-                scriptBuffers: null,
                 scriptCompletion: null,
                 scriptPendingDiff: null,
                 keywordCase: props.keywordCase,
