@@ -816,6 +816,64 @@ describe('DashQL processor completion triggers', () => {
         expect(objectName(next)).not.toBe(firstName);
     });
 
+    it('drops the completion when a range is selected', () => {
+        const processorState = ordersCompletion(dql!);
+        const text = ORDERS_COMPLETION_TEXT;
+        let editorState = EditorState.create({
+            doc: text,
+            selection: EditorSelection.cursor(text.length),
+            extensions: [DashQLProcessorPlugin],
+        }).update({ effects: DashQLUpdateEffect.of(processorState) }).state;
+        expect(editorState.field(DashQLProcessorPlugin).scriptCompletion).not.toBeNull();
+
+        // Shift+Home selects the line, there is no cursor to complete at
+        editorState = editorState.update({
+            selection: EditorSelection.range(text.length, 0),
+            annotations: Transaction.userEvent.of('select'),
+        }).state;
+        expect(editorState.field(DashQLProcessorPlugin).editorUpdate?.primaryCursorState).toBeFalsy();
+        expect(editorState.field(DashQLProcessorPlugin).scriptCompletion).toBeNull();
+    });
+
+    it('drops the completion when an undo restores a selected range', () => {
+        const processorState = ordersCompletion(dql!);
+        const text = ORDERS_COMPLETION_TEXT;
+        let editorState = EditorState.create({
+            doc: text,
+            selection: EditorSelection.cursor(text.length),
+            extensions: [DashQLProcessorPlugin],
+        }).update({ effects: DashQLUpdateEffect.of(processorState) }).state;
+        expect(editorState.field(DashQLProcessorPlugin).scriptCompletion).not.toBeNull();
+
+        editorState = editorState.update({
+            changes: { from: text.length - 3, to: text.length, insert: 'items' },
+            selection: EditorSelection.range(text.length - 3, text.length + 2),
+            annotations: Transaction.userEvent.of('undo'),
+        }).state;
+        expect(editorState.doc.toString()).toBe('select * from items');
+        expect(editorState.field(DashQLProcessorPlugin).scriptCompletion).toBeNull();
+    });
+
+    it('applies no event for a transaction without changes while a range is selected', () => {
+        const processorState = editorProcessorState(dql!, 'select 1');
+        const scriptSession = processorState.scriptSession;
+        const applyEvent = vi.fn((event: dashql.buffers.editor.EditorEventT) => scriptSession.apply(event));
+        let editorState = EditorState.create({
+            doc: 'select 1',
+            selection: EditorSelection.cursor('select 1'.length),
+            extensions: [DashQLProcessorPlugin],
+        }).update({ effects: DashQLUpdateEffect.of({ ...processorState, applyEvent }) }).state;
+
+        editorState = editorState.update({ selection: EditorSelection.range(0, 'select'.length) }).state;
+        expect(applyEvent).toHaveBeenCalledTimes(1);
+        expect(editorState.field(DashQLProcessorPlugin).editorUpdate?.primaryCursorState).toBeFalsy();
+
+        // Effects alone leave the selection the core knows
+        editorState = editorState.update({ effects: DashQLCompletionAbortEffect.of(null) }).state;
+        expect(applyEvent).toHaveBeenCalledTimes(1);
+        expect(editorState.field(DashQLProcessorPlugin).editorUpdate?.primarySelection?.head).toBe(BigInt('select'.length));
+    });
+
     it('does not start completion when deleting selected comments before a token', () => {
         const catalog = dql!.createCatalog();
         const text = `-- Fetch and visualize vega cars data from a parquet file, rendering a point

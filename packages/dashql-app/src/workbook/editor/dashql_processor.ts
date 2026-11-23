@@ -1,7 +1,7 @@
 import * as dashql from '@akohn/dashql';
 
 import type { EditorView } from '@codemirror/view';
-import { EditorState, Facet, StateField, StateEffect, StateEffectType, Text, Transaction } from '@codemirror/state';
+import { EditorState, Facet, SelectionRange, StateField, StateEffect, StateEffectType, Text, Transaction } from '@codemirror/state';
 
 import { deriveFocusFromCompletionCandidates, deriveFocusFromEditorUpdate, SemanticUserFocus } from './semantic_focus.js';
 import { computePatches, UpdatePatchStartingFrom } from './completion/dashql_completion_patches.js';
@@ -164,6 +164,15 @@ export const DashQLDiffAcceptEffect: StateEffectType<null> = StateEffect.define<
 /// Effect to reject a pending diff (restore the prior text, clear the overlay)
 export const DashQLDiffRejectEffect: StateEffectType<null> = StateEffect.define<null>();
 
+/// Does the update of the core miss the selection of the editor? The core projects a cursor state only for a collapsed
+/// selection, a selected range has none.
+function lacksSelection(update: dashql.buffers.editor.EditorUpdateT | null | undefined, selection: SelectionRange): boolean {
+    if (update == null) return true;
+    if (selection.empty) return update.primaryCursorState == null;
+    const known = update.primarySelection;
+    return known == null || Number(known.anchor) !== selection.anchor || Number(known.head) !== selection.head;
+}
+
 // Copy an object if it equals another object
 function copyLazily(nextState: DashQLProcessorState, prevState: DashQLProcessorState): DashQLProcessorState {
     return nextState === prevState ? { ...prevState } : nextState;
@@ -291,7 +300,7 @@ export const DashQLProcessorPlugin: StateField<DashQLProcessorState> = StateFiel
 
         // Mirror the entire CodeMirror transaction through one portable editor event. Change ranges
         // are measured in the pre-change document; the selection is measured in the new document.
-        if (transaction.docChanged || selectionChanged || state.editorUpdate?.primaryCursorState == null) {
+        if (transaction.docChanged || selectionChanged || lacksSelection(state.editorUpdate, newSelection.main)) {
             state = copyLazily(state, prevState);
             const scriptSession = state.scriptSession!;
             // The version of the text that the document showed before the transaction, not the one of the session: a
@@ -468,7 +477,18 @@ function userEventCanStartCompletion(transaction: Transaction, prevState: DashQL
 // Helper to update a completion based on a transaction
 function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcessorState, transaction: Transaction): DashQLProcessorState {
     // We need a script and script cursor to complete.
-    if (!state.scriptSession || !state.editorUpdate?.primaryCursorState) {
+    if (!state.scriptSession) {
+        return state;
+    }
+    // A selected range has no cursor to complete at, and the completion of an edit without a cursor is stale
+    if (!transaction.newSelection.main.empty || (transaction.docChanged && state.editorUpdate?.primaryCursorState == null)) {
+        if (state.scriptCompletion != null) {
+            state = copyLazily(state, prevState);
+            state.scriptCompletion = null;
+        }
+        return state;
+    }
+    if (state.editorUpdate?.primaryCursorState == null) {
         return state;
     }
     if (transaction.startState.facet(DashQLCompletionDisabled)) {
