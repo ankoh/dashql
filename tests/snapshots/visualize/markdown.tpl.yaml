@@ -40,3 +40,73 @@ visualize-snapshots:
            <script>bad()</script>
         */
         SELECT 'Ada' AS author;
+
+  # A Javadoc-style comment: the gutter is stripped, lines that start with * keep it as list markers
+  - name: vis_markdown_javadoc_gutter
+    script:
+      input: |
+        /**
+         * Metrics.
+         *
+         * @vis markdown
+         * ### {{metric}}
+         *
+         * * first {{value}}
+         * * second
+         */
+        SELECT 'm' AS metric, 1 AS value;
+
+  # A run of line comments holds the template
+  - name: vis_markdown_line_comments
+    script:
+      input: |
+        -- @vis markdown
+        -- # {{title}}
+        -- body with */ inside
+        SELECT 'x' AS title;
+
+  # A template on the line of the tag
+  - name: vis_markdown_same_line
+    script:
+      input: |
+        /* @vis markdown **{{a}}** of {{b}} */
+        SELECT 1 AS a, 2 AS b;
+
+  # Placeholders are not checked against the columns, they keep their case and inner spaces and dots
+  - name: vis_markdown_field_names
+    script:
+      input: |
+        /* @vis markdown
+           {{Author}} {{ Total Revenue }} {{info.kind}} {{missing}} {{
+           split }}
+        */
+        SELECT 'Ada' AS author;
+
+  # Braces that form no placeholder stay text: empty braces, single braces, a lone }} and an unclosed placeholder
+  - name: vis_markdown_brace_edges
+    script:
+      input: |
+        /* @vis markdown
+           Empty {{}} and {{  }}, single {a}, close }} first, {{a}} then unclosed {{a
+        */
+        SELECT 1 AS a;
+
+  # Markdown escapes and entities resolve to text, a placeholder next to them stays a field
+  - name: vis_markdown_escapes_entities
+    script:
+      input: |
+        /* @vis markdown
+           \*not emphasis\* \# \[x\] &amp; &copy; &#35; &lt;b&gt; {{a}}&amp;
+        */
+        SELECT 1 AS a;
+
+  # A placeholder in emphasis, a heading and a link text
+  - name: vis_markdown_fields_inline
+    script:
+      input: |
+        /* @vis markdown
+           # {{a}} and {{b}}
+
+           *{{a}}* [see {{b}}](https://example.com/b)
+        */
+        SELECT 1 AS a, 2 AS b;

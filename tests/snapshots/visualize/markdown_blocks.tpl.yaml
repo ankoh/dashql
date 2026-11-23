@@ -67,3 +67,55 @@ visualize-snapshots:
            {{author}}{{n}}{{missing}}
         */
         SELECT 'Ada' AS author, 1 AS n;
+
+  # Link destinations: http, https, mailto and relative URLs are links, other schemes become spans,
+  # also in other cases or with control characters
+  - name: vis_markdown_link_schemes
+    script:
+      input: |
+        /* @vis markdown
+           [a](HTTPS://example.com) [b](./rel?x=1) [c](#anchor) [d](//host/path) [e](a/b:c)
+           [f](JaVaScRiPt:alert(1)) [g](data:text/html,x) [h](vbscript:x) [i](ftp://host) [j](<java script:x>)
+        */
+        SELECT 1 AS a;
+
+  # Images and reference links follow the same rules, a field in the URL makes a span
+  - name: vis_markdown_images_references
+    script:
+      input: |
+        /* @vis markdown
+           ![logo](https://example.com/{{a}}.png) ![bad](javascript:x "t")
+
+           [ok][r1] [bad][r2]
+
+           [r1]: https://example.com "Ref"
+           [r2]: javascript:alert(1)
+        */
+        SELECT 1 AS a;
+
+  # A raw HTML block is dropped with the placeholders in it, the paragraph after it stays
+  - name: vis_markdown_html_block
+    script:
+      input: |
+        /* @vis markdown
+           <div class="x">
+           {{a}}
+           </div>
+
+           <!-- note -->
+
+           after {{a}}
+        */
+        SELECT 1 AS a;
+
+  # Ordered lists keep their start, also 0 and the ) delimiter
+  - name: vis_markdown_list_starts
+    script:
+      input: |
+        /* @vis markdown
+           7. seven
+           8. eight
+
+           0) zero
+        */
+        SELECT 1 AS a;

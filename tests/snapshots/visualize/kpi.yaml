@@ -1,0 +1,110 @@
+visualize-snapshots:
+
+  - name: kpi_default_size
+    catalog:
+      script:
+        input: |-
+          create table sales (day date, revenue decimal);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: sales
+            text: "create tab..e decimal)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: day
+                text: "day date"
+              - catalog-id: "256.65536.4294967296.1"
+                name: revenue
+                text: "revenue decimal"
+        touched-relations:
+          - statement-id: 0
+            name: sales
+        errors: []
+    script:
+      input: |
+        /**
+         * Revenue
+         *
+         * @vis kpi value=revenue x=day
+         */
+        SELECT day, sum(revenue) AS revenue FROM sales GROUP BY day ORDER BY day;
+    dashboard:
+      width: 3
+      height: 3
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "$sql": "SELECT day, sum(revenue) AS revenue FROM sales GROUP BY day ORDER BY day"
+        }
+      }
+
+  - name: kpi_board_width_only
+    script:
+      input: |
+        /* @vis kpi value="Total Revenue" delta=first
+           @board row=0 width=6 */
+        SELECT 1 AS "Total Revenue";
+    dashboard:
+      row: 0
+      width: 6
+      height: 3
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "$sql": "SELECT 1 AS \"Total Revenue\""
+        }
+      }
+
+  - name: kpi_invalid_args
+    script:
+      input: |
+        /* @vis kpi value=missing x='day' delta=weekly color=red */
+        SELECT 1 AS a;
+    dashboard:
+      width: 3
+      height: 3
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "$sql": "SELECT 1 AS a"
+        }
+      }
+
+  - name: kpi_after_table
+    script:
+      input: |
+        /* @vis table
+           @vis kpi value=a */
+        SELECT 1 AS a;
+    dashboard:
+      width: 6
+      height: 6
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "$sql": "SELECT 1 AS a"
+        }
+      }
+
+  - name: kpi_line_comments
+    script:
+      input: |
+        -- Orders per day
+        -- @vis kpi value=n delta=none
+        -- the line after the args is ordinary text
+        SELECT count(*) AS n FROM orders;
+    dashboard:
+      width: 3
+      height: 3
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "$sql": "SELECT count(*) AS n FROM orders"
+        }
+      }

@@ -184,3 +184,231 @@ visualize-snapshots:
                 children:
                   - type: field
                     field: author
+
+  - name: vis_markdown_javadoc_gutter
+    script:
+      input: |
+        /**
+         * Metrics.
+         *
+         * @vis markdown
+         * ### {{metric}}
+         *
+         * * first {{value}}
+         * * second
+         */
+        SELECT 'm' AS metric, 1 AS value;
+    markdown:
+      template: |-
+        ### {{metric}}
+
+        * first {{value}}
+        * second
+      fields:
+        - metric
+        - value
+      document:
+        type: document
+        children:
+          - type: heading
+            level: 3
+            children:
+              - type: field
+                field: metric
+          - type: list
+            ordered: false
+            tight: true
+            children:
+              - type: listItem
+                children:
+                  - type: text
+                    value: "first "
+                  - type: field
+                    field: value
+              - type: listItem
+                children:
+                  - type: text
+                    value: second
+
+  - name: vis_markdown_line_comments
+    script:
+      input: |
+        -- @vis markdown
+        -- # {{title}}
+        -- body with */ inside
+        SELECT 'x' AS title;
+    markdown:
+      template: |-
+        # {{title}}
+        body with */ inside
+      fields:
+        - title
+      document:
+        type: document
+        children:
+          - type: heading
+            level: 1
+            children:
+              - type: field
+                field: title
+          - type: paragraph
+            children:
+              - type: text
+                value: body with */ inside
+
+  - name: vis_markdown_same_line
+    script:
+      input: |
+        /* @vis markdown **{{a}}** of {{b}} */
+        SELECT 1 AS a, 2 AS b;
+    markdown:
+      template: '**{{a}}** of {{b}}'
+      fields:
+        - a
+        - b
+      document:
+        type: document
+        children:
+          - type: paragraph
+            children:
+              - type: strong
+                children:
+                  - type: field
+                    field: a
+              - type: text
+                value: " of "
+              - type: field
+                field: b
+
+  - name: vis_markdown_field_names
+    script:
+      input: |
+        /* @vis markdown
+           {{Author}} {{ Total Revenue }} {{info.kind}} {{missing}} {{
+           split }}
+        */
+        SELECT 'Ada' AS author;
+    markdown:
+      template: |-
+        {{Author}} {{ Total Revenue }} {{info.kind}} {{missing}} {{
+        split }}
+      fields:
+        - Author
+        - Total Revenue
+        - info.kind
+        - missing
+        - split
+      document:
+        type: document
+        children:
+          - type: paragraph
+            children:
+              - type: field
+                field: Author
+              - type: text
+                value: " "
+              - type: field
+                field: Total Revenue
+              - type: text
+                value: " "
+              - type: field
+                field: info.kind
+              - type: text
+                value: " "
+              - type: field
+                field: missing
+              - type: text
+                value: " "
+              - type: field
+                field: split
+
+  - name: vis_markdown_brace_edges
+    script:
+      input: |
+        /* @vis markdown
+           Empty {{}} and {{  }}, single {a}, close }} first, {{a}} then unclosed {{a
+        */
+        SELECT 1 AS a;
+    markdown:
+      template: 'Empty {{}} and {{  }}, single {a}, close }} first, {{a}} then unclosed {{a'
+      fields:
+        - a
+      document:
+        type: document
+        children:
+          - type: paragraph
+            children:
+              - type: text
+                value: "Empty {{}} and {{  }}, single {a}, close }} first, "
+              - type: field
+                field: a
+              - type: text
+                value: " then unclosed {{a"
+
+  - name: vis_markdown_escapes_entities
+    script:
+      input: |
+        /* @vis markdown
+           \*not emphasis\* \# \[x\] &amp; &copy; &#35; &lt;b&gt; {{a}}&amp;
+        */
+        SELECT 1 AS a;
+    markdown:
+      template: '\*not emphasis\* \# \[x\] &amp; &copy; &#35; &lt;b&gt; {{a}}&amp;'
+      fields:
+        - a
+      document:
+        type: document
+        children:
+          - type: paragraph
+            children:
+              - type: text
+                value: "*not emphasis* # [x] & © # <b> "
+              - type: field
+                field: a
+              - type: text
+                value: '&'
+
+  - name: vis_markdown_fields_inline
+    script:
+      input: |
+        /* @vis markdown
+           # {{a}} and {{b}}
+
+           *{{a}}* [see {{b}}](https://example.com/b)
+        */
+        SELECT 1 AS a, 2 AS b;
+    markdown:
+      template: |-
+        # {{a}} and {{b}}
+
+        *{{a}}* [see {{b}}](https://example.com/b)
+      fields:
+        - a
+        - b
+      document:
+        type: document
+        children:
+          - type: heading
+            level: 1
+            children:
+              - type: field
+                field: a
+              - type: text
+                value: " and "
+              - type: field
+                field: b
+          - type: paragraph
+            children:
+              - type: emphasis
+                children:
+                  - type: field
+                    field: a
+              - type: text
+                value: " "
+              - type: link
+                url: 'https://example.com/b'
+                children:
+                  - type: text
+                    value: "see "
+                  - type: field
+                    field: b

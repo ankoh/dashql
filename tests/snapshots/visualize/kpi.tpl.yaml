@@ -1,0 +1,63 @@
+visualize-snapshots:
+  # A KPI card is 3 by 3 without a @board, its Vega-Lite JSON is only the data
+  - name: kpi_default_size
+    catalog:
+      script:
+        input: |-
+          create table sales (day date, revenue decimal);
+    script:
+      input: |
+        /**
+         * Revenue
+         *
+         * @vis kpi value=revenue x=day
+         */
+        SELECT day, sum(revenue) AS revenue FROM sales GROUP BY day ORDER BY day;
+    dashboard:
+      width: 3
+      height: 3
+
+  # A @board width overrides the width of the card, the height stays the one of a KPI card
+  - name: kpi_board_width_only
+    script:
+      input: |
+        /* @vis kpi value="Total Revenue" delta=first
+           @board row=0 width=6 */
+        SELECT 1 AS "Total Revenue";
+    dashboard:
+      row: 0
+      width: 6
+      height: 3
+
+  # Args with problems still make a card: an unknown column, a string as column, an unknown delta and arg
+  - name: kpi_invalid_args
+    script:
+      input: |
+        /* @vis kpi value=missing x='day' delta=weekly color=red */
+        SELECT 1 AS a;
+    dashboard:
+      width: 3
+      height: 3
+
+  # A @vis kpi after another renderer is ignored, the card has the default size of a table
+  - name: kpi_after_table
+    script:
+      input: |
+        /* @vis table
+           @vis kpi value=a */
+        SELECT 1 AS a;
+    dashboard:
+      width: 6
+      height: 6
+
+  # In line comments the args end at their line
+  - name: kpi_line_comments
+    script:
+      input: |
+        -- Orders per day
+        -- @vis kpi value=n delta=none
+        -- the line after the args is ordinary text
+        SELECT count(*) AS n FROM orders;
+    dashboard:
+      width: 3
+      height: 3

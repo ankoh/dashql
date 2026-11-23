@@ -320,3 +320,214 @@ visualize-snapshots:
                 field: n
               - type: field
                 field: missing
+
+  - name: vis_markdown_link_schemes
+    script:
+      input: |
+        /* @vis markdown
+           [a](HTTPS://example.com) [b](./rel?x=1) [c](#anchor) [d](//host/path) [e](a/b:c)
+           [f](JaVaScRiPt:alert(1)) [g](data:text/html,x) [h](vbscript:x) [i](ftp://host) [j](<java script:x>)
+        */
+        SELECT 1 AS a;
+    markdown:
+      template: |-
+        [a](HTTPS://example.com) [b](./rel?x=1) [c](#anchor) [d](//host/path) [e](a/b:c)
+        [f](JaVaScRiPt:alert(1)) [g](data:text/html,x) [h](vbscript:x) [i](ftp://host) [j](<java script:x>)
+      fields: []
+      document:
+        type: document
+        children:
+          - type: paragraph
+            children:
+              - type: link
+                url: 'HTTPS://example.com'
+                children:
+                  - type: text
+                    value: a
+              - type: text
+                value: " "
+              - type: link
+                url: ./rel?x=1
+                children:
+                  - type: text
+                    value: b
+              - type: text
+                value: " "
+              - type: link
+                url: '#anchor'
+                children:
+                  - type: text
+                    value: c
+              - type: text
+                value: " "
+              - type: link
+                url: //host/path
+                children:
+                  - type: text
+                    value: d
+              - type: text
+                value: " "
+              - type: link
+                url: 'a/b:c'
+                children:
+                  - type: text
+                    value: e
+              - type: text
+                value: "\n"
+              - type: span
+                children:
+                  - type: text
+                    value: f
+              - type: text
+                value: " "
+              - type: span
+                children:
+                  - type: text
+                    value: g
+              - type: text
+                value: " "
+              - type: span
+                children:
+                  - type: text
+                    value: h
+              - type: text
+                value: " "
+              - type: span
+                children:
+                  - type: text
+                    value: i
+              - type: text
+                value: " "
+              - type: span
+                children:
+                  - type: text
+                    value: j
+
+  - name: vis_markdown_images_references
+    script:
+      input: |
+        /* @vis markdown
+           ![logo](https://example.com/{{a}}.png) ![bad](javascript:x "t")
+
+           [ok][r1] [bad][r2]
+
+           [r1]: https://example.com "Ref"
+           [r2]: javascript:alert(1)
+        */
+        SELECT 1 AS a;
+    markdown:
+      template: |-
+        ![logo](https://example.com/{{a}}.png) ![bad](javascript:x "t")
+
+        [ok][r1] [bad][r2]
+
+        [r1]: https://example.com "Ref"
+        [r2]: javascript:alert(1)
+      fields:
+        - a
+      document:
+        type: document
+        children:
+          - type: paragraph
+            children:
+              - type: span
+                children:
+                  - type: text
+                    value: logo
+              - type: text
+                value: " "
+              - type: span
+                children:
+                  - type: text
+                    value: bad
+          - type: paragraph
+            children:
+              - type: link
+                url: 'https://example.com'
+                title: Ref
+                children:
+                  - type: text
+                    value: ok
+              - type: text
+                value: " "
+              - type: span
+                children:
+                  - type: text
+                    value: bad
+
+  - name: vis_markdown_html_block
+    script:
+      input: |
+        /* @vis markdown
+           <div class="x">
+           {{a}}
+           </div>
+
+           <!-- note -->
+
+           after {{a}}
+        */
+        SELECT 1 AS a;
+    markdown:
+      template: |-
+        <div class="x">
+        {{a}}
+        </div>
+
+        <!-- note -->
+
+        after {{a}}
+      fields:
+        - a
+      document:
+        type: document
+        children:
+          - type: paragraph
+            children:
+              - type: text
+                value: "after "
+              - type: field
+                field: a
+
+  - name: vis_markdown_list_starts
+    script:
+      input: |
+        /* @vis markdown
+           7. seven
+           8. eight
+
+           0) zero
+        */
+        SELECT 1 AS a;
+    markdown:
+      template: |-
+        7. seven
+        8. eight
+
+        0) zero
+      fields: []
+      document:
+        type: document
+        children:
+          - type: list
+            ordered: true
+            tight: true
+            start: 7
+            children:
+              - type: listItem
+                children:
+                  - type: text
+                    value: seven
+              - type: listItem
+                children:
+                  - type: text
+                    value: eight
+          - type: list
+            ordered: true
+            tight: true
+            start: 0
+            children:
+              - type: listItem
+                children:
+                  - type: text
+                    value: zero

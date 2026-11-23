@@ -1,0 +1,146 @@
+visualize-snapshots:
+  # A Javadoc-style comment: the description before the first tag, the ` * ` gutter of the JSON is stripped
+  - name: tags_javadoc_gutter
+    script:
+      input: |
+        /**
+         * Revenue per region.
+         *
+         * @vis vegalite
+         * {
+         *   "mark": "bar",
+         *   "encoding": {"x": {"field": "region"}, "y": {"field": "revenue"}}
+         * }
+         */
+        SELECT region, revenue FROM sales;
+
+  # A run of line comments holds the tag, the JSON spans several comment lines
+  - name: tags_line_comments
+    script:
+      input: |
+        -- @vis vegalite
+        -- {"mark": "point",
+        --  "encoding": {"x": {"field": "a"}}}
+        SELECT 1 AS a;
+
+  # Older scripts close the run of line comments with @end, the comment after it is ordinary
+  - name: tags_line_comments_end
+    script:
+      input: |
+        -- @vis vegalite {"mark": "bar"}
+        -- @end
+        -- not part of the spec
+        SELECT 1 AS a;
+
+  # Separate comments in front of the statement: a block comment with the renderer and a line comment with @board
+  - name: tags_separate_comments
+    script:
+      input: |
+        /* @vis table */
+        -- @board width=4 height=2
+        SELECT 1 AS a;
+    dashboard:
+      width: 4
+      height: 2
+
+  # @param and @flow tags share the comment with the renderer, $sql keeps the parameter
+  - name: tags_with_param_and_flow
+    script:
+      input: |
+        /**
+         * @param :min = 10
+         * @vis vegalite {"mark": "bar", "encoding": {"y": {"field": "amount"}}}
+         * @flow x=10 y=20
+         * @board width=8
+         */
+        SELECT amount FROM orders WHERE amount > :min;
+    dashboard:
+      width: 8
+      height: 6
+
+  # The renderer is the first @vis that names one, the second renderer is ignored
+  - name: tags_first_renderer_wins
+    script:
+      input: |
+        /* @vis markdown **{{a}}**
+           @vis vegalite {"mark": "bar"} */
+        SELECT 1 AS a;
+
+  # An unknown kind names no renderer, a later @vis table is the renderer
+  - name: tags_unknown_kind_then_table
+    script:
+      input: |
+        /* @vis pie {"mark": "arc"}
+           @vis table */
+        SELECT 1 AS a;
+
+  # Statements without a valid renderer have no visualization, the spec is the one of the last statement:
+  # an unknown kind, a kind in capitals, a @vis without a kind, a vegalite tag without a spec, malformed JSON,
+  # a JSON array, an empty markdown template and a @board alone
+  - name: tags_invalid_renderers_skipped
+    script:
+      input: |
+        /* @vis pie */
+        SELECT 1 AS a;
+        /* @vis Table */
+        SELECT 2 AS a;
+        /* @vis */
+        SELECT 3 AS a;
+        /* @vis vegalite */
+        SELECT 4 AS a;
+        /* @vis vegalite {"mark": } */
+        SELECT 5 AS a;
+        /* @vis vegalite ["bar"] */
+        SELECT 6 AS a;
+        /* @vis markdown */
+        SELECT 7 AS a;
+        /* @board width=4 */
+        SELECT 8 AS a;
+        /* @vis table */
+        SELECT 9 AS a;
+
+  # A renderer with an invalid body still claims the statement, the @vis table after it is ignored
+  - name: tags_invalid_first_renderer_blocks_second
+    script:
+      input: |
+        /* @vis vegalite {"mark": "bar",}
+           @vis table */
+        SELECT 1 AS a;
+        /* @vis table */
+        SELECT 2 AS b;
+
+  # Only queries are visualized, the tags of the CREATE and the INSERT are ignored
+  - name: tags_non_select_skipped
+    script:
+      input: |
+        /* @vis vegalite {"mark": "bar"} */
+        CREATE TABLE t (a int);
+        /* @vis table */
+        INSERT INTO t VALUES (1);
+        /* @vis markdown {{b}} */
+        SELECT a AS b FROM t;
+
+  # A comment at the end of the line of a statement describes neither that statement nor the next one
+  - name: tags_trailing_comment
+    script:
+      input: |
+        SELECT 1 AS a; /* @vis vegalite {"mark": "bar"} */
+        /* @vis table */
+        SELECT 2 AS b;
+
+  # A comment separated from the statement by a blank line still describes it
+  - name: tags_blank_line_before_statement
+    script:
+      input: |
+        /* @vis vegalite {"mark": "line"} */
+
+        SELECT 1 AS a;
+
+  # Every visualized statement has a spec, the snapshot shows the first
+  - name: tags_two_visualized_statements
+    script:
+      input: |
+        /* @vis vegalite {"mark": "bar"} */
+        SELECT 1 AS a;
+        /* @vis vegalite {"mark": "line"} */
+        SELECT 2 AS a;

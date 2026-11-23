@@ -1,0 +1,257 @@
+visualize-snapshots:
+
+  - name: tags_javadoc_gutter
+    script:
+      input: |
+        /**
+         * Revenue per region.
+         *
+         * @vis vegalite
+         * {
+         *   "mark": "bar",
+         *   "encoding": {"x": {"field": "region"}, "y": {"field": "revenue"}}
+         * }
+         */
+        SELECT region, revenue FROM sales;
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "$sql": "SELECT region, revenue FROM sales"
+        },
+        "mark": "bar",
+        "encoding": {
+          "x": {
+            "field": "region"
+          },
+          "y": {
+            "field": "revenue"
+          }
+        }
+      }
+
+  - name: tags_line_comments
+    script:
+      input: |
+        -- @vis vegalite
+        -- {"mark": "point",
+        --  "encoding": {"x": {"field": "a"}}}
+        SELECT 1 AS a;
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "$sql": "SELECT 1 AS a"
+        },
+        "mark": "point",
+        "encoding": {
+          "x": {
+            "field": "a"
+          }
+        }
+      }
+
+  - name: tags_line_comments_end
+    script:
+      input: |
+        -- @vis vegalite {"mark": "bar"}
+        -- @end
+        -- not part of the spec
+        SELECT 1 AS a;
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "$sql": "SELECT 1 AS a"
+        },
+        "mark": "bar"
+      }
+
+  - name: tags_separate_comments
+    script:
+      input: |
+        /* @vis table */
+        -- @board width=4 height=2
+        SELECT 1 AS a;
+    dashboard:
+      width: 4
+      height: 2
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "$sql": "SELECT 1 AS a"
+        }
+      }
+
+  - name: tags_with_param_and_flow
+    script:
+      input: |
+        /**
+         * @param :min = 10
+         * @vis vegalite {"mark": "bar", "encoding": {"y": {"field": "amount"}}}
+         * @flow x=10 y=20
+         * @board width=8
+         */
+        SELECT amount FROM orders WHERE amount > :min;
+    dashboard:
+      width: 8
+      height: 6
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "$sql": "SELECT amount FROM orders WHERE amount > :min"
+        },
+        "mark": "bar",
+        "encoding": {
+          "y": {
+            "field": "amount"
+          }
+        }
+      }
+
+  - name: tags_first_renderer_wins
+    script:
+      input: |
+        /* @vis markdown **{{a}}**
+           @vis vegalite {"mark": "bar"} */
+        SELECT 1 AS a;
+    markdown:
+      template: '**{{a}}**'
+      fields:
+        - a
+      document:
+        type: document
+        children:
+          - type: paragraph
+            children:
+              - type: strong
+                children:
+                  - type: field
+                    field: a
+
+  - name: tags_unknown_kind_then_table
+    script:
+      input: |
+        /* @vis pie {"mark": "arc"}
+           @vis table */
+        SELECT 1 AS a;
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "$sql": "SELECT 1 AS a"
+        }
+      }
+
+  - name: tags_invalid_renderers_skipped
+    script:
+      input: |
+        /* @vis pie */
+        SELECT 1 AS a;
+        /* @vis Table */
+        SELECT 2 AS a;
+        /* @vis */
+        SELECT 3 AS a;
+        /* @vis vegalite */
+        SELECT 4 AS a;
+        /* @vis vegalite {"mark": } */
+        SELECT 5 AS a;
+        /* @vis vegalite ["bar"] */
+        SELECT 6 AS a;
+        /* @vis markdown */
+        SELECT 7 AS a;
+        /* @board width=4 */
+        SELECT 8 AS a;
+        /* @vis table */
+        SELECT 9 AS a;
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "$sql": "SELECT 9 AS a"
+        }
+      }
+
+  - name: tags_invalid_first_renderer_blocks_second
+    script:
+      input: |
+        /* @vis vegalite {"mark": "bar",}
+           @vis table */
+        SELECT 1 AS a;
+        /* @vis table */
+        SELECT 2 AS b;
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "$sql": "SELECT 2 AS b"
+        }
+      }
+
+  - name: tags_non_select_skipped
+    script:
+      input: |
+        /* @vis vegalite {"mark": "bar"} */
+        CREATE TABLE t (a int);
+        /* @vis table */
+        INSERT INTO t VALUES (1);
+        /* @vis markdown {{b}} */
+        SELECT a AS b FROM t;
+    markdown:
+      template: '{{b}}'
+      fields:
+        - b
+      document:
+        type: document
+        children:
+          - type: paragraph
+            children:
+              - type: field
+                field: b
+
+  - name: tags_trailing_comment
+    script:
+      input: |
+        SELECT 1 AS a; /* @vis vegalite {"mark": "bar"} */
+        /* @vis table */
+        SELECT 2 AS b;
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "$sql": "SELECT 2 AS b"
+        }
+      }
+
+  - name: tags_blank_line_before_statement
+    script:
+      input: |
+        /* @vis vegalite {"mark": "line"} */
+
+        SELECT 1 AS a;
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "$sql": "SELECT 1 AS a"
+        },
+        "mark": "line"
+      }
+
+  - name: tags_two_visualized_statements
+    script:
+      input: |
+        /* @vis vegalite {"mark": "bar"} */
+        SELECT 1 AS a;
+        /* @vis vegalite {"mark": "line"} */
+        SELECT 2 AS a;
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "$sql": "SELECT 1 AS a"
+        },
+        "mark": "bar"
+      }

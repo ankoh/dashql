@@ -186,3 +186,300 @@ visualize-snapshots:
         },
         "mark": "bar"
       }
+
+  - name: vis_unknown_field_passed_through
+    catalog:
+      script:
+        input: |-
+          create table sales (category text, revenue int, date timestamp);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: sales
+            text: "create tab..timestamp)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: category
+                text: "category text"
+              - catalog-id: "256.65536.4294967296.1"
+                name: revenue
+                text: "revenue int"
+              - catalog-id: "256.65536.4294967296.2"
+                name: date
+                text: "date timestamp"
+        touched-relations:
+          - statement-id: 0
+            name: sales
+        errors: []
+    script:
+      input: |
+        /* @vis vegalite {"mark": "bar", "encoding": {"x": {"field": "region"}, "y": {"field": "revenue"}}} */
+        SELECT category, revenue FROM sales;
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "$sql": "SELECT category, revenue FROM sales"
+        },
+        "mark": "bar",
+        "encoding": {
+          "x": {
+            "field": "region"
+          },
+          "y": {
+            "field": "revenue"
+          }
+        }
+      }
+
+  - name: vis_no_type_inference
+    catalog:
+      script:
+        input: |-
+          create table sales (category text, revenue int, date timestamp);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: sales
+            text: "create tab..timestamp)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: category
+                text: "category text"
+              - catalog-id: "256.65536.4294967296.1"
+                name: revenue
+                text: "revenue int"
+              - catalog-id: "256.65536.4294967296.2"
+                name: date
+                text: "date timestamp"
+        touched-relations:
+          - statement-id: 0
+            name: sales
+        errors: []
+    script:
+      input: |
+        /* @vis vegalite {"mark": "line", "encoding": {"x": {"field": "date"}, "y": {"field": "revenue"}, "color": {"field": "category"}}} */
+        SELECT date, revenue, category FROM sales;
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "$sql": "SELECT date, revenue, category FROM sales"
+        },
+        "mark": "line",
+        "encoding": {
+          "x": {
+            "field": "date"
+          },
+          "y": {
+            "field": "revenue"
+          },
+          "color": {
+            "field": "category"
+          }
+        }
+      }
+
+  - name: vis_nested_and_defined_fields
+    script:
+      input: |
+        /* @vis vegalite
+           {
+             "transform": [
+               {"fold": ["a", "b"], "as": ["key", "value"]},
+               {"calculate": "datum.a * 2", "as": "twice"}
+             ],
+             "mark": "bar",
+             "encoding": {
+               "x": {"field": "key"},
+               "y": {"field": "value"},
+               "color": {"field": "info.kind"},
+               "detail": {"field": "items[0]"},
+               "size": {"field": "twice"}
+             }
+           }
+        */
+        SELECT 1 AS a, 2 AS b, 3 AS info, 4 AS items;
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "$sql": "SELECT 1 AS a, 2 AS b, 3 AS info, 4 AS items"
+        },
+        "transform": [
+          {
+            "fold": [
+              "a",
+              "b"
+            ],
+            "as": [
+              "key",
+              "value"
+            ]
+          },
+          {
+            "calculate": "datum.a * 2",
+            "as": "twice"
+          }
+        ],
+        "mark": "bar",
+        "encoding": {
+          "x": {
+            "field": "key"
+          },
+          "y": {
+            "field": "value"
+          },
+          "color": {
+            "field": "info.kind"
+          },
+          "detail": {
+            "field": "items[0]"
+          },
+          "size": {
+            "field": "twice"
+          }
+        }
+      }
+
+  - name: vis_empty_object
+    script:
+      input: |
+        /* @vis vegalite {} */
+        SELECT 1 AS a;
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "$sql": "SELECT 1 AS a"
+        }
+      }
+
+  - name: vis_schema_override
+    script:
+      input: |
+        /* @vis vegalite {"$schema": "https://vega.github.io/schema/vega-lite/v4.json", "mark": "tick"} */
+        SELECT 1 AS a;
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v4.json",
+        "data": {
+          "$sql": "SELECT 1 AS a"
+        },
+        "mark": "tick"
+      }
+
+  - name: vis_json_values_reprinted
+    script:
+      input: |
+        /* @vis vegalite
+           {
+             "title": "Umsatz \u20ac and café /\u002a total *\/",
+             "description": "tab\there \"quoted\"",
+             "mark": {"type": "bar", "opacity": 0.50, "size": 1e2, "cornerRadius": -0},
+             "width": 400,
+             "autosize": null,
+             "config": {"axis": {"grid": false, "labelAngle": -45}}
+           }
+        */
+        SELECT 1 AS a;
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "$sql": "SELECT 1 AS a"
+        },
+        "title": "Umsatz € and café /* total */",
+        "description": "tab\there \"quoted\"",
+        "mark": {
+          "type": "bar",
+          "opacity": 0.5,
+          "size": 100.0,
+          "cornerRadius": -0.0
+        },
+        "width": 400,
+        "autosize": null,
+        "config": {
+          "axis": {
+            "grid": false,
+            "labelAngle": -45
+          }
+        }
+      }
+
+  - name: vis_sql_text_multiline
+    script:
+      input: |
+        /* @vis vegalite {"mark": "bar"} */
+        SELECT category, /* the measure */ sum(revenue) AS revenue
+          FROM sales
+         GROUP BY category;
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "$sql": "SELECT category, /* the measure */ sum(revenue) AS revenue\n  FROM sales\n GROUP BY category"
+        },
+        "mark": "bar"
+      }
+
+  - name: vis_with_cte
+    script:
+      input: |
+        /* @vis vegalite {"mark": "bar", "encoding": {"x": {"field": "k"}, "y": {"field": "n"}}} */
+        WITH counts AS (SELECT 1 AS k, 2 AS n)
+        SELECT k, n FROM counts;
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "$sql": "WITH counts AS (SELECT 1 AS k, 2 AS n)\nSELECT k, n FROM counts"
+        },
+        "mark": "bar",
+        "encoding": {
+          "x": {
+            "field": "k"
+          },
+          "y": {
+            "field": "n"
+          }
+        }
+      }
+
+  - name: vis_union
+    script:
+      input: |
+        /* @vis vegalite {"mark": "point", "encoding": {"x": {"field": "x"}}} */
+        SELECT 1 AS x UNION ALL SELECT 2;
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "$sql": "SELECT 1 AS x UNION ALL SELECT 2"
+        },
+        "mark": "point",
+        "encoding": {
+          "x": {
+            "field": "x"
+          }
+        }
+      }
+
+  - name: vis_star_unknown_table
+    script:
+      input: |
+        /* @vis vegalite {"mark": "bar", "encoding": {"x": {"field": "anything"}}} */
+        SELECT * FROM unknown_table;
+    vegalite: |-
+      {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+          "$sql": "SELECT * FROM unknown_table"
+        },
+        "mark": "bar",
+        "encoding": {
+          "x": {
+            "field": "anything"
+          }
+        }
+      }

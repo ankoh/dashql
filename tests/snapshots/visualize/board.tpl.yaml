@@ -1,0 +1,186 @@
+visualize-snapshots:
+  # Without a @board the card has the default size and no position
+  - name: board_default
+    script:
+      input: |
+        /* @vis vegalite {"mark": "bar"} */
+        SELECT 1 AS a;
+    dashboard:
+      width: 6
+      height: 6
+
+  # A size alone keeps the other defaults
+  - name: board_height_only
+    script:
+      input: |
+        /* @vis table
+           @board height=2 */
+        SELECT 1 AS a;
+    dashboard:
+      width: 6
+      height: 2
+
+  # The width is clamped to 1..12, the height to at least 1
+  - name: board_size_clamped
+    script:
+      input: |
+        /* @vis table
+           @board width=20 height=0 */
+        SELECT 1 AS a;
+    dashboard:
+      width: 12
+      height: 1
+
+  # A width below 1 is clamped to 1
+  - name: board_width_zero
+    script:
+      input: |
+        /* @vis table
+           @board width=0 height=-5 */
+        SELECT 1 AS a;
+    dashboard:
+      width: 1
+      height: 1
+
+  # Negative coordinates are removed
+  - name: board_negative_coordinates
+    script:
+      input: |
+        /* @vis table
+           @board row=-1 column=-3 width=4 */
+        SELECT 1 AS a;
+    dashboard:
+      width: 4
+      height: 6
+
+  # A card that sticks out of the grid moves left
+  - name: board_column_moved
+    script:
+      input: |
+        /* @vis table
+           @board row=0 column=10 width=4 */
+        SELECT 1 AS a;
+    dashboard:
+      row: 0
+      column: 8
+      width: 4
+      height: 6
+
+  # A column beyond the grid is clamped to 11 and then moved left by the width
+  - name: board_column_clamped
+    script:
+      input: |
+        /* @vis table
+           @board column=15 width=2 */
+        SELECT 1 AS a;
+    dashboard:
+      column: 10
+      width: 2
+      height: 6
+
+  # Whitespace around = is allowed, a sign is part of the number
+  - name: board_args_whitespace
+    script:
+      input: |
+        /* @vis table
+           @board row = +2 column =3 width= 5 */
+        SELECT 1 AS a;
+    dashboard:
+      row: 2
+      column: 3
+      width: 5
+      height: 6
+
+  # Non-integer values and unknown args are ignored, the valid args apply
+  - name: board_invalid_values
+    script:
+      input: |
+        /* @vis table
+           @board row=abc column='2' width=4.5 height=3 depth=1 stray */
+        SELECT 1 AS a;
+    dashboard:
+      width: 6
+      height: 3
+
+  # A height beyond the 32-bit range is clamped to its maximum
+  - name: board_height_large
+    script:
+      input: |
+        /* @vis table
+           @board height=99999999999 */
+        SELECT 1 AS a;
+    dashboard:
+      width: 6
+      height: 2147483647
+
+  # The first arg of a key wins, and so does the first @board
+  - name: board_first_wins
+    script:
+      input: |
+        /* @vis table
+           @board width=3 width=9
+           @board width=11 row=4 */
+        SELECT 1 AS a;
+    dashboard:
+      width: 3
+      height: 6
+
+  # The placement may come before the renderer
+  - name: board_before_renderer
+    script:
+      input: |
+        /* @board row=1 column=0 width=12 height=2
+           @vis table */
+        SELECT 1 AS a;
+    dashboard:
+      row: 1
+      column: 0
+      width: 12
+      height: 2
+
+  # Older scripts write @vis board and @vis card, they are read like @board
+  - name: board_legacy_vis_board
+    script:
+      input: |
+        /* @vis table
+           @vis board row=3 width=5 */
+        SELECT 1 AS a;
+    dashboard:
+      row: 3
+      width: 5
+      height: 6
+
+  - name: board_legacy_vis_card
+    script:
+      input: |
+        /* @vis card column=1 height=4
+           @vis table */
+        SELECT 1 AS a;
+    dashboard:
+      column: 1
+      width: 6
+      height: 4
+
+  # A @board in line comments ends at its line, the next line comment is ordinary text
+  - name: board_line_comments
+    script:
+      input: |
+        -- @vis table
+        -- @board width=7 height=3
+        -- note
+        SELECT 1 AS a;
+    dashboard:
+      width: 7
+      height: 3
+
+  # @flow of the legacy form between the tags places nothing on the board
+  - name: board_with_legacy_flow
+    script:
+      input: |
+        /* @vis table
+           @vis flow x=0 y=0 width=400
+           @board width=2 */
+        SELECT 1 AS a;
+    dashboard:
+      width: 2
+      height: 6
