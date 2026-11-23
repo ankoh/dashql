@@ -5,7 +5,7 @@ import * as dashql from '@akohn/dashql';
 import type { EditorView } from '@codemirror/view';
 import type { Icon } from '@akohn/dashql-react/components/symbol_icon';
 
-import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
+import { Button, ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
 import { ButtonGroup } from '@akohn/dashql-react/components/button_group';
 import { IndicatorStatus } from '@akohn/dashql-react/components/status_indicator';
 import { SymbolIcon } from '@akohn/dashql-react/components/symbol_icon';
@@ -133,6 +133,7 @@ export interface ScriptCardProps {
 }
 
 const CheckIcon: Icon = SymbolIcon('check_16');
+const RunIcon: Icon = SymbolIcon('paper_airplane_16');
 const CrossIcon: Icon = SymbolIcon('x_16');
 
 // Memoized since every row of the feed re-renders whenever any script changes
@@ -205,6 +206,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
     // A read-only workbook shows its cards greyed out
     const readOnly = useWorkbookReadOnly();
     const hasFooterContent = entryStatus.kind !== EntryStatusKind.Idle;
+    const runScript = () => { if (online) void model.run(); };
     return (
         <article
             className={styles.feed_entry_pair}
@@ -230,7 +232,7 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                     scriptReferences={display.references}
                     canTarget={display.canTarget}
                     onTarget={() => feed.target(fileName)}
-                    onExecute={() => { if (online) void model.run(); }}
+                    onExecute={runScript}
                     onPickConnection={connectionId => feed.pickConnection(fileName, connectionId)}
                     onRename={name => feed.rename(fileName, name)}
                     onDelete={() => feed.delete(fileName)}
@@ -281,6 +283,35 @@ export const ScriptCard: React.FC<ScriptCardProps> = React.memo((props: ScriptCa
                         )}
                     </div>
                 </div>
+                {/* A script that did not run yet shows where its result will be, a read-only workbook only says so */}
+                {!hasFooterContent && (
+                    <div className={styles.feed_entry_footer}>
+                        <EntryStatusBar
+                            status={entryStatus}
+                            // Nothing below the bar, it keeps no line at its bottom
+                            expanded={false}
+                            compact
+                            actions={
+                                <>
+                                    {storedResult != null && <StoredResultBean writtenAtMs={storedResult.writtenAt} current={storedResult.current} />}
+                                    {!readOnly && (
+                                        <Button
+                                            variant={ButtonVariant.Invisible}
+                                            size={ButtonSize.Small}
+                                            leadingVisual={<RunIcon size={12} />}
+                                            onClick={runScript}
+                                            disabled={!online || model.runActive}
+                                            aria-label={`Run ${displayName}`}
+                                            data-testid="feed-idle-run"
+                                        >
+                                            Run
+                                        </Button>
+                                    )}
+                                </>
+                            }
+                        />
+                    </div>
+                )}
                 {hasFooterContent && (
                     <div className={styles.feed_entry_footer} data-feed-result="">
                         <EntryStatusBar

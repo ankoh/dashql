@@ -113,6 +113,25 @@ describe('the card of a script', () => {
         }
     });
 
+    it('shows a script that did not run yet with a status bar that runs it', () => {
+        const { props } = cardProps();
+        render({ ...props, connection: connection(ConnectionHealth.CONNECTING) });
+        const status = container.querySelector('[data-testid="entry-status"]')!;
+        expect(status.getAttribute('data-status')).toBe('none');
+        expect(status.textContent).toContain('Not run yet');
+        // Nothing runs before the connection is online
+        expect(container.querySelector<HTMLButtonElement>('[data-testid="feed-idle-run"]')!.disabled).toBe(true);
+
+        render({ ...props, connection: connection() });
+        click('feed-idle-run');
+        expect(props.model.run).toHaveBeenCalledTimes(1);
+
+        // A read-only workbook only says that the script did not run
+        render(props, card => <WorkbookReadOnlyContext.Provider value={true}>{card}</WorkbookReadOnlyContext.Provider>);
+        expect(container.querySelector('[data-testid="entry-status"]')!.textContent).toContain('Not run yet');
+        expect(container.querySelector('[data-testid="feed-idle-run"]')).toBeNull();
+    });
+
     it('marks a result that was read from its stored file in the status bar', async () => {
         const stored = { name: 'n', key: 'key', writtenAt: Date.now() - 8 * 60_000, current: true };
         const script = fakeScript(1, '01_alpha.sql', 'SELECT 1', { latestQueryId: 42, analysisOutdated: false, storedResult: stored } as never);
