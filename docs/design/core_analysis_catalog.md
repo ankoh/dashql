@@ -351,7 +351,8 @@ The rules follow PostgreSQL and Hyper:
   the left and the right side.
 - **An aliased join**, `(t join u using (a)) as j`, names the join: outside of it, the alias hides the names of the
   FROM items inside it, `j.b` and an unqualified `b` read the columns of the join as `*` lists them, and the column
-  aliases rename them. A column ref inside the join, in its `ON`, sees the inner names. The FROM items stay the
+  aliases rename them. A `t.b` outside of the join is an `INVALID_FROM_CLAUSE_REFERENCE` (PostgreSQL's invalid reference
+  to a FROM-clause entry) that names the alias of the join, its column is not inferred. A column ref inside the join, in its `ON`, sees the inner names. The FROM items stay the
   sources of the scope, a column of the join resolves to the column of its FROM item. The scope publishes the join as
   a `ScopeJoin` in `NameScope::joins` with the columns of the join and the FROM item of each, and
   `NameScope::hiding_joins` names the joins that hide their FROM items from an AST node, for completion.

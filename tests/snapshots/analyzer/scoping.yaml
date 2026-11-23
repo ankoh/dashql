@@ -898,7 +898,8 @@ analyzer-snapshots:
     script:
       input: select j.a, j.b, j.c, a, t.b from (t join u using (a)) as j
       catalog-id: 2
-      errors: []
+      errors:
+        - {type: INVALID_FROM_CLAUSE_REFERENCE, message: 'invalid reference to FROM-clause entry for table t, use the alias j of its join', text: "t.b"}
       table-refs:
         - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
         - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
@@ -1258,6 +1259,86 @@ analyzer-snapshots:
           columns:
             - {name: x, expression: 0}
           text: "select x f..)) as v, v"
+
+  - name: join_parenthesized_alias_invalid_reference
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: select t.b, (select u.c) from (t join u using (a)) as j where j.a > 0
+      catalog-id: 2
+      errors:
+        - {type: INVALID_FROM_CLAUSE_REFERENCE, message: 'invalid reference to FROM-clause entry for table t, use the alias j of its join', text: "t.b"}
+        - {type: INVALID_FROM_CLAUSE_REFERENCE, message: 'invalid reference to FROM-clause entry for table u, use the alias j of its join', text: "u.c"}
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", text: "t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+      expressions:
+        - {id: 0, type: colref/unresolved, text: "t.b"}
+        - {id: 1, type: colref/unresolved, text: "u.c"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "j.a"}
+        - {id: 3, type: literal/integer, is-const: true, text: "0"}
+      constants:
+        - {expression: 3, text: "0"}
+      name-scopes:
+        - scope-id: 0
+          parent: 1
+          columns:
+            - {name: c, expression: 1}
+          text: "(select u.c)"
+        - scope-id: 1
+          sources:
+            - {type: table, name: t, text: "t"}
+            - {type: table, name: u, text: "u"}
+          joins:
+            - name: j
+              columns:
+                - {name: a, table-column: "256.65536.1:0.0"}
+                - {name: b, table-column: "256.65536.1:0.1"}
+                - {name: c, table-column: "256.65536.1:1.1"}
+              text: "(t join u .. (a)) as j"
+          columns:
+            - {name: b, expression: 0}
+            - {name: '?', computed: true}
+          text: "select t.b..re j.a > 0"
+
+  - name: join_parenthesized_alias_invalid_reference_unresolved
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+        errors: []
+    script:
+      input: select m.k from (missing m join u on m.a = u.a) as j
+      catalog-id: 2
+      errors:
+        - {type: INVALID_FROM_CLAUSE_REFERENCE, message: 'invalid reference to FROM-clause entry for table m, use the alias j of its join', text: "m.k"}
+      table-refs:
+        - {type: name/unresolved, text: "missing m"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+      expressions:
+        - {id: 0, type: colref/unresolved, text: "m.k"}
+        - {id: 1, type: colref/unresolved, text: "m.a"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:1.0", source: "u", text: "u.a"}
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - {type: unresolved, name: m, text: "missing m"}
+            - {type: table, name: u, text: "u"}
+          joins:
+            - name: j
+              columns:
+                - {name: a, table-column: "256.65536.1:1.0"}
+                - {name: c, table-column: "256.65536.1:1.1"}
+              text: "(missing m.. u.a) as j"
+          columns:
+            - {name: k, expression: 0}
+          text: "select m.k.. u.a) as j"
+      inferred-tables:
+        - name: missing
+          confidence: confident
+          columns:
+            - {name: a, confidence: confident}
 
   - name: output_alias_in_where
     catalog:

@@ -240,6 +240,22 @@ analyzer-snapshots:
     script:
       input: select x from (t join u using (a)) as v, v
 
+  # Outside of an aliased join, a FROM item inside it has no name: an invalid reference to a FROM-clause entry
+  - name: join_parenthesized_alias_invalid_reference
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: select t.b, (select u.c) from (t join u using (a)) as j where j.a > 0
+
+  # A hidden FROM item of a table that the catalog doesn't know gets no inferred column
+  - name: join_parenthesized_alias_invalid_reference_unresolved
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: select m.k from (missing m join u on m.a = u.a) as j
+
   # Output aliases are visible in ORDER BY only, not in WHERE, HAVING or the select list
   - name: output_alias_in_where
     catalog:

@@ -1492,18 +1492,44 @@ impl NameResolutionPass {
         }
     }
 
-    /// Look up a FROM item by name in a scope and in the parent scopes it sees
+    /// Look up a FROM item by name in a scope and in the parent scopes it sees, from an AST node. An aliased join hides
+    /// the names of the FROM items inside it.
     fn lookup_source_in_scope_chain<'s>(
         state: &'s AnalysisState,
         scope: ScopeId,
         name: &str,
+        node_id: u32,
     ) -> Option<&'s ScopeSource> {
         let mut current = scope;
         let mut visibility = SourceVisibility::All;
         loop {
             let s = state.out.scope(current)?;
-            if let Some(source) = s.sources.iter().find(|x| visibility.sees(x) && x.name.as_deref() == Some(name)) {
+            let hiding = s.hiding_joins(state.ast, node_id);
+            let named = |x: &&ScopeSource| {
+                visibility.sees(x) && !NameScope::is_hidden(state.ast, x, &hiding) && x.name.as_deref() == Some(name)
+            };
+            if let Some(source) = s.sources.iter().find(named) {
                 return Some(source);
+            }
+            let (Some(parent), false) = (s.parent_scope, s.column_correlation_barrier) else { return None };
+            visibility = s.parent_visibility;
+            current = parent;
+        }
+    }
+
+    /// The alias of the join that hides a FROM item with a name from an AST node, in a scope and in the parent scopes
+    /// it sees
+    fn lookup_hiding_join(state: &AnalysisState, scope: ScopeId, name: &str, node_id: u32) -> Option<Arc<str>> {
+        let mut current = scope;
+        let mut visibility = SourceVisibility::All;
+        loop {
+            let s = state.out.scope(current)?;
+            let hiding = s.hiding_joins(state.ast, node_id);
+            for source in s.sources.iter().filter(|x| visibility.sees(x) && x.name.as_deref() == Some(name)) {
+                let join = hiding.iter().find(|join| Self::is_within(state, source.ast_node_id, join.ast_node_id));
+                if let Some(join) = join.filter(|join| visibility.sees_node(join.ast_node_id)) {
+                    return Some(join.name.clone());
+                }
             }
             let (Some(parent), false) = (s.parent_scope, s.column_correlation_barrier) else { return None };
             visibility = s.parent_visibility;
@@ -1520,9 +1546,11 @@ impl NameResolutionPass {
             if !self.is_open_column_ref(state, expr) {
                 continue;
             }
-            let Some(column_ref) = state.out.expression(expr).and_then(Expression::column_ref) else { continue };
+            let Some(expression) = state.out.expression(expr) else { continue };
+            let node_id = expression.ast_node_id;
+            let Some(column_ref) = expression.column_ref() else { continue };
             let Some(qualifier) = column_ref.column_name.table_alias.clone() else { continue };
-            if Self::lookup_source_in_scope_chain(state, scope, &qualifier.text).is_some() {
+            if Self::lookup_source_in_scope_chain(state, scope, &qualifier.text, node_id).is_some() {
                 continue;
             }
             // In p.x, p is not a table in scope but may be a row-typed column with a field x
@@ -1537,8 +1565,25 @@ impl NameResolutionPass {
                 || self.resolve_from_parent_chain(state, expr, scope);
             if resolved {
                 state.tag(&qualifier, NameTag::COLUMN_NAME);
-            } else if let Some(column_ref) = state.out.expression_mut(expr).and_then(Expression::column_ref_mut) {
+                continue;
+            }
+            if let Some(column_ref) = state.out.expression_mut(expr).and_then(Expression::column_ref_mut) {
                 column_ref.column_name = qualified;
+            }
+            // The qualifier names a FROM item inside an aliased join, as in PostgreSQL the column ref is an error
+            if let Some(join) = Self::lookup_hiding_join(state, scope, &qualifier.text, node_id) {
+                let message = format!(
+                    "invalid reference to FROM-clause entry for table {}, use the alias {} of its join",
+                    quote_identifier(&qualifier.text),
+                    quote_identifier(&join)
+                );
+                state.add_error(
+                    AnalyzerErrorType::INVALID_FROM_CLAUSE_REFERENCE,
+                    AnalyzerErrorSeverity::ERROR,
+                    node_id,
+                    message,
+                );
+                self.finished_column_refs.insert(expr, FinishedColumnRef::Bound(None));
             }
         }
     }
@@ -1585,7 +1630,8 @@ impl NameResolutionPass {
                 // Alias-qualified, the owner is pinned to whatever the alias refers to
                 Some(alias) => {
                     let Some(ReferencedTable::Unresolved(rel)) =
-                        Self::lookup_source_in_scope_chain(state, scope, &alias.text).map(|s| &s.table)
+                        Self::lookup_source_in_scope_chain(state, scope, &alias.text, expression.ast_node_id)
+                            .map(|s| &s.table)
                     else {
                         continue;
                     };
