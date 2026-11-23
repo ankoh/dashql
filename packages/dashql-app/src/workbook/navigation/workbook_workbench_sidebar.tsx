@@ -18,13 +18,10 @@ import {
     SortableContext,
     type SortingStrategy,
     sortableKeyboardCoordinates,
-    useSortable,
 } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 
-import { useConnectionList, useConnections, useDispatch, useRuntime, useWorkbooks, useConnectionViews } from '@akohn/dashql-react/hooks';
+import { useConnections, useDispatch, useRuntime, useWorkbooks } from '@akohn/dashql-react/hooks';
 import { AnchorAlignment, AnchorSide } from '@akohn/dashql-react/dom/anchored_position';
-import { AnchoredOverlay } from '@akohn/dashql-react/components/anchored_overlay';
 import * as ActionList from '@akohn/dashql-react/components/action_list';
 import { ButtonSize, ButtonVariant, IconButton } from '@akohn/dashql-react/components/button';
 import {
@@ -37,7 +34,6 @@ import {
     FileDirectoryPlusIcon,
     LinkIcon,
     PencilIcon,
-    PlusIcon,
     StackIcon,
     StackPlusIcon,
     TrashIcon,
@@ -49,20 +45,10 @@ import {
 import { classNames } from '@akohn/dashql-react/dom/classnames';
 import { OPEN_WORKBOOK, SELECT_WORKBOOK, useRouterNavigate } from '../../app/router.js';
 import type { ConnectionState } from '@akohn/dashql/platform/connections/connection_state';
-import {
-    newConnectionFromParams,
-    createAttachedConnectionParamsForConnector,
-} from '@akohn/dashql/platform/connections/connection_params';
 import { useNewWorkbookConnection } from '../../connections/embedded_connection_hooks.js';
-import { useCloudConnectionIds, useSetCloudConnection } from '../../connections/cloud_connection.js';
 import { CloudsFolder } from '../../cloud/cloud_sidebar.js';
 import { useClouds } from '../../cloud/cloud_state.js';
 import { useCloudWorkbooks } from '../../cloud/cloud_workbooks.js';
-import { ATTACHABLE_CONNECTORS } from '../../connections/attached_connection.js';
-import { CONNECTOR_INFOS, ConnectorType } from '@akohn/dashql/platform/connections/connector_info';
-import { ConnectionSettingsOverlay } from '../../connections/connection_settings_overlay.js';
-import { renderWorkbookName } from '../workbook_name.js';
-import { WorkbookConnectionAttentionContext } from '../connections/workbook_connection_attention.js';
 import { VerticalScrollShadows } from '@akohn/dashql-react/components/vertical_scroll_shadows';
 import { VerticalSplit } from '@akohn/dashql-react/components/vertical_split';
 import { displayPath } from '@akohn/dashql/platform/storage/workbook_locator';
@@ -72,13 +58,13 @@ import { useStorageReader, useWorkbookTree } from '../../storage/storage_provide
 import { browserWorkbookFolder } from '../persistence/browser_workbook_folder.js';
 import { cloneWorkbook } from '@akohn/dashql/platform/storage/workbook_transfer';
 import { useWorkbookImport } from '../persistence/workbook_import_provider.js';
-import { EPHEMERAL_WORKBOOK_NAME, isCloudPreview, scriptsOnConnection, workbookCloudLink, type WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
+import { EPHEMERAL_WORKBOOK_NAME, isCloudPreview, workbookCloudLink, type WorkbookScripts } from '@akohn/dashql/platform/workbook/workbook_scripts';
 import { useScriptSelection } from '../scripts/script_selection.js';
 import { scriptDisplayName } from '@akohn/dashql/platform/workbook/script_types';
 import { renameScript } from '../scripts/script_rename.js';
 import { useDeleteWorkbook, useInvalidWorkbooks } from '../workbook_lifecycle.js';
 import { useEnsureEphemeralWorkbook, useOpenGreeter, useWorkbookCreation } from '../workbook_creation.js';
-import { WORKBOOK_LIST_CARET_COLUMN, WorkbookFolderRow, workbookListRowPadding, startsRowDrag } from './workbook_folder_row.js';
+import { WORKBOOK_LIST_CARET_COLUMN, WorkbookFolderRow, WorkbookListRowMenu, useNameEditor, useSortableRow, workbookListRowPadding } from './workbook_folder_row.js';
 import {
     type WorkbookListDrop,
     type WorkbookListRow as WorkbookListRowOf,
@@ -95,24 +81,16 @@ import {
     applyWorkbookTreeChange,
 } from '@akohn/dashql/platform/storage/workbook_tree';
 import { NameInput } from '@akohn/dashql-react/components/name_input';
-import { type RowContextMenu, useRowContextMenu, useRowContextMenuOpener } from '@akohn/dashql-react/dom/row_context_menu';
-import { useMergeConnections } from '../connections/workbook_connection_merge.js';
-import { useReplaceConnection } from '../connections/workbook_connection_replace.js';
-import { useDetachConnection } from '../connections/workbook_connection_detach.js';
-import { useDeleteConnection } from '../../connections/connection_deletion.js';
-import { connectionMergeCandidates } from '../../connections/connection_merge.js';
-import { connectionReplaceBlocker, connectionReplaceCandidates } from '../../connections/connection_replace.js';
-import { connectionLabelOf, connectionLabels } from '../../connections/connection_label.js';
+import { type RowContextMenu, useRowContextMenu } from '@akohn/dashql-react/dom/row_context_menu';
 import { useAppFlavor } from '../../config/flavor_provider.js';
 import { WorkbookURLShareOverlay } from '../persistence/workbook_url_share_overlay.js';
 import { WorkbookFileSaveOverlay } from '../persistence/workbook_file_save_overlay.js';
 import * as styles from './workbook_workbench_sidebar.module.css';
-import { ConnectionTree, isConnectionInitiallyExpanded, listedConnections, type ConnectionTreeActions, type ConnectionUsage } from '../../connections/connection_tree.js';
+import { WorkbookConnectionsSection } from './workbook_connections_section.js';
 import * as actionMenuStyles from '../../app/action_menu.module.css';
 import { useDashQLCoreSetup } from '../../host/core_provider.js';
 import { useLogger } from '../../host/logger_provider.js';
 import { PlatformType, usePlatformType } from '../../host/platform_type.js';
-import { CONNECTOR_ICON_STYLE, useConnectorIcon } from '../../connections/connector_icon.js';
 
 interface WorkbookItem {
     workbookId: string;
@@ -139,6 +117,9 @@ const KEEP_ROWS_IN_PLACE: SortingStrategy = () => null;
 
 /// A dragged row only moves up and down
 const VERTICAL_DRAG: Modifier = ({ transform }) => ({ ...transform, x: 0 });
+
+/// The local workbooks are a folder of their own next to the folder of the clouds
+const LOCAL_WORKBOOK_DEPTH = 1;
 
 /// The slim bar between the workbooks and the connections
 const SECTION_SEPARATOR_SIZE = 7;
@@ -199,7 +180,6 @@ interface Props {
     onOpenScript?: (workbookId: string, fileName: string) => void;
 }
 
-const MoreIcon = SymbolIcon('kebab_horizontal');
 const FileZipIcon = SymbolIcon('file_zip_16');
 
 interface WorkbookRowMenuProps {
@@ -212,45 +192,16 @@ interface WorkbookRowMenuProps {
 }
 
 const WorkbookRowMenu: React.FC<WorkbookRowMenuProps> = ({ item, onRename, onDuplicate, onDelete, contextMenu }) => {
-    const [open, setOpen] = React.useState(false);
-    useRowContextMenuOpener(contextMenu, () => setOpen(true));
     const [shareOpen, setShareOpen] = React.useState(false);
     const [exportOpen, setExportOpen] = React.useState(false);
     const archiveExport = useAppFlavor().features.workbookArchiveExport;
     const [storageOpen, setStorageOpen] = React.useState(false);
-    const triggerRef = React.useRef<HTMLButtonElement>(null);
     const { clouds } = useClouds();
 
     return (
-        <AnchoredOverlay
-            open={open}
-            onOpen={() => setOpen(true)}
-            onClose={() => setOpen(false)}
-            anchorRef={triggerRef}
-            returnFocusRef={triggerRef}
-            side={AnchorSide.OutsideRight}
-            align={AnchorAlignment.Start}
-            anchorOffset={4}
-            renderAnchor={(anchorProps) => (
-                <IconButton
-                    {...anchorProps}
-                    ref={triggerRef}
-                    size={ButtonSize.Small}
-                    variant={ButtonVariant.Invisible}
-                    className={styles.workbook_menu_button}
-                    data-testid="workbook-row-menu"
-                    aria-label={`More actions for ${item.label}`}
-                    onClick={(event) => {
-                        event.stopPropagation();
-                        anchorProps.onClick?.(event);
-                    }}
-                >
-                    <MoreIcon size={14} />
-                </IconButton>
-            )}
-        >
-            <div className={actionMenuStyles.menu} role="dialog" aria-label={`Actions for ${item.label}`}>
-                <ActionList.List aria-label={`Actions for ${item.label}`}>
+        <WorkbookListRowMenu subject={item.label} testId="workbook-row-menu" contextMenu={contextMenu}>
+            {close => (
+                <>
                     <WorkbookStorageOverlay
                         workbookId={item.workbookId}
                         isOpen={storageOpen}
@@ -274,13 +225,13 @@ const WorkbookRowMenu: React.FC<WorkbookRowMenuProps> = ({ item, onRename, onDup
                     />
                     <ActionList.ListItem data-testid="workbook-menu-item" data-action="rename" onClick={(event) => {
                         event.stopPropagation();
-                        setOpen(false);
+                        close();
                         onRename();
                     }}>
                         <ActionList.Leading><PencilIcon size={16} /></ActionList.Leading>
                         <ActionList.ItemText>Rename</ActionList.ItemText>
                     </ActionList.ListItem>
-                    <ActionList.ListItem data-testid="workbook-menu-item" data-action="duplicate" onClick={() => { setOpen(false); onDuplicate(); }}>
+                    <ActionList.ListItem data-testid="workbook-menu-item" data-action="duplicate" onClick={() => { close(); onDuplicate(); }}>
                         <ActionList.Leading><CopyIcon size={16} /></ActionList.Leading>
                         <ActionList.ItemText>Duplicate</ActionList.ItemText>
                     </ActionList.ListItem>
@@ -317,15 +268,15 @@ const WorkbookRowMenu: React.FC<WorkbookRowMenuProps> = ({ item, onRename, onDup
                         </ActionList.ListItem>
                     )}</>
                     <>{clouds.length > 0 && (
-                        <WorkbookPublishItems item={item} onRun={() => setOpen(false)} />
+                        <WorkbookPublishItems item={item} onRun={() => close()} />
                     )}</>
-                    <ActionList.ListItem data-testid="workbook-menu-item" data-action="delete" className={actionMenuStyles.delete_action} onClick={() => { setOpen(false); onDelete(); }}>
+                    <ActionList.ListItem data-testid="workbook-menu-item" data-action="delete" className={actionMenuStyles.delete_action} onClick={() => { close(); onDelete(); }}>
                         <ActionList.Leading>{item.isNative ? <UnlinkIcon size={16} /> : <TrashIcon size={16} />}</ActionList.Leading>
                         <ActionList.ItemText>{item.isNative ? 'Unlink' : 'Delete'}</ActionList.ItemText>
                     </ActionList.ListItem>
-                </ActionList.List>
-            </div>
-        </AnchoredOverlay>
+                </>
+            )}
+        </WorkbookListRowMenu>
     );
 };
 
@@ -395,28 +346,13 @@ const WorkbookRow: React.FC<WorkbookRowProps> = ({ item, depth, selected, onOpen
     const modifyWorkbookScripts = useDispatch({ workbook: item.workbookId });
     // The rename action swaps the name for an input until the edit is committed or abandoned
     const [renaming, setRenaming] = React.useState(false);
-    const renameInputRef = React.useRef<HTMLInputElement>(null);
-    React.useEffect(() => {
-        if (!renaming) return;
-        renameInputRef.current?.focus();
-        renameInputRef.current?.select();
-    }, [renaming]);
+    const renameInputRef = useNameEditor(renaming);
     const commitRename = React.useCallback((name: string) => {
         setRenaming(false);
         modifyWorkbookScripts({ kind: 'renameWorkbook', value: { name } });
     }, [modifyWorkbookScripts]);
     const cancelRename = React.useCallback(() => setRenaming(false), []);
-    const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id: item.workbookId });
-    const rowRef = React.useCallback((node: HTMLLIElement | null) => {
-        setNodeRef(node);
-        // The keyboard sensor only lifts the row when the row itself has the focus
-        setActivatorNodeRef(node);
-    }, [setNodeRef, setActivatorNodeRef]);
-    const rowListeners = React.useMemo(() => listeners == null ? undefined : Object.fromEntries(
-        Object.entries(listeners).map(([eventName, handler]) => [eventName, (event: React.SyntheticEvent<HTMLElement>) => {
-            if (startsRowDrag(event)) handler(event);
-        }]),
-    ), [listeners]);
+    const sortable = useSortableRow(item.workbookId);
     const contextMenu = useRowContextMenu();
     const scriptNames = item.scripts.scriptOrder ?? [];
     const selection = useScriptSelection();
@@ -440,27 +376,25 @@ const WorkbookRow: React.FC<WorkbookRowProps> = ({ item, depth, selected, onOpen
     return (
         <>
         <li
-            ref={rowRef}
+            ref={sortable.ref}
             className={classNames(
                 styles.entry_surface,
                 styles.entry_interactive,
                 styles.workbook_row,
                 {
                     [styles.entry_selected]: selected,
-                    [styles.workbook_row_dragging]: isDragging,
+                    [styles.workbook_row_dragging]: sortable.isDragging,
                     [styles.drop_before]: dropPosition === 'before',
                     [styles.drop_after]: dropPosition === 'after',
                 },
             )}
             style={{
-                transform: CSS.Translate.toString(transform),
-                transition,
+                ...sortable.style,
                 paddingLeft: workbookListRowPadding(depth),
                 // The insertion line of a drop starts at the icon of the workbook
                 ['--workbook_row_indent' as string]: `${workbookListRowPadding(depth) + WORKBOOK_LIST_CARET_COLUMN}px`,
             }}
-            {...attributes}
-            {...rowListeners}
+            {...sortable.props}
             onContextMenu={contextMenu.onContextMenu}
         >
             {renaming ? (
@@ -520,12 +454,7 @@ interface WorkbookScriptRowProps {
 const WorkbookScriptRow: React.FC<WorkbookScriptRowProps> = ({ fileName, depth, onOpen, onRename }) => {
     const displayName = scriptDisplayName(fileName);
     const [renaming, setRenaming] = React.useState(false);
-    const renameInputRef = React.useRef<HTMLInputElement>(null);
-    React.useEffect(() => {
-        if (!renaming) return;
-        renameInputRef.current?.focus();
-        renameInputRef.current?.select();
-    }, [renaming]);
+    const renameInputRef = useNameEditor(renaming);
     const commitRename = React.useCallback((name: string) => {
         setRenaming(false);
         if (name.trim() !== displayName) onRename(name);
@@ -570,53 +499,20 @@ const WorkbookScriptRow: React.FC<WorkbookScriptRowProps> = ({ fileName, depth, 
     );
 };
 
-const ScriptRowMenu: React.FC<{ name: string; onRename: () => void; contextMenu: RowContextMenu }> = ({ name, onRename, contextMenu }) => {
-    const [open, setOpen] = React.useState(false);
-    useRowContextMenuOpener(contextMenu, () => setOpen(true));
-    const triggerRef = React.useRef<HTMLButtonElement>(null);
-    return (
-        <AnchoredOverlay
-            open={open}
-            onOpen={() => setOpen(true)}
-            onClose={() => setOpen(false)}
-            anchorRef={triggerRef}
-            returnFocusRef={triggerRef}
-            side={AnchorSide.OutsideRight}
-            align={AnchorAlignment.Start}
-            anchorOffset={4}
-            renderAnchor={(anchorProps) => (
-                <IconButton
-                    {...anchorProps}
-                    ref={triggerRef}
-                    size={ButtonSize.Small}
-                    variant={ButtonVariant.Invisible}
-                    className={styles.workbook_menu_button}
-                    data-testid="script-row-menu"
-                    aria-label={`More actions for script ${name}`}
-                    onClick={(event) => {
-                        event.stopPropagation();
-                        anchorProps.onClick?.(event);
-                    }}
-                >
-                    <MoreIcon size={14} />
-                </IconButton>
-            )}
-        >
-            <div className={actionMenuStyles.menu} role="dialog" aria-label={`Actions for script ${name}`}>
-                <ActionList.List aria-label={`Actions for script ${name}`}>
-                    <ActionList.ListItem data-testid="script-menu-item" data-action="rename" onClick={(event) => {
-                        event.stopPropagation();
-                        setOpen(false);
-                        onRename();
-                    }}>
-                        <ActionList.Leading><PencilIcon size={16} /></ActionList.Leading>
-                        <ActionList.ItemText>Rename</ActionList.ItemText>
-                    </ActionList.ListItem>
-                </ActionList.List>
-            </div>
-        </AnchoredOverlay>
-    );
-};
+const ScriptRowMenu: React.FC<{ name: string; onRename: () => void; contextMenu: RowContextMenu }> = ({ name, onRename, contextMenu }) => (
+    <WorkbookListRowMenu subject={`script ${name}`} testId="script-row-menu" contextMenu={contextMenu}>
+        {close => (
+            <ActionList.ListItem data-testid="script-menu-item" data-action="rename" onClick={(event) => {
+                event.stopPropagation();
+                close();
+                onRename();
+            }}>
+                <ActionList.Leading><PencilIcon size={16} /></ActionList.Leading>
+                <ActionList.ItemText>Rename</ActionList.ItemText>
+            </ActionList.ListItem>
+        )}
+    </WorkbookListRowMenu>
+);
 
 const InvalidWorkbookRow: React.FC<{ item: InvalidWorkbookItem; depth: number; onDelete: () => void }> = ({ item, depth, onDelete }) => (
     <li className={classNames(styles.entry_surface, styles.workbook_row)} style={{ paddingLeft: workbookListRowPadding(depth) }}>
@@ -671,40 +567,23 @@ const LocalWorkbookFolderRow: React.FC<{ expanded: boolean; count: number; onTog
 };
 
 export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
-    const connectorIcon = useConnectorIcon();
     const navigate = useRouterNavigate();
     const runtime = useRuntime();
     const connections = useConnections();
-    const connectionList = useConnectionList();
     const scriptsRegistry = useWorkbooks();
     const createWorkbook = useWorkbookCreation();
     const openGreeterPage = useOpenGreeter();
     const ensureEphemeralWorkbook = useEnsureEphemeralWorkbook();
     const resolveNewWorkbookConnection = useNewWorkbookConnection();
-    const cloudConnectionIds = useCloudConnectionIds();
-    const setCloudConnection = useSetCloudConnection();
-    const mergeConnections = useMergeConnections();
-    const replaceConnection = useReplaceConnection();
-    const detachConnectionFromWorkbooks = useDetachConnection();
-    const modifyCurrentWorkbook = useDispatch({ workbook: props.workbookScripts.workbookId });
-    const shutDownAndDeleteConnection = useDeleteConnection();
     const deleteWorkbookFromRuntime = useDeleteWorkbook();
     const storageReader = useStorageReader();
     const { onOpenOverview, closeAfterSelection, onOpenScript } = props;
-    const storageWriter = runtime.storage;
     const setupCore = useDashQLCoreSetup();
     const workbookImport = useWorkbookImport();
     const platform = usePlatformType();
     const logger = useLogger();
     const { invalidWorkbooks, deleteInvalidWorkbook } = useInvalidWorkbooks();
-    const attached = useConnectionViews(props.workbookScripts.connectionIds);
-    const connectionAttention = React.useContext(WorkbookConnectionAttentionContext);
-    const workbookConnectionRows = React.useMemo(() => attached ?? [], [attached]);
-    const [connectionOverlayDatabaseId, setConnectionOverlayDatabaseId] = React.useState<string | null>(null);
-    const [createConnectionOpen, setCreateConnectionOpen] = React.useState(false);
-    const createConnectionButtonRef = React.useRef<HTMLButtonElement>(null);
     const createButtonRef = React.useRef<HTMLButtonElement>(null);
-    const connectionSettingsAnchorRef = React.useRef<HTMLButtonElement>(null);
     const folderButtonRef = React.useRef<HTMLButtonElement>(null);
     const folderInputRef = React.useRef<HTMLInputElement>(null);
     // The folders and workbooks of the sidebar as the storage shows them, with the changes of every sidebar
@@ -794,40 +673,6 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
         };
     }), [invalidWorkbooks, storageReader]);
     const workbookCount = workbooks.length + invalidItems.length;
-    // The list of the connections says which are listed, it follows the workbooks that use them
-    const connectionRows = React.useMemo(
-        () => listedConnections(connections, connectionList, workbookConnectionRows, cloudConnectionIds),
-        [connections, connectionList, workbookConnectionRows, cloudConnectionIds],
-    );
-    const workbookConnectionIds = React.useMemo(
-        () => new Set(workbookConnectionRows.map(database => database.connectionId)),
-        [workbookConnectionRows],
-    );
-    const labels = React.useMemo(() => connectionLabels(connectionList), [connectionList]);
-    const labelOf = React.useCallback((database: ConnectionState) => connectionLabelOf(database, labels), [labels]);
-    const describeUsage = React.useCallback((connectionId: string): ConnectionUsage => {
-        const workbookIds = (connections.get(connectionId)?.workbooks ?? []).filter(workbookId => {
-            const scripts = scriptsRegistry.get(workbookId);
-            return scripts == null || (!scripts.ephemeral && !isCloudPreview(scripts));
-        });
-        const database = connections.get(connectionId);
-        const scriptsOf = (workbookId: string) => {
-            const scripts = scriptsRegistry.get(workbookId);
-            return scripts == null ? 0 : scriptsOnConnection(scripts, connectionId);
-        };
-        return {
-            workbookCount: workbookIds.length,
-            // The workbooks fall back to the embedded Hyper, every workbook that uses it keeps it
-            blockingWorkbookCount: database != null && database.embedded
-                ? workbookIds.length
-                : workbookIds.filter(workbookId => scriptsOf(workbookId) > 0).length,
-            usedHere: workbookConnectionRows.some(database => database.connectionId === connectionId),
-        };
-    }, [connections, workbookConnectionRows, scriptsRegistry]);
-    const initiallyExpanded = React.useCallback((database: ConnectionState, _count: number) => (
-        workbookConnectionRows.includes(database)
-        && isConnectionInitiallyExpanded(database, workbookConnectionRows.length)
-    ), [workbookConnectionRows]);
 
     const dndSensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -961,75 +806,6 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
         ensureEphemeralWorkbook();
     }, [ensureEphemeralWorkbook, ephemeralWorkbookId, moveWorkbook, scriptsRegistry]);
 
-    /// Create a connection and open its settings, the next script of the current workbook runs on it
-    const createConnection = React.useCallback((connector: ConnectorType) => {
-        setCreateConnectionOpen(false);
-        const params = createAttachedConnectionParamsForConnector(runtime.core, CONNECTOR_INFOS[connector]);
-        const database = runtime.createConnection(newConnectionFromParams(params, { active: true }));
-        modifyCurrentWorkbook({ kind: 'setPendingConnection', value: { connectionId: database.connectionId } });
-        connectionSettingsAnchorRef.current = createConnectionButtonRef.current;
-        setConnectionOverlayDatabaseId(database.connectionId);
-    }, [runtime, modifyCurrentWorkbook]);
-
-    /// Rename a connection, a blank name restores the default label
-    const renameConnection = React.useCallback((connectionId: string, name: string) => {
-        runtime.dispatch({ connection: connectionId }, { kind: 'rename', value: { name } });
-    }, [runtime]);
-
-    /// Delete a connection that no script uses, other than the embedded Hyper that workbooks fall back to.
-    /// The workbooks whose new scripts default to the connection are detached from it first.
-    const deleteConnection = React.useCallback((connectionId: string) => {
-        const database = connections.get(connectionId);
-        if (database == null || database.embedded || describeUsage(connectionId).blockingWorkbookCount > 0) return;
-        if (!window.confirm(`Delete the connection "${labelOf(database).text}"?`)) return;
-        detachConnectionFromWorkbooks(connectionId)
-            .then(() => shutDownAndDeleteConnection(connectionId))
-            .catch(error => {
-                logger.warn('failed to delete the connection', { connectionId, error: String(error) }, 'workbook_workbench');
-            });
-    }, [connections, describeUsage, detachConnectionFromWorkbooks, labelOf, logger, shutDownAndDeleteConnection]);
-
-    /// The number of duplicates of a connection
-    const mergeCandidateCount = React.useCallback(
-        (connectionId: string) => connectionMergeCandidates(runtime.core, connections, connectionList, connectionId).length,
-        [runtime, connections, connectionList],
-    );
-    /// Merge the duplicates of a connection into it, their workbooks move to the connection
-    const mergeDuplicates = React.useCallback((connectionId: string) => {
-        const database = connections.get(connectionId);
-        const duplicates = connectionMergeCandidates(runtime.core, connections, connectionList, connectionId);
-        if (database == null || duplicates.length === 0) return;
-        const what = duplicates.length === 1 ? 'its duplicate' : `its ${duplicates.length} duplicates`;
-        if (!window.confirm(`Merge ${what} into the connection "${labelOf(database).text}"?`)) return;
-        mergeConnections(connectionId, duplicates.map(duplicate => duplicate.connectionId)).catch(error => {
-            logger.warn('failed to merge connections', { connectionId, error: String(error) }, 'workbook_workbench');
-        });
-    }, [runtime, connections, connectionList, labelOf, logger, mergeConnections]);
-
-    /// What keeps a connection from being replaced, the picker offers every other listed connection
-    const replaceBlocker = React.useCallback(
-        (connectionId: string) => connectionReplaceBlocker(connections, connectionList, connectionId, workbookId => storageWriter.isWorkbookHeld(workbookId)),
-        [connections, connectionList, storageWriter],
-    );
-    const replaceCandidates = React.useCallback(
-        (connectionId: string) => connectionReplaceCandidates(connections, connectionList, connectionId),
-        [connections, connectionList],
-    );
-    /// Replace a connection with another one in every workbook, the connection is removed afterwards
-    const replaceWith = React.useCallback((connectionId: string, targetId: string) => {
-        replaceConnection(connectionId, targetId)
-            .then(({ removed }) => {
-                if (!removed) logger.warn('the replaced connection is still in use', { connectionId, target: targetId }, 'workbook_workbench');
-            })
-            .catch(error => {
-                logger.warn('failed to replace the connection', { connectionId, target: targetId, error: String(error) }, 'workbook_workbench');
-            });
-    }, [logger, replaceConnection]);
-
-    const closeConnectionOverlay = React.useCallback(() => {
-        setConnectionOverlayDatabaseId(null);
-    }, []);
-
     const duplicateWorkbook = React.useCallback(async (item: WorkbookItem) => {
         const newWorkbookId = crypto.randomUUID();
         try {
@@ -1115,32 +891,13 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
         onOpenScript?.(item.workbookId, fileName);
         closeAfterSelection?.();
     }, [navigate, closeAfterSelection, onOpenOverview, onOpenScript]);
-    const connectionActions = React.useMemo<ConnectionTreeActions>(() => ({
-        describeUsage,
-        openSettings: (connectionId, anchor) => {
-            connectionSettingsAnchorRef.current = anchor;
-            setConnectionOverlayDatabaseId(connectionId);
-        },
-        openOverview: connectionId => {
-            onOpenOverview?.(connectionId);
-            closeAfterSelection?.();
-        },
-        rename: renameConnection,
-        refreshCatalog: connectionId => runtime.refreshCatalog(connectionId, true),
-        delete: deleteConnection,
-        mergeCandidateCount,
-        merge: mergeDuplicates,
-        replaceBlocker,
-        replaceCandidates,
-        replace: replaceWith,
-        setCloud: setCloudConnection,
-    }), [closeAfterSelection, deleteConnection, describeUsage, mergeCandidateCount, mergeDuplicates, onOpenOverview, renameConnection, replaceBlocker, replaceCandidates, replaceWith, runtime, setCloudConnection]);
     const workbookListRef = React.useRef<HTMLUListElement>(null);
     const getWorkbookScrollElement = React.useCallback(() => workbookListRef.current, []);
 
-    // The local workbooks are a folder of their own next to the folder of the clouds
-    const rootDepth = 1;
-    const localShown = localExpanded;
+    const openConnectionOverview = React.useCallback((connectionId: string) => {
+        onOpenOverview?.(connectionId);
+        closeAfterSelection?.();
+    }, [onOpenOverview, closeAfterSelection]);
 
     // A preview that was selected below its cloud replaces an open overview
     const openedFromCloud = React.useCallback(() => {
@@ -1224,7 +981,7 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
                                 onDragEnd={dropRow}
                                 onDragCancel={endDrag}
                             >
-                                <SortableContext items={localShown ? rows.map(row => row.id) : []} strategy={KEEP_ROWS_IN_PLACE}>
+                                <SortableContext items={localExpanded ? rows.map(row => row.id) : []} strategy={KEEP_ROWS_IN_PLACE}>
                                     <ul ref={workbookListRef} className={styles.workbook_list} aria-label="Workbooks" data-electron-drag-region="false">
                                         {/* The clouds, a folder above the local workbooks */}
                                         <CloudsFolder
@@ -1238,12 +995,12 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
                                             count={workbookCount}
                                             onToggle={() => setLocalExpanded(value => !value)}
                                         />
-                                        {localShown && rows.map(row => row.kind === 'folder' ? (
+                                        {localExpanded && rows.map(row => row.kind === 'folder' ? (
                                             <WorkbookFolderRow
                                                 key={row.id}
                                                 rowId={row.id}
                                                 folder={row.folder}
-                                                depth={row.depth + rootDepth}
+                                                depth={row.depth + LOCAL_WORKBOOK_DEPTH}
                                                 expanded={row.expanded}
                                                 renaming={renamingFolder === folderPathKey(row.folder.path)}
                                                 onToggle={() => toggleFolder(row.folder)}
@@ -1259,7 +1016,7 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
                                             <WorkbookRow
                                                 key={row.id}
                                                 item={row.item}
-                                                depth={row.depth + rootDepth}
+                                                depth={row.depth + LOCAL_WORKBOOK_DEPTH}
                                                 // An open connection overview replaces the workbook
                                                 selected={!overviewShown && row.item.workbookId === props.workbookScripts.workbookId}
                                                 onOpen={() => openWorkbook(row.item)}
@@ -1271,19 +1028,19 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
                                                 onOpenScript={fileName => openScript(row.item, fileName)}
                                             />
                                         ))}
-                                        {localShown && invalidItems.map(item => (
+                                        {localExpanded && invalidItems.map(item => (
                                             <InvalidWorkbookRow
                                                 key={item.workbookId}
                                                 item={item}
-                                                depth={rootDepth}
+                                                depth={LOCAL_WORKBOOK_DEPTH}
                                                 onDelete={() => { void deleteInvalidWorkbook(item.workbookId); }}
                                             />
                                         ))}
-                                        {localShown && ephemeralWorkbook != null && (
-                                            <EphemeralWorkbookRow selected={ephemeralWorkbookSelected} depth={rootDepth} onOpen={openGreeter} />
+                                        {localExpanded && ephemeralWorkbook != null && (
+                                            <EphemeralWorkbookRow selected={ephemeralWorkbookSelected} depth={LOCAL_WORKBOOK_DEPTH} onOpen={openGreeter} />
                                         )}
                                         {storageReader.workbookFolders != null && (
-                                            <TopLevelDropZone targeted={drop?.targetId === TOP_LEVEL_DROP_ID} depth={rootDepth} />
+                                            <TopLevelDropZone targeted={drop?.targetId === TOP_LEVEL_DROP_ID} depth={LOCAL_WORKBOOK_DEPTH} />
                                         )}
                                     </ul>
                                 </SortableContext>
@@ -1295,65 +1052,11 @@ export const WorkbookWorkbenchSidebar: React.FC<Props> = (props) => {
                         </div>
                     </section>
                 )}
-                second={(
-                    <section className={styles.section} aria-labelledby="workbench-databases-heading">
-                        <header className={styles.section_header}>
-                            <div className={styles.section_title}>
-                                <h2 id="workbench-databases-heading" className={styles.section_heading}>Connections</h2>
-                            </div>
-                            <AnchoredOverlay
-                                open={createConnectionOpen}
-                                onOpen={() => setCreateConnectionOpen(true)}
-                                onClose={() => setCreateConnectionOpen(false)}
-                                anchorRef={createConnectionButtonRef}
-                                returnFocusRef={createConnectionButtonRef}
-                                side={AnchorSide.OutsideBottom}
-                                align={AnchorAlignment.End}
-                                renderAnchor={anchorProps => <IconButton
-                                    {...anchorProps}
-                                    ref={createConnectionButtonRef}
-                                    size={ButtonSize.Small}
-                                    variant={ButtonVariant.Invisible}
-                                    aria-label="Create connection"
-                                ><PlusIcon size={14} /></IconButton>}
-                            >
-                                <div className={actionMenuStyles.menu} role="dialog" aria-label="Choose connection connector">
-                                    <ActionList.List aria-label="Connection connector">
-                                        {ATTACHABLE_CONNECTORS.map(connector => (
-                                            <ActionList.ListItem key={connector} onClick={() => createConnection(connector)}>
-                                                <ActionList.Leading>
-                                                    <svg width="16px" height="16px" aria-hidden="true">
-                                                        <use xlinkHref={`${symbols}#${connectorIcon(CONNECTOR_INFOS[connector])}`} style={CONNECTOR_ICON_STYLE} />
-                                                    </svg>
-                                                </ActionList.Leading>
-                                                <ActionList.ItemText>{CONNECTOR_INFOS[connector].names.displayShort}</ActionList.ItemText>
-                                            </ActionList.ListItem>
-                                        ))}
-                                    </ActionList.List>
-                                </div>
-                            </AnchoredOverlay>
-                        </header>
-                        <div className={styles.database_body} data-electron-drag-region="false">
-                            {connectionRows.length > 0 && <ConnectionTree
-                                databases={connectionRows}
-                                actions={connectionActions}
-                                initiallyExpanded={initiallyExpanded}
-                                workbookConnectionIds={workbookConnectionIds}
-                                labelOf={labelOf}
-                                attention={connectionAttention?.active === true}
-                                openOverviewId={props.openOverviewId ?? null}
-                                cloudConnectionIds={cloudConnectionIds}
-                            />}
-                        </div>
-                    </section>
-                )}
-            />
-            <ConnectionSettingsOverlay
-                connectionId={connectionOverlayDatabaseId}
-                isOpen={connectionOverlayDatabaseId != null}
-                onClose={closeConnectionOverlay}
-                anchorRef={connectionSettingsAnchorRef}
-                renderWorkbookName={renderWorkbookName}
+                second={<WorkbookConnectionsSection
+                    workbookScripts={props.workbookScripts}
+                    openOverviewId={props.openOverviewId ?? null}
+                    onOpenOverview={openConnectionOverview}
+                />}
             />
         </nav>
     );

@@ -63,17 +63,23 @@ interface WorkbookFolderRowProps {
     dropTarget: boolean;
 }
 
-/// A folder of the workbook list: caret, folder icon, name and a menu
-export const WorkbookFolderRow: React.FC<WorkbookFolderRowProps> = (props) => {
-    const renameInputRef = React.useRef<HTMLInputElement>(null);
+/// The input of a name that a row edits: focused with its text selected when the edit starts
+export function useNameEditor(editing: boolean): React.RefObject<HTMLInputElement | null> {
+    const inputRef = React.useRef<HTMLInputElement>(null);
     React.useEffect(() => {
-        if (!props.renaming) return;
-        renameInputRef.current?.focus();
-        renameInputRef.current?.select();
-    }, [props.renaming]);
-    const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id: props.rowId });
-    const rowRef = React.useCallback((node: HTMLLIElement | null) => {
+        if (!editing) return;
+        inputRef.current?.focus();
+        inputRef.current?.select();
+    }, [editing]);
+    return inputRef;
+}
+
+/// A row of the workbook list that can be dragged: the ref, the attributes and listeners and the style of the row
+export function useSortableRow(rowId: string) {
+    const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id: rowId });
+    const ref = React.useCallback((node: HTMLLIElement | null) => {
         setNodeRef(node);
+        // The keyboard sensor only lifts the row when the row itself has the focus
         setActivatorNodeRef(node);
     }, [setNodeRef, setActivatorNodeRef]);
     const rowListeners = React.useMemo(() => listeners == null ? undefined : Object.fromEntries(
@@ -81,20 +87,85 @@ export const WorkbookFolderRow: React.FC<WorkbookFolderRowProps> = (props) => {
             if (startsRowDrag(event)) handler(event);
         }]),
     ), [listeners]);
+    return {
+        ref,
+        props: { ...attributes, ...rowListeners },
+        style: { transform: CSS.Translate.toString(transform), transition },
+        isDragging,
+    };
+}
+
+interface WorkbookListRowMenuProps {
+    /// What the actions act on, e.g. `folder reports`
+    subject: string;
+    /// The test id of the button
+    testId: string;
+    /// The right click of the row that opens the menu
+    contextMenu: RowContextMenu;
+    /// The actions, with the function that closes the menu
+    children: (close: () => void) => React.ReactElement;
+}
+
+/// The menu of a row of the workbook list, its button or the right click of the row opens it
+export const WorkbookListRowMenu: React.FC<WorkbookListRowMenuProps> = ({ subject, testId, contextMenu, children }) => {
+    const [open, setOpen] = React.useState(false);
+    useRowContextMenuOpener(contextMenu, () => setOpen(true));
+    const triggerRef = React.useRef<HTMLButtonElement>(null);
+    const close = React.useCallback(() => setOpen(false), []);
+    return (
+        <AnchoredOverlay
+            open={open}
+            onOpen={() => setOpen(true)}
+            onClose={close}
+            anchorRef={triggerRef}
+            returnFocusRef={triggerRef}
+            side={AnchorSide.OutsideRight}
+            align={AnchorAlignment.Start}
+            anchorOffset={4}
+            renderAnchor={(anchorProps) => (
+                <IconButton
+                    {...anchorProps}
+                    ref={triggerRef}
+                    size={ButtonSize.Small}
+                    variant={ButtonVariant.Invisible}
+                    className={styles.workbook_menu_button}
+                    data-testid={testId}
+                    aria-label={`More actions for ${subject}`}
+                    onClick={(event) => {
+                        event.stopPropagation();
+                        anchorProps.onClick?.(event);
+                    }}
+                >
+                    <MoreIcon size={14} />
+                </IconButton>
+            )}
+        >
+            <div className={actionMenuStyles.menu} role="dialog" aria-label={`Actions for ${subject}`}>
+                <ActionList.List aria-label={`Actions for ${subject}`}>
+                    {children(close)}
+                </ActionList.List>
+            </div>
+        </AnchoredOverlay>
+    );
+};
+
+/// A folder of the workbook list: caret, folder icon, name and a menu
+export const WorkbookFolderRow: React.FC<WorkbookFolderRowProps> = (props) => {
+    const renameInputRef = useNameEditor(props.renaming);
+    const sortable = useSortableRow(props.rowId);
     const Caret = props.expanded ? ChevronDownIcon : ChevronRightIcon;
     const FolderIcon = props.expanded ? FileDirectoryOpenFillIcon : FileDirectoryFillIcon;
     const contextMenu = useRowContextMenu();
     return (
         <li
-            ref={rowRef}
+            ref={sortable.ref}
             className={classNames(styles.entry_surface, styles.entry_interactive, styles.workbook_row, styles.folder_row, {
-                [styles.workbook_row_dragging]: isDragging,
+                [styles.workbook_row_dragging]: sortable.isDragging,
                 [styles.drop_into]: props.dropTarget,
             })}
-            style={{ transform: CSS.Translate.toString(transform), transition, paddingLeft: workbookListRowPadding(props.depth) }}
+            style={{ ...sortable.style, paddingLeft: workbookListRowPadding(props.depth) }}
             data-testid="workbook-folder-row"
-            {...attributes}
-            {...rowListeners}
+            {...sortable.props}
             onContextMenu={contextMenu.onContextMenu}
         >
             {props.renaming ? (
@@ -130,66 +201,36 @@ export const WorkbookFolderRow: React.FC<WorkbookFolderRowProps> = (props) => {
 };
 
 const WorkbookFolderMenu: React.FC<WorkbookFolderRowProps & { contextMenu: RowContextMenu }> = (props) => {
-    const [open, setOpen] = React.useState(false);
-    useRowContextMenuOpener(props.contextMenu, () => setOpen(true));
-    const triggerRef = React.useRef<HTMLButtonElement>(null);
-    const run = (action: () => void) => (event: React.SyntheticEvent) => {
+    const run = (close: () => void, action: () => void) => (event: React.SyntheticEvent) => {
         event.stopPropagation();
-        setOpen(false);
+        close();
         action();
     };
-    const label = props.folder.name;
     return (
-        <AnchoredOverlay
-            open={open}
-            onOpen={() => setOpen(true)}
-            onClose={() => setOpen(false)}
-            anchorRef={triggerRef}
-            returnFocusRef={triggerRef}
-            side={AnchorSide.OutsideRight}
-            align={AnchorAlignment.Start}
-            anchorOffset={4}
-            renderAnchor={(anchorProps) => (
-                <IconButton
-                    {...anchorProps}
-                    ref={triggerRef}
-                    size={ButtonSize.Small}
-                    variant={ButtonVariant.Invisible}
-                    className={styles.workbook_menu_button}
-                    data-testid="workbook-folder-menu"
-                    aria-label={`More actions for folder ${label}`}
-                    onClick={(event) => {
-                        event.stopPropagation();
-                        anchorProps.onClick?.(event);
-                    }}
-                >
-                    <MoreIcon size={14} />
-                </IconButton>
-            )}
-        >
-            <div className={actionMenuStyles.menu} role="dialog" aria-label={`Actions for folder ${label}`}>
-                <ActionList.List aria-label={`Actions for folder ${label}`}>
-                    <ActionList.ListItem data-testid="workbook-folder-menu-item" data-action="new-workbook" onClick={run(props.onNewWorkbook)}>
+        <WorkbookListRowMenu subject={`folder ${props.folder.name}`} testId="workbook-folder-menu" contextMenu={props.contextMenu}>
+            {close => (
+                <>
+                    <ActionList.ListItem data-testid="workbook-folder-menu-item" data-action="new-workbook" onClick={run(close, props.onNewWorkbook)}>
                         <ActionList.Leading><PlusIcon size={16} /></ActionList.Leading>
                         <ActionList.ItemText>New workbook</ActionList.ItemText>
                     </ActionList.ListItem>
-                    <ActionList.ListItem data-testid="workbook-folder-menu-item" data-action="rename" onClick={run(props.onStartRename)}>
+                    <ActionList.ListItem data-testid="workbook-folder-menu-item" data-action="rename" onClick={run(close, props.onStartRename)}>
                         <ActionList.Leading><PencilIcon size={16} /></ActionList.Leading>
                         <ActionList.ItemText>Rename</ActionList.ItemText>
                     </ActionList.ListItem>
-                    <>{props.onMoveToTopLevel != null && (
-                        <ActionList.ListItem data-testid="workbook-folder-menu-item" data-action="move-to-top-level" onClick={run(props.onMoveToTopLevel)}>
+                    {props.onMoveToTopLevel != null && (
+                        <ActionList.ListItem data-testid="workbook-folder-menu-item" data-action="move-to-top-level" onClick={run(close, props.onMoveToTopLevel)}>
                             <ActionList.Leading><FileDirectoryOpenFillIcon size={16} /></ActionList.Leading>
                             <ActionList.ItemText>Move to top level</ActionList.ItemText>
                         </ActionList.ListItem>
-                    )}</>
-                    <ActionList.ListItem data-testid="workbook-folder-menu-item" data-action="delete" className={actionMenuStyles.delete_action} onClick={run(props.onDelete)}>
+                    )}
+                    <ActionList.ListItem data-testid="workbook-folder-menu-item" data-action="delete" className={actionMenuStyles.delete_action} onClick={run(close, props.onDelete)}>
                         <ActionList.Leading><TrashIcon size={16} /></ActionList.Leading>
                         <ActionList.ItemText>Delete folder</ActionList.ItemText>
                     </ActionList.ListItem>
-                </ActionList.List>
-            </div>
-        </AnchoredOverlay>
+                </>
+            )}
+        </WorkbookListRowMenu>
     );
 };
 
