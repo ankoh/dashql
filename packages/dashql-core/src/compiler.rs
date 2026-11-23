@@ -88,9 +88,21 @@ fn has_returning(parsed: &ParsedScript, statement: &Statement) -> bool {
     let Some(root) = parsed.nodes.get(statement.root as usize) else { return false };
     let begin = root.children_begin_or_value() as usize;
     let children = parsed.nodes.get(begin..begin + root.children_count() as usize).unwrap_or_default();
-    let [insert_returning, delete_returning] =
-        attrs!(children, [AttributeKey::SQL_INSERT_RETURNING, AttributeKey::SQL_DELETE_RETURNING]);
-    let returning = if statement.statement_type == StatementType::DELETE { delete_returning } else { insert_returning };
+    let [insert_returning, delete_returning, update_returning, merge_returning] = attrs!(
+        children,
+        [
+            AttributeKey::SQL_INSERT_RETURNING,
+            AttributeKey::SQL_DELETE_RETURNING,
+            AttributeKey::SQL_UPDATE_RETURNING,
+            AttributeKey::SQL_MERGE_RETURNING,
+        ]
+    );
+    let returning = match statement.statement_type {
+        StatementType::DELETE => delete_returning,
+        StatementType::UPDATE => update_returning,
+        StatementType::MERGE => merge_returning,
+        _ => insert_returning,
+    };
     returning.is_some_and(|r| r.node_type() != NodeType::NONE)
 }
 
@@ -99,7 +111,9 @@ pub fn produces_output(parsed: &ParsedScript, statement: &Statement) -> bool {
     match statement.statement_type {
         // SELECT INTO creates a table and returns no rows
         StatementType::SELECT | StatementType::EXPLAIN | StatementType::CALL => true,
-        StatementType::INSERT | StatementType::DELETE => has_returning(parsed, statement),
+        StatementType::INSERT | StatementType::DELETE | StatementType::UPDATE | StatementType::MERGE => {
+            has_returning(parsed, statement)
+        }
         _ => false,
     }
 }

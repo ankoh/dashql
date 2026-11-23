@@ -19,7 +19,8 @@ A node records:
 - `sql`: the statement text with its script references spliced in (`splice_statement`), also for barriers with
   effects the planner cannot classify (unsupported statement types, EXPLAIN without a body, execution-enabled EXPLAIN
   with a mutating body). A visualization that fails to compile clears it.
-- `produces_output`: SELECT and EXPLAIN always, INSERT and DELETE with RETURNING on their root, nothing else; SELECT
+- `produces_output`: SELECT and EXPLAIN always, INSERT, DELETE, UPDATE and MERGE with RETURNING on their root,
+  nothing else; SELECT
   INTO does not (`produces_output` in `compiler.rs`).
 - `script_result`: the node is the terminal statement of its script, the last statement (`Prepared::terminal`), and
   it produces output. A script that ends with a command has no `script_result` node, neither has a script whose

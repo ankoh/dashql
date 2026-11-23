@@ -161,7 +161,7 @@ writers.
 
 Errors, each with the text of the parameter except the one of a script that runs later: an unknown or ambiguous name
 ("the table parameter :sales matches sales.sql and sales.parquet"), a positional table
-parameter, a script or attachment as the target of INSERT or DELETE, a REMOTE statement that reads an attachment, a reference outside of a query (`delete ... using
+parameter, a script or attachment as the target of INSERT, DELETE, UPDATE or MERGE, a REMOTE statement that reads an attachment, a reference outside of a query (`delete ... using
 :foo`), a referenced script that is no single SELECT or does not parse ("foo.sql is no single SELECT that bar.sql
 could read"), a call that writes or is explained, a call that a query of its own connection would inline, a cycle, a REMOTE statement that reads another connection, a statement that reads a script of another
 connection that runs only on request (`@manual`), a view over a materialized result, also
@@ -185,7 +185,7 @@ For each qualified relation name, the planner remembers its last writer and the
 readers since that writer. A read depends on the last writer. A write depends on
 that writer and outstanding readers. DDL participates in the same conflict timeline, with
 distinct DDL edge reasons. Repeated accesses within one statement are merged;
-there are no self-edges for INSERT or DELETE statements reading their own destination.
+there are no self-edges for INSERT, DELETE, UPDATE or MERGE statements reading their own destination.
 
 Conflict grouping uses internal `(database, schema, name)` tuples so DROP and
 recreation share a timeline without conflating their published entity identities.
@@ -202,18 +202,18 @@ unresolved DROP records an unresolved reference, not a synthetic catalog entity.
 References to later producers are diagnosed rather than moving those producers
 ahead of session order. CTE bindings are not catalog entities in this graph.
 
-The current supported statement families are SELECT, INSERT, DELETE, EXPLAIN,
+The current supported statement families are SELECT, INSERT, DELETE, UPDATE, MERGE, EXPLAIN,
 CREATE TABLE, CREATE TABLE AS, CREATE VIEW, SELECT INTO, DROP TABLE, and DROP
 VIEW. ALTER and the schema statements are barriers. A script may have several outputs, the last output of a script is its
-result. INSERT and DELETE
+result. INSERT, DELETE, UPDATE and MERGE
 produce output only when their root DML node has RETURNING. Nested DML RETURNING
 never overrides the output classification of an enclosing EXPLAIN.
 
 ## Explain and Visualizations
 
 EXPLAIN always produces output, preserving its statement type and backend SQL.
-Plain EXPLAIN treats all referenced relations as READ, including nested INSERT
-and DELETE targets. The analyzer still retains the body's table references and
+Plain EXPLAIN treats all referenced relations as READ, including nested INSERT,
+DELETE, UPDATE and MERGE targets. The analyzer still retains the body's table references and
 DML roles. Nested CREATE TABLE, CTAS, CREATE VIEW, and SELECT INTO declarations
 are not registered as catalog tables, even when the analyzed script is published;
 they cannot become planner producers or resolve later consumers.

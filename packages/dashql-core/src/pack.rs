@@ -279,6 +279,8 @@ fn pack_statement(parsed: &ParsedScript, statement: &Statement) -> StatementT {
         }
         StatementType::INSERT => set_target(&mut out, StatementTargetType::TABLE, AttributeKey::SQL_INSERT_TARGET),
         StatementType::DELETE => set_target(&mut out, StatementTargetType::TABLE, AttributeKey::SQL_DELETE_TARGET),
+        StatementType::UPDATE => set_target(&mut out, StatementTargetType::TABLE, AttributeKey::SQL_UPDATE_TARGET),
+        StatementType::MERGE => set_target(&mut out, StatementTargetType::TABLE, AttributeKey::SQL_MERGE_TARGET),
         _ => {}
     }
     out

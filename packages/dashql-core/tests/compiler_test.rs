@@ -95,8 +95,18 @@ fn queries_and_returning_statements_produce_output() {
         outputs("create table t (a int); insert into t values (1) returning a; delete from t where a = 1 returning a"),
         vec![false, true, true]
     );
+    assert_eq!(
+        outputs(
+            "update t set a = 2 returning a; merge into t using u on t.a = u.a when matched then delete returning t.a"
+        ),
+        vec![true, true]
+    );
     // Without RETURNING they are commands
     assert_eq!(outputs("create table t (a int); insert into t values (1); delete from t"), vec![false; 3]);
+    assert_eq!(
+        outputs("update t set a = 2; merge into t using u on t.a = u.a when matched then delete"),
+        vec![false; 2]
+    );
     // The table of a SELECT INTO can be read by a later statement
     assert_eq!(outputs("select 1 as a into t; select a from t"), vec![false, true]);
 }

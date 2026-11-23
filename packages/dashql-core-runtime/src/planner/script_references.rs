@@ -195,7 +195,10 @@ impl ScriptReferences {
                 .get(parameter.ast_node_id as usize)
                 .and_then(|node| parsed.nodes.get(node.parent() as usize));
             if tableref.is_some_and(|tableref| {
-                matches!(tableref.attribute_key(), Key::SQL_INSERT_TARGET | Key::SQL_DELETE_TARGET)
+                matches!(
+                    tableref.attribute_key(),
+                    Key::SQL_INSERT_TARGET | Key::SQL_DELETE_TARGET | Key::SQL_UPDATE_TARGET | Key::SQL_MERGE_TARGET
+                )
             }) {
                 reporter.error(script, Some(text_span), format!("the table parameter {label} cannot be written"));
                 out.push(reference);

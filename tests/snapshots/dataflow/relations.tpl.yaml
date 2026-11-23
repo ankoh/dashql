@@ -300,3 +300,37 @@ dataflow-snapshots:
       - name: read
         input: |
           select * from t;
+
+  # An update writes the table, the delete after it writes after the update, the read reads from the delete
+  - name: InsertUpdateDeleteSelect
+    scripts:
+      - name: load
+        input: |
+          create table t (a int, b int);
+          insert into t values (1, 1), (2, 2);
+      - name: bump
+        input: |
+          update t set b = b + 1 where a > 1;
+      - name: prune
+        input: |
+          delete from t where b > 2;
+      - name: read
+        input: |
+          select count(*) from t;
+
+  # A merge writes its target and reads its source
+  - name: MergeWritesTarget
+    scripts:
+      - name: schema
+        input: |
+          create table t (a int, b int);
+          create table u (a int, c int);
+          insert into u values (1, 1);
+      - name: sync
+        input: |
+          merge into t using u on t.a = u.a
+          when matched then update set b = u.c
+          when not matched then insert (a, b) values (u.a, u.c);
+      - name: read
+        input: |
+          select count(*) from t;

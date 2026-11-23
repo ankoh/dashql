@@ -775,6 +775,8 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
                 Type::SELECT
                 | Type::INSERT
                 | Type::DELETE
+                | Type::UPDATE
+                | Type::MERGE
                 | Type::EXPLAIN
                 | Type::CREATE_TABLE
                 | Type::CREATE_TABLE_AS
@@ -853,6 +855,8 @@ pub(crate) fn plan(request: &SessionPlanRequest) -> Plan {
                     ast.node_type(),
                     NodeType::OBJECT_SQL_INSERT
                         | NodeType::OBJECT_SQL_DELETE
+                        | NodeType::OBJECT_SQL_UPDATE
+                        | NodeType::OBJECT_SQL_MERGE
                         | NodeType::OBJECT_SQL_CREATE
                         | NodeType::OBJECT_SQL_CREATE_AS
                         | NodeType::OBJECT_SQL_VIEW
