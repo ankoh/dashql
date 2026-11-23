@@ -30,7 +30,7 @@ use dashql_core_runtime::executor::{FailureKind, QueryId, ResultRequest, StoredF
 use dashql_core_runtime::host::{Host, HostError, LogLevel, OnHost};
 use dashql_core_runtime::query::{QueryError, QueryExecutionAction, QueryExecutionState, QueryMetadata, QueryType};
 use dashql_core_runtime::workbook::{next_revision, RunPlanRequest, Workbook, WorkbookAction, WorkbookEffect};
-use dashql_core_runtime::workbook_run::result_key::result_keys;
+use dashql_core_runtime::workbook_run::result_key::stored_result_keys;
 use dashql_core_runtime::workbook_run::{
     start_run, PlanRun, ResultKey, RetainedFile, RunFailureKind, RunHandle, RunHost, RunOptions, RunState, ScriptEvent,
     StatementFailure, StatementHandle, StatementRequest, StatementResult, LOG_TARGET,
@@ -919,28 +919,32 @@ impl Runs {
         }
     }
 
-    /// The result keys of the scripts of a workbook in feed order, the keys that a run checks the stored results with
-    /// and names their files after. A script without a key has none, e.g. one that can't be planned; the other scripts
-    /// keep theirs. Plans the targets with what they need, every script without, and analyzes nothing. The keys
+    /// The result keys of the scripts of a workbook in feed order, the keys that Execute All checks the stored results
+    /// with and names their files after. A script without a key has none, e.g. one that can't be planned; the other
+    /// scripts keep theirs. Plans the targets with what they need, every script without, and analyzes nothing. The keys
     /// downstream of a script cover its stored file: `files` names the file of every script in feed order, without
-    /// them the results folder of the workbook is listed.
+    /// them the results folder of the workbook is listed. A script whose connection isn't online takes the key of its
+    /// stored file like in a run (`stored_result_keys`), `ResultKey::script_key` is its own key.
     pub fn result_keys(
         &self,
         workbook_id: &str,
         targets: Option<Vec<u32>>,
-        files: Option<Vec<Option<String>>>,
+        files: Option<Vec<Option<StoredFile>>>,
     ) -> Result<LocalFuture<Vec<Option<ResultKey>>>, String> {
-        let workbook =
-            self.workbooks.get(workbook_id).ok_or_else(|| format!("no workbook registered with id {workbook_id}"))?;
-        let (graph, names) = {
-            let workbook = workbook.try_borrow().map_err(|_| "the workbook is busy".to_string())?;
+        let scope = self.scope(workbook_id).ok_or_else(|| format!("no workbook registered with id {workbook_id}"))?;
+        // The connections that Execute All runs on now
+        let online = self.online(&scope.connections, scope.preview);
+        let (graph, names, runs) = {
+            let workbook = scope.workbook.try_borrow().map_err(|_| "the workbook is busy".to_string())?;
             let request = RunPlanRequest {
                 targets: targets.as_deref(),
                 mount_prefix: "/mnt/external/dashql-keys",
                 ..RunPlanRequest::default()
             };
             let names: Vec<String> = workbook.scripts().iter().map(|script| script.file_name().to_string()).collect();
-            (workbook.plan_run(&request), names)
+            let runs: Vec<bool> =
+                workbook.scripts().iter().map(|script| online.contains(&script.connection().connection_id)).collect();
+            (workbook.plan_run(&request), names, runs)
         };
         let platform = self.platform.clone();
         let workbook_id = workbook_id.to_string();
@@ -948,19 +952,22 @@ impl Runs {
             let files = match files {
                 Some(files) => files,
                 None if platform.has_results() => match results::listing(&platform, &workbook_id, Some(&names)).await {
-                    Ok(listing) => {
-                        names.iter().map(|name| listing.result(name).map(|result| result.name.clone())).collect()
-                    }
+                    Ok(listing) => names
+                        .iter()
+                        .map(|name| {
+                            listing.result(name).map(|result| StoredFile {
+                                name: result.name.clone(),
+                                key: result.key.clone(),
+                                written_at: result.written_at,
+                            })
+                        })
+                        .collect(),
                     Err(_) => Vec::new(),
                 },
                 None => Vec::new(),
             };
-            result_keys(
-                &graph,
-                |_script, key| std::future::ready(Some(key)),
-                |script, _key| std::future::ready(files.get(script as usize).cloned().flatten()),
-            )
-            .await
+            let can_run = |script: u32| runs.get(script as usize).copied().unwrap_or(true);
+            stored_result_keys(&graph, can_run, &files).await
         }))
     }
 }

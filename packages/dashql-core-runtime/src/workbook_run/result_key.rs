@@ -15,6 +15,8 @@ use dashql_buffers::parser::{Node, NodeType, StatementType};
 use dashql_parser::parser::context::resolve_text_span;
 use dashql_parser::parser::ParsedScript;
 
+use crate::executor::StoredFile;
+
 /// The namespace of the keys, a new one is a new key of every script
 const RESULT_KEY_NAMESPACE: &str = "dashql-result-v4";
 
@@ -208,6 +210,45 @@ where
         }
     }
     keys.into_iter().map(Option::flatten).collect()
+}
+
+/// The key that a run gives a script: its own key, or the key of its stored file if its connection can't run. The
+/// stored result is all that a run can show of such a script, whatever its key: another version of the keys or an
+/// earlier text of the script never keeps a result from rendering, and the keys of the scripts downstream of it cover
+/// that file.
+pub fn run_key(key: String, can_run: bool, stored: Option<&str>) -> String {
+    match stored {
+        Some(stored) if !can_run => stored.to_string(),
+        _ => key,
+    }
+}
+
+/// The keys of the scripts of a plan over their stored files, in feed order, as a run derives them (`run_key`): the
+/// lookup of the stored results tells with them whether a stored result fits its script as it is now
+/// (`ResultKey::script_key`). `can_run` tells by feed index whether the connection of a script can run.
+pub async fn stored_result_keys(
+    graph: &ExecutionGraphT,
+    can_run: impl Fn(u32) -> bool,
+    files: &[Option<StoredFile>],
+) -> Vec<Option<ResultKey>> {
+    let file = |script: u32| files.get(script as usize).and_then(Option::as_ref);
+    result_keys(
+        graph,
+        |script, key| {
+            let stored = file(script).map(|file| file.key.as_str());
+            std::future::ready(Some(run_key(key, can_run(script), stored)))
+        },
+        |script, _key| std::future::ready(file(script).map(|file| file.name.clone())),
+    )
+    .await
+}
+
+impl ResultKey {
+    /// The key of the script as it is now, from its signature. The key of a run differs for a script whose connection
+    /// can't run, it is the key of its stored file then (`run_key`).
+    pub fn script_key(&self) -> String {
+        result_key(&self.signature)
+    }
 }
 
 /// The lowercase hex of bytes

@@ -15,8 +15,9 @@ use dashql_core_runtime::host::signal::{oneshot, Receiver, Sender};
 use dashql_core_runtime::host::{Host, HostError, LocalTask, LogLevel};
 use dashql_core_runtime::settings::RuntimeSettings;
 use dashql_core_runtime::workbook::{
-    new_catalog, ScriptConnection, ScriptConnectionProfile, Workbook, WorkbookAction, WorkbookEffect,
+    new_catalog, RunPlanRequest, ScriptConnection, ScriptConnectionProfile, Workbook, WorkbookAction, WorkbookEffect,
 };
+use dashql_core_runtime::workbook_run::result_key::{stored_result_keys, UNMATCHED_RESULT_KEY};
 use dashql_core_runtime::workbook_run::{
     start_run, PlanRun, RetainedFile, RunFailureKind, RunHost, RunOptions, RunPhase, RunResult, RunState, ScriptEvent,
     StatementFailure, StatementHandle, StatementRequest, StatementResult,
@@ -841,6 +842,73 @@ fn execute_all_that_fails_reads_no_stored_results() {
     s.end("select 1", Err(StatementFailure::new("boom")));
     assert!(result.borrow_mut().take().expect("the run ended").failure.is_some());
     assert!(reads(&s).is_empty());
+}
+
+/// Poll a future on the executor of a test until it stalls, its output
+fn block_on<T: 'static>(s: &Setup, future: impl Future<Output = T> + 'static) -> T {
+    let slot = Rc::new(RefCell::new(None));
+    let output = slot.clone();
+    s.executor.spawn(Box::pin(async move {
+        *output.borrow_mut() = Some(future.await);
+    }));
+    s.executor.run_until_stalled();
+    let value = slot.borrow_mut().take();
+    value.expect("the future is ready")
+}
+
+#[test]
+fn the_lookup_keys_the_scripts_downstream_of_a_connection_that_can_not_run_like_a_run() {
+    let (local, remote) = (connection("local", true), connection("remote", false));
+    let workbook =
+        workbook(&[("orders.sql", "select 1 as a", &remote), ("top.sql", "select count(*) from :orders", &local)]);
+    let s = setup(true, Some("/mnt/cache"), 1);
+    // An imported result of orders, its connection can't run
+    let orders = StoredFile {
+        name: format!("orders.{UNMATCHED_RESULT_KEY}.1.parquet"),
+        key: UNMATCHED_RESULT_KEY.to_string(),
+        written_at: 1.0,
+    };
+    {
+        let mut state = s.state.borrow_mut();
+        state.offline.insert("remote".into());
+        state.stored.insert("orders.sql".into(), orders.key.clone());
+        state.names.insert("orders.sql".into(), orders.name.clone());
+    }
+    // The run of the shown workbook computes top over the file of orders
+    let result = s.run(&workbook, RunOptions { local: true, ..workbook_run() });
+    assert!(result.failure.is_none(), "{:?}", result.failure);
+    let [(script, top_key, top_name)] = <[_; 1]>::try_from(stores(&s)).unwrap();
+    assert_eq!(script, "top.sql");
+    let top = StoredFile { name: top_name, key: top_key.clone(), written_at: 2.0 };
+    // The lookup over the listing of the folder
+    let graph = workbook
+        .borrow()
+        .plan_run(&RunPlanRequest { mount_prefix: "/mnt/external/dashql-keys", ..RunPlanRequest::default() });
+    let files = vec![Some(orders.clone()), Some(top.clone())];
+    let lookup = |online: bool| {
+        let files = files.clone();
+        let graph = graph.clone();
+        block_on(&s, async move { stored_result_keys(&graph, |script| online || script != 0, &files).await })
+    };
+    let keys = lookup(false);
+    let (orders_key, top_key_now) = (keys[0].clone().unwrap(), keys[1].clone().unwrap());
+    // top is current, orders is outdated: the key of its file stands in for it only in the runs
+    assert_eq!(top_key_now.key, top_key);
+    assert_eq!(top_key_now.script_key(), top_key);
+    assert_eq!(orders_key.key, UNMATCHED_RESULT_KEY);
+    assert_ne!(orders_key.script_key(), UNMATCHED_RESULT_KEY);
+    // A run of top alone reuses its result
+    s.state.borrow_mut().stored.insert("top.sql".into(), top.key.clone());
+    s.state.borrow_mut().names.insert("top.sql".into(), top.name.clone());
+    s.state.borrow_mut().statements.clear();
+    let run = RunOptions { run: PlanRun::Script("top.sql".into()), targets: Some(vec![1]), ..workbook_run() };
+    assert!(s.run(&workbook, run).failure.is_none());
+    assert_eq!(s.events("top.sql").last().map(String::as_str), Some("cached"));
+    assert!(stores(&s).is_empty(), "{:?}", stores(&s));
+    // Once orders can run, Execute All runs it and top: both are outdated
+    let keys = lookup(true);
+    assert_ne!(keys[0].clone().unwrap().script_key(), UNMATCHED_RESULT_KEY);
+    assert_ne!(keys[1].clone().unwrap().script_key(), top_key);
 }
 
 #[test]

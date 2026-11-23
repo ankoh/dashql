@@ -15,6 +15,7 @@ use std::collections::BTreeSet;
 use std::rc::Rc;
 
 use dashql_core_runtime::connections::label::is_hyper_wasm_connection;
+use dashql_core_runtime::executor::StoredFile;
 use dashql_core_runtime::host::{Host, LogLevel};
 use dashql_core_runtime::workbook::{ScriptStoredResult, WorkbookAction, WorkbookScript};
 use dashql_core_runtime::workbook_run::{start_run, PlanRun, RunOptions};
@@ -113,8 +114,16 @@ impl Runs {
                 results::remove_garbage(&platform, &workbook_id, listing).await;
             }
             let file = |name: &str| listing.as_ref().and_then(|listing| listing.result(name));
-            let files: Vec<Option<String>> =
-                scripts.iter().map(|(_, name)| file(name).map(|result| result.name.clone())).collect();
+            let files: Vec<Option<StoredFile>> = scripts
+                .iter()
+                .map(|(_, name)| {
+                    file(name).map(|result| StoredFile {
+                        name: result.name.clone(),
+                        key: result.key.clone(),
+                        written_at: result.written_at,
+                    })
+                })
+                .collect();
             let keys = runs.upgrade().map(|runs| runs.result_keys(&workbook_id, None, Some(files)));
             let keys = match keys {
                 Some(Ok(keys)) => Some(keys.await),
@@ -132,7 +141,10 @@ impl Runs {
             };
             for (index, (key, name)) in scripts.iter().enumerate() {
                 let stored = file(name).map(|result| {
-                    let current = keys.get(index).and_then(Option::as_ref).is_some_and(|key| key.key == result.key);
+                    // The keys downstream of a script whose connection can't run cover its stored file like in a run,
+                    // the stored result of the script itself fits only its own key
+                    let current =
+                        keys.get(index).and_then(Option::as_ref).is_some_and(|key| key.script_key() == result.key);
                     ScriptStoredResult {
                         name: result.name.clone(),
                         key: result.key.clone(),

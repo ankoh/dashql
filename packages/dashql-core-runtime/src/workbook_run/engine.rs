@@ -17,7 +17,7 @@ use super::plan::{
     affected_scripts, describe_plan_errors, edges, nodes, planned_statements, script_follows, skipped_nodes,
     visualization_is_valid, PlanRun, PlannedStatement, NONE,
 };
-use super::result_key::{result_keys, ResultKey};
+use super::result_key::{result_keys, run_key, ResultKey};
 use super::{
     RunFailure, RunFailureKind, RunHost, RunOptions, RunPhase, RunResult, RunState, ScriptEvent, StatementRequest,
     StatementResult,
@@ -502,11 +502,10 @@ impl<H: RunHost> Run<H> {
         (visualizations, invalid)
     }
 
-    /// The key of the result of a script from its signature
-    /// The key of a script for the run, none without stored results. A script of a connection that can't run takes the
-    /// key of its stored file, whatever key the script has now: the stored result is all that the run can show of it, so
-    /// another version of the keys or an earlier text of the script never keeps a result from rendering. The file stays
-    /// retained until the run released its files. A refresh reuses nothing and keeps the key.
+    /// The key of a script for the run (`run_key`), none without stored results. A script of a connection that can't
+    /// run takes the key of its stored file, whatever key the script has now, the lookup of the stored results derives
+    /// the keys the same way (`stored_result_keys`). The file stays retained until the run released its files. A
+    /// refresh reuses nothing and keeps the key.
     fn key_of(self: &Rc<Self>) -> impl Fn(u32, String) -> Pin<Box<dyn Future<Output = Option<String>>>> {
         let run = self.clone();
         move |script, key| {
@@ -530,12 +529,12 @@ impl<H: RunHost> Run<H> {
                         vec![
                             detail("workbookId", run.workbook_id.clone()),
                             detail("script", run.file(script)),
-                            detail("key", key),
+                            detail("key", key.clone()),
                             detail("storedKey", retained.file.key.clone()),
                         ],
                     );
                 }
-                Some(retained.file.key)
+                Some(run_key(key, false, Some(&retained.file.key)))
             })
         }
     }

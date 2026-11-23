@@ -223,7 +223,11 @@ as it is now), which the runtime looks up (`runs/stored_results.rs` of the bindi
 workbook is looked up once its changes paused: a change of the workbook (a move of the cursor is none), of a
 connection of its scripts, a result that a query of it recorded and the end of a run. A lookup plans the keys and lists
 the folder once, a workbook whose analyses are outdated waits for them. A script that can't be planned, e.g. one with
-an unknown reference or an input without a value, leaves the keys of the other scripts alone.
+an unknown reference or an input without a value, leaves the keys of the other scripts alone. The lookup derives the
+keys like Execute All does (`stored_result_keys` of `workbook_run/result_key.rs`): a script whose connection isn't
+online takes the key of its stored file, so the scripts downstream of it, e.g. an embedded script that post-processes
+the imported result of a Trino script, are current after a run computed them over that file. The stored result of the
+script itself is current only if its file has the key of the script (`ResultKey::script_key`).
 
 ## Renames and Deletes
 
