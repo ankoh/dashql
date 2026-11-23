@@ -390,7 +390,13 @@ impl ScriptSession {
             }
             let parent = parsed.nodes.get(parameter.ast_node_id as usize).map(|node| node.parent() as usize);
             let Some(tableref) = parent.and_then(|parent| parsed.nodes.get(parent)) else { continue };
-            if matches!(tableref.attribute_key(), AttributeKey::SQL_INSERT_TARGET | AttributeKey::SQL_DELETE_TARGET) {
+            if matches!(
+                tableref.attribute_key(),
+                AttributeKey::SQL_INSERT_TARGET
+                    | AttributeKey::SQL_DELETE_TARGET
+                    | AttributeKey::SQL_UPDATE_TARGET
+                    | AttributeKey::SQL_MERGE_TARGET
+            ) {
                 continue;
             }
             let script = match find_table_parameter(names.iter().map(String::as_str), name) {

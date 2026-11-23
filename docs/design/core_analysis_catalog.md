@@ -283,7 +283,8 @@ between them.
 ### Name resolution
 
 During the AST scan the pass collects table refs, column refs, result targets, CTEs and column
-definitions per node and merges them upward. At scope roots (`SELECT`, `CREATE`) it
+definitions per node and merges them upward. At scope roots (`SELECT`, `CREATE`, `INSERT`, `DELETE`, `UPDATE`,
+`MERGE`) it
 creates a `NameScope` and links it to its parent. Declarations are registered as they are visited:
 `register_schema` reserves the database and schema ids and adds the references to the script's own
 `CatalogEntryData`.
@@ -335,6 +336,12 @@ The rules follow PostgreSQL and Hyper:
   does, by the function name or `?column?`. Column aliases rename the leading columns, of a derived
   table, a table and a CTE alike. A derived table has the columns of its own result targets, never those
   of an expression subquery.
+- **DML targets** are table references with the role `Write`: the target of INSERT, DELETE, UPDATE and MERGE. The
+  FROM items of UPDATE, the USING items of DELETE and the source of MERGE are read. The conditions, the values and
+  RETURNING of UPDATE, DELETE and MERGE see the target and the read relations; the source of INSERT sees no target.
+  The columns that UPDATE and MERGE write, the SET targets and the INSERT columns of MERGE, are column refs that bind
+  to the target only, also when a read relation has a column of the same name; the column of a target that the
+  catalog doesn't know is inferred for it. The explicit columns of INSERT bind to its target after resolution.
 - **`*` over a join** lists the `USING` and `NATURAL` columns once, first, then the other columns of
   the left and the right side.
 

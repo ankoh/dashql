@@ -80,3 +80,109 @@ analyzer-snapshots:
         input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
     script:
       input: with old as (select a from u where c < 0) delete from t where a in (select a from old)
+
+  # UPDATE writes its target, the SET targets bind to the target, the values, WHERE and RETURNING see the target and
+  # the FROM items, subqueries correlate with both
+  - name: update_set_where
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: update t set b = a + 1 where a > 0
+
+  - name: update_alias
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: update t as x set b = x.a where x.b is null
+
+  - name: update_from
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: update t set b = u.c from u where t.a = u.a
+
+  # A SET target is a column of the target, also when a FROM item has a column of the same name
+  - name: update_from_shared_column
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: update t set a = c from u where t.a = u.a
+
+  - name: update_correlated_subquery
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: update t set b = (select max(c) from u where u.a = t.a)
+
+  - name: update_returning
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: update t set b = 0 returning a, b
+
+  - name: update_multiple_columns
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: update t set (a, b) = (select a, c from u where u.a = t.b)
+
+  - name: update_unknown_column
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: update t set z = a
+
+  # The SET targets and the columns of an unknown target are inferred for it
+  - name: update_unresolved_target
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: update missing set p = q + 1 where r = 2
+
+  - name: update_with_cte
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: with s as (select a, c from u) update t set b = s.c from s where t.a = s.a
+
+  # MERGE writes its target and reads its source, the conditions and values see both, the SET targets and the INSERT
+  # columns bind to the target
+  - name: merge_update_insert
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: |-
+        merge into t using u on t.a = u.a
+        when matched then update set b = u.c
+        when not matched then insert (a, b) values (u.a, u.c)
+
+  - name: merge_aliases_delete
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: |-
+        merge into t as tgt using (select a, c from u where c > 0) as src on tgt.a = src.a
+        when matched and src.c > 10 then delete
+        when matched then update set b = src.c
+
+  - name: merge_unresolved_target_returning
+    catalog:
+      script:
+        input: create table t (a int, b int); create table u (a int, c int); create table v (id int, x int); create table w (id int, y int);
+    script:
+      input: |-
+        merge into missing m using u on m.k = u.a
+        when not matched then insert (k, l) values (u.a, u.c)
+        returning m.k

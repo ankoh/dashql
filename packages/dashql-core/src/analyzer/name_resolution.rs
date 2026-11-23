@@ -188,6 +188,9 @@ pub(super) struct NameResolutionPass {
     /// The names of the column refs with more than two names, `s.t.a` is the column a of the table s.t, or the
     /// field a of the column t of the table s
     column_paths: HashMap<ExprId, Vec<Name>>,
+    /// The columns that UPDATE and MERGE write, the SET targets and the INSERT columns of MERGE, with the AST node of
+    /// the target table that they bind to
+    assignment_targets: HashMap<ExprId, u32>,
 }
 
 impl NameResolutionPass {
@@ -207,6 +210,7 @@ impl NameResolutionPass {
             using_joins: HashMap::default(),
             finished_column_refs: HashMap::default(),
             column_paths: HashMap::default(),
+            assignment_targets: HashMap::default(),
         }
     }
 
@@ -729,7 +733,10 @@ impl NameResolutionPass {
         alias_node: Option<&Node>,
     ) -> Option<(ScopeSource, TableRefId)> {
         let parameter = table_node.filter(|n| n.node_type() == NodeType::OBJECT_SQL_PARAMETER_REF)?;
-        if matches!(node.attribute_key(), K::SQL_INSERT_TARGET | K::SQL_DELETE_TARGET) {
+        if matches!(
+            node.attribute_key(),
+            K::SQL_INSERT_TARGET | K::SQL_DELETE_TARGET | K::SQL_UPDATE_TARGET | K::SQL_MERGE_TARGET
+        ) {
             return None;
         }
         let results = state.out.table_parameters.clone()?;
@@ -1263,6 +1270,10 @@ impl NameResolutionPass {
             if !Self::is_unresolved_column_ref(state, expr) {
                 continue;
             }
+            if let Some(&target) = self.assignment_targets.get(&expr) {
+                self.resolve_assignment_target(state, expr, scope, target);
+                continue;
+            }
             match Self::output_names(state, expr) {
                 OutputNames::Invisible => {
                     self.try_resolve_column_in_scope(state, expr, scope, SourceVisibility::All);
@@ -1412,8 +1423,9 @@ impl NameResolutionPass {
                 _ => None,
             };
             let constraint = match &column_ref.column_name.table_alias {
-                // The qualifier names a FROM item without the column, the column belongs to an unresolved one
-                Some(_) if bound.is_some() => {
+                // The qualifier names a FROM item without the column, or the column is written to a target without it,
+                // the column belongs to an unresolved one
+                _ if bound.is_some() => {
                     let Some(Some(owner)) = bound else { continue };
                     InferenceConstraint {
                         kind: InferenceConstraintKind::Forced,
@@ -1734,10 +1746,11 @@ impl NameResolutionPass {
         let mut dfs: Vec<ScopeId> = roots.to_vec();
         while let Some(scope) = dfs.pop() {
             // Recursive CTE outputs are available only after the bottom-up pass, a ref that its qualifier bound to a
-            // recursive CTE resolves now. An ambiguous ref stays reported.
+            // recursive CTE resolves now. An ambiguous ref stays reported, a written column binds to its target only.
             for expr in state.out.scope(scope).map(|s| s.expressions.clone()).unwrap_or_default() {
                 let ambiguous = matches!(self.finished_column_refs.get(&expr), Some(FinishedColumnRef::Ambiguous));
-                if Self::is_unresolved_column_ref(state, expr) && !ambiguous {
+                let written = self.assignment_targets.contains_key(&expr);
+                if Self::is_unresolved_column_ref(state, expr) && !ambiguous && !written {
                     self.try_resolve_column_in_scope(state, expr, scope, SourceVisibility::All);
                 }
             }
@@ -2064,6 +2077,10 @@ impl NameResolutionPass {
                 self.set_cte_correlation_barriers(state, scope);
             }
 
+            NodeType::OBJECT_SQL_UPDATE | NodeType::OBJECT_SQL_MERGE => {
+                self.visit_update_or_merge(state, node, node_id, node_state);
+            }
+
             NodeType::OBJECT_SQL_JOINED_TABLE => {
                 self.merge_child_states(node_state, node);
                 let [join_type, using] = attrs!(state.children(node), [K::SQL_JOIN_TYPE, K::SQL_JOIN_USING]);
@@ -2213,6 +2230,122 @@ impl NameResolutionPass {
 
             // By default, merge child states into the node state
             _ => self.merge_child_states(node_state, node),
+        }
+    }
+
+    /// UPDATE and MERGE write their target, the FROM items of UPDATE and the source of MERGE are read. Their
+    /// conditions, values and RETURNING see the target and the read relations, as in PostgreSQL. The columns that they
+    /// write, the SET targets and the INSERT columns of MERGE, are column refs that bind to the target only.
+    fn visit_update_or_merge(
+        &mut self,
+        state: &mut AnalysisState,
+        node: &Node,
+        node_id: u32,
+        node_state: &mut NodeState,
+    ) {
+        let [update_target, merge_target, assignments, clauses, recursive] = attrs!(
+            state.children(node),
+            [
+                K::SQL_UPDATE_TARGET,
+                K::SQL_MERGE_TARGET,
+                K::SQL_UPDATE_ASSIGNMENTS,
+                K::SQL_MERGE_CLAUSES,
+                K::SQL_SELECT_WITH_RECURSIVE,
+            ]
+        );
+        let target = update_target.or(merge_target).map(|t| state.node_id(t));
+        if let Some(target) = target {
+            let target_refs = self.node_states.get(target as usize).map(|s| s.table_references.as_slice());
+            for &table_ref in target_refs.unwrap_or_default() {
+                if let Some(table_ref) = state.out.table_ref_mut(table_ref) {
+                    table_ref.role = TableRole::Write;
+                }
+            }
+        }
+        self.merge_child_states(node_state, node);
+
+        // The written columns: the SET targets of UPDATE, the SET targets and the INSERT columns of the MERGE actions
+        let mut written: Vec<&Node> = Vec::new();
+        let mut assignment_lists: Vec<&Node> = assignments.into_iter().collect();
+        for clause in clauses.map(|c| state.children(c)).unwrap_or_default() {
+            let [action] = attrs!(state.children(clause), [K::SQL_MERGE_WHEN_CLAUSE_ACTION]);
+            let Some(action) = action.filter(|a| a.node_type() == NodeType::OBJECT_SQL_MERGE_ACTION) else { continue };
+            let [set, columns] =
+                attrs!(state.children(action), [K::SQL_MERGE_ACTION_TARGET, K::SQL_MERGE_ACTION_COLUMNS]);
+            assignment_lists.extend(set);
+            if let Some(columns) = columns.filter(|c| c.node_type() == NodeType::ARRAY) {
+                written.extend(state.children(columns));
+            }
+        }
+        for list in assignment_lists.into_iter().filter(|l| l.node_type() == NodeType::ARRAY) {
+            for assignment in state.children(list).iter().filter(|a| a.node_type() == NodeType::OBJECT_SQL_ASSIGNMENT) {
+                // One column, or a list of columns that a row assigns
+                let [columns] = attrs!(state.children(assignment), [K::SQL_ASSIGNMENT_COLUMNS]);
+                match columns {
+                    Some(columns) if columns.node_type() == NodeType::ARRAY => written.extend(state.children(columns)),
+                    Some(column) => written.push(column),
+                    None => {}
+                }
+            }
+        }
+        // Without a target, in a statement that doesn't parse, the columns bind to nothing
+        if let Some(target) = target {
+            for column in written.into_iter().filter(|c| c.node_type() == NodeType::NAME) {
+                self.add_written_column(state, node_state, column, target);
+            }
+        }
+
+        let result_targets = std::mem::take(&mut node_state.result_targets);
+        let ctes = std::mem::take(&mut node_state.ctes);
+        let scope = self.create_scope(state, node_state, node_id);
+        if let Some(s) = state.out.scope_mut(scope) {
+            s.result_targets.extend(result_targets);
+            s.ctes_recursive = recursive.is_some();
+        }
+        Self::attach_ctes(state, scope, ctes);
+        // CTE definitions cannot correlate to the target or the read relations
+        self.set_cte_correlation_barriers(state, scope);
+    }
+
+    /// A column that UPDATE or MERGE writes, a column ref of its scope that binds to the target
+    fn add_written_column(
+        &mut self,
+        state: &mut AnalysisState,
+        node_state: &mut NodeState,
+        column: &Node,
+        target: u32,
+    ) {
+        let column_node_id = state.node_id(column);
+        let column_name = state.node_name(column);
+        state.tag(&column_name, NameTag::COLUMN_NAME);
+        let column_ref = ColumnRef {
+            column_name: QualifiedColumnName { ast_node_id: Some(column_node_id), table_alias: None, column_name },
+            ast_scope_root: None,
+            resolved: ColumnResolution::Unresolved,
+            resolved_source: None,
+            resolved_ids: None,
+            inferred: None,
+        };
+        let expr = state.add_expression(column_node_id, *column.symbol_span(), ExpressionInner::ColumnRef(column_ref));
+        state.set_expression_of(column_node_id, expr);
+        state.mark(column_node_id, SemanticNodeMarkerType::COLUMN_REFERENCE);
+        node_state.column_references.push(expr);
+        self.assignment_targets.insert(expr, target);
+    }
+
+    /// Bind a column that UPDATE or MERGE writes to the target table. A target without the column binds it all the
+    /// same, the column of a target that the catalog doesn't know is inferred.
+    fn resolve_assignment_target(&mut self, state: &mut AnalysisState, expr: ExprId, scope: ScopeId, target: u32) {
+        let source = state.out.scope(scope).and_then(|s| s.sources.iter().find(|s| s.ast_node_id == target)).cloned();
+        let Some(column_ref) = state.out.expression(expr).and_then(Expression::column_ref) else { return };
+        let column_name = column_ref.column_name.column_name.text.clone();
+        match source {
+            Some(source) => {
+                self.resolve_qualified_column(state, expr, &[source], &column_name);
+            }
+            None => {
+                self.finished_column_refs.insert(expr, FinishedColumnRef::Bound(None));
+            }
         }
     }
 

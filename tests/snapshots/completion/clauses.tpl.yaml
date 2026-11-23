@@ -206,3 +206,51 @@ completion-snapshots:
         index: 8
     completions:
       limit: 5
+
+  # The target table of an UPDATE puts its columns in scope of the SET values
+  - name: clause_update_set_value
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        update t set a = na
+    cursor:
+      search:
+        text: '= na'
+        index: 4
+    completions:
+      limit: 5
+
+  # The FROM items of an UPDATE are in scope of its WHERE clause, next to the target
+  - name: clause_update_from_where
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        update t set b = 1 from u where t.a = u.a and c
+    cursor:
+      search:
+        text: 'and c'
+        index: 5
+    completions:
+      limit: 5
+
+  # The target and the source of a MERGE are in scope of its conditions
+  - name: clause_merge_condition
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+    editor:
+      input: |-
+        merge into t using u on t.a = u.a when matched and na then delete
+    cursor:
+      search:
+        text: 'and na'
+        index: 6
+    completions:
+      limit: 5

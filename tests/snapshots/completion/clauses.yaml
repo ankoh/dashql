@@ -766,3 +766,194 @@ completion-snapshots:
           location-qualified: "c"
           objects: []
       text: "c"
+
+  - name: clause_update_set_value
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+        errors: []
+    editor:
+      input: |-
+        update t set a = na
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", role: write, text: "t"}
+      expressions:
+        - {id: 0, type: colref/unresolved, text: "na"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "a"}
+    cursor:
+      search:
+        text: '= na'
+        index: 4
+    completions:
+      limit: 5
+      strategy: COLUMN_REF
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - value: name
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: "na"
+          location-qualified: "na"
+          objects:
+            - type: column
+              id: "256.65536.1:0.2"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: t.name
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "text · t"
+        - value: na
+          candidate-tags: [IDENTITY]
+          location: "na"
+          location-qualified: "na"
+          objects: []
+        - value: name
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "na"
+          location-qualified: "na"
+          objects: []
+        - value: names
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "na"
+          location-qualified: "na"
+          objects: []
+        - value: national
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "na"
+          location-qualified: "na"
+          objects: []
+      text: "na"
+
+  - name: clause_update_from_where
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+        errors: []
+    editor:
+      input: |-
+        update t set b = 1 from u where t.a = u.a and c
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+        - {type: name/catalog, catalog-id: "256.65536.1:0", role: write, text: "t"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "t.a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:1.0", source: "u", text: "u.a"}
+        - {id: 2, type: colref/catalog, catalog: "256.65536.1:1.1", source: "u", text: "c"}
+        - {id: 3, type: colref/catalog, catalog: "256.65536.1:0.1", source: "t", text: "b"}
+        - {id: 4, type: literal/integer, is-const: true, text: "1"}
+      constants:
+        - {expression: 4, text: "1"}
+    cursor:
+      search:
+        text: 'and c'
+        index: 5
+    completions:
+      limit: 5
+      strategy: COLUMN_REF
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - value: c
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE,EXACT_MATCH]
+          location: "c"
+          location-qualified: "c"
+          objects:
+            - type: column
+              id: "256.65536.1:1.1"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE,EXACT_MATCH]
+              qualified: u.c
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "integer · u"
+        - value: c
+          candidate-tags: [IDENTITY]
+          location: "c"
+          location-qualified: "c"
+          objects: []
+        - value: case
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "c"
+          location-qualified: "c"
+          objects: []
+        - value: cast
+          candidate-tags: [KEYWORD_C,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "c"
+          location-qualified: "c"
+          objects: []
+        - value: cache
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "c"
+          location-qualified: "c"
+          objects: []
+      text: "c"
+
+  - name: clause_merge_condition
+    catalog:
+      script:
+        input: |-
+          create table t (a int, b int, name text); create table u (a int, c int);
+        errors: []
+    editor:
+      input: |-
+        merge into t using u on t.a = u.a when matched and na then delete
+      catalog-id: 2
+      errors: []
+      table-refs:
+        - {type: name/catalog, catalog-id: "256.65536.1:0", role: write, text: "t"}
+        - {type: name/catalog, catalog-id: "256.65536.1:1", text: "u"}
+      expressions:
+        - {id: 0, type: colref/catalog, catalog: "256.65536.1:0.0", source: "t", text: "t.a"}
+        - {id: 1, type: colref/catalog, catalog: "256.65536.1:1.0", source: "u", text: "u.a"}
+        - {id: 2, type: colref/unresolved, text: "na"}
+    cursor:
+      search:
+        text: 'and na'
+        index: 6
+    completions:
+      limit: 5
+      strategy: DEFAULT
+      symbol: ENUM_SQL_MERGE_MATCH
+      relative: END_OF_SYMBOL
+      entries:
+        - value: na
+          candidate-tags: [IDENTITY]
+          location: "na"
+          location-qualified: "na"
+          objects: []
+        - value: name
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: "na"
+          location-qualified: "na"
+          objects:
+            - type: column
+              id: "256.65536.1:0.2"
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+              qualified: t.name
+              qualified-idx: 1
+              prefer-qualified: 0
+              detail: "text · t"
+        - value: name
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
+          location: "na"
+          location-qualified: "na"
+          objects: []
+        - value: names
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
+          location: "na"
+          location-qualified: "na"
+          objects: []
+        - value: national
+          candidate-tags: [KEYWORD_D,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH,SUFFIX_DEPTH_MANY]
+          location: "na"
+          location-qualified: "na"
+          objects: []
+      text: "na"
