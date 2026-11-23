@@ -250,3 +250,57 @@ diff-snapshots:
           source-statement: 2
           target-statement: 2
           target-span: "select c from w"
+
+  - name: rotate_last_to_start
+    source: |-
+      select a from t;
+      select b from u;
+      select c from w;
+    target: |-
+      select c from w;
+      select a from t;
+      select b from u;
+    expected:
+      ops:
+        - code: KEEP
+          source-statement: 0
+          target-statement: 1
+          target-span: "select a from t"
+        - code: KEEP
+          source-statement: 1
+          target-statement: 2
+          target-span: "select b from u"
+        - code: MOVE
+          source-statement: 2
+          target-statement: 0
+          target-span: "select c from w"
+
+  - name: swap_first_and_last
+    source: |-
+      select a from t;
+      select b from u;
+      select c from w;
+      select d from x;
+    target: |-
+      select d from x;
+      select b from u;
+      select c from w;
+      select a from t;
+    expected:
+      ops:
+        - code: MOVE
+          source-statement: 0
+          target-statement: 3
+          target-span: "select a from t"
+        - code: KEEP
+          source-statement: 1
+          target-statement: 1
+          target-span: "select b from u"
+        - code: KEEP
+          source-statement: 2
+          target-statement: 2
+          target-span: "select c from w"
+        - code: MOVE
+          source-statement: 3
+          target-statement: 0
+          target-span: "select d from x"

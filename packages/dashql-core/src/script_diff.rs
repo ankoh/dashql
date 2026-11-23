@@ -64,14 +64,26 @@ impl StatementSimilarity {
 /// A statement mapping (source id, target id)
 type StatementMapping = (usize, usize);
 
-/// The emitted operations and statements while computing a diff
-struct Emitter {
-    /// The emitted operations
-    ops: Vec<DiffOp>,
-    /// Whether a source statement was emitted, by statement index
-    source_emitted: Vec<bool>,
-    /// Whether a target statement was emitted, by statement index
-    target_emitted: Vec<bool>,
+/// The matched target statement and operation of every source statement, by source statement index
+type SourceMatches = Vec<Option<(ScriptDiffOpCode, usize)>>;
+
+/// Match a source statement with a target statement
+fn claim(
+    source_match: &mut SourceMatches,
+    target_matched: &mut [bool],
+    code: ScriptDiffOpCode,
+    source_id: usize,
+    target_id: usize,
+) {
+    if let Some(m) = source_match.get_mut(source_id) {
+        *m = Some((code, target_id));
+    }
+    flag(target_matched, target_id);
+}
+
+/// Is a source statement still unmatched?
+fn unmatched(source_match: &SourceMatches, source_id: usize) -> bool {
+    source_match.get(source_id).is_some_and(Option::is_none)
 }
 
 /// Is the node type an enum? Enums live between ENUM_KEYS_ and OBJECT_KEYS_.
@@ -591,7 +603,7 @@ impl<'a> ScriptDiff<'a> {
     }
 
     /// Emit a diff operation
-    fn emit(&self, out: &mut Emitter, code: ScriptDiffOpCode, source_id: Option<usize>, target_id: Option<usize>) {
+    fn emit(&self, out: &mut Vec<DiffOp>, code: ScriptDiffOpCode, source_id: Option<usize>, target_id: Option<usize>) {
         let mut op = DiffOp {
             code,
             source_statement: None,
@@ -606,20 +618,53 @@ impl<'a> ScriptDiff<'a> {
         if let Some(s) = source_id {
             op.source_statement = Some(s as u32);
             op.source_span = source_stmt.map_or(TextSpan::default(), |stmt| resolve_statement_span(self.source, stmt));
-            flag(&mut out.source_emitted, s);
         }
         if let Some(t) = target_id {
             op.target_statement = Some(t as u32);
             op.target_span = target_stmt.map_or(TextSpan::default(), |stmt| resolve_statement_span(self.target, stmt));
-            flag(&mut out.target_emitted, t);
         }
         if let (ScriptDiffOpCode::UPDATE, Some(s), Some(t)) = (code, source_stmt, target_stmt) {
             op.target_changes = self.collect_target_changes(s, t);
         }
-        out.ops.push(op);
+        out.push(op);
+    }
+
+    /// The best unmatched target among `targets` for a source statement: the highest similarity score at or above
+    /// the threshold
+    fn best_update_target(
+        &mut self,
+        source_id: usize,
+        targets: impl Iterator<Item = usize>,
+        target_matched: &[bool],
+    ) -> Option<usize> {
+        let &source_stmt = self.source.statements.get(source_id)?;
+        let mut best_target = None;
+        let mut best_score = -1.0;
+        for target_id in targets {
+            if flagged(target_matched, target_id) {
+                continue;
+            }
+            let Some(&target_stmt) = self.target.statements.get(target_id) else { continue };
+            if self.estimate_similarity(&source_stmt, &target_stmt) == SimilarityEstimate::NotEqual {
+                continue;
+            }
+            let score = self.compute_similarity(&source_stmt, &target_stmt).score();
+            if score >= UPDATE_SIMILARITY_THRESHOLD && score > best_score {
+                best_score = score;
+                best_target = Some(target_id);
+            }
+        }
+        best_target
     }
 
     /// Compute the diff (memoized)
+    ///
+    /// The statements are matched first and emitted after, so that the direction of a move does not decide between
+    /// a MOVE and an INSERT + DELETE. The matching goes in rounds, each over the statements that are still unmatched:
+    /// the longest common subsequence of the unique pairs is kept, the other equal statements move, a statement
+    /// updates the most similar statement of its section (between the same two kept statements), and then the most
+    /// similar statement of another section. The operations are emitted section by section: the operations of the
+    /// source statements, the inserted target statements, and the kept statement that ends the section.
     pub fn compute(&mut self) -> &[DiffOp] {
         if self.computed {
             return &self.ops;
@@ -629,78 +674,72 @@ impl<'a> ScriptDiff<'a> {
         let target_count = self.target.statements.len();
         let (unique_pairs, equal_pairs) = self.map_statements();
         let lcs = Self::find_lcs(&unique_pairs);
-        let mut out = Emitter {
-            ops: Vec::new(),
-            source_emitted: vec![false; source_count],
-            target_emitted: vec![false; target_count],
+
+        // The source and target statements of a section, between two LCS entries (exclusive)
+        let section = |index: usize| -> (std::ops::Range<usize>, std::ops::Range<usize>) {
+            let (source_begin, target_begin) =
+                index.checked_sub(1).and_then(|i| lcs.get(i)).map_or((0, 0), |&(s, t)| (s + 1, t + 1));
+            let (source_end, target_end) = lcs.get(index).copied().unwrap_or((source_count, target_count));
+            (source_begin..source_end, target_begin..target_end)
         };
 
-        // Iterate over the sections between LCS entries
-        let mut next: StatementMapping = (0, 0);
-        for lcs_index in 0..=lcs.len() {
-            let prev = next;
-            next = lcs.get(lcs_index).copied().unwrap_or((source_count, target_count));
-            let (prev_source_id, prev_target_id) = prev;
-            let (next_source_id, next_target_id) = next;
+        // The matched target and operation of every source statement
+        let mut source_match: SourceMatches = vec![None; source_count];
+        let mut target_matched = vec![false; target_count];
+        for &(source_id, target_id) in &lcs {
+            claim(&mut source_match, &mut target_matched, ScriptDiffOpCode::KEEP, source_id, target_id);
+        }
+        // Equal statements outside of the LCS move, a source statement to its first unmatched equal target
+        for &(source_id, target_id) in &equal_pairs {
+            if unmatched(&source_match, source_id) && !flagged(&target_matched, target_id) {
+                claim(&mut source_match, &mut target_matched, ScriptDiffOpCode::MOVE, source_id, target_id);
+            }
+        }
+        // Similar statements in the same section update
+        for section_index in 0..=lcs.len() {
+            let (sources, targets) = section(section_index);
+            for source_id in sources {
+                if !unmatched(&source_match, source_id) {
+                    continue;
+                }
+                if let Some(target_id) = self.best_update_target(source_id, targets.clone(), &target_matched) {
+                    claim(&mut source_match, &mut target_matched, ScriptDiffOpCode::UPDATE, source_id, target_id);
+                }
+            }
+        }
+        // Similar statements in different sections update, the statement moves
+        for section_index in 0..=lcs.len() {
+            let (sources, targets) = section(section_index);
+            for source_id in sources {
+                if !unmatched(&source_match, source_id) {
+                    continue;
+                }
+                let others = (0..target_count).filter(|t| !targets.contains(t));
+                if let Some(target_id) = self.best_update_target(source_id, others, &target_matched) {
+                    claim(&mut source_match, &mut target_matched, ScriptDiffOpCode::UPDATE, source_id, target_id);
+                }
+            }
+        }
 
-            for source_id in prev_source_id..next_source_id {
-                // Emit equal pairs that are ambiguous or cross section boundaries (MOVE)
-                let begin = equal_pairs.partition_point(|p| p.0 < source_id);
-                let pairs = equal_pairs.get(begin..).unwrap_or_default().iter().take_while(|p| p.0 <= source_id);
-                for &(_, target_id) in pairs {
-                    if flagged(&out.target_emitted, target_id) {
-                        continue;
-                    }
-                    self.emit(&mut out, ScriptDiffOpCode::MOVE, Some(source_id), Some(target_id));
-                    break;
-                }
-                if flagged(&out.source_emitted, source_id) {
-                    continue;
-                }
-                let Some(&source_stmt) = self.source.statements.get(source_id) else { continue };
-                // The highest-scoring remaining target in the section above the threshold (a
-                // deliberate divergence from the legacy heap, which picked the smallest score)
-                let mut best_target = None;
-                let mut best_score = -1.0;
-                for target_id in prev_target_id..next_target_id {
-                    if flagged(&out.target_emitted, target_id) {
-                        continue;
-                    }
-                    let Some(&target_stmt) = self.target.statements.get(target_id) else { continue };
-                    match self.estimate_similarity(&source_stmt, &target_stmt) {
-                        SimilarityEstimate::NotEqual => continue,
-                        SimilarityEstimate::Equal => {
-                            self.emit(&mut out, ScriptDiffOpCode::KEEP, Some(source_id), Some(target_id));
-                            break;
-                        }
-                        SimilarityEstimate::Similar => {}
-                    }
-                    let score = self.compute_similarity(&source_stmt, &target_stmt).score();
-                    if score >= UPDATE_SIMILARITY_THRESHOLD && score > best_score {
-                        best_score = score;
-                        best_target = Some(target_id);
-                    }
-                }
-                // An equal match emitted a KEEP
-                if flagged(&out.source_emitted, source_id) {
-                    continue;
-                }
-                match best_target {
-                    Some(t) => self.emit(&mut out, ScriptDiffOpCode::UPDATE, Some(source_id), Some(t)),
+        let mut out = Vec::new();
+        for section_index in 0..=lcs.len() {
+            let (sources, targets) = section(section_index);
+            for source_id in sources {
+                match source_match.get(source_id).copied().flatten() {
+                    Some((code, target_id)) => self.emit(&mut out, code, Some(source_id), Some(target_id)),
                     None => self.emit(&mut out, ScriptDiffOpCode::DELETE, Some(source_id), None),
                 }
             }
-            // Insert the new statements of the section
-            for target_id in prev_target_id..next_target_id {
-                if !flagged(&out.target_emitted, target_id) {
+            for target_id in targets {
+                if !flagged(&target_matched, target_id) {
                     self.emit(&mut out, ScriptDiffOpCode::INSERT, None, Some(target_id));
                 }
             }
-            if lcs_index < lcs.len() {
-                self.emit(&mut out, ScriptDiffOpCode::KEEP, Some(next_source_id), Some(next_target_id));
+            if let Some(&(source_id, target_id)) = lcs.get(section_index) {
+                self.emit(&mut out, ScriptDiffOpCode::KEEP, Some(source_id), Some(target_id));
             }
         }
-        self.ops = out.ops;
+        self.ops = out;
         &self.ops
     }
 

@@ -5,7 +5,7 @@ namespace dashql.buffers.diff;
 /// A statement-level semantic diff operation.
 ///
 /// Emitted by ScriptDiff, a modified patience diff over the statements of two parsed scripts.
-/// See `dashql/script_diff.h` for the algorithm.
+/// See `packages/dashql-core/src/script_diff.rs` for the algorithm.
 enum ScriptDiffOpCode: uint8 {
     DELETE,
     INSERT,

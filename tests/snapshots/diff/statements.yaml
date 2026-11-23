@@ -205,9 +205,11 @@ diff-snapshots:
       select 1;
     expected:
       ops:
-        - code: DELETE
+        - code: UPDATE
           source-statement: 0
-          source-span: "select a, .., e from t"
+          target-statement: 1
+          target-changes:
+            - text: "f"
         - code: MOVE
           source-statement: 1
           target-statement: 2
@@ -216,9 +218,6 @@ diff-snapshots:
           source-statement: 2
           target-statement: 0
           target-span: "select x, .., w from u"
-        - code: INSERT
-          target-statement: 1
-          target-span: "select a, .., f from t"
 
   - name: whitespace_only
     source: |-

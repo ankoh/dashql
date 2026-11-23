@@ -121,7 +121,7 @@ diff-snapshots:
     target: |
       select lower(a), upper(b), coalesce(c, 1), d, e from t;
 
-  # One statement moves and another changes
+  # One statement moves and another changes: the changed statement crosses the kept one and is still an UPDATE
   - name: move_and_update
     source: |
       select a, b, c, d, e from t;
