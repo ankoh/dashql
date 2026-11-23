@@ -145,4 +145,29 @@ describe('StorageWriterView', () => {
         key('ArrowDown');
         expect(selected()).toBe(-1);
     });
+
+    it('keeps the inspected entry when a write moves it to another row', async () => {
+        await render(TEST_WORKBOOK_ID, new Map<string, core.StorageWriteStatistics>([
+            [`${TEST_WORKBOOK_ID}/scripts/01.sql`, stats(1000)],
+            [`${TEST_WORKBOOK_ID}/scripts/02.sql`, stats(2000)],
+            [`${TEST_WORKBOOK_ID}/scripts/03.sql`, stats(3000)],
+        ]));
+        act(() => rows()[1].click());
+        expect(rows()[selected()].textContent).toContain('scripts/02.sql');
+
+        // A write of the first entry moves it to the end, the entry of the detail moves up a row
+        vi.spyOn(StorageCommands.prototype, 'getStatistics').mockImplementation(workbookId => ofWorkbook(workbookId, new Map([
+            [`${TEST_WORKBOOK_ID}/scripts/01.sql`, stats(4000, 2)],
+            [`${TEST_WORKBOOK_ID}/scripts/02.sql`, stats(2000)],
+            [`${TEST_WORKBOOK_ID}/scripts/03.sql`, stats(3000)],
+        ])));
+        await vi.waitFor(() => expect(keys()[2]?.[1]).toBe('scripts/01.sql'), { timeout: 3000 });
+        expect(selected()).toBe(0);
+        expect(document.body.textContent).toContain('1970-01-01T00:00:02.000Z');
+
+        key('ArrowDown');
+        expect(selected()).toBe(1);
+        expect(rows()[1].textContent).toContain('scripts/03.sql');
+        expect(document.body.textContent).toContain('1970-01-01T00:00:03.000Z');
+    });
 });

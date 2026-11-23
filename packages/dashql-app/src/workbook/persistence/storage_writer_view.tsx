@@ -125,17 +125,18 @@ export function StorageWriterView(props: { workbookId: string | null; onClose: (
     const containerWidth = containerSize?.width ?? 200;
     const containerHeight = containerSize?.height ?? 100;
 
-    // Detail modal state: [entry | null, index]
-    const [modalState, setModalState] = React.useState<[StorageWriterEntry | null, number]>([null, -1]);
-    const [modalEntry, modalIndex] = modalState;
+    // The detail modal shows the entry of a key, the poll may move the entry to another row and updates its statistics
+    const [modalKey, setModalKey] = React.useState<string | null>(null);
+    const modalIndex = modalKey == null ? -1 : entries.findIndex(entry => entry.key === modalKey);
+    const modalEntry = entries[modalIndex] ?? null;
 
     const closeRef = React.useRef<HTMLButtonElement>(null);
-    const closeModal = React.useCallback(() => setModalState([null, -1]), []);
+    const closeModal = React.useCallback(() => setModalKey(null), []);
 
     const showDetail = React.useCallback((rowIndex: number) => {
-        const entry = entries[rowIndex] ?? null;
+        const entry = entries[rowIndex];
         if (entry) {
-            setModalState([entry, rowIndex]);
+            setModalKey(entry.key);
         }
     }, [entries]);
 
