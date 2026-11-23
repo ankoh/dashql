@@ -29,6 +29,7 @@ pub mod sql_literal;
 pub mod table_parameters;
 pub mod touched_relations;
 pub mod utils;
+mod vis_args;
 pub mod vis_highlight;
 pub mod vis_rewrite;
 mod vis_text;

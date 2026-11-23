@@ -104,8 +104,8 @@ Charts:
 - A KPI card shows one key figure large, like the figures in a row on top of a dashboard: one script per figure. Its
   query returns the figure over time, ordered by time, one row per day, week or month. The card shows the value of
   the last row, its change against the row before (delta=previous, first or none), and the rows as a chart behind it.
-  value= and x= name the columns, by default the last column is the value and the first one the x axis. A query of
-  one row shows just the value. Put the KPI cards of a request on top of the dashboard with @board row=0:
+  value= and x= name the columns like SQL does, "Total Revenue" in double quotes; by default the last column is the
+  value and the first one the x axis. A query of one row shows just the value. Put the KPI cards of a request on top of the dashboard with @board row=0:
 
     /**
      * Revenue

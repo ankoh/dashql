@@ -83,9 +83,9 @@ formatter-snapshots:
   - name: kpi_tag_args
     input: |-
       -- Revenue
-      /* @vis kpi   value=revenue    x=day
-         @board width=3 */
-      select day, revenue from t
+      /* @vis kpi   value = "Total  Revenue"    x=day
+         @board width = 3 */
+      select day, revenue as "Total  Revenue" from t
     dialects:
       hyper:
         formatted:

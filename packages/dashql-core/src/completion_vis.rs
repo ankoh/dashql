@@ -3,8 +3,8 @@
 //! - `@` at the start of a comment line completes the tag names.
 //! - `@vis ` completes the kinds, `@board ` and `@flow ` their args, like the `@vis board ` and `@vis flow ` of
 //!   older scripts.
-//! - `@vis kpi ` completes its args, the values of `value=` and `x=` are the output columns of the query, those of
-//!   `delta=` its kinds of change.
+//! - `@vis kpi ` completes its args, the values of `value=` and `x=` are the output columns of the query, quoted if
+//!   they need it, those of `delta=` its kinds of change. The args are read like `vis_args` reads them.
 //! - In the JSON of `@vis vegalite`, a tolerant scanner finds the key path at the cursor and whether a
 //!   key or a value follows, also in JSON that is not complete yet. Keys come from a table per path,
 //!   values from the Vega-Lite enums and, for `field`, from the output columns of the query.
@@ -14,6 +14,8 @@
 
 use crate::analyzer::{statement_output_columns, KpiDelta};
 use crate::completion::{Candidate, CandidateTags, Completion, Score};
+use crate::utils::quote_identifier;
+use crate::vis_args::{arg_at, scan_args, ArgCursor};
 use crate::vis_text::{JsonScanner, JsonSlot, JsonTokenKind, PathItem, TagText};
 use dashql_buffers::completion::CandidateTag;
 use dashql_buffers::parser::{CommentBlockType, SymbolSpan};
@@ -569,49 +571,40 @@ fn complete_vis_tag(completion: &Completion, parsed: &ParsedScript, offset: usiz
             if at > first_line_end {
                 return None;
             }
-            let arg_begin = text.get(..at)?.iter().rposition(|c| c.is_ascii_whitespace()).map_or(0, |n| n + 1);
-            let typed = text.get(arg_begin..at)?;
-            if let Some(eq) = typed.iter().position(|&c| c == b'=') {
-                // The values of the args of a KPI card are names, those of the placements numbers
-                if kind != b"kpi" {
-                    return None;
+            let line = std::str::from_utf8(text.get(kind_end..first_line_end)?).ok()?;
+            match arg_at(line, at.checked_sub(kind_end)?) {
+                ArgCursor::Value { key, range } => {
+                    // The values of the args of a KPI card are names, those of the placements numbers
+                    if kind != b"kpi" {
+                        return None;
+                    }
+                    let (begin, end) = (kind_end + range.start, kind_end + range.end);
+                    let typed = text.get(begin..at)?;
+                    let mut candidates = Candidates::new(span(begin, end), typed.strip_prefix(b"\"").unwrap_or(typed));
+                    match key.as_str() {
+                        "value" | "x" => {
+                            for column in columns().unwrap_or_default() {
+                                candidates.add(&column, quote_identifier(&column));
+                            }
+                        }
+                        "delta" => candidates.add_all(KpiDelta::NAMES, false),
+                        _ => return None,
+                    }
+                    Some(candidates.finish(k))
                 }
-                let value_begin = arg_begin + eq + 1;
-                let mut value_end = at;
-                while value_end < first_line_end && text.get(value_end).is_some_and(|c| !c.is_ascii_whitespace()) {
-                    value_end += 1;
-                }
-                let mut candidates = Candidates::new(span(value_begin, value_end), text.get(value_begin..at)?);
-                match typed.get(..eq)? {
-                    b"value" | b"x" => {
-                        for column in columns().unwrap_or_default() {
-                            candidates.add(&column, column.to_string());
+                ArgCursor::Key { range, has_equals } => {
+                    let (begin, end) = (kind_end + range.start, kind_end + range.end);
+                    let used: Vec<String> = scan_args(line, "").args.into_iter().map(|arg| arg.key).collect();
+                    let arg_text = text.get(begin..end)?;
+                    let mut candidates = Candidates::new(span(begin, end), text.get(begin..at)?);
+                    for &arg in args {
+                        if !used.iter().any(|used| used == arg) || arg_text.starts_with(arg.as_bytes()) {
+                            candidates.add(arg, if has_equals { arg.to_string() } else { format!("{arg}=") });
                         }
                     }
-                    b"delta" => candidates.add_all(KpiDelta::NAMES, false),
-                    _ => return None,
-                }
-                return Some(candidates.finish(k));
-            }
-            let mut arg_end = at;
-            while arg_end < first_line_end && text.get(arg_end).is_some_and(|&c| !c.is_ascii_whitespace() && c != b'=')
-            {
-                arg_end += 1;
-            }
-            let has_equals = text.get(arg_end) == Some(&b'=');
-            let used: Vec<&[u8]> = text
-                .get(kind_end..first_line_end)?
-                .split(|c| c.is_ascii_whitespace())
-                .filter_map(|arg| arg.iter().position(|&c| c == b'=').and_then(|eq| arg.get(..eq)))
-                .collect();
-            let arg_text = text.get(arg_begin..arg_end)?;
-            let mut candidates = Candidates::new(span(arg_begin, arg_end), typed);
-            for &arg in args {
-                if !used.contains(&arg.as_bytes()) || arg_text.starts_with(arg.as_bytes()) {
-                    candidates.add(arg, if has_equals { arg.to_string() } else { format!("{arg}=") });
+                    Some(candidates.finish(k))
                 }
             }
-            Some(candidates.finish(k))
         }
         b"vegalite" => {
             let context = scan_json(text.get(kind_end..at)?)?;

@@ -348,6 +348,19 @@ completion-snapshots:
         index: 3
     completions:
       limit: 3
+  # A column that needs quotes is completed quoted, also inside an open quote
+  - name: vis_kpi_quoted_column
+    catalog: {}
+    editor:
+      input: |
+        /* @vis kpi value="To */
+        select 1 as "Total Revenue", 2 as tax
+    cursor:
+      search:
+        text: '"To'
+        index: 3
+    completions:
+      limit: 3
   # The kinds of change of a KPI card
   - name: vis_kpi_delta
     catalog: {}

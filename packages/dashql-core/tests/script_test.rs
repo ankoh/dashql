@@ -626,6 +626,12 @@ fn rewrite_vis_tags_check_the_statement() {
     assert!(VisRenderer::from_parts("markdown", " ").is_err());
     assert!(VisRenderer::from_parts("chart", "").is_err());
     assert!(VisRenderer::from_parts("kpi", "").is_ok());
+    // The args of a KPI card are read like SQL, a quoted name keeps its spaces
+    assert_eq!(
+        VisRenderer::from_parts("kpi", r#" value = "Total  Revenue"   x=day "#).unwrap(),
+        VisRenderer::Kpi(r#"value="Total  Revenue" x=day"#.to_string())
+    );
+    assert!(VisRenderer::from_parts("kpi", "width:3").is_err());
     // An unparsed script is parsed if requested
     let catalog = Catalog::new();
     let mut script = Script::new(&catalog);

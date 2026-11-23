@@ -3,12 +3,13 @@
 //! Every tag, `@vis`, `@board`, `@flow`, `@param` and the `@end` that older scripts close a region
 //! of line comments with, is a keyword, so the tags of an annotation read alike. The JSON of `@vis vegalite` is split
 //! into its tokens: keys are identifiers, strings, numbers and booleans are literals. In a `@vis` tag, the kind is a
-//! keyword and `{{field}}` placeholders of Markdown templates are identifiers. The keys of the args of `@board` and
-//! `@flow` (and of `@vis board` and `@vis flow` of older scripts) are identifiers. The rest of the comment stays a
-//! comment, e.g. the value of a `@param`.
+//! keyword and `{{field}}` placeholders of Markdown templates are identifiers. The keys of the args of `@board`,
+//! `@flow` and `@vis kpi` (and of `@vis board` and `@vis flow` of older scripts) are identifiers, their values
+//! literals, read like `vis_args` reads them. The rest of the comment stays a comment, e.g. the value of a `@param`.
 //!
 //! The JSON objects of `vegalite` tags are found with the tokens, editors fold them.
 
+use crate::vis_args::{scan_args, ArgValue};
 use crate::vis_text::{JsonScanner, JsonSlot, JsonTokenKind, TagText};
 use dashql_buffers::parser::{CommentBlockType, ScannerTokenType};
 use dashql_parser::comment_blocks::{COMMENT_TAG_END, COMMENT_TAG_PREFIX};
@@ -35,27 +36,20 @@ impl Lines<'_> {
         }
     }
 
-    /// The `key=value` args of a board placement
+    /// The `key=value` args of a tag (see `vis_args`): the keys are identifiers, the values literals, a name like a
+    /// string
     fn args(&mut self, begin: usize, end: usize) {
-        self.args_of(begin, end, ScannerTokenType::LITERAL_INTEGER);
-    }
-
-    /// The `key=value` args of a tag whose values are names, e.g. the columns of `@vis kpi`
-    fn name_args(&mut self, begin: usize, end: usize) {
-        self.args_of(begin, end, ScannerTokenType::LITERAL_STRING);
-    }
-
-    /// The `key=value` args of a tag, the keys are identifiers, the values tokens of a type
-    fn args_of(&mut self, begin: usize, end: usize, value: ScannerTokenType) {
         // A span outside of the script has no args
-        let Some(text) = self.script.get(begin..end) else { return };
-        let mut arg_begin = begin;
-        for arg in text.split(u8::is_ascii_whitespace) {
-            if let Some(eq) = arg.iter().position(|&c| c == b'=') {
-                self.push(arg_begin, arg_begin + eq, ScannerTokenType::IDENTIFIER);
-                self.push(arg_begin + eq + 1, arg_begin + arg.len(), value);
-            }
-            arg_begin += arg.len() + 1;
+        let Some(text) = self.script.get(begin..end).and_then(|text| std::str::from_utf8(text).ok()) else { return };
+        for arg in scan_args(text, "").args {
+            self.push(begin + arg.key_range.start, begin + arg.key_range.end, ScannerTokenType::IDENTIFIER);
+            let token = match &arg.value {
+                ArgValue::Number(number) if number.contains(['.', 'e', 'E']) => ScannerTokenType::LITERAL_FLOAT,
+                ArgValue::Number(_) => ScannerTokenType::LITERAL_INTEGER,
+                ArgValue::Name(_) | ArgValue::String(_) => ScannerTokenType::LITERAL_STRING,
+                ArgValue::Missing | ArgValue::Invalid => continue,
+            };
+            self.push(begin + arg.value_range.start, begin + arg.value_range.end, token);
         }
     }
 
@@ -194,7 +188,7 @@ fn tag_tokens(parsed: &ParsedScript) -> (Vec<(TextSpan, ScannerTokenType)>, Vec<
             let end = line.end() as usize;
             match kind {
                 b"board" | b"card" | b"flow" if i == 0 => lines.args(begin, end),
-                b"kpi" if i == 0 => lines.name_args(begin, end),
+                b"kpi" if i == 0 => lines.args(begin, end),
                 b"markdown" => lines.placeholders(begin, end),
                 _ => {}
             }
@@ -298,9 +292,9 @@ mod tests {
     #[test]
     fn highlights_the_args_of_a_kpi_card() {
         use ScannerTokenType as T;
-        // The keys are identifiers, the column names and the kind of change strings
+        // The keys are identifiers, the column names and the kind of change literals, a quoted name as a whole
         assert_eq!(
-            spans("/* @vis kpi value=total delta=none */ select 1 as total"),
+            spans("/* @vis kpi value = \"Total revenue\" delta=none */ select 1 as \"Total revenue\""),
             vec![
                 ("/* ", T::COMMENT),
                 ("@vis", T::KEYWORD),
@@ -308,8 +302,8 @@ mod tests {
                 ("kpi", T::KEYWORD),
                 (" ", T::COMMENT),
                 ("value", T::IDENTIFIER),
-                ("=", T::COMMENT),
-                ("total", T::LITERAL_STRING),
+                (" = ", T::COMMENT),
+                ("\"Total revenue\"", T::LITERAL_STRING),
                 (" ", T::COMMENT),
                 ("delta", T::IDENTIFIER),
                 ("=", T::COMMENT),

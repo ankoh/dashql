@@ -23,6 +23,7 @@
 use super::state::AnalysisState;
 use super::types::*;
 use super::AnalyzedScript;
+use crate::vis_args::{scan_args, ArgValue};
 use crate::vis_text::{JsonScanner, JsonSlot, TagText};
 use dashql_buffers::analyzer::{AnalyzerErrorSeverity, AnalyzerErrorType};
 use dashql_buffers::parser::{CommentBlockType, StatementType};
@@ -223,30 +224,51 @@ impl StatementTags {
 
     /// Read the args of `@vis kpi`: the columns `value` and `x`, each a name of an output column, and the `delta`
     fn read_kpi(&mut self, state: &mut AnalysisState, tag: &TagText, args: usize, columns: Option<&HashSet<String>>) {
-        let [value, x, delta] = read_arg_texts(state, tag, args, "vis kpi", ["value", "x", "delta"]);
-        let mut column = |state: &mut AnalysisState, arg: Option<(&str, TextSpan)>| {
-            let (name, span) = arg?;
-            if name.is_empty() {
-                warn(state, span, "@vis kpi needs a column name after =".into());
-                return None;
+        let [value, x, delta] = read_arg_values(state, tag, args, "vis kpi", ["value", "x", "delta"]);
+        let column = |state: &mut AnalysisState, arg: Option<(ArgValue, TextSpan)>, key: &str| {
+            let (value, span) = arg?;
+            match value {
+                ArgValue::Name(name) => {
+                    if let Some(columns) = columns.filter(|columns| !columns.contains(&name)) {
+                        warn(state, span, unknown_column_message("column", &name, columns));
+                    }
+                    Some(name)
+                }
+                ArgValue::Missing => {
+                    warn(state, span, "@vis kpi needs a column name after =".into());
+                    None
+                }
+                ArgValue::String(_) | ArgValue::Number(_) => {
+                    warn(
+                        state,
+                        span,
+                        format!("@vis kpi {key} takes a column name, a name with spaces in double quotes"),
+                    );
+                    None
+                }
+                // The scanner reported it
+                ArgValue::Invalid => None,
             }
-            if let Some(columns) = columns.filter(|columns| !columns.contains(name)) {
-                warn(state, span, unknown_column_message("column", name, columns));
-            }
-            Some(name.to_string())
         };
-        let value = column(state, value);
-        let x = column(state, x);
+        let value = column(state, value, "value");
+        let x = column(state, x, "x");
         let delta = match delta {
-            None => KpiDelta::default(),
-            Some((name, span)) => KpiDelta::from_name(name).unwrap_or_else(|| {
+            None | Some((ArgValue::Invalid, _)) => KpiDelta::default(),
+            Some((ArgValue::Name(name), _)) if KpiDelta::from_name(&name).is_some() => {
+                KpiDelta::from_name(&name).unwrap_or_default()
+            }
+            Some((value, span)) => {
+                let written = match value {
+                    ArgValue::Name(text) | ArgValue::String(text) | ArgValue::Number(text) => text,
+                    _ => String::new(),
+                };
                 warn(
                     state,
                     span,
-                    format!("unknown @vis kpi delta \"{name}\", expected {}", KpiDelta::NAMES.join(", ")),
+                    format!("unknown @vis kpi delta \"{written}\", expected {}", KpiDelta::NAMES.join(", ")),
                 );
                 KpiDelta::default()
-            }),
+            }
         };
         self.kpi = Some(KpiSpec { value, x, delta });
     }
@@ -273,53 +295,58 @@ fn read_args<const N: usize>(
     kind: &str,
     keys: [&str; N],
 ) -> [Option<(i64, TextSpan)>; N] {
-    let texts = read_arg_texts(state, tag, args, kind, keys);
+    let texts = read_arg_values(state, tag, args, kind, keys);
     let mut values = [None; N];
-    for ((value, text), key) in values.iter_mut().zip(texts).zip(keys) {
-        let Some((text, span)) = text else { continue };
-        match text.parse::<i64>() {
-            Ok(parsed) => *value = Some((parsed, span)),
-            Err(_) => warn(state, span, format!("@{kind} {key} must be an integer")),
+    for ((value, arg), key) in values.iter_mut().zip(texts).zip(keys) {
+        let Some((arg, span)) = arg else { continue };
+        match arg {
+            ArgValue::Number(number) if number.parse::<i64>().is_ok() => {
+                *value = number.parse().ok().map(|n| (n, span))
+            }
+            // The scanner reported it
+            ArgValue::Invalid => {}
+            _ => warn(state, span, format!("@{kind} {key} must be an integer")),
         }
     }
     values
 }
 
-/// Read the `key=value` args of a tag, the text of the value of every key of `keys` with the span of its arg. The
-/// first arg of a key wins.
-fn read_arg_texts<'t, const N: usize>(
+/// Read the `key=value` args of a tag (see `vis_args`), the value of every key of `keys` with the span of its arg.
+/// The first arg of a key wins.
+fn read_arg_values<const N: usize>(
     state: &mut AnalysisState,
-    tag: &'t TagText,
+    tag: &TagText,
     args: usize,
     kind: &str,
     keys: [&str; N],
-) -> [Option<(&'t str, TextSpan)>; N] {
-    let mut values = [None; N];
-    let mut at = args;
-    while at < tag.text.len() {
-        let (begin, end, next) = split_word(&tag.text, at);
-        if begin == end {
-            break;
-        }
-        at = next;
-        let arg = tag.text.get(begin..end).unwrap_or("");
-        let span = tag.span(begin, end);
-        let Some((key, value)) = arg.split_once('=') else {
-            warn(state, span, format!("@{kind} takes key=value args, not \"{arg}\""));
-            continue;
-        };
-        let Some(slot) = keys.iter().position(|k| *k == key) else {
+) -> [Option<(ArgValue, TextSpan)>; N] {
+    let mut values = std::array::from_fn(|_| None);
+    let scanned = scan_args(tag.text.get(args..).unwrap_or(""), kind);
+    // The warnings in the order of the text
+    let mut warnings: Vec<(usize, usize, String)> =
+        scanned.problems.into_iter().map(|(r, m)| (r.start, r.end, m)).collect();
+    for arg in scanned.args {
+        let range = arg.range();
+        let Some(slot) = keys.iter().position(|k| *k == arg.key) else {
             let expected = match keys.split_last() {
                 Some((last, [])) => last.to_string(),
                 Some((last, rest)) => format!("{} or {last}", rest.join(", ")),
                 None => String::new(),
             };
-            warn(state, span, format!("unknown @{kind} arg \"{key}\", expected {expected}"));
+            warnings.push((
+                range.start,
+                range.end,
+                format!("unknown @{kind} arg \"{}\", expected {expected}", arg.key),
+            ));
             continue;
         };
-        if let Some(v) = values.get_mut(slot) {
-            *v = Some((value, span));
+        if let Some(v) = values.get_mut(slot).filter(|v| v.is_none()) {
+            *v = Some((arg.value, tag.span(args + range.start, args + range.end)));
         }
+    }
+    warnings.sort_by_key(|(begin, _, _)| *begin);
+    for (begin, end, message) in warnings {
+        warn(state, tag.span(args + begin, args + end), message);
     }
     values
 }

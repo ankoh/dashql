@@ -1713,3 +1713,195 @@ analyzer-snapshots:
             value: revenue
             x: day
             delta: previous
+
+  - name: vis_tag_args_quoted
+    catalog:
+      script:
+        input: |-
+          create table sales (region text, revenue int, date timestamp);
+        catalog-id: 1
+        tables:
+          - catalog-id: "256.65536.4294967296"
+            name: sales
+            text: "create tab..timestamp)"
+            columns:
+              - catalog-id: "256.65536.4294967296.0"
+                name: region
+                text: "region text"
+              - catalog-id: "256.65536.4294967296.1"
+                name: revenue
+                text: "revenue int"
+              - catalog-id: "256.65536.4294967296.2"
+                name: date
+                text: "date timestamp"
+        touched-relations:
+          - statement-id: 0
+            name: sales
+        errors: []
+    script:
+      input: |
+        /* @vis kpi value = "Total Revenue" x=DATE */
+        select date, sum(revenue) as "Total Revenue" from sales group by date order by date;
+        /* @vis kpi value='total' x=date delta */
+        select date, sum(revenue) as total from sales group by date;
+        /* @vis kpi value="Total
+           @board row = 1 width=-2 */
+        select sum(revenue) as total from sales;
+      catalog-id: 2
+      errors:
+        - type: INVALID_VIS_TAG
+          severity: WARNING
+          message: '@vis kpi takes key=value args, not "delta"'
+          text: "delta"
+        - type: INVALID_VIS_TAG
+          severity: WARNING
+          message: '@vis kpi value takes a column name, a name with spaces in double quotes'
+          text: "value='total'"
+        - type: INVALID_VIS_TAG
+          severity: WARNING
+          message: '@vis kpi has an unterminated delimited identifier'
+          text: "\"Total"
+        - type: INVALID_DASHBOARD_LAYOUT
+          severity: WARNING
+          message: dashboard width was clamped to the range 1..12
+          text: "width=-2"
+      table-refs:
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
+          text: "sales"
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 1
+          text: "sales"
+        - type: name/catalog
+          catalog-id: "256.65536.4294967296"
+          statement-id: 2
+          text: "sales"
+      expressions:
+        - expression-idx: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.2"
+          source: "sales"
+          statement-id: 0
+          text: "date"
+        - expression-idx: 1
+          type: colref/catalog
+          catalog: "256.65536.4294967296.1"
+          source: "sales"
+          statement-id: 0
+          text: "revenue"
+        - expression-idx: 2
+          type: colref/catalog
+          catalog: "256.65536.4294967296.2"
+          source: "sales"
+          statement-id: 0
+          text: "date"
+        - expression-idx: 3
+          type: colref/catalog
+          catalog: "256.65536.4294967296.2"
+          statement-id: 0
+          text: "date"
+        - expression-idx: 4
+          type: colref/catalog
+          catalog: "256.65536.4294967296.2"
+          source: "sales"
+          statement-id: 1
+          text: "date"
+        - expression-idx: 5
+          type: colref/catalog
+          catalog: "256.65536.4294967296.1"
+          source: "sales"
+          statement-id: 1
+          text: "revenue"
+        - expression-idx: 6
+          type: colref/catalog
+          catalog: "256.65536.4294967296.2"
+          source: "sales"
+          statement-id: 1
+          text: "date"
+        - expression-idx: 7
+          type: colref/catalog
+          catalog: "256.65536.4294967296.1"
+          source: "sales"
+          statement-id: 2
+          text: "revenue"
+        - expression-idx: 8
+          type: function
+          name: sum
+          text: "sum(revenue)"
+        - expression-idx: 9
+          type: function
+          name: sum
+          text: "sum(revenue)"
+        - expression-idx: 10
+          type: function
+          name: sum
+          statement-id: 2
+          text: "sum(revenue)"
+      name-scopes:
+        - scope-id: 0
+          sources:
+            - type: table
+              name: sales
+              text: "sales"
+          columns:
+            - name: date
+              expression: 0
+            - name: Total Revenue
+              expression: 8
+          text: "select dat..er by date"
+        - scope-id: 1
+          sources:
+            - type: table
+              name: sales
+              text: "sales"
+          columns:
+            - name: date
+              expression: 4
+            - name: total
+              expression: 9
+          text: "select dat..up by date"
+        - scope-id: 2
+          sources:
+            - type: table
+              name: sales
+              text: "sales"
+          columns:
+            - name: total
+              expression: 10
+          text: "select sum..from sales"
+      visualizations:
+        - statement-id: 0
+          source: "select dat..er by date"
+          renderer: kpi
+          dashboard:
+            width: 3
+            height: 3
+          kpi:
+            value: Total Revenue
+            x: date
+            delta: previous
+        - statement-id: 1
+          source: "select dat..up by date"
+          renderer: kpi
+          dashboard:
+            width: 3
+            height: 3
+          kpi:
+            x: date
+            delta: previous
+        - statement-id: 2
+          source: "select sum..from sales"
+          renderer: kpi
+          dashboard:
+            row: 1
+            width: 1
+            height: 3
+          kpi:
+            delta: previous
+      board:
+        statement-id: 2
+        row: 1
+        width: 1
+        height: 3

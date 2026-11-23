@@ -35,7 +35,7 @@ pub enum VisRenderer {
     VegaLite(Map<String, Value>),
     /// A Markdown row template
     Markdown(String),
-    /// A KPI card with its `key=value` args, separated by single spaces
+    /// A KPI card with its `key=value` args (see `vis_args`), separated by single spaces
     Kpi(String),
     /// The result table
     Table,
@@ -55,7 +55,15 @@ impl VisRenderer {
             }
             "markdown" => Ok(VisRenderer::Markdown(body.to_string())),
             // The args stay on the line of the tag
-            "kpi" => Ok(VisRenderer::Kpi(body.split_whitespace().collect::<Vec<_>>().join(" "))),
+            "kpi" => match crate::vis_args::normalize_args(body) {
+                Some(args) => Ok(VisRenderer::Kpi(args)),
+                None => {
+                    let problems = crate::vis_args::scan_args(body, "vis kpi").problems;
+                    let message =
+                        problems.into_iter().next().map_or_else(|| "invalid @vis kpi args".to_string(), |(_, m)| m);
+                    Err(Error::invalid_argument(message))
+                }
+            },
             "table" => Ok(VisRenderer::Table),
             _ => Err(Error::invalid_argument(format!("unknown @vis renderer \"{kind}\""))),
         }

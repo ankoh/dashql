@@ -40,6 +40,21 @@ their line, the lines after them are ordinary text.
 Older scripts write `@vis board` (or `@vis card`) and `@vis flow`. They are read like `@board` and `@flow`, and
 the rewrites and the formatter write them as `@board` and `@flow`.
 
+### Args
+
+The `key=value` args of `@vis kpi`, `@board` and `@flow` are read with the SQL scanner of DashQL (`vis_args.rs`), so
+a value is written like in SQL: a name (`revenue`), a quoted name (`"Total Revenue"`), a string in single quotes
+(`'Monthly revenue'`, `''` for a quote) or a number with an optional sign (`-120`). Unquoted names fold to lowercase
+like in a query, a quoted name keeps its case and its spaces, so `value="Total Revenue"` names the column of
+`as "Total Revenue"`. A key is a word, the args are separated by whitespace, and whitespace around `=` is allowed
+(`row = 1`), like in `@param :min = 10`. A word that a `=` follows is the next key, so `value= x=day` has no value.
+Text without a `=`, a quote without its end and an unknown key are warnings, the first arg of a key wins.
+
+The analyzer, the highlighting, the completion, the formatter and the rewrites read args with the same scanner, so
+they agree on where an arg begins and ends. `=` and not `=>` or `:`, because the tags are annotations, where
+`key=value` is the norm (Malloy tags, sqlcommenter, dbt `config`), `=>` is SQL syntax that the old `VISUALIZE`
+clause used (see Why comments), and `:` starts the references and parameters of DashQL (`:orders`, `:min`).
+
 ```sql
 /**
  * Revenue per region.
@@ -88,8 +103,8 @@ SELECT day, sum(revenue) AS revenue FROM sales GROUP BY day ORDER BY day;
 ```
 
 - `value` is the column of the value, the last column of the result without it. `x` is the column of the x axis of
-  the chart, without it the first column, unless that is the value. A column is a name of one word, a column whose
-  name has spaces gets an alias in the query.
+  the chart, without it the first column, unless that is the value. A column is a name, quoted if it has spaces or
+  capitals (see Args); a string or a number is a warning.
 - The value is the one of the last row in the order of the result, so a query orders its rows. A number is written
   compactly from ten thousand on (`1.24M`), any other value as the table shows it.
 - `delta` is the change next to the value, in percent: `previous` (the default) against the row before the last one,
@@ -267,7 +282,8 @@ Completion works inside comments (`completion_vis.rs`), although the rest of the
 
 - `@` at the start of a comment line completes the tag names, `@vis ` the kinds, `@board `, `@flow ` and
   `@vis kpi ` the args that are not used yet. The values of `value=` and `x=` of a KPI card are the output
-  columns of the query, those of `delta=` its kinds of change.
+  columns of the query, quoted if they need it, also in a quote that is still typed (`value="To`), those of
+  `delta=` its kinds of change.
 - In the JSON of `vegalite`, a tolerant scanner (`vis_text.rs`) finds the key path at the cursor and whether
   a key or a value follows, also in JSON that is still typed. Keys come from a table per path (spec, mark,
   encoding channels, field definition, scale, axis, legend; nested `layer` and `spec` specs are specs),
@@ -285,8 +301,8 @@ The editor highlights comment tags like code (`vis_highlight.rs`), so the tags o
 alike: every tag (`@vis`, `@board`, `@flow`, `@param` and an `@end` of older scripts) is a
 keyword, the JSON of `vegalite` is split into keys (identifiers) and strings, numbers and booleans (literals),
 the kind of a `@vis` tag is a keyword, the keys of the args of `@board`, `@flow` and `@vis kpi` and `{{field}}`
-placeholders are identifiers, the values of the args of a KPI card strings. The comment markers of every tagged region step back. Other editors show the tags as plain
-comments.
+placeholders are identifiers, the values of args literals: numbers as numbers, names and strings as strings. The
+comment markers of every tagged region step back. Other editors show the tags as plain comments.
 
 Highlighting, completion and the spans of analyzer warnings read the JSON of `vegalite` tags with the same
 scanner (`vis_text.rs`) over the content lines of the tag joined into one text. It never fails: unclosed
@@ -305,8 +321,9 @@ comments are the description on top, printed as written, and an empty line separ
 tagged comments that follow each other with nothing but whitespace between them (block comments and tagged regions
 of line comments) are merged into one, and ordinary comments between them keep them apart.
 
-`@vis table`, `@vis kpi`, `@board` and `@flow` tags are printed on one line, the `@vis board` and `@vis flow` of older scripts
-as `@board` and `@flow`, the JSON of `vegalite` compactly with the key order kept (`compact_json.rs`),
+`@vis table`, `@vis kpi`, `@board` and `@flow` tags are printed on one line with their args as written, each
+`key=value` without whitespace around the `=` and separated by single spaces (args with warnings stay as written), the
+`@vis board` and `@vis flow` of older scripts as `@board` and `@flow`, the JSON of `vegalite` compactly with the key order kept (`compact_json.rs`),
 Markdown and the values of `@param` verbatim. A JSON value that fits in the rest of
 its line stays on one line, objects and arrays that don't fit put each entry on a line of its own with
 2-space indentation, so a spec reads like the Vega editor prints it instead of one key per line. The

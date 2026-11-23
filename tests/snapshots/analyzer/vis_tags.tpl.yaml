@@ -296,3 +296,20 @@ analyzer-snapshots:
         select sum(revenue) as total from sales;
         /* @vis kpi value=revenue x=day delta=last */
         select date, sum(revenue) as total from sales group by date;
+
+  # Args are read like SQL: names fold to lowercase, a quoted name keeps its case and spaces, whitespace around = is
+  # allowed. A string is no column name, a quote without its end and text without = are warnings.
+  - name: vis_tag_args_quoted
+    catalog:
+      script:
+        input: |-
+          create table sales (region text, revenue int, date timestamp);
+    script:
+      input: |
+        /* @vis kpi value = "Total Revenue" x=DATE */
+        select date, sum(revenue) as "Total Revenue" from sales group by date order by date;
+        /* @vis kpi value='total' x=date delta */
+        select date, sum(revenue) as total from sales group by date;
+        /* @vis kpi value="Total
+           @board row = 1 width=-2 */
+        select sum(revenue) as total from sales;

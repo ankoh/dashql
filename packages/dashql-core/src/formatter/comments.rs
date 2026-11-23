@@ -233,18 +233,21 @@ fn vis_tag_lines(lines: &[String], max_width: usize) -> Vec<String> {
             std::iter::once(kind.to_string()).chain(compact.lines().map(str::to_string)).collect()
         }
         "table" | "kpi" => {
-            // Args are separated by single spaces
-            let header = std::iter::once(kind).chain(rest.split_whitespace()).collect::<Vec<_>>().join(" ");
+            // Args are separated by single spaces, args with problems stay as written
+            let args = crate::vis_args::normalize_args(rest).unwrap_or_else(|| rest.to_string());
+            let header = if args.is_empty() { kind.to_string() } else { format!("{kind} {args}") };
             std::iter::once(header).chain(body.iter().cloned()).collect()
         }
         _ => lines.to_vec(),
     }
 }
 
-/// The canonical content lines of a `@board` or `@flow` tag: its args, separated by single spaces
+/// The canonical content lines of a `@board` or `@flow` tag: its args, separated by single spaces, args with problems
+/// stay as written
 fn args_tag_lines(lines: &[String]) -> Vec<String> {
     let Some((header, body)) = lines.split_first() else { return Vec::new() };
-    std::iter::once(header.split_whitespace().collect::<Vec<_>>().join(" ")).chain(body.iter().cloned()).collect()
+    let args = crate::vis_args::normalize_args(header).unwrap_or_else(|| header.trim().to_string());
+    std::iter::once(args).chain(body.iter().cloned()).collect()
 }
 
 /// The `@board` or `@flow` tag of the `@vis board`, `@vis card` or `@vis flow` of an older script, with its args
