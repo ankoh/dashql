@@ -272,6 +272,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
                         }
                     },
                     previewResult: (queryId, limit) => runtime.previewResult(queryId, limit),
+                    releaseResult,
                 }),
                 autoQualifyNonDefaultDatabaseTables: true,
                 commands,
@@ -339,7 +340,7 @@ export const ShellPage: React.FC<ShellPageProps> = (props: ShellPageProps) => {
             // The connection stops after the shell, its channel closes the session
             void (fileRegistry?.dispose() ?? Promise.resolve()).finally(() => session?.close());
         };
-    }, [appEvents, runtime, filesCommand, setupCore, formatDialog, httpClient, hyperDBSupportError, logger, loginDialog, planDialog, platformType, onEngineVersion, shellHistory, reopenResultQuery, setupEmbeddedDatabase, shareDialog, showResultQuery, snippetsDialog]);
+    }, [appEvents, runtime, filesCommand, setupCore, formatDialog, httpClient, hyperDBSupportError, logger, loginDialog, planDialog, platformType, onEngineVersion, shellHistory, releaseResult, reopenResultQuery, setupEmbeddedDatabase, shareDialog, showResultQuery, snippetsDialog]);
 
     if (hyperDBSupportError != null) {
         return (

@@ -834,10 +834,15 @@ describe('DashQL shell output', () => {
     }
 
     /// An environment whose queries report a result of `rowCount` rows as query 7
-    function environmentWithResult(rowCount: number, previewResult?: DashQLShellEnvironment['previewResult']): DashQLShellEnvironment {
+    function environmentWithResult(
+        rowCount: number,
+        previewResult?: DashQLShellEnvironment['previewResult'],
+        releaseResult?: DashQLShellEnvironment['releaseResult'],
+    ): DashQLShellEnvironment {
         return {
             executeQuery: async (_query, _signal, _onProgress, onResult) => { onResult?.(7, rowCount); },
             previewResult,
+            releaseResult,
         };
     }
 
@@ -894,6 +899,53 @@ describe('DashQL shell output', () => {
         await expect(shell.executeQuery('SELECT 1', undefined, undefined, onResult))
             .resolves.toBe('Query completed (2 rows), no table in the terminal: no data frame\r\n');
         expect(onResult).toHaveBeenCalledWith(7, 2, false);
+        shell.destroy();
+    });
+
+    it('releases the result of a statement that was cancelled while the terminal read its rows', async () => {
+        let finishReading = (_rows: Uint8Array) => { };
+        const preview = vi.fn(() => new Promise<Uint8Array>(resolve => { finishReading = resolve; }));
+        const release = vi.fn();
+        const shell = await createShell(environmentWithResult(2, preview, release));
+        shell.setPrompt('.output table');
+        await shell.submitPrompt();
+        const abort = new AbortController();
+        const onResult = vi.fn();
+        shell.setPrompt('SELECT 1;');
+        const run = shell.submitPrompt(abort.signal, undefined, onResult);
+        await vi.waitFor(() => expect(preview).toHaveBeenCalled());
+        abort.abort();
+        await expect(run).resolves.toBe('Cancelled');
+        finishReading(previewRows);
+        await vi.waitFor(() => expect(release).toHaveBeenCalledWith(7));
+        expect(onResult).not.toHaveBeenCalled();
+        shell.destroy();
+    });
+
+    it('releases a result that the environment reported for a cancelled statement', async () => {
+        const release = vi.fn();
+        const abort = new AbortController();
+        const shell = await createShell({
+            executeQuery: async (_query, signal, _onProgress, onResult) => {
+                onResult?.(7, 2);
+                abort.abort();
+                signal?.throwIfAborted();
+            },
+            releaseResult: release,
+        });
+        const onResult = vi.fn();
+        shell.setPrompt('SELECT 1;');
+        await expect(shell.submitPrompt(abort.signal, undefined, onResult)).resolves.toBe('Cancelled');
+        await vi.waitFor(() => expect(release).toHaveBeenCalledWith(7));
+        expect(onResult).not.toHaveBeenCalled();
+
+        // A result that the shell passes on stays
+        const passedOn = await createShell(environmentWithResult(2, undefined, release));
+        passedOn.setPrompt('SELECT 1;');
+        await passedOn.submitPrompt(undefined, undefined, onResult);
+        expect(onResult).toHaveBeenCalledWith(7, 2, false);
+        expect(release).toHaveBeenCalledTimes(1);
+        passedOn.destroy();
         shell.destroy();
     });
 

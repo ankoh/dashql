@@ -34,6 +34,9 @@ export interface DashQLShellEnvironment {
     /// The first rows of a result that `executeQuery` reported, at most `limit`, as an Arrow IPC stream. A shell whose
     /// environment has none shows every result in the overlay.
     previewResult?(queryId: number, limit: number): Promise<Uint8Array>;
+    /// Release a result that `executeQuery` reported and the shell did not pass on, e.g. of a statement that was
+    /// cancelled before the shell showed its result
+    releaseResult?(queryId: number): void;
 }
 
 /// Where a shell shows the results of its queries: in the result overlay of the page, or as a table in the terminal
@@ -547,15 +550,24 @@ export class DashQLShell {
             Promise.resolve()
                 .then(async () => {
                     if (effect.type === DashQLShellEffectType.EXECUTE_QUERY) {
-                        let result: { queryId: number; rowCount: number } | null = null;
-                        await this.environment.executeQuery(
-                            effectInput,
-                            signal,
-                            onProgress,
-                            (queryId, rowCount) => { result = { queryId, rowCount }; },
-                            onTiming,
-                        );
-                        return await this.encodeQueryResult(result, signal, onResult);
+                        let result = null as { queryId: number; rowCount: number } | null;
+                        let passedOn = false;
+                        try {
+                            await this.environment.executeQuery(
+                                effectInput,
+                                signal,
+                                onProgress,
+                                (queryId, rowCount) => { result = { queryId, rowCount }; },
+                                onTiming,
+                            );
+                            return await this.encodeQueryResult(result, signal, (queryId, rowCount, inTerminal) => {
+                                passedOn = onResult != null;
+                                onResult?.(queryId, rowCount, inTerminal);
+                            });
+                        } finally {
+                            // A cancelled statement passes on no result, its result would stay with the environment
+                            if (result != null && !passedOn) this.environment.releaseResult?.(result.queryId);
+                        }
                     }
                     const command = await this.executeCommand(effectInput, signal, onProgress);
                     const output = this.textEncoder.encode(withTrailingNewline(command.output));
@@ -580,7 +592,8 @@ export class DashQLShell {
     }
 
     /// The data of a query effect: a status line, or with the output `table` the first rows of the result and a
-    /// status line. A result whose rows can't be read shows in the overlay, its status line says why.
+    /// status line. A result whose rows can't be read shows in the overlay, its status line says why. The result of a
+    /// cancelled statement is not passed on.
     protected async encodeQueryResult(
         result: { queryId: number; rowCount: number } | null,
         signal?: AbortSignal,
@@ -592,6 +605,7 @@ export class DashQLShell {
         if (this.settings.output === 'table' && this.environment.previewResult != null) {
             try {
                 const rows = await this.environment.previewResult(queryId, SHELL_PREVIEW_ROW_LIMIT);
+                signal?.throwIfAborted();
                 onResult?.(queryId, rowCount, true);
                 const hint = this.commands.has('last') ? '.last shows all' : null;
                 return this.encodeQueryPreview(formatPreviewCompletion(rowCount, SHELL_PREVIEW_ROW_LIMIT, hint), rows);

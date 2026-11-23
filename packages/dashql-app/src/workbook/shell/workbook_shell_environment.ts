@@ -43,6 +43,7 @@ export function createWorkbookShellEnvironment(
 ): DashQLShellEnvironment {
     return {
         previewResult,
+        releaseResult,
         async executeQuery(query, signal, onProgress, onResult, onTiming) {
             const reportTiming = (label: string, elapsedMs: number) => reportShellTiming(onTiming, label, elapsedMs);
             const clientFunctionCall = resolveCall(query) ?? undefined;

@@ -9,6 +9,8 @@ interface EmbeddedDatabaseShellEnvironmentOptions {
     /// The first rows of a result as an Arrow IPC stream, for the table of the terminal, see
     /// `DashQLShellEnvironment.previewResult`
     previewResult?: (queryId: number, limit: number) => Promise<Uint8Array>;
+    /// Release the computation of a result that the shell did not pass on, see `DashQLShellEnvironment.releaseResult`
+    releaseResult?: (queryId: number) => void;
 }
 
 /// The environment of a shell whose statements run with the query executor of a runtime on a connection, e.g. the
@@ -21,6 +23,7 @@ export function createEmbeddedDatabaseShellEnvironment(
 ): DashQLShellEnvironment {
     return {
         previewResult: options.previewResult,
+        releaseResult: options.releaseResult,
         executeQuery: async (query, signal, onProgress, onResult, onTiming) => {
             signal?.throwIfAborted();
             onProgress?.('Executing query');
@@ -38,9 +41,10 @@ export function createEmbeddedDatabaseShellEnvironment(
                 // A statement of many may have run, also when it failed
                 await options.afterStatement?.(query);
             }
+            // The result is analyzed now, it is reported also when the statement was cancelled meanwhile: the shell
+            // releases it then
+            if (table != null && table.numCols > 0) onResult?.(queryId, table.numRows);
             signal?.throwIfAborted();
-            if (table == null || table.numCols === 0) return;
-            onResult?.(queryId, table.numRows);
         },
     };
 }

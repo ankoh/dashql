@@ -76,6 +76,21 @@ describe('embedded database shell environment', () => {
         expect(afterStatement).toHaveBeenCalledWith('SELEC 1');
     });
 
+    it('reports a result whose statement was cancelled while the catalog followed it, the shell releases it', async () => {
+        const abort = new AbortController();
+        const { execute } = executor(async () => tableFromArrays({ value: [42] }));
+        const releaseResult = vi.fn();
+        const environment = createEmbeddedDatabaseShellEnvironment(execute, 'shell', {
+            afterStatement: async () => abort.abort(),
+            releaseResult,
+        });
+        const onResult = vi.fn();
+
+        await expect(environment.executeQuery('SELECT 42', abort.signal, undefined, onResult)).rejects.toMatchObject({ name: 'AbortError' });
+        expect(onResult).toHaveBeenCalledWith(1, 1);
+        expect(environment.releaseResult).toBe(releaseResult);
+    });
+
     it('rejects an already cancelled query before it reaches the executor', async () => {
         const { execute, calls } = executor(async () => null);
         const environment = createEmbeddedDatabaseShellEnvironment(execute, 'shell');
